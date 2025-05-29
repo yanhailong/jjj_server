@@ -1,0 +1,33 @@
+logging:
+ config: config/logback.xml
+ level.*: debug
+
+server:
+ port: 9001
+
+dubbo:
+ application:
+  name: account_shiyi
+  qos-enable: false
+ registry:
+  address: zookeeper://192.168.3.31:2181
+  parameters:
+   listener:
+    manage: false
+ scan:
+  base-packages: com.vegasnight.game
+ shutdown:
+  graceful: true
+  timeout: 15000
+  destroy:
+   delay: -1
+
+
+spring:
+ data:
+  redis:
+   host: 192.168.3.31
+   port: 6379
+   database: 11
+  mongodb:
+   uri: mongodb://admin:jjg123456@192.168.3.31:27017/vegasnight_game_dev?authSource=admin
