@@ -12,7 +12,6 @@ import java.util.List;
 
 /**
  * 集群消息发送器
- * <p>
  * @since 1.0
  */
 @Component

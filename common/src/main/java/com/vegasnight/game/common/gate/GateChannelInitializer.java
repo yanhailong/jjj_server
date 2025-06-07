@@ -6,6 +6,7 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 
 /**
+ * netty初始化链配置
  * @since 1.0
  */
 public class GateChannelInitializer extends ChannelInitializer<SocketChannel> {
@@ -20,18 +21,6 @@ public class GateChannelInitializer extends ChannelInitializer<SocketChannel> {
                 .addLast(new GateMessageDecoder())
                 .addLast(new LengthFieldPrepender(HANDER_SIZE))
                 .addLast(new GateMessageEncoder())
-//                .addLast("idleStateHandler", new IdleStateHandler(25, 25, 20, TimeUnit.SECONDS))
-//                .addLast(new ChannelDuplexHandler() {
-//                    @Override
-//                    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-//                        if (evt instanceof IdleStateEvent) {
-//                            IdleStateEvent e = (IdleStateEvent) evt;
-//                            if (e.state() == IdleState.ALL_IDLE) {
-//                                ctx.close();
-//                            }
-//                        }
-//                    }
-//                })
                 .addLast(new GateSession());
     }
 }

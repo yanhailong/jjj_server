@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
+ * 拦截游戏日志，通过dubbo发送到logserver
  * @author 11
  * @date 2025/5/28 9:35
  */

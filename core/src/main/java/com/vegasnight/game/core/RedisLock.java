@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * redis分布式锁
  * @author 11
  * @date 2025/5/26 9:44
  */

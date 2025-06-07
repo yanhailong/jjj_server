@@ -15,9 +15,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 采用Netty4.x 实现NIO服务器，该类继承了Thread 线程类，应用过程中如果需要
- * <p>
  * 异步开启网络服务，可以调用start方法，否则直接调用run。
- * <p>
  *
  * @since 1.0
  */

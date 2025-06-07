@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 集群消息分发
  * @since 1.0
  */
 @ChannelHandler.Sharable

@@ -11,7 +11,9 @@ public enum NodeType {
     //大厅服务器
     HALL(3),
     //房间
-    ROOM(4);
+    ROOM(4),
+
+    GM(5);
 
     NodeType(int value) {
         this.value = value;

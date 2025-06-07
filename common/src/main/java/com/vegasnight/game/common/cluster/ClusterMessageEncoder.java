@@ -8,6 +8,7 @@ import com.vegasnight.game.common.protostuff.ProtostuffUtil;
 import java.util.List;
 
 /**
+ * 节点消息编码器
  * @since 1.0
  */
 public class ClusterMessageEncoder extends MessageToMessageEncoder<ClusterMessage> {

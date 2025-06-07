@@ -1,4 +1,4 @@
-package com.vegasnight.game.account.service;
+package com.vegasnight.game.account.manager;
 
 import com.vegasnight.game.account.dao.PlayerIdDao;
 import com.vegasnight.game.common.curator.MarsCurator;
@@ -7,14 +7,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.SmartLifecycle;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 /**
  * @author 11
  * @date 2025/5/26 14:29
  */
-@Service
-public class AccountStartService implements SmartLifecycle {
+@Component
+public class AccountStartManager implements SmartLifecycle {
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
@@ -36,12 +36,16 @@ public class AccountStartService implements SmartLifecycle {
 
     @Override
     public void stop() {
-
         this.running = false;
     }
 
     @Override
     public boolean isRunning() {
         return this.running;
+    }
+
+    @Override
+    public int getPhase() {
+        return Integer.MIN_VALUE;
     }
 }

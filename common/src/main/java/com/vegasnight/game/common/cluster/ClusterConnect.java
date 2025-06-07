@@ -11,6 +11,7 @@ import com.vegasnight.game.common.protostuff.MessageUtil;
 import com.vegasnight.game.common.protostuff.PFMessage;
 
 /**
+ * 集群节点连接对象
  * @since 1.0
  */
 public class ClusterConnect extends NettyConnect<ClusterMessage> implements Connect {

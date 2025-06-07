@@ -3,6 +3,7 @@ package com.vegasnight.game.common.cluster;
 import com.vegasnight.game.common.protostuff.PFMessage;
 
 /**
+ * 节点之间通讯消息的包装类
  * @since 1.0
  */
 public class ClusterMessage {

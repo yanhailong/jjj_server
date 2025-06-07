@@ -14,7 +14,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * netty 连接抽象类
- * <p>
  * @since 1.0
  */
 public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> implements Connect {

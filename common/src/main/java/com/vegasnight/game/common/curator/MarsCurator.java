@@ -2,7 +2,6 @@ package com.vegasnight.game.common.curator;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import jakarta.annotation.PreDestroy;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
@@ -54,8 +53,9 @@ public class MarsCurator implements TreeCacheListener {
     @Autowired
     private NodeManager nodeManager;
 
+    //根节点目录
     private String rootPath;
-
+    //节点路径
     public String nodePath;
 
     private MarsNode marsRootNode;
@@ -71,6 +71,7 @@ public class MarsCurator implements TreeCacheListener {
     private NetAddress startClientNetAddress;
     private AtomicBoolean nodeInit = new AtomicBoolean();
 
+    //节点队列
     private ConcurrentLinkedQueue<TreeCacheEvent> queue = new ConcurrentLinkedQueue<>();
 
     public MarsCurator() {
@@ -91,11 +92,6 @@ public class MarsCurator implements TreeCacheListener {
             log.debug("mars curator init. ");
             ExponentialBackoffRetry retryPolicy = new ExponentialBackoffRetry(
                     zkConfig.getBaseSleepTimeMs(), zkConfig.getMaxRetries());
-
-//            CuratorFrameworkFactory.builder()
-//                    .connectString(zkConfig.getConnects())
-//                    .sessionTimeoutMs(zkConfig.getSessionTimeoutMs())
-//                    .connectionTimeoutMs(zkConfig.getConnectionTimeoutMs())
 
             client = CuratorFrameworkFactory.newClient(zkConfig.getConnects(),
                     zkConfig.getSessionTimeoutMs(), zkConfig.getConnectionTimeoutMs(), retryPolicy);
@@ -133,9 +129,6 @@ public class MarsCurator implements TreeCacheListener {
             }else if(NodeType.HALL.name().equals(nodeConfig.getType())){
                 String path = mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType();
                 pathMap.put(NodeType.HALL.getValue(),path);
-            }else if(NodeType.ACCOUNT.name().equals(nodeConfig.getType())){
-                String path = mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType();
-                pathMap.put(NodeType.ACCOUNT.getValue(),path);
             }
 
             for(Map.Entry<Integer,String> en : pathMap.entrySet()){
@@ -238,14 +231,14 @@ public class MarsCurator implements TreeCacheListener {
         return nodePath;
     }
 
+    /**
+     * 执行其他监听节点变化的方法
+     * @param nodeChangeType
+     * @param marsNode
+     */
     private void notifyMarsNodeListener(NodeChangeType nodeChangeType, MarsNode marsNode) {
-        //如果是account节点，就不需要通知其他节点进行连接，只需要zookeeper进行主节点竞选的功能
-        if(marsNode.getNodeConfig() != null && NodeType.ACCOUNT.name().equalsIgnoreCase(marsNode.getNodeConfig().getType())){
-            return;
-        }
-
-
         String path = marsNode.getNodePath();
+
         if ((nodePath == null || !nodePath.equals(path)) && !rootPath.equals(path) && marsNode.getNodeConfig() != null) {
             marsNodeListeners.forEach((k,v) -> {
                 v.nodeChange(nodeChangeType,marsNode);
@@ -260,6 +253,12 @@ public class MarsCurator implements TreeCacheListener {
         return marsRootNode.getChildren(path, true);
     }
 
+    /**
+     * 添加节点
+     * @param path
+     * @param data
+     * @return
+     */
     private MarsNode addMarsNode(String path, String data) {
         MarsNode marsNode = new MarsNode(path, data);
         if (path.equals(rootPath)) {
@@ -271,6 +270,12 @@ public class MarsCurator implements TreeCacheListener {
         return marsNode;
     }
 
+    /**
+     * 更新节点
+     * @param path
+     * @param data
+     * @return
+     */
     private MarsNode updateMarsNode(String path, String data) {
         MarsNode marsNode = marsRootNode.getChildren(path, true);
         if (marsNode != null) {
@@ -279,6 +284,11 @@ public class MarsCurator implements TreeCacheListener {
         return marsNode;
     }
 
+    /**
+     * 删除节点
+     * @param path
+     * @return
+     */
     private MarsNode removeMarsNode(String path) {
         MarsNode marsNode = marsRootNode.removeChildren(path);
         if (marsNode != null) {
@@ -327,6 +337,12 @@ public class MarsCurator implements TreeCacheListener {
         });
     }
 
+    /**
+     * 监听 ZooKeeper 树形结构节点的变化
+     * @param client
+     * @param event
+     * @throws Exception
+     */
     @Override
     public void childEvent(CuratorFramework client, TreeCacheEvent event)
             throws Exception {
@@ -373,6 +389,9 @@ public class MarsCurator implements TreeCacheListener {
         return startClientNetAddress;
     }
 
+    /**
+     * 处理节点变化事件
+     */
     private synchronized void startMarsNodeEvent(){
         TreeCacheEvent event = null;
         while ((event = queue.poll()) != null){
@@ -416,20 +435,21 @@ public class MarsCurator implements TreeCacheListener {
                 return true;
             }
 
-            if(!NodeType.ROOM.name().equals(this.nodeConfig.getType())){
-                return true;
-            }
-
             String[] pathArr = path.split("/");
             if(pathArr.length < 4){
                 return true;
             }
             String nodeType = pathArr[3];
-            if(NodeType.HALL.name().equals(nodeType) || NodeType.GATE.name().equals(nodeType)){
+            if(NodeType.HALL.name().equals(nodeType)){
                 return true;
-            }
-
-            if(NodeType.ROOM.name().equals(nodeType)){
+            }else if(NodeType.GATE.name().equals(nodeType)){
+                //网关不需要和gm连接
+                if(NodeType.GM.name().equals(this.nodeConfig.getType())){
+                    log.debug("网关不需要和gm连接1 thisNodeType = {},targetNodeType={}",this.nodeConfig.getType(),nodeType);
+                    return false;
+                }
+                return true;
+            }else if(NodeType.ROOM.name().equals(nodeType)){
                 if(StringUtils.isEmpty(data)){
                     return true;
                 }
@@ -451,6 +471,12 @@ public class MarsCurator implements TreeCacheListener {
                 }
                 log.debug("这个节点不需要缓存  anotherNodeName={},gameTypes={}",anotherNodeConfig.getName(),Arrays.toString(anotherNodeConfig.getGameTypes()));
                 return false;
+            }else if(NodeType.GM.name().equals(nodeType)){
+                //网关不需要和gm连接
+                if(NodeType.GATE.name().equals(this.nodeConfig.getType())){
+                    log.debug("网关不需要和gm连接2 thisNodeType = {},targetNodeType={}",this.nodeConfig.getType(),nodeType);
+                    return true;
+                }
             }
 
             if("master".equalsIgnoreCase(nodeType)){

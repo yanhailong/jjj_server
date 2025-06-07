@@ -9,12 +9,8 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 
 /**
- * <p>
  * 消息头固定字节数消息处理器，本类采用固定4字节头(int),头信息不包含头本身字节数的方式定义
- * </p>
- * <p>
  * 消息包大小限定为2M类，超出后会抛出异常
- * </p>
  *
  * @scene 1.0
  */

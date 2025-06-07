@@ -66,7 +66,6 @@ public final class TimeHelper {
 
     /**
      * 根据传入的目标时间返回1970年1月1日到目标时间的秒数，如果传入的时间格式不对，则返回-1
-     * <p>
      * yyyy-MM-dd HH:mm:ss
      *
      * @param strDate 一个时间的字符串表示法
@@ -78,7 +77,6 @@ public final class TimeHelper {
 
     /**
      * 根据传入的目标时间返回1970年1月1日到目标时间的秒数，如果传入的时间格式不对，则返回-1
-     * <p>
      * yyyy-MM-dd HH:mm:ss
      *
      * @param strDate 一个时间的字符串表示法

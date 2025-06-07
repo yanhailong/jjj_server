@@ -9,6 +9,7 @@ import com.vegasnight.game.common.protostuff.PFMessage;
 import java.util.List;
 
 /**
+ * 消息编码器
  * @since 1.0
  */
 public class GateMessageEncoder extends MessageToMessageEncoder<PFMessage> {

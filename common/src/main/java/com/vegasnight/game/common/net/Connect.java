@@ -1,8 +1,7 @@
 package com.vegasnight.game.common.net;
 
 /**
- * <p>连接接口</p>
- * <p>
+ * 连接接口
  * @since 1.0
  */
 public interface Connect<T> {

@@ -10,6 +10,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 多线程连接通道初始化器
  * @since 1.0
  */
 public class ClusterConnectWorkPoolInitializer extends ChannelInitializer<SocketChannel> {

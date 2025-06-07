@@ -18,9 +18,7 @@ dubbo:
   base-packages: com.vegasnight.game
  shutdown:
   graceful: true
-  timeout: 15000
-  destroy:
-   delay: -1
+  timeout: 3000
 
 
 spring:
@@ -30,4 +28,4 @@ spring:
    port: 6379
    database: 11
   mongodb:
-   uri: mongodb://admin:jjg123456@192.168.3.31:27017/vegasnight_game_dev?authSource=admin
+   uri: mongodb://admin:jjg123456@192.168.3.31:27017/vegasnight_game_dev

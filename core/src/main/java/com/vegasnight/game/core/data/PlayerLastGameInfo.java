@@ -4,6 +4,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
+ * 存储玩家最近一次玩游戏的信息
  * @author 11
  * @date 2025/5/26 17:00
  */

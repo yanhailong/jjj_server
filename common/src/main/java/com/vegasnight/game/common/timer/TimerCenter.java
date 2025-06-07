@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.*;
 
 /**
+ * 系统公共 定时器 or 线程池
  * @since 1.0
  */
 public class TimerCenter extends Thread {

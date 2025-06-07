@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 集群系统总线
- * <p>
  * @since 1.0
  */
 @Component
@@ -495,7 +494,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
 
     @Override
     public void nodeChange(NodeChangeType nodeChangeType, MarsNode marsNode) {
-        log.debug("集群节点信息修改,nodePath={}", marsNode.getNodePath());
+        log.debug("集群节点信息修改,nodePath={},nodeChangeType = {}", marsNode.getNodePath(),nodeChangeType);
         switch (nodeChangeType) {
             case NODE_ADD:
                 nodeAdd(marsNode);

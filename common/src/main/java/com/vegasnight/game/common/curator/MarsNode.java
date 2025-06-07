@@ -7,23 +7,17 @@ import com.vegasnight.game.common.config.NodeConfig;
 import java.util.*;
 
 /**
- * <p>节点</p>
+ * 节点
  * @since 1.0
  */
 public class MarsNode {
-    /**
-     * 节点路径
-     */
+    //节点路径
     private String nodePath;
-    /**
-     * 节点数据
-     */
+    //节点数据
     private String nodeData;
-    /* 节点信息*/
+    //节点信息
     private NodeConfig nodeConfig;
-    /**
-     * 子节点
-     */
+    //子节点
     private Map<String, MarsNode> childrenNodes = new HashMap<>();
 
     public MarsNode(String nodePath, String nodeData) {

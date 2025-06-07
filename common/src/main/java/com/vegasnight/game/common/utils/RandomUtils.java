@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
+ * 随机工具类
  * @scene 1.0
  */
 public class RandomUtils {

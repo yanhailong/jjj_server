@@ -19,15 +19,11 @@ import com.vegasnight.game.common.protostuff.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * <p>
  * 玩家网关服务器会话对象
- * </p>
- * <p>
  * @since 1.0
  */
 public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMessage>, ConnectListener {

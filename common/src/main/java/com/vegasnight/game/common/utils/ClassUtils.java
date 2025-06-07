@@ -292,9 +292,7 @@ public final class ClassUtils {
     }
 
     /**
-     * <p>
      * 给一个类或接口，获取指定包下面的所有实现类，并排除自身
-     * </p>
      *
      * @param <T>
      * @param packageName 包名
@@ -318,9 +316,7 @@ public final class ClassUtils {
     }
 
     /**
-     * <p>
      * 给一个注解，获取指定包下面的所有使用这个注解的类
-     * </p>
      *
      * @param packageName 包名
      * @param cnnotation  注解类

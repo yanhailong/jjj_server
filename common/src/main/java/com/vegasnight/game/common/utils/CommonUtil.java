@@ -3,6 +3,7 @@ package com.vegasnight.game.common.utils;
 import org.springframework.context.ApplicationContext;
 
 /**
+ * 存储ApplicationContext
  * @author 11
  * @date 2022/6/9
  */

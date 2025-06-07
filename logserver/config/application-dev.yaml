@@ -14,8 +14,9 @@ dubbo:
   register-mode: instance
  scan:
   base-packages: com.vegasnight.game
-  protocol:
+ protocol:
    name: dubbo
+   host: 192.168.3.31
    port: 20883
 
 

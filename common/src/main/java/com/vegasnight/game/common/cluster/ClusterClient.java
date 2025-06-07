@@ -6,10 +6,7 @@ import com.vegasnight.game.common.net.Connect;
 import com.vegasnight.game.common.netty.ConnectPool;
 
 /**
- * <p>
  * 集群客户端对象
- * </p>
- * <p>
  * @since 1.0
  */
 public class ClusterClient {

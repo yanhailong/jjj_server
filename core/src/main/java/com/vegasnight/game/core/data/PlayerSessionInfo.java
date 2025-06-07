@@ -1,6 +1,7 @@
 package com.vegasnight.game.core.data;
 
 /**
+ * 玩家节点信息
  * @author 11
  * @date 2025/5/26 16:58
  */

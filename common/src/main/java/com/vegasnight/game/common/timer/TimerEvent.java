@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * timercenter里面的定时(任务)事件
  * @since 1.0
  */
 public class TimerEvent<T> implements Runnable {

@@ -8,7 +8,6 @@ import java.util.Set;
 
 /**
  * 集群节点配置信息
- * <p>
  * @since 1.0
  */
 @ConfigurationProperties(prefix = "cluster")

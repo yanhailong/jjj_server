@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.repository.support.SimpleMongoRepository
 import java.io.Serializable;
 
 /**
+ * mongo db 数据访问基类
  * @author 11
  * @date 2025/5/26 17:04
  */

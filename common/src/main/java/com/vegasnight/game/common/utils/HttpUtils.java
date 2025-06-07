@@ -187,7 +187,6 @@ public class HttpUtils {
 
     /**
      * 使用http get请求
-     * <p>
      * 使用默认的头信息与UTF8编码，如果需要自定义头信息与编码消息，请使用
      * {@link #doGet(String, Map, Map, String, String)}
      *

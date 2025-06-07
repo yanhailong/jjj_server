@@ -19,7 +19,6 @@ import java.util.Map;
 
 /**
  * 集群消息处理器
- * <p>
  * @since 1.0
  */
 @Component

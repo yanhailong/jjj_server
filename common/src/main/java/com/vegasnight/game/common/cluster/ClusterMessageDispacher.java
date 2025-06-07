@@ -16,6 +16,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import java.util.Map;
 
 /**
+ * 节点消息分发
  * @since 1.0
  */
 @ChannelHandler.Sharable
@@ -35,6 +36,18 @@ public class ClusterMessageDispacher {
         this.clusterSystem = clusterSystem;
     }
 
+    /**
+     * 初始化
+     * @param context
+     */
+    public void init(ApplicationContext context){
+        this.sessionRefenerceBinderMap = context.getBeansOfType(SessionRefenerceBinder.class);
+
+        messageControllers = MessageUtil.load(context);
+        MessageUtil.loadResponseMessage("com.vegasnight.game");
+        messageControllers.entrySet().forEach(e -> log.info("消息处理器[{}]->{}", e.getKey(), e.getValue().been.getClass().getName()));
+    }
+
     public PFSession getPFSession(String id) {
         PFSession pfSession = clusterSystem.sessionMap().get(id);
 //        if (pfSession==null){
@@ -43,6 +56,11 @@ public class ClusterMessageDispacher {
         return pfSession;
     }
 
+    /**
+     * 收到消息
+     * @param connect
+     * @param clusterMessage
+     */
     public void onClusterReceive(Connect connect, ClusterMessage clusterMessage) {
         String sessionId = clusterMessage.sessionId;
         PFSession session = null;
@@ -76,6 +94,12 @@ public class ClusterMessageDispacher {
         }
     }
 
+    /**
+     * 根据消息查找对应的controller或者handler进行处理
+     * @param connect
+     * @param session
+     * @param msg
+     */
     public void handle(Connect connect, PFSession session, PFMessage msg) {
         int messageType = 0;
         int command = 0;
@@ -123,17 +147,4 @@ public class ClusterMessageDispacher {
             log.warn("消息解析错误,messageType=" + messageType + ",cmd=" + command + ",hex = 0x" + Integer.toHexString(command), e);
         }
     }
-
-    public void init(ApplicationContext context){
-        this.sessionRefenerceBinderMap = context.getBeansOfType(SessionRefenerceBinder.class);
-
-        messageControllers = MessageUtil.load(context);
-        MessageUtil.loadResponseMessage("com.vegasnight.game");
-        messageControllers.entrySet().forEach(e -> log.info("消息处理器[{}]->{}", e.getKey(), e.getValue().been.getClass().getName()));
-    }
-
-    /*@Override
-    public void onApplicationEvent(ContextRefreshedEvent event) {
-        init(event.getApplicationContext());
-    }*/
 }

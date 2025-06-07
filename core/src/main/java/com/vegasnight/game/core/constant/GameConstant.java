@@ -1,6 +1,7 @@
 package com.vegasnight.game.core.constant;
 
 /**
+ * 游戏常量
  * @author 11
  * @date 2025/5/26 11:28
  */

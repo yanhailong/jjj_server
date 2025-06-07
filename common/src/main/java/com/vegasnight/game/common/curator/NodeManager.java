@@ -28,6 +28,8 @@ import java.util.Map;
 import static com.vegasnight.game.common.data.MarsConst.SEPARATOR;
 
 /**
+ * 节点管理
+ * 负责节点配置，注册，加载，获取等
  * @since 1.0
  */
 @Component

@@ -3,9 +3,7 @@ package com.vegasnight.game.common.cluster;
 import com.vegasnight.game.common.net.NetAddress;
 
 /**
- * <p>
  * 集群服务
- * <p>
  * @since 1.0
  */
 public interface ClusterService {

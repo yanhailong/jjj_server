@@ -2,11 +2,8 @@ package com.vegasnight.game.common.net;
 
 /**
  * Session 类抽象接口
- * <p>
  * 泛型类型 T 表示该session可发送的消息类型
- * <p>
  * 泛型类型 M 表示该session中连接可发送的消息类型
- * <p>
  * @since 1.0
  */
 public abstract class Session<T, M> implements ConnectListener {

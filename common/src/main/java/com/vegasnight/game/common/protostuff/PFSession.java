@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 用户session
- * <p>
  *
  * @since 1.0
  */
