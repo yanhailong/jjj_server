@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.vegasnight.game</groupId>
+    <groupId>com.jjg.game</groupId>
     <artifactId>core</artifactId>
     <version>1.0.0</version>
 
@@ -16,26 +16,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.vegasnight.game</groupId>
+            <groupId>com.jjg.game</groupId>
             <artifactId>common</artifactId>
             <version>1.0.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.vegasnight.game</groupId>
-            <artifactId>logdata</artifactId>
-            <version>1.0.0-JJG-RELEASES</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.dubbo</groupId>
-            <artifactId>dubbo-spring-boot-starter</artifactId>
-            <version>3.2.2</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-x-discovery</artifactId>
-            <version>2.7.1</version>
         </dependency>
 
         <!-- 获取继承类工具 -->
@@ -56,6 +39,12 @@
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
             <version>5.2.5</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+            <version>3.1.2</version>
         </dependency>
     </dependencies>
 </project>

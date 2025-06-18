@@ -3,7 +3,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.vegasnight.game</groupId>
+    <groupId>com.jjg.game</groupId>
     <artifactId>hall</artifactId>
     <version>1.0.0-JJG-RELEASES</version>
 
@@ -25,7 +25,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.vegasnight.game</groupId>
+            <groupId>com.jjg.game</groupId>
             <artifactId>core</artifactId>
             <version>1.0.0</version>
         </dependency>
@@ -95,7 +95,7 @@
                     </descriptors>
                     <archive>
                         <manifest>
-                            <mainClass>com.vegasnight.game.hall.HallApp</mainClass>
+                            <mainClass>com.jjg.game.hall.HallApp</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

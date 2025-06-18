@@ -21,7 +21,7 @@
                 </encoder>
         </appender>
 
-        <logger name="com.vegasnight.game" level="debug" />
+        <logger name="com.jjg.game" level="debug" />
         <logger name="org.apache.commons.httpclient" level="error" />
 
         <root level="info">

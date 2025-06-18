@@ -6,32 +6,10 @@ zookeeper:
  connects: 192.168.3.31:2181
  marsRoot: jjg
 
-dubbo:
- application:
-  name: ${cluster.name}
-  qos-enable: false
- registry:
-  address: zookeeper://${zookeeper.connects}
-  parameters:
-   listener:
-    manage: false
- scan:
-  base-packages: com.vegasnight.game
- shutdown:
-  graceful: true
-  timeout: 15000
-  destroy:
-   delay: -1
-
 cluster:
  type: GM
  name: GM_SHIYI
  weight: 2
- tcpAddress:
-  port: 13006
-  host: 192.168.3.18
- masterSelect: true
-
 
 spring:
  main:
@@ -42,4 +20,4 @@ spring:
    port: 6379
    database: 11
   mongodb:
-   uri: mongodb://admin:jjg123456@192.168.3.31:27017/vegasnight_game_dev
+   uri: mongodb://admin:jjg123456@192.168.3.31:27017/jjg_game_dev

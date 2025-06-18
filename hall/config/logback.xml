@@ -21,8 +21,9 @@
                 </encoder>
         </appender>
 
-        <logger name="com.vegasnight.game" level="debug" />
+        <logger name="com.jjg.game" level="debug" />
         <logger name="org.apache.commons.httpclient" level="error" />
+        <logger name="org.apache.kafka" level="WARN"/>
 
         <root level="info">
                 <appender-ref ref="console" />

@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.vegasnight.game</groupId>
+    <groupId>com.jjg.game</groupId>
     <artifactId>account</artifactId>
     <version>1.0.0-JJG-RELEASES</version>
 
@@ -30,7 +30,7 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.vegasnight.game</groupId>
+            <groupId>com.jjg.game</groupId>
             <artifactId>core</artifactId>
             <version>1.0.0</version>
         </dependency>
@@ -89,7 +89,7 @@
                     </descriptors>
                     <archive>
                         <manifest>
-                            <mainClass>com.vegasnight.game.account.AccountApp</mainClass>
+                            <mainClass>com.jjg.game.account.AccountApp</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

@@ -14,12 +14,12 @@ factorySource = "public static SampleFactory<%s> factory = new SampleFactoryImpl
 javaSourceTemplate = """
  package %s;
 
- import com.vegasnight.game.core.sample.Sample;
- import com.vegasnight.game.core.sample.SampleFactory;
- import com.vegasnight.game.core.sample.SampleFactoryImpl;
+ import sample.com.jjg.game.core.Sample;
+ import sample.com.jjg.game.core.SampleFactory;
+ import sample.com.jjg.game.core.SampleFactoryImpl;
+ import proto.com.jjg.game.common.ProtoDesc;
  import io.protostuff.Tag;
- import com.vegasnight.game.common.proto.ProtobufMessage;
- import java.util.*;
+ import proto.com.jjg.game.common.ProtobufMessage;
 
 /**
  * Auto generate by "Python tools"
@@ -62,7 +62,7 @@ public class %s
 
 """
 
-topackage = "com.vegasnight.game.sample"
+topackage = "com.jjg.game.sample"
 
 
 class Field:
@@ -76,7 +76,7 @@ class Field:
         return self.fieldName == o.fieldName
 
     def genField(self, i):
-        return "\t@Tag(%s)\n\t// %s\n\t%s %s %s;\n" % (
+        return "\t@Tag(%s)\n\t@ProtoDesc(\"%s\")\n\t%s %s %s;\n" % (
             self.index, self.comment, self.modifier, self.fieldType, self.fieldName)
 
     def genCsField(self, i):
