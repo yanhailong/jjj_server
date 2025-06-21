@@ -9,7 +9,7 @@ import com.jjg.game.dollarexpress.constant.DollarExpressConst;
  * @author 11
  * @date 2025/6/12 17:11
  */
-@ProtobufMessage(messageType = DollarExpressConst.MSGBEAN.TYPE, cmd = DollarExpressConst.MSGBEAN.REQ_START_GAME)
+@ProtobufMessage(messageType = DollarExpressConst.MsgBean.TYPE, cmd = DollarExpressConst.MsgBean.REQ_START_GAME)
 @ProtoDesc("请求开始游戏")
 public class ReqStartGame extends AbstractMessage {
     @ProtoDesc("下注金额")

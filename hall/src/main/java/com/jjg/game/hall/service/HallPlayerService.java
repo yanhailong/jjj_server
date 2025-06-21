@@ -6,7 +6,7 @@ import com.jjg.game.core.dao.PlayerDao;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
-import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.AbstractPlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,7 @@ import java.util.Optional;
  * @date 2025/5/26 16:49
  */
 @Service
-public class PlayerService extends CorePlayerService {
+public class HallPlayerService extends AbstractPlayerService {
     @Autowired
     private PlayerDao playerDao;
     @Autowired

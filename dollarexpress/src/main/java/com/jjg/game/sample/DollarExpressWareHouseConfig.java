@@ -10,7 +10,7 @@
 
 /**
  * Auto generate by "Python tools"
- * @Date 2025-06-17 17:20:40
+ * @Date 2025-06-20 11:50:22
  */
  @ProtobufMessage
  public class DollarExpressWareHouseConfig extends Sample{
@@ -26,45 +26,36 @@
 	@ProtoDesc("水池初始值")
 	public long basicWarehouse;
 	@Tag(4)
-	@ProtoDesc("水池大奖虚拟金额")
-	public long grandPrize;
-	@Tag(5)
-	@ProtoDesc("进入条件_VIP等级")
-	public int require_viplevel;
-	@Tag(6)
-	@ProtoDesc("进入条件_最低金额")
-	public long require_amount;
-	@Tag(7)
 	@ProtoDesc("押注_1")
-	public long stake_1;
-	@Tag(8)
+	public int stake_1;
+	@Tag(5)
 	@ProtoDesc("押注_2")
-	public long stake_2;
-	@Tag(9)
+	public int stake_2;
+	@Tag(6)
 	@ProtoDesc("押注_3")
-	public long stake_3;
-	@Tag(10)
+	public int stake_3;
+	@Tag(7)
 	@ProtoDesc("押注_4")
-	public long stake_4;
-	@Tag(11)
+	public int stake_4;
+	@Tag(8)
 	@ProtoDesc("押注_5")
-	public long stake_5;
-	@Tag(12)
+	public int stake_5;
+	@Tag(9)
 	@ProtoDesc("押注_6")
-	public long stake_6;
-	@Tag(13)
+	public int stake_6;
+	@Tag(10)
 	@ProtoDesc("押注_7")
-	public long stake_7;
-	@Tag(14)
+	public int stake_7;
+	@Tag(11)
 	@ProtoDesc("押注_8")
-	public long stake_8;
-	@Tag(15)
+	public int stake_8;
+	@Tag(12)
 	@ProtoDesc("押注_9")
-	public long stake_9;
-	@Tag(16)
+	public int stake_9;
+	@Tag(13)
 	@ProtoDesc("押注_10")
-	public long stake_10;
-	@Tag(17)
+	public int stake_10;
+	@Tag(14)
 	@ProtoDesc("底注倍数")
 	public int multiplier;
 

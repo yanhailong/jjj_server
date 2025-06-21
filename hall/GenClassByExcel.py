@@ -14,12 +14,12 @@ factorySource = "public static SampleFactory<%s> factory = new SampleFactoryImpl
 javaSourceTemplate = """
  package %s;
 
- import sample.com.jjg.game.core.Sample;
- import sample.com.jjg.game.core.SampleFactory;
- import sample.com.jjg.game.core.SampleFactoryImpl;
- import proto.com.jjg.game.common.ProtoDesc;
+ import com.jjg.game.core.sample.Sample;
+ import com.jjg.game.core.sample.SampleFactory;
+ import com.jjg.game.core.sample.SampleFactoryImpl;
+ import com.jjg.game.common.proto.ProtoDesc;
  import io.protostuff.Tag;
- import proto.com.jjg.game.common.ProtobufMessage;
+ import com.jjg.game.common.proto.ProtobufMessage;
 
 /**
  * Auto generate by "Python tools"

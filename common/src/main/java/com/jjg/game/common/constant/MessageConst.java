@@ -11,7 +11,6 @@ public interface MessageConst {
         int MESSAGE_CAL = 0xFFF;
     }
 
-
     interface SessionConst {
         int TYPE = 0x2;
         int NOTIFY_SESSION_QUIT = 0x2001;

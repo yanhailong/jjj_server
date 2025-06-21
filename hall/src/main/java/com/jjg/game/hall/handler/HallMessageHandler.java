@@ -1,5 +1,6 @@
 package com.jjg.game.hall.handler;
 
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
@@ -7,34 +8,46 @@ import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.constant.HallCode;
 import com.jjg.game.hall.constant.HallMessageConst;
-import com.jjg.game.hall.pb.ReqEnterGame;
-import com.jjg.game.hall.pb.ResEnterGame;
-import com.jjg.game.hall.service.PlayerService;
+import com.jjg.game.hall.data.WareHouseConfigInfo;
+import com.jjg.game.hall.pb.ReqChooseWare;
+import com.jjg.game.hall.pb.ReqChooseGame;
+import com.jjg.game.hall.pb.ResChooseGame;
+import com.jjg.game.hall.pb.ResChooseWare;
+import com.jjg.game.hall.service.HallPlayerService;
+import com.jjg.game.hall.service.HallService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * @author 11
  * @date 2025/6/10 17:13
  */
 @Component
-@MessageType(HallMessageConst.MSGBEAN.TYPE)
+@MessageType(HallMessageConst.MsgBean.TYPE)
 public class HallMessageHandler implements GmListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private PlayerService playerService;
+    private HallPlayerService hallPlayerService;
+    @Autowired
+    private PlayerSessionService playerSessionService;
     @Autowired
     private ClusterSystem clusterSystem;
     @Autowired
     private NodeManager nodeManager;
+    @Autowired
+    private HallService hallService;
 
 
     /**
@@ -42,47 +55,85 @@ public class HallMessageHandler implements GmListener {
      * @param playerController
      * @param req
      */
-    @Command(HallMessageConst.MSGBEAN.REQ_ENTER_GAME)
-    public void reqEnterGame(PlayerController playerController, ReqEnterGame req){
-        ResEnterGame res = new ResEnterGame(HallCode.SUCCESS);
+    @Command(HallMessageConst.MsgBean.REQ_ENTER_GAME)
+    public void reqEnterGame(PlayerController playerController, ReqChooseGame req){
+        ResChooseGame res = new ResChooseGame(HallCode.SUCCESS);
         try{
             if(req.gameType < 1){
-                log.debug("游戏类型错误，进入游戏失败 playerId = {},gameType = {}",playerController.playerId(),req.gameType);
+                res.code = Code.PARAM_ERROR;
+                log.debug("游戏类型错误，选择游戏失败 playerId = {},gameType = {}",playerController.playerId(),req.gameType);
                 return;
             }
 
-            //获取对应的游戏节点
-            MarsNode node = nodeManager.loadGameNode(NodeType.GAME, req.gameType, playerController.playerId(), playerController.player.getIp());
-            if(node == null){
-                log.debug("获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}",playerController.playerId(),req.gameType);
+            List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(req.gameType);
+            if(wareHouseConfigList == null || wareHouseConfigList.isEmpty()){
+                res.code = Code.NOT_FOUND;
+                log.debug("未找到对应的游戏场次配置，选择游戏失败 playerId = {},gameType = {}",playerController.playerId(),req.gameType);
                 return;
             }
 
-            //切换节点
-            clusterSystem.switchNode(playerController.session,node);
-
+            res.wareHouseList = wareHouseConfigList;
             playerController.send(res);
-
-            playerService.checkAndSave(playerController.playerId(), p -> {
-                p.setGameType(req.gameType);
-                return true;
-            });
         }catch (Exception e){
             log.error("",e);
         }
     }
 
-    @Override
-    public String gm(PFSession session,String cmd,String params) {
+    /**
+     * 选择游戏场次进入
+     * @param playerController
+     * @param req
+     */
+    @Command(HallMessageConst.MsgBean.REQ_CHOOSE_WARE)
+    public void reqChooseWare(PlayerController playerController, ReqChooseWare req){
+        ResChooseWare res = new ResChooseWare(HallCode.SUCCESS);
         try{
-            log.debug("收到gm命令 playerId = {},cmd = {},params = {}",session.getPlayerId(),cmd,params);
+            log.info("收到玩家选择游戏场次 playerId={},req={}",playerController.playerId(), JSONObject.toJSONString(req));
+
+            if(req.gameType < 1){
+                res.code = Code.PARAM_ERROR;
+                log.debug("游戏类型错误，选择场次失败 playerId = {},gameType = {}",playerController.playerId(),req.gameType);
+                return;
+            }
+
+            List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(req.gameType);
+            if(wareHouseConfigList == null || wareHouseConfigList.isEmpty()){
+                res.code = Code.NOT_FOUND;
+                log.debug("未找到对应的游戏场次配置，选择场次失败 playerId = {},gameType = {}",playerController.playerId(),req.gameType);
+                return;
+            }
+
+            WareHouseConfigInfo info = wareHouseConfigList.stream().filter(c -> c.wareId == req.wareId).findFirst().orElse(null);
+            if(info == null){
+                res.code = Code.NOT_FOUND;
+                log.debug("未找到对应的游戏场次配置2，选择场次失败 playerId = {},gameType = {},wareId = {}",playerController.playerId(),req.gameType,req.wareId);
+                return;
+            }
+
+            MarsNode node = nodeManager.loadGameNode(NodeType.GAME, req.gameType, playerController.playerId(), playerController.player.getIp());
+            if(node == null){
+                res.code = Code.NOT_FOUND;
+                log.debug("获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}",playerController.playerId(),req.gameType);
+                return;
+            }
+
+            //更新session中的gametype
+            playerSessionService.changeGameType(playerController.playerId(), req.gameType, req.wareId);
+            //切换节点
+            clusterSystem.switchNode(playerController.session,node);
+            playerController.send(res);
+        }catch (Exception e){
+            log.error("", e);
+        }
+    }
+
+    @Override
+    public String gm(PlayerController playerController,String cmd,String params) {
+        try{
+            log.debug("收到gm命令 playerId = {},cmd = {},params = {}",playerController.playerId(),cmd,params);
             if("enterGame".equals(cmd)){
-                Player player = playerService.get(session.getPlayerId());
-                PlayerController playerController = new PlayerController(session,player);
-
-                ReqEnterGame req = new ReqEnterGame();
+                ReqChooseGame req = new ReqChooseGame();
                 req.gameType = Integer.parseInt(params);
-
                 reqEnterGame(playerController,req);
             }
 

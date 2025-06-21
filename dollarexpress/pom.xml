@@ -90,7 +90,7 @@
                     </descriptors>
                     <archive>
                         <manifest>
-                            <mainClass>com.jjg.game.dollarexpress.DollarExpressApp</mainClass>
+                            <mainClass>com.jjg.game.room.RoomApp</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

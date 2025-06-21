@@ -24,7 +24,6 @@ public class PlayerLastGameInfoDao extends MongoBaseDao<PlayerLastGameInfo, Long
         Query query = new Query();
         int skip = page * pageSize;
         query.skip(skip);
-        //query.with(Sort.by(Sort.Order.desc("_id")));
         query.limit(pageSize);
         return mongoTemplate.find(query, PlayerLastGameInfo.class);
     }
@@ -33,7 +32,6 @@ public class PlayerLastGameInfoDao extends MongoBaseDao<PlayerLastGameInfo, Long
         Query query = new Query(Criteria.where("_id").is(playerId));
         Update update = new Update();
         update.set("halfwayOffline",false);
-        update.set("canExit",true);
         mongoTemplate.updateFirst(query,update,PlayerLastGameInfo.class);
     }
 }

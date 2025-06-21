@@ -33,14 +33,6 @@ public class PlayerController {
         return player.getIp();
     }
 
-    public int roomId() {
-        return player.getRoomId();
-    }
-
-    public void setRoomId(int roomId) {
-        player.setRoomId(roomId);
-    }
-
     public Object getScene() {
         return scene;
     }

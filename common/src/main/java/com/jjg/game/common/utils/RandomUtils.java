@@ -3,12 +3,16 @@ package com.jjg.game.common.utils;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * 随机工具类
  * @scene 1.0
  */
 public class RandomUtils {
+
+	private static final LongAdder counter = new LongAdder();
+	private static final long BASE_TIMESTAMP = 1672531200000L;
 
 	public static String getRandomString(int length) {
 		String str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -70,4 +74,12 @@ public class RandomUtils {
 		}
 		return ThreadLocalRandom.current().nextInt(max);
 	}
+
+	public static String generateId() {
+		long time = (System.currentTimeMillis() - BASE_TIMESTAMP) << 22;
+		long seq = counter.sum() & 0x3FFFFF;
+		counter.increment();
+		return Long.toHexString(time | seq);
+	}
+
 }

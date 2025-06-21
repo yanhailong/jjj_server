@@ -1,12 +1,14 @@
 package com.jjg.game.common.cluster;
 
 import com.jjg.game.common.protostuff.*;
+import com.jjg.game.common.utils.RandomUtils;
 import io.netty.channel.ChannelHandler;
 import com.jjg.game.common.listener.SessionRefenerceBinder;
 import com.jjg.game.common.net.Connect;
 import com.jjg.game.common.protostuff.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.context.ApplicationContext;
 
 import java.util.Map;
@@ -123,8 +125,17 @@ public class ClusterMessageDispacher {
                             }
                         }
                     }
+
+                    if(session != null){
+                        MDC.put("playerId", session.playerId + "-" + session.sessionId());
+                    }
+
+//                    log.debug("cmd = {},msg.data = {}", command,msg.data);
                     messageController.methodAccess.invoke(bean, methodInfo.index, args);
                 } else {
+                    if(session != null){
+                        MDC.put("playerId", session.playerId + "-" + session.sessionId());
+                    }
                     messageController.methodAccess.invoke(bean, methodInfo.index);
                 }
             } else {
@@ -132,6 +143,8 @@ public class ClusterMessageDispacher {
             }
         } catch (Exception e) {
             log.warn("消息解析错误,messageType=" + messageType + ",cmd=" + command + ",hex = 0x" + Integer.toHexString(command), e);
+        } finally {
+            MDC.remove("playerId");
         }
     }
 }

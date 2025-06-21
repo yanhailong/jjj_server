@@ -1,6 +1,7 @@
 package com.jjg.game.account.logger;
 
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.core.logger.BaseLogger;
 import com.jjg.game.core.logger.CoreLogger;
 import org.springframework.stereotype.Component;
 
@@ -9,7 +10,7 @@ import org.springframework.stereotype.Component;
  * @date 2025/5/28 11:40
  */
 @Component
-public class AccountLogger extends CoreLogger {
+public class AccountLogger extends BaseLogger {
 
     private final String LOG_REGISTER_TYPE = "register";
 

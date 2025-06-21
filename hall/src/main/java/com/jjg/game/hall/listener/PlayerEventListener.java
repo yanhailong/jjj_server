@@ -13,13 +13,14 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionToken;
 import com.jjg.game.hall.pb.ReqLogin;
 import com.jjg.game.hall.pb.ResLogin;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.logger.HallLogger;
-import com.jjg.game.hall.service.PlayerService;
+import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sample.GameListConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -41,7 +42,7 @@ public class PlayerEventListener implements SessionCloseListener, SessionEnterLi
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private PlayerService playerService;
+    private HallPlayerService hallPlayerService;
     @Autowired
     private PlayerSessionService playerSessionService;
     @Autowired
@@ -103,7 +104,7 @@ public class PlayerEventListener implements SessionCloseListener, SessionEnterLi
                 return;
             }
 
-            CommonResult<Player> playerResult = playerService.loginAndNewOrSave(req.playerId, new CorePlayerService.PlayerSaveCallback() {
+            CommonResult<Player> playerResult = hallPlayerService.loginAndNewOrSave(req.playerId, new CorePlayerService.PlayerSaveCallback() {
                 @Override
                 public void newexe(Player player) throws UnsupportedEncodingException {
                     player.setNickName("player" + req.playerId);
@@ -140,7 +141,10 @@ public class PlayerEventListener implements SessionCloseListener, SessionEnterLi
             //添加游戏列表
             res.gameList = addGameList();
 
+            PlayerController playerController = new PlayerController(session, player);
+            session.setReference(playerController);
             session.send(res);
+
 
             hallLogger.login(player, req.token, playerSessionToken.getLoginType());
             log.info("玩家登录成功 playerId = {}",player.getId());
@@ -175,11 +179,15 @@ public class PlayerEventListener implements SessionCloseListener, SessionEnterLi
 
     @Override
     public void sessionClose(PFSession session) {
-
+        session.setReference(null);
     }
 
     @Override
     public void sessionEnter(PFSession session, long playerId) {
+        Player player = hallPlayerService.get(playerId);
+        PlayerController playerController = new PlayerController(session, player);
+        session.setReference(playerController);
+
         log.debug("玩家进入大厅节点 playerId={}",playerId);
     }
 }

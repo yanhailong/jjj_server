@@ -8,8 +8,6 @@ import org.apache.commons.lang3.StringUtils;
 import com.jjg.game.common.cluster.ClusterHelper;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.config.ZookeeperConfig;
-import com.jjg.game.common.monitor.FileLoader;
-import com.jjg.game.common.monitor.FileMonitor;
 import com.jjg.game.common.utils.FileHelper;
 import com.jjg.game.common.utils.RandomUtils;
 import org.slf4j.Logger;
@@ -29,7 +27,7 @@ import java.util.List;
  */
 @Component
 @Order(3)
-public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileLoader {
+public class NodeManager implements MarsCuratorListener, MarsNodeListener {
     Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -41,10 +39,6 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
 
     public String nodePath;
 
-    public String configFile = "config/nodeConfig.json";
-    @Autowired
-    public FileMonitor fileMonitor;
-
     public NodeManager() {
     }
 
@@ -55,29 +49,7 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
 
     public void init(MarsCurator marsCurator){
         this.marsCurator = marsCurator;
-        obConfig();
     }
-
-    public void obConfig() {
-        fileMonitor.addFileObserver(configFile, this, true);
-    }
-
-    @Override
-    public void load(File file, boolean isNew) {
-        try {
-            if(file.getName().endsWith(".swp")){
-                return;
-            }
-            log.info("on file change filename = {}，isNew={}", file.getName(), isNew);
-            readConfig(file);
-        } catch (Exception e) {
-            e.printStackTrace();
-            log.error("on file change exception,filename = {},isNew={}" ,file.getName() ,isNew, e);
-        }
-
-    }
-
-
 
     public void readConfig(File file) {
         String content = FileHelper.readFile(file, "UTF-8");

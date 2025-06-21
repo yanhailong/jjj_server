@@ -1,9 +1,10 @@
 package com.jjg.game.room;
 
 import com.jjg.game.common.config.NodeConfig;
-import com.jjg.game.room.listener.RoomStartListener;
+import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.service.CoreStartService;
+import com.jjg.game.room.listener.PlayerEventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -35,6 +36,8 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
     private CoreStartService coreStartService;
     @Autowired
     private NodeConfig nodeConfig;
+    @Autowired
+    private PlayerEventListener playerEventListener;
 
     private ApplicationContext context;
 
@@ -49,8 +52,8 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
         //获取支持的游戏类型
         List<int[]> gameTypeList = new ArrayList<>();
         int len = 0;
-        Map<String, RoomStartListener> startListenerMap = this.context.getBeansOfType(RoomStartListener.class);
-        for(Map.Entry<String, RoomStartListener> en : startListenerMap.entrySet()){
+        Map<String, IRoomStartListener> startListenerMap = this.context.getBeansOfType(IRoomStartListener.class);
+        for(Map.Entry<String, IRoomStartListener> en : startListenerMap.entrySet()){
             int[] arr = en.getValue().getGameTypes();
             if(arr != null && arr.length > 0){
                 gameTypeList.add(arr);
@@ -75,9 +78,9 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
 
         marsCoreStartService.init(this.context);
         coreStartService.init(this.context);
-
+        playerEventListener.init();
         //调用启动方法
-        for(Map.Entry<String, RoomStartListener> en : startListenerMap.entrySet()){
+        for(Map.Entry<String, IRoomStartListener> en : startListenerMap.entrySet()){
             en.getValue().start();
         }
         running = true;
@@ -88,8 +91,8 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
         marsCoreStartService.shutdown();
         coreStartService.shutdown();
 
-        Map<String, RoomStartListener> startListenerMap = this.context.getBeansOfType(RoomStartListener.class);
-        for(Map.Entry<String, RoomStartListener> en : startListenerMap.entrySet()){
+        Map<String, IRoomStartListener> startListenerMap = this.context.getBeansOfType(IRoomStartListener.class);
+        for(Map.Entry<String, IRoomStartListener> en : startListenerMap.entrySet()){
             en.getValue().shutdown();
         }
 

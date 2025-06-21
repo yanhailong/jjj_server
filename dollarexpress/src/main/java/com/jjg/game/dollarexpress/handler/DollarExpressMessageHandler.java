@@ -7,8 +7,9 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.dollarexpress.constant.DollarExpressConst;
 import com.jjg.game.dollarexpress.data.GameRunInfo;
 import com.jjg.game.dollarexpress.manager.DollarExpressManager;
-import com.jjg.game.dollarexpress.manager.SendMessageManager;
-import com.jjg.game.dollarexpress.pb.ReqChooseWare;
+import com.jjg.game.dollarexpress.manager.DollarExpressSendMessageManager;
+import com.jjg.game.dollarexpress.pb.ReqChooseFreeModel;
+import com.jjg.game.dollarexpress.pb.ReqInvestArea;
 import com.jjg.game.dollarexpress.pb.ReqStartGame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,42 +21,58 @@ import org.springframework.stereotype.Component;
  * @date 2025/6/12 17:15
  */
 @Component
-@MessageType(DollarExpressConst.MSGBEAN.TYPE)
+@MessageType(DollarExpressConst.MsgBean.TYPE)
 public class DollarExpressMessageHandler {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private DollarExpressManager dollarExpressManager;
     @Autowired
-    private SendMessageManager sendMessageManager;
-
-    /**
-     * 选择游戏场次进入
-     * @param playerController
-     * @param req
-     */
-    @Command(DollarExpressConst.MSGBEAN.REQ_CHOOSE_WARE)
-    public void reqChooseWare(PlayerController playerController, ReqChooseWare req){
-        try{
-            log.info("收到玩家选择游戏场次 playerId={},req={}",playerController.playerId(), JSONObject.toJSONString(req));
-            GameRunInfo gameRunInfo = dollarExpressManager.chooseWare(playerController, req.wareId);
-            sendMessageManager.sendChooseWareMessage(playerController,gameRunInfo);
-        }catch (Exception e){
-            log.error("", e);
-        }
-    }
+    private DollarExpressSendMessageManager dollarExpressSendMessageManager;
 
     /**
      * 开始游戏
      * @param playerController
      * @param req
      */
-    @Command(DollarExpressConst.MSGBEAN.REQ_START_GAME)
-    public void reqEnterGame(PlayerController playerController, ReqStartGame req){
+    @Command(DollarExpressConst.MsgBean.REQ_START_GAME)
+    public void reqStartGame(PlayerController playerController, ReqStartGame req){
         try{
             log.info("收到玩家开始游戏 playerId={},req={}",playerController.playerId(), JSONObject.toJSONString(req));
             GameRunInfo gameRunInfo = dollarExpressManager.startGame(playerController.playerId(), req.stakeVlue);
-            sendMessageManager.sendStartGameMessage(playerController,gameRunInfo);
+            dollarExpressSendMessageManager.sendStartGameMessage(playerController,gameRunInfo);
+        }catch (Exception e){
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 选择免费游戏类型
+     * @param playerController
+     * @param req
+     */
+    @Command(DollarExpressConst.MsgBean.REQ_CHOOSE_FREE_MODEL)
+    public void reqChooseFreeModel(PlayerController playerController, ReqChooseFreeModel req){
+        try{
+            log.info("收到选择免费游戏类型 playerId={},req={}",playerController.playerId(), JSONObject.toJSONString(req));
+            GameRunInfo gameRunInfo = dollarExpressManager.chooseFreeGameType(playerController.playerId(), req.type);
+            dollarExpressSendMessageManager.sendChooseFreeTypeMessage(playerController,gameRunInfo);
+        }catch (Exception e){
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 投资游戏
+     * @param playerController
+     * @param req
+     */
+    @Command(DollarExpressConst.MsgBean.REQ_INVEST_AREA)
+    public void reqInvestArea(PlayerController playerController, ReqInvestArea req){
+        try{
+            log.info("收到选择投资游戏 playerId={},req={}",playerController.playerId(), JSONObject.toJSONString(req));
+            GameRunInfo gameRunInfo = dollarExpressManager.investArea(playerController.playerId(), req.areaId1, req.areaId2, req.areaId3);
+            dollarExpressSendMessageManager.sendChooseFreeTypeMessage(playerController,gameRunInfo);
         }catch (Exception e){
             log.error("", e);
         }

@@ -12,14 +12,20 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class PlayerLastGameInfo {
     @Id
     private long playerId;
+    //游戏id
+    private int gameUniqueId;
     //游戏类型
     private int gameType;
-    //游戏id
-    private int gameId;
+    //场次id
+    private int wareId;
     //房间id
     private int roomId;
     //节点信息
     private String nodePath;
+    //中途掉线
+    private boolean halfwayOffline;
+    //额外信息
+    private String extra;
 
     public long getPlayerId() {
         return playerId;
@@ -27,6 +33,14 @@ public class PlayerLastGameInfo {
 
     public void setPlayerId(long playerId) {
         this.playerId = playerId;
+    }
+
+    public int getGameUniqueId() {
+        return gameUniqueId;
+    }
+
+    public void setGameUniqueId(int gameUniqueId) {
+        this.gameUniqueId = gameUniqueId;
     }
 
     public int getGameType() {
@@ -37,12 +51,12 @@ public class PlayerLastGameInfo {
         this.gameType = gameType;
     }
 
-    public int getGameId() {
-        return gameId;
+    public int getWareId() {
+        return wareId;
     }
 
-    public void setGameId(int gameId) {
-        this.gameId = gameId;
+    public void setWareId(int wareId) {
+        this.wareId = wareId;
     }
 
     public int getRoomId() {
@@ -59,5 +73,21 @@ public class PlayerLastGameInfo {
 
     public void setNodePath(String nodePath) {
         this.nodePath = nodePath;
+    }
+
+    public boolean isHalfwayOffline() {
+        return halfwayOffline;
+    }
+
+    public void setHalfwayOffline(boolean halfwayOffline) {
+        this.halfwayOffline = halfwayOffline;
+    }
+
+    public String getExtra() {
+        return extra;
+    }
+
+    public void setExtra(String extra) {
+        this.extra = extra;
     }
 }

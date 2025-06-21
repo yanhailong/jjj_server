@@ -5,31 +5,28 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.dollarexpress.constant.DollarExpressConst;
-import com.jjg.game.dollarexpress.dao.PoolDao;
-import com.jjg.game.dollarexpress.data.GameRunInfo;
-import com.jjg.game.dollarexpress.data.PlayerGameData;
-import com.jjg.game.dollarexpress.data.PropData;
-import com.jjg.game.dollarexpress.data.PropInfo;
-import com.jjg.game.sample.*;
+import com.jjg.game.dollarexpress.dao.DollarExpressPoolDao;
 import com.jjg.game.dollarexpress.data.*;
-import com.jjg.game.dollarexpress.pb.ResultLineInfo;
-import com.jjg.game.dollarexpress.service.PlayerService;
+import com.jjg.game.dollarexpress.pb.SafeBoxInfo;
+import com.jjg.game.dollarexpress.pb.TrainInfo;
 import com.jjg.game.sample.*;
+import com.jjg.game.dollarexpress.pb.ResultLineInfo;
+import com.jjg.game.dollarexpress.service.DollarExpressPlayerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 游戏管理器
- *  保存bean
- *  保存该节点上的玩家数据
+ * 游戏逻辑处理器
  * @author 11
  * @date 2025/6/11 16:48
  */
@@ -39,9 +36,11 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
 
 
     @Autowired
-    private PlayerService playerService;
+    private DollarExpressPlayerService dollarExpressPlayerService;
     @Autowired
-    private PoolDao poolDao;
+    private DollarExpressPoolDao dollarExpressPoolDao;
+//    @Autowired
+//    private DollarExpressLogger logger;
 
     public Map<Long, PlayerGameData> gameDataMap = new ConcurrentHashMap<>();
 
@@ -55,13 +54,17 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
     private Map<Integer,Map<Integer,Integer>> resultShowIconMap = new HashMap<>();
     //icon表中不中奖的权重数据
     private Map<Integer,PropInfo<Integer>> iconNoWinMap = new HashMap<>();
+    //百搭图标 id -> doubling
+    private Map<Integer, BigDecimal> wildIconMap = new HashMap<>();
+    //dollar set
+    private Map<Integer,Integer> dollarIconMap = new HashMap<>();
 
     /**
      * 初始化
      */
     public void init(){
         //奖池初始化
-        poolDao.init();
+        dollarExpressPoolDao.initPool();
         //缓存control表计算后的一些数据
         initControlConfigData();
         //缓存show表计算后的一些数据
@@ -70,35 +73,6 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
         initResultShowConfigData();
         //缓存icon表的以及计算所需的数据
         initIconConfigData();
-    }
-
-    /**
-     * 选择场次
-     * @param playerController
-     * @param wareId
-     * @return
-     */
-    public GameRunInfo chooseWare(PlayerController playerController, int wareId){
-        GameRunInfo gameRunInfo = new GameRunInfo(Code.SUCCESS,playerController.playerId());
-        try{
-            DollarExpressWareHouseConfig config = DollarExpressWareHouseConfig.factory.getSample(wareId);
-            if(config == null){
-                gameRunInfo.setCode(Code.NOT_FOUND);
-                log.debug("未找到对应的配置 gameType = {},playerId:{}, wardId = {}", playerController.player.getGameType(),playerController.playerId(),wareId);
-                return gameRunInfo;
-            }
-
-            PlayerGameData playerGameData = gameDataMap.computeIfAbsent(playerController.playerId(), k -> new PlayerGameData(playerController));
-            playerGameData.setGameType(playerController.player.getGameType());
-            playerGameData.setWareId(config.sid);
-
-            List<Long> list = List.of(config.stake_1, config.stake_2, config.stake_3, config.stake_4, config.stake_5, config.stake_6, config.stake_7, config.stake_8, config.stake_9, config.stake_10);
-            gameRunInfo.setLongList(list);
-        }catch (Exception e){
-            log.error("",e);
-            gameRunInfo.setCode(Code.EXCEPTION);
-        }
-        return gameRunInfo;
     }
 
     /**
@@ -113,9 +87,15 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
             PlayerGameData playerGameData = gameDataMap.get(playerId);
             if(playerGameData == null){
                 gameRunInfo.setCode(Code.ERROR_REQ);
-                log.debug("未找到玩家游戏数据2 gameType = {},playerId:{}", playerGameData.getGameType(),playerId);
+                log.debug("未找到玩家游戏数据2 gameType = {},wareId = {},playerId:{}", playerGameData.getGameType(),playerGameData.getWareId(),playerId);
                 return gameRunInfo;
             }
+
+//            if(playerGameData.getSpecialType() > 0){
+//                gameRunInfo.setCode(Code.ERROR_REQ);
+//                log.debug("当前处于特殊模式 gameType = {},playerId:{},specialId={}", playerGameData.getGameType(),playerId,playerGameData.getSpecialType());
+//                return gameRunInfo;
+//            }
 
             //获取配置
             DollarExpressWareHouseConfig config = DollarExpressWareHouseConfig.getDollarExpressWareHouseConfig(playerGameData.getWareId());
@@ -133,6 +113,13 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
                 return gameRunInfo;
             }
 
+            //是否应该选择免费类型
+            if(playerGameData.getCanChooseFreeType().get()){
+                gameRunInfo.setCode(Code.FORBID);
+                log.debug("此时应该选择免费游戏类型，不应该正常玩游戏 gameType = {},playerId:{}, wardId = {}, stake = {}", playerGameData.getGameType(),playerId,config.sid,stake);
+                return gameRunInfo;
+            }
+
             //从control表 获取 axle 或者 special 配置id
             CommonResult<String> controlConfigAxleResult = getControlConfigAxle(playerGameData,config);
             if(!controlConfigAxleResult.success()){
@@ -141,42 +128,52 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
             }
 
             //扣除金额
-            CommonResult<Player> result = playerService.addGold(playerId, -stake, "startDollarExpressGame");
+            CommonResult<Player> result = dollarExpressPlayerService.addGold(playerId, -stake, "startDollarExpressGame");
             if(!result.success()){
                 gameRunInfo.setCode(result.code);
                 log.debug("扣除玩家金币失败 gameType = {},playerId:{}, wardId = {}, stake = {}", playerGameData.getGameType(),playerId,config.sid,stake);
                 return gameRunInfo;
             }
+            log.debug("玩家扣除金额成功 playerId ={}",playerId);
+
+            Player player = result.data;
+
+            //下注金额 除以100
+            long betValue = stake / config.multiplier;
 
             //根据配置出奖
             String[] axleArr = controlConfigAxleResult.data.split("_");
-            int[] resultArr = null;
-            if(DollarExpressConst.COMMON.AXLE_PREFIX.equals(axleArr[0])){
-                Map<Integer, List<Integer>> tempMap = this.showConfigDataMap.get(Integer.parseInt(axleArr[1]));
-                resultArr = genNormalLottery(tempMap);
-            }else if(DollarExpressConst.COMMON.SPECIAL_PREFIX.equals(axleArr[0])){
-                int specialId = Integer.parseInt(axleArr[1]);
-                PropInfo<Integer> propInfo = this.resultShowConfigDataMap.get(specialId);
-                resultArr = genSpecialLottery(propInfo);
-                gameRunInfo.setSpecialId(specialId);
+            int specialType = 0;
+            if(DollarExpressConst.Common.AXLE_PREFIX.equals(axleArr[0])){  //普通模式
+                int axleId = Integer.parseInt(axleArr[1]);
+                log.debug("进入普通中奖模式 gameType = {},playerId:{}, wardId = {}, stake = {},axleId = {}",playerGameData.getGameType(),playerId,config.sid,stake,axleId);
+
+                Map<Integer, List<Integer>> tempMap = this.showConfigDataMap.get(axleId);
+                gameRunInfo = genNormalLottery(gameRunInfo,tempMap);
+//                gameRunInfo = normalAward(gameRunInfo,playerGameData,betValue,config);
+            }else if(DollarExpressConst.Common.SPECIAL_PREFIX.equals(axleArr[0])){  //特殊模式
+                specialType = Integer.parseInt(axleArr[1]);
+                log.debug("进入特殊中奖模式 gameType = {},playerId:{}, wardId = {}, stake = {},specialType = {}",playerGameData.getGameType(),playerId,config.sid,stake,specialType);
+
+                PropInfo<Integer> propInfo = this.resultShowConfigDataMap.get(specialType);
+                gameRunInfo = genSpecialLottery(gameRunInfo,propInfo);
+
+//                gameRunInfo = specialAward(gameRunInfo,playerGameData,betValue,specialType);
             }else {
                 log.debug("出奖配置错误 gameType = {},playerId:{}, wardId = {}, stake = {},axleArr[0] = {}",playerGameData.getGameType(),playerId,config.sid,stake, axleArr[0]);
                 gameRunInfo.setCode(Code.FAIL);
                 return gameRunInfo;
             }
 
-            if(resultArr == null){
-                log.debug("出奖失败 gameType = {},playerId:{}, wardId = {}, stake = {},axleArr[0] = {}",playerGameData.getGameType(),playerId,config.sid,stake, axleArr[0]);
+            if(gameRunInfo.getIntArray() == null){
+                log.debug("出奖失败 gameType = {},playerId:{}, wardId = {}, betValue = {},specialType = {}",playerGameData.getGameType(),playerGameData.playerId(),playerGameData.getWareId(),betValue, specialType);
                 gameRunInfo.setCode(Code.FAIL);
                 return gameRunInfo;
             }
 
-            //检查中奖情况
-            List<ResultLineInfo> resultLineInfoList = checkAward(stake / config.multiplier,resultArr);
-
-            //组装返回结果
-            gameRunInfo.setResultLineInfoList(resultLineInfoList);
-            gameRunInfo.setIntArray(resultArr);
+            gameRunInfo = checkAllWard(gameRunInfo,playerGameData,betValue,config,specialType);
+            //发送日志
+//            logger.gameResult(player,gameRunInfo);
         }catch (Exception e){
             log.error("",e);
             gameRunInfo.setCode(Code.EXCEPTION);
@@ -185,17 +182,224 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
     }
 
     /**
+     * 检查所有的奖励
+     * @param gameRunInfo
+     * @param playerGameData
+     * @param betValue
+     * @param config
+     * @param specialType
+     * @return
+     */
+    public GameRunInfo checkAllWard(GameRunInfo gameRunInfo,PlayerGameData playerGameData,long betValue,DollarExpressWareHouseConfig config,int specialType){
+        gameRunInfo = normalAward(gameRunInfo,playerGameData,betValue,config);
+        if(specialType > 0){
+            gameRunInfo = specialAward(gameRunInfo,playerGameData,betValue,specialType);
+        }
+        return gameRunInfo;
+    }
+
+    /**
+     * 开出特殊结果，检查中奖信息
+     * @param gameRunInfo
+     * @param playerGameData
+     * @param betValue
+     * @param specialType
+     * @return
+     */
+    private GameRunInfo specialAward(GameRunInfo gameRunInfo, PlayerGameData playerGameData,long betValue,int specialType){
+        log.debug("检查特殊中奖情况");
+        gameRunInfo.setSpecialType(specialType);
+        playerGameData.setLastBetValue(betValue);
+
+        if(gameRunInfo.getSpecialType() > 0){
+            playerGameData.setSpecialType(gameRunInfo.getSpecialType());
+            playerGameData.setResultShowId(gameRunInfo.getResultShowId());
+            //检查特殊中奖
+            gameRunInfo = checkSpecial(gameRunInfo,playerGameData,betValue);
+            playerGameData.setGoldTrainInFree(gameRunInfo.isGoldTrainInFree());
+        }
+        return gameRunInfo;
+    }
+
+    /**
+     * 开出普通结果，检查中奖信息
+     * @param gameRunInfo
+     * @param playerGameData
+     * @param stake
+     * @param config
+     * @return
+     */
+    public GameRunInfo normalAward(GameRunInfo gameRunInfo, PlayerGameData playerGameData,long stake,DollarExpressWareHouseConfig config){
+        if(gameRunInfo.getIntArray() == null){
+            log.debug("出奖失败 gameType = {},playerId:{}, wardId = {}, stake = {}",playerGameData.getGameType(),playerGameData.playerId(),config.sid,stake);
+            gameRunInfo.setCode(Code.FAIL);
+            return gameRunInfo;
+        }
+
+        //下注金额 除以100
+        long betValue = stake / config.multiplier;
+        playerGameData.setLastBetValue(betValue);
+
+        //中保险箱的话，不计算中奖线
+        if(gameRunInfo.getSpecialType() != DollarExpressConst.ResultShow.WIN_SAFE_BOX){
+
+            //所有的中奖线信息
+            List<ResultLineInfo> resultLineInfoList = checkLineAward(betValue,gameRunInfo.getIntArray());
+            //组装返回结果
+            gameRunInfo.setResultLineInfoList(resultLineInfoList);
+        }else {
+            log.debug("保险箱不计算中奖线");
+        }
+        return gameRunInfo;
+    }
+
+    /**
+     * 选择免费游戏类型
+     * @param playerId
+     * @param type
+     * @return
+     */
+    public GameRunInfo chooseFreeGameType(long playerId, int type){
+        GameRunInfo gameRunInfo = new GameRunInfo(Code.SUCCESS, playerId);
+        try{
+            PlayerGameData playerGameData = gameDataMap.get(playerId);
+            if(playerGameData == null){
+                gameRunInfo.setCode(Code.ERROR_REQ);
+                log.debug("未找到玩家游戏数据，选择免费游戏失败 gameType = {},wareId = {},playerId:{}", playerGameData.getGameType(),playerGameData.getWareId(),playerId);
+                return gameRunInfo;
+            }
+
+            boolean flag = playerGameData.getCanChooseFreeType().compareAndSet(true,false);
+            if(!flag){
+                gameRunInfo.setCode(Code.FORBID);
+                log.debug("没有选择权限，选择免费游戏失败 gameType = {},wareId = {},playerId:{}", playerGameData.getGameType(),playerGameData.getWareId(),playerId);
+                return gameRunInfo;
+            }
+
+            if(type == DollarExpressConst.Common.TRAIN_TYPE_WHEN_WIN_FREE){
+                TrainInfo trainInfo = addTrainInfo(playerGameData.isGoldTrainInFree() ? DollarExpressConst.ResultShow.FREE_TO_WIN_GOLD_TRAIN_MOUDLE : DollarExpressConst.ResultShow.FREE_TO_WIN_NORMAL_TRAIN_MOUDLE, playerId, playerGameData.getLastBetValue());
+                gameRunInfo.setTrainInfo(trainInfo);
+            }else {
+                int freeCount = DollarExpressResultShowConfig.getDollarExpressResultShowConfig(playerGameData.getResultShowId()).freetime;
+                playerGameData.setFreeCount(freeCount);
+                gameRunInfo.setFreeCount(freeCount);
+            }
+        }catch (Exception e){
+            log.error("",e);
+            gameRunInfo.setCode(Code.EXCEPTION);
+        }
+        return gameRunInfo;
+    }
+
+    /**
+     * 投资游戏
+     * @param playerId
+     * @param areaId1
+     * @param areaId2
+     * @param areaId3
+     * @return
+     */
+    public GameRunInfo investArea(long playerId,int areaId1,int areaId2,int areaId3){
+        GameRunInfo gameRunInfo = new GameRunInfo(Code.SUCCESS, playerId);
+        try{
+            PlayerGameData playerGameData = gameDataMap.get(playerId);
+            if(playerGameData == null){
+                gameRunInfo.setCode(Code.ERROR_REQ);
+                log.debug("未找到玩家游戏数据，投资游戏失败 gameType = {},wareId = {},playerId:{}", playerGameData.getGameType(),playerGameData.getWareId(),playerId);
+                return gameRunInfo;
+            }
+
+            //TODO 校验3个id是否合法
+
+            PropInfo<Integer> propInfo = resultShowConfigDataMap.get(DollarExpressConst.ResultShow.INVEST_MOUDLE);
+            if(propInfo == null){
+                gameRunInfo.setCode(Code.ERROR_REQ);
+                log.debug("未找到resultshow表中关于投资模式的配置，投资游戏失败 gameType = {},wareId = {},playerId:{}", playerGameData.getGameType(),playerGameData.getWareId(),playerId);
+                return gameRunInfo;
+            }
+
+            //根据权重获取对应的特殊玩法的图标集合
+            int rand = RandomUtils.randomInt(propInfo.getSum());
+            PropData<Integer> propData = propInfo.getPropMap().values().stream()
+                    .filter(tempPropData -> rand >= tempPropData.getBegin() && rand < tempPropData.getEnd())
+                    .findFirst()
+                    .orElse(null);
+            if(propData == null){
+                log.debug("根据权重没有找到对应的 propData,投资游戏失败， sum = {},rand = {}",propInfo.getSum(),rand);
+                return gameRunInfo;
+            }
+
+            Map<Integer, Integer> iconMap = this.resultShowIconMap.get(propData.getKey());
+            if(iconMap == null){
+                log.debug("根据权重没有找到对应的 iconMap， sid = {}",propData.getKey());
+                return gameRunInfo;
+            }
+
+            Integer times1 = iconMap.get(areaId1);
+            Integer times2 = iconMap.get(areaId2);
+            Integer times3 = iconMap.get(areaId3);
+
+            gameRunInfo.setInvestGold(times1,times2,times3,playerGameData.getShowDollarValueAve());
+        }catch (Exception e){
+            log.error("",e);
+            gameRunInfo.setCode(Code.EXCEPTION);
+        }
+        return gameRunInfo;
+    }
+
+    /**
+     * 使用免费次数，玩免费游戏
+     */
+    public GameRunInfo freeGame(long playerId){
+        GameRunInfo gameRunInfo = new GameRunInfo(Code.SUCCESS, playerId);
+        try{
+            PlayerGameData playerGameData = gameDataMap.get(playerId);
+            if(playerGameData == null){
+                gameRunInfo.setCode(Code.ERROR_REQ);
+                log.debug("未找到玩家游戏数据，免费游戏失败 gameType = {},wareId = {},playerId:{}", playerGameData.getGameType(),playerGameData.getWareId(),playerId);
+                return gameRunInfo;
+            }
+
+            int freeCount = playerGameData.addFreeCount(-1);
+            if(freeCount < 0){
+                gameRunInfo.setCode(Code.FORBID);
+                log.debug("没有免费次数，免费游戏失败 gameType = {},wareId = {},playerId:{}", playerGameData.getGameType(),playerGameData.getWareId(),playerId);
+                return gameRunInfo;
+            }
+
+            DollarExpressWareHouseConfig config = DollarExpressWareHouseConfig.getDollarExpressWareHouseConfig(playerGameData.getWareId());
+
+            PropInfo<Integer> propInfo = resultShowConfigDataMap.get(DollarExpressConst.ResultShow.FREE_MOUDLE);
+            gameRunInfo = genSpecialLottery(gameRunInfo, propInfo);
+            gameRunInfo = checkAllWard(gameRunInfo,playerGameData,playerGameData.getLastBetValue(),config,DollarExpressConst.ResultShow.FREE_MOUDLE);
+        }catch (Exception e){
+            log.error("",e);
+            gameRunInfo.setCode(Code.EXCEPTION);
+        }
+        return gameRunInfo;
+    }
+
+    /**
+     * 免费模式-中火车
+     */
+    public void freeToTrain(){
+
+    }
+
+    /**
      * 生成普通奖励
      * @param map
      */
-    private int[] genNormalLottery(Map<Integer, List<Integer>> map){
-        int[] arr = new int[DollarExpressConst.COMMON.ALL_CION_COUNT];
+    private GameRunInfo genNormalLottery(GameRunInfo gameRunInfo,Map<Integer, List<Integer>> map){
+        log.debug("开始生成普通奖励 playerId = {}",gameRunInfo.getPlayerId());
+        int[] arr = new int[DollarExpressConst.Common.ALL_CION_COUNT];
         int index = 0;
         for(int i=1;i<=map.size();i++){
+            log.debug("开始生成第 {} 列图标",i);
             List<Integer> temList = map.get(i);
             //随机生成起始位置
             int rand = RandomUtils.randomInt(temList.size());
-            for(int j=0;j<DollarExpressConst.COMMON.COLUM_ICON_COUNT;j++){
+            for(int j = 0; j< DollarExpressConst.Common.COLUM_ICON_COUNT; j++){
                 int num = rand + j;
                 num = num % temList.size();
 
@@ -203,7 +407,8 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
                 index++;
             }
         }
-        return arr;
+        gameRunInfo.setIntArray(arr);
+        return gameRunInfo;
     }
 
     /**
@@ -211,7 +416,8 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
      * @param propInfo
      * @return
      */
-    private int[] genSpecialLottery(PropInfo<Integer> propInfo){
+    private GameRunInfo genSpecialLottery(GameRunInfo gameRunInfo,PropInfo<Integer> propInfo){
+        log.debug("开始生成特殊奖励 playerId = {}",gameRunInfo.getPlayerId());
         //根据权重获取对应的特殊玩法的图标集合
         int rand = RandomUtils.randomInt(propInfo.getSum());
         PropData<Integer> propData = propInfo.getPropMap().values().stream()
@@ -220,15 +426,18 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
                 .orElse(null);
         if(propData == null){
             log.debug("根据权重没有找到对应的 propData， sum = {},rand = {}",propInfo.getSum(),rand);
-            return null;
+            return gameRunInfo;
         }
 
         Map<Integer, Integer> iconMap = this.resultShowIconMap.get(propData.getKey());
         if(iconMap == null){
             log.debug("根据权重没有找到对应的 iconMap， sid = {}",propData.getKey());
-            return null;
+            return gameRunInfo;
         }
-        return fill(iconMap);
+        gameRunInfo.setIntArray(fill(iconMap));
+        gameRunInfo.setResultShowId(propData.getKey());
+        log.debug("随机到resultshow中的id为 {}",gameRunInfo.getResultShowId());
+        return gameRunInfo;
     }
 
     /**
@@ -237,13 +446,13 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
      * @return
      */
     private int[] fill(Map<Integer, Integer> iconMap){
-        PropInfo<Integer> propInfo = iconNoWinMap.get(DollarExpressConst.COMMON.ICON_NORMAL_TYPE);
+        PropInfo<Integer> propInfo = iconNoWinMap.get(DollarExpressConst.Icon.NORMAL_TYPE);
         if(propInfo == null){
             return null;
         }
 
         //首先填充预制的图标
-        int[] arr = new int[DollarExpressConst.COMMON.ALL_CION_COUNT];
+        int[] arr = new int[DollarExpressConst.Common.ALL_CION_COUNT];
         for(Map.Entry<Integer, Integer> en : iconMap.entrySet()){
             arr[en.getKey()] = en.getValue();
         }
@@ -261,7 +470,7 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
             if(c.noWinning < 1){
                 continue;
             }
-            if(c.type != DollarExpressConst.COMMON.ICON_NORMAL_TYPE){
+            if(c.type != DollarExpressConst.Icon.NORMAL_TYPE){
                 continue;
             }
             if(existIconSet.contains(c.sid)){
@@ -278,7 +487,7 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
         genByPropInfo(arr,2,colum2PropInfo,null);
 
         //填充剩余列
-        for(int i=3;i<=DollarExpressConst.COMMON.COLUMS_COUNT;i++){
+        for(int i = 3; i<= DollarExpressConst.Common.COLUMS_COUNT; i++){
             genByPropInfo(arr,i,propInfo,null);
         }
         return arr;
@@ -291,8 +500,8 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
      * @param propInfo
      */
     private void genByPropInfo(int[] arr,int columId,PropInfo<Integer> propInfo,Set<Integer> existIconSet){
-        int locationBegin = (columId - 1) * DollarExpressConst.COMMON.COLUM_ICON_COUNT;
-        int locationEnd = locationBegin + DollarExpressConst.COMMON.COLUM_ICON_COUNT - 1;
+        int locationBegin = (columId - 1) * DollarExpressConst.Common.COLUM_ICON_COUNT;
+        int locationEnd = locationBegin + DollarExpressConst.Common.COLUM_ICON_COUNT - 1;
         for(int i=locationBegin;i<=locationEnd;i++){
             //如果该位置上已经有图标，就不填充
             if(arr[i] > 1){
@@ -323,13 +532,14 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
         CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
 
         //获取奖池
-        Long poolGold = poolDao.getByWareId(playerGameData.getWareId());
-        if(poolGold == null){
+        Number poolGoldNumber = dollarExpressPoolDao.getByWareId(playerGameData.getGameType(), playerGameData.getWareId());
+        if(poolGoldNumber == null){
             log.debug("该奖池不存在 gameType = {},wareId = {},playerId = {}",playerGameData.getGameType(),playerGameData.getWareId(),playerGameData.playerId());
             result.code = Code.FAIL;
             return result;
         }
 
+        long poolGold = poolGoldNumber.longValue();
         //计算差值
         long diff = poolGold - wareHouseConfig.basicWarehouse;
         DollarExpressControlConfig config = getByPoolDiff(diff);
@@ -355,6 +565,7 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
             return result;
         }
 
+        log.debug("成功获取control配置，poolGold = {},diff = {},controlSid = {},rand = {},alxeType = {}",poolGold,diff,config.sid,rand,propData.getKey());
         result.data = propData.getKey();
         return result;
     }
@@ -378,78 +589,302 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
      * @param ante 底注
      * @param arr
      */
-    private List<ResultLineInfo> checkAward(long ante,int[] arr){
+    private List<ResultLineInfo> checkLineAward(long ante, int[] arr){
         List<ResultLineInfo> awardLineInfoList = new ArrayList<>();
+        log.debug("检查中奖线情况 ante = {},arr = {}",ante,arr);
         for(DollarExpressLineConfig c : DollarExpressLineConfig.factory.getAllSamples()){
-            if(arr[c.yLine1] != arr[c.yLine2]){
+            SameInfo sameInfo = new SameInfo();
+            sameInfo = iconSame(sameInfo,arr[c.yLine1],arr[c.yLine2]);
+
+            if(!sameInfo.isSame()){
                 continue;
             }
 
-            int iconId = arr[c.yLine2];
-            if(arr[c.yLine2] != arr[c.yLine3]){
+            sameInfo = iconSame(sameInfo,arr[c.yLine2],arr[c.yLine3]);
+            if(!sameInfo.isSame()){
                 //检查2连的倍率
-                DollarExpressIconConfig iconConfig = DollarExpressIconConfig.getDollarExpressIconConfig(iconId);
+                DollarExpressIconConfig iconConfig = DollarExpressIconConfig.getDollarExpressIconConfig(sameInfo.getBaseIconId());
+                log.debug("检测到2连 lineSid = {},iconId = {}",c.sid,sameInfo.getBaseIconId());
                 if(iconConfig != null && iconConfig.payout_2 > 0){
-                    ResultLineInfo resultLineInfo = new ResultLineInfo();
-                    resultLineInfo.id = c.sid;
-                    resultLineInfo.times = iconConfig.payout_2;
-                    resultLineInfo.indexList = List.of(c.yLine1,c.yLine2,c.yLine3,c.yLine4,c.yLine5);
-                    resultLineInfo.winGold = ante * resultLineInfo.times;
-                    awardLineInfoList.add(resultLineInfo);
+                    addResultLineInfo(awardLineInfoList,c.sid,List.of(c.yLine1,c.yLine2),iconConfig.payout_2,ante);
+                    log.debug("添加2连赔率 lineSid = {},iconSid = {},payout = {}",c.sid,iconConfig.sid,iconConfig.payout_2);
                 }
                 continue;
             }
 
-            if(arr[c.yLine3] != arr[c.yLine4]){
+            sameInfo = iconSame(sameInfo,arr[c.yLine3],arr[c.yLine4]);
+            if(!sameInfo.isSame()){
                 //检查3连的倍率
-                DollarExpressIconConfig iconConfig = DollarExpressIconConfig.getDollarExpressIconConfig(iconId);
+                DollarExpressIconConfig iconConfig = DollarExpressIconConfig.getDollarExpressIconConfig(sameInfo.getBaseIconId());
+                log.debug("检测到3连 lineSid = {},iconId = {}",c.sid,sameInfo.getBaseIconId());
                 if(iconConfig != null && iconConfig.payout_3 > 0){
-                    ResultLineInfo resultLineInfo = new ResultLineInfo();
-                    resultLineInfo.id = c.sid;
-                    resultLineInfo.times = iconConfig.payout_3;
-                    resultLineInfo.indexList = List.of(c.yLine1,c.yLine2,c.yLine3,c.yLine4,c.yLine5);
-                    resultLineInfo.winGold = ante * resultLineInfo.times;
-                    awardLineInfoList.add(resultLineInfo);
+                    addResultLineInfo(awardLineInfoList,c.sid,List.of(c.yLine1,c.yLine2,c.yLine3),iconConfig.payout_3,ante);
+                    log.debug("添加3连赔率 lineSid = {},iconSid = {},payout = {}",c.sid,iconConfig.sid,iconConfig.payout_3);
                 }
                 continue;
             }
 
-            if(arr[c.yLine4] != arr[c.yLine5]){
+            sameInfo = iconSame(sameInfo,arr[c.yLine4],arr[c.yLine5]);
+            if(!sameInfo.isSame()){
                 //检查4连的倍率
-                DollarExpressIconConfig iconConfig = DollarExpressIconConfig.getDollarExpressIconConfig(iconId);
+                DollarExpressIconConfig iconConfig = DollarExpressIconConfig.getDollarExpressIconConfig(sameInfo.getBaseIconId());
+                log.debug("检测到4连 lineSid = {},iconId = {}",c.sid,sameInfo.getBaseIconId());
                 if(iconConfig != null && iconConfig.payout_4 > 0){
-                    ResultLineInfo resultLineInfo = new ResultLineInfo();
-                    resultLineInfo.id = c.sid;
-                    resultLineInfo.times = iconConfig.payout_4;
-                    resultLineInfo.indexList = List.of(c.yLine1,c.yLine2,c.yLine3,c.yLine4,c.yLine5);
-                    resultLineInfo.winGold = ante * resultLineInfo.times;
-                    awardLineInfoList.add(resultLineInfo);
+                    addResultLineInfo(awardLineInfoList,c.sid,List.of(c.yLine1,c.yLine2,c.yLine3,c.yLine4),iconConfig.payout_4,ante);
+                    log.debug("添加4连赔率 lineSid = {},iconSid = {},payout = {}",c.sid,iconConfig.sid,iconConfig.payout_4);
                 }
                 continue;
             }
 
             //检查5连的倍率
-            DollarExpressIconConfig iconConfig = DollarExpressIconConfig.getDollarExpressIconConfig(iconId);
+            DollarExpressIconConfig iconConfig = DollarExpressIconConfig.getDollarExpressIconConfig(sameInfo.getBaseIconId());
+            log.debug("检测到5连 lineSid = {},iconId = {}",c.sid,sameInfo.getBaseIconId());
             if(iconConfig != null && iconConfig.payout_5 > 0){
-                ResultLineInfo resultLineInfo = new ResultLineInfo();
-                resultLineInfo.id = c.sid;
-                resultLineInfo.times = iconConfig.payout_5;
-                resultLineInfo.indexList = List.of(c.yLine1,c.yLine2,c.yLine3,c.yLine4,c.yLine5);
-                resultLineInfo.winGold = ante * resultLineInfo.times;
-                awardLineInfoList.add(resultLineInfo);
+                addResultLineInfo(awardLineInfoList,c.sid,List.of(c.yLine1,c.yLine2,c.yLine3,c.yLine4,c.yLine5),iconConfig.payout_5,ante);
+                log.debug("添加5连赔率 lineSid = {},iconSid = {},payout = {}",c.sid,iconConfig.sid,iconConfig.payout_5);
             }
         }
         return awardLineInfoList;
     }
 
+    /**
+     * 检查特殊玩法
+     * @param gameRunInfo
+     * @return
+     */
+    private GameRunInfo checkSpecial(GameRunInfo gameRunInfo,PlayerGameData playerGameData,long betValue){
+        log.debug("检查特殊玩法");
+
+        log.debug("寻找美元图标");
+        //美元图标集合
+        Map<Integer,Integer> dollarIconMap = new HashMap<>();
+        //all_aboard图标个数
+        int aboardCount = 0;
+        List<Integer> trainTypeList = new ArrayList<>();
+
+        //找出里面所有的美金图标
+        for(int i=0;i<gameRunInfo.getIntArray().length;i++){
+            int iconId = gameRunInfo.getIntArray()[i];
+
+            //检查是不是 all_aboard 图标
+            if(iconId == DollarExpressConst.Icon.ALL_ABOARD_ID){
+                aboardCount++;
+            }
+
+            //火车类型列表
+            if(iconId == DollarExpressConst.Icon.RED_TRAIN_ID){
+                trainTypeList.add(DollarExpressConst.ResultShow.RED_TRAIN_MOUDLE);
+            }else if(iconId == DollarExpressConst.Icon.PURPLE_TRAIN_ID){
+                trainTypeList.add(DollarExpressConst.ResultShow.PURPLE_TRAIN_MOUDLE);
+            }else if(iconId == DollarExpressConst.Icon.BLUE_TRAIN_ID){
+                trainTypeList.add(DollarExpressConst.ResultShow.BLUE_TRAIN_MOUDLE);
+            }else if(iconId == DollarExpressConst.Icon.GREEN_TRAIN_ID){
+                trainTypeList.add(DollarExpressConst.ResultShow.GREEN_TRAIN_MOUDLE);
+            }
+
+            //美元图标
+            Integer times = this.dollarIconMap.get(iconId);
+            if(times != null && times > 0){
+                dollarIconMap.put(iconId,times);
+                playerGameData.addShowDollarCount(1);
+                playerGameData.addShowDollarValue(betValue);
+                log.debug("找到美金图标 iconId = {},index = {}",iconId,i);
+            }
+        }
+
+        //如果是中免费
+        if(gameRunInfo.getSpecialType() == DollarExpressConst.ResultShow.WIN_FREE){
+            log.debug("检查特殊玩法之免费次数");
+            gameRunInfo.setFreeCount(DollarExpressResultShowConfig.getDollarExpressResultShowConfig(gameRunInfo.getResultShowId()).freetime);
+            if(gameRunInfo.getFreeCount() > 0){
+                playerGameData.getCanChooseFreeType().compareAndSet(false,true);
+            }
+
+            //配置表中配置的次数限制
+            int v = Integer.parseInt(DollarExpressGolbalConfig.getDollarExpressGolbalConfig(DollarExpressConst.Global.FREE_TYPE_TO_GOLD_TRAIN_COUNT).value);
+            if(aboardCount >= v){
+                gameRunInfo.setGoldTrainInFree(true);
+            }
+        }else if(gameRunInfo.getSpecialType() == DollarExpressConst.ResultShow.WIN_NORMAL_TRAIN){   //如果是中火车
+            log.debug("检查特殊玩法之中火车");
+            List<TrainInfo> trainInfoList = new ArrayList<>();
+            for(int type : trainTypeList){
+                TrainInfo trainInfo = addTrainInfo(type, gameRunInfo.getPlayerId(), betValue);
+                if(trainInfo == null){
+                    continue;
+                }
+                trainInfoList.add(trainInfo);
+            }
+            gameRunInfo.setTrainInfoList(trainInfoList);
+        }else if(gameRunInfo.getSpecialType() == DollarExpressConst.ResultShow.WIN_SAFE_BOX){  //如果是中保险箱
+            log.debug("检查特殊玩法之保险箱");
+
+            for(Map.Entry<Integer,Integer> en : dollarIconMap.entrySet()){
+                int index = en.getKey();
+                int times = en.getValue();
+
+                SafeBoxInfo safeBoxInfo = new SafeBoxInfo();
+                long gold = betValue * times;
+                gameRunInfo.addAllWinGold(gold);
+
+                safeBoxInfo.indexId = index;
+                safeBoxInfo.times = times;
+                safeBoxInfo.addGold = gold;
+                gameRunInfo.addSafeBoxInfo(safeBoxInfo);
+                log.debug("保险箱之添加美元图标金额 iconId = {},times = {},addGold = {}",gameRunInfo.getIntArray()[index],times,gold);
+            }
+
+        }else if(gameRunInfo.getSpecialType() == DollarExpressConst.ResultShow.WIN_GOLD_TRAIN){
+            TrainInfo trainInfo = addTrainInfo(DollarExpressConst.ResultShow.GOLD_TRAIN_MOUDLE, gameRunInfo.getPlayerId(), betValue);
+            if(trainInfo != null){
+                gameRunInfo.setTrainInfoList(List.of(trainInfo));
+            }
+        }
+        return gameRunInfo;
+    }
+
+    /**
+     * 添加火车信息
+     * @param resultShowTrainType
+     * @param playerId
+     * @param betValue
+     * @return
+     */
+    private TrainInfo addTrainInfo(int resultShowTrainType,long playerId,long betValue){
+        //在resultshow表中找到对应的火车应该显示的数值
+        PropInfo<Integer> propInfo = resultShowConfigDataMap.get(resultShowTrainType);
+        log.debug("寻找火车配置 playerId = {},resultShowTrainType = {}", playerId, resultShowTrainType);
+        if(propInfo == null){
+            log.debug("未在resultshow中找到该类型火车配置 playerId = {},resultShowTrainType = {}",playerId,resultShowTrainType);
+            return null;
+        }
+
+        int rand = RandomUtils.randomInt(propInfo.getSum());
+        PropData<Integer> propData = propInfo.getPropMap().values().stream()
+                .filter(tempPropData -> rand >= tempPropData.getBegin() && rand < tempPropData.getEnd())
+                .findFirst()
+                .orElse(null);
+        if(propData == null){
+            log.debug("中火车模式时，没有根据权重找到对应的火车模式id， playerId = {},rand = {}",playerId,rand);
+            return null;
+        }
+
+        log.debug("找到火车配置中的 propData，resultshow.Sid = {}",propData.getKey());
+        //根据权重找到的sid，然后找到对应的配置图标id
+        Map<Integer, Integer> iconMap = resultShowIconMap.get(propData.getKey());
+        if(iconMap == null){
+            log.debug("中火车模式时，没有根据权重找到对应的火车模式id2， playerId = {},sid = {}",playerId,propData.getKey());
+            return null;
+        }
+
+        TrainInfo trainInfo = new TrainInfo();
+        trainInfo.type = resultShowTrainType;
+        trainInfo.goldList = new ArrayList<>();
+        for(Map.Entry<Integer, Integer> en : iconMap.entrySet()){
+            int iconId = en.getValue();
+            if(iconId < 1){
+                continue;
+            }
+            DollarExpressIconConfig iconConfig = DollarExpressIconConfig.getDollarExpressIconConfig(iconId);
+            if(iconConfig == null){
+                log.debug("中火车模式时，没有找到对应的图标， playerId = {},iconId = {}",playerId,iconId);
+                continue;
+            }
+
+//            if(iconConfig.payout_1 < 1){
+//                continue;
+//            }
+
+            long goldValue = iconConfig.payout_1 * betValue;
+            trainInfo.goldList.add(goldValue);
+            log.debug("添加火车金币 playerId = {},betValue = {},iconId = {},payout_1 = {},goldValue = {}",playerId,betValue,iconId,iconConfig.payout_1,goldValue);
+        }
+        return trainInfo;
+    }
+
+    /**
+     * 组装中奖线信息
+     * @param awardLineInfoList
+     * @param sid
+     * @param indexList
+     * @param payout
+     * @param ante
+     */
+    private void addResultLineInfo(List<ResultLineInfo> awardLineInfoList, int sid, List<Integer> indexList, int payout, long ante){
+        ResultLineInfo resultLineInfo = new ResultLineInfo();
+        resultLineInfo.id = sid;
+        resultLineInfo.indexList = indexList;
+        resultLineInfo.times = payout;
+        resultLineInfo.winGold = ante * resultLineInfo.times;
+        awardLineInfoList.add(resultLineInfo);
+    }
+
+    /**
+     * 判断两个图片是否相同，包含wild
+     * @param iconId1
+     * @param iconId2
+     * @return
+     */
+    private SameInfo iconSame(SameInfo sameInfo, int iconId1, int iconId2){
+        BigDecimal icon_1_times = wildIconMap.get(iconId1);
+        BigDecimal icon_2_times = wildIconMap.get(iconId2);
+
+        if(iconId1 == iconId2){
+            //icon_1_times如果为null，那么icon_2_times也肯定为null，表示均为普通图标，否则均为wild
+            if(icon_1_times == null){
+                sameInfo.setBaseIconId(iconId1);
+                log.debug("均为普通图标 iconId1 = {},iconId2 = {}, same = true",iconId1,iconId2);
+            }else {
+                sameInfo.addTimes(icon_1_times);
+                sameInfo.addTimes(icon_2_times);
+                log.debug("均为wild图标 iconId1 = {},iconId2 = {}, icon_1_times = {},icon_2_times = {},same = true",iconId1,iconId2,icon_1_times,icon_2_times);
+            }
+            sameInfo.setSame(true);
+            return sameInfo;
+        }
+
+        //如果两个图标不一样，则判断有没有wild
+        if(icon_1_times == null){
+            if(icon_2_times == null){
+                //俩都为null，表示都不是wild图标
+                sameInfo.setSame(false);
+
+//                log.debug("均为普通图标 iconId1 = {},iconId2 = {}, same = false",iconId1,iconId2);
+            }else {
+                //icon_2_times不为null，表示iconId2是wild
+                sameInfo.setSame(true);
+                sameInfo.setBaseIconId(iconId1);
+                sameInfo.addTimes(icon_2_times);
+                log.debug("iconId1 = {} 是普通图标,iconId2 = {} 是wild图标, same = true",iconId1,iconId2);
+            }
+            return sameInfo;
+        }else {
+            sameInfo.setSame(true);
+            if(icon_2_times == null){
+                //1不为null，2为null，表示 1是wild，2是普通图标
+                sameInfo.addTimes(icon_1_times);
+                sameInfo.setBaseIconId(iconId2);
+                log.debug("iconId1 = {} 是wild图标,iconId2 = {} 是普通图标, same = true",iconId1,iconId2);
+            }else {
+                //俩都不为null，表示都是wild图标
+                sameInfo.addTimes(icon_1_times);
+                sameInfo.addTimes(icon_2_times);
+                log.debug("均为wild图标 iconId1 = {} ,iconId2 = {} , same = true",iconId1,iconId2);
+            }
+            return sameInfo;
+        }
+    }
 
     /**
      * 创建 GameData
      * @param playerController
      * @return
      */
-    public PlayerGameData createPlayerGameData(PlayerController playerController){
-        return gameDataMap.computeIfAbsent(playerController.playerId(), k -> new PlayerGameData(playerController));
+    public PlayerGameData createPlayerGameData(PlayerController playerController, PlayerSessionInfo playerSessionInfo){
+        PlayerGameData playerGameData = gameDataMap.computeIfAbsent(playerController.playerId(), k -> new PlayerGameData(playerController));
+        playerGameData.setGameType(playerSessionInfo.getGameType());
+        playerGameData.setWareId(playerSessionInfo.getWareId());
+        return playerGameData;
     }
 
     /**
@@ -492,10 +927,10 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
             Field[] declaredFields = DollarExpressControlConfig.class.getDeclaredFields();
             for(Field field : declaredFields){
                 String fieldName = field.getName();
-                if(fieldName.startsWith(DollarExpressConst.COMMON.AXLE_PREFIX)){
+                if(fieldName.startsWith(DollarExpressConst.Common.AXLE_PREFIX)){
                     field.setAccessible(true);
                     controlConfigAxleFieldNameList.add(field);
-                }else if(fieldName.startsWith(DollarExpressConst.COMMON.SPECIAL_PREFIX)){
+                }else if(fieldName.startsWith(DollarExpressConst.Common.SPECIAL_PREFIX)){
                     field.setAccessible(true);
                     controlConfigSpecialFieldNameList.add(field);
                 }
@@ -550,7 +985,7 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
             Field[] declaredFields = DollarExpressShowConfig.class.getDeclaredFields();
             for(Field field : declaredFields){
                 String fieldName = field.getName();
-                if(fieldName.startsWith(DollarExpressConst.COMMON.COLUM_PREFIX)){
+                if(fieldName.startsWith(DollarExpressConst.Common.COLUM_PREFIX)){
                     field.setAccessible(true);
                     showConfigColumFieldNameList.add(field);
                 }
@@ -591,7 +1026,7 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
             Field[] declaredFields = DollarExpressResultShowConfig.class.getDeclaredFields();
             for(Field field : declaredFields){
                 String fieldName = field.getName();
-                if(fieldName.startsWith(DollarExpressConst.COMMON.ICON_PREFIX)){
+                if(fieldName.startsWith(DollarExpressConst.Common.ICON_PREFIX)){
                     field.setAccessible(true);
                     resultShowConfigIconFieldNameList.add(field);
                 }
@@ -616,15 +1051,13 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
                 info.setSum(info.getSum() + c.weight);
                 info.getPropMap().put(c.sid,new PropData<>(c.sid,begin,info.getSum()));
                 //------------------------------
-                //缓存大于0的iconId
+                //缓存iconId
                 for(Field f : resultShowConfigIconFieldNameList){
                     int v = (int)f.get(c);
-                    if(v > 0){
-                        int index = Integer.parseInt(f.getName().split("_")[1]);
+                    int index = Integer.parseInt(f.getName().split("_")[1]);
 
-                        Map<Integer, Integer> tempMap = tempResultShowIconMap.computeIfAbsent(c.sid, k -> new HashMap<>());
-                        tempMap.put(index,v);
-                    }
+                    Map<Integer, Integer> tempMap = tempResultShowIconMap.computeIfAbsent(c.sid, k -> new HashMap<>());
+                    tempMap.put(index,v);
                 }
             }
             this.resultShowConfigDataMap = tempResultShowConfigDataMap;
@@ -641,6 +1074,8 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
     private void initIconConfigData() {
         try{
             Map<Integer,PropInfo<Integer>> tempIconNoWinMap = new HashMap<>();
+            Map<Integer,BigDecimal> tempWildMap = new HashMap<>();
+            Map<Integer,Integer> tempDollarIconMap = new HashMap<>();
             for(DollarExpressIconConfig c : DollarExpressIconConfig.factory.getAllSamples()){
                 if(c.noWinning > 0){
                     PropInfo<Integer> propInfo = tempIconNoWinMap.computeIfAbsent(c.type, k -> new PropInfo<>());
@@ -649,8 +1084,17 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
                     propInfo.getPropMap().put(c.sid,propData);
                     propInfo.setSum(propData.getEnd());
                 }
+
+                if(c.type == DollarExpressConst.Icon.WILD_TYPE){
+                    BigDecimal wildTimes = BigDecimal.valueOf(c.doubling).divide(DollarExpressConst.Common.TEN_THOUSAND).setScale(2, BigDecimal.ROUND_HALF_UP);
+                    tempWildMap.put(c.sid,wildTimes);
+                }else if(c.type == DollarExpressConst.Icon.DOLLAR_TYPE){
+                    tempDollarIconMap.put(c.sid,c.payout_1);
+                }
             }
             this.iconNoWinMap = tempIconNoWinMap;
+            this.wildIconMap = tempWildMap;
+            this.dollarIconMap = tempDollarIconMap;
             log.debug("已完成更新 icon 配置缓存数据");
         }catch (Exception e){
             log.error("",e);

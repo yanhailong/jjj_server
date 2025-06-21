@@ -1,6 +1,11 @@
 package com.jjg.game.core.manager;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.config.NodeConfig;
+import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.monitor.FileLoader;
 import com.jjg.game.common.monitor.FileMonitor;
 import com.jjg.game.common.utils.CommonUtil;
@@ -16,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -38,10 +44,16 @@ public class GameConfigManager implements FileLoader {
     private SampleConfig sampleConfig;
     @Autowired
     private FileMonitor fileMonitor;
+    @Autowired
+    private NodeConfig nodeConfig;
+    @Autowired
+    private NodeManager nodeManager;
+
+    private final String configPath = "config";
+    private final String nodeConfigName = "nodeConfig.json";
 
     public void init() {
         log.debug("开始加载游戏配置...");
-
         String samplePath = sampleConfig.getSamplePath();
         if (samplePath == null) {
             log.warn("注意: 无法加载samplePath , samplePath 为空");
@@ -49,12 +61,14 @@ public class GameConfigManager implements FileLoader {
         }
         File sampleFile = new File(samplePath);
         loadFile(sampleFile,false);
-
         //监听文件变化
         fileMonitor.addDirectoryObserver(samplePath, this);
+
+        File configFile = new File(configPath);
+        loadFile(configFile,false);
+        //监听文件变化
+        fileMonitor.addDirectoryObserver(configPath, this);
     }
-
-
 
     @Override
     public void load(File file, boolean isNew) {
@@ -130,7 +144,7 @@ public class GameConfigManager implements FileLoader {
                         Field field = clazz.getField("factory");
                         SampleFactory factory = (SampleFactory) field.get(null);
                         factory.addSamples(samples);
-                        return clazzName;
+                        return className;
                     } catch (Exception e) {
                         log.warn("parse file error, file is {}", fileName, e);
                     }
@@ -149,15 +163,50 @@ public class GameConfigManager implements FileLoader {
      */
     private void loadJsonConfig(File file){
         try{
-            String name = file.getName().replace(".json", "");
-            Object bean = CommonUtil.getContext().getBean(name);
-
+            String fileName = file.getName();
             String content = FileHelper.readFile(file, GameConstant.Common.ENCODING);
             JSONObject jsonObject = JSONObject.parseObject(content);
 
-            BeanUtils.copyProperties(jsonObject.toJavaObject(bean.getClass()), bean);
+            if(nodeConfigName.equalsIgnoreCase(fileName)){
+                readNodeConfigUpdate(jsonObject);
+            }else {
+                String name = fileName.replace(".json", "");
+                Object bean = CommonUtil.getContext().getBean(name);
+                BeanUtils.copyProperties(jsonObject.toJavaObject(bean.getClass()), bean);
+            }
+        }catch (NoSuchBeanDefinitionException e1){
+
         }catch (Exception e){
             log.error("加载微服务配置失败 fileName = {}", file.getName(), e);
         }
+    }
+
+    private void readNodeConfigUpdate(JSONObject jsonObject){
+        Integer wight = jsonObject.getInteger("weight");
+        if (wight != null) {
+            nodeConfig.setWeight(wight);
+        }
+
+        Boolean open = jsonObject.getBoolean("open");
+        if (open != null) {
+            nodeConfig.setOpen(open);
+        }
+
+        Integer masterWeight = jsonObject.getInteger("masterWeight");
+        if (masterWeight != null) {
+            nodeConfig.setWeight(masterWeight);
+        }
+
+        JSONArray whiteIpArray = jsonObject.getJSONArray("whiteIpList");
+        if (whiteIpArray != null) {
+            nodeConfig.setWhiteIpList(whiteIpArray.toArray(new String[0]));
+        }
+
+        JSONArray whiteIdArray = jsonObject.getJSONArray("whiteIdList");
+        if (whiteIdArray != null) {
+            nodeConfig.setWhiteIdList(whiteIdArray.toArray(new String[0]));
+        }
+
+        nodeManager.update();
     }
 }

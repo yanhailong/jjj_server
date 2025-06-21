@@ -1,8 +1,11 @@
 package com.jjg.game.hall.manager;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.hall.config.HallConfig;
+import com.jjg.game.hall.dao.HallPoolDao;
+import com.jjg.game.hall.service.HallService;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -20,6 +23,10 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private MarsCoreStartService marsCoreStartService;
     @Autowired
     private CoreStartService coreStartService;
+    @Autowired
+    private HallPoolDao hallPoolDao;
+    @Autowired
+    private HallService hallService;
 
     private ApplicationContext context;
 
@@ -32,6 +39,8 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     public void start() {
         marsCoreStartService.init(this.context);
         coreStartService.init(this.context);
+        hallPoolDao.initPool();
+        hallService.init();
 
         running = true;
     }

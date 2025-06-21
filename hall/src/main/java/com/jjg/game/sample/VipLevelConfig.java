@@ -10,7 +10,7 @@
 
 /**
  * Auto generate by "Python tools"
- * @Date 2025-06-11 13:46:05
+ * @Date 2025-06-20 11:50:27
  */
  @ProtobufMessage
  public class VipLevelConfig extends Sample{

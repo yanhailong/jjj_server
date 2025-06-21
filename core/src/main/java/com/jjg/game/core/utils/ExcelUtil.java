@@ -1,15 +1,14 @@
 package com.jjg.game.core.utils;
 
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellValue;
+import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.*;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author 11
@@ -19,9 +18,13 @@ public class ExcelUtil {
     public static Map<String, List<String[]>> readExcelFile(File file) {
         Map<String, List<String[]>> sheetValues = new HashMap<>();
         FileInputStream fileInputStream = null;
+
         try {
             fileInputStream = new FileInputStream(file);
             XSSFWorkbook workbook = new XSSFWorkbook(fileInputStream);
+
+            FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+
             int size = workbook.getNumberOfSheets();
             for (int i = 0; i < size; i++) {
                 XSSFSheet sheet = workbook.getSheetAt(i);
@@ -37,7 +40,7 @@ public class ExcelUtil {
                         rowValues.add(new String[0]);
                         continue;
                     }
-                    rowValues.add(readRow(nameRow));
+                    rowValues.add(readRow(nameRow,evaluator));
                 }
                 sheetValues.put(sheetName, rowValues);
             }
@@ -54,13 +57,13 @@ public class ExcelUtil {
         return sheetValues;
     }
 
-    public static String[] readRow(XSSFRow row) {
+    public static String[] readRow(XSSFRow row,FormulaEvaluator evaluator) {
         int lastCellNum = row.getLastCellNum();
         List<String> values = new ArrayList<>();
         for (int cellNum = row.getFirstCellNum(); cellNum < lastCellNum; cellNum++) {
             try {
                 XSSFCell cell = row.getCell(cellNum, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                String name = getCellValue(cell);
+                String name = getCellValue(cell,evaluator);
                 values.add(name);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -70,8 +73,8 @@ public class ExcelUtil {
         return values.toArray(new String[0]);
     }
 
-    public static String getCellValue(Cell cell) {
-        String value;
+    public static String getCellValue(Cell cell,FormulaEvaluator evaluator) {
+        String value = "";
 
         switch (cell.getCellType()) {
             case STRING: // 字符串
@@ -80,12 +83,33 @@ public class ExcelUtil {
             case BOOLEAN: // Boolean
                 value = cell.getBooleanCellValue() + "";
                 break;
-            case NUMERIC: // 公式
-                value = cell.getNumericCellValue() + "";
+            case NUMERIC: // 数字
+                double numericCellValue = cell.getNumericCellValue();
+                long longV = (long) numericCellValue;
+//                value = cell.getNumericCellValue() + "";
+                value = numericCellValue == longV ? longV + "" : numericCellValue + "";
                 break;
             case BLANK: // 空值
+                break;
+            case FORMULA:
+                CellValue cellValue = evaluator.evaluate(cell);
+                switch (cellValue.getCellType()) {
+                    case STRING:
+                        value = cell.getStringCellValue();
+                        break;
+                    case BOOLEAN: // Boolean
+                        value = cell.getBooleanCellValue() + "";
+                        break;
+                    case NUMERIC: // 数字
+                        double numericCellValue2 = cell.getNumericCellValue();
+                        long longV2 = (long) numericCellValue2;
+                        value = numericCellValue2 == longV2 ? longV2 + "" : numericCellValue2 + "";
+                        break;
+                    case BLANK: // 空值
+                        break;
+                }
+                break;
             default:
-                value = "";
                 break;
         }
         return value;

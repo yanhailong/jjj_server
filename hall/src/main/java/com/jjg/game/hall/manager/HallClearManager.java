@@ -1,12 +1,12 @@
 package com.jjg.game.hall.manager;
 
+import com.jjg.game.hall.service.HallPlayerService;
 import com.mongodb.client.result.DeleteResult;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.dao.PlayerLoginTimeDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
-import com.jjg.game.hall.service.PlayerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +32,7 @@ public class HallClearManager {
     @Autowired
     private PlayerLoginTimeDao playerLoginTimeDao;
     @Autowired
-    private PlayerService playerService;
+    private HallPlayerService hallPlayerService;
 
     /**
      * 每天凌晨4点半定时执行
@@ -84,7 +84,7 @@ public class HallClearManager {
                     }
                 }
 
-                boolean clear = playerService.clear(Long.parseLong(o.toString()), expireTime);
+                boolean clear = hallPlayerService.clear(Long.parseLong(o.toString()), expireTime);
                 if(clear){
                     finishNum++;
                 }

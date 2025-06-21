@@ -10,8 +10,10 @@ public class PlayerSessionInfo {
     private String sessionId;
     //当前用户所在网关节点
     private String nodeName;
-    //当前玩家的游戏子类型
-    private int gameSid;
+    //当前玩家的游戏类型
+    private int gameType;
+    //当前玩家的游戏场次id
+    private int wareId;
     //当前用户所在节点
     private String currentNode;
     //最近活跃时间（指最近切换节点）
@@ -42,12 +44,20 @@ public class PlayerSessionInfo {
         this.nodeName = nodeName;
     }
 
-    public int getGameSid() {
-        return gameSid;
+    public int getGameType() {
+        return gameType;
     }
 
-    public void setGameSid(int gameSid) {
-        this.gameSid = gameSid;
+    public void setGameType(int gameType) {
+        this.gameType = gameType;
+    }
+
+    public int getWareId() {
+        return wareId;
+    }
+
+    public void setWareId(int wareId) {
+        this.wareId = wareId;
     }
 
     public String getCurrentNode() {

@@ -4,6 +4,7 @@ import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterMsgSender;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.message.SessionKickout;
@@ -62,6 +63,8 @@ public class PlayerSessionService implements TimerListener {
     private NodeManager nodeManager;
     @Autowired
     private PlayerLastGameInfoDao playerLastGameInfoDao;
+    @Autowired
+    protected MarsCurator marsCurator;
 
 
     private TimerEvent<String> checkSessionEvent;
@@ -75,9 +78,9 @@ public class PlayerSessionService implements TimerListener {
         return redisTemplate.opsForHash().hasKey(SESSION_TABLE_NAME,playerId);
     }
 
-    public void save(PlayerSessionInfo playerSessionInfo) {
+    public PlayerSessionInfo save(PlayerSessionInfo playerSessionInfo) {
         if (playerSessionInfo == null) {
-            return;
+            return null;
         }
         //设置活跃时间
         playerSessionInfo.setLastActiveTime(System.currentTimeMillis());
@@ -86,6 +89,7 @@ public class PlayerSessionService implements TimerListener {
 
         redisTemplate.opsForHash().put(SESSION_TABLE_NAME,playerSessionInfo.getPlayerId(),playerSessionInfo);
         //redisTemplate.opsForSet().add(ONLINEPLAYERS, playerSessionInfo.getPlayerId());
+        return playerSessionInfo;
     }
 
     public PFSession getSession(PlayerSessionInfo playerSessionInfo) {
@@ -209,8 +213,10 @@ public class PlayerSessionService implements TimerListener {
 
     public void init(){
         if (timerCenter != null) {
-            checkSessionEvent = new TimerEvent<>(this, "PlayerSession", SESSION_TIME_OUT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
-            timerCenter.add(checkSessionEvent);
+            if(NodeType.HALL.name().equals(nodeManager.nodeConfig.getType())){
+                checkSessionEvent = new TimerEvent<>(this, "PlayerSession", SESSION_TIME_OUT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
+                timerCenter.add(checkSessionEvent);
+            }
 
             if(NodeType.GAME.name().equals(nodeManager.nodeConfig.getType())){
                 onlineCountEvent = new TimerEvent<>(this, "OnlineCount", ONLINE_COUNT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
@@ -219,12 +225,19 @@ public class PlayerSessionService implements TimerListener {
         }
     }
 
-    public void enterGameServer(Player player, boolean canExit, String extra){
-        onlineCount(player.getId());
-        playerLastGameInfo(player,canExit,true,extra,false);
-
-        PlayerSessionInfo info = getInfo(player.getId());
+    public void changeGameType(long playerId,int gameType,int wareId){
+        PlayerSessionInfo info = getInfo(playerId);
+        info.setGameType(gameType);
+        info.setWareId(wareId);
         save(info);
+    }
+
+    public PlayerSessionInfo enterGameServer(long playerId,int gameType,int wareId){
+        onlineCount(playerId);
+        playerLastGameInfo(playerId,0,gameType,wareId,0);
+
+        PlayerSessionInfo info = getInfo(playerId);
+        return save(info);
     }
 
     /**
@@ -265,26 +278,18 @@ public class PlayerSessionService implements TimerListener {
         });
     }
 
-    public void offline(Player player,boolean canExit,String extra,boolean halfwayOffline){
-        if(player == null){
-            return;
-        }
-
-        offlineCount(player.getId());
-
-        if(player.getRoomId() > 0){
-            playerLastGameInfo(player,canExit,false,extra,halfwayOffline);
-        }else {
-            playerLastGameInfo(player,true,false,extra,halfwayOffline);
-        }
+    public void offline(long playerId,int gameUniqueId,int gameType,int wareId,int roomId){
+        offlineCount(playerId);
+        playerLastGameInfo(playerId, gameUniqueId,gameType,wareId,roomId);
     }
 
-    public void playerLastGameInfo(Player player,boolean canExit,boolean login,String extra,boolean halfwayOffline){
-        if(player == null){
-            return;
-        }
+    public void playerLastGameInfo(long playerId,int gameUniqueId,int gameType,int wareId,int roomId){
         PlayerLastGameInfo playerLastGameInfo = new PlayerLastGameInfo();
-        playerLastGameInfo.setPlayerId(player.getId());
+        playerLastGameInfo.setPlayerId(playerId);
+        playerLastGameInfo.setGameUniqueId(gameUniqueId);
+        playerLastGameInfo.setGameType(gameType);
+        playerLastGameInfo.setWareId(wareId);
+        playerLastGameInfo.setRoomId(roomId);
         playerLastGameInfo.setNodePath(nodeManager.nodePath);
         playerLastGameInfoDao.save(playerLastGameInfo);
     }
@@ -293,12 +298,16 @@ public class PlayerSessionService implements TimerListener {
         return redisTemplate.opsForHash().hasKey(SESSION_TABLE_NAME,playerId);
     }
 
+    public void changeSessionInfo(PFSession pfSession,Player player){
+        changeSessionInfo(pfSession,player,0,0);
+    }
+
     /**
      * 修改session信息
      * @param pfSession
      * @param player
      */
-    public void changeSessionInfo(PFSession pfSession,Player player){
+    public void changeSessionInfo(PFSession pfSession,Player player,int gameType,int wareId){
         PlayerSessionInfo info = getInfo(player.getId());
         if(info != null){
             if(Objects.equals(pfSession.sessionId(),info.getSessionId())){
@@ -321,12 +330,16 @@ public class PlayerSessionService implements TimerListener {
                 info.setPlayerId(player.getId());
                 info.setSessionId(pfSession.sessionId());
                 info.setNodeName(pfSession.gatePath);
+                info.setGameType(gameType);
+                info.setWareId(wareId);
                 log.info("顶号成功! playerId = {}", player.getId());
             }
         }else {
             info = new PlayerSessionInfo();
             info.setNodeName(pfSession.gatePath);
             info.setPlayerId(player.getId());
+            info.setGameType(gameType);
+            info.setWareId(wareId);
             info.setSessionId(pfSession.sessionId());
         }
         save(info);
@@ -334,7 +347,7 @@ public class PlayerSessionService implements TimerListener {
 
     @Override
     public void onTimer(TimerEvent e) {
-        if(e == checkSessionEvent){
+        if(e == checkSessionEvent && marsCurator.master(NodeType.HALL.getValue())){
             log.info("开始执行session检查");
             checkSessionByNode();
             Iterator<Map.Entry<String, PFSession>> iterator = clusterSystem.sessionMap().entrySet().iterator();

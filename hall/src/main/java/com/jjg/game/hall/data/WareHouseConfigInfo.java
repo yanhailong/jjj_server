@@ -1,15 +1,17 @@
-package com.jjg.game.dollarexpress.pb;
+package com.jjg.game.hall.data;
 
 import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.proto.ProtobufMessage;
 
 /**
  * @author 11
- * @date 2025/6/13 13:45
+ * @date 2025/6/18 15:37
  */
+@ProtobufMessage
 @ProtoDesc("每个场次配置信息")
 public class WareHouseConfigInfo {
     @ProtoDesc("场次id")
-    public int sid;
+    public int wareId;
     @ProtoDesc("场次名称")
     public String name;
     @ProtoDesc("奖池")

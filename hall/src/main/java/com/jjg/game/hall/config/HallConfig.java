@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class HallConfig {
     private boolean test;
+    private int age;
+    private String name;
 
     public boolean isTest() {
         return test;
@@ -16,5 +18,21 @@ public class HallConfig {
 
     public void setTest(boolean test) {
         this.test = test;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

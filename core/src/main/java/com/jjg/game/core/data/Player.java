@@ -23,10 +23,6 @@ public class Player {
     private long exp;
     //流水
     private long statement;
-    //游戏类型
-    private int gameType;
-    //房间id
-    private int roomId;
     //ip地址
     private String ip;
     //设备类型
@@ -88,22 +84,6 @@ public class Player {
 
     public void setStatement(long statement) {
         this.statement = statement;
-    }
-
-    public int getGameType() {
-        return gameType;
-    }
-
-    public void setGameType(int gameType) {
-        this.gameType = gameType;
-    }
-
-    public int getRoomId() {
-        return roomId;
-    }
-
-    public void setRoomId(int roomId) {
-        this.roomId = roomId;
     }
 
     public String getIp() {
