@@ -30,8 +30,8 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
         SendInfo sendInfo = new SendInfo();
 
         NoticeConfigInfo notice = new NoticeConfigInfo();
-        DollarExpressWareHouseConfig config = DollarExpressWareHouseConfig.factory.getAllSamples().stream().filter(c -> c.sid == wareId).findFirst().orElse(null);
-        notice.stakeList = List.of(config.stake_1,config.stake_2,config.stake_3,config.stake_4,config.stake_5,config.stake_6,config.stake_7,config.stake_8,config.stake_9,config.stake_10);
+        DollarExpressWareHouseConfig config = DollarExpressWareHouseConfig.factory.getAllSamples().stream().filter(c -> c.getSid() == wareId).findFirst().orElse(null);
+        notice.stakeList = List.of(config.getStake_1(),config.getStake_2(),config.getStake_3(),config.getStake_4(),config.getStake_5(),config.getStake_6(),config.getStake_7(),config.getStake_8(),config.getStake_9(),config.getStake_10());
 
         sendInfo.addPlayerMsg(playerController.playerId(), notice);
         sendInfo.getLogMessage().add(notice);

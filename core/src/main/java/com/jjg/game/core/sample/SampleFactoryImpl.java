@@ -15,7 +15,7 @@ public class SampleFactoryImpl<T extends Sample> implements SampleFactory<T> {
 
     @Override
     public void addSample(T sample) {
-        sampleMap.put(sample.sid, sample);
+        sampleMap.put(sample.getSid(), sample);
     }
 
     @Override

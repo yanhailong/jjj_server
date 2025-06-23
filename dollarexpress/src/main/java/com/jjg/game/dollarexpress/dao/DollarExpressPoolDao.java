@@ -16,7 +16,7 @@ public class DollarExpressPoolDao extends AbstractPoolDao {
     public void initPool() {
         for(int gameType : DollarExpressConst.GameType.SUPPORT_GAME_TYPES){
             for(DollarExpressWareHouseConfig config : DollarExpressWareHouseConfig.factory.getAllSamples()){
-                redisTemplate.opsForHash().putIfAbsent(pool_prefix + gameType,config.getSid(),config.basicWarehouse);
+                redisTemplate.opsForHash().putIfAbsent(pool_prefix + gameType,config.getSid(),config.getBasicWarehouse());
             }
         }
     }

@@ -40,7 +40,7 @@ public class SampleReflectHelper {
                     System.out.println("读取配置失败 ，className = " + clazz.getName() + ", attributeName = " + attributeName + ", attributeValue = " + attributeValue);
                 }
             }
-            if (sample.sid > 0) {
+            if (sample.getSid() > 0) {
                 samples.add(sample);
             }
         }
@@ -49,7 +49,15 @@ public class SampleReflectHelper {
 
     private static boolean set(Object instance, String fieldName, String value) {
         try {
-            Field field = instance.getClass().getField(fieldName);
+            Field field;
+            if("sid".equalsIgnoreCase(fieldName) || "name".equalsIgnoreCase(fieldName)) {
+                field = instance.getClass().getSuperclass().getDeclaredField(fieldName);
+            }else {
+                field = instance.getClass().getDeclaredField(fieldName);
+            }
+
+//            Field field = instance.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
             Class<?> fieldClazz = field.getType();
             if (fieldClazz == List.class) {
                 Type type = field.getGenericType();

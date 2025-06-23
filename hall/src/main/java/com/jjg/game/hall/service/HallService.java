@@ -37,13 +37,13 @@ public class HallService implements ConfigExcelChangeListener {
         Map<Integer, List<WareHouseConfigInfo>> tempwareHouseConfigMap = new HashMap<>();
 
         for(AllWareHouseConfig c : AllWareHouseConfig.factory.getAllSamples()){
-            List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.gameType, k -> new ArrayList<>());
+            List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameType(), k -> new ArrayList<>());
             WareHouseConfigInfo info = new WareHouseConfigInfo();
-            info.wareId = c.wareId;
-            info.name = c.name;
+            info.wareId = c.getWareId();
+            info.name = c.getName();
             info.pool = 99999l;
-            info.limitGoldMin = c.require_amount;
-            info.limitVipMin = c.require_viplevel;
+            info.limitGoldMin = c.getRequire_amount();
+            info.limitVipMin = c.getRequire_viplevel();
             tempList.add(info);
         }
         this.wareHouseConfigMap = tempwareHouseConfigMap;

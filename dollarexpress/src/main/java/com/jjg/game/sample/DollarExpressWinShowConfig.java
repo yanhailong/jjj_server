@@ -10,7 +10,7 @@
 
 /**
  * Auto generate by "Python tools"
- * @Date 2025-06-20 11:50:22
+ * @Date 2025-06-23 12:47:43
  */
  @ProtobufMessage
  public class DollarExpressWinShowConfig extends Sample{
@@ -24,9 +24,26 @@
     }
  	@Tag(3)
 	@ProtoDesc("倍率=奖金/底注")
-	public int payout_min;
+	private int payout_min;
 	@Tag(4)
 	@ProtoDesc("特效资源")
-	public String icon;
+	private String icon;
+
+ 	public int getPayout_min() {
+		return this.payout_min;
+	}
+
+	public void setPayout_min(int payout_min) {
+		this.payout_min = payout_min;
+	}
+
+	public String getIcon() {
+		return this.icon;
+	}
+
+	public void setIcon(String icon) {
+		this.icon = icon;
+	}
+
 
  }

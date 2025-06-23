@@ -10,7 +10,7 @@
 
 /**
  * Auto generate by "Python tools"
- * @Date 2025-06-20 11:50:22
+ * @Date 2025-06-23 12:47:43
  */
  @ProtobufMessage
  public class DollarExpressGolbalConfig extends Sample{
@@ -24,6 +24,15 @@
     }
  	@Tag(3)
 	@ProtoDesc("值")
-	public String value;
+	private String value;
+
+ 	public String getValue() {
+		return this.value;
+	}
+
+	public void setValue(String value) {
+		this.value = value;
+	}
+
 
  }

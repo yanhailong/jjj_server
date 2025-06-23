@@ -1,7 +1,6 @@
 package com.jjg.game.dollarexpress.constant;
 
 import java.math.BigDecimal;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author 11
@@ -38,6 +37,8 @@ public interface DollarExpressConst {
         int TRAIN_TYPE_WHEN_WIN_FREE = 1;
         //免费模式-免费次数
         int FREE_TYPE_WHEN_WIN_FREE = 2;
+
+        BigDecimal BIGDECIMAL_TWO = BigDecimal.valueOf(2);
     }
 
     interface Global{

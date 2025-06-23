@@ -10,7 +10,7 @@
 
 /**
  * Auto generate by "Python tools"
- * @Date 2025-06-20 11:50:27
+ * @Date 2025-06-23 12:47:30
  */
  @ProtobufMessage
  public class GolbalConfig extends Sample{
@@ -24,9 +24,26 @@
     }
  	@Tag(3)
 	@ProtoDesc("值")
-	public int value;
+	private int value;
 	@Tag(4)
 	@ProtoDesc("备注")
-	public String mark;
+	private String mark;
+
+ 	public int getValue() {
+		return this.value;
+	}
+
+	public void setValue(int value) {
+		this.value = value;
+	}
+
+	public String getMark() {
+		return this.mark;
+	}
+
+	public void setMark(String mark) {
+		this.mark = mark;
+	}
+
 
  }

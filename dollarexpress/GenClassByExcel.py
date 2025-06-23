@@ -36,10 +36,11 @@ javaSourceTemplate = """
         return (%s)factory.newSample(sid);
     }
  %s
+ %s
  }
 """
 
-csSourceTemplate = """ 
+csSourceTemplate = """
 using UnityEngine;
 using System.Collections;
 using System;
@@ -56,7 +57,7 @@ public class %s
     [ProtoMember(1, IsRequired = true)]
     public int id;
     [ProtoMember(2, IsRequired = true)]
-    public string name;
+    public String name;
  %s
 }
 
@@ -67,7 +68,7 @@ topackage = "com.jjg.game.sample"
 
 class Field:
     comment = "field comment."
-    modifier = "public"
+    modifier = "private"
     fieldType = "String"
     fieldName = ""
     index = 1
@@ -76,8 +77,36 @@ class Field:
         return self.fieldName == o.fieldName
 
     def genField(self, i):
-            return "\t@Tag(%s)\n\t@ProtoDesc(\"%s\")\n\t%s %s %s;\n" % (
-                self.index, self.comment, self.modifier, self.fieldType, self.fieldName)
+        return "\t@Tag(%s)\n\t@ProtoDesc(\"%s\")\n\t%s %s %s;\n" % (
+            self.index, self.comment, self.modifier, self.fieldType, self.fieldName)
+
+
+    def genGetterSetter(self,i):
+        if self.fieldType.lower() == "boolean":
+            # 生成getter方法
+            getter = "\tpublic %s is%s() {\n\t\treturn this.%s;\n\t}\n\n" % (
+                self.fieldType,
+                self.fieldName[0].upper() + self.fieldName[1:],
+                self.fieldName
+            )
+        else:
+            # 生成getter方法
+            getter = "\tpublic %s get%s() {\n\t\treturn this.%s;\n\t}\n\n" % (
+                self.fieldType,
+                self.fieldName[0].upper() + self.fieldName[1:],
+                self.fieldName
+            )
+
+        # 生成setter方法
+        setter = "\tpublic void set%s(%s %s) {\n\t\tthis.%s = %s;\n\t}\n\n" % (
+            self.fieldName[0].upper() + self.fieldName[1:],
+            self.fieldType,
+            self.fieldName,
+            self.fieldName,
+            self.fieldName
+        )
+
+        return getter + setter
 
     def genCsField(self, i):
         if self.fieldType == "String":
@@ -103,14 +132,21 @@ class JavaSourceTemplate:
 
     def genJavaSource(self):
         strFields = ""
+
+        setgetStr = ""
         for i, field in enumerate(self.fields):
             strFields += field.genField(i)
+            setgetStr += field.genGetterSetter(i)
 
         return javaSourceTemplate % (
             self.package, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), self.className, self.spClassName,
+            # strFields,
             self.factorySrc,
+            # setgetStr,
             self.className, self.className, self.className, self.className, self.className, self.className,
-            strFields)
+            strFields,
+            setgetStr
+            )
 
     def genCsSource(self):
         strFields = ""

@@ -1,10 +1,8 @@
 package com.jjg.game.core.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.config.NodeConfig;
-import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.monitor.FileLoader;
 import com.jjg.game.common.monitor.FileMonitor;

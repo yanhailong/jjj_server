@@ -14,11 +14,11 @@ public abstract class Sample implements Cloneable , Serializable {
 
     @Tag(1)
     @ProtoDesc("配置id")
-    public int sid;
+    private int sid;
 
     @Tag(2)
     @ProtoDesc("配置名称")
-    public String name;
+    private String name;
 
     public int getSid() {
         return sid;

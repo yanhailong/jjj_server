@@ -10,7 +10,7 @@
 
 /**
  * Auto generate by "Python tools"
- * @Date 2025-06-20 11:50:27
+ * @Date 2025-06-23 12:47:30
  */
  @ProtobufMessage
  public class GameListConfig extends Sample{
@@ -24,6 +24,15 @@
     }
  	@Tag(3)
 	@ProtoDesc("状态  0.开启  1.维护  2.关闭")
-	public int status;
+	private int status;
+
+ 	public int getStatus() {
+		return this.status;
+	}
+
+	public void setStatus(int status) {
+		this.status = status;
+	}
+
 
  }

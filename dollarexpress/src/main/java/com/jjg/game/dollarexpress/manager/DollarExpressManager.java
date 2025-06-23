@@ -109,14 +109,14 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
             boolean validStake = checkStake(config, stake);
             if(!validStake){
                 gameRunInfo.setCode(Code.PARAM_ERROR);
-                log.debug("stake参数不在配置项内 gameType = {},playerId:{}, wardId = {}, stake = {}", playerGameData.getGameType(),playerId,config.sid,stake);
+                log.debug("stake参数不在配置项内 gameType = {},playerId:{}, wardId = {}, stake = {}", playerGameData.getGameType(),playerId,config.getSid(),stake);
                 return gameRunInfo;
             }
 
             //是否应该选择免费类型
             if(playerGameData.getCanChooseFreeType().get()){
                 gameRunInfo.setCode(Code.FORBID);
-                log.debug("此时应该选择免费游戏类型，不应该正常玩游戏 gameType = {},playerId:{}, wardId = {}, stake = {}", playerGameData.getGameType(),playerId,config.sid,stake);
+                log.debug("此时应该选择免费游戏类型，不应该正常玩游戏 gameType = {},playerId:{}, wardId = {}, stake = {}", playerGameData.getGameType(),playerId,config.getSid(),stake);
                 return gameRunInfo;
             }
 
@@ -131,7 +131,7 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
             CommonResult<Player> result = dollarExpressPlayerService.addGold(playerId, -stake, "startDollarExpressGame");
             if(!result.success()){
                 gameRunInfo.setCode(result.code);
-                log.debug("扣除玩家金币失败 gameType = {},playerId:{}, wardId = {}, stake = {}", playerGameData.getGameType(),playerId,config.sid,stake);
+                log.debug("扣除玩家金币失败 gameType = {},playerId:{}, wardId = {}, stake = {}", playerGameData.getGameType(),playerId,config.getSid(),stake);
                 return gameRunInfo;
             }
             log.debug("玩家扣除金额成功 playerId ={}",playerId);
@@ -139,28 +139,28 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
             Player player = result.data;
 
             //下注金额 除以100
-            long betValue = stake / config.multiplier;
+            long betValue = stake / config.getMultiplier();
 
             //根据配置出奖
             String[] axleArr = controlConfigAxleResult.data.split("_");
             int specialType = 0;
             if(DollarExpressConst.Common.AXLE_PREFIX.equals(axleArr[0])){  //普通模式
                 int axleId = Integer.parseInt(axleArr[1]);
-                log.debug("进入普通中奖模式 gameType = {},playerId:{}, wardId = {}, stake = {},axleId = {}",playerGameData.getGameType(),playerId,config.sid,stake,axleId);
+                log.debug("进入普通中奖模式 gameType = {},playerId:{}, wardId = {}, stake = {},axleId = {}",playerGameData.getGameType(),playerId,config.getSid(),stake,axleId);
 
                 Map<Integer, List<Integer>> tempMap = this.showConfigDataMap.get(axleId);
                 gameRunInfo = genNormalLottery(gameRunInfo,tempMap);
 //                gameRunInfo = normalAward(gameRunInfo,playerGameData,betValue,config);
             }else if(DollarExpressConst.Common.SPECIAL_PREFIX.equals(axleArr[0])){  //特殊模式
                 specialType = Integer.parseInt(axleArr[1]);
-                log.debug("进入特殊中奖模式 gameType = {},playerId:{}, wardId = {}, stake = {},specialType = {}",playerGameData.getGameType(),playerId,config.sid,stake,specialType);
+                log.debug("进入特殊中奖模式 gameType = {},playerId:{}, wardId = {}, stake = {},specialType = {}",playerGameData.getGameType(),playerId,config.getSid(),stake,specialType);
 
                 PropInfo<Integer> propInfo = this.resultShowConfigDataMap.get(specialType);
                 gameRunInfo = genSpecialLottery(gameRunInfo,propInfo);
 
 //                gameRunInfo = specialAward(gameRunInfo,playerGameData,betValue,specialType);
             }else {
-                log.debug("出奖配置错误 gameType = {},playerId:{}, wardId = {}, stake = {},axleArr[0] = {}",playerGameData.getGameType(),playerId,config.sid,stake, axleArr[0]);
+                log.debug("出奖配置错误 gameType = {},playerId:{}, wardId = {}, stake = {},axleArr[0] = {}",playerGameData.getGameType(),playerId,config.getSid(),stake, axleArr[0]);
                 gameRunInfo.setCode(Code.FAIL);
                 return gameRunInfo;
             }
@@ -231,13 +231,13 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
      */
     public GameRunInfo normalAward(GameRunInfo gameRunInfo, PlayerGameData playerGameData,long stake,DollarExpressWareHouseConfig config){
         if(gameRunInfo.getIntArray() == null){
-            log.debug("出奖失败 gameType = {},playerId:{}, wardId = {}, stake = {}",playerGameData.getGameType(),playerGameData.playerId(),config.sid,stake);
+            log.debug("出奖失败 gameType = {},playerId:{}, wardId = {}, stake = {}",playerGameData.getGameType(),playerGameData.playerId(),config.getSid(),stake);
             gameRunInfo.setCode(Code.FAIL);
             return gameRunInfo;
         }
 
         //下注金额 除以100
-        long betValue = stake / config.multiplier;
+        long betValue = stake / config.getMultiplier();
         playerGameData.setLastBetValue(betValue);
 
         //中保险箱的话，不计算中奖线
@@ -280,7 +280,7 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
                 TrainInfo trainInfo = addTrainInfo(playerGameData.isGoldTrainInFree() ? DollarExpressConst.ResultShow.FREE_TO_WIN_GOLD_TRAIN_MOUDLE : DollarExpressConst.ResultShow.FREE_TO_WIN_NORMAL_TRAIN_MOUDLE, playerId, playerGameData.getLastBetValue());
                 gameRunInfo.setTrainInfo(trainInfo);
             }else {
-                int freeCount = DollarExpressResultShowConfig.getDollarExpressResultShowConfig(playerGameData.getResultShowId()).freetime;
+                int freeCount = DollarExpressResultShowConfig.getDollarExpressResultShowConfig(playerGameData.getResultShowId()).getFreetime();
                 playerGameData.setFreeCount(freeCount);
                 gameRunInfo.setFreeCount(freeCount);
             }
@@ -467,20 +467,20 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
         int end = 0;
         //排除已经出现的图标后，重新计算权重
         for(DollarExpressIconConfig c : DollarExpressIconConfig.factory.getAllSamples()){
-            if(c.noWinning < 1){
+            if(c.getNoWinning() < 1){
                 continue;
             }
-            if(c.type != DollarExpressConst.Icon.NORMAL_TYPE){
+            if(c.getType() != DollarExpressConst.Icon.NORMAL_TYPE){
                 continue;
             }
-            if(existIconSet.contains(c.sid)){
+            if(existIconSet.contains(c.getSid())){
                 continue;
             }
             begin = end;
-            end += c.noWinning;
+            end += c.getNoWinning();
 
-            PropData<Integer> tempPropData = new PropData<>(c.sid, begin, end);
-            colum2PropInfo.getPropMap().put(c.sid,tempPropData);
+            PropData<Integer> tempPropData = new PropData<>(c.getSid(), begin, end);
+            colum2PropInfo.getPropMap().put(c.getSid(),tempPropData);
             colum2PropInfo.setSum(tempPropData.getEnd());
         }
         //填充第二列
@@ -541,7 +541,7 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
 
         long poolGold = poolGoldNumber.longValue();
         //计算差值
-        long diff = poolGold - wareHouseConfig.basicWarehouse;
+        long diff = poolGold - wareHouseConfig.getBasicWarehouse();
         DollarExpressControlConfig config = getByPoolDiff(diff);
         if(config == null){
             log.debug("该配置不存在 gameType = {},wareId = {},playerId = {},diff = {}",playerGameData.getGameType(),playerGameData.getWareId(),playerGameData.playerId(),diff);
@@ -551,7 +551,7 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
 
 
         //根据概率获取轴配置
-        PropInfo<String> propInfo = controlPropDataMap.get(config.sid);
+        PropInfo<String> propInfo = controlPropDataMap.get(config.getSid());
         int rand = RandomUtils.randomInt(propInfo.getSum());
 
         PropData<String> propData = propInfo.getPropMap().values().stream()
@@ -565,7 +565,7 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
             return result;
         }
 
-        log.debug("成功获取control配置，poolGold = {},diff = {},controlSid = {},rand = {},alxeType = {}",poolGold,diff,config.sid,rand,propData.getKey());
+        log.debug("成功获取control配置，poolGold = {},diff = {},controlSid = {},rand = {},alxeType = {}",poolGold,diff,config.getSid(),rand,propData.getKey());
         result.data = propData.getKey();
         return result;
     }
@@ -577,7 +577,7 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
      */
     private DollarExpressControlConfig getByPoolDiff(long diff){
         for(DollarExpressControlConfig c : DollarExpressControlConfig.factory.getAllSamples()){
-            if(diff >= c.entryConditionMin && diff <= c.entryConditionMax){
+            if(diff >= c.getEntryConditionMin() && diff <= c.getEntryConditionMax()){
                 return c;
             }
         }
@@ -594,54 +594,54 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
         log.debug("检查中奖线情况 ante = {},arr = {}",ante,arr);
         for(DollarExpressLineConfig c : DollarExpressLineConfig.factory.getAllSamples()){
             SameInfo sameInfo = new SameInfo();
-            sameInfo = iconSame(sameInfo,arr[c.yLine1],arr[c.yLine2]);
+            sameInfo = iconSame(sameInfo,arr[c.getYLine1()],arr[c.getYLine2()]);
 
             if(!sameInfo.isSame()){
                 continue;
             }
 
-            sameInfo = iconSame(sameInfo,arr[c.yLine2],arr[c.yLine3]);
+            sameInfo = iconSame(sameInfo,arr[c.getYLine2()],arr[c.getYLine3()]);
             if(!sameInfo.isSame()){
                 //检查2连的倍率
                 DollarExpressIconConfig iconConfig = DollarExpressIconConfig.getDollarExpressIconConfig(sameInfo.getBaseIconId());
-                log.debug("检测到2连 lineSid = {},iconId = {}",c.sid,sameInfo.getBaseIconId());
-                if(iconConfig != null && iconConfig.payout_2 > 0){
-                    addResultLineInfo(awardLineInfoList,c.sid,List.of(c.yLine1,c.yLine2),iconConfig.payout_2,ante);
-                    log.debug("添加2连赔率 lineSid = {},iconSid = {},payout = {}",c.sid,iconConfig.sid,iconConfig.payout_2);
+                log.debug("检测到2连 lineSid = {},iconId = {}",c.getSid(),sameInfo.getBaseIconId());
+                if(iconConfig != null && iconConfig.getPayout_2() > 0){
+                    addResultLineInfo(awardLineInfoList,c.getSid(),List.of(c.getYLine1(),c.getYLine2()),iconConfig.getPayout_2(),ante);
+                    log.debug("添加2连赔率 lineSid = {},iconSid = {},payout = {}",c.getSid(),iconConfig.getSid(),iconConfig.getPayout_2());
                 }
                 continue;
             }
 
-            sameInfo = iconSame(sameInfo,arr[c.yLine3],arr[c.yLine4]);
+            sameInfo = iconSame(sameInfo,arr[c.getYLine3()],arr[c.getYLine4()]);
             if(!sameInfo.isSame()){
                 //检查3连的倍率
                 DollarExpressIconConfig iconConfig = DollarExpressIconConfig.getDollarExpressIconConfig(sameInfo.getBaseIconId());
-                log.debug("检测到3连 lineSid = {},iconId = {}",c.sid,sameInfo.getBaseIconId());
-                if(iconConfig != null && iconConfig.payout_3 > 0){
-                    addResultLineInfo(awardLineInfoList,c.sid,List.of(c.yLine1,c.yLine2,c.yLine3),iconConfig.payout_3,ante);
-                    log.debug("添加3连赔率 lineSid = {},iconSid = {},payout = {}",c.sid,iconConfig.sid,iconConfig.payout_3);
+                log.debug("检测到3连 lineSid = {},iconId = {}",c.getSid(),sameInfo.getBaseIconId());
+                if(iconConfig != null && iconConfig.getPayout_3() > 0){
+                    addResultLineInfo(awardLineInfoList,c.getSid(),List.of(c.getYLine1(),c.getYLine2(),c.getYLine3()),iconConfig.getPayout_3(),ante);
+                    log.debug("添加3连赔率 lineSid = {},iconSid = {},payout = {}",c.getSid(),iconConfig.getSid(),iconConfig.getPayout_3());
                 }
                 continue;
             }
 
-            sameInfo = iconSame(sameInfo,arr[c.yLine4],arr[c.yLine5]);
+            sameInfo = iconSame(sameInfo,arr[c.getYLine4()],arr[c.getYLine5()]);
             if(!sameInfo.isSame()){
                 //检查4连的倍率
                 DollarExpressIconConfig iconConfig = DollarExpressIconConfig.getDollarExpressIconConfig(sameInfo.getBaseIconId());
-                log.debug("检测到4连 lineSid = {},iconId = {}",c.sid,sameInfo.getBaseIconId());
-                if(iconConfig != null && iconConfig.payout_4 > 0){
-                    addResultLineInfo(awardLineInfoList,c.sid,List.of(c.yLine1,c.yLine2,c.yLine3,c.yLine4),iconConfig.payout_4,ante);
-                    log.debug("添加4连赔率 lineSid = {},iconSid = {},payout = {}",c.sid,iconConfig.sid,iconConfig.payout_4);
+                log.debug("检测到4连 lineSid = {},iconId = {}",c.getSid(),sameInfo.getBaseIconId());
+                if(iconConfig != null && iconConfig.getPayout_4() > 0){
+                    addResultLineInfo(awardLineInfoList,c.getSid(),List.of(c.getYLine1(),c.getYLine2(),c.getYLine3(),c.getYLine4()),iconConfig.getPayout_4(),ante);
+                    log.debug("添加4连赔率 lineSid = {},iconSid = {},payout = {}",c.getSid(),iconConfig.getSid(),iconConfig.getPayout_4());
                 }
                 continue;
             }
 
             //检查5连的倍率
             DollarExpressIconConfig iconConfig = DollarExpressIconConfig.getDollarExpressIconConfig(sameInfo.getBaseIconId());
-            log.debug("检测到5连 lineSid = {},iconId = {}",c.sid,sameInfo.getBaseIconId());
-            if(iconConfig != null && iconConfig.payout_5 > 0){
-                addResultLineInfo(awardLineInfoList,c.sid,List.of(c.yLine1,c.yLine2,c.yLine3,c.yLine4,c.yLine5),iconConfig.payout_5,ante);
-                log.debug("添加5连赔率 lineSid = {},iconSid = {},payout = {}",c.sid,iconConfig.sid,iconConfig.payout_5);
+            log.debug("检测到5连 lineSid = {},iconId = {}",c.getSid(),sameInfo.getBaseIconId());
+            if(iconConfig != null && iconConfig.getPayout_5() > 0){
+                addResultLineInfo(awardLineInfoList,c.getSid(),List.of(c.getYLine1(),c.getYLine2(),c.getYLine3(),c.getYLine4(),c.getYLine5()),iconConfig.getPayout_5(),ante);
+                log.debug("添加5连赔率 lineSid = {},iconSid = {},payout = {}",c.getSid(),iconConfig.getSid(),iconConfig.getPayout_5());
             }
         }
         return awardLineInfoList;
@@ -695,13 +695,13 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
         //如果是中免费
         if(gameRunInfo.getSpecialType() == DollarExpressConst.ResultShow.WIN_FREE){
             log.debug("检查特殊玩法之免费次数");
-            gameRunInfo.setFreeCount(DollarExpressResultShowConfig.getDollarExpressResultShowConfig(gameRunInfo.getResultShowId()).freetime);
+            gameRunInfo.setFreeCount(DollarExpressResultShowConfig.getDollarExpressResultShowConfig(gameRunInfo.getResultShowId()).getFreetime());
             if(gameRunInfo.getFreeCount() > 0){
                 playerGameData.getCanChooseFreeType().compareAndSet(false,true);
             }
 
             //配置表中配置的次数限制
-            int v = Integer.parseInt(DollarExpressGolbalConfig.getDollarExpressGolbalConfig(DollarExpressConst.Global.FREE_TYPE_TO_GOLD_TRAIN_COUNT).value);
+            int v = Integer.parseInt(DollarExpressGolbalConfig.getDollarExpressGolbalConfig(DollarExpressConst.Global.FREE_TYPE_TO_GOLD_TRAIN_COUNT).getValue());
             if(aboardCount >= v){
                 gameRunInfo.setGoldTrainInFree(true);
             }
@@ -769,7 +769,7 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
             return null;
         }
 
-        log.debug("找到火车配置中的 propData，resultshow.Sid = {}",propData.getKey());
+        log.debug("找到火车配置中的 propData，resultshow.getSid() = {}",propData.getKey());
         //根据权重找到的sid，然后找到对应的配置图标id
         Map<Integer, Integer> iconMap = resultShowIconMap.get(propData.getKey());
         if(iconMap == null){
@@ -795,9 +795,9 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
 //                continue;
 //            }
 
-            long goldValue = iconConfig.payout_1 * betValue;
+            long goldValue = iconConfig.getPayout_1() * betValue;
             trainInfo.goldList.add(goldValue);
-            log.debug("添加火车金币 playerId = {},betValue = {},iconId = {},payout_1 = {},goldValue = {}",playerId,betValue,iconId,iconConfig.payout_1,goldValue);
+            log.debug("添加火车金币 playerId = {},betValue = {},iconId = {},payout_1 = {},goldValue = {}",playerId,betValue,iconId,iconConfig.getPayout_1(),goldValue);
         }
         return trainInfo;
     }
@@ -894,10 +894,10 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
      * @return
      */
     private boolean checkStake(DollarExpressWareHouseConfig config,long stake){
-        if(config.stake_1 == stake || config.stake_2 == stake || config.stake_3 == stake
-                || config.stake_4 == stake || config.stake_5 == stake || config.stake_6 == stake
-                || config.stake_7 == stake || config.stake_8 == stake || config.stake_9 == stake
-                || config.stake_10 == stake){
+        if(config.getStake_1() == stake || config.getStake_2() == stake || config.getStake_3() == stake
+                || config.getStake_4() == stake || config.getStake_5() == stake || config.getStake_6() == stake
+                || config.getStake_7() == stake || config.getStake_8() == stake || config.getStake_9() == stake
+                || config.getStake_10() == stake){
             return true;
         }
         return false;
@@ -1040,23 +1040,23 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
             for(DollarExpressResultShowConfig c : DollarExpressResultShowConfig.factory.getAllSamples()){
                 int begin = 0;
 
-                PropInfo<Integer> info = tempResultShowConfigDataMap.get(c.type);
+                PropInfo<Integer> info = tempResultShowConfigDataMap.get(c.getType());
                 if(info == null){
                     info = new PropInfo<>();
-                    tempResultShowConfigDataMap.put(c.type, info);
+                    tempResultShowConfigDataMap.put(c.getType(), info);
                 }else {
                     begin = info.getSum();
                 }
 
-                info.setSum(info.getSum() + c.weight);
-                info.getPropMap().put(c.sid,new PropData<>(c.sid,begin,info.getSum()));
+                info.setSum(info.getSum() + c.getWeight());
+                info.getPropMap().put(c.getSid(),new PropData<>(c.getSid(),begin,info.getSum()));
                 //------------------------------
                 //缓存iconId
                 for(Field f : resultShowConfigIconFieldNameList){
                     int v = (int)f.get(c);
                     int index = Integer.parseInt(f.getName().split("_")[1]);
 
-                    Map<Integer, Integer> tempMap = tempResultShowIconMap.computeIfAbsent(c.sid, k -> new HashMap<>());
+                    Map<Integer, Integer> tempMap = tempResultShowIconMap.computeIfAbsent(c.getSid(), k -> new HashMap<>());
                     tempMap.put(index,v);
                 }
             }
@@ -1077,19 +1077,19 @@ public class DollarExpressManager implements ConfigExcelChangeListener {
             Map<Integer,BigDecimal> tempWildMap = new HashMap<>();
             Map<Integer,Integer> tempDollarIconMap = new HashMap<>();
             for(DollarExpressIconConfig c : DollarExpressIconConfig.factory.getAllSamples()){
-                if(c.noWinning > 0){
-                    PropInfo<Integer> propInfo = tempIconNoWinMap.computeIfAbsent(c.type, k -> new PropInfo<>());
+                if(c.getNoWinning() > 0){
+                    PropInfo<Integer> propInfo = tempIconNoWinMap.computeIfAbsent(c.getType(), k -> new PropInfo<>());
 
-                    PropData<Integer> propData = new PropData<>(c.sid, propInfo.getSum(), propInfo.getSum() + c.noWinning);
-                    propInfo.getPropMap().put(c.sid,propData);
+                    PropData<Integer> propData = new PropData<>(c.getSid(), propInfo.getSum(), propInfo.getSum() + c.getNoWinning());
+                    propInfo.getPropMap().put(c.getSid(),propData);
                     propInfo.setSum(propData.getEnd());
                 }
 
-                if(c.type == DollarExpressConst.Icon.WILD_TYPE){
-                    BigDecimal wildTimes = BigDecimal.valueOf(c.doubling).divide(DollarExpressConst.Common.TEN_THOUSAND).setScale(2, BigDecimal.ROUND_HALF_UP);
-                    tempWildMap.put(c.sid,wildTimes);
-                }else if(c.type == DollarExpressConst.Icon.DOLLAR_TYPE){
-                    tempDollarIconMap.put(c.sid,c.payout_1);
+                if(c.getType() == DollarExpressConst.Icon.WILD_TYPE){
+                    BigDecimal wildTimes = BigDecimal.valueOf(c.getDoubling()).divide(DollarExpressConst.Common.TEN_THOUSAND).setScale(2, BigDecimal.ROUND_HALF_UP);
+                    tempWildMap.put(c.getSid(),wildTimes);
+                }else if(c.getType() == DollarExpressConst.Icon.DOLLAR_TYPE){
+                    tempDollarIconMap.put(c.getSid(),c.getPayout_1());
                 }
             }
             this.iconNoWinMap = tempIconNoWinMap;
