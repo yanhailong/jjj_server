@@ -33,11 +33,11 @@ public class GateServer implements TimerListener {
         start();
     }
 
-    public void init(){
+    public void init() {
         this.timerCenter.add((new TimerEvent(this, 10, "")).withTimeUnit(TimeUnit.SECONDS));
     }
 
-    public void start(){
+    public void start() {
         NettyServer wsServer;
         if (this.gateConfig.netAddress != null) {
             GateChannelInitializer initializer = new GateChannelInitializer();

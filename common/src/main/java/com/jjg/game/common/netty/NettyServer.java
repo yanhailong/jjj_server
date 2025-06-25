@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
  * 采用Netty4.x 实现NIO服务器，该类继承了Thread 线程类，应用过程中如果需要
  * 异步开启网络服务，可以调用start方法，否则直接调用run。
  *
+ * @author NOBODY
  * @since 1.0
  */
 public class NettyServer extends Thread {
@@ -49,6 +50,7 @@ public class NettyServer extends Thread {
         this.initializer = initializer;
     }
 
+    @Override
     public void run() {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         NioEventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -58,21 +60,24 @@ public class NettyServer extends Thread {
             this.b.group(bossGroup, workerGroup);
             this.b.channel(NioServerSocketChannel.class);
             this.b.childHandler(this.initializer).childOption(ChannelOption.SO_KEEPALIVE, true)
-                    .option(ChannelOption.SO_BACKLOG, 4096)//建议设置到4K
+                    // ChannelOption.TCP_NODELAY 是否禁用Nagle算法(是否减小TCP网络中小数据包数量).ture禁用,降低延迟,false启用,提高吞吐
+                    .childOption(ChannelOption.TCP_NODELAY, true)
+                    //建议设置到4K
+                    .option(ChannelOption.SO_BACKLOG, 4096)
                     .handler(new LoggingHandler(LogLevel.INFO));
             // 服务器绑定端口监听
             ChannelFuture f;
             if (this.address != null) {
                 f = this.b.bind(this.address, this.portNumber).sync();
-                this.log.info("Server started on address = {}, port = {}", this.address, this.portNumber);
+                log.info("Server started on address = {}, port = {}", this.address, this.portNumber);
             } else {
-                f = this.b.bind(this.portNumber).sync();
-                this.log.info("Server started on port = {}" , this.portNumber);
+                f = this.b.bind("0.0.0.0", this.portNumber).sync();
+                log.info("Server started on port = {}", this.portNumber);
             }
             // 监听服务器关闭监听
             f.channel().closeFuture().sync();
         } catch (InterruptedException e) {
-            this.log.error("\nnet server start error...\n", e);
+            log.error("\nnet server start error...\n", e);
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();

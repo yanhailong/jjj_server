@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
  * @date 2022/5/11
  */
 public class ToOneFile2 {
+
     public static void main(String[] args) {
         try{
             String searchPackage = args[0];
@@ -23,18 +24,15 @@ public class ToOneFile2 {
             if (args.length > 2) {
                 importFiles = args[2];
             }
-
             boolean sort = false;
             if (args.length > 3) {
                 sort = Boolean.parseBoolean(args[3]);
             }
-
             ToOneFile2 one = new ToOneFile2();
             one.java2PbMessage(searchPackage, importFiles, genToDir, sort);
         }catch (Exception e){
             e.printStackTrace();
         }
-
     }
 
     public void java2PbMessage(String searchPackage, String pkg, String genToDir, boolean sort) throws Exception{
@@ -84,9 +82,6 @@ public class ToOneFile2 {
             classListTmp = Arrays.asList(classes1).stream().collect(Collectors.toList());
         }
         StringBuilder sb = new StringBuilder();
-        //String fileName = dir + "/Protocol.proto";
-
-//        sb.append("package ").append(fileSimpleName(fileName)).append(";\r\r");
         sb.append("syntax = \"proto3\";\r\r");
 
         if(StringUtils.isNotEmpty(pkg)){
@@ -116,12 +111,6 @@ public class ToOneFile2 {
                     Class descClazz = descAnnotation.getClass();
                     objDesc = descClazz.getMethod("value").invoke(descAnnotation);
                 }
-//                Object obj4 = c.getMethod("node").invoke(annotation);
-
-//                System.out.println(obj1);
-//                System.out.println(obj2);
-//                System.out.println(obj3);
-//                System.out.println(obj4);
                 if (!"0".equals(obj2.toString())) {
                     cmd = Integer.parseInt(obj3.toString());
                     if (objDesc != null) {
@@ -143,33 +132,6 @@ public class ToOneFile2 {
             String content = pbGen.toMesage();
             sb.append(content);
         }
-
-//        handReqMap(sb,fileName);
         FileHelper.saveFile(fileName, sb.toString(), false);
-
     }
-
-//    public static StringBuilder handReqMap(StringBuilder sb,String fileName){
-//        if(Context.instance.getReqMap().size() < 1){
-//            return sb;
-//        }
-//
-//        String[] arr = fileName.split("\\\\");
-//        String msgName = arr[arr.length - 1].replace(".proto","") + "";
-//        msgName = Context.instance.toUpperFirst(msgName) + "MsgIds";
-//
-//        sb.append("enum ").append(msgName).append(" {\r");
-//
-//        for(Map.Entry<Integer,String> en : Context.instance.getReqMap().entrySet()){
-//            sb.append("  ").append(en.getValue()).append(" = ").append(Context.instance.toHex(en.getKey())).append(";\r");
-//        }
-//
-//        sb.append("}");
-//        return sb;
-//    }
-//
-//    private static String fileSimpleName(String fileName){
-//        String[] arr = fileName.split("\\\\");
-//        return arr[arr.length - 1].replace(".proto","") + "";
-//    }
 }

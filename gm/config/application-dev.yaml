@@ -8,7 +8,7 @@ zookeeper:
 
 cluster:
  type: GM
- name: GM_SHIYI
+ name: GM_CCL
  weight: 2
 
 spring:

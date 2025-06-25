@@ -43,7 +43,7 @@ public class AccountController extends AbstractController{
      * @return
      */
     @RequestMapping("guestlogin")
-    public WebResult<LoginVo> guestlogin(@RequestBody GuestLoginDto dto) {
+    public WebResult<LoginVo> guestLogin(@RequestBody GuestLoginDto dto) {
         try{
             if(StringUtils.isEmpty(dto.guest)){
                 log.debug("参数为空，游客登录失败");

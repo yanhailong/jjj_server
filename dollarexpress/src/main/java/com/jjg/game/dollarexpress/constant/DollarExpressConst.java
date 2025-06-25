@@ -1,5 +1,7 @@
 package com.jjg.game.dollarexpress.constant;
 
+import com.jjg.game.common.constant.MessageConst;
+
 import java.math.BigDecimal;
 
 /**
@@ -7,12 +9,12 @@ import java.math.BigDecimal;
  * @date 2025/6/11 14:54
  */
 public interface DollarExpressConst {
-    interface GameType{
+    interface GameType {
         //美元快递id
         int GAME_TYPE_DOLLAR_EXPRESS = 100100;
 
         //支持的游戏
-        int[] SUPPORT_GAME_TYPES = { GAME_TYPE_DOLLAR_EXPRESS };
+        int[] SUPPORT_GAME_TYPES = {GAME_TYPE_DOLLAR_EXPRESS};
     }
 
     interface Common {
@@ -41,14 +43,14 @@ public interface DollarExpressConst {
         BigDecimal BIGDECIMAL_TWO = BigDecimal.valueOf(2);
     }
 
-    interface Global{
+    interface Global {
         int FREE_TYPE_TO_GOLD_TRAIN_COUNT = 1;
     }
 
     /**
      * resultshow表中的常量
      */
-    interface ResultShow{
+    interface ResultShow {
         //resultshow表中，中普通火车
         int WIN_NORMAL_TRAIN = 1;
         //resultshow表中，中保险箱
@@ -82,7 +84,7 @@ public interface DollarExpressConst {
     /**
      * icon表中的常量
      */
-    interface Icon{
+    interface Icon {
         //在icon表中普通图标的类型
         int NORMAL_TYPE = 0;
         //在icon表中WILD图标的类型
@@ -103,21 +105,22 @@ public interface DollarExpressConst {
     }
 
     interface MsgBean {
-        int TYPE = 0x7;
+        int TYPE = MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE;
 
+        int BASE_MSG_PREFIX = TYPE << MessageConst.MessageCommon.RIGHT_MOVE;
         //请求选择免费模式的游戏
-        int REQ_CHOOSE_FREE_MODEL = 0X7001;
-        int RES_CHOOSE_FREE_MODEL = 0X7002;
+        int REQ_CHOOSE_FREE_MODEL = BASE_MSG_PREFIX | 0x01;
+        int RES_CHOOSE_FREE_MODEL = BASE_MSG_PREFIX | 0x02;
 
         //选择投资地区
-        int REQ_INVEST_AREA = 0X7003;
-        int RES_INVEST_AREA = 0X7004;
+        int REQ_INVEST_AREA = BASE_MSG_PREFIX | 0x03;
+        int RES_INVEST_AREA = BASE_MSG_PREFIX | 0x03;
 
         //开始游戏
-        int REQ_START_GAME = 0X7005;
-        int RES_START_GAME = 0X7006;
+        int REQ_START_GAME = BASE_MSG_PREFIX | 0x05;
+        int RES_START_GAME = BASE_MSG_PREFIX | 0x06;
 
         //通知配置信息
-        int NOTICE_CONFIG_INFO = 0X7099;
+        int NOTICE_CONFIG_INFO = BASE_MSG_PREFIX | 0x99;
     }
 }

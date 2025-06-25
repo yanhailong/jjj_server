@@ -29,6 +29,26 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
 
     Logger log = LoggerFactory.getLogger(getClass());
 
+    public static void sendHttpResponse(ChannelHandlerContext ctx, FullHttpRequest req, DefaultFullHttpResponse res) {
+        // 返回应答给客户端
+        if (res.status().code() != 200) {
+            ByteBuf buf = Unpooled.copiedBuffer(res.status().toString(), CharsetUtil.UTF_8);
+            res.content().writeBytes(buf);
+            buf.release();
+        }
+
+        // 如果是非Keep-Alive，关闭连接
+        ChannelFuture f = ctx.channel().writeAndFlush(res);
+        if (!isKeepAlive(req) || res.status().code() != 200) {
+            f.addListener(ChannelFutureListener.CLOSE);
+        }
+
+    }
+
+    private static boolean isKeepAlive(FullHttpRequest req) {
+        return false;
+    }
+
     /**
      * 当客户端连接成功，返回个成功信息
      */
@@ -51,7 +71,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
                     if (gateSession != null) {
                         log.warn("连接读闲置时间到，即将被关闭,activeTime={},ctx={}", gateSession.activeTime, ctx);
                     } else {
-                        log.warn("连接读闲置时间到，即将被关闭,ctx={},sessionId={}", ctx,sessionId);
+                        log.warn("连接读闲置时间到，即将被关闭,ctx={},sessionId={}", ctx, sessionId);
                     }
                     ctx.close();
                     break;
@@ -125,7 +145,6 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
         }
     }
 
-
     public void handlerWebSocketFrame(ChannelHandlerContext ctx, WebSocketFrame frame) throws Exception {
         //关闭请求
         if (frame instanceof CloseWebSocketFrame) {
@@ -146,7 +165,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
     }
 
     public void decode(ChannelHandlerContext ctx, ByteBuf msg) {
-        try{
+        try {
             String sessionId = ctx.channel().id().asShortText();
             GateSession gateSession = GateSession.gateSessionMap.get(sessionId);
             if (gateSession != null) {
@@ -158,8 +177,8 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
                 PFMessage message = new PFMessage(pack.cmd, pack.data);
                 gateSession.messageReceived(message);
             }
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 
@@ -176,30 +195,9 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
             WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(ctx.channel());
         } else {
             handshaker.handshake(ctx.channel(), req);
+            log.debug("返回握手信息: {}", req);
         }
     }
-
-
-    public static void sendHttpResponse(ChannelHandlerContext ctx, FullHttpRequest req, DefaultFullHttpResponse res) {
-        // 返回应答给客户端
-        if (res.status().code() != 200) {
-            ByteBuf buf = Unpooled.copiedBuffer(res.status().toString(), CharsetUtil.UTF_8);
-            res.content().writeBytes(buf);
-            buf.release();
-        }
-
-        // 如果是非Keep-Alive，关闭连接
-        ChannelFuture f = ctx.channel().writeAndFlush(res);
-        if (!isKeepAlive(req) || res.status().code() != 200) {
-            f.addListener(ChannelFutureListener.CLOSE);
-        }
-
-    }
-
-    private static boolean isKeepAlive(FullHttpRequest req) {
-        return false;
-    }
-
 
     //异常处理，netty默认是关闭channel
     @Override
@@ -207,7 +205,9 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
             throws Exception {
         // TODO Auto-generated method stub
         //输出日志
-//        cause.printStackTrace();
+        // cause.printStackTrace();
+        // 网络异常时，应当抛出实际异常日志，方便定位问题
+        log.error(cause.getLocalizedMessage(), cause);
         ctx.close();
     }
 }

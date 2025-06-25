@@ -8,11 +8,11 @@ zookeeper:
 
 cluster:
  type: GAME
- name: GAME_DP_SHIYI
+ name: GAME_DP_CCL
  gm: true
  tcpAddress:
   port: 13007
-  host: 192.168.3.46
+  host: 192.168.3.71
 
 spring:
  main:

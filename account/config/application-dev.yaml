@@ -3,13 +3,13 @@ logging:
  level.*: debug
 
 server:
- port: 9001
+ port: 9002
 
 cluster:
- name: ACCOUNT_SHIYI
+ name: ACCOUNT_CCL
 
 vegasaccount:
- gameserver: ws://192.168.3.31:8090
+ gameserver: ws://192.168.3.71:9001/
 
 spring:
  data:

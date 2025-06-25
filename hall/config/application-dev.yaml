@@ -4,15 +4,15 @@ logging:
 
 zookeeper:
  connects: 192.168.3.31:2181
- marsRoot: jjg
+ marsRoot: ccl
 
 cluster:
  type: HALL
- name: HALL_SHIYI
+ name: HALL_CCL
  gm: true
  tcpAddress:
   port: 13006
-  host: 192.168.3.46
+  host: 192.168.3.71
  masterSelect: true
 
 

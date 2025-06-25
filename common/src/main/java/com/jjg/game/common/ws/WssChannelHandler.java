@@ -4,6 +4,7 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 
@@ -33,7 +34,7 @@ public class WssChannelHandler extends ChannelInitializer<SocketChannel> {
     @Override
     protected void initChannel(SocketChannel ch) throws Exception {
         // TODO Auto-generated method stub
-//        SSLContext sslContext = createSSLContext("JKS", sslKeyPath, sslKeyPwd);
+//        SSLContext sslContext = createSslContext("JKS", sslKeyPath, sslKeyPwd);
 //        //SSLEngine 此类允许使用ssl安全套接层协议进行安全通信            
 //        SSLEngine engine = sslContext.createSSLEngine();
 //        engine.setUseClientMode(false);
@@ -42,12 +43,16 @@ public class WssChannelHandler extends ChannelInitializer<SocketChannel> {
         ch.pipeline().addLast("http-codec", new HttpServerCodec());
         ch.pipeline().addLast("aggregator", new HttpObjectAggregator(65536));
         ch.pipeline().addLast("http-chunked", new ChunkedWriteHandler());
+        // 自动握手和协议自动解析组装
+        ch.pipeline().addLast("websocket-handler", new WebSocketServerProtocolHandler("/", null, true));
         ch.pipeline().addLast("handler", new WebSocketServerHandler());
     }
 
-    public static SSLContext createSSLContext(String type, String path, String password) throws Exception {
-        KeyStore ks = KeyStore.getInstance(type); /// "JKS"
-        InputStream ksInputStream = new FileInputStream(path); /// 证书存放地址
+    public static SSLContext createSslContext(String type, String path, String password) throws Exception {
+         /// "JKS"
+        KeyStore ks = KeyStore.getInstance(type);
+         /// 证书存放地址
+        InputStream ksInputStream = new FileInputStream(path);
         ks.load(ksInputStream, password.toCharArray());
         KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         kmf.init(ks, password.toCharArray());

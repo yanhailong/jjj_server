@@ -4,7 +4,6 @@ import com.jjg.game.core.data.AbstractGameRunInfo;
 import com.jjg.game.dollarexpress.pb.ResultLineInfo;
 import com.jjg.game.dollarexpress.pb.SafeBoxInfo;
 import com.jjg.game.dollarexpress.pb.TrainInfo;
-import org.apache.xmlbeans.impl.xb.xsdschema.Public;
 
 import java.util.ArrayList;
 import java.util.List;

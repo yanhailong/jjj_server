@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<robot> 
+  <yace-type>2</yace-type>  
+  <max-robot>1000</max-robot>
+  <max-conn>50</max-conn>  
+  <send-delay>1000</send-delay>  
+  <robot-name>robotWeek1005</robot-name>
+  <server-group>Server@ccl</server-group>
+  <debug>false</debug>  
+  <Scroll>true</Scroll>  
+  <incre>false</incre>  
+  <login-queue>true</login-queue>  
+  <chasm>true</chasm>
+</robot>

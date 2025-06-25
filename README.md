@@ -167,5 +167,7 @@ server:
 该配置与代码中的 HallConfig.java 对应
 ```
 
+## 协议导出
 
+ 导出工具类：com.jjg.game.common.proto.ToOneFile2
 
