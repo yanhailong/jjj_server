@@ -2,8 +2,11 @@ package com.jjg.game.dollarexpress.dao;
 
 import com.jjg.game.core.dao.AbstractPoolDao;
 import com.jjg.game.dollarexpress.constant.DollarExpressConst;
-import com.jjg.game.sample.DollarExpressWareHouseConfig;
+import com.jjg.game.dollarexpress.sample.GameDataManager;
+import com.jjg.game.dollarexpress.sample.bean.DollarExpressWareHouseCfg;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 /**
  * @author 11
@@ -15,8 +18,10 @@ public class DollarExpressPoolDao extends AbstractPoolDao {
     @Override
     public void initPool() {
         for(int gameType : DollarExpressConst.GameType.SUPPORT_GAME_TYPES){
-            for(DollarExpressWareHouseConfig config : DollarExpressWareHouseConfig.factory.getAllSamples()){
-                redisTemplate.opsForHash().putIfAbsent(pool_prefix + gameType,config.getSid(),config.getBasicWarehouse());
+
+            for(Map.Entry<Integer,DollarExpressWareHouseCfg> en : GameDataManager.getDollarExpressWareHouseCfgMap().entrySet()){
+                DollarExpressWareHouseCfg cfg = en.getValue();
+                redisTemplate.opsForHash().putIfAbsent(pool_prefix + gameType,cfg.getSid(),cfg.getBasicWarehouse());
             }
         }
     }

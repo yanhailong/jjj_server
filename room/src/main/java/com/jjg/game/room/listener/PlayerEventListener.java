@@ -4,12 +4,14 @@ import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.room.manager.AbstractRoomManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +35,8 @@ public class PlayerEventListener implements SessionEnterListener, SessionCloseLi
     @Autowired
     private CoreLogger logger;
 
+    private AbstractRoomManager roomManager;
+
     private Map<Integer, IPlayerRoomEventListener> roomListenerMap = new HashMap<>();
     
     public void init(){
@@ -44,6 +48,15 @@ public class PlayerEventListener implements SessionEnterListener, SessionCloseLi
                     roomListenerMap.put(gameType,en.getValue());
                 }
             }
+        }
+
+        Map<String, AbstractRoomManager> roomManagerMap = CommonUtil.getContext().getBeansOfType(AbstractRoomManager.class);
+        for(Map.Entry<String, AbstractRoomManager> en : roomManagerMap.entrySet()){
+            this.roomManager = en.getValue();
+            break;
+        }
+        if(this.roomManager == null){
+            throw new RuntimeException("roomManager 不能未空");
         }
     }
 
@@ -100,12 +113,26 @@ public class PlayerEventListener implements SessionEnterListener, SessionCloseLi
                 return;
             }
 
-            info = playerSessionService.enterGameServer(playerId, info.getGameType(), info.getWareId());
-            Player player = playerService.get(playerId);
+            final PlayerSessionInfo tempInfo = info;
+
+            Player player = playerService.doSave(playerId,p ->{
+                p.setGameType(tempInfo.getGameType());
+                p.setWareId(tempInfo.getWareId());
+            });
+
+            info = playerSessionService.enterGameServer(info,player.getRoomId());
+
             PlayerController playerController = new PlayerController(session, player);
             session.setReference(playerController);
 
             logger.enterGame(player, info.getGameType(),info.getWareId());
+
+            if(player.getRoomId() > 0){
+                int code = roomManager.joinRoom(playerController,info.getGameType(), player.getRoomId());
+                if(code == Code.SUCCESS){
+                    return;
+                }
+            }
             playerRoomEventListener.enter(session,playerController,info);
         }catch (Exception e){
             log.error("",e);

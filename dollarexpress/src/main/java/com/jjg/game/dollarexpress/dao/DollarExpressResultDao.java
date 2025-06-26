@@ -20,4 +20,8 @@ public class DollarExpressResultDao extends MongoBaseDao<DollarExpressResult, Lo
         //获取条数，非精确
         return this.mongoTemplate.estimatedCount(getClass());
     }
+
+    public void removeTable(){
+        this.mongoTemplate.dropCollection(getClass());
+    }
 }

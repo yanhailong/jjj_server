@@ -5,9 +5,9 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GameSampleFileChangeListener;
 import com.jjg.game.core.sample.SampleConfig;
 import com.jjg.game.dollarexpress.constant.DollarExpressConst;
+import com.jjg.game.dollarexpress.sample.GameDataManager;
+import com.jjg.game.dollarexpress.sample.bean.BaseCfgBean;
 import com.jjg.game.room.listener.IRoomStartListener;
-import com.jjg.game.sample.GameDataManager;
-import com.jjg.game.sample.bean.BaseCfgBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,14 +23,17 @@ import java.util.Set;
  * @date 2025/6/10 16:37
  */
 @Component
-public class DollarExpressStartManagerI implements IRoomStartListener, GameSampleFileChangeListener {
+public class DollarExpressStartManager implements IRoomStartListener, GameSampleFileChangeListener {
 
-    private static final Logger log = LoggerFactory.getLogger(DollarExpressStartManagerI.class);
+    private static final Logger log = LoggerFactory.getLogger(DollarExpressStartManager.class);
     @Autowired
     private SampleConfig sampleConfig;
 
     @Autowired
     private DollarExpressManager dollarExpressManager;
+
+    @Autowired
+    private DollarRoomManager roomManager;
 
     @Override
     public int[] getGameTypes() {
@@ -39,8 +42,10 @@ public class DollarExpressStartManagerI implements IRoomStartListener, GameSampl
 
     @Override
     public void start() {
-        this.dollarExpressManager.init();
         loadGameDataConfig();
+        this.dollarExpressManager.init();
+
+        roomManager.test();
     }
 
     private void loadGameDataConfig() {

@@ -3,16 +3,15 @@ package com.jjg.game.dollarexpress.manager;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
 import com.jjg.game.core.manager.BaseSendMessageManager;
-import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.dollarexpress.data.GameRunInfo;
 import com.jjg.game.dollarexpress.pb.NoticeConfigInfo;
 import com.jjg.game.dollarexpress.pb.ResChooseFreeModel;
 import com.jjg.game.dollarexpress.pb.ResStartGame;
-import com.jjg.game.sample.DollarExpressWareHouseConfig;
+import com.jjg.game.dollarexpress.sample.GameDataManager;
+import com.jjg.game.dollarexpress.sample.bean.DollarExpressWareHouseCfg;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -27,11 +26,16 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
      * @param playerController
      */
     public void sendConfigMessage(PlayerController playerController,int wareId) {
-        SendInfo sendInfo = new SendInfo();
+        DollarExpressWareHouseCfg wareHouseCfg = GameDataManager.getDollarExpressWareHouseCfg(wareId);
+        if(wareHouseCfg != null) {
+            log.warn("没有该场次配置 wareId = {}",wareId);
+            return;
+        }
 
+        SendInfo sendInfo = new SendInfo();
         NoticeConfigInfo notice = new NoticeConfigInfo();
-        DollarExpressWareHouseConfig config = DollarExpressWareHouseConfig.factory.getAllSamples().stream().filter(c -> c.getSid() == wareId).findFirst().orElse(null);
-        notice.stakeList = List.of(config.getStake_1(),config.getStake_2(),config.getStake_3(),config.getStake_4(),config.getStake_5(),config.getStake_6(),config.getStake_7(),config.getStake_8(),config.getStake_9(),config.getStake_10());
+        notice.stakeList = wareHouseCfg.getBetList();
+        notice.defaultBet = notice.stakeList.get(wareHouseCfg.getDefaultBet());
 
         sendInfo.addPlayerMsg(playerController.playerId(), notice);
         sendInfo.getLogMessage().add(notice);

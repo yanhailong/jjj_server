@@ -7,9 +7,9 @@ import java.util.Map;
  * @author 11
  * @date 2025/6/16 13:40
  */
-public class PropInfo<T> {
+public class PropInfo {
     private int sum;
-    private Map<T, PropData<T>> propMap = new HashMap<>();
+    private Map<Integer, int[]> propMap = new HashMap<>();
 
     public int getSum() {
         return sum;
@@ -19,7 +19,15 @@ public class PropInfo<T> {
         this.sum = sum;
     }
 
-    public Map<T, PropData<T>> getPropMap() {
+    public Map<Integer, int[]> getPropMap() {
         return propMap;
+    }
+
+    public void setPropMap(Map<Integer, int[]> propMap) {
+        this.propMap = propMap;
+    }
+
+    public void addSum(int value){
+        this.sum += value;
     }
 }

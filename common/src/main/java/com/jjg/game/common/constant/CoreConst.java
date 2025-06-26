@@ -5,10 +5,10 @@ package com.jjg.game.common.constant;
  * 
  * @since 1.0
  */
-public final class CoreConst {
+public interface CoreConst {
     // 本系统统一文件分隔符
-    public static final String SEPARATOR = "/";
+    String SEPARATOR = "/";
 
     //redis如果发生锁竞争,则设置重试最大次数
-    public static final int REDIS_TRY_COUNT = 5;
+    int REDIS_TRY_COUNT = 10;
 }

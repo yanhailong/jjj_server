@@ -7,9 +7,7 @@ import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
-import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.PlayerSessionService;
@@ -56,7 +54,7 @@ public class HallMessageHandler implements GmListener {
      * @param req
      */
     @Command(HallMessageConst.MsgBean.REQ_ENTER_GAME)
-    public void reqEnterGame(PlayerController playerController, ReqChooseGame req){
+    public void reqChooseGame(PlayerController playerController, ReqChooseGame req){
         ResChooseGame res = new ResChooseGame(HallCode.SUCCESS);
         try{
             if(req.gameType < 1){
@@ -134,7 +132,7 @@ public class HallMessageHandler implements GmListener {
             if("enterGame".equals(cmd)){
                 ReqChooseGame req = new ReqChooseGame();
                 req.gameType = Integer.parseInt(params);
-                reqEnterGame(playerController,req);
+                reqChooseGame(playerController,req);
             }
 
         }catch (Exception e){

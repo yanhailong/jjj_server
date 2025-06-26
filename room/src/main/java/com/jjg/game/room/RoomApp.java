@@ -1,6 +1,7 @@
 package com.jjg.game.room;
 
 import com.jjg.game.common.config.NodeConfig;
+import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.service.CoreStartService;
@@ -38,6 +39,8 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
     private NodeConfig nodeConfig;
     @Autowired
     private PlayerEventListener playerEventListener;
+    @Autowired
+    private CorePlayerService playerService;
 
     private ApplicationContext context;
 

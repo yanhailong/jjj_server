@@ -84,7 +84,6 @@ public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> imp
         } catch (Exception e) {
             log.warn("关闭连接异常,netAddress=" + remoteAddress + ",ctx=" + ctx, e);
         }
-
     }
 
 

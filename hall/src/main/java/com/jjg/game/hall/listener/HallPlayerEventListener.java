@@ -1,6 +1,10 @@
 package com.jjg.game.hall.listener;
 
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.curator.MarsNode;
+import com.jjg.game.common.curator.NodeManager;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.listener.SessionLoginListener;
@@ -8,24 +12,25 @@ import com.jjg.game.common.listener.SessionLogoutListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.RedisLock;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.PlayerSessionToken;
+import com.jjg.game.core.data.*;
+import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.pb.ReqLogin;
 import com.jjg.game.hall.pb.ResLogin;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.logger.HallLogger;
 import com.jjg.game.hall.service.HallPlayerService;
+import com.jjg.game.core.data.Room;
 import com.jjg.game.sample.GameListConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.io.UnsupportedEncodingException;
@@ -38,7 +43,7 @@ import java.util.List;
  * @date 2025/5/26 16:42
  */
 @Component
-public class PlayerEventListener implements SessionCloseListener, SessionEnterListener, SessionLoginListener, SessionLogoutListener {
+public class HallPlayerEventListener implements SessionCloseListener, SessionEnterListener, SessionLoginListener, SessionLogoutListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -51,6 +56,14 @@ public class PlayerEventListener implements SessionCloseListener, SessionEnterLi
     private ClusterSystem clusterSystem;
     @Autowired
     private HallLogger hallLogger;
+    @Autowired
+    private HallRoomDao roomDao;
+    @Autowired
+    private RedisTemplate redisTemplate;
+    @Autowired
+    private RedisLock redisLock;
+    @Autowired
+    private NodeManager nodeManager;
 
     @Override
     public void login(PFSession session, byte[] data) {
@@ -128,6 +141,14 @@ public class PlayerEventListener implements SessionCloseListener, SessionEnterLi
 
             Player player = playerResult.data;
 
+            if(player.getRoomId() > 0){
+                CommonResult<Player> result = enterRoom(session, player);
+                if(result.code == Code.SUCCESS){
+                    return;
+                }
+                player = result.data;
+            }
+
             session.verifyPass(player.getId(), player.getIp(), null);
 
             playerSessionService.changeSessionInfo(session, player);
@@ -140,11 +161,9 @@ public class PlayerEventListener implements SessionCloseListener, SessionEnterLi
 
             //添加游戏列表
             res.gameList = addGameList();
-
             PlayerController playerController = new PlayerController(session, player);
             session.setReference(playerController);
             session.send(res);
-
 
             hallLogger.login(player, req.token, playerSessionToken.getLoginType());
             log.info("玩家登录成功 playerId = {}",player.getId());
@@ -189,5 +208,87 @@ public class PlayerEventListener implements SessionCloseListener, SessionEnterLi
         session.setReference(playerController);
 
         log.debug("玩家进入大厅节点 playerId={}",playerId);
+    }
+
+    /**
+     * 重连进入房间
+     * @param session
+     * @param player
+     * @return
+     */
+    private CommonResult<Player> enterRoom(PFSession session, Player player){
+        CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
+        try{
+            Room room = roomDao.getRoom(player.getGameType(), player.getRoomId());
+            if(room == null){
+                player = hallPlayerService.checkAndSave(player.getId(), p -> {
+                    p.setRoomId(0);
+                    p.setGameType(0);
+                    p.setWareId(0);
+                    return true;
+                });
+                log.debug("获取房间信息失败,重连进入房间失败 playerId={},gameType = {},roomId = {}",player.getId(),player.getGameType(),player.getRoomId());
+                result.code = Code.FAIL;
+                result.data = player;
+                return result;
+            }
+
+            log.debug("玩家重连开始进入房间 playerId = {},gameType = {},roomId = {}",player.getId(),player.getGameType(),player.getRoomId());
+            String nodePath = room.getPath();
+            if(StringUtils.isEmpty(nodePath)){
+                player = hallPlayerService.checkAndSave(player.getId(), p -> {
+                    p.setRoomId(0);
+                    p.setGameType(0);
+                    p.setWareId(0);
+                    return true;
+                });
+                log.debug("房间节点为空，重连进入房间失败 playerId={},gameType = {},roomId = {}",player.getId(),player.getGameType(),player.getRoomId());
+                result.code = Code.FAIL;
+                result.data = player;
+                return result;
+            }
+
+            //获取房间所在节点
+            MarsNode marsNode = clusterSystem.getNode(nodePath);
+            if (marsNode == null) {
+                log.warn("找不到源房间所在节点,开始寻找新服务的节点,playerId={},gameType = {},roomId={},nodePath={}", player.getId(), player.getGameType(),player.getRoomId(), nodePath);
+                String lockKey = roomDao.getLockName(player.getGameType(), player.getRoomId());
+                for(int i=0;i< CoreConst.REDIS_TRY_COUNT;i++){
+                    if(redisLock.lock(lockKey)){
+                        try{
+                            marsNode = nodeManager.loadGameNode(NodeType.GAME, player.getGameType(), player.getId(), player.getIp());
+                            if (marsNode == null) {
+                                log.warn("无可用节点，nodeType={},gameType={}", NodeType.GAME, player.getGameType());
+                                result.code = Code.FAIL;
+                                result.data = player;
+                                return result;
+                            }
+
+                            room.setPath(marsNode.getNodePath());
+                            roomDao.saveRoom(room);
+                            break;
+                        }catch (Exception e){
+                            log.warn("房间迁移重试 playerId={},gameType = {},roomId = {},retryCount = {}",player.getId(),player.getGameType(),player.getRoomId(),i, e);
+                        }finally {
+                            redisLock.unlock(lockKey);
+                        }
+                    }
+                }
+            }
+
+            if(marsNode == null){
+                log.debug("房间迁移失败，未找到新的节点 playerId={},gameType = {},roomId={}", player.getId(), player.getGameType(),player.getRoomId());
+                result.code = Code.FAIL;
+                result.data = player;
+                return result;
+            }
+
+            clusterSystem.switchNode(session, marsNode);
+        }catch (Exception e){
+            log.error("",e);
+            result.code = Code.EXCEPTION;
+        }
+        result.data = player;
+        return result;
     }
 }

@@ -15,4 +15,7 @@ import java.util.List;
 @ProtoDesc("推送配置信息")
 public class NoticeConfigInfo extends AbstractMessage {
     public List<Integer> stakeList;
+    @ProtoDesc("默认押注")
+    public int defaultBet;
+
 }

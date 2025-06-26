@@ -40,4 +40,8 @@ public class PlayerController {
     public void setScene(Object scene) {
         this.scene = scene;
     }
+
+    public int roomId(){
+        return player.getRoomId();
+    }
 }

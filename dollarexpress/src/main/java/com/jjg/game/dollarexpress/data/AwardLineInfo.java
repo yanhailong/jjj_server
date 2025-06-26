@@ -1,5 +1,7 @@
 package com.jjg.game.dollarexpress.data;
 
+import java.util.List;
+
 /**
  * @author 11
  * @date 2025/6/17 14:25
@@ -7,6 +9,7 @@ package com.jjg.game.dollarexpress.data;
 public class AwardLineInfo {
     private int id;
     private int times;
+    private List<Integer> indexList;
 
     public AwardLineInfo() {
     }
@@ -30,5 +33,13 @@ public class AwardLineInfo {
 
     public void setTimes(int times) {
         this.times = times;
+    }
+
+    public List<Integer> getIndexList() {
+        return indexList;
+    }
+
+    public void setIndexList(List<Integer> indexList) {
+        this.indexList = indexList;
     }
 }

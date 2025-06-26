@@ -39,8 +39,8 @@ public class DollarExpressMessageHandler {
     public void reqStartGame(PlayerController playerController, ReqStartGame req){
         try{
             log.info("收到玩家开始游戏 playerId={},req={}",playerController.playerId(), JSONObject.toJSONString(req));
-            GameRunInfo gameRunInfo = dollarExpressManager.startGame(playerController.playerId(), req.stakeVlue);
-            dollarExpressSendMessageManager.sendStartGameMessage(playerController,gameRunInfo);
+//            GameRunInfo gameRunInfo = dollarExpressManager.startGame(playerController.playerId(), req.stakeVlue);
+//            dollarExpressSendMessageManager.sendStartGameMessage(playerController,gameRunInfo);
         }catch (Exception e){
             log.error("", e);
         }
@@ -55,8 +55,8 @@ public class DollarExpressMessageHandler {
     public void reqChooseFreeModel(PlayerController playerController, ReqChooseFreeModel req){
         try{
             log.info("收到选择免费游戏类型 playerId={},req={}",playerController.playerId(), JSONObject.toJSONString(req));
-            GameRunInfo gameRunInfo = dollarExpressManager.chooseFreeGameType(playerController.playerId(), req.type);
-            dollarExpressSendMessageManager.sendChooseFreeTypeMessage(playerController,gameRunInfo);
+//            GameRunInfo gameRunInfo = dollarExpressManager.chooseFreeGameType(playerController.playerId(), req.type);
+//            dollarExpressSendMessageManager.sendChooseFreeTypeMessage(playerController,gameRunInfo);
         }catch (Exception e){
             log.error("", e);
         }
@@ -71,8 +71,8 @@ public class DollarExpressMessageHandler {
     public void reqInvestArea(PlayerController playerController, ReqInvestArea req){
         try{
             log.info("收到选择投资游戏 playerId={},req={}",playerController.playerId(), JSONObject.toJSONString(req));
-            GameRunInfo gameRunInfo = dollarExpressManager.investArea(playerController.playerId(), req.areaId1, req.areaId2, req.areaId3);
-            dollarExpressSendMessageManager.sendChooseFreeTypeMessage(playerController,gameRunInfo);
+//            GameRunInfo gameRunInfo = dollarExpressManager.investArea(playerController.playerId(), req.areaId1, req.areaId2, req.areaId3);
+//            dollarExpressSendMessageManager.sendChooseFreeTypeMessage(playerController,gameRunInfo);
         }catch (Exception e){
             log.error("", e);
         }

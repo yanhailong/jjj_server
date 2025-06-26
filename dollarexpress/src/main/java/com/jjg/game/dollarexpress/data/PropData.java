@@ -4,25 +4,25 @@ package com.jjg.game.dollarexpress.data;
  * @author 11
  * @date 2025/6/16 10:45
  */
-public class PropData<T> {
-    private T key;
+public class PropData {
+    private int key;
     private int begin;
     private int end;
 
     public PropData() {
     }
 
-    public PropData(T key, int begin, int end) {
+    public PropData(int key, int begin, int end) {
         this.key = key;
         this.begin = begin;
         this.end = end;
     }
 
-    public T getKey() {
+    public int getKey() {
         return key;
     }
 
-    public void setKey(T key) {
+    public void setKey(int key) {
         this.key = key;
     }
 

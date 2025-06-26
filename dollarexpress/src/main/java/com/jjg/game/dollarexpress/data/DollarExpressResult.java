@@ -14,15 +14,15 @@ public class DollarExpressResult {
     @Id
     private int id;
     //所有图标
-    private List<Integer> iconList;
+    private int[] iconArr;
     //中奖信息
-    private List<LineInfo> awardList;
+    private List<AwardLineInfo> awardList;
     //中奖倍率
     private int awardTimes;
     //wild数量
     private int wildCount;
     //特殊结果类型
-    private int specialId;
+    private int specialType;
 
     public int getId() {
         return id;
@@ -32,19 +32,19 @@ public class DollarExpressResult {
         this.id = id;
     }
 
-    public List<Integer> getIconList() {
-        return iconList;
+    public int[] getIconArr() {
+        return iconArr;
     }
 
-    public void setIconList(List<Integer> iconList) {
-        this.iconList = iconList;
+    public void setIconArr(int[] iconArr) {
+        this.iconArr = iconArr;
     }
 
-    public List<LineInfo> getAwardList() {
+    public List<AwardLineInfo> getAwardList() {
         return awardList;
     }
 
-    public void setAwardList(List<LineInfo> awardList) {
+    public void setAwardList(List<AwardLineInfo> awardList) {
         this.awardList = awardList;
     }
 
@@ -64,11 +64,11 @@ public class DollarExpressResult {
         this.wildCount = wildCount;
     }
 
-    public int getSpecialId() {
-        return specialId;
+    public int getSpecialType() {
+        return specialType;
     }
 
-    public void setSpecialId(int specialId) {
-        this.specialId = specialId;
+    public void setSpecialType(int specialType) {
+        this.specialType = specialType;
     }
 }

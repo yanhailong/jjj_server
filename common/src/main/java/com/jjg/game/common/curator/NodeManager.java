@@ -37,13 +37,18 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener {
     @Autowired
     private ZookeeperConfig zkConfig;
 
-    public String nodePath;
+    private final String nodeConfigName = "config/nodeConfig.json";
+
+    private String nodePath;
 
     public NodeManager() {
     }
 
     @Override
     public void marsCuratorRefreshed(MarsCurator marsCurator) {
+        File configFile = new File(nodeConfigName);
+        readConfig(configFile);
+
         register();
     }
 
@@ -84,8 +89,6 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener {
         if (whiteIdArray != null) {
             nodeConfig.setWhiteIdList(whiteIdArray.toArray(new String[0]));
         }
-
-        update();
     }
 
     private void register() {
@@ -98,6 +101,8 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener {
             log.info("node register,path is {}", path);
 
             String nc = JSON.toJSONString(nodeConfig, true);
+
+            System.out.println("打印白名单：" + this.nodeConfig.getWhiteIpList());
             nodePath = marsCurator.addPath(path, nc.getBytes("UTF-8"), false);
         } catch (Exception e) {
             log.warn("node register fail.", e);
@@ -222,6 +227,10 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener {
             }
         }
         return false;
+    }
+
+    public String getNodePath() {
+        return nodePath;
     }
 
     @Override
