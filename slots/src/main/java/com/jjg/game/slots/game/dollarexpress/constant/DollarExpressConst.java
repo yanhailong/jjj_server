@@ -1,5 +1,7 @@
 package com.jjg.game.slots.game.dollarexpress.constant;
 
+import com.jjg.game.common.constant.MessageConst;
+
 import java.math.BigDecimal;
 
 /**
@@ -164,21 +166,22 @@ public interface DollarExpressConst {
     }
 
     interface MsgBean {
-        int TYPE = 0x7;
+        int TYPE = MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE;
 
+        int BASE_MSG_PREFIX = TYPE << MessageConst.MessageCommon.RIGHT_MOVE;
         //请求选择免费模式的游戏
-        int REQ_CHOOSE_FREE_MODEL = 0X7001;
-        int RES_CHOOSE_FREE_MODEL = 0X7002;
+        int REQ_CHOOSE_FREE_MODEL = BASE_MSG_PREFIX | 0x01;
+        int RES_CHOOSE_FREE_MODEL = BASE_MSG_PREFIX | 0x02;
 
         //选择投资地区
-        int REQ_INVEST_AREA = 0X7003;
-        int RES_INVEST_AREA = 0X7004;
+        int REQ_INVEST_AREA = BASE_MSG_PREFIX | 0x03;
+        int RES_INVEST_AREA = BASE_MSG_PREFIX | 0x03;
 
         //开始游戏
-        int REQ_START_GAME = 0X7005;
-        int RES_START_GAME = 0X7006;
+        int REQ_START_GAME = BASE_MSG_PREFIX | 0x05;
+        int RES_START_GAME = BASE_MSG_PREFIX | 0x06;
 
         //通知配置信息
-        int NOTICE_CONFIG_INFO = 0X7099;
+        int NOTICE_CONFIG_INFO = BASE_MSG_PREFIX | 0x99;
     }
 }
