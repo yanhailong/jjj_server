@@ -18,14 +18,16 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.hall.dao.HallRoomDao;
+import com.jjg.game.hall.pb.GameListConfig;
 import com.jjg.game.hall.pb.ReqLogin;
 import com.jjg.game.hall.pb.ResLogin;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.logger.HallLogger;
+import com.jjg.game.hall.sample.GameDataManager;
+import com.jjg.game.hall.sample.bean.GameListConfigCfg;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.core.data.Room;
-import com.jjg.game.sample.GameListConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,49 +72,49 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
         ReqLogin req = ProtostuffUtil.deserialize(data, ReqLogin.class);
         ResLogin res = new ResLogin(Code.SUCCESS);
         res.playerId = req.playerId;
-        try{
-            log.debug("大厅节点收到校验token的请求 playerId = {},token = {}",req.playerId,req.token);
-            if(req.playerId < GameConstant.Common.playerBeginId){
+        try {
+            log.debug("大厅节点收到校验token的请求 playerId = {},token = {}", req.playerId, req.token);
+            if (req.playerId < GameConstant.Common.playerBeginId) {
                 res.code = Code.ERROR_REQ;
                 session.send(res);
-                log.debug("玩家id不能小于{},登录失败,reqPlayerId={}",GameConstant.Common.playerBeginId,req.playerId);
+                log.debug("玩家id不能小于{},登录失败,reqPlayerId={}", GameConstant.Common.playerBeginId, req.playerId);
                 session.verifyPassFail();
                 return;
             }
 
-            if(StringUtils.isEmpty(req.token)){
+            if (StringUtils.isEmpty(req.token)) {
                 res.code = Code.ERROR_REQ;
                 session.send(res);
-                log.debug("参数不能为空,登录失败, playerId = {}",req.playerId);
+                log.debug("参数不能为空,登录失败, playerId = {}", req.playerId);
                 session.verifyPassFail();
                 return;
             }
 
             //从数据库查询PlayerSessionToken对象信息
             PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(req.playerId);
-            if(playerSessionToken == null){
+            if (playerSessionToken == null) {
                 res.code = Code.ERROR_REQ;
                 session.send(res);
-                log.debug("没有从db中找到playerSessionToken对象,登录失败, playerId = {}",req.playerId);
+                log.debug("没有从db中找到playerSessionToken对象,登录失败, playerId = {}", req.playerId);
                 session.verifyPassFail();
                 return;
             }
 
             //校验token
-            if(!playerSessionToken.getToken().equals(req.token)){
+            if (!playerSessionToken.getToken().equals(req.token)) {
                 res.code = Code.ERROR_REQ;
                 session.send(res);
-                log.debug("token校验失败,登录失败, playerId = {},dbToken = {},reqToken = {}",req.playerId,playerSessionToken.getToken(),req.token);
+                log.debug("token校验失败,登录失败, playerId = {},dbToken = {},reqToken = {}", req.playerId, playerSessionToken.getToken(), req.token);
                 session.verifyPassFail();
                 return;
             }
 
             //是否过期
             long now = System.currentTimeMillis();
-            if(playerSessionToken.getExpireTime() < now){
+            if (playerSessionToken.getExpireTime() < now) {
                 res.code = Code.EXPIRE;
                 session.send(res);
-                log.debug("token过期,登录失败, playerId = {},token = {}",req.playerId,req.token);
+                log.debug("token过期,登录失败, playerId = {},token = {}", req.playerId, req.token);
                 session.verifyPassFail();
                 return;
             }
@@ -131,19 +133,19 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 }
             });
 
-            if(playerResult.code != Code.SUCCESS){
+            if (playerResult.code != Code.SUCCESS) {
                 res.code = Code.ERROR_REQ;
                 session.send(res);
-                log.debug("redis操作player失败，校验token失败 playerId = {}",req.playerId);
+                log.debug("redis操作player失败，校验token失败 playerId = {}", req.playerId);
                 session.verifyPassFail();
                 return;
             }
 
             Player player = playerResult.data;
 
-            if(player.getRoomId() > 0){
+            if (player.getRoomId() > 0) {
                 CommonResult<Player> result = enterRoom(session, player);
-                if(result.code == Code.SUCCESS){
+                if (result.code == Code.SUCCESS) {
                     return;
                 }
                 player = result.data;
@@ -166,26 +168,30 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             session.send(res);
 
             hallLogger.login(player, req.token, playerSessionToken.getLoginType());
-            log.info("玩家登录成功 playerId = {}",player.getId());
-        }catch (Exception e){
+            log.info("玩家登录成功 playerId = {}", player.getId());
+        } catch (Exception e) {
             res.code = Code.EXCEPTION;
             session.send(res);
-            log.error("",e);
+            log.error("", e);
         }
     }
 
     /**
      * 游戏列表配置
      */
-    private List<GameListConfig> addGameList(){
-        try{
+    private List<GameListConfig> addGameList() {
+        try {
             List<GameListConfig> list = new ArrayList<>();
-            for(GameListConfig c : GameListConfig.factory.getAllSamples()){
-                list.add(c);
+            for (GameListConfigCfg configCfg : GameDataManager.getGameListConfigCfgList()) {
+                GameListConfig gameListConfig = new GameListConfig();
+                gameListConfig.sid = configCfg.getSid();
+                gameListConfig.name = configCfg.getName();
+                gameListConfig.status = configCfg.getStatus();
+                list.add(gameListConfig);
             }
             return list;
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
         }
         return Collections.emptyList();
     }
@@ -193,7 +199,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     @Override
     public void logout(long playerId, String sessionId) {
         playerSessionService.remove(playerId);
-        log.info("玩家登出 playerId={}",playerId);
+        log.info("玩家登出 playerId={}", playerId);
     }
 
     @Override
@@ -207,42 +213,43 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
         PlayerController playerController = new PlayerController(session, player);
         session.setReference(playerController);
 
-        log.debug("玩家进入大厅节点 playerId={}",playerId);
+        log.debug("玩家进入大厅节点 playerId={}", playerId);
     }
 
     /**
      * 重连进入房间
+     *
      * @param session
      * @param player
      * @return
      */
-    private CommonResult<Player> enterRoom(PFSession session, Player player){
+    private CommonResult<Player> enterRoom(PFSession session, Player player) {
         CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
-        try{
+        try {
             Room room = roomDao.getRoom(player.getGameType(), player.getRoomId());
-            if(room == null){
+            if (room == null) {
                 player = hallPlayerService.checkAndSave(player.getId(), p -> {
                     p.setRoomId(0);
                     p.setGameType(0);
                     p.setWareId(0);
                     return true;
                 });
-                log.debug("获取房间信息失败,重连进入房间失败 playerId={},gameType = {},roomId = {}",player.getId(),player.getGameType(),player.getRoomId());
+                log.debug("获取房间信息失败,重连进入房间失败 playerId={},gameType = {},roomId = {}", player.getId(), player.getGameType(), player.getRoomId());
                 result.code = Code.FAIL;
                 result.data = player;
                 return result;
             }
 
-            log.debug("玩家重连开始进入房间 playerId = {},gameType = {},roomId = {}",player.getId(),player.getGameType(),player.getRoomId());
+            log.debug("玩家重连开始进入房间 playerId = {},gameType = {},roomId = {}", player.getId(), player.getGameType(), player.getRoomId());
             String nodePath = room.getPath();
-            if(StringUtils.isEmpty(nodePath)){
+            if (StringUtils.isEmpty(nodePath)) {
                 player = hallPlayerService.checkAndSave(player.getId(), p -> {
                     p.setRoomId(0);
                     p.setGameType(0);
                     p.setWareId(0);
                     return true;
                 });
-                log.debug("房间节点为空，重连进入房间失败 playerId={},gameType = {},roomId = {}",player.getId(),player.getGameType(),player.getRoomId());
+                log.debug("房间节点为空，重连进入房间失败 playerId={},gameType = {},roomId = {}", player.getId(), player.getGameType(), player.getRoomId());
                 result.code = Code.FAIL;
                 result.data = player;
                 return result;
@@ -251,7 +258,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //获取房间所在节点
             MarsNode marsNode = clusterSystem.getNode(nodePath);
             if (marsNode == null) {
-                log.warn("找不到源房间所在节点,开始寻找新服务的节点,playerId={},gameType = {},roomId={},nodePath={}", player.getId(), player.getGameType(),player.getRoomId(), nodePath);
+                log.warn("找不到源房间所在节点,开始寻找新服务的节点,playerId={},gameType = {},roomId={},nodePath={}", player.getId(), player.getGameType(), player.getRoomId(), nodePath);
                 String lockKey = roomDao.getLockName(player.getGameType(), player.getRoomId());
                 for(int i=0;i< CoreConst.Common.REDIS_TRY_COUNT;i++){
                     if(redisLock.lock(lockKey)){
@@ -267,25 +274,25 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                             room.setPath(marsNode.getNodePath());
                             roomDao.saveRoom(room);
                             break;
-                        }catch (Exception e){
-                            log.warn("房间迁移重试 playerId={},gameType = {},roomId = {},retryCount = {}",player.getId(),player.getGameType(),player.getRoomId(),i, e);
-                        }finally {
+                        } catch (Exception e) {
+                            log.warn("房间迁移重试 playerId={},gameType = {},roomId = {},retryCount = {}", player.getId(), player.getGameType(), player.getRoomId(), i, e);
+                        } finally {
                             redisLock.unlock(lockKey);
                         }
                     }
                 }
             }
 
-            if(marsNode == null){
-                log.debug("房间迁移失败，未找到新的节点 playerId={},gameType = {},roomId={}", player.getId(), player.getGameType(),player.getRoomId());
+            if (marsNode == null) {
+                log.debug("房间迁移失败，未找到新的节点 playerId={},gameType = {},roomId={}", player.getId(), player.getGameType(), player.getRoomId());
                 result.code = Code.FAIL;
                 result.data = player;
                 return result;
             }
 
             clusterSystem.switchNode(session, marsNode);
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
             result.code = Code.EXCEPTION;
         }
         result.data = player;
