@@ -103,12 +103,13 @@ public class PFSession extends Session<Object, ClusterMessage> {
     }
 
     /**
-     * 当用户验证通过后调用
+     * 当用户验证未通过后调用
      */
     public void verifyPassFail() {
         ResSessionVerifyPass resSessionVerifyPass = new ResSessionVerifyPass();
         resSessionVerifyPass.create = System.currentTimeMillis();
         resSessionVerifyPass.success = false;
+        resSessionVerifyPass.sessionId = sessionId;
         PFMessage pfMessage = MessageUtil.getPFMessage(resSessionVerifyPass);
         ClusterMessage clusterMessage = new ClusterMessage(pfMessage);
         connect.write(clusterMessage);
