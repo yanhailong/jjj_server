@@ -51,93 +51,107 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 进入游戏
+     *
      * @param playerController
      * @param req
      */
     @Command(HallMessageConst.MsgBean.REQ_ENTER_GAME)
-    public void reqChooseGame(PlayerController playerController, ReqChooseGame req){
+    public void reqChooseGame(PlayerController playerController, ReqChooseGame req) {
         ResChooseGame res = new ResChooseGame(HallCode.SUCCESS);
-        try{
-            if(req.gameType < 1){
+        try {
+            if (req.gameType < 1) {
                 res.code = Code.PARAM_ERROR;
-                log.debug("游戏类型错误，选择游戏失败 playerId = {},gameType = {}",playerController.playerId(),req.gameType);
+                log.debug("游戏类型错误，选择游戏失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
                 return;
             }
 
             List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(req.gameType);
-            if(wareHouseConfigList == null || wareHouseConfigList.isEmpty()){
+            if (wareHouseConfigList == null || wareHouseConfigList.isEmpty()) {
                 res.code = Code.NOT_FOUND;
-                log.debug("未找到对应的游戏场次配置，选择游戏失败 playerId = {},gameType = {}",playerController.playerId(),req.gameType);
+                log.debug("未找到对应的游戏场次配置，选择游戏失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
                 return;
             }
 
             res.wareHouseList = wareHouseConfigList;
             playerController.send(res);
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 
     /**
      * 选择游戏场次进入
+     *
      * @param playerController
      * @param req
      */
     @Command(HallMessageConst.MsgBean.REQ_CHOOSE_WARE)
-    public void reqChooseWare(PlayerController playerController, ReqChooseWare req){
+    public void reqChooseWare(PlayerController playerController, ReqChooseWare req) {
         ResChooseWare res = new ResChooseWare(HallCode.SUCCESS);
-        try{
-            log.info("收到玩家选择游戏场次 playerId={},req={}",playerController.playerId(), JSONObject.toJSONString(req));
+        try {
+            log.info("收到玩家选择游戏场次 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
 
-            if(req.gameType < 1){
+            if (req.gameType < 1) {
                 res.code = Code.PARAM_ERROR;
-                log.debug("游戏类型错误，选择场次失败 playerId = {},gameType = {}",playerController.playerId(),req.gameType);
+                log.debug("游戏类型错误，选择场次失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
                 return;
             }
 
             List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(req.gameType);
-            if(wareHouseConfigList == null || wareHouseConfigList.isEmpty()){
+            if (wareHouseConfigList == null || wareHouseConfigList.isEmpty()) {
                 res.code = Code.NOT_FOUND;
-                log.debug("未找到对应的游戏场次配置，选择场次失败 playerId = {},gameType = {}",playerController.playerId(),req.gameType);
+                log.debug("未找到对应的游戏场次配置，选择场次失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
                 return;
             }
 
             WareHouseConfigInfo info = wareHouseConfigList.stream().filter(c -> c.wareId == req.wareId).findFirst().orElse(null);
-            if(info == null){
+            if (info == null) {
                 res.code = Code.NOT_FOUND;
-                log.debug("未找到对应的游戏场次配置2，选择场次失败 playerId = {},gameType = {},wareId = {}",playerController.playerId(),req.gameType,req.wareId);
+                log.debug("未找到对应的游戏场次配置2，选择场次失败 playerId = {},gameType = {},wareId = {}", playerController.playerId(), req.gameType, req.wareId);
+                return;
+            }
+
+            if (info.limitGoldMin > playerController.player.getGold()) {
+                res.code = Code.NOT_ENOUGHT;
+                log.debug("玩家金币不足 playerId = {},gameType = {},wareId = {}", playerController.playerId(), req.gameType, req.wareId);
+                return;
+            }
+
+            if (info.limitVipMin > playerController.player.getVipLevel()) {
+                res.code = Code.VIP_NOT_ENOUGHT;
+                log.debug("玩家vip等级不足 playerId = {},gameType = {},wareId = {}", playerController.playerId(), req.gameType, req.wareId);
                 return;
             }
 
             MarsNode node = nodeManager.loadGameNode(NodeType.GAME, req.gameType, playerController.playerId(), playerController.player.getIp());
-            if(node == null){
+            if (node == null) {
                 res.code = Code.NOT_FOUND;
-                log.debug("获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}",playerController.playerId(),req.gameType);
+                log.debug("获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
                 return;
             }
 
             //更新session中的gametype
             playerSessionService.changeGameType(playerController.playerId(), req.gameType, req.wareId);
             //切换节点
-            clusterSystem.switchNode(playerController.session,node);
+            clusterSystem.switchNode(playerController.session, node);
             playerController.send(res);
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("", e);
         }
     }
 
     @Override
-    public String gm(PlayerController playerController,String cmd,String params) {
-        try{
-            log.debug("收到gm命令 playerId = {},cmd = {},params = {}",playerController.playerId(),cmd,params);
-            if("enterGame".equals(cmd)){
+    public String gm(PlayerController playerController, String cmd, String params) {
+        try {
+            log.debug("收到gm命令 playerId = {},cmd = {},params = {}", playerController.playerId(), cmd, params);
+            if ("enterGame".equals(cmd)) {
                 ReqChooseGame req = new ReqChooseGame();
                 req.gameType = Integer.parseInt(params);
-                reqChooseGame(playerController,req);
+                reqChooseGame(playerController, req);
             }
 
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
         }
         return null;
     }

@@ -2,7 +2,8 @@ package com.jjg.game.hall.service;
 
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
-import com.jjg.game.sample.AllWareHouseConfig;
+import com.jjg.game.hall.sample.GameDataManager;
+import com.jjg.game.hall.sample.bean.AllWareHouseConfigCfg;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -28,7 +29,7 @@ public class HallService implements ConfigExcelChangeListener {
 
     @Override
     public void change(String className) {
-        if(className.equalsIgnoreCase(AllWareHouseConfig.class.getSimpleName())){
+        if(className.equalsIgnoreCase(AllWareHouseConfigCfg.class.getSimpleName())){
             initWareHouseConfigData();
         }
     }
@@ -36,12 +37,12 @@ public class HallService implements ConfigExcelChangeListener {
     private void initWareHouseConfigData(){
         Map<Integer, List<WareHouseConfigInfo>> tempwareHouseConfigMap = new HashMap<>();
 
-        for(AllWareHouseConfig c : AllWareHouseConfig.factory.getAllSamples()){
+        for(AllWareHouseConfigCfg c : GameDataManager.getAllWareHouseConfigCfgList()){
             List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameType(), k -> new ArrayList<>());
             WareHouseConfigInfo info = new WareHouseConfigInfo();
             info.wareId = c.getWareId();
             info.name = c.getName();
-            info.pool = 99999l;
+            info.pool = 99999L;
             info.limitGoldMin = c.getRequire_amount();
             info.limitVipMin = c.getRequire_viplevel();
             tempList.add(info);

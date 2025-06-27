@@ -4,7 +4,6 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractResponse;
-import com.jjg.game.sample.GameListConfig;
 
 import java.util.List;
 
