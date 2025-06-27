@@ -25,13 +25,12 @@ import java.util.Set;
 @Component
 public class DollarExpressStartManager implements IRoomStartListener, GameSampleFileChangeListener {
 
-    private static final Logger log = LoggerFactory.getLogger(DollarExpressStartManager.class);
+    private Logger log = LoggerFactory.getLogger(getClass());
+
     @Autowired
     private SampleConfig sampleConfig;
-
     @Autowired
     private DollarExpressManager dollarExpressManager;
-
     @Autowired
     private DollarRoomManager roomManager;
 
