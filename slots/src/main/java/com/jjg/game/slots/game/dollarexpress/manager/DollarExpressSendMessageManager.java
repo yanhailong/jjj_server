@@ -27,7 +27,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
      */
     public void sendConfigMessage(PlayerController playerController,int wareId) {
         DollarExpressWareHouseCfg wareHouseCfg = GameDataManager.getDollarExpressWareHouseCfg(wareId);
-        if(wareHouseCfg != null) {
+        if(wareHouseCfg == null) {
             log.warn("没有该场次配置 wareId = {}",wareId);
             return;
         }
