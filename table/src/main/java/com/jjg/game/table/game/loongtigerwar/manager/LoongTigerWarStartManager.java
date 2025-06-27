@@ -1,6 +1,6 @@
-package com.jjg.game.casino.game.loongtigerwar.manager;
+package com.jjg.game.table.game.loongtigerwar.manager;
 
-import com.jjg.game.casino.game.loongtigerwar.constant.LoongTigerWarConstant;
+import com.jjg.game.table.game.loongtigerwar.constant.LoongTigerWarConstant;
 import com.jjg.game.core.listener.GameSampleFileChangeListener;
 import com.jjg.game.core.sample.SampleConfig;
 import com.jjg.game.room.listener.IRoomStartListener;

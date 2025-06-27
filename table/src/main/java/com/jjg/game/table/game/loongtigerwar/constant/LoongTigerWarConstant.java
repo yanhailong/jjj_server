@@ -1,4 +1,4 @@
-package com.jjg.game.casino.game.loongtigerwar.constant;
+package com.jjg.game.table.game.loongtigerwar.constant;
 
 import com.jjg.game.common.constant.CoreConst;
 

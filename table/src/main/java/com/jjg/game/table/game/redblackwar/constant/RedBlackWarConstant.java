@@ -1,4 +1,4 @@
-package com.jjg.game.casino.game.redblackwar.constant;
+package com.jjg.game.table.game.redblackwar.constant;
 
 import com.jjg.game.common.constant.CoreConst;
 

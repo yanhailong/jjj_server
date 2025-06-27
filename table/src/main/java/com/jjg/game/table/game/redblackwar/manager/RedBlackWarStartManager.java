@@ -1,6 +1,6 @@
-package com.jjg.game.casino.game.redblackwar.manager;
+package com.jjg.game.table.game.redblackwar.manager;
 
-import com.jjg.game.casino.game.redblackwar.constant.RedBlackWarConstant;
+import com.jjg.game.table.game.redblackwar.constant.RedBlackWarConstant;
 import com.jjg.game.core.listener.GameSampleFileChangeListener;
 import com.jjg.game.core.sample.SampleConfig;
 import com.jjg.game.room.listener.IRoomStartListener;

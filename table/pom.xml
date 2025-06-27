@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.jjg.game</groupId>
-    <artifactId>casino</artifactId>
+    <artifactId>table</artifactId>
     <version>1.0.0-JJG-RELEASES</version>
 
     <parent>
