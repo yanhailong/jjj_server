@@ -18,9 +18,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.ComponentScan;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author 11
@@ -53,31 +51,26 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
     @Override
     public void start() {
         //获取支持的游戏类型
-        List<int[]> gameTypeList = new ArrayList<>();
-        int len = 0;
-        Map<String, IRoomStartListener> startListenerMap = this.context.getBeansOfType(IRoomStartListener.class);
-        for(Map.Entry<String, IRoomStartListener> en : startListenerMap.entrySet()){
-            int[] arr = en.getValue().getGameTypes();
-            if(arr != null && arr.length > 0){
-                gameTypeList.add(arr);
-                len += arr.length;
-            }
-        }
-
-        if(len < 1){
-            log.warn("没有找到可支持的游戏类型");
+        Set<Integer> gameTypeSet = gameTypeList();
+        if(gameTypeSet.isEmpty()){
+            log.warn("代码中没有可支持的游戏类型");
             return;
         }
 
-        int[] gameTypeArr = new int[len];
-        int index = 0;
-        for(int[] gameArr : gameTypeList){
-            for(int i : gameArr){
-                gameTypeArr[index] = i;
-                index++;
+        //将代码中支持的游戏类型，和配置中的游戏类型对比，能检查配置是否错误
+        if(this.nodeConfig.getGameTypes() == null || this.nodeConfig.getGameTypes().length < 1){
+            log.warn("在 nodeconfig.json的 gameTypes 中没有配置开启哪些游戏");
+            return;
+        }
+
+        for(int gameType : this.nodeConfig.getGameTypes()){
+            if(!gameTypeSet.contains(gameType)){
+                log.warn("本代码不支持 nodeconfig.json的 gameTypes 中 配置的 {} 游戏类型",gameType);
+                return;
             }
         }
-        this.nodeConfig.setGameTypes(gameTypeArr);
+
+        Map<String, IRoomStartListener> startListenerMap = this.context.getBeansOfType(IRoomStartListener.class);
 
         marsCoreStartService.init(this.context);
         coreStartService.init(this.context);
@@ -110,5 +103,23 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
     @Override
     public void setApplicationContext(ApplicationContext context) throws BeansException {
         this.context = context;
+    }
+
+    /**
+     * 获取代码中支持的游戏类型
+     * @return
+     */
+    private Set<Integer> gameTypeList(){
+        Set<Integer> gameTypeSet = new HashSet<>();
+        Map<String, IRoomStartListener> startListenerMap = this.context.getBeansOfType(IRoomStartListener.class);
+        for(Map.Entry<String, IRoomStartListener> en : startListenerMap.entrySet()){
+            int[] arr = en.getValue().getGameTypes();
+            if(arr != null && arr.length > 0){
+                for(int i : arr){
+                    gameTypeSet.add(i);
+                }
+            }
+        }
+        return gameTypeSet;
     }
 }

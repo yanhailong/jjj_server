@@ -101,8 +101,6 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener {
             log.info("node register,path is {}", path);
 
             String nc = JSON.toJSONString(nodeConfig, true);
-
-            System.out.println("打印白名单：" + this.nodeConfig.getWhiteIpList());
             nodePath = marsCurator.addPath(path, nc.getBytes("UTF-8"), false);
         } catch (Exception e) {
             log.warn("node register fail.", e);
