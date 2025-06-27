@@ -12,6 +12,8 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
+
 /**
  * @author 11
  * @date 2025/5/29 14:39
@@ -38,7 +40,7 @@ public class GmStartManager implements SmartLifecycle, ApplicationContextAware {
             throw new IllegalStateException("IP白名单检查失败，拒绝启动服务");
         }
 
-        marsCoreStartService.init(this.context);
+        marsCoreStartService.init(this.context, Collections.emptySet());
         coreStartService.init(this.context);
 
         running = true;

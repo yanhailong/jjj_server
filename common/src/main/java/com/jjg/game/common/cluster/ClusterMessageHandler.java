@@ -24,7 +24,7 @@ import java.util.Map;
  * @since 1.0
  */
 @Component
-@MessageType(MessageConst.SessionConst.TYPE)
+@MessageType(MessageConst.MessageTypeDef.SESSION_TYPE)
 public class ClusterMessageHandler {
 
     private Logger log = LoggerFactory.getLogger(getClass());

@@ -1,6 +1,7 @@
 package com.jjg.game.room;
 
 import com.jjg.game.common.config.NodeConfig;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.common.service.MarsCoreStartService;
@@ -37,8 +38,6 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
     private NodeConfig nodeConfig;
     @Autowired
     private PlayerEventListener playerEventListener;
-    @Autowired
-    private CorePlayerService playerService;
 
     private ApplicationContext context;
 
@@ -63,16 +62,29 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
             return;
         }
 
+        boolean checkOk = true;
         for(int gameType : this.nodeConfig.getGameTypes()){
-            if(!gameTypeSet.contains(gameType)){
+            boolean remove = gameTypeSet.remove(gameType);
+            if(!remove){
                 log.warn("本代码不支持 nodeconfig.json的 gameTypes 中 配置的 {} 游戏类型",gameType);
-                return;
+                checkOk = false;
             }
         }
+        if(!checkOk){
+            return;
+        }
 
+        //每个游戏都会实现 IRoomStartListener 这个接口
         Map<String, IRoomStartListener> startListenerMap = this.context.getBeansOfType(IRoomStartListener.class);
+        if(startListenerMap.isEmpty()){
+            log.warn("没有找到 IRoomStartListener 的实现类，启动失败....");
+            return;
+        }
 
-        marsCoreStartService.init(this.context);
+        //不需要启动的游戏的消息类型
+        Set<Integer> noStartGameMsgTypeSet = getNoStartGameMsgTypeSet(gameTypeSet);
+
+        marsCoreStartService.init(this.context,noStartGameMsgTypeSet);
         coreStartService.init(this.context);
         playerEventListener.init();
         //调用启动方法
@@ -121,5 +133,18 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
             }
         }
         return gameTypeSet;
+    }
+
+    //找到不需要启动的游戏的消息类型
+    private Set<Integer> getNoStartGameMsgTypeSet(Set<Integer> noStartGameSet){
+        Set<Integer> set = new HashSet<>();
+        for(int gameType : noStartGameSet){
+            Integer msgType = CoreConst.gameTypeToMsgTypeMap.get(gameType);
+            if(msgType != null){
+                set.add(msgType);
+                log.debug("根据配置，不需要加载的消息类型  gameType = {},messageType = 0x{}", gameType, Integer.toHexString(msgType));
+            }
+        }
+        return set;
     }
 }

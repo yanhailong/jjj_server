@@ -6,7 +6,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 /**
  * @since 1.0
  */
-@ProtobufMessage(resp = true, messageType = MessageConst.SessionConst.TYPE, cmd = MessageConst.SessionConst.RES_NOTIFY_SESSION_VERIFYPASS, toPbFile = false)
+@ProtobufMessage(resp = true, messageType = MessageConst.MessageTypeDef.SESSION_TYPE, cmd = MessageConst.SessionConst.RES_NOTIFY_SESSION_VERIFYPASS, toPbFile = false)
 public class ResSessionVerifyPass {
     public String sessionId;
     public long playerId;

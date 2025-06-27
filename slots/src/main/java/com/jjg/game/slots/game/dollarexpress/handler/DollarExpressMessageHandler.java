@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.dollarexpress.handler;
 
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
@@ -20,7 +21,7 @@ import org.springframework.stereotype.Component;
  * @date 2025/6/12 17:15
  */
 @Component
-@MessageType(DollarExpressConst.MsgBean.TYPE)
+@MessageType(MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE)
 public class DollarExpressMessageHandler {
     private Logger log = LoggerFactory.getLogger(getClass());
 

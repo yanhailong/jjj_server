@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.dollarexpress.constant;
 
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 
 import java.math.BigDecimal;
@@ -10,11 +11,8 @@ import java.math.BigDecimal;
  */
 public interface DollarExpressConst {
     interface GameType{
-        //美元快递id
-        int GAME_TYPE_DOLLAR_EXPRESS = 100100;
-
         //支持的游戏
-        int[] SUPPORT_GAME_TYPES = { GAME_TYPE_DOLLAR_EXPRESS };
+        int[] SUPPORT_GAME_TYPES = {CoreConst.GameType.DOLLAR_EXPRESS};
     }
 
     interface Common {
@@ -166,20 +164,18 @@ public interface DollarExpressConst {
     }
 
     interface MsgBean {
-        int TYPE = MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE;
-
-        int BASE_MSG_PREFIX = TYPE << MessageConst.MessageCommon.RIGHT_MOVE;
+        int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE << MessageConst.MessageCommon.RIGHT_MOVE;
         //请求选择免费模式的游戏
-        int REQ_CHOOSE_FREE_MODEL = BASE_MSG_PREFIX | 0x01;
-        int RES_CHOOSE_FREE_MODEL = BASE_MSG_PREFIX | 0x02;
+        int REQ_CHOOSE_FREE_MODEL = BASE_MSG_PREFIX | 0x1;
+        int RES_CHOOSE_FREE_MODEL = BASE_MSG_PREFIX | 0x2;
 
         //选择投资地区
-        int REQ_INVEST_AREA = BASE_MSG_PREFIX | 0x03;
-        int RES_INVEST_AREA = BASE_MSG_PREFIX | 0x03;
+        int REQ_INVEST_AREA = BASE_MSG_PREFIX | 0x3;
+        int RES_INVEST_AREA = BASE_MSG_PREFIX | 0x4;
 
         //开始游戏
-        int REQ_START_GAME = BASE_MSG_PREFIX | 0x05;
-        int RES_START_GAME = BASE_MSG_PREFIX | 0x06;
+        int REQ_START_GAME = BASE_MSG_PREFIX | 0x5;
+        int RES_START_GAME = BASE_MSG_PREFIX | 0x6;
 
         //通知配置信息
         int NOTICE_CONFIG_INFO = BASE_MSG_PREFIX | 0x99;

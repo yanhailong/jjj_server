@@ -2,6 +2,7 @@ package com.jjg.game.hall.handler;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
@@ -32,7 +33,7 @@ import java.util.List;
  * @date 2025/6/10 17:13
  */
 @Component
-@MessageType(HallMessageConst.MsgBean.TYPE)
+@MessageType(MessageConst.MessageTypeDef.HALL_TYPE)
 public class HallMessageHandler implements GmListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 

@@ -8,7 +8,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  * @author 11
  * @date 2025/6/11 16:05
  */
-@ProtobufMessage(messageType = MessageConst.CoreMessage.TYPE, cmd = MessageConst.CoreMessage.RES_GM,resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE, cmd = MessageConst.CoreMessage.RES_GM,resp = true)
 @ProtoDesc("gm返回")
 public class ResGm extends AbstractResponse{
 

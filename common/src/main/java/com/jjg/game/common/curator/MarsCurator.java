@@ -317,7 +317,7 @@ public class MarsCurator implements TreeCacheListener {
 
     private void initRootPath() {
         try {
-            rootPath = CoreConst.SEPARATOR + zkConfig.getMarsRoot();
+            rootPath = CoreConst.Common.SEPARATOR + zkConfig.getMarsRoot();
             if (!checkExists(rootPath)) {
                 log.debug("mars root path {} not exist.", rootPath);
                 client.create().forPath(rootPath);

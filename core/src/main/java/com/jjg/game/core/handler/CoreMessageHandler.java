@@ -27,7 +27,7 @@ import java.util.Map;
  * @date 2025/6/11 16:09
  */
 @Component
-@MessageType(MessageConst.CoreMessage.TYPE)
+@MessageType(MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE)
 public class CoreMessageHandler {
     private Logger log = LoggerFactory.getLogger(getClass());
 

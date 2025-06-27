@@ -12,7 +12,7 @@ import java.util.List;
  * @author 11
  * @date 2025/5/26 15:22
  */
-@ProtobufMessage(messageType = MessageConst.CertifyMessage.TYPE, cmd = MessageConst.CertifyMessage.RES_LOGIN,resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CERTIFY_MESSAGE_TYPE, cmd = MessageConst.CertifyMessage.RES_LOGIN,resp = true)
 @ProtoDesc("登录返回")
 public class ResLogin extends AbstractResponse {
     @ProtoDesc("玩家id")

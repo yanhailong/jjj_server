@@ -8,7 +8,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  * @author 11
  * @date 2022/5/17
  */
-@ProtobufMessage(messageType = MessageConst.ToClientConst.TYPE, cmd = MessageConst.ToClientConst.RES_HEART_BEAT,resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_CLIENT_TYPE, cmd = MessageConst.ToClientConst.RES_HEART_BEAT,resp = true)
 @ProtoDesc("心跳返回")
 public class ResHeartBeat {
     public long time;

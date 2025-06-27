@@ -18,12 +18,12 @@
         <dependency>
             <groupId>com.jjg.game</groupId>
             <artifactId>common</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.0-JJG-RELEASES</version>
             <exclusions>
-<!--                <exclusion>-->
-<!--                    <groupId>commons-codec</groupId>-->
-<!--                    <artifactId>commons-codec</artifactId>-->
-<!--                </exclusion>-->
+                <exclusion>
+                    <groupId>commons-codec</groupId>
+                    <artifactId>commons-codec</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>io.micrometer</groupId>
                     <artifactId>micrometer-commons</artifactId>

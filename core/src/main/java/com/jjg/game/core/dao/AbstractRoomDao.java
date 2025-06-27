@@ -1,6 +1,5 @@
 package com.jjg.game.core.dao;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
@@ -78,7 +77,7 @@ public abstract class AbstractRoomDao<T extends Room,P extends RoomPlayer> {
             room.setMaxLimit(maxLimit);
 
             String lockKey = getNodeCreateRoomName(gameType);
-            for(int i=0;i< CoreConst.REDIS_TRY_COUNT;i++){
+            for(int i=0;i< CoreConst.Common.REDIS_TRY_COUNT;i++){
                 if (redisLock.lock(lockKey)) {
                     try {
                         Room temp = createRoom(room);
@@ -169,7 +168,7 @@ public abstract class AbstractRoomDao<T extends Room,P extends RoomPlayer> {
     public CommonResult<Room> doSave(int gameType, int roomId, RoomCallback roomCallback) {
         CommonResult<Room> result = new CommonResult<>(Code.SUCCESS);
         String key = getLockName(gameType, roomId);
-        for (int i = 0; i < CoreConst.REDIS_TRY_COUNT; i++) {
+        for (int i = 0; i < CoreConst.Common.REDIS_TRY_COUNT; i++) {
             if (redisLock.lock(key)) {
                 try {
                     Room room = getRoom(gameType,roomId);
@@ -213,7 +212,7 @@ public abstract class AbstractRoomDao<T extends Room,P extends RoomPlayer> {
      */
     public Long removeRoom(int gameType,int roomId) {
         String key = getLockName(gameType, roomId);
-        for (int i = 0; i < CoreConst.REDIS_TRY_COUNT; i++) {
+        for (int i = 0; i < CoreConst.Common.REDIS_TRY_COUNT; i++) {
             if (redisLock.lock(key)) {
                 try {
                     T room = getRoom(gameType, roomId);
@@ -238,7 +237,7 @@ public abstract class AbstractRoomDao<T extends Room,P extends RoomPlayer> {
 
     public boolean removePlayer(int gameType,int roomId,long playerId) {
         String key = getLockName(gameType, roomId);
-        for (int i = 0; i < CoreConst.REDIS_TRY_COUNT; i++) {
+        for (int i = 0; i < CoreConst.Common.REDIS_TRY_COUNT; i++) {
             if (redisLock.lock(key)) {
                 try {
                     T room = getRoom(gameType, roomId);

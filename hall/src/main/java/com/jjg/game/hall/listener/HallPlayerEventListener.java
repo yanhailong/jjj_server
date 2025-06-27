@@ -253,7 +253,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             if (marsNode == null) {
                 log.warn("找不到源房间所在节点,开始寻找新服务的节点,playerId={},gameType = {},roomId={},nodePath={}", player.getId(), player.getGameType(),player.getRoomId(), nodePath);
                 String lockKey = roomDao.getLockName(player.getGameType(), player.getRoomId());
-                for(int i=0;i< CoreConst.REDIS_TRY_COUNT;i++){
+                for(int i=0;i< CoreConst.Common.REDIS_TRY_COUNT;i++){
                     if(redisLock.lock(lockKey)){
                         try{
                             marsNode = nodeManager.loadGameNode(NodeType.GAME, player.getGameType(), player.getId(), player.getIp());

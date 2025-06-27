@@ -93,9 +93,9 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener {
 
     private void register() {
         try {
-            StringBuilder sb = new StringBuilder(CoreConst.SEPARATOR);
-            sb.append(nodeConfig.getParentPath()).append(CoreConst.SEPARATOR)
-                    .append(nodeConfig.getType()).append(CoreConst.SEPARATOR)
+            StringBuilder sb = new StringBuilder(CoreConst.Common.SEPARATOR);
+            sb.append(nodeConfig.getParentPath()).append(CoreConst.Common.SEPARATOR)
+                    .append(nodeConfig.getType()).append(CoreConst.Common.SEPARATOR)
                     .append(nodeConfig.getName());
             String path = sb.toString();
             log.info("node register,path is {}", path);
@@ -109,9 +109,9 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener {
 
     public void update() {
         try {
-            StringBuilder sb = new StringBuilder(CoreConst.SEPARATOR);
-            sb.append(nodeConfig.getParentPath()).append(CoreConst.SEPARATOR)
-                    .append(nodeConfig.getType()).append(CoreConst.SEPARATOR)
+            StringBuilder sb = new StringBuilder(CoreConst.Common.SEPARATOR);
+            sb.append(nodeConfig.getParentPath()).append(CoreConst.Common.SEPARATOR)
+                    .append(nodeConfig.getType()).append(CoreConst.Common.SEPARATOR)
                     .append(nodeConfig.getName());
             String path = sb.toString();
             log.info("node update,path is {}", path);
@@ -125,20 +125,20 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener {
     }
 
     public MarsNode getMarNode(NodeType nodeType) {
-        String nodePath = CoreConst.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.SEPARATOR + nodeConfig.getParentPath()
-                + CoreConst.SEPARATOR + nodeType;
+        String nodePath = CoreConst.Common.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.Common.SEPARATOR + nodeConfig.getParentPath()
+                + CoreConst.Common.SEPARATOR + nodeType;
         return marsCurator.getMarsNode(nodePath);
     }
 
     public MarsNode getMarNode(String nodeType) {
-        String nodePath = CoreConst.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.SEPARATOR + nodeConfig.getParentPath()
-                + CoreConst.SEPARATOR + nodeType;
+        String nodePath = CoreConst.Common.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.Common.SEPARATOR + nodeConfig.getParentPath()
+                + CoreConst.Common.SEPARATOR + nodeType;
         return marsCurator.getMarsNode(nodePath);
     }
 
     public String getMarNodePath(String nodeType, String nodeName) {
-        return CoreConst.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.SEPARATOR + nodeConfig.getParentPath()
-                + CoreConst.SEPARATOR + nodeType + CoreConst.SEPARATOR + nodeName;
+        return CoreConst.Common.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.Common.SEPARATOR + nodeConfig.getParentPath()
+                + CoreConst.Common.SEPARATOR + nodeType + CoreConst.Common.SEPARATOR + nodeName;
     }
 
     /**
