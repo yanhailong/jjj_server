@@ -7,17 +7,17 @@ import javax.annotation.processing.Generated;
  * 配置bean
  *
  * @excelName golbal.xlsx
- * @sheetName GolbalConfig
+ * @sheetName Golbal
  * @author Auto.Generator
- * @date 2025年06月27日 16:42:37
+ * @date 2025年06月30日 14:12:12
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class GolbalConfigCfg extends BaseCfgBean {
+public class GolbalCfg extends BaseCfgBean {
 
   /** 配置表名 */
   public static final String EXCEL_NAME = "golbal.xlsx";
   /** 配置表工作薄名 */
-  public static final String SHEET_NAME = "GolbalConfig";
+  public static final String SHEET_NAME = "Golbal";
 
   /** 备注 */
   protected String mark;

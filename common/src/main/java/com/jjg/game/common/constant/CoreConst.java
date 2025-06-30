@@ -13,6 +13,9 @@ public class CoreConst {
     //游戏类型和消息类型的对应关系
     public static final Map<Integer, Integer> gameTypeToMsgTypeMap = new HashMap<>();
 
+    //场次id
+    public static final int[] WARE_IDS = {1,2,3};
+
     static {
         gameTypeToMsgTypeMap.put(GameType.DOLLAR_EXPRESS,MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE);
         gameTypeToMsgTypeMap.put(GameType.WOODS_MAN,MessageConst.MessageTypeDef.WOODS_MAN_TYPE);
@@ -106,5 +109,8 @@ public class CoreConst {
 
         //redis如果发生锁竞争,则设置重试最大次数
         public static final int REDIS_TRY_COUNT = 10;
+
+        //excel根目录
+        public static final String SAMPLE_ROOT_PATH = "resources/sample/";
     }
 }

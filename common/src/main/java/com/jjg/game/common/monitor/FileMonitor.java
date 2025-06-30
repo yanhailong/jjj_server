@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +73,7 @@ public class FileMonitor extends FileAlterationListenerAdaptor {
      * @param fileLoader
      */
     public void addDirectoryObserver(String dirName, FileLoader fileLoader) {
+        dirName = Paths.get(dirName).normalize().toString();
         if (!fileObserver.containsKey(dirName)) {
             log.info("添加目录监听,dirName={}", dirName);
             File file = new File(dirName);
@@ -100,7 +102,7 @@ public class FileMonitor extends FileAlterationListenerAdaptor {
             if (fileListener != null) {
                 fileListener.load(file, false);
             } else {
-                String path = file.getPath();
+                String path = Paths.get(file.getPath()).normalize().toString();
                 fileLoaders.forEach((key, value) -> {
                     if (path.contains(key)) {
                         value.load(file, false);

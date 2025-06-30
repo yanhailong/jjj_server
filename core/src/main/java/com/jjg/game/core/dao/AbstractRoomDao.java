@@ -64,7 +64,7 @@ public abstract class AbstractRoomDao<T extends Room,P extends RoomPlayer> {
         return redisTemplate.opsForHash().putIfAbsent(getTableName(room.getGameType()), room.getId(), room);
     }
 
-    public Room nodeCreate(int gameType,int maxLimit,String nodeName,RoomType roomType) {
+    public Room nodeCreate(int gameType,int wareId,int maxLimit,String nodeName,RoomType roomType) {
         try{
             // 获取构造函数
             Constructor<? extends Room> constructor = this.roomClazz.getConstructor();
@@ -74,6 +74,7 @@ public abstract class AbstractRoomDao<T extends Room,P extends RoomPlayer> {
             room.setPath(nodeName);
             room.setType(roomType);
             room.setGameType(gameType);
+            room.setWareId(wareId);
             room.setMaxLimit(maxLimit);
 
             String lockKey = getNodeCreateRoomName(gameType);
@@ -210,7 +211,7 @@ public abstract class AbstractRoomDao<T extends Room,P extends RoomPlayer> {
      * @param gameType
      * @param roomId
      */
-    public Long removeRoom(int gameType,int roomId) {
+    public Long removeRoom(int gameType,int roomId,int wareId) {
         String key = getLockName(gameType, roomId);
         for (int i = 0; i < CoreConst.Common.REDIS_TRY_COUNT; i++) {
             if (redisLock.lock(key)) {
@@ -262,7 +263,7 @@ public abstract class AbstractRoomDao<T extends Room,P extends RoomPlayer> {
         return false;
     }
 
-    public int getCanJoinRoomId(int gameType){
+    public int getCanJoinRoomId(int gameType, int wareId){
         return 0;
     }
 
@@ -271,11 +272,11 @@ public abstract class AbstractRoomDao<T extends Room,P extends RoomPlayer> {
      * @param gameType
      * @return
      */
-    public long existRoomCount(int gameType){
+    public long existRoomCount(int gameType, int wareId){
         return redisTemplate.opsForHash().size(getTableName(gameType));
     }
 
-    public List<Object> getAllRoomIds(int gameType){
+    public List<Object> getAllRoomIds(int gameType, int wareId){
         return null;
     }
 

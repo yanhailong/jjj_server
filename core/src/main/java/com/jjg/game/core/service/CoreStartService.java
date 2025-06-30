@@ -1,6 +1,5 @@
 package com.jjg.game.core.service;
 
-import com.jjg.game.core.manager.GameConfigManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
@@ -13,8 +12,6 @@ import org.springframework.stereotype.Service;
 public class CoreStartService {
 
     @Autowired
-    private GameConfigManager gameConfigManager;
-    @Autowired
     private PlayerSessionService playerSessionService;
 
 
@@ -23,7 +20,6 @@ public class CoreStartService {
      * @param context
      */
     public void init(ApplicationContext context){
-        gameConfigManager.init();
         playerSessionService.init();
     }
 

@@ -7,17 +7,17 @@ import javax.annotation.processing.Generated;
  * 配置bean
  *
  * @excelName vipLevel.xlsx
- * @sheetName VipLevelConfig
+ * @sheetName VipLevel
  * @author Auto.Generator
- * @date 2025年06月27日 16:42:37
+ * @date 2025年06月30日 14:12:12
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class VipLevelConfigCfg extends BaseCfgBean {
+public class VipLevelCfg extends BaseCfgBean {
 
   /** 配置表名 */
   public static final String EXCEL_NAME = "vipLevel.xlsx";
   /** 配置表工作薄名 */
-  public static final String SHEET_NAME = "VipLevelConfig";
+  public static final String SHEET_NAME = "VipLevel";
 
   /** 升级所需经验 */
   protected int levelUpExp;

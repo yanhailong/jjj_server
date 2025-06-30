@@ -16,6 +16,9 @@ public interface DollarExpressConst {
     }
 
     interface Common {
+        //excel配置所在目录
+        String SAMPLE_PATH = CoreConst.Common.SAMPLE_ROOT_PATH + "dollarexpress";
+
         BigDecimal TEN_THOUSAND = new BigDecimal("10000");
 
         String AXLE_PREFIX = "axle";
@@ -177,7 +180,8 @@ public interface DollarExpressConst {
         int REQ_START_GAME = BASE_MSG_PREFIX | 0x5;
         int RES_START_GAME = BASE_MSG_PREFIX | 0x6;
 
-        //通知配置信息
-        int NOTICE_CONFIG_INFO = BASE_MSG_PREFIX | 0x99;
+        //请求配置
+        int REQ_CONFIG_INFO = BASE_MSG_PREFIX | 0x7;
+        int RES_CONFIG_INFO = BASE_MSG_PREFIX | 0x8;
     }
 }

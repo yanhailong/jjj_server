@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.hall.sample.bean.ShopConfigCfg;
+import com.jjg.game.hall.sample.bean.ShopCfg;
 
 /**
  * shop.xlsx配置管理容器
  *
  * @excelName shop.xlsx
- * @sheetName ShopConfig
+ * @sheetName Shop
  * @author auto_generator
- * @date 2025年06月27日 16:42:37
+ * @date 2025年06月30日 14:12:12
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class ShopConfigCfgContainer extends BaseCfgContainer<ShopConfigCfg> {
+public class ShopCfgContainer extends BaseCfgContainer<ShopCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -28,11 +28,11 @@ public class ShopConfigCfgContainer extends BaseCfgContainer<ShopConfigCfg> {
   }
 
   @Override
-  public ShopConfigCfgContainer getNewContainer(){
-    return new ShopConfigCfgContainer();
+  public ShopCfgContainer getNewContainer(){
+    return new ShopCfgContainer();
   }
 
-  public ShopConfigCfgContainer() {
+  public ShopCfgContainer() {
     super();
   }
 
@@ -44,7 +44,7 @@ public class ShopConfigCfgContainer extends BaseCfgContainer<ShopConfigCfg> {
   }
 
   @Override
-  protected ShopConfigCfg createNewBean() {
-    return new ShopConfigCfg();
+  protected ShopCfg createNewBean() {
+    return new ShopCfg();
   }
 }

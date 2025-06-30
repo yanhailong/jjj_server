@@ -7,17 +7,17 @@ import javax.annotation.processing.Generated;
  * 配置bean
  *
  * @excelName shop.xlsx
- * @sheetName ShopConfig
+ * @sheetName Shop
  * @author Auto.Generator
- * @date 2025年06月27日 16:42:37
+ * @date 2025年06月30日 14:12:12
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class ShopConfigCfg extends BaseCfgBean {
+public class ShopCfg extends BaseCfgBean {
 
   /** 配置表名 */
   public static final String EXCEL_NAME = "shop.xlsx";
   /** 配置表工作薄名 */
-  public static final String SHEET_NAME = "ShopConfig";
+  public static final String SHEET_NAME = "Shop";
 
   /** 天数规则 */
   protected int day;

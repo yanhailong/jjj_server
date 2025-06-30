@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年06月27日 16:42:37
+ * @date 2025年06月30日 14:12:12
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -118,11 +118,11 @@ public class GameDataManager {
   public Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> initAllContainer() {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
-    containerMap.put(AllWareHouseConfigCfg.class, new AllWareHouseConfigCfgContainer());
-    containerMap.put(GameListConfigCfg.class, new GameListConfigCfgContainer());
-    containerMap.put(GolbalConfigCfg.class, new GolbalConfigCfgContainer());
-    containerMap.put(ShopConfigCfg.class, new ShopConfigCfgContainer());
-    containerMap.put(VipLevelConfigCfg.class, new VipLevelConfigCfgContainer());
+    containerMap.put(AllWareHouseCfg.class, new AllWareHouseCfgContainer());
+    containerMap.put(GameListCfg.class, new GameListCfgContainer());
+    containerMap.put(GolbalCfg.class, new GolbalCfgContainer());
+    containerMap.put(ShopCfg.class, new ShopCfgContainer());
+    containerMap.put(VipLevelCfg.class, new VipLevelCfgContainer());
     // endregion===============cfg加载模板结束===================
     return containerMap;
   }
@@ -524,60 +524,60 @@ public class GameDataManager {
 
   // region===============cfg获取方法模板开始===================
 
-  public static AllWareHouseConfigCfg getAllWareHouseConfigCfg(int key) {
-    return getInstance().getCfgContainer(AllWareHouseConfigCfg.class).getCfgBeanMap().get(key);
+  public static AllWareHouseCfg getAllWareHouseCfg(int key) {
+    return getInstance().getCfgContainer(AllWareHouseCfg.class).getCfgBeanMap().get(key);
   }
 
-  public static Map<Integer, AllWareHouseConfigCfg> getAllWareHouseConfigCfgMap() {
-    return getInstance().getCfgContainer(AllWareHouseConfigCfg.class).getCfgBeanMap();
+  public static Map<Integer, AllWareHouseCfg> getAllWareHouseCfgMap() {
+    return getInstance().getCfgContainer(AllWareHouseCfg.class).getCfgBeanMap();
   }
 
-  public static List<AllWareHouseConfigCfg> getAllWareHouseConfigCfgList() {
-    return getInstance().getCfgContainer(AllWareHouseConfigCfg.class).getCfgBeanList();
+  public static List<AllWareHouseCfg> getAllWareHouseCfgList() {
+    return getInstance().getCfgContainer(AllWareHouseCfg.class).getCfgBeanList();
   }
-  public static GameListConfigCfg getGameListConfigCfg(int key) {
-    return getInstance().getCfgContainer(GameListConfigCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, GameListConfigCfg> getGameListConfigCfgMap() {
-    return getInstance().getCfgContainer(GameListConfigCfg.class).getCfgBeanMap();
+  public static GameListCfg getGameListCfg(int key) {
+    return getInstance().getCfgContainer(GameListCfg.class).getCfgBeanMap().get(key);
   }
 
-  public static List<GameListConfigCfg> getGameListConfigCfgList() {
-    return getInstance().getCfgContainer(GameListConfigCfg.class).getCfgBeanList();
-  }
-  public static GolbalConfigCfg getGolbalConfigCfg(int key) {
-    return getInstance().getCfgContainer(GolbalConfigCfg.class).getCfgBeanMap().get(key);
+  public static Map<Integer, GameListCfg> getGameListCfgMap() {
+    return getInstance().getCfgContainer(GameListCfg.class).getCfgBeanMap();
   }
 
-  public static Map<Integer, GolbalConfigCfg> getGolbalConfigCfgMap() {
-    return getInstance().getCfgContainer(GolbalConfigCfg.class).getCfgBeanMap();
+  public static List<GameListCfg> getGameListCfgList() {
+    return getInstance().getCfgContainer(GameListCfg.class).getCfgBeanList();
+  }
+  public static GolbalCfg getGolbalCfg(int key) {
+    return getInstance().getCfgContainer(GolbalCfg.class).getCfgBeanMap().get(key);
   }
 
-  public static List<GolbalConfigCfg> getGolbalConfigCfgList() {
-    return getInstance().getCfgContainer(GolbalConfigCfg.class).getCfgBeanList();
-  }
-  public static ShopConfigCfg getShopConfigCfg(int key) {
-    return getInstance().getCfgContainer(ShopConfigCfg.class).getCfgBeanMap().get(key);
+  public static Map<Integer, GolbalCfg> getGolbalCfgMap() {
+    return getInstance().getCfgContainer(GolbalCfg.class).getCfgBeanMap();
   }
 
-  public static Map<Integer, ShopConfigCfg> getShopConfigCfgMap() {
-    return getInstance().getCfgContainer(ShopConfigCfg.class).getCfgBeanMap();
+  public static List<GolbalCfg> getGolbalCfgList() {
+    return getInstance().getCfgContainer(GolbalCfg.class).getCfgBeanList();
+  }
+  public static ShopCfg getShopCfg(int key) {
+    return getInstance().getCfgContainer(ShopCfg.class).getCfgBeanMap().get(key);
   }
 
-  public static List<ShopConfigCfg> getShopConfigCfgList() {
-    return getInstance().getCfgContainer(ShopConfigCfg.class).getCfgBeanList();
-  }
-  public static VipLevelConfigCfg getVipLevelConfigCfg(int key) {
-    return getInstance().getCfgContainer(VipLevelConfigCfg.class).getCfgBeanMap().get(key);
+  public static Map<Integer, ShopCfg> getShopCfgMap() {
+    return getInstance().getCfgContainer(ShopCfg.class).getCfgBeanMap();
   }
 
-  public static Map<Integer, VipLevelConfigCfg> getVipLevelConfigCfgMap() {
-    return getInstance().getCfgContainer(VipLevelConfigCfg.class).getCfgBeanMap();
+  public static List<ShopCfg> getShopCfgList() {
+    return getInstance().getCfgContainer(ShopCfg.class).getCfgBeanList();
+  }
+  public static VipLevelCfg getVipLevelCfg(int key) {
+    return getInstance().getCfgContainer(VipLevelCfg.class).getCfgBeanMap().get(key);
   }
 
-  public static List<VipLevelConfigCfg> getVipLevelConfigCfgList() {
-    return getInstance().getCfgContainer(VipLevelConfigCfg.class).getCfgBeanList();
+  public static Map<Integer, VipLevelCfg> getVipLevelCfgMap() {
+    return getInstance().getCfgContainer(VipLevelCfg.class).getCfgBeanMap();
+  }
+
+  public static List<VipLevelCfg> getVipLevelCfgList() {
+    return getInstance().getCfgContainer(VipLevelCfg.class).getCfgBeanList();
   }
 
   // endregion===============cfg获取方法模板结束===================
@@ -607,6 +607,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("E:\\java\\project\\hall\\resources\\sample");
+    loadAllData("D:\\workspace\\gameserver\\hall\\resources\\sample");
   }
 }

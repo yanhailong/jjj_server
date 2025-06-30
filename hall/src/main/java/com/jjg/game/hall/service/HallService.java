@@ -3,7 +3,7 @@ package com.jjg.game.hall.service;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.sample.GameDataManager;
-import com.jjg.game.hall.sample.bean.AllWareHouseConfigCfg;
+import com.jjg.game.hall.sample.bean.AllWareHouseCfg;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ public class HallService implements ConfigExcelChangeListener {
 
     @Override
     public void change(String className) {
-        if(className.equalsIgnoreCase(AllWareHouseConfigCfg.class.getSimpleName())){
+        if(className.equalsIgnoreCase(AllWareHouseCfg.class.getSimpleName())){
             initWareHouseConfigData();
         }
     }
@@ -37,7 +37,7 @@ public class HallService implements ConfigExcelChangeListener {
     private void initWareHouseConfigData(){
         Map<Integer, List<WareHouseConfigInfo>> tempwareHouseConfigMap = new HashMap<>();
 
-        for(AllWareHouseConfigCfg c : GameDataManager.getAllWareHouseConfigCfgList()){
+        for(AllWareHouseCfg c : GameDataManager.getAllWareHouseCfgList()){
             List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameType(), k -> new ArrayList<>());
             WareHouseConfigInfo info = new WareHouseConfigInfo();
             info.wareId = c.getWareId();

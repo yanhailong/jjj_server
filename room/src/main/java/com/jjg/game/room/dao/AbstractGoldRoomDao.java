@@ -18,25 +18,25 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
         super(roomClazz,roomPlayerClazz);
     }
 
-    protected String getRoomIdListKey(int gameType) {
-        return roomIdListKey + gameType;
+    protected String getRoomIdListKey(int gameType,int wareId) {
+        return roomIdListKey + gameType + ":" + wareId;
     }
 
     @Override
     public <T extends Room> boolean putIfAbsent(T room) {
         boolean success = super.putIfAbsent(room);
         if(success){
-            redisTemplate.opsForList().rightPush(getRoomIdListKey(room.getGameType()), room.getId());
+            redisTemplate.opsForList().rightPush(getRoomIdListKey(room.getGameType(),room.getWareId()), room.getId());
         }
         return success;
     }
 
     @Override
-    public Long removeRoom(int gameType, int roomId) {
-        long res = super.removeRoom(gameType, roomId);
+    public Long removeRoom(int gameType, int roomId, int wareId) {
+        long res = super.removeRoom(gameType, roomId, wareId);
         if(res > 0){
             //从roomid列表中移除，-1表示从尾部移除1个
-            redisTemplate.opsForList().remove(getRoomIdListKey(gameType), -1, roomId);
+            redisTemplate.opsForList().remove(getRoomIdListKey(gameType,wareId), -1, roomId);
         }
         return res;
     }
@@ -46,9 +46,9 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
      * @return
      */
     @Override
-    public int getCanJoinRoomId(int gameType) {
+    public int getCanJoinRoomId(int gameType, int wareId) {
         //返回list头部元素
-        Object o =  redisTemplate.opsForList().index(getRoomIdListKey(gameType), 0);
+        Object o =  redisTemplate.opsForList().index(getRoomIdListKey(gameType,wareId), 0);
         if(o == null){
             return 0;
         }
@@ -56,12 +56,12 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
     }
 
     @Override
-    public long existRoomCount(int gameType) {
-        return redisTemplate.opsForList().size(getRoomIdListKey(gameType));
+    public long existRoomCount(int gameType, int wareId) {
+        return redisTemplate.opsForList().size(getRoomIdListKey(gameType,wareId));
     }
 
     @Override
-    public List<Object> getAllRoomIds(int gameType) {
-        return redisTemplate.opsForList().range(getRoomIdListKey(gameType), 0, -1);
+    public List<Object> getAllRoomIds(int gameType, int wareId) {
+        return redisTemplate.opsForList().range(getRoomIdListKey(gameType,wareId), 0, -1);
     }
 }

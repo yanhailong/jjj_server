@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.monitor.FileLoader;
+import com.jjg.game.common.monitor.FileMonitor;
 import org.apache.commons.lang3.StringUtils;
 import com.jjg.game.common.cluster.ClusterHelper;
 import com.jjg.game.common.config.NodeConfig;
@@ -27,7 +29,7 @@ import java.util.List;
  */
 @Component
 @Order(3)
-public class NodeManager implements MarsCuratorListener, MarsNodeListener {
+public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileLoader {
     Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -36,6 +38,8 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener {
     private MarsCurator marsCurator;
     @Autowired
     private ZookeeperConfig zkConfig;
+    @Autowired
+    public FileMonitor fileMonitor;
 
     private final String nodeConfigName = "config/nodeConfig.json";
 
@@ -46,14 +50,33 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener {
 
     @Override
     public void marsCuratorRefreshed(MarsCurator marsCurator) {
-        File configFile = new File(nodeConfigName);
-        readConfig(configFile);
+//        File configFile = new File(nodeConfigName);
+//        readConfig(configFile);
 
         register();
     }
 
     public void init(MarsCurator marsCurator){
         this.marsCurator = marsCurator;
+        obConfig();
+    }
+
+    public void obConfig() {
+        fileMonitor.addFileObserver(nodeConfigName, this, true);
+    }
+
+    @Override
+    public void load(File file, boolean isNew) {
+        try {
+            if(file.getName().endsWith(".swp")){
+                return;
+            }
+            log.info("on file change filename = {}，isNew={}", file.getName(), isNew);
+            readConfig(file);
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("on file change exception,filename = {},isNew={}" ,file.getName() ,isNew, e);
+        }
     }
 
     public void readConfig(File file) {
@@ -89,6 +112,7 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener {
         if (whiteIdArray != null) {
             nodeConfig.setWhiteIdList(whiteIdArray.toArray(new String[0]));
         }
+        update();
     }
 
     private void register() {

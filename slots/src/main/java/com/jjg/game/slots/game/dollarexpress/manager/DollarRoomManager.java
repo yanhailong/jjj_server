@@ -29,13 +29,14 @@ public class DollarRoomManager extends AbstractGoldRoomManager<RoomController,Go
     private CorePlayerService playerService;
 
     public void test(){
-//        nodeCreateRoom(gameType,maxLimit, RoomType.YUEJU);
+//        nodeCreateRoom(gameType,1,maxLimit, RoomType.YUEJU);
 
         Player player = playerService.get(1000009);
         player.setGameType(gameType);
 
         PlayerController playerController = new PlayerController(null, player);
 //        joinRoom(playerController,gameType,436476);
+//        joinRandRoom(playerController,gameType,1);
 //        exitRoom(playerController);
 //        nodeCreateRoom(gameType,maxLimit,RoomType.YUEJU);
 //        initRoom(maxLimit,RoomType.YUEJU);

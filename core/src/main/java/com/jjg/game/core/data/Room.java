@@ -15,6 +15,8 @@ public class Room {
     protected RoomType type;
     //游戏类型
     protected int gameType;
+    //场次id
+    protected int wareId;
     //该房间内的玩家
     protected Map<Long,RoomPlayer> roomPlayers;
     //座位号 -> 玩家id,座位号从0开始
@@ -50,6 +52,14 @@ public class Room {
 
     public void setGameType(int gameType) {
         this.gameType = gameType;
+    }
+
+    public int getWareId() {
+        return wareId;
+    }
+
+    public void setWareId(int wareId) {
+        this.wareId = wareId;
     }
 
     public Map<Long,RoomPlayer> getRoomPlayers() {

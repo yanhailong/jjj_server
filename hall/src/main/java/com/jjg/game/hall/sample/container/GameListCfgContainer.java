@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.hall.sample.bean.AllWareHouseConfigCfg;
+import com.jjg.game.hall.sample.bean.GameListCfg;
 
 /**
- * allWareHouse.xlsx配置管理容器
+ * gameList.xlsx配置管理容器
  *
- * @excelName allWareHouse.xlsx
- * @sheetName AllWareHouseConfig
+ * @excelName gameList.xlsx
+ * @sheetName GameList
  * @author auto_generator
- * @date 2025年06月27日 16:42:37
+ * @date 2025年06月30日 14:12:12
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class AllWareHouseConfigCfgContainer extends BaseCfgContainer<AllWareHouseConfigCfg> {
+public class GameListCfgContainer extends BaseCfgContainer<GameListCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -28,23 +28,23 @@ public class AllWareHouseConfigCfgContainer extends BaseCfgContainer<AllWareHous
   }
 
   @Override
-  public AllWareHouseConfigCfgContainer getNewContainer(){
-    return new AllWareHouseConfigCfgContainer();
+  public GameListCfgContainer getNewContainer(){
+    return new GameListCfgContainer();
   }
 
-  public AllWareHouseConfigCfgContainer() {
+  public GameListCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("allWareHouse.xlsx");
+    excelNameList.add("gameList.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected AllWareHouseConfigCfg createNewBean() {
-    return new AllWareHouseConfigCfg();
+  protected GameListCfg createNewBean() {
+    return new GameListCfg();
   }
 }

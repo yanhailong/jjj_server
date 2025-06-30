@@ -9,6 +9,7 @@ import com.jjg.game.slots.game.dollarexpress.constant.DollarExpressConst;
 import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressManager;
 import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressSendMessageManager;
 import com.jjg.game.slots.game.dollarexpress.pb.ReqChooseFreeModel;
+import com.jjg.game.slots.game.dollarexpress.pb.ReqConfigInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ReqInvestArea;
 import com.jjg.game.slots.game.dollarexpress.pb.ReqStartGame;
 import org.slf4j.Logger;
@@ -31,6 +32,22 @@ public class DollarExpressMessageHandler {
     private DollarExpressSendMessageManager dollarExpressSendMessageManager;
 
     /**
+     * 请求配置信息
+     * @param playerController
+     * @param req
+     */
+    @Command(DollarExpressConst.MsgBean.REQ_CONFIG_INFO)
+    public void reqConfigInfo(PlayerController playerController, ReqConfigInfo req){
+        try{
+            log.info("收到玩家请求配置 playerId={},req={}",playerController.playerId(), JSONObject.toJSONString(req));
+//            GameRunInfo gameRunInfo = dollarExpressManager.startGame(playerController.playerId(), req.stakeVlue);
+//            dollarExpressSendMessageManager.sendStartGameMessage(playerController,gameRunInfo);
+        }catch (Exception e){
+            log.error("", e);
+        }
+    }
+
+    /**
      * 开始游戏
      * @param playerController
      * @param req
@@ -39,8 +56,7 @@ public class DollarExpressMessageHandler {
     public void reqStartGame(PlayerController playerController, ReqStartGame req){
         try{
             log.info("收到玩家开始游戏 playerId={},req={}",playerController.playerId(), JSONObject.toJSONString(req));
-//            GameRunInfo gameRunInfo = dollarExpressManager.startGame(playerController.playerId(), req.stakeVlue);
-//            dollarExpressSendMessageManager.sendStartGameMessage(playerController,gameRunInfo);
+            dollarExpressSendMessageManager.sendConfigMessage(playerController,playerController.player.getWareId());
         }catch (Exception e){
             log.error("", e);
         }
