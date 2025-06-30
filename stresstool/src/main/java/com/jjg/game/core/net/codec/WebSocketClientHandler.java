@@ -1,19 +1,13 @@
 package com.jjg.game.core.net.codec;
 
-import com.jjg.game.common.utils.NettyUtils;
-import com.jjg.game.core.net.connect.GameRobotClient;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.*;
-import io.netty.handler.codec.http.DefaultHttpHeaders;
-import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * websocket客户端handler

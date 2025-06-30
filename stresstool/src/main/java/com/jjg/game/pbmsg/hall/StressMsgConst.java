@@ -3,16 +3,14 @@ package com.jjg.game.pbmsg.hall;
 import com.jjg.game.common.constant.MessageConst;
 
 /**
- * @author Administrator
+ * @author 2CL
  */
 public interface StressMsgConst {
     /**
      * 传入,返回参数类型
      */
     interface HallMsgBean {
-        int TYPE = MessageConst.MessageTypeDef.HALL_TYPE;
-
-        int BASE_MSG_PREFIX = TYPE << MessageConst.MessageCommon.RIGHT_MOVE;
+        int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.HALL_TYPE << MessageConst.MessageCommon.RIGHT_MOVE;
 
         //登录
         int REQ_LOGIN = BASE_MSG_PREFIX | 0x01;
