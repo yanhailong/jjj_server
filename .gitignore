@@ -24,3 +24,10 @@ PID
 application-dev.yaml
 dependency-reduced-pom.xml
 .mvn
+
+# StressTool Auto Gen
+stresstool/config/robotInfo.txt
+stresstool/config/serverIndex.txt
+
+# 移除配置文件
+**/config/application-dev.yaml
