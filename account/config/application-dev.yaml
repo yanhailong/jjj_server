@@ -6,10 +6,10 @@ server:
  port: 9002
 
 cluster:
- name: ACCOUNT_CCL
+ name: ACCOUNT_SHIYI
 
 vegasaccount:
- gameserver: ws://192.168.3.71:9001/
+ gameserver: ws://192.168.3.31:9001/
 
 spring:
  data:
