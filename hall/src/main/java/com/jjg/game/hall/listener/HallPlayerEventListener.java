@@ -25,7 +25,7 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.logger.HallLogger;
 import com.jjg.game.hall.sample.GameDataManager;
-import com.jjg.game.hall.sample.bean.GameListConfigCfg;
+import com.jjg.game.hall.sample.bean.GameListCfg;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.core.data.Room;
 import org.apache.commons.lang3.StringUtils;
@@ -182,7 +182,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private List<GameListConfig> addGameList() {
         try {
             List<GameListConfig> list = new ArrayList<>();
-            for (GameListConfigCfg configCfg : GameDataManager.getGameListConfigCfgList()) {
+            for (GameListCfg configCfg : GameDataManager.getGameListCfgList()) {
                 GameListConfig gameListConfig = new GameListConfig();
                 gameListConfig.sid = configCfg.getSid();
                 gameListConfig.name = configCfg.getName();

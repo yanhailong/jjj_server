@@ -13,7 +13,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.constant.HallCode;
-import com.jjg.game.hall.constant.HallMessageConst;
+import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.pb.ReqChooseWare;
 import com.jjg.game.hall.pb.ReqChooseGame;
@@ -55,7 +55,7 @@ public class HallMessageHandler implements GmListener {
      * @param playerController
      * @param req
      */
-    @Command(HallMessageConst.MsgBean.REQ_ENTER_GAME)
+    @Command(HallConstant.MsgBean.REQ_ENTER_GAME)
     public void reqChooseGame(PlayerController playerController, ReqChooseGame req) {
         ResChooseGame res = new ResChooseGame(HallCode.SUCCESS);
         try {
@@ -85,7 +85,7 @@ public class HallMessageHandler implements GmListener {
      * @param playerController
      * @param req
      */
-    @Command(HallMessageConst.MsgBean.REQ_CHOOSE_WARE)
+    @Command(HallConstant.MsgBean.REQ_CHOOSE_WARE)
     public void reqChooseWare(PlayerController playerController, ReqChooseWare req) {
         ResChooseWare res = new ResChooseWare(HallCode.SUCCESS);
         try {

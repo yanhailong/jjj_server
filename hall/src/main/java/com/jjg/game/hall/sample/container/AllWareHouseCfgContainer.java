@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.hall.sample.bean.VipLevelConfigCfg;
+import com.jjg.game.hall.sample.bean.AllWareHouseCfg;
 
 /**
- * vipLevel.xlsx配置管理容器
+ * allWareHouse.xlsx配置管理容器
  *
- * @excelName vipLevel.xlsx
- * @sheetName VipLevelConfig
+ * @excelName allWareHouse.xlsx
+ * @sheetName AllWareHouse
  * @author auto_generator
- * @date 2025年06月27日 16:42:37
+ * @date 2025年06月30日 14:12:12
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class VipLevelConfigCfgContainer extends BaseCfgContainer<VipLevelConfigCfg> {
+public class AllWareHouseCfgContainer extends BaseCfgContainer<AllWareHouseCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -28,23 +28,23 @@ public class VipLevelConfigCfgContainer extends BaseCfgContainer<VipLevelConfigC
   }
 
   @Override
-  public VipLevelConfigCfgContainer getNewContainer(){
-    return new VipLevelConfigCfgContainer();
+  public AllWareHouseCfgContainer getNewContainer(){
+    return new AllWareHouseCfgContainer();
   }
 
-  public VipLevelConfigCfgContainer() {
+  public AllWareHouseCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("vipLevel.xlsx");
+    excelNameList.add("allWareHouse.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected VipLevelConfigCfg createNewBean() {
-    return new VipLevelConfigCfg();
+  protected AllWareHouseCfg createNewBean() {
+    return new AllWareHouseCfg();
   }
 }

@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.hall.sample.bean.GolbalConfigCfg;
+import com.jjg.game.hall.sample.bean.GolbalCfg;
 
 /**
  * golbal.xlsx配置管理容器
  *
  * @excelName golbal.xlsx
- * @sheetName GolbalConfig
+ * @sheetName Golbal
  * @author auto_generator
- * @date 2025年06月27日 16:42:37
+ * @date 2025年06月30日 14:12:12
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class GolbalConfigCfgContainer extends BaseCfgContainer<GolbalConfigCfg> {
+public class GolbalCfgContainer extends BaseCfgContainer<GolbalCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -28,11 +28,11 @@ public class GolbalConfigCfgContainer extends BaseCfgContainer<GolbalConfigCfg> 
   }
 
   @Override
-  public GolbalConfigCfgContainer getNewContainer(){
-    return new GolbalConfigCfgContainer();
+  public GolbalCfgContainer getNewContainer(){
+    return new GolbalCfgContainer();
   }
 
-  public GolbalConfigCfgContainer() {
+  public GolbalCfgContainer() {
     super();
   }
 
@@ -44,7 +44,7 @@ public class GolbalConfigCfgContainer extends BaseCfgContainer<GolbalConfigCfg> 
   }
 
   @Override
-  protected GolbalConfigCfg createNewBean() {
-    return new GolbalConfigCfg();
+  protected GolbalCfg createNewBean() {
+    return new GolbalCfg();
   }
 }

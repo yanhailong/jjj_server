@@ -1,17 +1,24 @@
 package com.jjg.game.hall.constant;
 
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 
 /**
  * @author 11
  * @date 2025/6/10 17:04
  */
-public interface HallMessageConst extends MessageConst {
+public interface HallConstant  {
+
+    interface Common {
+        //excel配置所在目录
+        String SAMPLE_PATH = CoreConst.Common.SAMPLE_ROOT_PATH;
+    }
+
     /**
      * 传入,返回参数类型
      */
     interface MsgBean {
-        int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.HALL_TYPE << MessageCommon.RIGHT_MOVE;
+        int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.HALL_TYPE << MessageConst.MessageCommon.RIGHT_MOVE;
 
         //登录
         int REQ_LOGIN = BASE_MSG_PREFIX | 0x1;

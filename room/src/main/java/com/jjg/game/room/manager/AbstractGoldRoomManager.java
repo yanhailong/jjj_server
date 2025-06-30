@@ -1,5 +1,6 @@
 package com.jjg.game.room.manager;
 
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.dao.AbstractGoldRoomDao;
@@ -28,13 +29,16 @@ public class AbstractGoldRoomManager<C extends AbstractRoomController,D extends 
             }
 
             for(int gameType : nodeConfig.getGameTypes()){
-                long count = roomDao.existRoomCount(gameType);
-                if(count < 1){
-                    //如果之前没有，就要创建一个房间
-                    nodeCreateRoom(gameType,maxLimit,roomType);
-                }else {
-                    log.debug("该游戏已有初始房间存在，无需创建房间 gameType = {}",gameType);
+                for(int wareId : CoreConst.WARE_IDS){
+                    long count = roomDao.existRoomCount(gameType,wareId);
+                    if(count < 1){
+                        //如果之前没有，就要创建一个房间
+                        nodeCreateRoom(gameType,wareId,maxLimit,roomType);
+                    }else {
+                        log.debug("该游戏已有初始房间存在，无需创建房间 gameType = {}",gameType);
+                    }
                 }
+
             }
         }catch (Exception e){
             log.error("",e);
@@ -42,16 +46,16 @@ public class AbstractGoldRoomManager<C extends AbstractRoomController,D extends 
     }
 
     /**
-     * 加入房间
+     * 随机加入房间
      * @param playerController
      * @param gameType
      * @return
      */
-    public void joinRoom(PlayerController playerController, int gameType) {
+    public void joinRandRoom(PlayerController playerController, int gameType,int wareId) {
         try{
-            int roomId = roomDao.getCanJoinRoomId(gameType);
+            int roomId = roomDao.getCanJoinRoomId(gameType,wareId);
             if(roomId < 1){
-                log.debug("加入房间失败，获取到的房间id小于1，playerId = {},gameType = {}", roomId, gameType);
+                log.debug("加入房间失败，获取到的房间id小于1，playerId = {},roomId = {},gameType = {},wareId = {}", playerController.playerId(),roomId, gameType,wareId);
                 return;
             }
             super.joinRoom(playerController,gameType,roomId);
@@ -71,15 +75,17 @@ public class AbstractGoldRoomManager<C extends AbstractRoomController,D extends 
             }
 
             for(int gameType : nodeConfig.getGameTypes()){
-                List<Object> allRoomIds = roomDao.getAllRoomIds(gameType);
-                if(allRoomIds == null || allRoomIds.isEmpty()){
-                    continue;
-                }
-                for(Object obj : allRoomIds){
-                    int roomId = Integer.parseInt(obj.toString());
-                    Long res = roomDao.removeRoom(gameType, roomId);
-                    if(res != null && res > 0){
-                        log.info("成功清除房间 gameType = {},roomId = {}", gameType, roomId);
+                for(int wareId : CoreConst.WARE_IDS){
+                    List<Object> allRoomIds = roomDao.getAllRoomIds(gameType,wareId);
+                    if(allRoomIds == null || allRoomIds.isEmpty()){
+                        continue;
+                    }
+                    for(Object obj : allRoomIds){
+                        int roomId = Integer.parseInt(obj.toString());
+                        Long res = roomDao.removeRoom(gameType, roomId,wareId);
+                        if(res != null && res > 0){
+                            log.info("成功清除房间 gameType = {},roomId = {}", gameType, roomId);
+                        }
                     }
                 }
             }

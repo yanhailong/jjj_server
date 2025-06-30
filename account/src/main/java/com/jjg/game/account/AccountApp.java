@@ -18,7 +18,6 @@ import org.springframework.context.annotation.FilterType;
           type = FilterType.ASSIGNABLE_TYPE,
           classes = {
             com.jjg.game.common.service.MarsCoreStartService.class,
-            com.jjg.game.core.manager.GameConfigManager.class,
             com.jjg.game.core.handler.CoreMessageHandler.class,
           }),
       @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.cluster.*"),

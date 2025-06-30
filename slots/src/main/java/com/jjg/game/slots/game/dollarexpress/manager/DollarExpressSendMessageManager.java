@@ -1,11 +1,12 @@
 package com.jjg.game.slots.game.dollarexpress.manager;
 
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
 import com.jjg.game.core.manager.BaseSendMessageManager;
 import com.jjg.game.slots.game.dollarexpress.data.GameRunInfo;
-import com.jjg.game.slots.game.dollarexpress.pb.NoticeConfigInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ResChooseFreeModel;
+import com.jjg.game.slots.game.dollarexpress.pb.ResConfigInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ResStartGame;
 import com.jjg.game.slots.game.dollarexpress.sample.GameDataManager;
 import com.jjg.game.slots.game.dollarexpress.sample.bean.DollarExpressWareHouseCfg;
@@ -26,20 +27,21 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
      * @param playerController
      */
     public void sendConfigMessage(PlayerController playerController,int wareId) {
+        SendInfo sendInfo = new SendInfo();
+        ResConfigInfo res = new ResConfigInfo(Code.SUCCESS);
+
         DollarExpressWareHouseCfg wareHouseCfg = GameDataManager.getDollarExpressWareHouseCfg(wareId);
-        if(wareHouseCfg == null) {
+        if(wareHouseCfg != null) {
+            res.stakeList = wareHouseCfg.getBetList();
+            res.defaultBet = res.stakeList.get(wareHouseCfg.getDefaultBet());
+        }else {
             log.warn("没有该场次配置 wareId = {}",wareId);
-            return;
+            res.code = Code.NOT_FOUND;
         }
 
-        SendInfo sendInfo = new SendInfo();
-        NoticeConfigInfo notice = new NoticeConfigInfo();
-        notice.stakeList = wareHouseCfg.getBetList();
-        notice.defaultBet = notice.stakeList.get(wareHouseCfg.getDefaultBet());
-
-        sendInfo.addPlayerMsg(playerController.playerId(), notice);
-        sendInfo.getLogMessage().add(notice);
-        sendRun(playerController,sendInfo,"推送配置信息",false);
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendInfo.getLogMessage().add(res);
+        sendRun(playerController,sendInfo,"返回配置信息",false);
     }
 
     /**

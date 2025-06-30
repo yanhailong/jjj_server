@@ -64,11 +64,11 @@ public abstract class AbstractRoomManager<C extends AbstractRoomController,D ext
      * 系统创建房间
      * @param gameType
      */
-    public C nodeCreateRoom(int gameType, int maxLimit,RoomType roomType) {
+    public C nodeCreateRoom(int gameType, int wareId, int maxLimit,RoomType roomType) {
         try{
-            Room room = roomDao.nodeCreate(gameType,maxLimit, this.nodeManager.getNodePath(), roomType);
+            Room room = roomDao.nodeCreate(gameType,wareId,maxLimit, this.nodeManager.getNodePath(), roomType);
             if(room == null){
-                log.warn("创建房间失败 gameType = {},roomType = {}", gameType, roomType);
+                log.warn("创建房间失败 gameType = {},wareId = {},roomType = {}", gameType,wareId, roomType);
                 return null;
             }
 
@@ -77,7 +77,7 @@ public abstract class AbstractRoomManager<C extends AbstractRoomController,D ext
             roomController.setRoom(room);
             addRoomController(gameType,room.getId(), roomController);
 
-            log.debug("系统创建房间成功 gameType = {},roomType = {},maxLimit = {}", gameType, roomType,maxLimit);
+            log.debug("系统创建房间成功 gameType = {},wareId = {},roomType = {},maxLimit = {}", gameType, wareId,roomType,maxLimit);
             return roomController;
         }catch (Exception e) {
             log.error("",e);
