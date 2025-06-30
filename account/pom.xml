@@ -32,7 +32,7 @@
         <dependency>
             <groupId>com.jjg.game</groupId>
             <artifactId>core</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.0-JJG-RELEASES</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.reflections</groupId>

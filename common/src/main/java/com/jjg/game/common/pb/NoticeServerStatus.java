@@ -7,7 +7,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 /**
  * @since 1.0
  */
-@ProtobufMessage(messageType = MessageConst.ToClientConst.TYPE, cmd = MessageConst.ToClientConst.NOTICE_SERVER_STATUS,resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_CLIENT_TYPE, cmd = MessageConst.ToClientConst.NOTICE_SERVER_STATUS,resp = true)
 @ProtoDesc("通知网络状态")
 public class NoticeServerStatus {
 

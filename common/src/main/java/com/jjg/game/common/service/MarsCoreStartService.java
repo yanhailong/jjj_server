@@ -3,6 +3,7 @@ package com.jjg.game.common.service;
 import com.jjg.game.common.cluster.ClusterMessageDispacher;
 import com.jjg.game.common.cluster.ClusterMessageHandler;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.monitor.FileMonitor;
@@ -12,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
+
+import java.util.Set;
 
 /**
  * @author 11
@@ -32,6 +35,8 @@ public class MarsCoreStartService {
     private FileMonitor fileMonitor;
     @Autowired
     private ClusterMessageHandler clusterMessageHandler;
+    @Autowired
+    private NodeConfig nodeConfig;
 
     private TimerCenter timerCenter;
 
@@ -39,20 +44,20 @@ public class MarsCoreStartService {
      * 启动时初始化
      * @param context
      */
-    public void init(ApplicationContext context){
-        init(context,true);
+    public void init(ApplicationContext context,Set<Integer> noStartGameMsgTypeSet){
+        init(context,true,noStartGameMsgTypeSet);
     }
 
     /**
      * 启动时初始化
      * @param context
      */
-    public void init(ApplicationContext context,boolean clusterSystemOntimer){
+    public void init(ApplicationContext context, boolean clusterSystemOntimer, Set<Integer> noStartGameMsgTypeSet){
         initTimerCenter();
         CommonUtil.setContext(context);
         clusterMessageHandler.init();
         clusterSystem.init(clusterSystemOntimer,this.timerCenter);
-        clusterMessageDispacher.init(context);
+        clusterMessageDispacher.init(context,noStartGameMsgTypeSet);
         marsCurator.init(context);
         nodeManager.init(marsCurator);
         fileMonitor.start();

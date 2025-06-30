@@ -6,7 +6,7 @@
 
     <groupId>com.jjg.game</groupId>
     <artifactId>core</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-JJG-RELEASES</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -18,7 +18,7 @@
         <dependency>
             <groupId>com.jjg.game</groupId>
             <artifactId>common</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.0-JJG-RELEASES</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-codec</groupId>
@@ -68,6 +68,18 @@
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
             <version>0.10.2</version>
+        </dependency>
+        <!-- 基础POI功能 -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>5.2.5</version>
+        </dependency>
+        <!-- 支持.xlsx文件 -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.5</version>
         </dependency>
 
         <dependency>

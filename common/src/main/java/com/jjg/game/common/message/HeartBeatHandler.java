@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  * @date 2022/5/17
  */
 @Component
-@MessageType(MessageConst.ToClientConst.TYPE)
+@MessageType(MessageConst.MessageTypeDef.TO_CLIENT_TYPE)
 public class HeartBeatHandler {
 
     @Command(MessageConst.ToClientConst.REQ_HEART_BEAT)

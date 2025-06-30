@@ -9,7 +9,7 @@ import com.jjg.game.core.pb.AbstractMessage;
  * @author 11
  * @date 2025/5/26 11:14
  */
-@ProtobufMessage(messageType = MessageConst.CertifyMessage.TYPE, cmd = MessageConst.CertifyMessage.REQ_LOGIN)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CERTIFY_MESSAGE_TYPE, cmd = MessageConst.CertifyMessage.REQ_LOGIN)
 @ProtoDesc("登录请求")
 public class ReqLogin extends AbstractMessage {
     @ProtoDesc("玩家id")

@@ -232,12 +232,11 @@ public class PlayerSessionService implements TimerListener {
         save(info);
     }
 
-    public PlayerSessionInfo enterGameServer(long playerId,int gameType,int wareId){
-        onlineCount(playerId);
-        playerLastGameInfo(playerId,0,gameType,wareId,0);
+    public PlayerSessionInfo enterGameServer(PlayerSessionInfo playerSessionInfo,int roomId){
+        onlineCount(playerSessionInfo.getPlayerId());
+        playerLastGameInfo(playerSessionInfo.getPlayerId(),0,playerSessionInfo.getGameType(),playerSessionInfo.getWareId(),roomId);
 
-        PlayerSessionInfo info = getInfo(playerId);
-        return save(info);
+        return playerSessionInfo;
     }
 
     /**
@@ -290,7 +289,7 @@ public class PlayerSessionService implements TimerListener {
         playerLastGameInfo.setGameType(gameType);
         playerLastGameInfo.setWareId(wareId);
         playerLastGameInfo.setRoomId(roomId);
-        playerLastGameInfo.setNodePath(nodeManager.nodePath);
+        playerLastGameInfo.setNodePath(nodeManager.getNodePath());
         playerLastGameInfoDao.save(playerLastGameInfo);
     }
 

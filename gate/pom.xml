@@ -28,7 +28,7 @@
         <dependency>
             <groupId>com.jjg.game</groupId>
             <artifactId>common</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.0-JJG-RELEASES</version>
         </dependency>
 
         <dependency>

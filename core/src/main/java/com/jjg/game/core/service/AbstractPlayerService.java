@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 
 /**
  * @author 11
@@ -80,6 +81,35 @@ public class AbstractPlayerService {
                 log.warn("保存player数据失败出现异常333,playerId = " + playerId, e);
             }
 
+        }
+        return null;
+    }
+
+    public Player doSave(long playerId, PlayerSaveCallback2 cbk) {
+        String key = getLockKey(playerId);
+        for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
+            if(redisLock.lock(key)){
+                try{
+                    Player player = get(playerId);
+                    if (player == null) {
+                        return null;
+                    }
+                    //如果执行失败
+                    cbk.exe(player);
+                    redisTemplate.opsForHash().put(tableName, playerId, player);
+                    return player;
+                }catch (Exception e){
+                    log.warn("保存player失败212 playerId={}",playerId, e);
+                }finally {
+                    redisLock.unlock(key);
+                }
+            }
+
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                log.warn("保存player数据失败出现异常44,playerId = " + playerId, e);
+            }
         }
         return null;
     }

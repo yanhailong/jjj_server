@@ -8,6 +8,8 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
+
 /**
  * @author 11
  * @date 2025/5/29 14:42
@@ -27,7 +29,7 @@ public class GateStartManager implements SmartLifecycle, ApplicationContextAware
 
     @Override
     public void start() {
-        marsCoreStartService.init(this.context,false);
+        marsCoreStartService.init(this.context,false, Collections.emptySet());
         gateSessionManager.init();
         gateServer.init();
 

@@ -59,7 +59,7 @@ public class ClusterConnect extends NettyConnect<ClusterMessage> implements Conn
     @Override
     public void onCreate() {
         ClusterRegsiterMsg clusterRegsiterMsg = new ClusterRegsiterMsg();
-        clusterRegsiterMsg.nodePath = ClusterSystem.system.nodeManager.nodePath;
+        clusterRegsiterMsg.nodePath = ClusterSystem.system.nodeManager.getNodePath();
         if (clusterRegsiterMsg.nodePath != null) {
             PFMessage pfMessage = MessageUtil.getPFMessage(clusterRegsiterMsg);
             ClusterMessage clusterMessage = new ClusterMessage(pfMessage);

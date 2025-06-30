@@ -34,7 +34,7 @@ public class MessageUtil {
         return pfMessage;
     }
 
-    public static Map<Integer, MessageController> load(ApplicationContext context) {
+    public static Map<Integer, MessageController> load(ApplicationContext context,Set<Integer> noStartGameMsgTypeSet) {
         Map<Integer, MessageController> messageControllers = new HashMap<>();
         Class<MessageType> clazz = MessageType.class;
         log.debug("开始初始化 {} 消息分发器", clazz);
@@ -42,15 +42,22 @@ public class MessageUtil {
         beans.values().forEach(o -> {
 
             MessageType messageType = null;
+            int msgType;
             if (AopUtils.isAopProxy(o)) {
                 Class<?> targetclazz = AopUtils.getTargetClass(o);
                 messageType = targetclazz.getAnnotation(MessageType.class);
-                MessageController messageController = new MessageController(o, targetclazz);
-                messageControllers.put(messageType.value(), messageController);
+
+                //不需要启动的游戏的消息类型
+                msgType = messageType.value();
             } else {
                 messageType = o.getClass().getAnnotation(MessageType.class);
+                //不需要启动的游戏的消息类型
+                msgType = messageType.value();
+            }
+
+            if(!noStartGameMsgTypeSet.contains(msgType)) {
                 MessageController messageController = new MessageController(o);
-                messageControllers.put(messageType.value(), messageController);
+                messageControllers.put(msgType, messageController);
             }
 
         });
@@ -78,7 +85,7 @@ public class MessageUtil {
         return methodInfos;
     }
 
-    public static Map<Class<?>, ProtobufMessage> loadResponseMessage(String... pkgs) {
+    public static Map<Class<?>, ProtobufMessage> loadResponseMessage(Set<Integer> noStartGameMsgTypeSet,String... pkgs) {
         responseMap = new HashMap<>();
         Set<Class<?>> clazzes = new HashSet<>();
         for (String pkg : pkgs) {
@@ -87,7 +94,10 @@ public class MessageUtil {
         if (!clazzes.isEmpty()) {
             clazzes.forEach(clazz -> {
                 ProtobufMessage responseMessage = clazz.getAnnotation(ProtobufMessage.class);
-                if (responseMessage.resp()) {
+
+                int msgType = responseMessage.messageType();
+
+                if (!noStartGameMsgTypeSet.contains(msgType) && responseMessage.resp()) {
                     responseMap.put(clazz, responseMessage);
                 }
             });

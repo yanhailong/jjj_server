@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 public class SampleConfig {
     public String samplePackage = "com.jjg.game.sample";
 
-    public String samplePath = "resources";
+    public String samplePath = "resources/sample/dollarexpress";
 
     public String versionFile;
 

@@ -25,7 +25,8 @@ public interface Code {
     int EXPIRE = 407;
     //余额不足
     int NOT_ENOUGHT = 408;
-
+    //Vip等级不足
+    int VIP_NOT_ENOUGHT = 409;
 
     //服务器错误
     int EXCEPTION = 500;

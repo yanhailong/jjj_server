@@ -2,6 +2,8 @@ package com.jjg.game.core.data;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Objects;
+
 /**
  * 玩家对象
  * @author 11
@@ -13,6 +15,12 @@ public class Player {
     private long id;
     //昵称
     private String nickName;
+    //房间id
+    private int roomId;
+    //游戏类型
+    private int gameType;
+    //场次类型
+    private int wareId;
     //金币
     private long gold;
     //钻石
@@ -30,6 +38,7 @@ public class Player {
     //创建时间
     private int createTime;
 
+
     public long getId() {
         return id;
     }
@@ -44,6 +53,30 @@ public class Player {
 
     public void setNickName(String nickName) {
         this.nickName = nickName;
+    }
+
+    public int getRoomId() {
+        return roomId;
+    }
+
+    public void setRoomId(int roomId) {
+        this.roomId = roomId;
+    }
+
+    public int getGameType() {
+        return gameType;
+    }
+
+    public void setGameType(int gameType) {
+        this.gameType = gameType;
+    }
+
+    public int getWareId() {
+        return wareId;
+    }
+
+    public void setWareId(int wareId) {
+        this.wareId = wareId;
     }
 
     public long getGold() {
@@ -108,5 +141,17 @@ public class Player {
 
     public void setCreateTime(int createTime) {
         this.createTime = createTime;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Player player = (Player) o;
+        return id == player.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
     }
 }

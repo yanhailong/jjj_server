@@ -1,5 +1,7 @@
 package com.jjg.game.common.cluster;
 
+import com.jjg.game.common.config.NodeConfig;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.*;
 import com.jjg.game.common.utils.RandomUtils;
 import io.netty.channel.ChannelHandler;
@@ -12,6 +14,7 @@ import org.slf4j.MDC;
 import org.springframework.context.ApplicationContext;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 节点消息分发
@@ -35,11 +38,11 @@ public class ClusterMessageDispacher {
      * 初始化
      * @param context
      */
-    public void init(ApplicationContext context){
+    public void init(ApplicationContext context, Set<Integer> noStartGameMsgTypeSet){
         this.sessionRefenerceBinderMap = context.getBeansOfType(SessionRefenerceBinder.class);
 
-        messageControllers = MessageUtil.load(context);
-        MessageUtil.loadResponseMessage("com.jjg.game");
+        messageControllers = MessageUtil.load(context,noStartGameMsgTypeSet);
+        MessageUtil.loadResponseMessage(noStartGameMsgTypeSet,"com.jjg.game");
         messageControllers.entrySet().forEach(e -> log.info("消息处理器[{}]->{}", e.getKey(), e.getValue().been.getClass().getName()));
     }
 
