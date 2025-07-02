@@ -2,6 +2,7 @@ package com.jjg.game.common.net;
 
 /**
  * 连接接口
+ * T 消息类型
  * @since 1.0
  */
 public interface Connect<T> {

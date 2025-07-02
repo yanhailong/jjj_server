@@ -1,5 +1,6 @@
 package com.jjg.game.core.service;
 
+import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.core.RedisLock;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -10,10 +11,8 @@ import com.jjg.game.core.logger.CoreLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
-
-import java.io.UnsupportedEncodingException;
-import java.util.List;
 
 /**
  * @author 11
@@ -26,7 +25,7 @@ public class AbstractPlayerService {
     private static final String lockTableName = "lockplayer:";
 
     @Autowired
-    protected RedisTemplate redisTemplate;
+    protected RedisTemplate<String, Player> redisTemplate;
     @Autowired
     protected RedisLock redisLock;
     @Autowired
@@ -34,73 +33,61 @@ public class AbstractPlayerService {
     @Autowired
     protected CoreLogger coreLogger;
 
-    protected String getLockKey(long playerId){
+    protected String getLockKey(long playerId) {
         return lockTableName + playerId;
     }
 
-    public interface PlayerSaveCallback {
-        void newexe(Player player) throws UnsupportedEncodingException;
-        void exe(Player player) throws UnsupportedEncodingException;
-    }
-
-    public interface PlayerSaveCallback2 {
-        void exe(Player player) throws UnsupportedEncodingException;
-    }
-
-    public interface PlayerSaveCallback3 {
-        boolean exe(Player player) throws UnsupportedEncodingException;
-    }
-
-    public Player checkAndSave(long playerId, PlayerSaveCallback3 cbk) {
+    public Player checkAndSave(long playerId, DataSaveCallback<Player> cbk) {
         String key = getLockKey(playerId);
         for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
-            if(redisLock.lock(key)){
-                try{
+            if (redisLock.lock(key)) {
+                try {
                     Player player = get(playerId);
                     if (player == null) {
                         return null;
                     }
 
                     //如果执行失败
-                    if (!cbk.exe(player)) {
+                    if (!(boolean) cbk.updateDataWithRes(player)) {
                         break;
                     }
 
                     redisTemplate.opsForHash().put(tableName, playerId, player);
                     return player;
-                }catch (Exception e){
-                    log.warn("保存player失败22 playerId={}",playerId, e);
-                }finally {
+                } catch (Exception e) {
+                    log.error("保存player失败 playerId={}", playerId, e);
+                } finally {
                     redisLock.unlock(key);
                 }
             }
 
             try {
+                // TODO 需要阻塞的等待 30ms?如果一直拿不到redis锁，最差会将当前调用线程阻塞等待 REDIS_TRANSACTION_TRY_COUNT * 30 ms
                 Thread.sleep(30);
             } catch (InterruptedException e) {
-                log.warn("保存player数据失败出现异常333,playerId = " + playerId, e);
+                log.error("保存player数据失败出现异常,playerId = {}", playerId, e);
             }
 
         }
         return null;
     }
 
-    public Player doSave(long playerId, PlayerSaveCallback2 cbk) {
+    public Player doSave(long playerId, DataSaveCallback<Player> cbk) {
         String key = getLockKey(playerId);
         for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
-            if(redisLock.lock(key)){
-                try{
+            if (redisLock.lock(key)) {
+                try {
                     Player player = get(playerId);
                     if (player == null) {
                         return null;
                     }
                     //如果执行失败
-                    cbk.exe(player);
+                    cbk.updateData(player);
                     redisTemplate.opsForHash().put(tableName, playerId, player);
                     return player;
-                }catch (Exception e){
-                    log.warn("保存player失败212 playerId={}",playerId, e);
-                }finally {
+                } catch (Exception e) {
+                    log.warn("保存player失败 playerId={}", playerId, e);
+                } finally {
                     redisLock.unlock(key);
                 }
             }
@@ -116,6 +103,7 @@ public class AbstractPlayerService {
 
     /**
      * 减少金币
+     *
      * @param playerId
      * @param addNum
      * @param addType
@@ -124,33 +112,40 @@ public class AbstractPlayerService {
      */
     public CommonResult<Player> addDiamond(long playerId, long addNum, String addType, String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
-        if(addNum == 0){
-            log.warn("添加钻石错误 playerId={},addNum={}",playerId,addNum);
+        if (addNum == 0) {
+            log.warn("添加钻石错误 playerId={},addNum={}", playerId, addNum);
             result.code = Code.PARAM_ERROR;
             return result;
         }
 
         final long[] beforeCoin = {0};
 
-        Player p = checkAndSave(playerId, player -> {
-            beforeCoin[0] = player.getDiamond();
-            if(addNum > 0){
-                player.setDiamond(Math.min(Long.MAX_VALUE, player.getDiamond() + addNum));
-            }else {
-                long afterCoin = player.getDiamond() + addNum;
-                if(afterCoin < 0){
-                    result.code = Code.NOT_ENOUGHT;
-                    return false;
-                }
-                player.setDiamond(afterCoin);
+        Player p = checkAndSave(playerId, new DataSaveCallback<>() {
+            @Override
+            public void updateData(Player dataEntity) {
             }
-            return true;
+
+            @Override
+            public Boolean updateDataWithRes(Player player) {
+                beforeCoin[0] = player.getDiamond();
+                if (addNum > 0) {
+                    player.setDiamond(Math.min(Long.MAX_VALUE, player.getDiamond() + addNum));
+                } else {
+                    long afterCoin = player.getDiamond() + addNum;
+                    if (afterCoin < 0) {
+                        result.code = Code.NOT_ENOUGH;
+                        return false;
+                    }
+                    player.setDiamond(afterCoin);
+                }
+                return true;
+            }
         });
 
         //记录日志
         if (p != null) {
             //TODO 后期要排除机器人的情况
-            coreLogger.useMoney(p,beforeCoin[0],addNum,addType,desc);
+            coreLogger.useMoney(p, beforeCoin[0], addNum, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
             return result;
@@ -164,6 +159,7 @@ public class AbstractPlayerService {
 
     /**
      * 添加金币
+     *
      * @param playerId
      * @param addNum
      * @param addType
@@ -171,34 +167,43 @@ public class AbstractPlayerService {
      * @return
      */
     public CommonResult<Player> addGold(long playerId, long addNum, String addType, String desc) {
+        // TODO 玩家在房间中时，不应由玩家添加金币的逻辑,需要判断.如果玩家在房间中,外部:比如大厅和某些定时产出,还在更新玩家金币和钻石,会导致数据同步问题
+        // TODO 添加金币时只能保证分布式服务状态下的更新同步，不能保证当前服的线程安全引起的数据同步问题
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
-        if(addNum == 0){
-            log.warn("添加金币错误 playerId={},addNum={}",playerId,addNum);
+        if (addNum == 0) {
+            log.warn("添加金币错误 playerId={},addNum={}", playerId, addNum);
             result.code = Code.PARAM_ERROR;
             return result;
         }
 
         final long[] beforeCoin = {0};
 
-        Player p = checkAndSave(playerId, player -> {
-            beforeCoin[0] = player.getGold();
-            if(addNum > 0){
-                player.setGold(Math.min(Long.MAX_VALUE, player.getGold() + addNum));
-            }else {
-                long afterCoin = player.getGold() + addNum;
-                if(afterCoin < 0){
-                    result.code = Code.NOT_ENOUGHT;
-                    return false;
-                }
-                player.setGold(afterCoin);
+        Player p = checkAndSave(playerId, new DataSaveCallback<>() {
+            @Override
+            public void updateData(Player dataEntity) {
             }
-            return true;
+
+            @Override
+            public Boolean updateDataWithRes(Player player) {
+                beforeCoin[0] = player.getGold();
+                if (addNum > 0) {
+                    player.setGold(Math.min(Long.MAX_VALUE, player.getGold() + addNum));
+                } else {
+                    long afterCoin = player.getGold() + addNum;
+                    if (afterCoin < 0) {
+                        result.code = Code.NOT_ENOUGH;
+                        return false;
+                    }
+                    player.setGold(afterCoin);
+                }
+                return true;
+            }
         });
 
         //记录日志
         if (p != null) {
             //TODO 后期要排除机器人的情况
-            coreLogger.useMoney(p,beforeCoin[0],addNum,addType,desc);
+            coreLogger.useMoney(p, beforeCoin[0], addNum, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
             return result;
@@ -214,6 +219,7 @@ public class AbstractPlayerService {
      * @return 玩家对象
      */
     public Player get(long playerId) {
-        return (Player) redisTemplate.opsForHash().get(tableName,playerId);
+        HashOperations<String, String, Player> operations = redisTemplate.opsForHash();
+        return operations.get(tableName, playerId);
     }
 }

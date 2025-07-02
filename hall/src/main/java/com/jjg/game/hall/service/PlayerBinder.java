@@ -1,6 +1,6 @@
 package com.jjg.game.hall.service;
 
-import com.jjg.game.common.listener.SessionRefenerceBinder;
+import com.jjg.game.common.listener.SessionReferenceBinder;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  * @date 2025/5/28 9:31
  */
 @Component
-public class PlayerBinder implements SessionRefenerceBinder {
+public class PlayerBinder implements SessionReferenceBinder {
     @Autowired
     private HallPlayerService hallPlayerService;
 

@@ -11,9 +11,10 @@ import org.slf4j.LoggerFactory;
 /**
  * 用户session
  *
+ * @author nobody
  * @since 1.0
  */
-public class PFSession extends Session<Object, ClusterMessage> {
+public class PFSession extends Session<Object, Object> {
 
     public static Logger log = LoggerFactory.getLogger(PFSession.class);
 
@@ -21,7 +22,7 @@ public class PFSession extends Session<Object, ClusterMessage> {
     /* 网关节点PATH*/
     public String gatePath;
     /* 业务ID，用于根据该ID分配业务线程*/
-    public int workId;
+    public long workId;
 
     public long activeTime;
 
@@ -46,11 +47,11 @@ public class PFSession extends Session<Object, ClusterMessage> {
         this.gatePath = gatePath;
     }
 
-    public int getWorkId() {
+    public long getWorkId() {
         return workId;
     }
 
-    public void setWorkId(int workId) {
+    public void setWorkId(long workId) {
         this.workId = workId;
     }
 

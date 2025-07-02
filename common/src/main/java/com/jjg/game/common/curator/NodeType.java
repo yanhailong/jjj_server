@@ -24,4 +24,16 @@ public enum NodeType {
     public int getValue() {
         return value;
     }
+
+    /**
+     * 检索与给定名称匹配的NodeType枚举值，忽略大小写。
+     */
+    public static NodeType getNodeTypeByName(String nodeTypeName) {
+        for (NodeType nodeType : NodeType.values()) {
+            if (nodeType.name().equalsIgnoreCase(nodeTypeName)) {
+                return nodeType;
+            }
+        }
+        return null;
+    }
 }

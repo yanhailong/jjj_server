@@ -56,7 +56,7 @@ public class DollarExpressMessageHandler {
     public void reqStartGame(PlayerController playerController, ReqStartGame req){
         try{
             log.info("收到玩家开始游戏 playerId={},req={}",playerController.playerId(), JSONObject.toJSONString(req));
-            dollarExpressSendMessageManager.sendConfigMessage(playerController,playerController.player.getWareId());
+            dollarExpressSendMessageManager.sendConfigMessage(playerController,playerController.getPlayer().getWareId());
         }catch (Exception e){
             log.error("", e);
         }

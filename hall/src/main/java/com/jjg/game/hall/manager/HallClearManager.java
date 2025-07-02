@@ -90,7 +90,7 @@ public class HallClearManager {
                 }
                 index++;
             }catch (Exception e){
-                log.error("清除player数据异常,playerId:" + o,e);
+                log.error("清除player数据异常,playerId:{}", o, e);
             }
         }
         log.info("清除player数据完成,循环次数={},成功次数={},消耗时间={} ms",index,finishNum,System.currentTimeMillis()-now);

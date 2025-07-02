@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName shop.xlsx
  * @sheetName Shop
  * @author Auto.Generator
- * @date 2025年06月30日 14:12:12
+ * @date 2025年07月18日 15:03:10
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class ShopCfg extends BaseCfgBean {

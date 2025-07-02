@@ -14,9 +14,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * netty 连接抽象类
+ *
+ * @author nobody
  * @since 1.0
  */
-public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> implements Connect {
+public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> implements Connect<T> {
 
     protected Logger log = LoggerFactory.getLogger(getClass());
     protected ChannelHandlerContext ctx;
@@ -41,7 +43,7 @@ public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> imp
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
-            throws Exception {
+        throws Exception {
         //cause.printStackTrace();
         log.debug("tips caught exception,ctx=" + ctx, cause);
         close();
@@ -54,13 +56,14 @@ public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> imp
                 if (!future.isSuccess()) {
                     Throwable e = future.cause();
                     if (e != null) {
-                        e.printStackTrace();
-                        log.warn("", e);
+                        log.error("发送消息出现异常", e);
+                        throw new RuntimeException("发送消息出现异常", e);
                     }
                 }
             });
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("发送消息出现异常", e);
+            throw new RuntimeException("发送消息出现异常", e);
         }
 
         return true;
@@ -91,12 +94,12 @@ public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> imp
         log.debug("服务器主动关闭连接并通知,netAddress={},ctx={}", remoteAddress, ctx);
         try {
             ctx.writeAndFlush(obj).addListener(future -> {
-               if (isActive()){
-                   ctx.close();
-               }
+                if (isActive()) {
+                    ctx.close();
+                }
             });
         } catch (Exception e) {
-            log.warn("关闭连接异常,netAddress=" + remoteAddress + ",ctx=" + ctx, e);
+            log.error("关闭连接异常,netAddress={},ctx={}", remoteAddress, ctx, e);
         }
     }
 
@@ -114,7 +117,7 @@ public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> imp
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         log.debug("channel inactive,ctx={}", ctx);
-        connectListeners.forEach(connectListener -> connectListener.onConnectClose(this));
+        connectListeners.forEach(connectListener -> connectListener.onConnectClose((Connect<Object>) this));
         connectListeners.clear();
         onClose();
         super.channelInactive(ctx);
@@ -140,8 +143,8 @@ public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> imp
     @Override
     public String toString() {
         return "NettyConnect{" +
-                "ctx=" + ctx +
-                ", remoteAddress=" + remoteAddress +
-                '}';
+            "ctx=" + ctx +
+            ", remoteAddress=" + remoteAddress +
+            '}';
     }
 }

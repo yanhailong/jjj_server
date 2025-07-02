@@ -4,12 +4,16 @@ import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.net.Connect;
 import com.jjg.game.common.netty.ConnectPool;
+import com.jjg.game.common.netty.NettyConnect;
 
 /**
  * 集群客户端对象
+ *
+ * @author nobody
  * @since 1.0
  */
 public class ClusterClient {
+    private final ClusterSystem clusterSystem;
     /**
      * 节点的配置信息
      */
@@ -21,9 +25,7 @@ public class ClusterClient {
     /**
      * 连接池
      */
-    public ConnectPool connectPool;
-
-    private ClusterSystem clusterSystem;
+    public ConnectPool<NettyConnect<Object>> connectPool;
 
     public ClusterClient(MarsNode marsNode, ClusterSystem clusterSystem) {
         this.clusterSystem = clusterSystem;
@@ -36,11 +38,11 @@ public class ClusterClient {
         this.connectPool = clusterSystem.getMarsConnectPool(nodeConfig.getTcpAddress());
     }
 
-    public Connect getConnect() throws InterruptedException {
+    public NettyConnect<Object> getConnect() throws InterruptedException {
         return connectPool.getConnect();
     }
 
-    public Connect getConnectSync() throws InterruptedException {
+    public NettyConnect<Object> getConnectSync() throws InterruptedException {
         return connectPool.getConnectSync();
     }
 
@@ -52,7 +54,7 @@ public class ClusterClient {
         return nodeConfig.getType();
     }
 
-    public void close(Connect connect) {
+    public void close(NettyConnect<Object> connect) {
         connectPool.close(connect);
         if (connect != null) {
             connect.close();

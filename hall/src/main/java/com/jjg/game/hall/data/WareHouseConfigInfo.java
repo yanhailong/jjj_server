@@ -10,7 +10,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage
 @ProtoDesc("每个场次配置信息")
 public class WareHouseConfigInfo {
-    @ProtoDesc("场次id")
+    @ProtoDesc("场次ID")
     public int wareId;
     @ProtoDesc("场次名称")
     public String name;

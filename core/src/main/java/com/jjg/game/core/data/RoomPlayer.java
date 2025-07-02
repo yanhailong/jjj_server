@@ -4,6 +4,7 @@ import java.util.Objects;
 
 /**
  * 房间类玩家对象
+ *
  * @author 11
  * @date 2025/6/25 9:28
  */
@@ -14,6 +15,10 @@ public class RoomPlayer {
     protected long playerId;
     //当前在线情况
     protected boolean online;
+    // 玩家房间数据
+    protected PlayerRoomData playerRoomData;
+    // 玩家数据
+    protected Player player;
 
     public RoomPlayer() {
     }
@@ -57,5 +62,25 @@ public class RoomPlayer {
     @Override
     public int hashCode() {
         return Objects.hashCode(playerId);
+    }
+
+    public PlayerRoomData getPlayerRoomData() {
+        return playerRoomData;
+    }
+
+    public void setPlayerRoomData(PlayerRoomData playerRoomData) {
+        this.playerRoomData = playerRoomData;
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
+
+    public boolean whichIsRobot() {
+        return player instanceof RobotPlayer;
     }
 }

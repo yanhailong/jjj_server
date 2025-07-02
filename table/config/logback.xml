@@ -7,7 +7,9 @@
         <property name="LOG_HOME" value="./log" />
         <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
                 <encoder>
-                        <pattern>%4d{yyyy-MM-dd HH:mm:ss.fff} [%thread] %-5p - %c [%X{playerId}] - %m%n</pattern>
+                        <pattern>%4d{yyyy-MM-dd HH:mm:ss} %highlight(%-5level) [%thread] at %class.%method \(%file:%line\) - %m%n
+                        </pattern>
+                        <charset>UTF-8</charset>
                 </encoder>
         </appender>
         <!-- ch.qos.logback.core.rolling.RollingFileAppender 文件日志输出 -->

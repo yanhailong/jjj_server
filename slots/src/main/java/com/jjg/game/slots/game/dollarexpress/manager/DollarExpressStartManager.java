@@ -20,8 +20,6 @@ public class DollarExpressStartManager implements IRoomStartListener {
     @Autowired
     private DollarExpressManager dollarExpressManager;
     @Autowired
-    private DollarRoomManager roomManager;
-    @Autowired
     private DollarExpressSampleManager dollarExpressSampleManager;
 
     @Override
@@ -35,8 +33,6 @@ public class DollarExpressStartManager implements IRoomStartListener {
 
         this.dollarExpressSampleManager.init();
         this.dollarExpressManager.init();
-
-        roomManager.test();
     }
 
 

@@ -1,11 +1,13 @@
 package com.jjg.game.common.constant;
 
+import com.jjg.game.common.concurrent.BaseProcessor;
+
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * 系统级常量池
- * 
+ *
  * @since 1.0
  */
 public class CoreConst {
@@ -14,39 +16,39 @@ public class CoreConst {
     public static final Map<Integer, Integer> gameTypeToMsgTypeMap = new HashMap<>();
 
     //场次id
-    public static final int[] WARE_IDS = {1,2,3};
+    public static final int[] WARE_IDS = {1, 2, 3};
 
     static {
-        gameTypeToMsgTypeMap.put(GameType.DOLLAR_EXPRESS,MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.WOODS_MAN,MessageConst.MessageTypeDef.WOODS_MAN_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.SUPER_STAR,MessageConst.MessageTypeDef.SUPER_STAR_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.BUFFALO_WEALTH,MessageConst.MessageTypeDef.BUFFALO_WEALTH_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.FIRE_CAR,MessageConst.MessageTypeDef.FIRE_CAR_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.WOMAN_GOD,MessageConst.MessageTypeDef.WOMAN_GOD_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.MAHJIONG_WIN,MessageConst.MessageTypeDef.MAHJIONG_WIN_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.FORTUNE_CAT,MessageConst.MessageTypeDef.FORTUNE_CAT_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.PIRATES_CARIBBEAN,MessageConst.MessageTypeDef.PIRATES_CARIBBEAN_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.APPLE_FRUITS,MessageConst.MessageTypeDef.APPLE_FRUITS_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.APPLE_ANIMAL,MessageConst.MessageTypeDef.APPLE_ANIMAL_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.GOLD_CITY,MessageConst.MessageTypeDef.GOLD_CITY_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.DOLLAR_EXPRESS, MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.WOODS_MAN, MessageConst.MessageTypeDef.WOODS_MAN_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.SUPER_STAR, MessageConst.MessageTypeDef.SUPER_STAR_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.BUFFALO_WEALTH, MessageConst.MessageTypeDef.BUFFALO_WEALTH_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.FIRE_CAR, MessageConst.MessageTypeDef.FIRE_CAR_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.WOMAN_GOD, MessageConst.MessageTypeDef.WOMAN_GOD_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.MAHJIONG_WIN, MessageConst.MessageTypeDef.MAHJIONG_WIN_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.FORTUNE_CAT, MessageConst.MessageTypeDef.FORTUNE_CAT_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.PIRATES_CARIBBEAN, MessageConst.MessageTypeDef.PIRATES_CARIBBEAN_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.APPLE_FRUITS, MessageConst.MessageTypeDef.APPLE_FRUITS_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.APPLE_ANIMAL, MessageConst.MessageTypeDef.APPLE_ANIMAL_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.GOLD_CITY, MessageConst.MessageTypeDef.GOLD_CITY_TYPE);
 
-        gameTypeToMsgTypeMap.put(GameType.RED_BLACK_WAR,MessageConst.MessageTypeDef.RED_BLACK_WAR_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.LOONG_TIGER_WAR,MessageConst.MessageTypeDef.LOONG_TIGER_WAR_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.CATCH_FISH,MessageConst.MessageTypeDef.CATCH_FISH_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.BIRDS_ANIMAL,MessageConst.MessageTypeDef.BIRDS_ANIMAL_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.GOOD_CAR_CLUB,MessageConst.MessageTypeDef.GOOD_CAR_CLUB_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.BACCARAT,MessageConst.MessageTypeDef.BACCARAT_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.DICE_BABY,MessageConst.MessageTypeDef.DICE_BABY_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.VIETNAM_SEXY_DISK,MessageConst.MessageTypeDef.VIETNAM_SEXY_DISK_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.SIZE_DICE_BABY,MessageConst.MessageTypeDef.SIZE_DICE_BABY_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.FISH_SHRIMP_CRAB,MessageConst.MessageTypeDef.FISH_SHRIMP_CRAB_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.RED_BLACK_WAR, MessageConst.MessageTypeDef.RED_BLACK_WAR_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.LOONG_TIGER_WAR, MessageConst.MessageTypeDef.LOONG_TIGER_WAR_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.CATCH_FISH, MessageConst.MessageTypeDef.CATCH_FISH_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.BIRDS_ANIMAL, MessageConst.MessageTypeDef.BIRDS_ANIMAL_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.GOOD_CAR_CLUB, MessageConst.MessageTypeDef.GOOD_CAR_CLUB_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.BACCARAT, MessageConst.MessageTypeDef.BACCARAT_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.DICE_BABY, MessageConst.MessageTypeDef.DICE_BABY_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.VIETNAM_SEXY_DISK, MessageConst.MessageTypeDef.VIETNAM_SEXY_DISK_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.SIZE_DICE_BABY, MessageConst.MessageTypeDef.SIZE_DICE_BABY_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.FISH_SHRIMP_CRAB, MessageConst.MessageTypeDef.FISH_SHRIMP_CRAB_TYPE);
 
-        gameTypeToMsgTypeMap.put(GameType.BLACK_JACK,MessageConst.MessageTypeDef.BLACK_JACK_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.TEXAS,MessageConst.MessageTypeDef.TEXAS_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.VEGAS_THREE,MessageConst.MessageTypeDef.VEGAS_THREE_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.BLACK_JACK, MessageConst.MessageTypeDef.BLACK_JACK_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.TEXAS, MessageConst.MessageTypeDef.TEXAS_TYPE);
+        gameTypeToMsgTypeMap.put(GameType.VEGAS_THREE, MessageConst.MessageTypeDef.VEGAS_THREE_TYPE);
     }
 
-    public class GameType{
+    public static class GameType {
         //美元快递
         public static final int DOLLAR_EXPRESS = 100100;
         //森林人
@@ -103,7 +105,7 @@ public class CoreConst {
         public static final int VEGAS_THREE = 300300;
     }
 
-    public class Common{
+    public static class Common {
         // 本系统统一文件分隔符
         public static final String SEPARATOR = "/";
 
@@ -112,5 +114,8 @@ public class CoreConst {
 
         //excel根目录
         public static final String SAMPLE_ROOT_PATH = "resources/sample/";
+
+        // 项目package路径
+        public static final String BASE_PROJECT_PACKAGE_PATH = "com.jjg.game";
     }
 }

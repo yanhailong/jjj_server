@@ -9,6 +9,8 @@ import java.util.List;
 
 /**
  * 消息解码器
+ *
+ * @author nobody
  * @since 1.0
  */
 public class GateMessageDecoder extends MessageToMessageDecoder<ByteBuf> {

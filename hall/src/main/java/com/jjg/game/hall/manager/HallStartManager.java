@@ -10,6 +10,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
@@ -33,6 +34,8 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private HallService hallService;
     @Autowired
     private HallSampleManager hallSampleManager;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     private ApplicationContext context;
 

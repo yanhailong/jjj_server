@@ -22,11 +22,12 @@ public interface MessageConst {
         int SESSION_TYPE = 0x2;
         int CERTIFY_MESSAGE_TYPE = 0x3;
         int CORE_MESSAGE_TYPE = 0x4;
-        int TO_SERVER_CONST_TYPE = 0x5;
+        // 房间通用消息类型
+        int ROOM_TYPE = 0x5;
 
         //大厅
         int HALL_TYPE = 0x6;
-        
+
         //美元快递
         int DOLLAR_EXPRESS_TYPE = 0x7;
         //森林人
@@ -81,6 +82,9 @@ public interface MessageConst {
         int TEXAS_TYPE = 0x1E;
         //拉斯维加斯拼三张
         int VEGAS_THREE_TYPE = 0x1F;
+
+        // 下注房间对战类通用协议类型
+        int BET_GENERAL_TYPE = 0x20;
     }
 
     interface ToClientConst {

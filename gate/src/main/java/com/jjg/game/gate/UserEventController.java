@@ -12,10 +12,10 @@ import org.springframework.stereotype.Component;
 public class UserEventController implements SessionVerifyListener {
     @Override
     public void userVerifyPass(String sessionId, long playerId, String ip) {
-        GateSession gateSession = GateSession.gateSessionMap.get(sessionId);
+        GateSession gateSession = GateSession.getGateSessionMap().get(sessionId);
         if (gateSession != null) {
-            gateSession.certify = true;
-            gateSession.playerId = playerId;
+            gateSession.setCertify(true);
+            gateSession.setPlayerId(playerId);
             gateSession.setHost(ip);
         }
     }

@@ -12,7 +12,7 @@ import com.jjg.game.hall.sample.bean.GameListCfg;
  * @excelName gameList.xlsx
  * @sheetName GameList
  * @author auto_generator
- * @date 2025年06月30日 14:12:12
+ * @date 2025年07月18日 15:03:10
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameListCfgContainer extends BaseCfgContainer<GameListCfg> {

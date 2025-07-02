@@ -1,0 +1,51 @@
+package com.jjg.game.room.sample.container;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.processing.Generated;
+import com.jjg.game.room.sample.bean.RoomCfg;
+
+/**
+ * Room_Bet.xlsx配置管理容器
+ *
+ * @excelName Room_Bet.xlsx
+ * @sheetName Room
+ * @author auto_generator
+ * @date 2025年07月21日 14:06:28
+ */
+@Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
+public class RoomCfgContainer extends BaseCfgContainer<RoomCfg> {
+
+  @Override
+  public boolean hasRelatedTable() {
+    return true;
+  }
+
+  @Override
+  public boolean isParentConfigNode() {
+    return true;
+  }
+
+  @Override
+  public RoomCfgContainer getNewContainer(){
+    return new RoomCfgContainer();
+  }
+
+  public RoomCfgContainer() {
+    super();
+  }
+
+  @Override
+  public List<String> getExcelNameList() {
+    List<String> excelNameList = new ArrayList<>();
+    excelNameList.add("Room_Bet.xlsx");
+    excelNameList.add("Room_Chess.xlsx");
+    return excelNameList;
+  }
+
+  @Override
+  protected RoomCfg createNewBean() {
+    return new RoomCfg();
+  }
+}

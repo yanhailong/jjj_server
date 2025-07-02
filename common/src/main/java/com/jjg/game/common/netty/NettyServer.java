@@ -1,13 +1,15 @@
 package com.jjg.game.common.netty;
 
+import com.jjg.game.common.utils.OSUtils;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollServerSocketChannel;
+import io.netty.channel.epoll.EpollSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import org.slf4j.Logger;
@@ -52,19 +54,25 @@ public class NettyServer extends Thread {
 
     @Override
     public void run() {
-        EventLoopGroup bossGroup = new NioEventLoopGroup();
-        NioEventLoopGroup workerGroup = new NioEventLoopGroup();
+        // 在linux环境中EPoll的表现比NIO的性能表现更好
+        // Netty NIO使用的是Selector，其底层在Linux上通过select或poll（取决于实现）；
+        //select/poll 的问题：每次都要轮询所有file Descriptor（文件描述符），时间复杂度 O(n)；
+        //而 epoll 是事件驱动的，事件发生时由内核主动通知用户态，复杂度是 O(1)。
+        EventLoopGroup bossGroup = OSUtils.IS_LINUX ? new EpollEventLoopGroup() : new NioEventLoopGroup();
+        EventLoopGroup workerGroup = OSUtils.IS_LINUX ? new EpollEventLoopGroup() : new NioEventLoopGroup();
+        Class<? extends ServerChannel> channelCls = OSUtils.IS_LINUX ? EpollServerSocketChannel.class :
+            NioServerSocketChannel.class;
         //workerGroup.setIoRatio(30);
         try {
             this.b = new ServerBootstrap();
             this.b.group(bossGroup, workerGroup);
-            this.b.channel(NioServerSocketChannel.class);
+            this.b.channel(channelCls);
             this.b.childHandler(this.initializer).childOption(ChannelOption.SO_KEEPALIVE, true)
-                    // ChannelOption.TCP_NODELAY 是否禁用Nagle算法(是否减小TCP网络中小数据包数量).ture禁用,降低延迟,false启用,提高吞吐
-                    .childOption(ChannelOption.TCP_NODELAY, true)
-                    //建议设置到4K
-                    .option(ChannelOption.SO_BACKLOG, 4096)
-                    .handler(new LoggingHandler(LogLevel.INFO));
+                // ChannelOption.TCP_NODELAY 是否禁用Nagle算法(是否减小TCP网络中小数据包数量).ture禁用,降低延迟,false启用,提高吞吐
+                .childOption(ChannelOption.TCP_NODELAY, true)
+                //建议设置到4K
+                .option(ChannelOption.SO_BACKLOG, 4096)
+                .handler(new LoggingHandler(LogLevel.INFO));
             // 服务器绑定端口监听
             ChannelFuture f;
             if (this.address != null) {

@@ -9,11 +9,11 @@ import javax.annotation.processing.Generated;
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseCfgBean {
 
-  /** sid */
-  protected int sid;
+  /** id */
+  protected int id;
 
-  /** 返回sid */
-  public int getSid() {
-    return sid;
+  /** 返回id */
+  public int getId() {
+    return id;
   }
 }

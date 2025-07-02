@@ -38,4 +38,18 @@ public class NettyUtils {
         // 组装为 URI 对象 (模板: ws://IP:PORT)
         return new URI("ws", null, host, port, null, null, null);
     }
+
+
+    /**
+     * 判断Netty连接是否有效
+     *
+     * @param ctx ctx
+     * @return channel是否断开
+     */
+    public static boolean isDisconnectChannel(ChannelHandlerContext ctx) {
+        return ctx == null
+            || ctx.channel() == null
+            || !ctx.channel().isActive()
+            || !ctx.channel().isOpen();
+    }
 }

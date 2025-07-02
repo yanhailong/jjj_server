@@ -7,6 +7,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * timercenter里面的定时(任务)事件
+ *
+ * @author nobody
  * @since 1.0
  */
 public class TimerEvent<T> implements Runnable {
@@ -14,24 +16,22 @@ public class TimerEvent<T> implements Runnable {
      * 定义无限循环常量
      */
     public static final int INFINITE_CYCLE = 0x7fffffff;
-
-    public static int debugTime = 1000;
-
     /**
      * 日志记录
      */
     private static final Logger log = LoggerFactory.getLogger(TimerEvent.class);
+    public static int debugTime = 1000;
 
     /* fields */
     /**
      * 定时事件监听器
      */
-    protected TimerListener listener;
+    protected TimerListener<T> listener;
 
     /**
      * 事件动作参数
      */
-    protected T parameter;
+    protected final T parameter;
 
     /**
      * 间隔时间
@@ -90,7 +90,7 @@ public class TimerEvent<T> implements Runnable {
      * @param listener  监听器
      * @param parameter 源
      */
-    public TimerEvent(TimerListener listener, T parameter) {
+    public TimerEvent(TimerListener<T> listener, T parameter) {
         this(listener, parameter, 0, 1, 0, false);
     }
 
@@ -101,14 +101,14 @@ public class TimerEvent<T> implements Runnable {
      * @param initTime  初始等待时间
      * @param parameter 源
      */
-    public TimerEvent(TimerListener listener, int initTime, T parameter) {
+    public TimerEvent(TimerListener<T> listener, int initTime, T parameter) {
         this(listener, parameter, 0, 1, initTime, false);
     }
 
     /**
      * 构造一个定时事件对象，默认为无初始延迟时间、无限循环
      */
-    public TimerEvent(TimerListener listener, T parameter, int intervalTime,
+    public TimerEvent(TimerListener<T> listener, T parameter, int intervalTime,
                       boolean absolute) {
         this(listener, parameter, intervalTime, INFINITE_CYCLE, 0, absolute);
     }
@@ -116,14 +116,14 @@ public class TimerEvent<T> implements Runnable {
     /**
      * 构造一个定时事件对象，默认为无初始延迟时间、无限循环，相对时间定时
      */
-    public TimerEvent(TimerListener listener, T parameter, int intervalTime) {
+    public TimerEvent(TimerListener<T> listener, T parameter, int intervalTime) {
         this(listener, parameter, intervalTime, INFINITE_CYCLE, 0, false);
     }
 
     /**
      * 构造一个定时事件对象，默认为无初始延迟时间，相对时间定时
      */
-    public TimerEvent(TimerListener listener, T parameter, int intervalTime,
+    public TimerEvent(TimerListener<T> listener, T parameter, int intervalTime,
                       int count) {
         this(listener, parameter, intervalTime, count, 0, false);
     }
@@ -131,7 +131,7 @@ public class TimerEvent<T> implements Runnable {
     /**
      * 构造一个定时事件对象，默认为无初始延迟时间
      */
-    public TimerEvent(TimerListener listener, T parameter, int intervalTime,
+    public TimerEvent(TimerListener<T> listener, T parameter, int intervalTime,
                       int count, boolean absolute) {
         this(listener, parameter, intervalTime, count, 0, absolute);
     }
@@ -139,7 +139,7 @@ public class TimerEvent<T> implements Runnable {
     /**
      * 构造一个定时事件对象，默认为相对时间定时
      */
-    public TimerEvent(TimerListener listener, T parameter, int intervalTime,
+    public TimerEvent(TimerListener<T> listener, T parameter, int intervalTime,
                       int count, int initTime) {
         this(listener, parameter, intervalTime, count, initTime, false);
     }
@@ -147,7 +147,7 @@ public class TimerEvent<T> implements Runnable {
     /**
      * 构造一个定时事件对象，设置为指定时间开始 , 若设置时间小于当前时间则立刻开始
      */
-    public TimerEvent(TimerListener listener, long time, T parameter) {
+    public TimerEvent(TimerListener<T> listener, long time, T parameter) {
         this.listener = listener;
         this.nextTime = time;
         this.parameter = parameter;
@@ -164,7 +164,7 @@ public class TimerEvent<T> implements Runnable {
      * @param initTime     初始延迟时间
      * @param absolute
      */
-    public TimerEvent(TimerListener listener, T parameter, int intervalTime,
+    public TimerEvent(TimerListener<T> listener, T parameter, int intervalTime,
                       int count, int initTime, boolean absolute) {
         this.listener = listener;
         this.parameter = parameter;
@@ -176,7 +176,7 @@ public class TimerEvent<T> implements Runnable {
         this.enabled = true;
     }
 
-    public TimerEvent withTimeUnit(TimeUnit timeUnit) {
+    public TimerEvent<T> withTimeUnit(TimeUnit timeUnit) {
         assert timeUnit != null;
         this.timeUnit = timeUnit;
         this.intervalTime = (int) timeUnit.toMillis(intervalTime);
@@ -189,23 +189,15 @@ public class TimerEvent<T> implements Runnable {
     /**
      * 获得定时事件监听器
      */
-    public TimerListener getTimerListener() {
+    public TimerListener<T> getTimerListener() {
         return listener;
     }
 
     /**
      * 获得事件动作参数
      */
-    public Object getParameter() {
+    public T getParameter() {
         return parameter;
-    }
-
-    /**
-     * 设置事件动作参数
-     */
-    public TimerEvent setParameter(T parameter) {
-        this.parameter = parameter;
-        return this;
     }
 
     /**
@@ -218,7 +210,7 @@ public class TimerEvent<T> implements Runnable {
     /**
      * 设置定时时间
      */
-    public TimerEvent setIntervalTime(int time) {
+    public TimerEvent<T> setIntervalTime(int time) {
         intervalTime = time;
         return this;
     }
@@ -233,16 +225,8 @@ public class TimerEvent<T> implements Runnable {
     /**
      * 设置定时次数
      */
-    public TimerEvent setCount(int count) {
+    public TimerEvent<T> setCount(int count) {
         this.count = count;
-        return this;
-    }
-
-    /**
-     * 设置是否启动或禁用
-     */
-    public TimerEvent setEnabled(boolean b) {
-        enabled = b;
         return this;
     }
 
@@ -251,6 +235,14 @@ public class TimerEvent<T> implements Runnable {
      */
     public boolean getEnabled() {
         return enabled;
+    }
+
+    /**
+     * 设置是否启动或禁用
+     */
+    public TimerEvent<T> setEnabled(boolean b) {
+        enabled = b;
+        return this;
     }
 
     /**
@@ -263,7 +255,7 @@ public class TimerEvent<T> implements Runnable {
     /**
      * 设置定时的起始延时时间
      */
-    public TimerEvent setInitTime(int initTime) {
+    public TimerEvent<T> setInitTime(int initTime) {
         this.initTime = initTime;
         return this;
     }
@@ -278,7 +270,7 @@ public class TimerEvent<T> implements Runnable {
     /**
      * 设置决对或相对时间定时
      */
-    public TimerEvent setAbsolute(boolean b) {
+    public TimerEvent<T> setAbsolute(boolean b) {
         absolute = b;
         return this;
     }
@@ -332,7 +324,7 @@ public class TimerEvent<T> implements Runnable {
             count--;
         this.currentTime = currentTime;
         nextTime = absolute ? (nextTime + intervalTime)
-                : (currentTime + intervalTime);
+            : (currentTime + intervalTime);
         try {
             listener.onTimer(this);
         } catch (Throwable e) {
@@ -367,5 +359,17 @@ public class TimerEvent<T> implements Runnable {
     @Override
     public void run() {
         fire(System.currentTimeMillis());
+    }
+
+    public boolean isInFire() {
+        return inFire;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setInFire(boolean inFire) {
+        this.inFire = inFire;
     }
 }

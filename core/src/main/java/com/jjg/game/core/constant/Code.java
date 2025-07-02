@@ -7,6 +7,12 @@ package com.jjg.game.core.constant;
 public interface Code {
     //成功
     int SUCCESS = 200;
+    // 配置表错误
+    int SAMPLE_ERROR = 201;
+    // 房间已销毁
+    int ROOM_DESTROYED = 202;
+    // 房间不存在
+    int ROOM_NOT_FOUND = 203;
     //失败
     int FAIL = 400;
     //错误的请求
@@ -24,9 +30,13 @@ public interface Code {
     //过期
     int EXPIRE = 407;
     //余额不足
-    int NOT_ENOUGHT = 408;
+    int NOT_ENOUGH = 408;
     //Vip等级不足
-    int VIP_NOT_ENOUGHT = 409;
+    int VIP_NOT_ENOUGH = 409;
+    //玩家金币超过配置
+    int GOLD_TOO_MUCH = 410;
+    //下注已达上限
+    int BET_TO_LIMIT = 411;
 
     //服务器错误
     int EXCEPTION = 500;

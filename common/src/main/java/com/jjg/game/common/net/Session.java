@@ -4,6 +4,8 @@ package com.jjg.game.common.net;
  * Session 类抽象接口
  * 泛型类型 T 表示该session可发送的消息类型
  * 泛型类型 M 表示该session中连接可发送的消息类型
+ *
+ * @author nobody
  * @since 1.0
  */
 public abstract class Session<T, M> implements ConnectListener {
@@ -13,7 +15,7 @@ public abstract class Session<T, M> implements ConnectListener {
     protected Object reference;
     protected SessionListener sessionListener;
 
-    public Session(String sessionId, Connect connect, NetAddress address) {
+    public Session(String sessionId, Connect<M> connect, NetAddress address) {
         this.sessionId = sessionId;
         this.connect = connect;
         this.address = address;
@@ -28,7 +30,7 @@ public abstract class Session<T, M> implements ConnectListener {
     }
 
     @Override
-    public void onConnectClose(Connect connect) {
+    public <C extends Connect<Object>> void onConnectClose(C connect) {
         if (sessionListener != null) {
             sessionListener.onSessionClose(this);
         }
@@ -42,11 +44,11 @@ public abstract class Session<T, M> implements ConnectListener {
         this.sessionId = sessionId;
     }
 
-    public Connect getConnect() {
+    public Connect<M> getConnect() {
         return connect;
     }
 
-    public void setConnect(Connect connect) {
+    public void setConnect(Connect<M> connect) {
         this.connect = connect;
     }
 

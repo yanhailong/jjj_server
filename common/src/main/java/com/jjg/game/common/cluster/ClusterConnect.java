@@ -12,31 +12,36 @@ import com.jjg.game.common.protostuff.PFMessage;
 
 /**
  * 集群节点连接对象
+ *
+ * @author nobody
  * @since 1.0
  */
-public class ClusterConnect extends NettyConnect<ClusterMessage> implements Connect {
+public class ClusterConnect extends NettyConnect<ClusterMessage> implements Connect<ClusterMessage> {
 
-    private ClusterMessageDispacher clusterMessageDispacher;
-    ClusterMessage clusterMessage = new ClusterMessage(new PFMessage(MessageConst.ToClientConst.REQ_HEART_BEAT, null));
-    public ClusterConnect(ClusterMessageDispacher clusterMessageDispacher) {
-        this.clusterMessageDispacher = clusterMessageDispacher;
+    private final ClusterMessageDispatcher clusterMessageDispatcher;
+
+    private final ClusterMessage clusterHeartBeatMessage =
+        new ClusterMessage(new PFMessage(MessageConst.ToClientConst.REQ_HEART_BEAT, null));
+
+    public ClusterConnect(ClusterMessageDispatcher clusterMessageDispatcher) {
+        this.clusterMessageDispatcher = clusterMessageDispatcher;
     }
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         super.userEventTriggered(ctx, evt);
-        if (evt instanceof IdleStateEvent) {
-            IdleStateEvent e = (IdleStateEvent) evt;
+        if (evt instanceof IdleStateEvent e) {
             //长时间未收到消息
             if (e.state() == IdleState.READER_IDLE) {
                 //log.debug("读取消息闲置,ctx={}" + ctx);
                 //ctx.close();
-            } else if (e.state() == IdleState.WRITER_IDLE) {//长时间未写出消息
-                //log.debug("写消息闲置,ctx={}" + ctx);
-                write(clusterMessage);
+            } else if (e.state() == IdleState.WRITER_IDLE) {
+                //长时间未写出消息
+                // log.debug("节点请求发送心跳信息,ctx={}", ctx);
+                write(clusterHeartBeatMessage);
                 // ctx.close();
             } else {
-                log.debug("连接空闲时间到,ctx={}",ctx);
+                log.debug("连接空闲时间到,关闭连接,ctx={}", ctx);
                 ctx.close();
             }
         }
@@ -44,10 +49,10 @@ public class ClusterConnect extends NettyConnect<ClusterMessage> implements Conn
 
     @Override
     public void messageReceived(ClusterMessage msg) {
-        if (msg.msg.cmd == MessageConst.ToClientConst.RES_HEART_BEAT) {
-            //log.debug("收到心跳回包消息,ctx={}" + ctx);
+        if (msg.getMsg().cmd == MessageConst.ToClientConst.RES_HEART_BEAT) {
+            //log.debug("收到心跳回包消息,ctx={}", ctx);
         } else {
-            clusterMessageDispacher.onClusterReceive(this, msg);
+            clusterMessageDispatcher.onClusterReceive(this, msg);
         }
     }
 

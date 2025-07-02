@@ -1,0 +1,249 @@
+package com.jjg.game.table.baccarat.message;
+
+import com.jjg.game.common.cluster.ClusterClient;
+import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.curator.MarsNode;
+import com.jjg.game.common.curator.NodeManager;
+import com.jjg.game.common.netty.NettyConnect;
+import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.protostuff.Command;
+import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.PlayerSessionInfo;
+import com.jjg.game.core.data.Room;
+import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.tool.IConsoleReceiver;
+import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.dao.RoomDao;
+import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.listener.IPlayerRoomEventListener;
+import com.jjg.game.room.manager.RoomManager;
+import com.jjg.game.room.sample.bean.RoomCfg;
+import com.jjg.game.table.baccarat.BaccaratGameController;
+import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
+import com.jjg.game.table.baccarat.message.req.ReqBaccaratTableSummary;
+import com.jjg.game.table.baccarat.message.req.ReqBaccaratTableSummaryList;
+import com.jjg.game.table.baccarat.message.resp.*;
+import com.jjg.game.table.baccarat.message.req.ReqJoinRoomInGame;
+import com.jjg.game.table.baccarat.message.resp.RespJoinRoomInGame;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * 百家乐消息handler
+ *
+ * @author 2CL
+ */
+@MessageType(MessageConst.MessageTypeDef.BACCARAT_TYPE)
+@ProtoDesc("百家乐消息handler")
+@Component
+public class BaccaratMessageHandler implements IConsoleReceiver, IPlayerRoomEventListener {
+
+    private static final Logger log = LoggerFactory.getLogger(BaccaratMessageHandler.class);
+    @Autowired
+    protected RoomManager roomManager;
+    @Autowired
+    protected NodeManager nodeManager;
+    @Autowired
+    protected ClusterSystem clusterSystem;
+    @Autowired
+    private RoomDao roomDao;
+    @Autowired
+    private CorePlayerService playerService;
+
+    /**
+     * 请求百家乐房间信息，玩家进入房间时拉取此数据
+     */
+    @Command(BaccaratMessageConstant.ReqMsgBean.REQ_BACCARAT_TABLE_INFO)
+    public void reqBaccaratTableInfo(PlayerController playerController) {
+        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
+            roomManager.getGameControllerByPlayerId(playerController.playerId());
+        if (gameController == null) {
+            log.error("玩家： {} 找不到对应的房间", playerController.playerId());
+            playerController.send(new RespBaccaratTableInfo(Code.FAIL));
+            return;
+        }
+        // 玩家不在百家乐游戏
+        if (gameController.gameControlType() != EGameType.BACCARAT) {
+            log.error("玩家： {} 不在百家乐游戏中", playerController.playerId());
+            playerController.send(new RespBaccaratTableInfo(Code.PARAM_ERROR));
+            return;
+        }
+        EGamePhase eGamePhase = gameController.getCurrentGamePhase();
+        // 如果刚好处于等待阶段则直接设置为下注阶段
+        if (eGamePhase == EGamePhase.WAIT_READY) {
+            eGamePhase = EGamePhase.BET;
+        }
+        BaccaratGameDataVo baccaratGameDataVo = (BaccaratGameDataVo) gameController.getGameDataVo();
+        RespBaccaratTableInfo baccaratTableInfo = null;
+        // 如果在结算阶段需要从缓存中读取数据
+        if (eGamePhase == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
+            NotifyBaccaratSettlementInfo settlementInfo = baccaratGameDataVo.getBaccaratSettlementInfo();
+            BaccaratMessageBuilder.buildRespBaccaratTableInfo(baccaratGameDataVo, eGamePhase, settlementInfo);
+        } else if (eGamePhase == EGamePhase.BET) {
+            baccaratTableInfo =
+                BaccaratMessageBuilder.buildRespBaccaratTableInfo(baccaratGameDataVo, eGamePhase, null);
+        }
+        // send
+        playerController.send(Objects.requireNonNullElseGet(baccaratTableInfo,
+            () -> new RespBaccaratTableInfo(Code.FAIL)));
+    }
+
+    @Command(BaccaratMessageConstant.ReqMsgBean.REQ_BACCARAT_TABLE_SUMMARY_LIST)
+    public void reqBaccaratSummaryList(PlayerController playerController, ReqBaccaratTableSummaryList req) {
+        CommonResult<List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> result =
+            getBaccaratGameController(req.wareId);
+        if (result.code != Code.SUCCESS) {
+            playerController.send(new RespBaccaratTableSummaryList(result.code));
+            return;
+        }
+        List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameControllers =
+            result.data;
+        // 向
+        RespBaccaratTableSummaryList respSummaryList = new RespBaccaratTableSummaryList(Code.SUCCESS);
+        respSummaryList.tableSummaryList = new ArrayList<>();
+        for (AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameWareController :
+            gameControllers) {
+            if (gameWareController instanceof BaccaratGameController baccaratGameController) {
+                BaccaratTableSummary baccaratTableSummary =
+                    BaccaratMessageBuilder.buildBaccaratSummaryInfo(baccaratGameController);
+                respSummaryList.tableSummaryList.add(baccaratTableSummary);
+            }
+        }
+        playerController.send(respSummaryList);
+    }
+
+    // 获取所有节点并发送数据到对应的节点上
+    public void getAllGameNode() {
+        List<MarsNode> gameNodeList = nodeManager.getGameNodeList(EGameType.BACCARAT.getGameTypeId(), 0, null);
+        try {
+            for (MarsNode marsNode : gameNodeList) {
+                ClusterClient clusterClient = clusterSystem.getClusterByPath(marsNode.getNodePath());
+                if (clusterClient == null) {
+                    continue;
+                }
+                NettyConnect<Object> connect = clusterClient.getConnect();
+                log.info(connect.toString());
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Command(BaccaratMessageConstant.ReqMsgBean.REQ_BACCARAT_TABLE_SUMMARY)
+    public void reqBaccaratSingleSummary(PlayerController playerController, ReqBaccaratTableSummary req) {
+        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
+            roomManager.getGameControllerByRoomId(req.roomId);
+        if (gameController == null) {
+            log.error("房间ID： {} 找不到对应的房间", playerController.playerId());
+            playerController.send(new RespBaccaratTableInfo(Code.FAIL));
+            return;
+        }
+        // 玩家不在百家乐游戏
+        if (gameController.gameControlType() != EGameType.BACCARAT) {
+            log.error("玩家： {} 不在百家乐游戏中", playerController.playerId());
+            playerController.send(new RespBaccaratTableInfo(Code.PARAM_ERROR));
+            return;
+        }
+        RespBaccaratTableSummary respBaccaratTableSummary =
+            BaccaratMessageBuilder.buildBaccaratSingleSummaryInfo(req.roundId,
+                (BaccaratGameController) gameController);
+        playerController.send(respBaccaratTableSummary);
+    }
+
+
+    @Command(value = BaccaratMessageConstant.ReqMsgBean.REQ_JOIN_ROOM_IN_GAME)
+    public void joinRoomInGame(PlayerController playerController, ReqJoinRoomInGame reqJoinRoomInGame) {
+        // 非法的GameType
+        if (EGameType.getGameByTypeId(reqJoinRoomInGame.gameType) == null) {
+            RespJoinRoomInGame respJoinRoomInGame = new RespJoinRoomInGame(Code.PARAM_ERROR);
+            playerController.send(respJoinRoomInGame);
+            return;
+        }
+        Room room = roomDao.getRoom(reqJoinRoomInGame.gameType, reqJoinRoomInGame.roomId);
+        if (room == null) {
+            // 房间已经销毁或者解散
+            RespJoinRoomInGame respJoinRoomInGame = new RespJoinRoomInGame(Code.PARAM_ERROR);
+            playerController.send(respJoinRoomInGame);
+            return;
+        }
+        // 获取当前节点
+        String clusterCurrentNodePath = clusterSystem.getNodePath();
+        // 如果就在当前节点
+        if (clusterCurrentNodePath.equalsIgnoreCase(room.getPath())) {
+            // 将玩家加入房间
+            roomManager.joinRoom(playerController, reqJoinRoomInGame.gameType, reqJoinRoomInGame.roomId);
+        } else {
+            // 将玩家的房间ID设置成请求的，在session进入时会自动加入到对应的房间
+            playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(reqJoinRoomInGame.roomId));
+            // 将玩家切入到对应的房间节点
+            MarsNode marsNode = nodeManager.getMarNode(room.getPath());
+            // sessionEnter时处理
+            //切换节点
+            clusterSystem.switchNode(playerController.getSession(), marsNode);
+        }
+    }
+
+    /**
+     * 获取所有对应场次的百家乐gameController
+     */
+    private CommonResult<List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> getBaccaratGameController(int wareId) {
+        List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameControllers =
+            roomManager.getGameControllersByGameType(EGameType.BACCARAT);
+        if (gameControllers.isEmpty()) {
+            // 没有找到百家乐的房间
+            return new CommonResult<>(Code.FAIL);
+        }
+        // 房间配置ID
+        int roomCfgId = EGameType.BACCARAT.getGameTypeId() * 10 + wareId;
+        List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameWareControllers =
+            gameControllers.stream().filter(controller -> controller.getRoom().getRoomCfgId() == roomCfgId).toList();
+        if (gameWareControllers.isEmpty()) {
+            return new CommonResult<>(Code.FAIL);
+        }
+        return new CommonResult<>(Code.SUCCESS, gameWareControllers);
+    }
+
+    @Override
+    public void doCommand(String command, List<String> params) {
+        switch (command) {
+            case "getAllGameNode":
+                getAllGameNode();
+                break;
+            default:
+                break;
+        }
+    }
+
+    @Override
+    public List<String> needHandleCommands() {
+        return List.of("getAllGameNode");
+    }
+
+    @Override
+    public int[] getGameTypes() {
+        return new int[]{200500};
+    }
+
+    @Override
+    public void enter(PFSession session, PlayerController playerController, PlayerSessionInfo playerSessionInfo) {
+
+    }
+
+    @Override
+    public void exit(PFSession session, PlayerController playerController, PlayerSessionInfo playerSessionInfo) {
+
+    }
+}

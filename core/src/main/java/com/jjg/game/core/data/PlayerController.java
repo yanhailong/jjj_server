@@ -7,9 +7,9 @@ import com.jjg.game.common.protostuff.PFSession;
  * @date 2025/5/28 9:32
  */
 public class PlayerController {
-    public PFSession session;
-    public Player player;
-    public Object scene;
+    private PFSession session;
+    private Player player;
+    private Object scene;
 
     public PlayerController(PFSession session, Player player) {
         this.session = session;
@@ -17,7 +17,7 @@ public class PlayerController {
     }
 
     public void send(Object msg) {
-        if (session!=null) {
+        if (session != null) {
             session.send(msg);
         }
     }
@@ -41,7 +41,23 @@ public class PlayerController {
         this.scene = scene;
     }
 
-    public int roomId(){
+    public long roomId() {
         return player.getRoomId();
+    }
+
+    public PFSession getSession() {
+        return session;
+    }
+
+    public void setSession(PFSession session) {
+        this.session = session;
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    public void setPlayer(Player player) {
+        this.player = player;
     }
 }

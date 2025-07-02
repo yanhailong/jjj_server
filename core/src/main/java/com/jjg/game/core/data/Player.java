@@ -16,7 +16,7 @@ public class Player {
     //昵称
     private String nickName;
     //房间id
-    private int roomId;
+    private long roomId;
     //游戏类型
     private int gameType;
     //场次类型
@@ -55,11 +55,11 @@ public class Player {
         this.nickName = nickName;
     }
 
-    public int getRoomId() {
+    public long getRoomId() {
         return roomId;
     }
 
-    public void setRoomId(int roomId) {
+    public void setRoomId(long roomId) {
         this.roomId = roomId;
     }
 

@@ -8,6 +8,7 @@ import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.ws.WebSocketChildChannelHandler;
 import com.jjg.game.common.ws.WssChannelHandler;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.socket.SocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,7 @@ import java.util.concurrent.TimeUnit;
  * @date 2025/5/23 16:50
  */
 @Component
-public class GateServer implements TimerListener {
+public class GateServer implements TimerListener<String> {
     private Logger log = LoggerFactory.getLogger(getClass());
     @Autowired
     private GateConfig gateConfig;
@@ -29,32 +30,38 @@ public class GateServer implements TimerListener {
 
 
     @Override
-    public void onTimer(TimerEvent e) {
+    public void onTimer(TimerEvent<String> e) {
         start();
     }
 
     public void init() {
-        this.timerCenter.add((new TimerEvent(this, 10, "")).withTimeUnit(TimeUnit.SECONDS));
+        // TODO 此处的
+        this.timerCenter.add((new TimerEvent<>(this, 10, "")).withTimeUnit(TimeUnit.SECONDS));
     }
 
     public void start() {
         NettyServer wsServer;
+        boolean isStartSuccess = false;
         if (this.gateConfig.netAddress != null) {
             GateChannelInitializer initializer = new GateChannelInitializer();
             wsServer = new NettyServer(this.gateConfig.getNetAddress().getPort(), initializer);
             wsServer.start();
+            isStartSuccess = true;
         }
 
         if (this.gateConfig.wsAddress != null) {
-            ChannelInitializer wsc = new WebSocketChildChannelHandler(this.gateConfig.timeOutSecond);
-            if (this.gateConfig.wss) {
-                wsc = new WssChannelHandler(this.gateConfig.sslKeyPath, this.gateConfig.sslKeyPwd);
-            }
-
-            wsServer = new NettyServer(this.gateConfig.getWsAddress().getPort(), (ChannelInitializer)wsc);
+            ChannelInitializer<SocketChannel> wsc =
+                this.gateConfig.wss ? new WssChannelHandler(this.gateConfig.sslKeyPath, this.gateConfig.sslKeyPwd) :
+                    new WebSocketChildChannelHandler(this.gateConfig.timeOutSecond);
+            wsServer = new NettyServer(this.gateConfig.getWsAddress().getPort(), wsc);
             wsServer.start();
+            isStartSuccess = true;
         }
 
-        log.info("===============网关服务器启动完成，开始接收连接==============");
+        if (isStartSuccess) {
+            log.info("===============网关服务器启动完成，开始接收连接==============");
+        } else {
+            log.error("网关服务器启动失败,请检查启动配置application-dev.yaml");
+        }
     }
 }

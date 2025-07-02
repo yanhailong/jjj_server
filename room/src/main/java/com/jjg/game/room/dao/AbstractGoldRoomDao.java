@@ -23,19 +23,19 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
     }
 
     @Override
-    public <T extends Room> boolean putIfAbsent(T room) {
+    public boolean putIfAbsent(T room) {
         boolean success = super.putIfAbsent(room);
         if(success){
-            redisTemplate.opsForList().rightPush(getRoomIdListKey(room.getGameType(),room.getWareId()), room.getId());
+            redisTemplate.opsForList().rightPush(getRoomIdListKey(room.getGameType(),room.getRoomCfgId()), room.getId());
         }
         return success;
     }
 
     @Override
-    public Long removeRoom(int gameType, int roomId, int wareId) {
+    public Long removeRoom(int gameType, long roomId, int wareId) {
         long res = super.removeRoom(gameType, roomId, wareId);
         if(res > 0){
-            //从roomid列表中移除，-1表示从尾部移除1个
+            //从room id列表中移除，-1表示从尾部移除1个
             redisTemplate.opsForList().remove(getRoomIdListKey(gameType,wareId), -1, roomId);
         }
         return res;

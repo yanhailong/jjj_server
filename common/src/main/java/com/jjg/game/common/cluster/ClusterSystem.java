@@ -2,11 +2,11 @@ package com.jjg.game.common.cluster;
 
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.*;
-import com.jjg.game.common.curator.*;
-import com.jjg.game.common.gate.GateClusterMessageDispacher;
+import com.jjg.game.common.gate.GateClusterMessageDispatcher;
 import com.jjg.game.common.message.SwitchNodeMessage;
 import com.jjg.game.common.net.NetAddress;
 import com.jjg.game.common.netty.ConnectPool;
+import com.jjg.game.common.netty.NettyConnect;
 import com.jjg.game.common.netty.NettyServer;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.timer.TimerCenter;
@@ -28,63 +28,58 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 集群系统总线
+ *
+ * @author nobody
  * @since 1.0
  */
 @Component
 @Order(1)
-//public class ClusterSystem implements MarsNodeListener, ApplicationListener<ContextRefreshedEvent>, CommandLineRunner, TimerListener {
-public class ClusterSystem implements MarsNodeListener, TimerListener {
+//public class ClusterSystem implements MarsNodeListener, ApplicationListener<ContextRefreshedEvent>,
+// CommandLineRunner, TimerListener {
+public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
 
+    private static final AtomicBoolean created = new AtomicBoolean(false);
     public static ClusterSystem system;
-
-    private Logger log = LoggerFactory.getLogger(getClass());
-
     /**
      * 集群各个节点客户端对象
      */
-    private Map<MarsNode, ClusterClient> clusterClientMap = new HashMap<>();
+    private final Map<MarsNode, ClusterClient> clusterClientMap = new ConcurrentHashMap<>();
 
     /**
-     * 玩家session集合
+     * 玩家session集合 sessionId <==> session对象
      */
-    private Map<String, PFSession> sessionMap = new ConcurrentHashMap<>();
-
-    private ClusterMessageDispacher clusterMessageDispacher;
-
-    /**
-     * 连接通道初始化器
-     */
-    private ClusterConnectInitializer initializer;
-
-    /**
-     * 微服务消息节点索引
-     */
-    private Map<Integer, List<MarsNode>> micserviceIndexs = new HashMap<>();
-
-    private TimerEvent<String> clusterSystemEvent;
-
-
+    private final Map<String, PFSession> sessionMap = new ConcurrentHashMap<>();
     @Autowired
     public NodeManager nodeManager;
     @Autowired
     public MarsCurator marsCurator;
     @Autowired
     public NodeConfig nodeConfig;
-
     public TimerCenter timerCenter;
+    private Logger log = LoggerFactory.getLogger(getClass());
+    private ClusterMessageDispatcher clusterMessageDispatcher;
+    /**
+     * 连接通道初始化器
+     */
+    private ClusterConnectInitializer initializer;
+    /**
+     * 微服务消息节点索引
+     */
+    private Map<Integer, List<MarsNode>> microServiceIndexes = new HashMap<>();
+    private TimerEvent<String> clusterSystemEvent;
 
     @Bean
-    public ClusterMessageDispacher clusterMessageDispacher() {
+    public ClusterMessageDispatcher clusterMessageDispacher() {
         if (NodeType.GATE.toString().equals(nodeManager.nodeConfig.getType())) {
-            return clusterMessageDispacher = new GateClusterMessageDispacher(this);
+            return clusterMessageDispatcher = new GateClusterMessageDispatcher(this);
         } else {
-            return clusterMessageDispacher = new ClusterMessageDispacher(this);
+            return clusterMessageDispatcher = new ClusterMessageDispatcher(this);
         }
     }
 
     @Bean
     public ClusterConnectInitializer createClusterConnectInitializer() {
-        initializer = new ClusterConnectInitializer(clusterMessageDispacher);
+        initializer = new ClusterConnectInitializer(clusterMessageDispatcher);
         return initializer;
     }
 
@@ -111,7 +106,8 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
     public void switchNode(PFSession pfSession, MarsNode marsNode) {
         log.info("切换节点，sessionId={},toNode={}", pfSession.sessionId(), marsNode.getNodePath());
         try {
-            SwitchNodeMessage switchNodeMessage = new SwitchNodeMessage(pfSession.sessionId(), marsNode.getNodePath(), pfSession.playerId);
+            SwitchNodeMessage switchNodeMessage = new SwitchNodeMessage(pfSession.sessionId(), marsNode.getNodePath()
+                , pfSession.playerId);
             pfSession.send2Gate(switchNodeMessage);
             sessionMap.remove(pfSession.sessionId());
         } catch (Exception e) {
@@ -177,6 +173,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
 
     /**
      * 获取所有网关节点
+     *
      * @return
      */
     public List<ClusterClient> getAllGate() {
@@ -195,12 +192,14 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
 
     /**
      * 随机一个客户端节点
+     *
      * @return
      */
     public ClusterClient randClientByType(NodeType nodeType) {
         String nodeTypeStr = nodeType.toString();
-        Map.Entry<MarsNode, ClusterClient> en = clusterClientMap.entrySet().stream().filter(e -> nodeTypeStr.equals(e.getValue().getType())).findAny().orElse(null);
-        if(en == null){
+        Map.Entry<MarsNode, ClusterClient> en =
+            clusterClientMap.entrySet().stream().filter(e -> nodeTypeStr.equals(e.getValue().getType())).findAny().orElse(null);
+        if (en == null) {
             return null;
         }
         return en.getValue();
@@ -208,16 +207,17 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
 
     /**
      * 随机一个客户端节点
+     *
      * @return
      */
-    public ClusterClient randClientByType(NodeType nodeType,int gameType) {
+    public ClusterClient randClientByType(NodeType nodeType, int gameType) {
         String nodeTypeStr = nodeType.toString();
         Map.Entry<MarsNode, ClusterClient> en = clusterClientMap.entrySet().stream().filter(e -> {
-            if(nodeTypeStr.equals(e.getValue().getType())){
+            if (nodeTypeStr.equals(e.getValue().getType())) {
                 int[] gameTypes = e.getValue().nodeConfig.gameTypes;
-                if(gameTypes != null && gameTypes.length > 0){
-                    for(int gType : gameTypes){
-                        if(gType == gameType){
+                if (gameTypes != null && gameTypes.length > 0) {
+                    for (int gType : gameTypes) {
+                        if (gType == gameType) {
                             return true;
                         }
                     }
@@ -226,7 +226,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
             return false;
         }).findAny().orElse(null);
 
-        if(en == null){
+        if (en == null) {
             return null;
         }
         return en.getValue();
@@ -234,12 +234,14 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
 
     /**
      * 随机一个客户端节点
+     *
      * @return
      */
-    public ClusterClient randClientByTypeExcept(NodeType nodeType,String name) {
+    public ClusterClient randClientByTypeExcept(NodeType nodeType, String name) {
         String nodeTypeStr = nodeType.toString();
-        Map.Entry<MarsNode, ClusterClient> en = clusterClientMap.entrySet().stream().filter(e -> nodeTypeStr.equals(e.getValue().getType()) && !e.getValue().nodeConfig.getName().equals(name)).findAny().orElse(null);
-        if(en == null){
+        Map.Entry<MarsNode, ClusterClient> en =
+            clusterClientMap.entrySet().stream().filter(e -> nodeTypeStr.equals(e.getValue().getType()) && !e.getValue().nodeConfig.getName().equals(name)).findAny().orElse(null);
+        if (en == null) {
             return null;
         }
         return en.getValue();
@@ -247,6 +249,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
 
     /**
      * 获取所有除网关外的节点
+     *
      * @return
      */
     public List<ClusterClient> getAllExceptGate() {
@@ -255,13 +258,14 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
 
     /**
      * 获取所有除...外的节点
+     *
      * @return
      */
     public List<ClusterClient> getAllExcept(NodeType nodeType) {
         List<ClusterClient> clusterClients = new ArrayList<>();
         String name = nodeType.toString();
-        for(Map.Entry<MarsNode,ClusterClient> en : clusterClientMap.entrySet()){
-            if(!name.equals(en.getValue().getType())){
+        for (Map.Entry<MarsNode, ClusterClient> en : clusterClientMap.entrySet()) {
+            if (!name.equals(en.getValue().getType())) {
                 clusterClients.add(en.getValue());
             }
         }
@@ -270,13 +274,14 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
 
     /**
      * 获取该类型的所有节点
+     *
      * @return
      */
     public List<ClusterClient> getNodesByType(NodeType nodeType) {
         List<ClusterClient> clusterClients = new ArrayList<>();
         String name = nodeType.toString();
-        for(Map.Entry<MarsNode,ClusterClient> en : clusterClientMap.entrySet()){
-            if(name.equals(en.getValue().getType())){
+        for (Map.Entry<MarsNode, ClusterClient> en : clusterClientMap.entrySet()) {
+            if (name.equals(en.getValue().getType())) {
                 clusterClients.add(en.getValue());
             }
         }
@@ -285,25 +290,26 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
 
     /**
      * 获取该类型的所有节点
-     * @param nodeType  节点类型
-     * @param gameType  游戏类型
+     *
+     * @param nodeType 节点类型
+     * @param gameType 游戏类型
      * @return
      */
-    public List<ClusterClient> getNodesByType(NodeType nodeType,int gameType) {
+    public List<ClusterClient> getNodesByType(NodeType nodeType, int gameType) {
         List<ClusterClient> clusterClients = new ArrayList<>();
         String name = nodeType.toString();
-        for(Map.Entry<MarsNode,ClusterClient> en : clusterClientMap.entrySet()){
-            if(!name.equals(en.getValue().getType())){
+        for (Map.Entry<MarsNode, ClusterClient> en : clusterClientMap.entrySet()) {
+            if (!name.equals(en.getValue().getType())) {
                 continue;
             }
 
             int[] gameTypes = en.getValue().nodeConfig.gameTypes;
-            if(gameTypes == null || gameTypes.length < 1){
+            if (gameTypes == null || gameTypes.length < 1) {
                 continue;
             }
 
-            for(int gType : gameTypes){
-                if(gType != gameType){
+            for (int gType : gameTypes) {
+                if (gType != gameType) {
                     continue;
                 }
                 clusterClients.add(en.getValue());
@@ -315,13 +321,14 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
 
     /**
      * 根据名称获取节点
-     * @param nodeName  节点名称
+     *
+     * @param nodeName 节点名称
      * @return
      */
     public ClusterClient getNodesByName(String nodeName) {
-        for(Map.Entry<MarsNode,ClusterClient> en : clusterClientMap.entrySet()){
+        for (Map.Entry<MarsNode, ClusterClient> en : clusterClientMap.entrySet()) {
             String name = en.getValue().nodeConfig.getName();
-            if(nodeName.equals(name)){
+            if (nodeName.equals(name)) {
                 return en.getValue();
             }
         }
@@ -330,24 +337,25 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
 
     /**
      * 是否有该节点
-     * @param nodeType  节点类型
-     * @param gameType  游戏类型
+     *
+     * @param nodeType 节点类型
+     * @param gameType 游戏类型
      * @return
      */
-    public boolean hasNodes(NodeType nodeType,int gameType) {
+    public boolean hasNodes(NodeType nodeType, int gameType) {
         String name = nodeType.toString();
         return clusterClientMap.entrySet().stream().anyMatch(en -> {
-            if(!name.equals(en.getValue().getType())){
+            if (!name.equals(en.getValue().getType())) {
                 return false;
             }
 
             int[] gameTypes = en.getValue().nodeConfig.gameTypes;
-            if(gameTypes == null || gameTypes.length < 1){
+            if (gameTypes == null || gameTypes.length < 1) {
                 return false;
             }
 
-            for(int gType : gameTypes){
-                if(gType == gameType){
+            for (int gType : gameTypes) {
+                if (gType == gameType) {
                     return true;
                 }
             }
@@ -357,28 +365,29 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
 
     /**
      * 获取该类型的所有节点
-     * @param nodeType  节点类型
-     * @param gameType  游戏类型
+     *
+     * @param nodeType 节点类型
+     * @param gameType 游戏类型
      * @return
      */
-    public Map<String,ClusterClient> getNodesMapByType(NodeType nodeType,int gameType) {
-        Map<String,ClusterClient> map = new HashMap<>();
+    public Map<String, ClusterClient> getNodesMapByType(NodeType nodeType, int gameType) {
+        Map<String, ClusterClient> map = new HashMap<>();
         String name = nodeType.toString();
-        for(Map.Entry<MarsNode,ClusterClient> en : clusterClientMap.entrySet()){
-            if(!name.equals(en.getValue().getType())){
+        for (Map.Entry<MarsNode, ClusterClient> en : clusterClientMap.entrySet()) {
+            if (!name.equals(en.getValue().getType())) {
                 continue;
             }
 
             int[] gameTypes = en.getValue().nodeConfig.gameTypes;
-            if(gameTypes == null || gameTypes.length < 1){
+            if (gameTypes == null || gameTypes.length < 1) {
                 continue;
             }
 
-            for(int gType : gameTypes){
-                if(gType != gameType){
+            for (int gType : gameTypes) {
+                if (gType != gameType) {
                     continue;
                 }
-                map.put(en.getKey().getNodePath(),en.getValue());
+                map.put(en.getKey().getNodePath(), en.getValue());
                 break;
             }
         }
@@ -402,14 +411,15 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
         return clusterClientMap.get(marsNode);
     }
 
-    public ConnectPool getMarsConnectPool(NetAddress netAddress) {
-        return new ConnectPool(netAddress, nodeConfig.getTcpAddress(),marsCurator.getStartClientNetAddress(),initializer).init().start(timerCenter);
+    public ConnectPool<NettyConnect<Object>> getMarsConnectPool(NetAddress netAddress) {
+        return new ConnectPool(netAddress, nodeConfig.getTcpAddress(), marsCurator.getStartClientNetAddress(),
+            initializer).init().start(timerCenter);
     }
 
     public void startClusterServer() {
         NetAddress netAddress = nodeConfig.getTcpAddress();
-        if(netAddress != null){
-            NettyServer nettyServer = new NettyServer(netAddress.getPort(), initializer );
+        if (netAddress != null) {
+            NettyServer nettyServer = new NettyServer(netAddress.getPort(), initializer);
             nettyServer.setName("tcp-nio-" + netAddress.getPort());
             nettyServer.start();
         }
@@ -439,7 +449,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
 
     @Override
     public void nodeChange(NodeChangeType nodeChangeType, MarsNode marsNode) {
-        log.debug("集群节点信息修改,nodePath={},nodeChangeType = {}", marsNode.getNodePath(),nodeChangeType);
+        log.debug("集群节点信息修改,nodePath={},nodeChangeType = {}", marsNode.getNodePath(), nodeChangeType);
         switch (nodeChangeType) {
             case NODE_ADD:
                 nodeAdd(marsNode);
@@ -452,7 +462,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
         }
     }
 
-    public void init(boolean onTimer,TimerCenter timerCenter){
+    public void init(boolean onTimer, TimerCenter timerCenter) {
         this.timerCenter = timerCenter;
 
         writePidFile();
@@ -460,13 +470,10 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
         system = this;
         startClusterServer();
         if (onTimer && timerCenter != null) {
-            clusterSystemEvent = new TimerEvent<>(this, "ClusterSystem", 1).setInitTime(10).withTimeUnit(TimeUnit.MINUTES);
+            clusterSystemEvent =
+                new TimerEvent<>(this, "ClusterSystem", 1).setInitTime(10).withTimeUnit(TimeUnit.MINUTES);
             timerCenter.add(clusterSystemEvent);
         }
-    }
-
-    public void init(TimerCenter timerCenter){
-        init(true,timerCenter);
     }
 
     /*@Override
@@ -480,7 +487,9 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
     }
     */
 
-    private static final AtomicBoolean created = new AtomicBoolean(false);
+    public void init(TimerCenter timerCenter) {
+        init(true, timerCenter);
+    }
 
     private void writePidFile() {
         if (created.compareAndSet(false, true)) {
@@ -491,20 +500,20 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
                 pidFile.deleteOnExit();
             } catch (Exception ex) {
                 String message = String.format("Cannot create pid file %s",
-                        "PID");
+                    "PID");
                 log.warn(message, ex);
             }
         }
     }
 
-    public int cluserSessionSize(){
+    public int clusterSessionSize() {
         return sessionMap.size();
     }
 
     @Override
-    public void onTimer(TimerEvent e) {
+    public void onTimer(TimerEvent<String> e) {
         if (e == clusterSystemEvent) {
-            log.info("节点权重={},当前session数量={}", nodeConfig.weight, cluserSessionSize());
+            log.info("节点权重={},当前session数量={}", nodeConfig.weight, clusterSessionSize());
             if (nodeConfig.weight == 0 && sessionMap.isEmpty()) {
                 System.exit(0);
             }

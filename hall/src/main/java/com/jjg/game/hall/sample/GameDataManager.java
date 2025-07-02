@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年06月30日 14:12:12
+ * @date 2025年07月18日 15:03:10
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -118,11 +118,11 @@ public class GameDataManager {
   public Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> initAllContainer() {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
-    containerMap.put(AllWareHouseCfg.class, new AllWareHouseCfgContainer());
     containerMap.put(GameListCfg.class, new GameListCfgContainer());
     containerMap.put(GolbalCfg.class, new GolbalCfgContainer());
     containerMap.put(ShopCfg.class, new ShopCfgContainer());
     containerMap.put(VipLevelCfg.class, new VipLevelCfgContainer());
+    containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
     // endregion===============cfg加载模板结束===================
     return containerMap;
   }
@@ -524,17 +524,6 @@ public class GameDataManager {
 
   // region===============cfg获取方法模板开始===================
 
-  public static AllWareHouseCfg getAllWareHouseCfg(int key) {
-    return getInstance().getCfgContainer(AllWareHouseCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, AllWareHouseCfg> getAllWareHouseCfgMap() {
-    return getInstance().getCfgContainer(AllWareHouseCfg.class).getCfgBeanMap();
-  }
-
-  public static List<AllWareHouseCfg> getAllWareHouseCfgList() {
-    return getInstance().getCfgContainer(AllWareHouseCfg.class).getCfgBeanList();
-  }
   public static GameListCfg getGameListCfg(int key) {
     return getInstance().getCfgContainer(GameListCfg.class).getCfgBeanMap().get(key);
   }
@@ -579,6 +568,17 @@ public class GameDataManager {
   public static List<VipLevelCfg> getVipLevelCfgList() {
     return getInstance().getCfgContainer(VipLevelCfg.class).getCfgBeanList();
   }
+  public static WarehouseCfg getWarehouseCfg(int key) {
+    return getInstance().getCfgContainer(WarehouseCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, WarehouseCfg> getWarehouseCfgMap() {
+    return getInstance().getCfgContainer(WarehouseCfg.class).getCfgBeanMap();
+  }
+
+  public static List<WarehouseCfg> getWarehouseCfgList() {
+    return getInstance().getCfgContainer(WarehouseCfg.class).getCfgBeanList();
+  }
 
   // endregion===============cfg获取方法模板结束===================
 
@@ -607,6 +607,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\workspace\\gameserver\\hall\\resources\\sample");
+    loadAllData("D:\\project\\gameserver\\hall\\resources\\sample");
   }
 }

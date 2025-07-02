@@ -1,7 +1,9 @@
 package com.jjg.game.common.netty;
 
+import com.jjg.game.common.utils.OSUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
+import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import com.jjg.game.common.net.Connect;
@@ -20,43 +22,39 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Nio 连接池
+ *
+ * @author nobody
  * @since 1.0
  */
-public class ConnectPool<T extends NettyConnect> implements ConnectListener, TimerListener, ChannelFutureListener {
+public class ConnectPool<T extends NettyConnect<Object>> implements ConnectListener, TimerListener<String>,
+    ChannelFutureListener {
 
     public final static int MAX_POOL_SIZE = 10;
     public final static int POOL_SIZE = 1;
-    private Logger log = LoggerFactory.getLogger(getClass());
-
-    private NetAddress netAddress;
-
-    private NetAddress localAddress;
-
-    private ChannelInitializer initializer;
-
+    private static final EventLoopGroup WORKER_GROUP = OSUtils.IS_LINUX ? new EpollEventLoopGroup() :
+        new NioEventLoopGroup();
+    private final Logger log = LoggerFactory.getLogger(getClass());
+    private final NetAddress netAddress;
+    private final NetAddress localAddress;
+    private final ChannelInitializer<Channel> initializer;
+    private final Random random = new Random();
+    private final NetAddress startAddress;
     private int poolSize;
-
     private Bootstrap bootstrap;
-
     private List<T> connectList;
-
-    private Random random = new Random();
-
     private TimerCenter timerCenter;
 
-    private NetAddress startAddress;
-
-    private static final EventLoopGroup workerGroup = new NioEventLoopGroup();
-
-    public ConnectPool(NetAddress netAddress, ChannelInitializer initializer) {
-        this(netAddress, null, null,initializer, POOL_SIZE);
+    public ConnectPool(NetAddress netAddress, ChannelInitializer<Channel> initializer) {
+        this(netAddress, null, null, initializer, POOL_SIZE);
     }
 
-    public ConnectPool(NetAddress netAddress, NetAddress localAddress, NetAddress startAddress,ChannelInitializer initializer) {
-        this(netAddress, localAddress, startAddress,initializer, POOL_SIZE);
+    public ConnectPool(NetAddress netAddress, NetAddress localAddress, NetAddress startAddress,
+                       ChannelInitializer<Channel> initializer) {
+        this(netAddress, localAddress, startAddress, initializer, POOL_SIZE);
     }
 
-    public ConnectPool(NetAddress netAddress, NetAddress localAddress, NetAddress startAddress,ChannelInitializer initializer,
+    public ConnectPool(NetAddress netAddress, NetAddress localAddress, NetAddress startAddress,
+                       ChannelInitializer<Channel> initializer,
                        int poolSize) {
         this.netAddress = netAddress;
         this.initializer = initializer;
@@ -65,13 +63,14 @@ public class ConnectPool<T extends NettyConnect> implements ConnectListener, Tim
         this.startAddress = startAddress;
     }
 
-    public ConnectPool init() {
+    public ConnectPool<T> init() {
         //EventLoopGroup workerGroup = new NioEventLoopGroup();
-        log.debug("startAddress={},localAddress={},netAddress={}",startAddress,localAddress,netAddress);
-        if(startClient()){
+        log.debug("startAddress={},localAddress={},netAddress={}", startAddress, localAddress, netAddress);
+        if (startClient()) {
             bootstrap = new Bootstrap();
-            bootstrap.group(workerGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true)
-                    .handler(initializer);
+            bootstrap.group(WORKER_GROUP).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true)
+                .handler(initializer);
+            bootstrap.option(ChannelOption.TCP_NODELAY, true);
             bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000);
         /*if (localAddress != null) {
             bootstrap.localAddress(localAddress.getHost(), localAddress.getPort());
@@ -83,18 +82,18 @@ public class ConnectPool<T extends NettyConnect> implements ConnectListener, Tim
         return this;
     }
 
-    private boolean startClient(){
-        if(localAddress == null){
+    private boolean startClient() {
+        if (localAddress == null) {
             return true;
         }
 
-        if(startAddress == null){
+        if (startAddress == null) {
             return false;
         }
         return startAddress.equals(localAddress);
     }
 
-    public ConnectPool start(TimerCenter timerCenter) {
+    public ConnectPool<T> start(TimerCenter timerCenter) {
         log.debug("start net={}", netAddress);
         //create();
         if (timerCenter != null) {
@@ -139,32 +138,33 @@ public class ConnectPool<T extends NettyConnect> implements ConnectListener, Tim
 
     private void create() {
         log.debug("开始创建连接,address={}", netAddress);
-        if(bootstrap == null){
+        if (bootstrap == null) {
             bootstrap = new Bootstrap();
-            bootstrap.group(workerGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true)
-                    .handler(initializer);
+            bootstrap.group(WORKER_GROUP).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true)
+                .handler(initializer);
             bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000);
         /*if (localAddress != null) {
             bootstrap.localAddress(localAddress.getHost(), localAddress.getPort());
         }*/
             bootstrap.connect(netAddress.getHost(), netAddress.getPort());
-        }else {
+        } else {
             bootstrap.connect().addListener(this);
         }
     }
 
-    public void close(Connect connect) {
+    public void close(T connect) {
         connectList.remove(connect);
     }
 
     @Override
-    public void onConnectClose(Connect connect) {
+    public <C extends Connect<Object>> void onConnectClose(C connect) {
         connectList.remove(connect);
     }
 
     @Override
-    public void onTimer(TimerEvent e) {
-        if (connectList.size() < POOL_SIZE) {
+    public void onTimer(TimerEvent<String> e) {
+        if (connectList.isEmpty()) {
+            log.warn("连接池为空");
             create();
         }
 //        Ping ping = new Ping();
@@ -196,7 +196,7 @@ public class ConnectPool<T extends NettyConnect> implements ConnectListener, Tim
         log.info("连接池关闭");
         if (timerCenter != null) {
             timerCenter.remove(this);
-            for (Connect connect : connectList) {
+            for (T connect : connectList) {
                 try {
                     connect.close();
                 } catch (Exception e) {

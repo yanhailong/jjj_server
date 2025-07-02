@@ -6,6 +6,9 @@ import com.jjg.game.common.gate.GateSession;
 import com.jjg.game.common.protostuff.PFMessage;
 
 /**
+ * websocketSession
+ *
+ * @author nobody
  * @since 1.0
  */
 public class WSGateSession extends GateSession {

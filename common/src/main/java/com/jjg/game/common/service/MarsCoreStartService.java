@@ -1,6 +1,6 @@
 package com.jjg.game.common.service;
 
-import com.jjg.game.common.cluster.ClusterMessageDispacher;
+import com.jjg.game.common.cluster.ClusterMessageDispatcher;
 import com.jjg.game.common.cluster.ClusterMessageHandler;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.config.NodeConfig;
@@ -26,7 +26,7 @@ public class MarsCoreStartService {
     @Autowired
     private ClusterSystem clusterSystem;
     @Autowired
-    private ClusterMessageDispacher clusterMessageDispacher;
+    private ClusterMessageDispatcher clusterMessageDispatcher;
     @Autowired
     private NodeManager nodeManager;
     @Autowired
@@ -57,7 +57,7 @@ public class MarsCoreStartService {
         CommonUtil.setContext(context);
         clusterMessageHandler.init();
         clusterSystem.init(clusterSystemOntimer,this.timerCenter);
-        clusterMessageDispacher.init(context,noStartGameMsgTypeSet);
+        clusterMessageDispatcher.init(context,noStartGameMsgTypeSet);
         marsCurator.init(context);
         nodeManager.init(marsCurator);
         fileMonitor.start();

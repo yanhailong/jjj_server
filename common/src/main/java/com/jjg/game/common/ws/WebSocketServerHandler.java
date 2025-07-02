@@ -23,9 +23,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * @author nobody
  * @since 1.0
  */
-public class WebSocketServerHandler extends SimpleChannelInboundHandler {
+public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> {
 
     Logger log = LoggerFactory.getLogger(getClass());
 
@@ -57,7 +58,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
         // TODO Auto-generated method stub
         GateSession gateSession = new WSGateSession();
         gateSession.channelActive(ctx);
-        GateSession.gateSessionMap.put(gateSession.sessionId, gateSession);
+        GateSession.getGateSessionMap().put(gateSession.getSessionId(), gateSession);
     }
 
     @Override
@@ -67,18 +68,16 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
             switch (e.state()) {
                 case READER_IDLE:
                     String sessionId = ctx.channel().id().asShortText();
-                    GateSession gateSession = GateSession.gateSessionMap.get(sessionId);
+                    GateSession gateSession = GateSession.getGateSessionMap().get(sessionId);
                     if (gateSession != null) {
-                        log.warn("连接读闲置时间到，即将被关闭,activeTime={},ctx={}", gateSession.activeTime, ctx);
+                        log.warn("连接读闲置时间到，即将被关闭,activeTime={},ctx={}", gateSession.getActiveTime(), ctx);
                     } else {
                         log.warn("连接读闲置时间到，即将被关闭,ctx={},sessionId={}", ctx, sessionId);
                     }
                     ctx.close();
                     break;
                 case WRITER_IDLE:
-                    break;
                 case ALL_IDLE:
-                    break;
                 default:
                     break;
             }
@@ -93,7 +92,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         String sessionId = ctx.channel().id().asShortText();
-        GateSession gateSession = GateSession.gateSessionMap.get(sessionId);
+        GateSession gateSession = GateSession.getGateSessionMap().get(sessionId);
         if (gateSession != null) {
             gateSession.channelInactive(ctx);
         } else {
@@ -116,18 +115,18 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
             return request.headers().get("HTTP_X_FORWARDED_FOR");
         } else if (request.headers().contains("X-Real_IP")) {
             return request.headers().get("X-Real_IP");
-        } else
+        } else {
             return request.headers().get("X-Real_IP");
+        }
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg)
             throws Exception {
-        if (msg instanceof FullHttpRequest) {
+        if (msg instanceof FullHttpRequest fullHttpRequest) {
             //log.debug("收到消息，session={},msg={}", ctx.channel().id(), msg);
-            FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
             String ip = getRealIp(fullHttpRequest);
-            if (ip != null && ip.length() > 0) {
+            if (ip != null && !ip.isEmpty()) {
                 if (ip.contains(":")) {
                     ip = ip.split(":")[0];
                 } else if (ip.contains(",")) {
@@ -138,7 +137,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
                 Attribute<String> attribute = ctx.channel().attr(attributeKey);
                 attribute.set(ip);
             }
-            handleHttpRequest(ctx, (FullHttpRequest) msg);
+            handleHttpRequest(ctx, fullHttpRequest);
         } else if (msg instanceof WebSocketFrame) {
             //ws://xxxx
             handlerWebSocketFrame(ctx, (WebSocketFrame) msg);
@@ -167,7 +166,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler {
     public void decode(ChannelHandlerContext ctx, ByteBuf msg) {
         try {
             String sessionId = ctx.channel().id().asShortText();
-            GateSession gateSession = GateSession.gateSessionMap.get(sessionId);
+            GateSession gateSession = GateSession.getGateSessionMap().get(sessionId);
             if (gateSession != null) {
                 byte[] array = new byte[msg.readableBytes()];
 

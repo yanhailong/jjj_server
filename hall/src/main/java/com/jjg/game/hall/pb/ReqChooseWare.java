@@ -13,8 +13,10 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.REQ_CHOOSE_WARE)
 @ProtoDesc("选择游戏场次进入")
 public class ReqChooseWare extends AbstractMessage {
+
     @ProtoDesc("游戏类型")
     public int gameType;
+
     @ProtoDesc("场次id")
     public int wareId;
 }

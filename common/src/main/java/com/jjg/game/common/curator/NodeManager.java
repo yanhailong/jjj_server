@@ -25,6 +25,7 @@ import java.util.List;
 /**
  * 节点管理
  * 负责节点配置，注册，加载，获取等
+ *
  * @since 1.0
  */
 @Component
@@ -56,7 +57,7 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
         register();
     }
 
-    public void init(MarsCurator marsCurator){
+    public void init(MarsCurator marsCurator) {
         this.marsCurator = marsCurator;
         obConfig();
     }
@@ -68,21 +69,21 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
     @Override
     public void load(File file, boolean isNew) {
         try {
-            if(file.getName().endsWith(".swp")){
+            if (file.getName().endsWith(".swp")) {
                 return;
             }
             log.info("on file change filename = {}，isNew={}", file.getName(), isNew);
             readConfig(file);
         } catch (Exception e) {
             e.printStackTrace();
-            log.error("on file change exception,filename = {},isNew={}" ,file.getName() ,isNew, e);
+            log.error("on file change exception,filename = {},isNew={}", file.getName(), isNew, e);
         }
     }
 
     public void readConfig(File file) {
         String content = FileHelper.readFile(file, "UTF-8");
-        if(StringUtils.isEmpty(content)){
-            log.debug("file content is null, filename = {}",file.getName());
+        if (StringUtils.isEmpty(content)) {
+            log.debug("file content is null, filename = {}", file.getName());
             return;
         }
 
@@ -119,8 +120,8 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
         try {
             StringBuilder sb = new StringBuilder(CoreConst.Common.SEPARATOR);
             sb.append(nodeConfig.getParentPath()).append(CoreConst.Common.SEPARATOR)
-                    .append(nodeConfig.getType()).append(CoreConst.Common.SEPARATOR)
-                    .append(nodeConfig.getName());
+                .append(nodeConfig.getType()).append(CoreConst.Common.SEPARATOR)
+                .append(nodeConfig.getName());
             String path = sb.toString();
             log.info("node register,path is {}", path);
 
@@ -133,11 +134,12 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
 
     public void update() {
         try {
-            StringBuilder sb = new StringBuilder(CoreConst.Common.SEPARATOR);
-            sb.append(nodeConfig.getParentPath()).append(CoreConst.Common.SEPARATOR)
-                    .append(nodeConfig.getType()).append(CoreConst.Common.SEPARATOR)
-                    .append(nodeConfig.getName());
-            String path = sb.toString();
+            String path = CoreConst.Common.SEPARATOR +
+                nodeConfig.getParentPath() +
+                CoreConst.Common.SEPARATOR +
+                nodeConfig.getType() +
+                CoreConst.Common.SEPARATOR +
+                nodeConfig.getName();
             log.info("node update,path is {}", path);
 
             String nc = JSON.toJSONString(nodeConfig, true);
@@ -149,81 +151,33 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
     }
 
     public MarsNode getMarNode(NodeType nodeType) {
-        String nodePath = CoreConst.Common.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.Common.SEPARATOR + nodeConfig.getParentPath()
+        String nodePath =
+            CoreConst.Common.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.Common.SEPARATOR + nodeConfig.getParentPath()
                 + CoreConst.Common.SEPARATOR + nodeType;
         return marsCurator.getMarsNode(nodePath);
     }
 
     public MarsNode getMarNode(String nodeType) {
-        String nodePath = CoreConst.Common.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.Common.SEPARATOR + nodeConfig.getParentPath()
+        String nodePath =
+            CoreConst.Common.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.Common.SEPARATOR + nodeConfig.getParentPath()
                 + CoreConst.Common.SEPARATOR + nodeType;
         return marsCurator.getMarsNode(nodePath);
     }
 
     public String getMarNodePath(String nodeType, String nodeName) {
         return CoreConst.Common.SEPARATOR + zkConfig.getMarsRoot() + CoreConst.Common.SEPARATOR + nodeConfig.getParentPath()
-                + CoreConst.Common.SEPARATOR + nodeType + CoreConst.Common.SEPARATOR + nodeName;
+            + CoreConst.Common.SEPARATOR + nodeType + CoreConst.Common.SEPARATOR + nodeName;
     }
 
     /**
      * 加载游戏节点
-     * @param nodeType
-     * @param gameType
-     * @param playerId
-     * @param ip
-     * @return
      */
-    public MarsNode loadGameNode(NodeType nodeType, int gameType, long playerId, String ip) {
-        MarsNode marsNode = getMarNode(nodeType);
-        if (marsNode == null) {
-            log.warn("查找游戏节点错误，playerplayerId={},nodeType={},gameType={}", playerId,nodeType, gameType);
-            return null;
-        }
-        List<MarsNode> marsNodeList = marsNode.getAllChildren();
-        if (marsNodeList == null || marsNodeList.isEmpty()) {
-            log.warn("子节点为空，playerPlayerId={},nodeType={},gameType={}", playerId,nodeType, gameType);
-            return null;
-        }
-        List<MarsNode> list = new ArrayList<>();
-        List<MarsNode> preciselist = new ArrayList<>();
-        for (MarsNode node : marsNodeList) {
-            NodeConfig nodeConfig = node.getNodeConfig();
-            if (nodeConfig == null) {
-                System.out.println(1);
-                continue;
-            }
-            if(!nodeConfig.isOpen()){
-                System.out.println(2);
-                continue;
-            }
-            if(nodeConfig.weight < 1){
-                System.out.println(3);
-                continue;
-            }
-            if(!has(nodeConfig.gameTypes, gameType)){
-                System.out.println(4);
-                continue;
-            }
-            if ((nodeConfig.whiteIdList == null || nodeConfig.whiteIdList.length == 0) && (nodeConfig.whiteIpList == null || nodeConfig.whiteIpList.length == 0)) {
-                list.add(node);
-            } else if ((ClusterHelper.preciseInIdWhiteList(playerId, nodeConfig.whiteIdList) || ClusterHelper.preciseInIpWhiteList(ip, nodeConfig.whiteIpList))) {
-                preciselist.add(node);
-            }
-        }
-        if (!preciselist.isEmpty()) {
-            list = preciselist;
-        }
-        if (list.isEmpty()) {
-            System.out.println(5);
-            return null;
-        }
-        if(list.size() == 1){
-            return list.get(0);
-        }
+    public MarsNode getGameNodeByWeight(int gameType, long playerId, String ip) {
+        List<MarsNode> list = getGameNodeList(gameType, playerId, ip);
 
         int totalWeight = list.stream().mapToInt(m -> m.getNodeConfig().weight).sum();
         if (totalWeight <= 0) {
-            System.out.println(6);
+            log.error("所有的游戏节点权重和为0");
             return null;
         }
 
@@ -235,8 +189,51 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
                 return node;
             }
         }
-        System.out.println(7);
+        log.error("逻辑应该不会到这");
         return null;
+    }
+
+    /**
+     * 获取所有的游戏节点
+     */
+    public List<MarsNode> getGameNodeList(int gameType, long playerId, String ip) {
+        NodeType nodeType = NodeType.GAME;
+        MarsNode marsNode = getMarNode(nodeType);
+        if (marsNode == null) {
+            log.warn("查找游戏节点错误，playerplayerId={},nodeType={},gameType={}", playerId, nodeType, gameType);
+            return null;
+        }
+        List<MarsNode> marsNodeList = marsNode.getAllChildren();
+        if (marsNodeList == null || marsNodeList.isEmpty()) {
+            log.warn("子节点为空，playerPlayerId={},nodeType={},gameType={}", playerId, nodeType, gameType);
+            return null;
+        }
+        List<MarsNode> list = new ArrayList<>();
+        List<MarsNode> preciselist = new ArrayList<>();
+        for (MarsNode node : marsNodeList) {
+            NodeConfig nodeConfig = node.getNodeConfig();
+            if (nodeConfig == null) {
+                continue;
+            }
+            if (!nodeConfig.isOpen()) {
+                continue;
+            }
+            if (nodeConfig.weight < 1) {
+                continue;
+            }
+            if (!has(nodeConfig.gameTypes, gameType)) {
+                continue;
+            }
+            if ((nodeConfig.whiteIdList == null || nodeConfig.whiteIdList.length == 0) && (nodeConfig.whiteIpList == null || nodeConfig.whiteIpList.length == 0)) {
+                list.add(node);
+            } else if ((ClusterHelper.preciseInIdWhiteList(playerId, nodeConfig.whiteIdList) || ClusterHelper.preciseInIpWhiteList(ip, nodeConfig.whiteIpList))) {
+                preciselist.add(node);
+            }
+        }
+        if (!preciselist.isEmpty()) {
+            list = preciselist;
+        }
+        return list;
     }
 
     private boolean has(int[] arrays, int value) {
@@ -257,7 +254,7 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
 
     @Override
     public void nodeChange(NodeChangeType nodeChangeType, MarsNode marsNode) {
-        if(nodeChangeType == NodeChangeType.NODE_REMOVE && nodePath.equals(marsNode.getNodePath())){
+        if (nodeChangeType == NodeChangeType.NODE_REMOVE && nodePath.equals(marsNode.getNodePath())) {
             log.warn("本节点被异常移除");
             register();
         }

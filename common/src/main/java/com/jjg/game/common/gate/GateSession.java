@@ -18,8 +18,6 @@ import com.jjg.game.common.pb.ResHeartBeat;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
-import com.jjg.game.common.pb.*;
-import com.jjg.game.common.protostuff.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,35 +26,36 @@ import java.util.Map;
 
 /**
  * 玩家网关服务器会话对象
+ *
+ * @author nobody
  * @since 1.0
  */
 public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMessage>, ConnectListener {
 
-    public static Map<String, GateSession> gateSessionMap = new HashMap<>();
-
+    /**
+     * TODO 在GateSession中管理所有的网关会话?是否应该在{@linkplain com.jjg.game.gate.GateSessionManager}中管理操作所有的网关会话
+     */
+    protected static Map<String, GateSession> gateSessionMap = new HashMap<>();
+    /**
+     * 会话ID
+     */
+    protected String sessionId;
+    /**
+     * 用户ID
+     */
+    protected long playerId;
+    /**
+     * 是否已认证
+     */
+    private boolean certify;
+    private long activeTime;
+    private long createTime;
+    private NettyConnect<Object> connect;
     protected Logger log = LoggerFactory.getLogger(getClass());
     /**
      * 当前所在节点
      */
     private ClusterClient currentClient;
-    /**
-     * 会话ID
-     */
-    public String sessionId;
-    /**
-     * 用户ID
-     */
-    public long playerId;
-    /**
-     * 是否已认证
-     */
-    public boolean certify;
-
-    public long activeTime;
-
-    public long createTime;
-
-    public Connect connect;
 
     /**
      * 收到集群中其他节点发送过来的消息
@@ -64,7 +63,7 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
      * @param msg
      */
     @Override
-    public void onClusterReceive(Connect connect, PFMessage msg) {
+    public void onClusterReceive(Connect<ClusterMessage> connect, PFMessage msg) {
         write(msg);
     }
 
@@ -75,9 +74,11 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
      */
     @Override
     public void messageReceived(PFMessage msg) {
-        if (msg.cmd == MessageConst.ToClientConst.REQ_HEART_BEAT) {//拦截心跳
+        //拦截心跳
+        if (msg.cmd == MessageConst.ToClientConst.REQ_HEART_BEAT) {
             activeTime = System.currentTimeMillis();
-            PFMessage pfMessage = new PFMessage(MessageConst.ToClientConst.RES_HEART_BEAT, ProtostuffUtil.serialize(new ResHeartBeat(activeTime)));
+            PFMessage pfMessage = new PFMessage(MessageConst.ToClientConst.RES_HEART_BEAT,
+                ProtostuffUtil.serialize(new ResHeartBeat(activeTime)));
             write(pfMessage);
             return;
         }
@@ -88,7 +89,7 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
             login(msg);
             return;
         }
-        if(!certify){
+        if (!certify) {
             log.warn("未认证状态，不处理消息,且断开连接，message={}", msg);
             close();
             return;
@@ -149,7 +150,8 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
             log.warn("向集群节点发送进入消息失败，连接为空");
             return;
         }
-        log.debug("向集群节点发送进入消息,nodeName={},nodeAddress={}", currentClient.nodeConfig.getName(), currentClient.nodeConfig.getTcpAddress());
+        log.debug("向集群节点发送进入消息,nodeName={},nodeAddress={}", currentClient.nodeConfig.getName(),
+            currentClient.nodeConfig.getTcpAddress());
         SessionCreate sessionCreate = new SessionCreate();
         sessionCreate.sessionId = sessionId;
         sessionCreate.netAddress = remoteAddress;
@@ -172,8 +174,8 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
         remoteAddress.setHost(ip);
     }
 
-    protected void login(PFMessage msg){
-        try{
+    protected void login(PFMessage msg) {
+        try {
             log.debug("网关收到客户端登录消息，sessionId={},netAddress={}", sessionId, remoteAddress);
 
             activeTime = createTime = System.currentTimeMillis();
@@ -195,8 +197,8 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
                 return;
             }
             sendEnter(msg.data);
-        }catch (Exception e){
-            log.error("玩家登录异常",e);
+        } catch (Exception e) {
+            log.error("玩家登录异常", e);
         }
     }
 
@@ -208,7 +210,8 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
 //                return false;
 //            }
 //
-//            //aeskey = RSA.decode(Base64.decode(req.key),RSA.toPrivateKey(Base64.decode(ClusterSystem.system.nodeConfig.privateKey)),1024);
+//            //aeskey = RSA.decode(Base64.decode(req.key),RSA.toPrivateKey(Base64.decode(ClusterSystem.system
+//            .nodeConfig.privateKey)),1024);
 //            if(aeskey == null){
 //                log.debug("密钥为空11...");
 //                return false;
@@ -223,7 +226,8 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
 //    }
 
     public void switchNode(ClusterClient clusterClient) {
-        log.debug("切换节点,sessionId={},playerId={},srcPath={},targetPath={},certify={}", sessionId, playerId, this.currentClient.nodeConfig.getName(), clusterClient.nodeConfig.getName(), certify);
+        log.debug("切换节点,sessionId={},playerId={},srcPath={},targetPath={},certify={}", sessionId, playerId,
+            this.currentClient.nodeConfig.getName(), clusterClient.nodeConfig.getName(), certify);
         if (certify) {
             //向源节点发送退出
             sendClose();
@@ -240,23 +244,23 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
             writeAndClose(MessageUtil.getPFMessage(new NoticeServerStatus(NetStatEnum.PLAYER_KICKOUT)));
             this.channelInactive(this.ctx);
         } catch (Exception e) {
-            log.warn("用户被顶号下线,消息发送异常，", e);
-            e.printStackTrace();
+            log.error("用户顶号下线时,消息发送异常，", e);
+            throw new RuntimeException("用户被顶号下线,消息发送异常", e);
         }
     }
 
     @Override
-    public void onConnectClose(Connect connect) {
+    public <T extends Connect<Object>> void onConnectClose(T connect) {
         log.warn("服务节点连接断开,playerId={},sessionId={},nodeAddress={}", playerId, sessionId, connect.address());
         try {
             writeAndClose(MessageUtil.getPFMessage(new NoticeServerStatus(NetStatEnum.NETWORK_CANT_USE)));
         } catch (Exception e) {
-            log.warn("服务节点连接断开,消息发送异常，", e);
-            e.printStackTrace();
+            log.error("服务节点连接断开,消息发送异常，", e);
+            throw new RuntimeException("服务节点连接断开,消息发送异常", e);
         }
     }
 
-    public Connect getConnect() {
+    public NettyConnect<Object> getConnect() {
         if (connect != null) {
             connect.removeConnectListener(this);
         }
@@ -264,7 +268,7 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
             connect = currentClient.getConnectSync();
             connect.addConnectListener(this);
         } catch (Exception e) {
-            log.warn("集群客户端获取连接异常,nodePath=" + currentClient.marsNode.getNodePath(), e);
+            log.error("集群客户端获取连接异常,nodePath={}", currentClient.marsNode.getNodePath(), e);
             write(MessageUtil.getPFMessage(new NoticeServerStatus(NetStatEnum.NETWORK_CANT_USE)));
             gateSessionMap.remove(sessionId);
             close();
@@ -272,15 +276,13 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
         return connect;
     }
 
+    @Override
     public boolean isActive() {
         long currentTime = System.currentTimeMillis();
         if (currentTime - createTime > 5000 && !certify) {
             return false;
         }
-        if (currentTime - activeTime > 30000) {
-            return false;
-        }
-        return true;
+        return currentTime - activeTime <= 30000;
     }
 
     public void setHost(String hostIp) {
@@ -293,13 +295,57 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
         return currentClient;
     }
 
+    public static Map<String, GateSession> getGateSessionMap() {
+        return gateSessionMap;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
+
+    public long getPlayerId() {
+        return playerId;
+    }
+
+    public void setPlayerId(long playerId) {
+        this.playerId = playerId;
+    }
+
+    public boolean isCertify() {
+        return certify;
+    }
+
+    public void setCertify(boolean certify) {
+        this.certify = certify;
+    }
+
+    public long getActiveTime() {
+        return activeTime;
+    }
+
+    public void setActiveTime(long activeTime) {
+        this.activeTime = activeTime;
+    }
+
+    public long getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(long createTime) {
+        this.createTime = createTime;
+    }
+
     @Override
     public String toString() {
         return "GateSession{" +
-                "sessionId='" + sessionId + '\'' +
-                ", playerId=" + playerId +
-                ", certify=" + certify +
-                ", connect=" + connect +
-                '}';
+            "sessionId='" + sessionId + '\'' +
+            ", playerId=" + playerId +
+            ", certify=" + certify +
+            ", connect=" + connect +
+            '}';
     }
 }

@@ -876,7 +876,7 @@ public class DollarExpressManager {
     public PlayerGameData createPlayerGameData(PlayerController playerController, PlayerSessionInfo playerSessionInfo){
         PlayerGameData playerGameData = gameDataMap.computeIfAbsent(playerController.playerId(), k -> new PlayerGameData(playerController));
         playerGameData.setGameType(playerSessionInfo.getGameType());
-        playerGameData.setWareId(playerSessionInfo.getWareId());
+        playerGameData.setWareId(playerSessionInfo.getRoomCfgId());
         return playerGameData;
     }
 //
@@ -1133,7 +1133,7 @@ public class DollarExpressManager {
 
         this.controlPropMap = tempControlPropMap;
     }
-    
+
     private void cacheResultWeight(){
         for(Map.Entry<Integer, DollarExpressResultWeightCfg> en : GameDataManager.getDollarExpressResultWeightCfgMap().entrySet()){
             DollarExpressResultWeightCfg cfg = en.getValue();

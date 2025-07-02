@@ -1,5 +1,6 @@
 package com.jjg.game.hall.service;
 
+import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerDao;
@@ -29,23 +30,24 @@ public class HallPlayerService extends AbstractPlayerService {
     /**
      * 仅在登录时调用
      * 创建或保存  要记录登录时间
+     *
      * @param playerId
      * @param cbk
      * @return
      */
-    public CommonResult<Player> loginAndNewOrSave(long playerId, PlayerSaveCallback cbk) {
+    public CommonResult<Player> loginAndNewOrSave(long playerId, DataSaveCallback<Player> cbk) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
         for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
-            if(redisLock.lock(key)){
-                try{
+            if (redisLock.lock(key)) {
+                try {
                     Player player = getFromAllDB(playerId);
-                    if(player == null){
+                    if (player == null) {
                         player = new Player();
                         player.setId(playerId);
-                        cbk.newexe(player);
-                    }else {
-                        cbk.exe(player);
+                        cbk.updateData(player);
+                    } else {
+                        cbk.updateData(player);
                     }
                     //记录登录时间
                     playerLoginTimeDao.add(playerId, System.currentTimeMillis());
@@ -53,9 +55,9 @@ public class HallPlayerService extends AbstractPlayerService {
                     result.code = Code.SUCCESS;
                     result.data = player;
                     return result;
-                }catch (Exception e){
-                    log.warn("创建或保存对象异常1 playerId={}",playerId, e);
-                }finally {
+                } catch (Exception e) {
+                    log.warn("创建或保存对象异常1 playerId={}", playerId, e);
+                } finally {
                     redisLock.unlock(key);
                 }
             }
@@ -63,7 +65,7 @@ public class HallPlayerService extends AbstractPlayerService {
             try {
                 Thread.sleep(30);
             } catch (InterruptedException e) {
-                log.warn("创建或保存对象异常2 playerId={}" ,playerId, e);
+                log.warn("创建或保存对象异常2 playerId={}", playerId, e);
             }
         }
         return result;
@@ -73,12 +75,13 @@ public class HallPlayerService extends AbstractPlayerService {
      * 查询player对象
      * 先查询redis
      * 再查询mongodb
+     *
      * @param playerId
      * @return
      */
     public Player getFromAllDB(long playerId) {
         Player player = super.get(playerId);
-        if(player != null){
+        if (player != null) {
             return player;
         }
 
@@ -88,33 +91,34 @@ public class HallPlayerService extends AbstractPlayerService {
 
     /**
      * 从redis删除过期的player数据,并且存储到mongodb
+     *
      * @param playerId
      * @param expireTime
      * @return
      */
-    public boolean clear(long playerId,long expireTime){
-        if(playerId < 1){
+    public boolean clear(long playerId, long expireTime) {
+        if (playerId < 1) {
             return false;
         }
 
         Double score = playerLoginTimeDao.score(playerId);
         //如果再次检测到玩家数据还没有过期,就不用保存
-        if(score != null && score > expireTime){
+        if (score != null && score > expireTime) {
             return false;
         }
 
         Player player = get(playerId);
-        if(player != null){
+        if (player != null) {
             //如果在线就暂时不保存到mongodb
             boolean online = playerSessionService.hasSession(playerId);
-            if(online){
+            if (online) {
                 return false;
             }
 
             playerDao.save(player);
         }
 
-        redisTemplate.opsForHash().delete(tableName,playerId);
+        redisTemplate.opsForHash().delete(tableName, playerId);
         playerLastGameInfoDao.deleteById(playerId);
         playerLoginTimeDao.remove(playerId);
         return true;

@@ -36,8 +36,8 @@ public class DollarExpressRoomEventListener implements IPlayerRoomEventListener{
         //创建 PlayerGameData
         dollarExpressManager.createPlayerGameData(playerController,playerSessionInfo);
         //推送配置信息
-        dollarExpressSendMessageManager.sendConfigMessage(playerController, playerSessionInfo.getWareId());
-        log.info("玩家进入美元快递游戏服务器,sessionId={},playerId={},wareId = {}", session.sessionId(), playerController.playerId(),playerSessionInfo.getWareId());
+        dollarExpressSendMessageManager.sendConfigMessage(playerController, playerSessionInfo.getRoomCfgId());
+        log.info("玩家进入美元快递游戏服务器,sessionId={},playerId={},wareId = {}", session.sessionId(), playerController.playerId(),playerSessionInfo.getRoomCfgId());
     }
 
     @Override

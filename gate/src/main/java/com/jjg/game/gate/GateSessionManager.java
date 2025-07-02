@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
  * @date 2025/5/23 16:52
  */
 @Component
-public class GateSessionManager implements TimerListener {
+public class GateSessionManager implements TimerListener<String> {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -29,9 +29,9 @@ public class GateSessionManager implements TimerListener {
     private TimerEvent<String> userNumEvent;
 
     @Override
-    public void onTimer(TimerEvent e) {
+    public void onTimer(TimerEvent<String> e) {
         if(e == closeEvent){
-            int size = GateSession.gateSessionMap.size();
+            int size = GateSession.getGateSessionMap().size();
             log.info("节点权重={},当前session数量={}", nodeConfig.weight, size);
             if (nodeConfig.weight == 0 && size < 1) {
                 System.exit(0);
@@ -45,8 +45,8 @@ public class GateSessionManager implements TimerListener {
     }
 
     public void shutdown(){
-        this.log.info("网关服务器开始关闭，当前在线人数：{}", GateSession.gateSessionMap.size());
-        GateSession.gateSessionMap.forEach((k,v) -> {
+        this.log.info("网关服务器开始关闭，当前在线人数：{}", GateSession.getGateSessionMap().size());
+        GateSession.getGateSessionMap().forEach((k,v) -> {
             try {
                 this.log.info("关闭用户连接,session={}", v);
                 v.close();

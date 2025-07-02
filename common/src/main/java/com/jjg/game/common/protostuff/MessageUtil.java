@@ -34,7 +34,7 @@ public class MessageUtil {
         return pfMessage;
     }
 
-    public static Map<Integer, MessageController> load(ApplicationContext context,Set<Integer> noStartGameMsgTypeSet) {
+    public static Map<Integer, MessageController> load(ApplicationContext context, Set<Integer> noStartGameMsgTypeSet) {
         Map<Integer, MessageController> messageControllers = new HashMap<>();
         Class<MessageType> clazz = MessageType.class;
         log.debug("开始初始化 {} 消息分发器", clazz);
@@ -44,8 +44,8 @@ public class MessageUtil {
             MessageType messageType = null;
             int msgType;
             if (AopUtils.isAopProxy(o)) {
-                Class<?> targetclazz = AopUtils.getTargetClass(o);
-                messageType = targetclazz.getAnnotation(MessageType.class);
+                Class<?> targetClazz = AopUtils.getTargetClass(o);
+                messageType = targetClazz.getAnnotation(MessageType.class);
 
                 //不需要启动的游戏的消息类型
                 msgType = messageType.value();
@@ -55,8 +55,9 @@ public class MessageUtil {
                 msgType = messageType.value();
             }
 
-            if(!noStartGameMsgTypeSet.contains(msgType)) {
+            if (!noStartGameMsgTypeSet.contains(msgType)) {
                 MessageController messageController = new MessageController(o);
+                messageController.setMessageType(messageType);
                 messageControllers.put(msgType, messageController);
             }
 
@@ -77,6 +78,7 @@ public class MessageUtil {
                     Type returnType = method.getReturnType();
                     int index = methodAccess.getIndex(name, types);
                     MethodInfo methodInfo = new MethodInfo(index, name, types, returnType);
+                    methodInfo.setCommandAnno(command);
                     methodInfos.put(command.value(), methodInfo);
                 }
 
@@ -85,7 +87,8 @@ public class MessageUtil {
         return methodInfos;
     }
 
-    public static Map<Class<?>, ProtobufMessage> loadResponseMessage(Set<Integer> noStartGameMsgTypeSet,String... pkgs) {
+    public static Map<Class<?>, ProtobufMessage> loadResponseMessage(Set<Integer> noStartGameMsgTypeSet,
+                                                                     String... pkgs) {
         responseMap = new HashMap<>();
         Set<Class<?>> clazzes = new HashSet<>();
         for (String pkg : pkgs) {

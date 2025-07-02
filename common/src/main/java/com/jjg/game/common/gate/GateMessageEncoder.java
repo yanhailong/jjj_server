@@ -10,6 +10,8 @@ import java.util.List;
 
 /**
  * 消息编码器
+ *
+ * @author nobody
  * @since 1.0
  */
 public class GateMessageEncoder extends MessageToMessageEncoder<PFMessage> {

@@ -3,7 +3,7 @@ package com.jjg.game.hall.service;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.sample.GameDataManager;
-import com.jjg.game.hall.sample.bean.AllWareHouseCfg;
+import com.jjg.game.hall.sample.bean.WarehouseCfg;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -19,32 +19,32 @@ import java.util.Map;
 public class HallService implements ConfigExcelChangeListener {
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
 
-    public void init(){
+    public void init() {
         initWareHouseConfigData();
     }
 
-    public List<WareHouseConfigInfo> getWareHouseConfigByGameType(int gameType){
+    public List<WareHouseConfigInfo> getWareHouseConfigByGameType(int gameType) {
         return wareHouseConfigMap.get(gameType);
     }
 
     @Override
     public void change(String className) {
-        if(className.equalsIgnoreCase(AllWareHouseCfg.class.getSimpleName())){
+        if (className.equalsIgnoreCase(WarehouseCfg.class.getSimpleName())) {
             initWareHouseConfigData();
         }
     }
 
-    private void initWareHouseConfigData(){
+    private void initWareHouseConfigData() {
         Map<Integer, List<WareHouseConfigInfo>> tempwareHouseConfigMap = new HashMap<>();
 
-        for(AllWareHouseCfg c : GameDataManager.getAllWareHouseCfgList()){
-            List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameType(), k -> new ArrayList<>());
+        for (WarehouseCfg c : GameDataManager.getWarehouseCfgList()) {
+            List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameID(),
+                k -> new ArrayList<>());
             WareHouseConfigInfo info = new WareHouseConfigInfo();
-            info.wareId = c.getWareId();
-            info.name = c.getName();
+            info.wareId = c.getId() - (c.getGameID() * 10);
             info.pool = 99999L;
-            info.limitGoldMin = c.getRequire_amount();
-            info.limitVipMin = c.getRequire_viplevel();
+            info.limitGoldMin = c.getEnterLimit();
+            info.limitVipMin = c.getVipLvLimit();
             tempList.add(info);
         }
         this.wareHouseConfigMap = tempwareHouseConfigMap;

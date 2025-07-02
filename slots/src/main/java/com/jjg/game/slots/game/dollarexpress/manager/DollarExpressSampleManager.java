@@ -31,7 +31,7 @@ public class DollarExpressSampleManager extends AbstractSampleManager {
     }
 
     @Override
-    protected void initSmapleConfig() {
+    protected void initSampleConfig() {
         try {
             GameDataManager.loadAllData(getSamplePath());
         } catch (Exception e) {

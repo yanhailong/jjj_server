@@ -7,6 +7,7 @@ import com.jjg.game.common.monitor.FileMonitor;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.FileHelper;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,9 @@ import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author 11
@@ -29,35 +33,37 @@ public abstract class AbstractSampleManager implements FileLoader {
     /**
      * 初始化
      */
-    public void init(){
+    public void init() {
         //初始化excel配置表
-        initSmapleConfig();
-        fileMonitor.addDirectoryObserver(getSamplePath(),this);
+        initSampleConfig();
+        fileMonitor.addDirectoryObserver(getSamplePath(), this);
 
         //初始化游戏配置表，比如hallConfig.json , dollarExpressConfig.json
-        if(!StringUtils.isEmpty(getGameConfigName())){
-            fileMonitor.addFileObserver(getGameConfigName(),this,true);
+        if (!StringUtils.isEmpty(getGameConfigName())) {
+            fileMonitor.addFileObserver(getGameConfigName(), this, true);
         }
     }
 
     /**
      * 游戏excel配置所在目录
-     * @return
      */
     protected abstract String getSamplePath();
 
     /**
      * 初始化excel配置表
      */
-    protected abstract void initSmapleConfig();
+    protected abstract void initSampleConfig();
 
     /**
+     * TODO 配置表变化逻辑应提为公共方法，使用接口方式去通知哪些类进行了更新，否则每个子类都要去关注配置文件的变化(会产生很多重复代码)
+     * TODO 而不对应的更新类的变化
      * excel变化
+     *
      * @param file
      */
     protected abstract void sampleChange(File file);
 
-    protected String getGameConfigName(){
+    protected String getGameConfigName() {
         return null;
     }
 
@@ -78,9 +84,9 @@ public abstract class AbstractSampleManager implements FileLoader {
      */
     public void loadFile(File file, boolean change) {
         if (file == null || !file.exists() || file.isHidden()
-                || file.getName().endsWith(".svn")
-                || file.getName().endsWith(".bak")
-                || file.getName().startsWith("~$")) {
+            || file.getName().endsWith(".svn")
+            || file.getName().endsWith(".bak")
+            || file.getName().startsWith("~$")) {
             return;
         }
         if (file.isDirectory()) {

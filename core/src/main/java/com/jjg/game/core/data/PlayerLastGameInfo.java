@@ -19,7 +19,7 @@ public class PlayerLastGameInfo {
     //场次id
     private int wareId;
     //房间id
-    private int roomId;
+    private long roomId;
     //节点信息
     private String nodePath;
     //中途掉线
@@ -59,11 +59,11 @@ public class PlayerLastGameInfo {
         this.wareId = wareId;
     }
 
-    public int getRoomId() {
+    public long getRoomId() {
         return roomId;
     }
 
-    public void setRoomId(int roomId) {
+    public void setRoomId(long roomId) {
         this.roomId = roomId;
     }
 

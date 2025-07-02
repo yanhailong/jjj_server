@@ -20,7 +20,7 @@ import java.util.Set;
 @Component
 public class HallSampleManager extends AbstractSampleManager {
 
-    public void init(){
+    public void init() {
         log.info("开始加载大厅配置..");
         super.init();
     }
@@ -31,24 +31,28 @@ public class HallSampleManager extends AbstractSampleManager {
     }
 
     @Override
-    protected void initSmapleConfig() {
+    protected void initSampleConfig() {
         try {
             GameDataManager.loadAllData(getSamplePath());
-        } catch (Exception e) {
-            log.error("加载配置表失败");
+        } catch (Exception exception) {
+            log.error("加载配置表失败: {}", exception.getMessage(), exception);
+            throw new RuntimeException(exception);
         }
     }
 
     @Override
     protected void sampleChange(File file) {
-        try{
-            Set<Class<? extends BaseCfgBean>> changeCfgBean = GameDataManager.getInstance().loadDataByChangeFileList(getSamplePath(), Collections.singletonList(file));
-            Map<String, ConfigExcelChangeListener> configExcelChangeListeners = CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
+        try {
+            Set<Class<? extends BaseCfgBean>> changeCfgBean =
+                GameDataManager.getInstance().loadDataByChangeFileList(getSamplePath(),
+                    Collections.singletonList(file));
+            Map<String, ConfigExcelChangeListener> configExcelChangeListeners =
+                CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
             configExcelChangeListeners.values().forEach(listener -> {
                 listener.change(changeCfgBean.iterator().next().getSimpleName());
             });
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 }
