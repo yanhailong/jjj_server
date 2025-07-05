@@ -94,6 +94,7 @@ public class HallMessageHandler implements GmListener {
             if (req.gameType < 1) {
                 res.code = Code.PARAM_ERROR;
                 log.debug("游戏类型错误，选择场次失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
+                playerController.send(res);
                 return;
             }
 
@@ -101,6 +102,7 @@ public class HallMessageHandler implements GmListener {
             if (wareHouseConfigList == null || wareHouseConfigList.isEmpty()) {
                 res.code = Code.NOT_FOUND;
                 log.debug("未找到对应的游戏场次配置，选择场次失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
+                playerController.send(res);
                 return;
             }
 
@@ -108,18 +110,21 @@ public class HallMessageHandler implements GmListener {
             if (info == null) {
                 res.code = Code.NOT_FOUND;
                 log.debug("未找到对应的游戏场次配置2，选择场次失败 playerId = {},gameType = {},wareId = {}", playerController.playerId(), req.gameType, req.wareId);
+                playerController.send(res);
                 return;
             }
 
             if (info.limitGoldMin > playerController.player.getGold()) {
                 res.code = Code.NOT_ENOUGHT;
                 log.debug("玩家金币不足 playerId = {},gameType = {},wareId = {}", playerController.playerId(), req.gameType, req.wareId);
+                playerController.send(res);
                 return;
             }
 
             if (info.limitVipMin > playerController.player.getVipLevel()) {
                 res.code = Code.VIP_NOT_ENOUGHT;
                 log.debug("玩家vip等级不足 playerId = {},gameType = {},wareId = {}", playerController.playerId(), req.gameType, req.wareId);
+                playerController.send(res);
                 return;
             }
 
@@ -127,6 +132,7 @@ public class HallMessageHandler implements GmListener {
             if (node == null) {
                 res.code = Code.NOT_FOUND;
                 log.debug("获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
+                playerController.send(res);
                 return;
             }
 
