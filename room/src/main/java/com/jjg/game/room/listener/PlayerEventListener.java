@@ -55,9 +55,6 @@ public class PlayerEventListener implements SessionEnterListener, SessionCloseLi
             this.roomManager = en.getValue();
             break;
         }
-        if(this.roomManager == null){
-            throw new RuntimeException("roomManager 不能未空");
-        }
     }
 
     @Override
@@ -127,7 +124,7 @@ public class PlayerEventListener implements SessionEnterListener, SessionCloseLi
 
             logger.enterGame(player, info.getGameType(),info.getWareId());
 
-            if(player.getRoomId() > 0){
+            if(player.getRoomId() > 0 && this.roomManager != null){
                 int code = roomManager.joinRoom(playerController,info.getGameType(), player.getRoomId());
                 if(code == Code.SUCCESS){
                     return;

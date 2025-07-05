@@ -4,7 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractResponse;
-import com.jjg.game.slots.game.dollarexpress.constant.DollarExpressConst;
+import com.jjg.game.slots.constant.SlotsConst;
 
 import java.util.List;
 
@@ -12,7 +12,7 @@ import java.util.List;
  * @author 11
  * @date 2025/6/12 17:11
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE, cmd = DollarExpressConst.MsgBean.RES_START_GAME,resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE, cmd = SlotsConst.MsgBean.RES_START_GAME,resp = true)
 @ProtoDesc("开始游戏结果返回")
 public class ResStartGame extends AbstractResponse {
     @ProtoDesc("图标id列表")

@@ -1,7 +1,7 @@
 package com.jjg.game.slots.game.dollarexpress.data;
 
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.slots.game.dollarexpress.constant.DollarExpressConst;
+import com.jjg.game.slots.constant.SlotsConst;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,7 +124,7 @@ public class PlayerGameData {
 
     public void addShowDollarValue(long value){
         BigDecimal v = BigDecimal.valueOf(value);
-        this.showDollarValueAve = this.showDollarValueAve.add(v).divide(DollarExpressConst.Common.BIGDECIMAL_TWO).setScale(0, RoundingMode.HALF_UP);
+        this.showDollarValueAve = this.showDollarValueAve.add(v).divide(SlotsConst.Common.BIGDECIMAL_TWO).setScale(0, RoundingMode.HALF_UP);
     }
 
     public long getShowDollarValueAve() {

@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.dollarexpress.data;
 
+import com.jjg.game.slots.data.AwardLineInfo;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
