@@ -16,7 +16,7 @@ public class BaseLogger {
     @Autowired
     protected NodeConfig nodeConfig;
     @Autowired
-    protected KafkaTemplate<String,String> kafkaTemplate;
+    protected KafkaTemplate<String, String> kafkaTemplate;
 
     private final String GAME_LOGS_TOPIC = "game-logs";
 
@@ -25,75 +25,81 @@ public class BaseLogger {
 
     /**
      * 在线统计
-     * @param num
      */
-    public void online( int num,String serverIp){
-        try{
+    public void online(int num, String serverIp) {
+        try {
             JSONObject json = new JSONObject();
-        }catch (Exception e){
-            log.error("",e);
+            json.put("logType", "online");
+            json.put("num", num);
+            json.put("serverIp", serverIp);
+            sendLog(null, json);
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 
     /**
      * 金币变化
+     *
      * @param player
      * @param gold
      * @param addType
      */
-    public void useMoney(Player player, long beforeGold, long gold, String addType, String desc){
-        try{
+    public void useMoney(Player player, long beforeGold, long gold, String addType, String desc) {
+        try {
             JSONObject json = new JSONObject();
-            json.put("logType","goldChange");
-            json.put("beforeGold",beforeGold);
-            json.put("gold",gold);
-            json.put("afterGold",player.getGold());
-            json.put("addType",addType);
-            json.put("desc",desc);
+            json.put("logType", "goldChange");
+            json.put("beforeGold", beforeGold);
+            json.put("gold", gold);
+            json.put("afterGold", player.getGold());
+            json.put("addType", addType);
+            json.put("desc", desc);
 
-            sendLog(player,json);
-        }catch (Exception e){
-            log.error("",e);
+            sendLog(player, json);
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 
     /**
      * 进入游戏
+     *
      * @param player
      * @param gameType
      * @return
      */
-    public void enterGame(Player player,int gameType,int wareId){
-        try{
+    public void enterGame(Player player, int gameType, int wareId) {
+        try {
             JSONObject json = new JSONObject();
-            json.put("logType","enterGame");
-            json.put("gameType",gameType);
-            json.put("wareId",wareId);
-            sendLog(player,json);
-        }catch (Exception e){
-            log.error("",e);
+            json.put("logType", "enterGame");
+            json.put("gameType", gameType);
+            json.put("wareId", wareId);
+            sendLog(player, json);
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 
     /**
      * 退出游戏
+     *
      * @param player
      * @param gameType
      * @return
      */
-    public void exitGame(Player player,int gameType){
-        try{
+    public void exitGame(Player player, int gameType) {
+        try {
             JSONObject json = new JSONObject();
-            json.put("logType","exitGame");
-            json.put("gameType",gameType);
-            sendLog(player,json);
-        }catch (Exception e){
-            log.error("",e);
+            json.put("logType", "exitGame");
+            json.put("gameType", gameType);
+            sendLog(player, json);
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 
-    protected void sendLog(Player player,JSONObject json){
-        if(player != null){
+    protected void sendLog(Player player, JSONObject json) {
+        if (player != null) {
             json.put("playerId", player.getId());
         }
 
@@ -102,7 +108,7 @@ public class BaseLogger {
         kafkaTemplate.send(GAME_LOGS_TOPIC, JSONObject.toJSONString(json));
     }
 
-    protected void sendLog(JSONObject json){
-        sendLog(null,json);
+    protected void sendLog(JSONObject json) {
+        sendLog(null, json);
     }
 }

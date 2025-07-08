@@ -41,7 +41,7 @@ public class PlayerSessionService implements TimerListener {
 
     //session超时时间
     private static final int SESSION_TIME_OUT_MINUTES = 30;
-    private static final int ONLINE_COUNT_MINUTES = 5;
+    private static final int ONLINE_COUNT_MINUTES = 1;
 
     public static final String SESSION_TABLE_NAME = "playerSession";
     //在线玩家id
@@ -71,11 +71,11 @@ public class PlayerSessionService implements TimerListener {
     private TimerEvent<String> onlineCountEvent;
 
     public PlayerSessionInfo getInfo(long playerId) {
-        return (PlayerSessionInfo) redisTemplate.opsForHash().get(SESSION_TABLE_NAME,playerId);
+        return (PlayerSessionInfo) redisTemplate.opsForHash().get(SESSION_TABLE_NAME, playerId);
     }
 
-    public boolean hasSession(long playerId){
-        return redisTemplate.opsForHash().hasKey(SESSION_TABLE_NAME,playerId);
+    public boolean hasSession(long playerId) {
+        return redisTemplate.opsForHash().hasKey(SESSION_TABLE_NAME, playerId);
     }
 
     public PlayerSessionInfo save(PlayerSessionInfo playerSessionInfo) {
@@ -87,7 +87,7 @@ public class PlayerSessionService implements TimerListener {
         //设置当前节点
         playerSessionInfo.setCurrentNode(clusterSystem.getNodePath());
 
-        redisTemplate.opsForHash().put(SESSION_TABLE_NAME,playerSessionInfo.getPlayerId(),playerSessionInfo);
+        redisTemplate.opsForHash().put(SESSION_TABLE_NAME, playerSessionInfo.getPlayerId(), playerSessionInfo);
         //redisTemplate.opsForSet().add(ONLINEPLAYERS, playerSessionInfo.getPlayerId());
         return playerSessionInfo;
     }
@@ -115,16 +115,16 @@ public class PlayerSessionService implements TimerListener {
         return getSession(getInfo(playerId));
     }
 
-    public void sendAll(Object object){
+    public void sendAll(Object object) {
         clusterMsgSender.broadcast2Gates(object);
     }
 
     public void remove(long playerId) {
-        redisTemplate.opsForHash().delete(SESSION_TABLE_NAME,playerId);
+        redisTemplate.opsForHash().delete(SESSION_TABLE_NAME, playerId);
         //redisTemplate.opsForSet().remove(ONLINEPLAYERS, playerId);
     }
 
-    public Map<Long,PlayerSessionInfo> getAll() {
+    public Map<Long, PlayerSessionInfo> getAll() {
         //Set<String> set = redisTemplate.opsForSet().members(ONLINEPLAYERS);
         //List<PlayerSessionInfo> playerSessionInfos = redisTemplate.opsForHash().mulget(SESSION_TABLE_NAME,set);
         //return playerSessionInfos.stream().filter(Objects::nonNull).collect(Collectors.toList());
@@ -136,7 +136,7 @@ public class PlayerSessionService implements TimerListener {
         if (gatePath == null || gatePath.isEmpty()) {
             return;
         }
-        Map<Long,PlayerSessionInfo> playerSessionInfoMap = getAll();
+        Map<Long, PlayerSessionInfo> playerSessionInfoMap = getAll();
         List<Long> keys = new ArrayList<>();
         if (playerSessionInfoMap != null) {
             playerSessionInfoMap.entrySet().forEach(en -> {
@@ -146,13 +146,13 @@ public class PlayerSessionService implements TimerListener {
             });
         }
         if (!keys.isEmpty()) {
-            redisTemplate.opsForHash().delete(SESSION_TABLE_NAME,keys.toArray());
+            redisTemplate.opsForHash().delete(SESSION_TABLE_NAME, keys.toArray());
         }
     }
 
     public void removeSessionByNode() {
         String currentNode = clusterSystem.getNodePath();
-        Map<Long,PlayerSessionInfo> playerSessionInfoMap = getAll();
+        Map<Long, PlayerSessionInfo> playerSessionInfoMap = getAll();
         List<Long> keys = new ArrayList<>();
         if (playerSessionInfoMap != null) {
             playerSessionInfoMap.entrySet().forEach(en -> {
@@ -163,8 +163,8 @@ public class PlayerSessionService implements TimerListener {
         }
         if (!keys.isEmpty()) {
             //log.debug("删除session表的id  keys={}",keys);
-            Long num = redisTemplate.opsForHash().delete(SESSION_TABLE_NAME,keys.toArray());
-            log.debug("删除session表的结果  num={}",num);
+            Long num = redisTemplate.opsForHash().delete(SESSION_TABLE_NAME, keys.toArray());
+            log.debug("删除session表的结果  num={}", num);
         }
     }
 
@@ -173,11 +173,11 @@ public class PlayerSessionService implements TimerListener {
      */
     public void checkSessionByNode() {
         String currentNode = clusterSystem.getNodePath();
-        Map<Long,PlayerSessionInfo> playerSessionInfoMap = getAll();
+        Map<Long, PlayerSessionInfo> playerSessionInfoMap = getAll();
         List<Long> keys = new ArrayList<>();
         if (playerSessionInfoMap != null) {
             long currentTime = System.currentTimeMillis();
-            for (Map.Entry<Long,PlayerSessionInfo> en: playerSessionInfoMap.entrySet()) {
+            for (Map.Entry<Long, PlayerSessionInfo> en : playerSessionInfoMap.entrySet()) {
                 PlayerSessionInfo playerSessionInfo = en.getValue();
                 long lastActiveTime = playerSessionInfo.getLastActiveTime();
 
@@ -197,12 +197,12 @@ public class PlayerSessionService implements TimerListener {
                 //session 的活跃时间超过三个小时的
                 if (lastActiveTime > 0 && currentTime - lastActiveTime > TimeHelper.ONE_DAY) {
                     keys.add(playerSessionInfo.getPlayerId());
-                    log.info("移除超时无效session，playerId={}",playerSessionInfo.getPlayerId());
+                    log.info("移除超时无效session，playerId={}", playerSessionInfo.getPlayerId());
                 }
             }
         }
         if (!keys.isEmpty()) {
-            redisTemplate.opsForHash().delete(SESSION_TABLE_NAME,keys.toArray());
+            redisTemplate.opsForHash().delete(SESSION_TABLE_NAME, keys.toArray());
             //redisTemplate.opsForSet().remove(ONLINEPLAYERS, keys.toArray());
         }
     }
@@ -211,30 +211,30 @@ public class PlayerSessionService implements TimerListener {
         removeSessionByNode();
     }
 
-    public void init(){
+    public void init() {
         if (timerCenter != null) {
-            if(NodeType.HALL.name().equals(nodeManager.nodeConfig.getType())){
+            if (NodeType.HALL.name().equals(nodeManager.nodeConfig.getType())) {
                 checkSessionEvent = new TimerEvent<>(this, "PlayerSession", SESSION_TIME_OUT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
                 timerCenter.add(checkSessionEvent);
             }
 
-            if(NodeType.GAME.name().equals(nodeManager.nodeConfig.getType())){
+            if (NodeType.GAME.name().equals(nodeManager.nodeConfig.getType())) {
                 onlineCountEvent = new TimerEvent<>(this, "OnlineCount", ONLINE_COUNT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
                 timerCenter.add(onlineCountEvent);
             }
         }
     }
 
-    public void changeGameType(long playerId,int gameType,int wareId){
+    public void changeGameType(long playerId, int gameType, int wareId) {
         PlayerSessionInfo info = getInfo(playerId);
         info.setGameType(gameType);
         info.setWareId(wareId);
         save(info);
     }
 
-    public PlayerSessionInfo enterGameServer(PlayerSessionInfo playerSessionInfo,int roomId){
+    public PlayerSessionInfo enterGameServer(PlayerSessionInfo playerSessionInfo, int roomId) {
         onlineCount(playerSessionInfo.getPlayerId());
-        playerLastGameInfo(playerSessionInfo.getPlayerId(),0,playerSessionInfo.getGameType(),playerSessionInfo.getWareId(),roomId);
+        playerLastGameInfo(playerSessionInfo.getPlayerId(), 0, playerSessionInfo.getGameType(), playerSessionInfo.getWareId(), roomId);
 
         return playerSessionInfo;
     }
@@ -242,24 +242,24 @@ public class PlayerSessionService implements TimerListener {
     /**
      * 添加本节点在线人数
      */
-    public void onlineCount(long playerId){
-        AtomicInteger result = onlineMap.computeIfPresent(playerId,(k, v) -> {
+    public void onlineCount(long playerId) {
+        AtomicInteger result = onlineMap.computeIfPresent(playerId, (k, v) -> {
             v.incrementAndGet();
             return v;
         });
 
-        if(result != null){
+        if (result != null) {
             return;
         }
 
         AtomicInteger num = new AtomicInteger(1);
-        result = onlineMap.computeIfAbsent(playerId,k -> num);
+        result = onlineMap.computeIfAbsent(playerId, k -> num);
 
-        if(result == num){
+        if (result == num) {
             return;
         }
 
-        onlineMap.computeIfPresent(playerId,(k,v) -> {
+        onlineMap.computeIfPresent(playerId, (k, v) -> {
             v.incrementAndGet();
             return v;
         });
@@ -268,21 +268,21 @@ public class PlayerSessionService implements TimerListener {
     /**
      * 减少本节点在线人数
      */
-    public void offlineCount(long playerId){
-        onlineMap.computeIfPresent(playerId,(k,v) -> {
-            if(v.get() > 0){
+    public void offlineCount(long playerId) {
+        onlineMap.computeIfPresent(playerId, (k, v) -> {
+            if (v.get() > 0) {
                 v.addAndGet(-1);
             }
             return v;
         });
     }
 
-    public void offline(long playerId,int gameUniqueId,int gameType,int wareId,int roomId){
+    public void offline(long playerId, int gameUniqueId, int gameType, int wareId, int roomId) {
         offlineCount(playerId);
-        playerLastGameInfo(playerId, gameUniqueId,gameType,wareId,roomId);
+        playerLastGameInfo(playerId, gameUniqueId, gameType, wareId, roomId);
     }
 
-    public void playerLastGameInfo(long playerId,int gameUniqueId,int gameType,int wareId,int roomId){
+    public void playerLastGameInfo(long playerId, int gameUniqueId, int gameType, int wareId, int roomId) {
         PlayerLastGameInfo playerLastGameInfo = new PlayerLastGameInfo();
         playerLastGameInfo.setPlayerId(playerId);
         playerLastGameInfo.setGameUniqueId(gameUniqueId);
@@ -293,24 +293,25 @@ public class PlayerSessionService implements TimerListener {
         playerLastGameInfoDao.save(playerLastGameInfo);
     }
 
-    public boolean online(Long playerId){
-        return redisTemplate.opsForHash().hasKey(SESSION_TABLE_NAME,playerId);
+    public boolean online(Long playerId) {
+        return redisTemplate.opsForHash().hasKey(SESSION_TABLE_NAME, playerId);
     }
 
-    public void changeSessionInfo(PFSession pfSession,Player player){
-        changeSessionInfo(pfSession,player,0,0);
+    public void changeSessionInfo(PFSession pfSession, Player player) {
+        changeSessionInfo(pfSession, player, 0, 0);
     }
 
     /**
      * 修改session信息
+     *
      * @param pfSession
      * @param player
      */
-    public void changeSessionInfo(PFSession pfSession,Player player,int gameType,int wareId){
+    public void changeSessionInfo(PFSession pfSession, Player player, int gameType, int wareId) {
         PlayerSessionInfo info = getInfo(player.getId());
-        if(info != null){
-            if(Objects.equals(pfSession.sessionId(),info.getSessionId())){
-                log.debug("session相同，不处理  session={},playerId={}",pfSession.sessionId(),player.getId());
+        if (info != null) {
+            if (Objects.equals(pfSession.sessionId(), info.getSessionId())) {
+                log.debug("session相同，不处理  session={},playerId={}", pfSession.sessionId(), player.getId());
                 return;
             }
             //顶号
@@ -333,7 +334,7 @@ public class PlayerSessionService implements TimerListener {
                 info.setWareId(wareId);
                 log.info("顶号成功! playerId = {}", player.getId());
             }
-        }else {
+        } else {
             info = new PlayerSessionInfo();
             info.setNodeName(pfSession.gatePath);
             info.setPlayerId(player.getId());
@@ -346,7 +347,7 @@ public class PlayerSessionService implements TimerListener {
 
     @Override
     public void onTimer(TimerEvent e) {
-        if(e == checkSessionEvent && marsCurator.master(NodeType.HALL.getValue())){
+        if (e == checkSessionEvent && marsCurator.master(NodeType.HALL.getValue())) {
             log.info("开始执行session检查");
             checkSessionByNode();
             Iterator<Map.Entry<String, PFSession>> iterator = clusterSystem.sessionMap().entrySet().iterator();
@@ -361,20 +362,17 @@ public class PlayerSessionService implements TimerListener {
                         iterator.remove();
                         //offlineCount(spiltInfo(ps.getOnlineKey()));
                     } else if (pfSession.getReference() == null) {
-                        log.warn("移除无效session，playerId={},sessionId={}", pfSession.getPlayerId(),pfSession.sessionId());
+                        log.warn("移除无效session，playerId={},sessionId={}", pfSession.getPlayerId(), pfSession.sessionId());
                         iterator.remove();
                         offlineCount(ps.getPlayerId());
                     }
                 }
             }
-        }else if(e == onlineCountEvent){
-            for(Map.Entry<Long,AtomicInteger> en : onlineMap.entrySet()){
-                if(en.getValue().get() < 1){
-                    continue;
-                }
-                //log.info("打印在线人数 gamebaseinfo={},size={}",en.getKey(),en.getValue());
-//                coreLogger.online(en.getKey(),en.getValue().get(),nodeManager.nodeConfig.getTcpAddress().getHost());
-            }
+        } else if (e == onlineCountEvent) {
+            int size = clusterSystem.clusterSessionSize();
+            log.info("打印在线人数 ,size={}", size);
+            coreLogger.online(size, nodeManager.nodeConfig.getTcpAddress().getHost());
+
         }
     }
 }
