@@ -12,7 +12,7 @@ public class BaseLineFreeInfo {
     //滚轴
     private int roller;
     //玩法类型
-    private int playerType;
+    private int playType;
     //最小元素种类
     private int minIconTypeMin;
     //元素id组合
@@ -37,12 +37,12 @@ public class BaseLineFreeInfo {
         this.roller = roller;
     }
 
-    public int getPlayerType() {
-        return playerType;
+    public int getPlayType() {
+        return playType;
     }
 
-    public void setPlayerType(int playerType) {
-        this.playerType = playerType;
+    public void setPlayType(int playType) {
+        this.playType = playType;
     }
 
     public int getMinIconTypeMin() {

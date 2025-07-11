@@ -15,7 +15,7 @@ public abstract class AbstractPoolDao {
     @Autowired
     protected RedisTemplate redisTemplate;
 
-    protected final String pool_prefix = "pool_";
+    protected final String pool_prefix = "pool:";
 
     public abstract void initPool();
 

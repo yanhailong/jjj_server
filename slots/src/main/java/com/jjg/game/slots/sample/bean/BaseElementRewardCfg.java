@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName BaseElementReward.xlsx
  * @sheetName BaseElementReward
  * @author Auto.Generator
- * @date 2025年07月05日 14:02:23
+ * @date 2025年07月11日 11:56:28
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseElementRewardCfg extends BaseCfgBean {
@@ -43,10 +43,10 @@ public class BaseElementRewardCfg extends BaseCfgBean {
   protected int rewardType;
   /** 旋转状态 */
   protected int rotateState;
-  /** 旋转状态标识 */
-  protected int rotateStateFlag;
   /** 单线押分倍数加成 */
   protected List<List<Integer>> scoreBetTimes;
+  /** 旋转状态标识 */
+  protected int spinType;
 
   /** 返回倍率 */
   public int getBet() {
@@ -108,13 +108,13 @@ public class BaseElementRewardCfg extends BaseCfgBean {
     return rotateState;
   }
 
-  /** 返回旋转状态标识 */
-  public int getRotateStateFlag() {
-    return rotateStateFlag;
-  }
-
   /** 返回单线押分倍数加成 */
   public List<List<Integer>> getScoreBetTimes() {
     return scoreBetTimes;
+  }
+
+  /** 返回旋转状态标识 */
+  public int getSpinType() {
+    return spinType;
   }
 }

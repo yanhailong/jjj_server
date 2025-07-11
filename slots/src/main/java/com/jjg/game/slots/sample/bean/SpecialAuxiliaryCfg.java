@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName SpecialAuxiliary.xlsx
  * @sheetName SpecialAuxiliary
  * @author Auto.Generator
- * @date 2025年07月05日 14:02:23
+ * @date 2025年07月11日 11:56:28
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class SpecialAuxiliaryCfg extends BaseCfgBean {
@@ -22,9 +22,9 @@ public class SpecialAuxiliaryCfg extends BaseCfgBean {
   /** 客户端显示数量 */
   protected Map<Integer,Integer> clientShowCount;
   /** 免费的固定奖励 */
-  protected List<Integer> freeAward;
+  protected List<List<Integer>> freeAward;
   /** 免费随机奖励 */
-  protected Map<Integer,List<String>> freeRandAward;
+  protected Map<Integer,List<List<Integer>>> freeRandAward;
   /** 游戏ID */
   protected int gameType;
   /** 是否有交互 */
@@ -42,12 +42,12 @@ public class SpecialAuxiliaryCfg extends BaseCfgBean {
   }
 
   /** 返回免费的固定奖励 */
-  public List<Integer> getFreeAward() {
+  public List<List<Integer>> getFreeAward() {
     return freeAward;
   }
 
   /** 返回免费随机奖励 */
-  public Map<Integer,List<String>> getFreeRandAward() {
+  public Map<Integer,List<List<Integer>>> getFreeRandAward() {
     return freeRandAward;
   }
 

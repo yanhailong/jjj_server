@@ -10,16 +10,23 @@ import java.math.BigDecimal;
  * @date 2025/6/27 9:36
  */
 public interface SlotsConst {
-    interface GameType{
-        //支持的游戏
-        int[] SUPPORT_GAME_TYPES = {CoreConst.GameType.DOLLAR_EXPRESS};
-    }
+
 
     interface Common {
         //excel配置所在目录
-        String SAMPLE_PATH = CoreConst.Common.SAMPLE_ROOT_PATH + "dollarexpress";
+        String SAMPLE_PATH = CoreConst.Common.SAMPLE_ROOT_PATH;
 
         BigDecimal BIGDECIMAL_TWO = BigDecimal.valueOf(2);
+
+        //触发局
+        int TYPE_TRIGGER = 0;
+        //二选一之免费
+        int TYPE_FREE = 1;
+        //二选一之火车
+        int TYPE_TRAIN = 2;
+
+        //首次玩某个slots游戏，应该使用的模式id
+        int FIRST_GAME_GET_MODEL_ID = 4;
     }
 
     interface BaseElement{
@@ -33,36 +40,6 @@ public interface SlotsConst {
         int TYPE_BONUS = 3;
         //分散百搭
         int TYPE_DISPERSE_WILD = 4;
-
-        //金火车
-        int ID_GOLD_TRAIN = 15;
-        //保险箱
-        int ID_SAFE_BOX = 16;
-        //all board
-        int ID_ALL_ABOARD = 17;
-        //美金
-        int ID_DOLLAR = 18;
-        //绿火车
-        int ID_GREEN_TRAIN = 19;
-        //蓝火车
-        int ID_BLUE_TRAIN = 20;
-        //紫火车
-        int ID_PURPLE_TRAIN = 21;
-        //红火车
-        int ID_RED_TRAIN = 22;
-    }
-
-    interface DollarSpecialGameType{
-        //普通
-        int NORMAL = 0;
-        //拉火车
-        int TRAIN = 1;
-        //保险箱
-        int SAFE_BOX = 2;
-        //免费
-        int FREE = 3;
-        //金火车
-        int GOLD_TRAIN = 4;
     }
 
     interface SpecialPlay{
@@ -74,15 +51,42 @@ public interface SlotsConst {
         int TYPE_PLAY_INVEST = 2;
         //收集已解锁的地图
         int TYPE_PLAY_MAP = 3;
-        //[单线押分值],当前档位低于此值不开启收集功能
-        int TYPE_PLAY_MIN_BET_COLLOECT = 4;
+    }
+
+    interface SpecialAuxiliary{
+        //免费旋转
+        int TYPE_FREE_ROLL = 0;
+        //开启宝箱
+        int TYPE_OPEN_BOX = 1;
     }
 
     interface BaseElementReward{
-        //普通图标类型
-        int LINT_TYPE_NORMAL = 1;
-        //特殊
-        int LINT_TYPE_SPECIAL = 2;
+        //连线类型
+        int LINE_TYPE_NORMAL = 1;
+        //指定线类型
+        int LINE_TYPE_ASSIGN = 2;
+        //全局分散线类型
+        int LINE_TYPE_DISPERSE_GLOBAL = 4;
+
+        //旋转状态，普通
+        int ROTATESTATE_NORMAL = 1;
+        //旋转状态，免费
+        int ROTATESTATE_FREE = 2;
+        //旋转状态，重转
+        int ROTATESTATE_AGAIN = 3;
+        //旋转状态，全部
+        int ROTATESTATE_ALL = 4;
+
+        int REWARD_TYPE_A = 0;
+        int REWARD_TYPE_B = 1;
+        int REWARD_TYPE_C = 2;
+    }
+
+    interface SpecialResultLib{
+        int TYPE_NORMAL = 1;
+        int TYPE_TRAIN = 2;
+        int TYPE_GOLD_TRAIN = 3;
+        int TYPE_ALL_BOARD = 4;
     }
 
     interface MsgBean {

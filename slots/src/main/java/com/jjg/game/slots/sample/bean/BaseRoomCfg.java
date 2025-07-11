@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName BaseRoom.xlsx
  * @sheetName BaseRoom
  * @author Auto.Generator
- * @date 2025年07月05日 14:02:23
+ * @date 2025年07月11日 11:56:28
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseRoomCfg extends BaseCfgBean {
@@ -28,7 +28,9 @@ public class BaseRoomCfg extends BaseCfgBean {
   /** 最小准入 */
   protected int enterLimit;
   /** 游戏ID */
-  protected int gameId;
+  protected int gameType;
+  /** 初始化标准池 */
+  protected long initBasePool;
   /** 单线押分值 */
   protected List<Integer> lineBetScore;
   /** 线注倍数 */
@@ -36,7 +38,7 @@ public class BaseRoomCfg extends BaseCfgBean {
   /** 房间列表 */
   protected List<Integer> room;
   /** 倍场名称 */
-  protected String roomName;
+  protected int roomName;
   /** VIP等级限制 */
   protected int vipLvLimit;
 
@@ -61,8 +63,13 @@ public class BaseRoomCfg extends BaseCfgBean {
   }
 
   /** 返回游戏ID */
-  public int getGameId() {
-    return gameId;
+  public int getGameType() {
+    return gameType;
+  }
+
+  /** 返回初始化标准池 */
+  public long getInitBasePool() {
+    return initBasePool;
   }
 
   /** 返回单线押分值 */
@@ -81,7 +88,7 @@ public class BaseRoomCfg extends BaseCfgBean {
   }
 
   /** 返回倍场名称 */
-  public String getRoomName() {
+  public int getRoomName() {
     return roomName;
   }
 

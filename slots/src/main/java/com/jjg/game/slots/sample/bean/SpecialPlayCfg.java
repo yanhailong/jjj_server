@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName SpecialPlay.xlsx
  * @sheetName SpecialPlay
  * @author Auto.Generator
- * @date 2025年07月05日 14:02:23
+ * @date 2025年07月11日 11:56:28
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class SpecialPlayCfg extends BaseCfgBean {
@@ -31,6 +31,8 @@ public class SpecialPlayCfg extends BaseCfgBean {
   protected int playType;
   /** 旋转标识 */
   protected int spinType;
+  /** 值 */
+  protected String value;
 
   /** 返回是否额外投注 */
   public boolean getExtraBet() {
@@ -60,5 +62,10 @@ public class SpecialPlayCfg extends BaseCfgBean {
   /** 返回旋转标识 */
   public int getSpinType() {
     return spinType;
+  }
+
+  /** 返回值 */
+  public String getValue() {
+    return value;
   }
 }

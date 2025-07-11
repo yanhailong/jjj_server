@@ -1,4 +1,4 @@
-package com.jjg.game.slots.data;
+package com.jjg.game.slots.dao;
 
 /**
  * slots结果集

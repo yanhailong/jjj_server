@@ -5,7 +5,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.room.listener.IPlayerRoomEventListener;
 import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.game.dollarexpress.data.PlayerGameData;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +21,8 @@ public class SlotsRoomEventListener implements IPlayerRoomEventListener{
 
     @Override
     public int[] getGameTypes() {
-        return SlotsConst.GameType.SUPPORT_GAME_TYPES;
+//        return SlotsConst.GameType.SUPPORT_GAME_TYPES;
+        return new int[]{};
     }
 
     @Override
@@ -36,8 +37,8 @@ public class SlotsRoomEventListener implements IPlayerRoomEventListener{
     @Override
     public void exit(PFSession session,PlayerController playerController, PlayerSessionInfo playerSessionInfo) {
         log.info("玩家退出slots游戏服务器,sessionId={},playerId={}", session.sessionId(), playerController.playerId());
-        PlayerGameData playerGameData = (PlayerGameData)playerController.getScene();
-        if(playerGameData != null){
+        DollarExpressPlayerGameData dollarExpressPlayerGameData = (DollarExpressPlayerGameData)playerController.getScene();
+        if(dollarExpressPlayerGameData != null){
 //            gameController.gainScore(true);
         }
     }

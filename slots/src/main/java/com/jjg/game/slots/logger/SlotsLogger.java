@@ -3,7 +3,7 @@ package com.jjg.game.slots.logger;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
-import com.jjg.game.slots.data.GameRunInfo;
+import com.jjg.game.slots.game.dollarexpress.data.GameRunInfo;
 import org.springframework.stereotype.Component;
 
 /**

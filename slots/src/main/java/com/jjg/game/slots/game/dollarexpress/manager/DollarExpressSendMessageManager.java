@@ -4,7 +4,7 @@
 //import com.jjg.game.core.data.PlayerController;
 //import com.jjg.game.core.data.SendInfo;
 //import com.jjg.game.core.manager.BaseSendMessageManager;
-//import com.jjg.game.slots.data.GameRunInfo;
+//import com.jjg.game.slots.game.dollarexpress.data.GameRunInfo;
 //import com.jjg.game.slots.game.dollarexpress.pb.ResChooseFreeModel;
 //import com.jjg.game.slots.game.dollarexpress.pb.ResConfigInfo;
 //import com.jjg.game.slots.game.dollarexpress.pb.ResStartGame;

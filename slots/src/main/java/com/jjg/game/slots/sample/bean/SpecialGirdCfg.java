@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName SpecialGird.xlsx
  * @sheetName SpecialGird
  * @author Auto.Generator
- * @date 2025年07月05日 14:02:23
+ * @date 2025年07月11日 11:56:28
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class SpecialGirdCfg extends BaseCfgBean {
@@ -19,10 +19,14 @@ public class SpecialGirdCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "SpecialGird";
 
+  /** 影响格子 */
+  protected List<List<Integer>> affectGird;
   /** 是否在别的格子修改后才生效 */
   protected boolean afterUpdateValid;
+  /** 巨型块大小 */
+  protected List<List<String>> bigBlockSize;
   /** 元素 */
-  protected Map<String,List<Integer>> element;
+  protected Map<Integer,Integer> element;
   /** 是否额外投注 */
   protected boolean extraBet;
   /** 游戏ID */
@@ -32,7 +36,7 @@ public class SpecialGirdCfg extends BaseCfgBean {
   /** 模式ID */
   protected int modelId;
   /** 随机次数 */
-  protected Map<Integer,List<Integer>> randCount;
+  protected Map<Integer,Integer> randCount;
   /** 旋转状态 */
   protected int spinStatus;
   /** 旋转标识 */
@@ -40,13 +44,23 @@ public class SpecialGirdCfg extends BaseCfgBean {
   /** 是否同步格子 */
   protected boolean syncGird;
 
+  /** 返回影响格子 */
+  public List<List<Integer>> getAffectGird() {
+    return affectGird;
+  }
+
   /** 返回是否在别的格子修改后才生效 */
   public boolean getAfterUpdateValid() {
     return afterUpdateValid;
   }
 
+  /** 返回巨型块大小 */
+  public List<List<String>> getBigBlockSize() {
+    return bigBlockSize;
+  }
+
   /** 返回元素 */
-  public Map<String,List<Integer>> getElement() {
+  public Map<Integer,Integer> getElement() {
     return element;
   }
 
@@ -71,7 +85,7 @@ public class SpecialGirdCfg extends BaseCfgBean {
   }
 
   /** 返回随机次数 */
-  public Map<Integer,List<Integer>> getRandCount() {
+  public Map<Integer,Integer> getRandCount() {
     return randCount;
   }
 

@@ -1,4 +1,4 @@
-package com.jjg.game.slots.data;
+package com.jjg.game.slots.game.dollarexpress.data;
 
 import com.jjg.game.core.data.AbstractGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ResultLineInfo;

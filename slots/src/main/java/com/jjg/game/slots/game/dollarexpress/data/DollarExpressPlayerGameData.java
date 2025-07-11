@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.dollarexpress.data;
 
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.data.SlotsPlayerGameData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,14 +16,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author 11
  * @date 2025/6/10 18:07
  */
-public class PlayerGameData {
-    private static final Logger log = LoggerFactory.getLogger(PlayerGameData.class);
+public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
+    private static final Logger log = LoggerFactory.getLogger(DollarExpressPlayerGameData.class);
 
-    private PlayerController playerController;
-    //游戏类型
-    private int gameType;
-    //场次配置id
-    private int wareId;
     //最近一次的押注
     private long lastBetValue;
     //特殊模式
@@ -31,6 +27,7 @@ public class PlayerGameData {
     private int resultShowId;
     //免费模式-中金火车
     private boolean goldTrainInFree;
+
     //是否能选择免费游戏模式
     private AtomicBoolean canChooseFreeType = new AtomicBoolean(false);
     //剩余免费次数
@@ -40,34 +37,6 @@ public class PlayerGameData {
     //出现美金的平均金额
     private BigDecimal showDollarValueAve = new BigDecimal(0);
 
-
-    public PlayerGameData(PlayerController playerController) {
-        this.playerController = playerController;
-    }
-
-    public PlayerController getPlayerController() {
-        return playerController;
-    }
-
-    public int getGameType() {
-        return gameType;
-    }
-
-    public void setGameType(int gameType) {
-        this.gameType = gameType;
-    }
-
-    public void setWareId(int wareId) {
-        this.wareId = wareId;
-    }
-
-    public int getWareId(){
-        return this.wareId;
-    }
-
-    public long playerId(){
-        return playerController.playerId();
-    }
 
     public int getSpecialType() {
         return specialType;

@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName SpecialResultLib.xlsx
  * @sheetName SpecialResultLib
  * @author Auto.Generator
- * @date 2025年07月05日 14:02:23
+ * @date 2025年07月11日 11:56:28
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class SpecialResultLibCfg extends BaseCfgBean {
@@ -32,7 +32,7 @@ public class SpecialResultLibCfg extends BaseCfgBean {
   /** 滚轴模式ID */
   protected int modelId;
   /** 倍数区间及权重 */
-  protected String sectionProp;
+  protected Map<Integer,List<String>> sectionProp;
   /** 换皮游戏ID */
   protected int targetGameType;
   /** 类型权重 */
@@ -69,7 +69,7 @@ public class SpecialResultLibCfg extends BaseCfgBean {
   }
 
   /** 返回倍数区间及权重 */
-  public String getSectionProp() {
+  public Map<Integer,List<String>> getSectionProp() {
     return sectionProp;
   }
 

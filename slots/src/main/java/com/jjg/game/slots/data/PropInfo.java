@@ -9,9 +9,12 @@ import java.util.Map;
  * @author 11
  * @date 2025/6/16 13:40
  */
-public class PropInfo {
+public class PropInfo implements Cloneable{
     private int sum;
+    //元素在随机是的起始点和结尾点
     private Map<Integer, int[]> propMap = new HashMap<>();
+    //元素的最大出现次数
+    private Map<Integer, Integer> maxShowLimitMap;
 
     public int getSum() {
         return sum;
@@ -33,15 +36,16 @@ public class PropInfo {
         this.sum += value;
     }
 
-    public void addProp(Integer key, int begin, int end) {
+    public void addProp(Integer key, int begin, int end,int maxLimit) {
         this.propMap.put(key, new int[]{begin, end});
+        if(this.maxShowLimitMap == null) {
+            this.maxShowLimitMap = new HashMap<>();
+        }
+        this.maxShowLimitMap.put(key, maxLimit);
     }
 
-    public PropInfo copy(){
-        PropInfo propInfo = new PropInfo();
-        propInfo.sum = this.sum;
-        propInfo.propMap = this.propMap;
-        return propInfo;
+    public void addProp(Integer key, int begin, int end) {
+        this.propMap.put(key, new int[]{begin, end});
     }
 
     /**
@@ -49,13 +53,21 @@ public class PropInfo {
      * @return
      */
     public Integer getRandKey() {
-        int rand = RandomUtils.randomMinMax(0,this.sum);
+        int rand = RandomUtils.randomInt(this.sum);
+//        System.out.println("rand : " + rand + ", sum = " + this.sum + ", propMap = " + JSON.toJSONString(this.propMap));
         for(Map.Entry<Integer,int[]> en: this.propMap.entrySet()){
             if(rand >= en.getValue()[0] && rand < en.getValue()[1]){
                 return en.getKey();
             }
         }
         return null;
+    }
+
+    public int getMaxShowLimit(int key) {
+        if(this.maxShowLimitMap == null) {
+            return Integer.MAX_VALUE;
+        }
+        return this.maxShowLimitMap.get(key);
     }
 
     // 删除指定 key 并重新计算 sum 和范围
@@ -65,6 +77,7 @@ public class PropInfo {
         if (removedRange == null) {
             return; // key 不存在，无需处理
         }
+        this.sum = 0;
 
         //重新计算每个 key 的范围
         int begin = 0;
@@ -76,6 +89,24 @@ public class PropInfo {
             range[1] = begin + weight;
             begin = range[1];
             this.sum += weight;
+        }
+    }
+
+    @Override
+    public PropInfo clone() {
+        try {
+            PropInfo cloned = (PropInfo) super.clone();
+            cloned.propMap = new HashMap<>();
+            for (Map.Entry<Integer, int[]> entry : this.propMap.entrySet()) {
+                cloned.propMap.put(entry.getKey(), entry.getValue().clone());
+            }
+
+            if (this.maxShowLimitMap != null) {
+                cloned.maxShowLimitMap = new HashMap<>(this.maxShowLimitMap);
+            }
+            return cloned;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
         }
     }
 }

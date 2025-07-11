@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName BaseInit.xlsx
  * @sheetName BaseInit
  * @author Auto.Generator
- * @date 2025年07月05日 14:02:23
+ * @date 2025年07月11日 11:56:28
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseInitCfg extends BaseCfgBean {
@@ -33,16 +33,12 @@ public class BaseInitCfg extends BaseCfgBean {
   protected String engName;
   /** 图标 */
   protected String icon;
-  /** 初始格子 */
-  protected List<Integer> initialGrid;
   /** 最大线数 */
   protected int maxLine;
   /** 最小线数 */
   protected int minLine;
   /** 名字 */
   protected String name;
-  /** 余额不足格子 */
-  protected List<Integer> notEnoughGrid;
   /** 奖池ID */
   protected List<Integer> prizePoolIdList;
   /** 行数 */
@@ -87,11 +83,6 @@ public class BaseInitCfg extends BaseCfgBean {
     return icon;
   }
 
-  /** 返回初始格子 */
-  public List<Integer> getInitialGrid() {
-    return initialGrid;
-  }
-
   /** 返回最大线数 */
   public int getMaxLine() {
     return maxLine;
@@ -105,11 +96,6 @@ public class BaseInitCfg extends BaseCfgBean {
   /** 返回名字 */
   public String getName() {
     return name;
-  }
-
-  /** 返回余额不足格子 */
-  public List<Integer> getNotEnoughGrid() {
-    return notEnoughGrid;
   }
 
   /** 返回奖池ID */

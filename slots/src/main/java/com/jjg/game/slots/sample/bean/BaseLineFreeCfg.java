@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName BaseLineFree.xlsx
  * @sheetName BaseLineFree
  * @author Auto.Generator
- * @date 2025年07月05日 14:02:23
+ * @date 2025年07月11日 11:56:28
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseLineFreeCfg extends BaseCfgBean {
@@ -26,7 +26,7 @@ public class BaseLineFreeCfg extends BaseCfgBean {
   /** 额外投注双向 */
   protected Map<Integer,List<Integer>> extraBetMultiple;
   /** 玩法 */
-  protected List<List<Integer>> gamePlay;
+  protected Map<Integer,Integer> gamePlay;
   /** 玩法算法 */
   protected int gamePlayCalc;
   /** 游戏ID */
@@ -56,7 +56,7 @@ public class BaseLineFreeCfg extends BaseCfgBean {
   }
 
   /** 返回玩法 */
-  public List<List<Integer>> getGamePlay() {
+  public Map<Integer,Integer> getGamePlay() {
     return gamePlay;
   }
 

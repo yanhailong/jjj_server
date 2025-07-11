@@ -480,8 +480,9 @@ public class MarsCurator implements TreeCacheListener {
                 //网关不需要和gm连接
                 if(NodeType.GATE.name().equals(this.nodeConfig.getType())){
                     log.debug("网关不需要和gm连接2 thisNodeType = {},targetNodeType={}",this.nodeConfig.getType(),nodeType);
-                    return true;
+                    return false;
                 }
+                return true;
             }
 
             if("master".equalsIgnoreCase(nodeType)){

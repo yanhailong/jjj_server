@@ -7,13 +7,13 @@ import java.util.Map;
  * @author 11
  * @date 2025/7/5 14:35
  */
-public class SpecialAuxiliaryAwardInfo<T> {
+public class PropAndAwardInfo<T> {
     //cfg.sid -> PropInfo
     private Map<Integer, PropInfo> propMap;
-    //typeA 或者 typeB 或者 typeC 中配置的具体id
+    //配置中的具体id
     private Map<Integer, T> awardMap;
 
-    public SpecialAuxiliaryAwardInfo() {
+    public PropAndAwardInfo() {
         this.propMap = new HashMap<>();
         this.awardMap = new HashMap<>();
     }
