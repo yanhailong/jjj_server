@@ -28,7 +28,6 @@ import java.util.Objects;
  * @author lm
  * @date 2025/7/11 11:11
  */
-@Component
 public class CryptoUtils {
     private static final PrivateKey privateKey;
 
