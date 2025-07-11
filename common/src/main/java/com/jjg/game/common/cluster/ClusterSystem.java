@@ -2,7 +2,6 @@ package com.jjg.game.common.cluster;
 
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.*;
-import com.jjg.game.common.curator.*;
 import com.jjg.game.common.gate.GateClusterMessageDispacher;
 import com.jjg.game.common.message.SwitchNodeMessage;
 import com.jjg.game.common.net.NetAddress;
@@ -497,14 +496,14 @@ public class ClusterSystem implements MarsNodeListener, TimerListener {
         }
     }
 
-    public int cluserSessionSize(){
+    public int clusterSessionSize(){
         return sessionMap.size();
     }
 
     @Override
     public void onTimer(TimerEvent e) {
         if (e == clusterSystemEvent) {
-            log.info("节点权重={},当前session数量={}", nodeConfig.weight, cluserSessionSize());
+            log.info("节点权重={},当前session数量={}", nodeConfig.weight, clusterSessionSize());
             if (nodeConfig.weight == 0 && sessionMap.isEmpty()) {
                 System.exit(0);
             }

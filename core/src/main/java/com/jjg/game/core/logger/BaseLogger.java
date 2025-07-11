@@ -38,6 +38,21 @@ public class BaseLogger {
         }
     }
 
+
+    public void gmOrder(String order, Long playerId, String result) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("logType", "gm");
+            json.put("order", order);
+            json.put("playerId", playerId);
+            json.put("result", result);
+            sendLog(null, json);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+
     /**
      * 金币变化
      *
