@@ -22,6 +22,11 @@ public class GameConstant {
         public static final int ROOM_ID_MAX = 999999;
     }
 
+
+    public interface Redis {
+        //游戏状态rediskey
+        String GAME_STATUS_KEY = "gm:gamelistconfig";
+    }
     //登录类型
     public class LoginType{
         //游客

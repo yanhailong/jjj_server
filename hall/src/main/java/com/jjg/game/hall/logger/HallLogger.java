@@ -28,4 +28,7 @@ public class HallLogger extends BaseLogger {
             log.error("记录login登录日志异常",e);
         }
     }
+
+
+
 }

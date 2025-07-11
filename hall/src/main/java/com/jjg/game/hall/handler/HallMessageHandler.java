@@ -6,11 +6,14 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GMResCode;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.constant.HallCode;
 import com.jjg.game.hall.constant.HallConstant;
@@ -47,7 +50,8 @@ public class HallMessageHandler implements GmListener {
     private NodeManager nodeManager;
     @Autowired
     private HallService hallService;
-
+    @Autowired
+    private GameStatusService gameStatusService;
 
     /**
      * 进入游戏
@@ -64,7 +68,12 @@ public class HallMessageHandler implements GmListener {
                 log.debug("游戏类型错误，选择游戏失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
                 return;
             }
-
+            //如果游戏状态下架或者已经关闭禁止进入
+            if (!hallService.canJoinGame(req.gameType)) {
+                res.code = Code.FORBID;
+                log.debug("游戏已关闭，选择游戏失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
+                return;
+            }
             List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(req.gameType);
             if (wareHouseConfigList == null || wareHouseConfigList.isEmpty()) {
                 res.code = Code.NOT_FOUND;
@@ -97,7 +106,12 @@ public class HallMessageHandler implements GmListener {
                 playerController.send(res);
                 return;
             }
-
+            //如果游戏状态下架或者已经关闭禁止进入
+            if (!hallService.canJoinGame(req.gameType)) {
+                res.code = Code.FORBID;
+                log.debug("游戏已关闭，选择游戏失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
+                return;
+            }
             List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(req.gameType);
             if (wareHouseConfigList == null || wareHouseConfigList.isEmpty()) {
                 res.code = Code.NOT_FOUND;
@@ -147,13 +161,14 @@ public class HallMessageHandler implements GmListener {
     }
 
     @Override
-    public String gm(PlayerController playerController, String cmd, String params) {
+    public Pair<Boolean, String> gm(long playerId, String cmd, String params) {
         try {
-            log.debug("收到gm命令 playerId = {},cmd = {},params = {}", playerController.playerId(), cmd, params);
-            if ("enterGame".equals(cmd)) {
-                ReqChooseGame req = new ReqChooseGame();
-                req.gameType = Integer.parseInt(params);
-                reqChooseGame(playerController, req);
+            log.debug("收到gm命令 playerId = {},cmd = {},params = {}", playerId, cmd, params);
+            switch (cmd) {
+                case "changeGameStatus" -> {
+                    hallService.loadGameStatuses(gameStatusService.getAllGameStatus());
+                    return new Pair<>(true, GMResCode.SUCCESS);
+                }
             }
 
         } catch (Exception e) {
