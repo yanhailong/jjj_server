@@ -10,9 +10,9 @@ import org.hibernate.validator.constraints.Range;
 public record GameStatusDto(
         @Positive(message = "游戏id不能为负")
         int number,
-        @Range(max = 1, message = "开放状态只能为0或1")
+        @Range(min = 1, max = 2, message = "开放状态只能为1(开放)或2(不开放)")
         int open,
-        @Range(max = 1, message = "上下架状态只能为0或1")
+        @Range(min = 1, max = 2, message = "上下架状态只能为1(上架)或2(下架)")
         int status,
         //角标
         String right_top_icon) {
