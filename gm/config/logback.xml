@@ -12,7 +12,7 @@
         </appender>
         <!-- ch.qos.logback.core.rolling.RollingFileAppender 文件日志输出 -->
         <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
-                <File>${LOG_HOME}/hall.log</File>
+                <File>${LOG_HOME}/gm.log</File>
                 <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
                         <FileNamePattern>${LOG_HOME}/hall-%d{yyyy-MM-dd}.log</FileNamePattern>
                 </rollingPolicy>

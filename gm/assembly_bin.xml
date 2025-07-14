@@ -1,0 +1,20 @@
+<assembly>
+    <!-- 项目打成Zip包的Id -->
+    <id>gm</id>
+    <formats>
+        <!-- 包的后缀 -->
+        <format>zip</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <dependencySets>
+        <!-- 项目依赖包的输出目录，下面为当前目录的lib文件夹下 -->
+        <dependencySet>
+            <outputDirectory>/lib</outputDirectory>
+            <includes>
+                <include>*JJG-RELEASES*</include>
+                <include>*common*</include>
+                <include>org.bouncycastle:*</include>
+            </includes>
+        </dependencySet>
+    </dependencySets>
+</assembly>
