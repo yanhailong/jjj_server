@@ -2,16 +2,15 @@ package com.jjg.game.core.handler;
 
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.MessageConst;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.pb.ReqGm;
 import com.jjg.game.core.pb.ResGm;
@@ -22,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * @author 11
@@ -39,110 +37,110 @@ public class CoreMessageHandler {
     private CorePlayerService playerService;
     @Autowired
     private CoreSendMessageManager coreSendMessageManager;
-    @Autowired
-    private CoreLogger coreLogger;
 
     /**
+     * @param playerController
      * @param req
      */
     @Command(MessageConst.CoreMessage.REQ_GM)
-    public void reqGm(ReqGm req) {
-        log.info("收到gm消息 playerId:{} order:{}", req.playerId, req.order);
-        try {
-            if (!nodeConfig.isGm()) {
-                coreLogger.gmOrder(req.order, req.playerId, "gm功能已经关闭");
-                log.info("gm功能已经关闭 playerId:{} order:{}", req.playerId, req.order);
+    public void reqGm(PlayerController playerController, ReqGm req){
+        ResGm res = new ResGm(Code.SUCCESS);
+        try{
+            if(!nodeConfig.isGm()){
+                res.code = Code.FORBID;
+                playerController.send(res);
+                log.debug("gm功能已经关闭 playerId = {}", playerController.playerId());
                 return;
             }
 
-            if (req.order.isEmpty()) {
-                coreLogger.gmOrder(req.order, req.playerId, "参数错误，使用gm失败");
-                log.info("参数错误，使用gm失败 playerId:{} order:{}", req.playerId, req.order);
+            if(req.order.length() < 1){
+                res.code = Code.PARAM_ERROR;
+                playerController.send(res);
+                log.debug("参数错误，使用gm失败 playerId = {},order = {}", playerController.playerId(),req.order);
                 return;
             }
 
             String[] arr = req.order.split(" ");
-            if (arr.length < 1) {
-                coreLogger.gmOrder(req.order, req.playerId, "参数错误2，使用gm失败");
-                log.info("参数错误2，使用gm失败 playerId = {},order = {}", req.playerId, req.order);
+            if(arr.length < 1){
+                res.code = Code.PARAM_ERROR;
+                playerController.send(res);
+                log.debug("参数错误2，使用gm失败 playerId = {},order = {}", playerController.playerId(),req.order);
                 return;
             }
 
             String cmd = arr[0];
             String params = arr.length > 1 ? arr[1] : null;
 
-            Map<String, GmListener> map = CommonUtil.getContext().getBeansOfType(GmListener.class);
-            //执行结果
-            Pair<Boolean, String> result = null;
-            for (GmListener listener : map.values()) {
-                result = listener.gm(req.playerId, cmd, params);
-                if (Objects.nonNull(result) && result.getFirst()) {
-                    break;
-                }
+            if("addGold".equals(cmd)){
+                addGold(res, playerController, req.order,params);
+            }else if("addDiamond".equals(cmd)){
+                addDiamond(res, playerController, req.order,params);
+            }else {
+                Map<String, GmListener> map = CommonUtil.getContext().getBeansOfType(GmListener.class);
+                map.forEach((k,v) -> {
+                    res.result = v.gm(playerController,cmd,params);
+                    playerController.send(res);
+                });
+                log.info("执行gm命令成功1 playerId = {},order = {}", playerController.playerId(),req.order);
+                return;
             }
-            if (Objects.isNull(result)) {
-                coreLogger.gmOrder(req.order, req.playerId, "执行gm命令失败,未找到处理逻辑");
-                log.info("执行gm命令失败 playerId = {},order = {}", req.playerId, req.order);
-            } else {
-                coreLogger.gmOrder(req.order, req.playerId, result.getSecond());
-                log.info("执行gm命令成功 playerId = {},order = {} result = {}", req.playerId, req.order, result.getSecond());
-            }
-        } catch (Exception e) {
+            playerController.send(res);
+            log.info("执行gm命令成功2 playerId = {},order = {}", playerController.playerId(),req.order);
+        }catch (Exception e){
             log.error("", e);
+            res.code = Code.EXCEPTION;
+            playerController.send(res);
         }
-
     }
 
     /**
      * gm修改金币
-     *
      * @param res
      * @param playerController
      * @param order
      * @param params
      * @throws Exception
      */
-    public void addGold(ResGm res, PlayerController playerController, String order, String params) throws Exception {
-        if (params == null || params.isEmpty()) {
+    public void addGold(ResGm res,PlayerController playerController,String order,String params) throws Exception{
+        if(params == null || params.isEmpty()){
             res.code = Code.PARAM_ERROR;
-            log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(), order);
+            log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(),order);
             return;
         }
 
         Long num = Long.parseLong(params);
         CommonResult<Player> result = playerService.addGold(playerController.playerId(), num, "gmAdd", null);
-        if (!result.success()) {
+        if(!result.success()){
             res.code = result.code;
-            log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
+            log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(),order,result.code);
             return;
         }
 
-        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(), result.data.getDiamond());
+        coreSendMessageManager.packMoneyChangeMessage(playerController,result.data.getGold(),result.data.getDiamond());
     }
 
     /**
      * gm修改钻石
-     *
      * @param res
      * @param playerController
      * @param order
      * @param params
      * @throws Exception
      */
-    public void addDiamond(ResGm res, PlayerController playerController, String order, String params) throws Exception {
-        if (params == null || params.isEmpty()) {
+    public void addDiamond(ResGm res,PlayerController playerController,String order,String params) throws Exception{
+        if(params == null || params.isEmpty()){
             res.code = Code.PARAM_ERROR;
-            log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(), order);
+            log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(),order);
             return;
         }
 
         Long num = Long.parseLong(params);
         CommonResult<Player> result = playerService.addDiamond(playerController.playerId(), num, "gmAdd", null);
-        if (!result.success()) {
+        if(!result.success()){
             res.code = result.code;
-            log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
+            log.debug("使用gm失败 playerId = {},order = {},code = {}",playerController.playerId(),order,result.code);
             return;
         }
-        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(), result.data.getDiamond());
+        coreSendMessageManager.packMoneyChangeMessage(playerController,result.data.getGold(),result.data.getDiamond());
     }
 }

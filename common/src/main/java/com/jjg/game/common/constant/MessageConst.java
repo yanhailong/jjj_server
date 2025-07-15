@@ -26,7 +26,7 @@ public interface MessageConst {
 
         //大厅
         int HALL_TYPE = 0x6;
-        
+
         //美元快递
         int DOLLAR_EXPRESS_TYPE = 0x7;
         //森林人
@@ -134,6 +134,8 @@ public interface MessageConst {
      * 服务器之间
      */
     interface ToServer {
-//        int TYPE = MessageTypeDef.TO_SERVER_CONST_TYPE;
+        int BASE_MSG_PREFIX = MessageTypeDef.TO_SERVER_CONST_TYPE << MessageCommon.RIGHT_MOVE;
+        int REQ_REFRESH_GAME_STATUS = BASE_MSG_PREFIX | 0x1;
+
     }
 }

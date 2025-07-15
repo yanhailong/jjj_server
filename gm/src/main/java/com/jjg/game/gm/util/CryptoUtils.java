@@ -114,4 +114,34 @@ public class CryptoUtils {
         return DigestUtils.md5Hex(builder.toString()).toUpperCase();
     }
 
+    public static void main(String[] args) throws Exception {
+        PrivateKey privateKey = CryptoUtils.loadPrivateKey(Path.of(System.getProperty("user.dir"), "/config/private_key.pem"));
+        PublicKey publicKey = CryptoUtils.loadPublicKey(Path.of(System.getProperty("user.dir"), "/config/public_key.pem"));
+        String data = """
+                {"number":8888888,"open":0,"status":0,"right_top_icon":"new"}""";
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, Object> map = objectMapper.readValue(data, new TypeReference<>() {
+        });
+        List<String> keyList = map.keySet().stream().sorted().toList();
+        StringBuilder builder = new StringBuilder();
+        for (String key : keyList) {
+            Object value = map.get(key);
+            if (Objects.nonNull(value)) {
+                builder.append(key)
+                        .append("=")
+                        .append(value);
+                if (!key.equals(keyList.get(keyList.size() - 1))) {
+                    builder.append("&");
+                }
+            }
+        }
+        System.out.println(builder);
+        String md5String = DigestUtils.md5Hex(builder.toString()).toUpperCase();
+        System.out.println(md5String);
+
+        String encrypt = CryptoUtils.encrypt(md5String, publicKey);
+        System.out.println(encrypt);
+        System.out.println(CryptoUtils.decrypt("""
+                deZaJ+FDs43K3UvieBuK5mlNznO3bz4hJo6dNhfMcG9qlP1l2LqPRRIMk8k4aGFnUEwVLLtAao9pVAdtEZ0iT4+wFEIEV9Vx8owlCpe/4K70Gttf8gWhhhFw14v/w9SH4Wt0vqRuR7ctjps26agW+ft5bYciLD6gFhSeZc/BfBjWLzZ1BzCCHoKcK0JUPm3ISS6OOqUFqZbnkbE0UDBxPTkTojB11OSE0a3iyovsjONPbd9I11kh9DUZgMiuDevWsT8w6ocNKnNSbJhQb248ZquiMKoQ803ZOCh3vTljY2nucEDVSkGqW9TRBYmvYV0fsWznSmigY1radl6N06QYDQ==""", privateKey));
+    }
 }

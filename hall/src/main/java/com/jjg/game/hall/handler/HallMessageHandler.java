@@ -11,7 +11,6 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.GMResCode;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.GameStatusService;
@@ -164,14 +163,13 @@ public class HallMessageHandler implements GmListener {
     }
 
     @Override
-    public Pair<Boolean, String> gm(long playerId, String cmd, String params) {
+    public String gm(PlayerController playerController, String cmd, String params) {
         try {
-            log.debug("收到gm命令 playerId = {},cmd = {},params = {}", playerId, cmd, params);
-            switch (cmd) {
-                case "changeGameStatus" -> {
-                    hallService.loadGameStatuses(gameStatusService.getAllGameStatus());
-                    return new Pair<>(true, GMResCode.SUCCESS);
-                }
+            log.debug("收到gm命令 playerId = {},cmd = {},params = {}", playerController.playerId(), cmd, params);
+            if ("enterGame".equals(cmd)) {
+                ReqChooseGame req = new ReqChooseGame();
+                req.gameType = Integer.parseInt(params);
+                reqChooseGame(playerController, req);
             }
 
         } catch (Exception e) {
