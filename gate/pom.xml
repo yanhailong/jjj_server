@@ -21,7 +21,7 @@
 
         <maven.build.timestamp.format>yyyy-MM-dd</maven.build.timestamp.format>
         <update.patch>/data/game/gate</update.patch>
-        <update.assembly>assembly_bin.xml</update.assembly>
+        <update.assembly>assembly_all.xml</update.assembly>
     </properties>
 
     <dependencies>
