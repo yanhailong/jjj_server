@@ -80,7 +80,7 @@ public class DollarExpressFreeGame {
         this.goldTrainCount = goldTrainCount;
     }
 
-    public DollarInfo getDollarCashInfo() {
+    public DollarInfo getDollarInfo() {
         return dollarInfo;
     }
 

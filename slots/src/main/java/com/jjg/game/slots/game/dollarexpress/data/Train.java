@@ -8,17 +8,17 @@ import java.util.List;
  * @date 2025/7/8 11:10
  */
 public class Train {
-    private int specialAuxiliaryId;
+    private int trainIconId;
     //车厢
     private List<int[]> coachs;
     private int poolId;
 
-    public int getSpecialAuxiliaryId() {
-        return specialAuxiliaryId;
+    public int getTrainIconId() {
+        return trainIconId;
     }
 
-    public void setSpecialAuxiliaryId(int specialAuxiliaryId) {
-        this.specialAuxiliaryId = specialAuxiliaryId;
+    public void setTrainIconId(int trainIconId) {
+        this.trainIconId = trainIconId;
     }
 
     public List<int[]> getCoachs() {

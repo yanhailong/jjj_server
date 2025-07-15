@@ -12,6 +12,25 @@ public interface DollarExpressConstant {
         int[] SUPPORT_GAME_TYPES = {CoreConst.GameType.DOLLAR_EXPRESS};
     }
 
+    interface Status{
+        int NORMAL = 0;
+        //处于普通二选一
+        int NOTMAL_ALL_BOARD = 1;
+        //处于黄金列车二选一
+        int GOLD_ALL_BOARD = 2;
+        //二选一之拉普通火车
+        int ALL_BOARD_TRAIN = 3;
+        //二选一之拉黄金火车
+        int ALL_BOARD_GOLD_TRAIN = 4;
+        //二选一之免费模式
+        int ALL_BOARD_FREE = 5;
+        //投资模式
+        int INVERS = 6;
+    }
+
+    /**
+     * 基础元素
+     */
     interface BaseElement{
         //金火车
         int ID_GOLD_TRAIN = 15;

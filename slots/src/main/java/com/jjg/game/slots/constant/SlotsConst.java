@@ -11,6 +11,11 @@ import java.math.BigDecimal;
  */
 public interface SlotsConst {
 
+    interface GameType{
+        //支持的游戏
+        int[] SUPPORT_GAME_TYPES = {CoreConst.GameType.DOLLAR_EXPRESS};
+    }
+
 
     interface Common {
         //excel配置所在目录
@@ -27,6 +32,9 @@ public interface SlotsConst {
 
         //首次玩某个slots游戏，应该使用的模式id
         int FIRST_GAME_GET_MODEL_ID = 4;
+
+        //获取lib失败，总计可尝试次数
+        int GET_LIB_FAIL_RETRY_COUNT = 5;
     }
 
     interface BaseElement{

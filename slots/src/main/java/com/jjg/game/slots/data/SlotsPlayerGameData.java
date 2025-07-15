@@ -16,6 +16,8 @@ public class SlotsPlayerGameData {
     protected int wareId;
     //是否玩过该slots游戏
     protected AtomicBoolean hasPlaySlots = new AtomicBoolean(false);
+    //当前所处状态(美元快递) 0.正常  1.二选一  2.正在免费旋转
+    protected int status;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -51,5 +53,13 @@ public class SlotsPlayerGameData {
 
     public long playerId(){
         return playerController.playerId();
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
     }
 }

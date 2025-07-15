@@ -27,6 +27,8 @@ public class DollarExpressResultLib extends SlotsResultLib<DollarExpressAwardLin
     private int goldTrainCount;
     //美元现金奖励
     private DollarInfo dollarInfo;
+    //是否会触发二选一
+    private boolean chooseOne;
 
     public List<Train> getTrainList() {
         return trainList;
@@ -60,7 +62,7 @@ public class DollarExpressResultLib extends SlotsResultLib<DollarExpressAwardLin
         this.againGameMap = againGameMap;
     }
 
-    public DollarInfo getDollarCashInfo() {
+    public DollarInfo getDollarInfo() {
         return dollarInfo;
     }
 
@@ -133,6 +135,14 @@ public class DollarExpressResultLib extends SlotsResultLib<DollarExpressAwardLin
         lib.setGameType(this.gameType);
         lib.setRollerMode(this.rollerMode);
         return lib;
+    }
+
+    public boolean isChooseOne() {
+        return chooseOne;
+    }
+
+    public void setChooseOne(boolean chooseOne) {
+        this.chooseOne = chooseOne;
     }
 
     @Override

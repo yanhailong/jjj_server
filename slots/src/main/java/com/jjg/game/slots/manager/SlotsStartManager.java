@@ -1,15 +1,15 @@
 package com.jjg.game.slots.manager;
 
-import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.room.listener.IRoomStartListener;
+import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.game.dollarexpress.constant.DollarExpressConstant;
-import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGameManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 
 /**
@@ -25,13 +25,11 @@ public class SlotsStartManager implements IRoomStartListener {
     private SlotsSampleManager slotsSampleManager;
     @Autowired
     private SlotsPoolDao slotsPoolDao;
-    @Autowired
-    private DollarExpressGameManager dollarExpressGameManager;
+
 
     @Override
     public int[] getGameTypes() {
-//        return SlotsConst.GameType.SUPPORT_GAME_TYPES;
-        return new int[]{CoreConst.GameType.DOLLAR_EXPRESS};
+        return SlotsConst.GameType.SUPPORT_GAME_TYPES;
     }
 
     @Override
@@ -40,12 +38,21 @@ public class SlotsStartManager implements IRoomStartListener {
 
         this.slotsSampleManager.init();
         this.slotsPoolDao.initPool();
-        dollarExpressGameManager.init(CoreConst.GameType.DOLLAR_EXPRESS);
-//        this.dollarExpressManager.init();
+        initGameManager();
     }
 
     @Override
     public void shutdown() {
         log.info("正在关闭slots游戏...");
+    }
+
+    /**
+     * 初始化游戏管理器
+     */
+    private void initGameManager(){
+        Map<String, AbstractSlotsGameManager> gameManagerMap = CommonUtil.getContext().getBeansOfType(AbstractSlotsGameManager.class);
+        for(Map.Entry<String, AbstractSlotsGameManager> en : gameManagerMap.entrySet()){
+            en.getValue().init();
+        }
     }
 }

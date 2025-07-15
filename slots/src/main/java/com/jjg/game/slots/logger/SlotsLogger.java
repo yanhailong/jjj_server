@@ -3,7 +3,7 @@ package com.jjg.game.slots.logger;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
-import com.jjg.game.slots.game.dollarexpress.data.GameRunInfo;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,7 +16,7 @@ public class SlotsLogger extends BaseLogger {
      * 游戏开奖结果
      * @param player
      */
-    public void gameResult(Player player, GameRunInfo gameRunInfo){
+    public void gameResult(Player player, DollarExpressGameRunInfo dollarExpressGameRunInfo){
         try{
             JSONObject json = new JSONObject();
             json.put("logType","dollarExpressResult");

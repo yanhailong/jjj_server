@@ -24,4 +24,16 @@ public class SlotsPoolDao extends AbstractPoolDao {
             this.redisTemplate.opsForHash().putIfAbsent(tableName, cfg.getRoomName(), cfg.getInitBasePool());
         }
     }
+
+    /**
+     * 给池子加钱,池子可以为负
+     * @param roomName
+     * @param value
+     */
+    public Long addToPool(int gameType,int roomName,long value) {
+        if(value == 0){
+            return null;
+        }
+        return this.redisTemplate.opsForHash().increment(tableName(gameType), roomName, value);
+    }
 }
