@@ -1,6 +1,6 @@
 <assembly>
     <!-- 项目打成Zip包的Id -->
-    <id></id>
+    <id>gm</id>
     <formats>
         <!-- 包的后缀 -->
         <format>zip</format>
