@@ -1,5 +1,6 @@
 package com.jjg.game.hall.handler;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
@@ -83,6 +84,7 @@ public class HallMessageHandler implements GmListener {
 
             res.wareHouseList = wareHouseConfigList;
             playerController.send(res);
+            log.info("玩家选择游戏，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
         }
@@ -155,6 +157,7 @@ public class HallMessageHandler implements GmListener {
             //切换节点
             clusterSystem.switchNode(playerController.session, node);
             playerController.send(res);
+            log.info("玩家选择chang，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
         }

@@ -458,7 +458,7 @@ public class MarsCurator implements TreeCacheListener {
                     return true;
                 }
 
-                if(NodeType.GATE.name().equals(this.nodeConfig.getType()) || NodeType.HALL.name().equals(this.nodeConfig.getType())){
+                if(NodeType.GATE.name().equals(this.nodeConfig.getType()) || NodeType.HALL.name().equals(this.nodeConfig.getType()) || NodeType.GM.name().equals(this.nodeConfig.getType())){
                     return true;
                 }
 

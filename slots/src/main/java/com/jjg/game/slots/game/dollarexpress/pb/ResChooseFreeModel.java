@@ -13,9 +13,6 @@ import com.jjg.game.slots.constant.SlotsConst;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE, cmd = SlotsConst.MsgBean.RES_CHOOSE_FREE_MODEL,resp = true)
 @ProtoDesc("返回选择免费模式的游戏")
 public class ResChooseFreeModel extends AbstractResponse {
-    @ProtoDesc("火车模式")
-    public TrainInfo trainInfo;
-
 
     public ResChooseFreeModel(int code) {
         super(code);

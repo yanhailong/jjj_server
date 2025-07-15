@@ -1,15 +1,6 @@
 package com.jjg.game.slots.game.dollarexpress.data;
 
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 玩家游戏数据
@@ -17,89 +8,69 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2025/6/10 18:07
  */
 public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
-    private static final Logger log = LoggerFactory.getLogger(DollarExpressPlayerGameData.class);
 
     //最近一次的押注
-    private long lastBetValue;
-    //特殊模式
-    private int specialType;
-    //最近一次走特殊中奖时记录的 resultShowId
-    private int resultShowId;
-    //免费模式-中金火车
-    private boolean goldTrainInFree;
-
-    //是否能选择免费游戏模式
-    private AtomicBoolean canChooseFreeType = new AtomicBoolean(false);
-    //剩余免费次数
-    private AtomicInteger reaminFreeCount = new AtomicInteger(0);
-    //出现美金的次数
-    private AtomicInteger showDollarCount = new AtomicInteger(0);
-    //出现美金的平均金额
-    private BigDecimal showDollarValueAve = new BigDecimal(0);
+    private long lastBet;
+    //记录lib中againGameMap中的key
+    private int lastAgainGameIndex = -1;
+    //记录lib中freeGameMap中的key
+    private int lastFreeGameIndex = -1;
+    //获取的结果库
+    private DollarExpressResultLib lib;
+    //累计的美钞数量
+    private int totalDollars;
 
 
-    public int getSpecialType() {
-        return specialType;
+    public long getLastBet() {
+        return lastBet;
     }
 
-    public void setSpecialType(int specialType) {
-        this.specialType = specialType;
+    public void setLastBet(long lastBet) {
+        this.lastBet = lastBet;
     }
 
-    public AtomicBoolean getCanChooseFreeType() {
-        return canChooseFreeType;
+    public int getLastAgainGameIndex() {
+        return lastAgainGameIndex;
     }
 
-    public boolean isGoldTrainInFree() {
-        return goldTrainInFree;
+    public void setLastAgainGameIndex(int lastAgainGameIndex) {
+        this.lastAgainGameIndex = lastAgainGameIndex;
     }
 
-    public void setGoldTrainInFree(boolean goldTrainInFree) {
-        this.goldTrainInFree = goldTrainInFree;
+    public int getLastFreeGameIndex() {
+        return lastFreeGameIndex;
     }
 
-    public int addFreeCount(int count){
-        return this.reaminFreeCount.addAndGet(count);
+    public void setLastFreeGameIndex(int lastFreeGameIndex) {
+        this.lastFreeGameIndex = lastFreeGameIndex;
     }
 
-    public void setFreeCount(int count){
-        this.reaminFreeCount.set(count);
+    public DollarExpressResultLib getLib() {
+        return lib;
     }
 
-    public int getResultShowId() {
-        return resultShowId;
-    }
-
-    public void setResultShowId(int resultShowId) {
-        this.resultShowId = resultShowId;
-    }
-
-    public long getLastBetValue() {
-        return lastBetValue;
-    }
-
-    public void setLastBetValue(long lastBetValue) {
-        this.lastBetValue = lastBetValue;
-    }
-
-    public AtomicInteger getShowDollarCount() {
-        return showDollarCount;
+    public void setLib(DollarExpressResultLib lib) {
+        this.lib = lib;
     }
 
 
-    public int addShowDollarCount(int count){
-        return this.showDollarCount.addAndGet(count);
+
+    public void addLastAgainGameIndex(){
+        this.lastAgainGameIndex++;
+    }
+    public void addLastFreeGameIndex(){
+        this.lastFreeGameIndex++;
     }
 
-    public void addShowDollarValue(long value){
-        BigDecimal v = BigDecimal.valueOf(value);
-        this.showDollarValueAve = this.showDollarValueAve.add(v).divide(SlotsConst.Common.BIGDECIMAL_TWO).setScale(0, RoundingMode.HALF_UP);
+    public int getTotalDollars() {
+        return totalDollars;
     }
 
-    public long getShowDollarValueAve() {
-        if(this.showDollarValueAve == null){
-            return 0;
-        }
-        return this.showDollarValueAve.longValue();
+    public void setTotalDollars(int totalDollars) {
+        this.totalDollars = totalDollars;
+    }
+
+    public void addDollasCount(int count){
+        this.totalDollars += count;
     }
 }

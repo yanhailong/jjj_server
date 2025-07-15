@@ -1,14 +1,18 @@
 package com.jjg.game.slots.manager;
 
+import com.jjg.game.common.timer.TimerCenter;
+import com.jjg.game.common.timer.TimerEvent;
+import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.PropInfo;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
+import com.jjg.game.slots.data.SlotsResultLib;
 import com.jjg.game.slots.sample.GameDataManager;
 import com.jjg.game.slots.sample.bean.BaseRoomCfg;
 import com.jjg.game.slots.sample.bean.SpecialResultLibCfg;
@@ -30,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author 11
  * @date 2025/7/1 16:42
  */
-public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> {
+public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> implements TimerListener {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -39,6 +43,15 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> {
     protected PlayerHistorySlotsDao historySlotsDao;
     @Autowired
     protected SlotsPoolDao slotsPoolDao;
+    @Autowired
+    protected TimerCenter timerCenter;
+
+    protected TimerEvent<String> clearLibEvent;
+    protected int gameType;
+    //在specualResultLib
+    protected int norRewardSectionIndex = -1;
+
+
     //标记是否正在生成结果库
     protected AtomicBoolean generate = new AtomicBoolean(false);
 
@@ -64,14 +77,19 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> {
         this.playerGameDataClass = playerGameDataClass;
     }
 
-    public void init(int gameType) {
-        initConfig(gameType);
+    public void init(){
+
     }
 
-    protected void initConfig(int gameType) {
-        baseRoomConfig(gameType);
-        specialResultLibMap(gameType);
-        log.info("配置重新计算结束 gameType = {}", gameType);
+    protected void init(int gameType) {
+        this.gameType = gameType;
+        initConfig();
+    }
+
+    protected void initConfig() {
+        baseRoomConfig(this.gameType);
+        specialResultLibMap(this.gameType);
+        log.info("配置重新计算结束 gameType = {}", this.gameType);
     }
 
     /**
@@ -227,35 +245,47 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> {
 
     /**
      * 获取 specialResultLib 中的倍数区间
-     * @param gameType
      * @param modelId
-     * @param type  specialResultLib 中的type
+     * @param libType  specialResultLib 中的type
      * @return
      */
-    protected CommonResult<int[]> getResultLibSection(int gameType,int modelId,int type) {
-        CommonResult<int[]> result = new CommonResult<>(Code.SUCCESS);
+    protected CommonResult<Integer> getResultLibSection(int modelId,int libType) {
+        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
         Map<Integer, PropInfo> tempPropMap = this.resultLibSectionPropMap.get(modelId);
         if(tempPropMap == null){
-            log.debug("未找到 specialResultLib 中 section 相关的权重信息1 modelId = {},gameType = {},type = {}", modelId, gameType,type);
+            log.debug("未找到 specialResultLib 中 section 相关的权重信息1 modelId = {},gameType = {},libType = {}", modelId, this.gameType,libType);
             result.code = Code.NOT_FOUND;
             return result;
         }
-        PropInfo propInfo = tempPropMap.get(type);
+        PropInfo propInfo = tempPropMap.get(libType);
         if(propInfo == null){
-            log.debug("未找到 specialResultLib 中 section 相关的权重信息2 modelId = {},gameType = {},type = {}", modelId, gameType,type);
+            log.debug("未找到 specialResultLib 中 section 相关的权重信息2 modelId = {},gameType = {},libType = {}", modelId, this.gameType,libType);
             result.code = Code.NOT_FOUND;
             return result;
         }
         Integer index = propInfo.getRandKey();
         if(index == null){
-            log.debug("未找到 specialResultLib 中 section 相关的权重信息3 modelId = {},gameType = {},type = {},index = {}", modelId, gameType,type,index);
+            log.debug("未找到 specialResultLib 中 section 相关的权重信息3 modelId = {},gameType = {},libType = {},index = {}", modelId, this.gameType,libType,index);
             result.code = Code.FAIL;
             return result;
         }
-        result.data = this.resultLibSectionMap.get(modelId).get(type).get(index);
+        result.data = index;
+        int[] section = this.resultLibSectionMap.get(modelId).get(libType).get(index);
+        log.debug("成功获取区间 modelId = {},gameType = {},libType = {},intdex = {},sectionBegin = {},sectionEnd = {}", modelId, this.gameType,libType,index,section[0],section[1]);
         return result;
     }
 
+    @Override
+    public void onTimer(TimerEvent e) {
+        if(this.clearLibEvent == e){
+            getResultLibDao().clearLib();
+            this.clearLibEvent = null;
+        }
+    }
+
+    protected <D extends AbstractResultLibDao> D getResultLibDao() {
+        return null;
+    }
 
     /*****************************************************************************************************************************/
 
@@ -327,7 +357,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> {
                     List<String> propList = en2.getValue();
 
 
-
                     int begin = 0;
                     int end = 0;
                     for (int i = 0; i < propList.size(); i++) {
@@ -339,7 +368,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> {
                         end += Integer.parseInt(arr[1]);
                         propInfo.addProp(i, begin, end);
 
-                        sectionMap.put(i,new int[]{Integer.parseInt(arr2[0]),Integer.parseInt(arr2[1])});
+                        //倍数区间
+                        int[] tmpArr = new int[]{Integer.parseInt(arr2[0]),Integer.parseInt(arr2[1])};
+                        sectionMap.put(i,tmpArr);
+                        if(tmpArr[0] == 0 && tmpArr[1] == 1){
+                            this.norRewardSectionIndex = i;
+                        }
                     }
                     propInfo.setSum(end);
                     typeSectionPropMap.put(type, propInfo);
@@ -350,6 +384,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> {
 
         if (tempLibCfgMap.isEmpty() || tempResultLibTypePropInfoMap.isEmpty() || tempResultLibSectionPropMap.isEmpty() || tempResultLibSectionMap.isEmpty()) {
             throw new IllegalArgumentException("该游戏specialResultLib 为空,初始化失败 gameType = " + gameType);
+        }
+
+        if(this.norRewardSectionIndex < 0){
+            throw new IllegalArgumentException("该游戏specialResultLib 中没有配置0倍区间 gameType = " + gameType);
         }
         this.resultLibMap = tempLibCfgMap;
         this.resultLibTypePropInfoMap = tempResultLibTypePropInfoMap;

@@ -6,7 +6,9 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGameManager;
+import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressSendMessageManager;
 import com.jjg.game.slots.game.dollarexpress.pb.ReqChooseFreeModel;
 import com.jjg.game.slots.game.dollarexpress.pb.ReqConfigInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ReqInvestArea;
@@ -27,6 +29,9 @@ public class DollarExpressMessageHandler {
 
     @Autowired
     private DollarExpressGameManager dollarExpressManager;
+    @Autowired
+    private DollarExpressSendMessageManager sendMessageManager;
+
 
     /**
      * 请求配置信息
@@ -53,8 +58,8 @@ public class DollarExpressMessageHandler {
     public void reqStartGame(PlayerController playerController, ReqStartGame req){
         try{
             log.info("收到玩家开始游戏 playerId={},req={}",playerController.playerId(), JSONObject.toJSONString(req));
-            this.dollarExpressManager.startGame(playerController,req.stakeVlue);
-//            dollarExpressSendMessageManager.sendConfigMessage(playerController,playerController.player.getWareId());
+            DollarExpressGameRunInfo dollarExpressGameRunInfo = this.dollarExpressManager.startGame(playerController, req.stakeVlue);
+            sendMessageManager.sendStartGameMessage(playerController, dollarExpressGameRunInfo);
         }catch (Exception e){
             log.error("", e);
         }
@@ -69,8 +74,8 @@ public class DollarExpressMessageHandler {
     public void reqChooseFreeModel(PlayerController playerController, ReqChooseFreeModel req){
         try{
             log.info("收到选择免费游戏类型 playerId={},req={}",playerController.playerId(), JSONObject.toJSONString(req));
-//            GameRunInfo gameRunInfo = dollarExpressManager.chooseFreeGameType(playerController.playerId(), req.type);
-//            dollarExpressSendMessageManager.sendChooseFreeTypeMessage(playerController,gameRunInfo);
+            DollarExpressGameRunInfo gameRunInfo = dollarExpressManager.chooseFreeGameType(playerController, req.status);
+            sendMessageManager.sendChooseOneMessage(playerController,gameRunInfo);
         }catch (Exception e){
             log.error("", e);
         }

@@ -149,7 +149,7 @@ public class ConnectPool<T extends NettyConnect> implements ConnectListener, Tim
         }*/
             bootstrap.connect(netAddress.getHost(), netAddress.getPort());
         }else {
-            bootstrap.connect().addListener(this);
+            bootstrap.connect(netAddress.getHost(), netAddress.getPort()).addListener(this);
         }
     }
 

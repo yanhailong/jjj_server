@@ -15,7 +15,7 @@ public class ResultLineInfo {
     @ProtoDesc("中奖线id")
     public int id;
     @ProtoDesc("这条线上中奖图标的坐标")
-    public List<Integer> indexList;
+    public int sameCount;
     @ProtoDesc("倍率")
     public int times;
     @ProtoDesc("中奖金币")
