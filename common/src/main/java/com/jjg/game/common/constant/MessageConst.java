@@ -126,6 +126,7 @@ public interface MessageConst {
         //登录
         int REQ_GM = BASE_MSG_PREFIX | 0x1;
         int RES_GM = BASE_MSG_PREFIX | 0x2;
+
         //通知金钱变化
         int NOTICE_MONEY_CHANGE = BASE_MSG_PREFIX | 0x99;
     }
@@ -134,6 +135,10 @@ public interface MessageConst {
      * 服务器之间
      */
     interface ToServer {
-//        int TYPE = MessageTypeDef.TO_SERVER_CONST_TYPE;
+        int BASE_MSG_PREFIX = MessageTypeDef.TO_SERVER_CONST_TYPE << MessageCommon.RIGHT_MOVE;
+
+        //退出游戏
+        int REQ_EXIT_GAME = BASE_MSG_PREFIX | 0x1;
+        int RES_EXIT_GAME = BASE_MSG_PREFIX | 0x2;
     }
 }
