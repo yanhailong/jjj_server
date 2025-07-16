@@ -44,7 +44,9 @@ public class BaseLogger {
             JSONObject json = new JSONObject();
             json.put("logType", "gm");
             json.put("order", order);
-            json.put("playerId", playerId);
+            if (playerId != null) {
+                json.put("playerId", playerId);
+            }
             json.put("result", result);
             sendLog(null, json);
         } catch (Exception e) {

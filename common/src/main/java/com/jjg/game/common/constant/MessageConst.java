@@ -26,7 +26,7 @@ public interface MessageConst {
 
         //大厅
         int HALL_TYPE = 0x6;
-        
+
         //美元快递
         int DOLLAR_EXPRESS_TYPE = 0x7;
         //森林人
@@ -126,7 +126,6 @@ public interface MessageConst {
         //登录
         int REQ_GM = BASE_MSG_PREFIX | 0x1;
         int RES_GM = BASE_MSG_PREFIX | 0x2;
-
         //通知金钱变化
         int NOTICE_MONEY_CHANGE = BASE_MSG_PREFIX | 0x99;
     }
@@ -136,9 +135,10 @@ public interface MessageConst {
      */
     interface ToServer {
         int BASE_MSG_PREFIX = MessageTypeDef.TO_SERVER_CONST_TYPE << MessageCommon.RIGHT_MOVE;
+        int REQ_REFRESH_GAME_STATUS = BASE_MSG_PREFIX | 0x1;
 
         //退出游戏
-        int REQ_EXIT_GAME = BASE_MSG_PREFIX | 0x1;
-        int RES_EXIT_GAME = BASE_MSG_PREFIX | 0x2;
+        int REQ_EXIT_GAME = BASE_MSG_PREFIX | 0x2;
+        int RES_EXIT_GAME = BASE_MSG_PREFIX | 0x3;
     }
 }

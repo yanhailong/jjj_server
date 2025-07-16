@@ -37,6 +37,10 @@ public class HallService implements ConfigExcelChangeListener {
         }
     }
 
+    public void refreshGameStatuses() {
+        loadGameStatuses(gameStatusService.getAllGameStatus());
+    }
+
     public void init() {
         initWareHouseConfigData();
         loadGameStatuses(gameStatusService.getAllGameStatus());
@@ -49,7 +53,7 @@ public class HallService implements ConfigExcelChangeListener {
     public boolean canJoinGame(int gameType) {
         GameStatus gameStatus = gameStatusesMap.get(gameType);
         if (Objects.nonNull(gameStatus)) {
-            return gameStatus.open() == 1 && gameStatus.status() == 1;
+            return gameStatus.open() == 2 && gameStatus.status() == 2;
         }
         GameListCfg gameListCfg = GameDataManager.getGameListCfg(gameType);
         if (Objects.nonNull(gameListCfg)) {
