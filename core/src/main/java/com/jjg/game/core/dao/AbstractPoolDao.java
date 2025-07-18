@@ -15,7 +15,10 @@ public abstract class AbstractPoolDao {
     @Autowired
     protected RedisTemplate redisTemplate;
 
+    //标准池
     protected final String pool_prefix = "pool:";
+    //小奖池
+    protected final String small_pool_prefix = "smallPool:";
 
     public abstract void initPool();
 
@@ -67,5 +70,8 @@ public abstract class AbstractPoolDao {
 
     protected String tableName(int gameType){
         return pool_prefix + gameType;
+    }
+    protected String smallTableName(int gameType){
+        return small_pool_prefix + gameType;
     }
 }

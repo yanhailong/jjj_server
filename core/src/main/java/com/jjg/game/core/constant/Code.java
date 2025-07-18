@@ -27,6 +27,8 @@ public interface Code {
     int NOT_ENOUGHT = 408;
     //Vip等级不足
     int VIP_NOT_ENOUGHT = 409;
+    //未知错误
+    int UNKNOWN_ERROR = 410;
 
     //服务器错误
     int EXCEPTION = 500;

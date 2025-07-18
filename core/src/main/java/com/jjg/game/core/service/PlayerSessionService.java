@@ -235,7 +235,7 @@ public class PlayerSessionService implements TimerListener {
     public PlayerSessionInfo enterGameServer(PlayerSessionInfo playerSessionInfo, int roomId) {
         onlineCount(playerSessionInfo.getPlayerId());
         playerLastGameInfo(playerSessionInfo.getPlayerId(), 0, playerSessionInfo.getGameType(), playerSessionInfo.getWareId(), roomId);
-
+        save(playerSessionInfo);
         return playerSessionInfo;
     }
 

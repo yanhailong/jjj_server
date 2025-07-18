@@ -226,6 +226,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
         PlayerController playerController = new PlayerController(session, player);
         session.setReference(playerController);
 
+        playerSessionService.changeSessionInfo(session, player);
         log.debug("玩家进入大厅节点 playerId={}", playerId);
     }
 
