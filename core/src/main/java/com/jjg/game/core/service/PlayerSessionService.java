@@ -225,10 +225,11 @@ public class PlayerSessionService implements TimerListener<String> {
         }
     }
 
-    public void changeGameType(long playerId, int gameType, int roomCfgId) {
+    public void changeGameType(long playerId, int gameType, int roomCfgId, int wareId) {
         PlayerSessionInfo info = getInfo(playerId);
         info.setGameType(gameType);
         info.setRoomCfgId(roomCfgId);
+        info.setWareId(wareId);
         save(info);
     }
 
@@ -283,12 +284,12 @@ public class PlayerSessionService implements TimerListener<String> {
         playerLastGameInfo(playerId, gameUniqueId, gameType, wareId, roomId);
     }
 
-    public void playerLastGameInfo(long playerId, int gameUniqueId, int gameType, int wareId, long roomId) {
+    public void playerLastGameInfo(long playerId, int gameUniqueId, int gameType, int roomCfgId, long roomId) {
         PlayerLastGameInfo playerLastGameInfo = new PlayerLastGameInfo();
         playerLastGameInfo.setPlayerId(playerId);
         playerLastGameInfo.setGameUniqueId(gameUniqueId);
         playerLastGameInfo.setGameType(gameType);
-        playerLastGameInfo.setWareId(wareId);
+        playerLastGameInfo.setRoomCfgId(roomCfgId);
         playerLastGameInfo.setRoomId(roomId);
         playerLastGameInfo.setNodePath(nodeManager.getNodePath());
         playerLastGameInfoDao.save(playerLastGameInfo);

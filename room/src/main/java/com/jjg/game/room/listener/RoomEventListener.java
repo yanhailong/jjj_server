@@ -132,7 +132,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
             Player player = playerService.doSave(playerId, p -> {
                 p.setGameType(tempInfo.getGameType());
-                p.setWareId(tempInfo.getRoomCfgId());
+                p.setWareId(tempInfo.getWareId());
             });
 
             info = playerSessionService.enterGameServer(info, player.getRoomId());
