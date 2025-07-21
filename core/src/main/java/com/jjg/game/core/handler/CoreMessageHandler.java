@@ -60,7 +60,8 @@ public class CoreMessageHandler {
                 return;
             }
 
-            String[] arr = req.order.trim().split("\\S+");
+
+            String[] arr = req.order.trim().split("\\s+");
             if(arr.length < 1){
                 res.code = Code.PARAM_ERROR;
                 playerController.send(res);

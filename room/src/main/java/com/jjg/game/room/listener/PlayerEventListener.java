@@ -63,7 +63,6 @@ public class PlayerEventListener implements SessionEnterListener, SessionCloseLi
 
     @Override
     public void sessionClose(PFSession session) {
-        System.out.println("sessionClose " + session.playerId);
         PlayerController playerController = (PlayerController) session.getReference();
         if (playerController == null) {
             log.warn("玩家退出游戏服务器时 playerController 为空,playerId={},sessionId={}", session.getPlayerId(), session.sessionId());
@@ -96,7 +95,6 @@ public class PlayerEventListener implements SessionEnterListener, SessionCloseLi
     @Override
     public void sessionEnter(PFSession session, long playerId) {
         try{
-            System.out.println("sessionEnter " + playerId);
             session.setPlayerId(playerId);
 
             PlayerSessionInfo info = playerSessionService.getInfo(playerId);
