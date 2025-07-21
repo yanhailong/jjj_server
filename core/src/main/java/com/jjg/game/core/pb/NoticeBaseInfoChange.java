@@ -10,7 +10,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE, cmd = MessageConst.CoreMessage.NOTICE_MONEY_CHANGE,resp = true)
 @ProtoDesc("推送金钱变化")
-public class NoticeBaseInfoChange extends AbstractMessage{
+public class NoticeBaseInfoChange extends AbstractNotice{
     @ProtoDesc("金币")
     public long gold;
     @ProtoDesc("钻石")
