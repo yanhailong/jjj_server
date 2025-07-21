@@ -10,8 +10,9 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_CLIENT_TYPE, cmd = MessageConst.ToClientConst.NOTICE_SERVER_STATUS,resp = true)
 @ProtoDesc("通知网络状态")
 public class NoticeServerStatus {
-
-    NetStatEnum result;
+    @ProtoDesc("状态码")
+    public int code = 200;
+    public NetStatEnum result;
 
     public NoticeServerStatus(NetStatEnum result) {
         this.result = result;

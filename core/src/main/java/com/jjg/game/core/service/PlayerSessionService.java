@@ -42,7 +42,8 @@ public class PlayerSessionService implements TimerListener<String> {
     public static final Map<Long, AtomicInteger> onlineMap = new ConcurrentHashMap<>();
     //session超时时间
     private static final int SESSION_TIME_OUT_MINUTES = 30;
-    private static final int ONLINE_COUNT_MINUTES = 5;
+    private static final int ONLINE_COUNT_MINUTES = 1;
+
     //在线玩家id
     //public static final String ONLINEPLAYERS = "onlinePlayerIds";
     @Autowired
@@ -235,7 +236,7 @@ public class PlayerSessionService implements TimerListener<String> {
         onlineCount(playerSessionInfo.getPlayerId());
         playerLastGameInfo(playerSessionInfo.getPlayerId(), 0, playerSessionInfo.getGameType(),
             playerSessionInfo.getRoomCfgId(), roomId);
-
+        save(playerSessionInfo);
         return playerSessionInfo;
     }
 
@@ -370,13 +371,10 @@ public class PlayerSessionService implements TimerListener<String> {
                 }
             }
         } else if (e == onlineCountEvent) {
-            for (Map.Entry<Long, AtomicInteger> en : onlineMap.entrySet()) {
-                if (en.getValue().get() < 1) {
-                    continue;
-                }
-                //log.info("打印在线人数 gamebaseinfo={},size={}",en.getKey(),en.getValue());
-//                coreLogger.online(en.getKey(),en.getValue().get(),nodeManager.nodeConfig.getTcpAddress().getHost());
-            }
+            int size = clusterSystem.clusterSessionSize();
+            log.info("打印在线人数 ,size={}", size);
+            coreLogger.online(size, nodeManager.nodeConfig.getTcpAddress().getHost());
+
         }
     }
 }

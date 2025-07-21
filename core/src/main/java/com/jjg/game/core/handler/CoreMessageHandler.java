@@ -60,7 +60,8 @@ public class CoreMessageHandler {
                 return;
             }
 
-            String[] arr = req.order.split(" ");
+
+            String[] arr = req.order.trim().split("\\s+");
             if(arr.length < 1){
                 res.code = Code.PARAM_ERROR;
                 playerController.send(res);
@@ -68,17 +69,26 @@ public class CoreMessageHandler {
                 return;
             }
 
+            if(arr.length < 2){
+                res.code = Code.PARAM_ERROR;
+                playerController.send(res);
+                log.debug("参数错误2，gm命令长度必须大于2 playerId = {},order = {}", playerController.playerId(),req.order);
+                return;
+            }
+
             String cmd = arr[0];
-            String params = arr.length > 1 ? arr[1] : null;
+            String params = arr[1];
 
             if("addGold".equals(cmd)){
                 addGold(res, playerController, req.order,params);
             }else if("addDiamond".equals(cmd)){
                 addDiamond(res, playerController, req.order,params);
+            }else if("setVip".equals(cmd)){
+                setVip(res,playerController,req.order,params);
             }else {
                 Map<String, GmListener> map = CommonUtil.getContext().getBeansOfType(GmListener.class);
                 map.forEach((k,v) -> {
-                    res.result = v.gm(playerController,cmd,params);
+                    res.result = v.gm(playerController,arr);
                     playerController.send(res);
                 });
                 log.info("执行gm命令成功1 playerId = {},order = {}", playerController.playerId(),req.order);
@@ -109,14 +119,14 @@ public class CoreMessageHandler {
         }
 
         Long num = Long.parseLong(params);
-        CommonResult<Player> result = playerService.addGold(playerController.playerId(), num, "gmAdd", null);
+        CommonResult<Player> result = playerService.addGold(playerController.playerId(), num, "gmAddGold", null);
         if(!result.success()){
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(),order,result.code);
             return;
         }
 
-        coreSendMessageManager.packMoneyChangeMessage(playerController,result.data.getGold(),result.data.getDiamond());
+        coreSendMessageManager.packMoneyChangeMessage(playerController,result.data.getGold(),result.data.getDiamond(),result.data.getVipLevel());
     }
 
     /**
@@ -135,12 +145,37 @@ public class CoreMessageHandler {
         }
 
         Long num = Long.parseLong(params);
-        CommonResult<Player> result = playerService.addDiamond(playerController.playerId(), num, "gmAdd", null);
+        CommonResult<Player> result = playerService.addDiamond(playerController.playerId(), num, "gmAddDiamond", null);
         if(!result.success()){
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}",playerController.playerId(),order,result.code);
             return;
         }
-        coreSendMessageManager.packMoneyChangeMessage(playerController,result.data.getGold(),result.data.getDiamond());
+        coreSendMessageManager.packMoneyChangeMessage(playerController,result.data.getGold(),result.data.getDiamond(),result.data.getVipLevel());
+    }
+
+    /**
+     * gm修改vip等级
+     * @param res
+     * @param playerController
+     * @param order
+     * @param params
+     * @throws Exception
+     */
+    public void setVip(ResGm res,PlayerController playerController,String order,String params) throws Exception{
+        if(params == null || params.isEmpty()){
+            res.code = Code.PARAM_ERROR;
+            log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(),order);
+            return;
+        }
+
+        Integer num = Integer.parseInt(params);
+        CommonResult<Player> result = playerService.setVip(playerController.playerId(), num, "gmSetVip", null);
+        if(!result.success()){
+            res.code = result.code;
+            log.debug("使用gm失败 playerId = {},order = {},code = {},params = {}",playerController.playerId(),order,result.code,params);
+            return;
+        }
+        coreSendMessageManager.packMoneyChangeMessage(playerController,result.data.getGold(),result.data.getDiamond(),result.data.getVipLevel());
     }
 }

@@ -17,5 +17,9 @@
         <module>common</module>
         <module>core</module>
         <module>room</module>
+        <module>gm</module>
+        <module>hall</module>
+        <module>account</module>
+        <module>gate</module>
     </modules>
 </project>

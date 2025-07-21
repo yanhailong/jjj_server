@@ -24,9 +24,14 @@ import com.jjg.game.hall.logger.HallLogger;
 import com.jjg.game.hall.pb.GameListConfig;
 import com.jjg.game.hall.pb.ReqLogin;
 import com.jjg.game.hall.pb.ResLogin;
+import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.hall.logger.HallLogger;
 import com.jjg.game.hall.sample.GameDataManager;
 import com.jjg.game.hall.sample.bean.GameListCfg;
 import com.jjg.game.hall.service.HallPlayerService;
+import com.jjg.game.core.data.Room;
+import com.jjg.game.hall.service.HallService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,9 +39,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.io.UnsupportedEncodingException;
+import java.util.*;
 
 /**
  * @author 11
@@ -60,11 +64,12 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     @Autowired
     private HallRoomDao roomDao;
     @Autowired
-    private RedisTemplate redisTemplate;
-    @Autowired
     private RedisLock redisLock;
     @Autowired
     private NodeManager nodeManager;
+    @Autowired
+    private HallService hallService;
+
 
     @Override
     public void login(PFSession session, byte[] data) {
@@ -179,7 +184,20 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private List<GameListConfig> addGameList() {
         try {
             List<GameListConfig> list = new ArrayList<>();
+            Map<Integer, GameStatus> gameStatusesMap = hallService.getGameStatusesMap();
             for (GameListCfg configCfg : GameDataManager.getGameListCfgList()) {
+                if (Objects.nonNull(gameStatusesMap)) {
+                    GameStatus gameStatus = gameStatusesMap.get(configCfg.getId());
+                    if (Objects.nonNull(gameStatus)) {
+                        GameListConfig gameListConfig = new GameListConfig();
+                        gameListConfig.sid = gameStatus.gameId();
+                        gameListConfig.name = configCfg.getName();
+                        //TODO 配置和后台状态统一
+                        gameListConfig.status = gameStatus.open() == 1 ? gameStatus.status() : 2;
+                        list.add(gameListConfig);
+                        continue;
+                    }
+                }
                 GameListConfig gameListConfig = new GameListConfig();
                 gameListConfig.sid = configCfg.getId();
                 gameListConfig.name = configCfg.getName();
@@ -210,6 +228,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
         PlayerController playerController = new PlayerController(session, player);
         session.setReference(playerController);
 
+        playerSessionService.changeSessionInfo(session, player);
         log.debug("玩家进入大厅节点 playerId={}", playerId);
     }
 

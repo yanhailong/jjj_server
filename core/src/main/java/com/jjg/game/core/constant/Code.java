@@ -37,6 +37,8 @@ public interface Code {
     int GOLD_TOO_MUCH = 410;
     //下注已达上限
     int BET_TO_LIMIT = 411;
+    //未知错误
+    int UNKNOWN_ERROR = 412;
 
     //服务器错误
     int EXCEPTION = 500;

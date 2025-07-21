@@ -185,15 +185,17 @@ public class Room {
         if (removePlayer == null) {
             return null;
         }
-        if (this.playerSits != null) {
-            this.playerSits.remove(removePlayer.getSit());
-        }
-
         if (this.roomPlayers.isEmpty()) {
             this.roomPlayers = null;
         }
-        if (this.playerSits != null && this.playerSits.isEmpty()) {
-            this.playerSits = null;
+        if (this.playerSits != null) {
+            this.playerSits.remove(removePlayer.getSit());
+            if (this.playerSits.isEmpty()) {
+                this.playerSits = null;
+            }
+        }
+        if (this.roomPlayers.isEmpty()) {
+            this.roomPlayers = null;
         }
         return removePlayer;
     }

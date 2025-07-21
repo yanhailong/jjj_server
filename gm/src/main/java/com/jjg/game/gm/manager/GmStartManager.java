@@ -24,8 +24,7 @@ public class GmStartManager implements SmartLifecycle, ApplicationContextAware {
 
     @Autowired
     private MarsCoreStartService marsCoreStartService;
-    @Autowired
-    private CoreStartService coreStartService;
+
     @Autowired
     private NodeConfig nodeConfig;
 
@@ -36,12 +35,11 @@ public class GmStartManager implements SmartLifecycle, ApplicationContextAware {
     @Override
     public void start() {
         //为了安全，必须配置齐全才能启动服务
-        if(nodeConfig.getWhiteIpList() == null || nodeConfig.getWhiteIdList().length < 1){
+        if(nodeConfig.getWhiteIpList() == null || nodeConfig.getWhiteIpList().length < 1){
             throw new IllegalStateException("IP白名单检查失败，拒绝启动服务");
         }
 
         marsCoreStartService.init(this.context, Collections.emptySet());
-        coreStartService.init(this.context);
 
         running = true;
     }
@@ -49,7 +47,6 @@ public class GmStartManager implements SmartLifecycle, ApplicationContextAware {
     @Override
     public void stop() {
         marsCoreStartService.shutdown();
-        coreStartService.shutdown();
 
         running = false;
     }

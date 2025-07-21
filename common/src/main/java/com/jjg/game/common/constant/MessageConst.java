@@ -85,6 +85,9 @@ public interface MessageConst {
 
         // 下注房间对战类通用协议类型
         int BET_GENERAL_TYPE = 0x20;
+
+        // 下注房间对战类通用协议类型
+        int TO_SERVER_CONST_TYPE = 0x21;
     }
 
     interface ToClientConst {
@@ -138,6 +141,11 @@ public interface MessageConst {
      * 服务器之间
      */
     interface ToServer {
-//        int TYPE = MessageTypeDef.TO_SERVER_CONST_TYPE;
+        int BASE_MSG_PREFIX = MessageTypeDef.TO_SERVER_CONST_TYPE << MessageCommon.RIGHT_MOVE;
+        int REQ_REFRESH_GAME_STATUS = BASE_MSG_PREFIX | 0x1;
+
+        //退出游戏
+        int REQ_EXIT_GAME = BASE_MSG_PREFIX | 0x2;
+        int RES_EXIT_GAME = BASE_MSG_PREFIX | 0x3;
     }
 }

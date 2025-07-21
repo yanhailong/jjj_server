@@ -147,8 +147,8 @@ public class ConnectPool<T extends NettyConnect<Object>> implements ConnectListe
             bootstrap.localAddress(localAddress.getHost(), localAddress.getPort());
         }*/
             bootstrap.connect(netAddress.getHost(), netAddress.getPort());
-        } else {
-            bootstrap.connect().addListener(this);
+        }else {
+            bootstrap.connect(netAddress.getHost(), netAddress.getPort()).addListener(this);
         }
     }
 

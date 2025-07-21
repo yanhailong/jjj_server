@@ -67,10 +67,6 @@ public class CoreConst {
         public static final int FORTUNE_CAT = 100800;
         //加勒比海盗
         public static final int PIRATES_CARIBBEAN = 100900;
-        //苹果机-水果
-        public static final int APPLE_FRUITS = 101000;
-        //苹果机-动物
-        public static final int APPLE_ANIMAL = 101001;
         //夺宝黄金城
         public static final int GOLD_CITY = 101100;
 
@@ -95,6 +91,10 @@ public class CoreConst {
         public static final int SIZE_DICE_BABY = 200800;
         //鱼虾蟹
         public static final int FISH_SHRIMP_CRAB = 200900;
+        //苹果机-水果
+        public static final int APPLE_FRUITS = 201000;
+        //苹果机-动物
+        public static final int APPLE_ANIMAL = 201001;
 
 
         //21点
@@ -118,4 +118,5 @@ public class CoreConst {
         // 项目package路径
         public static final String BASE_PROJECT_PACKAGE_PATH = "com.jjg.game";
     }
+
 }

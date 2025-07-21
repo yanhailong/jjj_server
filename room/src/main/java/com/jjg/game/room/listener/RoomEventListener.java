@@ -1,5 +1,7 @@
 package com.jjg.game.room.listener;
 
+import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
@@ -35,6 +37,8 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
     private PlayerSessionService playerSessionService;
     @Autowired
     private CoreLogger logger;
+    @Autowired
+    private ClusterSystem clusterSystem;
 
     private AbstractRoomManager roomManager;
 
@@ -57,9 +61,6 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
         for (Map.Entry<String, AbstractRoomManager> en : roomManagerMap.entrySet()) {
             this.roomManager = en.getValue();
             break;
-        }
-        if (this.roomManager == null) {
-            throw new RuntimeException("roomManager 不能未空");
         }
     }
 
@@ -89,7 +90,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 playerController.playerId(), info.getGameType());
             return;
         }
-        // 调用房间退出消息
+
         playerRoomEventListener.exit(session, playerController, info);
 
         playerSessionService.offline(playerController.playerId(), 0, 0, 0, 0);
@@ -152,6 +153,20 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             playerRoomEventListener.enter(session, playerController, info);
         } catch (Exception e) {
             log.error("", e);
+        }
+    }
+
+    public void exitGame(PlayerController playerController){
+        try{
+//            IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(playerController.getPlayer().getGameType());
+//            if(playerRoomEventListener == null){
+//                log.warn("退出游戏时 未找到 playerRoomEventListener, playerId = {},gameType = {}", playerController.playerId(),playerController.getPlayer().getGameType());
+//                return;
+//            }
+//            playerRoomEventListener.exit(playerController);
+            clusterSystem.switchNode(playerController.getSession(), NodeType.HALL);
+        }catch (Exception e){
+            log.error("",e);
         }
     }
 }
