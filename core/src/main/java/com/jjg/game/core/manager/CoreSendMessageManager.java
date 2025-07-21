@@ -2,7 +2,7 @@ package com.jjg.game.core.manager;
 
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
-import com.jjg.game.core.pb.NoticeMoneyChange;
+import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import org.springframework.stereotype.Component;
 
 /**
@@ -11,11 +11,12 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class CoreSendMessageManager extends BaseSendMessageManager{
-    public void packMoneyChangeMessage(PlayerController playerController,long gold, long diamond){
+    public void packMoneyChangeMessage(PlayerController playerController,long gold, long diamond,int vipLevel){
         SendInfo sendInfo = new SendInfo();
-        NoticeMoneyChange notice = new NoticeMoneyChange();
+        NoticeBaseInfoChange notice = new NoticeBaseInfoChange();
         notice.gold = gold;
         notice.diamond = diamond;
+        notice.vipLevel = vipLevel;
 
         sendInfo.addPlayerMsg(playerController.playerId(), notice);
         sendInfo.getLogMessage().add(notice);

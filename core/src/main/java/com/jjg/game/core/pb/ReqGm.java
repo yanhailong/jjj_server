@@ -13,6 +13,4 @@ import com.jjg.game.common.proto.ProtobufMessage;
 public class ReqGm extends AbstractMessage {
     @ProtoDesc("命令参数")
     public String order;
-    @ProtoDesc("玩家id")
-    public long playerId;
 }

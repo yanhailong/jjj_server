@@ -163,12 +163,12 @@ public class HallMessageHandler implements GmListener {
     }
 
     @Override
-    public String gm(PlayerController playerController, String cmd, String params) {
+    public String gm(PlayerController playerController, String[] gmOrders) {
         try {
-            log.debug("收到gm命令 playerId = {},cmd = {},params = {}", playerController.playerId(), cmd, params);
-            if ("enterGame".equals(cmd)) {
+            if ("enterGame".equals(gmOrders[0])) {
+                log.debug("收到gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 ReqChooseGame req = new ReqChooseGame();
-                req.gameType = Integer.parseInt(params);
+                req.gameType = Integer.parseInt(gmOrders[1]);
                 reqChooseGame(playerController, req);
             }
 

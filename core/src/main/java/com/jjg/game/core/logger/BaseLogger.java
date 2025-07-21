@@ -79,6 +79,28 @@ public class BaseLogger {
     }
 
     /**
+     * vip等级变化
+     *
+     * @param player
+     * @param beforeLevel
+     * @param vipLevel
+     * @param addType
+     */
+    public void vip(Player player, int beforeLevel, int vipLevel, String addType, String desc) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("logType", "vipLevelChange");
+            json.put("beforeLevel", beforeLevel);
+            json.put("currentLevel", vipLevel);
+            json.put("addType", addType);
+            json.put("desc", desc);
+            sendLog(player, json);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
      * 进入游戏
      *
      * @param player

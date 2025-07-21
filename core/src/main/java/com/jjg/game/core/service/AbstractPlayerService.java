@@ -158,6 +158,40 @@ public class AbstractPlayerService {
         return result;
     }
 
+    /**
+     * 设置vip等级
+     * @param playerId
+     * @param addType
+     * @param desc
+     * @return
+     */
+    public CommonResult<Player> setVip(long playerId, int vipLevel, String addType, String desc) {
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
+        if(vipLevel < 0){
+            log.warn("设置vip等级错误 playerId={},vipLevel={}",playerId,vipLevel);
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+
+        final int[] beforeLevel = {0};
+
+        Player p = checkAndSave(playerId, player -> {
+            beforeLevel[0] = player.getVipLevel();
+            player.setVipLevel(vipLevel);
+            return true;
+        });
+
+        //记录日志
+        if (p != null) {
+            //TODO 后期要排除机器人的情况
+            coreLogger.vip(p,beforeLevel[0],vipLevel,addType,desc);
+            result.code = Code.SUCCESS;
+            result.data = p;
+            return result;
+        }
+        return result;
+    }
+
     public CommonResult<Player> addGold(long playerId, long addNum, String addType) {
         return addGold(playerId, addNum, addType, null);
     }
