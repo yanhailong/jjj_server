@@ -300,7 +300,7 @@ public class PlayerSessionService implements TimerListener<String> {
     }
 
     public void changeSessionInfo(PFSession pfSession, Player player) {
-        changeSessionInfo(pfSession, player, 0, 0);
+        changeSessionInfo(pfSession, player, player.getGameType(), 0);
     }
 
     /**

@@ -12,7 +12,7 @@ import com.jjg.game.table.common.message.TableRoomMessageConstant;
  * @author 2CL
  */
 @ProtobufMessage(
-    messageType = MessageConst.MessageTypeDef.BACCARAT_TYPE,
+    messageType = MessageConst.MessageTypeDef.ROOM_TYPE,
     cmd = TableRoomMessageConstant.ReqMsgBean.REQ_TABLE_PLAYER_INFO
 )
 @ProtoDesc("请求获取百人牌桌的玩家信息")

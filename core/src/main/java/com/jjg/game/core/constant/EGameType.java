@@ -19,7 +19,7 @@ public enum EGameType {
     MAHJIONG_WIN(CoreConst.GameType.MAHJIONG_WIN, RoomType.TEAM, "麻将胡了"),
     FORTUNE_CAT(CoreConst.GameType.FORTUNE_CAT, RoomType.TEAM, "招财猫"),
     PIRATES_CARIBBEAN(CoreConst.GameType.PIRATES_CARIBBEAN, RoomType.TEAM, "加勒比海盗"),
-    APPLE_FRUITS(CoreConst.GameType.PIRATES_CARIBBEAN, RoomType.TEAM, "苹果机-水果"),
+    APPLE_FRUITS(CoreConst.GameType.APPLE_FRUITS, RoomType.TEAM, "苹果机-水果"),
     APPLE_ANIMAL(CoreConst.GameType.APPLE_ANIMAL, RoomType.TEAM, "苹果机-动物"),
     GOLD_CITY(CoreConst.GameType.GOLD_CITY, RoomType.TEAM, "夺宝黄金城"),
     // TABLE

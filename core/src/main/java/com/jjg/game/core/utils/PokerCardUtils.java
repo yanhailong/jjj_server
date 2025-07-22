@@ -1,7 +1,9 @@
 package com.jjg.game.core.utils;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 扑克牌工具类 方块 黑桃 红心 梅花
@@ -61,7 +63,13 @@ public class PokerCardUtils {
         }
         return pokers;
     }
-
+    /**
+     * 获取除了大小王之外的扑克牌id列表
+     */
+    public static List<Integer> getPokerIntIdExceptJoker() {
+        Set<Byte> pokers = getPokerIdExceptJoker();
+        return pokers.stream().map(Byte::intValue).collect(Collectors.toList());
+    }
     /**
      * 获取除了大小王之外的扑克牌id列表
      */

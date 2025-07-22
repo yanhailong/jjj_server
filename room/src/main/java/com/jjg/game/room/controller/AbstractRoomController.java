@@ -20,10 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -116,6 +113,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 gameController.onPlayerJoinRoom(playerController, gameController.isGameStarted());
             } else {
                 log.debug("玩家已经在房间中 roomId = {},playerId = {}", room.getId(), playerController.playerId());
+                gameController.onPlayerJoinRoom(playerController, gameController.isGameStarted());
             }
             playerControllers.put(playerController.playerId(), playerController);
             // 检查等待房间的逻辑
@@ -126,6 +124,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 // 检查通过开始游戏
                 startGame();
             }
+            gameController.sendRoomInitInfo(playerController);
             result.data = room;
             return result;
         } catch (Exception e) {
@@ -134,7 +133,25 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         }
         return result;
     }
-
+    /**
+     * 向指定房间的指定玩家广播消息。
+     *
+     * @param <T>         the type of the message
+     * @param playerId   房间中玩家的ID
+     * @param message     要发送的消息，可以是任何类型
+     */
+    public <T> void sendToPlayer(long playerId, T message) {
+        if (message == null) {
+            log.warn("消息为空，发送房间广播消息失败");
+            return;
+        }
+        PlayerController playerController = playerControllers.get(playerId);
+        if (Objects.isNull(playerController)) {
+            log.warn("不存在玩家 玩家id:{}", playerId);
+            return;
+        }
+        playerController.send(message);
+    }
     /**
      * 更新房间等待列表
      */
