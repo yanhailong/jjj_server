@@ -5,10 +5,10 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.TablePlayerGameData;
+import com.jjg.game.table.common.data.Card;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.redblackwar.constant.HandType;
 import com.jjg.game.table.redblackwar.constant.RedBlackWarConstant;
-import com.jjg.game.table.redblackwar.data.Card;
 import com.jjg.game.table.redblackwar.manager.RedBlackWarSampleManager;
 import com.jjg.game.table.redblackwar.message.bean.RBWPlayerSettleInfo;
 import com.jjg.game.table.redblackwar.message.bean.RedBlackWarHistory;
@@ -85,10 +85,6 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         for (WinPosWeightCfg cfg : weightCfgList) {
             List<Integer> betArea = cfg.getBetArea();
             BetAreaCfg betAreaCfg = redBlackWarSampleManager.getBetAreaMap().get(betArea.get(0));
-            if (Objects.isNull(betAreaCfg)) {
-                log.error("未找到押注区域随机配置");
-                return;
-            }
             //押注区域非幸运一击
             boolean luckCfg = betAreaCfg.getAreaID() == RedBlackWarConstant.Common.LUCK_AREA;
             if (!luckBet && luckCfg) {
@@ -108,7 +104,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                     long backBet = entry.getValue() * cfg.getReturnRate() / 10000;
                     //总获得
                     long canGet = backBet * cfg.getOdds() / 100;
-                    //抽税
+                    //TODO 抽税
                     if (!luckCfg) {
                         canGet = canGet * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
                     }
@@ -122,8 +118,8 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
             }
         }
         //通知
-        NotifyRedBlackWarSettleInfo settleInfo = new NotifyRedBlackWarSettleInfo();
         int winState = result > 0 ? 1 : 2;
+        NotifyRedBlackWarSettleInfo settleInfo = new NotifyRedBlackWarSettleInfo();
         settleInfo.winState = winState;
         //牌信息
         settleInfo.blackCards = blackCard.stream().map(Card::getValue).toList();
@@ -143,7 +139,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
             long getGold = playerGet.getOrDefault(gamePlayer.getId(), 0L);
             settleInfo.getGold = getGold;
             //更新统计信息
-            tableGameData.addRedBlackWarBetRecord(getGold);
+            tableGameData.addBetRecord(getGold);
             gameController.sendMessage(gamePlayer.getId(), settleInfo);
         }
     }
