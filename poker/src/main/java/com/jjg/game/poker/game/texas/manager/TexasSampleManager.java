@@ -23,12 +23,8 @@ public class TexasSampleManager extends AbstractSampleManager {
     }
 
     @Override
-    protected void initSmapleConfig() {
-        try {
-//            GameDataManager.loadAllData(getSamplePath());
-        } catch (Exception e) {
-            log.error("加载配置表失败");
-        }
+    protected void initSampleConfig() {
+
     }
 
     @Override

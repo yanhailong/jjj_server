@@ -27,8 +27,17 @@ public abstract class AbstractPoolDao {
      * @param wareId
      * @return
      */
-    public Number getByWareId(int gameType,int wareId){
+    public Number getBigPoolByWareId(int gameType, int wareId){
         return (Number)redisTemplate.opsForHash().get(tableName(gameType),wareId);
+    }
+
+    /**
+     * 根据场次id获取池子
+     * @param wareId
+     * @return
+     */
+    public Number getSmallPoolByWareId(int gameType, int wareId){
+        return (Number)redisTemplate.opsForHash().get(smallTableName(gameType),wareId);
     }
 
     /**

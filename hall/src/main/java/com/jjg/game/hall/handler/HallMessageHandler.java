@@ -104,10 +104,17 @@ public class HallMessageHandler implements GmListener {
                 return;
             }
             int wareHouseCfgId = req.gameType * 10 + req.wareId;
-            // 进入大厅加入房间的逻辑
-            res.code = hallRoomService.hallJoinRoom(playerController, wareHouseCfgId, req.wareId);
+            //slots类游戏没有房间
+            //是不是slots游戏
+            if((100100/100000) < 2){
+                res.code = hallRoomService.enterSlotsNode(playerController, wareHouseCfgId, req.wareId);
+            }else {
+                // 进入大厅加入房间的逻辑
+                res.code = hallRoomService.hallJoinRoom(playerController, wareHouseCfgId, req.wareId);
+            }
+
             playerController.send(res);
-            log.info("玩家选择chang，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
+            log.info("玩家选择场次，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
         }
