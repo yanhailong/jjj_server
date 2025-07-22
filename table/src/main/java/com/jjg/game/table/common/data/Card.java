@@ -1,4 +1,4 @@
-package com.jjg.game.table.redblackwar.data;
+package com.jjg.game.table.common.data;
 
 /**
  * @author lm
