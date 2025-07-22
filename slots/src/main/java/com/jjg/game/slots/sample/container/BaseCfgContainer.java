@@ -5,6 +5,7 @@ import java.lang.reflect.*;
 import java.nio.file.Files;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -771,9 +772,9 @@ public abstract class BaseCfgContainer<T extends BaseCfgBean> {
           String replaceSplitDanglingMetaChar =
               replaceSplitDanglingMetaChar(delimiter.delimiterChar);
           String[] listValSplit = fieldStr.split(replaceSplitDanglingMetaChar);
-          if (delimiter.sizeLimit > 0 && listValSplit.length > delimiter.sizeLimit) {
+          if (delimiter.sizeLimit > 0 && listValSplit.length != delimiter.sizeLimit) {
             throw new ExcelDataParseException(
-                "", "字段对应的数据数量: " + listValSplit.length + " 超过限制值: " + delimiter.sizeLimit);
+                "", "字段对应的数据数量: " + listValSplit.length + " 不符合限制值: " + delimiter.sizeLimit);
           }
           for (String listVal : listValSplit) {
             if (isEmptyString(listVal)) {
@@ -844,9 +845,9 @@ public abstract class BaseCfgContainer<T extends BaseCfgBean> {
           String replaceSplitDanglingMetaChar =
               replaceSplitDanglingMetaChar(bracketMetadata.delimiterChar);
           String[] setValSplit = fieldStr.split(replaceSplitDanglingMetaChar);
-          if (bracketMetadata.sizeLimit > 0 && setValSplit.length > bracketMetadata.sizeLimit) {
+          if (bracketMetadata.sizeLimit > 0 && setValSplit.length != bracketMetadata.sizeLimit) {
             throw new ExcelDataParseException(
-                "", "字段对应的数据数量: " + setValSplit.length + " 超过限制值: " + bracketMetadata.sizeLimit);
+                "", "字段对应的数据数量: " + setValSplit.length + " 不符合限制值: " + bracketMetadata.sizeLimit);
           }
           for (String setVal : setValSplit) {
             if (isEmptyString(setVal)) {
@@ -944,9 +945,9 @@ public abstract class BaseCfgContainer<T extends BaseCfgBean> {
           String replaceSplitDanglingMetaChar =
               replaceSplitDanglingMetaChar(mapDelimiter.delimiterChar);
           String[] mapArr = fieldStr.split(replaceSplitDanglingMetaChar);
-          if (mapDelimiter.sizeLimit > 0 && mapArr.length > mapDelimiter.sizeLimit) {
+          if (mapDelimiter.sizeLimit > 0 && mapArr.length != mapDelimiter.sizeLimit) {
             throw new ExcelDataParseException(
-                "", "字段对应的数据数量: " + mapArr.length + " 超过限制值: " + mapDelimiter.sizeLimit);
+                "", "字段对应的数据数量: " + mapArr.length + " 不符合限制值: " + mapDelimiter.sizeLimit);
           }
           for (String mapStr : mapArr) {
             if (isEmptyString(mapStr)) {
@@ -1271,21 +1272,22 @@ public abstract class BaseCfgContainer<T extends BaseCfgBean> {
         FormulaEvaluator formulaEvaluator =
             cell.getSheet().getWorkbook().getCreationHelper().createFormulaEvaluator();
         CellValue cellValue = formulaEvaluator.evaluate(cell);
-        switch (cellValue.getCellType()) {
+                switch (cellValue.getCellType()) {
           case STRING:
-            value = cell.getStringCellValue();
+            value = cellValue.getStringValue();
             break;
           // Boolean
           case BOOLEAN:
-            value = cell.getBooleanCellValue() + "";
+            value = cellValue.getBooleanValue() + "";
             break;
           // 数字
           case NUMERIC:
-            if (String.valueOf(cell.getNumericCellValue()).contains("E")) {
-              DataFormatter dataFormatter = new DataFormatter();
-              return dataFormatter.formatCellValue(cell);
+            if (String.valueOf(cellValue.getNumberValue()).contains("E")) {
+              DecimalFormat df = new DecimalFormat("0");
+              double numericValue = cellValue.getNumberValue();
+              return df.format(numericValue);
             }
-            value = cell.getNumericCellValue() + "";
+            value = cellValue.getNumberValue() + "";
             break;
           // 空值
           case BLANK:

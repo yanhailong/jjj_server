@@ -12,10 +12,14 @@ public class PropAndAwardInfo<T> {
     private Map<Integer, PropInfo> propMap;
     //配置中的具体id
     private Map<Integer, T> awardMap;
+    //配置中的具体id
+    private Map<Integer,Map<Integer, T>> awardMap2;
+
 
     public PropAndAwardInfo() {
         this.propMap = new HashMap<>();
         this.awardMap = new HashMap<>();
+        this.awardMap2 = new HashMap<>();
     }
 
     public Map<Integer, PropInfo> getPropMap() {
@@ -48,5 +52,13 @@ public class PropAndAwardInfo<T> {
 
     public T getAwardInfo(int key) {
         return this.awardMap.get(key);
+    }
+
+    public void addAwardInfo2(int key1,int key2, T awardInfo){
+        this.awardMap2.computeIfAbsent(key1,k->new HashMap<>()).put(key2,awardInfo);
+    }
+
+    public Map<Integer, Map<Integer, T>> getAwardMap2() {
+        return awardMap2;
     }
 }

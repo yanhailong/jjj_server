@@ -91,10 +91,24 @@ public interface SlotsConst {
     }
 
     interface SpecialResultLib{
+        //正常
         int TYPE_NORMAL = 1;
+        //拉火车
         int TYPE_TRAIN = 2;
+        //黄金列车
         int TYPE_GOLD_TRAIN = 3;
+        //二选一
         int TYPE_ALL_BOARD = 4;
+
+        //二选一之免费
+        int TYPE_ALL_BOARD_FREE = 5;
+    }
+
+    interface SpecialGird{
+        //随机多种组合元素不同位置
+        int GIRD_UPDATE_TYPE_RAND = 0;
+        //指定元素替换随机元素位置
+        int GIRD_UPDATE_TYPE_APPOINT = 1;
     }
 
     interface MsgBean {

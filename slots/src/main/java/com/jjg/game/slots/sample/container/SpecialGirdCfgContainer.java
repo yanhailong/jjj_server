@@ -12,7 +12,7 @@ import com.jjg.game.slots.sample.bean.SpecialGirdCfg;
  * @excelName SpecialGird.xlsx
  * @sheetName SpecialGird
  * @author auto_generator
- * @date 2025年07月11日 11:56:28
+ * @date 2025年07月22日 10:35:35
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class SpecialGirdCfgContainer extends BaseCfgContainer<SpecialGirdCfg> {

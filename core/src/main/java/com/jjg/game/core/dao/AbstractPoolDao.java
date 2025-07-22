@@ -19,6 +19,8 @@ public abstract class AbstractPoolDao {
     protected final String pool_prefix = "pool:";
     //小奖池
     protected final String small_pool_prefix = "smallPool:";
+    //小奖池(假)
+    protected final String fake_small_pool_prefix = "fakeSmallPool:";
 
     public abstract void initPool();
 
@@ -82,5 +84,8 @@ public abstract class AbstractPoolDao {
     }
     protected String smallTableName(int gameType){
         return small_pool_prefix + gameType;
+    }
+    protected String fakeSmallTableName(int gameType){
+        return fake_small_pool_prefix + gameType;
     }
 }

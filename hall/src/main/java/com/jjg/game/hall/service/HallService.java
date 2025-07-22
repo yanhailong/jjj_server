@@ -80,6 +80,7 @@ public class HallService implements ConfigExcelChangeListener {
             info.pool = 99999L;
             info.limitGoldMin = c.getEnterLimit();
             info.limitVipMin = c.getVipLvLimit();
+            info.betShow = c.getBetShow();
             tempList.add(info);
         }
         this.wareHouseConfigMap = tempwareHouseConfigMap;

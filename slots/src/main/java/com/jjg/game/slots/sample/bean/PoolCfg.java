@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName Pool.xlsx
  * @sheetName Pool
  * @author Auto.Generator
- * @date 2025年07月11日 11:56:28
+ * @date 2025年07月22日 10:35:35
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class PoolCfg extends BaseCfgBean {
@@ -19,27 +19,22 @@ public class PoolCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "Pool";
 
-  /** 押注抽水入奖池万分比 */
-  protected int commissionProp;
-  /** 假累计奖池部分进入比率 */
-  protected List<Integer> fakeCommissionProp;
+  /** 中奖表现延迟时间 */
+  protected int DelayTime;
   /** 假奖池初始值倍率 */
   protected int fakePoolInitTimes;
   /** 循环的假奖池上限倍率 */
   protected int fakePoolMax;
   /** 循环的假奖池增长速率 */
-  protected Map<Integer,String> growthRate;
+  protected List<Integer> growthRate;
   /** 奖池系数 */
-  protected List<Integer> poolProp;
+  protected int poolProp;
+  /** 真奖池奖金万分比 */
+  protected int truePool;
 
-  /** 返回押注抽水入奖池万分比 */
-  public int getCommissionProp() {
-    return commissionProp;
-  }
-
-  /** 返回假累计奖池部分进入比率 */
-  public List<Integer> getFakeCommissionProp() {
-    return fakeCommissionProp;
+  /** 返回中奖表现延迟时间 */
+  public int getDelayTime() {
+    return DelayTime;
   }
 
   /** 返回假奖池初始值倍率 */
@@ -53,12 +48,17 @@ public class PoolCfg extends BaseCfgBean {
   }
 
   /** 返回循环的假奖池增长速率 */
-  public Map<Integer,String> getGrowthRate() {
+  public List<Integer> getGrowthRate() {
     return growthRate;
   }
 
   /** 返回奖池系数 */
-  public List<Integer> getPoolProp() {
+  public int getPoolProp() {
     return poolProp;
+  }
+
+  /** 返回真奖池奖金万分比 */
+  public int getTruePool() {
+    return truePool;
   }
 }

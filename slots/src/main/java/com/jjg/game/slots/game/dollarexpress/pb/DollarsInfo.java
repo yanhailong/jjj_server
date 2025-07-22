@@ -18,6 +18,4 @@ public class DollarsInfo {
     public List<Integer> dollarIndexIds;
     @ProtoDesc("钞票金额")
     public List<Long> dollarValueList;
-    @ProtoDesc("黄金列车车厢节数")
-    public int goldTrainCount;
 }

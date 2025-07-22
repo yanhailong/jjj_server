@@ -20,8 +20,10 @@ public class DollarExpressFreeGame {
     private List<DollarExpressAwardLineInfo> awardLineInfoList;
     //火车信息
     private List<Train> trainList;
-    //黄金火车节数
+    //黄金列车车厢节数
     private int goldTrainCount;
+    //黄金列车触发局中美金的总倍数
+    private int goldTrainAllTimes;
     //美元现金奖励
     private DollarInfo dollarInfo;
 
@@ -80,6 +82,10 @@ public class DollarExpressFreeGame {
         this.goldTrainCount = goldTrainCount;
     }
 
+    public void setDollarInfo(DollarInfo dollarInfo) {
+        this.dollarInfo = dollarInfo;
+    }
+
     public DollarInfo getDollarInfo() {
         return dollarInfo;
     }
@@ -97,5 +103,13 @@ public class DollarExpressFreeGame {
 
     public void addTimes(int times){
         this.times += times;
+    }
+
+    public int getGoldTrainAllTimes() {
+        return goldTrainAllTimes;
+    }
+
+    public void setGoldTrainAllTimes(int goldTrainAllTimes) {
+        this.goldTrainAllTimes = goldTrainAllTimes;
     }
 }

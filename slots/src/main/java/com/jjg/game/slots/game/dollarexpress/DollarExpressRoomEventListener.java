@@ -1,11 +1,9 @@
-package com.jjg.game.slots.game.dollarexpress.listener;
+package com.jjg.game.slots.game.dollarexpress;
 
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.room.listener.IPlayerRoomEventListener;
-import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.game.dollarexpress.constant.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGameManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +35,8 @@ public class DollarExpressRoomEventListener implements IPlayerRoomEventListener 
 
     @Override
     public void exit(PFSession session, PlayerController playerController, PlayerSessionInfo playerSessionInfo) {
-
+        gameManager.exit(playerController);
     }
+
+
 }

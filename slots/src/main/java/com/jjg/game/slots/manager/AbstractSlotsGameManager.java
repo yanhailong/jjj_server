@@ -6,15 +6,17 @@ import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.PropInfo;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsResultLib;
 import com.jjg.game.slots.sample.GameDataManager;
+import com.jjg.game.slots.sample.bean.BaseLineCfg;
 import com.jjg.game.slots.sample.bean.BaseRoomCfg;
+import com.jjg.game.slots.sample.bean.SpecialGirdCfg;
 import com.jjg.game.slots.sample.bean.SpecialResultLibCfg;
 import com.jjg.game.slots.service.SlotsPlayerService;
 import org.slf4j.Logger;
@@ -24,9 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.lang.reflect.Constructor;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author 11
  * @date 2025/7/1 16:42
  */
-public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> implements TimerListener {
+public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> implements TimerListener, ConfigExcelChangeListener {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -46,10 +46,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     @Autowired
     protected TimerCenter timerCenter;
 
+    //在更新结果库后，要开启清除旧结果库的定时事件
     protected TimerEvent<String> clearLibEvent;
+    //游戏类型
     protected int gameType;
     //在specualResultLib
-    protected int norRewardSectionIndex = -1;
+    protected int defaultRewardSectionIndex = -1;
 
 
     //标记是否正在生成结果库
@@ -58,12 +60,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     protected Map<Long, T> gameDataMap = new ConcurrentHashMap<>();
 
 
-    protected BigDecimal tenThousand = BigDecimal.valueOf(1000);
+    protected BigDecimal tenThousandBigDecimal = BigDecimal.valueOf(10000);
+    protected BigDecimal oneHundredMillionBigDecimal = BigDecimal.valueOf(100000000);
+    protected int oneHundredMillion = 100000000;
 
     protected Class<T> playerGameDataClass;
 
     //roomName -> cfg
     protected Map<Integer, BaseRoomCfg> roomCfgMap;
+    //lineId -> cfg
+    Map<Integer, BaseLineCfg> lineCfgMap;
     //modelId -> cfg
     protected Map<Integer, SpecialResultLibCfg> resultLibMap;
     //specialResultLib表中typeProp字段的随机权重信息 specialResultLib.modelId -> propInfo
@@ -72,23 +78,22 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     protected Map<Integer, Map<Integer,PropInfo>> resultLibSectionPropMap;
     //specialResultLib表中section字段的倍数区间  modelId -> tpyeId -> 下标id -> 倍数区间
     protected Map<Integer, Map<Integer,Map<Integer,int[]>>> resultLibSectionMap;
+    //只会记录在玩游戏时需要修改格子的配置，生成结果库的修改格子配置不会缓存
+    protected Map<Integer,SpecialGirdCfg> specialGirdCfgMap;
 
     public AbstractSlotsGameManager(Class<T> playerGameDataClass) {
         this.playerGameDataClass = playerGameDataClass;
     }
 
     public void init(){
-
-    }
-
-    protected void init(int gameType) {
-        this.gameType = gameType;
         initConfig();
     }
 
     protected void initConfig() {
         baseRoomConfig(this.gameType);
-        specialResultLibMap(this.gameType);
+        baseLineConfig(this.gameType);
+        specialResultLibConfig(this.gameType,true);
+        specialGirdConfig(this.gameType);
         log.info("配置重新计算结束 gameType = {}", this.gameType);
     }
 
@@ -163,9 +168,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
                 return result;
             }
             historySlotsDao.addGameType(gameData.playerId(), gameData.getGameType());
+            result.data = libCfg;
+            log.debug("玩家第一次玩该slots游戏，选择默认模式，playerId = {},gameType = {},modelId = {}", gameData.playerId(), gameData.getGameType(),SlotsConst.Common.FIRST_GAME_GET_MODEL_ID);
         } else {
             //获取水池
-            Number poolValue = slotsPoolDao.getByWareId(gameData.getGameType(), gameData.getWareId());
+            Number poolValue = slotsPoolDao.getBigPoolByWareId(gameData.getGameType(), gameData.getWareId());
             if (poolValue == null) {
                 log.warn("获取水池失败 playerId = {},gameType = {},wareId = {}", gameData.playerId(), gameData.getGameType(), gameData.getWareId());
                 result.code = Code.NOT_FOUND;
@@ -173,13 +180,15 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             }
 
             //计算偏差范围
-            long diff = BigDecimal.valueOf(poolValue.longValue() - poolInit).divide(BigDecimal.valueOf(poolInit), 6, RoundingMode.HALF_UP).multiply(tenThousand).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
+            long diff = BigDecimal.valueOf(poolValue.longValue() - poolInit).divide(BigDecimal.valueOf(poolInit), 6, RoundingMode.HALF_UP).multiply(tenThousandBigDecimal).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
             SpecialResultLibCfg libCfg = getLibCfgByPoolDiff(gameData.getGameType(), diff);
             if (libCfg == null) {
                 log.warn("获取结果库配置失败 playerId = {},gameType = {},wareId = {},diff = {}", gameData.playerId(), gameData.getGameType(), gameData.getWareId(), diff);
                 result.code = Code.NOT_FOUND;
                 return result;
             }
+            result.data = libCfg;
+            log.debug("根据水池偏差计算获取滚轴模式配置  playerId = {},poolValue = {},poolInit = {},diff = {},modelId = {}", gameData.playerId(), poolValue, poolInit, diff,libCfg.getModelId());
         }
         return result;
     }
@@ -310,11 +319,31 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     }
 
     /**
+     * baseline配置
+     *
+     * @param gameType
+     */
+    protected void baseLineConfig(int gameType) {
+        Map<Integer, BaseLineCfg> tempLineCfgMap = new HashMap<>();
+        for (Map.Entry<Integer, BaseLineCfg> en : GameDataManager.getBaseLineCfgMap().entrySet()) {
+            BaseLineCfg cfg = en.getValue();
+            if (cfg.getGameType() == gameType) {
+                tempLineCfgMap.put(cfg.getLineId(), cfg);
+            }
+        }
+
+        if (tempLineCfgMap.isEmpty()) {
+            throw new IllegalArgumentException("该游戏 BaseLineCfg 为空,初始化失败 gameType = " + gameType);
+        }
+        this.lineCfgMap = tempLineCfgMap;
+    }
+
+    /**
      * resultLib配置
      *
      * @param gameType
      */
-    protected void specialResultLibMap(int gameType) {
+    protected void specialResultLibConfig(int gameType,boolean checkRedis) {
         Map<Integer, SpecialResultLibCfg> tempLibCfgMap = new HashMap<>();
         Map<Integer, PropInfo> tempResultLibTypePropInfoMap = new HashMap<>();
 
@@ -356,10 +385,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
                     List<String> propList = en2.getValue();
 
+//                    Set<Integer> sectionSet = null;
+//                    if(checkRedis){
+//                        sectionSet = getResultLibDao().getAllSection(cfg.getModelId(),type);
+//                    }
 
                     int begin = 0;
                     int end = 0;
                     for (int i = 0; i < propList.size(); i++) {
+//                        if(sectionSet != null && !sectionSet.contains(i)){
+//                            continue;
+//                        }
+
                         String prop = propList.get(i);
                         String[] arr = prop.split("-");
                         String[] arr2 = arr[0].split("&");
@@ -371,27 +408,87 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
                         //倍数区间
                         int[] tmpArr = new int[]{Integer.parseInt(arr2[0]),Integer.parseInt(arr2[1])};
                         sectionMap.put(i,tmpArr);
-                        if(tmpArr[0] == 0 && tmpArr[1] == 1){
-                            this.norRewardSectionIndex = i;
+                        if(tmpArr[0] == 0){
+                            this.defaultRewardSectionIndex = i;
                         }
                     }
                     propInfo.setSum(end);
                     typeSectionPropMap.put(type, propInfo);
                 }
             }
-
         }
 
         if (tempLibCfgMap.isEmpty() || tempResultLibTypePropInfoMap.isEmpty() || tempResultLibSectionPropMap.isEmpty() || tempResultLibSectionMap.isEmpty()) {
             throw new IllegalArgumentException("该游戏specialResultLib 为空,初始化失败 gameType = " + gameType);
         }
 
-        if(this.norRewardSectionIndex < 0){
+        if(this.defaultRewardSectionIndex < 0){
             throw new IllegalArgumentException("该游戏specialResultLib 中没有配置0倍区间 gameType = " + gameType);
         }
         this.resultLibMap = tempLibCfgMap;
         this.resultLibTypePropInfoMap = tempResultLibTypePropInfoMap;
         this.resultLibSectionPropMap = tempResultLibSectionPropMap;
         this.resultLibSectionMap = tempResultLibSectionMap;
+    }
+
+    protected void specialGirdConfig(int gameType) {
+        Map<Integer,SpecialGirdCfg> tempSpecialGirdCfgMap = new HashMap<>();
+
+        for(Map.Entry<Integer,SpecialGirdCfg> en : GameDataManager.getSpecialGirdCfgMap().entrySet()){
+            SpecialGirdCfg cfg = en.getValue();
+            if (cfg.getGameType() != gameType) {
+                continue;
+            }
+            if(cfg.getGirdUpdateType() != SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT){
+                continue;
+            }
+            tempSpecialGirdCfgMap.put(cfg.getId(), cfg);
+        }
+
+        if(!tempSpecialGirdCfgMap.isEmpty()){
+            this.specialGirdCfgMap = tempSpecialGirdCfgMap;
+        }
+    }
+
+    public int getGameType() {
+        return gameType;
+    }
+
+    public Map<Integer, BaseRoomCfg> getRoomCfgMap() {
+        return roomCfgMap;
+    }
+
+
+    /**
+     * 根据线id获取这条线上的icon坐标
+     * @param lineId
+     * @return
+     */
+    public List<Integer> getIconIndexsByLineId(int lineId) {
+        BaseLineCfg baseLineCfg = this.lineCfgMap.get(lineId);
+        if(baseLineCfg == null){
+            return null;
+        }
+        for(Map.Entry<Integer,List<Integer>> en : baseLineCfg.getPosLocation().entrySet()){
+            return en.getValue();
+        }
+        return null;
+    }
+
+    @Override
+    public void change(String className) {
+        if(BaseRoomCfg.class.getSimpleName().equals(className)){
+            baseRoomConfig(this.gameType);
+        }else if(SpecialResultLibCfg.class.getSimpleName().equals(className)){
+            specialResultLibConfig(this.gameType,true);
+        }else if(BaseLineCfg.class.getSimpleName().equals(className)){
+            baseLineConfig(this.gameType);
+        }else if(SpecialGirdCfg.class.getSimpleName().equals(className)){
+            specialGirdConfig(this.gameType);
+        }
+    }
+
+    public void exit(PlayerController playerController) {
+
     }
 }

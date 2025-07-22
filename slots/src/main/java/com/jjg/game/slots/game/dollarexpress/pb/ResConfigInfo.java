@@ -19,6 +19,10 @@ public class ResConfigInfo extends AbstractResponse {
     public List<Integer> stakeList;
     @ProtoDesc("默认押注")
     public int defaultBet;
+    @ProtoDesc("奖池信息")
+    public List<PoolInfo> poolList;
+    @ProtoDesc("美元收集目标值")
+    public int dollarTargetCount;
 
     public ResConfigInfo(int code) {
         super(code);

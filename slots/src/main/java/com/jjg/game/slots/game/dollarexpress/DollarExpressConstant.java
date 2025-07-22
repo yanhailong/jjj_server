@@ -1,4 +1,4 @@
-package com.jjg.game.slots.game.dollarexpress.constant;
+package com.jjg.game.slots.game.dollarexpress;
 
 import com.jjg.game.common.constant.CoreConst;
 
@@ -10,6 +10,10 @@ public interface DollarExpressConstant {
     interface GameType{
         //支持的游戏
         int[] SUPPORT_GAME_TYPES = {CoreConst.GameType.DOLLAR_EXPRESS};
+    }
+
+    interface Common{
+        int MINI_POOL_ID = 100100101;
     }
 
     interface Status{
@@ -24,8 +28,6 @@ public interface DollarExpressConstant {
         int ALL_BOARD_GOLD_TRAIN = 4;
         //二选一之免费模式
         int ALL_BOARD_FREE = 5;
-        //投资模式
-        int INVERS = 6;
     }
 
     /**
@@ -55,5 +57,9 @@ public interface DollarExpressConstant {
         int TYPE_RAND_TIMES = 0;
         //美元现金
         int TYPE_DOLLAR_CASH = 1;
+        //投资游戏
+        int TYPE_INVERS = 2;
+        //黄金列车触发局结果生成倍数
+        int TYPE_GOLD_TRAIN = 5;
     }
 }

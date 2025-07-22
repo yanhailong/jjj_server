@@ -28,7 +28,7 @@ public class PlayerHistorySlotsDao extends MongoBaseDao<PlayerHistorySlots,Long>
         Query query = new Query(Criteria.where("playerId").is(playerId));
         Update update = new Update().addToSet("slots", gameType);
 
-        mongoTemplate.updateFirst(query,update,PlayerHistorySlots.class);
+        mongoTemplate.upsert(query,update,PlayerHistorySlots.class);
     }
 
     /**

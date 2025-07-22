@@ -1,6 +1,7 @@
 package com.jjg.game.slots.dao;
 
 import com.jjg.game.core.dao.MongoBaseDao;
+import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SlotsResultLib;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
 import org.slf4j.Logger;
@@ -14,7 +15,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -50,10 +53,13 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
     }
 
     public void init(int gameType){
+        this.gameType = gameType;
         this.currentMongoLibName = getCurrentMongoLibName();
         this.currentRedisLibName = getCurrentRedisLibName();
-        this.gameType = gameType;
+
         //todo 通知其他slots节点，切换结果库
+
+
     }
 
     public long getResultCount(T lib) {
@@ -67,6 +73,9 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
 
     protected String tabelName(String tableIndex, int gameType, int modelId, int libType, int sectionIndex) {
         return tableIndex + gameType + ":" + modelId + ":" + libType + ":" + sectionIndex;
+    }
+    protected String allSectionTabelName(String tableIndex, int gameType, int modelId, int libType) {
+        return tableIndex + gameType + ":" + modelId + ":" + libType;
     }
 
     protected String getRedisTableNameIndex(String existTableName) {
@@ -146,11 +155,11 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
             stream.forEach(lib -> {
                 int sectionIndex = getSectionIndex(resultLibSectionMap, lib.getRollerMode(), lib.getLibType(), lib.getTimes());
                 if (sectionIndex < 0) {
-                    log.warn("将结果库转移到redis时失败，获取区间失败 gameType = {},modelId = {},libType = {},times = {}", this.gameType, lib.getRollerMode(), lib.getLibType(), lib.getTimes());
+                    log.warn("将结果库转移到redis时失败，获取区间失败 gameType = {},modelId = {},libType = {},times = {},libId = {}", this.gameType, lib.getRollerMode(), lib.getLibType(), lib.getTimes(),lib.getId());
                     return;
                 }
-
                 this.redisTemplate.opsForSet().add(tabelName(redisTableNameIndex, this.gameType, lib.getRollerMode(), lib.getLibType(), sectionIndex), lib);
+//                    this.redisTemplate.opsForSet().add(allSectionTabelName(redisTableNameIndex, this.gameType, lib.getRollerMode(), lib.getLibType()), sectionIndex);
             });
         }
 
@@ -222,6 +231,20 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
     }
 
     public T getLibBySectionIndex(int modelId, int libType, int sectionIndex) {
-        return (T)this.redisTemplate.opsForSet().randomMember(tabelName(this.currentRedisLibName, this.gameType, modelId, libType, sectionIndex));
+        String tableName = tabelName(this.currentRedisLibName, this.gameType, modelId, libType, sectionIndex);
+        System.out.println(tableName);
+        return (T)this.redisTemplate.opsForSet().randomMember(tableName);
+    }
+
+    public Set<Integer> getAllSection(int modelId, int libType){
+        Set members = this.redisTemplate.opsForSet().members(allSectionTabelName(this.currentRedisLibName, this.gameType, modelId, libType));
+        if(members == null || members.isEmpty()){
+            return null;
+        }
+        Set<Integer> sections = new HashSet<>();
+        for(Object o : members){
+            sections.add(Integer.parseInt(o.toString()));
+        }
+        return sections;
     }
 }

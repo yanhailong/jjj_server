@@ -20,4 +20,6 @@ public class WareHouseConfigInfo {
     public int limitVipMin;
     @ProtoDesc("进入最低金币数量")
     public long limitGoldMin;
+    @ProtoDesc("展示的押注")
+    public long betShow;
 }

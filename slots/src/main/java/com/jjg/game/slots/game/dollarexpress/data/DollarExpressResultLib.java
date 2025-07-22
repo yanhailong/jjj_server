@@ -23,12 +23,13 @@ public class DollarExpressResultLib extends SlotsResultLib<DollarExpressAwardLin
     private Map<Integer,DollarExpressFreeGame> freeGameMap;
     //重转信息
     private Map<Integer,DollarExpressAgainGame> againGameMap;
-    //黄金火车节数
+    //黄金列车车厢节数
     private int goldTrainCount;
+    //黄金列车触发局中美金的总倍数
+    private int goldTrainAllTimes;
+
     //美元现金奖励
     private DollarInfo dollarInfo;
-    //是否会触发二选一
-    private boolean chooseOne;
 
     public List<Train> getTrainList() {
         return trainList;
@@ -44,14 +45,6 @@ public class DollarExpressResultLib extends SlotsResultLib<DollarExpressAwardLin
 
     public void setFreeGameMap(Map<Integer, DollarExpressFreeGame> freeGameMap) {
         this.freeGameMap = freeGameMap;
-    }
-
-    public int getGoldTrainCount() {
-        return goldTrainCount;
-    }
-
-    public void setGoldTrainCount(int goldTrainCount) {
-        this.goldTrainCount = goldTrainCount;
     }
 
     public Map<Integer, DollarExpressAgainGame> getAgainGameMap() {
@@ -94,12 +87,24 @@ public class DollarExpressResultLib extends SlotsResultLib<DollarExpressAwardLin
         this.freeGameMap.put(id, freeGame);
     }
 
-    public void addFreeGameGoldTrainCount(int id,int count){
-        this.freeGameMap.get(id).setGoldTrainCount(count);
+    public void addFreeGameGoldTrainCount(int id,List<int[]> list){
+        if(list == null || list.isEmpty()) {
+            return;
+        }
+        int[] arr = list.get(0);
+        DollarExpressFreeGame freeGame = this.freeGameMap.get(id);
+        freeGame.setGoldTrainAllTimes(arr[0]);
+        freeGame.setGoldTrainCount(arr[1]);
     }
 
-    public void addAgainGameGoldTrainCount(int id,int count){
-        this.againGameMap.get(id).setGoldTrainCount(count);
+    public void addAgainGameGoldTrainCount(int id,List<int[]> list){
+        if(list == null || list.isEmpty()) {
+            return;
+        }
+        int[] arr = list.get(0);
+        DollarExpressAgainGame againGame = this.againGameMap.get(id);
+        againGame.setGoldTrainAllTimes(arr[0]);
+        againGame.setGoldTrainCount(arr[1]);
     }
 
     public void addFreeGameTrain(int id,Train train) {
@@ -107,6 +112,18 @@ public class DollarExpressResultLib extends SlotsResultLib<DollarExpressAwardLin
     }
 
     public void setDollarCashInfo(DollarInfo dollarInfo) {
+        this.dollarInfo = dollarInfo;
+    }
+
+    public int getGoldTrainCount() {
+        return goldTrainCount;
+    }
+
+    public void setGoldTrainCount(int goldTrainCount) {
+        this.goldTrainCount = goldTrainCount;
+    }
+
+    public void setDollarInfo(DollarInfo dollarInfo) {
         this.dollarInfo = dollarInfo;
     }
 
@@ -137,12 +154,12 @@ public class DollarExpressResultLib extends SlotsResultLib<DollarExpressAwardLin
         return lib;
     }
 
-    public boolean isChooseOne() {
-        return chooseOne;
+    public int getGoldTrainAllTimes() {
+        return goldTrainAllTimes;
     }
 
-    public void setChooseOne(boolean chooseOne) {
-        this.chooseOne = chooseOne;
+    public void setGoldTrainAllTimes(int goldTrainAllTimes) {
+        this.goldTrainAllTimes = goldTrainAllTimes;
     }
 
     @Override

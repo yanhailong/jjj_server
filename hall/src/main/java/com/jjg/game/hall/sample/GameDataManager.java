@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年07月18日 15:03:10
+ * @date 2025年07月22日 18:30:35
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -119,9 +119,6 @@ public class GameDataManager {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
     containerMap.put(GameListCfg.class, new GameListCfgContainer());
-    containerMap.put(GolbalCfg.class, new GolbalCfgContainer());
-    containerMap.put(ShopCfg.class, new ShopCfgContainer());
-    containerMap.put(VipLevelCfg.class, new VipLevelCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
     // endregion===============cfg加载模板结束===================
     return containerMap;
@@ -535,39 +532,6 @@ public class GameDataManager {
   public static List<GameListCfg> getGameListCfgList() {
     return getInstance().getCfgContainer(GameListCfg.class).getCfgBeanList();
   }
-  public static GolbalCfg getGolbalCfg(int key) {
-    return getInstance().getCfgContainer(GolbalCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, GolbalCfg> getGolbalCfgMap() {
-    return getInstance().getCfgContainer(GolbalCfg.class).getCfgBeanMap();
-  }
-
-  public static List<GolbalCfg> getGolbalCfgList() {
-    return getInstance().getCfgContainer(GolbalCfg.class).getCfgBeanList();
-  }
-  public static ShopCfg getShopCfg(int key) {
-    return getInstance().getCfgContainer(ShopCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, ShopCfg> getShopCfgMap() {
-    return getInstance().getCfgContainer(ShopCfg.class).getCfgBeanMap();
-  }
-
-  public static List<ShopCfg> getShopCfgList() {
-    return getInstance().getCfgContainer(ShopCfg.class).getCfgBeanList();
-  }
-  public static VipLevelCfg getVipLevelCfg(int key) {
-    return getInstance().getCfgContainer(VipLevelCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, VipLevelCfg> getVipLevelCfgMap() {
-    return getInstance().getCfgContainer(VipLevelCfg.class).getCfgBeanMap();
-  }
-
-  public static List<VipLevelCfg> getVipLevelCfgList() {
-    return getInstance().getCfgContainer(VipLevelCfg.class).getCfgBeanList();
-  }
   public static WarehouseCfg getWarehouseCfg(int key) {
     return getInstance().getCfgContainer(WarehouseCfg.class).getCfgBeanMap().get(key);
   }
@@ -607,6 +571,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\project\\gameserver\\hall\\resources\\sample");
+    loadAllData("D:\\workspace\\gameserver\\hall\\resources\\sample");
   }
 }

@@ -4,12 +4,16 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.game.dollarexpress.DollarExpressMessageHandler;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
+import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressTestManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.Scanner;
 
 
 /**
@@ -25,6 +29,9 @@ public class SlotsStartManager implements IRoomStartListener {
     private SlotsSampleManager slotsSampleManager;
     @Autowired
     private SlotsPoolDao slotsPoolDao;
+    @Autowired
+    private DollarExpressTestManager testManager;
+
 
 
     @Override
@@ -39,6 +46,7 @@ public class SlotsStartManager implements IRoomStartListener {
         this.slotsSampleManager.init();
         this.slotsPoolDao.initPool();
         initGameManager();
+//        testManager.init();
     }
 
     @Override
@@ -55,4 +63,6 @@ public class SlotsStartManager implements IRoomStartListener {
             en.getValue().init();
         }
     }
+
+
 }

@@ -64,8 +64,8 @@ public class HallRoomService implements IConsoleReceiver {
             return Code.NOT_FOUND;
         }
 
-        clusterSystem.switchNode(playerController.getSession(), marsNode);
         playerSessionService.changeGameType(playerController.playerId(),gameType,roomCfgId,wareId);
+        clusterSystem.switchNode(playerController.getSession(), marsNode);
         return Code.SUCCESS;
     }
 

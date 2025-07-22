@@ -15,8 +15,10 @@ public class DollarExpressAgainGame {
     private int times;
     //火车信息
     private List<Train> trainList;
-    //黄金火车节数
+    //黄金列车车厢节数
     private int goldTrainCount;
+    //黄金列车触发局中美金的总倍数
+    private int goldTrainAllTimes;
     //美元倍数
     private List<Integer> dollarTimesList;
 
@@ -77,5 +79,13 @@ public class DollarExpressAgainGame {
 
     public void addTimes(int times) {
         this.times += times;
+    }
+
+    public int getGoldTrainAllTimes() {
+        return goldTrainAllTimes;
+    }
+
+    public void setGoldTrainAllTimes(int goldTrainAllTimes) {
+        this.goldTrainAllTimes = goldTrainAllTimes;
     }
 }

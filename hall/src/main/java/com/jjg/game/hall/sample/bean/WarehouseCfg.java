@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName warehouse.xlsx
  * @sheetName Warehouse
  * @author Auto.Generator
- * @date 2025年07月18日 15:03:10
+ * @date 2025年07月22日 18:30:35
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class WarehouseCfg extends BaseCfgBean {
@@ -19,6 +19,8 @@ public class WarehouseCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "Warehouse";
 
+  /** 倍场显示默认押注 */
+  protected int BetShow;
   /** 最少保留房间数量：无人后间隔X秒删除 */
   protected List<Integer> RoomDeletion_Solution;
   /** 最小准入 */
@@ -31,6 +33,11 @@ public class WarehouseCfg extends BaseCfgBean {
   protected String participants_max;
   /** VIP等级限制 */
   protected int vipLvLimit;
+
+  /** 返回倍场显示默认押注 */
+  public int getBetShow() {
+    return BetShow;
+  }
 
   /** 返回最少保留房间数量：无人后间隔X秒删除 */
   public List<Integer> getRoomDeletion_Solution() {

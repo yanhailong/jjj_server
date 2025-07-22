@@ -15,14 +15,14 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE, cmd = SlotsConst.MsgBean.RES_INVEST_AREA,resp = true)
 @ProtoDesc("选择投资地区返回")
 public class ResInvestArea extends AbstractResponse {
-    @ProtoDesc("回报金额1")
-    public long areaGold1;
-    @ProtoDesc("回报金额2")
-    public long areaGold2;
-    @ProtoDesc("回报金额3")
-    public long areaGold3;
-    @ProtoDesc("火车信息")
-    public List<TrainInfo> trainInfoList;
+    @ProtoDesc("回报金额列表")
+    public List<Long> goldList;
+    @ProtoDesc("3次都中奖，奖励的火车信息")
+    public TrainInfo allWinTrainInfo;
+    @ProtoDesc("地图全部解锁时的图标id列表")
+    public List<Integer> iconList;
+    @ProtoDesc("地图全部解锁，奖励的火车信息")
+    public TrainInfo areaAllUnlockTrainInfo;
 
     public ResInvestArea(int code) {
         super(code);

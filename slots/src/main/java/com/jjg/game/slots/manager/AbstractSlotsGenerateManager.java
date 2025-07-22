@@ -1,4 +1,4 @@
-package com.jjg.game.slots.generate;
+package com.jjg.game.slots.manager;
 
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.slots.constant.AuxiliaryAwardType;
@@ -18,7 +18,7 @@ import java.util.*;
  * @author 11
  * @date 2025/7/2 13:54
  */
-public class SlotsGenerate<T extends SlotsResultLib> {
+public class AbstractSlotsGenerateManager<T extends SlotsResultLib> {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     protected Class<T> resultLibClazz;
@@ -58,10 +58,12 @@ public class SlotsGenerate<T extends SlotsResultLib> {
     //在生成一条结果时，可能会产生多条分支
     protected Map<Integer,T> branchLibMap;
 
-    public SlotsGenerate(Class<T> resultLibClazz, int gameType) {
+    public AbstractSlotsGenerateManager(Class<T> resultLibClazz) {
         this.resultLibClazz = resultLibClazz;
-        this.gameType = gameType;
+    }
 
+    public void init(int gameType) {
+        this.gameType = gameType;
         initConfig();
     }
 
@@ -103,8 +105,8 @@ public class SlotsGenerate<T extends SlotsResultLib> {
     /**
      * 生成一个结果
      */
-    public void generateOne() {
-
+    public T generateOne() {
+        return null;
     }
 
     /**
@@ -112,7 +114,7 @@ public class SlotsGenerate<T extends SlotsResultLib> {
      *
      * @return
      */
-    protected int[] generateAllIcons(int rollId) {
+    public int[] generateAllIcons(int rollId) {
         int[] arr = new int[this.baseInitCfg.getCols() * this.baseInitCfg.getRows() + 1];
 
         for (Map.Entry<Integer, BaseRollerCfg> en : this.baseRollerCfgMap.entrySet()) {
@@ -201,7 +203,7 @@ public class SlotsGenerate<T extends SlotsResultLib> {
     /**
      * 随机一个滚轴id
      */
-    protected T randRollerId() throws Exception {
+    public T randRollerId() throws Exception {
         T slotsResultLib = createResultLib();
         //首先随机模式id
         int modeId = this.rollModeList.get(RandomUtils.randomInt(this.rollModeList.size()));
@@ -302,63 +304,70 @@ public class SlotsGenerate<T extends SlotsResultLib> {
 
 
     private void baseInitCfg() {
-        this.baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-        if (this.baseInitCfg == null) {
+        BaseInitCfg tmpBaseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+        if (tmpBaseInitCfg == null) {
             throw new IllegalArgumentException("未找到该游戏的基础配置(baseInit表),生成结果集失败 gameType = " + this.gameType);
         }
+        this.baseInitCfg = tmpBaseInitCfg;
     }
 
     private void baseRollerModeCfg() {
+        BaseRollerModeCfg tempBaseRollerModeCfg = null;
         for (Map.Entry<Integer, BaseRollerModeCfg> en : GameDataManager.getBaseRollerModeCfgMap().entrySet()) {
             if (en.getValue().getGameType() == this.gameType) {
-                this.baseRollerModeCfg = en.getValue();
+                tempBaseRollerModeCfg = en.getValue();
                 break;
             }
         }
 
-        if (this.baseRollerModeCfg == null || this.baseRollerModeCfg.getRollerMode() == null || this.baseRollerModeCfg.getRollerMode().isEmpty()) {
+        if (tempBaseRollerModeCfg == null || tempBaseRollerModeCfg.getRollerMode() == null || tempBaseRollerModeCfg.getRollerMode().isEmpty()) {
             throw new IllegalArgumentException("未找到该游戏的滚轴模式,生成结果集失败 gameType = " + this.gameType);
         }
 
-        this.rollModeList = new ArrayList<>();
-        for (Map.Entry<Integer, List<Integer>> en : this.baseRollerModeCfg.getRollerMode().entrySet()) {
-            this.rollModeList.add(en.getKey());
+        List<Integer> tmpList = new ArrayList<>();
+        for (Map.Entry<Integer, List<Integer>> en : tempBaseRollerModeCfg.getRollerMode().entrySet()) {
+            tmpList.add(en.getKey());
         }
+        this.baseRollerModeCfg = tempBaseRollerModeCfg;
+        this.rollModeList = tmpList;
     }
 
     /**
      * 元素相关
      */
     private void baseElementConfig() {
-        this.wildIconSet = new HashSet<>();
-        this.noralIconSet = new HashSet<>();
+        Set<Integer> tmpWildIconSet = new HashSet<>();
+        Set<Integer> tmpNoralIconSet = new HashSet<>();
 
         for (Map.Entry<Integer, BaseElementCfg> en : GameDataManager.getBaseElementCfgMap().entrySet()) {
             BaseElementCfg cfg = en.getValue();
             if (cfg.getType() == SlotsConst.BaseElement.TYPE_NORMAL) {
-                this.noralIconSet.add(cfg.getElementId());
+                tmpNoralIconSet.add(cfg.getElementId());
             } else if (cfg.getType() == SlotsConst.BaseElement.TYPE_WILD) {
-                this.wildIconSet.add(cfg.getElementId());
+                tmpWildIconSet.add(cfg.getElementId());
             }
         }
+        this.wildIconSet = tmpWildIconSet;
+        this.noralIconSet = tmpNoralIconSet;
     }
 
     /**
      * 滚轴相关
      */
     private void baseRollerConfig() {
-        this.baseRollerCfgMap = new HashMap<>();
+        Map<Integer, BaseRollerCfg> tmpBaseRollerCfgMap = new HashMap<>();
         //根据游戏type筛选
         for (Map.Entry<Integer, BaseRollerCfg> en : GameDataManager.getBaseRollerCfgMap().entrySet()) {
             BaseRollerCfg cfg = en.getValue();
             if (cfg.getGameType() == this.gameType) {
-                this.baseRollerCfgMap.put(cfg.getColumn(), cfg);
+                tmpBaseRollerCfgMap.put(cfg.getColumn(), cfg);
             }
         }
 
-        if (baseRollerCfgMap.size() != this.baseInitCfg.getCols()) {
+        if (tmpBaseRollerCfgMap.size() != this.baseInitCfg.getCols()) {
             throw new IllegalArgumentException("该游戏滚轴配置中没有足够的列数,生成结果集失败 gameType = " + this.gameType);
         }
+        this.baseRollerCfgMap = tmpBaseRollerCfgMap;
     }
 
     /**
@@ -366,7 +375,8 @@ public class SlotsGenerate<T extends SlotsResultLib> {
      */
     private void baseLineConfig() {
         //column -> cfg
-        this.baseLineCfgMap = new HashMap<>();
+        Map<Integer, BaseLineCfg> tmpBaseLineCfgMap = new HashMap<>();
+
         //根据游戏type筛选
         for (Map.Entry<Integer, BaseLineCfg> en : GameDataManager.getBaseLineCfgMap().entrySet()) {
             BaseLineCfg cfg = en.getValue();
@@ -374,19 +384,21 @@ public class SlotsGenerate<T extends SlotsResultLib> {
                 continue;
             }
 
-            this.baseLineCfgMap.put(cfg.getLineId(), cfg);
+            tmpBaseLineCfgMap.put(cfg.getLineId(), cfg);
         }
 
-        if (this.baseLineCfgMap.isEmpty()) {
+        if (tmpBaseLineCfgMap.isEmpty()) {
             throw new IllegalArgumentException("该游戏滚轴配置中没有配置中奖线,生成结果集失败 gameType = " + this.gameType);
         }
+        this.baseLineCfgMap = tmpBaseLineCfgMap;
     }
 
     /**
      * 特殊中奖线相关
      */
     private void baseLineFreeConfig() {
-        this.baseLineFreeCfgMap = new HashMap<>();
+        Map<Integer, Map<Integer, BaseLineFreeInfo>> tmpBaseLineFreeCfgMap = new HashMap<>();
+
         //根据游戏type筛选
         for (Map.Entry<Integer, BaseLineFreeCfg> en : GameDataManager.getBaseLineFreeCfgMap().entrySet()) {
             BaseLineFreeCfg cfg = en.getValue();
@@ -412,7 +424,7 @@ public class SlotsGenerate<T extends SlotsResultLib> {
                 throw new IllegalArgumentException("该游戏滚轴配置中特殊中奖线的最少元素种类为空,生成结果集失败 gameType = " + this.gameType + ",lineId = " + cfg.getLineId());
             }
 
-            Map<Integer, BaseLineFreeInfo> tempMap = this.baseLineFreeCfgMap.computeIfAbsent(cfg.getLineId(), k -> new HashMap<>());
+            Map<Integer, BaseLineFreeInfo> tempMap = tmpBaseLineFreeCfgMap.computeIfAbsent(cfg.getLineId(), k -> new HashMap<>());
 
             for (List<Integer> tempKindList : leastElementKindList) {
 //            for (int i = 0; i < leastElementKindList.size(); i++) {
@@ -438,10 +450,12 @@ public class SlotsGenerate<T extends SlotsResultLib> {
                 tempMap.put(baseLineFreeInfo.getId(), baseLineFreeInfo);
             }
         }
+
+        this.baseLineFreeCfgMap = tmpBaseLineFreeCfgMap;
     }
 
     private void baseElementRewardConfig() {
-        this.baseElementRewardCfgMap = new HashMap<>();
+        Map<Integer, Map<Integer, BaseElementRewardCfg>> tmpBaseElementRewardCfgMap = new HashMap<>();
 
         //根据游戏type筛选
         for (Map.Entry<Integer, BaseElementRewardCfg> en : GameDataManager.getBaseElementRewardCfgMap().entrySet()) {
@@ -450,21 +464,23 @@ public class SlotsGenerate<T extends SlotsResultLib> {
                 continue;
             }
 
-            Map<Integer, BaseElementRewardCfg> tempMap = this.baseElementRewardCfgMap.computeIfAbsent(cfg.getLineType(), k -> new HashMap<>());
+            Map<Integer, BaseElementRewardCfg> tempMap = tmpBaseElementRewardCfgMap.computeIfAbsent(cfg.getLineType(), k -> new HashMap<>());
             tempMap.put(cfg.getId(), cfg);
         }
 
-        if (this.baseElementRewardCfgMap.isEmpty()) {
+        if (tmpBaseElementRewardCfgMap.isEmpty()) {
             throw new IllegalArgumentException("该游戏元素奖励信息为空,生成结果集失败 gameType = " + this.gameType);
         }
+        this.baseElementRewardCfgMap = tmpBaseElementRewardCfgMap;
     }
 
     /**
      * 小游戏
      */
     private void specialAuxiliaryCconfig() {
-        this.specialAuxiliaryRandCountPropMap = new HashMap<>();
-        this.specialAuxiliaryRandAwardPropMap = new HashMap<>();
+        Map<Integer, Map<Integer, PropInfo>> tmpSpecialAuxiliaryRandCountPropMap = new HashMap<>();
+        Map<Integer, PropAndAwardInfo<FreeRandAwardInfo>> tmpSpecialAuxiliaryRandAwardPropMap = new HashMap<>();
+
 
         for (Map.Entry<Integer, SpecialAuxiliaryCfg> en : GameDataManager.getSpecialAuxiliaryCfgMap().entrySet()) {
             SpecialAuxiliaryCfg cfg = en.getValue();
@@ -472,7 +488,7 @@ public class SlotsGenerate<T extends SlotsResultLib> {
                 throw new IllegalArgumentException("该游戏小游戏随机次数配置为空,生成结果集失败 gameType = " + this.gameType + ",auxiliaryId = " + cfg.getId());
             }
 
-            Map<Integer, PropInfo> tempMap = this.specialAuxiliaryRandCountPropMap.computeIfAbsent(en.getKey(), k -> new HashMap<>());
+            Map<Integer, PropInfo> tempMap = tmpSpecialAuxiliaryRandCountPropMap.computeIfAbsent(en.getKey(), k -> new HashMap<>());
 
             for (Map.Entry<Integer, Map<Integer, Integer>> en2 : cfg.getRandCount().entrySet()) {
                 int tmpModeId = en2.getKey();
@@ -493,7 +509,7 @@ public class SlotsGenerate<T extends SlotsResultLib> {
 
             //分析免费随机奖励的配置
             if (cfg.getFreeRandAward() != null && !cfg.getFreeRandAward().isEmpty()) {
-                PropAndAwardInfo<FreeRandAwardInfo> propAndAwardInfo = this.specialAuxiliaryRandAwardPropMap.computeIfAbsent(en.getKey(), k -> new PropAndAwardInfo<>());
+                PropAndAwardInfo<FreeRandAwardInfo> propAndAwardInfo = tmpSpecialAuxiliaryRandAwardPropMap.computeIfAbsent(en.getKey(), k -> new PropAndAwardInfo<>());
                 for (Map.Entry<Integer, List<List<Integer>>> en2 : cfg.getFreeRandAward().entrySet()) {
                     //模式id
                     int modelId = en2.getKey();
@@ -515,7 +531,7 @@ public class SlotsGenerate<T extends SlotsResultLib> {
                         end += randAwardInfo.getProp();
 
                         propInfo.addProp(randAwardInfo.getAwardId(), begin, end);
-                        propAndAwardInfo.addAwardInfo(randAwardInfo.getAwardId(), randAwardInfo);
+                        propAndAwardInfo.addAwardInfo2(randAwardInfo.getModelId(),randAwardInfo.getAwardId(), randAwardInfo);
                     }
 
                     propInfo.setSum(end);
@@ -523,15 +539,17 @@ public class SlotsGenerate<T extends SlotsResultLib> {
                 }
             }
         }
+
+        this.specialAuxiliaryRandCountPropMap = tmpSpecialAuxiliaryRandCountPropMap;
+        this.specialAuxiliaryRandAwardPropMap = tmpSpecialAuxiliaryRandAwardPropMap;
     }
 
     /**
      * 小游戏奖励
      */
     private void specialAuxiliaryAwardCconfig() {
-        this.specialAuxiliaryAwardInfoMapA = new HashMap<>();
-        this.specialAuxiliaryAwardInfoMapC = new HashMap<>();
-
+        Map<Integer, PropInfo> tmpSpecialAuxiliaryAwardInfoMapA = new HashMap<>();
+        Map<Integer, PropAndAwardInfo<SpecialAuxiliaryAwardC>> tmpSpecialAuxiliaryAwardInfoMapC = new HashMap<>();
 
         for (Map.Entry<Integer, SpecialAuxiliaryAwardCfg> en : GameDataManager.getSpecialAuxiliaryAwardCfgMap().entrySet()) {
             SpecialAuxiliaryAwardCfg cfg = en.getValue();
@@ -546,7 +564,7 @@ public class SlotsGenerate<T extends SlotsResultLib> {
 
                 switch (auxiliaryAwardType) {
                     case FREE_GAME_COUNT, APPOINT_ROLLER, GOLD_PROP, REWARD_MINI_GAME,
-                         SPIN_COUNT_AGAIN -> this.specialAuxiliaryAwardInfoMapA.put(cfg.getId(), handAwardANormal(cfg));
+                         SPIN_COUNT_AGAIN -> tmpSpecialAuxiliaryAwardInfoMapA.put(cfg.getId(), handAwardANormal(cfg));
                     default -> handAwardADefault(cfg);
                 }
             }
@@ -589,20 +607,26 @@ public class SlotsGenerate<T extends SlotsResultLib> {
                 }
                 propInfo.setSum(end);
                 propAndAwardInfo.addProp(cfg.getId(), propInfo);
-                this.specialAuxiliaryAwardInfoMapC.put(cfg.getId(), propAndAwardInfo);
+                tmpSpecialAuxiliaryAwardInfoMapC.put(cfg.getId(), propAndAwardInfo);
             }
         }
+
+        this.specialAuxiliaryAwardInfoMapA = tmpSpecialAuxiliaryAwardInfoMapA;
+        this.specialAuxiliaryAwardInfoMapC = tmpSpecialAuxiliaryAwardInfoMapC;
     }
 
     /**
      * 格子修改配置
      */
     private void specialGirdConfig() {
-        this.specialGirdCfgMap = new HashMap<>();
+        Map<Integer, GirdUpdateConfig> tmpSpecialGirdCfgMap = new HashMap<>();
 
         for (Map.Entry<Integer, SpecialGirdCfg> en : GameDataManager.getSpecialGirdCfgMap().entrySet()) {
             SpecialGirdCfg cfg = en.getValue();
             if (cfg.getGameType() != this.gameType) {
+                continue;
+            }
+            if(cfg.getGirdUpdateType() != SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_RAND){
                 continue;
             }
             GirdUpdateConfig config = new GirdUpdateConfig();
@@ -705,8 +729,10 @@ public class SlotsGenerate<T extends SlotsResultLib> {
             propInfo.setSum(end);
             config.setRandCountPropInfo(propInfo);
 
-            this.specialGirdCfgMap.put(cfg.getId(), config);
+            tmpSpecialGirdCfgMap.put(cfg.getId(), config);
         }
+
+        this.specialGirdCfgMap = tmpSpecialGirdCfgMap;
     }
 
     protected boolean girdSpecialElement(int iconId) {
@@ -838,5 +864,9 @@ public class SlotsGenerate<T extends SlotsResultLib> {
 
     public Map<Integer, T> getBranchLibMap() {
         return branchLibMap;
+    }
+
+    public BaseInitCfg getBaseInitCfg() {
+        return baseInitCfg;
     }
 }

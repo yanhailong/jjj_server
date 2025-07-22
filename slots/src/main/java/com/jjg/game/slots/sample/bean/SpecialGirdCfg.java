@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName SpecialGird.xlsx
  * @sheetName SpecialGird
  * @author Auto.Generator
- * @date 2025年07月11日 11:56:28
+ * @date 2025年07月22日 10:35:35
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class SpecialGirdCfg extends BaseCfgBean {
@@ -35,6 +35,8 @@ public class SpecialGirdCfg extends BaseCfgBean {
   protected int girdUpdateType;
   /** 模式ID */
   protected int modelId;
+  /** 不替换元素列表 */
+  protected List<Integer> notReplaceEle;
   /** 随机次数 */
   protected Map<Integer,Integer> randCount;
   /** 旋转状态 */
@@ -82,6 +84,11 @@ public class SpecialGirdCfg extends BaseCfgBean {
   /** 返回模式ID */
   public int getModelId() {
     return modelId;
+  }
+
+  /** 返回不替换元素列表 */
+  public List<Integer> getNotReplaceEle() {
+    return notReplaceEle;
   }
 
   /** 返回随机次数 */
