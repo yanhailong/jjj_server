@@ -15,8 +15,8 @@ import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
 import com.jjg.game.table.common.message.req.ReqBet;
 import com.jjg.game.table.common.message.req.ReqBetBean;
 import com.jjg.game.table.common.message.res.BetTableInfo;
+import com.jjg.game.table.common.message.res.NotifyPlayerBet;
 import com.jjg.game.table.redblackwar.manager.RedBlackWarSampleManager;
-import com.jjg.game.table.redblackwar.message.resp.NotifyBetChange;
 import com.jjg.game.table.redblackwar.room.data.RedBlackWarGameDataVo;
 import com.jjg.game.table.redblackwar.sample.bean.BetAreaCfg;
 import org.slf4j.Logger;
@@ -111,25 +111,24 @@ public class RedBlackWarBetPhase extends BaseTableBetPhase<RedBlackWarGameDataVo
         gamePlayer.setGold(result.data.getGold());
         //增加押注信息
         List<BetTableInfo> betTableInfos = new ArrayList<>();
-        List<Long> playerInfos = gameDataVo.getRedBlackWarPlayerInfos();
         for (ReqBetBean betInfo : betInfos) {
             Map<Long, Long> longLongMap = betInfoMap.get(betInfo.betAreaIdx);
             Long merge = longLongMap.merge(gamePlayer.getId(), (long) betInfo.betValue, Long::sum);
             long totalBet = longLongMap.values().stream().mapToLong(Long::longValue).sum();
-            BetTableInfo redBlackWarAreaInfo = new BetTableInfo();
-            redBlackWarAreaInfo.betValue = betInfo.betValue;
-            redBlackWarAreaInfo.betIdx = betInfo.betAreaIdx;
-            redBlackWarAreaInfo.betIdxTotal = totalBet;
-            redBlackWarAreaInfo.playerBetTotal = merge;
-            betTableInfos.add(redBlackWarAreaInfo);
+            BetTableInfo betTableInfo = new BetTableInfo();
+            betTableInfo.betValue = betInfo.betValue;
+            betTableInfo.betIdx = betInfo.betAreaIdx;
+            betTableInfo.betIdxTotal = totalBet;
+            betTableInfo.playerBetTotal = merge;
+            betTableInfos.add(betTableInfo);
         }
         //更新玩家当前总押注
         gamePlayer.getTableGameData().addTotalBet(needTotal);
         //通知玩家金币变化，区域变化
-        NotifyBetChange notifyBetChange = new NotifyBetChange();
+        NotifyPlayerBet notifyBetChange = new NotifyPlayerBet(Code.SUCCESS);
         notifyBetChange.playerId = gamePlayer.getId();
-        notifyBetChange.areaInfo = betTableInfos;
-        notifyBetChange.index = playerInfos.indexOf(gamePlayer.getId());
+        notifyBetChange.playerCurGold = gamePlayer.getGold();
+        notifyBetChange.betTableInfoList = betTableInfos;
         gameController.sendMessage(RoomMessageBuilder.newBuilder()
                 .setData(notifyBetChange));
     }
