@@ -39,10 +39,10 @@ public class MatchDataDao {
         if (redisLock.tryLock(getLockMatchRedisKey(gameType, roomConfigId))) {
             try {
                 Set<ZSetOperations.TypedTuple<String>> roomIds =
-                    matchKeyTemplate.opsForZSet().rangeWithScores(MatchDataRedisKey.getWaitJoinRoomsKey(gameType,
-                            roomConfigId)
-                        , 0, 0);
-                if (roomIds == null) {
+                        matchKeyTemplate.opsForZSet().rangeWithScores(MatchDataRedisKey.getWaitJoinRoomsKey(gameType,
+                                        roomConfigId)
+                                , 0, 0);
+                if (roomIds == null || roomIds.isEmpty()) {
                     return 0;
                 }
                 ZSetOperations.TypedTuple<String> typedTuple = roomIds.iterator().next();
