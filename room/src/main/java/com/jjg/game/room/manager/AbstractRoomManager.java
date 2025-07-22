@@ -6,6 +6,7 @@ import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.PlayerRoomDataDao;
@@ -160,43 +161,73 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
     }
 
     /**
+     * 初始化已经存在的房间
+     */
+    public <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> initExistRoom(
+        int gameType, int roomCfgId, int maxLimit) throws Exception {
+        EGameType eGameType = EGameType.getGameByTypeId(gameType);
+        RoomType roomType = eGameType.getRoomType();
+        // 获取roomDao
+        AbstractRoomDao<R, ? extends RoomPlayer> roomDao = getRoomDao(gameType);
+        // TODO 每个游戏类型都会有对应的Room去处理相应的数据，现在没有先退出
+        if (roomDao == null) {
+            log.warn("游戏类型：{} 对应的房间类型：{} 找不到对应的RoomDao", gameType, roomType);
+            return null;
+        }
+        List<Object> roomIds = roomDao.getAllRoomIds(gameType, roomCfgId);
+        if (roomIds == null || roomIds.isEmpty()) {
+            log.error("初始化房间时房间ID为空");
+            return null;
+        }
+        int roomId = (int) RandomUtils.randCollection(roomIds);
+        if (roomId == 0) {
+            return null;
+        }
+        R room = roomDao.getRoom(gameType, roomId);
+        return initWithRoom(gameType, roomCfgId, maxLimit, roomType, room);
+    }
+
+    /**
      * 创建初始的系统房间,有些游戏开服就会有默认的房间
      */
-    public <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> createGameDefaultRoom(int gameType,
-                                                                                                    int roomCfgId,
-                                                                                                    int maxLimit,
-                                                                                                    RoomType roomType) {
-        try {
-            // 获取roomDao
-            AbstractRoomDao<R, ? extends RoomPlayer> roomDao = getRoomDao(roomType);
-            // TODO 每个游戏类型都会有对应的Room去处理相应的数据，现在没有先退出
-            if (roomDao == null) {
-                return null;
-            }
-            R room = roomDao.nodeCreate(gameType, roomCfgId, maxLimit, this.nodeManager.getNodePath());
-            if (room == null) {
-                log.warn("创建房间失败 gameType = {},roomCfgId = {},roomType = {}", gameType, roomCfgId, roomType);
-                return null;
-            }
-            // 房间配置
-            RC roomCfg = getRoomActualCfg(roomCfgId, gameType);
-            if (roomCfg == null) {
-                log.error("节点创建房间，房间类型: {} 找不到配置", gameType);
-                return null;
-            }
-            // 创建房间控制器
-            AbstractRoomController<RC, R> roomController = createRoomController(gameType, room, roomCfg);
-            // 注册房间控制器
-            registerRoomController(gameType, room.getId(), roomController);
-
-            log.debug("系统创建房间成功 gameType = {},roomCfgId = {},roomType = {},maxLimit = {}", gameType, roomCfgId,
-                roomType,
-                maxLimit);
-            return roomController;
-        } catch (Exception e) {
-            log.error("", e);
+    public <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> createGameDefaultRoom(
+        int gameType, int roomCfgId, int maxLimit) throws Exception {
+        EGameType eGameType = EGameType.getGameByTypeId(gameType);
+        RoomType roomType = eGameType.getRoomType();
+        // 获取roomDao
+        AbstractRoomDao<R, ? extends RoomPlayer> roomDao = getRoomDao(roomType);
+        // TODO 每个游戏类型都会有对应的Room去处理相应的数据，现在没有先退出
+        if (roomDao == null) {
+            log.warn("游戏类型：{} 对应的房间类型：{} 找不到对应的RoomDao", gameType, roomType);
+            return null;
         }
-        return null;
+        R room = roomDao.nodeCreate(gameType, roomCfgId, maxLimit, this.nodeManager.getNodePath());
+        if (room == null) {
+            log.error("创建房间失败 gameType = {},roomCfgId = {},roomType = {}", gameType, roomCfgId, roomType);
+            return null;
+        }
+        return initWithRoom(gameType, roomCfgId, maxLimit, roomType, room);
+    }
+
+    /**
+     * 通过房间数据初始房间
+     */
+    private <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> initWithRoom(
+        int gameType, int roomCfgId, int maxLimit, RoomType roomType, R room) throws Exception {
+        // 房间配置
+        RC roomCfg = getRoomActualCfg(roomCfgId, gameType);
+        if (roomCfg == null) {
+            log.error("节点创建房间，房间类型: {} 找不到配置", gameType);
+            return null;
+        }
+        // 创建房间控制器
+        AbstractRoomController<RC, R> roomController = createRoomController(gameType, room, roomCfg);
+        // 注册房间控制器
+        registerRoomController(gameType, room.getId(), roomController);
+
+        log.debug("系统创建房间成功 gameType = {},roomCfgId = {},roomType = {},maxLimit = {}",
+            gameType, roomCfgId, roomType, maxLimit);
+        return roomController;
     }
 
     /**

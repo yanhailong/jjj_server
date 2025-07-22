@@ -18,10 +18,6 @@ import java.util.List;
  */
 public class BaccaratGameDataVo extends TableGameDataVo {
 
-    // 每个阶段的结束时间
-    protected long phaseEndTime;
-    // 每个阶段需要运行的时间
-    protected long phaseRunTime;
     // 牌ID
     private ArrayList<Byte> cardList = new ArrayList<>();
     // 初始牌数量
@@ -70,22 +66,6 @@ public class BaccaratGameDataVo extends TableGameDataVo {
 
     public List<BaccaratCardState> getBetRecord() {
         return betRecord;
-    }
-
-    public long getPhaseEndTime() {
-        return phaseEndTime;
-    }
-
-    public void setPhaseEndTime(long phaseEndTime) {
-        this.phaseEndTime = phaseEndTime;
-    }
-
-    public long getPhaseRunTime() {
-        return phaseRunTime;
-    }
-
-    public void setPhaseRunTime(long phaseRunTime) {
-        this.phaseRunTime = phaseRunTime;
     }
 
     public int getInitCardNum() {

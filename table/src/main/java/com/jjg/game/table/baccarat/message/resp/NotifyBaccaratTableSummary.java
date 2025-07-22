@@ -6,25 +6,21 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.table.baccarat.message.BaccaratMessageConstant;
 
-import java.util.List;
-
 /**
- * 百家乐通知新的一局开始
- *
  * @author 2CL
  */
 @ProtobufMessage(
     messageType = MessageConst.MessageTypeDef.BACCARAT_TYPE,
     resp = true,
-    cmd = BaccaratMessageConstant.RespMsgBean.NOTIFY_BACCARAT_TABLE_ROUND_START
+    cmd = BaccaratMessageConstant.RespMsgBean.RESP_BACCARAT_TABLE_SUMMARY
 )
-@ProtoDesc("百家乐通知新的一局开始")
-public class NotifyBaccaratRoundStart extends AbstractResponse {
+@ProtoDesc("返回房间单条摘要信息")
+public class NotifyBaccaratTableSummary extends AbstractResponse {
 
-    @ProtoDesc("桌面的数据")
-    public BaccaratTableInfo baccaratTableInfo;
+    @ProtoDesc("房间单条摘要信息")
+    public BaccaratTableSingleRes tableSummary;
 
-    public NotifyBaccaratRoundStart(int code) {
+    public NotifyBaccaratTableSummary(int code) {
         super(code);
     }
 }

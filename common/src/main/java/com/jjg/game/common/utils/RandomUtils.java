@@ -1,5 +1,6 @@
 package com.jjg.game.common.utils;
 
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.LongAdder;
@@ -383,4 +384,75 @@ public class RandomUtils {
         }
         return target;
     }
+
+    /**
+     * 随机获得列表中的元素
+     *
+     * @param <T>   元素类型
+     * @param list  列表
+     * @param limit 限制列表的前N项
+     * @return 随机元素
+     */
+    public static <T> T randomEle(final List<T> list, int limit) {
+        if (list.size() < limit) {
+            limit = list.size();
+        }
+        return list.get(randomInt(limit));
+    }
+
+    /**
+     * 随机获得列表中的一定量元素
+     *
+     * @param <T>   元素类型
+     * @param list  列表
+     * @param count 随机取出的个数
+     * @return 随机元素
+     */
+    public static <T> List<T> randomEles(final List<T> list, final int count) {
+        final List<T> result = new ArrayList<>(count);
+        final int limit = list.size();
+        while (result.size() < count) {
+            result.add(randomEle(list, limit));
+        }
+
+        return result;
+    }
+    /**
+     * 随机获得列表中的一定量的元素，返回List<br>
+     * 此方法与{@link #randomEles(List, int)} 不同点在于，不会获取重复位置的元素
+     *
+     * @param source 列表
+     * @param count  随机取出的个数
+     * @param <T>    元素类型
+     * @return 随机列表
+     * @since 5.2.1
+     */
+    public static <T> List<T> randomEleList(final List<T> source, final int count) {
+        if (count >= source.size()) {
+            return new ArrayList<>(source);
+        }
+        final int[] randomList = PrimitiveArrayUtil.sub(randomInts(source.size()), 0, count);
+        final List<T> result = new ArrayList<>();
+        for (final int e : randomList) {
+            result.add(source.get(e));
+        }
+        return result;
+    }
+
+    /**
+     * 创建指定长度的随机索引
+     *
+     * @param length 长度
+     * @return 随机索引
+     * @since 5.2.1
+     */
+    public static int[] randomInts(final int length) {
+        final int[] range = PrimitiveArrayUtil.range(length);
+        for (int i = 0; i < length; i++) {
+            final int random = randomNum(i, length);
+            PrimitiveArrayUtil.swap(range, i, random);
+        }
+        return range;
+    }
+
 }

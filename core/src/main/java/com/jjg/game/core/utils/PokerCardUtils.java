@@ -1,5 +1,9 @@
 package com.jjg.game.core.utils;
 
+import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.utils.RandomUtils;
+
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -21,6 +25,8 @@ public class PokerCardUtils {
     public static final byte LITTLE_JOKER = 53;
 
     public static final byte BIG_JOKER = 54;
+
+    public static final List<EPokerSuit> SUIT_LIST = Arrays.stream(EPokerSuit.values()).toList();
 
     /**
      * 扑克牌点数
@@ -63,6 +69,7 @@ public class PokerCardUtils {
         }
         return pokers;
     }
+
     /**
      * 获取除了大小王之外的扑克牌id列表
      */
@@ -70,6 +77,7 @@ public class PokerCardUtils {
         Set<Byte> pokers = getPokerIdExceptJoker();
         return pokers.stream().map(Byte::intValue).collect(Collectors.toList());
     }
+
     /**
      * 获取除了大小王之外的扑克牌id列表
      */
@@ -78,6 +86,23 @@ public class PokerCardUtils {
         pokers.remove(LITTLE_JOKER);
         pokers.remove(BIG_JOKER);
         return pokers;
+    }
+
+    /**
+     * 获取特殊的两张牌
+     *
+     * @param type 1第一张牌点数大 2第二张牌点数大 3点数一样大
+     * @return
+     */
+    public static Pair<Integer, Integer> getTwoSpecificCard(int type) {
+        int point = RandomUtils.randomNum(2, POKER_POINT_K + 1);
+        List<EPokerSuit> ePokerSuits = RandomUtils.randomEleList(SUIT_LIST, 2);
+        if (type == 3) {
+            return Pair.newPair(ePokerSuits.get(0).suitId * POKER_POINT_K + point, ePokerSuits.get(1).suitId * POKER_POINT_K + point);
+        }
+        int nextPoint = RandomUtils.randomNum(1, point);
+        return type == 1 ? Pair.newPair(ePokerSuits.get(0).suitId * POKER_POINT_K + point, ePokerSuits.get(1).suitId * POKER_POINT_K + nextPoint)
+                : Pair.newPair(ePokerSuits.get(0).suitId * POKER_POINT_K + nextPoint, ePokerSuits.get(1).suitId * POKER_POINT_K + point);
     }
 
     public enum EPokerSuit {

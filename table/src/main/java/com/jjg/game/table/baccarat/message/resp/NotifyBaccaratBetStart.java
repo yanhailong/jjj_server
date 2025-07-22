@@ -7,20 +7,22 @@ import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.table.baccarat.message.BaccaratMessageConstant;
 
 /**
+ * 百家乐通知新的一局开始
+ *
  * @author 2CL
  */
 @ProtobufMessage(
     messageType = MessageConst.MessageTypeDef.BACCARAT_TYPE,
     resp = true,
-    cmd = BaccaratMessageConstant.RespMsgBean.RESP_BACCARAT_TABLE_SUMMARY
+    cmd = BaccaratMessageConstant.RespMsgBean.NOTIFY_BACCARAT_TABLE_ROUND_START
 )
-@ProtoDesc("返回房间单条摘要信息")
-public class RespBaccaratTableSummary extends AbstractResponse {
+@ProtoDesc("百家乐通知下注开始")
+public class NotifyBaccaratBetStart extends AbstractResponse {
 
-    @ProtoDesc("房间单条摘要信息")
-    public BaccaratTableSingleRes tableSummary;
+    @ProtoDesc("桌面的数据")
+    public BaccaratTableInfo baccaratTableInfo;
 
-    public RespBaccaratTableSummary(int code) {
+    public NotifyBaccaratBetStart(int code) {
         super(code);
     }
 }

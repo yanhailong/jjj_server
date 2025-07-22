@@ -21,6 +21,10 @@ public class GameDataVo<RC extends RoomCfg> {
     private long roomId;
     // 玩家数据合集 playerId <=> 玩家数据
     protected Map<Long, GamePlayer> gamePlayerMap = new HashMap<>();
+    // 每个阶段的结束时间
+    protected long phaseEndTime;
+    // 每个阶段需要运行的时间
+    protected long phaseRunTime;
 
     /**
      * 必须初始化的参数是房间配置RoomCfg，如果后续子类添加需要在
@@ -47,5 +51,21 @@ public class GameDataVo<RC extends RoomCfg> {
 
     public GamePlayer getGamePlayer(long playerId) {
         return gamePlayerMap.get(playerId);
+    }
+
+    public long getPhaseEndTime() {
+        return phaseEndTime;
+    }
+
+    public void setPhaseEndTime(long phaseEndTime) {
+        this.phaseEndTime = phaseEndTime;
+    }
+
+    public long getPhaseRunTime() {
+        return phaseRunTime;
+    }
+
+    public void setPhaseRunTime(long phaseRunTime) {
+        this.phaseRunTime = phaseRunTime;
     }
 }

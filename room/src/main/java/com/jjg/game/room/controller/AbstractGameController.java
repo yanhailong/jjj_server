@@ -309,6 +309,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     @Override
     public void roomTick() {
         // 每10ms调用一次 定时回存房间数据
+        // 机器人加入逻辑
     }
 
     @Override

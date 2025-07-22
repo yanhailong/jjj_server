@@ -1,11 +1,13 @@
 package com.jjg.game.table.baccarat.gamephase;
 
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.table.baccarat.BaccaratGameController;
+import com.jjg.game.table.baccarat.BaccaratTempRoom;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
 import com.jjg.game.table.baccarat.message.resp.*;
@@ -81,6 +83,8 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             broadcastBuilderToRoom(
                 RoomMessageBuilder.newBuilder().setData(baccaratTableInfo).setPlayerIds(Collections.singleton(entry.getKey())));
         }
+        // 通知所有观察者
+        BaccaratMessageBuilder.notifyObserversOnPhaseChange((BaccaratGameController) gameController);
     }
 
     @Override

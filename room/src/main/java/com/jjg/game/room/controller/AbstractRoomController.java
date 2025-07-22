@@ -119,8 +119,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             // 检查等待房间的逻辑
             updateWaitRoomList();
             playerController.setScene(this);
-            //TODO 广播新玩家进入
-            log.debug("进入房间成功，但是还没有广播新玩家进入 roomId = {},playerId = {}", room.getId(), playerController.playerId());
             // 检查房间开始的逻辑，由游戏自行判断开启时机
             if (gameController.checkRoomCanStart()) {
                 // 检查通过开始游戏

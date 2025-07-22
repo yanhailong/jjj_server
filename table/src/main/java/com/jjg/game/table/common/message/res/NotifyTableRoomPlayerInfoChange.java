@@ -14,11 +14,11 @@ import java.util.List;
  * @author 2CL
  */
 @ProtobufMessage(
-        messageType = MessageConst.MessageTypeDef.ROOM_TYPE,
-        cmd = TableRoomMessageConstant.RespMsgBean.NOTIFY_PLAYER_JOIN_ROOM
-        , resp = true
+    messageType = MessageConst.MessageTypeDef.BACCARAT_TYPE,
+    cmd = TableRoomMessageConstant.RespMsgBean.NOTIFY_PLAYER_JOIN_ROOM,
+    resp = true
 )
-@ProtoDesc("通知玩家加入房间")
+@ProtoDesc("通知押注类房间玩家信息变化")
 public class NotifyTableRoomPlayerInfoChange extends AbstractNotice {
 
     @ProtoDesc("产生变化的玩家ID")

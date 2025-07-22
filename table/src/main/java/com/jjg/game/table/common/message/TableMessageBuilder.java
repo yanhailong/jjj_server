@@ -1,5 +1,6 @@
 package com.jjg.game.table.common.message;
 
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -49,10 +50,17 @@ public class TableMessageBuilder {
         tablePlayerInfo.local = gamePlayer.getIp();
         tablePlayerInfo.vipLevel = gamePlayer.getVipLevel();
         tablePlayerInfo.goldNum = gamePlayer.getGold();
-        tablePlayerInfo.totalBet =
-            gamePlayer.getTableGameData().getBetCostStatusRecord().stream().mapToLong(a -> a).sum();
-        tablePlayerInfo.winCount =
-            (int) gamePlayer.getTableGameData().getBetCostStatusRecord().stream().filter(a -> a > 0).count();
+        List<Pair<Boolean, Long>> betInfoList = gamePlayer.getTableGameData().getBetInfoList();
+        long totalBet = 0;
+        int winNum = 0;
+        for (Pair<Boolean, Long> betInfo : betInfoList) {
+            totalBet += betInfo.getSecond();
+            if (betInfo.getFirst()) {
+                winNum++;
+            }
+        }
+        tablePlayerInfo.totalBet = totalBet;
+        tablePlayerInfo.winCount = winNum;
         return tablePlayerInfo;
     }
 
