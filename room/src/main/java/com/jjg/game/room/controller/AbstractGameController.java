@@ -242,7 +242,12 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             roomController.broadcastToPlayers(message.getPlayerIds(), message.getData());
         }
     }
-
+    /**
+     * 单个玩家发送消息
+     */
+    public void sendMessage(long playerId, AbstractMessage message) {
+        roomController.sendToPlayer(playerId, message);
+    }
     /**
      * 初始化计时器
      */

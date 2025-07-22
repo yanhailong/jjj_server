@@ -14,8 +14,9 @@ import java.util.List;
  * @author 2CL
  */
 @ProtobufMessage(
-    messageType = MessageConst.MessageTypeDef.BACCARAT_TYPE,
-    cmd = TableRoomMessageConstant.RespMsgBean.NOTIFY_PLAYER_JOIN_ROOM
+        messageType = MessageConst.MessageTypeDef.BACCARAT_TYPE,
+        cmd = TableRoomMessageConstant.RespMsgBean.NOTIFY_PLAYER_JOIN_ROOM
+        , resp = true
 )
 @ProtoDesc("通知百家乐玩家加入房间")
 public class NotifyTableRoomPlayerInfoChange extends AbstractNotice {
