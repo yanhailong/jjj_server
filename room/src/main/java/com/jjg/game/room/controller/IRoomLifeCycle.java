@@ -44,7 +44,7 @@ public interface IRoomLifeCycle {
     /**
      * 玩家主动请求退出房间
      */
-    CommonResult<Room> playerExitRoom(PlayerController playerController);
+    CommonResult<Room> onPlayerLeaveRoom(PlayerController playerController);
 
     /**
      * 房间解散时调用

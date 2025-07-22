@@ -288,7 +288,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
                 return Code.FAIL;
             }
             // 房间控制器退出房间逻辑
-            CommonResult<Room> roomResult = roomController.playerExitRoom(playerController);
+            CommonResult<Room> roomResult = roomController.onPlayerLeaveRoom(playerController);
             if (!roomResult.success()) {
                 return roomResult.code;
             }

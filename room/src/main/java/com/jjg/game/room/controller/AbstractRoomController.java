@@ -302,11 +302,11 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      * 玩家主动退出房间
      */
     @Override
-    public CommonResult<Room> playerExitRoom(PlayerController playerController) {
+    public CommonResult<Room> onPlayerLeaveRoom(PlayerController playerController) {
         CommonResult<Room> result = new CommonResult<>(Code.SUCCESS);
         try {
             // 调用游戏的离开房间逻辑
-            gameController.playerExitRoom(playerController);
+            gameController.onPlayerLeaveRoom(playerController);
             //从room中移除
             RoomPlayer roomPlayer = room.exit(playerController.playerId());
             if (roomPlayer == null) {

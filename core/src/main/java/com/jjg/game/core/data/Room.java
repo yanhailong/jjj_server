@@ -194,9 +194,6 @@ public class Room {
                 this.playerSits = null;
             }
         }
-        if (this.roomPlayers.isEmpty()) {
-            this.roomPlayers = null;
-        }
         return removePlayer;
     }
 

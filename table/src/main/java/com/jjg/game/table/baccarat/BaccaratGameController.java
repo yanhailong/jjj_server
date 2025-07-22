@@ -2,10 +2,14 @@ package com.jjg.game.table.baccarat;
 
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.BetTableRoom;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.Room;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.gamephase.BaccaratSettlementPhase;
@@ -21,7 +25,7 @@ import java.util.LinkedHashSet;
  * @author 2CL
  */
 @GameController(gameType = EGameType.BACCARAT)
-public class BaccaratGameController extends BaseTableGameController<Room_BetCfg, BaccaratGameDataVo> {
+public class BaccaratGameController extends BaseTableGameController<BaccaratGameDataVo> {
 
     public BaccaratGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {
         super(roomController);

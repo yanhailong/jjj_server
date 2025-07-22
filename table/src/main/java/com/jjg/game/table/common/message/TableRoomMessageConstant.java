@@ -25,5 +25,7 @@ public interface TableRoomMessageConstant {
         int RESP_BET = BASE_MSG_PREFIX | 0x81;
         // 返回玩家信息
         int RESP_TABLE_PLAYER_INFO = BASE_MSG_PREFIX | 0x83;
+        // 通知玩家进入房间
+        int NOTIFY_PLAYER_JOIN_ROOM = BASE_MSG_PREFIX | 0x88;
     }
 }

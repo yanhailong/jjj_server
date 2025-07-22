@@ -1,14 +1,17 @@
 package com.jjg.game.table.common.message;
 
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.common.data.TableGameDataVo;
+import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
 import com.jjg.game.table.common.message.res.TablePlayerInfo;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -51,5 +54,22 @@ public class TableMessageBuilder {
         tablePlayerInfo.winCount =
             (int) gamePlayer.getTableGameData().getBetCostStatusRecord().stream().filter(a -> a > 0).count();
         return tablePlayerInfo;
+    }
+
+    /**
+     * 通知场上玩家信息有变化
+     */
+    public static NotifyTableRoomPlayerInfoChange buildNotifyTableRoomPlayerInfoChange(long changedPlayerId,
+                                                                                       TableGameDataVo dataVo) {
+        NotifyTableRoomPlayerInfoChange infoChange = new NotifyTableRoomPlayerInfoChange();
+        infoChange.changedPlayerId = changedPlayerId;
+        infoChange.tableChangedPlayerInfos = new ArrayList<>();
+        List<GamePlayer> sortedPlayersByGold =
+            dataVo.getGamePlayerMap().values().stream().sorted(Comparator.comparingLong(Player::getGold).reversed()).toList();
+        for (GamePlayer gamePlayer : sortedPlayersByGold) {
+            TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(gamePlayer);
+            infoChange.tableChangedPlayerInfos.add(tablePlayerInfo);
+        }
+        return infoChange;
     }
 }
