@@ -15,7 +15,7 @@ public interface RedBlackWarMessageConstant {
     interface RespMsgBean {
         // 进入房间的信息
         int NOTIFY_RED_BLACK_WAR_INFO = BASE_MSG_PREFIX | 0x81;
-        int NOTIFY_PLAYER_CHANGE = BASE_MSG_PREFIX | 0x03;
+        int NOTIFY_RED_BLACK_WAR_SETTLE_INFO = BASE_MSG_PREFIX | 0x03;
         int NOTIFY_BET_CHANGE = BASE_MSG_PREFIX | 0x04;
 
     }

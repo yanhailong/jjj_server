@@ -15,14 +15,14 @@ import java.util.List;
  */
 
 @ProtobufMessage(
-    messageType = MessageConst.MessageTypeDef.BACCARAT_TYPE,
-    resp = true,
-    cmd = TableRoomMessageConstant.RespMsgBean.RESP_TABLE_PLAYER_INFO
+        messageType = MessageConst.MessageTypeDef.ROOM_TYPE,
+        cmd = TableRoomMessageConstant.RespMsgBean.RESP_TABLE_PLAYER_INFO
+        , resp = true
 )
-@ProtoDesc("返回百人牌桌玩家列表的下注信息")
+@ProtoDesc("返回牌桌玩家列表的下注信息")
 public class RespTablePlayerInfo extends AbstractResponse {
 
-    @ProtoDesc("百人牌桌的玩家信息")
+    @ProtoDesc("牌桌的玩家信息")
     public List<TablePlayerInfo> tablePlayerInfo;
 
     public RespTablePlayerInfo(int code) {

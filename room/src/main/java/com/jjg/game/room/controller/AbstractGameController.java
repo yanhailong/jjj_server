@@ -14,20 +14,17 @@ import com.jjg.game.room.base.IPhaseMsgAdapter;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
+import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.room.timer.RoomPhaseTimeEvent;
 import com.jjg.game.room.timer.RoomTimerCenter;
 import com.jjg.game.room.timer.RoomTimerEvent;
-import org.apache.commons.lang3.reflect.TypeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.ParameterizedType;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 抽象游戏流程控制器
@@ -35,7 +32,7 @@ import java.util.stream.Collectors;
  * @author 2CL
  */
 public abstract class AbstractGameController<RC extends RoomCfg, G extends GameDataVo<RC>> implements TimerListener<IProcessorHandler>,
-    IGameController, IGameLifeCycle {
+        IGameController, IGameLifeCycle {
     private static final Logger log = LoggerFactory.getLogger(AbstractGameController.class);
     // 游戏配置
     protected G gameDataVo;
@@ -83,36 +80,36 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             // 当前的游戏阶段
             currentGamePhase = gamePhaseIterator.next();
             log.debug("房间ID: {} 游戏ID: {} 游戏类型: {} 当前阶段：{} 开始运行",
-                gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
-                gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());
+                    gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
+                    gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());
             // 执行当前阶段的逻辑
             currentGamePhase.phaseDoAction();
             // 调用玩家的行为,主要是机器人和托管的玩家
             currentGamePhase.playerPhaseAction();
             // 将阶段逻辑添加到
             addGameTimeEvent(new TimerEvent<>(this, currentGamePhase.getPhaseRunTime(),
-                () -> {
-                    // 定时器时间到,调用结束逻辑
-                    currentGamePhase.phaseFinish();
-                    log.debug("房间ID: {} 游戏ID: {} 游戏类型: {} 阶段：{} 运行结束",
-                        gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
-                        gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());
-                    // 如果有绑定的下一个阶段可以切换到
-                    IRoomPhase bindNextPhase = currentGamePhase.bindNextPhase();
-                    if (bindNextPhase != null) {
-                        Iterator<IRoomPhase> latestGamePhase = gamePhaseIterator;
-                        while (gamePhaseIterator.hasNext()) {
-                            // 需要将迭代器跳到绑定的阶段,然后继续执行逻辑
-                            latestGamePhase = gamePhaseIterator;
-                            if (gamePhaseIterator.next() == bindNextPhase) {
-                                break;
+                    () -> {
+                        // 定时器时间到,调用结束逻辑
+                        currentGamePhase.phaseFinish();
+                        log.debug("房间ID: {} 游戏ID: {} 游戏类型: {} 阶段：{} 运行结束",
+                                gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
+                                gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());
+                        // 如果有绑定的下一个阶段可以切换到
+                        IRoomPhase bindNextPhase = currentGamePhase.bindNextPhase();
+                        if (bindNextPhase != null) {
+                            Iterator<IRoomPhase> latestGamePhase = gamePhaseIterator;
+                            while (gamePhaseIterator.hasNext()) {
+                                // 需要将迭代器跳到绑定的阶段,然后继续执行逻辑
+                                latestGamePhase = gamePhaseIterator;
+                                if (gamePhaseIterator.next() == bindNextPhase) {
+                                    break;
+                                }
                             }
+                            gamePhaseIterator = latestGamePhase;
                         }
-                        gamePhaseIterator = latestGamePhase;
-                    }
-                    // 自动切换到下一个阶段
-                    this.autoRunGamePhase();
-                }));
+                        // 自动切换到下一个阶段
+                        this.autoRunGamePhase();
+                    }));
         } else {
             // 阶段全部运行结束
             phaseRunOver();
@@ -168,6 +165,12 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     /**
+     * 玩家进入房间时推送房间信息
+     */
+    public void sendRoomInitInfo(PlayerController playerController) {
+    }
+
+    /**
      * 在单个游戏阶段结束后，判断房间是否全部结束
      *
      * @return 是否结束整个游戏
@@ -197,8 +200,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      */
     public <M extends AbstractMessage> void dispatchGamePhaseMsg(PlayerController playerController, PFMessage message) {
         List<IPhaseMsgAdapter<M>> phaseMsgAdapters =
-            gamePhases.stream().filter(gamePhase -> gamePhase instanceof IPhaseMsgAdapter<?>)
-                .map(gamePhase -> (IPhaseMsgAdapter<M>) gamePhase).toList();
+                gamePhases.stream().filter(gamePhase -> gamePhase instanceof IPhaseMsgAdapter<?>)
+                        .map(gamePhase -> (IPhaseMsgAdapter<M>) gamePhase).toList();
         int msgId = message.cmd;
         if (phaseMsgAdapters.isEmpty()) {
             log.info("消息ID: {} 找不到对应的逻辑处理类", msgId);
@@ -209,10 +212,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 // 如果请求的消息不在此阶段，则直接报错
                 if (currentGamePhase.getGamePhase() != phaseMsgAdapter.getGamePhase()) {
                     log.error("玩家ID: {} 房间不处于阶段：{} 却还在请求,房间当前阶段: {}",
-                        playerController.playerId(), phaseMsgAdapter.getGamePhase(), currentGamePhase.getGamePhase());
+                            playerController.playerId(), phaseMsgAdapter.getGamePhase(), currentGamePhase.getGamePhase());
                 } else {
                     Set<Class<AbstractMessage>> actualTypes =
-                        ReflectionTool.getClassSuperActualType(phaseMsgAdapter.getClass(), AbstractMessage.class);
+                            ReflectionTool.getClassSuperActualType(phaseMsgAdapter.getClass(), AbstractMessage.class);
                     if (actualTypes.isEmpty()) {
                         return;
                     }
@@ -242,12 +245,14 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             roomController.broadcastToPlayers(message.getPlayerIds(), message.getData());
         }
     }
+
     /**
      * 单个玩家发送消息
      */
     public void sendMessage(long playerId, AbstractMessage message) {
         roomController.sendToPlayer(playerId, message);
     }
+
     /**
      * 初始化计时器
      */
@@ -255,7 +260,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         this.timerCenter = timerCenter;
         // 定时器
         TimerEvent<IProcessorHandler> roomUpdateTimer =
-            new TimerEvent<>(this, this::roomTick, 10, 1);
+                new TimerEvent<>(this, this::roomTick, 10, 1);
         addGameTimeEvent(roomUpdateTimer);
     }
 
@@ -317,7 +322,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         gameStarted = false;
         // 再调用游戏内的解散房间逻辑
         gamePhases.stream().filter(iGamePhase -> iGamePhase.getGamePhase().equals(EGamePhase.DISS_MISS))
-            .forEach(IRoomPhase::phaseDoAction);
+                .forEach(IRoomPhase::phaseDoAction);
         // 定时器关闭当前监听器
         timerCenter.remove(this);
     }
@@ -333,7 +338,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         beforeDestroyRoom();
         // 调用房间管理器的解散逻辑
         roomController.getRoomManager().disbandRoom(
-            roomController.getRoom(), gameDataVo.getRoomCfg().getGameID(), gameDataVo.getRoomId());
+                roomController.getRoom(), gameDataVo.getRoomCfg().getGameID(), gameDataVo.getRoomId());
     }
 
     @Override

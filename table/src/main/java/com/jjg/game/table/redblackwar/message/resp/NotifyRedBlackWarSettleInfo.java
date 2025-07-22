@@ -13,8 +13,9 @@ import java.util.List;
 /**
  * @author lm
  */
-@ProtobufMessage(   messageType = MessageConst.MessageTypeDef.RED_BLACK_WAR_TYPE,
-        cmd = RedBlackWarMessageConstant.RespMsgBean.NOTIFY_RED_BLACK_WAR_INFO,resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.RED_BLACK_WAR_TYPE,
+        cmd = RedBlackWarMessageConstant.RespMsgBean.NOTIFY_RED_BLACK_WAR_SETTLE_INFO,
+        resp = true)
 @ProtoDesc("红黑大战结算信息")
 public class NotifyRedBlackWarSettleInfo extends AbstractResponse {
     @ProtoDesc("红方牌")

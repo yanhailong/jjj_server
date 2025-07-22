@@ -73,18 +73,13 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
     }
 
     @Override
-    protected GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
-        GamePlayer gamePlayer = super.onPlayerJoinRoom(playerController, gameStartStatus);
-        if (!gameStartStatus) {
-            return gamePlayer;
-        }
+    public void sendRoomInitInfo(PlayerController playerController) {
         //发送房间信息
         RedBlackWarGameDataVo dataVo = getGameDataVo();
         NotifyRedBlackWarInfo notifyRedBlackWarInfo = new NotifyRedBlackWarInfo();
         //历史记录
         notifyRedBlackWarInfo.redBlackHistories = dataVo.getHistories();
         //金币最高的玩家(6人)
-        Map<Long, GamePlayer> gamePlayerMap = dataVo.getGamePlayerMap();
         notifyRedBlackWarInfo.playerInfos = getTablePlayerInfo(dataVo.getRedBlackWarPlayerInfos(), true);
         //阶段信息
         notifyRedBlackWarInfo.gamePhase = getCurrentGamePhase();
@@ -121,12 +116,9 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
             notifyRedBlackWarInfo.settleInfos = warSettleInfo;
         }
         //发送给玩家
-        RoomMessageBuilder<AbstractMessage> data = RoomMessageBuilder.newBuilder()
-                .setPlayerIds(Set.of(playerController.playerId()))
-                .setData(notifyRedBlackWarInfo);
-        sendMessage(data);
-        return gamePlayer;
+        sendMessage(playerController.playerId(), notifyRedBlackWarInfo);
     }
+
 
     @Override
     public void initGame() {
