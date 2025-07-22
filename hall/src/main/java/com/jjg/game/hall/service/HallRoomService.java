@@ -49,6 +49,26 @@ public class HallRoomService implements IConsoleReceiver {
     @Autowired
     private MarsCurator marsCurator;
 
+    public int enterSlotsNode(PlayerController playerController, int roomCfgId, int wareId){
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
+        if (warehouseCfg == null) {
+            log.error("配置表异常，未在房间表（warehouse.xlsx）中找到房间配置表ID: {}", roomCfgId);
+            return Code.SAMPLE_ERROR;
+        }
+        int gameType = warehouseCfg.getGameID();
+        MarsNode marsNode = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(),
+                playerController.getPlayer().getIp());
+
+        if (marsNode == null) {
+            log.debug("获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
+            return Code.NOT_FOUND;
+        }
+
+        clusterSystem.switchNode(playerController.getSession(), marsNode);
+        playerSessionService.changeGameType(playerController.playerId(),gameType,roomCfgId,wareId);
+        return Code.SUCCESS;
+    }
+
     /**
      * 大厅的加入房间
      *
