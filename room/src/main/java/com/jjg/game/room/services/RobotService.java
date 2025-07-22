@@ -58,6 +58,7 @@ public class RobotService implements IRoomStartListener {
                 configuredRobotIdList.removeAll(robotIdList);
                 // 如果机器人已经达到创建上限,则停止创建
                 if (configuredRobotIdList.isEmpty()) {
+                    log.warn("机器人已使用完");
                     return null;
                 }
                 Integer robotId = RandomUtils.randCollection(configuredRobotIdList);

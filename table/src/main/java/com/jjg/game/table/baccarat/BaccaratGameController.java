@@ -16,6 +16,8 @@ import com.jjg.game.table.baccarat.gamephase.BaccaratSettlementPhase;
 import com.jjg.game.table.baccarat.gamephase.BaccaratTableBetPhase;
 import com.jjg.game.table.baccarat.gamephase.BaccaratWaitReadyPhase;
 import com.jjg.game.table.common.BaseTableGameController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashSet;
 
@@ -26,6 +28,8 @@ import java.util.LinkedHashSet;
  */
 @GameController(gameType = EGameType.BACCARAT)
 public class BaccaratGameController extends BaseTableGameController<BaccaratGameDataVo> {
+
+    private static final Logger log = LoggerFactory.getLogger(BaccaratGameController.class);
 
     public BaccaratGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {
         super(roomController);
@@ -39,8 +43,6 @@ public class BaccaratGameController extends BaseTableGameController<BaccaratGame
     @Override
     public void autoRunGamePhase() {
         super.autoRunGamePhase();
-        gameDataVo.setPhaseEndTime(System.currentTimeMillis() + currentGamePhase.getPhaseRunTime());
-        gameDataVo.setPhaseRunTime(currentGamePhase.getPhaseRunTime());
     }
 
     /**

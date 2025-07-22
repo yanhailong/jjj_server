@@ -15,12 +15,12 @@ import com.jjg.game.table.baccarat.message.BaccaratMessageConstant;
     cmd = BaccaratMessageConstant.RespMsgBean.RESP_BACCARAT_TABLE_SUMMARY
 )
 @ProtoDesc("返回房间单条摘要信息")
-public class RespBaccaratTableSummary extends AbstractResponse {
+public class NotifyBaccaratTableSummary extends AbstractResponse {
 
     @ProtoDesc("房间单条摘要信息")
     public BaccaratTableSingleRes tableSummary;
 
-    public RespBaccaratTableSummary(int code) {
+    public NotifyBaccaratTableSummary(int code) {
         super(code);
     }
 }

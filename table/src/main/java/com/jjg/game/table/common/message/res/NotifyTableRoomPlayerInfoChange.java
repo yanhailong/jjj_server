@@ -17,7 +17,7 @@ import java.util.List;
     messageType = MessageConst.MessageTypeDef.BACCARAT_TYPE,
     cmd = TableRoomMessageConstant.RespMsgBean.NOTIFY_PLAYER_JOIN_ROOM
 )
-@ProtoDesc("通知百家乐玩家加入房间")
+@ProtoDesc("通知押注类房间玩家信息变化")
 public class NotifyTableRoomPlayerInfoChange extends AbstractNotice {
 
     @ProtoDesc("产生变化的玩家ID")

@@ -49,7 +49,7 @@ import java.util.Objects;
 @MessageType(MessageConst.MessageTypeDef.BACCARAT_TYPE)
 @ProtoDesc("百家乐消息handler")
 @Component
-public class BaccaratMessageHandler implements IConsoleReceiver, IPlayerRoomEventListener {
+public class BaccaratMessageHandler implements IConsoleReceiver {
 
     private static final Logger log = LoggerFactory.getLogger(BaccaratMessageHandler.class);
     @Autowired
@@ -142,28 +142,6 @@ public class BaccaratMessageHandler implements IConsoleReceiver, IPlayerRoomEven
         }
     }
 
-    @Command(BaccaratMessageConstant.ReqMsgBean.REQ_BACCARAT_TABLE_SUMMARY)
-    public void reqBaccaratSingleSummary(PlayerController playerController, ReqBaccaratTableSummary req) {
-        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-            roomManager.getGameControllerByRoomId(req.roomId);
-        if (gameController == null) {
-            log.error("房间ID： {} 找不到对应的房间", playerController.playerId());
-            playerController.send(new RespBaccaratTableInfo(Code.FAIL));
-            return;
-        }
-        // 玩家不在百家乐游戏
-        if (gameController.gameControlType() != EGameType.BACCARAT) {
-            log.error("玩家： {} 不在百家乐游戏中", playerController.playerId());
-            playerController.send(new RespBaccaratTableInfo(Code.PARAM_ERROR));
-            return;
-        }
-        RespBaccaratTableSummary respBaccaratTableSummary =
-            BaccaratMessageBuilder.buildBaccaratSingleSummaryInfo(req.roundId,
-                (BaccaratGameController) gameController);
-        playerController.send(respBaccaratTableSummary);
-    }
-
-
     @Command(value = BaccaratMessageConstant.ReqMsgBean.REQ_JOIN_ROOM_IN_GAME)
     public void joinRoomInGame(PlayerController playerController, ReqJoinRoomInGame reqJoinRoomInGame) {
         // 非法的GameType
@@ -230,20 +208,5 @@ public class BaccaratMessageHandler implements IConsoleReceiver, IPlayerRoomEven
     @Override
     public List<String> needHandleCommands() {
         return List.of("getAllGameNode");
-    }
-
-    @Override
-    public int[] getGameTypes() {
-        return new int[]{200500};
-    }
-
-    @Override
-    public void enter(PFSession session, PlayerController playerController, PlayerSessionInfo playerSessionInfo) {
-
-    }
-
-    @Override
-    public void exit(PFSession session, PlayerController playerController, PlayerSessionInfo playerSessionInfo) {
-
     }
 }

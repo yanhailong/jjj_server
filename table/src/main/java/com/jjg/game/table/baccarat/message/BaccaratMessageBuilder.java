@@ -1,11 +1,13 @@
 package com.jjg.game.table.baccarat.message;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.table.baccarat.BaccaratGameController;
+import com.jjg.game.table.baccarat.BaccaratTempRoom;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.message.resp.*;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -34,21 +36,35 @@ public class BaccaratMessageBuilder {
         return baccaratTableSummary;
     }
 
+
+    /**
+     * 通知所有的观察者
+     */
+    public static void notifyObserversOnPhaseChange(BaccaratGameController gameController) {
+        BaccaratTempRoom baccaratTempRoom = CommonUtil.getContext().getBean(BaccaratTempRoom.class);
+        NotifyBaccaratTableSummary notifyBaccaratTableSummary =
+            BaccaratMessageBuilder.buildBaccaratSingleSummaryInfo(gameController);
+        log.info(JSON.toJSONString(notifyBaccaratTableSummary));
+        int roomCfgId = gameController.getGameDataVo().getRoomCfg().getId();
+        baccaratTempRoom.getBaccaratObserverPlayers(roomCfgId).values()
+            .forEach(playerController -> playerController.send(notifyBaccaratTableSummary));
+    }
+
+
     /**
      * 获取单局摘要数据
      */
-    public static RespBaccaratTableSummary buildBaccaratSingleSummaryInfo(int roundId,
-                                                                          BaccaratGameController gameController) {
-        RespBaccaratTableSummary respBaccaratTableSummary = new RespBaccaratTableSummary(Code.SUCCESS);
+    public static NotifyBaccaratTableSummary buildBaccaratSingleSummaryInfo(BaccaratGameController gameController) {
+        NotifyBaccaratTableSummary notifyBaccaratTableSummary = new NotifyBaccaratTableSummary(Code.SUCCESS);
         BaccaratGameDataVo gameDataVo = gameController.getGameDataVo();
-        respBaccaratTableSummary.tableSummary = new BaccaratTableSingleRes();
-        respBaccaratTableSummary.tableSummary.baccaratBaseInfo = buildBaccaratBaseInfo(gameController);
-        if (gameDataVo.getBetRecord().size() > roundId) {
-            respBaccaratTableSummary.tableSummary.baccaratCardState = gameDataVo.getBetRecord().get(roundId);
+        notifyBaccaratTableSummary.tableSummary = new BaccaratTableSingleRes();
+        notifyBaccaratTableSummary.tableSummary.baccaratBaseInfo = buildBaccaratBaseInfo(gameController);
+        int roundId = gameDataVo.getBetRecord().size() - 1;
+        if (!gameDataVo.getBetRecord().isEmpty()) {
+            notifyBaccaratTableSummary.tableSummary.baccaratCardState = gameDataVo.getBetRecord().get(roundId);
         }
-        respBaccaratTableSummary.tableSummary.roundId = roundId;
-        log.debug("{} = {}", roundId, JSON.toJSONString(respBaccaratTableSummary));
-        return respBaccaratTableSummary;
+        notifyBaccaratTableSummary.tableSummary.roundId = roundId;
+        return notifyBaccaratTableSummary;
     }
 
     /**
@@ -60,6 +76,7 @@ public class BaccaratMessageBuilder {
         baccaratBaseInfo.eGamePhase = gameController.getCurrentGamePhase();
         baccaratBaseInfo.roomId = gameDataVo.getRoomId();
         baccaratBaseInfo.phaseEndTimestamp = gameDataVo.getPhaseEndTime();
+        baccaratBaseInfo.serverCurrentTime = System.currentTimeMillis();
         baccaratBaseInfo.phaseTotalTime = Math.toIntExact(gameDataVo.getPhaseRunTime());
         baccaratBaseInfo.totalCardNum = gameDataVo.getInitCardNum();
         baccaratBaseInfo.remainingCardNum = gameDataVo.getCardList().size();

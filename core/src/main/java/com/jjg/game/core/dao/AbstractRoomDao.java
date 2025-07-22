@@ -65,7 +65,6 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
 
     public T nodeCreate(int gameType, int roomCfgId, int maxLimit, String nodeName) {
         try {
-
             T room = fillBaseRoomData(nodeName, gameType, maxLimit);
             room.setRoomCfgId(roomCfgId);
 

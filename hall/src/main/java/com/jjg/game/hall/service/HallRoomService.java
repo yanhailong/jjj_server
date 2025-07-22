@@ -74,7 +74,7 @@ public class HallRoomService implements IConsoleReceiver {
         // 特殊逻辑，百家乐需要将玩家直接传送到游戏服，但是又不进游戏
         if (gameType == EGameType.BACCARAT.getGameTypeId()) {
             // 将玩家切换到某个游戏类型的master游戏服,
-            handleBaccaratJoinGame(playerController, wareId);
+            handleBaccaratJoinGame(playerController, roomCfgId, wareId);
             // 直接返回成功
             return Code.SUCCESS;
         }
@@ -104,14 +104,14 @@ public class HallRoomService implements IConsoleReceiver {
      * 百家乐玩家进入游戏特殊处理,需要先将玩家传到百家乐游戏类型的主节点上,再获取所有同类型游戏节点的房间摘要信息,当玩家进入某个
      * 节点的游戏时，还需要将当前节点切换到对应的节点上，再开始游戏
      */
-    private void handleBaccaratJoinGame(PlayerController playerController, int wareId) {
+    private void handleBaccaratJoinGame(PlayerController playerController, int roomCfgId, int wareId) {
         // 获取所有的游戏
         MarsNode marsNode = nodeManager.getGameNodeByWeight(EGameType.BACCARAT.getGameTypeId(),
             playerController.playerId(),
             playerController.getPlayer().getIp());
         //更新session中的gametype
         playerSessionService.
-            changeGameType(playerController.playerId(), EGameType.BACCARAT.getGameTypeId(), -1, wareId);
+            changeGameType(playerController.playerId(), EGameType.BACCARAT.getGameTypeId(), roomCfgId, wareId);
         //切换节点
         clusterSystem.switchNode(playerController.getSession(), marsNode);
     }

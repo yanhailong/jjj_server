@@ -5,7 +5,7 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.AbstractSampleManager;
 import com.jjg.game.room.sample.GameDataManager;
-import com.jjg.game.table.baccarat.sample.bean.BaseCfgBean;
+import com.jjg.game.room.sample.bean.BaseCfgBean;
 import com.jjg.game.table.common.data.TableSampleDataHolder;
 
 import java.io.File;
@@ -35,14 +35,13 @@ public abstract class BaseTableSampleManager extends AbstractSampleManager {
     @Override
     protected void sampleChange(File file) {
         try {
+            String sampleRoomResourcePath = CoreConst.Common.SAMPLE_ROOT_PATH + "common";
             Set<Class<? extends BaseCfgBean>> changeCfgBean =
-                com.jjg.game.table.baccarat.sample.GameDataManager.getInstance().loadDataByChangeFileList(getSamplePath(),
+                GameDataManager.getInstance().loadDataByChangeFileList(sampleRoomResourcePath,
                     Collections.singletonList(file));
             Map<String, ConfigExcelChangeListener> configExcelChangeListeners =
                 CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
-            configExcelChangeListeners.values().forEach(listener -> {
-                listener.change(changeCfgBean.iterator().next().getSimpleName());
-            });
+            configExcelChangeListeners.values().forEach(listener -> listener.change(changeCfgBean.iterator().next().getSimpleName()));
         } catch (Exception e) {
             log.error("", e);
         }

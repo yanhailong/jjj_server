@@ -31,6 +31,12 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
     }
 
     @Override
+    public void phaseDoAction() {
+        super.phaseDoAction();
+
+    }
+
+    @Override
     public EGamePhase getGamePhase() {
         return EGamePhase.GAME_ROUND_OVER_SETTLEMENT;
     }

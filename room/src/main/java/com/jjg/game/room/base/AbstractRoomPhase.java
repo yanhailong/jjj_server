@@ -34,6 +34,8 @@ public abstract class AbstractRoomPhase<RC extends RoomCfg, G extends GameDataVo
 
     @Override
     public void phaseDoAction() {
+        gameDataVo.setPhaseEndTime(System.currentTimeMillis() + getPhaseRunTime());
+        gameDataVo.setPhaseRunTime(getPhaseRunTime());
     }
 
     /**

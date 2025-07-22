@@ -31,4 +31,7 @@ public class BaccaratBaseInfo {
 
     @ProtoDesc("阶段结束时间戳")
     public long phaseEndTimestamp;
+
+    @ProtoDesc("服务器当前时间")
+    public long serverCurrentTime;
 }

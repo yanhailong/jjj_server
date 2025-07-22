@@ -353,11 +353,13 @@ public class PlayerSessionService implements TimerListener<String> {
             log.info("开始执行session检查");
             checkSessionByNode();
             Iterator<Map.Entry<String, PFSession>> iterator = clusterSystem.sessionMap().entrySet().iterator();
+            // 分批处理玩家，如果在线玩家过多，会出现问题
             while (iterator.hasNext()) {
                 Map.Entry<String, PFSession> entry = iterator.next();
                 PFSession pfSession = entry.getValue();
-                //如果seesion 长时间没有活跃，检查玩家是否还在线
+                //如果session 长时间没有活跃，检查玩家是否还在线
                 if (e.getCurrentTime() - pfSession.activeTime > SESSION_TIME_OUT_MINUTES * TimeHelper.ONE_MINUTE) {
+                    // TODO 在循环中调用数据库接口？
                     PlayerSessionInfo ps = getInfo(pfSession.getPlayerId());
                     if (ps == null) {
                         log.warn("移除无效session，playerId={}", pfSession.getPlayerId());
