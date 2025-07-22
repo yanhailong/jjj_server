@@ -1,6 +1,7 @@
 package com.jjg.game.room.listener;
 
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
@@ -156,17 +157,14 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
         }
     }
 
-    public void exitGame(PlayerController playerController){
-        try{
-//            IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(playerController.getPlayer().getGameType());
-//            if(playerRoomEventListener == null){
-//                log.warn("退出游戏时 未找到 playerRoomEventListener, playerId = {},gameType = {}", playerController.playerId(),playerController.getPlayer().getGameType());
-//                return;
-//            }
-//            playerRoomEventListener.exit(playerController);
+    public int exitGame(PlayerController playerController) {
+        try {
+            int code = roomManager.exitRoom(playerController);
             clusterSystem.switchNode(playerController.getSession(), NodeType.HALL);
-        }catch (Exception e){
-            log.error("",e);
+            return code;
+        } catch (Exception e) {
+            log.error("退出房间异常, {}", e.getMessage(), e);
         }
+        return Code.FAIL;
     }
 }

@@ -3,7 +3,6 @@ package com.jjg.game.room.handler;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
-import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.listener.RoomEventListener;
 import com.jjg.game.room.pb.ReqExitGame;
@@ -20,20 +19,20 @@ import org.springframework.stereotype.Component;
 @Component
 @MessageType(MessageConst.MessageTypeDef.TO_SERVER_CONST_TYPE)
 public class RoomMessageHandler {
-    private Logger log = LoggerFactory.getLogger(getClass());
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private RoomEventListener playerEventListener;
 
     @Command(MessageConst.ToServer.REQ_EXIT_GAME)
     public void reqExitGame(PlayerController playerController, ReqExitGame req) {
-        try{
-            log.debug("退出游戏 playerId = {}",playerController.playerId());
-            playerEventListener.exitGame(playerController);
-
-            playerController.send(new ResExitGame(Code.SUCCESS));
-        }catch (Exception e) {
-            log.error("", e);
+        try {
+            log.debug("退出游戏 playerId = {}", playerController.playerId());
+            int code = playerEventListener.exitGame(playerController);
+            playerController.send(new ResExitGame(code));
+        } catch (Exception e) {
+            log.error("玩家退出房间异常 msg: {}", e.getMessage(), e);
         }
     }
 }
