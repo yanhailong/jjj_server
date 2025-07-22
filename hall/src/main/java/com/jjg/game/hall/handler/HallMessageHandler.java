@@ -112,7 +112,6 @@ public class HallMessageHandler implements GmListener {
                 // 进入大厅加入房间的逻辑
                 res.code = hallRoomService.hallJoinRoom(playerController, wareHouseCfgId, req.wareId);
             }
-
             playerController.send(res);
             log.info("玩家选择场次，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
