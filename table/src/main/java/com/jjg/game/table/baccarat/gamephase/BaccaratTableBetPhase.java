@@ -8,6 +8,7 @@ import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
+import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratBetStart;
 import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
 import com.jjg.game.table.common.message.req.ReqBet;
 import com.jjg.game.table.common.message.req.ReqBetBean;
@@ -33,6 +34,10 @@ public class BaccaratTableBetPhase extends BaseTableBetPhase<BaccaratGameDataVo>
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
+        // 向玩家通知场上数据,发送 BET_START 的阶段数据
+        NotifyBaccaratBetStart baccaratTableInfo =
+            BaccaratMessageBuilder.buildNotifyBaccaratBetStart(gameDataVo);
+        broadcastMsgToRoom(baccaratTableInfo);
         // 通知所有观察者
         BaccaratMessageBuilder.notifyObserversOnPhaseChange((BaccaratGameController) gameController);
     }

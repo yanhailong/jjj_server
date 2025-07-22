@@ -128,8 +128,8 @@ public class BaccaratMessageBuilder {
     /**
      * 构建 消息通知
      */
-    public static NotifyBaccaratRoundStart buildNotifyBaccaratRoundStart(BaccaratGameDataVo gameDataVo) {
-        NotifyBaccaratRoundStart notifyInfo = new NotifyBaccaratRoundStart(Code.SUCCESS);
+    public static NotifyBaccaratBetStart buildNotifyBaccaratBetStart(BaccaratGameDataVo gameDataVo) {
+        NotifyBaccaratBetStart notifyInfo = new NotifyBaccaratBetStart(Code.SUCCESS);
         notifyInfo.baccaratTableInfo = buildTableInfo(gameDataVo, false);
         return notifyInfo;
     }

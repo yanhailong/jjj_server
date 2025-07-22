@@ -145,17 +145,6 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
             tablePlayerInfo.goldNum = gamePlayer.getGold();
             tablePlayerInfo.vipLevel = gamePlayer.getVipLevel();
             if (!baseInfo) {
-                List<Pair<Boolean, Long>> betInfoList = gamePlayer.getTableGameData().getBetInfoList();
-                long totalBet = 0;
-                int winNum = 0;
-                for (Pair<Boolean, Long> betInfo : betInfoList) {
-                    totalBet += betInfo.getSecond();
-                    if (betInfo.getFirst()) {
-                        winNum++;
-                    }
-                }
-                tablePlayerInfo.totalBet = totalBet;
-                tablePlayerInfo.winCount = winNum;
             }
             list.add(tablePlayerInfo);
         }

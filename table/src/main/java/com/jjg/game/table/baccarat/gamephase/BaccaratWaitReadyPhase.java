@@ -4,8 +4,6 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
-import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
-import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratRoundStart;
 import com.jjg.game.table.common.gamephase.WaitReadyPhase;
 
 import java.util.ArrayList;
@@ -33,10 +31,6 @@ public class BaccaratWaitReadyPhase extends WaitReadyPhase<BaccaratGameDataVo> {
             // 重新洗牌
             shuffleCard();
         }
-        // 向玩家通知场上数据,发送 GAME_START 的阶段数据
-        NotifyBaccaratRoundStart baccaratTableInfo =
-            BaccaratMessageBuilder.buildNotifyBaccaratRoundStart(gameDataVo);
-        broadcastMsgToRoom(baccaratTableInfo);
     }
 
     /**
