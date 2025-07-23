@@ -1,5 +1,6 @@
 package com.jjg.game.table.baccarat.gamephase;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -75,12 +76,12 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             // 获取每个玩家的信息
             baccaratTableInfo.baccaratTableInfo.tableAreaInfos =
-                BaccaratMessageBuilder.buildPlayerBetInfo(gameDataVo, entry.getKey(),
-                    baccaratTableInfo.baccaratTableInfo.tableAreaInfos);
+                BaccaratMessageBuilder.buildPlayerBetInfo(gameDataVo, entry.getKey());
             // 向每个玩家发送通知消息
             broadcastBuilderToRoom(
                 RoomMessageBuilder.newBuilder().setData(baccaratTableInfo).setPlayerIds(Collections.singleton(entry.getKey())));
         }
+        log.debug("结算数据: {}", JSON.toJSONString(baccaratTableInfo));
         // 通知所有观察者
         BaccaratMessageBuilder.notifyObserversOnPhaseChange((BaccaratGameController) gameController);
     }

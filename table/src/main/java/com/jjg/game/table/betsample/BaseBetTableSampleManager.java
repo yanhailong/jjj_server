@@ -3,12 +3,10 @@ package com.jjg.game.table.betsample;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
-import com.jjg.game.core.manager.AbstractSampleManager;
-import com.jjg.game.room.sample.GameDataManager;
-import com.jjg.game.room.sample.bean.BaseCfgBean;
+import com.jjg.game.table.betsample.sample.GameDataManager;
+import com.jjg.game.table.betsample.sample.bean.BaseCfgBean;
 import com.jjg.game.table.common.BaseTableSampleManager;
 import com.jjg.game.table.common.data.TableSampleDataHolder;
-import com.jjg.game.table.common.listener.TableConfigExcelLoadListener;
 import org.springframework.stereotype.Repository;
 
 import java.io.File;
@@ -37,10 +35,6 @@ public class BaseBetTableSampleManager extends BaseTableSampleManager {
         try {
             GameDataManager.loadAllData(sampleRoomResourcePath);
             TableSampleDataHolder.cacheBetActionData();
-            CommonUtil.getContext()
-                    .getBeansOfType(TableConfigExcelLoadListener.class)
-                    .values()
-                    .forEach(TableConfigExcelLoadListener::loadConfigCacheData);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
