@@ -232,7 +232,6 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
 
     public T getLibBySectionIndex(int modelId, int libType, int sectionIndex) {
         String tableName = tabelName(this.currentRedisLibName, this.gameType, modelId, libType, sectionIndex);
-        System.out.println(tableName);
         return (T)this.redisTemplate.opsForSet().randomMember(tableName);
     }
 

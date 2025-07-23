@@ -18,4 +18,6 @@ public class DollarsInfo {
     public List<Integer> dollarIndexIds;
     @ProtoDesc("钞票金额")
     public List<Long> dollarValueList;
+    @ProtoDesc("可收集的钞票坐标")
+    public List<Integer> collectDollarIndexIds;
 }
