@@ -18,11 +18,6 @@ public class LoongTigerWarReadyPhase extends WaitReadyPhase<LoongTigerWarGameDat
         super(gameController);
     }
 
-    @Override
-    public void phaseDoAction() {
-        super.phaseDoAction();
-        gameDataVo.setPhaseEndTime(getPhaseRunTime() + System.currentTimeMillis());
-    }
 
     @Override
     public void phaseFinish() {

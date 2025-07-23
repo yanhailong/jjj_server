@@ -18,11 +18,6 @@ public class RedBlackWarWaitReadyPhase extends WaitReadyPhase<RedBlackWarGameDat
         super(gameController);
     }
 
-    @Override
-    public void phaseDoAction() {
-        super.phaseDoAction();
-        gameDataVo.setPhaseEndTime(getPhaseRunTime() + System.currentTimeMillis());
-    }
 
     @Override
     public void phaseFinish() {

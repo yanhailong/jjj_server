@@ -43,7 +43,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
 
     @Override
     public void phaseDoAction() {
-        gameDataVo.setPhaseEndTime(getPhaseRunTime());
+        super.phaseDoAction();
         //根据牌型获得牌
         List<Integer> joker = PokerCardUtils.getPokerIntIdExceptJoker();
         Collections.shuffle(joker);

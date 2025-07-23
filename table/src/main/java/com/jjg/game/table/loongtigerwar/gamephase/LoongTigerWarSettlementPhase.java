@@ -37,6 +37,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
 
     @Override
     public void phaseDoAction() {
+        super.phaseDoAction();
         gameDataVo.setPhaseEndTime(getPhaseRunTime());
         Map<Integer, List<WinPosWeightCfg>> cfgMap = loongTigerWarSampleManager.getCfgMap();
         WeightRandom<Integer> random = new WeightRandom<>();

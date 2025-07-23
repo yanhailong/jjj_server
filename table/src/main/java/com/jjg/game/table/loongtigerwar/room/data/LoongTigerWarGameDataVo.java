@@ -18,10 +18,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class LoongTigerWarGameDataVo extends TableGameDataVo {
 
     /**
-     * 阶段结束时间
-     */
-    private long phaseEndTime;
-    /**
      * 对局历史信息(50局的)
      */
     private final List<Integer> histories = new ArrayList<>();
@@ -67,14 +63,6 @@ public class LoongTigerWarGameDataVo extends TableGameDataVo {
 
     public LoongTigerWarGameDataVo(Room_BetCfg roomCfg) {
         super(roomCfg);
-    }
-
-    public long getPhaseEndTime() {
-        return phaseEndTime;
-    }
-
-    public void setPhaseEndTime(long phaseEndTime) {
-        this.phaseEndTime = phaseEndTime;
     }
 
     public List<Integer> getHistories() {
