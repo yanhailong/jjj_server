@@ -8,6 +8,7 @@ import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.BaseCfgBean;
 import com.jjg.game.table.common.BaseTableSampleManager;
 import com.jjg.game.table.common.data.TableSampleDataHolder;
+import com.jjg.game.table.common.listener.TableConfigExcelLoadListener;
 import org.springframework.stereotype.Repository;
 
 import java.io.File;
@@ -25,17 +26,21 @@ public class BaseBetTableSampleManager extends BaseTableSampleManager {
 
     @Override
     protected String getSamplePath() {
-        return CoreConst.Common.SAMPLE_ROOT_PATH + "betsample";
+        return CoreConst.Common.SAMPLE_ROOT_PATH;
     }
 
     @Override
     protected void initSampleConfig() {
         super.initSampleConfig();
         // 房间类的配置必须要加载房间的配置
-        String sampleRoomResourcePath = this.getSamplePath();
+        String sampleRoomResourcePath = CoreConst.Common.SAMPLE_ROOT_PATH + "betsample";
         try {
             GameDataManager.loadAllData(sampleRoomResourcePath);
             TableSampleDataHolder.cacheBetActionData();
+            CommonUtil.getContext()
+                    .getBeansOfType(TableConfigExcelLoadListener.class)
+                    .values()
+                    .forEach(TableConfigExcelLoadListener::loadConfigCacheData);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -45,12 +50,12 @@ public class BaseBetTableSampleManager extends BaseTableSampleManager {
     protected void sampleChange(File file) {
         super.sampleChange(file);
         try {
-            String sampleRoomResourcePath = this.getSamplePath();
+            String sampleRoomResourcePath = CoreConst.Common.SAMPLE_ROOT_PATH + "betsample";
             Set<Class<? extends BaseCfgBean>> changeCfgBean =
-                GameDataManager.getInstance().loadDataByChangeFileList(sampleRoomResourcePath,
-                    Collections.singletonList(file));
+                    GameDataManager.getInstance().loadDataByChangeFileList(sampleRoomResourcePath,
+                            Collections.singletonList(file));
             Map<String, ConfigExcelChangeListener> configExcelChangeListeners =
-                CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
+                    CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
             configExcelChangeListeners.values().forEach(listener -> listener.change(changeCfgBean.iterator().next().getSimpleName()));
         } catch (Exception e) {
             log.error("基础押注类的配置表变化时，加载出现异常", e);

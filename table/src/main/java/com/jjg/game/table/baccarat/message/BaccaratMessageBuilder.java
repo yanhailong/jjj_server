@@ -12,6 +12,7 @@ import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.message.resp.*;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
+import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -140,7 +141,7 @@ public class BaccaratMessageBuilder {
      * 构建结算消息通知
      */
     public static NotifyBaccaratSettlementInfo buildNotifySettlementMessage(BaccaratGameDataVo gameDataVo,
-                                                                            List<BaccaratPlayerChangedGold> changedGolds,
+                                                                            List<PlayerChangedGold> changedGolds,
                                                                             BaccaratSettlementInfo settlementInfo) {
         NotifyBaccaratSettlementInfo notifyInfo = new NotifyBaccaratSettlementInfo();
         notifyInfo.baccaratSettlementInfo = settlementInfo;

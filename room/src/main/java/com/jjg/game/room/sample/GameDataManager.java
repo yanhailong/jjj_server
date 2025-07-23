@@ -25,6 +25,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 // =================== 模板开始 ===================
+import com.jjg.game.common.utils.ExceptionUtils;
 import com.jjg.game.room.sample.bean.*;
 import com.jjg.game.room.sample.container.*;
 // =================== 模板结束 ===================

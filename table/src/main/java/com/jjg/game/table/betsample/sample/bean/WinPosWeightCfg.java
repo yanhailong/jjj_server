@@ -23,6 +23,8 @@ public class WinPosWeightCfg extends BaseCfgBean {
   protected List<Integer> betArea;
   /** 游戏ID */
   protected int gameID;
+  /** 是否抽水 */
+  protected int isRatio;
   /** 赔付倍数 */
   protected int odds;
   /** 中奖权重值 */
@@ -30,7 +32,7 @@ public class WinPosWeightCfg extends BaseCfgBean {
   /** 返还押分比例 */
   protected int returnRate;
   /** 小游戏触发ID */
-  protected int trigID;
+  protected Map<Long,Integer> trigID;
   /** 位置序列 */
   protected int winPosID;
   /** 奖励类型 */
@@ -44,6 +46,11 @@ public class WinPosWeightCfg extends BaseCfgBean {
   /** 返回游戏ID */
   public int getGameID() {
     return gameID;
+  }
+
+  /** 返回是否抽水 */
+  public int getIsRatio() {
+    return isRatio;
   }
 
   /** 返回赔付倍数 */
@@ -62,7 +69,7 @@ public class WinPosWeightCfg extends BaseCfgBean {
   }
 
   /** 返回小游戏触发ID */
-  public int getTrigID() {
+  public Map<Long,Integer> getTrigID() {
     return trigID;
   }
 

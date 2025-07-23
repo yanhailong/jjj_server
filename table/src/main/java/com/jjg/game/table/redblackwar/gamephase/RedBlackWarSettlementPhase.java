@@ -5,6 +5,8 @@ import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.TablePlayerGameData;
 import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
+import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.data.Card;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -15,8 +17,6 @@ import com.jjg.game.table.redblackwar.message.bean.RedBlackWarHistory;
 import com.jjg.game.table.redblackwar.message.resp.NotifyRedBlackWarSettleInfo;
 import com.jjg.game.table.redblackwar.room.data.RedBlackWarGameDataVo;
 import com.jjg.game.table.redblackwar.room.manager.RedBlackWarRoomGameController;
-import com.jjg.game.table.redblackwar.sample.bean.BetAreaCfg;
-import com.jjg.game.table.redblackwar.sample.bean.WinPosWeightCfg;
 import com.jjg.game.table.redblackwar.util.CardComparatorUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,6 +118,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         settleInfo.redCards = redCard.stream().map(Card::getValue).toList();
         settleInfo.redCardType = redHandType.getRank();
         settleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(playerGet);
+        settleInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(gameDataVo);
         //更新房间记录
         updateGameHistory(gameDataVo, blackHandType, winState);
         //清除押注历史

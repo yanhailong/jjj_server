@@ -16,9 +16,9 @@ import java.util.List;
  */
 
 @ProtobufMessage(
-        messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
-        cmd = TableRoomMessageConstant.RespMsgBean.RESP_TABLE_PLAYER_INFO
-        , resp = true
+    messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
+    cmd = TableRoomMessageConstant.RespMsgBean.RESP_TABLE_PLAYER_INFO,
+    resp = true
 )
 @ProtoDesc("返回牌桌玩家列表的下注信息")
 public class RespTablePlayerInfo extends AbstractResponse {

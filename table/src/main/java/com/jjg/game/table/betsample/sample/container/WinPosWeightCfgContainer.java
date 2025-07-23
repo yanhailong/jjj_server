@@ -12,7 +12,7 @@ import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
  * @excelName WinPosWeight.xlsx
  * @sheetName WinPosWeight
  * @author auto_generator
- * @date 2025年07月23日 16:51:19
+ * @date 2025年07月23日 18:20:26
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class WinPosWeightCfgContainer extends BaseCfgContainer<WinPosWeightCfg> {

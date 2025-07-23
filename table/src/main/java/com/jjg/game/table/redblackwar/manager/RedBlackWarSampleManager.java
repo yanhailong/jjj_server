@@ -4,12 +4,16 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.AbstractSampleManager;
+import com.jjg.game.table.betsample.sample.GameDataManager;
+import com.jjg.game.table.betsample.sample.bean.BaseCfgBean;
+import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
+import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
+import com.jjg.game.table.common.listener.TableConfigExcelLoadListener;
 import com.jjg.game.table.redblackwar.constant.HandType;
 import com.jjg.game.table.redblackwar.constant.RedBlackWarConstant;
-import com.jjg.game.table.redblackwar.sample.GameDataManager;
-import com.jjg.game.table.redblackwar.sample.bean.BaseCfgBean;
-import com.jjg.game.table.redblackwar.sample.bean.BetAreaCfg;
-import com.jjg.game.table.redblackwar.sample.bean.WinPosWeightCfg;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -23,27 +27,28 @@ import static com.jjg.game.table.redblackwar.constant.RedBlackWarConstant.Common
  * @date 2025/6/30 10:38
  */
 @Component
-public class RedBlackWarSampleManager extends AbstractSampleManager implements ConfigExcelChangeListener {
+public class RedBlackWarSampleManager implements ConfigExcelChangeListener, TableConfigExcelLoadListener {
+    private final Logger log = LoggerFactory.getLogger(getClass());
     //区域id->区域配置
     private Map<Integer, BetAreaCfg> betAreaMap;
     //阵容->牌型->开奖结果配置
     private Map<RedBlackWarConstant.Camp, Map<HandType, List<WinPosWeightCfg>>> winMap;
 
-    public void init() {
-        log.info("开始加载红黑大战游戏配置..");
-        super.init();
+    @Override
+    public void change(String className) {
+        if (className.equals(getClass().getSimpleName())) {
+            initSampleConfig();
+        }
     }
 
     @Override
-    protected String getSamplePath() {
-        return RedBlackWarConstant.Common.SAMPLE_PATH;
+    public void loadConfigCacheData() {
+        initSampleConfig();
     }
 
-    @Override
-    protected void initSampleConfig() {
+    private void initSampleConfig() {
         boolean isLoad = true;
         try {
-            GameDataManager.loadAllData(getSamplePath());
             //初始化红黑大战压分区域
             Map<Integer, BetAreaCfg> tempBetAreaMap = GameDataManager.getBetAreaCfgList()
                     .stream()
@@ -136,18 +141,6 @@ public class RedBlackWarSampleManager extends AbstractSampleManager implements C
         }
     }
 
-    @Override
-    protected void sampleChange(File file) {
-        try {
-            Set<Class<? extends BaseCfgBean>> changeCfgBean = GameDataManager.getInstance().loadDataByChangeFileList(getSamplePath(), Collections.singletonList(file));
-            Map<String, ConfigExcelChangeListener> configExcelChangeListeners = CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
-            configExcelChangeListeners.values().forEach(listener -> {
-                listener.change(changeCfgBean.iterator().next().getSimpleName());
-            });
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
 
     public Map<Integer, BetAreaCfg> getBetAreaMap() {
         return betAreaMap;
@@ -157,8 +150,5 @@ public class RedBlackWarSampleManager extends AbstractSampleManager implements C
         return winMap;
     }
 
-    @Override
-    public void change(String className) {
-        //TODO
-    }
+
 }

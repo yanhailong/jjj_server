@@ -108,6 +108,7 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
         }
         //押分列表
         notifyLoongTigerWarInfo.betPointList = gameDataVo.getRoomCfg().getBetList();
+        notifyLoongTigerWarInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(gameDataVo);
         //发送给玩家
         sendMessage(playerController.playerId(), notifyLoongTigerWarInfo);
     }

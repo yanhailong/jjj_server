@@ -41,4 +41,7 @@ public class NotifyLoongTigerWarInfo extends AbstractNotice {
 
     @ProtoDesc("押分列表")
     public List<Integer> betPointList;
+
+    @ProtoDesc("前6玩家信息")
+    public List<TablePlayerInfo> playerInfos;
 }
