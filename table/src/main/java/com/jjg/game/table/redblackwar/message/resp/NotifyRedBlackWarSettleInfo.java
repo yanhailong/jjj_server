@@ -32,9 +32,6 @@ public class NotifyRedBlackWarSettleInfo extends AbstractNotice {
     @ProtoDesc("获胜状态(1红方胜 2黑方胜)")
     public int winState;
 
-    @ProtoDesc("玩家获得的金币数")
-    public long getGold;
-
     @ProtoDesc("玩家结算信息")
     public List<PlayerChangedGold> playerSettleInfos;
 

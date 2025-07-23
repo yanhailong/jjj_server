@@ -23,13 +23,4 @@ public class RedBlackWarWaitReadyPhase extends WaitReadyPhase<RedBlackWarGameDat
     public void phaseFinish() {
     }
 
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o);
-    }
 }

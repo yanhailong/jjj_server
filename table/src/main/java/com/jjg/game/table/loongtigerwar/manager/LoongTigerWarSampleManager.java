@@ -2,10 +2,10 @@ package com.jjg.game.table.loongtigerwar.manager;
 
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.manager.AbstractSampleManager;
+import com.jjg.game.table.betsample.sample.GameDataManager;
+import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
+import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
 import com.jjg.game.table.loongtigerwar.constant.LoongTigerWarConstant;
-import com.jjg.game.table.redblackwar.sample.GameDataManager;
-import com.jjg.game.table.redblackwar.sample.bean.BetAreaCfg;
-import com.jjg.game.table.redblackwar.sample.bean.WinPosWeightCfg;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -103,8 +103,7 @@ public class LoongTigerWarSampleManager extends AbstractSampleManager {
             isLoad = false;
         }
         if (!isLoad) {
-            //throw new RuntimeException("配置错误");
-            return;
+            throw new RuntimeException("配置错误");
         }
     }
 
