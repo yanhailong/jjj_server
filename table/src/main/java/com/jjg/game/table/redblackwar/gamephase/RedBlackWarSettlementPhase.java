@@ -1,7 +1,6 @@
 package com.jjg.game.table.redblackwar.gamephase;
 
 import com.jjg.game.common.utils.CommonUtil;
-import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.TablePlayerGameData;
@@ -34,13 +33,11 @@ import static com.jjg.game.table.redblackwar.constant.RedBlackWarConstant.Common
 public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarGameDataVo> {
 
     private final RedBlackWarSampleManager redBlackWarSampleManager;
-    private final CorePlayerService corePlayerService;
-    private final Logger log = LoggerFactory.getLogger(RedBlackWarSettlementPhase.class);
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     public RedBlackWarSettlementPhase(RedBlackWarRoomGameController gameController) {
         super(gameController);
         redBlackWarSampleManager = CommonUtil.getContext().getBean(RedBlackWarSampleManager.class);
-        corePlayerService = CommonUtil.getContext().getBean(CorePlayerService.class);
     }
 
 
@@ -119,28 +116,27 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         }
         //通知
         int winState = result > 0 ? 1 : 2;
-        NotifyRedBlackWarSettleInfo settleInfo = new NotifyRedBlackWarSettleInfo();
-        settleInfo.winState = winState;
-        //牌信息
-        settleInfo.blackCards = blackCard.stream().map(Card::getValue).toList();
-        settleInfo.blackCardType = blackHandType.getRank();
-        settleInfo.redCards = redCard.stream().map(Card::getValue).toList();
-        settleInfo.redCardType = redHandType.getRank();
-        settleInfo.playerSettleInfos = getPlayerSettleInfos(firstSix, playerGet, onlineTotal);
+        NotifyRedBlackWarSettleInfo.Builder builder = new NotifyRedBlackWarSettleInfo.Builder();
+        builder.winState(winState)
+                .blackCards(blackCard.stream().map(Card::getValue).toList())
+                .blackCardType(blackHandType.getRank())
+                .redCards(redCard.stream().map(Card::getValue).toList())
+                .redCardType(redHandType.getRank())
+                .playerSettleInfos(getPlayerSettleInfos(firstSix, playerGet, onlineTotal));
         //更新房间记录
         updateGameHistory(gameDataVo, blackHandType, winState);
         //清除押注历史
         betInfo.clear();
         //更新结算信息
-        gameDataVo.setCurrentSettleInfo(settleInfo);
+        gameDataVo.setCurrentSettleInfo(builder.build());
         //发送通知
         for (GamePlayer gamePlayer : gameDataVo.getGamePlayerMap().values()) {
             TablePlayerGameData tableGameData = gamePlayer.getTableGameData();
             long getGold = playerGet.getOrDefault(gamePlayer.getId(), 0L);
-            settleInfo.getGold = getGold;
+            builder.getGold(getGold);
             //更新统计信息
             tableGameData.addBetRecord(getGold);
-            gameController.sendMessage(gamePlayer.getId(), settleInfo);
+            gameController.sendMessage(gamePlayer.getId(), builder.build());
         }
     }
 

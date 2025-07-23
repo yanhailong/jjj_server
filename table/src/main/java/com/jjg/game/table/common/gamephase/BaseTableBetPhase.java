@@ -5,6 +5,7 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.exception.GameSampleException;
 import com.jjg.game.room.base.AbstractMsgDealRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
@@ -32,7 +33,7 @@ import java.util.*;
  * @author 2CL
  */
 public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends AbstractMsgDealRoomPhase<Room_BetCfg,
-    D, ReqBet> implements TimerListener<IProcessorHandler> {
+        D, ReqBet> implements TimerListener<IProcessorHandler> {
 
     public BaseTableBetPhase(AbstractGameController<Room_BetCfg, D> gameController) {
         super(gameController);
@@ -58,6 +59,16 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
         // 清除房间的数据
         clearRoomData();
     }
+
+    @Override
+    public void dealMsg(PlayerController playerController, ReqBet message) {
+        if (gameController.getRoom().getGameType() != playerController.getPlayer().getGameType()) {
+            return;
+        }
+        dealBet(playerController, message);
+    }
+
+    public abstract void dealBet(PlayerController playerController, ReqBet message);
 
     /**
      * 押注前清理房间数据
@@ -100,7 +111,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
         BetRobotCfg betRobotCfg = com.jjg.game.room.sample.GameDataManager.getBetRobotCfg(betAction);
         if (betRobotCfg == null) {
             throw new GameSampleException("机器人押注错误，机器人：" + gameRobotPlayer.getId()
-                + "机器人押注表中未找到押注策略配置");
+                    + "机器人押注表中未找到押注策略配置");
         }
         // 未触发押注逻辑
         if (!RandomUtils.getRandomBoolean10000(betRobotCfg.getBetAction())) {
@@ -160,9 +171,9 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
      */
     protected Map<Integer, BetAreaCfg> getBetAreaCfgMap() {
         return GameDataManager.getBetAreaCfgList()
-            .stream()
-            .filter(betRobotCfg -> betRobotCfg.getGameID() == gameController.gameControlType().getGameTypeId())
-            .collect(HashMap::new, (map, cfg) -> map.put(cfg.getAreaID(), cfg), HashMap::putAll);
+                .stream()
+                .filter(betRobotCfg -> betRobotCfg.getGameID() == gameController.gameControlType().getGameTypeId())
+                .collect(HashMap::new, (map, cfg) -> map.put(cfg.getAreaID(), cfg), HashMap::putAll);
     }
 
     /**
@@ -202,7 +213,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
             int playerIdxMaxLimit = betBase * betAreaCfg.getTbPlayerUpperLimit();
             Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(gamePlayer.getId());
             long playerBetTotal =
-                playerBetInfo.computeIfAbsent(betBean.betAreaIdx, k -> new ArrayList<>()).stream().mapToInt(Integer::intValue).sum();
+                    playerBetInfo.computeIfAbsent(betBean.betAreaIdx, k -> new ArrayList<>()).stream().mapToInt(Integer::intValue).sum();
             if (playerBetTotal + betBean.betValue >= playerIdxMaxLimit) {
                 return Code.BET_TO_LIMIT;
             }

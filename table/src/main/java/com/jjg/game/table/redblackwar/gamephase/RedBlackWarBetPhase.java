@@ -53,10 +53,7 @@ public class RedBlackWarBetPhase extends BaseTableBetPhase<RedBlackWarGameDataVo
     }
 
     @Override
-    public void dealMsg(PlayerController playerController, ReqBet reqBet) {
-        if (playerController.getPlayer().getGameType() != CoreConst.GameType.RED_BLACK_WAR) {
-            return;
-        }
+    public void dealBet(PlayerController playerController, ReqBet reqBet) {
         List<ReqBetBean> betInfos = reqBet.reqBetBeans;
         GamePlayer gamePlayer = gameDataVo.getGamePlayerMap().get(playerController.playerId());
         if (Objects.isNull(gamePlayer)) {

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class RedBlackWarStartManager implements IRoomStartListener {
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private RedBlackWarSampleManager redBlackWarSampleManager;

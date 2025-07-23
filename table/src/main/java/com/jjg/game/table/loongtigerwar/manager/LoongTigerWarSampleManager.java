@@ -63,7 +63,7 @@ public class LoongTigerWarSampleManager extends AbstractSampleManager {
             for (Map.Entry<Integer, WinPosWeightCfg> entry : tempWinMap.entrySet()) {
                 WinPosWeightCfg winPosWeightCfg = entry.getValue();
                 List<Integer> betArea = winPosWeightCfg.getBetArea();
-                if (Objects.isNull(betArea) || betArea.size() != 1) {
+                if (Objects.isNull(betArea) || betArea.isEmpty()) {
                     isLoad = false;
                     break;
                 }

@@ -37,8 +37,8 @@ public class LoongTigerWarReadyPhase extends WaitReadyPhase<LoongTigerWarGameDat
                 .map(GamePlayer::getId)
                 .limit(6)
                 .toList();
-        gameDataVo1.getRedBlackWarPlayerInfos().clear();
-        gameDataVo1.getRedBlackWarPlayerInfos().addAll(playerIds);
+        gameDataVo1.getFixPlayers().clear();
+        gameDataVo1.getFixPlayers().addAll(playerIds);
     }
 
     @Override

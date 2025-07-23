@@ -12,6 +12,7 @@ import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
+import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.res.BetTableInfo;
 import com.jjg.game.table.common.message.res.TablePlayerInfo;
 import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarBetPhase;
@@ -78,7 +79,7 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
         //历史记录
         notifyRedBlackWarInfo.redBlackHistories = dataVo.getHistories();
         //金币最高的玩家(6人)
-        notifyRedBlackWarInfo.playerInfos = getTablePlayerInfo(dataVo.getRedBlackWarPlayerInfos(), true);
+        notifyRedBlackWarInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(dataVo.getFixPlayers(), gameDataVo);
         //阶段信息
         notifyRedBlackWarInfo.gamePhase = getCurrentGamePhase();
         //阶段结束时间
@@ -124,30 +125,4 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
 
     }
 
-    /**
-     * 获取红黑大战玩家基本信息
-     *
-     * @param gamePlayerIds 玩家id
-     * @param baseInfo      是否只包含基础信息
-     * @return 玩家基本信息集合
-     */
-    public List<TablePlayerInfo> getTablePlayerInfo(List<Long> gamePlayerIds, boolean baseInfo) {
-        Map<Long, GamePlayer> gamePlayerMap = gameDataVo.getGamePlayerMap();
-        List<TablePlayerInfo> list = new ArrayList<>(gamePlayerIds.size());
-        for (Long id : gamePlayerIds) {
-            GamePlayer gamePlayer = gamePlayerMap.get(id);
-            if (Objects.isNull(gamePlayer)) {
-                continue;
-            }
-            TablePlayerInfo tablePlayerInfo = new TablePlayerInfo();
-            tablePlayerInfo.playerId = gamePlayer.getId();
-            tablePlayerInfo.playerName = gamePlayer.getNickName();
-            tablePlayerInfo.goldNum = gamePlayer.getGold();
-            tablePlayerInfo.vipLevel = gamePlayer.getVipLevel();
-            if (!baseInfo) {
-            }
-            list.add(tablePlayerInfo);
-        }
-        return list;
-    }
 }

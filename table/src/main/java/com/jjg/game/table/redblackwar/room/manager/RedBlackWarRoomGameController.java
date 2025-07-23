@@ -14,6 +14,7 @@ import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
+import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.res.BetTableInfo;
 import com.jjg.game.table.common.message.res.TablePlayerInfo;
 import com.jjg.game.table.redblackwar.gamephase.RedBlackWarBetPhase;
@@ -80,7 +81,7 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
         //历史记录
         notifyRedBlackWarInfo.redBlackHistories = dataVo.getHistories();
         //金币最高的玩家(6人)
-        notifyRedBlackWarInfo.playerInfos = getTablePlayerInfo(dataVo.getRedBlackWarPlayerInfos(), true);
+        notifyRedBlackWarInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(dataVo.getRedBlackWarPlayerInfos(), gameDataVo);
         //阶段信息
         notifyRedBlackWarInfo.gamePhase = getCurrentGamePhase();
         //阶段结束时间
@@ -111,9 +112,7 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
         }
         //添加结算信息
         if (getCurrentGamePhase() == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
-            NotifyRedBlackWarSettleInfo warSettleInfo = gameDataVo.getCurrentSettleInfo();
-            warSettleInfo.getGold = 0;
-            notifyRedBlackWarInfo.settleInfos = warSettleInfo;
+            notifyRedBlackWarInfo.settleInfos = gameDataVo.getCurrentSettleInfo();
         }
         //发送给玩家
         sendMessage(playerController.playerId(), notifyRedBlackWarInfo);
@@ -123,44 +122,6 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
     @Override
     public void initGame() {
 
-
     }
 
-    /**
-     * 获取红黑大战玩家基本信息
-     *
-     * @param gamePlayerIds 玩家id
-     * @param baseInfo      是否只包含基础信息
-     * @return 玩家基本信息集合
-     */
-    public List<TablePlayerInfo> getTablePlayerInfo(List<Long> gamePlayerIds, boolean baseInfo) {
-        Map<Long, GamePlayer> gamePlayerMap = gameDataVo.getGamePlayerMap();
-        List<TablePlayerInfo> list = new ArrayList<>(gamePlayerIds.size());
-        for (Long id : gamePlayerIds) {
-            GamePlayer gamePlayer = gamePlayerMap.get(id);
-            if (Objects.isNull(gamePlayer)) {
-                continue;
-            }
-            TablePlayerInfo tablePlayerInfo = new TablePlayerInfo();
-            tablePlayerInfo.playerId = gamePlayer.getId();
-            tablePlayerInfo.playerName = gamePlayer.getNickName();
-            tablePlayerInfo.goldNum = gamePlayer.getGold();
-            tablePlayerInfo.vipLevel = gamePlayer.getVipLevel();
-            if (!baseInfo) {
-                List<Pair<Boolean, Long>> betInfoList = gamePlayer.getTableGameData().getBetInfoList();
-                long totalBet = 0;
-                int winNum = 0;
-                for (Pair<Boolean, Long> betInfo : betInfoList) {
-                    totalBet += betInfo.getSecond();
-                    if (betInfo.getFirst()) {
-                        winNum++;
-                    }
-                }
-                tablePlayerInfo.totalBet = totalBet;
-                tablePlayerInfo.winCount = winNum;
-            }
-            list.add(tablePlayerInfo);
-        }
-        return list;
-    }
 }

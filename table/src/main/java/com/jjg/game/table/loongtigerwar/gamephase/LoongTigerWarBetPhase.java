@@ -3,10 +3,7 @@ package com.jjg.game.table.loongtigerwar.gamephase;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
@@ -18,7 +15,6 @@ import com.jjg.game.table.common.message.res.BetTableInfo;
 import com.jjg.game.table.common.message.res.NotifyPlayerBet;
 import com.jjg.game.table.loongtigerwar.manager.LoongTigerWarSampleManager;
 import com.jjg.game.table.loongtigerwar.room.data.LoongTigerWarGameDataVo;
-import com.jjg.game.table.redblackwar.gamephase.RedBlackWarBetPhase;
 import com.jjg.game.table.redblackwar.sample.bean.BetAreaCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,13 +29,11 @@ import java.util.*;
 public class LoongTigerWarBetPhase extends BaseTableBetPhase<LoongTigerWarGameDataVo> {
 
     private final LoongTigerWarSampleManager loongTigerWarSampleManager;
-    private final CorePlayerService corePlayerService;
-    private final Logger log = LoggerFactory.getLogger(RedBlackWarBetPhase.class);
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     public LoongTigerWarBetPhase(AbstractGameController<Room_BetCfg, LoongTigerWarGameDataVo> gameController) {
         super(gameController);
         loongTigerWarSampleManager = CommonUtil.getContext().getBean(LoongTigerWarSampleManager.class);
-        corePlayerService = CommonUtil.getContext().getBean(CorePlayerService.class);
     }
 
 
@@ -54,10 +48,7 @@ public class LoongTigerWarBetPhase extends BaseTableBetPhase<LoongTigerWarGameDa
     }
 
     @Override
-    public void dealMsg(PlayerController playerController, ReqBet reqBet) {
-        if (playerController.getPlayer().getGameType() != CoreConst.GameType.RED_BLACK_WAR) {
-            return;
-        }
+    public void dealBet(PlayerController playerController, ReqBet reqBet) {
         List<ReqBetBean> betInfos = reqBet.reqBetBeans;
         GamePlayer gamePlayer = gameDataVo.getGamePlayerMap().get(playerController.playerId());
         if (Objects.isNull(gamePlayer)) {
@@ -104,18 +95,12 @@ public class LoongTigerWarBetPhase extends BaseTableBetPhase<LoongTigerWarGameDa
             return;
         }
         //押注 扣除金币
-        CommonResult<Player> result = corePlayerService.addGold(gamePlayer.getId(), -needTotal, "红黑大战押注");
-        if (result.code != Code.SUCCESS) {
-            log.error("保存玩家金币失败，player：{} area:{} betValue:{}", gamePlayer.getId(), betInfos, needTotal);
-            return;
-        }
-        gamePlayer.setGold(result.data.getGold());
+        gamePlayer.setGold(gamePlayer.getGold() - needTotal);
         //增加押注信息
         List<BetTableInfo> betTableInfos = new ArrayList<>();
-        List<Long> playerInfos = gameDataVo.getRedBlackWarPlayerInfos();
         for (ReqBetBean betInfo : betInfos) {
             Map<Long, Long> longLongMap = betInfoMap.get(betInfo.betAreaIdx);
-            Long merge = longLongMap.merge(gamePlayer.getId(), (long) betInfo.betValue, Long::sum);
+            Long merge = longLongMap.merge(gamePlayer.getId(), betInfo.betValue, Long::sum);
             long totalBet = longLongMap.values().stream().mapToLong(Long::longValue).sum();
             BetTableInfo betTableInfo = new BetTableInfo();
             betTableInfo.betValue = betInfo.betValue;

@@ -8,7 +8,6 @@ import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.TablePlayerGameData;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
-import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.loongtigerwar.manager.LoongTigerWarSampleManager;
 import com.jjg.game.table.loongtigerwar.message.bean.LoongTigerWarPlayerSettleInfo;
 import com.jjg.game.table.loongtigerwar.message.resp.NotifyLoongTigerWarSettleInfo;
@@ -28,13 +27,11 @@ import java.util.*;
 public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTigerWarGameDataVo> {
 
     private final LoongTigerWarSampleManager loongTigerWarSampleManager;
-    private final CorePlayerService corePlayerService;
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     public LoongTigerWarSettlementPhase(LoongTigerWarRoomGameController gameController) {
         super(gameController);
         loongTigerWarSampleManager = CommonUtil.getContext().getBean(LoongTigerWarSampleManager.class);
-        corePlayerService = CommonUtil.getContext().getBean(CorePlayerService.class);
     }
 
 
@@ -59,7 +56,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         //玩家获得
         Map<Long, Long> playerGet = new HashMap<>();
         //前6玩家id
-        List<Long> firstSix = gameDataVo.getRedBlackWarPlayerInfos();
+        List<Long> firstSix = gameDataVo.getFixPlayers();
         //获取押注区域
         List<WinPosWeightCfg> weightCfgs = cfgMap.get(next);
         Map<Integer, Map<Long, Long>> betInfo = gameDataVo.getBetInfo();
@@ -91,25 +88,25 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
             }
         }
         Pair<Integer, Integer> twoSpecificCard = PokerCardUtils.getTwoSpecificCard(next);
-        NotifyLoongTigerWarSettleInfo notifyLoongTigerWarSettleInfo = new NotifyLoongTigerWarSettleInfo();
-        notifyLoongTigerWarSettleInfo.loongCard = twoSpecificCard.getFirst();
-        notifyLoongTigerWarSettleInfo.tigerCard = twoSpecificCard.getSecond();
-        notifyLoongTigerWarSettleInfo.playerSettleInfos = getPlayerSettleInfos(firstSix, playerGet, onlineTotal);
-        notifyLoongTigerWarSettleInfo.winState = next;
+        NotifyLoongTigerWarSettleInfo.Builder builder = new NotifyLoongTigerWarSettleInfo.Builder();
+        builder.loongCard(twoSpecificCard.getFirst())
+                .tigerCard(twoSpecificCard.getSecond())
+                .playerSettleInfos(getPlayerSettleInfos(firstSix, playerGet, onlineTotal))
+                .winState(next);
         //更新房间记录
         updateGameHistory(next);
         //清除押注历史
         betInfo.clear();
         //更新结算信息
-        gameDataVo.setCurrentSettleInfo(notifyLoongTigerWarSettleInfo);
+        gameDataVo.setCurrentSettleInfo(builder.build());
         //发送通知
         for (GamePlayer gamePlayer : gameDataVo.getGamePlayerMap().values()) {
             TablePlayerGameData tableGameData = gamePlayer.getTableGameData();
             long getGold = playerGet.getOrDefault(gamePlayer.getId(), 0L);
-            notifyLoongTigerWarSettleInfo.getGold = getGold;
+            builder.getGold(getGold);
             //更新统计信息
             tableGameData.addBetRecord(getGold);
-            gameController.sendMessage(gamePlayer.getId(), notifyLoongTigerWarSettleInfo);
+            gameController.sendMessage(gamePlayer.getId(), builder.build());
         }
     }
 

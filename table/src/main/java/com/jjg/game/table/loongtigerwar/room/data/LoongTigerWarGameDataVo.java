@@ -31,10 +31,9 @@ public class LoongTigerWarGameDataVo extends TableGameDataVo {
     private final Map<Integer, Map<Long, Long>> betInfo = new ConcurrentHashMap<>();
 
     /**
-     * 本局前6的玩家id
+     * 前6玩家的id
      */
-    private final List<Long> redBlackWarPlayerInfos = new ArrayList<>();
-
+    private final List<Long> fixPlayers = new ArrayList<>();
     /**
      * 本局的结算信息
      */
@@ -47,6 +46,10 @@ public class LoongTigerWarGameDataVo extends TableGameDataVo {
 
     public void setCurrentSettleInfo(NotifyLoongTigerWarSettleInfo currentSettleInfo) {
         this.currentSettleInfo = currentSettleInfo;
+    }
+
+    public List<Long> getFixPlayers() {
+        return fixPlayers;
     }
 
     public void addHistory(int record) {
@@ -82,7 +85,4 @@ public class LoongTigerWarGameDataVo extends TableGameDataVo {
         return betInfo;
     }
 
-    public List<Long> getRedBlackWarPlayerInfos() {
-        return redBlackWarPlayerInfos;
-    }
 }

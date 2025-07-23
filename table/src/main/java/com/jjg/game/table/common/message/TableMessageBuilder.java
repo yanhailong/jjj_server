@@ -10,10 +10,7 @@ import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
 import com.jjg.game.table.common.message.res.TablePlayerInfo;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 构建房间相关消息
@@ -39,6 +36,22 @@ public class TableMessageBuilder {
         return playerBetInfo;
     }
 
+
+    /**
+     * 构建游戏的玩家基础信息
+     */
+    public static List<TablePlayerInfo> buildTablePlayerInfo(List<Long> playerIds, TableGameDataVo tableGameDataVo) {
+        Map<Long, GamePlayer> gamePlayerMap = tableGameDataVo.getGamePlayerMap();
+        List<TablePlayerInfo> tablePlayerInfos = new ArrayList<>(playerIds.size());
+        for (Long playerId : playerIds) {
+            GamePlayer gamePlayer = gamePlayerMap.get(playerId);
+            if (Objects.isNull(gamePlayer)) {
+                continue;
+            }
+            tablePlayerInfos.add(buildTablePlayerInfo(gamePlayer));
+        }
+        return tablePlayerInfos;
+    }
 
     /**
      * 构建游戏的玩家基础信息
@@ -73,7 +86,7 @@ public class TableMessageBuilder {
         infoChange.changedPlayerId = changedPlayerId;
         infoChange.tableChangedPlayerInfos = new ArrayList<>();
         List<GamePlayer> sortedPlayersByGold =
-            dataVo.getGamePlayerMap().values().stream().sorted(Comparator.comparingLong(Player::getGold).reversed()).toList();
+                dataVo.getGamePlayerMap().values().stream().sorted(Comparator.comparingLong(Player::getGold).reversed()).toList();
         for (GamePlayer gamePlayer : sortedPlayersByGold) {
             TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(gamePlayer);
             infoChange.tableChangedPlayerInfos.add(tablePlayerInfo);

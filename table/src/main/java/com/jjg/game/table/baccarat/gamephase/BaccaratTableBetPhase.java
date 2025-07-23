@@ -48,7 +48,7 @@ public class BaccaratTableBetPhase extends BaseTableBetPhase<BaccaratGameDataVo>
 
 
     @Override
-    public void dealMsg(PlayerController playerController, ReqBet reqBet) {
+    public void dealBet(PlayerController playerController, ReqBet reqBet) {
         List<ReqBetBean> reqBetBeans = reqBet.reqBetBeans;
         NotifyPlayerBet notifyPlayerBet = new NotifyPlayerBet(Code.SUCCESS);
         notifyPlayerBet.playerId = playerController.playerId();
