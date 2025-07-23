@@ -71,7 +71,7 @@ public class BaccaratTableBetPhase extends BaseTableBetPhase<BaccaratGameDataVo>
         for (ReqBetBean reqBetBean : reqBetBeans) {
             BetTableInfo betTableInfo = new BetTableInfo();
             int betAreaIdx = reqBetBean.betAreaIdx;
-            long betValue = reqBetBean.betValue * gameDataVo.getRoomCfg().getBetBase();
+            long betValue = reqBetBean.betValue;
             playerTotalBetGold += betValue;
             // 处理下注数据
             Map<Integer, List<Integer>> playerAreaInfoMap = gameDataVo.getPlayerBetInfo(playerController.playerId());

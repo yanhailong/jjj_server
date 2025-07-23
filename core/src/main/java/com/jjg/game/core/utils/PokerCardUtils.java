@@ -3,10 +3,7 @@ package com.jjg.game.core.utils;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -98,11 +95,86 @@ public class PokerCardUtils {
         int point = RandomUtils.randomNum(2, POKER_POINT_K + 1);
         List<EPokerSuit> ePokerSuits = RandomUtils.randomEleList(SUIT_LIST, 2);
         if (type == 3) {
-            return Pair.newPair(ePokerSuits.get(0).suitId * POKER_POINT_K + point, ePokerSuits.get(1).suitId * POKER_POINT_K + point);
+            return Pair.newPair(ePokerSuits.get(0).suitId * POKER_POINT_K + point,
+                ePokerSuits.get(1).suitId * POKER_POINT_K + point);
         }
         int nextPoint = RandomUtils.randomNum(1, point);
-        return type == 1 ? Pair.newPair(ePokerSuits.get(0).suitId * POKER_POINT_K + point, ePokerSuits.get(1).suitId * POKER_POINT_K + nextPoint)
-                : Pair.newPair(ePokerSuits.get(0).suitId * POKER_POINT_K + nextPoint, ePokerSuits.get(1).suitId * POKER_POINT_K + point);
+        return type == 1 ? Pair.newPair(ePokerSuits.get(0).suitId * POKER_POINT_K + point,
+            ePokerSuits.get(1).suitId * POKER_POINT_K + nextPoint)
+            : Pair.newPair(ePokerSuits.get(0).suitId * POKER_POINT_K + nextPoint,
+            ePokerSuits.get(1).suitId * POKER_POINT_K + point);
+    }
+
+
+    /**
+     * 通过牌ID获取可读的字符串列表
+     */
+    public static String toHumanString(Byte cardId) {
+        int pointId = getPointId(cardId);
+        EPokerHumanStr ePokerHumanStr = EPokerHumanStr.getPokerHumanStrById(pointId);
+        return ePokerHumanStr == null ? "" : ePokerHumanStr.getHumanStr();
+    }
+
+    /**
+     * 通过牌ID获取可读的字符串列表
+     */
+    public static String toHumanString(Collection<Byte> cardIds) {
+        return cardIds.stream().map(PokerCardUtils::toHumanString).collect(Collectors.joining(","));
+    }
+
+    /**
+     * 通过牌ID获取可读的字符串列表带花色
+     */
+    public static String toHumanStringWithSuit(Collection<Byte> cardIds) {
+        return cardIds.stream().map(cardId -> {
+            int pointId = getPointId(cardId);
+            EPokerHumanStr ePokerHumanStr = EPokerHumanStr.getPokerHumanStrById(pointId);
+            EPokerSuit ePokerSuit = getSuit(cardId);
+            return (ePokerHumanStr == null ? "" : ePokerHumanStr.getHumanStr()) +
+                (ePokerSuit == null ? "" : ePokerSuit.getSuitName());
+        }).collect(Collectors.joining(","));
+    }
+
+    public enum EPokerHumanStr {
+        TWO(2, "2"),
+        THREE(3, "3"),
+        FOUR(4, "4"),
+        FIVE(5, "5"),
+        SIX(6, "6"),
+        SEVEN(7, "7"),
+        EIGHT(8, "8"),
+        NINE(9, "9"),
+        TEN(10, "10"),
+        J(11, "J"),
+        Q(12, "Q"),
+        K(13, "K"),
+        A(1, "A"),
+        LITTLE_JOKER(14, "小王"),
+        BIG_JOKER(15, "大王");
+        final int pointId;
+        final String humanStr;
+
+        EPokerHumanStr(int pointId, String humanStr) {
+            this.pointId = pointId;
+            this.humanStr = humanStr;
+        }
+
+        public int getPointId() {
+            return pointId;
+        }
+
+        public String getHumanStr() {
+            return humanStr;
+        }
+
+        public static EPokerHumanStr getPokerHumanStrById(int pointId) {
+            for (EPokerHumanStr value : values()) {
+                if (value.getPointId() == pointId) {
+                    return value;
+                }
+            }
+            return null;
+        }
     }
 
     public enum EPokerSuit {

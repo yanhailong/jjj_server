@@ -3,6 +3,7 @@ package com.jjg.game.table.baccarat.message.resp;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.AbstractNotice;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.table.baccarat.message.BaccaratMessageConstant;
 
@@ -19,7 +20,7 @@ import java.util.List;
     cmd = BaccaratMessageConstant.RespMsgBean.NOTIFY_BACCARAT_TABLE_SETTLEMENT_INFO
 )
 @ProtoDesc("百家乐结算信息")
-public class NotifyBaccaratSettlementInfo extends AbstractResponse {
+public class NotifyBaccaratSettlementInfo extends AbstractNotice {
 
     @ProtoDesc("桌面的数据")
     public BaccaratTableInfo baccaratTableInfo;
@@ -29,8 +30,4 @@ public class NotifyBaccaratSettlementInfo extends AbstractResponse {
 
     @ProtoDesc("结算时玩家赢的金币值")
     public List<BaccaratPlayerChangedGold> playerChangedGolds;
-
-    public NotifyBaccaratSettlementInfo(int code) {
-        super(code);
-    }
 }

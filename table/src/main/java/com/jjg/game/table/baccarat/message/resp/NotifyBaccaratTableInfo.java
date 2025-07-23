@@ -3,6 +3,7 @@ package com.jjg.game.table.baccarat.message.resp;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.AbstractNotice;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.table.baccarat.message.BaccaratMessageConstant;
 
@@ -19,7 +20,7 @@ import java.util.List;
     resp = true,
     cmd = BaccaratMessageConstant.RespMsgBean.NOTIFY_BACCARAT_TABLE_INFO
 )
-public class NotifyBaccaratTableInfo {
+public class NotifyBaccaratTableInfo extends AbstractNotice {
 
     @ProtoDesc("场上阶段信息")
     public EGamePhase gamePhase;

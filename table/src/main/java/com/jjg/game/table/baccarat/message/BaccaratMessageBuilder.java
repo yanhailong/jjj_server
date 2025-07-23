@@ -1,9 +1,9 @@
 package com.jjg.game.table.baccarat.message;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.table.baccarat.BaccaratGameController;
@@ -15,7 +15,10 @@ import com.jjg.game.table.common.message.res.BetTableInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Administrator
@@ -54,7 +57,7 @@ public class BaccaratMessageBuilder {
      * 获取单局摘要数据
      */
     public static NotifyBaccaratTableSummary buildBaccaratSingleSummaryInfo(BaccaratGameController gameController) {
-        NotifyBaccaratTableSummary notifyBaccaratTableSummary = new NotifyBaccaratTableSummary(Code.SUCCESS);
+        NotifyBaccaratTableSummary notifyBaccaratTableSummary = new NotifyBaccaratTableSummary();
         BaccaratGameDataVo gameDataVo = gameController.getGameDataVo();
         notifyBaccaratTableSummary.tableSummary = new BaccaratTableSingleRes();
         notifyBaccaratTableSummary.tableSummary.baccaratBaseInfo = buildBaccaratBaseInfo(gameController);
@@ -128,7 +131,7 @@ public class BaccaratMessageBuilder {
      * 构建 消息通知
      */
     public static NotifyBaccaratBetStart buildNotifyBaccaratBetStart(BaccaratGameDataVo gameDataVo) {
-        NotifyBaccaratBetStart notifyInfo = new NotifyBaccaratBetStart(Code.SUCCESS);
+        NotifyBaccaratBetStart notifyInfo = new NotifyBaccaratBetStart();
         notifyInfo.baccaratTableInfo = buildTableInfo(gameDataVo, false);
         return notifyInfo;
     }
@@ -139,10 +142,22 @@ public class BaccaratMessageBuilder {
     public static NotifyBaccaratSettlementInfo buildNotifySettlementMessage(BaccaratGameDataVo gameDataVo,
                                                                             List<BaccaratPlayerChangedGold> changedGolds,
                                                                             BaccaratSettlementInfo settlementInfo) {
-        NotifyBaccaratSettlementInfo notifyInfo = new NotifyBaccaratSettlementInfo(Code.SUCCESS);
+        NotifyBaccaratSettlementInfo notifyInfo = new NotifyBaccaratSettlementInfo();
         notifyInfo.baccaratSettlementInfo = settlementInfo;
         notifyInfo.baccaratTableInfo = buildTableInfo(gameDataVo, false);
         notifyInfo.playerChangedGolds = changedGolds;
+        log.info("房间：{} 游戏类型：{} 场上庄家牌：{} 庄家补牌：{} 庄家点数：{} 闲家牌：{} 闲家补牌：{} 闲家点数：{} 输赢结果：{} 牌型结果：{}",
+            gameDataVo.getRoomId(),
+            gameDataVo.getRoomCfg().getId(),
+            PokerCardUtils.toHumanString(settlementInfo.bankerCardIds),
+            PokerCardUtils.toHumanString(settlementInfo.extraBankerCardId),
+            settlementInfo.bankerPointId,
+            PokerCardUtils.toHumanString(settlementInfo.playerCardIds),
+            PokerCardUtils.toHumanString(settlementInfo.extraPlayerCardId),
+            settlementInfo.playerPointId,
+            settlementInfo.cardState.winState,
+            settlementInfo.cardState.cardTypeWinState
+        );
         return notifyInfo;
     }
 
