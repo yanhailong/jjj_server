@@ -6,6 +6,7 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.AbstractSampleManager;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.BaseCfgBean;
+import com.jjg.game.table.common.BaseTableSampleManager;
 import com.jjg.game.table.common.data.TableSampleDataHolder;
 import org.springframework.stereotype.Repository;
 
@@ -20,7 +21,7 @@ import java.util.Set;
  * @author 2CL
  */
 @Repository
-public class BaseBetTableSampleManager extends AbstractSampleManager {
+public class BaseBetTableSampleManager extends BaseTableSampleManager {
 
     @Override
     protected String getSamplePath() {
@@ -29,6 +30,7 @@ public class BaseBetTableSampleManager extends AbstractSampleManager {
 
     @Override
     protected void initSampleConfig() {
+        super.initSampleConfig();
         // 房间类的配置必须要加载房间的配置
         String sampleRoomResourcePath = this.getSamplePath();
         try {
@@ -41,6 +43,7 @@ public class BaseBetTableSampleManager extends AbstractSampleManager {
 
     @Override
     protected void sampleChange(File file) {
+        super.sampleChange(file);
         try {
             String sampleRoomResourcePath = this.getSamplePath();
             Set<Class<? extends BaseCfgBean>> changeCfgBean =
