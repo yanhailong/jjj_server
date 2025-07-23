@@ -3,9 +3,8 @@ package com.jjg.game.table.betsample;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
-import com.jjg.game.core.manager.AbstractSampleManager;
-import com.jjg.game.room.sample.GameDataManager;
-import com.jjg.game.room.sample.bean.BaseCfgBean;
+import com.jjg.game.table.betsample.sample.GameDataManager;
+import com.jjg.game.table.betsample.sample.bean.BaseCfgBean;
 import com.jjg.game.table.common.BaseTableSampleManager;
 import com.jjg.game.table.common.data.TableSampleDataHolder;
 import org.springframework.stereotype.Repository;
@@ -25,14 +24,14 @@ public class BaseBetTableSampleManager extends BaseTableSampleManager {
 
     @Override
     protected String getSamplePath() {
-        return CoreConst.Common.SAMPLE_ROOT_PATH + "betsample";
+        return CoreConst.Common.SAMPLE_ROOT_PATH;
     }
 
     @Override
     protected void initSampleConfig() {
         super.initSampleConfig();
         // 房间类的配置必须要加载房间的配置
-        String sampleRoomResourcePath = this.getSamplePath();
+        String sampleRoomResourcePath = CoreConst.Common.SAMPLE_ROOT_PATH + "betsample";
         try {
             GameDataManager.loadAllData(sampleRoomResourcePath);
             TableSampleDataHolder.cacheBetActionData();
@@ -45,7 +44,7 @@ public class BaseBetTableSampleManager extends BaseTableSampleManager {
     protected void sampleChange(File file) {
         super.sampleChange(file);
         try {
-            String sampleRoomResourcePath = this.getSamplePath();
+            String sampleRoomResourcePath = CoreConst.Common.SAMPLE_ROOT_PATH + "betsample";
             Set<Class<? extends BaseCfgBean>> changeCfgBean =
                 GameDataManager.getInstance().loadDataByChangeFileList(sampleRoomResourcePath,
                     Collections.singletonList(file));

@@ -27,7 +27,7 @@ public class LoongTigerWarStartManager implements IRoomStartListener {
     public void start() {
         log.info("正在启动龙虎斗游戏...");
 
-        loongTigerWarSampleManager.init();
+        //loongTigerWarSampleManager.init();
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.jjg.game.room;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.exception.GameSampleException;
+import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.service.CoreStartService;
@@ -20,6 +21,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.core.annotation.Order;
 
 import java.util.*;
 
@@ -29,6 +31,7 @@ import java.util.*;
  */
 @SpringBootApplication(exclude = {QuartzAutoConfiguration.class})
 @ComponentScan({"com.jjg.game"})
+@Order(2)
 public class RoomApp implements SmartLifecycle, ApplicationContextAware {
     private Logger log = LoggerFactory.getLogger(getClass());
 
@@ -91,11 +94,6 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
         marsCoreStartService.init(this.context, noStartGameMsgTypeSet);
         coreStartService.init(this.context);
         roomEventListener.init();
-        try {
-            GameDataManager.loadAllData(CoreConst.Common.SAMPLE_ROOT_PATH);
-        } catch (Exception e) {
-            throw new GameSampleException(e);
-        }
         //调用启动方法
         for (Map.Entry<String, IRoomStartListener> en : startListenerMap.entrySet()) {
             en.getValue().start();

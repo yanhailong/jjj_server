@@ -28,7 +28,7 @@ public class RedBlackWarStartManager implements IRoomStartListener {
     public void start() {
         log.info("正在启动红黑大战游戏...");
 
-        redBlackWarSampleManager.init();
+        //redBlackWarSampleManager.init();
     }
 
     @Override
