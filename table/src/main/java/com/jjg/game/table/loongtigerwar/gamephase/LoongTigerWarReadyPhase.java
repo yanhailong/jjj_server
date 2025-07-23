@@ -21,19 +21,7 @@ public class LoongTigerWarReadyPhase extends WaitReadyPhase<LoongTigerWarGameDat
 
     @Override
     public void phaseFinish() {
-        LoongTigerWarGameDataVo gameDataVo1 = getGameDataVo();
-        Map<Long, GamePlayer> gamePlayerMap = gameDataVo1.getGamePlayerMap();
-        if (gamePlayerMap.isEmpty()) {
-            return;
-        }
-        List<Long> playerIds = gamePlayerMap.values()
-                .stream()
-                .sorted(Comparator.comparing(GamePlayer::getGold))
-                .map(GamePlayer::getId)
-                .limit(6)
-                .toList();
-        gameDataVo1.getFixPlayers().clear();
-        gameDataVo1.getFixPlayers().addAll(playerIds);
+
     }
 
     @Override

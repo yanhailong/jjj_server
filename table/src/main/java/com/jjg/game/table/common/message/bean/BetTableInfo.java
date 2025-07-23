@@ -1,4 +1,4 @@
-package com.jjg.game.table.common.message.res;
+package com.jjg.game.table.common.message.bean;
 
 /**
  * @author 2CL

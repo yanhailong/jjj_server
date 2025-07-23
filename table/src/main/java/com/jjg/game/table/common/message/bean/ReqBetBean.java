@@ -1,4 +1,4 @@
-package com.jjg.game.table.common.message.req;
+package com.jjg.game.table.common.message.bean;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;

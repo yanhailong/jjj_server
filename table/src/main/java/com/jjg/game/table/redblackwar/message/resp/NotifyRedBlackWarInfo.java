@@ -3,12 +3,10 @@ package com.jjg.game.table.redblackwar.message.resp;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.core.pb.AbstractNotice;
 import com.jjg.game.room.constant.EGamePhase;
-import com.jjg.game.table.common.message.res.BetTableInfo;
-import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
-import com.jjg.game.table.common.message.res.TablePlayerInfo;
+import com.jjg.game.table.common.message.bean.BetTableInfo;
+import com.jjg.game.table.common.message.bean.TablePlayerInfo;
 import com.jjg.game.table.redblackwar.message.RedBlackWarMessageConstant;
 import com.jjg.game.table.redblackwar.message.bean.RedBlackWarHistory;
 
@@ -36,8 +34,6 @@ public class NotifyRedBlackWarInfo extends AbstractNotice {
     @ProtoDesc("区域下注信息")
     public List<BetTableInfo> tableAreaInfos;
 
-    @ProtoDesc("玩家当前信息")
-    public List<TablePlayerInfo> playerInfos;
 
     @ProtoDesc("当前房间的历史记录")
     public List<RedBlackWarHistory> redBlackHistories;
