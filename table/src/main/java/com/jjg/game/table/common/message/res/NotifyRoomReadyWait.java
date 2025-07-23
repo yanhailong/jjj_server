@@ -13,7 +13,7 @@ import com.jjg.game.room.message.RoomMessageConstant;
  * @author 2CL
  */
 @ProtobufMessage(
-    messageType = MessageConst.MessageTypeDef.ROOM_TYPE,
+    messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
     resp = true,
     cmd = RoomMessageConstant.RespMsgBean.NOTIFY_ROOM_WAIT_READY
 )

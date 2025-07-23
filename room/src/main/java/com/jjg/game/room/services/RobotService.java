@@ -134,8 +134,8 @@ public class RobotService implements IRoomStartListener {
     }
 
     @Override
-    public int[] getGameTypes() {
-        return new int[0];
+    public Integer[] getGameTypes() {
+        return new Integer[0];
     }
 
     /**

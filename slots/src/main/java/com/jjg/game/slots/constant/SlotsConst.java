@@ -13,7 +13,7 @@ public interface SlotsConst {
 
     interface GameType{
         //支持的游戏
-        int[] SUPPORT_GAME_TYPES = {CoreConst.GameType.DOLLAR_EXPRESS};
+        Integer[] SUPPORT_GAME_TYPES = {CoreConst.GameType.DOLLAR_EXPRESS};
     }
 
 

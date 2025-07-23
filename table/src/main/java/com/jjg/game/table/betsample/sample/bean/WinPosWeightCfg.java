@@ -1,4 +1,4 @@
-package com.jjg.game.table.baccarat.sample.bean;
+package com.jjg.game.table.betsample.sample.bean;
 
 import java.util.*;
 
@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName WinPosWeight.xlsx
  * @sheetName WinPosWeight
  * @author Auto.Generator
- * @date 2025年07月18日 09:48:33
+ * @date 2025年07月23日 16:51:19
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class WinPosWeightCfg extends BaseCfgBean {
@@ -30,7 +30,7 @@ public class WinPosWeightCfg extends BaseCfgBean {
   /** 返还押分比例 */
   protected int returnRate;
   /** 小游戏触发ID */
-  protected Map<Long,Integer> trigID;
+  protected int trigID;
   /** 位置序列 */
   protected int winPosID;
   /** 奖励类型 */
@@ -62,7 +62,7 @@ public class WinPosWeightCfg extends BaseCfgBean {
   }
 
   /** 返回小游戏触发ID */
-  public Map<Long,Integer> getTrigID() {
+  public int getTrigID() {
     return trigID;
   }
 

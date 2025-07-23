@@ -27,7 +27,7 @@ public class GameDataVo<RC extends RoomCfg> {
     protected long phaseRunTime;
 
     /**
-     * 必须初始化的参数是房间配置RoomCfg，如果后续子类添加需要在
+     * 必须初始化的参数是房间配置RoomCfg，如果后续子类添加数据需要在自己的构造函数中添加
      */
     public GameDataVo(RC roomCfg) {
         this.roomCfg = roomCfg;

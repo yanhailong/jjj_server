@@ -1,10 +1,10 @@
-package com.jjg.game.table.baccarat.sample.container;
+package com.jjg.game.table.betsample.sample.container;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.table.baccarat.sample.bean.BetAreaCfg;
+import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
 
 /**
  * BetArea.xlsx配置管理容器
@@ -12,7 +12,7 @@ import com.jjg.game.table.baccarat.sample.bean.BetAreaCfg;
  * @excelName BetArea.xlsx
  * @sheetName BetArea
  * @author auto_generator
- * @date 2025年07月18日 09:48:33
+ * @date 2025年07月23日 16:51:19
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BetAreaCfgContainer extends BaseCfgContainer<BetAreaCfg> {

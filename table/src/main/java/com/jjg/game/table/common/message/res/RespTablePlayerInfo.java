@@ -9,13 +9,13 @@ import com.jjg.game.table.common.message.TableRoomMessageConstant;
 import java.util.List;
 
 /**
- * 百人牌桌返回玩家列表信息
+ * 返回牌桌玩家列表的下注信息
  *
  * @author 2CL
  */
 
 @ProtobufMessage(
-        messageType = MessageConst.MessageTypeDef.ROOM_TYPE,
+        messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
         cmd = TableRoomMessageConstant.RespMsgBean.RESP_TABLE_PLAYER_INFO
         , resp = true
 )

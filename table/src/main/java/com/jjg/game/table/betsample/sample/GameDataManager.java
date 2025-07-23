@@ -1,4 +1,4 @@
-package com.jjg.game.table.baccarat.sample;
+package com.jjg.game.table.betsample.sample;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,10 +25,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 // =================== 模板开始 ===================
-import com.jjg.game.table.baccarat.sample.bean.*;
-import com.jjg.game.table.baccarat.sample.container.*;
+import com.jjg.game.table.betsample.sample.bean.*;
+import com.jjg.game.table.betsample.sample.container.*;
 // =================== 模板结束 ===================
-import com.jjg.game.table.baccarat.sample.container.BaseCfgContainer.ContainerExceptionBlocker;
+import com.jjg.game.table.betsample.sample.container.BaseCfgContainer.ContainerExceptionBlocker;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年07月18日 09:48:33
+ * @date 2025年07月23日 16:51:19
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {

@@ -1,4 +1,4 @@
-package com.jjg.game.table.baccarat.sample.bean;
+package com.jjg.game.table.betsample.sample.bean;
 
 import javax.annotation.processing.Generated;
 /**

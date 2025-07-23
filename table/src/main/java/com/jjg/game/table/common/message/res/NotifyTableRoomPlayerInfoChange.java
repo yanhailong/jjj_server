@@ -9,12 +9,12 @@ import com.jjg.game.table.common.message.TableRoomMessageConstant;
 import java.util.List;
 
 /**
- * 通知百家乐玩家加入房间
+ * 通知押注类房间玩家信息变化
  *
  * @author 2CL
  */
 @ProtobufMessage(
-    messageType = MessageConst.MessageTypeDef.BACCARAT_TYPE,
+    messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
     cmd = TableRoomMessageConstant.RespMsgBean.NOTIFY_PLAYER_JOIN_ROOM,
     resp = true
 )

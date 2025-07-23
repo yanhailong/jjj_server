@@ -1,4 +1,4 @@
-package com.jjg.game.table.baccarat.sample.container;
+package com.jjg.game.table.betsample.sample.container;
 
 import java.io.File;
 import java.lang.reflect.*;
@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.processing.Generated;
 
-import com.jjg.game.table.baccarat.sample.bean.BaseCfgBean;
+import com.jjg.game.table.betsample.sample.bean.BaseCfgBean;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.poi.ss.usermodel.*;

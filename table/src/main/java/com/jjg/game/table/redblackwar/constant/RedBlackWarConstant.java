@@ -9,7 +9,7 @@ import com.jjg.game.common.constant.CoreConst;
 public interface RedBlackWarConstant {
     interface GameType {
         //支持的游戏
-        int[] SUPPORT_GAME_TYPES = {CoreConst.GameType.RED_BLACK_WAR};
+        Integer[] SUPPORT_GAME_TYPES = {CoreConst.GameType.RED_BLACK_WAR};
     }
 
     interface Common {

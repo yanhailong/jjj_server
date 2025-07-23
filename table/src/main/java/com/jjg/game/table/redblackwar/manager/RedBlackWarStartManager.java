@@ -20,7 +20,7 @@ public class RedBlackWarStartManager implements IRoomStartListener {
     private RedBlackWarSampleManager redBlackWarSampleManager;
 
     @Override
-    public int[] getGameTypes() {
+    public Integer[] getGameTypes() {
         return RedBlackWarConstant.GameType.SUPPORT_GAME_TYPES;
     }
 

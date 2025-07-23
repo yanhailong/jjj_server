@@ -7,14 +7,4 @@ package com.jjg.game.table.common;
  */
 public interface TableConstant {
 
-    interface MessageConstant {
-
-        interface ReqMsgBean{
-
-        }
-
-        interface ResMsgBean{
-
-        }
-    }
 }

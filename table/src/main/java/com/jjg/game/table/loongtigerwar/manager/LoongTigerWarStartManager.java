@@ -19,7 +19,7 @@ public class LoongTigerWarStartManager implements IRoomStartListener {
     private LoongTigerWarSampleManager loongTigerWarSampleManager;
 
     @Override
-    public int[] getGameTypes() {
+    public Integer[] getGameTypes() {
         return LoongTigerWarConstant.GameType.SUPPORT_GAME_TYPES;
     }
 

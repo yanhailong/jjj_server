@@ -9,7 +9,7 @@ public interface IRoomStartListener {
      * 获取支持的游戏类型
      * @return
      */
-    int[] getGameTypes();
+    Integer[] getGameTypes();
 
     /**
      * 启动

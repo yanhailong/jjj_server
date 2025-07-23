@@ -35,7 +35,7 @@ public class SlotsStartManager implements IRoomStartListener {
 
 
     @Override
-    public int[] getGameTypes() {
+    public Integer[] getGameTypes() {
         return SlotsConst.GameType.SUPPORT_GAME_TYPES;
     }
 

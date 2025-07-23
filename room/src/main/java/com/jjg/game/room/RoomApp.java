@@ -135,11 +135,9 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
         Set<Integer> gameTypeSet = new HashSet<>();
         Map<String, IRoomStartListener> startListenerMap = this.context.getBeansOfType(IRoomStartListener.class);
         for (Map.Entry<String, IRoomStartListener> en : startListenerMap.entrySet()) {
-            int[] arr = en.getValue().getGameTypes();
-            if (arr != null && arr.length > 0) {
-                for (int i : arr) {
-                    gameTypeSet.add(i);
-                }
+            Integer[] arr = en.getValue().getGameTypes();
+            if (arr != null && arr.length != 0) {
+                gameTypeSet.addAll(Arrays.asList(arr));
             }
         }
         return gameTypeSet;

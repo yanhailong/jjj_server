@@ -51,8 +51,8 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
     private final Set<Integer> masterGameTypes = new CopyOnWriteArraySet<>();
 
     @Override
-    public int[] getGameTypes() {
-        return new int[0];
+    public Integer[] getGameTypes() {
+        return new Integer[]{};
     }
 
 
