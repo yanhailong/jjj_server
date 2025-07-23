@@ -4,11 +4,11 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.common.data.TableGameDataVo;
+import com.jjg.game.table.common.message.bean.PlayerSettleInfo;
 import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
-import com.jjg.game.table.common.message.res.TablePlayerInfo;
+import com.jjg.game.table.common.message.bean.TablePlayerInfo;
 
 import java.util.*;
 
@@ -92,5 +92,21 @@ public class TableMessageBuilder {
             infoChange.tableChangedPlayerInfos.add(tablePlayerInfo);
         }
         return infoChange;
+    }
+
+    /**
+     * 获取玩家的结算信息
+     *
+     * @param playerGet 结算的玩家获得的金币
+     */
+    public static List<PlayerSettleInfo> getPlayerSettleInfos(Map<Long, Long> playerGet) {
+        List<PlayerSettleInfo> settleInfoArrayList = new ArrayList<>();
+        for (Map.Entry<Long, Long> entry : playerGet.entrySet()) {
+            PlayerSettleInfo info = new PlayerSettleInfo();
+            info.amount = entry.getValue();
+            info.playerId = entry.getKey();
+            settleInfoArrayList.add(info);
+        }
+        return settleInfoArrayList;
     }
 }

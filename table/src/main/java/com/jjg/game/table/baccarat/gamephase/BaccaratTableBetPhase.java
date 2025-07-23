@@ -11,8 +11,8 @@ import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
 import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratBetStart;
 import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
 import com.jjg.game.table.common.message.req.ReqBet;
-import com.jjg.game.table.common.message.req.ReqBetBean;
-import com.jjg.game.table.common.message.res.BetTableInfo;
+import com.jjg.game.table.common.message.bean.ReqBetBean;
+import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.res.NotifyPlayerBet;
 
 import java.util.ArrayList;

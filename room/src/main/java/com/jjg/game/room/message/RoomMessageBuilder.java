@@ -20,7 +20,7 @@ public class RoomMessageBuilder<T extends AbstractMessage> {
     /**
      * 指定发送的玩家ID，如果为空则对房间内的所有玩家进行广播
      */
-    private Set<Long> playerIds = new HashSet<>();
+    private Set<Long> playerIds;
 
     public static RoomMessageBuilder<AbstractMessage> newBuilder() {
         return new RoomMessageBuilder<>();

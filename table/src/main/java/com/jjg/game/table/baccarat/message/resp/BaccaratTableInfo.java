@@ -2,8 +2,8 @@ package com.jjg.game.table.baccarat.message.resp;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.table.common.message.res.BetTableInfo;
-import com.jjg.game.table.common.message.res.TablePlayerInfo;
+import com.jjg.game.table.common.message.bean.BetTableInfo;
+import com.jjg.game.table.common.message.bean.TablePlayerInfo;
 
 import java.util.List;
 

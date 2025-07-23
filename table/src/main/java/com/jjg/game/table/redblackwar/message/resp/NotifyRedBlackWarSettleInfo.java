@@ -3,11 +3,9 @@ package com.jjg.game.table.redblackwar.message.resp;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.pb.AbstractNotice;
-import com.jjg.game.core.pb.AbstractResponse;
+import com.jjg.game.table.common.message.bean.PlayerSettleInfo;
 import com.jjg.game.table.redblackwar.message.RedBlackWarMessageConstant;
-import com.jjg.game.table.redblackwar.message.bean.RBWPlayerSettleInfo;
 
 import java.util.List;
 
@@ -38,65 +36,7 @@ public class NotifyRedBlackWarSettleInfo extends AbstractNotice {
     public long getGold;
 
     @ProtoDesc("玩家结算信息")
-    public List<RBWPlayerSettleInfo> playerSettleInfos;
+    public List<PlayerSettleInfo> playerSettleInfos;
 
-
-    //  Builder 内部类
-    public static class Builder {
-        private List<Integer> redCards;
-        private int redCardType;
-        private List<Integer> blackCards;
-        private int blackCardType;
-        private int winState;
-        private long getGold;
-        private List<RBWPlayerSettleInfo> playerSettleInfos;
-
-        public Builder redCards(List<Integer> redCards) {
-            this.redCards = redCards;
-            return this;
-        }
-
-        public Builder redCardType(int redCardType) {
-            this.redCardType = redCardType;
-            return this;
-        }
-
-        public Builder blackCards(List<Integer> blackCards) {
-            this.blackCards = blackCards;
-            return this;
-        }
-
-        public Builder blackCardType(int blackCardType) {
-            this.blackCardType = blackCardType;
-            return this;
-        }
-
-        public Builder winState(int winState) {
-            this.winState = winState;
-            return this;
-        }
-
-        public Builder getGold(long getGold) {
-            this.getGold = getGold;
-            return this;
-        }
-
-        public Builder playerSettleInfos(List<RBWPlayerSettleInfo> playerSettleInfos) {
-            this.playerSettleInfos = playerSettleInfos;
-            return this;
-        }
-
-        public NotifyRedBlackWarSettleInfo build() {
-            NotifyRedBlackWarSettleInfo info = new NotifyRedBlackWarSettleInfo();
-            info.redCards = this.redCards;
-            info.redCardType = this.redCardType;
-            info.blackCards = this.blackCards;
-            info.blackCardType = this.blackCardType;
-            info.winState = this.winState;
-            info.getGold = this.getGold;
-            info.playerSettleInfos = this.playerSettleInfos;
-            return info;
-        }
-    }
 }
 

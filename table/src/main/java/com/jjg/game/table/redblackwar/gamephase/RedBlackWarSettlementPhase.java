@@ -4,12 +4,13 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.TablePlayerGameData;
+import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.table.common.data.Card;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
+import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.redblackwar.constant.HandType;
 import com.jjg.game.table.redblackwar.constant.RedBlackWarConstant;
 import com.jjg.game.table.redblackwar.manager.RedBlackWarSampleManager;
-import com.jjg.game.table.redblackwar.message.bean.RBWPlayerSettleInfo;
 import com.jjg.game.table.redblackwar.message.bean.RedBlackWarHistory;
 import com.jjg.game.table.redblackwar.message.resp.NotifyRedBlackWarSettleInfo;
 import com.jjg.game.table.redblackwar.room.data.RedBlackWarGameDataVo;
@@ -65,7 +66,6 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         boolean luckBet;
         Map<RedBlackWarConstant.Camp, Map<HandType, List<WinPosWeightCfg>>> winMap = redBlackWarSampleManager.getWinMap();
         Map<Long, Long> playerGet = new HashMap<>();
-        long onlineTotal = 0;
         List<WinPosWeightCfg> weightCfgList;
         if (result > 0) {
             //红方胜利
@@ -76,8 +76,6 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
             luckBet = isLuckBet(blackHandType, blackCard);
             weightCfgList = winMap.get(RedBlackWarConstant.Camp.BLACK).get(blackHandType);
         }
-        //前6玩家id
-        List<Long> firstSix = gameDataVo.getRedBlackWarPlayerInfos();
         //遍历获奖位置
         for (WinPosWeightCfg cfg : weightCfgList) {
             List<Integer> betArea = cfg.getBetArea();
@@ -108,36 +106,32 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                     canGet += backBet;
                     gamePlayer.setGold(canGet + gamePlayer.getGold());
                     playerGet.merge(playerId, canGet, Long::sum);
-                    if (!firstSix.contains(playerId)) {
-                        onlineTotal += canGet;
-                    }
                 }
             }
         }
         //通知
         int winState = result > 0 ? 1 : 2;
-        NotifyRedBlackWarSettleInfo.Builder builder = new NotifyRedBlackWarSettleInfo.Builder();
-        builder.winState(winState)
-                .blackCards(blackCard.stream().map(Card::getValue).toList())
-                .blackCardType(blackHandType.getRank())
-                .redCards(redCard.stream().map(Card::getValue).toList())
-                .redCardType(redHandType.getRank())
-                .playerSettleInfos(getPlayerSettleInfos(firstSix, playerGet, onlineTotal));
+        NotifyRedBlackWarSettleInfo settleInfo = new NotifyRedBlackWarSettleInfo();
+        settleInfo.winState = winState;
+        settleInfo.blackCards = blackCard.stream().map(Card::getValue).toList();
+        settleInfo.blackCardType = blackHandType.getRank();
+        settleInfo.redCards = redCard.stream().map(Card::getValue).toList();
+        settleInfo.redCardType = redHandType.getRank();
+        settleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(playerGet);
         //更新房间记录
         updateGameHistory(gameDataVo, blackHandType, winState);
         //清除押注历史
         betInfo.clear();
         //更新结算信息
-        gameDataVo.setCurrentSettleInfo(builder.build());
-        //发送通知
+        gameDataVo.setCurrentSettleInfo(settleInfo);
+        //更新记录
         for (GamePlayer gamePlayer : gameDataVo.getGamePlayerMap().values()) {
             TablePlayerGameData tableGameData = gamePlayer.getTableGameData();
             long getGold = playerGet.getOrDefault(gamePlayer.getId(), 0L);
-            builder.getGold(getGold);
-            //更新统计信息
             tableGameData.addBetRecord(getGold);
-            gameController.sendMessage(gamePlayer.getId(), builder.build());
         }
+        //发送通知
+        gameController.sendMessage(RoomMessageBuilder.newBuilder().setData(settleInfo));
     }
 
     @Override
@@ -145,34 +139,6 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         gameDataVo.setCurrentSettleInfo(null);
     }
 
-    /**
-     * 获取玩家的结算信息
-     *
-     * @param firstSix    前6玩家的id
-     * @param playerGet   结算的玩家获得的金币
-     * @param onlineTotal 在线玩家总获得
-     */
-    private List<RBWPlayerSettleInfo> getPlayerSettleInfos(List<Long> firstSix, Map<Long, Long> playerGet, long onlineTotal) {
-        List<RBWPlayerSettleInfo> playerSettleInfos = new ArrayList<>();
-        //前6玩家的
-        for (int i = 0; i < firstSix.size(); i++) {
-            Long playerId = firstSix.get(i);
-            Long get = playerGet.get(playerId);
-            if (Objects.nonNull(get)) {
-                RBWPlayerSettleInfo info = new RBWPlayerSettleInfo();
-                info.amount = get;
-                info.playerId = playerId;
-                info.index = i;
-                playerSettleInfos.add(info);
-            }
-        }
-        //在线玩家的
-        RBWPlayerSettleInfo info = new RBWPlayerSettleInfo();
-        info.amount = onlineTotal;
-        info.index = -1;
-        playerSettleInfos.add(info);
-        return playerSettleInfos;
-    }
 
     private void updateGameHistory(RedBlackWarGameDataVo gameDataVo, HandType blackHandType, int result) {
         RedBlackWarHistory redBlackWarHistory = new RedBlackWarHistory();
