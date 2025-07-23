@@ -9,7 +9,6 @@ import com.jjg.game.room.data.room.TablePlayerGameData;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
-import com.jjg.game.table.common.message.bean.PlayerSettleInfo;
 import com.jjg.game.table.loongtigerwar.manager.LoongTigerWarSampleManager;
 import com.jjg.game.table.loongtigerwar.message.resp.NotifyLoongTigerWarSettleInfo;
 import com.jjg.game.table.loongtigerwar.room.data.LoongTigerWarGameDataVo;

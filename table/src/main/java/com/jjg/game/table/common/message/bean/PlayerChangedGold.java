@@ -1,4 +1,4 @@
-package com.jjg.game.table.baccarat.message.resp;
+package com.jjg.game.table.common.message.bean;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
@@ -10,7 +10,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  */
 @ProtobufMessage
 @ProtoDesc("玩家金币更新")
-public class BaccaratPlayerChangedGold {
+public class PlayerChangedGold {
 
     @ProtoDesc("玩家ID")
     public long playerId;

@@ -1,20 +1,17 @@
 package com.jjg.game.table.baccarat.gamephase;
 
-import com.alibaba.fastjson.JSON;
-import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.utils.PokerCardUtils;
-import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.table.baccarat.BaccaratGameController;
-import com.jjg.game.table.baccarat.BaccaratTempRoom;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
 import com.jjg.game.table.baccarat.message.resp.*;
 import com.jjg.game.table.betsample.sample.GameDataManager;
 import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
+import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +65,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         // 将牌局的输赢保存到牌桌上
         gameDataVo.getBetRecord().add(baccaratSettlementInfo.cardState);
         // 游戏结算，给玩家发送结算信息
-        List<BaccaratPlayerChangedGold> changedGolds = playerGameSettlement(baccaratSettlementInfo);
+        List<PlayerChangedGold> changedGolds = playerGameSettlement(baccaratSettlementInfo);
         NotifyBaccaratSettlementInfo baccaratTableInfo =
             BaccaratMessageBuilder.buildNotifySettlementMessage(gameDataVo, changedGolds,
                 baccaratSettlementInfo);
@@ -135,8 +132,8 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     /**
      * 玩家游戏结算
      */
-    private List<BaccaratPlayerChangedGold> playerGameSettlement(BaccaratSettlementInfo baccaratSettlementInfo) {
-        List<BaccaratPlayerChangedGold> playerChangedGolds = new ArrayList<>();
+    private List<PlayerChangedGold> playerGameSettlement(BaccaratSettlementInfo baccaratSettlementInfo) {
+        List<PlayerChangedGold> playerChangedGolds = new ArrayList<>();
         // 获取玩家的押注信息，让后结算
         for (Map.Entry<Long, GamePlayer> playerEntry : gameDataVo.getGamePlayerMap().entrySet()) {
             GamePlayer gamePlayer = playerEntry.getValue();
@@ -155,7 +152,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             // 玩家押注赢
             long playerBetWin = checkPlayerBetWin(playerBetInfo, baccaratSettlementInfo);
             if (playerBetWin > 0) {
-                BaccaratPlayerChangedGold playerGoldChange = new BaccaratPlayerChangedGold();
+                PlayerChangedGold playerGoldChange = new PlayerChangedGold();
                 playerGoldChange.playerId = playerEntry.getKey();
                 playerGoldChange.playerWinGold = playerBetWin;
                 playerGoldChange.playerBetGold = playerTotalBetGold;

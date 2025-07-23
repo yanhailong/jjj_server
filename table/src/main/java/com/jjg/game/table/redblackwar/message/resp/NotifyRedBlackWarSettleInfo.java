@@ -4,7 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractNotice;
-import com.jjg.game.table.common.message.bean.PlayerSettleInfo;
+import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import com.jjg.game.table.redblackwar.message.RedBlackWarMessageConstant;
 
 import java.util.List;
@@ -36,7 +36,7 @@ public class NotifyRedBlackWarSettleInfo extends AbstractNotice {
     public long getGold;
 
     @ProtoDesc("玩家结算信息")
-    public List<PlayerSettleInfo> playerSettleInfos;
+    public List<PlayerChangedGold> playerSettleInfos;
 
 }
 

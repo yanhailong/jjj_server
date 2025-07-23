@@ -4,8 +4,8 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractNotice;
-import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.table.baccarat.message.BaccaratMessageConstant;
+import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 
 import java.util.List;
 
@@ -29,5 +29,5 @@ public class NotifyBaccaratSettlementInfo extends AbstractNotice {
     public BaccaratSettlementInfo baccaratSettlementInfo;
 
     @ProtoDesc("结算时玩家赢的金币值")
-    public List<BaccaratPlayerChangedGold> playerChangedGolds;
+    public List<PlayerChangedGold> playerChangedGolds;
 }

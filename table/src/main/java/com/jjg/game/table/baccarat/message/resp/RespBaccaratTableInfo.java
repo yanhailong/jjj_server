@@ -6,6 +6,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.table.baccarat.message.BaccaratMessageConstant;
+import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 
 import java.util.List;
 
@@ -32,7 +33,7 @@ public class RespBaccaratTableInfo extends AbstractResponse {
     public BaccaratTableInfo baccaratTableInfo;
 
     @ProtoDesc("结算时玩家赢的金币值")
-    public List<BaccaratPlayerChangedGold> playerChangedGolds;
+    public List<PlayerChangedGold> playerChangedGolds;
 
     @ProtoDesc("场上结算信息，如果场上阶段不为结算，此值为空")
     public BaccaratSettlementInfo baccaratSettlementInfo;
