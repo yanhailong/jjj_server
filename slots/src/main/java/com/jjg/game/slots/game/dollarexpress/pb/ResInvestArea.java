@@ -19,10 +19,8 @@ public class ResInvestArea extends AbstractResponse {
     public List<Long> goldList;
     @ProtoDesc("3次都中奖，奖励的火车信息")
     public TrainInfo allWinTrainInfo;
-    @ProtoDesc("地图全部解锁时的图标id列表")
-    public List<Integer> iconList;
-    @ProtoDesc("地图全部解锁，奖励的火车信息")
-    public TrainInfo areaAllUnlockTrainInfo;
+    @ProtoDesc("是否全地图解锁")
+    public boolean allAreaUnLock;
 
     public ResInvestArea(int code) {
         super(code);

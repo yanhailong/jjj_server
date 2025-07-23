@@ -146,14 +146,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             if(gameRunInfo.getInvestRewardGoldTrainCount() > 0){
                 res.allWinTrainInfo = goldTrain(gameRunInfo.getInvestRewardGoldTrainCount(),gameRunInfo.getInvestRewardGold());
             }
-
-            if(gameRunInfo.getTrainList() != null && !gameRunInfo.getTrainList().isEmpty()){
-                res.areaAllUnlockTrainInfo = gameRunInfo.getTrainList().stream().filter(t -> t.type == DollarExpressConstant.BaseElement.ID_GOLD_TRAIN).findFirst().orElse(null);
-            }
-
-            if(gameRunInfo.getIconArr() != null){
-                res.iconList = IntStream.range(1, 21).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
-            }
+            res.allAreaUnLock = gameRunInfo.isAllAreaUnLock();
         }else {
             log.debug("投资游戏结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }

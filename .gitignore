@@ -31,3 +31,4 @@ stresstool/config/serverIndex.txt
 
 # 移除配置文件
 **/config/application-*.yaml
+**/config/nodeConfig.json

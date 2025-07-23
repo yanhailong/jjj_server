@@ -5,6 +5,7 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.listener.RoomEventListener;
+import com.jjg.game.room.message.RoomMessageConstant;
 import com.jjg.game.room.pb.ReqExitGame;
 import com.jjg.game.room.pb.ResExitGame;
 import org.slf4j.Logger;
@@ -25,7 +26,7 @@ public class RoomMessageHandler {
     @Autowired
     private RoomEventListener playerEventListener;
 
-    @Command(MessageConst.ToServer.REQ_EXIT_GAME)
+    @Command(RoomMessageConstant.ReqMsgBean.REQ_EXIT_GAME)
     public void reqExitGame(PlayerController playerController, ReqExitGame req) {
         try {
             log.debug("退出游戏 playerId = {}", playerController.playerId());

@@ -16,12 +16,18 @@ public interface RoomMessageConstant {
      */
     interface ReqMsgBean {
         int REQ_EXIT_ROOM = BASE_ROOM_MSG_PREFIX | 0x01;
+
+        //退出游戏
+        int REQ_EXIT_GAME = BASE_ROOM_MSG_PREFIX | 0x2;
+
     }
 
     /**
      * 返回消息的bean
      */
     interface RespMsgBean {
+        //退出游戏
+        int RES_EXIT_GAME = BASE_ROOM_MSG_PREFIX | 0x3;
         // 通知退出房间
         int NOTIFY_EXIT_ROOM = BASE_ROOM_MSG_PREFIX | 0x81;
         // 通知房间进入等待时间

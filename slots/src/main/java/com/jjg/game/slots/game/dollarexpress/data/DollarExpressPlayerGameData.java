@@ -50,6 +50,8 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
     private AtomicBoolean invers = new AtomicBoolean(false);
     //已经选择的地区
     private Set<Integer> selectedAreaSet;
+    //全地图解锁
+    private AtomicBoolean allUnLock = new AtomicBoolean(false);
 
     public long getLastBet() {
         return lastBet;
@@ -274,5 +276,13 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
     public void clearInvers(){
         this.addDollarsCount = 0;
         this.addDollarsTotalStake = 0;
+    }
+
+    public AtomicBoolean getAllUnLock() {
+        return allUnLock;
+    }
+
+    public void setAllUnLock(AtomicBoolean allUnLock) {
+        this.allUnLock = allUnLock;
     }
 }

@@ -174,24 +174,29 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
 
-            //获取当前处于哪种状态
-            int status = playerGameData.getStatus();
-            if (status == DollarExpressConstant.Status.NORMAL) {  //正常
-                gameRunInfo = normal(gameRunInfo, playerGameData, betValue, updateGird);
-            } else if (status == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || status == DollarExpressConstant.Status.GOLD_ALL_BOARD) {  //二选一
-                gameRunInfo.setCode(Code.FORBID);
-                log.debug("当前正处于二选一状态，禁止开始游戏操作 playerId = {},gameType = {},wareId = {}, status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getWareId(), status);
-                return gameRunInfo;
-            } else if (status == DollarExpressConstant.Status.ALL_BOARD_TRAIN) {  //二选一之拉火车
-                gameRunInfo = allBoardTrain(gameRunInfo, playerGameData);
-            } else if (status == DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN) {  //二选一之拉黄金火车
-                gameRunInfo = allBoardGoldTrain(gameRunInfo, playerGameData, updateGird);
-            } else if (status == DollarExpressConstant.Status.ALL_BOARD_FREE) {  //二选一之免费模式
-                gameRunInfo = allBoardFree(gameRunInfo, playerGameData);
-            } else {
-                gameRunInfo.setCode(Code.FAIL);
-                log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},wareId = {},status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getWareId(), status);
-                return gameRunInfo;
+            boolean allAreaUnlock = playerGameData.getAllUnLock().compareAndSet(true, false);
+            if(allAreaUnlock){
+                gameRunInfo = areaAllUnlockGoldTrain(gameRunInfo,playerGameData,updateGird);
+            }else {
+                //获取当前处于哪种状态
+                int status = playerGameData.getStatus();
+                if (status == DollarExpressConstant.Status.NORMAL) {  //正常
+                    gameRunInfo = normal(gameRunInfo, playerGameData, betValue, updateGird);
+                } else if (status == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || status == DollarExpressConstant.Status.GOLD_ALL_BOARD) {  //二选一
+                    gameRunInfo.setCode(Code.FORBID);
+                    log.debug("当前正处于二选一状态，禁止开始游戏操作 playerId = {},gameType = {},wareId = {}, status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getWareId(), status);
+                    return gameRunInfo;
+                } else if (status == DollarExpressConstant.Status.ALL_BOARD_TRAIN) {  //二选一之拉火车
+                    gameRunInfo = allBoardTrain(gameRunInfo, playerGameData);
+                } else if (status == DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN) {  //二选一之拉黄金火车
+                    gameRunInfo = allBoardGoldTrain(gameRunInfo, playerGameData, updateGird);
+                } else if (status == DollarExpressConstant.Status.ALL_BOARD_FREE) {  //二选一之免费模式
+                    gameRunInfo = allBoardFree(gameRunInfo, playerGameData);
+                } else {
+                    gameRunInfo.setCode(Code.FAIL);
+                    log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},wareId = {},status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getWareId(), status);
+                    return gameRunInfo;
+                }
             }
 
             //检查是否触发投资游戏
@@ -366,8 +371,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
 
             //检查地图是否全部解锁
-            if (playerGameData.areaAllUnlock()) {
-                gameRunInfo = areaAllUnlockGoldTrain(gameRunInfo, playerGameData, true);
+            if(playerGameData.areaAllUnlock()){
+                gameRunInfo.setAllAreaUnLock(true);
+                playerGameData.getAllUnLock().compareAndSet(false,true);
             }
         } catch (Exception e) {
             log.error("", e);
@@ -819,20 +825,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
         gameRunInfo = checkDorllar(gameRunInfo, playerGameData, againGame.getGoldTrainCount(), againGame.getGoldTrainAllTimes());
 
-        //加钱
-        if (againGame.getTimes() > 0) {
-            long gold = playerGameData.getLastBet() * againGame.getGoldTrainAllTimes();
-            long addGold = gold * againGame.getGoldTrainCount();
-            CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getWareId(), addGold, "SLOTS_INVEST_REWARD");
-            if (!result.success()) {
-                log.warn("投资游戏地图全解锁金火车给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                gameRunInfo.setCode(result.code);
-                return gameRunInfo;
-            }
-            gameRunInfo.addAllWinGold(addGold);
-            log.debug("投资游戏地图全解锁金火车给玩家添加金币成功 gameType = {},wareId = {},addGold = {}", this.gameType, playerGameData.getWareId(), addGold);
-        }
-
+        gameRunInfo.setBigPoolTimes(againGame.getTimes());
         playerGameData.setSelectedAreaSet(null);
         return gameRunInfo;
     }
