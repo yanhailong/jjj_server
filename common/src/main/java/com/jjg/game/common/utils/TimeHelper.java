@@ -4,6 +4,10 @@ import java.text.DateFormat;
 import java.text.DateFormatSymbols;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -572,5 +576,18 @@ public final class TimeHelper {
 
     public static int nowInt(){
         return (int) (System.currentTimeMillis() / 1000);
+    }
+
+    /**
+     * 获取从今天0点至今的秒数
+     * @return
+     */
+    public static int getNowDaySeconds(){
+        // 获取当前时间
+        LocalDateTime now = LocalDateTime.now();
+        // 获取今天的0点时间
+        LocalDateTime midnight = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
+        // 计算两者之间的秒数差
+        return  (int) Duration.between(midnight, now).getSeconds();
     }
 }

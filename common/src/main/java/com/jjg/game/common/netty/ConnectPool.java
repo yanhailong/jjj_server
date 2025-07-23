@@ -4,6 +4,7 @@ import com.jjg.game.common.utils.OSUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import com.jjg.game.common.net.Connect;
@@ -68,14 +69,16 @@ public class ConnectPool<T extends NettyConnect<Object>> implements ConnectListe
         log.debug("startAddress={},localAddress={},netAddress={}", startAddress, localAddress, netAddress);
         if (startClient()) {
             bootstrap = new Bootstrap();
-            bootstrap.group(WORKER_GROUP).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true)
-                .handler(initializer);
-            bootstrap.option(ChannelOption.TCP_NODELAY, true);
-            bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000);
-        /*if (localAddress != null) {
-            bootstrap.localAddress(localAddress.getHost(), localAddress.getPort());
-        }*/
-            bootstrap.connect(netAddress.getHost(), netAddress.getPort());
+
+            bootstrap.group(WORKER_GROUP)
+                    .channel(OSUtils.IS_LINUX ? EpollSocketChannel.class : NioSocketChannel.class)
+                    .option(ChannelOption.SO_KEEPALIVE, true)
+                    .option(ChannelOption.TCP_NODELAY, true)
+                    .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
+                    .handler(initializer);
+
+            // 添加连接监听器
+            bootstrap.connect(netAddress.getHost(), netAddress.getPort()).addListener(this);
         }
 
         connectList = new CopyOnWriteArrayList<>();
@@ -128,28 +131,37 @@ public class ConnectPool<T extends NettyConnect<Object>> implements ConnectListe
      * @throws InterruptedException
      */
     public T getConnectSync() throws InterruptedException {
-        T c = getConnect();
-        if (c == null) {
-            c = (T) (bootstrap.connect().sync().channel().pipeline().get(NettyConnect.class));
-            connectList.add(c);
+        if (!connectList.isEmpty()) {
+            return connectList.get(0);
         }
-        return c;
+
+        ChannelFuture future = bootstrap.connect(netAddress.getHost(), netAddress.getPort()).sync();
+        if (future.isSuccess()) {
+            Channel channel = future.channel();
+            if (channel.isActive() && channel.isRegistered()) {
+                T connect = (T) channel.pipeline().get(NettyConnect.class);
+                if (connect != null) {
+                    connectList.add(connect);
+                    return connect;
+                }
+            }
+        }
+        throw new IllegalStateException("无法获取有效连接");
     }
 
     private void create() {
         log.debug("开始创建连接,address={}", netAddress);
         if (bootstrap == null) {
             bootstrap = new Bootstrap();
-            bootstrap.group(WORKER_GROUP).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, true)
-                .handler(initializer);
-            bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000);
-        /*if (localAddress != null) {
-            bootstrap.localAddress(localAddress.getHost(), localAddress.getPort());
-        }*/
-            bootstrap.connect(netAddress.getHost(), netAddress.getPort());
-        }else {
-            bootstrap.connect(netAddress.getHost(), netAddress.getPort()).addListener(this);
+            bootstrap.group(WORKER_GROUP)
+                    .channel(OSUtils.IS_LINUX ? EpollSocketChannel.class : NioSocketChannel.class)
+                    .option(ChannelOption.SO_KEEPALIVE, true)
+                    .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
+                    .handler(initializer);
         }
+
+        // 确保添加监听器
+        bootstrap.connect(netAddress.getHost(), netAddress.getPort()).addListener(this);
     }
 
     public void close(T connect) {
@@ -196,14 +208,15 @@ public class ConnectPool<T extends NettyConnect<Object>> implements ConnectListe
         log.info("连接池关闭");
         if (timerCenter != null) {
             timerCenter.remove(this);
-            for (T connect : connectList) {
-                try {
-                    connect.close();
-                } catch (Exception e) {
-                    log.warn("连接池关闭连接异常", e);
-                }
-            }
-            connectList.clear();
         }
+
+        for (T connect : connectList) {
+            try {
+                connect.close();
+            } catch (Exception e) {
+                log.warn("连接池关闭连接异常", e);
+            }
+        }
+        connectList.clear();
     }
 }

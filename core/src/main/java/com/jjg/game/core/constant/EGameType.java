@@ -19,9 +19,9 @@ public enum EGameType {
     MAHJIONG_WIN(CoreConst.GameType.MAHJIONG_WIN, RoomType.TEAM, "麻将胡了"),
     FORTUNE_CAT(CoreConst.GameType.FORTUNE_CAT, RoomType.TEAM, "招财猫"),
     PIRATES_CARIBBEAN(CoreConst.GameType.PIRATES_CARIBBEAN, RoomType.TEAM, "加勒比海盗"),
-    APPLE_FRUITS(CoreConst.GameType.APPLE_FRUITS, RoomType.TEAM, "苹果机-水果"),
-    APPLE_ANIMAL(CoreConst.GameType.APPLE_ANIMAL, RoomType.TEAM, "苹果机-动物"),
     GOLD_CITY(CoreConst.GameType.GOLD_CITY, RoomType.TEAM, "夺宝黄金城"),
+
+
     // TABLE
     RED_BLACK_WAR(CoreConst.GameType.RED_BLACK_WAR, RoomType.BET_ROOM, "红黑大战"),
     LOONG_TIGER_WAR(CoreConst.GameType.LOONG_TIGER_WAR, RoomType.BET_ROOM, "龙虎斗"),
@@ -33,6 +33,10 @@ public enum EGameType {
     VIETNAM_SEXY_DISK(CoreConst.GameType.VIETNAM_SEXY_DISK, RoomType.BET_ROOM, "越南色碟"),
     SIZE_DICE_BABY(CoreConst.GameType.SIZE_DICE_BABY, RoomType.BET_ROOM, "大小骰宝"),
     FISH_SHRIMP_CRAB(CoreConst.GameType.FISH_SHRIMP_CRAB, RoomType.BET_ROOM, "鱼虾蟹"),
+    APPLE_FRUITS(CoreConst.GameType.APPLE_FRUITS, RoomType.TEAM, "苹果机-水果"),
+    APPLE_ANIMAL(CoreConst.GameType.APPLE_ANIMAL, RoomType.TEAM, "苹果机-动物"),
+
+
     // POKER
     BLACK_JACK(CoreConst.GameType.BLACK_JACK, RoomType.POKER_ROOM, "21点"),
     TEXAS(CoreConst.GameType.TEXAS, RoomType.POKER_ROOM, "德州"),
