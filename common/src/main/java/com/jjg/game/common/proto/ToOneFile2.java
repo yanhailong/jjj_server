@@ -24,7 +24,7 @@ public class ToOneFile2 {
             if (args.length > 2) {
                 importFiles = args[2];
             }
-            boolean sort = false;
+            boolean sort = true;
             if (args.length > 3) {
                 sort = Boolean.parseBoolean(args[3]);
             }

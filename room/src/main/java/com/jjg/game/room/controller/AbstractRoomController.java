@@ -1,6 +1,6 @@
 package com.jjg.game.room.controller;
 
-import com.jjg.game.common.concurrent.BaseProcessor;
+import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.timer.TimerEvent;
@@ -47,7 +47,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     // 游戏控制器
     protected AbstractGameController<RC, ? extends GameDataVo<RC>> gameController;
     // 房间线程
-    protected BaseProcessor roomProcessor;
+    protected BaseFuncProcessor roomProcessor;
     // 房间配置
     protected RC roomCfg;
 
@@ -112,6 +112,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 // 此时游戏可能还未开始，需要游戏判断加入时逻辑
                 gameController.onPlayerJoinRoom(playerController, gameController.isGameStarted());
             } else {
+                // TODO 异常流程，按道理不应出现此逻辑。后续处理
                 log.debug("玩家已经在房间中 roomId = {},playerId = {}", room.getId(), playerController.playerId());
                 gameController.onPlayerJoinRoom(playerController, gameController.isGameStarted());
             }
@@ -133,12 +134,13 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         }
         return result;
     }
+
     /**
      * 向指定房间的指定玩家广播消息。
      *
-     * @param <T>         the type of the message
-     * @param playerId   房间中玩家的ID
-     * @param message     要发送的消息，可以是任何类型
+     * @param <T>      the type of the message
+     * @param playerId 房间中玩家的ID
+     * @param message  要发送的消息，可以是任何类型
      */
     public <T> void sendToPlayer(long playerId, T message) {
         if (message == null) {
@@ -152,6 +154,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         }
         playerController.send(message);
     }
+
     /**
      * 更新房间等待列表
      */
@@ -428,7 +431,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         return gameController;
     }
 
-    public void setRoomProcessor(BaseProcessor roomProcessor) {
+    public void getRoomProcessor(BaseFuncProcessor roomProcessor) {
         this.roomProcessor = roomProcessor;
     }
 

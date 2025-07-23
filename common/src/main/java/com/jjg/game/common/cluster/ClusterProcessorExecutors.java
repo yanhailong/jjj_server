@@ -56,7 +56,7 @@ public class ClusterProcessorExecutors {
 
         @FunctionalInterface
         interface ProcessorProducer<T extends BaseProcessor> {
-            T createNewProcessor();
+            T createNewProcessor(int threadId);
         }
 
         /**
@@ -73,8 +73,8 @@ public class ClusterProcessorExecutors {
             this.processorProducer = processorProducer;
         }
 
-        public <T extends BaseProcessor> T getModuleProcessor() {
-            return (T) processorProducer.createNewProcessor();
+        public <T extends BaseProcessor> T getModuleProcessor(int threadId) {
+            return (T) processorProducer.createNewProcessor(threadId);
         }
 
         public NodeType getNodeType() {
@@ -116,7 +116,7 @@ public class ClusterProcessorExecutors {
             log.error("节点: {} 未找到线程基础配置,将走默认逻辑线程: {}", nodeType.name(), Thread.currentThread().getName());
             return null;
         }
-        return (T) processorPool.computeIfAbsent(threadId, k -> processorModule.getModuleProcessor());
+        return (T) processorPool.computeIfAbsent(threadId, k -> processorModule.getModuleProcessor(threadId));
     }
 
     /**

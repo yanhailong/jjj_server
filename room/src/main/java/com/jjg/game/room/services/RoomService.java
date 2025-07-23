@@ -44,6 +44,7 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
     private RobotService robotService;
     @Autowired
     private ClusterSystem clusterSystem;
+    private boolean isInitialed = false;
     /**
      * 当前节点是某些主节点游戏类型
      */
@@ -60,6 +61,9 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
      */
     @Override
     public void start() {
+        if (isInitialed) {
+            return;
+        }
         // 检查房间的创建和初始化
         try {
             checkCreateRoomAndInit();
@@ -78,6 +82,9 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
                 .stream()
                 .filter(warehouseCfg -> masterGameTypes.contains(warehouseCfg.getGameID()))
                 .toList();
+        if (warehouseCfgs.isEmpty()) {
+            return;
+        }
         for (WarehouseCfg warehouseCfg : warehouseCfgs) {
             List<Integer> deletionSolution = warehouseCfg.getRoomDeletion_Solution();
             // 每个游戏最小存在的房间数量
@@ -91,6 +98,7 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
                 // 暂时先按配置创建所有类型的房间
                 checkRoomInit(warehouseCfg, minRoomNum);
             }
+            isInitialed = true;
         }
     }
 
@@ -189,6 +197,8 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
     public void isLeader(int gameType) {
         log.debug("当前游戏类型：{} 节点：{} 选举为master节点", gameType, clusterSystem.getNodePath());
         masterGameTypes.add(gameType);
+        // 如果节点选举在Spring执行start方法之后会出问题，所以手动调用一次
+        start();
     }
 
     @Override

@@ -44,7 +44,6 @@ public class BaccaratMessageBuilder {
         BaccaratTempRoom baccaratTempRoom = CommonUtil.getContext().getBean(BaccaratTempRoom.class);
         NotifyBaccaratTableSummary notifyBaccaratTableSummary =
             BaccaratMessageBuilder.buildBaccaratSingleSummaryInfo(gameController);
-        log.info(JSON.toJSONString(notifyBaccaratTableSummary));
         int roomCfgId = gameController.getGameDataVo().getRoomCfg().getId();
         baccaratTempRoom.getBaccaratObserverPlayers(roomCfgId).values()
             .forEach(playerController -> playerController.send(notifyBaccaratTableSummary));

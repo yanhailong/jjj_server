@@ -107,7 +107,8 @@ public class LoongTigerWarSampleManager extends AbstractSampleManager {
             isLoad = false;
         }
         if (!isLoad) {
-            throw new RuntimeException("配置错误");
+            //throw new RuntimeException("配置错误");
+            return;
         }
     }
 

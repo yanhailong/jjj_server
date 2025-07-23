@@ -1,6 +1,7 @@
 package com.jjg.game.room.timer;
 
 import com.jjg.game.common.cluster.ClusterProcessorExecutors;
+import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.concurrent.IProcessorHandler;
@@ -59,10 +60,10 @@ public class RoomTimerCenter extends BaseTimerCenter<RoomTimerEvent<IProcessorHa
                 log.warn("房间退出了，还在执行房间定时任务: {}", event);
                 continue;
             }
-            BaseProcessor baseProcessor = executors.getProcessorById(roomId);
+            BaseFuncProcessor baseProcessor = executors.getProcessorById(roomId);
             if (time >= event.getNextTime()) {
                 event.setInFire(true);
-                baseProcessor.executeHandlerImmediately(new BaseHandler() {
+                baseProcessor.executeHandler(new BaseHandler() {
                     @Override
                     public void action() {
                         event.run();

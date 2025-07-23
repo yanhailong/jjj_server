@@ -38,7 +38,9 @@ public class BaccaratTempRoom implements IPlayerRoomEventListener {
 
     @Override
     public void exit(PFSession session, PlayerController playerController, PlayerSessionInfo playerSessionInfo) {
-        baccaratObserverPlayers.get(playerSessionInfo.getRoomCfgId()).remove(playerController.playerId());
+        if (baccaratObserverPlayers.containsKey(playerSessionInfo.getRoomCfgId())) {
+            baccaratObserverPlayers.get(playerSessionInfo.getRoomCfgId()).remove(playerController.playerId());
+        }
     }
 
     public Map<Long, PlayerController> getBaccaratObserverPlayers(int roomCfgId) {

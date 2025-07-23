@@ -22,6 +22,8 @@ public interface BaccaratMessageConstant {
         int REQ_BACCARAT_TABLE_INFO = BASE_MSG_PREFIX | 0x04;
         // 请求进入房间
         int REQ_JOIN_ROOM_IN_GAME = BASE_MSG_PREFIX | 0x05;
+        // 请求退出房间
+        int REQ_EXIT_ROOM_IN_GAME = BASE_MSG_PREFIX | 0x06;
     }
 
     interface RespMsgBean {
@@ -39,5 +41,7 @@ public interface BaccaratMessageConstant {
         int NOTIFY_BACCARAT_TABLE_SETTLEMENT_INFO = BASE_MSG_PREFIX | 0x86;
         // 进入房间返回
         int RESP_JOIN_ROOM_IN_GAME = BASE_MSG_PREFIX | 0x87;
+        // 退出房间返回
+        int RESP_EXIT_ROOM_IN_GAME = BASE_MSG_PREFIX | 0x88;
     }
 }

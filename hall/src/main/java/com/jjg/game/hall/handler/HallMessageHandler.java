@@ -106,9 +106,9 @@ public class HallMessageHandler implements GmListener {
             int wareHouseCfgId = req.gameType * 10 + req.wareId;
             //slots类游戏没有房间
             //是不是slots游戏
-            if((100100/100000) < 2){
+            if ((100100 / 100000) < 2) {
                 res.code = hallRoomService.enterSlotsNode(playerController, wareHouseCfgId, req.wareId);
-            }else {
+            } else {
                 // 进入大厅加入房间的逻辑
                 res.code = hallRoomService.hallJoinRoom(playerController, wareHouseCfgId, req.wareId);
             }

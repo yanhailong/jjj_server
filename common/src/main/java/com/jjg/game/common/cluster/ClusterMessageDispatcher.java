@@ -1,5 +1,6 @@
 package com.jjg.game.common.cluster;
 
+import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.constant.CoreConst;
@@ -84,12 +85,13 @@ public class ClusterMessageDispatcher {
         }
         PFMessage msg = clusterMessage.getMsg();
         try {
-            BaseProcessor processor = processorExecutors.getProcessorById(session == null ? 0 : session.getWorkId());
+            BaseFuncProcessor processor = processorExecutors.getProcessorById(
+                session == null ? 0 : session.getWorkId());
             if (processor == null) {
                 handle(connect, session, msg);
             } else {
                 PFSession finalSession = session;
-                processor.executeHandlerImmediately(new BaseHandler() {
+                processor.executeHandler(new BaseHandler() {
                     @Override
                     public void action() {
                         handle(connect, finalSession, msg);
