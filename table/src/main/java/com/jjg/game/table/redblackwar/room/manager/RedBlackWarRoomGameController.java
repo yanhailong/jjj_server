@@ -1,33 +1,30 @@
 package com.jjg.game.table.redblackwar.room.manager;
 
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.BetTableRoom;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
-import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.res.BetTableInfo;
-import com.jjg.game.table.common.message.res.TablePlayerInfo;
 import com.jjg.game.table.redblackwar.gamephase.RedBlackWarBetPhase;
 import com.jjg.game.table.redblackwar.gamephase.RedBlackWarSettlementPhase;
 import com.jjg.game.table.redblackwar.gamephase.RedBlackWarWaitReadyPhase;
 import com.jjg.game.table.redblackwar.message.resp.NotifyRedBlackWarInfo;
-import com.jjg.game.table.redblackwar.message.resp.NotifyRedBlackWarSettleInfo;
 import com.jjg.game.table.redblackwar.room.data.RedBlackWarGameDataVo;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 
 /**
- * 百家乐游戏控制器
+ * 红黑大战游戏控制器
  *
  * @author 2CL
  */
@@ -44,7 +41,6 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
     }
 
     /**
-     * 百家乐的房间不会停止
      *
      * @return 是否停止
      */
@@ -114,6 +110,8 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
         if (getCurrentGamePhase() == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
             notifyRedBlackWarInfo.settleInfos = gameDataVo.getCurrentSettleInfo();
         }
+        //押分列表
+        notifyRedBlackWarInfo.betPointList = gameDataVo.getRoomCfg().getBetList();
         //发送给玩家
         sendMessage(playerController.playerId(), notifyRedBlackWarInfo);
     }

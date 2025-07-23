@@ -4,6 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.pb.AbstractNotice;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.table.redblackwar.message.RedBlackWarMessageConstant;
 import com.jjg.game.table.redblackwar.message.bean.RBWPlayerSettleInfo;
@@ -17,7 +18,7 @@ import java.util.List;
         cmd = RedBlackWarMessageConstant.RespMsgBean.NOTIFY_RED_BLACK_WAR_SETTLE_INFO,
         resp = true)
 @ProtoDesc("红黑大战结算信息")
-public class NotifyRedBlackWarSettleInfo extends AbstractResponse {
+public class NotifyRedBlackWarSettleInfo extends AbstractNotice {
     @ProtoDesc("红方牌")
     public List<Integer> redCards;
 
@@ -39,9 +40,6 @@ public class NotifyRedBlackWarSettleInfo extends AbstractResponse {
     @ProtoDesc("玩家结算信息")
     public List<RBWPlayerSettleInfo> playerSettleInfos;
 
-    public NotifyRedBlackWarSettleInfo() {
-        super(Code.SUCCESS);
-    }
 
     //  Builder 内部类
     public static class Builder {

@@ -46,7 +46,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
             for (WinPosWeightCfg posWeightCfg : entry.getValue()) {
                 total += posWeightCfg.getPosWeight();
             }
-            random.add(total, entry.getKey());
+            random.add(entry.getKey(), total);
         }
         //随机
         Integer next = random.next();
@@ -63,6 +63,9 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         for (WinPosWeightCfg weightCfg : weightCfgs) {
             for (Integer areaId : weightCfg.getBetArea()) {
                 Map<Long, Long> playerBetInfo = betInfo.get(areaId);
+                if (Objects.isNull(playerBetInfo)) {
+                    continue;
+                }
                 for (Map.Entry<Long, Long> entry : playerBetInfo.entrySet()) {
                     //计算
                     Long playerId = entry.getKey();

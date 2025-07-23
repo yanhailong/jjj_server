@@ -8,7 +8,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  * @date 2025/7/18 10:25
  */
 @ProtobufMessage
-@ProtoDesc("红黑大战玩家结算信息")
+@ProtoDesc("龙虎斗玩家结算信息")
 public class LoongTigerWarPlayerSettleInfo {
     @ProtoDesc("玩家id")
     public long playerId;

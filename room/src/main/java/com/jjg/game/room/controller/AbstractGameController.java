@@ -249,7 +249,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 单个玩家发送消息
      */
-    public void sendMessage(long playerId, AbstractMessage message) {
+    public <T> void sendMessage(long playerId, T message) {
         roomController.sendToPlayer(playerId, message);
     }
 

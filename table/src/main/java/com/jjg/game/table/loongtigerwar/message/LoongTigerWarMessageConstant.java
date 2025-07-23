@@ -4,7 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 
 
 /**
- * 百家乐消息常量
+ * 龙虎斗消息常量
  *
  * @author 2CL
  */

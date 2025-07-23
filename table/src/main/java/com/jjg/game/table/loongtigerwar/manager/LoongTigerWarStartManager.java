@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class LoongTigerWarStartManager implements IRoomStartListener {
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private LoongTigerWarSampleManager loongTigerWarSampleManager;

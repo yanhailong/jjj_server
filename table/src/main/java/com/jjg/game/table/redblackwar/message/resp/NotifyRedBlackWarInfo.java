@@ -4,6 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractMessage;
+import com.jjg.game.core.pb.AbstractNotice;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.table.common.message.res.BetTableInfo;
 import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
@@ -24,7 +25,7 @@ import java.util.List;
         resp = true
 )
 @ProtoDesc("通知红黑大战桌上信息")
-public class NotifyRedBlackWarInfo extends AbstractMessage {
+public class NotifyRedBlackWarInfo extends AbstractNotice {
 
     @ProtoDesc("场上阶段信息")
     public EGamePhase gamePhase;
@@ -43,4 +44,7 @@ public class NotifyRedBlackWarInfo extends AbstractMessage {
 
     @ProtoDesc("结算信息")
     public NotifyRedBlackWarSettleInfo settleInfos;
+
+    @ProtoDesc("押分列表")
+    public List<Integer> betPointList;
 }

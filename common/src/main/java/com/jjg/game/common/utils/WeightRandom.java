@@ -140,7 +140,7 @@ public class WeightRandom<T> implements Serializable {
      * @return 随机对象
      */
     public T next() {
-        if (Objects.nonNull(this.weightMap) && !this.weightMap.isEmpty()) {
+        if (Objects.isNull(this.weightMap) || this.weightMap.isEmpty()) {
             return null;
         }
         final Random random = ThreadLocalRandom.current();

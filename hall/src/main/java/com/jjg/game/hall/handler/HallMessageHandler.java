@@ -106,7 +106,7 @@ public class HallMessageHandler implements GmListener {
             int wareHouseCfgId = req.gameType * 10 + req.wareId;
             //slots类游戏没有房间
             //是不是slots游戏
-            if ((100100 / 100000) < 2) {
+            if ((req.gameType / 100000) < 2) {
                 res.code = hallRoomService.enterSlotsNode(playerController, wareHouseCfgId, req.wareId);
             } else {
                 // 进入大厅加入房间的逻辑
@@ -175,11 +175,11 @@ public class HallMessageHandler implements GmListener {
         int wareHouseCfgId = gameType * 10 + wareId;
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(wareHouseCfgId);
         int limitGoldMax = warehouseCfg.getEnterMax();
-        if (limitGoldMax != -1 && limitGoldMax < playerController.getPlayer().getGold()) {
-            log.debug("玩家金币超过房间金币限制止 playerId = {},gameType = {},wareId = {}", playerController.playerId(),
-                gameType, wareId);
-            return new CommonResult<>(Code.GOLD_TOO_MUCH);
-        }
+//        if (limitGoldMax != -1 && limitGoldMax < playerController.getPlayer().getGold()) {
+//            log.debug("玩家金币超过房间金币限制止 playerId = {},gameType = {},wareId = {}", playerController.playerId(),
+//                gameType, wareId);
+//            return new CommonResult<>(Code.GOLD_TOO_MUCH);
+//        }
         return new CommonResult<>(Code.SUCCESS, info);
     }
 
