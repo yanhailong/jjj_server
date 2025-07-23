@@ -18,6 +18,8 @@ public interface TableRoomMessageConstant {
         int REQ_BET = BASE_MSG_PREFIX | 0x01;
         // 请求玩家信息
         int REQ_TABLE_PLAYER_INFO = BASE_MSG_PREFIX | 0x03;
+        // 请求房间基本信息
+        int REQ_ROOM_BASE_INFO = BASE_MSG_PREFIX | 0x04;
     }
 
     interface RespMsgBean {

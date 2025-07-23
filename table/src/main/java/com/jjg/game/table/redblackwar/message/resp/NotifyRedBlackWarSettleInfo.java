@@ -5,6 +5,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractNotice;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
+import com.jjg.game.table.common.message.bean.TablePlayerInfo;
 import com.jjg.game.table.redblackwar.message.RedBlackWarMessageConstant;
 
 import java.util.List;
@@ -31,6 +32,9 @@ public class NotifyRedBlackWarSettleInfo extends AbstractNotice {
 
     @ProtoDesc("获胜状态(1红方胜 2黑方胜)")
     public int winState;
+
+    @ProtoDesc("前6玩家信息")
+    public List<TablePlayerInfo> playerInfos;
 
     @ProtoDesc("玩家结算信息")
     public List<PlayerChangedGold> playerSettleInfos;

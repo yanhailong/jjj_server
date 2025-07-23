@@ -16,8 +16,6 @@ import org.springframework.stereotype.Component;
 public class RedBlackWarStartManager implements IRoomStartListener {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    @Autowired
-    private RedBlackWarSampleManager redBlackWarSampleManager;
 
     @Override
     public Integer[] getGameTypes() {
@@ -27,8 +25,6 @@ public class RedBlackWarStartManager implements IRoomStartListener {
     @Override
     public void start() {
         log.info("正在启动红黑大战游戏...");
-
-        //redBlackWarSampleManager.init();
     }
 
     @Override

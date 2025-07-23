@@ -118,6 +118,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         settleInfo.redCards = redCard.stream().map(Card::getValue).toList();
         settleInfo.redCardType = redHandType.getRank();
         settleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(playerGet);
+        settleInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(gameDataVo);
         //更新房间记录
         updateGameHistory(gameDataVo, blackHandType, winState);
         //清除押注历史

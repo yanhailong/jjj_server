@@ -15,8 +15,6 @@ import org.springframework.stereotype.Component;
 public class LoongTigerWarStartManager implements IRoomStartListener {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    @Autowired
-    private LoongTigerWarSampleManager loongTigerWarSampleManager;
 
     @Override
     public Integer[] getGameTypes() {
@@ -26,8 +24,6 @@ public class LoongTigerWarStartManager implements IRoomStartListener {
     @Override
     public void start() {
         log.info("正在启动龙虎斗游戏...");
-
-        //loongTigerWarSampleManager.init();
     }
 
     @Override

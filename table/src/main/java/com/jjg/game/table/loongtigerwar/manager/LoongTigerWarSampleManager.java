@@ -1,14 +1,15 @@
 package com.jjg.game.table.loongtigerwar.manager;
 
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.core.manager.AbstractSampleManager;
+import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.table.betsample.sample.GameDataManager;
 import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
 import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
-import com.jjg.game.table.loongtigerwar.constant.LoongTigerWarConstant;
+import com.jjg.game.table.common.listener.TableConfigExcelLoadListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -17,24 +18,28 @@ import java.util.stream.Collectors;
  * @date 2025/6/30 10:38
  */
 @Component
-public class LoongTigerWarSampleManager extends AbstractSampleManager {
+public class LoongTigerWarSampleManager implements ConfigExcelChangeListener, TableConfigExcelLoadListener {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
     //区域id->区域配置
     private Map<Integer, BetAreaCfg> betAreaMap;
     //押注区域id(1龙,2虎,3合)
     private Map<Integer, List<WinPosWeightCfg>> cfgMap;
 
-    public void init() {
+    @Override
+    public void change(String className) {
+        if (className.equals(getClass().getSimpleName())) {
+            initSampleConfig();
+        }
+    }
+
+    @Override
+    public void loadConfigCacheData() {
+        initSampleConfig();
+    }
+
+    public void initSampleConfig() {
         log.info("开始加载龙虎斗游戏配置..");
-        super.init();
-    }
-
-    @Override
-    protected String getSamplePath() {
-        return LoongTigerWarConstant.Common.SAMPLE_PATH;
-    }
-
-    @Override
-    protected void initSampleConfig() {
         boolean isLoad = true;
         try {
             //初始化龙虎斗压分区域
@@ -103,19 +108,6 @@ public class LoongTigerWarSampleManager extends AbstractSampleManager {
         }
         if (!isLoad) {
             throw new RuntimeException("配置错误");
-        }
-    }
-
-    @Override
-    protected void sampleChange(File file) {
-        try {
-//            Set<Class<? extends BaseCfgBean>> changeCfgBean = GameDataManager.getInstance().loadDataByChangeFileList(getSamplePath(), Collections.singletonList(file));
-//            Map<String, ConfigExcelChangeListener> configExcelChangeListeners = CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
-//            configExcelChangeListeners.values().forEach(listener -> {
-//                listener.change(changeCfgBean.iterator().next().getSimpleName());
-//            });
-        } catch (Exception e) {
-            log.error("", e);
         }
     }
 

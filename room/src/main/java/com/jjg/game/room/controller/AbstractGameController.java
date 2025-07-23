@@ -165,7 +165,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     /**
-     * 玩家进入房间时推送房间信息
+     * 玩家发送房间初始信息
      */
     public void sendRoomInitInfo(PlayerController playerController) {
     }

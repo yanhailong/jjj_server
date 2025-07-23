@@ -54,6 +54,22 @@ public class TableMessageBuilder {
     }
 
     /**
+     * 构建游戏的前6玩家基础信息
+     */
+    public static List<TablePlayerInfo> buildTablePlayerInfo(TableGameDataVo tableGameDataVo) {
+        List<GamePlayer> gamePlayers = tableGameDataVo.getGamePlayerMap()
+                .values()
+                .stream().sorted(Comparator.comparingLong(Player::getGold).reversed())
+                .limit(6)
+                .toList();
+        List<TablePlayerInfo> tablePlayerInfos = new ArrayList<>(gamePlayers.size());
+        for (GamePlayer gamePlayer : gamePlayers) {
+            tablePlayerInfos.add(buildTablePlayerInfo(gamePlayer));
+        }
+        return tablePlayerInfos;
+    }
+
+    /**
      * 构建游戏的玩家基础信息
      */
     public static TablePlayerInfo buildTablePlayerInfo(GamePlayer gamePlayer) {

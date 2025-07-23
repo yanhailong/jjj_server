@@ -125,7 +125,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 // 检查通过开始游戏
                 startGame();
             }
-            gameController.sendRoomInitInfo(playerController);
             result.data = room;
             return result;
         } catch (Exception e) {

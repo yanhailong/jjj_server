@@ -92,6 +92,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         warSettleInfo.tigerCard = twoSpecificCard.getSecond();
         warSettleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(playerGet);
         warSettleInfo.winState = next;
+        warSettleInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(gameDataVo);
         //更新房间记录
         updateGameHistory(next);
         //清除押注历史
