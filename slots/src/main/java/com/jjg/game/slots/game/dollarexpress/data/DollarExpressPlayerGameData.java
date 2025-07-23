@@ -15,8 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2025/6/10 18:07
  */
 public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
-    //原始押注值
-    private long lastStake;
     //最近一次的押注(除了100)
     private long lastBet;
     //最近一次的模式id
@@ -39,10 +37,10 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
     private DollarExpressResultLib freeLib;
     //累计的美钞数量
     private int totalDollars;
-    //记录多少次结果可以累计美元(用于计算累计的美钞的平均值)
+    //记录出现可收集美元的局数
     private int addDollarsCount;
-    //累计的美钞的平均值
-    private long avgTotalDollars;
+    //记录收集美元时的押注总和(用于计算累计的美钞的平均值)
+    private int addDollarsTotalStake;
 
     //用于测试
     private LinkedList<TestLibData> testLibDataList;
@@ -52,16 +50,6 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
     private AtomicBoolean invers = new AtomicBoolean(false);
     //已经选择的地区
     private Set<Integer> selectedAreaSet;
-
-
-
-    public long getLastStake() {
-        return lastStake;
-    }
-
-    public void setLastStake(long lastStake) {
-        this.lastStake = lastStake;
-    }
 
     public long getLastBet() {
         return lastBet;
@@ -88,10 +76,13 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
         this.totalDollars = totalDollars;
     }
 
-    public void addDollasCount(int count,long stake){
-        this.addDollarsCount ++;
+    public void addDollasCount(int count){
         this.totalDollars += count;
-        this.avgTotalDollars = (this.avgTotalDollars + stake) / count;
+    }
+
+    public void addDollarsTotalStake(long stake){
+        this.addDollarsCount ++;
+        this.addDollarsTotalStake += stake;
     }
 
     public DollarExpressResultLib getTrainLib() {
@@ -261,7 +252,27 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
         return this.selectedAreaSet.size() >= 8;
     }
 
-    public long getAvgTotalDollars() {
-        return avgTotalDollars;
+    public int getAddDollarsCount() {
+        return addDollarsCount;
+    }
+
+    public void setAddDollarsCount(int addDollarsCount) {
+        this.addDollarsCount = addDollarsCount;
+    }
+
+    public int getAddDollarsTotalStake() {
+        return addDollarsTotalStake;
+    }
+
+    public void setAddDollarsTotalStake(int addDollarsTotalStake) {
+        this.addDollarsTotalStake = addDollarsTotalStake;
+    }
+
+    /**
+     * 清除投资小游戏相关
+     */
+    public void clearInvers(){
+        this.addDollarsCount = 0;
+        this.addDollarsTotalStake = 0;
     }
 }

@@ -991,4 +991,12 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
     public DollarExpressCollectDollarConfig getDollarExpressCollectDollarConfig() {
         return dollarExpressCollectDollarConfig;
     }
+
+    @Override
+    public void change(String className) {
+        super.change(className);
+        if(SpecialPlayCfg.class.getSimpleName().equals(className)){
+            specialPlayConfig();
+        }
+    }
 }

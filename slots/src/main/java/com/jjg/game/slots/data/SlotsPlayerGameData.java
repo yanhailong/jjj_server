@@ -18,6 +18,8 @@ public class SlotsPlayerGameData {
     protected AtomicBoolean hasPlaySlots = new AtomicBoolean(false);
     //当前所处状态(美元快递) 0.正常  1.二选一  2.正在免费旋转
     protected int status;
+    //原始押注值
+    private long lastStake;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -61,5 +63,13 @@ public class SlotsPlayerGameData {
 
     public void setStatus(int status) {
         this.status = status;
+    }
+
+    public long getLastStake() {
+        return lastStake;
+    }
+
+    public void setLastStake(long lastStake) {
+        this.lastStake = lastStake;
     }
 }

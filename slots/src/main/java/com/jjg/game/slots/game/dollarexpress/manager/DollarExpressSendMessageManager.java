@@ -34,7 +34,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
     private DollarExpressGenerateManager generateManager;
 
     /**
-     * 发送游戏结果
+     * 发送游戏配置
      *
      * @param playerController
      */
@@ -88,6 +88,8 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
 
         ResStartGame res = new ResStartGame(gameRunInfo.getCode());
         if (gameRunInfo.success()) {
+            //玩家当前金币
+            res.allGold = gameRunInfo.getAfterGold();
             //总计获得金币
             res.allWinGold = gameRunInfo.getAllWinGold();
             //当前状态
@@ -102,6 +104,8 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             res.dollarsInfo = gameRunInfo.getDollarsInfo();
             res.totalDollars = gameRunInfo.getTotalDollars();
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
+            //投资小游戏
+            res.choosableAreas = gameRunInfo.getChoosableAreas();
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
@@ -142,8 +146,9 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             if(gameRunInfo.getInvestRewardGoldTrainCount() > 0){
                 res.allWinTrainInfo = goldTrain(gameRunInfo.getInvestRewardGoldTrainCount(),gameRunInfo.getInvestRewardGold());
             }
-            if(gameRunInfo.getInvestAllUnlockGoldTrainCount() > 0){
-                res.areaAllUnlockTrainInfo = goldTrain(gameRunInfo.getInvestAllUnlockGoldTrainCount(),gameRunInfo.getInvestAllUnlockRewardGold());
+
+            if(gameRunInfo.getTrainList() != null && !gameRunInfo.getTrainList().isEmpty()){
+                res.areaAllUnlockTrainInfo = gameRunInfo.getTrainList().stream().filter(t -> t.type == DollarExpressConstant.BaseElement.ID_GOLD_TRAIN).findFirst().orElse(null);
             }
 
             if(gameRunInfo.getIconArr() != null){

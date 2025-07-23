@@ -1,6 +1,7 @@
 package com.jjg.game.slots.manager;
 
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.slots.constant.AuxiliaryAwardType;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.*;
@@ -18,7 +19,7 @@ import java.util.*;
  * @author 11
  * @date 2025/7/2 13:54
  */
-public class AbstractSlotsGenerateManager<T extends SlotsResultLib> {
+public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements ConfigExcelChangeListener {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     protected Class<T> resultLibClazz;
@@ -868,5 +869,30 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> {
 
     public BaseInitCfg getBaseInitCfg() {
         return baseInitCfg;
+    }
+
+    @Override
+    public void change(String className) {
+        if(BaseInitCfg.class.getSimpleName().equals(className)){
+            baseInitCfg();
+        }else if(BaseRollerModeCfg.class.getSimpleName().equals(className)){
+            baseRollerModeCfg();
+        }else if(BaseElementCfg.class.getSimpleName().equals(className)){
+            baseElementConfig();
+        }else if(BaseRollerCfg.class.getSimpleName().equals(className)){
+            baseRollerConfig();
+        }else if(BaseLineCfg.class.getSimpleName().equals(className)){
+            baseLineConfig();
+        }else if(BaseLineFreeCfg.class.getSimpleName().equals(className)){
+            baseLineFreeConfig();
+        }else if(BaseElementRewardCfg.class.getSimpleName().equals(className)){
+            baseElementRewardConfig();
+        }else if(SpecialAuxiliaryCfg.class.getSimpleName().equals(className)){
+            specialAuxiliaryCconfig();
+        }else if(SpecialAuxiliaryAwardCfg.class.getSimpleName().equals(className)){
+            specialAuxiliaryAwardCconfig();
+        }else if(SpecialGirdCfg.class.getSimpleName().equals(className)){
+            specialGirdConfig();
+        }
     }
 }

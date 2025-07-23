@@ -66,49 +66,37 @@ public class SlotsPoolDao extends AbstractPoolDao {
 
         //当前真奖池金额
         long poolValue = this.redisTemplate.opsForHash().increment(smallTableName(gameType), roomName, value);
-        //获取假奖池金额
-        Number fakePoolValue = (Number)this.redisTemplate.opsForHash().get(fakeSmallTableName(gameType), roomName);
-        if(fakePoolValue == null) {
-            return poolValue;
-        }
+        if(value > 0){
+            //获取假奖池金额
+            Number fakePoolValue = (Number)this.redisTemplate.opsForHash().get(fakeSmallTableName(gameType), roomName);
+            if(fakePoolValue == null) {
+                return poolValue;
+            }
 
-        BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(SlotsUtil.wareIdToRoomCfgId(roomName, gameType));
-        if(baseRoomCfg == null || baseRoomCfg.getFakeCommissionProp() == null || baseRoomCfg.getFakeCommissionProp().size() < 3) {
-            return poolValue;
-        }
+            BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(SlotsUtil.wareIdToRoomCfgId(roomName, gameType));
+            if(baseRoomCfg == null || baseRoomCfg.getFakeCommissionProp() == null || baseRoomCfg.getFakeCommissionProp().size() < 3) {
+                return poolValue;
+            }
 
-        long poolDiff = fakePoolValue.longValue() - poolValue;
-        if(poolDiff > baseRoomCfg.getFakeCommissionProp().get(0)){
-            BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(1)).divide(tenThousandBigDecimal,4, RoundingMode.HALF_UP);
-            long addToFakeValue = BigDecimal.valueOf(value).multiply(prop).longValue();
-            this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomName, addToFakeValue);
-            log.debug("添加到假奖池 gameType = {},wareId = {},addToFakeValue = {}", gameType, roomName, addToFakeValue);
+            long poolDiff = fakePoolValue.longValue() - poolValue;
+            if(poolDiff > baseRoomCfg.getFakeCommissionProp().get(0)){
+                BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(1)).divide(tenThousandBigDecimal,4, RoundingMode.HALF_UP);
+                long addToFakeValue = BigDecimal.valueOf(value).multiply(prop).longValue();
+                this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomName, addToFakeValue);
+                log.debug("添加到假奖池1 gameType = {},wareId = {},addToPoolValue = {},addToFakeValue = {}", gameType, roomName,value, addToFakeValue);
+            }else {
+                BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(2)).divide(tenThousandBigDecimal,4, RoundingMode.HALF_UP);
+                long addToFakeValue = BigDecimal.valueOf(value).multiply(prop).longValue();
+                this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomName, addToFakeValue);
+                log.debug("添加到假奖池2 gameType = {},wareId = {},addToPoolValue = {},addToFakeValue = {}", gameType, roomName, value,addToFakeValue);
+            }
         }else {
-            BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(2)).divide(tenThousandBigDecimal,4, RoundingMode.HALF_UP);
-            long addToFakeValue = BigDecimal.valueOf(value).multiply(prop).longValue();
-            this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomName, addToFakeValue);
-            log.debug("添加到假奖池 gameType = {},wareId = {},addToFakeValue = {}", gameType, roomName, addToFakeValue);
+            Number fakePoolValue = (Number)this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomName, value);
+            log.debug("从小奖池扣除成功 gameType = {},roomName = {},value = {},afterPoolValue = {},afterFakePoolValue = {}", gameType, roomName, value,poolValue,fakePoolValue.longValue());
         }
         return poolValue;
     }
 
-    /**
-     * 清空小池子并且返回
-     *
-     * @param gameType
-     * @param roomName
-     * @return
-     */
-    public Long clearSmallPool(int gameType, int roomName) {
-        String tableName = tableName(gameType);
-        BoundHashOperations<String, String, Long> ops = redisTemplate.boundHashOps(tableName);
-        Long oldValue = ops.get(roomName);
-        if (oldValue == null || oldValue < 1) {
-            return 0L;
-        }
-        ops.put(roomName + "", 0L);
-        return oldValue;
-    }
 
     /**
      * 从标准池扣钱，然后给玩家加钱
@@ -153,22 +141,22 @@ public class SlotsPoolDao extends AbstractPoolDao {
      * @param addType
      * @return
      */
-    public CommonResult<Player> rewardFromSmallPool(long playerId, int gameType, int roomName, String addType) {
+    public CommonResult<Player> rewardFromSmallPool(long playerId, int gameType, int roomName,long value, String addType) {
         CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
 
-        long poolValue = clearSmallPool(gameType, roomName);
-        if (poolValue < 1) {
+        Long poolValue = addToSmallPool(gameType, roomName,-value);
+        if (poolValue == null) {
             result.code = Code.FAIL;
             return result;
         }
 
         result = slotsPlayerService.addGold(playerId, poolValue, addType);
         if (!result.success()) {  //如果失败，要把钱重新加回池子
-            addToSmallPool(gameType, roomName, poolValue);
+            addToSmallPool(gameType, roomName, value);
             return result;
         }
 
-        log.debug("从小池子扣除，并给玩家加钱成功 playerId = {},gameType = {},roomName = {},smallPoolValue = {},addType = {}", playerId, gameType, roomName, poolValue, addType);
+        log.debug("从小池子扣除，并给玩家加钱成功 playerId = {},gameType = {},roomName = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomName, value,poolValue, addType);
         return result;
     }
 }

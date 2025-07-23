@@ -25,7 +25,7 @@ public class DollarExpressLogger extends BaseLogger {
             json.put("logType","dollarExpressResult");
             json.put("allWin",gameRunInfo.getAllWinGold());
             json.put("beforeGold",gameRunInfo.getBeforeGold());
-            json.put("afterGold",gameRunInfo.getAfterGold());
+            json.put("afterGold",player.getGold());
             json.put("icon",gameRunInfo.getIconArr());
             json.put("status",gameRunInfo.getStatus());
 

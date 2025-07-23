@@ -221,10 +221,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             }
             return null;
         });
+
+
         playerGameData.setPlayerController(playerController);
         playerGameData.setGameType(playerController.getPlayer().getGameType());
         playerGameData.setWareId(playerController.getPlayer().getWareId());
         playerGameData.getHasPlaySlots().set(hasPlay);
+
+        //设置默认押注
+        BaseRoomCfg baseRoomCfg = roomCfgMap.get(playerGameData.getWareId());
+        playerGameData.setLastStake(baseRoomCfg.getDefaultBet().get(0));
         return playerGameData;
     }
 

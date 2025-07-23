@@ -6,7 +6,9 @@ import com.jjg.game.slots.game.dollarexpress.pb.ResultLineInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.TrainInfo;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author 11
@@ -17,7 +19,7 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
     //标准池子中奖倍数
     private int bigPoolTimes;
     //小池子中奖
-    private List<Integer> smallPoolRewardList;
+    private Map<Integer,Long> smallPoolRewardMap;
     //玩家之前的金币
     private long beforeGold;
     //总计获得的金币
@@ -50,10 +52,8 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
     private int investRewardGoldTrainCount;
     //投资游戏金火车，每节车厢的金币
     private long investRewardGold;
-    //投资游戏地图全解锁金火车数
-    private int investAllUnlockGoldTrainCount;
-    //投资游戏地图全解锁金火车，每节车厢的金币
-    private long investAllUnlockRewardGold;
+    //投资可选区域
+    private List<Integer> choosableAreas;
 
 
     public DollarExpressGameRunInfo(int code, long playerId) {
@@ -145,6 +145,10 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
         this.totalDollars = totalDollars;
     }
 
+    public void addTotalDollars(int totalDollars) {
+        this.totalDollars += totalDollars;
+    }
+
     public int getRemainFreeCount() {
         return remainFreeCount;
     }
@@ -173,12 +177,12 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
         this.stake = stake;
     }
 
-    public List<Integer> getSmallPoolRewardList() {
-        return smallPoolRewardList;
+    public Map<Integer, Long> getSmallPoolRewardMap() {
+        return smallPoolRewardMap;
     }
 
-    public void setSmallPoolRewardList(List<Integer> smallPoolRewardList) {
-        this.smallPoolRewardList = smallPoolRewardList;
+    public void setSmallPoolRewardMap(Map<Integer, Long> smallPoolRewardMap) {
+        this.smallPoolRewardMap = smallPoolRewardMap;
     }
 
     public List<Long> getInvestRewardGoldList() {
@@ -209,27 +213,11 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
         this.investRewardGold = investRewardGold;
     }
 
-    public int getInvestAllUnlockGoldTrainCount() {
-        return investAllUnlockGoldTrainCount;
-    }
-
-    public void setInvestAllUnlockGoldTrainCount(int investAllUnlockGoldTrainCount) {
-        this.investAllUnlockGoldTrainCount = investAllUnlockGoldTrainCount;
-    }
-
-    public long getInvestAllUnlockRewardGold() {
-        return investAllUnlockRewardGold;
-    }
-
-    public void setInvestAllUnlockRewardGold(long investAllUnlockRewardGold) {
-        this.investAllUnlockRewardGold = investAllUnlockRewardGold;
-    }
-
-    public void addSmallPoolReward(int poolId) {
-        if(this.smallPoolRewardList == null) {
-            this.smallPoolRewardList = new ArrayList<>();
+    public void addSmallPoolReward(int poolId,long value) {
+        if(this.smallPoolRewardMap == null) {
+            this.smallPoolRewardMap = new HashMap<>();
         }
-        this.smallPoolRewardList.add(poolId);
+        this.smallPoolRewardMap.put(poolId,value);
     }
 
     public long getBeforeGold() {
@@ -246,5 +234,27 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
 
     public void setAfterGold(long afterGold) {
         this.afterGold = afterGold;
+    }
+
+    public void addTrainInfo(TrainInfo trainInfo) {
+        if(this.trainList == null) {
+            this.trainList = new ArrayList<>();
+        }
+        this.trainList.add(trainInfo);
+    }
+
+    public long getGoldByPoolId(int poolId) {
+        if(this.smallPoolRewardMap == null) {
+            return 0;
+        }
+        return this.smallPoolRewardMap.get(poolId);
+    }
+
+    public List<Integer> getChoosableAreas() {
+        return choosableAreas;
+    }
+
+    public void setChoosableAreas(List<Integer> choosableAreas) {
+        this.choosableAreas = choosableAreas;
     }
 }

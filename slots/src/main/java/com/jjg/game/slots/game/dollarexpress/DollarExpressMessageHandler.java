@@ -149,6 +149,9 @@ public class DollarExpressMessageHandler implements GmListener {
                 ReqInvestArea req = new ReqInvestArea();
                 req.areaId = Integer.parseInt(gmOrders[1]);
                 reqInvestArea(playerController, req);
+            }else if("selectAllArea".equals(gmOrders[0])) {
+                log.debug("收到选择所有地区的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+                dollarExpressManager.selectAllArea(playerController);
             }
         } catch (Exception e) {
             log.error("", e);
