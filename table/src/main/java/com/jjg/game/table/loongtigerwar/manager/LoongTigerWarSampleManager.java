@@ -37,7 +37,6 @@ public class LoongTigerWarSampleManager extends AbstractSampleManager {
     protected void initSampleConfig() {
         boolean isLoad = true;
         try {
-            GameDataManager.loadAllData(getSamplePath());
             //初始化龙虎斗压分区域
             Map<Integer, BetAreaCfg> tempBetAreaMap = GameDataManager.getBetAreaCfgList()
                     .stream()

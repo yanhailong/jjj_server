@@ -44,7 +44,6 @@ public class RedBlackWarSampleManager extends AbstractSampleManager implements C
     protected void initSampleConfig() {
         boolean isLoad = true;
         try {
-            GameDataManager.loadAllData(getSamplePath());
             //初始化红黑大战压分区域
             Map<Integer, BetAreaCfg> tempBetAreaMap = GameDataManager.getBetAreaCfgList()
                     .stream()
