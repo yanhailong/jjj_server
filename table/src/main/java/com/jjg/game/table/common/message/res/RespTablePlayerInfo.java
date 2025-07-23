@@ -5,6 +5,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.table.common.message.TableRoomMessageConstant;
+import com.jjg.game.table.common.message.bean.TablePlayerInfo;
 
 import java.util.List;
 

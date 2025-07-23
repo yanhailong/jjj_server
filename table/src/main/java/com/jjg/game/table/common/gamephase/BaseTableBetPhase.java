@@ -1,5 +1,6 @@
 package com.jjg.game.table.common.gamephase;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
@@ -21,9 +22,11 @@ import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.data.TableSampleDataHolder;
 import com.jjg.game.table.common.message.TableRoomMessageConstant;
 import com.jjg.game.table.common.message.req.ReqBet;
-import com.jjg.game.table.common.message.req.ReqBetBean;
-import com.jjg.game.table.common.message.res.BetTableInfo;
+import com.jjg.game.table.common.message.bean.ReqBetBean;
+import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.res.NotifyPlayerBet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -33,7 +36,9 @@ import java.util.*;
  * @author 2CL
  */
 public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends AbstractMsgDealRoomPhase<Room_BetCfg,
-        D, ReqBet> implements TimerListener<IProcessorHandler> {
+    D, ReqBet> implements TimerListener<IProcessorHandler> {
+
+    private static final Logger log = LoggerFactory.getLogger(BaseTableBetPhase.class);
 
     public BaseTableBetPhase(AbstractGameController<Room_BetCfg, D> gameController) {
         super(gameController);
@@ -104,14 +109,15 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
         RobotCfg robotCfg = com.jjg.game.room.sample.GameDataManager.getRobotCfg((int) gameRobotPlayer.getId());
         List<List<Integer>> betRobotId = robotCfg.getBetRobotID();
         int betActionId = RandomUtils.randomByWeightList(betRobotId);
-        Integer betAction = TableSampleDataHolder.getBetActionDataCache(betActionId, gameDataVo.getRoomCfg().getGameID());
+        Integer betAction = TableSampleDataHolder.getBetActionDataCache(betActionId,
+            gameDataVo.getRoomCfg().getGameID());
         if (betAction == null) {
             return;
         }
         BetRobotCfg betRobotCfg = com.jjg.game.room.sample.GameDataManager.getBetRobotCfg(betAction);
         if (betRobotCfg == null) {
             throw new GameSampleException("机器人押注错误，机器人：" + gameRobotPlayer.getId()
-                    + "机器人押注表中未找到押注策略配置");
+                + "机器人押注表中未找到押注策略配置");
         }
         // 未触发押注逻辑
         if (!RandomUtils.getRandomBoolean10000(betRobotCfg.getBetAction())) {
@@ -171,9 +177,9 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
      */
     protected Map<Integer, BetAreaCfg> getBetAreaCfgMap() {
         return GameDataManager.getBetAreaCfgList()
-                .stream()
-                .filter(betRobotCfg -> betRobotCfg.getGameID() == gameController.gameControlType().getGameTypeId())
-                .collect(HashMap::new, (map, cfg) -> map.put(cfg.getAreaID(), cfg), HashMap::putAll);
+            .stream()
+            .filter(betRobotCfg -> betRobotCfg.getGameID() == gameController.gameControlType().getGameTypeId())
+            .collect(HashMap::new, (map, cfg) -> map.put(cfg.getAreaID(), cfg), HashMap::putAll);
     }
 
     /**
@@ -193,8 +199,8 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
     protected int checkBetAction(GamePlayer gamePlayer, List<ReqBetBean> reqBetBean) {
         // 检查当前区域是否还可以进行下注
         Map<Integer, BetAreaCfg> betAreaCfgMap = getBetAreaCfgMap();
+        log.info("betAreaCfgMap={}", JSON.toJSON(betAreaCfgMap));
         long totalBetValue = 0;
-        int betBase = gameDataVo.getRoomCfg().getBetBase();
         for (ReqBetBean betBean : reqBetBean) {
             // 检查是否是合法值
             if (!betAreaCfgMap.containsKey(betBean.betAreaIdx)) {
@@ -203,26 +209,28 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
             BetAreaCfg betAreaCfg = betAreaCfgMap.get(betBean.betAreaIdx);
             // 判断场上单区域的总数量是否达到上限
             // 配置的上限
-            int roomIdxMaxLimit = betBase * betAreaCfg.getTbUpperLimit();
+            int roomIdxMaxLimit = betAreaCfg.getTbUpperLimit();
             // 当前房间的请求的下注区的总数
             long curIdxTotalBet = gameDataVo.getAreaTotalBet(betBean.betAreaIdx);
             if (curIdxTotalBet + betBean.betValue >= roomIdxMaxLimit) {
+                log.debug("区域：{} 房间押注总和：{} 限制值：{}", betAreaCfg.getId(), curIdxTotalBet, roomIdxMaxLimit);
                 return Code.BET_TO_LIMIT;
             }
             // 玩家区域上限
-            int playerIdxMaxLimit = betBase * betAreaCfg.getTbPlayerUpperLimit();
+            int playerIdxMaxLimit = betAreaCfg.getTbPlayerUpperLimit();
             Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(gamePlayer.getId());
             long playerBetTotal =
-                    playerBetInfo.computeIfAbsent(betBean.betAreaIdx, k -> new ArrayList<>()).stream().mapToInt(Integer::intValue).sum();
+                playerBetInfo.computeIfAbsent(betBean.betAreaIdx, k -> new ArrayList<>()).stream().mapToInt(Integer::intValue).sum();
             if (playerBetTotal + betBean.betValue >= playerIdxMaxLimit) {
+                log.debug("区域：{} 玩家押注总和：{} 限制值：{}", betAreaCfg.getId(), playerBetTotal, playerIdxMaxLimit);
                 return Code.BET_TO_LIMIT;
             }
             totalBetValue += betBean.betValue;
         }
         // 检查玩家的钱是否带够
-        long needTake = (long) betBase * totalBetValue;
+        long needTake = totalBetValue;
         if (needTake > gamePlayer.getGold()) {
-            return Code.NOT_FOUND;
+            return Code.NOT_ENOUGH;
         }
         return Code.SUCCESS;
     }

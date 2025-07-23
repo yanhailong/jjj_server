@@ -3,13 +3,14 @@ package com.jjg.game.table.loongtigerwar.gamephase;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.WeightRandom;
-import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.TablePlayerGameData;
+import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
+import com.jjg.game.table.common.message.TableMessageBuilder;
+import com.jjg.game.table.common.message.bean.PlayerSettleInfo;
 import com.jjg.game.table.loongtigerwar.manager.LoongTigerWarSampleManager;
-import com.jjg.game.table.loongtigerwar.message.bean.LoongTigerWarPlayerSettleInfo;
 import com.jjg.game.table.loongtigerwar.message.resp.NotifyLoongTigerWarSettleInfo;
 import com.jjg.game.table.loongtigerwar.room.data.LoongTigerWarGameDataVo;
 import com.jjg.game.table.loongtigerwar.room.manager.LoongTigerWarRoomGameController;
@@ -51,13 +52,8 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         }
         //随机
         Integer next = random.next();
-        //生成牌
-        //在线玩家总获得
-        long onlineTotal = 0;
         //玩家获得
         Map<Long, Long> playerGet = new HashMap<>();
-        //前6玩家id
-        List<Long> firstSix = gameDataVo.getFixPlayers();
         //获取押注区域
         List<WinPosWeightCfg> weightCfgs = cfgMap.get(next);
         Map<Integer, Map<Long, Long>> betInfo = gameDataVo.getBetInfo();
@@ -85,33 +81,29 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
                     canGet += backBet;
                     gamePlayer.setGold(canGet + gamePlayer.getGold());
                     playerGet.merge(playerId, canGet, Long::sum);
-                    if (!firstSix.contains(playerId)) {
-                        onlineTotal += canGet;
-                    }
                 }
             }
         }
         Pair<Integer, Integer> twoSpecificCard = PokerCardUtils.getTwoSpecificCard(next);
-        NotifyLoongTigerWarSettleInfo.Builder builder = new NotifyLoongTigerWarSettleInfo.Builder();
-        builder.loongCard(twoSpecificCard.getFirst())
-                .tigerCard(twoSpecificCard.getSecond())
-                .playerSettleInfos(getPlayerSettleInfos(firstSix, playerGet, onlineTotal))
-                .winState(next);
+        NotifyLoongTigerWarSettleInfo warSettleInfo = new NotifyLoongTigerWarSettleInfo();
+        warSettleInfo.loongCard = twoSpecificCard.getFirst();
+        warSettleInfo.tigerCard = twoSpecificCard.getSecond();
+        warSettleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(playerGet);
+        warSettleInfo.winState = next;
         //更新房间记录
         updateGameHistory(next);
         //清除押注历史
         betInfo.clear();
         //更新结算信息
-        gameDataVo.setCurrentSettleInfo(builder.build());
-        //发送通知
+        gameDataVo.setCurrentSettleInfo(warSettleInfo);
+        //更新记录
         for (GamePlayer gamePlayer : gameDataVo.getGamePlayerMap().values()) {
             TablePlayerGameData tableGameData = gamePlayer.getTableGameData();
             long getGold = playerGet.getOrDefault(gamePlayer.getId(), 0L);
-            builder.getGold(getGold);
-            //更新统计信息
             tableGameData.addBetRecord(getGold);
-            gameController.sendMessage(gamePlayer.getId(), builder.build());
         }
+        //发送通知
+        gameController.sendMessage(RoomMessageBuilder.newBuilder().setData(warSettleInfo));
     }
 
     @Override
@@ -119,34 +111,6 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         gameDataVo.setCurrentSettleInfo(null);
     }
 
-    /**
-     * 获取玩家的结算信息
-     *
-     * @param firstSix    前6玩家的id
-     * @param playerGet   结算的玩家获得的金币
-     * @param onlineTotal 在线玩家总获得
-     */
-    private List<LoongTigerWarPlayerSettleInfo> getPlayerSettleInfos(List<Long> firstSix, Map<Long, Long> playerGet, long onlineTotal) {
-        List<LoongTigerWarPlayerSettleInfo> playerSettleInfos = new ArrayList<>();
-        //前6玩家的
-        for (int i = 0; i < firstSix.size(); i++) {
-            Long playerId = firstSix.get(i);
-            Long get = playerGet.get(playerId);
-            if (Objects.nonNull(get)) {
-                LoongTigerWarPlayerSettleInfo info = new LoongTigerWarPlayerSettleInfo();
-                info.amount = get;
-                info.playerId = playerId;
-                info.index = i;
-                playerSettleInfos.add(info);
-            }
-        }
-        //在线玩家的
-        LoongTigerWarPlayerSettleInfo info = new LoongTigerWarPlayerSettleInfo();
-        info.amount = onlineTotal;
-        info.index = -1;
-        playerSettleInfos.add(info);
-        return playerSettleInfos;
-    }
 
     private void updateGameHistory(int result) {
         gameDataVo.addHistory(result);

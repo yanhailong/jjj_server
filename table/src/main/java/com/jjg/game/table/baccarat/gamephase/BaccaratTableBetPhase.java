@@ -11,8 +11,8 @@ import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
 import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratBetStart;
 import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
 import com.jjg.game.table.common.message.req.ReqBet;
-import com.jjg.game.table.common.message.req.ReqBetBean;
-import com.jjg.game.table.common.message.res.BetTableInfo;
+import com.jjg.game.table.common.message.bean.ReqBetBean;
+import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.res.NotifyPlayerBet;
 
 import java.util.ArrayList;
@@ -71,7 +71,7 @@ public class BaccaratTableBetPhase extends BaseTableBetPhase<BaccaratGameDataVo>
         for (ReqBetBean reqBetBean : reqBetBeans) {
             BetTableInfo betTableInfo = new BetTableInfo();
             int betAreaIdx = reqBetBean.betAreaIdx;
-            long betValue = reqBetBean.betValue * gameDataVo.getRoomCfg().getBetBase();
+            long betValue = reqBetBean.betValue;
             playerTotalBetGold += betValue;
             // 处理下注数据
             Map<Integer, List<Integer>> playerAreaInfoMap = gameDataVo.getPlayerBetInfo(playerController.playerId());

@@ -11,7 +11,7 @@ import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.message.TableMessageBuilder;
-import com.jjg.game.table.common.message.res.BetTableInfo;
+import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.redblackwar.gamephase.RedBlackWarBetPhase;
 import com.jjg.game.table.redblackwar.gamephase.RedBlackWarSettlementPhase;
 import com.jjg.game.table.redblackwar.gamephase.RedBlackWarWaitReadyPhase;
@@ -76,8 +76,6 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
         NotifyRedBlackWarInfo notifyRedBlackWarInfo = new NotifyRedBlackWarInfo();
         //历史记录
         notifyRedBlackWarInfo.redBlackHistories = dataVo.getHistories();
-        //金币最高的玩家(6人)
-        notifyRedBlackWarInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(dataVo.getRedBlackWarPlayerInfos(), gameDataVo);
         //阶段信息
         notifyRedBlackWarInfo.gamePhase = getCurrentGamePhase();
         //阶段结束时间

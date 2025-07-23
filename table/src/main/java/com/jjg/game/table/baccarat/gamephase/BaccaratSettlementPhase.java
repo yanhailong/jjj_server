@@ -1,5 +1,6 @@
 package com.jjg.game.table.baccarat.gamephase;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.utils.PokerCardUtils;
@@ -59,9 +60,9 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         }
         // 总分统计
         baccaratSettlementInfo.playerPointId =
-            (byte) baccaratSettlementInfo.playerCardIds.stream().mapToInt(this::getCardPointId).sum();
+            (byte) (baccaratSettlementInfo.playerCardIds.stream().mapToInt(this::getCardPointId).sum() % 10.0);
         baccaratSettlementInfo.bankerPointId =
-            (byte) baccaratSettlementInfo.bankerCardIds.stream().mapToInt(this::getCardPointId).sum();
+            (byte) (baccaratSettlementInfo.bankerCardIds.stream().mapToInt(this::getCardPointId).sum() % 10.0);
         // 计算牌桌的输赢状态
         calcWinState(baccaratSettlementInfo);
         // 将牌局的输赢保存到牌桌上
@@ -247,17 +248,15 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
      * 计算金币数量
      */
     private long calcGold(WinPosWeightCfg weightCfg, long betValue) {
-        int betBase = gameDataVo.getRoomCfg().getBetBase();
         int winRatio = gameDataVo.getRoomCfg().getWinRatio();
-        long playerBetVal = betValue * betBase;
         // 倍率计算
         long multiAdd =
-            (long) Math.floor(playerBetVal * weightCfg.getOdds() * ((10000 - winRatio) / 100.0));
-        long betReturn = (long) Math.floor(playerBetVal * (weightCfg.getReturnRate() / 10000.0));
+            (long) Math.floor(betValue * weightCfg.getOdds() * ((10000 - winRatio) / 100.0));
+        long betReturn = (long) Math.floor(betValue * (weightCfg.getReturnRate() / 10000.0));
         // 赢的总值
         long totalWin = multiAdd + betReturn;
         log.info("【百家乐】玩家在压分区域：{}，押注：{}，获得： 赢-{} + 抽水返还-{}, 总值：{}"
-            , weightCfg.getId(), playerBetVal, multiAdd, betReturn, totalWin);
+            , weightCfg.getId(), betValue, multiAdd, betReturn, totalWin);
         // 倍率 + 压分返还
         return totalWin;
     }

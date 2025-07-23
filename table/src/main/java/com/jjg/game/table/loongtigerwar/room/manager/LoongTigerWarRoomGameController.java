@@ -11,7 +11,7 @@ import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.message.TableMessageBuilder;
-import com.jjg.game.table.common.message.res.BetTableInfo;
+import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarBetPhase;
 import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarReadyPhase;
 import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarSettlementPhase;
@@ -74,8 +74,6 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
         NotifyLoongTigerWarInfo notifyLoongTigerWarInfo = new NotifyLoongTigerWarInfo();
         //历史记录
         notifyLoongTigerWarInfo.histories = dataVo.getHistories();
-        //金币最高的玩家(6人)
-        notifyLoongTigerWarInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(dataVo.getFixPlayers(), gameDataVo);
         //阶段信息
         notifyLoongTigerWarInfo.gamePhase = getCurrentGamePhase();
         //阶段结束时间
@@ -106,9 +104,7 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
         }
         //添加结算信息
         if (getCurrentGamePhase() == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
-            NotifyLoongTigerWarSettleInfo warSettleInfo = gameDataVo.getCurrentSettleInfo();
-            warSettleInfo.getGold = 0;
-            notifyLoongTigerWarInfo.settleInfos = warSettleInfo;
+            notifyLoongTigerWarInfo.settleInfos = gameDataVo.getCurrentSettleInfo();
         }
         //押分列表
         notifyLoongTigerWarInfo.betPointList = gameDataVo.getRoomCfg().getBetList();

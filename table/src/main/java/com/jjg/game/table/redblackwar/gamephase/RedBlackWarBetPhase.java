@@ -1,6 +1,5 @@
 package com.jjg.game.table.redblackwar.gamephase;
 
-import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -12,9 +11,9 @@ import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
+import com.jjg.game.table.common.message.bean.BetTableInfo;
+import com.jjg.game.table.common.message.bean.ReqBetBean;
 import com.jjg.game.table.common.message.req.ReqBet;
-import com.jjg.game.table.common.message.req.ReqBetBean;
-import com.jjg.game.table.common.message.res.BetTableInfo;
 import com.jjg.game.table.common.message.res.NotifyPlayerBet;
 import com.jjg.game.table.redblackwar.manager.RedBlackWarSampleManager;
 import com.jjg.game.table.redblackwar.room.data.RedBlackWarGameDataVo;

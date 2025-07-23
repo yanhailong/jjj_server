@@ -3,8 +3,6 @@ package com.jjg.game.table.loongtigerwar.manager;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.manager.AbstractSampleManager;
 import com.jjg.game.table.loongtigerwar.constant.LoongTigerWarConstant;
-import com.jjg.game.table.redblackwar.constant.HandType;
-import com.jjg.game.table.redblackwar.constant.RedBlackWarConstant;
 import com.jjg.game.table.redblackwar.sample.GameDataManager;
 import com.jjg.game.table.redblackwar.sample.bean.BetAreaCfg;
 import com.jjg.game.table.redblackwar.sample.bean.WinPosWeightCfg;
@@ -13,8 +11,6 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static com.jjg.game.table.redblackwar.constant.RedBlackWarConstant.Common.RED_BLACK_LIMIT;
 
 /**
  * @author 11
