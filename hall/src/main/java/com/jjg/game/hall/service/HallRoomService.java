@@ -77,12 +77,12 @@ public class HallRoomService implements IConsoleReceiver {
      */
     public int hallJoinRoom(PlayerController playerController, int roomCfgId, int wareId) {
         // 处理玩家重复加入房间的问题
-        if (playerController.getPlayer().getRoomId() > 0) {
-            int code = dealPlayerRepeatJoin(playerController, playerController.getPlayer().getRoomId());
-            if (code != Code.SUCCESS) {
-                return code;
-            }
-        }
+//        if (playerController.getPlayer().getRoomId() > 0) {
+//            int code = dealPlayerRepeatJoin(playerController, playerController.getPlayer().getRoomId());
+//            if (code != Code.SUCCESS) {
+//                return code;
+//            }
+//        }
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         if (warehouseCfg == null) {
             log.error("配置表异常，未在房间表（warehouse.xlsx）中找到房间配置表ID: {}", roomCfgId);

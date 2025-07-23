@@ -147,13 +147,13 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             session.verifyPass(player.getId(), player.getIp(), null);
 
-            if (player.getRoomId() > 0) {
-                CommonResult<Player> result = enterRoom(session, player);
-                if (result.code == Code.SUCCESS) {
-                    return;
-                }
-                player = result.data;
-            }
+//            if (player.getRoomId() > 0) {
+//                CommonResult<Player> result = enterRoom(session, player);
+//                if (result.code == Code.SUCCESS) {
+//                    return;
+//                }
+//                player = result.data;
+//            }
 
             playerSessionService.changeSessionInfo(session, player);
 

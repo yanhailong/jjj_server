@@ -122,12 +122,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 return;
             }
 
-            IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());
-            if (playerRoomEventListener == null) {
-                log.warn("sessionEnter时 未找到 playerRoomEventListener, playerId = {},gameType = {}", playerId,
-                    info.getGameType());
-                return;
-            }
+
 
             final PlayerSessionInfo tempInfo = info;
 
@@ -150,6 +145,12 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 if (code == Code.SUCCESS) {
                     return;
                 }
+            }
+            IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());
+            if (playerRoomEventListener == null) {
+                log.warn("sessionEnter时 未找到 playerRoomEventListener, playerId = {},gameType = {}", playerId,
+                        info.getGameType());
+                return;
             }
             playerRoomEventListener.enter(session, playerController, info);
         } catch (Exception e) {
