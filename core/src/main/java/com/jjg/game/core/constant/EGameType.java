@@ -3,7 +3,9 @@ package com.jjg.game.core.constant;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.data.RoomType;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -92,8 +94,8 @@ public enum EGameType {
     /**
      * 通过房间类型获取所有的游戏
      */
-    public static Set<EGameType> getGameTypesSetByRoomType(RoomType roomType) {
-        Set<EGameType> set = new HashSet<>();
+    public static List<EGameType> getGameTypesSetByRoomType(RoomType roomType) {
+        List<EGameType> set = new ArrayList<>();
         for (EGameType value : values()) {
             if (value.getRoomType().equals(roomType)) {
                 set.add(value);

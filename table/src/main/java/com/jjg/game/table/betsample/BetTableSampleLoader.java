@@ -9,8 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import java.util.Set;
-import java.util.function.IntFunction;
+import java.util.List;
 
 /**
  * @author 2CL
@@ -24,8 +23,12 @@ public class BetTableSampleLoader implements IRoomStartListener {
 
     @Override
     public Integer[] getGameTypes() {
-        Set<EGameType> eGameTypes = EGameType.getGameTypesSetByRoomType(RoomType.BET_ROOM);
-        return (Integer[]) eGameTypes.stream().map(EGameType::getGameTypeId).toArray((IntFunction<Object[]>) value -> new Integer[]{});
+        List<EGameType> eGameTypes = EGameType.getGameTypesSetByRoomType(RoomType.BET_ROOM);
+        Integer[] arr = new Integer[eGameTypes.size()];
+        for (int i = 0; i < eGameTypes.size(); i++) {
+            arr[i] = eGameTypes.get(i).getGameTypeId();
+        }
+        return arr;
     }
 
     @Override
