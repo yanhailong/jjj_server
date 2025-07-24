@@ -293,6 +293,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     public CommonResult<Room> onPlayerLeaveRoom(PlayerController playerController) {
         // 从玩家列表中移除玩家数据，子类的gameDataVo有和玩家相关的临时数据需要自行删除
         gameDataVo.getGamePlayerMap().remove(playerController.getPlayer().getId());
+        roomController.playerControllers.remove(playerController.getPlayer().getId());
         return new CommonResult<>(Code.SUCCESS);
     }
 
