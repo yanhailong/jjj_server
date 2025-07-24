@@ -9,8 +9,8 @@ import com.jjg.game.table.common.message.TableRoomMessageConstant;
  * @date 2025/7/23 17:42
  */
 @ProtobufMessage(
-        messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
-        cmd = TableRoomMessageConstant.ReqMsgBean.REQ_ROOM_BASE_INFO
+    messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
+    cmd = TableRoomMessageConstant.ReqMsgBean.REQ_ROOM_BASE_INFO
 )
-    public class ReqRoomBaseInfo {
+public class ReqRoomBaseInfo {
 }
