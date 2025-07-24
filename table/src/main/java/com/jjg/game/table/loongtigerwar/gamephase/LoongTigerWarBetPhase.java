@@ -29,7 +29,6 @@ import java.util.*;
  * @author 2CL
  */
 public class LoongTigerWarBetPhase extends BaseTableBetPhase<LoongTigerWarGameDataVo> {
-    private final Logger log = LoggerFactory.getLogger(getClass());
     public LoongTigerWarBetPhase(AbstractGameController<Room_BetCfg, LoongTigerWarGameDataVo> gameController) {
         super(gameController);
     }

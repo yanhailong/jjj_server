@@ -32,14 +32,9 @@ import java.util.*;
  */
 public class RedBlackWarBetPhase extends BaseTableBetPhase<RedBlackWarGameDataVo> {
 
-    private final RedBlackWarSampleManager redBlackWarSampleManager;
-    private final CorePlayerService corePlayerService;
-    private final Logger log = LoggerFactory.getLogger(RedBlackWarBetPhase.class);
 
     public RedBlackWarBetPhase(AbstractGameController<Room_BetCfg, RedBlackWarGameDataVo> gameController) {
         super(gameController);
-        redBlackWarSampleManager = CommonUtil.getContext().getBean(RedBlackWarSampleManager.class);
-        corePlayerService = CommonUtil.getContext().getBean(CorePlayerService.class);
     }
 
     @Override
@@ -52,7 +47,6 @@ public class RedBlackWarBetPhase extends BaseTableBetPhase<RedBlackWarGameDataVo
     public void phaseFinish() {
 
     }
-
 
 
 }

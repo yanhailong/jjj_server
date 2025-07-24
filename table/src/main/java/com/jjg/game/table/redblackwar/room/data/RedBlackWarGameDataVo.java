@@ -23,11 +23,6 @@ public class RedBlackWarGameDataVo extends TableGameDataVo {
      */
     private final List<RedBlackWarHistory> histories = new ArrayList<>();
     /**
-     * 各区域押注信息区域id->玩家id->押注金额
-     */
-    private final Map<Integer, Map<Long, Long>> betInfo = new ConcurrentHashMap<>();
-
-    /**
      * 本局的结算信息
      */
     private NotifyRedBlackWarSettleInfo currentSettleInfo;
@@ -57,8 +52,5 @@ public class RedBlackWarGameDataVo extends TableGameDataVo {
         return histories;
     }
 
-    public Map<Integer, Map<Long, Long>> getBetInfo() {
-        return betInfo;
-    }
 
 }
