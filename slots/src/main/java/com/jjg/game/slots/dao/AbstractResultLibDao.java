@@ -1,9 +1,7 @@
 package com.jjg.game.slots.dao;
 
 import com.jjg.game.core.dao.MongoBaseDao;
-import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.SlotsResultLib;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,12 +52,13 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
 
     public void init(int gameType){
         this.gameType = gameType;
+        reloadLib();
+    }
+
+    //加载最新的结果库名
+    public void reloadLib(){
         this.currentMongoLibName = getCurrentMongoLibName();
         this.currentRedisLibName = getCurrentRedisLibName();
-
-        //todo 通知其他slots节点，切换结果库
-
-
     }
 
     public long getResultCount(T lib) {
@@ -72,7 +71,9 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
     }
 
     protected String tabelName(String tableIndex, int gameType, int modelId, int libType, int sectionIndex) {
-        return tableIndex + gameType + ":" + modelId + ":" + libType + ":" + sectionIndex;
+        StringBuilder sb = new StringBuilder();
+        sb.append(tableIndex).append(gameType).append(":").append(modelId).append(":").append(libType).append(":").append(sectionIndex);
+        return sb.toString();
     }
     protected String allSectionTabelName(String tableIndex, int gameType, int modelId, int libType) {
         return tableIndex + gameType + ":" + modelId + ":" + libType;
@@ -190,9 +191,9 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
     }
 
     /**
-     * 清除结果库
+     * 清除mongo结果库
      */
-    public void clearLib(){
+    public void clearMongoLib() {
         if(this.currentMongoLibName != null && !this.currentMongoLibName.isEmpty()){
             String[] arr = this.currentMongoLibName.split("_");
             int index = Integer.parseInt(arr[1]);
@@ -207,7 +208,12 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         }else {
             log.debug("从mongo删除结果库失败，currentMongoLibName 为空");
         }
+    }
 
+    /**
+     * 清除redis结果库
+     */
+    public void clearRedisLib(){
         if(this.currentRedisLibName != null && !this.currentRedisLibName.isEmpty()){
             String removeName;
             if(this.slotsResultLib1.equals(this.currentRedisLibName)){
@@ -246,4 +252,6 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         }
         return sections;
     }
+
+
 }

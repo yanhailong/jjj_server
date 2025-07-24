@@ -296,23 +296,51 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
      * @return
      */
     public List<ClusterClient> getNodesByType(NodeType nodeType, int gameType) {
+        return getNodesByType(nodeType,gameType,false);
+    }
+
+    /**
+     * 获取该类型的所有节点
+     *
+     * @param nodeType 节点类型
+     * @param gameType 游戏类型
+     * @return
+     */
+    public List<ClusterClient> getNodesByTypeExcludeSelf(NodeType nodeType, int gameType) {
+        return getNodesByType(nodeType,gameType,true);
+    }
+
+    /**
+     * 获取该类型的所有节点
+     *
+     * @param nodeType 节点类型
+     * @param gameType 游戏类型
+     * @param excludeSelf 是否排除本节点
+     * @return
+     */
+    public List<ClusterClient> getNodesByType(NodeType nodeType, int gameType,boolean excludeSelf) {
         List<ClusterClient> clusterClients = new ArrayList<>();
         String name = nodeType.toString();
         for (Map.Entry<MarsNode, ClusterClient> en : clusterClientMap.entrySet()) {
-            if (!name.equals(en.getValue().getType())) {
+            ClusterClient client = en.getValue();
+            if (!name.equals(client.getType())) {
                 continue;
             }
 
-            int[] gameTypes = en.getValue().nodeConfig.gameTypes;
-            if (gameTypes == null || gameTypes.length < 1) {
+            if (client.nodeConfig.gameTypes == null || client.nodeConfig.gameTypes.length < 1) {
                 continue;
             }
 
-            for (int gType : gameTypes) {
+            //排除本节点
+            if(excludeSelf && client.nodeConfig.getName().equals(this.nodeConfig.getName())) {
+                continue;
+            }
+
+            for (int gType : client.nodeConfig.gameTypes) {
                 if (gType != gameType) {
                     continue;
                 }
-                clusterClients.add(en.getValue());
+                clusterClients.add(client);
                 break;
             }
         }

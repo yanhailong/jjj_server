@@ -56,9 +56,6 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
 
     protected Map<Integer, GirdUpdateConfig> specialGirdCfgMap = null;
 
-    //在生成一条结果时，可能会产生多条分支
-    protected Map<Integer,T> branchLibMap;
-
     public AbstractSlotsGenerateManager(Class<T> resultLibClazz) {
         this.resultLibClazz = resultLibClazz;
     }
@@ -106,8 +103,8 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
     /**
      * 生成一个结果
      */
-    public T generateOne() {
-        return null;
+    public List<T> generateOne() {
+        return Collections.EMPTY_LIST;
     }
 
     /**
@@ -861,10 +858,6 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
             return true;
         }
         return configModelId == currentModelId;
-    }
-
-    public Map<Integer, T> getBranchLibMap() {
-        return branchLibMap;
     }
 
     public BaseInitCfg getBaseInitCfg() {
