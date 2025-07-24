@@ -64,7 +64,7 @@ public class MatchDataDao {
         if (redisLock.tryLock(getLockMatchRedisKey(gameType, roomConfigId))) {
             try {
                 String redisKey = MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);
-                matchKeyTemplate.opsForZSet().remove(redisKey, roomId);
+                matchKeyTemplate.opsForZSet().remove(redisKey, String.valueOf(roomId));
                 return true;
             } finally {
                 redisLock.tryUnlock(getLockMatchRedisKey(gameType, roomConfigId));

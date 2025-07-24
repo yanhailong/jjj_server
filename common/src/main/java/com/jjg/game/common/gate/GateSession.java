@@ -6,6 +6,7 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.message.SessionCreate;
+import com.jjg.game.common.message.SessionLogout;
 import com.jjg.game.common.message.SessionQuit;
 import com.jjg.game.common.net.Connect;
 import com.jjg.game.common.net.ConnectListener;
@@ -116,8 +117,8 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
         sendClose();
         if (playerId > 0) {
             // 移除session
-            //向登录服务器发送用户下线
-//            sendLogout();
+            //向服务器发送用户下线
+            sendLogout();
         }
         if (connect != null) {
             connect.removeConnectListener(this);
@@ -125,6 +126,22 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
         this.currentClient = null;
         this.connect = null;
         this.ctx.close();
+    }
+
+    public void sendLogout() {
+        try {
+            SessionLogout sessionLogout = new SessionLogout();
+            sessionLogout.sessionId = sessionId;
+            sessionLogout.playerId = playerId;
+            PFMessage pfMessage = MessageUtil.getPFMessage(sessionLogout);
+            ClusterMessage clusterMessage = new ClusterMessage(sessionId, pfMessage, playerId);
+            ClusterClient clusterClient = ClusterSystem.system.getByNodeType(NodeType.HALL, remoteAddress.getHost(), playerId);
+            if (currentClient != null) {
+                clusterClient.getConnect().write(clusterMessage);
+            }
+        } catch (Exception e) {
+            log.warn("用户下线消息发送异常", e);
+        }
     }
 
     /**

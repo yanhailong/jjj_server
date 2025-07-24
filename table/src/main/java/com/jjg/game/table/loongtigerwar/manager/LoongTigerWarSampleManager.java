@@ -5,7 +5,6 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.table.betsample.sample.GameDataManager;
 import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
 import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
-import com.jjg.game.table.common.listener.TableConfigExcelLoadListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -18,7 +17,7 @@ import java.util.stream.Collectors;
  * @date 2025/6/30 10:38
  */
 @Component
-public class LoongTigerWarSampleManager implements ConfigExcelChangeListener, TableConfigExcelLoadListener {
+public class LoongTigerWarSampleManager implements ConfigExcelChangeListener {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     //区域id->区域配置
@@ -31,11 +30,6 @@ public class LoongTigerWarSampleManager implements ConfigExcelChangeListener, Ta
         if (className.equals(getClass().getSimpleName())) {
             initSampleConfig();
         }
-    }
-
-    @Override
-    public void loadConfigCacheData() {
-        initSampleConfig();
     }
 
     public void initSampleConfig() {
