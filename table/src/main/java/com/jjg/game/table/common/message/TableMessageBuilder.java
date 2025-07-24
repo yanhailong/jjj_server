@@ -60,7 +60,7 @@ public class TableMessageBuilder {
         List<GamePlayer> gamePlayers = tableGameDataVo.getGamePlayerMap()
                 .values()
                 .stream().sorted(Comparator.comparingLong(Player::getGold).reversed())
-                .limit(6)
+                .limit(7)
                 .toList();
         List<TablePlayerInfo> tablePlayerInfos = new ArrayList<>(gamePlayers.size());
         for (GamePlayer gamePlayer : gamePlayers) {

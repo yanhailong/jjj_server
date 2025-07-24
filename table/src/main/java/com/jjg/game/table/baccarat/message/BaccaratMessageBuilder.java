@@ -200,8 +200,11 @@ public class BaccaratMessageBuilder {
     /**
      * 添加玩家下注区域的数据
      */
-    public static List<BetTableInfo> buildPlayerBetInfo(BaccaratGameDataVo gameDataVo, long playerId) {
-        Map<Integer, BetTableInfo> baccaratTableInfoMap = new HashMap<>();
+    public static List<BetTableInfo> buildPlayerBetInfo(
+        BaccaratTableInfo baccaratTableInfo, BaccaratGameDataVo gameDataVo, long playerId) {
+        Map<Integer, BetTableInfo> baccaratTableInfoMap =
+            baccaratTableInfo.tableAreaInfos.stream()
+                .collect(HashMap::new, (map, e) -> map.put(e.betIdx, e), HashMap::putAll);
         Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
         // 玩家区域信息
         for (Map.Entry<Integer, List<Integer>> entry : playerBetInfo.entrySet()) {

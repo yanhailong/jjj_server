@@ -212,7 +212,7 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
             // 需要先将玩家加入临时房间中
             PlayerSessionInfo playerSessionInfo = new PlayerSessionInfo();
             playerSessionInfo.setRoomCfgId(gameController.getRoom().getRoomCfgId());
-            baccaratTempRoom.exit(playerController.getSession(), playerController, playerSessionInfo);
+            baccaratTempRoom.enter(playerController.getSession(), playerController, playerSessionInfo);
         }
     }
 

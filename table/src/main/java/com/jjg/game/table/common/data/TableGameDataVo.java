@@ -35,7 +35,7 @@ public class TableGameDataVo extends GameDataVo<Room_BetCfg> {
     }
 
     public Long getAreaTotalBet(int areaIdx) {
-        long areaTotal = areaIdx;
+        long areaTotal = 0;
         for (Map<Integer, List<Integer>> value : playerBetInfo.values()) {
             if (value.containsKey(areaIdx)) {
                 areaTotal += value.get(areaIdx).stream().mapToInt(Integer::intValue).sum();

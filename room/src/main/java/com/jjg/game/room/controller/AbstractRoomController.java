@@ -333,6 +333,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             }
             // 调用游戏的离开房间逻辑
             gameController.onPlayerLeaveRoom(playerController);
+            // 移除玩家PlayerController
+            playerControllers.remove(playerController.getPlayer().getId());
             //从room中移除
             RoomPlayer roomPlayer = room.exit(playerController.playerId());
             if (roomPlayer == null) {

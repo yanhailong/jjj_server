@@ -293,7 +293,6 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     public CommonResult<Room> onPlayerLeaveRoom(PlayerController playerController) {
         // 从玩家列表中移除玩家数据，子类的gameDataVo有和玩家相关的临时数据需要自行删除
         gameDataVo.getGamePlayerMap().remove(playerController.getPlayer().getId());
-        roomController.playerControllers.remove(playerController.getPlayer().getId());
         return new CommonResult<>(Code.SUCCESS);
     }
 
@@ -381,8 +380,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         return gameStarted;
     }
 
-    public <T extends IProcessorHandler, R extends Room, E extends RoomTimerEvent<T, R>> void addGamePhaseTimer(E roomTimerEvent) {
-        timerCenter.add((RoomTimerEvent<IProcessorHandler, Room>) roomTimerEvent);
+    public <E extends RoomTimerEvent<IProcessorHandler, Room>> void addGamePhaseTimer(E roomTimerEvent) {
+        timerCenter.add(roomTimerEvent);
     }
 
     public <R extends Room> R getRoom() {

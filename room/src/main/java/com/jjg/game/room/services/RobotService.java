@@ -122,11 +122,26 @@ public class RobotService implements IRoomStartListener {
     /**
      * 删除机器人
      */
-    public void deleteRobotPlayer(int roomCfgId, int robotId) {
+    public void deleteRobotPlayer(int roomCfgId, Long robotId) {
         String lockKey = robotDao.getLockRobotTableName(roomCfgId);
         if (redisLock.tryLock(lockKey)) {
             try {
-                robotDao.deleteRobotPlayer(roomCfgId, robotId);
+                robotDao.deleteRobotPlayer(roomCfgId, Collections.singleton(robotId));
+            } finally {
+                redisLock.tryUnlock(lockKey);
+            }
+        }
+    }
+
+
+    /**
+     * 删除机器人
+     */
+    public void deleteRobotPlayers(int roomCfgId, List<Long> robotIds) {
+        String lockKey = robotDao.getLockRobotTableName(roomCfgId);
+        if (redisLock.tryLock(lockKey)) {
+            try {
+                robotDao.deleteRobotPlayer(roomCfgId, robotIds);
             } finally {
                 redisLock.tryUnlock(lockKey);
             }

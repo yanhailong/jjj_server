@@ -17,4 +17,7 @@ public class BaccaratCardState {
 
     @ProtoDesc("牌型的输赢状态, 0：默认状态，1：庄对，2：闲对，3：庄和闲都有对子")
     public byte cardTypeWinState;
+
+    @ProtoDesc("是否是天王牌")
+    public boolean hasKingCard;
 }

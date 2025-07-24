@@ -314,6 +314,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
             if (!roomResult.success()) {
                 return roomResult.code;
             }
+            // TODO 需要添加定时 检查是否销毁房间
             // 退出房间将当前场景置为空
             playerController.setScene(null);
             return Code.SUCCESS;

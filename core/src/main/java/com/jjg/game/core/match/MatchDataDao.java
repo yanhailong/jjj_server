@@ -38,6 +38,7 @@ public class MatchDataDao {
     public long getWaitJoinRoomId(int gameType, int roomConfigId) {
         if (redisLock.tryLock(getLockMatchRedisKey(gameType, roomConfigId))) {
             try {
+                // TODO 从尾部拿取
                 Set<ZSetOperations.TypedTuple<String>> roomIds =
                         matchKeyTemplate.opsForZSet().rangeWithScores(MatchDataRedisKey.getWaitJoinRoomsKey(gameType,
                                         roomConfigId)

@@ -44,6 +44,8 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         baccaratSettlementInfo.bankerCardIds.add(removeFirst(cardList));
         baccaratSettlementInfo.playerCardIds.add(removeFirst(cardList));
         baccaratSettlementInfo.bankerCardIds.add(removeFirst(cardList));
+        // 是否出现天王牌
+        checkHasKingCard(baccaratSettlementInfo);
         // 检查闲家是否补牌
         if (checkNeedFillCard(baccaratSettlementInfo.playerCardIds, true, (byte) 0)) {
             baccaratSettlementInfo.extraPlayerCardId = removeFirst(cardList);
@@ -76,14 +78,29 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             // 获取每个玩家的信息
             baccaratTableInfo.baccaratTableInfo.tableAreaInfos =
-                BaccaratMessageBuilder.buildPlayerBetInfo(gameDataVo, entry.getKey());
+                BaccaratMessageBuilder.buildPlayerBetInfo(
+                    baccaratTableInfo.baccaratTableInfo, gameDataVo, entry.getKey());
+            log.debug("玩家：{} 结算数据: {}", entry.getKey(), JSON.toJSONString(baccaratTableInfo));
             // 向每个玩家发送通知消息
             broadcastBuilderToRoom(
                 RoomMessageBuilder.newBuilder().setData(baccaratTableInfo).setPlayerIds(Collections.singleton(entry.getKey())));
         }
-        log.debug("结算数据: {}", JSON.toJSONString(baccaratTableInfo));
         // 通知所有观察者
         BaccaratMessageBuilder.notifyObserversOnPhaseChange((BaccaratGameController) gameController);
+    }
+
+    /**
+     * 检查是否有天王牌
+     */
+    public void checkHasKingCard(BaccaratSettlementInfo baccaratSettlementInfo) {
+        // 总分统计
+        byte playerPointId =
+            (byte) (baccaratSettlementInfo.playerCardIds.stream().mapToInt(this::getCardPointId).sum() % 10.0);
+        byte bankerPointId =
+            (byte) (baccaratSettlementInfo.bankerCardIds.stream().mapToInt(this::getCardPointId).sum() % 10.0);
+        // 是否有天王牌
+        baccaratSettlementInfo.cardState = new BaccaratCardState();
+        baccaratSettlementInfo.cardState.hasKingCard = playerPointId >= 8 || bankerPointId >= 8;
     }
 
     @Override
@@ -100,7 +117,6 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
      * 计算输赢状态
      */
     private void calcWinState(BaccaratSettlementInfo baccaratSettlementInfo) {
-        baccaratSettlementInfo.cardState = new BaccaratCardState();
         // 输赢计算
         if (baccaratSettlementInfo.playerPointId == baccaratSettlementInfo.bankerPointId) {
             baccaratSettlementInfo.cardState.winState = 3;
@@ -249,11 +265,11 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         int winRatio = gameDataVo.getRoomCfg().getWinRatio();
         // 倍率计算
         long multiAdd =
-            (long) Math.floor(betValue * weightCfg.getOdds() * ((10000 - winRatio) / 100.0));
+            (long) Math.floor(betValue * weightCfg.getOdds() * ((10000 - winRatio) / 10000.0));
         long betReturn = (long) Math.floor(betValue * (weightCfg.getReturnRate() / 10000.0));
         // 赢的总值
         long totalWin = multiAdd + betReturn;
-        log.info("【百家乐】玩家在压分区域：{}，押注：{}，获得： 赢-{} + 抽水返还-{}, 总值：{}"
+        log.info("【百家乐】玩家在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{}"
             , weightCfg.getId(), betValue, multiAdd, betReturn, totalWin);
         // 倍率 + 压分返还
         return totalWin;

@@ -20,9 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -98,8 +95,8 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
                 // 暂时先按配置创建所有类型的房间
                 checkRoomInit(warehouseCfg, minRoomNum);
             }
-            isInitialed = true;
         }
+        isInitialed = true;
     }
 
     /**
@@ -176,7 +173,8 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
             PlayerController robotPlayerController = new PlayerController(robotSession, robotPlayer);
             // 机器人加入房间
             roomController.joinRoom(robotPlayerController);
-            log.info("创建游戏类型：{} 房间ID：{} 并加入初始机器人：{}", gameType, roomId, robotPlayer.getId());
+            log.info("创建游戏类型：{} 房间ID：{} 并加入初始机器人：{} 机器人初始金币：{}",
+                gameType, roomId, robotPlayer.getId(), robotPlayer.getGold());
         }
     }
 

@@ -35,8 +35,8 @@ import java.util.*;
  *
  * @author 2CL
  */
-public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends AbstractMsgDealRoomPhase<Room_BetCfg,
-    D, ReqBet> implements TimerListener<IProcessorHandler> {
+public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
+    AbstractMsgDealRoomPhase<Room_BetCfg, D, ReqBet> {
 
     private static final Logger log = LoggerFactory.getLogger(BaseTableBetPhase.class);
 
@@ -85,21 +85,17 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
     protected void robotAction(GameRobotPlayer gameRobotPlayer) {
         // 机器人押注默认行为
         // 需要将上一局的押注数据进行清除
-        clearRobotBetData(gameRobotPlayer);
+        clearBetData(gameRobotPlayer);
         // 判断是否进行押注
         robotBetAction(gameRobotPlayer);
     }
 
-    @Override
-    public void onTimer(TimerEvent<IProcessorHandler> e) {
-
-    }
-
     /**
-     * 清除机器人押注数据
+     * 清除押注数据
      */
-    protected void clearRobotBetData(GameRobotPlayer gameRobotPlayer) {
-        gameDataVo.updatePlayerBetInfo(gameRobotPlayer.getId(), new HashMap<>());
+    protected void clearBetData(GameRobotPlayer gameRobotPlayer) {
+        // 每轮开始清除所有之前的押注数据
+        gameDataVo.getPlayerBetInfo().clear();
     }
 
     /**
@@ -110,7 +106,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
         List<List<Integer>> betRobotId = robotCfg.getBetRobotID();
         int betActionId = RandomUtils.randomByWeightList(betRobotId);
         Integer betAction = TableSampleDataHolder.getBetActionDataCache(betActionId,
-            gameDataVo.getRoomCfg().getGameID());
+            gameDataVo.getRoomCfg().getId());
         if (betAction == null) {
             return;
         }
@@ -121,6 +117,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
         }
         // 未触发押注逻辑
         if (!RandomUtils.getRandomBoolean10000(betRobotCfg.getBetAction())) {
+            addRobotBetActionTimer(betRobotCfg, gameRobotPlayer);
             return;
         }
         // 押注的随机时间
@@ -129,7 +126,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
             throw new GameSampleException("机器人押注随机时间错误，机器人：" + gameRobotPlayer.getId());
         }
         // 给机器人添加异步执行押注的逻辑,执行时会回调到房间线程处理
-        addPhaseTimer(new TimerEvent<>(this, betRandTime, () -> doRobotBet(gameRobotPlayer, betRobotCfg)));
+        addPhaseTimer(new TimerEvent<>(gameController, betRandTime, () -> doRobotBet(gameRobotPlayer, betRobotCfg)));
     }
 
     /**
@@ -137,16 +134,28 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
      */
     protected void doRobotBet(GameRobotPlayer robotPlayer, BetRobotCfg betRobotCfg) {
         // 随机一个押注区域
-        int randomBetArea = RandomUtils.randomByWeightList(betRobotCfg.getBettingArea());
+        int randomBetArea = RandomUtils.randomByWeightList(betRobotCfg.getBettingArea()) % 10;
         // 随机押注金额
-        long randomGold = RandomUtils.randomByWeightList(betRobotCfg.getBetChips());
+        int randomGoldIdx = RandomUtils.randomByWeightList(betRobotCfg.getBetChips());
+        List<Integer> betList = gameDataVo.getRoomCfg().getBetList();
+        Integer randomGold = betList.get(randomGoldIdx - 1);
+        if (randomGold == null) {
+            log.error("配置表异常，机器人押注筹码表：{} 下标：{} 在压分列表中找不到", BetRobotCfg.EXCEL_NAME, randomGoldIdx);
+            return;
+        }
+        // 检查下注行为
+        int code = checkBetAction(robotPlayer, randomBetArea, randomGold);
+        log.info("机器人：{} 在房间：{} 场次：{} 进行押注逻辑， 押注区域：{} 押注金币：{}",
+            gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
+            robotPlayer.getId(), randomBetArea, randomGold);
         // 检查机器人是否下注
-        if (checkBetAction(robotPlayer, randomBetArea, randomGold) != Code.SUCCESS) {
+        if (code != Code.SUCCESS) {
             // 不满足下注条件直接返回
+            log.debug("机器人：{} 下注失败：{}", robotPlayer.getId(), code);
             return;
         }
         Map<Integer, List<Integer>> tableBetAreaInfoMap = gameDataVo.getPlayerBetInfo(robotPlayer.getId());
-        tableBetAreaInfoMap.computeIfAbsent(randomBetArea, k -> new ArrayList<>()).add((int) randomGold);
+        tableBetAreaInfoMap.computeIfAbsent(randomBetArea, k -> new ArrayList<>()).add(randomGold);
         NotifyPlayerBet notifyPlayerBet = new NotifyPlayerBet(Code.SUCCESS);
         notifyPlayerBet.betTableInfoList = new ArrayList<>();
         BetTableInfo betTableInfo = new BetTableInfo();
@@ -163,13 +172,24 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
         notifyPlayerBet.playerCurGold = gamePlayer.getGold();
         // 向玩家广播下注数据
         broadcastMsgToRoom(notifyPlayerBet);
+        // 更新押注数据
+        gameDataVo.updatePlayerBetInfo(robotPlayer.getId(), tableBetAreaInfoMap);
+        // 添加timer
+        addRobotBetActionTimer(betRobotCfg, robotPlayer);
+    }
+
+    /**
+     * 添加机器人押注行为的timer
+     */
+    private void addRobotBetActionTimer(BetRobotCfg betRobotCfg, GameRobotPlayer robotPlayer) {
         // 机器人需要重复模拟下注，再随机一个定时器
         Integer roundTime = RandomUtils.randomMaxMinByWeightList(betRobotCfg.getNextTime());
         if (roundTime == null) {
             throw new GameSampleException("获取" + BetRobotCfg.EXCEL_NAME + "中的机器人再次押注等待时间 异常");
         }
         // 添加计时器，进行循环模拟押注
-        addPhaseTimer(new TimerEvent<>(this, roundTime, () -> robotBetAction(robotPlayer)));
+        addPhaseTimer(new TimerEvent<>(gameController, roundTime, () -> robotBetAction(robotPlayer)));
+
     }
 
     /**
@@ -179,7 +199,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
         return GameDataManager.getBetAreaCfgList()
             .stream()
             .filter(betRobotCfg -> betRobotCfg.getGameID() == gameController.gameControlType().getGameTypeId())
-            .collect(HashMap::new, (map, cfg) -> map.put(cfg.getAreaID(), cfg), HashMap::putAll);
+            .collect(HashMap::new, (map, cfg) -> map.put(cfg.getAreaID() % 10, cfg), HashMap::putAll);
     }
 
     /**
@@ -199,7 +219,6 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends Abstr
     protected int checkBetAction(GamePlayer gamePlayer, List<ReqBetBean> reqBetBean) {
         // 检查当前区域是否还可以进行下注
         Map<Integer, BetAreaCfg> betAreaCfgMap = getBetAreaCfgMap();
-        log.info("betAreaCfgMap={}", JSON.toJSON(betAreaCfgMap));
         long totalBetValue = 0;
         for (ReqBetBean betBean : reqBetBean) {
             // 检查是否是合法值
