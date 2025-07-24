@@ -8,7 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 每个小游戏的游戏配置,房间游戏数据 Value Object 值对象
+ * 每个小游戏的游戏配置,房间游戏数据 Value Object 值对象，
+ * 即使玩家离开数据依然会被房间引用到的数据
  *
  * @author 2CL
  */

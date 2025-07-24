@@ -1,9 +1,7 @@
 package com.jjg.game.table.common.gamephase;
 
 import com.alibaba.fastjson.JSON;
-import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.timer.TimerEvent;
-import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
@@ -21,9 +19,9 @@ import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.data.TableSampleDataHolder;
 import com.jjg.game.table.common.message.TableRoomMessageConstant;
-import com.jjg.game.table.common.message.req.ReqBet;
-import com.jjg.game.table.common.message.bean.ReqBetBean;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
+import com.jjg.game.table.common.message.bean.ReqBetBean;
+import com.jjg.game.table.common.message.req.ReqBet;
 import com.jjg.game.table.common.message.res.NotifyPlayerBet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,14 +64,63 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
     }
 
     @Override
-    public void dealMsg(PlayerController playerController, ReqBet message) {
-        if (gameController.getRoom().getGameType() != playerController.getPlayer().getGameType()) {
+    public void dealMsg(PlayerController playerController, ReqBet reqBet) {
+        List<ReqBetBean> reqBetBeans = reqBet.reqBetBeans;
+        NotifyPlayerBet notifyPlayerBet = new NotifyPlayerBet(Code.SUCCESS);
+        notifyPlayerBet.playerId = playerController.playerId();
+        if (reqBetBeans == null || reqBetBeans.isEmpty()) {
+            notifyPlayerBet.code = Code.FAIL;
+            playerController.send(notifyPlayerBet);
             return;
         }
-        dealBet(playerController, message);
+        // 判断合法性
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
+        // 检查是否是合法押注
+        int checkRes = checkBetAction(gamePlayer, reqBetBeans);
+        log.info("玩家：{} 请求下注，下注数据：{}", playerController.playerId(), JSON.toJSONString(reqBet));
+        if (checkRes != Code.SUCCESS) {
+            notifyPlayerBet.code = checkRes;
+            playerController.send(notifyPlayerBet);
+            return;
+        }
+        long playerTotalBetGold = 0;
+        notifyPlayerBet.betTableInfoList = new ArrayList<>();
+        // 处理下注数据
+        Map<Integer, List<Integer>> playerAreaInfoMap = gameDataVo.getPlayerBetInfo(playerController.playerId());
+        Map<Integer, Long> playerReqBetMap = new HashMap<>();
+        for (ReqBetBean betBean : reqBetBeans) {
+            playerReqBetMap.put(betBean.betAreaIdx,
+                playerReqBetMap.getOrDefault(betBean.betAreaIdx, 0L) + betBean.betValue);
+        }
+        for (Map.Entry<Integer, Long> entry : playerReqBetMap.entrySet()) {
+            int betAreaIdx = entry.getKey();
+            long betValue = entry.getValue();
+            playerTotalBetGold += betValue;
+            if (playerAreaInfoMap == null) {
+                playerAreaInfoMap = new HashMap<>();
+            }
+            playerAreaInfoMap.computeIfAbsent(betAreaIdx, k -> new ArrayList<>()).add((int) betValue);
+        }
+        // 更新押注数据
+        gameDataVo.updatePlayerBetInfo(playerController.playerId(), playerAreaInfoMap);
+        // 前端返回
+        for (ReqBetBean reqBetBean : reqBetBeans) {
+            BetTableInfo betTableInfo = new BetTableInfo();
+            int betAreaIdx = reqBetBean.betAreaIdx;
+            long betValue = reqBetBean.betValue;
+            betTableInfo.betIdx = betAreaIdx;
+            betTableInfo.playerBetTotal = playerAreaInfoMap.get(betAreaIdx).stream().mapToInt(Integer::intValue).sum();
+            betTableInfo.betIdxTotal = gameDataVo.getAreaTotalBet(betAreaIdx);
+            // 返回下注响应消息
+            betTableInfo.betValue = betValue;
+            notifyPlayerBet.betTableInfoList.add(betTableInfo);
+        }
+        // TODO 扣除玩家金币
+        gamePlayer.setGold(gamePlayer.getGold() - playerTotalBetGold);
+        notifyPlayerBet.playerCurGold = gamePlayer.getGold();
+        // 向房间广播下注改变信息
+        broadcastMsgToRoom(notifyPlayerBet);
     }
-
-    public abstract void dealBet(PlayerController playerController, ReqBet message);
 
     /**
      * 押注前清理房间数据
@@ -155,6 +202,9 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             return;
         }
         Map<Integer, List<Integer>> tableBetAreaInfoMap = gameDataVo.getPlayerBetInfo(robotPlayer.getId());
+        if (tableBetAreaInfoMap == null) {
+            tableBetAreaInfoMap = new HashMap<>();
+        }
         tableBetAreaInfoMap.computeIfAbsent(randomBetArea, k -> new ArrayList<>()).add(randomGold);
         NotifyPlayerBet notifyPlayerBet = new NotifyPlayerBet(Code.SUCCESS);
         notifyPlayerBet.betTableInfoList = new ArrayList<>();
@@ -220,31 +270,44 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         // 检查当前区域是否还可以进行下注
         Map<Integer, BetAreaCfg> betAreaCfgMap = getBetAreaCfgMap();
         long totalBetValue = 0;
+        Map<Integer, Long> playerReqBetMap = new HashMap<>();
         for (ReqBetBean betBean : reqBetBean) {
+            playerReqBetMap.put(betBean.betAreaIdx,
+                playerReqBetMap.getOrDefault(betBean.betAreaIdx, 0L) + betBean.betValue);
+        }
+        for (Map.Entry<Integer, Long> entry : playerReqBetMap.entrySet()) {
+            // 下注区域
+            int betAreaIdx = entry.getKey();
+            // 下注总值
+            long betValue = entry.getValue();
             // 检查是否是合法值
-            if (!betAreaCfgMap.containsKey(betBean.betAreaIdx)) {
+            if (!betAreaCfgMap.containsKey(betAreaIdx)) {
                 return Code.PARAM_ERROR;
             }
-            BetAreaCfg betAreaCfg = betAreaCfgMap.get(betBean.betAreaIdx);
+            BetAreaCfg betAreaCfg = betAreaCfgMap.get(betAreaIdx);
             // 判断场上单区域的总数量是否达到上限
             // 配置的上限
             int roomIdxMaxLimit = betAreaCfg.getTbUpperLimit();
             // 当前房间的请求的下注区的总数
-            long curIdxTotalBet = gameDataVo.getAreaTotalBet(betBean.betAreaIdx);
-            if (curIdxTotalBet + betBean.betValue >= roomIdxMaxLimit) {
+            long curIdxTotalBet = gameDataVo.getAreaTotalBet(betAreaIdx);
+            if (curIdxTotalBet + betValue >= roomIdxMaxLimit) {
                 log.debug("区域：{} 房间押注总和：{} 限制值：{}", betAreaCfg.getId(), curIdxTotalBet, roomIdxMaxLimit);
                 return Code.BET_TO_LIMIT;
             }
             // 玩家区域上限
             int playerIdxMaxLimit = betAreaCfg.getTbPlayerUpperLimit();
             Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(gamePlayer.getId());
-            long playerBetTotal =
-                playerBetInfo.computeIfAbsent(betBean.betAreaIdx, k -> new ArrayList<>()).stream().mapToInt(Integer::intValue).sum();
-            if (playerBetTotal + betBean.betValue >= playerIdxMaxLimit) {
-                log.debug("区域：{} 玩家押注总和：{} 限制值：{}", betAreaCfg.getId(), playerBetTotal, playerIdxMaxLimit);
+            long playerBetTotal = 0;
+            if (playerBetInfo != null) {
+                playerBetTotal =
+                    playerBetInfo.getOrDefault(betAreaIdx, new ArrayList<>()).stream().mapToInt(Integer::intValue).sum();
+            }
+            if (playerBetTotal + betValue >= playerIdxMaxLimit) {
+                log.debug("区域：{} 玩家押注总和：{}  当前下注：{} 限制值：{}",
+                    betAreaCfg.getId(), playerBetTotal, playerBetTotal, playerIdxMaxLimit);
                 return Code.BET_TO_LIMIT;
             }
-            totalBetValue += betBean.betValue;
+            totalBetValue += betValue;
         }
         // 检查玩家的钱是否带够
         long needTake = totalBetValue;

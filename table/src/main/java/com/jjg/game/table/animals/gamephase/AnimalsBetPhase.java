@@ -12,10 +12,6 @@ public class AnimalsBetPhase extends BaseTableBetPhase {
         super(gameController);
     }
 
-    @Override
-    public void dealBet(PlayerController playerController, ReqBet message) {
-
-    }
 
     @Override
     public void dealMsg(PlayerController playerController, AbstractMessage message) {

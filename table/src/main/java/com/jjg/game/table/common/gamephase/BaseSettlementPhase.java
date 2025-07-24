@@ -33,7 +33,6 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
-
     }
 
     @Override

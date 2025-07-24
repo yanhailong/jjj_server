@@ -23,7 +23,7 @@ public class TableGameDataVo extends GameDataVo<Room_BetCfg> {
     }
 
     public Map<Integer, List<Integer>> getPlayerBetInfo(long playerId) {
-        return playerBetInfo.getOrDefault(playerId, new HashMap<>());
+        return playerBetInfo.get(playerId);
     }
 
     public Map<Long, Map<Integer, List<Integer>>> getPlayerBetInfo() {

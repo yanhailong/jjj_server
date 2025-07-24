@@ -30,8 +30,6 @@ import java.util.Map;
  */
 public class BaccaratTableBetPhase extends BaseTableBetPhase<BaccaratGameDataVo> {
 
-    private static final Logger log = LoggerFactory.getLogger(BaccaratTableBetPhase.class);
-
     public BaccaratTableBetPhase(AbstractGameController<Room_BetCfg, BaccaratGameDataVo> gameController) {
         super(gameController);
     }
@@ -49,57 +47,6 @@ public class BaccaratTableBetPhase extends BaseTableBetPhase<BaccaratGameDataVo>
 
     @Override
     public void phaseFinish() {
-    }
-
-
-    @Override
-    public void dealBet(PlayerController playerController, ReqBet reqBet) {
-        List<ReqBetBean> reqBetBeans = reqBet.reqBetBeans;
-        NotifyPlayerBet notifyPlayerBet = new NotifyPlayerBet(Code.SUCCESS);
-        notifyPlayerBet.playerId = playerController.playerId();
-        if (reqBetBeans == null || reqBetBeans.isEmpty()) {
-            notifyPlayerBet.code = Code.FAIL;
-            playerController.send(notifyPlayerBet);
-            return;
-        }
-        // 判断合法性
-        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
-        // 检查是否是合法押注
-        int checkRes = checkBetAction(gamePlayer, reqBetBeans);
-        log.info("玩家：{} 请求下注，下注数据：{}", playerController.playerId(), JSON.toJSONString(reqBet));
-        if (checkRes != Code.SUCCESS) {
-            notifyPlayerBet.code = checkRes;
-            playerController.send(notifyPlayerBet);
-            return;
-        }
-        long playerTotalBetGold = 0;
-        notifyPlayerBet.betTableInfoList = new ArrayList<>();
-        // 处理下注数据
-        Map<Integer, List<Integer>> playerAreaInfoMap = gameDataVo.getPlayerBetInfo(playerController.playerId());
-        for (ReqBetBean reqBetBean : reqBetBeans) {
-            BetTableInfo betTableInfo = new BetTableInfo();
-            int betAreaIdx = reqBetBean.betAreaIdx;
-            long betValue = reqBetBean.betValue;
-            playerTotalBetGold += betValue;
-            if (playerAreaInfoMap == null) {
-                playerAreaInfoMap = new HashMap<>();
-                gameDataVo.updatePlayerBetInfo(playerController.playerId(), playerAreaInfoMap);
-            }
-            playerAreaInfoMap.computeIfAbsent(betAreaIdx, k -> new ArrayList<>()).add((int) betValue);
-            betTableInfo.betIdx = betAreaIdx;
-            betTableInfo.playerBetTotal = playerAreaInfoMap.get(betAreaIdx).stream().mapToInt(Integer::intValue).sum();
-            betTableInfo.betIdxTotal = gameDataVo.getAreaTotalBet(betAreaIdx);
-            // 返回下注响应消息
-            betTableInfo.betValue = betValue;
-            notifyPlayerBet.betTableInfoList.add(betTableInfo);
-        }
-        // 更新押注数据
-        gameDataVo.updatePlayerBetInfo(playerController.playerId(), playerAreaInfoMap);
-        // TODO 扣除玩家金币
-        gamePlayer.setGold(gamePlayer.getGold() - playerTotalBetGold);
-        notifyPlayerBet.playerCurGold = gamePlayer.getGold();
-        // 向房间广播下注改变信息
-        broadcastMsgToRoom(notifyPlayerBet);
     }
 
     @Override
