@@ -46,4 +46,7 @@ public class NotifyRedBlackWarInfo extends AbstractNotice {
 
     @ProtoDesc("前6玩家信息")
     public List<TablePlayerInfo> playerInfos;
+
+    @ProtoDesc("房间总人数")
+    public int totalPlayerNum;
 }

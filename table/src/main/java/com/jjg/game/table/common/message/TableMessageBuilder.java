@@ -103,6 +103,7 @@ public class TableMessageBuilder {
         infoChange.tableChangedPlayerInfos = new ArrayList<>();
         List<GamePlayer> sortedPlayersByGold =
                 dataVo.getGamePlayerMap().values().stream().sorted(Comparator.comparingLong(Player::getGold).reversed()).toList();
+        infoChange.totalPlayerNum = sortedPlayersByGold.size();
         for (GamePlayer gamePlayer : sortedPlayersByGold) {
             TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(gamePlayer);
             infoChange.tableChangedPlayerInfos.add(tablePlayerInfo);

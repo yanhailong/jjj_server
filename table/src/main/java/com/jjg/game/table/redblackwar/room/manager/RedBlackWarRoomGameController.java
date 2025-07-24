@@ -111,6 +111,7 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
         //押分列表
         notifyRedBlackWarInfo.betPointList = gameDataVo.getRoomCfg().getBetList();
         notifyRedBlackWarInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(gameDataVo);
+        notifyRedBlackWarInfo.totalPlayerNum = gameDataVo.getGamePlayerMap().size();
         //发送给玩家
         sendMessage(playerController.playerId(), notifyRedBlackWarInfo);
     }

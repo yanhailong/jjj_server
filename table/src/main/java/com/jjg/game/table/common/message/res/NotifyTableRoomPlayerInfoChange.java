@@ -15,15 +15,18 @@ import java.util.List;
  * @author 2CL
  */
 @ProtobufMessage(
-    messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
-    cmd = TableRoomMessageConstant.RespMsgBean.NOTIFY_PLAYER_JOIN_ROOM,
-    resp = true
+        messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
+        cmd = TableRoomMessageConstant.RespMsgBean.NOTIFY_PLAYER_JOIN_ROOM,
+        resp = true
 )
 @ProtoDesc("通知押注类房间玩家信息变化")
 public class NotifyTableRoomPlayerInfoChange extends AbstractNotice {
 
     @ProtoDesc("产生变化的玩家ID")
     public long changedPlayerId;
+
+    @ProtoDesc("总人数")
+    public int totalPlayerNum;
 
     @ProtoDesc("变化后的场上玩家信息")
     public List<TablePlayerInfo> tableChangedPlayerInfos;
