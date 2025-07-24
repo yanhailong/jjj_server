@@ -3,9 +3,11 @@ package com.jjg.game.table.common.message;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
+import com.jjg.game.table.common.message.res.NotifyPhaseChangInfo;
 import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
 import com.jjg.game.table.common.message.bean.TablePlayerInfo;
@@ -91,6 +93,13 @@ public class TableMessageBuilder {
         tablePlayerInfo.totalBet = totalBet;
         tablePlayerInfo.winCount = winNum;
         return tablePlayerInfo;
+    }
+
+    public static NotifyPhaseChangInfo getNotifyPhaseChangInfo(EGamePhase gamePhase,long endTime) {
+        NotifyPhaseChangInfo notifyPhaseChangInfo = new NotifyPhaseChangInfo();
+        notifyPhaseChangInfo.gamePhase = gamePhase;
+        notifyPhaseChangInfo.endTime = endTime;
+        return notifyPhaseChangInfo;
     }
 
     /**

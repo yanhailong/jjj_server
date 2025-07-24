@@ -29,5 +29,8 @@ public interface TableRoomMessageConstant {
         int RESP_TABLE_PLAYER_INFO = BASE_MSG_PREFIX | 0x83;
         // 通知玩家进入房间
         int NOTIFY_PLAYER_JOIN_ROOM = BASE_MSG_PREFIX | 0x88;
+        // 通知阶段变化
+        int NOTIFY_PHASE_CHANG_INFO = BASE_MSG_PREFIX | 0x89;
+
     }
 }
