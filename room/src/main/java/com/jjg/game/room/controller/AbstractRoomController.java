@@ -322,6 +322,15 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     public CommonResult<Room> onPlayerLeaveRoom(PlayerController playerController) {
         CommonResult<Room> result = new CommonResult<>(Code.SUCCESS);
         try {
+            boolean remove = roomDao.removePlayer(
+                playerController.getPlayer().getGameType(),
+                playerController.roomId(),
+                playerController.playerId());
+            if (remove) {
+                log.debug("强制离开房间成功, gameType = {},roomId = {},playerId = {}",
+                    playerController.getPlayer().getGameType(), playerController.roomId(),
+                    playerController.playerId());
+            }
             // 调用游戏的离开房间逻辑
             gameController.onPlayerLeaveRoom(playerController);
             //从room中移除
