@@ -249,7 +249,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         return GameDataManager.getBetAreaCfgList()
             .stream()
             .filter(betRobotCfg -> betRobotCfg.getGameID() == gameController.gameControlType().getGameTypeId())
-            .collect(HashMap::new, (map, cfg) -> map.put(cfg.getAreaID() % 10, cfg), HashMap::putAll);
+            .collect(HashMap::new, (map, cfg) -> map.put(cfg.getAreaID(), cfg), HashMap::putAll);
     }
 
     /**
@@ -261,7 +261,6 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         betBean.betValue = reqBetValue;
         return checkBetAction(gamePlayer, Collections.singletonList(betBean));
     }
-
 
     /**
      * 检查是否可以进行押注
