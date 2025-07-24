@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
  * @date 2025/7/15 15:23
  */
 @Component
-@MessageType(MessageConst.MessageTypeDef.TO_SERVER_CONST_TYPE)
+@MessageType(MessageConst.MessageTypeDef.ROOM_TYPE)
 public class RoomMessageHandler {
 
     private final Logger log = LoggerFactory.getLogger(getClass());

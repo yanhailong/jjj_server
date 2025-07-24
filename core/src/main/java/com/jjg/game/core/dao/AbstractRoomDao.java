@@ -129,8 +129,8 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         InstantiationException,
         IllegalAccessException,
         NoSuchMethodException {
-        Constructor<? extends Room> constructor = this.roomClazz.getConstructor();
         EGameType eGameType = EGameType.getGameByTypeId(gameType);
+        Constructor<? extends Room> constructor = eGameType.getRoomType().getRoomDataType().getConstructor();
         T room = (T) constructor.newInstance();
         room.setCreateTime(TimeHelper.nowInt());
         room.setPath(nodeName);
