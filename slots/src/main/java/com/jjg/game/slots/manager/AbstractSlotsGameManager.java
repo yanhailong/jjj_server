@@ -1,5 +1,6 @@
 package com.jjg.game.slots.manager;
 
+import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
@@ -45,6 +46,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     protected SlotsPoolDao slotsPoolDao;
     @Autowired
     protected TimerCenter timerCenter;
+    @Autowired
+    protected MarsCurator marsCurator;
 
     //在更新结果库后，要开启清除旧结果库的定时事件
     protected TimerEvent<String> clearLibEvent;
@@ -85,9 +88,15 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         this.playerGameDataClass = playerGameDataClass;
     }
 
-    public void init(){
-        initConfig();
-    }
+    /**
+     * 初始化
+     */
+    public abstract void init();
+
+    /**
+     * 关闭
+     */
+    public abstract void shutdown();
 
     protected void initConfig() {
         baseRoomConfig(this.gameType);
@@ -293,7 +302,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     @Override
     public void onTimer(TimerEvent e) {
         if(this.clearLibEvent == e){
-            getResultLibDao().clearLib();
+            getResultLibDao().clearMongoLib();
+            getResultLibDao().clearRedisLib();
             this.clearLibEvent = null;
         }
     }
@@ -348,13 +358,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      * resultLib配置
      *
      * @param gameType
+     * @param init 是否为初始化时调用
      */
-    protected void specialResultLibConfig(int gameType,boolean checkRedis) {
+    protected void specialResultLibConfig(int gameType,boolean init) {
         Map<Integer, SpecialResultLibCfg> tempLibCfgMap = new HashMap<>();
         Map<Integer, PropInfo> tempResultLibTypePropInfoMap = new HashMap<>();
 
         Map<Integer, Map<Integer,PropInfo>> tempResultLibSectionPropMap = new HashMap<>();
         Map<Integer, Map<Integer,Map<Integer,int[]>>> tempResultLibSectionMap = new HashMap<>();
+
+        int tmpDefaultRewardSectionIndex = -1;
 
         for (Map.Entry<Integer, SpecialResultLibCfg> en : GameDataManager.getSpecialResultLibCfgMap().entrySet()) {
             SpecialResultLibCfg cfg = en.getValue();
@@ -391,17 +404,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
                     List<String> propList = en2.getValue();
 
-//                    Set<Integer> sectionSet = null;
-//                    if(checkRedis){
-//                        sectionSet = getResultLibDao().getAllSection(cfg.getModelId(),type);
-//                    }
-
                     int begin = 0;
                     int end = 0;
                     for (int i = 0; i < propList.size(); i++) {
-//                        if(sectionSet != null && !sectionSet.contains(i)){
-//                            continue;
-//                        }
 
                         String prop = propList.get(i);
                         String[] arr = prop.split("-");
@@ -415,7 +420,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
                         int[] tmpArr = new int[]{Integer.parseInt(arr2[0]),Integer.parseInt(arr2[1])};
                         sectionMap.put(i,tmpArr);
                         if(tmpArr[0] == 0){
-                            this.defaultRewardSectionIndex = i;
+                            tmpDefaultRewardSectionIndex = i;
                         }
                     }
                     propInfo.setSum(end);
@@ -428,9 +433,21 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             throw new IllegalArgumentException("该游戏specialResultLib 为空,初始化失败 gameType = " + gameType);
         }
 
-        if(this.defaultRewardSectionIndex < 0){
+        if(tmpDefaultRewardSectionIndex < 0){
             throw new IllegalArgumentException("该游戏specialResultLib 中没有配置0倍区间 gameType = " + gameType);
         }
+
+        //如果是初始化或者没有修改区间，直接赋值
+        //如果修改了区间，要重新将mongodb里面的结果集分配到redis
+        if(!init && !compareSectionMap(tempResultLibSectionMap, this.resultLibSectionMap)){
+            if(!marsCurator.master(this.gameType)){
+                return;
+            }
+            String currentMongoLibName = getResultLibDao().getCurrentMongoLibName();
+            getResultLibDao().moveToRedis(currentMongoLibName,tempResultLibSectionPropMap);
+        }
+
+        this.defaultRewardSectionIndex = tmpDefaultRewardSectionIndex;
         this.resultLibMap = tempLibCfgMap;
         this.resultLibTypePropInfoMap = tempResultLibTypePropInfoMap;
         this.resultLibSectionPropMap = tempResultLibSectionPropMap;
@@ -481,12 +498,70 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         return null;
     }
 
+    /**
+     * 检测是否区间变化
+     * @param map1
+     * @param map2
+     */
+    private boolean compareSectionMap(Map<Integer, Map<Integer,Map<Integer,int[]>>> map1,Map<Integer, Map<Integer,Map<Integer,int[]>>> map2){
+        // 比较第一层
+        if (!map1.keySet().equals(map2.keySet())) {
+            return false;
+        }
+
+        // 比较每一层
+        for (Integer key : map1.keySet()) {
+            Map<Integer, Map<Integer, int[]>> innerMap1 = map1.get(key);
+            Map<Integer, Map<Integer, int[]>> innerMap2 = map2.get(key);
+
+            if (!compareMiddleMaps(innerMap1, innerMap2)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean compareMiddleMaps(Map<Integer, Map<Integer, int[]>> map1,Map<Integer, Map<Integer, int[]>> map2) {
+
+        if (!map1.keySet().equals(map2.keySet())) {
+            return false;
+        }
+
+        for (Integer key : map1.keySet()) {
+            Map<Integer, int[]> innerMap1 = map1.get(key);
+            Map<Integer, int[]> innerMap2 = map2.get(key);
+
+            if (!compareInnermostMaps(innerMap1, innerMap2)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean compareInnermostMaps(Map<Integer, int[]> map1,Map<Integer, int[]> map2) {
+        if (!map1.keySet().equals(map2.keySet())) {
+            return false;
+        }
+        for (Integer key : map1.keySet()) {
+            int[] array1 = map1.get(key);
+            int[] array2 = map2.get(key);
+
+            if (!Arrays.equals(array1, array2)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     @Override
     public void change(String className) {
         if(BaseRoomCfg.class.getSimpleName().equals(className)){
             baseRoomConfig(this.gameType);
         }else if(SpecialResultLibCfg.class.getSimpleName().equals(className)){
-            specialResultLibConfig(this.gameType,true);
+            specialResultLibConfig(this.gameType,false);
         }else if(BaseLineCfg.class.getSimpleName().equals(className)){
             baseLineConfig(this.gameType);
         }else if(SpecialGirdCfg.class.getSimpleName().equals(className)){
@@ -497,4 +572,5 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     public void exit(PlayerController playerController) {
 
     }
+
 }
