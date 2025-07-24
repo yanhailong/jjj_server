@@ -46,14 +46,18 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         baccaratSettlementInfo.bankerCardIds.add(removeFirst(cardList));
         // 是否出现天王牌
         checkHasKingCard(baccaratSettlementInfo);
+        // 是否有对子
+        checkHasDouble(baccaratSettlementInfo);
         // 检查闲家是否补牌
-        if (checkNeedFillCard(baccaratSettlementInfo.playerCardIds, true, (byte) 0)) {
+        if (!baccaratSettlementInfo.cardState.hasKingCard &&
+            checkNeedFillCard(baccaratSettlementInfo.playerCardIds, true, (byte) 0)) {
             baccaratSettlementInfo.extraPlayerCardId = removeFirst(cardList);
             baccaratSettlementInfo.playerCardIds.add(baccaratSettlementInfo.extraPlayerCardId);
             gameDataVo.setFillCard(true);
         }
         // 检查庄家是否补牌
-        if (checkNeedFillCard(baccaratSettlementInfo.bankerCardIds, false, baccaratSettlementInfo.extraPlayerCardId)) {
+        if (!baccaratSettlementInfo.cardState.hasKingCard &&
+            checkNeedFillCard(baccaratSettlementInfo.bankerCardIds, false, baccaratSettlementInfo.extraPlayerCardId)) {
             baccaratSettlementInfo.extraBankerCardId = removeFirst(cardList);
             baccaratSettlementInfo.bankerCardIds.add(baccaratSettlementInfo.extraBankerCardId);
             gameDataVo.setFillCard(true);
@@ -125,6 +129,12 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         } else {
             baccaratSettlementInfo.cardState.winState = 2;
         }
+    }
+
+    /**
+     * 检查是否有对子
+     */
+    private void checkHasDouble(BaccaratSettlementInfo baccaratSettlementInfo) {
         // 计算牌型输赢,计算是否有对子
         boolean playerDoubleCard =
             baccaratSettlementInfo.playerCardIds.stream().map(PokerCardUtils::getPointId).distinct().count()
@@ -185,7 +195,8 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
      * 检查是否需要补牌
      */
     private boolean checkNeedFillCard(List<Byte> cardIds, boolean isPlayer, byte playerThirdCardId) {
-        int cardSumPoint = cardIds.stream().mapToInt(this::getCardPointId).sum();
+        // 总分统计
+        int cardSumPoint = cardIds.stream().mapToInt(this::getCardPointId).sum() % 10;
         // 如果点数为7或者超过7则不补牌
         if (cardSumPoint >= 7) {
             return false;

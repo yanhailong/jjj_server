@@ -206,6 +206,9 @@ public class BaccaratMessageBuilder {
             baccaratTableInfo.tableAreaInfos.stream()
                 .collect(HashMap::new, (map, e) -> map.put(e.betIdx, e), HashMap::putAll);
         Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
+        if (playerBetInfo == null) {
+            return baccaratTableInfoMap.values().stream().toList();
+        }
         // 玩家区域信息
         for (Map.Entry<Integer, List<Integer>> entry : playerBetInfo.entrySet()) {
             long areaTotal = entry.getValue().stream().mapToInt(Integer::intValue).sum();
