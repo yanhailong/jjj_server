@@ -249,7 +249,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         return GameDataManager.getBetAreaCfgList()
             .stream()
             .filter(betRobotCfg -> betRobotCfg.getGameID() == gameController.gameControlType().getGameTypeId())
-            .collect(HashMap::new, (map, cfg) -> map.put(cfg.getAreaID(), cfg), HashMap::putAll);
+            .collect(HashMap::new, (map, cfg) -> map.put(cfg.getId(), cfg), HashMap::putAll);
     }
 
     /**
