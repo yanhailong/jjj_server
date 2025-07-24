@@ -76,8 +76,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
                     long backBet = entry.getValue() * weightCfg.getReturnRate() / 10000;
                     //总获得
                     long canGet = backBet * weightCfg.getOdds() / 100;
-                    //TODO 抽税
-                    if (weightCfg.getWinType() == 1) {
+                    if (weightCfg.getIsRatio() == 1) {
                         canGet = canGet * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
                     }
                     canGet += backBet;

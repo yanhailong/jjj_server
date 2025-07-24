@@ -99,8 +99,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                     long backBet = entry.getValue() * cfg.getReturnRate() / 10000;
                     //总获得
                     long canGet = backBet * cfg.getOdds() / 100;
-                    //TODO 抽税
-                    if (!luckCfg) {
+                    if (cfg.getIsRatio() == 1) {
                         canGet = canGet * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
                     }
                     canGet += backBet;
