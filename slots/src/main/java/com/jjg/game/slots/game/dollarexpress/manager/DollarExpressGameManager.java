@@ -1,7 +1,13 @@
 package com.jjg.game.slots.game.dollarexpress.manager;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.cluster.ClusterClient;
+import com.jjg.game.common.cluster.ClusterMessage;
+import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.protostuff.MessageUtil;
+import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
@@ -21,6 +27,7 @@ import com.jjg.game.slots.game.dollarexpress.pb.DollarsInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ResultLineInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.TrainInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
+import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.sample.GameDataManager;
 import com.jjg.game.slots.sample.bean.BaseRoomCfg;
 import com.jjg.game.slots.sample.bean.PoolCfg;
@@ -58,8 +65,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     private Map<Integer, GirdUpdateConfig> girdUpdateConfigMap;
     //在替换格子时限制while最大循环次数
     private final int updateGirdWhildMaxCount = 30;
-    //选择免费类型定时任务
-    private TimerEvent<String> chooseFreeModelEvent;
 
 
     public DollarExpressGameManager() {
@@ -68,9 +73,12 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
     @Override
     public void init() {
+        log.info("启动美元快递游戏管理器...");
         this.gameType = CoreConst.GameType.DOLLAR_EXPRESS;
         this.libDao.init(this.gameType);
-        super.init();
+
+        //计算配置后缓存
+        initConfig();
         this.dollarExpressGenerate.init(this.gameType);
 //        generateLib(100000);
     }
@@ -102,11 +110,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             int reduceCount = 1;
             i++;
             try {
-                dollarExpressGenerate.generateOne();
+                List<DollarExpressResultLib> tempList = dollarExpressGenerate.generateOne();
 
-                for (Map.Entry<Integer, DollarExpressResultLib> en : dollarExpressGenerate.getBranchLibMap().entrySet()) {
-                    libList.add(en.getValue());
-                }
+                libList.addAll(tempList);
 
                 if (libList.size() >= restCount) {
                     saveCount += libDao.batchSave(libList, newDocName);
@@ -125,7 +131,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
         //加载到redis
         this.libDao.moveToRedis(newDocName, this.resultLibSectionMap);
-        specialResultLibConfig(this.gameType, true);
+        specialResultLibConfig(this.gameType,false);
+
+        //通知其他节点，结果库变更
+        notiveNodeLibChange();
 
         this.generate.compareAndSet(true, false);
         log.info("生成结果库结束，预期 {} 条，成功保存到数据库 {} 条", expectGenerateCount, saveCount);
@@ -261,8 +270,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     public DollarExpressGameRunInfo playerChooseFreeGameType(PlayerController playerController, int chooseStatus) {
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerController.playerId());
         try {
-            //删除定时任务
-            removeChooseFreeModelEvent();
             //获取玩家游戏数据
             DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
             if (playerGameData == null) {
@@ -1151,20 +1158,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
     }
 
-    //添加选择免费类型的定时任务
-    private void addChooseFreeModelEvent() {
-        this.chooseFreeModelEvent = new TimerEvent<>(this, 30, "chooseFreeModelEvent").withTimeUnit(TimeUnit.SECONDS);
-        this.timerCenter.add(this.chooseFreeModelEvent);
-    }
-
-    //移除选择免费类型的定时任务
-    private void removeChooseFreeModelEvent() {
-        if (this.chooseFreeModelEvent != null) {
-            this.timerCenter.remove(this.chooseFreeModelEvent);
-            this.chooseFreeModelEvent = null;
-        }
-    }
-
     /**
      * 计算火车是否中奖池
      *
@@ -1263,7 +1256,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             lib.setRollerId(1);
 
             if (icons) {
-                lib = dollarExpressGenerate.checkAward(testLibData.getIcons(), lib);
+                lib = dollarExpressGenerate.checkAward(testLibData.getIcons(), lib).get(0);
             } else {
                 int[] arr = new int[21];
                 int index = 1;
@@ -1360,10 +1353,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         super.onTimer(e);
     }
 
-    private void getFakePool() {
-
-    }
-
     /**
      * 将库里面的中将线信息转化为消息
      *
@@ -1447,5 +1436,32 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             trainInfo.goldList.add(gold);
         }
         return gameRunInfo;
+    }
+
+    /**
+     * 通知其他节点，结果库变更
+     */
+    private void notiveNodeLibChange(){
+        try{
+            List<ClusterClient> nodes = ClusterSystem.system.getNodesByTypeExcludeSelf(NodeType.GAME,this.gameType);
+            if(nodes.isEmpty()){
+                return;
+            }
+
+            NoticeSlotsLibChange notice = new NoticeSlotsLibChange();
+            notice.gameType = this.gameType;
+            PFMessage pfMessage = MessageUtil.getPFMessage(notice);
+            ClusterMessage msg = new ClusterMessage(pfMessage);
+            for(ClusterClient node : nodes){
+                node.write(msg);
+            }
+        }catch (Exception e){
+            log.error("",e);
+        }
+    }
+
+    @Override
+    public void shutdown() {
+        log.info("正在关闭美元快递游戏管理器");
     }
 }

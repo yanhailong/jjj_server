@@ -58,22 +58,23 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         Map<Long, Long> playerGet = new HashMap<>();
         //获取押注区域
         List<WinPosWeightCfg> weightCfgs = cfgMap.get(next);
-        Map<Integer, Map<Long, Long>> betInfo = gameDataVo.getBetInfo();
+        Map<Integer, Map<Long, List<Integer>>> betInfo = gameDataVo.getBetInfo();
         for (WinPosWeightCfg weightCfg : weightCfgs) {
             for (Integer areaId : weightCfg.getBetArea()) {
-                Map<Long, Long> playerBetInfo = betInfo.get(areaId);
+                Map<Long, List<Integer>> playerBetInfo = betInfo.get(areaId);
                 if (Objects.isNull(playerBetInfo)) {
                     continue;
                 }
-                for (Map.Entry<Long, Long> entry : playerBetInfo.entrySet()) {
+                for (Map.Entry<Long, List<Integer>> entry : playerBetInfo.entrySet()) {
                     //计算
                     Long playerId = entry.getKey();
+                    int totalBet = entry.getValue().stream().mapToInt(Integer::intValue).sum();
                     GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
                     if (gamePlayer == null) {
                         continue;
                     }
                     //返还押分
-                    long backBet = entry.getValue() * weightCfg.getReturnRate() / 10000;
+                    long backBet = (long) totalBet * weightCfg.getReturnRate() / 10000;
                     //总获得
                     long canGet = backBet * weightCfg.getOdds() / 100;
                     if (weightCfg.getIsRatio() == 1) {

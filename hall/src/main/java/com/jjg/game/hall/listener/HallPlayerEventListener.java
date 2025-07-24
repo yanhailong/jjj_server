@@ -24,9 +24,6 @@ import com.jjg.game.hall.logger.HallLogger;
 import com.jjg.game.hall.pb.GameListConfig;
 import com.jjg.game.hall.pb.ReqLogin;
 import com.jjg.game.hall.pb.ResLogin;
-import com.jjg.game.core.service.CorePlayerService;
-import com.jjg.game.core.service.PlayerSessionService;
-import com.jjg.game.hall.logger.HallLogger;
 import com.jjg.game.hall.sample.GameDataManager;
 import com.jjg.game.hall.sample.bean.GameListCfg;
 import com.jjg.game.hall.service.HallPlayerService;
@@ -36,10 +33,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 /**
@@ -47,8 +42,7 @@ import java.util.*;
  * @date 2025/5/26 16:42
  */
 @Component
-public class HallPlayerEventListener implements SessionCloseListener, SessionEnterListener, SessionLoginListener,
-    SessionLogoutListener {
+public class HallPlayerEventListener implements SessionCloseListener, SessionEnterListener, SessionLoginListener,SessionLogoutListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired

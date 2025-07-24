@@ -21,10 +21,6 @@ public class LoongTigerWarGameDataVo extends TableGameDataVo {
      * 对局历史信息(50局的)
      */
     private final List<Integer> histories = new ArrayList<>();
-    /**
-     * 各区域押注信息区域id->玩家id->押注金额
-     */
-    private final Map<Integer, Map<Long, Long>> betInfo = new ConcurrentHashMap<>();
 
     /**
      * 本局的结算信息
@@ -56,8 +52,5 @@ public class LoongTigerWarGameDataVo extends TableGameDataVo {
         return histories;
     }
 
-    public Map<Integer, Map<Long, Long>> getBetInfo() {
-        return betInfo;
-    }
 
 }

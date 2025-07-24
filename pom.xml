@@ -21,5 +21,6 @@
         <module>hall</module>
         <module>account</module>
         <module>gate</module>
+        <module>slots</module>
     </modules>
 </project>

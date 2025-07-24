@@ -55,6 +55,18 @@ public class TableGameDataVo extends GameDataVo<Room_BetCfg> {
         return areaTotal;
     }
 
+
+    public Map<Integer, Map<Long, List<Integer>>> getBetInfo() {
+        Map<Integer, Map<Long, List<Integer>>> map = new HashMap<>();
+        for (Map.Entry<Long, Map<Integer, List<Integer>>> entry : playerBetInfo.entrySet()) {
+            for (Map.Entry<Integer, List<Integer>> listEntry : entry.getValue().entrySet()) {
+                Map<Long, List<Integer>> playerBetInfo = map.computeIfAbsent(listEntry.getKey(), k -> new HashMap<>());
+                playerBetInfo.put(entry.getKey(), listEntry.getValue());
+            }
+        }
+        return map;
+    }
+
     public TableGameDataVo(Room_BetCfg roomCfg) {
         super(roomCfg);
     }
