@@ -305,15 +305,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
             AbstractRoomController<RC, R> roomController = getRoomController(playerController.getPlayer().getGameType(),
                 playerController.roomId());
             if (roomController == null) {
-                AbstractRoomDao<R, ? extends RoomPlayer> roomDao = roomController.getRoomDao();
-                boolean remove = roomDao.removePlayer(playerController.getPlayer().getGameType(),
-                    playerController.roomId(), playerController.playerId());
-                if (remove) {
-                    log.debug("强制离开房间成功, gameType = {},roomId = {},playerId = {}",
-                        playerController.getPlayer().getGameType(), playerController.roomId(),
-                        playerController.playerId());
-                    return Code.SUCCESS;
-                }
                 log.warn("退出房间失败，该房间不存在 gameType = {},roomId = {},playerId = {}",
                     playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
                 return Code.FAIL;
