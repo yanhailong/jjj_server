@@ -317,6 +317,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
             // TODO 需要添加定时 检查是否销毁房间
             // 退出房间将当前场景置为空
             playerController.setScene(null);
+            // 将玩家房间ID置为0
+            playerService.doSave(playerController.playerId(), p -> p.setRoomId(0));
             return Code.SUCCESS;
         } catch (Exception e) {
             log.error("", e);

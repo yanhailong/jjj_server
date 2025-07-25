@@ -192,13 +192,11 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         }
         // 检查下注行为
         int code = checkBetAction(robotPlayer, randomBetArea, randomGold);
-        log.info("机器人：{} 在房间：{} 场次：{} 进行押注逻辑， 押注区域：{} 押注金币：{}",
+        /*log.info("机器人：{} 在房间：{} 场次：{} 进行押注逻辑， 押注区域：{} 押注金币：{}",
             gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
-            robotPlayer.getId(), randomBetArea, randomGold);
+            robotPlayer.getId(), randomBetArea, randomGold);*/
         // 检查机器人是否下注
         if (code != Code.SUCCESS) {
-            // 不满足下注条件直接返回
-            log.debug("机器人：{} 下注失败：{}", robotPlayer.getId(), code);
             return;
         }
         Map<Integer, List<Integer>> tableBetAreaInfoMap = gameDataVo.getPlayerBetInfo(robotPlayer.getId());
@@ -297,7 +295,8 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             // 当前房间的请求的下注区的总数
             long curIdxTotalBet = gameDataVo.getAreaTotalBet(betAreaIdx);
             if (curIdxTotalBet + betValue >= roomIdxMaxLimit) {
-                log.debug("区域：{} 房间押注总和：{} 限制值：{}", betAreaCfg.getId(), curIdxTotalBet, roomIdxMaxLimit);
+                log.debug("区域：{} 房间押注总和：{} 玩家请求：{} 限制值：{}",
+                    betAreaCfg.getId(), curIdxTotalBet, betValue, roomIdxMaxLimit);
                 return Code.BET_TO_LIMIT;
             }
             // 玩家区域上限

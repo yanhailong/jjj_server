@@ -17,8 +17,7 @@ public interface RoomMessageConstant {
     interface ReqMsgBean {
         int REQ_EXIT_ROOM = BASE_ROOM_MSG_PREFIX | 0x01;
 
-        //退出游戏
-        int REQ_EXIT_GAME = BASE_ROOM_MSG_PREFIX | 0x2;
+
 
     }
 

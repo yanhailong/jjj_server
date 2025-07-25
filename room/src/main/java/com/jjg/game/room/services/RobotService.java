@@ -69,8 +69,12 @@ public class RobotService implements IRoomStartListener {
                 RobotPlayer robotPlayer = robotDao.createRobotPlayer(roomCfgId, robotId);
                 RoomCfg roomCfg = GameDataManager.getRoomCfg(roomCfgId);
                 robotPlayer.setRoomId(roomId);
+                robotPlayer.setRoomCfgId(roomCfgId);
+                robotPlayer.setNickName(robotPlayer.getNickName());
                 // 给机器人初始化数据，如果出现机器人某些数据找不到，在此处初始化
                 initialRobotData(robotPlayer, roomCfg);
+                // 回存一次数据 TODO 后续修改
+                robotDao.saveRobotPlayer(roomCfg.getId(), robotPlayer);
                 return robotPlayer;
             } finally {
                 redisLock.tryUnlock(lockKey);

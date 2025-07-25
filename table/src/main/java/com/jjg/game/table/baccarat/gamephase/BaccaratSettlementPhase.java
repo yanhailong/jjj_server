@@ -276,7 +276,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         int winRatio = gameDataVo.getRoomCfg().getWinRatio();
         // 倍率计算
         long multiAdd =
-            (long) Math.floor(betValue * weightCfg.getOdds() * ((10000 - winRatio) / 10000.0));
+            (long) Math.floor(betValue * (weightCfg.getOdds() / 100.0) * ((10000 - winRatio) / 10000.0));
         long betReturn = (long) Math.floor(betValue * (weightCfg.getReturnRate() / 10000.0));
         // 赢的总值
         long totalWin = multiAdd + betReturn;

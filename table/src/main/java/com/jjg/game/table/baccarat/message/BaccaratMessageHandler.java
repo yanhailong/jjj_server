@@ -154,10 +154,10 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         playerController.send(respJoinRoomInGame);
         // 获取当前节点
         String clusterCurrentNodePath = clusterSystem.getNodePath();
-        // 需要先将玩家从临时房间中移除
+        // 进入房间需要先将玩家从临时房间中移除
         PlayerSessionInfo playerSessionInfo = new PlayerSessionInfo();
         playerSessionInfo.setRoomCfgId(room.getRoomCfgId());
-        baccaratTempRoom.enter(playerController.getSession(), playerController, playerSessionInfo);
+        baccaratTempRoom.exit(playerController.getSession(), playerController, playerSessionInfo);
         // 如果就在当前节点
         if (clusterCurrentNodePath.equalsIgnoreCase(room.getPath())) {
             // 将玩家加入房间
@@ -186,11 +186,12 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         }
         int code = roomManager.exitRoom(playerController);
         playerController.send(new RespExitRoomInGame(code));
+        log.debug("玩家请求退出百家乐房间，code: {}", code);
         if (code == Code.SUCCESS) {
             // 需要先将玩家加入临时房间中
             PlayerSessionInfo playerSessionInfo = new PlayerSessionInfo();
             playerSessionInfo.setRoomCfgId(gameController.getRoom().getRoomCfgId());
-            baccaratTempRoom.exit(playerController.getSession(), playerController, playerSessionInfo);
+            baccaratTempRoom.enter(playerController.getSession(), playerController, playerSessionInfo);
         }
     }
 
