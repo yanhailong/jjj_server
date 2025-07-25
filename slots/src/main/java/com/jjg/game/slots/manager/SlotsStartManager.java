@@ -54,7 +54,7 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
         this.slotsPoolDao.initPool();
         //初始化所有游戏管理器
         initGameManager();
-//        testManager.init();
+        testManager.init();
         running = true;
     }
 

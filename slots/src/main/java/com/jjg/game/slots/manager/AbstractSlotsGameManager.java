@@ -24,10 +24,7 @@ import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SpecialResultLibCacheData;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.sample.GameDataManager;
-import com.jjg.game.slots.sample.bean.BaseLineCfg;
-import com.jjg.game.slots.sample.bean.BaseRoomCfg;
-import com.jjg.game.slots.sample.bean.SpecialGirdCfg;
-import com.jjg.game.slots.sample.bean.SpecialResultLibCfg;
+import com.jjg.game.slots.sample.bean.*;
 import com.jjg.game.slots.service.SlotsPlayerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,6 +90,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     //只会记录在玩游戏时需要修改格子的配置，生成结果库的修改格子配置不会缓存
     protected Map<Integer,SpecialGirdCfg> specialGirdCfgMap;
 
+    //大奖展示倍数区间
+    protected Map<Integer,int[]> bigWinShowMap = null;
+
     public AbstractSlotsGameManager(Class<T> playerGameDataClass) {
         this.playerGameDataClass = playerGameDataClass;
     }
@@ -112,6 +112,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         baseLineConfig(this.gameType);
         specialResultLibConfig(this.gameType,true);
         specialGirdConfig(this.gameType);
+        globalConfig(this.gameType);
         log.info("配置重新计算结束 gameType = {}", this.gameType);
     }
 
@@ -511,6 +512,23 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         }
     }
 
+    protected void globalConfig(int gameType) {
+        Map<Integer,int[]> tmpBigWinShowMap = new HashMap<>();
+
+        calGlobalBigWinShow(SlotsConst.GlobalConfig.ID_SWEET,tmpBigWinShowMap);
+        calGlobalBigWinShow(SlotsConst.GlobalConfig.ID_BIG,tmpBigWinShowMap);
+        calGlobalBigWinShow(SlotsConst.GlobalConfig.ID_MEGA,tmpBigWinShowMap);
+        calGlobalBigWinShow(SlotsConst.GlobalConfig.ID_EPIC,tmpBigWinShowMap);
+        calGlobalBigWinShow(SlotsConst.GlobalConfig.ID_LEGENDARY,tmpBigWinShowMap);
+        this.bigWinShowMap = tmpBigWinShowMap;
+    }
+
+    protected void calGlobalBigWinShow(int id,Map<Integer,int[]> map) {
+        GolbalConfigCfg cfg = GameDataManager.getGolbalConfigCfg(id);
+        String[] arr = cfg.getValue().trim().split(",");
+        map.put(id,new int[]{Integer.parseInt(arr[0]),Integer.parseInt(arr[1])});
+    }
+
     public int getGameType() {
         return gameType;
     }
@@ -604,6 +622,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             baseLineConfig(this.gameType);
         }else if(SpecialGirdCfg.class.getSimpleName().equals(className)){
             specialGirdConfig(this.gameType);
+        }else if(GolbalConfigCfg.class.getSimpleName().equals(className)){
+            globalConfig(this.gameType);
         }
     }
 
@@ -640,4 +660,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
     }
 
+    protected int getBigShowIdByTimes(int times){
+        if(times < 1){
+            return 0;
+        }
+        Map.Entry<Integer, int[]> e = this.bigWinShowMap.entrySet().stream().filter(en -> times >= en.getValue()[0] && times < en.getValue()[1]).findFirst().orElse(null);
+        return e == null ? 0 : e.getKey();
+    }
 }

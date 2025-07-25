@@ -12,7 +12,7 @@ import com.jjg.game.slots.sample.bean.PoolCfg;
  * @excelName Pool.xlsx
  * @sheetName Pool
  * @author auto_generator
- * @date 2025年07月22日 10:35:35
+ * @date 2025年07月25日 16:02:56
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class PoolCfgContainer extends BaseCfgContainer<PoolCfg> {

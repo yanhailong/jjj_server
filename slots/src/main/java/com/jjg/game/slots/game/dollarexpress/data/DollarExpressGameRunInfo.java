@@ -56,6 +56,8 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
     private List<Integer> choosableAreas;
     //地图
     private boolean allAreaUnLock;
+    //大奖展示id
+    private int bigShowId;
 
 
     public DollarExpressGameRunInfo(int code, long playerId) {
@@ -266,5 +268,13 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
 
     public void setAllAreaUnLock(boolean allAreaUnLock) {
         this.allAreaUnLock = allAreaUnLock;
+    }
+
+    public int getBigShowId() {
+        return bigShowId;
+    }
+
+    public void setBigShowId(int bigShowId) {
+        this.bigShowId = bigShowId;
     }
 }

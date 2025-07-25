@@ -12,7 +12,7 @@ import com.jjg.game.slots.sample.bean.BaseInitCfg;
  * @excelName BaseInit.xlsx
  * @sheetName BaseInit
  * @author auto_generator
- * @date 2025年07月22日 10:35:35
+ * @date 2025年07月25日 16:02:56
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseInitCfgContainer extends BaseCfgContainer<BaseInitCfg> {

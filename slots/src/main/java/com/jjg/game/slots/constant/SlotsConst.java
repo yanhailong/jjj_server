@@ -61,6 +61,24 @@ public interface SlotsConst {
         int TYPE_PLAY_MAP = 3;
     }
 
+    interface GlobalConfig{
+        int ID_VIP_OPEN_MAX_LEVEL = 1;
+        int ID_BASE_EXP = 2;
+        int ID_SWEET = 6;
+        int ID_BIG = 7;
+        int ID_MEGA = 8;
+        int ID_EPIC = 9;
+        int ID_LEGENDARY = 10;
+    }
+
+    interface BigWinShow{
+        int SWEET = 1;
+        int BIG = 2;
+        int MEGA = 3;
+        int EPIC = 4;
+        int LEGENDARY = 5;
+    }
+
     interface SpecialAuxiliary{
         //免费旋转
         int TYPE_FREE_ROLL = 0;

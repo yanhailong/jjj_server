@@ -23,10 +23,7 @@ import com.jjg.game.slots.game.dollarexpress.pb.TrainInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.sample.GameDataManager;
-import com.jjg.game.slots.sample.bean.BaseRoomCfg;
-import com.jjg.game.slots.sample.bean.PoolCfg;
-import com.jjg.game.slots.sample.bean.SpecialGirdCfg;
-import com.jjg.game.slots.sample.bean.SpecialResultLibCfg;
+import com.jjg.game.slots.sample.bean.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -227,25 +224,34 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 Iterator<Map.Entry<Integer, Long>> it = gameRunInfo.getSmallPoolRewardMap().entrySet().iterator();
                 while (it.hasNext()) {
                     Map.Entry<Integer, Long> en = it.next();
-                    CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getWareId(), en.getValue(), "SLOTS_TRAIN_" + en.getKey());
+                    long addGold = en.getValue();
+                    CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getWareId(), addGold, "SLOTS_TRAIN_" + en.getKey());
                     if (!result.success()) {
                         log.warn("从小池子给玩家添加金币失败 gameType = {},poolId = {}", this.gameType, en.getKey());
                         it.remove();
                         continue;
                     }
                     player = result.data;
+                    gameRunInfo.addAllWinGold(addGold);
                 }
 
                 gameRunInfo = addTrainPoolGold(gameRunInfo);
             }
 
+            //添加美元收集进度
             gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
 
+            //玩家当前金币
             if (player == null) {
                 player = slotsPlayerService.get(playerGameData.playerId());
             }
-
             gameRunInfo.setAfterGold(player.getGold());
+
+            //添加大奖展示id
+            int times = (int)(gameRunInfo.getAllWinGold() / playerGameData.getLastStake());
+            gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
+
+            //发送日志
             logger.gameResult(player, gameRunInfo);
             return gameRunInfo;
         } catch (Exception e) {

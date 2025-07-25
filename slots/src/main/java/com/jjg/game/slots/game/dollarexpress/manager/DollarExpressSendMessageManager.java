@@ -107,6 +107,8 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
             //投资小游戏
             res.choosableAreas = gameRunInfo.getChoosableAreas();
+            //大奖展示id
+            res.bigWinShow = gameRunInfo.getBigShowId();
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }

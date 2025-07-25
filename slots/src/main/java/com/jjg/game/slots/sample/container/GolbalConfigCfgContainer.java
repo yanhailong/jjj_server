@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.slots.sample.bean.SpecialPlayCfg;
+import com.jjg.game.slots.sample.bean.GolbalConfigCfg;
 
 /**
- * SpecialPlay.xlsx配置管理容器
+ * golbal.xlsx配置管理容器
  *
- * @excelName SpecialPlay.xlsx
- * @sheetName SpecialPlay
+ * @excelName golbal.xlsx
+ * @sheetName GolbalConfig
  * @author auto_generator
  * @date 2025年07月25日 16:02:56
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class SpecialPlayCfgContainer extends BaseCfgContainer<SpecialPlayCfg> {
+public class GolbalConfigCfgContainer extends BaseCfgContainer<GolbalConfigCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -28,23 +28,23 @@ public class SpecialPlayCfgContainer extends BaseCfgContainer<SpecialPlayCfg> {
   }
 
   @Override
-  public SpecialPlayCfgContainer getNewContainer(){
-    return new SpecialPlayCfgContainer();
+  public GolbalConfigCfgContainer getNewContainer(){
+    return new GolbalConfigCfgContainer();
   }
 
-  public SpecialPlayCfgContainer() {
+  public GolbalConfigCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("SpecialPlay.xlsx");
+    excelNameList.add("golbal.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected SpecialPlayCfg createNewBean() {
-    return new SpecialPlayCfg();
+  protected GolbalConfigCfg createNewBean() {
+    return new GolbalConfigCfg();
   }
 }

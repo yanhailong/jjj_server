@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年07月22日 10:35:35
+ * @date 2025年07月25日 16:02:56
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -126,6 +126,7 @@ public class GameDataManager {
     containerMap.put(BaseRollerCfg.class, new BaseRollerCfgContainer());
     containerMap.put(BaseRollerModeCfg.class, new BaseRollerModeCfgContainer());
     containerMap.put(BaseRoomCfg.class, new BaseRoomCfgContainer());
+    containerMap.put(GolbalConfigCfg.class, new GolbalConfigCfgContainer());
     containerMap.put(PoolCfg.class, new PoolCfgContainer());
     containerMap.put(SpecialAuxiliaryAwardCfg.class, new SpecialAuxiliaryAwardCfgContainer());
     containerMap.put(SpecialAuxiliaryCfg.class, new SpecialAuxiliaryCfgContainer());
@@ -620,6 +621,17 @@ public class GameDataManager {
 
   public static List<BaseRoomCfg> getBaseRoomCfgList() {
     return getInstance().getCfgContainer(BaseRoomCfg.class).getCfgBeanList();
+  }
+  public static GolbalConfigCfg getGolbalConfigCfg(int key) {
+    return getInstance().getCfgContainer(GolbalConfigCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, GolbalConfigCfg> getGolbalConfigCfgMap() {
+    return getInstance().getCfgContainer(GolbalConfigCfg.class).getCfgBeanMap();
+  }
+
+  public static List<GolbalConfigCfg> getGolbalConfigCfgList() {
+    return getInstance().getCfgContainer(GolbalConfigCfg.class).getCfgBeanList();
   }
   public static PoolCfg getPoolCfg(int key) {
     return getInstance().getCfgContainer(PoolCfg.class).getCfgBeanMap().get(key);
