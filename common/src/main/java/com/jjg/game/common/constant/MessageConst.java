@@ -137,6 +137,13 @@ public interface MessageConst {
         int NOTICE_MONEY_CHANGE = BASE_MSG_PREFIX | 0x99;
     }
 
+    interface RoomMessage {
+        int BASE_MSG_PREFIX = MessageTypeDef.ROOM_TYPE << MessageCommon.RIGHT_MOVE;
+        //退出游戏
+        int REQ_EXIT_GAME = BASE_MSG_PREFIX | 0x2;
+        int RES_EXIT_GAME = BASE_MSG_PREFIX | 0x3;
+    }
+
     /**
      * 服务器之间
      */

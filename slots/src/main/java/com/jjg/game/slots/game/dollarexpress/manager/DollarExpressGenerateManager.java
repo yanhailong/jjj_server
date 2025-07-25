@@ -717,6 +717,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             tempLib.setRollerId(appointRoller);
             tempLib.setLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
             slotsResultLib.setLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD);
+            libList.add(tempLib);
         } else {
             tempLib = slotsResultLib;
         }
@@ -827,13 +828,13 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         //火车
         int trainTimes = calTrainTimes(lib.getTrainList());
         if (trainTimes > 0) {
-            lib.addTimes(0);
-            lib.setLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
+            lib.addTimes(trainTimes);
+//            lib.setLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
         }
 
         //免费游戏
         if (lib.getFreeGameMap() != null && !lib.getFreeGameMap().isEmpty()) {
-            lib.setLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE);
+//            lib.setLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE);
             for (Map.Entry<Integer, DollarExpressFreeGame> en : lib.getFreeGameMap().entrySet()) {
                 DollarExpressFreeGame game = en.getValue();
                 //中奖线
@@ -860,7 +861,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 trainTimes = calTrainTimes(game.getTrainList());
                 if (trainTimes > 0) {
                     game.addTimes(trainTimes);
-                    lib.setLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
+//                    lib.setLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
                 }
 
                 //黄金列车

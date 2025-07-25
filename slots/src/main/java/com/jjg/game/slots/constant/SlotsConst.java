@@ -97,7 +97,7 @@ public interface SlotsConst {
         int TYPE_TRAIN = 2;
         //黄金列车
         int TYPE_GOLD_TRAIN = 3;
-        //二选一
+        //二选一触发局
         int TYPE_ALL_BOARD = 4;
 
         //二选一之免费
