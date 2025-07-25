@@ -77,7 +77,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
         // 检查是否是合法押注
         int checkRes = checkBetAction(gamePlayer, reqBetBeans);
-        log.info("玩家：{} 请求下注，下注数据：{}", playerController.playerId(), JSON.toJSONString(reqBet));
+        log.info("玩家：{} 请求下注，下注数据：{}, checkRes：{}", playerController.playerId(), JSON.toJSONString(reqBet), checkRes);
         if (checkRes != Code.SUCCESS) {
             notifyPlayerBet.code = checkRes;
             playerController.send(notifyPlayerBet);
@@ -181,7 +181,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
      */
     protected void doRobotBet(GameRobotPlayer robotPlayer, BetRobotCfg betRobotCfg) {
         // 随机一个押注区域
-        int randomBetArea = RandomUtils.randomByWeightList(betRobotCfg.getBettingArea()) % 10;
+        int randomBetArea = robotRandomBetArea(betRobotCfg);
         // 随机押注金额
         int randomGoldIdx = RandomUtils.randomByWeightList(betRobotCfg.getBetChips());
         List<Integer> betList = gameDataVo.getRoomCfg().getBetList();
@@ -226,6 +226,13 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         gameDataVo.updatePlayerBetInfo(robotPlayer.getId(), tableBetAreaInfoMap);
         // 添加timer
         addRobotBetActionTimer(betRobotCfg, robotPlayer);
+    }
+
+    /**
+     * 给机器人随机一个区域
+     */
+    protected int robotRandomBetArea(BetRobotCfg betRobotCfg) {
+        return RandomUtils.randomByWeightList(betRobotCfg.getBettingArea());
     }
 
     /**
@@ -303,7 +310,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             }
             if (playerBetTotal + betValue >= playerIdxMaxLimit) {
                 log.debug("区域：{} 玩家押注总和：{}  当前下注：{} 限制值：{}",
-                    betAreaCfg.getId(), playerBetTotal, playerBetTotal, playerIdxMaxLimit);
+                    betAreaCfg.getId(), playerBetTotal, betValue, playerIdxMaxLimit);
                 return Code.BET_TO_LIMIT;
             }
             totalBetValue += betValue;
