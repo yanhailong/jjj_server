@@ -32,9 +32,11 @@ public class ResStartGame extends AbstractResponse {
     @ProtoDesc("剩余免费次数")
     public int remainFreeCount;
     @ProtoDesc("投资可选区域，只有当触发投资游戏后才会有值")
-    public int choosableAreas;
+    public List<Integer> choosableAreas;
     @ProtoDesc("玩家当前金币")
     public long allGold;
+    @ProtoDesc("大奖展示  1.sweet   2.big   3.mega  4.epic  5.legendary")
+    public long bigWinShow;
 
     public ResStartGame(int code) {
         super(code);
