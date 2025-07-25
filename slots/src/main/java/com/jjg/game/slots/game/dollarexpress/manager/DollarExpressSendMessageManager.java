@@ -1,5 +1,6 @@
 package com.jjg.game.slots.game.dollarexpress.manager;
 
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
@@ -105,7 +106,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             res.totalDollars = gameRunInfo.getTotalDollars();
             res.remainFreeCount = gameRunInfo.getRemainFreeCount();
             //投资小游戏
-            res.choosableAreas = gameRunInfo.getChoosableAreas();
+            res.choosableAreas = gameRunInfo.getChoosableAreas() == null || gameRunInfo.getChoosableAreas().isEmpty() ? 0 : gameRunInfo.getChoosableAreas().get(RandomUtils.randomInt(gameRunInfo.getChoosableAreas().size()));
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }

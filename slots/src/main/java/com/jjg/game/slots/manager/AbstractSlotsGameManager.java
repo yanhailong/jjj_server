@@ -1,6 +1,13 @@
 package com.jjg.game.slots.manager;
 
+import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.cluster.ClusterClient;
+import com.jjg.game.common.cluster.ClusterMessage;
+import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsCurator;
+import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.protostuff.MessageUtil;
+import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
@@ -14,6 +21,8 @@ import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.PropInfo;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
+import com.jjg.game.slots.data.SpecialResultLibCacheData;
+import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.sample.GameDataManager;
 import com.jjg.game.slots.sample.bean.BaseLineCfg;
 import com.jjg.game.slots.sample.bean.BaseRoomCfg;
@@ -361,6 +370,47 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      * @param init 是否为初始化时调用
      */
     protected void specialResultLibConfig(int gameType,boolean init) {
+        List<SpecialResultLibCfg> cfgList = new ArrayList<>();
+        for (Map.Entry<Integer, SpecialResultLibCfg> en : GameDataManager.getSpecialResultLibCfgMap().entrySet()) {
+            SpecialResultLibCfg cfg = en.getValue();
+            if (cfg.getGameType() != gameType) {
+                continue;
+            }
+            cfgList.add(cfg);
+        }
+
+        SpecialResultLibCacheData data = calSpecialResultLibCacheData(cfgList);
+        if(data == null){
+            log.debug("计算分析缓存 specialResultLib 配置失败 gameType = {},init = {}", gameType,init);
+            return;
+        }
+
+        //如果不是初始化，并且配置是区间变化
+        //就要重新将mongodb的结果集加载到redis，并且通知其他节点
+        if(!init && !compareSectionMap(data.getResultLibSectionMap(),this.resultLibSectionMap)){
+            String docName = getResultLibDao().getCurrentMongoLibName();
+            getResultLibDao().moveToRedis(docName,data.getResultLibSectionMap());
+            noticeNodeLibChange(0,cfgList);
+        }
+
+        updateSpecialResultLibCacheData(data);
+    }
+
+    public void updateSpecialResultLibCacheData(SpecialResultLibCacheData data){
+        this.defaultRewardSectionIndex = data.getDefaultRewardSectionIndex();
+        this.resultLibMap = data.getResultLibMap();
+        this.resultLibTypePropInfoMap = data.getResultLibTypePropInfoMap();
+        this.resultLibSectionPropMap = data.getResultLibSectionPropMap();
+        this.resultLibSectionMap = data.getResultLibSectionMap();
+    }
+
+    /**
+     * 计算分析specialResultLib表
+     */
+    public SpecialResultLibCacheData calSpecialResultLibCacheData(List<SpecialResultLibCfg> cfgList) {
+        if(cfgList == null || cfgList.isEmpty()){
+            return null;
+        }
         Map<Integer, SpecialResultLibCfg> tempLibCfgMap = new HashMap<>();
         Map<Integer, PropInfo> tempResultLibTypePropInfoMap = new HashMap<>();
 
@@ -369,11 +419,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
         int tmpDefaultRewardSectionIndex = -1;
 
-        for (Map.Entry<Integer, SpecialResultLibCfg> en : GameDataManager.getSpecialResultLibCfgMap().entrySet()) {
-            SpecialResultLibCfg cfg = en.getValue();
-            if (cfg.getGameType() != gameType) {
-                continue;
-            }
+        for (SpecialResultLibCfg cfg : cfgList) {
             tempLibCfgMap.put(cfg.getModelId(), cfg);
 
             //计算typeProp
@@ -437,21 +483,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             throw new IllegalArgumentException("该游戏specialResultLib 中没有配置0倍区间 gameType = " + gameType);
         }
 
-        //如果是初始化或者没有修改区间，直接赋值
-        //如果修改了区间，要重新将mongodb里面的结果集分配到redis
-        if(!init && !compareSectionMap(tempResultLibSectionMap, this.resultLibSectionMap)){
-            if(!marsCurator.master(this.gameType)){
-                return;
-            }
-            String currentMongoLibName = getResultLibDao().getCurrentMongoLibName();
-            getResultLibDao().moveToRedis(currentMongoLibName,tempResultLibSectionPropMap);
-        }
-
-        this.defaultRewardSectionIndex = tmpDefaultRewardSectionIndex;
-        this.resultLibMap = tempLibCfgMap;
-        this.resultLibTypePropInfoMap = tempResultLibTypePropInfoMap;
-        this.resultLibSectionPropMap = tempResultLibSectionPropMap;
-        this.resultLibSectionMap = tempResultLibSectionMap;
+        SpecialResultLibCacheData data = new SpecialResultLibCacheData();
+        data.setDefaultRewardSectionIndex(tmpDefaultRewardSectionIndex);
+        data.setResultLibMap(tempLibCfgMap);
+        data.setResultLibTypePropInfoMap(tempResultLibTypePropInfoMap);
+        data.setResultLibSectionPropMap(tempResultLibSectionPropMap);
+        data.setResultLibSectionMap(tempResultLibSectionMap);
+        return data;
     }
 
     protected void specialGirdConfig(int gameType) {
@@ -566,6 +604,35 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             baseLineConfig(this.gameType);
         }else if(SpecialGirdCfg.class.getSimpleName().equals(className)){
             specialGirdConfig(this.gameType);
+        }
+    }
+
+    /**
+     * 通知其他节点，结果库变更
+     */
+    protected void noticeNodeLibChange(int changeType,List<SpecialResultLibCfg> cfgList){
+        try{
+            List<ClusterClient> nodes = ClusterSystem.system.getNodesByTypeExcludeSelf(NodeType.GAME,this.gameType);
+            if(nodes.isEmpty()){
+                return;
+            }
+
+            List<String> tmpList = new ArrayList<>();
+            cfgList.forEach(cfg -> {
+                tmpList.add(JSON.toJSONString(cfg));
+            });
+
+            NoticeSlotsLibChange notice = new NoticeSlotsLibChange();
+            notice.gameType = this.gameType;
+            notice.changeType = changeType;
+            notice.libCfgList = tmpList;
+            PFMessage pfMessage = MessageUtil.getPFMessage(notice);
+            ClusterMessage msg = new ClusterMessage(pfMessage);
+            for(ClusterClient node : nodes){
+                node.write(msg);
+            }
+        }catch (Exception e){
+            log.error("",e);
         }
     }
 

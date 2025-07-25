@@ -117,17 +117,15 @@ public class MarsCurator implements TreeCacheListener {
 
             Map<Integer, String> pathMap = new HashMap<>();
             if (NodeType.GAME.name().equals(nodeConfig.getType())) {
-                int[] gameTypes = nodeConfig.getGameTypes();
-                if (gameTypes == null || gameTypes.length < 1) {
-                    log.warn("选举主节点失败,gameTypes错误 nodeName = {},nodeType = {},gameTypes={}", nodeConfig.getName(),
-                        nodeConfig.getType(), gameTypes == null ? 0 : gameTypes.length);
+                int[] gameMajorTypes = nodeConfig.getGameMajorTypes();
+                if (gameMajorTypes == null || gameMajorTypes.length < 1) {
+                    log.warn("选举主节点失败,gameMajorTypes 错误 nodeName = {},nodeType = {},gameMajorTypes={}", nodeConfig.getName(),nodeConfig.getType(), gameMajorTypes == null ? 0 : gameMajorTypes.length);
                     return;
                 }
 
-                for (int i = 0; i < gameTypes.length; i++) {
-                    String path =
-                        mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType() + "/" + gameTypes[i];
-                    pathMap.put(gameTypes[i], path);
+                for (int i = 0; i < gameMajorTypes.length; i++) {
+                    String path = mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType() + "/" + gameMajorTypes[i];
+                    pathMap.put(gameMajorTypes[i], path);
                 }
             } else if (NodeType.HALL.name().equals(nodeConfig.getType())) {
                 String path = mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType();
@@ -492,18 +490,17 @@ public class MarsCurator implements TreeCacheListener {
 
                 NodeConfig anotherNodeConfig = JSONObject.parseObject(data, NodeConfig.class);
 
-                if (anotherNodeConfig.getGameTypes() != null && anotherNodeConfig.getGameTypes().length > 0
-                    && this.nodeConfig.getGameTypes() != null && this.nodeConfig.getGameTypes().length > 0) {
-                    for (int anotherGameType : anotherNodeConfig.getGameTypes()) {
-                        for (int thisGameType : this.nodeConfig.getGameTypes()) {
-                            if (anotherGameType == thisGameType) {
+                if (anotherNodeConfig.getGameMajorTypes() != null && anotherNodeConfig.getGameMajorTypes().length > 0
+                    && this.nodeConfig.getGameMajorTypes() != null && this.nodeConfig.getGameMajorTypes().length > 0) {
+                    for (int anotherGameMajorType : anotherNodeConfig.getGameMajorTypes()) {
+                        for (int thisGameMajorType : this.nodeConfig.getGameMajorTypes()) {
+                            if (anotherGameMajorType == thisGameMajorType) {
                                 return true;
                             }
                         }
                     }
                 }
-                log.debug("这个节点不需要缓存  anotherNodeName={},gameTypes={}", anotherNodeConfig.getName(),
-                    Arrays.toString(anotherNodeConfig.getGameTypes()));
+                log.debug("这个节点不需要缓存  anotherNodeName={},gameMajorTypes={}", anotherNodeConfig.getName(),Arrays.toString(anotherNodeConfig.getGameMajorTypes()));
                 return false;
             } else if (NodeType.GM.name().equals(nodeType)) {
                 //网关不需要和gm连接
@@ -530,9 +527,9 @@ public class MarsCurator implements TreeCacheListener {
                 if (!StringUtils.isNumeric(startStr)) {
                     return false;
                 }
-                Integer gameType = Integer.parseInt(startStr);
-                for (int thisGameType : this.nodeConfig.getGameTypes()) {
-                    if (gameType == thisGameType) {
+                Integer gameMajorType = Integer.parseInt(startStr);
+                for (int thisGameMajorType : this.nodeConfig.getGameMajorTypes()) {
+                    if (gameMajorType == thisGameMajorType) {
                         return true;
                     }
                 }

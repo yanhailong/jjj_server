@@ -1,11 +1,28 @@
 package com.jjg.game.core.constant;
 
+import com.jjg.game.common.utils.CommonUtil;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * 游戏常量
  * @author 11
  * @date 2025/5/26 11:28
  */
 public class GameConstant {
+    //游戏主分类 -> 游戏列表
+    public static final Map<Integer, List<EGameType>> MAJOR_TYPE_ID_SET = new HashMap<>();
+
+    static {
+        for (EGameType value : EGameType.values()) {
+            int majorType = CommonUtil.getMajorTypeByGameType(value.getGameTypeId());
+            MAJOR_TYPE_ID_SET.computeIfAbsent(majorType, k -> new ArrayList<>()).add(value);
+        }
+    }
+
     public class Common{
         //redisLock重试次数
         public static final int REDIS_LOCK_TRY_COUNT = 5;
@@ -21,6 +38,8 @@ public class GameConstant {
         //最大房间id
         public static final int ROOM_ID_MAX = 999999;
     }
+
+
 
 
     public interface Redis {

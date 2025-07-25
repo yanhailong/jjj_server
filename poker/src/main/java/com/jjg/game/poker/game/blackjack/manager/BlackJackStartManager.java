@@ -21,11 +21,6 @@ public class BlackJackStartManager implements IRoomStartListener {
     private BlackJackSampleManager blackJackSampleManager;
 
     @Override
-    public int[] getGameTypes() {
-        return BlackJackConstant.GameType.SUPPORT_GAME_TYPES;
-    }
-
-    @Override
     public void start() {
         log.info("正在启动21点游戏...");
 

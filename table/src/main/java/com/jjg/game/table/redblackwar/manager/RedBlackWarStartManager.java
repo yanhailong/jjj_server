@@ -20,11 +20,6 @@ public class RedBlackWarStartManager implements IRoomStartListener {
     private RedBlackWarSampleManager sampleManager;
 
     @Override
-    public Integer[] getGameTypes() {
-        return RedBlackWarConstant.GameType.SUPPORT_GAME_TYPES;
-    }
-
-    @Override
     public void start() {
         log.info("正在启动红黑大战游戏...");
         sampleManager.initSampleConfig();

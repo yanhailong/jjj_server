@@ -12,6 +12,7 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.CommonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -212,12 +213,13 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
      */
     public ClusterClient randClientByType(NodeType nodeType, int gameType) {
         String nodeTypeStr = nodeType.toString();
+        int gameMajorType = CommonUtil.getMajorTypeByGameType(gameType);
         Map.Entry<MarsNode, ClusterClient> en = clusterClientMap.entrySet().stream().filter(e -> {
             if (nodeTypeStr.equals(e.getValue().getType())) {
-                int[] gameTypes = e.getValue().nodeConfig.gameTypes;
-                if (gameTypes != null && gameTypes.length > 0) {
-                    for (int gType : gameTypes) {
-                        if (gType == gameType) {
+                int[] gameMajorTypes = e.getValue().nodeConfig.gameMajorTypes;
+                if (gameMajorTypes != null && gameMajorTypes.length > 0) {
+                    for (int mType : gameMajorTypes) {
+                        if (mType == gameMajorType) {
                             return true;
                         }
                     }
@@ -321,13 +323,15 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     public List<ClusterClient> getNodesByType(NodeType nodeType, int gameType,boolean excludeSelf) {
         List<ClusterClient> clusterClients = new ArrayList<>();
         String name = nodeType.toString();
+
+        int gameMajorType = CommonUtil.getMajorTypeByGameType(gameType);
         for (Map.Entry<MarsNode, ClusterClient> en : clusterClientMap.entrySet()) {
             ClusterClient client = en.getValue();
             if (!name.equals(client.getType())) {
                 continue;
             }
 
-            if (client.nodeConfig.gameTypes == null || client.nodeConfig.gameTypes.length < 1) {
+            if (client.nodeConfig.gameMajorTypes == null || client.nodeConfig.gameMajorTypes.length < 1) {
                 continue;
             }
 
@@ -336,8 +340,8 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
                 continue;
             }
 
-            for (int gType : client.nodeConfig.gameTypes) {
-                if (gType != gameType) {
+            for (int mType : client.nodeConfig.gameMajorTypes) {
+                if (mType != gameMajorType) {
                     continue;
                 }
                 clusterClients.add(client);
@@ -372,18 +376,19 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
      */
     public boolean hasNodes(NodeType nodeType, int gameType) {
         String name = nodeType.toString();
+        int gameMajorType = CommonUtil.getMajorTypeByGameType(gameType);
         return clusterClientMap.entrySet().stream().anyMatch(en -> {
             if (!name.equals(en.getValue().getType())) {
                 return false;
             }
 
-            int[] gameTypes = en.getValue().nodeConfig.gameTypes;
-            if (gameTypes == null || gameTypes.length < 1) {
+            int[] gameMajorTypes = en.getValue().nodeConfig.gameMajorTypes;
+            if (gameMajorTypes == null || gameMajorTypes.length < 1) {
                 return false;
             }
 
-            for (int gType : gameTypes) {
-                if (gType == gameType) {
+            for (int mType : gameMajorTypes) {
+                if (mType == gameMajorType) {
                     return true;
                 }
             }
@@ -401,18 +406,19 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     public Map<String, ClusterClient> getNodesMapByType(NodeType nodeType, int gameType) {
         Map<String, ClusterClient> map = new HashMap<>();
         String name = nodeType.toString();
+        int gameMajorType = CommonUtil.getMajorTypeByGameType(gameType);
         for (Map.Entry<MarsNode, ClusterClient> en : clusterClientMap.entrySet()) {
             if (!name.equals(en.getValue().getType())) {
                 continue;
             }
 
-            int[] gameTypes = en.getValue().nodeConfig.gameTypes;
-            if (gameTypes == null || gameTypes.length < 1) {
+            int[] gameMajorTypes = en.getValue().nodeConfig.gameMajorTypes;
+            if (gameMajorTypes == null || gameMajorTypes.length < 1) {
                 continue;
             }
 
-            for (int gType : gameTypes) {
-                if (gType != gameType) {
+            for (int mType : gameMajorTypes) {
+                if (mType != gameMajorType) {
                     continue;
                 }
                 map.put(en.getKey().getNodePath(), en.getValue());

@@ -10,11 +10,6 @@ import org.springframework.stereotype.Component;
 public class BaccaratStartManager implements IRoomStartListener {
 
     @Override
-    public Integer[] getGameTypes() {
-        return new Integer[]{200500};
-    }
-
-    @Override
     public void start() {
 
     }

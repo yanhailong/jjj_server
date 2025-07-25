@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.monitor.FileLoader;
 import com.jjg.game.common.monitor.FileMonitor;
+import com.jjg.game.common.utils.CommonUtil;
 import org.apache.commons.lang3.StringUtils;
 import com.jjg.game.common.cluster.ClusterHelper;
 import com.jjg.game.common.config.NodeConfig;
@@ -210,6 +211,9 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
         }
         List<MarsNode> list = new ArrayList<>();
         List<MarsNode> preciselist = new ArrayList<>();
+
+        int gameMajorType = CommonUtil.getMajorTypeByGameType(gameType);
+
         for (MarsNode node : marsNodeList) {
             NodeConfig nodeConfig = node.getNodeConfig();
             if (nodeConfig == null) {
@@ -221,7 +225,7 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
             if (nodeConfig.weight < 1) {
                 continue;
             }
-            if (!has(nodeConfig.gameTypes, gameType)) {
+            if (!has(nodeConfig.gameMajorTypes, gameMajorType)) {
                 continue;
             }
             if ((nodeConfig.whiteIdList == null || nodeConfig.whiteIdList.length == 0) && (nodeConfig.whiteIpList == null || nodeConfig.whiteIpList.length == 0)) {

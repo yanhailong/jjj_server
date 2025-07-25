@@ -21,8 +21,8 @@ public class NodeConfig {
     protected NetAddress tcpAddress;
     //节点web服务地址
     protected NetAddress httpAddress;
-    //该节点支持的游戏类型
-    public int[] gameTypes;
+    //该节点支持的游戏主分类
+    public int[] gameMajorTypes;
     //节点权重
     public int weight = 2;
     //IP白名单
@@ -80,12 +80,12 @@ public class NodeConfig {
         this.type = type;
     }
 
-    public int[] getGameTypes() {
-        return gameTypes;
+    public int[] getGameMajorTypes() {
+        return gameMajorTypes;
     }
 
-    public void setGameTypes(int[] gameTypes) {
-        this.gameTypes = gameTypes;
+    public void setGameMajorTypes(int[] gameMajorTypes) {
+        this.gameMajorTypes = gameMajorTypes;
     }
 
     public int getWeight() {

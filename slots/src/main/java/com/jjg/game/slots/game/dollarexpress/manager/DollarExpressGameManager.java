@@ -107,10 +107,11 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         int restCount = Math.min(count, 100);
 
         while (count > 0) {
-            int reduceCount = 1;
+            int reduceCount = 0;
             i++;
             try {
                 List<DollarExpressResultLib> tempList = dollarExpressGenerate.generateOne();
+                reduceCount = tempList.size();
 
                 libList.addAll(tempList);
 
@@ -134,7 +135,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         specialResultLibConfig(this.gameType,false);
 
         //通知其他节点，结果库变更
-        notiveNodeLibChange();
+        noticeNodeLibChange(1,Collections.EMPTY_LIST);
 
         this.generate.compareAndSet(true, false);
         log.info("生成结果库结束，预期 {} 条，成功保存到数据库 {} 条", expectGenerateCount, saveCount);
@@ -1436,28 +1437,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             trainInfo.goldList.add(gold);
         }
         return gameRunInfo;
-    }
-
-    /**
-     * 通知其他节点，结果库变更
-     */
-    private void notiveNodeLibChange(){
-        try{
-            List<ClusterClient> nodes = ClusterSystem.system.getNodesByTypeExcludeSelf(NodeType.GAME,this.gameType);
-            if(nodes.isEmpty()){
-                return;
-            }
-
-            NoticeSlotsLibChange notice = new NoticeSlotsLibChange();
-            notice.gameType = this.gameType;
-            PFMessage pfMessage = MessageUtil.getPFMessage(notice);
-            ClusterMessage msg = new ClusterMessage(pfMessage);
-            for(ClusterClient node : nodes){
-                node.write(msg);
-            }
-        }catch (Exception e){
-            log.error("",e);
-        }
     }
 
     @Override
