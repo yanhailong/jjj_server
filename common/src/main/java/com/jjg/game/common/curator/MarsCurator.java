@@ -133,8 +133,8 @@ public class MarsCurator implements TreeCacheListener {
             }
 
             for (Map.Entry<Integer, String> en : pathMap.entrySet()) {
-                int gameChildType = en.getKey();
-                masterMap.put(gameChildType, new AtomicBoolean());
+                int gameMajorType = en.getKey();
+                masterMap.put(gameMajorType, new AtomicBoolean());
 
                 String path = en.getValue();
 
@@ -143,38 +143,38 @@ public class MarsCurator implements TreeCacheListener {
                 latch.addListener(new LeaderLatchListener() {
                     @Override
                     public void isLeader() {
-                        masterMap.computeIfPresent(gameChildType, (k, v) -> {
+                        masterMap.computeIfPresent(gameMajorType, (k, v) -> {
                             v.set(true);
                             return v;
                         });
                         Map<String, IGameClusterLeaderListener>
                             listenerMap = CommonUtil.getContext().getBeansOfType(IGameClusterLeaderListener.class);
                         try {
-                            listenerMap.values().forEach(listener -> listener.isLeader(gameChildType));
+                            listenerMap.values().forEach(listener -> listener.isLeader(gameMajorType));
                         } catch (Exception e) {
-                            log.error("游戏节点：{} 游戏类型：{} 在选举成master时调用监听器发生异常", path, gameChildType, e);
+                            log.error("游戏节点：{} 游戏主类型：{} 在选举成master时调用监听器发生异常", path, gameMajorType, e);
                         }
                         nodeConfig.setWeight(1);
                         nodeManager.update();
                         log.info("该节点被选举为主节点 nodeName = {},nodeType = {},gameChildType={},wight={}",
-                            nodeConfig.getName(), nodeConfig.getType(), gameChildType, nodeConfig.weight);
+                            nodeConfig.getName(), nodeConfig.getType(), gameMajorType, nodeConfig.weight);
                     }
 
                     @Override
                     public void notLeader() {
-                        masterMap.computeIfPresent(gameChildType, (k, v) -> {
+                        masterMap.computeIfPresent(gameMajorType, (k, v) -> {
                             v.set(false);
                             return v;
                         });
                         Map<String, IGameClusterLeaderListener>
                             listenerMap = CommonUtil.getContext().getBeansOfType(IGameClusterLeaderListener.class);
                         try {
-                            listenerMap.values().forEach(listener -> listener.notLeader(gameChildType));
+                            listenerMap.values().forEach(listener -> listener.notLeader(gameMajorType));
                         } catch (Exception e) {
-                            log.error("游戏节点：{} 游戏类型：{} 在变成非master节点时调用监听器发生异常", path, gameChildType, e);
+                            log.error("游戏节点：{} 游戏主类型：{} 在变成非master节点时调用监听器发生异常", path, gameMajorType, e);
                         }
                         log.info("该节点离开，失去主节点身份 nodeName = {},gameChildType={},nodeType = {}", nodeConfig.getName(),
-                            gameChildType, nodeConfig.getType());
+                                gameMajorType, nodeConfig.getType());
                     }
                 });
                 latch.start();
@@ -404,11 +404,12 @@ public class MarsCurator implements TreeCacheListener {
     /**
      * 该节点是不是主节点, 如果是大厅则传入大厅的value值，如果是游戏的话则传入游戏类型
      */
-    public boolean master(int gameChildType) {
-        if (!masterMap.containsKey(gameChildType)) {
+    public boolean master(int gameType) {
+        int gameMajorType = CommonUtil.getMajorTypeByGameType(gameType);
+        if (!masterMap.containsKey(gameMajorType)) {
             return false;
         }
-        return masterMap.get(gameChildType).get();
+        return masterMap.get(gameMajorType).get();
     }
 
     public NetAddress getStartClientNetAddress() {
