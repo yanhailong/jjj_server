@@ -3,6 +3,7 @@ package com.jjg.game.table.baccarat.message;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author Administrator
@@ -49,6 +51,9 @@ public class BaccaratMessageBuilder {
         NotifyBaccaratTableSummary notifyBaccaratTableSummary =
             BaccaratMessageBuilder.buildBaccaratSingleSummaryInfo(gameController);
         int roomCfgId = gameController.getGameDataVo().getRoomCfg().getId();
+        String playerIds =
+            baccaratTempRoom.getBaccaratObserverPlayers(roomCfgId).values().stream().map(PlayerController::playerId).map(String::valueOf).collect(Collectors.joining(","));
+        log.debug("临时房间：{} 中的人：{}", gameController.getGameDataVo().getRoomCfg().getId(), playerIds);
         baccaratTempRoom.getBaccaratObserverPlayers(roomCfgId).values()
             .forEach(playerController -> playerController.send(notifyBaccaratTableSummary));
     }
