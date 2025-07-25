@@ -24,7 +24,7 @@ import java.util.Objects;
  * @author Administrator
  */
 public abstract class AbstractRoomPhase<RC extends RoomCfg, G extends GameDataVo<RC>> implements IRoomPhase {
-    private static final Logger log = LoggerFactory.getLogger(AbstractRoomPhase.class);
+    protected static final Logger log = LoggerFactory.getLogger(AbstractRoomPhase.class);
     // 游戏维护的游戏数据
     protected G gameDataVo;
     // 游戏控制器
