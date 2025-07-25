@@ -5,11 +5,14 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.sample.bean.BetRobotCfg;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
 import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratBetStart;
+import com.jjg.game.table.betsample.sample.GameDataManager;
+import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
 import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
 import com.jjg.game.table.common.message.req.ReqBet;
 import com.jjg.game.table.common.message.bean.ReqBetBean;
@@ -43,6 +46,22 @@ public class BaccaratTableBetPhase extends BaseTableBetPhase<BaccaratGameDataVo>
         broadcastMsgToRoom(baccaratTableInfo);
         // 通知所有观察者
         BaccaratMessageBuilder.notifyObserversOnPhaseChange((BaccaratGameController) gameController);
+    }
+
+    @Override
+    protected int robotRandomBetArea(BetRobotCfg betRobotCfg) {
+        return super.robotRandomBetArea(betRobotCfg) % 10;
+    }
+
+    /**
+     * 返回押注区域配置
+     */
+    @Override
+    protected Map<Integer, BetAreaCfg> getBetAreaCfgMap() {
+        return GameDataManager.getBetAreaCfgList()
+            .stream()
+            .filter(betRobotCfg -> betRobotCfg.getGameID() == gameController.gameControlType().getGameTypeId())
+            .collect(HashMap::new, (map, cfg) -> map.put(cfg.getAreaID() % 10, cfg), HashMap::putAll);
     }
 
     @Override

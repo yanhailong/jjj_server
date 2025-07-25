@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author 11
@@ -47,7 +48,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
     public void init() {
         Map<String, IPlayerRoomEventListener> listenerMap =
-            CommonUtil.getContext().getBeansOfType(IPlayerRoomEventListener.class);
+                CommonUtil.getContext().getBeansOfType(IPlayerRoomEventListener.class);
         for (Map.Entry<String, IPlayerRoomEventListener> en : listenerMap.entrySet()) {
             int[] arr = en.getValue().getGameTypes();
             if (arr != null && arr.length > 0) {
@@ -58,7 +59,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
         }
 
         Map<String, AbstractRoomManager> roomManagerMap =
-            CommonUtil.getContext().getBeansOfType(AbstractRoomManager.class);
+                CommonUtil.getContext().getBeansOfType(AbstractRoomManager.class);
         for (Map.Entry<String, AbstractRoomManager> en : roomManagerMap.entrySet()) {
             this.roomManager = en.getValue();
             break;
@@ -70,10 +71,9 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
         PlayerController playerController = (PlayerController) session.getReference();
         if (playerController == null) {
             log.warn("玩家退出游戏服务器时 playerController 为空,playerId={},sessionId={}", session.getPlayerId(),
-                session.sessionId());
+                    session.sessionId());
             return;
         }
-
         PlayerSessionInfo info = playerSessionService.getInfo(playerController.playerId());
         if (info == null) {
             log.warn("玩家退出游戏服务器时 PlayerSessionInfo 为空 playerId = {}", playerController.playerId());
@@ -85,15 +85,6 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             return;
         }
 
-        IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());
-        if (playerRoomEventListener == null) {
-            log.warn("玩家退出游戏服务器时未找到 playerRoomEventListener, playerId = {},gameType = {}",
-                playerController.playerId(), info.getGameType());
-            return;
-        }
-
-        playerRoomEventListener.exit(session, playerController, info);
-
         playerSessionService.offline(playerController.playerId(), 0, 0, 0, 0);
         // 调用房间Controller的offline消息
         Object scene = playerController.getScene();
@@ -103,7 +94,18 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             //  ，是否在需要完成整局再退出房间
             abstractRoomController.playerOffline(playerController);
         }
+
+        IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());
+        if (Objects.nonNull(playerRoomEventListener)) {
+            playerRoomEventListener.exit(session, playerController, info);
+        } else {
+            log.warn("玩家退出游戏服务器时未找到 playerRoomEventListener, playerId = {},gameType = {}",
+                    playerController.playerId(), info.getGameType());
+        }
+        playerRoomEventListener.exit(session, playerController, info);
+
         logger.exitGame(playerController.getPlayer(), info.getGameType());
+
     }
 
     @Override
@@ -121,7 +123,6 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 log.warn("sessionEnter时 PlayerSessionInfo 中的gameType小于1 playerId = {}", playerId);
                 return;
             }
-
 
 
             final PlayerSessionInfo tempInfo = info;

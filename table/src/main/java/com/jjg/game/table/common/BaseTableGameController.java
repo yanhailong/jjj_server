@@ -12,9 +12,6 @@ import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 
-import java.util.List;
-import java.util.Map;
-
 /**
  * table类房间基类
  *

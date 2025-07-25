@@ -18,6 +18,7 @@ import com.jjg.game.table.redblackwar.message.resp.NotifyRedBlackWarSettleInfo;
 import com.jjg.game.table.redblackwar.room.data.RedBlackWarGameDataVo;
 import com.jjg.game.table.redblackwar.room.manager.RedBlackWarRoomGameController;
 import com.jjg.game.table.redblackwar.util.CardComparatorUtil;
+import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,10 +63,10 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
             result = CardComparatorUtil.compareCards(redCard.toArray(new Card[0]), blackCard.toArray(new Card[0]), redHandType);
         }
         //押注信息
-        Map<Integer, Map<Long, Long>> betInfo = gameDataVo.getBetInfo();
+        Map<Integer, Map<Long, List<Integer>>> betInfo = gameDataVo.getBetInfo();
         boolean luckBet;
         Map<RedBlackWarConstant.Camp, Map<HandType, List<WinPosWeightCfg>>> winMap = redBlackWarSampleManager.getWinMap();
-        Map<Long, Long> playerGet = new HashMap<>();
+        Map<Long, DefaultKeyValue<Long,Long>> playerGet = new HashMap<>();
         List<WinPosWeightCfg> weightCfgList;
         if (result > 0) {
             //红方胜利
@@ -86,17 +87,18 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                 continue;
             }
             //获取押注玩家
-            Map<Long, Long> betMap = betInfo.get(betAreaCfg.getId());
+            Map<Long, List<Integer>> betMap = betInfo.get(betAreaCfg.getId());
             if (Objects.nonNull(betMap)) {
                 //计算奖励
-                for (Map.Entry<Long, Long> entry : betMap.entrySet()) {
+                for (Map.Entry<Long, List<Integer>> entry : betMap.entrySet()) {
                     Long playerId = entry.getKey();
+                    int totalBet = entry.getValue().stream().mapToInt(Integer::intValue).sum();
                     GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
                     if (gamePlayer == null) {
                         continue;
                     }
                     //返还押分
-                    long backBet = entry.getValue() * cfg.getReturnRate() / 10000;
+                    long backBet = (long) totalBet * cfg.getReturnRate() / 10000;
                     //总获得
                     long canGet = backBet * cfg.getOdds() / 100;
                     if (cfg.getIsRatio() == 1) {
@@ -104,7 +106,9 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                     }
                     canGet += backBet;
                     gamePlayer.setGold(canGet + gamePlayer.getGold());
-                    playerGet.merge(playerId, canGet, Long::sum);
+                    DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId, key -> new DefaultKeyValue<>(0L, 0L));
+                    keyValue.setKey(keyValue.getKey() + totalBet);
+                    keyValue.setValue(keyValue.getValue() + canGet);
                 }
             }
         }
@@ -127,7 +131,8 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         //更新记录
         for (GamePlayer gamePlayer : gameDataVo.getGamePlayerMap().values()) {
             TablePlayerGameData tableGameData = gamePlayer.getTableGameData();
-            long getGold = playerGet.getOrDefault(gamePlayer.getId(), 0L);
+            DefaultKeyValue<Long, Long> keyValue = playerGet.get(gamePlayer.getId());
+            long getGold = keyValue == null ? 0 : keyValue.getValue() - keyValue.getKey();
             tableGameData.addBetRecord(getGold);
         }
         //发送通知

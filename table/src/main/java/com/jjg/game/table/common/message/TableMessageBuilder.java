@@ -11,6 +11,7 @@ import com.jjg.game.table.common.message.res.NotifyPhaseChangInfo;
 import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
 import com.jjg.game.table.common.message.bean.TablePlayerInfo;
+import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
 
 import java.util.*;
 
@@ -113,7 +114,7 @@ public class TableMessageBuilder {
         List<GamePlayer> sortedPlayersByGold =
                 dataVo.getGamePlayerMap().values().stream().sorted(Comparator.comparingLong(Player::getGold).reversed())
                         .limit(7).toList();
-        infoChange.totalPlayerNum = sortedPlayersByGold.size();
+        infoChange.totalPlayerNum = dataVo.getGamePlayerMap().size();
         for (GamePlayer gamePlayer : sortedPlayersByGold) {
             TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(gamePlayer);
             infoChange.tableChangedPlayerInfos.add(tablePlayerInfo);
@@ -126,12 +127,14 @@ public class TableMessageBuilder {
      *
      * @param playerGet 结算的玩家获得的金币
      */
-    public static List<PlayerChangedGold> getPlayerSettleInfos(Map<Long, Long> playerGet) {
+    public static List<PlayerChangedGold> getPlayerSettleInfos(Map<Long, DefaultKeyValue<Long, Long>> playerGet) {
         List<PlayerChangedGold> settleInfoArrayList = new ArrayList<>();
-        for (Map.Entry<Long, Long> entry : playerGet.entrySet()) {
+        for (Map.Entry<Long, DefaultKeyValue<Long, Long>> entry : playerGet.entrySet()) {
             PlayerChangedGold info = new PlayerChangedGold();
-            info.playerWinGold = entry.getValue();
+            DefaultKeyValue<Long, Long> keyValue = entry.getValue();
+            info.playerWinGold = keyValue.getValue()-keyValue.getKey();
             info.playerId = entry.getKey();
+            info.playerBetGold = keyValue.getKey();
             settleInfoArrayList.add(info);
         }
         return settleInfoArrayList;

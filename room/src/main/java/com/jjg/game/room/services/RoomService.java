@@ -1,6 +1,7 @@
 package com.jjg.game.room.services;
 
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.protostuff.PFSession;
@@ -20,9 +21,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 房间服务器
@@ -41,11 +42,10 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
     private RobotService robotService;
     @Autowired
     private ClusterSystem clusterSystem;
+    @Autowired
+    private NodeConfig nodeConfig;
+
     private boolean isInitialed = false;
-    /**
-     * 当前节点是某些主节点游戏类型
-     */
-    private final Set<Integer> masterGameTypes = new CopyOnWriteArraySet<>();
 
 
     /**
@@ -69,10 +69,18 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
      * 服务器启动时检查房间创建房间并初始化
      */
     private void checkCreateRoomAndInit() throws Exception {
+        Map<Integer, EGameType> availableGames = getAvailableGames();
+        // 没有可用的直接退出
+        if (availableGames == null || availableGames.isEmpty()) {
+            return;
+        }
+        String openedGames =
+            availableGames.values().stream().map(EGameType::getGameDesc).collect(Collectors.joining(","));
+        log.info("准备开始初始化游戏房间【{}】", openedGames);
         List<WarehouseCfg> warehouseCfgs =
             GameDataManager.getWarehouseCfgList()
                 .stream()
-                .filter(warehouseCfg -> masterGameTypes.contains(warehouseCfg.getGameID()))
+                .filter(warehouseCfg -> availableGames.containsKey(warehouseCfg.getGameID()))
                 .toList();
         if (warehouseCfgs.isEmpty()) {
             return;
@@ -92,6 +100,26 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
             }
         }
         isInitialed = true;
+    }
+
+    /**
+     * 获取当前服务器可用的游戏类型
+     */
+    public Map<Integer, EGameType> getAvailableGames() {
+        Set<EGameType> availableTypes = roomManager.getGameAvailableTypes();
+        if (availableTypes.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Integer, EGameType> availableTypeMap =
+            availableTypes.stream().collect(HashMap::new, (map, e) -> map.put(e.getGameTypeId(), e), HashMap::putAll);
+        Map<Integer, EGameType> availableGameMap = new HashMap<>();
+        int[] configGameTypes = nodeConfig.getGameTypes();
+        for (int configGameType : configGameTypes) {
+            if (availableTypeMap.containsKey(configGameType)) {
+                availableGameMap.put(configGameType, availableTypeMap.get(configGameType));
+            }
+        }
+        return availableGameMap;
     }
 
     /**
@@ -189,9 +217,6 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
     @Override
     public void isLeader(int gameType) {
         log.debug("当前游戏类型：{} 节点：{} 选举为master节点", gameType, clusterSystem.getNodePath());
-        masterGameTypes.add(gameType);
-        // 如果节点选举在Spring执行start方法之后会出问题，所以手动调用一次
-        start();
     }
 
     @Override
