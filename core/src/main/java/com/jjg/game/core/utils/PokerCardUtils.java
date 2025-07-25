@@ -3,6 +3,7 @@ package com.jjg.game.core.utils;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.RandomUtils;
 
+import javax.smartcardio.Card;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -95,16 +96,16 @@ public class PokerCardUtils {
         int point = RandomUtils.randomNum(2, POKER_POINT_K + 1);
         List<EPokerSuit> ePokerSuits = RandomUtils.randomEleList(SUIT_LIST, 2);
         if (type == 3) {
-            return Pair.newPair(ePokerSuits.get(0).suitId * POKER_POINT_K + point,
-                ePokerSuits.get(1).suitId * POKER_POINT_K + point);
+            return Pair.newPair(getCardId(ePokerSuits.get(0), point), (getCardId(ePokerSuits.get(1), point)));
         }
         int nextPoint = RandomUtils.randomNum(1, point);
-        return type == 1 ? Pair.newPair(ePokerSuits.get(0).suitId * POKER_POINT_K + point,
-            ePokerSuits.get(1).suitId * POKER_POINT_K + nextPoint)
-            : Pair.newPair(ePokerSuits.get(0).suitId * POKER_POINT_K + nextPoint,
-            ePokerSuits.get(1).suitId * POKER_POINT_K + point);
+        return type == 1 ? Pair.newPair(getCardId(ePokerSuits.get(0), point), getCardId(ePokerSuits.get(1), nextPoint))
+                : Pair.newPair(getCardId(ePokerSuits.get(0), nextPoint), getCardId(ePokerSuits.get(1), point));
     }
 
+    public static int getCardId(EPokerSuit suit, int point) {
+        return (suit.suitId - 1) * POKER_POINT_K + point;
+    }
 
     /**
      * 通过牌ID获取可读的字符串列表
@@ -131,7 +132,7 @@ public class PokerCardUtils {
             EPokerHumanStr ePokerHumanStr = EPokerHumanStr.getPokerHumanStrById(pointId);
             EPokerSuit ePokerSuit = getSuit(cardId);
             return (ePokerHumanStr == null ? "" : ePokerHumanStr.getHumanStr()) +
-                (ePokerSuit == null ? "" : ePokerSuit.getSuitName());
+                    (ePokerSuit == null ? "" : ePokerSuit.getSuitName());
         }).collect(Collectors.joining(","));
     }
 
