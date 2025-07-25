@@ -117,6 +117,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         }
         // TODO 扣除玩家金币
         gamePlayer.setGold(gamePlayer.getGold() - playerTotalBetGold);
+        gamePlayer.getTableGameData().addTotalBet(playerTotalBetGold);
         notifyPlayerBet.playerCurGold = gamePlayer.getGold();
         // 向房间广播下注改变信息
         broadcastMsgToRoom(notifyPlayerBet);
