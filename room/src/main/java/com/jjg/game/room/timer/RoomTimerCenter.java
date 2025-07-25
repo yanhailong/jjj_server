@@ -57,6 +57,10 @@ public class RoomTimerCenter extends BaseTimerCenter<RoomTimerEvent<IProcessorHa
                 array.remove(event);
                 continue;
             }
+            // 跳过还在执行中的任务
+            if (event.isInFire()) {
+                continue;
+            }
             long roomId = event.getRoomId();
             // 如果房间销毁则不执行定时任务
             if (roomId <= 0) {

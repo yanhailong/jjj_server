@@ -2,17 +2,22 @@ package com.jjg.game.table.animals;
 
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.BetTableRoom;
-import com.jjg.game.core.data.Room;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.animals.data.AnimalsGameDataVo;
+import com.jjg.game.table.animals.gamephase.AnimalsBetPhase;
+import com.jjg.game.table.animals.gamephase.AnimalsSettlementPhase;
+import com.jjg.game.table.animals.gamephase.AnimalsWaitReadyPhase;
 import com.jjg.game.table.common.BaseTableGameController;
 
 import java.util.LinkedHashSet;
 
 /**
+ * 飞禽走兽游戏控制器
+ *
  * @author 2CL
  */
 public class AnimalsGameController extends BaseTableGameController<AnimalsGameDataVo> {
@@ -22,18 +27,27 @@ public class AnimalsGameController extends BaseTableGameController<AnimalsGameDa
     }
 
     @Override
+    public void sendRoomInitInfo(PlayerController playerController) {
+
+    }
+
+    @Override
     protected boolean isGameOverAfterPhaseOver() {
         return false;
     }
 
     @Override
     protected LinkedHashSet<IRoomPhase> initGamePhaseConf() {
-        return null;
+        LinkedHashSet <IRoomPhase> roomPhases = new LinkedHashSet<>();
+        roomPhases.add(new AnimalsWaitReadyPhase(this));
+        roomPhases.add(new AnimalsBetPhase(this));
+        roomPhases.add(new AnimalsSettlementPhase(this));
+        return roomPhases;
     }
 
     @Override
     protected AnimalsGameDataVo copyRoomDataVo(GameDataVo<Room_BetCfg> roomData) {
-        return null;
+        return new AnimalsGameDataVo(roomData.getRoomCfg());
     }
 
     @Override
@@ -43,7 +57,7 @@ public class AnimalsGameController extends BaseTableGameController<AnimalsGameDa
 
     @Override
     public EGameType gameControlType() {
-        return null;
+        return EGameType.BIRDS_ANIMAL;
     }
 
     @Override

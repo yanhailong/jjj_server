@@ -45,4 +45,14 @@ public interface IRoomPhase {
     }
 
     EGamePhase getGamePhase();
+
+    /**
+     * 回合计数器
+     */
+    void setRoundCounter(int roundCounter);
+
+    /**
+     * 回合计数器
+     */
+    int getRoundCounter();
 }

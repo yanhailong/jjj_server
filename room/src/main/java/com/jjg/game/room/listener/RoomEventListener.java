@@ -92,7 +92,9 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             // 房间进入断线流程，
             // TODO 考虑保存玩家的数据在内存中，如果有自动托管逻辑，可以使用LRU保存一定的玩家。如果没有需要判断玩家当前处于具体游戏的哪个阶段
             //  ，是否在需要完成整局再退出房间
-            abstractRoomController.playerOffline(playerController);
+            // abstractRoomController.playerOffline(playerController);
+            // TODO 先让玩家直接退出，后续添加断线重连逻辑
+            roomManager.exitRoom(playerController);
         }
 
         IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());
@@ -150,7 +152,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());
             if (playerRoomEventListener == null) {
                 log.warn("sessionEnter时 未找到 playerRoomEventListener, playerId = {},gameType = {}", playerId,
-                        info.getGameType());
+                    info.getGameType());
                 return;
             }
             playerRoomEventListener.enter(session, playerController, info);

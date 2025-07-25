@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 抽象游戏流程控制器
@@ -44,6 +45,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     private LinkedHashSet<IRoomPhase> gamePhases;
     // 当前的游戏阶段
     protected IRoomPhase currentGamePhase;
+    // 阶段运行计数器
+    protected AtomicInteger roundCounter = new AtomicInteger(0);
     // 游戏阶段的迭代器,在每个游戏结束时进行重置
     private Iterator<IRoomPhase> gamePhaseIterator;
     // 游戏是否开始
@@ -62,6 +65,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         LinkedHashSet<IRoomPhase> initedGamePhaseConf = initGamePhaseConf();
         log.info("{} 启动加载: {} 个阶段逻辑", this.getClass().getSimpleName(), initedGamePhaseConf.size());
         gamePhases = initedGamePhaseConf;
+        roundCounter.set(0);
         // 初始化迭代器
         gamePhaseIterator = gamePhases.iterator();
         // 标记房间开始运行
@@ -79,8 +83,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         if (gamePhaseIterator.hasNext() && gameStarted) {
             // 当前的游戏阶段
             currentGamePhase = gamePhaseIterator.next();
-            log.debug("房间ID: {} 游戏ID: {} 游戏类型: {} 当前阶段：{} 开始运行",
-                gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
+            currentGamePhase.setRoundCounter(roundCounter.get());
+            log.debug("[{}] 房间ID: {} 游戏ID: {} 游戏类型: {} 当前阶段：{} 开始运行",
+                currentGamePhase.getRoundCounter(), gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
                 gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());
             // 执行当前阶段的逻辑
             currentGamePhase.phaseDoAction();
@@ -91,8 +96,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 () -> {
                     // 定时器时间到,调用结束逻辑
                     currentGamePhase.phaseFinish();
-                    log.debug("房间ID: {} 游戏ID: {} 游戏类型: {} 阶段：{} 运行结束",
-                        gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
+                    log.debug("[{}] 房间ID: {} 游戏ID: {} 游戏类型: {} 阶段：{} 运行结束",
+                        currentGamePhase.getRoundCounter(), gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
                         gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());
                     // 如果有绑定的下一个阶段可以切换到
                     IRoomPhase bindNextPhase = currentGamePhase.bindNextPhase();
@@ -129,6 +134,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         } else {
             // 初始化迭代器
             gamePhaseIterator = gamePhases.iterator();
+            // 回合计数++
+            roundCounter.incrementAndGet();
             // 自动进入下一轮
             autoRunGamePhase();
         }
@@ -167,8 +174,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 玩家发送房间初始信息
      */
-    public void sendRoomInitInfo(PlayerController playerController) {
-    }
+    public abstract void sendRoomInitInfo(PlayerController playerController);
 
     /**
      * 在单个游戏阶段结束后，判断房间是否全部结束
@@ -270,6 +276,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         if (event == null || event.getParameter() == null) {
             return;
         }
+        /*if(gamePhaseTimeEvent != event) {
+            log.error("房间定时器异常：{} ", ExceptionUtils.currentThreadTraces());
+        }*/
         if (event instanceof RoomPhaseTimeEvent<?, ?> roomPhaseTimeEvent) {
             // 当前房间阶段
             EGamePhase curGamePhase = currentGamePhase.getGamePhase();
