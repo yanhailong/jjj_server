@@ -117,17 +117,15 @@ public class MarsCurator implements TreeCacheListener {
 
             Map<Integer, String> pathMap = new HashMap<>();
             if (NodeType.GAME.name().equals(nodeConfig.getType())) {
-                int[] gameTypes = nodeConfig.getGameTypes();
-                if (gameTypes == null || gameTypes.length < 1) {
-                    log.warn("选举主节点失败,gameTypes错误 nodeName = {},nodeType = {},gameTypes={}", nodeConfig.getName(),
-                        nodeConfig.getType(), gameTypes == null ? 0 : gameTypes.length);
+                int[] gameMajorTypes = nodeConfig.getGameMajorTypes();
+                if (gameMajorTypes == null || gameMajorTypes.length < 1) {
+                    log.warn("选举主节点失败,gameMajorTypes 错误 nodeName = {},nodeType = {},gameMajorTypes={}", nodeConfig.getName(),nodeConfig.getType(), gameMajorTypes == null ? 0 : gameMajorTypes.length);
                     return;
                 }
 
-                for (int i = 0; i < gameTypes.length; i++) {
-                    String path =
-                        mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType() + "/" + gameTypes[i];
-                    pathMap.put(gameTypes[i], path);
+                for (int i = 0; i < gameMajorTypes.length; i++) {
+                    String path = mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType() + "/" + gameMajorTypes[i];
+                    pathMap.put(gameMajorTypes[i], path);
                 }
             } else if (NodeType.HALL.name().equals(nodeConfig.getType())) {
                 String path = mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType();
@@ -135,8 +133,8 @@ public class MarsCurator implements TreeCacheListener {
             }
 
             for (Map.Entry<Integer, String> en : pathMap.entrySet()) {
-                int gameChildType = en.getKey();
-                masterMap.put(gameChildType, new AtomicBoolean());
+                int gameMajorType = en.getKey();
+                masterMap.put(gameMajorType, new AtomicBoolean());
 
                 String path = en.getValue();
 
@@ -145,38 +143,38 @@ public class MarsCurator implements TreeCacheListener {
                 latch.addListener(new LeaderLatchListener() {
                     @Override
                     public void isLeader() {
-                        masterMap.computeIfPresent(gameChildType, (k, v) -> {
+                        masterMap.computeIfPresent(gameMajorType, (k, v) -> {
                             v.set(true);
                             return v;
                         });
                         Map<String, IGameClusterLeaderListener>
                             listenerMap = CommonUtil.getContext().getBeansOfType(IGameClusterLeaderListener.class);
                         try {
-                            listenerMap.values().forEach(listener -> listener.isLeader(gameChildType));
+                            listenerMap.values().forEach(listener -> listener.isLeader(gameMajorType));
                         } catch (Exception e) {
-                            log.error("游戏节点：{} 游戏类型：{} 在选举成master时调用监听器发生异常", path, gameChildType, e);
+                            log.error("游戏节点：{} 游戏主类型：{} 在选举成master时调用监听器发生异常", path, gameMajorType, e);
                         }
                         nodeConfig.setWeight(1);
                         nodeManager.update();
                         log.info("该节点被选举为主节点 nodeName = {},nodeType = {},gameChildType={},wight={}",
-                            nodeConfig.getName(), nodeConfig.getType(), gameChildType, nodeConfig.weight);
+                            nodeConfig.getName(), nodeConfig.getType(), gameMajorType, nodeConfig.weight);
                     }
 
                     @Override
                     public void notLeader() {
-                        masterMap.computeIfPresent(gameChildType, (k, v) -> {
+                        masterMap.computeIfPresent(gameMajorType, (k, v) -> {
                             v.set(false);
                             return v;
                         });
                         Map<String, IGameClusterLeaderListener>
                             listenerMap = CommonUtil.getContext().getBeansOfType(IGameClusterLeaderListener.class);
                         try {
-                            listenerMap.values().forEach(listener -> listener.notLeader(gameChildType));
+                            listenerMap.values().forEach(listener -> listener.notLeader(gameMajorType));
                         } catch (Exception e) {
-                            log.error("游戏节点：{} 游戏类型：{} 在变成非master节点时调用监听器发生异常", path, gameChildType, e);
+                            log.error("游戏节点：{} 游戏主类型：{} 在变成非master节点时调用监听器发生异常", path, gameMajorType, e);
                         }
                         log.info("该节点离开，失去主节点身份 nodeName = {},gameChildType={},nodeType = {}", nodeConfig.getName(),
-                            gameChildType, nodeConfig.getType());
+                                gameMajorType, nodeConfig.getType());
                     }
                 });
                 latch.start();
@@ -406,11 +404,12 @@ public class MarsCurator implements TreeCacheListener {
     /**
      * 该节点是不是主节点, 如果是大厅则传入大厅的value值，如果是游戏的话则传入游戏类型
      */
-    public boolean master(int gameChildType) {
-        if (!masterMap.containsKey(gameChildType)) {
+    public boolean master(int gameType) {
+        int gameMajorType = CommonUtil.getMajorTypeByGameType(gameType);
+        if (!masterMap.containsKey(gameMajorType)) {
             return false;
         }
-        return masterMap.get(gameChildType).get();
+        return masterMap.get(gameMajorType).get();
     }
 
     public NetAddress getStartClientNetAddress() {
@@ -492,18 +491,17 @@ public class MarsCurator implements TreeCacheListener {
 
                 NodeConfig anotherNodeConfig = JSONObject.parseObject(data, NodeConfig.class);
 
-                if (anotherNodeConfig.getGameTypes() != null && anotherNodeConfig.getGameTypes().length > 0
-                    && this.nodeConfig.getGameTypes() != null && this.nodeConfig.getGameTypes().length > 0) {
-                    for (int anotherGameType : anotherNodeConfig.getGameTypes()) {
-                        for (int thisGameType : this.nodeConfig.getGameTypes()) {
-                            if (anotherGameType == thisGameType) {
+                if (anotherNodeConfig.getGameMajorTypes() != null && anotherNodeConfig.getGameMajorTypes().length > 0
+                    && this.nodeConfig.getGameMajorTypes() != null && this.nodeConfig.getGameMajorTypes().length > 0) {
+                    for (int anotherGameMajorType : anotherNodeConfig.getGameMajorTypes()) {
+                        for (int thisGameMajorType : this.nodeConfig.getGameMajorTypes()) {
+                            if (anotherGameMajorType == thisGameMajorType) {
                                 return true;
                             }
                         }
                     }
                 }
-                log.debug("这个节点不需要缓存  anotherNodeName={},gameTypes={}", anotherNodeConfig.getName(),
-                    Arrays.toString(anotherNodeConfig.getGameTypes()));
+                log.debug("这个节点不需要缓存  anotherNodeName={},gameMajorTypes={}", anotherNodeConfig.getName(),Arrays.toString(anotherNodeConfig.getGameMajorTypes()));
                 return false;
             } else if (NodeType.GM.name().equals(nodeType)) {
                 //网关不需要和gm连接
@@ -530,9 +528,9 @@ public class MarsCurator implements TreeCacheListener {
                 if (!StringUtils.isNumeric(startStr)) {
                     return false;
                 }
-                Integer gameType = Integer.parseInt(startStr);
-                for (int thisGameType : this.nodeConfig.getGameTypes()) {
-                    if (gameType == thisGameType) {
+                Integer gameMajorType = Integer.parseInt(startStr);
+                for (int thisGameMajorType : this.nodeConfig.getGameMajorTypes()) {
+                    if (gameMajorType == thisGameMajorType) {
                         return true;
                     }
                 }

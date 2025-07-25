@@ -17,4 +17,13 @@ public class CommonUtil {
     public static void setContext(ApplicationContext context) {
         CommonUtil.context = context;
     }
+
+    /**
+     * 根据gameTpye获取游戏主分类(1,2,3这种大类型)
+     * @param gameType
+     * @return
+     */
+    public static int getMajorTypeByGameType(int gameType) {
+        return gameType / 100000;
+    }
 }

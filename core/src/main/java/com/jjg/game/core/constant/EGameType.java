@@ -1,12 +1,10 @@
 package com.jjg.game.core.constant;
 
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.data.RoomType;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -54,6 +52,7 @@ public enum EGameType {
     final RoomType roomType;
     // 房间游戏类型ID Set
     static final ConcurrentHashMap<Integer, EGameType> GAME_TYPE_ID_SET = new ConcurrentHashMap<>();
+
 
     EGameType(int gameTypeId, RoomType roomType, String gameDesc) {
         this.gameTypeId = gameTypeId;

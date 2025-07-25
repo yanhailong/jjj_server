@@ -19,11 +19,6 @@ public class LoongTigerWarStartManager implements IRoomStartListener {
     LoongTigerWarSampleManager sampleManager;
 
     @Override
-    public Integer[] getGameTypes() {
-        return LoongTigerWarConstant.GameType.SUPPORT_GAME_TYPES;
-    }
-
-    @Override
     public void start() {
         log.info("正在启动龙虎斗游戏...");
         sampleManager.initSampleConfig();

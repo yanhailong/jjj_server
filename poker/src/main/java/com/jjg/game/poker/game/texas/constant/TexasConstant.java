@@ -7,10 +7,6 @@ import com.jjg.game.common.constant.CoreConst;
  * @date 2025/6/27 18:04
  */
 public interface TexasConstant {
-    interface GameType{
-        //支持的游戏
-        int[] SUPPORT_GAME_TYPES = {CoreConst.GameType.TEXAS};
-    }
 
     interface Common {
         //excel配置所在目录

@@ -6,12 +6,6 @@ package com.jjg.game.room.listener;
  */
 public interface IRoomStartListener {
     /**
-     * 获取支持的游戏类型
-     * @return
-     */
-    Integer[] getGameTypes();
-
-    /**
      * 启动
      */
     void start();

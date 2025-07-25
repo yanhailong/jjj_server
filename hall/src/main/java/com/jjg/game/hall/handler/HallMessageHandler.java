@@ -3,6 +3,7 @@ package com.jjg.game.hall.handler;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
@@ -10,6 +11,7 @@ import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
@@ -106,7 +108,7 @@ public class HallMessageHandler implements GmListener {
             int wareHouseCfgId = req.gameType * 10 + req.wareId;
             //slots类游戏没有房间
             //是不是slots游戏
-            if ((req.gameType / 100000) < 2) {
+            if (CommonUtil.getMajorTypeByGameType(req.gameType) == CoreConst.GameMajorType.SLOTS) {
                 res.code = hallRoomService.enterSlotsNode(playerController, wareHouseCfgId, req.wareId);
             } else {
                 // 进入大厅加入房间的逻辑

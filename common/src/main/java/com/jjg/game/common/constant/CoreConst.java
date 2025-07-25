@@ -1,9 +1,5 @@
 package com.jjg.game.common.constant;
 
-import com.jjg.game.common.concurrent.BaseProcessor;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * 系统级常量池
@@ -12,40 +8,20 @@ import java.util.Map;
  */
 public class CoreConst {
 
-    //游戏类型和消息类型的对应关系
-    public static final Map<Integer, Integer> gameTypeToMsgTypeMap = new HashMap<>();
 
     //场次id
     public static final int[] WARE_IDS = {1, 2, 3};
 
-    static {
-        gameTypeToMsgTypeMap.put(GameType.DOLLAR_EXPRESS, MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.WOODS_MAN, MessageConst.MessageTypeDef.WOODS_MAN_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.SUPER_STAR, MessageConst.MessageTypeDef.SUPER_STAR_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.BUFFALO_WEALTH, MessageConst.MessageTypeDef.BUFFALO_WEALTH_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.FIRE_CAR, MessageConst.MessageTypeDef.FIRE_CAR_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.WOMAN_GOD, MessageConst.MessageTypeDef.WOMAN_GOD_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.MAHJIONG_WIN, MessageConst.MessageTypeDef.MAHJIONG_WIN_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.FORTUNE_CAT, MessageConst.MessageTypeDef.FORTUNE_CAT_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.PIRATES_CARIBBEAN, MessageConst.MessageTypeDef.PIRATES_CARIBBEAN_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.APPLE_FRUITS, MessageConst.MessageTypeDef.APPLE_FRUITS_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.APPLE_ANIMAL, MessageConst.MessageTypeDef.APPLE_ANIMAL_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.GOLD_CITY, MessageConst.MessageTypeDef.GOLD_CITY_TYPE);
-
-        gameTypeToMsgTypeMap.put(GameType.RED_BLACK_WAR, MessageConst.MessageTypeDef.RED_BLACK_WAR_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.LOONG_TIGER_WAR, MessageConst.MessageTypeDef.LOONG_TIGER_WAR_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.CATCH_FISH, MessageConst.MessageTypeDef.CATCH_FISH_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.BIRDS_ANIMAL, MessageConst.MessageTypeDef.BIRDS_ANIMAL_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.GOOD_CAR_CLUB, MessageConst.MessageTypeDef.GOOD_CAR_CLUB_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.BACCARAT, MessageConst.MessageTypeDef.BACCARAT_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.DICE_BABY, MessageConst.MessageTypeDef.DICE_BABY_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.VIETNAM_SEXY_DISK, MessageConst.MessageTypeDef.VIETNAM_SEXY_DISK_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.SIZE_DICE_BABY, MessageConst.MessageTypeDef.SIZE_DICE_BABY_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.FISH_SHRIMP_CRAB, MessageConst.MessageTypeDef.FISH_SHRIMP_CRAB_TYPE);
-
-        gameTypeToMsgTypeMap.put(GameType.BLACK_JACK, MessageConst.MessageTypeDef.BLACK_JACK_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.TEXAS, MessageConst.MessageTypeDef.TEXAS_TYPE);
-        gameTypeToMsgTypeMap.put(GameType.VEGAS_THREE, MessageConst.MessageTypeDef.VEGAS_THREE_TYPE);
+    /**
+     * 游戏主分类
+     */
+    public static class GameMajorType{
+        //slots类游戏
+        public static final int SLOTS = 1;
+        //押注类游戏
+        public static final int TABLE = 2;
+        //扑克类游戏
+        public static final int POKER = 3;
     }
 
     public static class GameType {

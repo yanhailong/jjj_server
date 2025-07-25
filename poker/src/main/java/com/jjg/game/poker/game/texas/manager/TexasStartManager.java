@@ -21,11 +21,6 @@ public class TexasStartManager implements IRoomStartListener {
     private TexasSampleManager texasSampleManager;
 
     @Override
-    public int[] getGameTypes() {
-        return TexasConstant.GameType.SUPPORT_GAME_TYPES;
-    }
-
-    @Override
     public void start() {
         log.info("正在启动德州游戏...");
 

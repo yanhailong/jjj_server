@@ -1,6 +1,8 @@
 package com.jjg.game.room.manager;
 
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AbstractRoomDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.room.dao.AbstractGoldRoomDao;
@@ -44,26 +46,28 @@ public class AbstractGoldRoomManager extends AbstractRoomManager {
         try {
             log.debug("系统开始清除房间");
 
-            if (nodeConfig.getGameTypes() == null || nodeConfig.getGameTypes().length == 0) {
-                log.debug("该程序设置的支持游戏类型为空，清除房间失败");
-                return;
-            }
-
-            for (int gameType : nodeConfig.getGameTypes()) {
-                AbstractRoomDao<Room, ? extends RoomPlayer> roomDao = getRoomDao(gameType);
-                for (int wareId : CoreConst.WARE_IDS) {
-                    List<Object> allRoomIds = roomDao.getAllRoomIds(gameType, wareId);
-                    if (allRoomIds == null || allRoomIds.isEmpty()) {
+            for (int gameMajorType : nodeConfig.getGameMajorTypes()) {
+                List<EGameType> list = GameConstant.MAJOR_TYPE_ID_SET.get(gameMajorType);
+                for(EGameType eGameType : list){
+                    AbstractRoomDao<Room, ? extends RoomPlayer> roomDao = getRoomDao(eGameType.getGameTypeId());
+                    if(roomDao == null){
                         continue;
                     }
-                    for (Object obj : allRoomIds) {
-                        int roomId = Integer.parseInt(obj.toString());
-                        Long res = roomDao.removeRoom(gameType, roomId, wareId);
-                        if (res != null && res > 0) {
-                            log.info("成功清除房间 gameType = {},roomId = {}", gameType, roomId);
+                    for (int wareId : CoreConst.WARE_IDS) {
+                        List<Object> allRoomIds = roomDao.getAllRoomIds(eGameType.getGameTypeId(), wareId);
+                        if (allRoomIds == null || allRoomIds.isEmpty()) {
+                            continue;
+                        }
+                        for (Object obj : allRoomIds) {
+                            int roomId = Integer.parseInt(obj.toString());
+                            Long res = roomDao.removeRoom(eGameType.getGameTypeId(), roomId, wareId);
+                            if (res != null && res > 0) {
+                                log.info("成功清除房间 gameType = {},roomId = {}", eGameType.getGameTypeId(), roomId);
+                            }
                         }
                     }
                 }
+
             }
         } catch (Exception e) {
             log.error("", e);

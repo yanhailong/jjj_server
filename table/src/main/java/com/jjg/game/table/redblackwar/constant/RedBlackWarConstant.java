@@ -7,10 +7,6 @@ import com.jjg.game.common.constant.CoreConst;
  * @date 2025/6/27 17:55
  */
 public interface RedBlackWarConstant {
-    interface GameType {
-        //支持的游戏
-        Integer[] SUPPORT_GAME_TYPES = {CoreConst.GameType.RED_BLACK_WAR};
-    }
 
     interface Common {
         //excel配置所在目录
