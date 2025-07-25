@@ -18,6 +18,7 @@ import com.jjg.game.table.redblackwar.message.resp.NotifyRedBlackWarSettleInfo;
 import com.jjg.game.table.redblackwar.room.data.RedBlackWarGameDataVo;
 import com.jjg.game.table.redblackwar.room.manager.RedBlackWarRoomGameController;
 import com.jjg.game.table.redblackwar.util.CardComparatorUtil;
+import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +66,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         Map<Integer, Map<Long, List<Integer>>> betInfo = gameDataVo.getBetInfo();
         boolean luckBet;
         Map<RedBlackWarConstant.Camp, Map<HandType, List<WinPosWeightCfg>>> winMap = redBlackWarSampleManager.getWinMap();
-        Map<Long, Long> playerGet = new HashMap<>();
+        Map<Long, DefaultKeyValue<Long,Long>> playerGet = new HashMap<>();
         List<WinPosWeightCfg> weightCfgList;
         if (result > 0) {
             //红方胜利
@@ -105,7 +106,9 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                     }
                     canGet += backBet;
                     gamePlayer.setGold(canGet + gamePlayer.getGold());
-                    playerGet.merge(playerId, canGet, Long::sum);
+                    DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId, key -> new DefaultKeyValue<>(0L, 0L));
+                    keyValue.setKey(keyValue.getKey() + totalBet);
+                    keyValue.setValue(keyValue.getValue() + canGet);
                 }
             }
         }
@@ -128,7 +131,8 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         //更新记录
         for (GamePlayer gamePlayer : gameDataVo.getGamePlayerMap().values()) {
             TablePlayerGameData tableGameData = gamePlayer.getTableGameData();
-            long getGold = playerGet.getOrDefault(gamePlayer.getId(), 0L);
+            DefaultKeyValue<Long, Long> keyValue = playerGet.get(gamePlayer.getId());
+            long getGold = keyValue == null ? 0 : keyValue.getValue() - keyValue.getKey();
             tableGameData.addBetRecord(getGold);
         }
         //发送通知
