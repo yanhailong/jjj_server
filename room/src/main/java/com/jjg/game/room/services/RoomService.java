@@ -2,7 +2,6 @@ package com.jjg.game.room.services;
 
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.IProcessorHandler;
-import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.protostuff.PFSession;
@@ -48,8 +47,6 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
     @Autowired
     private ClusterSystem clusterSystem;
     @Autowired
-    private NodeConfig nodeConfig;
-    @Autowired
     private TimerCenter timerCenter;
 
     private boolean isInitialed = false;
@@ -64,6 +61,7 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
             return;
         }
         timerCenter = new TimerCenter("room-start-timer");
+        timerCenter.start();
         // 检查房间的创建和初始化
         try {
             checkCreateRoomAndInit();
