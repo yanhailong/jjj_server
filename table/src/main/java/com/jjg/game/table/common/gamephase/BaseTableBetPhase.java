@@ -218,6 +218,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         // TODO 给机器人扣除金币
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(robotPlayer.getId());
         gamePlayer.setGold(gamePlayer.getGold() - randomGold);
+        gamePlayer.getTableGameData().addTotalBet(randomGold);
         notifyPlayerBet.playerCurGold = gamePlayer.getGold();
         // 向玩家广播下注数据
         broadcastMsgToRoom(notifyPlayerBet);
