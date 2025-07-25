@@ -3,23 +3,17 @@ package com.jjg.game.table.animals.gamephase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.animals.data.AnimalsGameDataVo;
-import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
+import com.jjg.game.table.common.gamephase.WaitReadyPhase;
 
 /**
- * 飞禽走兽结算
+ * 飞禽走兽等待阶段
  *
  * @author 2CL
  */
-public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataVo> {
+public class AnimalsWaitReadyPhase extends WaitReadyPhase<AnimalsGameDataVo> {
 
-    public AnimalsSettlementPhase(AbstractGameController<Room_BetCfg, AnimalsGameDataVo> gameController) {
+    public AnimalsWaitReadyPhase(AbstractGameController<Room_BetCfg, AnimalsGameDataVo> gameController) {
         super(gameController);
-    }
-
-    @Override
-    public void phaseDoAction() {
-        super.phaseDoAction();
-
     }
 
     @Override
