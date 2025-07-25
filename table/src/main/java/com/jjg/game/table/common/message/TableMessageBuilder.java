@@ -125,7 +125,7 @@ public class TableMessageBuilder {
         List<GamePlayer> sortedPlayersByGold =
             dataVo.getGamePlayerMap().values()
                 .stream()
-                .sorted(Comparator.comparingLong(Player::getGold).reversed())
+                .sorted(Comparator.comparingLong(Player::getGold))
                 .limit(sendSize)
                 .toList();
         infoChange.totalPlayerNum = dataVo.getGamePlayerMap().size();
