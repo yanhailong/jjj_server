@@ -315,6 +315,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             getResultLibDao().clearMongoLib();
             getResultLibDao().clearRedisLib();
             this.clearLibEvent = null;
+            this.generate.compareAndSet(true, false);
         }
     }
 
