@@ -110,16 +110,7 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
         if (availableTypes.isEmpty()) {
             return Collections.emptyMap();
         }
-        Map<Integer, EGameType> availableTypeMap =
-            availableTypes.stream().collect(HashMap::new, (map, e) -> map.put(e.getGameTypeId(), e), HashMap::putAll);
-        Map<Integer, EGameType> availableGameMap = new HashMap<>();
-        int[] configGameTypes = nodeConfig.getGameTypes();
-        for (int configGameType : configGameTypes) {
-            if (availableTypeMap.containsKey(configGameType)) {
-                availableGameMap.put(configGameType, availableTypeMap.get(configGameType));
-            }
-        }
-        return availableGameMap;
+        return availableTypes.stream().collect(HashMap::new, (map, e) -> map.put(e.getGameTypeId(), e), HashMap::putAll);
     }
 
     /**
