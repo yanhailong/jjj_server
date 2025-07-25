@@ -69,4 +69,8 @@ public class GameDataVo<RC extends RoomCfg> {
     public void setPhaseRunTime(long phaseRunTime) {
         this.phaseRunTime = phaseRunTime;
     }
+
+    public int getPlayerNum() {
+        return gamePlayerMap.size();
+    }
 }
