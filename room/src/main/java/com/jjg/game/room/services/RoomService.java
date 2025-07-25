@@ -1,10 +1,15 @@
 package com.jjg.game.room.services;
 
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.common.timer.TimerCenter;
+import com.jjg.game.common.timer.TimerEvent;
+import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.AbstractRoomDao;
 import com.jjg.game.core.data.PlayerController;
@@ -31,7 +36,7 @@ import java.util.stream.Collectors;
  * @author 2CL
  */
 @Service
-public class RoomService implements IRoomStartListener, IGameClusterLeaderListener {
+public class RoomService implements IRoomStartListener, IGameClusterLeaderListener, TimerListener<IProcessorHandler> {
 
     private static final Logger log = LoggerFactory.getLogger(RoomService.class);
     @Autowired
@@ -44,6 +49,8 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
     private ClusterSystem clusterSystem;
     @Autowired
     private NodeConfig nodeConfig;
+    @Autowired
+    private TimerCenter timerCenter;
 
     private boolean isInitialed = false;
 
@@ -61,6 +68,7 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
         if (isInitialed) {
             return;
         }
+        timerCenter = new TimerCenter("room-start-timer");
         // 检查房间的创建和初始化
         try {
             checkCreateRoomAndInit();
@@ -73,7 +81,7 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
     /**
      * 服务器启动时检查房间创建房间并初始化
      */
-    private void checkCreateRoomAndInit() throws Exception {
+    private void checkCreateRoomAndInit() {
         Map<Integer, EGameType> availableGames = getAvailableGames();
         // 没有可用的直接退出
         if (availableGames == null || availableGames.isEmpty()) {
@@ -100,8 +108,12 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
                     log.warn("warehouseCfg表中游戏ID：{} 在EGameType中找不到定义", warehouseCfg.getGameID());
                     continue;
                 }
-                // 暂时先按配置创建所有类型的房间
-                checkRoomInit(warehouseCfg, minRoomNum);
+                // 初始化房间的逻辑需要分散运行，让房间的所有逻辑分散执行
+                int initTime = RandomUtils.getRandomNumInt10000();
+                timerCenter.add(new TimerEvent<>(this, initTime, () -> {
+                    // 暂时先按配置创建所有类型的房间
+                    checkRoomInit(warehouseCfg, minRoomNum);
+                }));
             }
         }
         isInitialed = true;
@@ -131,8 +143,6 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
      * 检查房间初始化
      */
     private void checkRoomInit(WarehouseCfg warehouseCfg, int minRoomNum) throws Exception {
-        // TODO 主节点需要知道所有节点开启的游戏列表，并在此检查开启的游戏的房间初始化逻辑
-        // TODO 如果节点启动时变成了主节点，节点需要在加载已存在的房间时判断是否已经被其他节点加载了
         int gameType = warehouseCfg.getGameID();
         AbstractRoomDao<Room, ? extends RoomPlayer> roomDao = roomManager.getRoomDao(gameType);
         if (roomDao == null) {
@@ -227,5 +237,18 @@ public class RoomService implements IRoomStartListener, IGameClusterLeaderListen
     @Override
     public void notLeader(int gameType) {
 
+    }
+
+    @Override
+    public void onTimer(TimerEvent<IProcessorHandler> event) {
+        if (event == null || event.getParameter() == null) {
+            return;
+        }
+        try {
+            // 执行定时任务
+            event.getParameter().action();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
