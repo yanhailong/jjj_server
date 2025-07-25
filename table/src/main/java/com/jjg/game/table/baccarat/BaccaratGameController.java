@@ -1,25 +1,33 @@
 package com.jjg.game.table.baccarat;
 
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.BetTableRoom;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.room.base.IRoomPhase;
+import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.gamephase.BaccaratSettlementPhase;
 import com.jjg.game.table.baccarat.gamephase.BaccaratTableBetPhase;
 import com.jjg.game.table.baccarat.gamephase.BaccaratWaitReadyPhase;
+import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
+import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratSettlementInfo;
+import com.jjg.game.table.baccarat.message.resp.RespBaccaratTableInfo;
 import com.jjg.game.table.common.BaseTableGameController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashSet;
+import java.util.Objects;
 
 /**
  * 百家乐游戏控制器
@@ -43,6 +51,32 @@ public class BaccaratGameController extends BaseTableGameController<BaccaratGame
     @Override
     public void autoRunGamePhase() {
         super.autoRunGamePhase();
+    }
+
+    @Override
+    public void sendRoomInitInfo(PlayerController playerController) {
+        EGamePhase eGamePhase = getCurrentGamePhase();
+        // 如果刚好处于等待阶段则直接设置为下注阶段
+        if (eGamePhase == EGamePhase.WAIT_READY) {
+            eGamePhase = EGamePhase.BET;
+        }
+        RespBaccaratTableInfo baccaratTableInfo = null;
+        // 如果在结算阶段需要从缓存中读取数据
+        if (eGamePhase == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
+            NotifyBaccaratSettlementInfo settlementInfo = gameDataVo.getBaccaratSettlementInfo();
+            baccaratTableInfo =
+                BaccaratMessageBuilder.buildRespBaccaratTableInfo(gameDataVo, eGamePhase, settlementInfo);
+        } else if (eGamePhase == EGamePhase.BET) {
+            baccaratTableInfo =
+                BaccaratMessageBuilder.buildRespBaccaratTableInfo(gameDataVo, eGamePhase, null);
+        }
+        if (baccaratTableInfo == null) {
+            log.error("玩家：{} 获取百家乐桌面数据为空 room: {} cfgId: {}",
+                playerController.playerId(), gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId());
+        }
+        // send
+        playerController.send(Objects.requireNonNullElseGet(baccaratTableInfo,
+            () -> new RespBaccaratTableInfo(Code.FAIL)));
     }
 
     /**

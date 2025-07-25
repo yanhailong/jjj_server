@@ -87,29 +87,7 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
             playerController.send(new RespBaccaratTableInfo(Code.PARAM_ERROR));
             return;
         }
-        EGamePhase eGamePhase = gameController.getCurrentGamePhase();
-        // 如果刚好处于等待阶段则直接设置为下注阶段
-        if (eGamePhase == EGamePhase.WAIT_READY) {
-            eGamePhase = EGamePhase.BET;
-        }
-        BaccaratGameDataVo baccaratGameDataVo = (BaccaratGameDataVo) gameController.getGameDataVo();
-        RespBaccaratTableInfo baccaratTableInfo = null;
-        // 如果在结算阶段需要从缓存中读取数据
-        if (eGamePhase == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
-            NotifyBaccaratSettlementInfo settlementInfo = baccaratGameDataVo.getBaccaratSettlementInfo();
-            baccaratTableInfo =
-                BaccaratMessageBuilder.buildRespBaccaratTableInfo(baccaratGameDataVo, eGamePhase, settlementInfo);
-        } else if (eGamePhase == EGamePhase.BET) {
-            baccaratTableInfo =
-                BaccaratMessageBuilder.buildRespBaccaratTableInfo(baccaratGameDataVo, eGamePhase, null);
-        }
-        if (baccaratTableInfo == null) {
-            log.error("玩家：{} 获取百家乐桌面数据为空 room: {} cfgId: {}",
-                playerController.playerId(), baccaratGameDataVo.getRoomId(), baccaratGameDataVo.getRoomCfg().getId());
-        }
-        // send
-        playerController.send(Objects.requireNonNullElseGet(baccaratTableInfo,
-            () -> new RespBaccaratTableInfo(Code.FAIL)));
+        gameController.sendRoomInitInfo(playerController);
     }
 
     @Command(BaccaratMessageConstant.ReqMsgBean.REQ_BACCARAT_TABLE_SUMMARY_LIST)
@@ -179,7 +157,7 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         // 需要先将玩家从临时房间中移除
         PlayerSessionInfo playerSessionInfo = new PlayerSessionInfo();
         playerSessionInfo.setRoomCfgId(room.getRoomCfgId());
-        baccaratTempRoom.exit(playerController.getSession(), playerController, playerSessionInfo);
+        baccaratTempRoom.enter(playerController.getSession(), playerController, playerSessionInfo);
         // 如果就在当前节点
         if (clusterCurrentNodePath.equalsIgnoreCase(room.getPath())) {
             // 将玩家加入房间
@@ -212,7 +190,7 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
             // 需要先将玩家加入临时房间中
             PlayerSessionInfo playerSessionInfo = new PlayerSessionInfo();
             playerSessionInfo.setRoomCfgId(gameController.getRoom().getRoomCfgId());
-            baccaratTempRoom.enter(playerController.getSession(), playerController, playerSessionInfo);
+            baccaratTempRoom.exit(playerController.getSession(), playerController, playerSessionInfo);
         }
     }
 

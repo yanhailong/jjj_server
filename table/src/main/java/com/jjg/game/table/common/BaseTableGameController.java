@@ -30,7 +30,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         gamePlayer.setTableGameData(new TablePlayerGameData());
         // 通知场上玩家加入
         NotifyTableRoomPlayerInfoChange playerInfoChange =
-            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), gameDataVo);
+            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), 7, gameDataVo);
         roomController.broadcastToRoomAllPlayers(playerInfoChange);
         return gamePlayer;
     }
@@ -40,7 +40,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         CommonResult<Room> leaveRes = super.onPlayerLeaveRoom(playerController);
         // 通知场上玩家离开
         NotifyTableRoomPlayerInfoChange playerInfoChange =
-            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), gameDataVo);
+            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), 7, gameDataVo);
         roomController.broadcastToRoomAllPlayers(playerInfoChange);
         return leaveRes;
     }

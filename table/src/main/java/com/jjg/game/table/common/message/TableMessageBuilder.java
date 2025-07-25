@@ -61,10 +61,10 @@ public class TableMessageBuilder {
      */
     public static List<TablePlayerInfo> buildTablePlayerInfo(TableGameDataVo tableGameDataVo) {
         List<GamePlayer> gamePlayers = tableGameDataVo.getGamePlayerMap()
-                .values()
-                .stream().sorted(Comparator.comparingLong(Player::getGold).reversed())
-                .limit(7)
-                .toList();
+            .values()
+            .stream().sorted(Comparator.comparingLong(Player::getGold).reversed())
+            .limit(7)
+            .toList();
         List<TablePlayerInfo> tablePlayerInfos = new ArrayList<>(gamePlayers.size());
         for (GamePlayer gamePlayer : gamePlayers) {
             tablePlayerInfos.add(buildTablePlayerInfo(gamePlayer));
@@ -96,7 +96,7 @@ public class TableMessageBuilder {
         return tablePlayerInfo;
     }
 
-    public static NotifyPhaseChangInfo getNotifyPhaseChangInfo(EGamePhase gamePhase,long endTime) {
+    public static NotifyPhaseChangInfo getNotifyPhaseChangInfo(EGamePhase gamePhase, long endTime) {
         NotifyPhaseChangInfo notifyPhaseChangInfo = new NotifyPhaseChangInfo();
         notifyPhaseChangInfo.gamePhase = gamePhase;
         notifyPhaseChangInfo.endTime = endTime;
@@ -107,13 +107,17 @@ public class TableMessageBuilder {
      * 通知场上玩家信息有变化
      */
     public static NotifyTableRoomPlayerInfoChange buildNotifyTableRoomPlayerInfoChange(long changedPlayerId,
+                                                                                       int sendSize,
                                                                                        TableGameDataVo dataVo) {
         NotifyTableRoomPlayerInfoChange infoChange = new NotifyTableRoomPlayerInfoChange();
         infoChange.changedPlayerId = changedPlayerId;
         infoChange.tableChangedPlayerInfos = new ArrayList<>();
         List<GamePlayer> sortedPlayersByGold =
-                dataVo.getGamePlayerMap().values().stream().sorted(Comparator.comparingLong(Player::getGold).reversed())
-                        .limit(7).toList();
+            dataVo.getGamePlayerMap().values()
+                .stream()
+                .sorted(Comparator.comparingLong(Player::getGold).reversed())
+                .limit(sendSize)
+                .toList();
         infoChange.totalPlayerNum = dataVo.getGamePlayerMap().size();
         for (GamePlayer gamePlayer : sortedPlayersByGold) {
             TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(gamePlayer);
