@@ -125,7 +125,7 @@ public class CoreMessageHandler {
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(),order,result.code);
             return;
         }
-
+        playerController.getPlayer().setGold(result.data.getGold());
         coreSendMessageManager.packMoneyChangeMessage(playerController,result.data.getGold(),result.data.getDiamond(),result.data.getVipLevel());
     }
 
@@ -151,6 +151,7 @@ public class CoreMessageHandler {
             log.debug("使用gm失败 playerId = {},order = {},code = {}",playerController.playerId(),order,result.code);
             return;
         }
+        playerController.getPlayer().setDiamond(result.data.getDiamond());
         coreSendMessageManager.packMoneyChangeMessage(playerController,result.data.getGold(),result.data.getDiamond(),result.data.getVipLevel());
     }
 
@@ -176,6 +177,7 @@ public class CoreMessageHandler {
             log.debug("使用gm失败 playerId = {},order = {},code = {},params = {}",playerController.playerId(),order,result.code,params);
             return;
         }
+        playerController.getPlayer().setVipLevel(result.data.getVipLevel());
         coreSendMessageManager.packMoneyChangeMessage(playerController,result.data.getGold(),result.data.getDiamond(),result.data.getVipLevel());
     }
 }
