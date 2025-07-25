@@ -5,8 +5,10 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.pb.ReqExitGame;
+import com.jjg.game.core.pb.ResExitGame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +31,8 @@ public class SlotsRoomMessageHandler {
         try {
             log.debug("退出游戏 playerId = {}", playerController.playerId());
             clusterSystem.switchNode(playerController.getSession(), NodeType.HALL);
+
+            playerController.send(new ResExitGame(Code.SUCCESS));
         } catch (Exception e) {
             log.error("玩家退出房间异常 msg: {}", e.getMessage(), e);
         }
