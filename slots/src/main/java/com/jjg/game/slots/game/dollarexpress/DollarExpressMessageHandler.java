@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -103,9 +105,10 @@ public class DollarExpressMessageHandler implements GmListener {
     }
 
     @Override
-    public String gm(PlayerController playerController, String[] gmOrders) {
+    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
+        CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
         try {
-            if ("setIcons".equals(gmOrders[0])) {
+            if ("setIcons".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到设置图标的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
 
                 TestLibData testLibData = new TestLibData();
@@ -120,7 +123,7 @@ public class DollarExpressMessageHandler implements GmListener {
                     testLibData.setUpdateGird(Boolean.parseBoolean(gmOrders[2]));
                 }
                 dollarExpressManager.addTestIconData(playerController, testLibData,true);
-            }else if("setRoller".equals(gmOrders[0])) {
+            }else if("setRoller".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到设置滚轴的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 TestLibData testLibData = new TestLibData();
 
@@ -134,28 +137,31 @@ public class DollarExpressMessageHandler implements GmListener {
                     testLibData.setUpdateGird(Boolean.parseBoolean(gmOrders[2]));
                 }
                 dollarExpressManager.addTestIconData(playerController, testLibData,false);
-            }else if("chooseFreeModel".equals(gmOrders[0])) {
+            }else if("chooseFreeModel".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到选择免费模式的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 ReqChooseFreeModel req = new ReqChooseFreeModel();
                 req.status = Integer.parseInt(gmOrders[1]);
                 reqChooseFreeModel(playerController, req);
-            }else if("startGame".equals(gmOrders[0])) {
+            }else if("startGame".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到开始游戏的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 ReqStartGame req = new ReqStartGame();
                 req.stakeVlue = Long.parseLong(gmOrders[1]);
                 reqStartGame(playerController, req);
-            }else if("invest".equals(gmOrders[0])) {
+            }else if("invest".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到投资游戏的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 ReqInvestArea req = new ReqInvestArea();
                 req.areaId = Integer.parseInt(gmOrders[1]);
                 reqInvestArea(playerController, req);
-            }else if("selectAllArea".equals(gmOrders[0])) {
+            }else if("selectAllArea".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到选择所有地区的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 dollarExpressManager.selectAllArea(playerController);
+            }else {
+                res.code = Code.NOT_FOUND;
             }
         } catch (Exception e) {
             log.error("", e);
+            res.code = Code.EXCEPTION;
         }
-        return null;
+        return res;
     }
 }

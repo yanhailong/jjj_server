@@ -186,18 +186,21 @@ public class HallMessageHandler implements GmListener {
     }
 
     @Override
-    public String gm(PlayerController playerController, String[] gmOrders) {
+    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
+        CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
         try {
-            if ("enterGame".equals(gmOrders[0])) {
+            if ("enterGame".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 ReqChooseGame req = new ReqChooseGame();
                 req.gameType = Integer.parseInt(gmOrders[1]);
                 reqChooseGame(playerController, req);
+            }else {
+                res.code = Code.NOT_FOUND;
             }
-
         } catch (Exception e) {
             log.error("", e);
+            res.code = Code.EXCEPTION;
         }
-        return null;
+        return res;
     }
 }

@@ -35,11 +35,10 @@ public class ToServerMessageHandler {
     /**
      * 结果库变更
      *
-     * @param playerController
      * @param req
      */
     @Command(MessageConst.ToServer.NOTICE_SLOTS_LIB_CHANGE)
-    public void reqConfigInfo(PlayerController playerController, NoticeSlotsLibChange req) {
+    public void reqConfigInfo(NoticeSlotsLibChange req) {
         try{
             log.info("收到结果库变化的通知消息 gameType = {},changeType = {}",req.gameType,req.changeType);
             if(req.changeType == 1){
@@ -48,7 +47,6 @@ public class ToServerMessageHandler {
                 SpecialResultLibCacheData data = gameManager.calSpecialResultLibCacheData(cfgList);
                 gameManager.updateSpecialResultLibCacheData(data);
             }
-
             libDao.reloadLib();
         }catch (Exception e) {
             log.error("",e);

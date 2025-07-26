@@ -141,7 +141,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
      * 加载到redis
      *
      */
-    public void moveToRedis(String docName, Map<Integer, Map<Integer, Map<Integer, int[]>>> resultLibSectionMap) {
+    public String moveToRedis(String docName, Map<Integer, Map<Integer, Map<Integer, int[]>>> resultLibSectionMap) {
         Query query = new Query();
 
         query.cursorBatchSize(batchSize);
@@ -170,6 +170,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
 
         this.currentMongoLibName = docName;
         this.currentRedisLibName = redisTableNameIndex;
+        return redisTableNameIndex;
     }
 
     protected int getSectionIndex(Map<Integer, Map<Integer, Map<Integer, int[]>>> resultLibSectionMap, int modelId, int libType, int times) {

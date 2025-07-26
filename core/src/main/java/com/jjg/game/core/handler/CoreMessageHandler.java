@@ -79,28 +79,48 @@ public class CoreMessageHandler {
             String cmd = arr[0];
             String params = arr[1];
 
-            if("addGold".equals(cmd)){
+            if("addGold".equalsIgnoreCase(cmd)){
                 addGold(res, playerController, req.order,params);
-            }else if("addDiamond".equals(cmd)){
-                addDiamond(res, playerController, req.order,params);
-            }else if("setVip".equals(cmd)){
-                setVip(res,playerController,req.order,params);
-            }else {
-                Map<String, GmListener> map = CommonUtil.getContext().getBeansOfType(GmListener.class);
-                map.forEach((k,v) -> {
-                    res.result = v.gm(playerController,arr);
-                    playerController.send(res);
-                });
-                log.info("执行gm命令成功1 playerId = {},order = {}", playerController.playerId(),req.order);
                 return;
             }
-            playerController.send(res);
-            log.info("执行gm命令成功2 playerId = {},order = {}", playerController.playerId(),req.order);
+
+            if("addDiamond".equalsIgnoreCase(cmd)){
+                addDiamond(res, playerController, req.order,params);
+                return;
+            }
+
+            if("setVip".equalsIgnoreCase(cmd)){
+                setVip(res,playerController,req.order,params);
+                return;
+            }
+
+            int notFound = 0;
+            Map<String, GmListener> map = CommonUtil.getContext().getBeansOfType(GmListener.class);
+            for(Map.Entry<String, GmListener> en : map.entrySet()){
+                CommonResult<String> gmResult = en.getValue().gm(playerController, arr);
+                if(gmResult.success()){
+                    res.result = gmResult.data;
+                    playerController.send(res);
+                    log.info("执行gm命令成功1 playerId = {},order = {}", playerController.playerId(),req.order);
+                    return;
+                }
+
+                if(gmResult.code == Code.NOT_FOUND){
+                    notFound++;
+                }
+            }
+
+            if(notFound == map.size()){
+                log.debug("未找到该命令 playerId = {},order = {}", playerController.playerId(),req.order);
+                res.code = Code.NOT_FOUND;
+            }else {
+                res.code = Code.FAIL;
+            }
         }catch (Exception e){
             log.error("", e);
             res.code = Code.EXCEPTION;
-            playerController.send(res);
         }
+        playerController.send(res);
     }
 
     /**

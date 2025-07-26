@@ -1,5 +1,6 @@
 package com.jjg.game.core.listener;
 
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 
 /**
@@ -7,5 +8,5 @@ import com.jjg.game.core.data.PlayerController;
  * @date 2025/6/11 16:34
  */
 public interface GmListener {
-    String gm(PlayerController playerController, String[] gmOrders);
+    CommonResult<String> gm(PlayerController playerController, String[] gmOrders);
 }
