@@ -1,4 +1,4 @@
-package com.jjg.game.table.common.data;
+package com.jjg.game.core.data;
 
 /**
  * @author lm
