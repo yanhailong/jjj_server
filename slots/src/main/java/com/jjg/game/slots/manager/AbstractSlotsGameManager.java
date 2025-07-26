@@ -35,6 +35,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -56,7 +57,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     protected MarsCurator marsCurator;
 
     //在更新结果库后，要开启清除旧结果库的定时事件
-    protected TimerEvent<String> clearLibEvent;
+    protected TimerEvent<String> clearAllLibEvent;
+    //在更新结果库后，要开启清除旧结果库的定时事件
+    protected TimerEvent<String> clearRedisLibEvent;
     //游戏类型
     protected int gameType;
     //在specualResultLib
@@ -311,11 +314,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
     @Override
     public void onTimer(TimerEvent e) {
-        if(this.clearLibEvent == e){
+        if(this.clearAllLibEvent == e){
             getResultLibDao().clearMongoLib();
             getResultLibDao().clearRedisLib();
-            this.clearLibEvent = null;
+            this.clearAllLibEvent = null;
             this.generate.compareAndSet(true, false);
+        }else if(this.clearRedisLibEvent == e){
+            getResultLibDao().clearRedisLib();
+            this.clearRedisLibEvent = null;
         }
     }
 
@@ -649,9 +655,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             notice.libCfgList = tmpList;
             PFMessage pfMessage = MessageUtil.getPFMessage(notice);
             ClusterMessage msg = new ClusterMessage(pfMessage);
+
             for(ClusterClient node : nodes){
                 node.write(msg);
             }
+
+            this.clearRedisLibEvent = new TimerEvent<>(this, 1, "clearRedisLibEvent").withTimeUnit(TimeUnit.MINUTES);
+            this.timerCenter.add(this.clearRedisLibEvent);
         }catch (Exception e){
             log.error("",e);
         }
