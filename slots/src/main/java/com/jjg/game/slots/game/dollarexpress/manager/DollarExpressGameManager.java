@@ -70,7 +70,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //计算配置后缓存
         initConfig();
         this.dollarExpressGenerate.init(this.gameType);
-        generateLib(100000);
     }
 
     /**
@@ -1048,6 +1047,11 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
         }
 
+        //如果盘面中没有出现美金，则不会触发保险箱
+        if(dollarsInfo.dollarIndexIds != null || dollarsInfo.dollarIndexIds.isEmpty()) {
+            dollarsInfo.coinIndexId = 0;
+        }
+
         //检查是否收集美元
         if (gameData.getLastStake() >= dollarExpressGenerate.getDollarExpressCollectDollarConfig().getStakeMin() && dollarsInfo.dollarIndexIds != null && dollarsInfo.dollarValueList != null) {
             dollarsInfo.collectDollarIndexIds = new ArrayList<>();
@@ -1363,15 +1367,16 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @param playerController
      */
     @Override
-    public void exit(PlayerController playerController) {
+    public boolean exit(PlayerController playerController) {
         DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
-            return;
+            return true;
         }
 
         if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD) {
             autoChooseFreeModelType(playerGameData);
         }
+        return true;
     }
 
     @Override

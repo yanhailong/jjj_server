@@ -655,8 +655,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         }
     }
 
-    public void exit(PlayerController playerController) {
-
+    public boolean exit(PlayerController playerController) {
+        return true;
     }
 
     protected int getBigShowIdByTimes(int times){

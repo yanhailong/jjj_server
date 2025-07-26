@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class PlayerSessionService implements TimerListener<String> {
     public static final String SESSION_TABLE_NAME = "playerSession";
-    public static final Map<Long, AtomicInteger> onlineMap = new ConcurrentHashMap<>();
     //session超时时间
     private static final int SESSION_TIME_OUT_MINUTES = 30;
     private static final int ONLINE_COUNT_MINUTES = 1;
@@ -232,64 +231,39 @@ public class PlayerSessionService implements TimerListener<String> {
         save(info);
     }
 
-    public PlayerSessionInfo enterGameServer(PlayerSessionInfo playerSessionInfo, long roomId) {
-        onlineCount(playerSessionInfo.getPlayerId());
-        playerLastGameInfo(playerSessionInfo.getPlayerId(), 0, playerSessionInfo.getGameType(),
-            playerSessionInfo.getRoomCfgId(), roomId);
-        save(playerSessionInfo);
-        return playerSessionInfo;
+    public PlayerSessionInfo enterGameServer(Player player) {
+        return enterGameServer(player,false,null);
     }
 
-    /**
-     * 添加本节点在线人数
-     */
-    public void onlineCount(long playerId) {
-        AtomicInteger result = onlineMap.computeIfPresent(playerId, (k, v) -> {
-            v.incrementAndGet();
-            return v;
-        });
-
-        if (result != null) {
-            return;
-        }
-
-        AtomicInteger num = new AtomicInteger(1);
-        result = onlineMap.computeIfAbsent(playerId, k -> num);
-
-        if (result == num) {
-            return;
-        }
-
-        onlineMap.computeIfPresent(playerId, (k, v) -> {
-            v.incrementAndGet();
-            return v;
-        });
+    public PlayerSessionInfo enterGameServer(Player player, boolean halfwayOffline, String extra) {
+        playerLastGameInfo(player,0,halfwayOffline,extra);
+        PlayerSessionInfo info = getInfo(player.getId());
+        save(info);
+        return info;
     }
 
-    /**
-     * 减少本节点在线人数
-     */
-    public void offlineCount(long playerId) {
-        onlineMap.computeIfPresent(playerId, (k, v) -> {
-            if (v.get() > 0) {
-                v.addAndGet(-1);
-            }
-            return v;
-        });
+
+    public void offline(Player player, boolean halfwayOffline) {
+        offline(player,0,halfwayOffline,null);
     }
 
-    public void offline(long playerId, int gameUniqueId, int gameType, int roomCfgId, int roomId) {
-        offlineCount(playerId);
-        playerLastGameInfo(playerId, gameUniqueId, gameType, roomCfgId, roomId);
+    public void offline(Player player, boolean halfwayOffline,String extra) {
+        offline(player,0,halfwayOffline,extra);
     }
 
-    public void playerLastGameInfo(long playerId, int gameUniqueId, int gameType, int roomCfgId, long roomId) {
+    public void offline(Player player, int gameUniqueId, boolean halfwayOffline,String extra) {
+        playerLastGameInfo(player, gameUniqueId, halfwayOffline, extra);
+    }
+
+    public void playerLastGameInfo(Player player, int gameUniqueId, boolean halfwayOffline,String extra) {
         PlayerLastGameInfo playerLastGameInfo = new PlayerLastGameInfo();
-        playerLastGameInfo.setPlayerId(playerId);
+        playerLastGameInfo.setPlayerId(player.getId());
         playerLastGameInfo.setGameUniqueId(gameUniqueId);
-        playerLastGameInfo.setGameType(gameType);
-        playerLastGameInfo.setRoomCfgId(roomCfgId);
-        playerLastGameInfo.setRoomId(roomId);
+        playerLastGameInfo.setGameType(player.getGameType());
+        playerLastGameInfo.setRoomCfgId(player.getRoomCfgId());
+        playerLastGameInfo.setRoomId(player.getRoomId());
+        playerLastGameInfo.setHalfwayOffline(halfwayOffline);
+        playerLastGameInfo.setExtra(extra);
         playerLastGameInfo.setNodePath(nodeManager.getNodePath());
         playerLastGameInfoDao.save(playerLastGameInfo);
     }
@@ -368,7 +342,6 @@ public class PlayerSessionService implements TimerListener<String> {
                         log.warn("移除无效session，playerId={},sessionId={}", pfSession.getPlayerId(),
                             pfSession.sessionId());
                         iterator.remove();
-                        offlineCount(ps.getPlayerId());
                     }
                 }
             }

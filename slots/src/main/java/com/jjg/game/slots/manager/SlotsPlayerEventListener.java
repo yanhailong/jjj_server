@@ -46,20 +46,9 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             return;
         }
 
-        PlayerSessionInfo info = playerSessionService.getInfo(playerController.playerId());
-        if (info == null) {
-            log.warn("玩家退出游戏服务器时 PlayerSessionInfo 为空 playerId = {}", playerController.playerId());
-            return;
-        }
-
-        if (info.getGameType() < 1) {
-            log.warn("玩家退出游戏服务器时 PlayerSessionInfo 中的gameType小于1 playerId = {}", playerController.playerId());
-            return;
-        }
-
-        playerSessionService.offline(playerController.playerId(), 0, 0, 0, 0);
-        dollarExpressGameManager.exit(playerController);
-        logger.exitGame(playerController.getPlayer(), info.getGameType());
+        boolean exit = dollarExpressGameManager.exit(playerController);
+        playerSessionService.offline(playerController.getPlayer(), !exit);
+        logger.exitGame(playerController.getPlayer());
     }
 
     @Override
@@ -78,8 +67,6 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 return;
             }
 
-
-
             final PlayerSessionInfo tempInfo = info;
 
             Player player = playerService.doSave(playerId, p -> {
@@ -87,7 +74,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 p.setRoomCfgId(tempInfo.getRoomCfgId());
             });
 
-            info = playerSessionService.enterGameServer(info, player.getRoomId());
+            info = playerSessionService.enterGameServer(player);
 
             PlayerController playerController = new PlayerController(session, player);
             session.setReference(playerController);
