@@ -1,6 +1,7 @@
 package com.jjg.game.table.common.message;
 
 import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.room.constant.EGamePhase;
@@ -16,6 +17,7 @@ import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
 import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * 构建房间相关消息
@@ -31,13 +33,12 @@ public class TableMessageBuilder {
     public static RespTablePlayerInfo buildTableAllPlayerInfo(TableGameDataVo dataVo) {
         RespTablePlayerInfo playerBetInfo = new RespTablePlayerInfo(Code.SUCCESS);
         playerBetInfo.tablePlayerInfo = new ArrayList<>();
-        for (Map.Entry<Long, GamePlayer> entry : dataVo.getGamePlayerMap().entrySet()) {
-            GamePlayer gamePlayer = entry.getValue();
+        List<GamePlayer> sortedGamePlayer = getSortedGamePlayer(dataVo, 0);
+        for (GamePlayer gamePlayer : sortedGamePlayer) {
             TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(gamePlayer);
             playerBetInfo.tablePlayerInfo.add(tablePlayerInfo);
         }
         // 按照金币给玩家排序
-        playerBetInfo.tablePlayerInfo.sort((o1, o2) -> Long.compare(o2.goldNum, o1.goldNum));
         return playerBetInfo;
     }
 
@@ -70,16 +71,29 @@ public class TableMessageBuilder {
      * 构建游戏的前6玩家基础信息
      */
     public static List<TablePlayerInfo> buildTablePlayerInfo(TableGameDataVo tableGameDataVo, int Limit) {
-        List<GamePlayer> gamePlayers = tableGameDataVo.getGamePlayerMap()
-            .values()
-            .stream().sorted(Comparator.comparingLong(Player::getGold).reversed())
-            .limit(Limit)
-            .toList();
+        List<GamePlayer> gamePlayers = getSortedGamePlayer(tableGameDataVo, Limit);
         List<TablePlayerInfo> tablePlayerInfos = new ArrayList<>(gamePlayers.size());
         for (GamePlayer gamePlayer : gamePlayers) {
             tablePlayerInfos.add(buildTablePlayerInfo(gamePlayer));
         }
         return tablePlayerInfos;
+    }
+
+    /**
+     * 获取根据金币从大到小排序的GamePlayer列表
+     *
+     * @param tableGameDataVo 数据源
+     * @param limit           列表长度（小于等于0为全部）
+     * @return 排序后的GamePlayer列表
+     */
+    private static List<GamePlayer> getSortedGamePlayer(TableGameDataVo tableGameDataVo, int limit) {
+        Stream<GamePlayer> sorted = tableGameDataVo.getGamePlayerMap()
+                .values()
+                .stream().sorted(Comparator.comparingLong(Player::getGold).reversed());
+        if (limit > 0) {
+            sorted = sorted.limit(limit);
+        }
+        return sorted.toList();
     }
 
     /**
@@ -122,12 +136,7 @@ public class TableMessageBuilder {
         NotifyTableRoomPlayerInfoChange infoChange = new NotifyTableRoomPlayerInfoChange();
         infoChange.changedPlayerId = changedPlayerId;
         infoChange.tableChangedPlayerInfos = new ArrayList<>();
-        List<GamePlayer> sortedPlayersByGold =
-            dataVo.getGamePlayerMap().values()
-                .stream()
-                .sorted(Comparator.comparingLong(Player::getGold))
-                .limit(sendSize)
-                .toList();
+        List<GamePlayer> sortedPlayersByGold = getSortedGamePlayer(dataVo, sendSize);
         infoChange.totalPlayerNum = dataVo.getGamePlayerMap().size();
         for (GamePlayer gamePlayer : sortedPlayersByGold) {
             TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(gamePlayer);
@@ -185,9 +194,8 @@ public class TableMessageBuilder {
      * 添加玩家下注区域的数据
      */
     public static List<BetTableInfo> buildPlayerBetInfo(
-        List<BetTableInfo> betTableInfos, TableGameDataVo gameDataVo, long playerId) {
-        Map<Integer, BetTableInfo> baccaratTableInfoMap =
-            betTableInfos.stream()
+            List<BetTableInfo> betTableInfos, TableGameDataVo gameDataVo, long playerId) {
+        Map<Integer, BetTableInfo> baccaratTableInfoMap = betTableInfos.stream()
                 .collect(HashMap::new, (map, e) -> map.put(e.betIdx, e), HashMap::putAll);
         Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
         if (playerBetInfo == null) {
