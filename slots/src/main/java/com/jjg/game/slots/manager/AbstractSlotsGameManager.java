@@ -119,20 +119,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         log.info("配置重新计算结束 gameType = {}", this.gameType);
     }
 
-    /**
-     * 获取倍场配置
-     *
-     * @param roomName
-     * @return
-     */
-    protected BaseRoomCfg getBaseRoomCfg(int roomName) {
-        for (Map.Entry<Integer, BaseRoomCfg> en : GameDataManager.getBaseRoomCfgMap().entrySet()) {
-            if (en.getValue().getRoomName() == roomName) {
-                return en.getValue();
-            }
-        }
-        return null;
-    }
 
     /**
      * 根据水池偏差值获取 结果库配置
@@ -185,7 +171,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         if (flag) {
             SpecialResultLibCfg libCfg = getLibCfgByModelId(gameData.getGameType(), SlotsConst.Common.FIRST_GAME_GET_MODEL_ID);
             if (libCfg == null) {
-                log.warn("获取结果库配置失败 playerId = {},gameType = {},wareId = {},modelId = {}", gameData.playerId(), gameData.getGameType(), gameData.getWareId(), SlotsConst.Common.FIRST_GAME_GET_MODEL_ID);
+                log.warn("获取结果库配置失败 playerId = {},gameType = {},roomCfgId = {},modelId = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId(), SlotsConst.Common.FIRST_GAME_GET_MODEL_ID);
                 result.code = Code.NOT_FOUND;
                 return result;
             }
@@ -194,9 +180,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             log.debug("玩家第一次玩该slots游戏，选择默认模式，playerId = {},gameType = {},modelId = {}", gameData.playerId(), gameData.getGameType(),SlotsConst.Common.FIRST_GAME_GET_MODEL_ID);
         } else {
             //获取水池
-            Number poolValue = slotsPoolDao.getBigPoolByWareId(gameData.getGameType(), gameData.getWareId());
+            Number poolValue = slotsPoolDao.getBigPoolByRoomCfgId(gameData.getGameType(), gameData.getRoomCfgId());
             if (poolValue == null) {
-                log.warn("获取水池失败 playerId = {},gameType = {},wareId = {}", gameData.playerId(), gameData.getGameType(), gameData.getWareId());
+                log.warn("获取水池失败 playerId = {},gameType = {},roomCfgId = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId());
                 result.code = Code.NOT_FOUND;
                 return result;
             }
@@ -205,7 +191,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             long diff = BigDecimal.valueOf(poolValue.longValue() - poolInit).divide(BigDecimal.valueOf(poolInit), 6, RoundingMode.HALF_UP).multiply(tenThousandBigDecimal).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
             SpecialResultLibCfg libCfg = getLibCfgByPoolDiff(gameData.getGameType(), diff);
             if (libCfg == null) {
-                log.warn("获取结果库配置失败 playerId = {},gameType = {},wareId = {},diff = {}", gameData.playerId(), gameData.getGameType(), gameData.getWareId(), diff);
+                log.warn("获取结果库配置失败 playerId = {},gameType = {},roomCfgId = {},diff = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId(), diff);
                 result.code = Code.NOT_FOUND;
                 return result;
             }
@@ -247,11 +233,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
         playerGameData.setPlayerController(playerController);
         playerGameData.setGameType(playerController.getPlayer().getGameType());
-        playerGameData.setWareId(playerController.getPlayer().getWareId());
+        playerGameData.setRoomCfgId(playerController.getPlayer().getRoomCfgId());
         playerGameData.getHasPlaySlots().set(hasPlay);
 
         //设置默认押注
-        BaseRoomCfg baseRoomCfg = roomCfgMap.get(playerGameData.getWareId());
+        BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(playerGameData.getRoomCfgId());
         playerGameData.setLastStake(baseRoomCfg.getDefaultBet().get(0));
         return playerGameData;
     }

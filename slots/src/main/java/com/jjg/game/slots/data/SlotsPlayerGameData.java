@@ -13,7 +13,7 @@ public class SlotsPlayerGameData {
     //游戏类型
     protected int gameType;
     //场次配置id
-    protected int wareId;
+    protected int roomCfgId;
     //是否玩过该slots游戏
     protected AtomicBoolean hasPlaySlots = new AtomicBoolean(false);
     //当前所处状态(美元快递) 0.正常  1.二选一  2.正在免费旋转
@@ -37,12 +37,12 @@ public class SlotsPlayerGameData {
         this.gameType = gameType;
     }
 
-    public int getWareId() {
-        return wareId;
+    public int getRoomCfgId() {
+        return roomCfgId;
     }
 
-    public void setWareId(int wareId) {
-        this.wareId = wareId;
+    public void setRoomCfgId(int roomCfgId) {
+        this.roomCfgId = roomCfgId;
     }
 
     public AtomicBoolean getHasPlaySlots() {

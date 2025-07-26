@@ -144,7 +144,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //获取玩家游戏数据
         DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},wareId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getWareId());
+            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return new DollarExpressGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
 
@@ -183,7 +183,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                     gameRunInfo = normal(gameRunInfo, playerGameData, betValue, updateGird);
                 } else if (status == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || status == DollarExpressConstant.Status.GOLD_ALL_BOARD) {  //二选一
                     gameRunInfo.setCode(Code.FORBID);
-                    log.debug("当前正处于二选一状态，禁止开始游戏操作 playerId = {},gameType = {},wareId = {}, status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getWareId(), status);
+                    log.debug("当前正处于二选一状态，禁止开始游戏操作 playerId = {},gameType = {},roomCfgId = {}, status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
                     return gameRunInfo;
                 } else if (status == DollarExpressConstant.Status.ALL_BOARD_TRAIN) {  //二选一之拉火车
                     gameRunInfo = allBoardTrain(gameRunInfo, playerGameData);
@@ -193,7 +193,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                     gameRunInfo = allBoardFree(gameRunInfo, playerGameData);
                 } else {
                     gameRunInfo.setCode(Code.FAIL);
-                    log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},wareId = {},status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getWareId(), status);
+                    log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
                     return gameRunInfo;
                 }
             }
@@ -206,7 +206,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             if (gameRunInfo.getBigPoolTimes() > 0) {
                 long addGold = playerGameData.getLastBet() * gameRunInfo.getBigPoolTimes();
                 if (addGold > 0) {
-                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getWareId(), addGold, "SLOTS_BET_REWARD");
+                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_BET_REWARD");
                     if (!result.success()) {
                         log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
                         gameRunInfo.setCode(result.code);
@@ -223,7 +223,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 while (it.hasNext()) {
                     Map.Entry<Integer, Long> en = it.next();
                     long addGold = en.getValue();
-                    CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getWareId(), addGold, "SLOTS_TRAIN_" + en.getKey());
+                    CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_TRAIN_" + en.getKey());
                     if (!result.success()) {
                         log.warn("从小池子给玩家添加金币失败 gameType = {},poolId = {}", this.gameType, en.getKey());
                         it.remove();
@@ -272,7 +272,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             //获取玩家游戏数据
             DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
             if (playerGameData == null) {
-                log.debug("获取玩家游戏数据失败，二选一失败 playerId = {},gameType = {},wareId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getWareId());
+                log.debug("获取玩家游戏数据失败，二选一失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
                 gameRunInfo.setCode(Code.NOT_FOUND);
                 return gameRunInfo;
             }
@@ -282,7 +282,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 gameRunInfo.setCode(code);
                 return gameRunInfo;
             }
-            log.info("玩家进行二选一，playerId = {},gameType = {},wareId = {},chooseStatus = {}", playerController.playerId(), playerGameData.getGameType(), playerController.getPlayer().getWareId(), chooseStatus);
+            log.info("玩家进行二选一，playerId = {},gameType = {},roomCfgId = {},chooseStatus = {}", playerController.playerId(), playerGameData.getGameType(), playerController.getPlayer().getRoomCfgId(), chooseStatus);
             return gameRunInfo;
         } catch (Exception e) {
             log.error("", e);
@@ -300,14 +300,14 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerController.playerId());
         try {
             if (areaId < 1 || areaId > 8) {
-                log.debug("区域id参数错误，投资游戏失败 playerId = {},gameType = {},wareId = {},areaId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getWareId(), areaId);
+                log.debug("区域id参数错误，投资游戏失败 playerId = {},gameType = {},roomCfgId = {},areaId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), areaId);
                 gameRunInfo.setCode(Code.PARAM_ERROR);
                 return gameRunInfo;
             }
 
             DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
             if (playerGameData == null) {
-                log.debug("获取玩家游戏数据失败，投资游戏失败 playerId = {},gameType = {},wareId = {},areaId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getWareId(), areaId);
+                log.debug("获取玩家游戏数据失败，投资游戏失败 playerId = {},gameType = {},roomCfgId = {},areaId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), areaId);
                 gameRunInfo.setCode(Code.NOT_FOUND);
                 return gameRunInfo;
             }
@@ -315,14 +315,14 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             //检查是否被选择
             boolean select = playerGameData.areaSelected(areaId);
             if (select) {
-                log.debug("该地区已被选择 playerId = {},gameType = {},wareId = {},areaId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getWareId(), areaId);
+                log.debug("该地区已被选择 playerId = {},gameType = {},roomCfgId = {},areaId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), areaId);
                 gameRunInfo.setCode(Code.FORBID);
                 return gameRunInfo;
             }
 
             boolean flag = playerGameData.getInvers().compareAndSet(true, false);
             if (!flag) {
-                log.debug("当前不处于投资游戏 playerId = {},gameType = {},wareId = {},areaId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getWareId(), areaId);
+                log.debug("当前不处于投资游戏 playerId = {},gameType = {},roomCfgId = {},areaId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), areaId);
                 gameRunInfo.setCode(Code.NOT_FOUND);
                 return gameRunInfo;
             }
@@ -349,20 +349,20 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
             //3次中奖金币
             if (allAddGold > 0) {
-                CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getWareId(), allAddGold, "SLOTS_INVEST_REWARD");
+                CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), allAddGold, "SLOTS_INVEST_REWARD");
                 if (!result.success()) {
                     gameRunInfo.setCode(result.code);
                     return gameRunInfo;
                 }
                 gameRunInfo.addAllWinGold(allAddGold);
                 gameRunInfo.setInvestRewardGoldList(rewardGoldList);
-                log.debug("投资游戏玩家添加金币 gameType = {},wareId = {},addGold = {}", this.gameType, playerGameData.getWareId(), allAddGold);
+                log.debug("投资游戏玩家添加金币 gameType = {},roomCfgId = {},addGold = {}", this.gameType, playerGameData.getRoomCfgId(), allAddGold);
             }
 
             //3次全部中奖的金火车
             if (goldTrain && data.getGoldTrain() > 0) {
                 long addGold = allAddGold * data.getGoldTrain();
-                CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getWareId(), addGold, "SLOTS_INVEST_REWARD");
+                CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), addGold, "SLOTS_INVEST_REWARD");
                 if (!result.success()) {
                     log.warn("投资游戏金火车给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
                     gameRunInfo.setCode(result.code);
@@ -373,7 +373,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 gameRunInfo.setInvestRewardGoldTrainCount(data.getGoldTrain());
                 gameRunInfo.setInvestRewardGold(allAddGold);
 
-                log.debug("小地图3次都中奖，添加金火车的金币 gameType = {},wareId = {},addGold = {}", this.gameType, playerGameData.getWareId(), addGold);
+                log.debug("小地图3次都中奖，添加金火车的金币 gameType = {},roomCfgId = {},addGold = {}", this.gameType, playerGameData.getRoomCfgId(), addGold);
             }
 
             //检查地图是否全部解锁
@@ -435,7 +435,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 playerGameData.getRemainFreeCount().set(8);
             }
         } else {
-            log.debug("当前不处于二选一状态，禁止二选一操作 playerId = {},gameType = {},wareId = {},status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getWareId(), playerGameData.getStatus());
+            log.debug("当前不处于二选一状态，禁止二选一操作 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), playerGameData.getStatus());
             return Code.FORBID;
         }
         return Code.SUCCESS;
@@ -452,9 +452,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     private DollarExpressGameRunInfo normal(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData, long betValue, boolean updateGird) {
         log.debug("开始正常流程 playerId = {},betValue = {},updateGird = {}", playerGameData.playerId(), betValue, updateGird);
         //获取倍场配置
-        BaseRoomCfg baseRoomCfg = getBaseRoomCfg(playerGameData.getWareId());
+        BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(playerGameData.getRoomCfgId());
         if (baseRoomCfg == null) {
-            log.warn("获取倍场配置失败 playerId = {},gameType = {},wareId = {},betValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getWareId(), betValue);
+            log.warn("获取倍场配置失败 playerId = {},gameType = {},roomCfgId = {},betValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), betValue);
             gameRunInfo.setCode(Code.NOT_FOUND);
             return gameRunInfo;
         }
@@ -462,14 +462,14 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //检查押分是否合法
         boolean match = baseRoomCfg.getLineBetScore().stream().anyMatch(bet -> bet == betValue);
         if (!match) {
-            log.warn("押分值不合法 playerId = {},gameType = {},wareId = {},betValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getWareId(), betValue);
+            log.warn("押分值不合法 playerId = {},gameType = {},roomCfgId = {},betValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), betValue);
             gameRunInfo.setCode(Code.PARAM_ERROR);
             return gameRunInfo;
         }
 
         Player player = slotsPlayerService.get(playerGameData.playerId());
         if (player.getGold() < betValue) {
-            log.debug("玩家余额不足，无法快乐的玩游戏 playerId = {},gameType = {},wareId = {},betValue = {},currentGold = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getWareId(), betValue, player.getGold());
+            log.debug("玩家余额不足，无法快乐的玩游戏 playerId = {},gameType = {},roomCfgId = {},betValue = {},currentGold = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), betValue, player.getGold());
             gameRunInfo.setCode(Code.NOT_ENOUGH);
             return gameRunInfo;
         }
@@ -884,17 +884,17 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         BigDecimal toBigPoolProp = BigDecimal.valueOf(baseRoomCfg.getInitBasePoolProportion()).divide(tenThousandBigDecimal, 4, BigDecimal.ROUND_HALF_UP);
         long toBigPoolGold = bet.multiply(toBigPoolProp).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
         if (toBigPoolGold > 0) {
-            long poolCoin = slotsPoolDao.addToBigPool(this.gameType, gameData.getWareId(), toBigPoolGold);
-            log.debug("给标准池加钱成功 gameType = {},wareId = {},add = {},afterGold = {}", gameData.getGameType(), gameData.getWareId(), toBigPoolGold, poolCoin);
+            long poolCoin = slotsPoolDao.addToBigPool(this.gameType, gameData.getRoomCfgId(), toBigPoolGold);
+            log.debug("给标准池加钱成功 gameType = {},roomCfgId = {},add = {},afterGold = {}", gameData.getGameType(), gameData.getRoomCfgId(), toBigPoolGold, poolCoin);
         }
 
         //给小池子加钱
         BigDecimal toSmallPoolProp = BigDecimal.valueOf(baseRoomCfg.getCommissionProp()).divide(tenThousandBigDecimal, 4, BigDecimal.ROUND_HALF_UP);
         long toSmallPoolGold = bet.multiply(toSmallPoolProp).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
         if (toSmallPoolGold > 0) {
-            long poolCoin = slotsPoolDao.addToSmallPool(this.gameType, gameData.getWareId(), toSmallPoolGold);
+            long poolCoin = slotsPoolDao.addToSmallPool(this.gameType, gameData.getRoomCfgId(), toSmallPoolGold);
             gameData.addAllBet(poolCoin);
-            log.debug("给小池子加钱成功 gameType = {},wareId = {},add = {},afterGold = {}", gameData.getGameType(), gameData.getWareId(), toSmallPoolGold, poolCoin);
+            log.debug("给小池子加钱成功 gameType = {},roomCfgId = {},add = {},afterGold = {}", gameData.getGameType(), gameData.getRoomCfgId(), toSmallPoolGold, poolCoin);
         }
         return result;
     }
@@ -1203,7 +1203,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         //获取玩家累计贡献金额
-        long contribt = playerGameData.getAllContribtPoolGold(playerGameData.getWareId());
+        long contribt = playerGameData.getAllContribtPoolGold(playerGameData.getRoomCfgId());
         if (contribt < 1) {
             return gameRunInfo;
         }
@@ -1211,15 +1211,15 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         log.debug("玩家累计贡献金额 playerId = {},contribtGold = {}", playerGameData.playerId(), contribt);
 
         //真奖池
-        Number smallPoolNumber = slotsPoolDao.getSmallPoolByWareId(playerGameData.getGameType(), playerGameData.getWareId());
+        Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
         if (smallPoolNumber == null) {
-            log.debug("获取小池子金额为空 playerId = {},wareId = {}", playerGameData.playerId(), playerGameData.getWareId());
+            log.debug("获取小池子金额为空 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
             return gameRunInfo;
         }
         //假奖池
-        Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByWareId(playerGameData.getGameType(), playerGameData.getWareId());
+        Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
         if (fakeSmallPoolNumber == null) {
-            log.debug("获取(假)小池子金额为空 playerId = {},wareId = {}", playerGameData.playerId(), playerGameData.getWareId());
+            log.debug("获取(假)小池子金额为空 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
             return gameRunInfo;
         }
 
@@ -1228,7 +1228,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         long fakeSmallPool = fakeSmallPoolNumber.longValue();
 
         if (smallPool < fakeSmallPool) {
-            log.debug("真奖池小于假奖池，不允许中奖 playerId = {},wareId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getWareId(), smallPool, fakeSmallPool);
+            log.debug("真奖池小于假奖池，不允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
             return gameRunInfo;
         }
 

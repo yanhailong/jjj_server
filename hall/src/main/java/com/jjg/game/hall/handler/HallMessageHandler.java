@@ -105,14 +105,13 @@ public class HallMessageHandler implements GmListener {
                 playerController.send(res);
                 return;
             }
-            int wareHouseCfgId = req.gameType * 10 + req.wareId;
             //slots类游戏没有房间
             //是不是slots游戏
             if (CommonUtil.getMajorTypeByGameType(req.gameType) == CoreConst.GameMajorType.SLOTS) {
-                res.code = hallRoomService.enterSlotsNode(playerController, wareHouseCfgId, req.wareId);
+                res.code = hallRoomService.enterSlotsNode(playerController, req.wareId);
             } else {
                 // 进入大厅加入房间的逻辑
-                res.code = hallRoomService.hallJoinRoom(playerController, wareHouseCfgId, req.wareId);
+                res.code = hallRoomService.hallJoinRoom(playerController, req.wareId);
             }
             playerController.send(res);
             log.info("玩家选择场次，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
@@ -125,7 +124,7 @@ public class HallMessageHandler implements GmListener {
      * 加入房间之前检查前置条件
      */
     private CommonResult<WareHouseConfigInfo> checkBeforeJoinRoom(PlayerController playerController, int gameType,
-                                                                  int wareId) {
+                                                                  int roomCfgId) {
 
         if (gameType < 1) {
             log.debug("游戏类型错误，选择场次失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
@@ -145,24 +144,24 @@ public class HallMessageHandler implements GmListener {
         }
 
         WareHouseConfigInfo info =
-            wareHouseConfigList.stream().filter(c -> c.wareId == wareId).findFirst().orElse(null);
+            wareHouseConfigList.stream().filter(c -> c.wareId == roomCfgId).findFirst().orElse(null);
         if (info == null) {
 
-            log.debug("未找到对应的游戏场次配置2，选择场次失败 playerId = {},gameType = {},wareId = {}", playerController.playerId()
-                , gameType, wareId);
+            log.debug("未找到对应的游戏场次配置2，选择场次失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId()
+                , gameType, roomCfgId);
             return new CommonResult<>(Code.NOT_FOUND);
         }
 
         // TODO 临时代码 info.limitGoldMin != -1
         if (info.limitGoldMin != -1 && info.limitGoldMin > playerController.getPlayer().getGold()) {
-            log.debug("玩家金币不足 playerId = {},gameType = {},wareId = {}", playerController.playerId(), gameType
-                , wareId);
+            log.debug("玩家金币不足 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), gameType
+                , roomCfgId);
             return new CommonResult<>(Code.NOT_ENOUGH);
         }
 
         if (info.limitVipMin > playerController.getPlayer().getVipLevel()) {
-            log.debug("玩家vip等级不足 playerId = {},gameType = {},wareId = {}", playerController.playerId(),
-                gameType, wareId);
+            log.debug("玩家vip等级不足 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(),
+                gameType, roomCfgId);
             return new CommonResult<>(Code.VIP_NOT_ENOUGH);
         }
 
@@ -174,12 +173,11 @@ public class HallMessageHandler implements GmListener {
             return new CommonResult<>(Code.NOT_FOUND);
         }
 
-        int wareHouseCfgId = gameType * 10 + wareId;
-        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(wareHouseCfgId);
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         int limitGoldMax = warehouseCfg.getEnterMax();
 //        if (limitGoldMax != -1 && limitGoldMax < playerController.getPlayer().getGold()) {
-//            log.debug("玩家金币超过房间金币限制止 playerId = {},gameType = {},wareId = {}", playerController.playerId(),
-//                gameType, wareId);
+//            log.debug("玩家金币超过房间金币限制止 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(),
+//                gameType, roomCfgId);
 //            return new CommonResult<>(Code.GOLD_TOO_MUCH);
 //        }
         return new CommonResult<>(Code.SUCCESS, info);

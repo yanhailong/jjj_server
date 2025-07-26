@@ -49,7 +49,7 @@ public class HallRoomService implements IConsoleReceiver {
     @Autowired
     private MarsCurator marsCurator;
 
-    public int enterSlotsNode(PlayerController playerController, int roomCfgId, int wareId){
+    public int enterSlotsNode(PlayerController playerController, int roomCfgId){
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         if (warehouseCfg == null) {
             log.error("配置表异常，未在房间表（warehouse.xlsx）中找到房间配置表ID: {}", roomCfgId);
@@ -64,7 +64,7 @@ public class HallRoomService implements IConsoleReceiver {
             return Code.NOT_FOUND;
         }
 
-        playerSessionService.changeGameType(playerController.playerId(),gameType,roomCfgId,wareId);
+        playerSessionService.changeGameType(playerController.playerId(),gameType,roomCfgId);
         clusterSystem.switchNode(playerController.getSession(), marsNode);
         return Code.SUCCESS;
     }
@@ -75,7 +75,7 @@ public class HallRoomService implements IConsoleReceiver {
      * @param playerController player控制器
      * @param roomCfgId        大厅房间默认配置ID
      */
-    public int hallJoinRoom(PlayerController playerController, int roomCfgId, int wareId) {
+    public int hallJoinRoom(PlayerController playerController, int roomCfgId) {
         // 处理玩家重复加入房间的问题
 //        if (playerController.getPlayer().getRoomId() > 0) {
 //            int code = dealPlayerRepeatJoin(playerController, playerController.getPlayer().getRoomId());
@@ -94,7 +94,7 @@ public class HallRoomService implements IConsoleReceiver {
         // 特殊逻辑，百家乐需要将玩家直接传送到游戏服，但是又不进游戏
         if (gameType == EGameType.BACCARAT.getGameTypeId()) {
             // 将玩家切换到某个游戏类型的master游戏服,
-            handleBaccaratJoinGame(playerController, roomCfgId, wareId);
+            handleBaccaratJoinGame(playerController, roomCfgId);
             // 直接返回成功
             return Code.SUCCESS;
         }
@@ -117,21 +117,21 @@ public class HallRoomService implements IConsoleReceiver {
             waitingRoomId = room.getId();
         }
         // 加入房间
-        return joinRoomById(playerController, waitingRoomId, gameType, wareId);
+        return joinRoomById(playerController, waitingRoomId, gameType);
     }
 
     /**
      * 百家乐玩家进入游戏特殊处理,需要先将玩家传到百家乐游戏类型的主节点上,再获取所有同类型游戏节点的房间摘要信息,当玩家进入某个
      * 节点的游戏时，还需要将当前节点切换到对应的节点上，再开始游戏
      */
-    private void handleBaccaratJoinGame(PlayerController playerController, int roomCfgId, int wareId) {
+    private void handleBaccaratJoinGame(PlayerController playerController, int roomCfgId) {
         // 获取所有的游戏
         MarsNode marsNode = nodeManager.getGameNodeByWeight(EGameType.BACCARAT.getGameTypeId(),
             playerController.playerId(),
             playerController.getPlayer().getIp());
         //更新session中的gametype
         playerSessionService.
-            changeGameType(playerController.playerId(), EGameType.BACCARAT.getGameTypeId(), roomCfgId, wareId);
+            changeGameType(playerController.playerId(), EGameType.BACCARAT.getGameTypeId(), roomCfgId);
         //切换节点
         clusterSystem.switchNode(playerController.getSession(), marsNode);
     }
@@ -148,20 +148,20 @@ public class HallRoomService implements IConsoleReceiver {
     /**
      * 玩家通过房间ID加入房间，需要检查加入房间的前置条件
      */
-    public int joinRoomByRoomId(PlayerController playerController, long roomId, int gameType, int wareId) {
+    public int joinRoomByRoomId(PlayerController playerController, long roomId, int gameType) {
         // 玩家不能重复加入房间
         if (playerController.getPlayer().getRoomId() > 0) {
             dealPlayerRepeatJoin(playerController, roomId);
             return Code.REPEAT_OP;
         }
         // 加入房间
-        return joinRoomById(playerController, roomId, gameType, wareId);
+        return joinRoomById(playerController, roomId, gameType);
     }
 
     /**
      * 通过房间ID加入房间
      */
-    private int joinRoomById(PlayerController playerController, long roomId, int gameType, int wareId) {
+    private int joinRoomById(PlayerController playerController, long roomId, int gameType) {
         // 查询房间
         Room room = hallRoomDao.getRoom(gameType, roomId);
         if (room == null) {
@@ -174,7 +174,7 @@ public class HallRoomService implements IConsoleReceiver {
         playerController.setPlayer(
             playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(room.getId())));
         //更新session中的gametype
-        playerSessionService.changeGameType(playerController.playerId(), gameType, room.getRoomCfgId(), wareId);
+        playerSessionService.changeGameType(playerController.playerId(), gameType, room.getRoomCfgId());
         //切换节点
         clusterSystem.switchNode(playerController.getSession(), marsNode);
         return Code.SUCCESS;

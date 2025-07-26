@@ -15,13 +15,10 @@ public class PlayerSessionInfo {
     private int gameType;
     //当前玩家的游戏场次id
     private int roomCfgId;
-    //当前玩家的游戏场次id
-    private int wareId;
     //当前用户所在节点
     private String currentNode;
     //最近活跃时间（指最近切换节点）
     private long lastActiveTime;
-
 
     public long getPlayerId() {
         return playerId;
@@ -77,13 +74,5 @@ public class PlayerSessionInfo {
 
     public void setLastActiveTime(long lastActiveTime) {
         this.lastActiveTime = lastActiveTime;
-    }
-
-    public int getWareId() {
-        return wareId;
-    }
-
-    public void setWareId(int wareId) {
-        this.wareId = wareId;
     }
 }

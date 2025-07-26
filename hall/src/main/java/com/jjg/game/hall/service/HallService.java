@@ -76,13 +76,21 @@ public class HallService implements ConfigExcelChangeListener {
             List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameID(),
                 k -> new ArrayList<>());
             WareHouseConfigInfo info = new WareHouseConfigInfo();
-            info.wareId = c.getId() - (c.getGameID() * 10);
+            info.wareId = c.getId();
             info.pool = 99999L;
             info.limitGoldMin = c.getEnterLimit();
             info.limitVipMin = c.getVipLvLimit();
             info.betShow = c.getBetShow();
             tempList.add(info);
         }
+
+        //根据场次id，从小到大排序
+        tempwareHouseConfigMap.replaceAll((key, list) ->
+                list.stream()
+                        .sorted(Comparator.comparingInt(wh -> wh.wareId))
+                        .collect(Collectors.toList())
+        );
+
         this.wareHouseConfigMap = tempwareHouseConfigMap;
     }
 }

@@ -107,12 +107,12 @@ public class BaseLogger {
      * @param gameType
      * @return
      */
-    public void enterGame(Player player, int gameType, int wareId) {
+    public void enterGame(Player player, int gameType, int roomCfgId) {
         try {
             JSONObject json = new JSONObject();
             json.put("logType", "enterGame");
             json.put("gameType", gameType);
-            json.put("wareId", wareId);
+            json.put("roomCfgId", roomCfgId);
             sendLog(player, json);
         } catch (Exception e) {
             log.error("", e);

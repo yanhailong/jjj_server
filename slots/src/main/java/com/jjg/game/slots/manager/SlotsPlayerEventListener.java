@@ -84,7 +84,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
 
             Player player = playerService.doSave(playerId, p -> {
                 p.setGameType(tempInfo.getGameType());
-                p.setWareId(tempInfo.getWareId());
+                p.setRoomCfgId(tempInfo.getRoomCfgId());
             });
 
             info = playerSessionService.enterGameServer(info, player.getRoomId());
@@ -94,10 +94,9 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
 
             logger.enterGame(player, info.getGameType(), info.getRoomCfgId());
 
-
             //创建 PlayerGameData
             dollarExpressGameManager.createPlayerGameData(playerController);
-            log.info("玩家进入美元快递游戏 playerId = {},wareId = {}", playerController.playerId(), playerController.getPlayer().getWareId());
+            log.info("玩家进入美元快递游戏 playerId = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
         } catch (Exception e) {
             log.error("", e);
         }

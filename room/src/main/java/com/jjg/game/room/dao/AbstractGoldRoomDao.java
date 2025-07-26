@@ -18,8 +18,8 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
         super(roomClazz,roomPlayerClazz);
     }
 
-    protected String getRoomIdListKey(int gameType,int wareId) {
-        return roomIdListKey + gameType + ":" + wareId;
+    protected String getRoomIdListKey(int gameType,int roomCfgId) {
+        return roomIdListKey + gameType + ":" + roomCfgId;
     }
 
     @Override
@@ -32,11 +32,11 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
     }
 
     @Override
-    public Long removeRoom(int gameType, long roomId, int wareId) {
-        long res = super.removeRoom(gameType, roomId, wareId);
+    public Long removeRoom(int gameType, long roomId, int roomCfgId) {
+        long res = super.removeRoom(gameType, roomId, roomCfgId);
         if(res > 0){
             //从room id列表中移除，-1表示从尾部移除1个
-            redisTemplate.opsForList().remove(getRoomIdListKey(gameType,wareId), -1, roomId);
+            redisTemplate.opsForList().remove(getRoomIdListKey(gameType,roomCfgId), -1, roomId);
         }
         return res;
     }
@@ -46,9 +46,9 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
      * @return
      */
     @Override
-    public int getCanJoinRoomId(int gameType, int wareId) {
+    public int getCanJoinRoomId(int gameType, int roomCfgId) {
         //返回list头部元素
-        Object o =  redisTemplate.opsForList().index(getRoomIdListKey(gameType,wareId), 0);
+        Object o =  redisTemplate.opsForList().index(getRoomIdListKey(gameType,roomCfgId), 0);
         if(o == null){
             return 0;
         }
@@ -56,12 +56,12 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
     }
 
     @Override
-    public long existRoomCount(int gameType, int wareId) {
-        return redisTemplate.opsForList().size(getRoomIdListKey(gameType,wareId));
+    public long existRoomCount(int gameType, int roomCfgId) {
+        return redisTemplate.opsForList().size(getRoomIdListKey(gameType,roomCfgId));
     }
 
     @Override
-    public List<Object> getAllRoomIds(int gameType, int wareId) {
-        return redisTemplate.opsForList().range(getRoomIdListKey(gameType,wareId), 0, -1);
+    public List<Object> getAllRoomIds(int gameType, int roomCfgId) {
+        return redisTemplate.opsForList().range(getRoomIdListKey(gameType,roomCfgId), 0, -1);
     }
 }

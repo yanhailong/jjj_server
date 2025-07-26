@@ -40,7 +40,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
      * @param playerController
      */
     public void sendConfigMessage(PlayerController playerController) {
-        BaseRoomCfg config = gameManager.getRoomCfgMap().get(playerController.getPlayer().getWareId());
+        BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
         List<Integer> prizePoolIdList = generateManager.getBaseInitCfg().getPrizePoolIdList();
 
         SendInfo sendInfo = new SendInfo();
@@ -71,7 +71,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             res.dollarTargetCount = generateManager.getDollarExpressCollectDollarConfig().getMax();
         }else {
             res.code = Code.NOT_FOUND;
-            log.debug("未找到游戏配置  playerId={},wareId={}",playerController.playerId(),playerController.getPlayer().getWareId());
+            log.debug("未找到游戏配置  playerId={},roomCfgId={}",playerController.playerId(),playerController.getPlayer().getRoomCfgId());
         }
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);

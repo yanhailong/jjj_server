@@ -19,8 +19,8 @@ public class Player {
     private long roomId;
     //游戏类型
     private int gameType;
-    //场次类型
-    private int wareId;
+    //房间配置ID
+    private int roomCfgId;
     //金币
     private long gold;
     //钻石
@@ -71,12 +71,12 @@ public class Player {
         this.gameType = gameType;
     }
 
-    public int getWareId() {
-        return wareId;
+    public int getRoomCfgId() {
+        return roomCfgId;
     }
 
-    public void setWareId(int wareId) {
-        this.wareId = wareId;
+    public void setRoomCfgId(int roomCfgId) {
+        this.roomCfgId = roomCfgId;
     }
 
     public long getGold() {

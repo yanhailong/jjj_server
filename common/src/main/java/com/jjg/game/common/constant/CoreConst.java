@@ -8,10 +8,6 @@ package com.jjg.game.common.constant;
  */
 public class CoreConst {
 
-
-    //场次id
-    public static final int[] WARE_IDS = {1, 2, 3};
-
     /**
      * 游戏主分类
      */

@@ -165,16 +165,16 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
 
     /**
      * 获取玩家对奖池的累计贡献金额
-     * @param wareId
+     * @param roomCfgId
      * @return
      */
-    public long getAllContribtPoolGold(int wareId) {
+    public long getAllContribtPoolGold(int roomCfgId) {
         if(this.contribtPoolGoldMap == null || this.contribtPoolGoldMap.isEmpty()){
             return 0;
         }
 
         //总累计
-        Long contribtGold = this.contribtPoolGoldMap.get(wareId);
+        Long contribtGold = this.contribtPoolGoldMap.get(roomCfgId);
         if(contribtGold == null){
             return 0;
         }
@@ -183,7 +183,7 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
             return contribtGold;
         }
         //总获得
-        Long rewardGold = this.rewardPoolGoldMap.get(wareId);
+        Long rewardGold = this.rewardPoolGoldMap.get(roomCfgId);
         if(rewardGold == null){
             return contribtGold;
         }

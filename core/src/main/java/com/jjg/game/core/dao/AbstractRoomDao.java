@@ -270,7 +270,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         return false;
     }
 
-    public int getCanJoinRoomId(int gameType, int wareId) {
+    public int getCanJoinRoomId(int gameType, int roomCfgId) {
         return 0;
     }
 
@@ -280,11 +280,11 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
      * @param gameType
      * @return
      */
-    public long existRoomCount(int gameType, int wareId) {
+    public long existRoomCount(int gameType, int roomCfgId) {
         return redisTemplate.opsForHash().size(getTableName(gameType));
     }
 
-    public List<Object> getAllRoomIds(int gameType, int wareId) {
+    public List<Object> getAllRoomIds(int gameType, int roomCfgId) {
         return null;
     }
 

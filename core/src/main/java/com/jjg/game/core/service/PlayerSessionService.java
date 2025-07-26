@@ -225,11 +225,10 @@ public class PlayerSessionService implements TimerListener<String> {
         }
     }
 
-    public void changeGameType(long playerId, int gameType, int roomCfgId, int wareId) {
+    public void changeGameType(long playerId, int gameType, int roomCfgId) {
         PlayerSessionInfo info = getInfo(playerId);
         info.setGameType(gameType);
         info.setRoomCfgId(roomCfgId);
-        info.setWareId(wareId);
         save(info);
     }
 
@@ -279,9 +278,9 @@ public class PlayerSessionService implements TimerListener<String> {
         });
     }
 
-    public void offline(long playerId, int gameUniqueId, int gameType, int wareId, int roomId) {
+    public void offline(long playerId, int gameUniqueId, int gameType, int roomCfgId, int roomId) {
         offlineCount(playerId);
-        playerLastGameInfo(playerId, gameUniqueId, gameType, wareId, roomId);
+        playerLastGameInfo(playerId, gameUniqueId, gameType, roomCfgId, roomId);
     }
 
     public void playerLastGameInfo(long playerId, int gameUniqueId, int gameType, int roomCfgId, long roomId) {
@@ -300,7 +299,7 @@ public class PlayerSessionService implements TimerListener<String> {
     }
 
     public void changeSessionInfo(PFSession pfSession, Player player) {
-        changeSessionInfo(pfSession, player, player.getGameType(), 0);
+        changeSessionInfo(pfSession, player, player.getGameType(), player.getRoomCfgId());
     }
 
     /**
@@ -309,7 +308,7 @@ public class PlayerSessionService implements TimerListener<String> {
      * @param pfSession
      * @param player
      */
-    public void changeSessionInfo(PFSession pfSession, Player player, int gameType, int wareId) {
+    public void changeSessionInfo(PFSession pfSession, Player player, int gameType, int roomCfgId) {
         PlayerSessionInfo info = getInfo(player.getId());
         if (info != null) {
             if (Objects.equals(pfSession.sessionId(), info.getSessionId())) {
@@ -333,7 +332,7 @@ public class PlayerSessionService implements TimerListener<String> {
                 info.setSessionId(pfSession.sessionId());
                 info.setNodeName(pfSession.gatePath);
                 info.setGameType(gameType);
-                info.setRoomCfgId(wareId);
+                info.setRoomCfgId(roomCfgId);
                 log.info("顶号成功! playerId = {}", player.getId());
             }
         } else {
@@ -341,7 +340,7 @@ public class PlayerSessionService implements TimerListener<String> {
             info.setNodeName(pfSession.gatePath);
             info.setPlayerId(player.getId());
             info.setGameType(gameType);
-            info.setRoomCfgId(wareId);
+            info.setRoomCfgId(roomCfgId);
             info.setSessionId(pfSession.sessionId());
         }
         save(info);

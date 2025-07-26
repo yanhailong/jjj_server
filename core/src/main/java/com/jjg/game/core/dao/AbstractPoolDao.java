@@ -26,62 +26,62 @@ public abstract class AbstractPoolDao {
 
     /**
      * 根据场次id获取池子
-     * @param wareId
+     * @param roomCfgId
      * @return
      */
-    public Number getBigPoolByWareId(int gameType, int wareId){
-        return (Number)redisTemplate.opsForHash().get(tableName(gameType),wareId);
+    public Number getBigPoolByRoomCfgId(int gameType, int roomCfgId){
+        return (Number)redisTemplate.opsForHash().get(tableName(gameType),roomCfgId);
     }
 
     /**
      * 根据场次id获取池子
-     * @param wareId
+     * @param roomCfgId
      * @return
      */
-    public Number getSmallPoolByWareId(int gameType, int wareId){
-        return (Number)redisTemplate.opsForHash().get(smallTableName(gameType),wareId);
+    public Number getSmallPoolByRoomCfgId(int gameType, int roomCfgId){
+        return (Number)redisTemplate.opsForHash().get(smallTableName(gameType),roomCfgId);
     }
     /**
      * 根据场次id获取池子
-     * @param wareId
+     * @param roomCfgId
      * @return
      */
-    public Number getFakeSmallPoolByWareId(int gameType, int wareId){
-        return (Number)redisTemplate.opsForHash().get(fakeSmallTableName(gameType),wareId);
+    public Number getFakeSmallPoolByRoomCfgId(int gameType, int roomCfgId){
+        return (Number)redisTemplate.opsForHash().get(fakeSmallTableName(gameType),roomCfgId);
     }
 
     /**
      * 池子加钱
-     * @param wareId
+     * @param roomCfgId
      * @param value
      * @return
      */
-    public Long add(int gameType,int wareId,long value){
+    public Long add(int gameType,int roomCfgId,long value){
         if(value < 1){
-            log.debug("池子添加金币时，value不能小于0  gameType = {},wareId = {},value = {}", gameType,wareId, value);
+            log.debug("池子添加金币时，value不能小于0  gameType = {},roomCfgId = {},value = {}", gameType,roomCfgId, value);
             return null;
         }
-        return redisTemplate.opsForHash().increment(tableName(gameType),wareId,value);
+        return redisTemplate.opsForHash().increment(tableName(gameType),roomCfgId,value);
     }
 
     /**
      * 池子减钱
-     * @param wareId
+     * @param roomCfgId
      * @param value
      * @return
      */
-    public Long reduce(int gameType,int wareId,long value){
+    public Long reduce(int gameType,int roomCfgId,long value){
         if(value > -1){
-            log.debug("池子减少金币时，value不能大于-1  gameType = {},wareId = {},value = {}", gameType,wareId, value);
+            log.debug("池子减少金币时，value不能大于-1  gameType = {},roomCfgId = {},value = {}", gameType,roomCfgId, value);
             return null;
         }
 
-        long after = redisTemplate.opsForHash().increment(tableName(gameType),wareId,value);
+        long after = redisTemplate.opsForHash().increment(tableName(gameType),roomCfgId,value);
         if(after < 0){
             //如果减去value后，after为负数，则要回滚
             //因为池子减为负数的情况基本不可能，所以采用回滚方式，这样可以避免加锁带来的延迟
-            redisTemplate.opsForHash().increment(tableName(gameType),wareId,Math.abs(value));
-            log.debug("池子减少金币后小于0，所以进行回滚  gameType = {},wareId = {},value = {}", gameType,wareId, value);
+            redisTemplate.opsForHash().increment(tableName(gameType),roomCfgId,Math.abs(value));
+            log.debug("池子减少金币后小于0，所以进行回滚  gameType = {},roomCfgId = {},value = {}", gameType,roomCfgId, value);
             return null;
         }
         return after;

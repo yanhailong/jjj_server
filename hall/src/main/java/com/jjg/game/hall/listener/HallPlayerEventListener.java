@@ -247,7 +247,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                     public Boolean updateDataWithRes(Player p) {
                         p.setRoomId(0);
                         p.setGameType(0);
-                        p.setWareId(0);
+                        p.setRoomCfgId(0);
                         return true;
                     }
                 });
@@ -271,7 +271,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                     public Boolean updateDataWithRes(Player p) {
                         p.setRoomId(0);
                         p.setGameType(0);
-                        p.setWareId(0);
+                        p.setRoomCfgId(0);
                         return true;
                     }
                 });

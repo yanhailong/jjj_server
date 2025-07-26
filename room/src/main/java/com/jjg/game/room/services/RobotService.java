@@ -99,7 +99,7 @@ public class RobotService implements IRoomStartListener {
         robotMoneyCarry += randomGold;
         robotPlayer.setGold(robotMoneyCarry);
         robotPlayer.setGameType(roomCfg.getGameID());
-        robotPlayer.setWareId(roomCfg.getId() - roomCfg.getGameID() * 10);
+        robotPlayer.setRoomCfgId(roomCfg.getId());
     }
 
     /**

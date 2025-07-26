@@ -16,8 +16,8 @@ public class PlayerLastGameInfo {
     private int gameUniqueId;
     //游戏类型
     private int gameType;
-    //场次id
-    private int wareId;
+    //房间配置id
+    private int roomCfgId;
     //房间id
     private long roomId;
     //节点信息
@@ -26,8 +26,6 @@ public class PlayerLastGameInfo {
     private boolean halfwayOffline;
     //额外信息
     private String extra;
-    // 房间配置ID
-    private int roomCfgId;
 
     public long getPlayerId() {
         return playerId;
@@ -53,12 +51,12 @@ public class PlayerLastGameInfo {
         this.gameType = gameType;
     }
 
-    public int getWareId() {
-        return wareId;
+    public int getRoomCfgId() {
+        return roomCfgId;
     }
 
-    public void setWareId(int wareId) {
-        this.wareId = wareId;
+    public void setRoomCfgId(int roomCfgId) {
+        this.roomCfgId = roomCfgId;
     }
 
     public long getRoomId() {
@@ -91,13 +89,5 @@ public class PlayerLastGameInfo {
 
     public void setExtra(String extra) {
         this.extra = extra;
-    }
-
-    public int getRoomCfgId() {
-        return roomCfgId;
-    }
-
-    public void setRoomCfgId(int roomCfgId) {
-        this.roomCfgId = roomCfgId;
     }
 }
