@@ -1,7 +1,7 @@
 package com.jjg.game.table.redblackwar.util;
 
 import com.jjg.game.core.utils.PokerCardUtils;
-import com.jjg.game.table.common.data.Card;
+import com.jjg.game.core.data.Card;
 import com.jjg.game.table.redblackwar.constant.HandType;
 
 import java.util.ArrayList;

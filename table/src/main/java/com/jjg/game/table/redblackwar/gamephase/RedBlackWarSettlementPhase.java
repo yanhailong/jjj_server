@@ -7,7 +7,7 @@ import com.jjg.game.room.data.room.TablePlayerGameData;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
 import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
-import com.jjg.game.table.common.data.Card;
+import com.jjg.game.core.data.Card;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.redblackwar.constant.HandType;
