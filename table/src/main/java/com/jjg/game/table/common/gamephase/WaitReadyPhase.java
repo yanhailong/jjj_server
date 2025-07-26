@@ -28,7 +28,7 @@ public class WaitReadyPhase<RD extends GameDataVo<Room_BetCfg>> extends Abstract
         super.phaseDoAction();
         NotifyRoomReadyWait notifyRoomReadyWait = new NotifyRoomReadyWait(Code.SUCCESS);
         notifyRoomReadyWait.roomId = gameDataVo.getRoomId();
-        notifyRoomReadyWait.waitEndTime = getPhaseRunTime() + System.currentTimeMillis();
+        notifyRoomReadyWait.waitEndTime = gameDataVo.getPhaseEndTime();
         // 发送进入等待时间的消息
         broadcastMsgToRoom(notifyRoomReadyWait);
     }

@@ -204,6 +204,8 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         if (tableBetAreaInfoMap == null) {
             tableBetAreaInfoMap = new HashMap<>();
         }
+        // 更新押注数据
+        gameDataVo.updatePlayerBetInfo(robotPlayer.getId(), tableBetAreaInfoMap);
         tableBetAreaInfoMap.computeIfAbsent(randomBetArea, k -> new ArrayList<>()).add(randomGold);
         NotifyPlayerBet notifyPlayerBet = new NotifyPlayerBet(Code.SUCCESS);
         notifyPlayerBet.betTableInfoList = new ArrayList<>();
@@ -222,8 +224,6 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         notifyPlayerBet.playerCurGold = gamePlayer.getGold();
         // 向玩家广播下注数据
         broadcastMsgToRoom(notifyPlayerBet);
-        // 更新押注数据
-        gameDataVo.updatePlayerBetInfo(robotPlayer.getId(), tableBetAreaInfoMap);
         // 添加timer
         addRobotBetActionTimer(betRobotCfg, robotPlayer);
     }
