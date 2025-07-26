@@ -272,7 +272,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     /**
      * 计算金币数量
      */
-    private long calcGold(WinPosWeightCfg weightCfg, long betValue) {
+    protected long calcGold(WinPosWeightCfg weightCfg, long betValue) {
         int winRatio = gameDataVo.getRoomCfg().getWinRatio();
         // 倍率计算
         long multiAdd =

@@ -41,6 +41,9 @@ public class RespBaccaratTableInfo extends AbstractResponse {
     @ProtoDesc("压分列表")
     public List<Integer> betInfoList;
 
+    @ProtoDesc("玩家总人数")
+    public int playerTotalNum;
+
     public RespBaccaratTableInfo(int code) {
         super(code);
     }

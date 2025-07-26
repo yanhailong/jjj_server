@@ -1,5 +1,6 @@
 package com.jjg.game.table.baccarat.message;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
@@ -17,10 +18,7 @@ import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -51,11 +49,12 @@ public class BaccaratMessageBuilder {
         NotifyBaccaratTableSummary notifyBaccaratTableSummary =
             BaccaratMessageBuilder.buildBaccaratSingleSummaryInfo(gameController);
         int roomCfgId = gameController.getGameDataVo().getRoomCfg().getId();
-        String playerIds =
-            baccaratTempRoom.getBaccaratObserverPlayers(roomCfgId).values().stream().map(PlayerController::playerId).map(String::valueOf).collect(Collectors.joining(","));
-        log.debug("临时房间：{} 中的人：{}", gameController.getGameDataVo().getRoomCfg().getId(), playerIds);
-        baccaratTempRoom.getBaccaratObserverPlayers(roomCfgId).values()
-            .forEach(playerController -> playerController.send(notifyBaccaratTableSummary));
+        Collection<PlayerController> playerControllers =
+            baccaratTempRoom.getBaccaratObserverPlayers(roomCfgId).values();
+        playerControllers.forEach(playerController -> {
+            log.info("给临时房间中的玩家：{} 发送：{} ", playerController.playerId(), JSON.toJSON(notifyBaccaratTableSummary));
+            playerController.send(notifyBaccaratTableSummary);
+        });
     }
 
 
@@ -129,6 +128,7 @@ public class BaccaratMessageBuilder {
         respBaccaratTableInfo.gamePhase = eGamePhase;
         respBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameDataVo, true);
         respBaccaratTableInfo.betInfoList = gameDataVo.getRoomCfg().getBetList();
+        respBaccaratTableInfo.playerTotalNum = gameDataVo.getPlayerNum();
         return respBaccaratTableInfo;
     }
 
@@ -172,33 +172,14 @@ public class BaccaratMessageBuilder {
      */
     public static BaccaratTableInfo buildTableInfo(BaccaratGameDataVo gameDataVo, boolean needPlayerBetGold) {
         BaccaratTableInfo tableInfo = new BaccaratTableInfo();
-        tableInfo.tableAreaInfos = new ArrayList<>();
-        Map<Long, Map<Integer, List<Integer>>> areaTotalBet = gameDataVo.getPlayerBetInfo();
-        Map<Integer, BetTableInfo> baccaratTableInfoMap = new HashMap<>();
-        for (Map<Integer, List<Integer>> value : areaTotalBet.values()) {
-            for (Map.Entry<Integer, List<Integer>> entry : value.entrySet()) {
-                if (!baccaratTableInfoMap.containsKey(entry.getKey())) {
-                    baccaratTableInfoMap.put(entry.getKey(), new BetTableInfo());
-                    baccaratTableInfoMap.get(entry.getKey()).betIdx = entry.getKey();
-                }
-                BetTableInfo betTableInfo = baccaratTableInfoMap.get(entry.getKey());
-                betTableInfo.betIdxTotal = entry.getValue().stream().mapToInt(Integer::intValue).sum();
-                // 刚进入和断线重连时需要金币列表
-                if (needPlayerBetGold) {
-                    if (betTableInfo.betGoldList == null) {
-                        betTableInfo.betGoldList = new ArrayList<>();
-                    }
-                    betTableInfo.betGoldList.addAll(entry.getValue());
-                }
-            }
-        }
-        tableInfo.tableAreaInfos.addAll(baccaratTableInfoMap.values());
+        tableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(gameDataVo, needPlayerBetGold);
         tableInfo.tableCountDownTime = gameDataVo.getPhaseEndTime();
         tableInfo.totalTime = (int) (gameDataVo.getPhaseRunTime());
         // 刷新场上的玩家数据
         List<GamePlayer> gamePlayers =
             gameDataVo.getGamePlayerMap().values().stream().filter(g -> g.getTableGameData().getSitNum() > 0).toList();
-        tableInfo.tablePlayerInfoList = gamePlayers.stream().map(TableMessageBuilder::buildTablePlayerInfo).toList();
+        tableInfo.tablePlayerInfoList =
+            gamePlayers.stream().limit(7).map(TableMessageBuilder::buildTablePlayerInfo).toList();
         return tableInfo;
     }
 
@@ -207,25 +188,6 @@ public class BaccaratMessageBuilder {
      */
     public static List<BetTableInfo> buildPlayerBetInfo(
         BaccaratTableInfo baccaratTableInfo, BaccaratGameDataVo gameDataVo, long playerId) {
-        Map<Integer, BetTableInfo> baccaratTableInfoMap =
-            baccaratTableInfo.tableAreaInfos.stream()
-                .collect(HashMap::new, (map, e) -> map.put(e.betIdx, e), HashMap::putAll);
-        Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
-        if (playerBetInfo == null) {
-            return baccaratTableInfoMap.values().stream().toList();
-        }
-        // 玩家区域信息
-        for (Map.Entry<Integer, List<Integer>> entry : playerBetInfo.entrySet()) {
-            long areaTotal = entry.getValue().stream().mapToInt(Integer::intValue).sum();
-            if (!baccaratTableInfoMap.containsKey(entry.getKey())) {
-                BetTableInfo betTableInfo = new BetTableInfo();
-                betTableInfo.betIdx = entry.getKey();
-                betTableInfo.playerBetTotal = areaTotal;
-                baccaratTableInfoMap.put(entry.getKey(), betTableInfo);
-            } else {
-                baccaratTableInfoMap.get(entry.getKey()).playerBetTotal = areaTotal;
-            }
-        }
-        return baccaratTableInfoMap.values().stream().toList();
+        return TableMessageBuilder.buildPlayerBetInfo(baccaratTableInfo.tableAreaInfos, gameDataVo, playerId);
     }
 }
