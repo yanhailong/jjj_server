@@ -57,8 +57,8 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
 
     //加载最新的结果库名
     public void reloadLib(){
-        this.currentMongoLibName = getCurrentMongoLibName();
-        this.currentRedisLibName = getCurrentRedisLibName();
+        this.currentMongoLibName = getCurrentMongoLibNameFromRedis();
+        this.currentRedisLibName = getCurrentRedisLibNameFromRedis();
     }
 
     public long getResultCount(T lib) {
@@ -108,7 +108,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
      */
     public String getNewMongoLibName() {
         //获取正在使用的结果库(mongodb)
-        String currentMongoLibName = getCurrentMongoLibName();
+        String currentMongoLibName = getCurrentMongoLibNameFromRedis();
         int index = 1;
         if (currentMongoLibName != null && !currentMongoLibName.isEmpty()) {
             String[] arr = currentMongoLibName.split("_");
@@ -124,7 +124,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
      *
      * @return
      */
-    public String getCurrentMongoLibName() {
+    public String getCurrentMongoLibNameFromRedis() {
         return (String) this.redisTemplate.opsForHash().get(slotsCurrentMongoResultLib, this.gameType);
     }
 
@@ -133,8 +133,16 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
      *
      * @return
      */
-    public String getCurrentRedisLibName() {
+    public String getCurrentRedisLibNameFromRedis() {
         return (String) this.redisTemplate.opsForHash().get(slotsCurrentRedisResultLib, this.gameType);
+    }
+
+    public String getCurrentMongoLibName() {
+        return currentMongoLibName;
+    }
+
+    public String getCurrentRedisLibName() {
+        return currentRedisLibName;
     }
 
     /**
@@ -147,7 +155,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         query.cursorBatchSize(batchSize);
 
         //获取当前正在使用的库名
-        String redisTableName = getCurrentRedisLibName();
+        String redisTableName = getCurrentRedisLibNameFromRedis();
         //获取一个新的库名
         String redisTableNameIndex = getRedisTableNameIndex(redisTableName);
 

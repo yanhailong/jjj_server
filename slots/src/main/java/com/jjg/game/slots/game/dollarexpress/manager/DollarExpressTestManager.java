@@ -34,9 +34,9 @@ public class DollarExpressTestManager {
 
     private void testScanner(){
         try{
-            Player player = slotsPlayerService.get(1000021);
+            Player player = slotsPlayerService.get(1000001);
             player.setGameType(100100);
-            player.setRoomCfgId(10010001);
+            player.setRoomCfgId(1001001);
 
             PlayerController playerController = new PlayerController(null,player);
             DollarExpressPlayerGameData playerGameData = gameManager.createPlayerGameData(playerController);

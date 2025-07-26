@@ -48,6 +48,8 @@ public class ToServerMessageHandler {
                 gameManager.updateSpecialResultLibCacheData(data);
             }
             libDao.reloadLib();
+
+            log.info("当前使用结果库名称  mongo = {},redis = {}",libDao.getCurrentMongoLibName(),libDao.getCurrentRedisLibName());
         }catch (Exception e) {
             log.error("",e);
         }

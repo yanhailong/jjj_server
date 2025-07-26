@@ -524,6 +524,9 @@ public class MarsCurator implements TreeCacheListener {
                 if (pathArr.length < 6) {
                     return true;
                 }
+                if(this.nodeConfig.getGameMajorTypes() == null || this.nodeConfig.getGameMajorTypes().length < 1){
+                    return true;
+                }
                 String startStr = pathArr[5];
                 if (!StringUtils.isNumeric(startStr)) {
                     return false;

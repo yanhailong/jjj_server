@@ -37,6 +37,14 @@ public interface SlotsConst {
         int GET_LIB_FAIL_RETRY_COUNT = 5;
     }
 
+    //结果库变更类型
+    interface LibChangeType{
+        //结果库变更
+        int LIB_CHANGE = 0;
+        //配置变更
+        int CONFIG_CHANGE = 1;
+    }
+
     interface BaseElement{
         //普通图标类型
         int TYPE_NORMAL = 0;

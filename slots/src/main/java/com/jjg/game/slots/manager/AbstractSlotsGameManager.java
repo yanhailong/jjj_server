@@ -382,9 +382,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         //如果不是初始化，并且配置是区间变化
         //就要重新将mongodb的结果集加载到redis，并且通知其他节点
         if(!init && !compareSectionMap(data.getResultLibSectionMap(),this.resultLibSectionMap)){
-            String docName = getResultLibDao().getCurrentMongoLibName();
+            String docName = getResultLibDao().getCurrentMongoLibNameFromRedis();
             getResultLibDao().moveToRedis(docName,data.getResultLibSectionMap());
-            noticeNodeLibChange(0,cfgList);
+            noticeNodeLibChange(SlotsConst.LibChangeType.CONFIG_CHANGE,cfgList);
         }
 
         updateSpecialResultLibCacheData(data);
@@ -646,8 +646,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
                 node.write(msg);
             }
 
-            this.clearRedisLibEvent = new TimerEvent<>(this, 1, "clearRedisLibEvent").withTimeUnit(TimeUnit.MINUTES);
-            this.timerCenter.add(this.clearRedisLibEvent);
+            if(changeType == SlotsConst.LibChangeType.CONFIG_CHANGE){
+                this.clearRedisLibEvent = new TimerEvent<>(this, 1, "clearRedisLibEvent").withTimeUnit(TimeUnit.MINUTES);
+                this.timerCenter.add(this.clearRedisLibEvent);
+            }
         }catch (Exception e){
             log.error("",e);
         }

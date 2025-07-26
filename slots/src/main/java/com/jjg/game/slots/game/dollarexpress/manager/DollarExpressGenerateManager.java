@@ -153,9 +153,9 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 
                     for (List<Integer> otherIconList : rewardCfg.getBetTimes()) {
                         int iconId = otherIconList.get(0);
-                        //出现的次数
-                        Integer showCount = iconShowCountMap.get(iconId);
-                        if (showCount != null && showCount == otherIconList.get(1)) {
+                        //该元素在这条线上出现的次数
+                        long showCount = lineList.stream().filter(tmpId -> arr[tmpId] == iconId).count();
+                        if (showCount == otherIconList.get(1)) {
                             int addTimes = otherIconList.get(2);
                             awardLineInfo.addSpecialAwardInfo(iconId, addTimes);
 //                            log.debug("特殊图标添加倍率 iconId = {},showCount = {},addTimes = {}", iconId, showCount, addTimes);
@@ -822,7 +822,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      *
      * @param lib
      */
-    private void calTimes(DollarExpressResultLib lib) {
+    public void calTimes(DollarExpressResultLib lib) {
         //中奖线
         lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
         //火车
@@ -883,6 +883,10 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 //            lib.addTimes(goldTrainTimes);
             lib.setLibType(SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN);
         }
+
+        if(lib.getRollerId() == SlotsConst.BaseElementReward.ROTATESTATE_FREE){
+            lib.setLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE);
+        }
     }
 
     /**
@@ -892,15 +896,18 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @return
      */
     private int calLineTimes(List<DollarExpressAwardLineInfo> list) {
+        if(list == null || list.isEmpty()){
+            return 0;
+        }
+
         int times = 0;
-        if (list != null && !list.isEmpty()) {
-            for (DollarExpressAwardLineInfo awardLineInfo : list) {
+        for (DollarExpressAwardLineInfo awardLineInfo : list) {
+            if(awardLineInfo.getOtherIconAwardInfoMap() == null || awardLineInfo.getOtherIconAwardInfoMap().isEmpty()){
                 times += awardLineInfo.getBaseTimes();
-                if (awardLineInfo.getOtherIconAwardInfoMap() != null && !awardLineInfo.getOtherIconAwardInfoMap().isEmpty()) {
-                    for (Map.Entry<Integer, Integer> en : awardLineInfo.getOtherIconAwardInfoMap().entrySet()) {
-                        times += en.getValue();
-                    }
-                }
+                continue;
+            }
+            for (Map.Entry<Integer, Integer> en : awardLineInfo.getOtherIconAwardInfoMap().entrySet()) {
+                times += awardLineInfo.getBaseTimes() * en.getValue();
             }
         }
         return times;

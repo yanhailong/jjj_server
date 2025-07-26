@@ -70,7 +70,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //计算配置后缓存
         initConfig();
         this.dollarExpressGenerate.init(this.gameType);
-//        generateLib(100000);
+        generateLib(100000);
     }
 
     /**
@@ -130,7 +130,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         this.timerCenter.add(this.clearAllLibEvent);
 
         //通知其他节点，结果库变更
-        noticeNodeLibChange(1, Collections.EMPTY_LIST);
+        noticeNodeLibChange(SlotsConst.LibChangeType.LIB_CHANGE, Collections.EMPTY_LIST);
     }
 
     /**
@@ -597,9 +597,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         CommonResult<int[]> updateResult = updateGird(libCfgResult.data.getModelId(), SlotsConst.BaseElementReward.ROTATESTATE_NORMAL, gameRunInfo.getIconArr(), updateGird);
         if (updateResult.success()) {
             gameRunInfo.setIconArr(updateResult.data);
-            //检查与美元相关的逻辑
-            gameRunInfo = checkDorllar(gameRunInfo, playerGameData, resultLib.getGoldTrainCount(), resultLib.getGoldTrainAllTimes());
         }
+        //检查与美元相关的逻辑
+        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, resultLib.getGoldTrainCount(), resultLib.getGoldTrainAllTimes());
 
         //计算火车奖励
         gameRunInfo = calTrainReward(playerGameData, trainList, gameRunInfo);
@@ -734,8 +734,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         CommonResult<int[]> updateResult = updateGird(playerGameData.getLastModelId(), SlotsConst.BaseElementReward.ROTATESTATE_AGAIN, againGame.getIconArr(), updateGird);
         if (updateResult.success()) {
             gameRunInfo.setIconArr(updateResult.data);
-            gameRunInfo = checkDorllar(gameRunInfo, playerGameData, againGame.getGoldTrainCount(), againGame.getGoldTrainAllTimes());
         }
+        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, againGame.getGoldTrainCount(), againGame.getGoldTrainAllTimes());
 
         gameRunInfo.addBigPoolTimes(againGame.getTimes());
 
