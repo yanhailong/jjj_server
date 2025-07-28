@@ -335,11 +335,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
 
     /**
      * 解散房间
-     *
-     * @param gameType 游戏类型
-     * @param roomId   房间ID
      */
-    public <R extends Room> void disbandRoom(R room, int gameType, long roomId) {
+    public <R extends Room> void disbandRoom(R room) {
+        int gameType = room.getGameType();
+        long roomId = room.getId();
         if (!roomControllerMap.containsKey(gameType)) {
             log.error("房间解散时，房间管理器不存在游戏类型: {} 的房间控制器集合", gameType);
             return;
@@ -352,13 +351,18 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
             log.error("解散放假时，通过房间ID: {} 查找房间管理器不存在", roomId);
             return;
         }
+        EGameType eGameType = EGameType.getGameByTypeId(gameType);
+        log.info("开始解散房间：{} 房间类型：{} cfgId: {}", roomId, eGameType.getGameDesc(), room.getRoomCfgId());
         // 调用解散房间控制器中的逻辑
         roomController.disbandRoom();
-        // 回存房间相关数据
+        // TODO 回存房间相关数据
+
         // 移除房间map中的数据
         roomControllers.remove(roomId);
         // 刪除房间
         deleteRoomFromRedis(room);
+        // 关闭计时器
+        timerCenter.close();
     }
 
     /**
@@ -388,10 +392,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
         for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> values : roomControllerMap.values()) {
             for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : values.values()) {
                 // 调用房间的解散逻辑
-                roomController.disbandRoom();
-                Room room = roomController.getRoom();
-                // 删除房间
-                deleteRoomFromRedis(room);
+                disbandRoom(roomController.getRoom());
             }
         }
     }

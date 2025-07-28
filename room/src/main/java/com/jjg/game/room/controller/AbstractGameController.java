@@ -84,9 +84,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             // 当前的游戏阶段
             currentGamePhase = gamePhaseIterator.next();
             currentGamePhase.setRoundCounter(roundCounter.get());
-            log.debug("[{}] 房间ID: {} 游戏ID: {} 游戏类型: {} 当前阶段：{} 开始运行",
+            /*log.debug("[{}] 房间ID: {} 游戏ID: {} 游戏类型: {} 当前阶段：{} 开始运行",
                 currentGamePhase.getRoundCounter(), gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
-                gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());
+                gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());*/
             // 执行当前阶段的逻辑 TODO 阶段的逻辑异常处理 房间逻辑异常中断该如何处理
             currentGamePhase.phaseDoAction();
             // 调用玩家的行为,主要是机器人和托管的玩家
@@ -96,9 +96,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 () -> {
                     // 定时器时间到,调用结束逻辑 TODO 阶段的逻辑异常处理 房间逻辑异常中断该如何处理
                     currentGamePhase.phaseFinish();
-                    log.debug("[{}] 房间ID: {} 游戏ID: {} 游戏类型: {} 阶段：{} 运行结束",
+                    /*log.debug("[{}] 房间ID: {} 游戏ID: {} 游戏类型: {} 阶段：{} 运行结束",
                         currentGamePhase.getRoundCounter(), gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
-                        gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());
+                        gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());*/
                     // 如果有绑定的下一个阶段可以切换到
                     IRoomPhase bindNextPhase = currentGamePhase.bindNextPhase();
                     if (bindNextPhase != null) {
@@ -347,8 +347,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         // 房间结束前调用
         beforeDestroyRoom();
         // 调用房间管理器的解散逻辑
-        roomController.getRoomManager().disbandRoom(
-            roomController.getRoom(), gameDataVo.getRoomCfg().getGameID(), gameDataVo.getRoomId());
+        roomController.getRoomManager().disbandRoom(roomController.getRoom());
     }
 
     @Override
