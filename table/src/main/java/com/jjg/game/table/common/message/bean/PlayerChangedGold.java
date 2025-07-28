@@ -4,7 +4,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
 /**
- * 百家乐玩家金币
+ * 玩家金币变化
  *
  * @author 2CL
  */

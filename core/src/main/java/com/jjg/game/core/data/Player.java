@@ -6,6 +6,7 @@ import java.util.Objects;
 
 /**
  * 玩家对象
+ *
  * @author 11
  * @date 2025/5/26 11:18
  */
@@ -84,6 +85,9 @@ public class Player {
     }
 
     public void setGold(long gold) {
+        if (gold < 0) {
+            throw new RuntimeException("给玩家设置负数金币值");
+        }
         this.gold = gold;
     }
 

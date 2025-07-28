@@ -63,10 +63,8 @@ public class HallService implements ConfigExcelChangeListener {
     }
 
     @Override
-    public void change(String className) {
-        if (className.equalsIgnoreCase(WarehouseCfg.class.getSimpleName())) {
-            initWareHouseConfigData();
-        }
+    public void initSampleCallbackCollector() {
+        addSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
     }
 
     private void initWareHouseConfigData() {

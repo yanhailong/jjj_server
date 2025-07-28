@@ -95,6 +95,7 @@ public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> imp
         try {
             ctx.writeAndFlush(obj).addListener(future -> {
                 if (isActive()) {
+                    // TODO 玩家不在线处理流程
                     ctx.close();
                 }
             });

@@ -1,19 +1,15 @@
 package com.jjg.game.table.baccarat;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.BetTableRoom;
-import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.Room;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
-import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.gamephase.BaccaratSettlementPhase;
@@ -74,6 +70,7 @@ public class BaccaratGameController extends BaseTableGameController<BaccaratGame
             log.error("玩家：{} 获取百家乐桌面数据为空 room: {} cfgId: {}",
                 playerController.playerId(), gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId());
         }
+        log.info(JSON.toJSONString(baccaratTableInfo));
         // send
         playerController.send(Objects.requireNonNullElseGet(baccaratTableInfo,
             () -> new RespBaccaratTableInfo(Code.FAIL)));

@@ -29,10 +29,9 @@ public class RedBlackWarSampleManager implements ConfigExcelChangeListener {
     private Map<RedBlackWarConstant.Camp, Map<HandType, List<WinPosWeightCfg>>> winMap;
 
     @Override
-    public void change(String className) {
-        if (className.equals(getClass().getSimpleName())) {
-            initSampleConfig();
-        }
+    public void initSampleCallbackCollector() {
+        addSampleFileObserveWithCallBack(BetAreaCfg.EXCEL_NAME, this::initSampleConfig)
+            .addSampleFileObserveWithCallBack(WinPosWeightCfg.EXCEL_NAME, this::initSampleConfig);
     }
 
     public void initSampleConfig() {
@@ -40,14 +39,14 @@ public class RedBlackWarSampleManager implements ConfigExcelChangeListener {
         try {
             //初始化红黑大战压分区域
             Map<Integer, BetAreaCfg> tempBetAreaMap = GameDataManager.getBetAreaCfgList()
-                    .stream()
-                    .filter(betAreaCfg -> betAreaCfg.getGameID() == CoreConst.GameType.RED_BLACK_WAR)
-                    .collect(Collectors.toMap(BetAreaCfg::getId, betAreaCfg -> betAreaCfg));
+                .stream()
+                .filter(betAreaCfg -> betAreaCfg.getGameID() == CoreConst.GameType.RED_BLACK_WAR)
+                .collect(Collectors.toMap(BetAreaCfg::getId, betAreaCfg -> betAreaCfg));
             //红黑大战胜利配置
             Map<Integer, WinPosWeightCfg> tempWinMap = GameDataManager.getWinPosWeightCfgList()
-                    .stream()
-                    .filter(betAreaCfg -> betAreaCfg.getGameID() == CoreConst.GameType.RED_BLACK_WAR)
-                    .collect(Collectors.toMap(WinPosWeightCfg::getId, betAreaCfg -> betAreaCfg));
+                .stream()
+                .filter(betAreaCfg -> betAreaCfg.getGameID() == CoreConst.GameType.RED_BLACK_WAR)
+                .collect(Collectors.toMap(WinPosWeightCfg::getId, betAreaCfg -> betAreaCfg));
             //校验押注区域和获胜的配置
             //押注id->对应的开奖位置
             Map<Integer, List<Integer>> map = new HashMap<>();
@@ -113,10 +112,13 @@ public class RedBlackWarSampleManager implements ConfigExcelChangeListener {
                 betAreaMap = tempBetAreaMap;
                 Map<RedBlackWarConstant.Camp, Map<HandType, List<WinPosWeightCfg>>> typeListHashMap = new HashMap<>();
                 for (WinPosWeightCfg value : tempWinMap.values()) {
-                    Map<HandType, List<WinPosWeightCfg>> handTypeListMap = typeListHashMap.computeIfAbsent(value.getWinPosID() > RED_BLACK_LIMIT ? RedBlackWarConstant.Camp.BLACK : RedBlackWarConstant.Camp.RED,
-                            b -> new HashMap<>());
-                    handTypeListMap.computeIfAbsent(HandType.getHandType(value.getWinPosID() % RED_BLACK_LIMIT), k -> new ArrayList<>())
-                            .add(value);
+                    Map<HandType, List<WinPosWeightCfg>> handTypeListMap =
+                        typeListHashMap.computeIfAbsent(value.getWinPosID() > RED_BLACK_LIMIT ?
+                                RedBlackWarConstant.Camp.BLACK : RedBlackWarConstant.Camp.RED,
+                        b -> new HashMap<>());
+                    handTypeListMap.computeIfAbsent(HandType.getHandType(value.getWinPosID() % RED_BLACK_LIMIT),
+                            k -> new ArrayList<>())
+                        .add(value);
                 }
                 winMap = typeListHashMap;
             }

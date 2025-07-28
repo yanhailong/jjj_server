@@ -12,8 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * 控制台调用
@@ -41,6 +39,10 @@ public class ConsoleDebugger implements CommandLineRunner {
         IS_IDE_MODEL = "true".equalsIgnoreCase(val);
         IS_IDE_MODEL_FROM_SYSTEM_PROPERTY = true;
         new Thread(this::checkConsole).start();
+        return IS_IDE_MODEL;
+    }
+
+    public static boolean isIdeModel() {
         return IS_IDE_MODEL;
     }
 

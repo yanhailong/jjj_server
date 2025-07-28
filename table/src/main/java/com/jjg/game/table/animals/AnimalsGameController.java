@@ -5,12 +5,15 @@ import com.jjg.game.core.data.BetTableRoom;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractRoomController;
+import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.animals.data.AnimalsGameDataVo;
 import com.jjg.game.table.animals.gamephase.AnimalsBetPhase;
 import com.jjg.game.table.animals.gamephase.AnimalsSettlementPhase;
 import com.jjg.game.table.animals.gamephase.AnimalsWaitReadyPhase;
+import com.jjg.game.table.animals.message.AnimalsMessageBuilder;
+import com.jjg.game.table.animals.message.NotifyAnimalsTableInfo;
 import com.jjg.game.table.common.BaseTableGameController;
 
 import java.util.LinkedHashSet;
@@ -20,6 +23,7 @@ import java.util.LinkedHashSet;
  *
  * @author 2CL
  */
+@GameController(gameType = EGameType.BIRDS_ANIMAL)
 public class AnimalsGameController extends BaseTableGameController<AnimalsGameDataVo> {
 
     public AnimalsGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {
@@ -28,7 +32,10 @@ public class AnimalsGameController extends BaseTableGameController<AnimalsGameDa
 
     @Override
     public void sendRoomInitInfo(PlayerController playerController) {
-
+        // 发送初始化数据
+        NotifyAnimalsTableInfo animalsTableInfo =
+            AnimalsMessageBuilder.notifyAnimalsTableInfo(this, true, playerController.playerId());
+        playerController.send(animalsTableInfo);
     }
 
     @Override
@@ -38,7 +45,7 @@ public class AnimalsGameController extends BaseTableGameController<AnimalsGameDa
 
     @Override
     protected LinkedHashSet<IRoomPhase> initGamePhaseConf() {
-        LinkedHashSet <IRoomPhase> roomPhases = new LinkedHashSet<>();
+        LinkedHashSet<IRoomPhase> roomPhases = new LinkedHashSet<>();
         roomPhases.add(new AnimalsWaitReadyPhase(this));
         roomPhases.add(new AnimalsBetPhase(this));
         roomPhases.add(new AnimalsSettlementPhase(this));

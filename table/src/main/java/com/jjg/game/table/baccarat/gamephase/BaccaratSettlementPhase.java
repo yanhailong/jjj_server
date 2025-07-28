@@ -72,11 +72,12 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         // 将牌局的输赢保存到牌桌上
         gameDataVo.getBetRecord().add(baccaratSettlementInfo.cardState);
         // 游戏结算，给玩家发送结算信息
-        List<PlayerChangedGold> changedGolds = playerGameSettlement(baccaratSettlementInfo);
+        Map<Long, PlayerChangedGold> changedGolds = playerGameSettlement(baccaratSettlementInfo);
+        List<PlayerChangedGold> playerChangedGolds = new ArrayList<>(changedGolds.values());
         NotifyBaccaratSettlementInfo baccaratTableInfo =
-            BaccaratMessageBuilder.buildNotifySettlementMessage(gameDataVo, changedGolds,
-                baccaratSettlementInfo);
-        baccaratTableInfo.playerChangedGolds = changedGolds;
+            BaccaratMessageBuilder.buildNotifySettlementMessage(
+                gameDataVo, playerChangedGolds, baccaratSettlementInfo);
+        baccaratTableInfo.playerChangedGolds = playerChangedGolds;
         // 将结算信息写入到场上，方便中途加入的玩家读取
         gameDataVo.setBaccaratSettlementInfo(baccaratTableInfo);
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
@@ -85,6 +86,12 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 BaccaratMessageBuilder.buildPlayerBetInfo(
                     baccaratTableInfo.baccaratTableInfo, gameDataVo, entry.getKey());
             log.debug("玩家：{} 结算数据: {}", entry.getKey(), JSON.toJSONString(baccaratTableInfo));
+            PlayerChangedGold changedGold = changedGolds.get(entry.getKey());
+            // 玩家有赢钱且大于0
+            if (changedGold != null && changedGold.playerWinGold > 0) {
+                // 给玩家添加历史记录
+                entry.getValue().getTableGameData().addBetRecord(changedGold.playerWinGold);
+            }
             // 向每个玩家发送通知消息
             broadcastBuilderToRoom(
                 RoomMessageBuilder.newBuilder().setData(baccaratTableInfo).setPlayerIds(Collections.singleton(entry.getKey())));
@@ -159,8 +166,8 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     /**
      * 玩家游戏结算
      */
-    private List<PlayerChangedGold> playerGameSettlement(BaccaratSettlementInfo baccaratSettlementInfo) {
-        List<PlayerChangedGold> playerChangedGolds = new ArrayList<>();
+    private Map<Long, PlayerChangedGold> playerGameSettlement(BaccaratSettlementInfo baccaratSettlementInfo) {
+        Map<Long, PlayerChangedGold> playerChangedGolds = new HashMap<>();
         // 获取玩家的押注信息，让后结算
         for (Map.Entry<Long, GamePlayer> playerEntry : gameDataVo.getGamePlayerMap().entrySet()) {
             GamePlayer gamePlayer = playerEntry.getValue();
@@ -183,7 +190,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 playerGoldChange.playerId = playerEntry.getKey();
                 playerGoldChange.playerWinGold = playerBetWin;
                 playerGoldChange.playerBetGold = playerTotalBetGold;
-                playerChangedGolds.add(playerGoldChange);
+                playerChangedGolds.put(playerEntry.getKey(), playerGoldChange);
                 // TODO 给玩家添加金币
                 gamePlayer.setGold(gamePlayer.getGold() + playerBetWin);
             }

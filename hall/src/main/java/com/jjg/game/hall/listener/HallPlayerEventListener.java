@@ -19,6 +19,7 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.core.tool.ConsoleDebugger;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.logger.HallLogger;
 import com.jjg.game.hall.pb.GameListConfig;
@@ -27,7 +28,6 @@ import com.jjg.game.hall.pb.ResLogin;
 import com.jjg.game.hall.sample.GameDataManager;
 import com.jjg.game.hall.sample.bean.GameListCfg;
 import com.jjg.game.hall.service.HallPlayerService;
-import com.jjg.game.core.data.Room;
 import com.jjg.game.hall.service.HallService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -42,7 +42,8 @@ import java.util.*;
  * @date 2025/5/26 16:42
  */
 @Component
-public class HallPlayerEventListener implements SessionCloseListener, SessionEnterListener, SessionLoginListener,SessionLogoutListener {
+public class HallPlayerEventListener implements SessionCloseListener, SessionEnterListener, SessionLoginListener,
+    SessionLogoutListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired

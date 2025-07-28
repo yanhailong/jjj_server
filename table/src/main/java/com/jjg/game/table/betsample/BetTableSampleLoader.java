@@ -1,29 +1,31 @@
 package com.jjg.game.table.betsample;
 
-import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.data.RoomType;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.exception.GameSampleException;
-import com.jjg.game.room.listener.IRoomStartListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 /**
+ * 牌桌类配置表管理
+ *
  * @author 2CL
  */
 @Repository
 @Order(1)
-public class BetTableSampleLoader implements SmartLifecycle {
+public class BetTableSampleLoader implements SmartLifecycle, ApplicationContextAware {
 
     private static final Logger log = LoggerFactory.getLogger(BetTableSampleLoader.class);
     @Autowired
     private BaseBetTableSampleManager baseBetTableSampleManager;
     private boolean isRunning;
+    private ApplicationContext applicationContext;
 
     @Override
     public void start() {
@@ -31,6 +33,7 @@ public class BetTableSampleLoader implements SmartLifecycle {
             return;
         }
         try {
+            CommonUtil.setContext(applicationContext);
             baseBetTableSampleManager.init();
         } catch (Exception exception) {
             log.error("押注类的公共配置表加载异常 {}", exception.getMessage(), exception);
@@ -52,5 +55,10 @@ public class BetTableSampleLoader implements SmartLifecycle {
     @Override
     public int getPhase() {
         return 1;
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
     }
 }

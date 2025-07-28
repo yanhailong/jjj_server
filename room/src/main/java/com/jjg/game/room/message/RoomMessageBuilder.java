@@ -20,7 +20,7 @@ public class RoomMessageBuilder<T extends AbstractMessage> {
     /**
      * 指定发送的玩家ID，如果为空则对房间内的所有玩家进行广播
      */
-    private Set<Long> playerIds;
+    private Set<Long> playerIds = new HashSet<>();
 
     public static RoomMessageBuilder<AbstractMessage> newBuilder() {
         return new RoomMessageBuilder<>();
@@ -41,6 +41,11 @@ public class RoomMessageBuilder<T extends AbstractMessage> {
 
     public RoomMessageBuilder<T> setPlayerIds(Set<Long> playerIds) {
         this.playerIds = playerIds;
+        return this;
+    }
+
+    public RoomMessageBuilder<T> addPlayerId(Long playerId) {
+        this.playerIds.add(playerId);
         return this;
     }
 
