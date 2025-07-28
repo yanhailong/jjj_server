@@ -240,8 +240,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
     /**
      * player加入房间
      */
-    public <RC extends RoomCfg, R extends Room> int joinRoom(PlayerController playerController, int gameType,
-                                                             long roomId) {
+    public <RC extends RoomCfg, R extends Room> int joinRoom(
+        PlayerController playerController, int gameType, long roomId) {
         try {
             if (roomId < 1) {
                 log.debug("roomId不能小于,加入房间失败 gameType = {},roomId = {} ,playerId = {}", gameType, roomId,
@@ -416,7 +416,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
      */
     protected <RC extends RoomCfg, R extends Room> void registerRoomController(
         int gameType, long roomId, AbstractRoomController<RC, R> roomController) {
-        this.roomControllerMap.computeIfAbsent(gameType, k -> new ConcurrentHashMap<>()).computeIfAbsent(roomId,
+        this.roomControllerMap
+            .computeIfAbsent(gameType, k -> new ConcurrentHashMap<>())
+            .computeIfAbsent(roomId,
             k -> roomController);
     }
 

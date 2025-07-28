@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 节点线程(分发/执行)器
+ * 节点线程(分发/执行)器 TODO 需要添加线程卡死检测逻辑
  *
  * @author 2CL
  */

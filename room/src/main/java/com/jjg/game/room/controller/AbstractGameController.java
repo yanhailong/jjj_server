@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public abstract class AbstractGameController<RC extends RoomCfg, G extends GameDataVo<RC>> implements TimerListener<IProcessorHandler>,
     IGameController, IGameLifeCycle {
-    private static final Logger log = LoggerFactory.getLogger(AbstractGameController.class);
+    protected static final Logger log = LoggerFactory.getLogger(AbstractGameController.class);
     // 游戏配置
     protected G gameDataVo;
     // 游戏控制器
@@ -210,7 +210,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 .map(gamePhase -> (IPhaseMsgAdapter<M>) gamePhase).toList();
         int msgId = message.cmd;
         if (phaseMsgAdapters.isEmpty()) {
-            log.info("消息ID: {} 找不到对应的逻辑处理类", msgId);
+            log.error("异常请求，当前房间：{}  cfgId: {} 需要主动接受请求的阶段为空，但是客户端还是在主动请求",
+                gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId());
             return;
         }
         for (IPhaseMsgAdapter<M> phaseMsgAdapter : phaseMsgAdapters) {
@@ -276,9 +277,6 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         if (event == null || event.getParameter() == null) {
             return;
         }
-        /*if(gamePhaseTimeEvent != event) {
-            log.error("房间定时器异常：{} ", ExceptionUtils.currentThreadTraces());
-        }*/
         if (event instanceof RoomPhaseTimeEvent<?, ?> roomPhaseTimeEvent) {
             // 当前房间阶段
             EGamePhase curGamePhase = currentGamePhase.getGamePhase();

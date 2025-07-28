@@ -42,7 +42,7 @@ public class ReflectionTool {
     }
 
     /**
-     * 获取类的所有的泛型类
+     * 获取类的指定的泛型类
      */
     public static <R> Set<Class<R>> getClassSuperActualType(Class<?> aClass, Class<R> rClass) {
         Set<Type> genericTypes = new HashSet<>();
