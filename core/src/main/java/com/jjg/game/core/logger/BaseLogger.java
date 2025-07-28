@@ -123,14 +123,13 @@ public class BaseLogger {
      * 退出游戏
      *
      * @param player
-     * @param gameType
      * @return
      */
-    public void exitGame(Player player, int gameType) {
+    public void exitGame(Player player) {
         try {
             JSONObject json = new JSONObject();
             json.put("logType", "exitGame");
-            json.put("gameType", gameType);
+            json.put("gameType", player.getGameType());
             sendLog(player, json);
         } catch (Exception e) {
             log.error("", e);
