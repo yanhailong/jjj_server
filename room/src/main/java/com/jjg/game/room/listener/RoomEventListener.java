@@ -85,7 +85,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             return;
         }
 
-        playerSessionService.offline(playerController.playerId(), 0, 0, 0, 0);
+        playerSessionService.offline(playerController.getPlayer(), false);
         // 调用房间Controller的offline消息
         Object scene = playerController.getScene();
         if (scene instanceof AbstractRoomController<?, ?> abstractRoomController) {
@@ -105,7 +105,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 playerController.playerId(), info.getGameType());
         }
 
-        logger.exitGame(playerController.getPlayer(), info.getGameType());
+        logger.exitGame(playerController.getPlayer());
 
     }
 
@@ -133,7 +133,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 p.setRoomCfgId(tempInfo.getRoomCfgId());
             });
 
-            info = playerSessionService.enterGameServer(info, player.getRoomId());
+            info = playerSessionService.enterGameServer(player);
 
             PlayerController playerController = new PlayerController(session, player);
             session.setReference(playerController);

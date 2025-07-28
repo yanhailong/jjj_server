@@ -12,7 +12,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class PlayerLastGameInfo {
     @Id
     private long playerId;
-    //游戏id
+    //游戏唯一id
     private int gameUniqueId;
     //游戏类型
     private int gameType;

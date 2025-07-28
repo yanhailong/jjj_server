@@ -155,6 +155,15 @@ public class DollarExpressMessageHandler implements GmListener {
             }else if("selectAllArea".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到选择所有地区的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 dollarExpressManager.selectAllArea(playerController);
+            }else if("adminGenerateLib".equals(gmOrders[0])) {
+                log.debug("收到生成结果库的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+                int count = Integer.parseInt(gmOrders[1]);
+                if(count > 100000){
+                    log.debug("数字太大，请重新输入 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+                    res.code = Code.FAIL;
+                    return res;
+                }
+                dollarExpressManager.generateLib(count);
             }else {
                 res.code = Code.NOT_FOUND;
             }
