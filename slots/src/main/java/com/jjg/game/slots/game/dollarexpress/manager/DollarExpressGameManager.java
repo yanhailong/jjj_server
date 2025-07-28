@@ -1048,7 +1048,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         //如果盘面中没有出现美金，则不会触发保险箱
-        if(dollarsInfo.dollarIndexIds != null || dollarsInfo.dollarIndexIds.isEmpty()) {
+        if(dollarsInfo.dollarIndexIds == null || dollarsInfo.dollarIndexIds.isEmpty()) {
             dollarsInfo.coinIndexId = 0;
         }
 
