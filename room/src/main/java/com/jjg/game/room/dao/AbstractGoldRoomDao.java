@@ -59,9 +59,4 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
     public long existRoomCount(int gameType, int roomCfgId) {
         return redisTemplate.opsForList().size(getRoomIdListKey(gameType,roomCfgId));
     }
-
-    @Override
-    public List<Object> getAllRoomIds(int gameType, int roomCfgId) {
-        return redisTemplate.opsForList().range(getRoomIdListKey(gameType,roomCfgId), 0, -1);
-    }
 }

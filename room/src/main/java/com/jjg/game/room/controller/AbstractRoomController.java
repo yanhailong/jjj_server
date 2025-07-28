@@ -383,13 +383,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
     /**
-     * 服务器关闭逻辑，
-     */
-    public void serverShutdown() {
-
-    }
-
-    /**
      * 向指定房间的玩家广播消息。
      *
      * @param <T>         the type of the message

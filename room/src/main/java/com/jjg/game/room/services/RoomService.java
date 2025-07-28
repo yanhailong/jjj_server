@@ -3,7 +3,6 @@ package com.jjg.game.room.services;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.curator.MarsCurator;
-import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
@@ -140,10 +139,12 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         }
         try {
             // 先将已存在的房间启动起来
-            initRoom(warehouseCfg);
+            boolean initRes = initRoom(warehouseCfg);
             // 再判断是否还缺房间，如果缺房间则创建新的房间
             int count = (int) roomDao.existRoomCount(gameType, warehouseCfg.getId());
-            if (count < minRoomNum) {
+            // 如果初始化失败需要重新创建一个房间
+            if (!initRes || count < minRoomNum) {
+                count = !initRes ? 0 : count;
                 // 循环执行创建房间
                 for (int i = count; i < minRoomNum; i++) {
                     // 如果房间不足需要创建房间, 分散创建避免同一时刻出现大量IO请求
@@ -159,16 +160,20 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
     /**
      * 初始化房间
      */
-    private void initRoom(WarehouseCfg warehouseCfg) throws Exception {
+    private boolean initRoom(WarehouseCfg warehouseCfg) throws Exception {
         int maxLimit = getRoomMaxLimit(warehouseCfg);
         int gameType = warehouseCfg.getGameID();
         //如果之前没有，就要创建一个房间
         AbstractRoomController<? extends RoomCfg, ? extends Room> roomController =
-            roomManager.initExistRoom(gameType, warehouseCfg.getId(), maxLimit);
+            roomManager.initNodeExistRoom(gameType, warehouseCfg.getId(), maxLimit);
         if (roomController == null) {
-            return;
+            return false;
         }
+        EGameType eGameType = EGameType.getGameByTypeId(gameType);
+        log.info("初始化游戏类型：{} 已存在的房间成功！ID：{} RoomCfgId: {}",
+            eGameType.getGameDesc(), roomController.getRoom().getId(), roomController.getRoom().getRoomCfgId());
         startGameWithRoomController(roomController, warehouseCfg);
+        return true;
     }
 
     /**
@@ -183,6 +188,9 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         if (roomController == null) {
             return;
         }
+        EGameType eGameType = EGameType.getGameByTypeId(gameType);
+        log.info("创建游戏类型：{} 的房间成功！ID：{} RoomCfgId: {}",
+            eGameType.getGameDesc(), roomController.getRoom().getId(), roomController.getRoom().getRoomCfgId());
         startGameWithRoomController(roomController, warehouseCfg);
     }
 
@@ -222,7 +230,7 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         // 需要执行房间中的关闭逻辑
         if (!roomManager.isStopping()) {
             roomManager.setStopping(true);
-            roomManager.serverShutdown();
+            roomManager.onServerShutdown();
         }
     }
 

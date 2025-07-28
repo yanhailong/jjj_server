@@ -70,7 +70,7 @@ public class BaccaratGameController extends BaseTableGameController<BaccaratGame
             log.error("玩家：{} 获取百家乐桌面数据为空 room: {} cfgId: {}",
                 playerController.playerId(), gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId());
         }
-        log.info(JSON.toJSONString(baccaratTableInfo));
+        log.info("百家乐房间初始化数据：{} ", JSON.toJSONString(baccaratTableInfo));
         // send
         playerController.send(Objects.requireNonNullElseGet(baccaratTableInfo,
             () -> new RespBaccaratTableInfo(Code.FAIL)));

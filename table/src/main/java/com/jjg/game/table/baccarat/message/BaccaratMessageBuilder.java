@@ -71,6 +71,9 @@ public class BaccaratMessageBuilder {
             notifyBaccaratTableSummary.tableSummary.baccaratCardState = gameDataVo.getBetRecord().get(roundId);
         }
         notifyBaccaratTableSummary.tableSummary.roundId = roundId;
+        if (gameController.getCurrentGamePhase() == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
+            notifyBaccaratTableSummary.tableSummary.needClearRoad = gameDataVo.getCardList().size() < 6;
+        }
         return notifyBaccaratTableSummary;
     }
 

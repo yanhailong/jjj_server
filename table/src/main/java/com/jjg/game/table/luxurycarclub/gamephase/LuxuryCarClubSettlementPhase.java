@@ -74,6 +74,8 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             playerChangedGold.playerId = playerId;
             playerChangedGold.playerWinGold = playerWin;
             playerChangedGolds.add(playerChangedGold);
+            // 添加记录
+            entry.getValue().getTableGameData().addBetRecord(playerWin);
             // TODO 给玩家加金币
             gamePlayer.setGold(gamePlayer.getGold() + playerWin);
         }

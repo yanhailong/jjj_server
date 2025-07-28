@@ -2,7 +2,6 @@ package com.jjg.game.room.manager;
 
 import com.jjg.game.common.cluster.ClusterProcessorExecutors;
 import com.jjg.game.common.cluster.ClusterSystem;
-import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
@@ -156,9 +155,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
     }
 
     /**
-     * 初始化已经存在的房间
+     * 初始化当前节点已经存在的房间，此为兼容逻辑，按道理在服务器关闭时会清除当前节点所有的房间数据
      */
-    public <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> initExistRoom(
+    public <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> initNodeExistRoom(
         int gameType, int roomCfgId, int maxLimit) throws Exception {
         EGameType eGameType = EGameType.getGameByTypeId(gameType);
         RoomType roomType = eGameType.getRoomType();
@@ -168,17 +167,17 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
         if (roomDao == null) {
             return null;
         }
-        List<Object> roomIds = roomDao.getAllRoomIds(gameType, roomCfgId);
-        if (roomIds == null || roomIds.isEmpty()) {
-            log.error("初始化房间时房间ID为空");
+        // 获取当前节点的所有房间
+        List<R> nodeRoom = roomDao.getCurrentNodeRoom(gameType, roomCfgId);
+        if (nodeRoom == null || nodeRoom.isEmpty()) {
+            log.info("当前节点：{} 游戏类型：{} 的房间为空", nodeManager.getNodePath(), gameType);
             return null;
         }
-        Integer roomId = (Integer) RandomUtils.randCollection(roomIds);
-        if (roomId == null || roomId == 0) {
+        R randomRoom = RandomUtils.randCollection(nodeRoom);
+        if (randomRoom == null) {
             return null;
         }
-        R room = roomDao.getRoom(gameType, roomId);
-        return initWithRoom(gameType, roomCfgId, maxLimit, roomType, room);
+        return initWithRoom(gameType, roomCfgId, maxLimit, roomType, randomRoom);
     }
 
     /**
@@ -384,11 +383,15 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
     /**
      * 服务器关闭时
      */
-    public void serverShutdown() {
+    public void onServerShutdown() {
         // 通知所有的房间
         for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> values : roomControllerMap.values()) {
             for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : values.values()) {
-                roomController.serverShutdown();
+                // 调用房间的解散逻辑
+                roomController.disbandRoom();
+                Room room = roomController.getRoom();
+                // 删除房间
+                deleteRoomFromRedis(room);
             }
         }
     }

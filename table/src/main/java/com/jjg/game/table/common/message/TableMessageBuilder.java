@@ -130,14 +130,13 @@ public class TableMessageBuilder {
     /**
      * 通知场上玩家信息有变化
      */
-    public static NotifyTableRoomPlayerInfoChange buildNotifyTableRoomPlayerInfoChange(long changedPlayerId,
-                                                                                       int sendSize,
-                                                                                       TableGameDataVo dataVo) {
+    public static NotifyTableRoomPlayerInfoChange buildNotifyTableRoomPlayerInfoChange(
+        long changedPlayerId, int sendSize, TableGameDataVo dataVo) {
         NotifyTableRoomPlayerInfoChange infoChange = new NotifyTableRoomPlayerInfoChange();
         infoChange.changedPlayerId = changedPlayerId;
         infoChange.tableChangedPlayerInfos = new ArrayList<>();
         List<GamePlayer> sortedPlayersByGold = getSortedGamePlayer(dataVo, sendSize);
-        infoChange.totalPlayerNum = dataVo.getGamePlayerMap().size();
+        infoChange.totalPlayerNum = dataVo.getPlayerNum();
         for (GamePlayer gamePlayer : sortedPlayersByGold) {
             TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(gamePlayer);
             infoChange.tableChangedPlayerInfos.add(tablePlayerInfo);
