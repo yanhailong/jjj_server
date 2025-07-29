@@ -11,6 +11,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.data.FreeAwardRealData;
 import com.jjg.game.slots.data.GirdUpdateConfig;
 import com.jjg.game.slots.data.PropInfo;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
@@ -600,12 +601,12 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         DollarExpressResultLib trainLib = null;
         for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
             //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_TRAIN);
+            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_AGAIN_TRAIN);
             if (!result.success()) {
                 continue;
             }
             //获取结果库
-            trainLib = libDao.getLibBySectionIndex(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_TRAIN, result.data);
+            trainLib = libDao.getLibBySectionIndex(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_AGAIN_TRAIN, result.data);
             if (trainLib == null) {
                 continue;
             }
@@ -653,12 +654,12 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         DollarExpressResultLib goldTrainLib = null;
         for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
             //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN);
+            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN);
             if (!result.success()) {
                 continue;
             }
             //获取结果库
-            goldTrainLib = libDao.getLibBySectionIndex(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN, result.data);
+            goldTrainLib = libDao.getLibBySectionIndex(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN, result.data);
             if (goldTrainLib == null) {
                 continue;
             }
@@ -952,6 +953,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
         log.debug("设置美元倍数信息 playerId = {},goldTrainCount = {},dollarAllTimes = {},bet = {}", gameData.playerId(), goldTrainCount, dollarAllTimes, gameData.getLastBet());
         //检查美金和保险箱
+        int safeBoxIndex = 0;
+        int goldTrainIndex = 0;
         for (int i = 1; i < gameRunInfo.getIconArr().length; i++) {
             int icon = gameRunInfo.getIconArr()[i];
             if (icon == DollarExpressConstant.BaseElement.ID_DOLLAR) {
@@ -969,10 +972,13 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                     gameRunInfo.addDollarsGoldTimes(times);
                 }
             } else if (icon == DollarExpressConstant.BaseElement.ID_SAFE_BOX) {
-                dollarsInfo.coinIndexId = i;
+                safeBoxIndex = i;
+            } else if(icon == DollarExpressConstant.BaseElement.ID_GOLD_TRAIN){
+                goldTrainIndex = i;
             }
         }
 
+        //给美钞设值
         if (dollarAllTimes > 0 && dollarsInfo.dollarIndexIds != null) {
             int times = dollarAllTimes / dollarsInfo.dollarIndexIds.size();
             long value = gameData.getLastBet() * times;
@@ -985,9 +991,11 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
         }
 
-        //如果盘面中没有出现美金，则不会触发保险箱
-        if(dollarsInfo.dollarIndexIds == null || dollarsInfo.dollarIndexIds.isEmpty()) {
-            dollarsInfo.coinIndexId = 0;
+        log.debug("当前美金数量 count = {},values = {},allDollarTimes = {}",dollarsInfo.dollarIndexIds == null ? 0 : dollarsInfo.dollarIndexIds.size(), dollarsInfo.dollarValueList,gameRunInfo.getDollarsGoldTimes());
+
+        //如果盘面中出现美金,且有保险箱，则会触发现金奖励
+        if(dollarsInfo.dollarIndexIds != null && !dollarsInfo.dollarIndexIds.isEmpty()) {
+            dollarsInfo.coinIndexId = safeBoxIndex;
         }
 
         //检查是否收集美元
@@ -1014,7 +1022,14 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         //设置黄金列车倍数
-        if (gameRunInfo.getDollarsGoldTimes() > 0 && goldTrainCount > 0) {
+        if(goldTrainIndex > 0 && dollarsInfo.dollarIndexIds != null && !dollarsInfo.dollarIndexIds.isEmpty()){
+            if(goldTrainCount < 1){
+                goldTrainCount = dollarExpressGenerate.getGoldTrainCount();
+                if(goldTrainCount < 1){
+                    log.warn("获取的 goldTrainCount 小于1");
+                }
+            }
+
             int times = goldTrainCount * gameRunInfo.getDollarsGoldTimes();
             gameRunInfo.addBigPoolTimes(times);
 

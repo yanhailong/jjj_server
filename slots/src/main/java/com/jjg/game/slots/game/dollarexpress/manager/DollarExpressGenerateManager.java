@@ -30,13 +30,15 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
     //随机倍数
     private Map<Integer, PropInfo> iconTimesPropMap;
 
+    //从specialPlay中读取playType = 5时，获得的小游戏id
+    private int goldTrainAuxiliaryId = 0;
+
     @Override
     public void initConfig() {
         super.initConfig();
 
         specialPlayConfig();
     }
-
 
     /**
      * 添加中奖线信息
@@ -524,8 +526,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             String value = cfg.getValue();
             String[] arr = value.split(";");
 
-            if (cfg.getPlayType() == DollarExpressConstant.SpecialPlay.TYPE_RAND_TIMES || cfg.getPlayType() == DollarExpressConstant.SpecialPlay.TYPE_GOLD_TRAIN) {
-
+            if (cfg.getPlayType() == DollarExpressConstant.SpecialPlay.TYPE_RAND_TIMES) {
                 for (String str : arr) {
                     String[] arr2 = str.split(",");
 
@@ -543,9 +544,24 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                     }
                     propInfo.setSum(end);
                 }
+            } else if(cfg.getPlayType() == DollarExpressConstant.SpecialPlay.TYPE_GOLD_TRAIN){
+                this.goldTrainAuxiliaryId = Integer.parseInt(arr[1]);
+                String[] arr2 = arr[0].split(",");
 
+                PropInfo propInfo = map.computeIfAbsent(Integer.parseInt(arr2[0]), k -> new PropInfo());
 
-            } else if (cfg.getPlayType() == DollarExpressConstant.SpecialPlay.TYPE_DOLLAR_CASH) {
+                String[] arr3 = arr2[1].split("-");
+                int begin = 0;
+                int end = 0;
+                for (String s : arr3) {
+                    begin = end;
+
+                    String[] arr4 = s.split("&");
+                    end += Integer.parseInt(arr4[1]);
+                    propInfo.addProp(Integer.parseInt(arr4[0]), begin, end);
+                }
+                propInfo.setSum(end);
+            }else if (cfg.getPlayType() == DollarExpressConstant.SpecialPlay.TYPE_DOLLAR_CASH) {
                 DollarCashConfig config = new DollarCashConfig();
 
                 String[] arr2 = arr[0].split(",");
@@ -606,6 +622,11 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             lib.setLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
         }
 
+        if (lib.getGoldTrainCount() > 0) {
+//            lib.addTimes(goldTrainTimes);
+            lib.setLibType(SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN);
+        }
+
         //免费游戏
         if (lib.getFreeGameMap() != null && !lib.getFreeGameMap().isEmpty()) {
 //            lib.setLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE);
@@ -641,7 +662,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 trainResult = calTrainTimes(game.getTrainList());
                 if (trainResult.success()) {
                     game.addTimes(trainResult.data);
-                    lib.setLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
+                    lib.setLibType(SlotsConst.SpecialResultLib.TYPE_AGAIN_TRAIN);
 
                     if(lib.getIconArr() != null && lib.getIconArr().length > 0){
                         throw new IllegalArgumentException("重转1的lib里面不会有iconArr");
@@ -653,7 +674,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 }
 
                 if(game.getGoldTrainCount() > 0){
-                    lib.setLibType(SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN);
+                    lib.setLibType(SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN);
                     if(lib.getIconArr() != null && lib.getIconArr().length > 0){
                         throw new IllegalArgumentException("重转2的lib里面不会有iconArr");
                     }
@@ -682,10 +703,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         lib.addTimes(calDollarCashTimes(lib.getDollarInfo()));
         //黄金列车
 //        int goldTrainTimes = calGoldTrainTimes(lib.getDollarInfo() == null ? null : lib.getDollarInfo().getDollarTimesList(), lib.getGoldTrainCount());
-        if (lib.getGoldTrainCount() > 0) {
-//            lib.addTimes(goldTrainTimes);
-            lib.setLibType(SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN);
-        }
+
 
         if(lib.getRollerId() == SlotsConst.BaseElementReward.ROTATESTATE_FREE){
             lib.setLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE);
@@ -802,6 +820,20 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 
     public DollarExpressCollectDollarConfig getDollarExpressCollectDollarConfig() {
         return dollarExpressCollectDollarConfig;
+    }
+
+    /**
+     * 获取黄金列车节数
+     * @return
+     */
+    public int getGoldTrainCount(){
+        if(this.goldTrainAuxiliaryId < 1){
+            return 0;
+        }
+
+        SpecialAuxiliaryCfg cfg = GameDataManager.getSpecialAuxiliaryCfg(this.goldTrainAuxiliaryId);
+        FreeAwardRealData freeAwardRealData = getFreeAwardRealData(cfg.getFreeAward().get(0), 1);
+        return freeAwardRealData.getResultListA().get(0)[1];
     }
 
     @Override

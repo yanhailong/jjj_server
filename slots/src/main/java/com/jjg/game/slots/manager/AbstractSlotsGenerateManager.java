@@ -413,7 +413,6 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo,T extends Slot
 
         //根据配置，找到真正的数据
         FreeAwardRealData freeAwardRealData = getFreeAwardRealData(rewardIds, count);
-
         //奖励A
         lib = handAwardA(lib,freeAwardRealData,iconId,count,rotateState,specialAuxiliaryCfg,libList,index);
         //奖励C
@@ -660,7 +659,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo,T extends Slot
      * @param count
      * @return key -> SpecialAuxiliaryAward.type
      */
-    protected FreeAwardRealData getFreeAwardRealData(List<Integer> rewardIds, int count) {
+    public FreeAwardRealData getFreeAwardRealData(List<Integer> rewardIds, int count) {
         FreeAwardRealData freeAwardRealData = new FreeAwardRealData();
 
         List<int[]> resultListA = new ArrayList<>();
