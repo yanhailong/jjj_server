@@ -135,7 +135,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
             tableGameData.addBetRecord(getGold);
         }
         //发送通知
-        gameController.sendMessage(RoomMessageBuilder.newBuilder().setData(settleInfo));
+        broadcastMsgToRoom(settleInfo);
     }
 
     @Override

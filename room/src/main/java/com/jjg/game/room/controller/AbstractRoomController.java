@@ -1,5 +1,6 @@
 package com.jjg.game.room.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.data.DataSaveCallback;
@@ -10,9 +11,11 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.AbstractRoomDao;
 import com.jjg.game.core.dao.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayFlowPojo;
 import com.jjg.game.room.manager.AbstractRoomManager;
+import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.room.sample.bean.WarehouseCfg;
@@ -362,44 +365,38 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
     /**
-     * 向房间里的所有玩家发送消息
+     * 通过消息builder向房间广播消息。!!!NOTICE!!!: 不要再在RoomController中写其他广播方法
      *
-     * @param <T> the type of the message
-     * @param msg the message to be sent to all players in the room
+     * @param roomMessageBuilder 消息builder
      */
-    public <T> void broadcastToRoomAllPlayers(T msg) {
-        broadcastToPlayers(playerControllers.keySet(), msg);
-    }
-
-    /**
-     * 向指定房间的指定玩家广播消息。
-     *
-     * @param <T>      the type of the message
-     * @param playerId 房间中玩家的ID
-     * @param message  要发送的消息，可以是任何类型
-     */
-    public <T> void sendToPlayer(long playerId, T message) {
-        broadcastToPlayers(Collections.singletonList(playerId), message);
-    }
-
-    /**
-     * 向指定房间的玩家广播消息。
-     *
-     * @param <T>         the type of the message
-     * @param roomPlayers 房间中玩家的ID集合
-     * @param message     要发送的消息，可以是任何类型
-     */
-    public <T> void broadcastToPlayers(Iterable<Long> roomPlayers, T message) {
+    public <T extends AbstractMessage> void broadcastToPlayers(RoomMessageBuilder<T> roomMessageBuilder) {
+        T message = roomMessageBuilder.getData();
+        Set<Long> playerIds = roomMessageBuilder.getPlayerIds();
         if (message == null) {
-            log.warn("消息为空，发送房间广播消息失败");
+            log.error("向房间广播消息时，消息为空");
             return;
         }
-        for (Long roomPlayerId : roomPlayers) {
+        // 如果同时需要发送某几个玩家有需要推送所有，则直接推送给所有人
+        if (roomMessageBuilder.isToAll()) {
+            // 可能为空 出现在进入房间之前就发房间消息或者在离开房间之后还在发送消息
+            playerIds = playerControllers.keySet();
+        }
+        // 玩家首次创建房间进入时也会出现为空的情况
+        if (playerIds.isEmpty()) {
+            return;
+        }
+        Set<Long> exceptPlayerIds = roomMessageBuilder.getExceptPlayers();
+        for (Long roomPlayerId : playerIds) {
+            // 如果有不需要发送消息的玩家
+            if (!exceptPlayerIds.isEmpty() && exceptPlayerIds.contains(roomPlayerId)) {
+                continue;
+            }
             PlayerController playerController = playerControllers.get(roomPlayerId);
             boolean playerIsOnline = playerController != null;
             if (playerIsOnline) {
                 playerIsOnline = playerController.isOnline();
             }
+            // 需要玩家在线并且不是机器人，则发送数据
             if (playerIsOnline && !(playerController.getPlayer() instanceof RobotPlayer)) {
                 playerController.send(message);
             }

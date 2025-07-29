@@ -7,6 +7,7 @@ import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.core.utils.ReflectionTool;
@@ -172,7 +173,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     /**
-     * 玩家发送房间初始信息
+     * 玩家发送房间初始信息 客户端在刚进入房间时，不能收到服务端的主动推送，所以需要等客户端初始化完成后，主动向服务端请求
      */
     public abstract void sendRoomInitInfo(PlayerController playerController);
 
@@ -233,6 +234,15 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                             break;
                         }
                     }
+                    if (mClass == null) {
+                        EGameType eGameType = EGameType.getGameByTypeId(gameDataVo.getRoomCfg().getGameID());
+                        // 消息没有继承AbstractMessage类
+                        log.error("游戏类型：{} 游戏阶段：{} 消息ID: {} 没有实现AbstractMessage类",
+                            eGameType.getGameDesc(),
+                            currentGamePhase.getGamePhase().getPhaseName(),
+                            Integer.toHexString(msgId).toUpperCase());
+                        return;
+                    }
                     M reqMessage = (M) ProtostuffUtil.deserialize(message.data, mClass);
                     log.debug("处理房间：{} 消息：{}", gameDataVo.getRoomId(), JSON.toJSON(reqMessage));
                     // 具体的处理逻辑方法
@@ -245,19 +255,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 发送消息 消息
      */
-    public <M extends AbstractMessage> void sendMessage(RoomMessageBuilder<M> message) {
-        if (message.getPlayerIds() == null || message.getPlayerIds().isEmpty()) {
-            roomController.broadcastToRoomAllPlayers(message.getData());
-        } else {
-            roomController.broadcastToPlayers(message.getPlayerIds(), message.getData());
-        }
-    }
-
-    /**
-     * 单个玩家发送消息
-     */
-    public <T> void sendMessage(long playerId, T message) {
-        roomController.sendToPlayer(playerId, message);
+    public <M extends AbstractMessage> void broadcastToPlayers(RoomMessageBuilder<M> message) {
+        roomController.broadcastToPlayers(message);
     }
 
     /**

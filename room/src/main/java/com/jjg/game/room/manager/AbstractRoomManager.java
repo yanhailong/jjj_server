@@ -321,7 +321,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
             if (!roomResult.success()) {
                 return roomResult.code;
             }
-            // TODO 需要添加定时 检查是否销毁房间
+            // TODO 需要检查房间内玩家是否为空，如果为空则需要检查是否需要删除房间，如果房间不能删除则需要添加机器人进入房间
             // 退出房间将当前场景置为空
             playerController.setScene(null);
             // 将玩家房间ID置为0

@@ -14,7 +14,6 @@ import com.jjg.game.table.loongtigerwar.manager.LoongTigerWarSampleManager;
 import com.jjg.game.table.loongtigerwar.message.resp.NotifyLoongTigerWarSettleInfo;
 import com.jjg.game.table.loongtigerwar.room.data.LoongTigerWarGameDataVo;
 import com.jjg.game.table.loongtigerwar.room.manager.LoongTigerWarRoomGameController;
-import org.apache.commons.collections4.KeyValue;
 import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,7 +109,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
             tableGameData.addBetRecord(getGold);
         }
         //发送通知
-        gameController.sendMessage(RoomMessageBuilder.newBuilder().setData(warSettleInfo));
+        broadcastMsgToRoom(warSettleInfo);
     }
 
     @Override

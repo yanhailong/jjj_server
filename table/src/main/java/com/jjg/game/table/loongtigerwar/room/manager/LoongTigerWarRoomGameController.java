@@ -8,6 +8,7 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -16,7 +17,6 @@ import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarBetPhase;
 import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarReadyPhase;
 import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarSettlementPhase;
 import com.jjg.game.table.loongtigerwar.message.resp.NotifyLoongTigerWarInfo;
-import com.jjg.game.table.loongtigerwar.message.resp.NotifyLoongTigerWarSettleInfo;
 import com.jjg.game.table.loongtigerwar.room.data.LoongTigerWarGameDataVo;
 
 import java.util.*;
@@ -110,7 +110,8 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
         notifyLoongTigerWarInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(gameDataVo);
         notifyLoongTigerWarInfo.totalPlayerNum = gameDataVo.getGamePlayerMap().size();
         //发送给玩家
-        sendMessage(playerController.playerId(), notifyLoongTigerWarInfo);
+        broadcastToPlayers(
+            RoomMessageBuilder.newBuilder().addPlayerId(playerController.playerId()).setData(notifyLoongTigerWarInfo));
     }
 
 

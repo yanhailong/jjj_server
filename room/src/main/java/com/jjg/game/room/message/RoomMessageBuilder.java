@@ -22,6 +22,16 @@ public class RoomMessageBuilder<T extends AbstractMessage> {
      */
     private Set<Long> playerIds = new HashSet<>();
 
+    /**
+     * 需要排除的玩家ID
+     */
+    private Set<Long> exceptPlayers = new HashSet<>();
+
+    /**
+     * 是否给所有玩家推送
+     */
+    private boolean toAll = false;
+
     public static RoomMessageBuilder<AbstractMessage> newBuilder() {
         return new RoomMessageBuilder<>();
     }
@@ -34,8 +44,25 @@ public class RoomMessageBuilder<T extends AbstractMessage> {
     /**
      * 向房间内的所有玩家广播消息
      */
-    public RoomMessageBuilder<T> toRoomAllPlayers() {
-        this.playerIds = new HashSet<>();
+    public RoomMessageBuilder<T> toAllPlayer() {
+        this.toAll = true;
+        return this;
+    }
+
+    public boolean isToAll() {
+        return toAll;
+    }
+
+    public void setExceptPlayers(Set<Long> exceptPlayers) {
+        this.exceptPlayers = exceptPlayers;
+    }
+
+    public Set<Long> getExceptPlayers() {
+        return exceptPlayers;
+    }
+
+    public RoomMessageBuilder<T> exceptPlayer(Long playerId) {
+        this.exceptPlayers.add(playerId);
         return this;
     }
 

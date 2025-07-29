@@ -5,17 +5,13 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.room.base.AbstractMsgDealRoomPhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.manager.RoomManager;
 import com.jjg.game.room.message.BaseRoomMessageDispatcher;
 import com.jjg.game.room.sample.bean.RoomCfg;
-import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
-import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.req.ReqRoomBaseInfo;
 import com.jjg.game.table.common.message.req.ReqTablePlayerInfo;
@@ -53,34 +49,43 @@ public class TableGroupMessageDispatcher extends BaseRoomMessageDispatcher {
     @Command(value = TableRoomMessageConstant.ReqMsgBean.REQ_TABLE_PLAYER_INFO)
     public void reqTablePlayerInfo(PlayerController playerController, ReqTablePlayerInfo reqTablePlayerInfo) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-                roomManager.getGameControllerByPlayerId(playerController.playerId());
-        if (gameController == null) {
-            log.error("玩家： {} 找不到对应的房间", playerController.playerId());
-            playerController.send(new RespTablePlayerInfo(Code.FAIL));
-            return;
-        }
-        if (!(gameController.getGameDataVo() instanceof TableGameDataVo)) {
-            log.error("玩家： {} 不在table类游戏中请求数据", playerController.playerId());
-            playerController.send(new RespTablePlayerInfo(Code.FAIL));
+            roomManager.getGameControllerByPlayerId(playerController.playerId());
+        int code = checkPlayerInGame(gameController, playerController);
+        if (code != Code.SUCCESS) {
+            log.warn("请求玩家信息时失败 CODE：{}", code);
+            playerController.send(new RespTablePlayerInfo(code));
             return;
         }
         RespTablePlayerInfo respTablePlayerInfo =
-                TableMessageBuilder.buildTableAllPlayerInfo((TableGameDataVo) gameController.getGameDataVo());
+            TableMessageBuilder.buildTableAllPlayerInfo((TableGameDataVo) gameController.getGameDataVo());
         playerController.send(respTablePlayerInfo);
     }
 
     @Command(value = TableRoomMessageConstant.ReqMsgBean.REQ_ROOM_BASE_INFO)
-    public void reqTablePlayerInfo(PlayerController playerController, ReqRoomBaseInfo reqRoomBaseInfo) {
+    public void reqRoomBaseInfo(PlayerController playerController, ReqRoomBaseInfo reqRoomBaseInfo) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-                roomManager.getGameControllerByPlayerId(playerController.playerId());
-        if (gameController == null) {
-            log.error("玩家： {} 找不到对应的房间", playerController.playerId());
-            return;
-        }
-        if (!(gameController.getGameDataVo() instanceof TableGameDataVo)) {
-            log.error("玩家： {} 不在table类游戏中请求数据", playerController.playerId());
+            roomManager.getGameControllerByPlayerId(playerController.playerId());
+        int code = checkPlayerInGame(gameController, playerController);
+        if (code != Code.SUCCESS) {
+            log.warn("请求房间初始化消息时失败 CODE：{}", code);
             return;
         }
         gameController.sendRoomInitInfo(playerController);
+    }
+
+    /**
+     * 检查当前玩家是否在游戏中
+     */
+    private int checkPlayerInGame(AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController,
+                                  PlayerController playerController) {
+        if (gameController == null) {
+            log.error("玩家： {} 找不到对应的房间", playerController.playerId());
+            return Code.ROOM_NOT_FOUND;
+        }
+        if (!(gameController.getGameDataVo() instanceof TableGameDataVo)) {
+            log.error("玩家： {} 不在table类游戏中请求数据", playerController.playerId());
+            return Code.PARAM_ERROR;
+        }
+        return Code.SUCCESS;
     }
 }

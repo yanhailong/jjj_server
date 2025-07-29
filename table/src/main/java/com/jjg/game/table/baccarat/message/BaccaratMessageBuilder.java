@@ -52,7 +52,7 @@ public class BaccaratMessageBuilder {
         Collection<PlayerController> playerControllers =
             baccaratTempRoom.getBaccaratObserverPlayers(roomCfgId).values();
         playerControllers.forEach(playerController -> {
-            log.info("给临时房间中的玩家：{} 发送：{} ", playerController.playerId(), JSON.toJSON(notifyBaccaratTableSummary));
+            log.debug("给临时房间中的玩家：{} 发送：{} ", playerController.playerId(), JSON.toJSON(notifyBaccaratTableSummary));
             playerController.send(notifyBaccaratTableSummary);
         });
     }

@@ -2,7 +2,6 @@ package com.jjg.game.room.base;
 
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.timer.TimerEvent;
-import com.jjg.game.core.data.Room;
 import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
@@ -76,14 +75,14 @@ public abstract class AbstractRoomPhase<RC extends RoomCfg, G extends GameDataVo
      * 向房间广播消息
      */
     protected <M extends AbstractMessage> void broadcastBuilderToRoom(RoomMessageBuilder<M> message) {
-        gameController.sendMessage(message);
+        gameController.broadcastToPlayers(message);
     }
 
     /**
-     * 向房间广播消息
+     * 向房间广播消息,全部玩家
      */
     protected <M extends AbstractMessage> void broadcastMsgToRoom(M message) {
-        gameController.sendMessage(RoomMessageBuilder.newBuilder().setData(message));
+        gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(message));
     }
 
     /**
