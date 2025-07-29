@@ -608,12 +608,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     }
 
     @Override
-    public void initSampleCallbackCollector() {
-        addSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> baseRoomConfig(this.gameType))
-            .addSampleFileObserveWithCallBack(SpecialResultLibCfg.EXCEL_NAME, () -> specialResultLibConfig(this.gameType,false))
-            .addSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig(this.gameType))
-            .addSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, () -> specialGirdConfig(this.gameType))
-            .addSampleFileObserveWithCallBack(GolbalConfigCfg.EXCEL_NAME, () -> globalConfig(this.gameType));
+    public void changeSampleCallbackCollector() {
+        addChangeSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> baseRoomConfig(this.gameType))
+            .addChangeSampleFileObserveWithCallBack(SpecialResultLibCfg.EXCEL_NAME, () -> specialResultLibConfig(this.gameType,false))
+            .addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig(this.gameType))
+            .addChangeSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, () -> specialGirdConfig(this.gameType))
+            .addChangeSampleFileObserveWithCallBack(GolbalConfigCfg.EXCEL_NAME, () -> globalConfig(this.gameType));
     }
 
     /**

@@ -1071,8 +1071,8 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
     }
 
     @Override
-    public void initSampleCallbackCollector() {
-        super.initSampleCallbackCollector();
-        addSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, this::specialPlayConfig);
+    public void changeSampleCallbackCollector() {
+        super.changeSampleCallbackCollector();
+        addChangeSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, this::specialPlayConfig);
     }
 }

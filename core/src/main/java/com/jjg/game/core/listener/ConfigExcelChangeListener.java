@@ -13,7 +13,10 @@ import java.util.Map;
  */
 public interface ConfigExcelChangeListener {
 
+    //初始化回调
     Map<String, DefaultCallback> CALLBACK_COLLECTOR = new HashMap<>();
+    //文件变化回调
+    Map<String, DefaultCallback> CHANGE_CALLBACK_COLLECTOR = new HashMap<>();
 
     /**
      * excel文件发生改变时调用
@@ -35,6 +38,12 @@ public interface ConfigExcelChangeListener {
     }
 
     /**
+     * 初始化回调收集器
+     */
+    default void changeSampleCallbackCollector() {
+    }
+
+    /**
      * 获取配置表监听的回调收集器
      */
     default Map<String, DefaultCallback> getCallbackCollector() {
@@ -42,10 +51,22 @@ public interface ConfigExcelChangeListener {
     }
 
     /**
+     * 获取配置表监听的回调收集器
+     */
+    default Map<String, DefaultCallback> getChangeCallbackCollector() {
+        return CHANGE_CALLBACK_COLLECTOR;
+    }
+
+    /**
      * 添加配置表监听的回调收集器
      */
     default ConfigExcelChangeListener addSampleFileObserveWithCallBack(String sampleName, DefaultCallback callback) {
         CALLBACK_COLLECTOR.put(sampleName, callback);
+        return this;
+    }
+
+    default ConfigExcelChangeListener addChangeSampleFileObserveWithCallBack(String sampleName, DefaultCallback callback) {
+        CHANGE_CALLBACK_COLLECTOR.put(sampleName, callback);
         return this;
     }
 

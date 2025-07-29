@@ -971,16 +971,16 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
     }
 
     @Override
-    public void initSampleCallbackCollector() {
-        addSampleFileObserveWithCallBack(BaseInitCfg.EXCEL_NAME, this::baseInitCfg)
-            .addSampleFileObserveWithCallBack(BaseRollerModeCfg.EXCEL_NAME, this::baseRollerModeCfg)
-            .addSampleFileObserveWithCallBack(BaseElementCfg.EXCEL_NAME, this::baseElementConfig)
-            .addSampleFileObserveWithCallBack(BaseRollerCfg.EXCEL_NAME, this::baseRollerConfig)
-            .addSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, this::baseLineConfig)
-            .addSampleFileObserveWithCallBack(BaseLineFreeCfg.EXCEL_NAME, this::baseLineFreeConfig)
-            .addSampleFileObserveWithCallBack(BaseElementRewardCfg.EXCEL_NAME, this::baseElementRewardConfig)
-            .addSampleFileObserveWithCallBack(SpecialAuxiliaryCfg.EXCEL_NAME, this::specialAuxiliaryCconfig)
-            .addSampleFileObserveWithCallBack(SpecialAuxiliaryAwardCfg.EXCEL_NAME, this::specialAuxiliaryAwardCconfig)
-            .addSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, this::specialGirdConfig);
+    public void changeSampleCallbackCollector() {
+        addChangeSampleFileObserveWithCallBack(BaseInitCfg.EXCEL_NAME, this::baseInitCfg)
+            .addChangeSampleFileObserveWithCallBack(BaseRollerModeCfg.EXCEL_NAME, this::baseRollerModeCfg)
+            .addChangeSampleFileObserveWithCallBack(BaseElementCfg.EXCEL_NAME, this::baseElementConfig)
+            .addChangeSampleFileObserveWithCallBack(BaseRollerCfg.EXCEL_NAME, this::baseRollerConfig)
+            .addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, this::baseLineConfig)
+            .addChangeSampleFileObserveWithCallBack(BaseLineFreeCfg.EXCEL_NAME, this::baseLineFreeConfig)
+            .addChangeSampleFileObserveWithCallBack(BaseElementRewardCfg.EXCEL_NAME, this::baseElementRewardConfig)
+            .addChangeSampleFileObserveWithCallBack(SpecialAuxiliaryCfg.EXCEL_NAME, this::specialAuxiliaryCconfig)
+            .addChangeSampleFileObserveWithCallBack(SpecialAuxiliaryAwardCfg.EXCEL_NAME, this::specialAuxiliaryAwardCconfig)
+            .addChangeSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, this::specialGirdConfig);
     }
 }

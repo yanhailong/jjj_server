@@ -19,10 +19,7 @@ import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author 11
@@ -44,7 +41,10 @@ public abstract class AbstractSampleManager implements FileLoader {
             Map<String, ConfigExcelChangeListener> configExcelChangeListeners =
                 CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
             // 调用配置表监听回调数据初始化逻辑
-            configExcelChangeListeners.values().forEach(ConfigExcelChangeListener::initSampleCallbackCollector);
+            configExcelChangeListeners.values().forEach(listener -> {
+                listener.initSampleCallbackCollector();
+                listener.changeSampleCallbackCollector();
+            });
             // 初始化需要缓存的配置数据
             initLoadCacheData();
         } catch (Exception e) {
@@ -65,7 +65,7 @@ public abstract class AbstractSampleManager implements FileLoader {
     private void initLoadCacheData() {
         Collection<File> sampleFile =
             FileUtils.listFiles(new File(getSamplePath()), new String[]{"xlsx", "xls"}, true);
-        sampleFile.forEach(file -> load(file, false));
+        sampleFile.forEach(file -> loadFile(file, false));
     }
 
     /**
@@ -101,6 +101,7 @@ public abstract class AbstractSampleManager implements FileLoader {
      * 加载所有的配置文件，包括xlsx和json
      *
      * @param file
+     * @param change 文件变化
      */
     public void loadFile(File file, boolean change) {
         if (file == null || !file.exists() || file.isHidden()
@@ -115,37 +116,41 @@ public abstract class AbstractSampleManager implements FileLoader {
 
         String fileName = file.getName();
         if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
-            if (change) {
-                try {
-                    // 加载配置文件成功后对应变化的CfgBean类
-                    Set<Class<?>> changedSampleSet = reloadSampleOnExcelChange(file);
-                    Map<String, ConfigExcelChangeListener> configExcelChangeListeners =
+            try {
+                // 加载配置文件成功后对应变化的CfgBean类
+                Set<Class<?>> changedSampleSet = reloadSampleOnExcelChange(file);
+                Map<String, ConfigExcelChangeListener> configExcelChangeListeners =
                         CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
-                    List<Class<?>> changedSampleList = changedSampleSet.stream().toList();
-                    for (ConfigExcelChangeListener listener : configExcelChangeListeners.values()) {
-                        Map<String, DefaultCallback> callbackCollector = listener.getCallbackCollector();
-                        if (callbackCollector.containsKey(fileName)) {
-                            log.info("配置表文件：{} 变化，调用：{} 的重载逻辑",
+                List<Class<?>> changedSampleList = changedSampleSet.stream().toList();
+                for (ConfigExcelChangeListener listener : configExcelChangeListeners.values()) {
+                    Map<String, DefaultCallback> callbackCollector = Collections.EMPTY_MAP;
+                    if(change){
+                        callbackCollector = listener.getChangeCallbackCollector();
+                    }
+                    if(callbackCollector.isEmpty()){
+                        callbackCollector = listener.getCallbackCollector();
+                    }
+                    if (callbackCollector.containsKey(fileName)) {
+                        log.info("配置表文件：{} 变化，调用：{} 的重载逻辑",
                                 fileName, listener.getClass().getSimpleName());
-                            // 执行配置表变化监听回调
-                            callbackCollector.get(fileName).run();
-                        }
+                        // 执行配置表变化监听回调
+                        callbackCollector.get(fileName).run();
                     }
-                    // 变化的配置文件列表
-                    for (Class<?> changedSampleClass : changedSampleList) {
-                        // 处理监听
-                        for (ConfigExcelChangeListener listener : configExcelChangeListeners.values()) {
-                            List<String> observeSampleFileList = listener.observeSampleFileList();
-                            // 如果对应的文件listener需要处理配置文件
-                            if (observeSampleFileList.contains(fileName)) {
-                                listener.onSampleChange(changedSampleClass);
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    log.error("重载配置表文件：{} 时发生异常", e.getMessage(), e);
-                    throw new GameSampleException(e);
                 }
+                // 变化的配置文件列表
+                for (Class<?> changedSampleClass : changedSampleList) {
+                    // 处理监听
+                    for (ConfigExcelChangeListener listener : configExcelChangeListeners.values()) {
+                        List<String> observeSampleFileList = listener.observeSampleFileList();
+                        // 如果对应的文件listener需要处理配置文件
+                        if (observeSampleFileList.contains(fileName)) {
+                            listener.onSampleChange(changedSampleClass);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.error("重载配置表文件：{} 时发生异常", e.getMessage(), e);
+                throw new GameSampleException(e);
             }
         } else if (fileName.endsWith(".json")) {
             loadJsonConfig(file);
