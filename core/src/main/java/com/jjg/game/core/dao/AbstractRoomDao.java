@@ -1,6 +1,7 @@
 package com.jjg.game.core.dao;
 
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
@@ -20,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * @author 11
@@ -38,6 +40,8 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     protected RedisLock redisLock;
     @Autowired
     PlayerRoomDataDao playerRoomDataDao;
+    @Autowired
+    NodeManager nodeManager;
 
     protected Class<T> roomClazz;
     protected Class<P> roomPlayerClazz;
@@ -138,6 +142,18 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         room.setGameType(gameType);
         room.setMaxLimit(maxLimit);
         return room;
+    }
+
+    /**
+     * 获取当前节点所有的房间
+     */
+    public List<T> getCurrentNodeRoom(int gameType, int roomCfgId) {
+        String currentNodePath = nodeManager.getNodePath();
+        List<Object> rooms = redisTemplate.opsForHash().values(getTableName(gameType));
+        return rooms.stream()
+            .map(r -> (T) r)
+            .filter(r -> r.getPath().equalsIgnoreCase(currentNodePath) && r.getRoomCfgId() == roomCfgId)
+            .toList();
     }
 
     /**
@@ -282,10 +298,6 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
      */
     public long existRoomCount(int gameType, int roomCfgId) {
         return redisTemplate.opsForHash().size(getTableName(gameType));
-    }
-
-    public List<Object> getAllRoomIds(int gameType, int roomCfgId) {
-        return null;
     }
 
     public RoomPlayer createRoomPlayer(long playerId) throws Exception {

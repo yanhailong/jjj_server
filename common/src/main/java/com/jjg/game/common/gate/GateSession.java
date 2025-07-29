@@ -299,7 +299,8 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
         if (currentTime - createTime > 5000 && !certify) {
             return false;
         }
-        return currentTime - activeTime <= 30000;
+        // 需要通过心跳和Netty的连接是否活动共同判断玩家是否存活
+        return (currentTime - activeTime <= 30000) && super.isActive();
     }
 
     public void setHost(String hostIp) {

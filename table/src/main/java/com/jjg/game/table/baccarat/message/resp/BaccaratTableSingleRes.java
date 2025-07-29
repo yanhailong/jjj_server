@@ -21,4 +21,7 @@ public class BaccaratTableSingleRes {
 
     @ProtoDesc("对局ID")
     public int roundId;
+
+    @ProtoDesc("是否需要清除路单, 在结算阶段告知下一回合服务器是否会重新洗牌")
+    public boolean needClearRoad;
 }

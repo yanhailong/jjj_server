@@ -51,22 +51,21 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         Collections.shuffle(joker);
         //取红方的牌
         List<Card> redCard = joker.subList(0, 3).stream().map(Card::new).collect(Collectors.toList());
+        Card[] redCardArr = redCard.toArray(CardComparatorUtil.SAMPLE);
         //红方牌型
-        HandType redHandType = CardComparatorUtil.getCardType(redCard);
+        HandType redHandType = CardComparatorUtil.getCardType(redCardArr);
         //取黑方的牌
         List<Card> blackCard = joker.subList(3, 6).stream().map(Card::new).collect(Collectors.toList());
+        Card[] blackCardArr = blackCard.toArray(CardComparatorUtil.SAMPLE);
         //黑方牌型
-        HandType blackHandType = CardComparatorUtil.getCardType(blackCard);
+        HandType blackHandType = CardComparatorUtil.getCardType(blackCardArr);
         //比较牌大小
-        int result = redHandType.comper(blackHandType);
-        if (result == 0) {
-            result = CardComparatorUtil.compareCards(redCard.toArray(new Card[0]), blackCard.toArray(new Card[0]), redHandType);
-        }
+        int result = CardComparatorUtil.compareCards(redHandType, redCardArr, blackHandType, blackCardArr);
         //押注信息
         Map<Integer, Map<Long, List<Integer>>> betInfo = gameDataVo.getBetInfo();
         boolean luckBet;
         Map<RedBlackWarConstant.Camp, Map<HandType, List<WinPosWeightCfg>>> winMap = redBlackWarSampleManager.getWinMap();
-        Map<Long, DefaultKeyValue<Long,Long>> playerGet = new HashMap<>();
+        Map<Long, DefaultKeyValue<Long, Long>> playerGet = new HashMap<>();
         List<WinPosWeightCfg> weightCfgList;
         if (result > 0) {
             //红方胜利
@@ -136,7 +135,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
             tableGameData.addBetRecord(getGold);
         }
         //发送通知
-        gameController.sendMessage(RoomMessageBuilder.newBuilder().setData(settleInfo));
+        broadcastMsgToRoom(settleInfo);
     }
 
     @Override

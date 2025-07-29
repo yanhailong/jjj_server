@@ -9,19 +9,34 @@ public class Card {
     /**
      * 花色
      */
-    public final int suit; // 0: ♠, 1: ♥, 2: ♣, 3: ♦
+    private final int suit; // 0: ♠, 1: ♥, 2: ♣, 3: ♦
     /**
      * 点数
      */
-    public final int rank; // 1~13
+    private final int rank; // 1~13
 
     public Card(int value) {
         this.suit = (value - 1) / 13;
         this.rank = (value - 1) % 13 + 1;
     }
 
-    public int compare(Card card, boolean needSuit) {
+    public Card(int suit, int rank) {
+        this.suit = suit;
+        this.rank = rank;
+    }
+
+    public int compareAisMin(Card card, boolean needSuit) {
         int diff = rank - card.rank;
+        if (diff == 0 && needSuit) {
+            diff = suit - card.suit;
+        }
+        return diff;
+    }
+
+    public int compare(Card card, boolean needSuit) {
+        int tempRank = this.rank == 1 ? 14 : this.rank;
+        int cardRank = card.rank == 1 ? 14 : card.rank;
+        int diff = tempRank - cardRank;
         if (diff == 0 && needSuit) {
             diff = suit - card.suit;
         }
@@ -47,7 +62,7 @@ public class Card {
 
     @Override
     public String toString() {
-        String[] suits = {"♠", "♥", "♣", "♦"};
+        String[] suits = {"♦", "♣", "♥", "♠"};
         String[] ranks = {"A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"};
         return suits[suit] + ranks[rank - 1];
     }

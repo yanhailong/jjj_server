@@ -52,7 +52,7 @@ public class BaccaratMessageBuilder {
         Collection<PlayerController> playerControllers =
             baccaratTempRoom.getBaccaratObserverPlayers(roomCfgId).values();
         playerControllers.forEach(playerController -> {
-            log.info("给临时房间中的玩家：{} 发送：{} ", playerController.playerId(), JSON.toJSON(notifyBaccaratTableSummary));
+            log.debug("给临时房间中的玩家：{} 发送：{} ", playerController.playerId(), JSON.toJSON(notifyBaccaratTableSummary));
             playerController.send(notifyBaccaratTableSummary);
         });
     }
@@ -71,6 +71,9 @@ public class BaccaratMessageBuilder {
             notifyBaccaratTableSummary.tableSummary.baccaratCardState = gameDataVo.getBetRecord().get(roundId);
         }
         notifyBaccaratTableSummary.tableSummary.roundId = roundId;
+        if (gameController.getCurrentGamePhase() == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
+            notifyBaccaratTableSummary.tableSummary.needClearRoad = gameDataVo.getCardList().size() < 6;
+        }
         return notifyBaccaratTableSummary;
     }
 
@@ -102,9 +105,8 @@ public class BaccaratMessageBuilder {
         if (eGamePhase == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
             notifyBaccaratTableInfo.baccaratSettlementInfo = settlementInfo.baccaratSettlementInfo;
             notifyBaccaratTableInfo.playerChangedGolds = settlementInfo.playerChangedGolds;
-        } else if (eGamePhase == EGamePhase.BET) {
-            notifyBaccaratTableInfo.cardStateList = gameDataVo.getBetRecord();
         }
+        notifyBaccaratTableInfo.cardStateList = gameDataVo.getBetRecord();
         notifyBaccaratTableInfo.gamePhase = eGamePhase;
         notifyBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameDataVo, true);
         return notifyBaccaratTableInfo;
@@ -119,12 +121,11 @@ public class BaccaratMessageBuilder {
                                                                    EGamePhase eGamePhase,
                                                                    NotifyBaccaratSettlementInfo settlementInfo) {
         RespBaccaratTableInfo respBaccaratTableInfo = new RespBaccaratTableInfo(Code.SUCCESS);
-        if (eGamePhase == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
+        if (settlementInfo != null) {
             respBaccaratTableInfo.baccaratSettlementInfo = settlementInfo.baccaratSettlementInfo;
             respBaccaratTableInfo.playerChangedGolds = settlementInfo.playerChangedGolds;
-        } else if (eGamePhase == EGamePhase.BET) {
-            respBaccaratTableInfo.cardStateList = gameDataVo.getBetRecord();
         }
+        respBaccaratTableInfo.cardStateList = gameDataVo.getBetRecord();
         respBaccaratTableInfo.gamePhase = eGamePhase;
         respBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameDataVo, true);
         respBaccaratTableInfo.betInfoList = gameDataVo.getRoomCfg().getBetList();
@@ -152,6 +153,7 @@ public class BaccaratMessageBuilder {
         notifyInfo.baccaratSettlementInfo = settlementInfo;
         notifyInfo.baccaratTableInfo = buildTableInfo(gameDataVo, false);
         notifyInfo.playerChangedGolds = changedGolds;
+        notifyInfo.needClearRoad = gameDataVo.getCardList().size() < 6;
         log.info("房间：{} 游戏类型：{} 场上庄家牌：{} 庄家补牌：{} 庄家点数：{} 闲家牌：{} 闲家补牌：{} 闲家点数：{} 输赢结果：{} 牌型结果：{}",
             gameDataVo.getRoomId(),
             gameDataVo.getRoomCfg().getId(),

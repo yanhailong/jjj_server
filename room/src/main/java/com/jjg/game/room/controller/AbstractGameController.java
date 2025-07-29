@@ -7,6 +7,7 @@ import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.core.utils.ReflectionTool;
@@ -34,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public abstract class AbstractGameController<RC extends RoomCfg, G extends GameDataVo<RC>> implements TimerListener<IProcessorHandler>,
     IGameController, IGameLifeCycle {
-    private static final Logger log = LoggerFactory.getLogger(AbstractGameController.class);
+    protected static final Logger log = LoggerFactory.getLogger(AbstractGameController.class);
     // 游戏配置
     protected G gameDataVo;
     // 游戏控制器
@@ -84,21 +85,21 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             // 当前的游戏阶段
             currentGamePhase = gamePhaseIterator.next();
             currentGamePhase.setRoundCounter(roundCounter.get());
-            log.debug("[{}] 房间ID: {} 游戏ID: {} 游戏类型: {} 当前阶段：{} 开始运行",
+            /*log.debug("[{}] 房间ID: {} 游戏ID: {} 游戏类型: {} 当前阶段：{} 开始运行",
                 currentGamePhase.getRoundCounter(), gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
-                gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());
-            // 执行当前阶段的逻辑
+                gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());*/
+            // 执行当前阶段的逻辑 TODO 阶段的逻辑异常处理 房间逻辑异常中断该如何处理
             currentGamePhase.phaseDoAction();
             // 调用玩家的行为,主要是机器人和托管的玩家
             currentGamePhase.playerPhaseAction();
             // 将阶段逻辑添加到
             addGameTimeEvent(new TimerEvent<>(this, currentGamePhase.getPhaseRunTime(),
                 () -> {
-                    // 定时器时间到,调用结束逻辑
+                    // 定时器时间到,调用结束逻辑 TODO 阶段的逻辑异常处理 房间逻辑异常中断该如何处理
                     currentGamePhase.phaseFinish();
-                    log.debug("[{}] 房间ID: {} 游戏ID: {} 游戏类型: {} 阶段：{} 运行结束",
+                    /*log.debug("[{}] 房间ID: {} 游戏ID: {} 游戏类型: {} 阶段：{} 运行结束",
                         currentGamePhase.getRoundCounter(), gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
-                        gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());
+                        gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());*/
                     // 如果有绑定的下一个阶段可以切换到
                     IRoomPhase bindNextPhase = currentGamePhase.bindNextPhase();
                     if (bindNextPhase != null) {
@@ -172,9 +173,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     /**
-     * 玩家发送房间初始信息
+     * 玩家发送房间初始信息 客户端在刚进入房间时，不能收到服务端的主动推送，所以需要等客户端初始化完成后，主动向服务端请求
      */
-    public abstract void sendRoomInitInfo(PlayerController playerController);
+    public abstract void respRoomInitInfo(PlayerController playerController);
 
     /**
      * 在单个游戏阶段结束后，判断房间是否全部结束
@@ -210,7 +211,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 .map(gamePhase -> (IPhaseMsgAdapter<M>) gamePhase).toList();
         int msgId = message.cmd;
         if (phaseMsgAdapters.isEmpty()) {
-            log.info("消息ID: {} 找不到对应的逻辑处理类", msgId);
+            log.error("异常请求，当前房间：{}  cfgId: {} 需要主动接受请求的阶段为空，但是客户端还是在主动请求",
+                gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId());
             return;
         }
         for (IPhaseMsgAdapter<M> phaseMsgAdapter : phaseMsgAdapters) {
@@ -232,6 +234,15 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                             break;
                         }
                     }
+                    if (mClass == null) {
+                        EGameType eGameType = EGameType.getGameByTypeId(gameDataVo.getRoomCfg().getGameID());
+                        // 消息没有继承AbstractMessage类
+                        log.error("游戏类型：{} 游戏阶段：{} 消息ID: {} 没有实现AbstractMessage类",
+                            eGameType.getGameDesc(),
+                            currentGamePhase.getGamePhase().getPhaseName(),
+                            Integer.toHexString(msgId).toUpperCase());
+                        return;
+                    }
                     M reqMessage = (M) ProtostuffUtil.deserialize(message.data, mClass);
                     log.debug("处理房间：{} 消息：{}", gameDataVo.getRoomId(), JSON.toJSON(reqMessage));
                     // 具体的处理逻辑方法
@@ -244,19 +255,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 发送消息 消息
      */
-    public <M extends AbstractMessage> void sendMessage(RoomMessageBuilder<M> message) {
-        if (message.getPlayerIds() == null || message.getPlayerIds().isEmpty()) {
-            roomController.broadcastToRoomAllPlayers(message.getData());
-        } else {
-            roomController.broadcastToPlayers(message.getPlayerIds(), message.getData());
-        }
-    }
-
-    /**
-     * 单个玩家发送消息
-     */
-    public <T> void sendMessage(long playerId, T message) {
-        roomController.sendToPlayer(playerId, message);
+    public <M extends AbstractMessage> void broadcastToPlayers(RoomMessageBuilder<M> message) {
+        roomController.broadcastToPlayers(message);
     }
 
     /**
@@ -276,9 +276,6 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         if (event == null || event.getParameter() == null) {
             return;
         }
-        /*if(gamePhaseTimeEvent != event) {
-            log.error("房间定时器异常：{} ", ExceptionUtils.currentThreadTraces());
-        }*/
         if (event instanceof RoomPhaseTimeEvent<?, ?> roomPhaseTimeEvent) {
             // 当前房间阶段
             EGamePhase curGamePhase = currentGamePhase.getGamePhase();
@@ -347,8 +344,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         // 房间结束前调用
         beforeDestroyRoom();
         // 调用房间管理器的解散逻辑
-        roomController.getRoomManager().disbandRoom(
-            roomController.getRoom(), gameDataVo.getRoomCfg().getGameID(), gameDataVo.getRoomId());
+        roomController.getRoomManager().disbandRoom(roomController.getRoom());
     }
 
     @Override

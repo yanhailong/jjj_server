@@ -60,4 +60,14 @@ public class PlayerController {
     public void setPlayer(Player player) {
         this.player = player;
     }
+
+    public boolean isOnline() {
+        if (session == null) {
+            return false;
+        }
+        if (session.getConnect() == null) {
+            return false;
+        }
+        return session.getConnect().isActive();
+    }
 }

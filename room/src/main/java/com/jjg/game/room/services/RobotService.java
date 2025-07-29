@@ -166,7 +166,9 @@ public class RobotService implements IRoomStartListener {
                     robotNumConf.get(2));
             }
         }
-        // 如果是开服就创建房间的游戏，检查机器人填充上限是否大于房间人数上限，如果出现这种情况会出现房间全是机器人的情况
+        // TODO 如果是开服就创建房间的游戏，检查机器人填充上限是否大于房间人数上限，如果出现这种情况会出现房间全是机器人的情况
+
+        // TODO 定时检查是否有异常的房间机器人数据
     }
 
     @Override

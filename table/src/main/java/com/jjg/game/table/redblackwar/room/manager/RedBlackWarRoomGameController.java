@@ -8,6 +8,7 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -69,7 +70,7 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
     }
 
     @Override
-    public void sendRoomInitInfo(PlayerController playerController) {
+    public void respRoomInitInfo(PlayerController playerController) {
         //发送房间信息
         RedBlackWarGameDataVo dataVo = getGameDataVo();
         NotifyRedBlackWarInfo notifyRedBlackWarInfo = new NotifyRedBlackWarInfo();
@@ -112,7 +113,8 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
         notifyRedBlackWarInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(gameDataVo);
         notifyRedBlackWarInfo.totalPlayerNum = gameDataVo.getGamePlayerMap().size();
         //发送给玩家
-        sendMessage(playerController.playerId(), notifyRedBlackWarInfo);
+        broadcastToPlayers(
+            RoomMessageBuilder.newBuilder().addPlayerId(playerController.playerId()).setData(notifyRedBlackWarInfo));
     }
 
 

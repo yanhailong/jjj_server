@@ -26,10 +26,9 @@ public class LoongTigerWarSampleManager implements ConfigExcelChangeListener {
     private Map<Integer, List<WinPosWeightCfg>> cfgMap;
 
     @Override
-    public void change(String className) {
-        if (className.equals(getClass().getSimpleName())) {
-            initSampleConfig();
-        }
+    public void initSampleCallbackCollector() {
+        addSampleFileObserveWithCallBack(BetAreaCfg.EXCEL_NAME, this::initSampleConfig)
+            .addSampleFileObserveWithCallBack(WinPosWeightCfg.EXCEL_NAME, this::initSampleConfig);
     }
 
     public void initSampleConfig() {

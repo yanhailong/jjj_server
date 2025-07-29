@@ -1,7 +1,5 @@
 package com.jjg.game.slots.manager;
 
-import com.jjg.game.common.utils.CommonUtil;
-import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.AbstractSampleManager;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.sample.GameDataManager;
@@ -10,8 +8,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author 11
@@ -19,7 +17,7 @@ import java.util.Set;
  */
 @Component
 public class SlotsSampleManager extends AbstractSampleManager {
-    public void init(){
+    public void init() {
         log.info("开始加载slots游戏配置..");
         super.init();
     }
@@ -30,24 +28,15 @@ public class SlotsSampleManager extends AbstractSampleManager {
     }
 
     @Override
-    protected void initSampleConfig() {
-        try {
-            GameDataManager.loadAllData(getSamplePath());
-        } catch (Exception e) {
-            log.error("加载配置表失败");
-        }
+    protected void initSampleConfig() throws Exception {
+        GameDataManager.loadAllData(getSamplePath());
     }
 
     @Override
-    protected void sampleChange(File file) {
-        try{
-            Set<Class<? extends BaseCfgBean>> changeCfgBean = GameDataManager.getInstance().loadDataByChangeFileList(getSamplePath(), Collections.singletonList(file));
-            Map<String, ConfigExcelChangeListener> configExcelChangeListeners = CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
-            configExcelChangeListeners.values().forEach(listener -> {
-                listener.change(changeCfgBean.iterator().next().getSimpleName());
-            });
-        }catch (Exception e){
-            log.error("",e);
-        }
+    protected Set<Class<?>> reloadSampleOnExcelChange(File file) throws Exception {
+        Set<Class<? extends BaseCfgBean>> changeCfgBean =
+            GameDataManager.getInstance().loadDataByChangeFileList(
+                getSamplePath(), Collections.singletonList(file));
+        return changeCfgBean.stream().map(aClass -> (Class<?>) aClass).collect(Collectors.toSet());
     }
 }

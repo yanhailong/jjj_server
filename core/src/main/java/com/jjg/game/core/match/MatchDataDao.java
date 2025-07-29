@@ -42,7 +42,7 @@ public class MatchDataDao {
                 Set<ZSetOperations.TypedTuple<String>> roomIds =
                         matchKeyTemplate.opsForZSet().rangeWithScores(MatchDataRedisKey.getWaitJoinRoomsKey(gameType,
                                         roomConfigId)
-                                , 0, 0);
+                                , -1, -1);
                 if (roomIds == null || roomIds.isEmpty()) {
                     return 0;
                 }

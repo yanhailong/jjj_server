@@ -1071,10 +1071,8 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
     }
 
     @Override
-    public void change(String className) {
-        super.change(className);
-        if(SpecialPlayCfg.class.getSimpleName().equals(className)){
-            specialPlayConfig();
-        }
+    public void initSampleCallbackCollector() {
+        super.initSampleCallbackCollector();
+        addSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, this::specialPlayConfig);
     }
 }

@@ -5,12 +5,10 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
-import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.netty.NettyConnect;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
-import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.NetUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
@@ -20,22 +18,17 @@ import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.tool.IConsoleReceiver;
-import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.dao.RoomDao;
 import com.jjg.game.room.data.room.GameDataVo;
-import com.jjg.game.room.listener.IPlayerRoomEventListener;
 import com.jjg.game.room.manager.RoomManager;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.BaccaratTempRoom;
-import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
-import com.jjg.game.table.baccarat.message.req.ReqBaccaratTableSummary;
 import com.jjg.game.table.baccarat.message.req.ReqBaccaratTableSummaryList;
 import com.jjg.game.table.baccarat.message.req.ReqExitRoomInGame;
-import com.jjg.game.table.baccarat.message.resp.*;
 import com.jjg.game.table.baccarat.message.req.ReqJoinRoomInGame;
-import com.jjg.game.table.baccarat.message.resp.RespJoinRoomInGame;
+import com.jjg.game.table.baccarat.message.resp.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +36,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * 百家乐消息handler
@@ -87,7 +79,7 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
             playerController.send(new RespBaccaratTableInfo(Code.PARAM_ERROR));
             return;
         }
-        gameController.sendRoomInitInfo(playerController);
+        gameController.respRoomInitInfo(playerController);
     }
 
     @Command(BaccaratMessageConstant.ReqMsgBean.REQ_BACCARAT_TABLE_SUMMARY_LIST)

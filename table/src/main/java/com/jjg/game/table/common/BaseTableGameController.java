@@ -7,6 +7,7 @@ import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.TablePlayerGameData;
+import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -31,7 +32,12 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         // 通知场上玩家加入
         NotifyTableRoomPlayerInfoChange playerInfoChange =
             TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), 7, gameDataVo);
-        roomController.broadcastToRoomAllPlayers(playerInfoChange);
+        // 需要排除当前玩家，玩家刚进场给自己发送没有意义
+        broadcastToPlayers(RoomMessageBuilder
+            .newBuilder()
+            .setData(playerInfoChange)
+            .toAllPlayer()
+            .exceptPlayer(playerController.playerId()));
         return gamePlayer;
     }
 
@@ -41,7 +47,12 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         // 通知场上玩家离开
         NotifyTableRoomPlayerInfoChange playerInfoChange =
             TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), 7, gameDataVo);
-        roomController.broadcastToRoomAllPlayers(playerInfoChange);
+        // 需要排除当前玩家，因为给离开的玩家发送已经没有意义
+        broadcastToPlayers(RoomMessageBuilder
+            .newBuilder()
+            .setData(playerInfoChange)
+            .toAllPlayer()
+            .exceptPlayer(playerController.playerId()));
         return leaveRes;
     }
 }

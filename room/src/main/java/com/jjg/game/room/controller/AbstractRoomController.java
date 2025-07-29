@@ -1,5 +1,6 @@
 package com.jjg.game.room.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.data.DataSaveCallback;
@@ -10,11 +11,16 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.AbstractRoomDao;
 import com.jjg.game.core.dao.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
-import com.jjg.game.room.manager.AbstractRoomManager;
+import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayFlowPojo;
+import com.jjg.game.room.manager.AbstractRoomManager;
+import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.RoomCfg;
+import com.jjg.game.room.sample.bean.WarehouseCfg;
 import com.jjg.game.room.timer.RoomTimerCenter;
+import com.jjg.game.room.timer.RoomTimerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @date 2025/6/25 12:33
  */
 public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room> implements TimerListener<IProcessorHandler>,
-        IRoomLifeCycle {
+    IRoomLifeCycle {
     protected final Logger log = LoggerFactory.getLogger(getClass());
     //房间对象
     protected R room;
@@ -63,15 +69,15 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      */
     public <RD extends GameDataVo<RC>> AbstractGameController<RC, RD> createGameController(GameDataVo<RC> gameDataVo) {
         Set<Class<? extends AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> gameControllerClazz =
-                roomManager.getGameControllerClazz();
+            roomManager.getGameControllerClazz();
         try {
             for (Class<? extends AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> controllerClazz :
-                    gameControllerClazz) {
+                gameControllerClazz) {
                 GameController gameAnnotateController = controllerClazz.getAnnotation(GameController.class);
                 EGameType games = gameAnnotateController.gameType();
                 if (games.getGameTypeId() == gameDataVo.getRoomCfg().getGameID()) {
                     Constructor<AbstractGameController<RC, RD>> constructor =
-                            (Constructor<AbstractGameController<RC, RD>>) controllerClazz.getDeclaredConstructor(AbstractRoomController.class);
+                        (Constructor<AbstractGameController<RC, RD>>) controllerClazz.getDeclaredConstructor(AbstractRoomController.class);
                     // 将调用当前方法的RoomController写入GameController中
                     AbstractGameController<RC, RD> gameController = constructor.newInstance(this);
                     RD roomDataVoCopied = gameController.copyRoomDataVo(gameDataVo);
@@ -102,9 +108,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 CommonResult<? extends Room> doResult = checkRoomCanJoin(playerController);
                 if (!doResult.success()) {
                     log.warn("加入房间失败 gameType = {},roomId = {},playerId = {}",
-                            playerController.getPlayer().getGameType(),
-                            this.room.getId(),
-                            playerController.playerId());
+                        playerController.getPlayer().getGameType(),
+                        this.room.getId(),
+                        playerController.playerId());
                     result.code = Code.FAIL;
                     return result;
                 }
@@ -135,26 +141,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
     /**
-     * 向指定房间的指定玩家广播消息。
-     *
-     * @param <T>      the type of the message
-     * @param playerId 房间中玩家的ID
-     * @param message  要发送的消息，可以是任何类型
-     */
-    public <T> void sendToPlayer(long playerId, T message) {
-        if (message == null) {
-            log.warn("消息为空，发送房间广播消息失败");
-            return;
-        }
-        PlayerController playerController = playerControllers.get(playerId);
-        if (Objects.isNull(playerController)) {
-            log.warn("玩家不在线 玩家id:{}", playerId);
-            return;
-        }
-        playerController.send(message);
-    }
-
-    /**
      * 更新房间等待列表
      */
     private void updateWaitRoomList() {
@@ -164,7 +150,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         } else {
             // 如果房间未满，则将直接写入等待列表
             roomManager.getMatchDataDao().addWaitJoinRoomId(room.getGameType(), room.getRoomCfgId(), room.getId(),
-                    room.getCreateTime());
+                room.getCreateTime());
         }
     }
 
@@ -176,49 +162,49 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     protected CommonResult<? extends Room> checkRoomCanJoin(PlayerController playerController) {
         R thatRoom = this.room;
         return roomDao.doSave(playerController.getPlayer().getGameType(),
-                this.room.getId()
-                , new DataSaveCallback<>() {
-                    @Override
-                    public void updateData(Room dataEntity) {
-                    }
+            this.room.getId()
+            , new DataSaveCallback<>() {
+                @Override
+                public void updateData(Room dataEntity) {
+                }
 
-                    @Override
-                    public Boolean updateDataWithRes(Room r) {
-                        try {
-                            //先检查该玩家是否已经在该房间中
-                            boolean exist = r.hasPlayer(playerController.playerId());
-                            if (exist) {
-                                log.debug("玩家已在房间中 gameType = {},roomId = {},playerId = {}",
-                                        playerController.getPlayer().getGameType(), thatRoom.getId(),
-                                        playerController.playerId());
+                @Override
+                public Boolean updateDataWithRes(Room r) {
+                    try {
+                        //先检查该玩家是否已经在该房间中
+                        boolean exist = r.hasPlayer(playerController.playerId());
+                        if (exist) {
+                            log.debug("玩家已在房间中 gameType = {},roomId = {},playerId = {}",
+                                playerController.getPlayer().getGameType(), thatRoom.getId(),
+                                playerController.playerId());
+                            return true;
+                        }
+
+                        if (!r.canEnter()) {
+                            log.debug("该房间无法进入 gameType = {},roomId = {},playerId = {}",
+                                playerController.getPlayer().getGameType(), thatRoom.getId(),
+                                playerController.playerId());
+                            return false;
+                        }
+
+                        //如果之前不在房间，则按座位排座
+                        for (int i = 0; i < r.getMaxLimit(); i++) {
+                            boolean flag = r.setHasPlayer(i);
+                            if (!flag) {
+                                RoomPlayer tmpRoomPlayer =
+                                    roomDao.createRoomPlayer(playerController.playerId());
+                                tmpRoomPlayer.setSit(i);
+                                tmpRoomPlayer.setPlayer(playerController.getPlayer());
+                                r.addPlayer(tmpRoomPlayer);
                                 return true;
                             }
-
-                            if (!r.canEnter()) {
-                                log.debug("该房间无法进入 gameType = {},roomId = {},playerId = {}",
-                                        playerController.getPlayer().getGameType(), thatRoom.getId(),
-                                        playerController.playerId());
-                                return false;
-                            }
-
-                            //如果之前不在房间，则按座位排座
-                            for (int i = 0; i < r.getMaxLimit(); i++) {
-                                boolean flag = r.setHasPlayer(i);
-                                if (!flag) {
-                                    RoomPlayer tmpRoomPlayer =
-                                            roomDao.createRoomPlayer(playerController.playerId());
-                                    tmpRoomPlayer.setSit(i);
-                                    tmpRoomPlayer.setPlayer(playerController.getPlayer());
-                                    r.addPlayer(tmpRoomPlayer);
-                                    return true;
-                                }
-                            }
-                        } catch (Exception e) {
-                            log.error("", e);
                         }
-                        return false;
+                    } catch (Exception e) {
+                        log.error("", e);
                     }
-                });
+                    return false;
+                }
+            });
     }
 
     /**
@@ -234,7 +220,13 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     @Override
     public void onTimer(TimerEvent<IProcessorHandler> e) {
-
+        if (e.getParameter() != null) {
+            try {
+                e.getParameter().action();
+            } catch (Exception ex) {
+                log.error("执行房间：{} 游戏类型：{} 定时器异常", room.getId(), room.getGameType());
+            }
+        }
     }
 
     /**
@@ -290,6 +282,23 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         roomProcessor = roomManager.getProcessorExecutors().getProcessorById(room.getId());
         // 创建游戏控制器
         gameController = createGameController(new GameDataVo<>(roomCfg));
+        // 空房间检查
+        addEmptyRoomCheckTimer();
+    }
+
+    /**
+     * 子类不需要处理此逻辑
+     */
+    private void addEmptyRoomCheckTimer() {
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfg.getId());
+        List<Integer> roomDeletionSolution = warehouseCfg.getRoomDeletion_Solution();
+        if (roomDeletionSolution == null || roomDeletionSolution.size() < 2) {
+            return;
+        }
+        int deleteTimeCheck = roomDeletionSolution.get(1);
+        timerCenter.add(new RoomTimerEvent<>(this, room, deleteTimeCheck, () -> {
+
+        }));
     }
 
     @Override
@@ -323,13 +332,13 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         CommonResult<Room> result = new CommonResult<>(Code.SUCCESS);
         try {
             boolean remove = roomDao.removePlayer(
-                    playerController.getPlayer().getGameType(),
-                    playerController.roomId(),
-                    playerController.playerId());
+                playerController.getPlayer().getGameType(),
+                playerController.roomId(),
+                playerController.playerId());
             if (remove) {
                 log.debug("强制离开房间成功, gameType = {},roomId = {},playerId = {}",
-                        playerController.getPlayer().getGameType(), playerController.roomId(),
-                        playerController.playerId());
+                    playerController.getPlayer().getGameType(), playerController.roomId(),
+                    playerController.playerId());
             }
             // 调用游戏的离开房间逻辑
             gameController.onPlayerLeaveRoom(playerController);
@@ -339,7 +348,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             RoomPlayer roomPlayer = room.exit(playerController.playerId());
             if (roomPlayer == null) {
                 log.debug("将玩家从房间中移除失败 gameType = {},roomId = {},playerId = {}", room.getGameType(), room.getId(),
-                        playerController.playerId());
+                    playerController.playerId());
                 result.code = Code.FAIL;
                 return result;
             }
@@ -356,30 +365,39 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
     /**
-     * 向房间里的所有玩家发送消息
+     * 通过消息builder向房间广播消息。!!!NOTICE!!!: 不要再在RoomController中写其他广播方法
      *
-     * @param <T> the type of the message
-     * @param msg the message to be sent to all players in the room
+     * @param roomMessageBuilder 消息builder
      */
-    public <T> void broadcastToRoomAllPlayers(T msg) {
-        broadcastToPlayers(playerControllers.keySet(), msg);
-    }
-
-    /**
-     * 向指定房间的玩家广播消息。
-     *
-     * @param <T>         the type of the message
-     * @param roomPlayers 房间中玩家的ID集合
-     * @param message     要发送的消息，可以是任何类型
-     */
-    public <T> void broadcastToPlayers(Iterable<Long> roomPlayers, T message) {
+    public <T extends AbstractMessage> void broadcastToPlayers(RoomMessageBuilder<T> roomMessageBuilder) {
+        T message = roomMessageBuilder.getData();
+        Set<Long> playerIds = roomMessageBuilder.getPlayerIds();
         if (message == null) {
-            log.warn("消息为空，发送房间广播消息失败");
+            log.error("向房间广播消息时，消息为空");
             return;
         }
-        for (Long roomPlayerId : roomPlayers) {
+        // 如果同时需要发送某几个玩家有需要推送所有，则直接推送给所有人
+        if (roomMessageBuilder.isToAll()) {
+            // 可能为空 出现在进入房间之前就发房间消息或者在离开房间之后还在发送消息
+            playerIds = playerControllers.keySet();
+        }
+        // 玩家首次创建房间进入时也会出现为空的情况
+        if (playerIds.isEmpty()) {
+            return;
+        }
+        Set<Long> exceptPlayerIds = roomMessageBuilder.getExceptPlayers();
+        for (Long roomPlayerId : playerIds) {
+            // 如果有不需要发送消息的玩家
+            if (!exceptPlayerIds.isEmpty() && exceptPlayerIds.contains(roomPlayerId)) {
+                continue;
+            }
             PlayerController playerController = playerControllers.get(roomPlayerId);
-            if (Objects.nonNull(playerController) && !(playerController.getPlayer() instanceof RobotPlayer)) {
+            boolean playerIsOnline = playerController != null;
+            if (playerIsOnline) {
+                playerIsOnline = playerController.isOnline();
+            }
+            // 需要玩家在线并且不是机器人，则发送数据
+            if (playerIsOnline && !(playerController.getPlayer() instanceof RobotPlayer)) {
                 playerController.send(message);
             }
         }

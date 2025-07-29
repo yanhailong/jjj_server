@@ -608,18 +608,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     }
 
     @Override
-    public void change(String className) {
-        if(BaseRoomCfg.class.getSimpleName().equals(className)){
-            baseRoomConfig(this.gameType);
-        }else if(SpecialResultLibCfg.class.getSimpleName().equals(className)){
-            specialResultLibConfig(this.gameType,false);
-        }else if(BaseLineCfg.class.getSimpleName().equals(className)){
-            baseLineConfig(this.gameType);
-        }else if(SpecialGirdCfg.class.getSimpleName().equals(className)){
-            specialGirdConfig(this.gameType);
-        }else if(GolbalConfigCfg.class.getSimpleName().equals(className)){
-            globalConfig(this.gameType);
-        }
+    public void initSampleCallbackCollector() {
+        addSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> baseRoomConfig(this.gameType))
+            .addSampleFileObserveWithCallBack(SpecialResultLibCfg.EXCEL_NAME, () -> specialResultLibConfig(this.gameType,false))
+            .addSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig(this.gameType))
+            .addSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, () -> specialGirdConfig(this.gameType))
+            .addSampleFileObserveWithCallBack(GolbalConfigCfg.EXCEL_NAME, () -> globalConfig(this.gameType));
     }
 
     /**

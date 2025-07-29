@@ -1,10 +1,10 @@
 package com.jjg.game.core.constant;
 
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.data.RoomType;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -29,12 +29,12 @@ public enum EGameType {
     LOONG_TIGER_WAR(CoreConst.GameType.LOONG_TIGER_WAR, RoomType.BET_ROOM, "龙虎斗"),
     CATCH_FISH(CoreConst.GameType.CATCH_FISH, RoomType.BET_ROOM, "捕鱼"),
     BIRDS_ANIMAL(CoreConst.GameType.BIRDS_ANIMAL, RoomType.BET_ROOM, "飞禽走兽"),
-    GOOD_CAR_CLUB(CoreConst.GameType.GOOD_CAR_CLUB, RoomType.BET_ROOM, "豪车俱乐部"),
+    LUXURY_CAR_CLUB(CoreConst.GameType.GOOD_CAR_CLUB, RoomType.BET_ROOM, "豪车俱乐部"),
     BACCARAT(CoreConst.GameType.BACCARAT, RoomType.BET_ROOM, "百家乐"),
-    DICE_BABY(CoreConst.GameType.DICE_BABY, RoomType.BET_ROOM, "骰宝"),
-    VIETNAM_SEXY_DISK(CoreConst.GameType.VIETNAM_SEXY_DISK, RoomType.BET_ROOM, "越南色碟"),
-    SIZE_DICE_BABY(CoreConst.GameType.SIZE_DICE_BABY, RoomType.BET_ROOM, "大小骰宝"),
-    FISH_SHRIMP_CRAB(CoreConst.GameType.FISH_SHRIMP_CRAB, RoomType.BET_ROOM, "鱼虾蟹"),
+    DICE_TREASURE(CoreConst.GameType.DICE_BABY, RoomType.BET_ROOM, "骰宝"),
+    VIETNAM_DICE(CoreConst.GameType.VIETNAM_SEXY_DISK, RoomType.BET_ROOM, "越南色碟"),
+    SIZE_DICE_TREASURE(CoreConst.GameType.SIZE_DICE_BABY, RoomType.BET_ROOM, "大小骰宝"),
+    RIVER_ANIMALS(CoreConst.GameType.FISH_SHRIMP_CRAB, RoomType.BET_ROOM, "鱼虾蟹"),
     APPLE_FRUITS(CoreConst.GameType.APPLE_FRUITS, RoomType.TEAM, "苹果机-水果"),
     APPLE_ANIMAL(CoreConst.GameType.APPLE_ANIMAL, RoomType.TEAM, "苹果机-动物"),
 

@@ -108,12 +108,12 @@ public class PokerHandGenerator {
             temp[0] = new Card(deck.get(i));
             for (int j = i + 1; j < deck.size(); j++) {
                 temp[1] = new Card(deck.get(j));
-                if (temp[0].suit != temp[1].suit || Math.abs(temp[0].rank - temp[1].rank) == 1) {
+                if (temp[0].getSuit() != temp[1].getSuit() || Math.abs(temp[0].getRank() - temp[1].getRank()) == 1) {
                     continue;
                 }
                 for (int k = j + 1; k < deck.size(); k++) {
                     temp[2] = new Card(deck.get(k));
-                    if (temp[1].suit != temp[2].suit || Math.abs(temp[0].rank - temp[2].rank) == 1) {
+                    if (temp[1].getSuit() != temp[2].getSuit() || Math.abs(temp[0].getRank() - temp[2].getRank()) == 1) {
                         continue;
                     }
                     List<Card> list = Arrays.stream(temp).toList();
@@ -176,10 +176,10 @@ public class PokerHandGenerator {
             Card[] temp = new Card[3];
             temp[0] = card;
             for (Integer suit : suitList) {
-                if (temp[0].suit == suit) {
+                if (temp[0].getSuit() == suit) {
                     continue;
                 }
-                int val = suit * 13 + card.rank;
+                int val = suit * 13 + card.getRank();
                 if (deck.contains(val)) {
                     temp[1] = new Card(val);
                     break;
@@ -193,7 +193,7 @@ public class PokerHandGenerator {
                 if (temp[1].getValue() == temp[2].getValue()) {
                     continue;
                 }
-                if (temp[1].rank == temp[2].rank) {
+                if (temp[1].getRank() == temp[2].getRank()) {
                     continue;
                 }
                 List<Card> list = Arrays.stream(temp).toList();
@@ -241,7 +241,7 @@ public class PokerHandGenerator {
     }
 
     private static boolean isStraightRanks(List<Card> cards) {
-        List<Integer> ranks = cards.stream().map(c -> c.rank).sorted().toList();
+        List<Integer> ranks = cards.stream().map(Card::getRank).sorted().toList();
         return (ranks.contains(1) && ranks.contains(12) && ranks.contains(13)) ||
                 (ranks.get(1) - ranks.get(0) == 1 && ranks.get(2) - ranks.get(1) == 1);
     }

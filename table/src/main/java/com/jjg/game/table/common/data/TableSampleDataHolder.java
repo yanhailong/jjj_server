@@ -23,10 +23,9 @@ public class TableSampleDataHolder implements ConfigExcelChangeListener {
     private static final Map<Integer, Map<Integer, Integer>> BET_ACTION_DATA_CACHE = new HashMap<>();
 
     @Override
-    public void change(String className) {
-        if (className.equals(ChessRobotCfg.class.getSimpleName()) || className.equals(BetRobotCfg.class.getSimpleName())) {
-            cacheBetActionData();
-        }
+    public void initSampleCallbackCollector() {
+        addSampleFileObserveWithCallBack(ChessRobotCfg.EXCEL_NAME, TableSampleDataHolder::cacheBetActionData)
+            .addSampleFileObserveWithCallBack(BetRobotCfg.EXCEL_NAME, TableSampleDataHolder::cacheBetActionData);
     }
 
     public static void cacheBetActionData() {
