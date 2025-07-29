@@ -125,9 +125,8 @@ public class BaccaratMessageBuilder {
         if (eGamePhase == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
             respBaccaratTableInfo.baccaratSettlementInfo = settlementInfo.baccaratSettlementInfo;
             respBaccaratTableInfo.playerChangedGolds = settlementInfo.playerChangedGolds;
-        } else if (eGamePhase == EGamePhase.BET) {
-            respBaccaratTableInfo.cardStateList = gameDataVo.getBetRecord();
         }
+        respBaccaratTableInfo.cardStateList = gameDataVo.getBetRecord();
         respBaccaratTableInfo.gamePhase = eGamePhase;
         respBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameDataVo, true);
         respBaccaratTableInfo.betInfoList = gameDataVo.getRoomCfg().getBetList();
