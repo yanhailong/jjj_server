@@ -12,7 +12,7 @@ import com.jjg.game.slots.sample.bean.BaseLineFreeCfg;
  * @excelName BaseLineFree.xlsx
  * @sheetName BaseLineFree
  * @author auto_generator
- * @date 2025年07月25日 16:02:56
+ * @date 2025年07月28日 11:01:45
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseLineFreeCfgContainer extends BaseCfgContainer<BaseLineFreeCfg> {

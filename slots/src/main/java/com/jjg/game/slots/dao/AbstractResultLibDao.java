@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 /**
@@ -41,6 +42,9 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
     //当前正在使用的结果库
     protected String currentRedisLibName;
 
+    //生成结果集的时候要加锁
+    protected String generateLock = "generateLock";
+
     @Autowired
     protected RedisTemplate redisTemplate;
 
@@ -61,13 +65,8 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         this.currentRedisLibName = getCurrentRedisLibNameFromRedis();
     }
 
-    public long getResultCount(T lib) {
-        //获取条数，非精确,但是高效
-        return this.mongoTemplate.estimatedCount(currentMongoLibName);
-    }
-
-    public void removeTable() {
-        this.mongoTemplate.dropCollection(currentMongoLibName);
+    protected String generateLockTableName(int gameType){
+        return generateLock + ":" + gameType;
     }
 
     protected String tabelName(String tableIndex, int gameType, int modelId, int libType, int sectionIndex) {
@@ -262,5 +261,17 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         return sections;
     }
 
+    /**
+     * 生成结果库的时候要添加所
+     * @param gameType
+     * @return
+     */
+    public boolean addGenerateLock(int gameType){
+        return this.redisTemplate.opsForValue().setIfAbsent(generateLockTableName(gameType),true,10, TimeUnit.MINUTES);
+    }
+
+    public void removeGenerateLock(int gameType){
+        this.redisTemplate.delete(generateLockTableName(gameType));
+    }
 
 }

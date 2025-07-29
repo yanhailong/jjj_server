@@ -1,6 +1,8 @@
 package com.jjg.game.slots.game.dollarexpress.manager;
 
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.slots.constant.AuxiliaryAwardType;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.*;
@@ -83,7 +85,9 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         //检查特殊奖励
         specialAward(arr, slotsResultLib, SlotsConst.BaseElementReward.ROTATESTATE_NORMAL,libList,-1);
 
-        libList.forEach(this::calTimes);
+        for(DollarExpressResultLib lib : libList){
+            calTimes(lib);
+        }
         return libList;
     }
 
@@ -185,6 +189,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         //检查baseLineFree配置的出现的特殊元素，  线路玩法 -> 主元素id -> 出现总次数
         Map<Integer, Map<Integer, Integer>> showIdMap = new HashMap<>();
         for (Map.Entry<Integer, Map<Integer, BaseLineFreeInfo>> en : this.baseLineFreeCfgMap.entrySet()) {
+            //主元素id -> 出现总次数
             Map<Integer, BaseLineFreeInfo> freeInfoMap = en.getValue();
             for (Map.Entry<Integer, BaseLineFreeInfo> en2 : freeInfoMap.entrySet()) {
                 BaseLineFreeInfo freeInfo = en2.getValue();
@@ -223,11 +228,10 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 BaseElementRewardCfg cfg = en.getValue();
                 //元素id
                 int iconId = cfg.getElementId();
-                //检查tempShowIdMap是否有特殊元素的个数
-
                 //匹配连线的元素id和个数
                 Integer showCount = null;
 
+                //检查tempShowIdMap是否有特殊元素的个数
                 if (tempShowIdMap != null && !tempShowIdMap.isEmpty()) {
                     showCount = tempShowIdMap.get(iconId);
                 }
@@ -255,6 +259,12 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 if (miniGameId == null || miniGameId < 1) {
                     continue;
                 }
+
+                //出现的元素种类数
+                if(!checkIconTypes(iconId,iconShowCountMap)){
+                    continue;
+                }
+
                 slotsResultLib = triggerMiniGame(slotsResultLib, iconId, miniGameId, rotateState,libList,index);
             }
         }
@@ -822,14 +832,14 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      *
      * @param lib
      */
-    public void calTimes(DollarExpressResultLib lib) {
+    public void calTimes(DollarExpressResultLib lib) throws Exception{
         //中奖线
         lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
         //火车
-        int trainTimes = calTrainTimes(lib.getTrainList());
-        if (trainTimes > 0) {
-            lib.addTimes(trainTimes);
-//            lib.setLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
+        CommonResult<Integer> trainResult = calTrainTimes(lib.getTrainList());
+        if (trainResult.success()) {
+            lib.addTimes(trainResult.data);
+            lib.setLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
         }
 
         //免费游戏
@@ -840,14 +850,17 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 //中奖线
                 game.addTimes(calLineTimes(game.getAwardLineInfoList()));
                 //火车
-                game.addTimes(calTrainTimes(game.getTrainList()));
+                trainResult = calTrainTimes(game.getTrainList());
+                if (trainResult.success()) {
+                    game.addTimes(trainResult.data);
+                }
                 //美元现金
                 game.addTimes(calDollarCashTimes(game.getDollarInfo()));
                 //黄金列车
 //                game.addTimes(calGoldTrainTimes(game.getDollarInfo() == null ? null : game.getDollarInfo().getDollarTimesList(), game.getGoldTrainCount()));
-                if(game.getGoldTrainCount() > 0){
-                    lib.setLibType(SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN);
-                }
+//                if(game.getGoldTrainCount() > 0){
+//                    lib.setLibType(SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN);
+//                }
                 //添加到总倍数
                 lib.addTimes(game.getTimes());
             }
@@ -855,23 +868,49 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 
         //重转
         if (lib.getAgainGameMap() != null && !lib.getAgainGameMap().isEmpty()) {
-            for (Map.Entry<Integer, DollarExpressAgainGame> en : lib.getAgainGameMap().entrySet()) {
+            Iterator<Map.Entry<Integer, DollarExpressAgainGame>> it = lib.getAgainGameMap().entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<Integer, DollarExpressAgainGame> en = it.next();
                 DollarExpressAgainGame game = en.getValue();
+
                 //火车
-                trainTimes = calTrainTimes(game.getTrainList());
-                if (trainTimes > 0) {
-                    game.addTimes(trainTimes);
-//                    lib.setLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
+                trainResult = calTrainTimes(game.getTrainList());
+                if (trainResult.success()) {
+                    game.addTimes(trainResult.data);
+                    lib.setLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
+
+                    if(lib.getIconArr() != null && lib.getIconArr().length > 0){
+                        throw new IllegalArgumentException("重转1的lib里面不会有iconArr");
+                    }
+
+                    lib.setIconArr(game.getIconArr());
+                    lib.setTrainList(game.getTrainList());
+                    it.remove();
                 }
 
-                //黄金列车
-//                trainTimes = calGoldTrainTimes(game.getDollarTimesList(), game.getGoldTrainCount());
                 if(game.getGoldTrainCount() > 0){
                     lib.setLibType(SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN);
+                    if(lib.getIconArr() != null && lib.getIconArr().length > 0){
+                        throw new IllegalArgumentException("重转2的lib里面不会有iconArr");
+                    }
+
+                    lib.setIconArr(game.getIconArr());
+                    lib.setGoldTrainCount(game.getGoldTrainCount());
+                    lib.setGoldTrainAllTimes(game.getGoldTrainAllTimes());
+                    it.remove();
+                }
+
+                if(trainResult.success() && game.getGoldTrainCount() > 0){
+                    log.warn("普通火车和黄金列车同时出现了....");
+                    throw new IllegalArgumentException("普通火车和黄金列车同时出现了....");
                 }
 
                 //添加到总倍数
                 lib.addTimes(game.getTimes());
+            }
+
+            if(lib.getAgainGameMap().isEmpty()){
+                lib.setAgainGameMap(null);
             }
         }
 
@@ -919,7 +958,8 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @param list
      * @return
      */
-    private int calTrainTimes(List<Train> list) {
+    private CommonResult<Integer> calTrainTimes(List<Train> list) {
+        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
         int times = 0;
         if (list != null && !list.isEmpty()) {
             for (Train train : list) {
@@ -933,8 +973,11 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                     }
                 }
             }
+            result.data = times;
+        }else {
+            result.code = Code.FAIL;
         }
-        return times;
+        return result;
     }
 
     /**
@@ -990,6 +1033,37 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             }
         }
         return count;
+    }
+
+    /**
+     * 出现的元素种类数
+     * @return
+     */
+    private boolean checkIconTypes(int iconId,Map<Integer, Integer> iconShowCountMap){
+        for(Map.Entry<Integer, Map<Integer, BaseLineFreeInfo>> en2 : this.baseLineFreeCfgMap.entrySet()){
+            Map<Integer, BaseLineFreeInfo> freeInfoMap = en2.getValue();
+            for(Map.Entry<Integer, BaseLineFreeInfo> en3 : freeInfoMap.entrySet()){
+                BaseLineFreeInfo baseLineFreeInfo = en3.getValue();
+                //是否等于主元素
+                if(iconId != baseLineFreeInfo.getMainElementId()){
+                    continue;
+                }
+                int types = 0;
+                for(List<Integer> tmpList : baseLineFreeInfo.getElementGroupList()){
+                    for(int tmpIconId : tmpList){
+                        if(iconShowCountMap.containsKey(tmpIconId)){
+                            types++;
+                        }
+                    }
+                }
+
+                if(types >= baseLineFreeInfo.getMinIconTypeMin()){
+                    return true;
+                }
+                return false;
+            }
+        }
+        return true;
     }
 
     public DollarExpressCollectDollarConfig getDollarExpressCollectDollarConfig() {
