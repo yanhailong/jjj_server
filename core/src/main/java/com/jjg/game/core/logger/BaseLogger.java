@@ -3,6 +3,7 @@ package com.jjg.game.core.logger;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.core.data.Player;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,10 +30,9 @@ public class BaseLogger {
     public void online(int num, String serverIp) {
         try {
             JSONObject json = new JSONObject();
-            json.put("logType", "online");
             json.put("num", num);
             json.put("serverIp", serverIp);
-            sendLog(null, json);
+            sendLog("online",null, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -42,13 +42,12 @@ public class BaseLogger {
     public void gmOrder(String order, Long playerId, String result) {
         try {
             JSONObject json = new JSONObject();
-            json.put("logType", "gm");
             json.put("order", order);
             if (playerId != null) {
                 json.put("playerId", playerId);
             }
             json.put("result", result);
-            sendLog(null, json);
+            sendLog("gm",null, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -65,14 +64,13 @@ public class BaseLogger {
     public void useMoney(Player player, long beforeGold, long gold, String addType, String desc) {
         try {
             JSONObject json = new JSONObject();
-            json.put("logType", "goldChange");
             json.put("beforeGold", beforeGold);
             json.put("gold", gold);
             json.put("afterGold", player.getGold());
             json.put("addType", addType);
             json.put("desc", desc);
 
-            sendLog(player, json);
+            sendLog("goldChange",player, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -89,12 +87,11 @@ public class BaseLogger {
     public void vip(Player player, int beforeLevel, int vipLevel, String addType, String desc) {
         try {
             JSONObject json = new JSONObject();
-            json.put("logType", "vipLevelChange");
             json.put("beforeLevel", beforeLevel);
             json.put("currentLevel", vipLevel);
             json.put("addType", addType);
             json.put("desc", desc);
-            sendLog(player, json);
+            sendLog("vipLevelChange",player, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -110,10 +107,9 @@ public class BaseLogger {
     public void enterGame(Player player, int gameType, int roomCfgId) {
         try {
             JSONObject json = new JSONObject();
-            json.put("logType", "enterGame");
             json.put("gameType", gameType);
             json.put("roomCfgId", roomCfgId);
-            sendLog(player, json);
+            sendLog("enterGame",player, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -128,22 +124,25 @@ public class BaseLogger {
     public void exitGame(Player player) {
         try {
             JSONObject json = new JSONObject();
-            json.put("logType", "exitGame");
             json.put("gameType", player.getGameType());
-            sendLog(player, json);
+            sendLog("exitGame",player, json);
         } catch (Exception e) {
             log.error("", e);
         }
     }
 
     protected void sendLog(Player player, JSONObject json) {
+        sendLog(null,player,json);
+    }
+
+    protected void sendLog(String topic,Player player, JSONObject json) {
         if (player != null) {
             json.put("playerId", player.getId());
         }
 
         json.put("time", System.currentTimeMillis());
         json.put("nodeName", nodeConfig.getName());
-        kafkaTemplate.send(GAME_LOGS_TOPIC, JSONObject.toJSONString(json));
+        kafkaTemplate.send(StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic, JSONObject.toJSONString(json));
     }
 
     protected void sendLog(JSONObject json) {

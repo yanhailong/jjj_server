@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName BaseRollerMode.xlsx
  * @sheetName BaseRollerMode
  * @author Auto.Generator
- * @date 2025年07月25日 16:02:56
+ * @date 2025年07月28日 11:01:45
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseRollerModeCfg extends BaseCfgBean {
@@ -23,6 +23,8 @@ public class BaseRollerModeCfg extends BaseCfgBean {
   protected int gameType;
   /** 滚轴使用 */
   protected Map<Integer,List<Integer>> rollerMode;
+  /** 特殊滚轴id */
+  protected List<Integer> specialRollerId;
 
   /** 返回游戏ID */
   public int getGameType() {
@@ -32,5 +34,10 @@ public class BaseRollerModeCfg extends BaseCfgBean {
   /** 返回滚轴使用 */
   public Map<Integer,List<Integer>> getRollerMode() {
     return rollerMode;
+  }
+
+  /** 返回特殊滚轴id */
+  public List<Integer> getSpecialRollerId() {
+    return specialRollerId;
   }
 }

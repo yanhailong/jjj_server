@@ -135,6 +135,9 @@ public interface SlotsConst {
         int GIRD_UPDATE_TYPE_RAND = 0;
         //指定元素替换随机元素位置
         int GIRD_UPDATE_TYPE_APPOINT = 1;
+
+        //针对普通火车修改格子特殊处理
+        int ID_TRAIN_UPDATE = 2;
     }
 
     interface MsgBean {

@@ -66,9 +66,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     protected int defaultRewardSectionIndex = -1;
 
 
-    //标记是否正在生成结果库
-    protected AtomicBoolean generate = new AtomicBoolean(false);
-
     protected Map<Long, T> gameDataMap = new ConcurrentHashMap<>();
 
 
@@ -304,10 +301,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             getResultLibDao().clearMongoLib();
             getResultLibDao().clearRedisLib();
             this.clearAllLibEvent = null;
-            this.generate.compareAndSet(true, false);
+            getResultLibDao().removeGenerateLock(this.gameType);
         }else if(this.clearRedisLibEvent == e){
             getResultLibDao().clearRedisLib();
             this.clearRedisLibEvent = null;
+            getResultLibDao().removeGenerateLock(this.gameType);
         }
     }
 
@@ -383,7 +381,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         //就要重新将mongodb的结果集加载到redis，并且通知其他节点
         if(!init && !compareSectionMap(data.getResultLibSectionMap(),this.resultLibSectionMap)){
             String docName = getResultLibDao().getCurrentMongoLibNameFromRedis();
+            //加锁
+            getResultLibDao().addGenerateLock(this.gameType);
+            //将结果集重新分类，转移到redis
             getResultLibDao().moveToRedis(docName,data.getResultLibSectionMap());
+            //通知其他节点，结果库变更
             noticeNodeLibChange(SlotsConst.LibChangeType.CONFIG_CHANGE,cfgList);
         }
 
@@ -650,6 +652,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
                 this.clearRedisLibEvent = new TimerEvent<>(this, 1, "clearRedisLibEvent").withTimeUnit(TimeUnit.MINUTES);
                 this.timerCenter.add(this.clearRedisLibEvent);
             }
+
+            log.info("通知其他节点，结果库变更 changeType : {}" ,changeType);
         }catch (Exception e){
             log.error("",e);
         }

@@ -22,8 +22,8 @@ public class DollarExpressLogger extends BaseLogger {
     public void gameResult(Player player, DollarExpressGameRunInfo gameRunInfo){
         try{
             JSONObject json = new JSONObject();
-            json.put("logType","dollarExpressResult");
             json.put("allWin",gameRunInfo.getAllWinGold());
+            json.put("gameType",player.getGameType());
             json.put("beforeGold",gameRunInfo.getBeforeGold());
             json.put("afterGold",player.getGold());
             json.put("icon",gameRunInfo.getIconArr());
@@ -36,7 +36,7 @@ public class DollarExpressLogger extends BaseLogger {
             //添加美金信息
             json = getDollarsInfo(json,gameRunInfo);
 
-            sendLog(player,json);
+            sendLog("dollarExpressResult",player,json);
         }catch (Exception e){
             log.error("",e);
         }

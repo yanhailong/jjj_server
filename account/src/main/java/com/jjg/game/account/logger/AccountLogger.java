@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class AccountLogger extends BaseLogger {
 
-    private final String LOG_REGISTER_TYPE = "register";
 
     /**
      * 注册
@@ -24,11 +23,10 @@ public class AccountLogger extends BaseLogger {
     public void register(String account,int registerType,long playerId) {
         try{
             JSONObject json = new JSONObject();
-            json.put("logtype", LOG_REGISTER_TYPE);
             json.put("registerType",registerType);
             json.put("account",account);
             json.put("playerId",playerId);
-            sendLog(json);
+            sendLog("register",null,json);
         }catch (Exception e){
             log.error("记录guestLogin登录日志异常",e);
         }

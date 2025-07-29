@@ -39,7 +39,7 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
     protected Map<Integer, BaseRollerCfg> baseRollerCfgMap = null;
     //lineId -> cfg
     protected Map<Integer, BaseLineCfg> baseLineCfgMap = null;
-    //lineId -> id - > cfg
+    //lineId -> 主元素id - > cfg
     protected Map<Integer, Map<Integer, BaseLineFreeInfo>> baseLineFreeCfgMap = null;
     //普通图标 lineType -> sid -> cfg
     protected Map<Integer, Map<Integer, BaseElementRewardCfg>> baseElementRewardCfgMap = null;
@@ -212,12 +212,28 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
         int modeId = this.rollModeList.get(RandomUtils.randomInt(this.rollModeList.size()));
 
         //根据模式id，获取滚轴id列表
-        List<Integer> rollerIdList = this.baseRollerModeCfg.getRollerMode().get(modeId);
-        if (rollerIdList == null || rollerIdList.isEmpty()) {
-            throw new IllegalArgumentException("未找到该游戏的滚轴id列表,生成结果集失败 gameType = " + this.gameType + ",modeId = " + modeId);
+        List<Integer> tmpRollerIdList = this.baseRollerModeCfg.getRollerMode().get(modeId);
+        if (tmpRollerIdList == null || tmpRollerIdList.isEmpty()) {
+            throw new IllegalArgumentException("未找到该游戏的滚轴id列表1,生成结果集失败 gameType = " + this.gameType + ",modeId = " + modeId);
+        }
+
+        //特殊滚轴id
+        List<Integer> specialRollerIds = this.baseRollerModeCfg.getSpecialRollerId();
+        List<Integer> rollerIdList = new ArrayList<>();
+        for(int rid : tmpRollerIdList){
+            if(specialRollerIds != null && specialRollerIds.contains(rid)){
+                continue;
+            }
+            rollerIdList.add(rid);
+        }
+
+        if (rollerIdList.isEmpty()) {
+            throw new IllegalArgumentException("未找到该游戏的滚轴id列表2,生成结果集失败 gameType = " + this.gameType + ",modeId = " + modeId);
         }
 
         int rollerId = rollerIdList.get(RandomUtils.randomInt(rollerIdList.size()));
+
+
         slotsResultLib.setRollerMode(modeId);
         slotsResultLib.setRollerId(rollerId);
         return slotsResultLib;
@@ -399,7 +415,7 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
     /**
      * 特殊中奖线相关
      */
-    private void baseLineFreeConfig() {
+    protected void baseLineFreeConfig() {
         Map<Integer, Map<Integer, BaseLineFreeInfo>> tmpBaseLineFreeCfgMap = new HashMap<>();
 
         //根据游戏type筛选
@@ -450,7 +466,7 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
                 }
                 baseLineFreeInfo.setPlayType(gamePlayMap.get(baseLineFreeInfo.getId()));
 
-                tempMap.put(baseLineFreeInfo.getId(), baseLineFreeInfo);
+                tempMap.put(baseLineFreeInfo.getMainElementId(), baseLineFreeInfo);
             }
         }
 
@@ -664,60 +680,98 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
             config.setSpecialIconPropInfo(specialPropInfo);
             config.setOtherIconPropInfo(propInfo);
 
+            //巨型块大小
             //允许去替换的格子id -> 元素id
             Map<Integer,Integer> girdMap = new HashMap<>();
-            //巨型块大小
-            for (List<String> list : cfg.getBigBlockSize()) {
-                int iconId = Integer.parseInt(list.get(0));
-                String[] arr = list.get(1).split("-");
-                for (String str : arr) {
-                    //列
-                    int columnId = Integer.parseInt(str);
-                    int index = (columnId - 1) * this.baseInitCfg.getRows() + 1;
-                    //计算这一列所有的格子id
-                    for (int i = 0; i < this.baseInitCfg.getRows(); i++) {
-                        girdMap.put(index + i, iconId);
+            if(cfg.getBigBlockSize() != null && !cfg.getBigBlockSize().isEmpty()){
+                specialPropInfo = new PropInfo();
+                propInfo = new PropInfo();
+
+                specialBegin = 0;
+                specialEnd = 0;
+
+                begin = 0;
+                end = 0;
+
+                Map<Integer, List<Integer>> iconColumMap = new HashMap<>();
+
+                //巨型块大小
+                for (List<String> list : cfg.getBigBlockSize()) {
+                    int iconId = Integer.parseInt(list.get(0));
+                    String[] arr = list.get(1).split("-");
+                    int prop = Integer.parseInt(list.get(2));
+                    for (String str : arr) {
+                        //列
+                        int columnId = Integer.parseInt(str);
+                        int index = (columnId - 1) * this.baseInitCfg.getRows() + 1;
+                        //计算这一列所有的格子id
+                        for (int i = 0; i < this.baseInitCfg.getRows(); i++) {
+                            girdMap.put(index + i, iconId);
+                        }
+
+                        iconColumMap.computeIfAbsent(iconId, k -> new ArrayList<>()).add(columnId);
                     }
+
+                    begin = end;
+                    specialBegin = specialEnd;
+                    if(config.getSpecialIconId() == iconId){
+                        specialEnd += prop;
+                        specialPropInfo.addProp(iconId, specialBegin, specialEnd);
+                    }else {
+                        end += prop;
+                        propInfo.addProp(iconId,begin,end);
+                    }
+
                 }
+
+                propInfo.setSum(end);
+                specialPropInfo.setSum(end);
+                config.setBigBlockSizePropInfo(propInfo);
+                config.setSpecialBigBlockSizePropInfo(specialPropInfo);
+                config.setIconColumMap(iconColumMap);
             }
 
-            specialPropInfo = new PropInfo();
-            propInfo = new PropInfo();
-
-            specialBegin = 0;
-            specialEnd = 0;
-
-            begin = 0;
-            end = 0;
 
             //影响格子
-            for (List<Integer> list : cfg.getAffectGird()) {
-                int girdId = list.get(0);
-                int prop = list.get(1);
-                int maxShowLimit = list.get(2);
+            if(cfg.getAffectGird() != null && !cfg.getAffectGird().isEmpty()){
+                specialPropInfo = new PropInfo();
+                propInfo = new PropInfo();
 
-                specialBegin = specialEnd;
-                begin = end;
+                specialBegin = 0;
+                specialEnd = 0;
 
-                Integer iconId = girdMap.get(girdId);
-                if(iconId == null){
-                    continue;
+                begin = 0;
+                end = 0;
+
+                //影响格子
+                for (List<Integer> list : cfg.getAffectGird()) {
+                    int girdId = list.get(0);
+                    int prop = list.get(1);
+                    int maxShowLimit = list.get(2);
+
+                    specialBegin = specialEnd;
+                    begin = end;
+
+                    Integer iconId = girdMap.get(girdId);
+                    if(iconId == null){
+                        continue;
+                    }
+
+                    if(girdSpecialElement(iconId)){
+                        specialEnd += prop;
+                        specialPropInfo.addProp(girdId, specialBegin, specialEnd,maxShowLimit);
+                    }else {
+                        end += prop;
+                        propInfo.addProp(girdId, begin, end,maxShowLimit);
+                    }
                 }
 
-                if(girdSpecialElement(iconId)){
-                    specialEnd += prop;
-                    specialPropInfo.addProp(girdId, specialBegin, specialEnd,maxShowLimit);
-                }else {
-                    end += prop;
-                    propInfo.addProp(girdId, begin, end,maxShowLimit);
-                }
+                specialPropInfo.setSum(specialEnd);
+                propInfo.setSum(end);
+
+                config.setSpecialIconAffectGirdPropInfo(specialPropInfo);
+                config.setOtherIconAffectGirdPropInfo(propInfo);
             }
-            specialPropInfo.setSum(specialEnd);
-            propInfo.setSum(end);
-
-            config.setSpecialIconAffectGirdPropInfo(specialPropInfo);
-            config.setOtherIconAffectGirdPropInfo(propInfo);
-
 
             propInfo = new PropInfo();
 
@@ -791,7 +845,7 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
      * @param spinType
      * @param arr
      */
-    protected int[] girdUpdate(int modelId, int spinType, int rotatestate, int[] arr) {
+    public int[] girdUpdate(int modelId, int spinType, int rotatestate, int[] arr) {
         if (spinType == 1) {
             return arr;
         }
@@ -814,7 +868,6 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
             GirdUpdateConfig girdUpdateConfig = this.specialGirdCfgMap.get(en.getKey());
             //获取随机次数
             Integer randCount = girdUpdateConfig.getRandCountPropInfo().getRandKey();
-
             if(girdUpdateConfig.getSpecialIconId() > 0){
                 //获取一个特殊图标需要替换的格子id
                 Integer specialIconGirdId = girdUpdateConfig.getSpecialIconAffectGirdPropInfo().getRandKey();
@@ -826,27 +879,75 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
                 }
             }
 
-            PropInfo clonePropInfo = girdUpdateConfig.getOtherIconAffectGirdPropInfo().clone();
-            //记录每个key出现的次数
-            Map<Integer, Integer> existMap = new HashMap<>();
-            for(int i=0;i<randCount;i++){
-                //获取一个其他特殊图标需要替换的格子id
-                Integer otherIconGirdId = clonePropInfo.getRandKey();
-                int maxShowLimit = clonePropInfo.getMaxShowLimit(otherIconGirdId);
-                int afterCount = existMap.merge(otherIconGirdId, 1, Integer::sum);
-                if (afterCount >= maxShowLimit) {
-                    //达到最大次数后，要去除，然后重新计算权重随机范围
-                    clonePropInfo.removeKeyAndRecalculate(otherIconGirdId);
-                }
+            //修改出火车，要特殊写
+            if(girdUpdateConfig.getId() == SlotsConst.SpecialGird.ID_TRAIN_UPDATE){
+                PropInfo clonePropInfo = girdUpdateConfig.getOtherIconAffectGirdPropInfo().clone();
+                PropInfo otherIconIdPropInfo = girdUpdateConfig.getOtherIconPropInfo().clone();
+                //记录每个key出现的次数
+                Map<Integer, Integer> existMap = new HashMap<>();
+                //每个元素在每一列出现的次数
+                Map<Integer,Set<Integer>> iconColumShowMap = new HashMap<>();
+                for(int i=0;i<randCount;i++){
+                    //获取一个其他特殊图标需要替换的格子id
+                    Integer otherIconGirdId = clonePropInfo.getRandKey();
+                    int maxShowLimit = clonePropInfo.getMaxShowLimit(otherIconGirdId);
 
-                Integer otherIconId = girdUpdateConfig.getOtherIconPropInfo().getRandKey();
-                if(otherIconGirdId != null && otherIconGirdId > 0 && otherIconId != null && otherIconId > 0){
-                    int oldIconId = arr[otherIconGirdId];
-                    arr[otherIconGirdId] = otherIconId;
-                    log.debug("修改格子 girdId = {},oldIconId = {},newIconId = {}", otherIconGirdId,oldIconId, otherIconId);
+                    Integer otherIconId = otherIconIdPropInfo.getRandKey();
+                    if(otherIconGirdId > 0 && otherIconId > 0){
+                        //将格子id，转化成所在列
+                        int columId = otherIconGirdId / this.baseInitCfg.getRows();
+                        if((otherIconGirdId % this.baseInitCfg.getRows()) > 0){
+                            columId ++;
+                        }
+
+                        boolean exist = false;
+                        Set<Integer> tempSet = iconColumShowMap.get(otherIconId);
+                        if(tempSet != null){
+                            exist = tempSet.contains(columId);
+                        }
+
+                        if(exist){
+                            i--;
+                            continue;
+                        }
+
+                        int afterCount = existMap.merge(otherIconGirdId, 1, Integer::sum);
+                        if (afterCount >= maxShowLimit) {
+                            //达到最大次数后，要去除，然后重新计算权重随机范围
+                            clonePropInfo.removeKeyAndRecalculate(otherIconGirdId);
+                        }
+
+                        int oldIconId = arr[otherIconGirdId];
+                        arr[otherIconGirdId] = otherIconId;
+                        iconColumShowMap.computeIfAbsent(otherIconId, k -> new HashSet<>()).add(columId);
+                        if(iconColumShowMap.get(otherIconId).size() >= this.baseInitCfg.getRows()){
+                            otherIconIdPropInfo.removeKeyAndRecalculate(otherIconId);
+                        }
+                        log.debug("修改格子 girdId = {},oldIconId = {},newIconId = {}", otherIconGirdId,oldIconId, otherIconId);
+                    }
+                }
+            }else {
+                PropInfo clonePropInfo = girdUpdateConfig.getOtherIconAffectGirdPropInfo().clone();
+                //记录每个key出现的次数
+                Map<Integer, Integer> existMap = new HashMap<>();
+                for(int i=0;i<randCount;i++){
+                    //获取一个其他特殊图标需要替换的格子id
+                    Integer otherIconGirdId = clonePropInfo.getRandKey();
+                    int maxShowLimit = clonePropInfo.getMaxShowLimit(otherIconGirdId);
+                    int afterCount = existMap.merge(otherIconGirdId, 1, Integer::sum);
+                    if (afterCount >= maxShowLimit) {
+                        //达到最大次数后，要去除，然后重新计算权重随机范围
+                        clonePropInfo.removeKeyAndRecalculate(otherIconGirdId);
+                    }
+
+                    Integer otherIconId = girdUpdateConfig.getOtherIconPropInfo().getRandKey();
+                    if(otherIconGirdId > 0 && otherIconId != null && otherIconId > 0){
+                        int oldIconId = arr[otherIconGirdId];
+                        arr[otherIconGirdId] = otherIconId;
+                        log.debug("修改格子 girdId = {},oldIconId = {},newIconId = {}", otherIconGirdId,oldIconId, otherIconId);
+                    }
                 }
             }
-
             break;
         }
         return arr;

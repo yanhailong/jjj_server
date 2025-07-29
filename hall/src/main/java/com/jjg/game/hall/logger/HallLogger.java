@@ -20,10 +20,10 @@ public class HallLogger extends BaseLogger {
     public void login(Player player,String token,int loginType){
         try{
             JSONObject json = new JSONObject();
-            json.put("logType", "login");
+//            json.put("logType", "login");
             json.put("loginType", loginType);
             json.put("token", token);
-            sendLog(player,json);
+            sendLog("login",player,json);
         }catch (Exception e){
             log.error("记录login登录日志异常",e);
         }
