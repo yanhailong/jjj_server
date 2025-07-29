@@ -50,26 +50,16 @@ public class BaccaratGameController extends BaseTableGameController<BaccaratGame
     }
 
     @Override
-    public void sendRoomInitInfo(PlayerController playerController) {
+    public void respRoomInitInfo(PlayerController playerController) {
         EGamePhase eGamePhase = getCurrentGamePhase();
         // 如果刚好处于等待阶段则直接设置为下注阶段
         if (eGamePhase == EGamePhase.WAIT_READY) {
             eGamePhase = EGamePhase.BET;
         }
-        RespBaccaratTableInfo baccaratTableInfo = null;
         // 如果在结算阶段需要从缓存中读取数据
-        if (eGamePhase == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
-            NotifyBaccaratSettlementInfo settlementInfo = gameDataVo.getBaccaratSettlementInfo();
-            baccaratTableInfo =
-                BaccaratMessageBuilder.buildRespBaccaratTableInfo(gameDataVo, eGamePhase, settlementInfo);
-        } else if (eGamePhase == EGamePhase.BET) {
-            baccaratTableInfo =
-                BaccaratMessageBuilder.buildRespBaccaratTableInfo(gameDataVo, eGamePhase, null);
-        }
-        if (baccaratTableInfo == null) {
-            log.error("玩家：{} 获取百家乐桌面数据为空 room: {} cfgId: {}",
-                playerController.playerId(), gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId());
-        }
+        NotifyBaccaratSettlementInfo settlementInfo = gameDataVo.getBaccaratSettlementInfo();
+        RespBaccaratTableInfo baccaratTableInfo =
+            BaccaratMessageBuilder.buildRespBaccaratTableInfo(gameDataVo, eGamePhase, settlementInfo);
         log.info("百家乐房间初始化数据：{} ", JSON.toJSONString(baccaratTableInfo));
         // send
         playerController.send(Objects.requireNonNullElseGet(baccaratTableInfo,

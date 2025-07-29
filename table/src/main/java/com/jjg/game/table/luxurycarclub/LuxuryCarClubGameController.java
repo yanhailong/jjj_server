@@ -31,7 +31,7 @@ public class LuxuryCarClubGameController extends BaseTableGameController<LuxuryC
     }
 
     @Override
-    public void sendRoomInitInfo(PlayerController playerController) {
+    public void respRoomInitInfo(PlayerController playerController) {
         // 发送初始化数据
         NotifyLuxuryCarClubTableInfo animalsTableInfo =
             LuxuryCarClubMessageBuilder.notifyLuxuryCarClubTableInfo(this, true, playerController.playerId());

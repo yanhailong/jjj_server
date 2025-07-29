@@ -79,7 +79,7 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
             playerController.send(new RespBaccaratTableInfo(Code.PARAM_ERROR));
             return;
         }
-        gameController.sendRoomInitInfo(playerController);
+        gameController.respRoomInitInfo(playerController);
     }
 
     @Command(BaccaratMessageConstant.ReqMsgBean.REQ_BACCARAT_TABLE_SUMMARY_LIST)

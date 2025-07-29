@@ -105,9 +105,8 @@ public class BaccaratMessageBuilder {
         if (eGamePhase == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
             notifyBaccaratTableInfo.baccaratSettlementInfo = settlementInfo.baccaratSettlementInfo;
             notifyBaccaratTableInfo.playerChangedGolds = settlementInfo.playerChangedGolds;
-        } else if (eGamePhase == EGamePhase.BET) {
-            notifyBaccaratTableInfo.cardStateList = gameDataVo.getBetRecord();
         }
+        notifyBaccaratTableInfo.cardStateList = gameDataVo.getBetRecord();
         notifyBaccaratTableInfo.gamePhase = eGamePhase;
         notifyBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameDataVo, true);
         return notifyBaccaratTableInfo;
@@ -122,7 +121,7 @@ public class BaccaratMessageBuilder {
                                                                    EGamePhase eGamePhase,
                                                                    NotifyBaccaratSettlementInfo settlementInfo) {
         RespBaccaratTableInfo respBaccaratTableInfo = new RespBaccaratTableInfo(Code.SUCCESS);
-        if (eGamePhase == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
+        if (settlementInfo != null) {
             respBaccaratTableInfo.baccaratSettlementInfo = settlementInfo.baccaratSettlementInfo;
             respBaccaratTableInfo.playerChangedGolds = settlementInfo.playerChangedGolds;
         }

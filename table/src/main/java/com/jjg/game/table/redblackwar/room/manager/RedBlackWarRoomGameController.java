@@ -70,7 +70,7 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
     }
 
     @Override
-    public void sendRoomInitInfo(PlayerController playerController) {
+    public void respRoomInitInfo(PlayerController playerController) {
         //发送房间信息
         RedBlackWarGameDataVo dataVo = getGameDataVo();
         NotifyRedBlackWarInfo notifyRedBlackWarInfo = new NotifyRedBlackWarInfo();

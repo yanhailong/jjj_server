@@ -175,7 +175,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 玩家发送房间初始信息 客户端在刚进入房间时，不能收到服务端的主动推送，所以需要等客户端初始化完成后，主动向服务端请求
      */
-    public abstract void sendRoomInitInfo(PlayerController playerController);
+    public abstract void respRoomInitInfo(PlayerController playerController);
 
     /**
      * 在单个游戏阶段结束后，判断房间是否全部结束

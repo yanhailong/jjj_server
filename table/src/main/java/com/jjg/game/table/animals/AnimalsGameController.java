@@ -31,7 +31,7 @@ public class AnimalsGameController extends BaseTableGameController<AnimalsGameDa
     }
 
     @Override
-    public void sendRoomInitInfo(PlayerController playerController) {
+    public void respRoomInitInfo(PlayerController playerController) {
         // 发送初始化数据
         NotifyAnimalsTableInfo animalsTableInfo =
             AnimalsMessageBuilder.notifyAnimalsTableInfo(this, true, playerController.playerId());

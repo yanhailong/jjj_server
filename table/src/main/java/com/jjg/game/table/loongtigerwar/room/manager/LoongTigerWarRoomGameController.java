@@ -67,7 +67,7 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
     }
 
     @Override
-    public void sendRoomInitInfo(PlayerController playerController) {
+    public void respRoomInitInfo(PlayerController playerController) {
         //发送房间信息
         LoongTigerWarGameDataVo dataVo = getGameDataVo();
         NotifyLoongTigerWarInfo notifyLoongTigerWarInfo = new NotifyLoongTigerWarInfo();
