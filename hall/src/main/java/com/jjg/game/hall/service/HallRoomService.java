@@ -11,6 +11,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
+import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.tool.IConsoleReceiver;
@@ -48,8 +49,10 @@ public class HallRoomService implements IConsoleReceiver {
     private CorePlayerService playerService;
     @Autowired
     private MarsCurator marsCurator;
+    @Autowired
+    private MatchDataDao matchDataDao;
 
-    public int enterSlotsNode(PlayerController playerController, int roomCfgId){
+    public int enterSlotsNode(PlayerController playerController, int roomCfgId) {
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         if (warehouseCfg == null) {
             log.error("配置表异常，未在房间表（warehouse.xlsx）中找到房间配置表ID: {}", roomCfgId);
@@ -57,14 +60,14 @@ public class HallRoomService implements IConsoleReceiver {
         }
         int gameType = warehouseCfg.getGameID();
         MarsNode marsNode = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(),
-                playerController.getPlayer().getIp());
+            playerController.getPlayer().getIp());
 
         if (marsNode == null) {
             log.debug("获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
             return Code.NOT_FOUND;
         }
 
-        playerSessionService.changeGameType(playerController.playerId(),gameType,roomCfgId);
+        playerSessionService.changeGameType(playerController.playerId(), gameType, roomCfgId);
         clusterSystem.switchNode(playerController.getSession(), marsNode);
         return Code.SUCCESS;
     }
@@ -170,6 +173,14 @@ public class HallRoomService implements IConsoleReceiver {
         }
         // 查询房间节点
         MarsNode marsNode = marsCurator.getMarsNode(room.getPath());
+        if (marsNode == null) {
+            log.error("服务端找不到节点，room: {}", room.getPath());
+            // TODO 先暂时删除等待房间列表，后续做异常处理
+            matchDataDao.removeWaitJoinRoomId(gameType, room.getRoomCfgId(), roomId);
+            hallRoomDao.removeRoom(gameType, roomId, room.getRoomCfgId());
+            // TODO 现在先重试
+            return hallJoinRoom(playerController, room.getRoomCfgId());
+        }
         // 更新玩家的房间ID
         playerController.setPlayer(
             playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(room.getId())));
