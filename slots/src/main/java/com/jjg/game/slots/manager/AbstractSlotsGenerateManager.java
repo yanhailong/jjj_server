@@ -19,7 +19,7 @@ import java.util.*;
  * @author 11
  * @date 2025/7/2 13:54
  */
-public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements ConfigExcelChangeListener {
+public class AbstractSlotsGenerateManager<A extends AwardLineInfo,T extends SlotsResultLib<A>> implements ConfigExcelChangeListener {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     protected Class<T> resultLibClazz;
@@ -104,11 +104,56 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
      * 生成一个结果
      */
     public List<T> generateOne() {
-        return Collections.EMPTY_LIST;
+        try {
+            //获取模式id和滚轴id
+            T lib = randRollerId();
+
+            //生成20个图标
+            int[] arr = generateAllIcons(lib.getRollerId());
+            if (arr == null) {
+                return Collections.EMPTY_LIST;
+            }
+
+            return checkAward(arr, lib);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+        return null;
     }
 
     /**
-     * 生成20个图标
+     * 检查奖励
+     *
+     * @param arr
+     * @param lib
+     * @return
+     * @throws Exception
+     */
+    public List<T> checkAward(int[] arr, T lib) throws Exception {
+        List<T> libList = new ArrayList<>();
+
+        lib.setId(RandomUtils.getUUid());
+        lib.setLibType(SlotsConst.SpecialResultLib.TYPE_NORMAL);
+        libList.add(lib);
+
+        lib.setGameType(this.gameType);
+        lib.setIconArr(arr);
+
+        //检查中奖线
+        List<A> awardLineInfoList = normalAward(lib.getIconArr(), SlotsConst.BaseElementReward.ROTATESTATE_NORMAL);
+        lib.setAwardLineInfoList(awardLineInfoList);
+
+        //检查特殊奖励
+        specialAward(arr, lib, SlotsConst.BaseElementReward.ROTATESTATE_NORMAL,libList,-1);
+
+        for(T tmpLib : libList){
+            calTimes(tmpLib);
+        }
+        return libList;
+    }
+
+    /**
+     * 按照配置生成所有的图标元素
      *
      * @return
      */
@@ -147,6 +192,375 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
         return arr;
     }
 
+    /**
+     * 检查普通奖励
+     *
+     * @param arr
+     * @param rotateState 旋转状态
+     * @return
+     */
+    public List<A> normalAward(int[] arr, int rotateState) {
+//        log.debug("开始检查中奖线信息 rotateState = {}", rotateState);
+        List<A> awardLineInfoList = new ArrayList<>();
+
+        for (Map.Entry<Integer, BaseLineCfg> en : this.baseLineCfgMap.entrySet()) {
+            BaseLineCfg cfg = en.getValue();
+            int id = cfg.getGamePlay().get(0).get(0);
+            List<Integer> lineList = cfg.getPosLocation().get(id);
+
+            SameInfo sameInfo = new SameInfo();
+
+            int last = lineList.size() - 1;
+
+            //标记是否连线
+            int sameCount = 0;
+
+            for (int i = 0; i < last; i++) {
+                int index1 = lineList.get(i);
+
+                int behind = i + 1;
+                int index2 = lineList.get(behind);
+
+//                log.debug("index1={}, index2={}", index1, index2);
+                sameInfo = iconSame(sameInfo, arr[index1], arr[index2]);
+                if (sameInfo.isSame()) {
+                    sameInfo.setSame(false);
+                    sameCount = sameCount < 1 ? 2 : sameCount + 1;
+                } else {
+                    break;
+                }
+            }
+
+            //如果有连线
+            if (sameCount > 1) {
+                Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_NORMAL);
+                for (Map.Entry<Integer, BaseElementRewardCfg> rewardEn : normalRewardCfgMap.entrySet()) {
+                    BaseElementRewardCfg rewardCfg = rewardEn.getValue();
+                    if (rewardCfg.getRotateState() != SlotsConst.BaseElementReward.ROTATESTATE_ALL && rewardCfg.getRotateState() != rotateState) {
+                        continue;
+                    }
+
+                    //匹配连线的元素id和个数
+                    if (rewardCfg.getElementId() != sameInfo.getBaseIconId() || sameCount != rewardCfg.getRewardNum()) {
+                        continue;
+                    }
+
+                    A info = addAwardLineInfo(cfg,rewardCfg,sameCount,sameInfo.getBaseIconId(),lineList,arr);
+                    awardLineInfoList.add(info);
+                    break;
+                }
+            }
+        }
+        return awardLineInfoList;
+    }
+
+    /**
+     * 检查特殊奖励
+     * @param iconArr
+     * @param lib
+     * @param rotateState
+     * @param libList
+     * @param index
+     * @return
+     * @throws Exception
+     */
+    public T specialAward(int[] iconArr, T lib, int rotateState,List<T> libList,int index) throws Exception {
+        //        log.debug("开始检查特殊中奖");
+        // 统计arr中每个元素的出现次数
+        Map<Integer, Integer> iconShowCountMap = iconShowCount(iconArr);
+
+        //检查baseLineFree配置的出现的特殊元素，  线路玩法 -> 主元素id -> 出现总次数
+        Map<Integer, Map<Integer, Integer>> showIdMap = baseLineFreeShowId(iconShowCountMap);
+
+        for (Map.Entry<Integer, Map<Integer, BaseElementRewardCfg>> specialElementCfgEn : this.baseElementRewardCfgMap.entrySet()) {
+            //线路玩法
+            int playType = specialElementCfgEn.getKey();
+            //只检测特殊线路玩法
+            if (playType == SlotsConst.BaseElementReward.LINE_TYPE_NORMAL) {
+                continue;
+            }
+
+            //从 baseLineFree 读取icon的数据
+            Map<Integer, Integer> tempShowIdMap = null;
+            if (!showIdMap.isEmpty()) {
+                tempShowIdMap = showIdMap.get(playType);
+            }
+
+            Map<Integer, BaseElementRewardCfg> specialElementCfgMap = specialElementCfgEn.getValue();
+            for (Map.Entry<Integer, BaseElementRewardCfg> en : specialElementCfgMap.entrySet()) {
+                BaseElementRewardCfg cfg = en.getValue();
+                //元素id
+                int iconId = cfg.getElementId();
+                //匹配连线的元素id和个数
+                Integer showCount = null;
+
+                //检查tempShowIdMap是否有特殊元素的个数
+                if (tempShowIdMap != null && !tempShowIdMap.isEmpty()) {
+                    showCount = tempShowIdMap.get(iconId);
+                }
+
+                if (showCount == null) {
+                    showCount = iconShowCountMap.get(iconId);
+                    if (showCount == null) {
+                        continue;
+                    }
+                }
+
+                //出现的个数没有达到要求
+                if (showCount != cfg.getRewardNum()) {
+                    continue;
+                }
+
+                //是否有小游戏配置
+                Map<Integer, Integer> featureTriggerIdMap = cfg.getFeatureTriggerId();
+                if (featureTriggerIdMap == null || featureTriggerIdMap.isEmpty()) {
+                    continue;
+                }
+
+                //小游戏id
+                Integer miniGameId = featureTriggerIdMap.get(lib.getRollerMode());
+                if (miniGameId == null || miniGameId < 1) {
+                    continue;
+                }
+
+                //出现的元素种类数
+                if(!checkIconTypes(iconId,iconShowCountMap)){
+                    continue;
+                }
+
+                lib = triggerMiniGame(lib, iconId, miniGameId, rotateState,libList,index);
+            }
+        }
+
+        return lib;
+    }
+
+    /**
+     * 触发小游戏
+     *
+     * @param lib
+     * @param miniGameId
+     * @param rotateState
+     * @return
+     */
+    public T triggerMiniGame(T lib, int iconId,int miniGameId, int rotateState,List<T> libList,int index) throws Exception {
+        //根据小游戏id去找相关配置
+        SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(miniGameId);
+        if (specialAuxiliaryCfg == null) {
+            log.warn("未找到该小游戏的配置 miniGameId = {}", miniGameId);
+            return lib;
+        }
+
+        //随机次数
+        PropInfo propInfo = this.specialAuxiliaryRandCountPropMap.get(miniGameId).get(lib.getRollerMode());
+        if (propInfo == null) {
+            log.warn("该小游戏的权重信息未找到 miniGameId = {}", miniGameId);
+            return lib;
+        }
+        Integer count = propInfo.getRandKey();
+        if (count == null || count < 1) {
+            log.warn("获取的随机次数为空或小于0， miniGameId = {},rollerMode = {},count = {}", miniGameId, lib.getRollerMode(), count);
+            return lib;
+        }
+        log.debug("触发小游戏id = {},rotateState = {},count = {},modelId = {}", miniGameId, rotateState, count,lib.getRollerMode());
+
+        //处理固定奖励
+        if (specialAuxiliaryCfg.getFreeAward() != null && !specialAuxiliaryCfg.getFreeAward().isEmpty()) {
+            for (List<Integer> rewardIds : specialAuxiliaryCfg.getFreeAward()) {
+                lib = handSpecialAuxiliaryAward(lib, rewardIds, specialAuxiliaryCfg, iconId, count, rotateState,libList,index);
+            }
+        }
+
+        lib = handSpecialRandReward(lib, specialAuxiliaryCfg, count, rotateState,libList,index);
+        return lib;
+    }
+
+    /**
+     * 触发重转
+     *
+     * @param lib
+     * @param specialAuxiliaryCfg
+     * @param count
+     * @param rotateState
+     * @return
+     */
+    protected T triggerAgainGame(T lib,List<int[]> specialAuxiliaryAwardDataList,
+                                                    SpecialAuxiliaryCfg specialAuxiliaryCfg,
+                                                    int count,
+                                                    int rotateState,
+                                                    List<T> libList) throws Exception {
+
+        return lib;
+    }
+
+    /**
+     * 处理 SpecialAuxiliary 表中的奖励
+     *
+     * @param lib
+     * @param rewardIds
+     * @param specialAuxiliaryCfg
+     * @param count
+     * @param rotateState
+     * @return
+     */
+    public T handSpecialAuxiliaryAward(T lib,List<Integer> rewardIds,SpecialAuxiliaryCfg specialAuxiliaryCfg,
+                                                            int iconId,
+                                                            int count,
+                                                            int rotateState,
+                                                            List<T> libList,
+                                                            int index) throws Exception {
+        log.debug("处理 specialAuxiliartAward 奖励逻辑 specialAuxiliaryId =  {},modelId = {}", rewardIds,lib.getRollerMode());
+
+        //根据配置，找到真正的数据
+        FreeAwardRealData freeAwardRealData = getFreeAwardRealData(rewardIds, count);
+
+        //奖励A
+        lib = handAwardA(lib,freeAwardRealData,iconId,count,rotateState,specialAuxiliaryCfg,libList,index);
+        //奖励C
+        lib = handAwardC(lib,freeAwardRealData,iconId,count,rotateState,specialAuxiliaryCfg,libList,index);
+        return lib;
+    }
+
+    /**
+     * 处理奖励A
+     * @param lib
+     * @param freeAwardRealData
+     * @param iconId
+     * @param count
+     * @param rotateState
+     * @param specialAuxiliaryCfg
+     * @param libList
+     * @param index
+     * @return
+     * @throws Exception
+     */
+    protected T handAwardA(T lib,FreeAwardRealData freeAwardRealData,int iconId,int count,int rotateState,
+                           SpecialAuxiliaryCfg specialAuxiliaryCfg,
+                           List<T> libList,
+                           int index) throws Exception {
+        if(freeAwardRealData.getResultListA() == null || freeAwardRealData.getResultListA().isEmpty()){
+            return lib;
+        }
+        outer:
+        for (int[] daraArr : freeAwardRealData.getResultListA()) {
+            AuxiliaryAwardType auxiliaryAwardType = AuxiliaryAwardType.getType(daraArr[0]);
+            int data = daraArr[1];
+
+            switch (auxiliaryAwardType) {
+                case GOLD_PROP:
+                    lib = triggerGoldProp(lib, count, rotateState,data,index);
+                    break;
+                case FREE_GAME_COUNT:
+                    lib = triggerFreeGame(lib, freeAwardRealData.getResultListA(), specialAuxiliaryCfg, count, rotateState,libList);
+                    break outer;
+                case REWARD_MINI_GAME:
+                    lib = triggerMiniGame(lib, iconId, data, rotateState,libList,index);
+                    break;
+                case SPIN_COUNT_AGAIN:
+                    lib = triggerAgainGame(lib, freeAwardRealData.getResultListA(), specialAuxiliaryCfg, count, rotateState,libList);
+                    break outer;
+            }
+        }
+        return lib;
+    }
+
+    protected T handAwardC(T lib,FreeAwardRealData freeAwardRealData,int iconId,int count,int rotateState,
+                           SpecialAuxiliaryCfg specialAuxiliaryCfg,
+                           List<T> libList,
+                           int index){
+        return lib;
+    }
+
+
+    /**
+     * 处理特殊游戏的随机奖励
+     *
+     * @param lib
+     * @param cfg
+     * @param count
+     * @param rotateState
+     * @return
+     */
+    public T handSpecialRandReward(T lib, SpecialAuxiliaryCfg cfg,int count, int rotateState,List<T> libList,int index) throws Exception {
+        if (cfg.getFreeRandAward() == null || cfg.getFreeRandAward().isEmpty()) {
+            return lib;
+        }
+        log.debug("找到随机 specialAuxiliary 的随机奖励 = {}", cfg.getId());
+
+        PropAndAwardInfo<FreeRandAwardInfo> propAndAwardInfo = getPropAndAwardInfo(cfg.getId());
+        if (propAndAwardInfo == null) {
+            log.warn("没有找到该小游戏的 免费随机奖励配置 miniGameId = {}", cfg.getId());
+            return lib;
+        }
+
+        if (cfg.getType() == SlotsConst.SpecialAuxiliary.TYPE_FREE_ROLL) {  //免费旋转
+            List<Integer> idList = getRewardList(propAndAwardInfo,lib.getRollerMode());
+            //处理奖励逻辑
+            lib = handSpecialAuxiliaryAward(lib, idList, cfg, -1, count, rotateState,libList,index);
+        }else if(cfg.getType() == SlotsConst.SpecialAuxiliary.TYPE_OPEN_BOX){  //开启宝箱
+
+        }
+        return lib;
+    }
+
+    /**
+     * 获取奖励中的id
+     * @param propAndAwardInfo
+     * @param rollerMode
+     * @return
+     */
+    public List<Integer> getRewardList(PropAndAwardInfo<FreeRandAwardInfo> propAndAwardInfo,int rollerMode) {
+        if(propAndAwardInfo == null){
+            return Collections.emptyList();
+        }
+        List<Integer> idList = new ArrayList<>();
+        for (Map.Entry<Integer, Map<Integer,FreeRandAwardInfo>> en1 : propAndAwardInfo.getAwardMap2().entrySet()) {
+            Map<Integer,FreeRandAwardInfo> tempMap = en1.getValue();
+            for(Map.Entry<Integer,FreeRandAwardInfo> en2 : tempMap.entrySet()){
+                FreeRandAwardInfo freeRandAwardInfo = en2.getValue();
+                //检查模式id是否一致
+                if (freeRandAwardInfo.getModelId() != rollerMode) {
+                    continue;
+                }
+                idList.add(freeRandAwardInfo.getAwardId());
+            }
+        }
+        return idList;
+    }
+
+    /**
+     * 金币系数
+     *
+     * @param lib
+     * @param count
+     * @param rotateState
+     * @return
+     */
+    protected T triggerGoldProp(T lib, int count, int rotateState,int awardData,int index) {
+        return lib;
+    }
+
+    /**
+     * 触发免费转
+     *
+     * @param lib
+     * @param specialAuxiliaryCfg
+     * @param count
+     * @param rotateState
+     * @return
+     */
+    protected T triggerFreeGame(T lib,List<int[]> specialAuxiliaryAwardDataList,
+                                                   SpecialAuxiliaryCfg specialAuxiliaryCfg,
+                                                   int count,
+                                                   int rotateState,
+                                                   List<T> libList) throws Exception {
+        return lib;
+    }
+
+    protected A addAwardLineInfo(BaseLineCfg baseLineCfg,BaseElementRewardCfg rewardCfg,int sameCount,
+                                 int baseIconId,List<Integer> lineList,int[] arr) {
+        return null;
+    }
 
     /**
      * 判断两个icon是否一样
@@ -316,6 +730,41 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
         freeAwardRealData.setResultListA(resultListA);
         freeAwardRealData.setResultMapC(resultMapC);
         return freeAwardRealData;
+    }
+
+    /**
+     * 出现的元素种类数
+     * @return
+     */
+    protected boolean checkIconTypes(int iconId,Map<Integer, Integer> iconShowCountMap){
+        for(Map.Entry<Integer, Map<Integer, BaseLineFreeInfo>> en2 : this.baseLineFreeCfgMap.entrySet()){
+            Map<Integer, BaseLineFreeInfo> freeInfoMap = en2.getValue();
+            for(Map.Entry<Integer, BaseLineFreeInfo> en3 : freeInfoMap.entrySet()){
+                BaseLineFreeInfo baseLineFreeInfo = en3.getValue();
+                //是否等于主元素
+                if(iconId != baseLineFreeInfo.getMainElementId()){
+                    continue;
+                }
+                int types = 0;
+                for(List<Integer> tmpList : baseLineFreeInfo.getElementGroupList()){
+                    for(int tmpIconId : tmpList){
+                        if(iconShowCountMap.containsKey(tmpIconId)){
+                            types++;
+                        }
+                    }
+                }
+
+                if(types >= baseLineFreeInfo.getMinIconTypeMin()){
+                    return true;
+                }
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public void calTimes(T lib) throws Exception{
+
     }
 
 
@@ -840,6 +1289,37 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
     }
 
     /**
+     * 检查baseLineFree配置的出现的特殊元素，  线路玩法 -> 主元素id -> 出现总次数
+     * @param iconShowCountMap
+     * @return
+     */
+    protected Map<Integer, Map<Integer, Integer>> baseLineFreeShowId(Map<Integer, Integer> iconShowCountMap){
+        Map<Integer, Map<Integer, Integer>> showIdMap = new HashMap<>();
+        for (Map.Entry<Integer, Map<Integer, BaseLineFreeInfo>> en : this.baseLineFreeCfgMap.entrySet()) {
+            //主元素id -> 出现总次数
+            Map<Integer, BaseLineFreeInfo> freeInfoMap = en.getValue();
+            for (Map.Entry<Integer, BaseLineFreeInfo> en2 : freeInfoMap.entrySet()) {
+                BaseLineFreeInfo freeInfo = en2.getValue();
+                Map<Integer, Integer> tempMap = showIdMap.computeIfAbsent(freeInfo.getPlayType(), k -> new HashMap<>());
+
+                group:
+                for (List<Integer> groupList : freeInfo.getElementGroupList()) {
+                    for (int specialIcon : groupList) {
+                        Integer count = iconShowCountMap.get(specialIcon);
+                        if (count == null) {
+                            tempMap.remove(freeInfo.getMainElementId());
+                            continue group;
+                        }
+                        tempMap.merge(freeInfo.getMainElementId(), count, Integer::sum);
+                    }
+                }
+            }
+
+        }
+        return showIdMap;
+    }
+
+    /**
      * 格子修改
      *
      * @param spinType
@@ -968,6 +1448,10 @@ public class AbstractSlotsGenerateManager<T extends SlotsResultLib> implements C
 
     public BaseInitCfg getBaseInitCfg() {
         return baseInitCfg;
+    }
+
+    public PropAndAwardInfo<FreeRandAwardInfo> getPropAndAwardInfo(int auxiliaryId){
+        return this.specialAuxiliaryRandAwardPropMap.get(auxiliaryId);
     }
 
     @Override

@@ -6,6 +6,7 @@ import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.util.Set;
 
 /**
  * @author 11
@@ -28,17 +29,10 @@ public class BlackJackSampleManager extends AbstractSampleManager {
 
     }
 
-
     @Override
-    protected void sampleChange(File file) {
-        try{
-//            Set<Class<? extends BaseCfgBean>> changeCfgBean = GameDataManager.getInstance().loadDataByChangeFileList(getSamplePath(), Collections.singletonList(file));
-//            Map<String, ConfigExcelChangeListener> configExcelChangeListeners = CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
-//            configExcelChangeListeners.values().forEach(listener -> {
-//                listener.change(changeCfgBean.iterator().next().getSimpleName());
-//            });
-        }catch (Exception e){
-            log.error("",e);
-        }
+    protected Set<Class<?>> reloadSampleOnExcelChange(File file) throws Exception {
+        return Set.of();
     }
+
+
 }

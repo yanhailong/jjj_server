@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.dollarexpress.manager;
 
-import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.slots.constant.AuxiliaryAwardType;
@@ -21,7 +20,7 @@ import java.util.*;
  * @date 2025/7/7 18:28
  */
 @Component
-public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<DollarExpressResultLib> {
+public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<DollarExpressAwardLineInfo,DollarExpressResultLib> {
     public DollarExpressGenerateManager() {
         super(DollarExpressResultLib.class);
     }
@@ -38,176 +37,49 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         specialPlayConfig();
     }
 
+
     /**
-     * 生成一条结果
+     * 添加中奖线信息
+     * @param baseLineCfg
+     * @param rewardCfg
+     * @param sameCount
+     * @param baseIconId
+     * @param lineList
+     * @param arr
+     * @return
      */
     @Override
-    public List<DollarExpressResultLib> generateOne() {
-        try {
-            //获取模式id和滚轴id
-            DollarExpressResultLib slotsResultLib = randRollerId();
-
-            //生成20个图标
-            int[] arr = generateAllIcons(slotsResultLib.getRollerId());
-            if (arr == null) {
-                return Collections.EMPTY_LIST;
-            }
-
-            return checkAward(arr, slotsResultLib);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-        return null;
-    }
-
-    /**
-     * 检查奖励
-     *
-     * @param arr
-     * @param slotsResultLib
-     * @return
-     * @throws Exception
-     */
-    public List<DollarExpressResultLib> checkAward(int[] arr, DollarExpressResultLib slotsResultLib) throws Exception {
-        List<DollarExpressResultLib> libList = new ArrayList<>();
-
-        slotsResultLib.setId(RandomUtils.getUUid());
-        slotsResultLib.setLibType(SlotsConst.SpecialResultLib.TYPE_NORMAL);
-        libList.add(slotsResultLib);
-
-        slotsResultLib.setGameType(this.gameType);
-        slotsResultLib.setIconArr(arr);
-
-        //检查中奖线
-        List<DollarExpressAwardLineInfo> awardLineInfoList = normalAward(slotsResultLib.getIconArr(), SlotsConst.BaseElementReward.ROTATESTATE_NORMAL);
-        slotsResultLib.setAwardLineInfoList(awardLineInfoList);
-
-        //检查特殊奖励
-        specialAward(arr, slotsResultLib, SlotsConst.BaseElementReward.ROTATESTATE_NORMAL,libList,-1);
-
-        for(DollarExpressResultLib lib : libList){
-            calTimes(lib);
-        }
-        return libList;
-    }
-
-    /**
-     * 检查普通奖励
-     *
-     * @param arr
-     * @param rotateState 旋转状态
-     * @return
-     */
-    public List<DollarExpressAwardLineInfo> normalAward(int[] arr, int rotateState) {
-//        log.debug("开始检查中奖线信息 rotateState = {}", rotateState);
-        List<DollarExpressAwardLineInfo> awardLineInfoList = new ArrayList<>();
-        // 统计arr中每个元素的出现次数
-        Map<Integer, Integer> iconShowCountMap = iconShowCount(arr);
-
-        for (Map.Entry<Integer, BaseLineCfg> en : this.baseLineCfgMap.entrySet()) {
-            BaseLineCfg cfg = en.getValue();
-            int id = cfg.getGamePlay().get(0).get(0);
-            List<Integer> lineList = cfg.getPosLocation().get(id);
-
-            SameInfo sameInfo = new SameInfo();
-
-            int last = lineList.size() - 1;
-
-            //标记是否连线
-            int sameCount = 0;
-
-            for (int i = 0; i < last; i++) {
-                int index1 = lineList.get(i);
-
-                int behind = i + 1;
-                int index2 = lineList.get(behind);
-
-//                log.debug("index1={}, index2={}", index1, index2);
-                sameInfo = iconSame(sameInfo, arr[index1], arr[index2]);
-                if (sameInfo.isSame()) {
-                    sameInfo.setSame(false);
-                    sameCount = sameCount < 1 ? 2 : sameCount + 1;
-                } else {
-                    break;
-                }
-            }
-
-            //如果有连线
-            if (sameCount > 1) {
-                Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_NORMAL);
-                for (Map.Entry<Integer, BaseElementRewardCfg> rewardEn : normalRewardCfgMap.entrySet()) {
-                    BaseElementRewardCfg rewardCfg = rewardEn.getValue();
-                    if (rewardCfg.getRotateState() != SlotsConst.BaseElementReward.ROTATESTATE_ALL && rewardCfg.getRotateState() != rotateState) {
-                        continue;
-                    }
-
-                    //匹配连线的元素id和个数
-                    if (rewardCfg.getElementId() != sameInfo.getBaseIconId() || sameCount != rewardCfg.getRewardNum()) {
-                        continue;
-                    }
-
-                    DollarExpressAwardLineInfo awardLineInfo = new DollarExpressAwardLineInfo();
-                    awardLineInfo.setId(cfg.getLineId());
-                    awardLineInfo.setBaseTimes(rewardCfg.getBet());
-                    awardLineInfo.setSameCount(sameCount);
-                    awardLineInfo.setIconId(sameInfo.getBaseIconId());
+    protected DollarExpressAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg,BaseElementRewardCfg rewardCfg,int sameCount,
+                                                          int baseIconId,List<Integer> lineList,int[] arr) {
+        DollarExpressAwardLineInfo awardLineInfo = new DollarExpressAwardLineInfo();
+        awardLineInfo.setId(baseLineCfg.getLineId());
+        awardLineInfo.setBaseTimes(rewardCfg.getBet());
+        awardLineInfo.setSameCount(sameCount);
+        awardLineInfo.setIconId(baseIconId);
 
 //                    slotsResultLib.addTimes(rewardCfg.getBet());
 //                    log.debug("中奖！！ 添加基础倍率 lineId = {},sameCount = {},addTimes = {}", cfg.getLineId(), sameCount, rewardCfg.getBet());
 
-                    for (List<Integer> otherIconList : rewardCfg.getBetTimes()) {
-                        int iconId = otherIconList.get(0);
-                        //该元素在这条线上出现的次数
-                        long showCount = lineList.stream().filter(tmpId -> arr[tmpId] == iconId).count();
-                        if (showCount == otherIconList.get(1)) {
-                            int addTimes = otherIconList.get(2);
-                            awardLineInfo.addSpecialAwardInfo(iconId, addTimes);
+        for (List<Integer> otherIconList : rewardCfg.getBetTimes()) {
+            int iconId = otherIconList.get(0);
+            //该元素在这条线上出现的次数
+            long showCount = lineList.stream().filter(tmpId -> arr[tmpId] == iconId).count();
+            if (showCount == otherIconList.get(1)) {
+                int addTimes = otherIconList.get(2);
+                awardLineInfo.addSpecialAwardInfo(iconId, addTimes);
 //                            log.debug("特殊图标添加倍率 iconId = {},showCount = {},addTimes = {}", iconId, showCount, addTimes);
-                        }
-                    }
-                    awardLineInfoList.add(awardLineInfo);
-                    break;
-                }
             }
         }
-        return awardLineInfoList;
+        return awardLineInfo;
     }
 
-    /**
-     * 特殊奖励
-     *
-     * @param slotsResultLib
-     * @param rotateState
-     * @return
-     */
-    public DollarExpressResultLib specialAward(int[] iconArr, DollarExpressResultLib slotsResultLib,
-                                               int rotateState,List<DollarExpressResultLib> libList,int index) throws Exception {
-//        log.debug("开始检查特殊中奖");
+    @Override
+    public DollarExpressResultLib specialAward(int[] iconArr, DollarExpressResultLib lib, int rotateState, List<DollarExpressResultLib> libList, int index) throws Exception {
         // 统计arr中每个元素的出现次数
         Map<Integer, Integer> iconShowCountMap = iconShowCount(iconArr);
 
         //检查baseLineFree配置的出现的特殊元素，  线路玩法 -> 主元素id -> 出现总次数
-        Map<Integer, Map<Integer, Integer>> showIdMap = new HashMap<>();
-        for (Map.Entry<Integer, Map<Integer, BaseLineFreeInfo>> en : this.baseLineFreeCfgMap.entrySet()) {
-            //主元素id -> 出现总次数
-            Map<Integer, BaseLineFreeInfo> freeInfoMap = en.getValue();
-            for (Map.Entry<Integer, BaseLineFreeInfo> en2 : freeInfoMap.entrySet()) {
-                BaseLineFreeInfo freeInfo = en2.getValue();
-                Map<Integer, Integer> tempMap = showIdMap.computeIfAbsent(freeInfo.getPlayType(), k -> new HashMap<>());
-
-                group:
-                for (List<Integer> groupList : freeInfo.getElementGroupList()) {
-                    for (int specialIcon : groupList) {
-                        Integer count = iconShowCountMap.get(specialIcon);
-                        if (count == null) {
-                            tempMap.remove(freeInfo.getMainElementId());
-                            continue group;
-                        }
-                        tempMap.merge(freeInfo.getMainElementId(), count, Integer::sum);
-                    }
-                }
-            }
-        }
+        Map<Integer, Map<Integer, Integer>> showIdMap = baseLineFreeShowId(iconShowCountMap);
 
         for (Map.Entry<Integer, Map<Integer, BaseElementRewardCfg>> specialElementCfgEn : this.baseElementRewardCfgMap.entrySet()) {
             //线路玩法
@@ -255,7 +127,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 }
 
                 //小游戏id
-                Integer miniGameId = featureTriggerIdMap.get(slotsResultLib.getRollerMode());
+                Integer miniGameId = featureTriggerIdMap.get(lib.getRollerMode());
                 if (miniGameId == null || miniGameId < 1) {
                     continue;
                 }
@@ -265,11 +137,18 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                     continue;
                 }
 
-                slotsResultLib = triggerMiniGame(slotsResultLib, iconId, miniGameId, rotateState,libList,index);
+                if(trainId(iconId)){
+                    int forCount = showCount - 1;
+                    for(int i=0;i<forCount;i++){
+                        lib = triggerMiniGame(lib, iconId, miniGameId, rotateState,libList,index);
+                    }
+                }else {
+                    lib = triggerMiniGame(lib, iconId, miniGameId, rotateState,libList,index);
+                }
             }
         }
 
-        return slotsResultLib;
+        return lib;
     }
 
     /**
@@ -382,154 +261,19 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
     }
 
     /**
-     * 触发小游戏
-     *
-     * @param slotsResultLib
-     * @param miniGameId
-     * @param rotateState
-     * @return
-     */
-    public DollarExpressResultLib triggerMiniGame(DollarExpressResultLib slotsResultLib, int iconId,
-                                                  int miniGameId, int rotateState,List<DollarExpressResultLib> libList,int index) throws Exception {
-        //根据小游戏id去找相关配置
-        SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(miniGameId);
-        if (specialAuxiliaryCfg == null) {
-            log.warn("未找到该小游戏的配置 miniGameId = {}", miniGameId);
-            return slotsResultLib;
-        }
-
-        //随机次数
-        PropInfo propInfo = this.specialAuxiliaryRandCountPropMap.get(miniGameId).get(slotsResultLib.getRollerMode());
-        if (propInfo == null) {
-            log.warn("该小游戏的权重信息未找到 miniGameId = {}", miniGameId);
-            return slotsResultLib;
-        }
-        Integer count = propInfo.getRandKey();
-        if (count == null || count < 1) {
-            log.warn("获取的随机次数为空或小于0， miniGameId = {},rollerMode = {},count = {}", miniGameId, slotsResultLib.getRollerMode(), count);
-            return slotsResultLib;
-        }
-        log.debug("触发小游戏id = {},rotateState = {},count = {},modelId = {}", miniGameId, rotateState, count,slotsResultLib.getRollerMode());
-
-        //处理固定奖励
-        if (specialAuxiliaryCfg.getFreeAward() != null && !specialAuxiliaryCfg.getFreeAward().isEmpty()) {
-            for (List<Integer> rewardIds : specialAuxiliaryCfg.getFreeAward()) {
-                slotsResultLib = handSpecialAuxiliaryAward(slotsResultLib, rewardIds, specialAuxiliaryCfg, iconId, count, rotateState,libList,index);
-            }
-        }
-
-        slotsResultLib = handSpecialRandReward(slotsResultLib, specialAuxiliaryCfg, count, rotateState,libList,index);
-        return slotsResultLib;
-    }
-
-    /**
-     * 处理特殊游戏的随机奖励
-     *
-     * @param slotsResultLib
-     * @param cfg
+     * 处理奖励C
+     * @param lib
+     * @param freeAwardRealData
+     * @param iconId
      * @param count
      * @param rotateState
-     * @return
-     */
-    public DollarExpressResultLib handSpecialRandReward(DollarExpressResultLib slotsResultLib, SpecialAuxiliaryCfg cfg,
-                                                        int count, int rotateState,List<DollarExpressResultLib> libList,int index) throws Exception {
-        if (cfg.getFreeRandAward() == null || cfg.getFreeRandAward().isEmpty()) {
-            return slotsResultLib;
-        }
-        log.debug("找到随机 specialAuxiliary 的随机奖励 = {}", cfg.getId());
-
-        PropAndAwardInfo<FreeRandAwardInfo> propAndAwardInfo = getPropAndAwardInfo(cfg.getId());
-        if (propAndAwardInfo == null) {
-            log.warn("没有找到该小游戏的 免费随机奖励配置 miniGameId = {}", cfg.getId());
-            return slotsResultLib;
-        }
-
-        if (cfg.getType() == SlotsConst.SpecialAuxiliary.TYPE_FREE_ROLL) {  //免费旋转
-            List<Integer> idList = getRewardList(propAndAwardInfo,slotsResultLib.getRollerMode());
-            //处理奖励逻辑
-            slotsResultLib = handSpecialAuxiliaryAward(slotsResultLib, idList, cfg, -1, count, rotateState,libList,index);
-        }else if(cfg.getType() == SlotsConst.SpecialAuxiliary.TYPE_OPEN_BOX){  //开启宝箱
-
-        }
-        return slotsResultLib;
-    }
-
-    public PropAndAwardInfo<FreeRandAwardInfo> getPropAndAwardInfo(int auxiliaryId){
-        return this.specialAuxiliaryRandAwardPropMap.get(auxiliaryId);
-    }
-
-    /**
-     * 获取奖励中的id
-     * @param propAndAwardInfo
-     * @param rollerMode
-     * @return
-     */
-    public List<Integer> getRewardList(PropAndAwardInfo<FreeRandAwardInfo> propAndAwardInfo,int rollerMode) {
-        if(propAndAwardInfo == null){
-            return Collections.emptyList();
-        }
-        List<Integer> idList = new ArrayList<>();
-        for (Map.Entry<Integer, Map<Integer,FreeRandAwardInfo>> en1 : propAndAwardInfo.getAwardMap2().entrySet()) {
-            Map<Integer,FreeRandAwardInfo> tempMap = en1.getValue();
-            for(Map.Entry<Integer,FreeRandAwardInfo> en2 : tempMap.entrySet()){
-                FreeRandAwardInfo freeRandAwardInfo = en2.getValue();
-                //检查模式id是否一致
-                if (freeRandAwardInfo.getModelId() != rollerMode) {
-                    continue;
-                }
-                idList.add(freeRandAwardInfo.getAwardId());
-            }
-        }
-        return idList;
-    }
-
-    /**
-     * 处理 SpecialAuxiliary 表中的奖励
-     *
-     * @param slotsResultLib
-     * @param rewardIds
      * @param specialAuxiliaryCfg
-     * @param count
-     * @param rotateState
+     * @param libList
+     * @param index
      * @return
      */
-    public DollarExpressResultLib handSpecialAuxiliaryAward(DollarExpressResultLib slotsResultLib,
-                                                            List<Integer> rewardIds,
-                                                            SpecialAuxiliaryCfg specialAuxiliaryCfg,
-                                                            int iconId,
-                                                            int count,
-                                                            int rotateState,
-                                                            List<DollarExpressResultLib> libList,
-                                                            int index) throws Exception {
-        log.debug("处理 specialAuxiliartAward 奖励逻辑 specialAuxiliaryId =  {},modelId = {}", rewardIds,slotsResultLib.getRollerMode());
-
-        //根据配置，找到真正的数据
-        FreeAwardRealData freeAwardRealData = getFreeAwardRealData(rewardIds, count);
-
-        //奖励A
-        if (freeAwardRealData.getResultListA() != null && !freeAwardRealData.getResultListA().isEmpty()) {
-            outer:
-            for (int[] daraArr : freeAwardRealData.getResultListA()) {
-                AuxiliaryAwardType auxiliaryAwardType = AuxiliaryAwardType.getType(daraArr[0]);
-                int data = daraArr[1];
-
-                switch (auxiliaryAwardType) {
-                    case GOLD_PROP:
-                        slotsResultLib = triggerGoldProp(slotsResultLib, count, rotateState,data,index);
-                        break;
-                    case FREE_GAME_COUNT:
-                        slotsResultLib = triggerFreeGame(slotsResultLib, freeAwardRealData.getResultListA(), specialAuxiliaryCfg, count, rotateState,libList);
-                        break outer;
-                    case REWARD_MINI_GAME:
-                        slotsResultLib = triggerMiniGame(slotsResultLib, iconId, data, rotateState,libList,index);
-                        break;
-                    case SPIN_COUNT_AGAIN:
-                        slotsResultLib = triggerAgainGame(slotsResultLib, freeAwardRealData.getResultListA(), specialAuxiliaryCfg, count, rotateState,libList);
-                        break outer;
-                }
-            }
-        }
-
+    @Override
+    protected DollarExpressResultLib handAwardC(DollarExpressResultLib lib, FreeAwardRealData freeAwardRealData, int iconId, int count, int rotateState, SpecialAuxiliaryCfg specialAuxiliaryCfg, List<DollarExpressResultLib> libList, int index) {
         //奖励C
         if (freeAwardRealData.getResultMapC() != null && !freeAwardRealData.getResultMapC().isEmpty()) {
             for (Map.Entry<Integer, List<int[]>> en : freeAwardRealData.getResultMapC().entrySet()) {
@@ -542,18 +286,18 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 }
 
                 if (rotateState == SlotsConst.BaseElementReward.ROTATESTATE_FREE) {
-                    slotsResultLib.addFreeGameTrain(index, train);
+                    lib.addFreeGameTrain(index, train);
                     log.debug("免费添加火车信息 trainIconId = {}", iconId);
                 } else if (rotateState == SlotsConst.BaseElementReward.ROTATESTATE_AGAIN) {
-                    slotsResultLib.addAgainGameTrain(index, train);
+                    lib.addAgainGameTrain(index, train);
                     log.debug("重转添加火车信息 trainIconId = {}", iconId);
                 } else {
-                    slotsResultLib.addTrain(train);
+                    lib.addTrain(train);
                     log.debug("正常添加火车信息 trainIconId = {}", iconId);
                 }
             }
         }
-        return slotsResultLib;
+        return lib;
     }
 
     /**
@@ -605,7 +349,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @param rotateState
      * @return
      */
-    private DollarExpressResultLib triggerGoldProp(DollarExpressResultLib slotsResultLib, int count, int rotateState,int awardData,int index) {
+    protected DollarExpressResultLib triggerGoldProp(DollarExpressResultLib slotsResultLib, int count, int rotateState,int awardData,int index) {
         if (rotateState == SlotsConst.BaseElementReward.ROTATESTATE_FREE) {
             int[] iconArr = slotsResultLib.getFreeGameMap().get(index).getIconArr();
             slotsResultLib.addFreeGameGoldTrainCount(index,checkGoldTrain(count,  iconArr,awardData));
@@ -633,7 +377,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @param rotateState
      * @return
      */
-    private DollarExpressResultLib triggerFreeGame(DollarExpressResultLib slotsResultLib,
+    protected DollarExpressResultLib triggerFreeGame(DollarExpressResultLib slotsResultLib,
                                                    List<int[]> specialAuxiliaryAwardDataList,
                                                    SpecialAuxiliaryCfg specialAuxiliaryCfg,
                                                    int count,
@@ -697,7 +441,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @param rotateState
      * @return
      */
-    private DollarExpressResultLib triggerAgainGame(DollarExpressResultLib slotsResultLib,
+    protected DollarExpressResultLib triggerAgainGame(DollarExpressResultLib slotsResultLib,
                                                     List<int[]> specialAuxiliaryAwardDataList,
                                                     SpecialAuxiliaryCfg specialAuxiliaryCfg,
                                                     int count,
@@ -749,6 +493,21 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             tempLib = specialAward(arr, tempLib, SlotsConst.BaseElementReward.ROTATESTATE_AGAIN,libList,i);
         }
         return slotsResultLib;
+    }
+
+    /**
+     * 是否为火车id
+     * @param iconId
+     * @return
+     */
+    private boolean trainId(int iconId){
+        if(iconId == DollarExpressConstant.BaseElement.ID_GREEN_TRAIN ||
+                iconId == DollarExpressConstant.BaseElement.ID_RED_TRAIN ||
+                iconId == DollarExpressConstant.BaseElement.ID_BLUE_TRAIN ||
+                iconId == DollarExpressConstant.BaseElement.ID_PURPLE_TRAIN){
+            return true;
+        }
+        return false;
     }
 
     /**********************************************************************************************/
@@ -822,6 +581,11 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         }
     }
 
+    /**
+     * 检查是不是特殊元素
+     * @param iconId
+     * @return
+     */
     @Override
     protected boolean girdSpecialElement(int iconId) {
         return iconId == DollarExpressConstant.BaseElement.ID_GOLD_TRAIN || iconId == DollarExpressConstant.BaseElement.ID_SAFE_BOX;
@@ -1035,36 +799,6 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         return count;
     }
 
-    /**
-     * 出现的元素种类数
-     * @return
-     */
-    private boolean checkIconTypes(int iconId,Map<Integer, Integer> iconShowCountMap){
-        for(Map.Entry<Integer, Map<Integer, BaseLineFreeInfo>> en2 : this.baseLineFreeCfgMap.entrySet()){
-            Map<Integer, BaseLineFreeInfo> freeInfoMap = en2.getValue();
-            for(Map.Entry<Integer, BaseLineFreeInfo> en3 : freeInfoMap.entrySet()){
-                BaseLineFreeInfo baseLineFreeInfo = en3.getValue();
-                //是否等于主元素
-                if(iconId != baseLineFreeInfo.getMainElementId()){
-                    continue;
-                }
-                int types = 0;
-                for(List<Integer> tmpList : baseLineFreeInfo.getElementGroupList()){
-                    for(int tmpIconId : tmpList){
-                        if(iconShowCountMap.containsKey(tmpIconId)){
-                            types++;
-                        }
-                    }
-                }
-
-                if(types >= baseLineFreeInfo.getMinIconTypeMin()){
-                    return true;
-                }
-                return false;
-            }
-        }
-        return true;
-    }
 
     public DollarExpressCollectDollarConfig getDollarExpressCollectDollarConfig() {
         return dollarExpressCollectDollarConfig;

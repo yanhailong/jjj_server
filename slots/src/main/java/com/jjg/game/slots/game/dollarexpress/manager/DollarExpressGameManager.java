@@ -236,7 +236,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
 
             //添加美元收集进度
-            gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
+            if(gameRunInfo.getTotalDollars() < 1){
+                gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
+            }
 
             //玩家当前金币
             if (player == null) {
@@ -1291,6 +1293,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
         boolean flag = playerGameData.getInvers().compareAndSet(false, true);
         if (flag) {
+            gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
             playerGameData.setTotalDollars(playerGameData.getTotalDollars() - dollarExpressGenerate.getDollarExpressCollectDollarConfig().getMax());
             log.debug("美金数量达到 {} 个，触发投资小游戏 playerId = {}", dollarExpressGenerate.getDollarExpressCollectDollarConfig().getMax(), playerGameData.playerId());
         }
