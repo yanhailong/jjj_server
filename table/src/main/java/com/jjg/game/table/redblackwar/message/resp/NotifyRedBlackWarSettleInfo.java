@@ -39,5 +39,7 @@ public class NotifyRedBlackWarSettleInfo extends AbstractNotice {
     @ProtoDesc("玩家结算信息")
     public List<PlayerChangedGold> playerSettleInfos;
 
+    @ProtoDesc("幸运一击")
+    public boolean isLucky;
 }
 
