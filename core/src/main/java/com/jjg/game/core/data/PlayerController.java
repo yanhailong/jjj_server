@@ -45,6 +45,10 @@ public class PlayerController {
         return player.getRoomId();
     }
 
+    public boolean isRobotPlayer(){
+        return player instanceof RobotPlayer;
+    }
+
     public PFSession getSession() {
         return session;
     }

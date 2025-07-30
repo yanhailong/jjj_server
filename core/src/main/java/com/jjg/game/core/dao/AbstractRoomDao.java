@@ -102,13 +102,13 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     /**
      * 创建房间
      */
-    public T createRoom(long playerId, int gameType, int maxLimit, String nodeName) {
+    public T createRoom(PlayerController playerController, int gameType, int maxLimit, String nodeName) {
         try {
-
+            long playerId = playerController.playerId();
             T room = fillBaseRoomData(nodeName, gameType, maxLimit);
             //添加玩家
             if (playerId > 0) {
-                RoomPlayer roomPlayer = createRoomPlayer(playerId);
+                RoomPlayer roomPlayer = createRoomPlayer(playerController);
                 roomPlayer.setSit(0);
                 roomPlayer.setOnline(true);
 
@@ -194,7 +194,8 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
             if (redisLock.lock(key)) {
                 try {
                     T room = getRoom(gameType, roomId);
-                    if (roomCallback.updateDataWithRes(room)) {
+                    Boolean updateDataWithRes = roomCallback.updateDataWithRes(room);
+                    if (updateDataWithRes != null && updateDataWithRes) {
                         saveRoom(room);
                         result.data = room;
                     } else {
@@ -240,7 +241,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
             if (redisLock.lock(key)) {
                 try {
                     T room = getRoom(gameType, roomId);
-                    if (room != null && room.empty()) {
+                    if (room != null) {
                         return redisTemplate.opsForHash().delete(getTableName(gameType), roomId);
                     }
                     return null;
@@ -259,7 +260,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         return null;
     }
 
-    public boolean removePlayer(int gameType, long roomId, long playerId) {
+    public T removePlayer(int gameType, long roomId, long playerId) {
         String key = getLockName(gameType, roomId);
         for (int i = 0; i < CoreConst.Common.REDIS_TRY_COUNT; i++) {
             if (redisLock.lock(key)) {
@@ -268,9 +269,9 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
                     if (room != null) {
                         room.exit(playerId);
                         saveRoom(room);
-                        return true;
+                        return room;
                     }
-                    return false;
+                    return null;
                 } catch (Exception e) {
                     log.warn("从房间移除玩家数据异常,gameType = {},roomId = {},playerId = {}", gameType, roomId, playerId, e);
                 } finally {
@@ -283,7 +284,39 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
                 log.warn("从房间移除玩家数据异常2,gameType = {},roomId = {},playerId = {}", gameType, roomId, playerId, e);
             }
         }
-        return false;
+        return null;
+    }
+
+    /**
+     * 批量退出玩家
+     */
+    public T removePlayers(int gameType, long roomId, List<Long> playerIds) {
+        String key = getLockName(gameType, roomId);
+        for (int i = 0; i < CoreConst.Common.REDIS_TRY_COUNT; i++) {
+            if (redisLock.lock(key)) {
+                try {
+                    T room = getRoom(gameType, roomId);
+                    if (room != null) {
+                        room.exitPlayers(playerIds);
+                        saveRoom(room);
+                        return room;
+                    }
+                    return null;
+                } catch (Exception e) {
+                    log.warn("从房间移除玩家数据异常,gameType = {},roomId = {},playerId = {}",
+                        gameType, roomId, playerIds.stream().map(String::valueOf).collect(Collectors.joining(",")), e);
+                } finally {
+                    redisLock.unlock(key);
+                }
+            }
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                log.warn("从房间移除玩家数据异常2,gameType = {},roomId = {},playerId = {}",
+                    gameType, roomId, playerIds.stream().map(String::valueOf).collect(Collectors.joining(",")), e);
+            }
+        }
+        return null;
     }
 
     public int getCanJoinRoomId(int gameType, int roomCfgId) {
@@ -300,13 +333,17 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         return redisTemplate.opsForHash().size(getTableName(gameType));
     }
 
-    public RoomPlayer createRoomPlayer(long playerId) throws Exception {
+    public RoomPlayer createRoomPlayer(PlayerController playerController) throws Exception {
+        long playerId = playerController.playerId();
         //创建roomPlayer对象
         Constructor<? extends RoomPlayer> roomPlayerConstructor = this.roomPlayerClazz.getConstructor();
         RoomPlayer roomPlayer = roomPlayerConstructor.newInstance();
         roomPlayer.setPlayerId(playerId);
-        Optional<PlayerRoomData> roomData = playerRoomDataDao.findById(playerId);
-        roomPlayer.setPlayerRoomData(roomData.orElse(new PlayerRoomData()));
+        if (!(playerController.getPlayer() instanceof RobotPlayer)) {
+            Optional<PlayerRoomData> roomData = playerRoomDataDao.findById(playerId);
+            roomPlayer.setPlayerRoomData(roomData.orElse(new PlayerRoomData()));
+            roomPlayer.getPlayerRoomData().setPlayerId(playerId);
+        }
         return roomPlayer;
     }
 }

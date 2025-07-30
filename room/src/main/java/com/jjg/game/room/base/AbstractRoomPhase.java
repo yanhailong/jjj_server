@@ -51,11 +51,11 @@ public abstract class AbstractRoomPhase<RC extends RoomCfg, G extends GameDataVo
         for (Map.Entry<Long, GamePlayer> gamePlayerEntry : gameDataVo.getGamePlayerMap().entrySet()) {
             // 当前阶段的机器人应该执行的行为
             if (gamePlayerEntry.getValue() instanceof GameRobotPlayer robotPlayer) {
-                robotAction(robotPlayer);
+                robotActionOnPhaseStart(robotPlayer);
             } else {
                 // 当前阶段的玩家托管行为
                 if (gamePlayerEntry.getValue().isHosting()) {
-                    hostingPlayerAction(gamePlayerEntry.getValue());
+                    hostingPlayerActionOnPhaseStart(gamePlayerEntry.getValue());
                 }
             }
         }
@@ -64,12 +64,12 @@ public abstract class AbstractRoomPhase<RC extends RoomCfg, G extends GameDataVo
     /**
      * 托管玩家的行为
      */
-    protected abstract void hostingPlayerAction(GamePlayer gamePlayer);
+    protected abstract void hostingPlayerActionOnPhaseStart(GamePlayer gamePlayer);
 
     /**
      * 机器人行为
      */
-    protected abstract void robotAction(GameRobotPlayer gamePlayer);
+    protected abstract void robotActionOnPhaseStart(GameRobotPlayer gamePlayer);
 
     /**
      * 向房间广播消息

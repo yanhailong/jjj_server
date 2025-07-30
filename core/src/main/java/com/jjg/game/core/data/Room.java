@@ -1,7 +1,8 @@
 package com.jjg.game.core.data;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.jjg.game.core.constant.EGameType;
+
+import java.util.*;
 
 /**
  * 房间对象
@@ -19,7 +20,7 @@ public class Room {
     //场次id
     protected int roomCfgId;
     //该房间内的玩家
-    protected Map<Long, RoomPlayer> roomPlayers;
+    protected Map<Long, RoomPlayer> roomPlayers = new HashMap<>();
     //座位号 -> 玩家id,座位号从0开始
     protected Map<Integer, Long> playerSits;
     //房间人数最大限制
@@ -120,10 +121,7 @@ public class Room {
         if (this.roomPlayers == null) {
             return true;
         }
-        if (this.roomPlayers.size() < maxLimit) {
-            return true;
-        }
-        return false;
+        return this.roomPlayers.size() < maxLimit;
     }
 
     /**
@@ -163,6 +161,16 @@ public class Room {
         this.roomPlayers.put(roomPlayer.getPlayerId(), roomPlayer);
     }
 
+    /**
+     * 移除房间中所有的机器人
+     */
+    public void removeAllRobotPlayer() {
+        if (this.roomPlayers == null || this.roomPlayers.isEmpty()) {
+            return;
+        }
+        this.roomPlayers.entrySet().removeIf(entry -> entry.getValue().getPlayer() instanceof RobotPlayer);
+    }
+
     public RoomPlayer getPlayer(long playerId) {
         if (this.roomPlayers == null) {
             return null;
@@ -186,7 +194,7 @@ public class Room {
             return null;
         }
         if (this.roomPlayers.isEmpty()) {
-            this.roomPlayers = null;
+            this.roomPlayers = new HashMap<>();
         }
         if (this.playerSits != null) {
             this.playerSits.remove(removePlayer.getSit());
@@ -197,10 +205,37 @@ public class Room {
         return removePlayer;
     }
 
+    /**
+     * 批量退出玩家
+     */
+    public List<RoomPlayer> exitPlayers(List<Long> playerIds) {
+        if (this.roomPlayers == null) {
+            return new ArrayList<>();
+        }
+        List<RoomPlayer> removedPlayers = new ArrayList<>();
+        Iterator<Map.Entry<Long, RoomPlayer>> iterator = roomPlayers.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Long, RoomPlayer> entry = iterator.next();
+            if (playerIds.contains(entry.getKey())) {
+                removedPlayers.add(entry.getValue());
+                iterator.remove();
+                if (!this.playerSits.isEmpty()) {
+                    this.playerSits.remove(entry.getValue().getSit());
+                }
+            }
+        }
+        return removedPlayers;
+    }
+
     public boolean empty() {
         if (this.roomPlayers == null) {
             return true;
         }
         return this.roomPlayers.isEmpty();
+    }
+
+    public String logStr() {
+        EGameType eGameType = EGameType.getGameByTypeId(gameType);
+        return "roomId: " + id + " game: " + eGameType.getGameDesc() + " roomCfgId: " + roomCfgId;
     }
 }

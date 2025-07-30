@@ -33,8 +33,8 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
 
     @Override
     public Long removeRoom(int gameType, long roomId, int roomCfgId) {
-        long res = super.removeRoom(gameType, roomId, roomCfgId);
-        if(res > 0){
+        Long res = super.removeRoom(gameType, roomId, roomCfgId);
+        if(res != null && res > 0){
             //从room id列表中移除，-1表示从尾部移除1个
             redisTemplate.opsForList().remove(getRoomIdListKey(gameType,roomCfgId), -1, roomId);
         }

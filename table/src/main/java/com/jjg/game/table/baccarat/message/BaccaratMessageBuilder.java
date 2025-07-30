@@ -117,9 +117,8 @@ public class BaccaratMessageBuilder {
      * <p>
      * 构建百家乐面板数据
      */
-    public static RespBaccaratTableInfo buildRespBaccaratTableInfo(BaccaratGameDataVo gameDataVo,
-                                                                   EGamePhase eGamePhase,
-                                                                   NotifyBaccaratSettlementInfo settlementInfo) {
+    public static RespBaccaratTableInfo buildRespBaccaratTableInfo(
+        BaccaratGameDataVo gameDataVo, EGamePhase eGamePhase, NotifyBaccaratSettlementInfo settlementInfo) {
         RespBaccaratTableInfo respBaccaratTableInfo = new RespBaccaratTableInfo(Code.SUCCESS);
         if (settlementInfo != null) {
             respBaccaratTableInfo.baccaratSettlementInfo = settlementInfo.baccaratSettlementInfo;

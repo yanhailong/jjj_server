@@ -9,6 +9,7 @@ import java.util.Map;
 
 /**
  * 游戏常量
+ *
  * @author 11
  * @date 2025/5/26 11:28
  */
@@ -23,7 +24,7 @@ public class GameConstant {
         }
     }
 
-    public class Common{
+    public class Common {
         //redisLock重试次数
         public static final int REDIS_LOCK_TRY_COUNT = 5;
         public static final int REDIS_TRANSACTION_TRY_COUNT = 7;
@@ -40,14 +41,17 @@ public class GameConstant {
     }
 
 
-
-
     public interface Redis {
         //游戏状态rediskey
         String GAME_STATUS_KEY = "gm:gamelistconfig";
+        // 加锁尝试次数
+        int LOCK_TRY_TIMES = 5;
+        // 每次尝试花费的毫秒数
+        int PER_TRY_TAKE_MILE_TIME = 5;
     }
+
     //登录类型
-    public class LoginType{
+    public class LoginType {
         //游客
         public static final int GUEST = 0;
         //手机
@@ -56,7 +60,7 @@ public class GameConstant {
         public static final int GOOGLE_MAIL = 2;
     }
 
-    public class ExcelGlobal{
+    public class ExcelGlobal {
 
     }
 }

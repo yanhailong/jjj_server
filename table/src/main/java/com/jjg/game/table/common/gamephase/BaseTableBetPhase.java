@@ -130,7 +130,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
     }
 
     @Override
-    protected void robotAction(GameRobotPlayer gameRobotPlayer) {
+    protected void robotActionOnPhaseStart(GameRobotPlayer gameRobotPlayer) {
         // 机器人押注默认行为
         // 需要将上一局的押注数据进行清除
         clearBetData(gameRobotPlayer);
@@ -325,7 +325,20 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
     }
 
     @Override
-    protected void hostingPlayerAction(GamePlayer gamePlayer) {
+    public void onPlayerHalfwayJoinPhase(GamePlayer gamePlayer) {
+        // 如果是机器人中途加入，加入押注逻辑
+        if (gamePlayer instanceof GameRobotPlayer gameRobotPlayer) {
+            robotBetAction(gameRobotPlayer);
+        }
+    }
+
+    @Override
+    public void onPlayerHalfwayExitPhase(GamePlayer gamePlayer) {
+
+    }
+
+    @Override
+    protected void hostingPlayerActionOnPhaseStart(GamePlayer gamePlayer) {
 
     }
 

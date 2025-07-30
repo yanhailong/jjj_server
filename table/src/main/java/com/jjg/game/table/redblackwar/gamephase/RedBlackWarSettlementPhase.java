@@ -51,11 +51,19 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         Collections.shuffle(joker);
         //取红方的牌
         List<Card> redCard = joker.subList(0, 3).stream().map(Card::new).collect(Collectors.toList());
+        if (Objects.nonNull(gameDataVo.getRed()) && gameDataVo.getRed().size() == 3) {
+            redCard = gameDataVo.getRed();
+            gameDataVo.setRed(null);
+        }
         Card[] redCardArr = redCard.toArray(CardComparatorUtil.SAMPLE);
         //红方牌型
         HandType redHandType = CardComparatorUtil.getCardType(redCardArr);
         //取黑方的牌
         List<Card> blackCard = joker.subList(3, 6).stream().map(Card::new).collect(Collectors.toList());
+        if (Objects.nonNull(gameDataVo.getBlack()) && gameDataVo.getBlack().size() == 3) {
+            blackCard = gameDataVo.getBlack();
+            gameDataVo.setBlack(null);
+        }
         Card[] blackCardArr = blackCard.toArray(CardComparatorUtil.SAMPLE);
         //黑方牌型
         HandType blackHandType = CardComparatorUtil.getCardType(blackCardArr);
@@ -121,6 +129,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         settleInfo.redCardType = redHandType.getRank();
         settleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(playerGet);
         settleInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(gameDataVo);
+        settleInfo.isLucky = luckBet;
         //更新房间记录
         updateGameHistory(gameDataVo, blackHandType, winState);
         //清除押注历史
@@ -162,10 +171,8 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
             black.sort(Comparator.comparingInt(Card::getRank));
             //取中间牌
             Card card = black.get(1);
-            return card.getRank() >= PAIR_MIN_LIMIT;
+            return card.compare(PAIR_MIN_LIMIT, false) >= 0;
         }
         return true;
     }
-
-
 }

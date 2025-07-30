@@ -30,17 +30,6 @@ public class BaccaratWaitReadyPhase extends WaitReadyPhase<BaccaratGameDataVo> {
             // 重新洗牌
             shuffleCard();
         }
-        List<GamePlayer> topGamePlayers =
-            gameDataVo.getGamePlayerMap().values().stream()
-                .sorted((o1, o2) -> Long.compare(o2.getGold(), o1.getGold()))
-                .limit(7)
-                .toList();
-        for (int i = 1; i <= topGamePlayers.size(); i++) {
-            GamePlayer gamePlayer = topGamePlayers.get(i - 1);
-            gamePlayer.getTableGameData().setSitNum(i);
-        }
-        log.info("{}====================> {} {}",
-            gameDataVo.getRoomCfg().getId(), topGamePlayers.size(), gameDataVo.getGamePlayerMap().size());
     }
 
     /**

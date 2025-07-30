@@ -1,5 +1,6 @@
 package com.jjg.game.table.redblackwar.room.data;
 
+import com.jjg.game.core.data.Card;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.redblackwar.constant.RedBlackWarConstant;
@@ -17,6 +18,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author 2CL
  */
 public class RedBlackWarGameDataVo extends TableGameDataVo {
+    /**
+     * gm修改的
+     */
+    private List<Card> black;
+    /**
+     * gm修改的
+     */
+    private List<Card> red;
 
     /**
      * 对局历史信息(50局的)
@@ -52,5 +61,19 @@ public class RedBlackWarGameDataVo extends TableGameDataVo {
         return histories;
     }
 
+    public List<Card> getBlack() {
+        return black;
+    }
 
+    public void setBlack(List<Card> black) {
+        this.black = black;
+    }
+
+    public List<Card> getRed() {
+        return red;
+    }
+
+    public void setRed(List<Card> red) {
+        this.red = red;
+    }
 }

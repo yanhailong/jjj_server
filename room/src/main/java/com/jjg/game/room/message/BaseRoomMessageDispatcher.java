@@ -7,15 +7,20 @@ import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.manager.RoomManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * 房间消息分发器
  *
  * @author 2CL
  */
-public class BaseRoomMessageDispatcher {
+public abstract class BaseRoomMessageDispatcher {
+
+    @Autowired
+    protected RoomManager roomManager;
 
     // log
     private static final Logger log = LoggerFactory.getLogger(BaseRoomMessageDispatcher.class);
@@ -26,6 +31,10 @@ public class BaseRoomMessageDispatcher {
      * @param pfMessage message
      */
     public void dispatchMsg(PlayerController playerController, PFMessage pfMessage) {
+        // 房间处于关闭流程，阻断房间消息接收
+        if (roomManager.isRoomStopping()) {
+            return;
+        }
         int cmd = pfMessage.cmd;
         AbstractRoomController<?, ?> roomController = (AbstractRoomController<?, ?>) playerController.getScene();
         if (roomController == null) {

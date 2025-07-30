@@ -116,7 +116,7 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
 
 
     @Override
-    public void initGame() {
+    public void initial() {
 
 
     }

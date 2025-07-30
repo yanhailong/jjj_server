@@ -68,7 +68,7 @@ public class AnimalsGameController extends BaseTableGameController<AnimalsGameDa
     }
 
     @Override
-    public void initGame() {
+    public void initial() {
 
     }
 }

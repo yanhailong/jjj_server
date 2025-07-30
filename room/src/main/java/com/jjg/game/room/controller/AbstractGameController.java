@@ -18,6 +18,8 @@ import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.sample.GameDataManager;
+import com.jjg.game.room.sample.bean.RobotCfg;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.room.timer.RoomPhaseTimeEvent;
 import com.jjg.game.room.timer.RoomTimerCenter;
@@ -43,7 +45,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     // 游戏定时器，用于更新游戏中的操作逻辑，不要直接将引用暴露到外面，有需要的逻辑需要在此类中添加
     protected RoomTimerCenter timerCenter;
     // 游戏的阶段处理，通过有序的列表，遍历游戏
-    private LinkedHashSet<IRoomPhase> gamePhases;
+    private LinkedHashSet<IRoomPhase> gamePhases = new LinkedHashSet<>();
     // 当前的游戏阶段
     protected IRoomPhase currentGamePhase;
     // 阶段运行计数器
@@ -62,6 +64,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      */
     @Override
     public void startGame() {
+        // 记录开始时间
+        gameDataVo.setStartTime(System.currentTimeMillis());
         // 初始化游戏阶段配置
         LinkedHashSet<IRoomPhase> initedGamePhaseConf = initGamePhaseConf();
         log.info("{} 启动加载: {} 个阶段逻辑", this.getClass().getSimpleName(), initedGamePhaseConf.size());
@@ -127,12 +131,14 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 一个回合的房间逻辑结束
      */
-    protected void roomPhaseRoundOver() {
+    private void roomPhaseRoundOver() {
         // 判断房间是否全部结束
         if (isGameOverAfterPhaseOver()) {
             // 调用roomController的游戏结束逻辑
             roomController.gameOver();
         } else {
+            // 进入下一轮之前调用
+            beforeEnterNextRound();
             // 初始化迭代器
             gamePhaseIterator = gamePhases.iterator();
             // 回合计数++
@@ -140,6 +146,12 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             // 自动进入下一轮
             autoRunGamePhase();
         }
+    }
+
+    /**
+     * 进入下一轮游戏之前调用
+     */
+    protected void beforeEnterNextRound() {
     }
 
     /**
@@ -159,16 +171,18 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         // 将玩家数据复制到玩家游戏数据中
         Player player = playerController.getPlayer();
         String playerJson = JSON.toJSONString(player);
-        Map<Long, GamePlayer> gamePlayerMap = gameDataVo.getGamePlayerMap();
         GamePlayer gamePlayer;
         if (player instanceof RobotPlayer) {
             gamePlayer = JSON.parseObject(playerJson, GameRobotPlayer.class);
-            gamePlayerMap.put(gamePlayer.getId(), gamePlayer);
+            gameDataVo.addGamePlayer(gamePlayer);
         } else {
             gamePlayer = JSON.parseObject(playerJson, GamePlayer.class);
-            gamePlayerMap.put(gamePlayer.getId(), gamePlayer);
+            gameDataVo.addGamePlayer(gamePlayer);
         }
-        // 是否向玩家推送牌桌信息，还是玩家自行读取数据
+        // 当玩家中途加入阶段时
+        if (gameStarted) {
+            currentGamePhase.onPlayerHalfwayJoinPhase(gamePlayer);
+        }
         return gamePlayer;
     }
 
@@ -264,10 +278,6 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      */
     public void initTimerCenter(RoomTimerCenter timerCenter) {
         this.timerCenter = timerCenter;
-        // 定时器
-        TimerEvent<IProcessorHandler> roomUpdateTimer =
-            new TimerEvent<>(this, this::roomTick, 10, 1);
-        addGameTimeEvent(roomUpdateTimer);
     }
 
     // 更新游戏
@@ -297,8 +307,11 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
 
     @Override
     public CommonResult<Room> onPlayerLeaveRoom(PlayerController playerController) {
+        GamePlayer gamePlayer = gameDataVo.getGamePlayerMap().get(playerController.playerId());
+        // 玩家中途离开阶段时调用
+        currentGamePhase.onPlayerHalfwayExitPhase(gamePlayer);
         // 从玩家列表中移除玩家数据，子类的gameDataVo有和玩家相关的临时数据需要自行删除
-        gameDataVo.getGamePlayerMap().remove(playerController.getPlayer().getId());
+        gameDataVo.getGamePlayerMap().remove(playerController.playerId());
         return new CommonResult<>(Code.SUCCESS);
     }
 
@@ -313,9 +326,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     @Override
-    public void roomTick() {
-        // 每10ms调用一次 定时回存房间数据
-        // 机器人加入逻辑
+    public void timeTick() {
+        // 每100ms调用一次 定时回存房间数据
     }
 
     @Override
@@ -328,10 +340,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         // 先暂停房间类的阶段执行逻辑
         gameStarted = false;
         // 再调用游戏内的解散房间逻辑
-        gamePhases.stream().filter(iGamePhase -> iGamePhase.getGamePhase().equals(EGamePhase.DISS_MISS))
+        gamePhases.stream()
+            .filter(iGamePhase -> iGamePhase.getGamePhase().equals(EGamePhase.DISS_MISS))
             .forEach(IRoomPhase::phaseDoAction);
-        // 定时器关闭当前监听器
-        timerCenter.remove(this);
     }
 
     /**
@@ -339,10 +350,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      */
     @Override
     public void gameOver() {
+        // 暂停游戏
+        stopGame();
         // 调用结算逻辑
         gameOverSettlement();
-        // 房间结束前调用
-        beforeDestroyRoom();
         // 调用房间管理器的解散逻辑
         roomController.getRoomManager().disbandRoom(roomController.getRoom());
     }
@@ -383,6 +394,16 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
 
     public boolean isGameStarted() {
         return gameStarted;
+    }
+
+    @Override
+    public void stopGame() {
+        gameStarted = false;
+        gameDataVo.setStopTime(System.currentTimeMillis());
+        // 房间结束前调用
+        beforeDestroyRoom();
+        // 暂停计时器运行
+        this.timerCenter.remove(this);
     }
 
     public <E extends RoomTimerEvent<IProcessorHandler, Room>> void addGamePhaseTimer(E roomTimerEvent) {

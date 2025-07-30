@@ -42,12 +42,22 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
     }
 
     @Override
-    protected void hostingPlayerAction(GamePlayer gamePlayer) {
+    protected void hostingPlayerActionOnPhaseStart(GamePlayer gamePlayer) {
 
     }
 
     @Override
-    protected void robotAction(GameRobotPlayer gamePlayer) {
+    protected void robotActionOnPhaseStart(GameRobotPlayer gamePlayer) {
+
+    }
+
+    @Override
+    public void onPlayerHalfwayExitPhase(GamePlayer gamePlayer) {
+
+    }
+
+    @Override
+    public void onPlayerHalfwayJoinPhase(GamePlayer gamePlayer) {
 
     }
 

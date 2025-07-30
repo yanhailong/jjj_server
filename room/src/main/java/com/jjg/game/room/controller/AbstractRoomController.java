@@ -1,17 +1,18 @@
 package com.jjg.game.room.controller;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.AbstractRoomDao;
 import com.jjg.game.core.dao.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.AbstractMessage;
+import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayFlowPojo;
 import com.jjg.game.room.manager.AbstractRoomManager;
@@ -28,6 +29,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * 房间控制器抽象类,用于控制某一类型的房间
@@ -56,6 +58,10 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     protected BaseFuncProcessor roomProcessor;
     // 房间配置
     protected RC roomCfg;
+    // 机器人上次创建的时间
+    private long robotLastCreatedTime;
+    // 是否开始停止逻辑
+    private volatile boolean isStoping = false;
 
     public AbstractRoomController(Class<? extends RoomPlayer> roomPlayerClazz, R room) {
         this.roomPlayerClazz = roomPlayerClazz;
@@ -89,6 +95,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             }
         } catch (NoSuchMethodException | InvocationTargetException | InstantiationException |
                  IllegalAccessException e) {
+            log.error("创建游戏控制器失败：{} err: {}", room.logStr(), e.getMessage(), e);
             throw new RuntimeException(e);
         }
         return null;
@@ -107,10 +114,13 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 // 检查加入逻辑
                 CommonResult<? extends Room> doResult = checkRoomCanJoin(playerController);
                 if (!doResult.success()) {
-                    log.warn("加入房间失败 gameType = {},roomId = {},playerId = {}",
-                        playerController.getPlayer().getGameType(),
-                        this.room.getId(),
-                        playerController.playerId());
+                    if (!playerController.isRobotPlayer()) {
+                        log.warn("加入房间失败 gameType = {},roomId = {},playerId = {} 加入结果：{}",
+                            playerController.getPlayer().getGameType(),
+                            this.room.getId(),
+                            playerController.playerId(),
+                            doResult.code);
+                    }
                     result.code = Code.FAIL;
                     return result;
                 }
@@ -134,7 +144,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             result.data = room;
             return result;
         } catch (Exception e) {
-            log.error("", e);
+            log.error("加入房间时出现异常", e);
             result.code = Code.EXCEPTION;
         }
         return result;
@@ -146,11 +156,12 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     private void updateWaitRoomList() {
         // 如果房间已满，则需要将等待房间列表从redis中删除
         if (!room.canEnter()) {
-            roomManager.getMatchDataDao().removeWaitJoinRoomId(room.getGameType(), room.getRoomCfgId(), room.getId());
+            roomManager.getMatchDataDao().removeWaitJoinRoomId(
+                room.getGameType(), room.getRoomCfgId(), room.getId());
         } else {
             // 如果房间未满，则将直接写入等待列表
-            roomManager.getMatchDataDao().addWaitJoinRoomId(room.getGameType(), room.getRoomCfgId(), room.getId(),
-                room.getCreateTime());
+            roomManager.getMatchDataDao().addWaitJoinRoomId(
+                room.getGameType(), room.getRoomCfgId(), room.getId(), room.getCreateTime());
         }
     }
 
@@ -169,10 +180,10 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 }
 
                 @Override
-                public Boolean updateDataWithRes(Room r) {
+                public Boolean updateDataWithRes(Room room) {
                     try {
                         //先检查该玩家是否已经在该房间中
-                        boolean exist = r.hasPlayer(playerController.playerId());
+                        boolean exist = room.hasPlayer(playerController.playerId());
                         if (exist) {
                             log.debug("玩家已在房间中 gameType = {},roomId = {},playerId = {}",
                                 playerController.getPlayer().getGameType(), thatRoom.getId(),
@@ -180,27 +191,31 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                             return true;
                         }
 
-                        if (!r.canEnter()) {
-                            log.debug("该房间无法进入 gameType = {},roomId = {},playerId = {}",
-                                playerController.getPlayer().getGameType(), thatRoom.getId(),
-                                playerController.playerId());
+                        if (!room.canEnter()) {
+                            if (!playerController.isRobotPlayer()) {
+                                log.debug("该房间无法进入 gameType = {},roomId = {},playerId = {} roomPlayerSize: {} " +
+                                        "roomLimit: {}",
+                                    playerController.getPlayer().getGameType(), thatRoom.getId(),
+                                    playerController.playerId(),
+                                    AbstractRoomController.this.room.getRoomPlayers().size(),
+                                    AbstractRoomController.this.room.getMaxLimit());
+                            }
                             return false;
                         }
 
                         //如果之前不在房间，则按座位排座
-                        for (int i = 0; i < r.getMaxLimit(); i++) {
-                            boolean flag = r.setHasPlayer(i);
+                        for (int i = 0; i < room.getMaxLimit(); i++) {
+                            boolean flag = room.setHasPlayer(i);
                             if (!flag) {
-                                RoomPlayer tmpRoomPlayer =
-                                    roomDao.createRoomPlayer(playerController.playerId());
+                                RoomPlayer tmpRoomPlayer = roomDao.createRoomPlayer(playerController);
                                 tmpRoomPlayer.setSit(i);
                                 tmpRoomPlayer.setPlayer(playerController.getPlayer());
-                                r.addPlayer(tmpRoomPlayer);
+                                room.addPlayer(tmpRoomPlayer);
                                 return true;
                             }
                         }
                     } catch (Exception e) {
-                        log.error("", e);
+                        log.error("检查房间是否可以加入时发生异常", e);
                     }
                     return false;
                 }
@@ -213,7 +228,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     @Override
     public void startGame() {
         // 调用游戏本身的初始化逻辑
-        gameController.initGame();
+        gameController.initial();
         // 调用子类的启动方法
         gameController.startGame();
     }
@@ -224,7 +239,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             try {
                 e.getParameter().action();
             } catch (Exception ex) {
-                log.error("执行房间：{} 游戏类型：{} 定时器异常", room.getId(), room.getGameType());
+                log.error("执行房间：{} 游戏类型：{} 定时器异常, msg: {} ",
+                    room.getId(), room.getGameType(), ex.getMessage(), ex);
             }
         }
     }
@@ -240,13 +256,14 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     @Override
     public void disbandRoom() {
-        // 时间管理移除当前注册器
-        timerCenter.remove(this);
         // 调用房间控制器中的解散房间逻辑
         gameController.disbandRoom();
         // 回存房间数据
         saveRoomData();
         // 向玩家发送解散房间消息
+        // broadcastDisbandRoomMsg()
+        // 时间管理移除当前注册器
+        timerCenter.remove(this);
     }
 
     /**
@@ -260,10 +277,14 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 continue;
             }
             PlayerRoomData playerRoomData = entry.getValue().getPlayerRoomData();
-            playerRoomDataList.add(playerRoomData);
+            if (playerRoomData != null && playerRoomData.getPlayerId() > 0) {
+                playerRoomDataList.add(playerRoomData);
+            }
         }
-        // 回存玩家房间数据
-        playerRoomDataDao.saveAll(playerRoomDataList);
+        if (!playerRoomDataList.isEmpty()) {
+            // 回存玩家房间数据
+            playerRoomDataDao.saveAll(playerRoomDataList);
+        }
     }
 
     /**
@@ -277,13 +298,16 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      * 初始化房间控制器逻辑，添加定时逻辑、初始化线程...
      */
     @Override
-    public void initGame() {
+    public void initial() {
         // 当前房间的线程实例，用于投递一些异步任务
         roomProcessor = roomManager.getProcessorExecutors().getProcessorById(room.getId());
         // 创建游戏控制器
         gameController = createGameController(new GameDataVo<>(roomCfg));
         // 空房间检查
         addEmptyRoomCheckTimer();
+        // 房间Timer执行tick时间 现在默认 100ms
+        // 添加房间tick
+        timerCenter.add(new RoomTimerEvent<>(this, room, this::timeTick, RoomConstant.ROOM_TICK_TIME));
     }
 
     /**
@@ -307,10 +331,52 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
     @Override
-    public void roomTick() {
+    public void timeTick() {
+        if (isStoping) {
+            return;
+        }
         // 游戏启动后进行tick
         if (gameController.isGameStarted()) {
-            gameController.roomTick();
+            // 由房间控制器调用game的tick统一控制
+            gameController.timeTick();
+        }
+        // 机器人加入逻辑
+        checkAddRobot();
+    }
+
+    /**
+     * 检查机器人添加逻辑
+     */
+    protected void checkAddRobot() {
+        // 创建人数达到上限
+        if (room.getRoomPlayers() != null && room.getRoomPlayers().size() >= room.getMaxLimit()) {
+            return;
+        }
+        if (robotLastCreatedTime != 0 && robotLastCreatedTime > System.currentTimeMillis()) {
+            return;
+        }
+        List<Integer> robotIntervalTime = roomCfg.getIntervalTime();
+        int randomTime;
+        if (robotIntervalTime == null || robotIntervalTime.size() < 2) {
+            randomTime = 1500;
+        } else {
+            // 毫秒
+            randomTime = RandomUtils.randomMinMax(robotIntervalTime.get(0), robotIntervalTime.get(1));
+        }
+        // 机器人创建时间更新
+        robotLastCreatedTime = System.currentTimeMillis() + randomTime;
+        int roomCfgId = roomCfg.getId();
+        PlayerController robotPlayerController =
+            roomManager.getRobotService().getOrCreateRobotPlayerController(roomCfgId, room.getId());
+        if (robotPlayerController == null) {
+            // 返回
+            return;
+        }
+        // 将机器人加入房间中
+        int code = roomManager.joinRoom(robotPlayerController, room.getGameType(), room.getId());
+        // 如果加入失败则走一次退出房间逻辑
+        if (code != Code.SUCCESS) {
+            log.debug("机器人加入房间失败, code : {} {}", code, room.logStr());
         }
     }
 
@@ -328,33 +394,74 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      * 玩家主动退出房间
      */
     @Override
-    public CommonResult<Room> onPlayerLeaveRoom(PlayerController playerController) {
-        CommonResult<Room> result = new CommonResult<>(Code.SUCCESS);
+    public CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
+        CommonResult<R> result = new CommonResult<>(Code.SUCCESS);
         try {
-            boolean remove = roomDao.removePlayer(
-                playerController.getPlayer().getGameType(),
-                playerController.roomId(),
-                playerController.playerId());
-            if (remove) {
-                log.debug("强制离开房间成功, gameType = {},roomId = {},playerId = {}",
-                    playerController.getPlayer().getGameType(), playerController.roomId(),
-                    playerController.playerId());
-            }
             // 调用游戏的离开房间逻辑
             gameController.onPlayerLeaveRoom(playerController);
             // 移除玩家PlayerController
             playerControllers.remove(playerController.getPlayer().getId());
             //从room中移除
-            RoomPlayer roomPlayer = room.exit(playerController.playerId());
-            if (roomPlayer == null) {
-                log.debug("将玩家从房间中移除失败 gameType = {},roomId = {},playerId = {}", room.getGameType(), room.getId(),
+            R room = roomDao.removePlayer(
+                playerController.getPlayer().getGameType(),
+                playerController.roomId(),
+                playerController.playerId());
+            if (room != null) {
+                log.debug("强制离开房间成功, gameType = {},roomId = {},playerId = {}",
+                    playerController.getPlayer().getGameType(),
+                    playerController.roomId(),
                     playerController.playerId());
+            } else {
+                log.debug("将玩家从房间中移除失败 gameType = {},roomId = {},playerId = {}",
+                    this.room.getGameType(), this.room.getId(), playerController.playerId());
                 result.code = Code.FAIL;
                 return result;
             }
-            log.debug("退出房间成功，但是还没有广播玩家退出 roomId = {},playerId = {}", room.getId(), playerController.playerId());
             result.data = room;
             roomDao.saveRoom(room);
+            this.room = room;
+            // 退出房间时检查是否可以添加等待房间列表
+            updateWaitRoomList();
+        } catch (Exception e) {
+            log.error("", e);
+            result.code = Code.EXCEPTION;
+        }
+        return result;
+    }
+
+    /**
+     * 机器人离开房间
+     */
+    public CommonResult<R> onRobotPlayersLeaveRoom(List<PlayerController> playerControllers) {
+        CommonResult<R> result = new CommonResult<>(Code.SUCCESS);
+        try {
+            for (PlayerController playerController : playerControllers) {
+                // 调用游戏的离开房间逻辑
+                gameController.onPlayerLeaveRoom(playerController);
+            }
+            // 移除玩家PlayerController
+            this.playerControllers.values().removeAll(playerControllers);
+            //从room中移除所有玩家
+            R room = roomDao.removePlayers(
+                this.room.getGameType(),
+                this.room.getId(),
+                playerControllers.stream().map(PlayerController::playerId).toList());
+            if (room != null) {
+                log.debug("强制离开房间成功, gameType = {},roomId = {},playerIds = {}",
+                    room.getRoomCfgId(),
+                    room.getId(),
+                    playerControllers.stream().map(PlayerController::playerId).map(String::valueOf).collect(Collectors.joining(",")));
+            } else {
+                log.debug("将玩家从房间中移除失败 gameType = {},roomId = {},playerIds = {}",
+                    this.room.getRoomCfgId(),
+                    this.room.getId(),
+                    playerControllers.stream().map(PlayerController::playerId).map(String::valueOf).collect(Collectors.joining(",")));
+                result.code = Code.FAIL;
+                return result;
+            }
+            result.data = room;
+            roomDao.saveRoom(room);
+            this.room = room;
             // 退出房间时检查是否可以添加等待房间列表
             updateWaitRoomList();
         } catch (Exception e) {
@@ -415,12 +522,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         return playerControllers;
     }
 
-    public void setPlayerControllers(Map<Long, PlayerController> playerControllers) {
-        this.playerControllers = playerControllers;
-    }
-
-    public void addPlayerController(PlayerController playerController) {
-        playerControllers.put(playerController.playerId(), playerController);
+    public PlayerController getPlayerController(long playerId) {
+        return playerControllers.get(playerId);
     }
 
     public AbstractRoomDao<R, ? extends RoomPlayer> getRoomDao() {
@@ -469,5 +572,31 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     public void setRoomCfg(RC roomCfg) {
         this.roomCfg = roomCfg;
+    }
+
+    public boolean isStoping() {
+        return isStoping;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        AbstractRoomController<?, ?> that = (AbstractRoomController<?, ?>) o;
+        return Objects.equals(room, that.room) && Objects.equals(roomCfg, that.roomCfg);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(room, roomCfg);
+    }
+
+    @Override
+    public void stopGame() {
+        log.info("开始暂停游戏 {}", room.logStr());
+        this.isStoping = true;
+        // 移除定时器
+        this.timerCenter.remove(this);
+        // 暂停游戏
+        gameController.stopGame();
     }
 }

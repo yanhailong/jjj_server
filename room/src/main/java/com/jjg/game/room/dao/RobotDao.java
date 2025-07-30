@@ -33,8 +33,8 @@ public class RobotDao {
 
     // 机器人redis数据 hash 键：robot+房间配置ID 数据：机器人ID <=> 机器人数据
     private static final String ROBOT_REDIS_KEY_PREFIX = "robot:";
-    // 每个节点的所有机器人
-    private static final String SERVER_OF_ROBOT = "servers_robot:";
+    // 每个节点的所有机器人 键：servers_robot+节点路径 数据：机器人ID <=> 机器人redis数据
+    private static final String SERVER_OF_ROBOT = "servers_robot";
 
     private static final Logger log = LoggerFactory.getLogger(RobotDao.class);
 
@@ -55,10 +55,10 @@ public class RobotDao {
     public String getCurServerRobotTableName() {
         String nodePath = nodeManager.getNodePath();
         String nodePathDataKey = nodePath.replace(StrConstant.SLASH, StrConstant.COLON);
-        return SERVER_OF_ROBOT + StrConstant.COLON + nodePathDataKey;
+        return SERVER_OF_ROBOT + nodePathDataKey;
     }
 
-    public String getLockRobotTableName(int roomCfgId) {
+    public String getLockRobotTableName(String roomCfgId) {
         return "lock:" + ROBOT_REDIS_KEY_PREFIX + roomCfgId;
     }
 
@@ -68,6 +68,16 @@ public class RobotDao {
     public RobotPlayer getRobotPlayer(int roomCfgId, long robotId) {
         String robotKey = getRobotTableName(roomCfgId);
         return (RobotPlayer) redisTemplate.opsForHash().get(robotKey, robotId);
+    }
+
+
+    /**
+     * 获取机器人
+     */
+    public List<RobotPlayer> getRobotPlayers(int roomCfgId, Collection<Long> robotId) {
+        String robotKey = getRobotTableName(roomCfgId);
+        List<Object> robotIds = robotId.stream().map(l -> (Object) l).toList();
+        return redisTemplate.opsForHash().multiGet(robotKey, robotIds).stream().map(o -> (RobotPlayer) o).toList();
     }
 
 
@@ -102,6 +112,7 @@ public class RobotDao {
         robotPlayer.setCreateTime(TimeHelper.nowInt());
         robotPlayer.setId(robotId);
         robotPlayer.setRoomCfgId(roomCfgId);
+        robotPlayer.setNodePath(nodeManager.getNodePath());
 
         List<Object> executedRes = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             Jackson2JsonRedisSerializer<RobotPlayer> jsonRedisSerializer =
@@ -121,7 +132,7 @@ public class RobotDao {
         });
         boolean allSuccess = executedRes.stream().allMatch("OK"::equals);
         if (!allSuccess) {
-            log.error("创建机器人，写入robot数据到redis中时失败");
+            //log.error("创建机器人，写入robot数据到redis中时失败");
         }
         return robotPlayer;
     }
@@ -129,31 +140,54 @@ public class RobotDao {
     /**
      * 删除机器人
      */
-    public void deleteRobotPlayer(int roomCfgId, Collection<Long> robotIds) {
+    public void deleteRobotPlayers(int roomCfgId, Collection<Long> robotIds) {
         redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             RedisHashCommands hashCommands = connection.hashCommands();
             String robotKey = getRobotTableName(roomCfgId);
-            byte[][] robotBytes = new byte[robotIds.size()][];
-            Long[] robotIdsArray = (Long[]) robotIds.toArray();
-            for (int i = 0; i < robotIdsArray.length; i++) {
-                robotBytes[i] = (robotIdsArray[i] + "").getBytes();
-            }
-            hashCommands.hDel(robotKey.getBytes(), robotBytes);
-            String serverRobotTableName = getCurServerRobotTableName();
-            hashCommands.hDel(serverRobotTableName.getBytes(), robotBytes);
+            deleteServerRobotByTableKey(robotKey, hashCommands, robotIds);
             return null;
         });
     }
 
     /**
+     * 删除机器人
+     */
+    public void deleteRobotPlayers(String tableKey, Collection<Long> robotIds) {
+        redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            RedisHashCommands hashCommands = connection.hashCommands();
+            deleteServerRobotByTableKey(tableKey, hashCommands, robotIds);
+            return null;
+        });
+    }
+
+    /**
+     * 删除tableKey中指定ID的机器人
+     */
+    private void deleteServerRobotByTableKey(
+        String tableKey, RedisHashCommands hashCommands, Collection<Long> robotIds) {
+        byte[][] robotBytes = new byte[robotIds.size()][];
+        Long[] robotIdsArray = robotIds.toArray(new Long[0]);
+        for (int i = 0; i < robotIdsArray.length; i++) {
+            robotBytes[i] = (robotIdsArray[i] + "").getBytes();
+        }
+        String serverRobotTableName = getCurServerRobotTableName();
+        hashCommands.hDel(serverRobotTableName.getBytes(), robotBytes);
+        // 在pipline中返回的是空值
+        hashCommands.hDel(tableKey.getBytes(), robotBytes);
+    }
+
+    /**
      * 获取当前服的所有的机器人
      */
-    public Map<String, String> getAllServerRobotPlayers() {
+    public Map<Long, String> getCurServerRobotPlayers() {
         String serverRobotTableName = getCurServerRobotTableName();
         return stringRedisTemplate.opsForHash().entries(serverRobotTableName)
             .entrySet()
             .stream()
-            .collect(HashMap::new, (map, e) -> map.put((String) e.getKey(), (String) e.getValue()), HashMap::putAll);
+            .collect(HashMap::new,
+                (map, e)
+                    -> map.put(Long.valueOf((String) e.getKey()), (String) (e.getValue())),
+                HashMap::putAll);
     }
 
     /**
