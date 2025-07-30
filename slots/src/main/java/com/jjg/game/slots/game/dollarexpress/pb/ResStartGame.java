@@ -37,6 +37,8 @@ public class ResStartGame extends AbstractResponse {
     public long allGold;
     @ProtoDesc("大奖展示  1.sweet   2.big   3.mega  4.epic  5.legendary")
     public long bigWinShow;
+    @ProtoDesc("高亮坐标")
+    public List<Integer> highlightList;
 
     public ResStartGame(int code) {
         super(code);

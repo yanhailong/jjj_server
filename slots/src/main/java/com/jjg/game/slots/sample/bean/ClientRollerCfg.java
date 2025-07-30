@@ -6,18 +6,18 @@ import javax.annotation.processing.Generated;
 /**
  * 配置bean
  *
- * @excelName BaseRoller.xlsx
- * @sheetName BaseRoller
+ * @excelName ClientRoller.xlsx
+ * @sheetName ClientRoller
  * @author Auto.Generator
  * @date 2025年07月30日 10:16:30
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class BaseRollerCfg extends BaseCfgBean {
+public class ClientRollerCfg extends BaseCfgBean {
 
   /** 配置表名 */
-  public static final String EXCEL_NAME = "BaseRoller.xlsx";
+  public static final String EXCEL_NAME = "ClientRoller.xlsx";
   /** 配置表工作薄名 */
-  public static final String SHEET_NAME = "BaseRoller";
+  public static final String SHEET_NAME = "ClientRoller";
 
   /** 滚轴数量和范围 */
   protected Map<Integer,List<Integer>> axleCountScope;
@@ -27,6 +27,8 @@ public class BaseRollerCfg extends BaseCfgBean {
   protected List<Integer> elements;
   /** 游戏ID */
   protected int gameType;
+  /** 初始化格子 */
+  protected List<List<Integer>> initGrid;
 
   /** 返回滚轴数量和范围 */
   public Map<Integer,List<Integer>> getAxleCountScope() {
@@ -46,5 +48,10 @@ public class BaseRollerCfg extends BaseCfgBean {
   /** 返回游戏ID */
   public int getGameType() {
     return gameType;
+  }
+
+  /** 返回初始化格子 */
+  public List<List<Integer>> getInitGrid() {
+    return initGrid;
   }
 }

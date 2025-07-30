@@ -52,7 +52,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     @Autowired
     private DollarExpressLogger logger;
 
-
     private Map<Integer, GirdUpdateConfig> girdUpdateConfigMap;
     //在替换格子时限制while最大循环次数
     private final int updateGirdWhildMaxCount = 30;
@@ -78,7 +77,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      *
      * @param count
      */
-    public void generateLib(int count) {
+    protected void generateLib(int count) {
         boolean lock = libDao.addGenerateLock(this.gameType);
         if (!lock) {
             log.debug("当前正在生成结果库，请勿打扰....");
@@ -237,7 +236,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
 
             //添加美元收集进度
-            if(gameRunInfo.getTotalDollars() < 1){
+            if (gameRunInfo.getTotalDollars() < 1) {
                 gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
             }
 
@@ -249,6 +248,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
             //添加大奖展示id
             int times = (int) (gameRunInfo.getAllWinGold() / playerGameData.getLastStake());
+            log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 
             //发送日志
@@ -349,6 +349,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 }
             }
 
+            Player player = null;
             //3次中奖金币
             if (allAddGold > 0) {
                 CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), allAddGold, "SLOTS_INVEST_REWARD");
@@ -358,6 +359,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 }
                 gameRunInfo.addAllWinGold(allAddGold);
                 gameRunInfo.setInvestRewardGoldList(rewardGoldList);
+                player = result.data;
                 log.debug("投资游戏玩家添加金币 gameType = {},roomCfgId = {},addGold = {}", this.gameType, playerGameData.getRoomCfgId(), allAddGold);
             }
 
@@ -374,7 +376,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
                 gameRunInfo.setInvestRewardGoldTrainCount(data.getGoldTrain());
                 gameRunInfo.setInvestRewardGold(allAddGold);
-
+                player = result.data;
                 log.debug("小地图3次都中奖，添加金火车的金币 gameType = {},roomCfgId = {},addGold = {}", this.gameType, playerGameData.getRoomCfgId(), addGold);
             }
 
@@ -383,6 +385,11 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 gameRunInfo.setAllAreaUnLock(true);
                 playerGameData.getAllUnLock().compareAndSet(false, true);
             }
+
+            if (player == null) {
+                player = slotsPlayerService.get(playerController.playerId());
+            }
+            playerController.setPlayer(player);
         } catch (Exception e) {
             log.error("", e);
             gameRunInfo.setCode(Code.EXCEPTION);
@@ -568,7 +575,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
 
         //格子修改
-        CommonResult<int[]> updateResult = updateGird(libCfgResult.data.getModelId(), SlotsConst.BaseElementReward.ROTATESTATE_NORMAL, gameRunInfo.getIconArr(), updateGird);
+        CommonResult<int[]> updateResult = updateGird(libCfgResult.data.getModelId(), SlotsConst.BaseElementReward.ROTATESTATE_NORMAL, resultLibTypeResult.data,gameRunInfo.getIconArr(), resultLib.getAwardLineInfoList(), updateGird);
         if (updateResult.success()) {
             gameRunInfo.setIconArr(updateResult.data);
         }
@@ -578,11 +585,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //计算火车奖励
         gameRunInfo = calTrainReward(playerGameData, resultLib.getTrainList(), gameRunInfo);
         //添加火车信息
-        gameRunInfo.setTrainList(transTrainPbInfo(resultLib.getTrainList(), gameRunInfo.getBet()));
+        gameRunInfo = transTrainPbInfo(gameRunInfo,resultLib.getTrainList(), gameRunInfo.getBet());
 
         //添加中奖线信息
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), gameRunInfo.getBet()));
-
 
         gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         gameRunInfo.setStatus(playerGameData.getStatus());
@@ -633,7 +639,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //计算火车奖励
         gameRunInfo = calTrainReward(playerGameData, trainLib.getTrainList(), gameRunInfo);
         //添加火车信息
-        gameRunInfo.setTrainList(transTrainPbInfo(trainLib.getTrainList(), gameRunInfo.getBet()));
+        gameRunInfo = transTrainPbInfo(gameRunInfo,trainLib.getTrainList(), gameRunInfo.getBet());
 
         gameRunInfo.setBigPoolTimes(trainLib.getTimes());
 
@@ -682,7 +688,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         gameRunInfo.setIconArr(goldTrainLib.getIconArr());
 
         //格子修改
-        CommonResult<int[]> updateResult = updateGird(playerGameData.getLastModelId(), SlotsConst.BaseElementReward.ROTATESTATE_AGAIN, goldTrainLib.getIconArr(), updateGird);
+        CommonResult<int[]> updateResult = updateGird(playerGameData.getLastModelId(), SlotsConst.BaseElementReward.ROTATESTATE_AGAIN, SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN,goldTrainLib.getIconArr(), goldTrainLib.getAwardLineInfoList(), updateGird);
         if (updateResult.success()) {
             gameRunInfo.setIconArr(updateResult.data);
         }
@@ -748,7 +754,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //计算火车奖励
         gameRunInfo = calTrainReward(playerGameData, freeGame.getTrainList(), gameRunInfo);
         //添加火车信息
-        gameRunInfo.setTrainList(transTrainPbInfo(freeGame.getTrainList(), gameRunInfo.getBet()));
+        gameRunInfo = transTrainPbInfo(gameRunInfo,freeGame.getTrainList(), gameRunInfo.getBet());
         //添加中奖线信息
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), gameRunInfo.getBet()));
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
@@ -768,12 +774,12 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         DollarExpressResultLib goldTrainLib = null;
         for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
             //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN);
+            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN);
             if (!result.success()) {
                 continue;
             }
             //获取结果库
-            goldTrainLib = libDao.getLibBySectionIndex(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN, result.data);
+            goldTrainLib = libDao.getLibBySectionIndex(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN, result.data);
             if (goldTrainLib == null) {
                 continue;
             }
@@ -790,7 +796,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         gameRunInfo.setIconArr(goldTrainLib.getIconArr());
 
         //格子修改
-        CommonResult<int[]> updateResult = updateGird(playerGameData.getLastModelId(), SlotsConst.BaseElementReward.ROTATESTATE_AGAIN, goldTrainLib.getIconArr(), updateGird);
+        CommonResult<int[]> updateResult = updateGird(playerGameData.getLastModelId(), SlotsConst.BaseElementReward.ROTATESTATE_AGAIN, SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN,goldTrainLib.getIconArr(), goldTrainLib.getAwardLineInfoList(), updateGird);
         if (updateResult.success()) {
             gameRunInfo.setIconArr(updateResult.data);
         }
@@ -846,15 +852,18 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @param arr
      * @param update     在测试时从正向执行有时候不需要修改格子，但是从结果库取出的结果必须按照要求修改格子(总之，是为了测试方便)
      */
-    public CommonResult<int[]> updateGird(int modelId, int spinStatus, int[] arr, boolean update) {
+    public CommonResult<int[]> updateGird(int modelId, int spinStatus, int libType, int[] arr, List<DollarExpressAwardLineInfo> awardLineInfoList, boolean update) {
         CommonResult<int[]> result = new CommonResult<>(Code.FAIL);
         if (this.specialGirdCfgMap == null || this.specialGirdCfgMap.isEmpty()) {
             return result;
         }
 
-        log.debug("开始修改格子 modelId = {},spinStaus = {},update = {}", modelId, spinStatus, update);
+        log.debug("开始修改格子 modelId = {},spinStaus = {},libType = {},update = {}", modelId, spinStatus, libType, update);
         int[] newArr = null;
         if (update) {
+            //中奖线里面的图标id
+            Set<Integer> lineInfoIconSet = null;
+
             for (Map.Entry<Integer, SpecialGirdCfg> en : this.specialGirdCfgMap.entrySet()) {
                 SpecialGirdCfg cfg = en.getValue();
                 //模式id
@@ -865,18 +874,38 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 if (cfg.getSpinStatus() != spinStatus) {
                     continue;
                 }
+                //格式修改算法
+                if(!checkUpdateType(cfg.getGirdUpdateType(),libType)){
+                    continue;
+                }
                 GirdUpdateConfig config = this.girdUpdateConfigMap.get(cfg.getId());
                 //随机次数
                 int randCount = config.getRandCountPropInfo().getRandKey();
                 if (randCount < 1) {
                     continue;
                 }
+
+                //添加中奖线里面的图标id
+                if (lineInfoIconSet == null) {
+                    lineInfoIconSet = new HashSet<>();
+                    if (awardLineInfoList != null && !awardLineInfoList.isEmpty()) {
+                        for (DollarExpressAwardLineInfo info : awardLineInfoList) {
+                            lineInfoIconSet.add(info.getIconId());
+                        }
+                    }
+                }
+
                 //原盘面中剩余的可被替换的图标
                 Map<Integer, Integer> canReplaceMap = new HashMap<>();
 
                 //去掉不替换的元素
                 for (int i = 1; i < arr.length; i++) {
                     int icon = arr[i];
+                    //如果该图标时中奖图标，也不能被替换
+                    if (lineInfoIconSet.contains(icon)) {
+                        continue;
+                    }
+
                     boolean match = cfg.getNotReplaceEle().stream().anyMatch(e -> icon == e);
                     if (!match) {
                         canReplaceMap.put(i, icon);
@@ -901,6 +930,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                         break;
                     }
 
+                    if(cloumnPropInfo.getSum() < 1){
+                        break;
+                    }
                     //先随机一列
                     int columnId = cloumnPropInfo.getRandKey();
                     int index = (columnId - 1) * dollarExpressGenerate.getBaseInitCfg().getRows() + 1;
@@ -973,7 +1005,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 }
             } else if (icon == DollarExpressConstant.BaseElement.ID_SAFE_BOX) {
                 safeBoxIndex = i;
-            } else if(icon == DollarExpressConstant.BaseElement.ID_GOLD_TRAIN){
+            } else if (icon == DollarExpressConstant.BaseElement.ID_GOLD_TRAIN) {
                 goldTrainIndex = i;
             }
         }
@@ -991,10 +1023,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
         }
 
-        log.debug("当前美金数量 count = {},values = {},allDollarTimes = {}",dollarsInfo.dollarIndexIds == null ? 0 : dollarsInfo.dollarIndexIds.size(), dollarsInfo.dollarValueList,gameRunInfo.getDollarsGoldTimes());
+        log.debug("当前美金数量 count = {},values = {},allDollarTimes = {}", dollarsInfo.dollarIndexIds == null ? 0 : dollarsInfo.dollarIndexIds.size(), dollarsInfo.dollarValueList, gameRunInfo.getDollarsGoldTimes());
 
         //如果盘面中出现美金,且有保险箱，则会触发现金奖励
-        if(dollarsInfo.dollarIndexIds != null && !dollarsInfo.dollarIndexIds.isEmpty()) {
+        if (dollarsInfo.dollarIndexIds != null && !dollarsInfo.dollarIndexIds.isEmpty()) {
             dollarsInfo.coinIndexId = safeBoxIndex;
         }
 
@@ -1022,10 +1054,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         //设置黄金列车倍数
-        if(goldTrainIndex > 0 && dollarsInfo.dollarIndexIds != null && !dollarsInfo.dollarIndexIds.isEmpty()){
-            if(goldTrainCount < 1){
+        if (goldTrainIndex > 0 && dollarsInfo.dollarIndexIds != null && !dollarsInfo.dollarIndexIds.isEmpty()) {
+            if (goldTrainCount < 1) {
                 goldTrainCount = dollarExpressGenerate.getGoldTrainCount();
-                if(goldTrainCount < 1){
+                if (goldTrainCount < 1) {
                     log.warn("获取的 goldTrainCount 小于1");
                 }
             }
@@ -1035,7 +1067,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
             TrainInfo goldTrainInfo = goldTrainPbInfo(goldTrainCount, gameRunInfo.getDollarsGoldTimes() * gameData.getLastBet());
             gameRunInfo.addTrainInfo(goldTrainInfo);
-            log.debug("添加黄金列车倍数 playerId = {},times = {},lastBet = {}", gameData.playerId(), times, gameData.getLastBet());
+            log.debug("添加黄金列车倍数 playerId = {},times = {},lastBet = {},train = {}", gameData.playerId(), times, gameData.getLastBet(),JSON.toJSONString(goldTrainInfo));
         }
 
         //设置保险箱倍数
@@ -1063,7 +1095,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             if (cfg.getGameType() != gameType) {
                 continue;
             }
-            if (cfg.getGirdUpdateType() != SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT) {
+            if (cfg.getGirdUpdateType() != SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT && cfg.getGirdUpdateType() != SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT_2) {
                 continue;
             }
             GirdUpdateConfig config = new GirdUpdateConfig();
@@ -1369,12 +1401,11 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @param bet
      * @return
      */
-    private List<TrainInfo> transTrainPbInfo(List<Train> trainList, long bet) {
+    private DollarExpressGameRunInfo transTrainPbInfo(DollarExpressGameRunInfo gameRunInfo,List<Train> trainList, long bet) {
         if (trainList == null || trainList.isEmpty()) {
-            return null;
+            return gameRunInfo;
         }
 
-        List<TrainInfo> trainInfoList = new ArrayList<>(trainList.size());
         for (Train t : trainList) {
             TrainInfo trainInfo = new TrainInfo();
             trainInfo.type = t.getTrainIconId();
@@ -1387,9 +1418,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 }
             }
             trainInfo.poolId = t.getPoolId();
-            trainInfoList.add(trainInfo);
+            gameRunInfo.addTrainInfo(trainInfo);
         }
-        return trainInfoList;
+        return gameRunInfo;
     }
 
     private TrainInfo goldTrainPbInfo(int goldTrainCount, long gold) {
@@ -1421,6 +1452,17 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             trainInfo.goldList.add(gold);
         }
         return gameRunInfo;
+    }
+
+    private boolean checkUpdateType(int updateType,int libType){
+        if(libType == SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN){
+            return updateType == SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT_2;
+        }
+
+        if(libType == SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN){
+            return updateType == SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT;
+        }
+        return false;
     }
 
     @Override

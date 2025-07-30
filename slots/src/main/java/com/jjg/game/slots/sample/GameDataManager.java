@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年07月28日 11:01:45
+ * @date 2025年07月30日 10:16:30
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -126,6 +126,8 @@ public class GameDataManager {
     containerMap.put(BaseRollerCfg.class, new BaseRollerCfgContainer());
     containerMap.put(BaseRollerModeCfg.class, new BaseRollerModeCfgContainer());
     containerMap.put(BaseRoomCfg.class, new BaseRoomCfgContainer());
+    containerMap.put(ClientFreeRollerCfg.class, new ClientFreeRollerCfgContainer());
+    containerMap.put(ClientRollerCfg.class, new ClientRollerCfgContainer());
     containerMap.put(GolbalConfigCfg.class, new GolbalConfigCfgContainer());
     containerMap.put(PoolCfg.class, new PoolCfgContainer());
     containerMap.put(SpecialAuxiliaryAwardCfg.class, new SpecialAuxiliaryAwardCfgContainer());
@@ -621,6 +623,28 @@ public class GameDataManager {
 
   public static List<BaseRoomCfg> getBaseRoomCfgList() {
     return getInstance().getCfgContainer(BaseRoomCfg.class).getCfgBeanList();
+  }
+  public static ClientFreeRollerCfg getClientFreeRollerCfg(int key) {
+    return getInstance().getCfgContainer(ClientFreeRollerCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ClientFreeRollerCfg> getClientFreeRollerCfgMap() {
+    return getInstance().getCfgContainer(ClientFreeRollerCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ClientFreeRollerCfg> getClientFreeRollerCfgList() {
+    return getInstance().getCfgContainer(ClientFreeRollerCfg.class).getCfgBeanList();
+  }
+  public static ClientRollerCfg getClientRollerCfg(int key) {
+    return getInstance().getCfgContainer(ClientRollerCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ClientRollerCfg> getClientRollerCfgMap() {
+    return getInstance().getCfgContainer(ClientRollerCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ClientRollerCfg> getClientRollerCfgList() {
+    return getInstance().getCfgContainer(ClientRollerCfg.class).getCfgBeanList();
   }
   public static GolbalConfigCfg getGolbalConfigCfg(int key) {
     return getInstance().getCfgContainer(GolbalConfigCfg.class).getCfgBeanMap().get(key);

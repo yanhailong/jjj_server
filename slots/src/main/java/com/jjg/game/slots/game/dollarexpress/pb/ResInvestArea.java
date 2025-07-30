@@ -21,6 +21,8 @@ public class ResInvestArea extends AbstractResponse {
     public TrainInfo allWinTrainInfo;
     @ProtoDesc("是否全地图解锁")
     public boolean allAreaUnLock;
+    @ProtoDesc("玩家当前金币")
+    public long allGold;
 
     public ResInvestArea(int code) {
         super(code);

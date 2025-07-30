@@ -6,18 +6,18 @@ import javax.annotation.processing.Generated;
 /**
  * 配置bean
  *
- * @excelName BaseRoller.xlsx
- * @sheetName BaseRoller
+ * @excelName ClientFreeRoller.xlsx
+ * @sheetName ClientFreeRoller
  * @author Auto.Generator
  * @date 2025年07月30日 10:16:30
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class BaseRollerCfg extends BaseCfgBean {
+public class ClientFreeRollerCfg extends BaseCfgBean {
 
   /** 配置表名 */
-  public static final String EXCEL_NAME = "BaseRoller.xlsx";
+  public static final String EXCEL_NAME = "ClientFreeRoller.xlsx";
   /** 配置表工作薄名 */
-  public static final String SHEET_NAME = "BaseRoller";
+  public static final String SHEET_NAME = "ClientFreeRoller";
 
   /** 滚轴数量和范围 */
   protected Map<Integer,List<Integer>> axleCountScope;

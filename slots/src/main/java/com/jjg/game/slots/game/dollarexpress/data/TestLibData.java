@@ -8,6 +8,7 @@ public class TestLibData {
     private int[] icons;
     private DollarExpressResultLib resultLib;
     private boolean updateGird;
+    private int libType;
 
     public int[] getIcons() {
         return icons;
@@ -31,5 +32,13 @@ public class TestLibData {
 
     public void setResultLib(DollarExpressResultLib resultLib) {
         this.resultLib = resultLib;
+    }
+
+    public int getLibType() {
+        return libType;
+    }
+
+    public void setLibType(int libType) {
+        this.libType = libType;
     }
 }
