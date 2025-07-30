@@ -51,11 +51,19 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         Collections.shuffle(joker);
         //取红方的牌
         List<Card> redCard = joker.subList(0, 3).stream().map(Card::new).collect(Collectors.toList());
+        if (Objects.nonNull(gameDataVo.getRed()) && gameDataVo.getRed().size() == 3) {
+            redCard = gameDataVo.getRed();
+            gameDataVo.setRed(null);
+        }
         Card[] redCardArr = redCard.toArray(CardComparatorUtil.SAMPLE);
         //红方牌型
         HandType redHandType = CardComparatorUtil.getCardType(redCardArr);
         //取黑方的牌
         List<Card> blackCard = joker.subList(3, 6).stream().map(Card::new).collect(Collectors.toList());
+        if (Objects.nonNull(gameDataVo.getBlack()) && gameDataVo.getBlack().size() == 3) {
+            blackCard = gameDataVo.getBlack();
+            gameDataVo.setBlack(null);
+        }
         Card[] blackCardArr = blackCard.toArray(CardComparatorUtil.SAMPLE);
         //黑方牌型
         HandType blackHandType = CardComparatorUtil.getCardType(blackCardArr);
