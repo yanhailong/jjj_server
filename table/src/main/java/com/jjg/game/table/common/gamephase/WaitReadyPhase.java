@@ -34,12 +34,22 @@ public class WaitReadyPhase<RD extends GameDataVo<Room_BetCfg>> extends Abstract
     }
 
     @Override
-    protected void hostingPlayerAction(GamePlayer gamePlayer) {
+    protected void hostingPlayerActionOnPhaseStart(GamePlayer gamePlayer) {
 
     }
 
     @Override
-    protected void robotAction(GameRobotPlayer gamePlayer) {
+    protected void robotActionOnPhaseStart(GameRobotPlayer gamePlayer) {
+
+    }
+
+    @Override
+    public void onPlayerHalfwayJoinPhase(GamePlayer gamePlayer) {
+
+    }
+
+    @Override
+    public void onPlayerHalfwayExitPhase(GamePlayer gamePlayer) {
 
     }
 

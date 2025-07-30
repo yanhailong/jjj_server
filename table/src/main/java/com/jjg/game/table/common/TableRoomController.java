@@ -15,5 +15,4 @@ public class TableRoomController extends AbstractRoomController<Room_BetCfg, Bet
     public TableRoomController(Class<? extends RoomPlayer> roomPlayerClazz, BetTableRoom room) {
         super(roomPlayerClazz, room);
     }
-
 }

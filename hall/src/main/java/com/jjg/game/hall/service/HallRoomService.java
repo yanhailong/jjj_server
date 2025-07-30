@@ -110,7 +110,7 @@ public class HallRoomService implements IConsoleReceiver {
         // 如果对应的游戏类型没有房间的话则创建一个新的房间
         if (waitingRoomId == 0) {
             int maxLimit = getRoomMaxLimit(warehouseCfg);
-            Room room = hallRoomDao.createRoom(playerController.playerId(), gameType, maxLimit, marsNode.getNodePath());
+            Room room = hallRoomDao.createRoom(playerController, gameType, maxLimit, marsNode.getNodePath());
             room.setRoomCfgId(roomCfgId);
             hallRoomDao.saveRoom(room);
             if (maxLimit != 1) {
@@ -178,7 +178,7 @@ public class HallRoomService implements IConsoleReceiver {
             // TODO 先暂时删除等待房间列表，后续做异常处理
             matchDataDao.removeWaitJoinRoomId(gameType, room.getRoomCfgId(), roomId);
             hallRoomDao.removeRoom(gameType, roomId, room.getRoomCfgId());
-            // TODO 现在先重试
+            // TODO 现在先重试，需要谨防删除失败，一直递归卡死问题
             return hallJoinRoom(playerController, room.getRoomCfgId());
         }
         // 更新玩家的房间ID

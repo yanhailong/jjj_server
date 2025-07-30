@@ -1,9 +1,9 @@
 package com.jjg.game.common.baselogic;
 
 /**
- * 默认回调
+ * 游戏中回调
  *
- * @author Administrator
+ * @author 2CL
  */
 @FunctionalInterface
 public interface DefaultCallback {

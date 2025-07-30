@@ -1,7 +1,12 @@
 package com.jjg.game.room.services;
 
+import com.jjg.game.common.curator.MarsCurator;
+import com.jjg.game.common.curator.NodeManager;
+import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.RedisLock;
+import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.dao.RobotDao;
 import com.jjg.game.core.data.RobotPlayer;
 import com.jjg.game.room.listener.IRoomStartListener;
@@ -33,54 +38,81 @@ public class RobotService implements IRoomStartListener {
     private RobotDao robotDao;
     @Autowired
     private RedisLock redisLock;
+    @Autowired
+    private NodeManager nodeManager;
+    @Autowired
+    private MarsCurator marsCurator;
 
     /**
      * 通过游戏类型创建机器人
+     * TODO 后续优化，先临时创建一个机器人，不存库，等外部逻辑判断完成，最后入库
      */
     public RobotPlayer getOrCreateRobotPlayer(int roomCfgId, long roomId) {
-        String lockKey = robotDao.getLockRobotTableName(roomCfgId);
-        if (redisLock.tryLock(lockKey)) {
+        String lockKey = robotDao.getLockRobotTableName(roomCfgId + "");
+        for (int i = 0; i < GameConstant.Redis.LOCK_TRY_TIMES; i++) {
+            if (redisLock.tryLock(lockKey)) {
+                try {
+                    if (!checkCanCreateRobot(roomCfgId)) {
+                        return null;
+                    }
+                    // 已经创建的机器人ID列表
+                    Set<Integer> robotIdList = robotDao.getRobotIdList(roomCfgId);
+                    // 机器人ID
+                    List<Integer> configuredRobotIdList =
+                        GameDataManager.getRobotCfgList()
+                            .stream()
+                            // 为0时可用
+                            .filter(cfg -> cfg.getAvailable() == 0)
+                            .map(RobotCfg::getId)
+                            .distinct()
+                            .collect(Collectors.toList());
+                    configuredRobotIdList.removeAll(robotIdList);
+                    // 如果机器人已经达到创建上限,则停止创建
+                    if (configuredRobotIdList.isEmpty()) {
+                        log.warn("机器人已使用完");
+                        return null;
+                    }
+                    Integer robotId = RandomUtils.randCollection(configuredRobotIdList);
+                    if (robotId == null) {
+                        return null;
+                    }
+                    RobotCfg robotCfg = GameDataManager.getRobotCfg(robotId);
+                    // 创建一个机器人
+                    RobotPlayer robotPlayer = robotDao.createRobotPlayer(roomCfgId, robotId);
+                    RoomCfg roomCfg = GameDataManager.getRoomCfg(roomCfgId);
+                    robotPlayer.setRoomId(roomId);
+                    robotPlayer.setRoomCfgId(roomCfgId);
+                    robotPlayer.setNickName(robotCfg.getName());
+                    // 给机器人初始化数据，如果出现机器人某些数据找不到，在此处初始化
+                    initialRobotData(robotPlayer, roomCfg);
+                    // 回存一次数据 TODO 后续修改
+                    robotDao.saveRobotPlayer(roomCfg.getId(), robotPlayer);
+                    return robotPlayer;
+                } finally {
+                    redisLock.tryUnlock(lockKey);
+                }
+            }
             try {
-                if (!checkCanCreateRobot(roomCfgId)) {
-                    return null;
-                }
-                // 已经创建的机器人ID列表
-                Set<Integer> robotIdList = robotDao.getRobotIdList(roomCfgId);
-                // 机器人ID
-                List<Integer> configuredRobotIdList =
-                    GameDataManager.getRobotCfgList()
-                        .stream()
-                        // 为0时可用
-                        .filter(cfg -> cfg.getAvailable() == 0)
-                        .map(RobotCfg::getId)
-                        .distinct()
-                        .collect(Collectors.toList());
-                configuredRobotIdList.removeAll(robotIdList);
-                // 如果机器人已经达到创建上限,则停止创建
-                if (configuredRobotIdList.isEmpty()) {
-                    log.warn("机器人已使用完");
-                    return null;
-                }
-                Integer robotId = RandomUtils.randCollection(configuredRobotIdList);
-                if (robotId == null) {
-                    return null;
-                }
-                // 创建一个机器人
-                RobotPlayer robotPlayer = robotDao.createRobotPlayer(roomCfgId, robotId);
-                RoomCfg roomCfg = GameDataManager.getRoomCfg(roomCfgId);
-                robotPlayer.setRoomId(roomId);
-                robotPlayer.setRoomCfgId(roomCfgId);
-                robotPlayer.setNickName(robotPlayer.getNickName());
-                // 给机器人初始化数据，如果出现机器人某些数据找不到，在此处初始化
-                initialRobotData(robotPlayer, roomCfg);
-                // 回存一次数据 TODO 后续修改
-                robotDao.saveRobotPlayer(roomCfg.getId(), robotPlayer);
-                return robotPlayer;
-            } finally {
-                redisLock.tryUnlock(lockKey);
+                Thread.sleep(GameConstant.Redis.PER_TRY_TAKE_MILE_TIME);
+            } catch (InterruptedException ignored) {
             }
         }
         return null;
+    }
+
+    /**
+     * 创建robot playerController
+     * TODO 后续优化，先临时创建一个机器人，不存库，等外部逻辑判断完成，最后入库
+     */
+    public PlayerController getOrCreateRobotPlayerController(int roomCfgId, long roomId) {
+        RobotPlayer robotPlayer = getOrCreateRobotPlayer(roomCfgId, roomId);
+        if (robotPlayer == null) {
+            return null;
+        }
+        String nodePath = marsCurator.nodePath;
+        PFSession robotSession = new PFSession(null, null, null);
+        robotSession.setGatePath(nodePath);
+        return new PlayerController(robotSession, robotPlayer);
     }
 
     /**
@@ -127,12 +159,19 @@ public class RobotService implements IRoomStartListener {
      * 删除机器人
      */
     public void deleteRobotPlayer(int roomCfgId, Long robotId) {
-        String lockKey = robotDao.getLockRobotTableName(roomCfgId);
-        if (redisLock.tryLock(lockKey)) {
+        String lockKey = robotDao.getLockRobotTableName(roomCfgId + "");
+
+        for (int i = 0; i < GameConstant.Redis.LOCK_TRY_TIMES; i++) {
+            if (redisLock.tryLock(lockKey)) {
+                try {
+                    robotDao.deleteRobotPlayers(roomCfgId, Collections.singleton(robotId));
+                } finally {
+                    redisLock.tryUnlock(lockKey);
+                }
+            }
             try {
-                robotDao.deleteRobotPlayer(roomCfgId, Collections.singleton(robotId));
-            } finally {
-                redisLock.tryUnlock(lockKey);
+                Thread.sleep(GameConstant.Redis.PER_TRY_TAKE_MILE_TIME);
+            } catch (InterruptedException ignored) {
             }
         }
     }
@@ -142,12 +181,55 @@ public class RobotService implements IRoomStartListener {
      * 删除机器人
      */
     public void deleteRobotPlayers(int roomCfgId, List<Long> robotIds) {
-        String lockKey = robotDao.getLockRobotTableName(roomCfgId);
-        if (redisLock.tryLock(lockKey)) {
+        String lockKey = robotDao.getLockRobotTableName(roomCfgId + "");
+        for (int i = 0; i < GameConstant.Redis.LOCK_TRY_TIMES; i++) {
+            if (redisLock.tryLock(lockKey)) {
+                try {
+                    robotDao.deleteRobotPlayers(roomCfgId, robotIds);
+                } finally {
+                    redisLock.tryUnlock(lockKey);
+                }
+            }
             try {
-                robotDao.deleteRobotPlayer(roomCfgId, robotIds);
-            } finally {
-                redisLock.tryUnlock(lockKey);
+                Thread.sleep(GameConstant.Redis.PER_TRY_TAKE_MILE_TIME);
+            } catch (InterruptedException ignored) {
+            }
+        }
+    }
+
+    /**
+     * 当服务器关闭时，删除当前服的所有机器人
+     */
+    public void deleteServerAllRobot() {
+        String nodePath = nodeManager.getNodePath();
+        String lockKey = robotDao.getLockRobotTableName(nodePath);
+        // 这里需要多次尝试，一定需要确保删除成功
+        for (int i = 0; i < GameConstant.Redis.LOCK_TRY_TIMES; i++) {
+            if (redisLock.tryLock(lockKey)) {
+                try {
+                    Map<Long, String> allRobots = robotDao.getCurServerRobotPlayers();
+                    if (allRobots == null || allRobots.isEmpty()) {
+                        return;
+                    }
+                    Map<String, List<Long>> robotTableKeyOfRobots = new HashMap<>();
+                    for (Map.Entry<Long, String> entry : allRobots.entrySet()) {
+                        robotTableKeyOfRobots.computeIfAbsent(entry.getValue(), k -> new ArrayList<>()).add(entry.getKey());
+                    }
+                    // 删除redis中的机器人数据
+                    for (Map.Entry<String, List<Long>> entry : robotTableKeyOfRobots.entrySet()) {
+                        // 删除数据
+                        robotDao.deleteRobotPlayers(entry.getKey(), entry.getValue());
+                        log.info("删除机器人Redis数据库：{} 中节点：{} 对应的机器人数据成功 删除数量：{}",
+                            entry.getKey(), nodePath, entry.getValue().size());
+                    }
+                    break;
+                } finally {
+                    redisLock.tryUnlock(lockKey);
+                }
+            }
+            try {
+                Thread.sleep(GameConstant.Redis.PER_TRY_TAKE_MILE_TIME);
+            } catch (InterruptedException ignored) {
             }
         }
     }
@@ -162,8 +244,9 @@ public class RobotService implements IRoomStartListener {
         for (RoomCfg roomCfg : roomCfgList) {
             List<List<Integer>> robotNumList = roomCfg.getRobot_num();
             for (List<Integer> robotNumConf : robotNumList) {
-                roomRobotCreateLimit.computeIfAbsent(roomCfg.getId(), k -> new TreeMap<>()).put(robotNumConf.get(1),
-                    robotNumConf.get(2));
+                roomRobotCreateLimit
+                    .computeIfAbsent(roomCfg.getId(), k -> new TreeMap<>())
+                    .put(robotNumConf.get(1), robotNumConf.get(2));
             }
         }
         // TODO 如果是开服就创建房间的游戏，检查机器人填充上限是否大于房间人数上限，如果出现这种情况会出现房间全是机器人的情况

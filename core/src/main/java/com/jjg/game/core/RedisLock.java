@@ -10,7 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * redis分布式锁
+ * redis分布式锁, TODO 后续优化成注解的方式
  *
  * @author 11
  * @date 2025/5/26 9:44

@@ -1,5 +1,6 @@
 package com.jjg.game.room.data.room;
 
+import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,10 @@ public class GameDataVo<RC extends RoomCfg> {
     private long roomId;
     // 玩家数据合集 playerId <=> 玩家数据
     protected Map<Long, GamePlayer> gamePlayerMap = new HashMap<>();
+    // 游戏开始时间
+    private long startTime;
+    // 游戏结束时间
+    private long stopTime;
     // 每个阶段的结束时间
     protected long phaseEndTime;
     // 每个阶段需要运行的时间
@@ -44,6 +49,10 @@ public class GameDataVo<RC extends RoomCfg> {
 
     public RC getRoomCfg() {
         return roomCfg;
+    }
+
+    public void addGamePlayer(GamePlayer gamePlayer) {
+        gamePlayerMap.put(gamePlayer.getId(), gamePlayer);
     }
 
     public Map<Long, GamePlayer> getGamePlayerMap() {
@@ -72,5 +81,26 @@ public class GameDataVo<RC extends RoomCfg> {
 
     public int getPlayerNum() {
         return gamePlayerMap.size();
+    }
+
+    public long getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
+    public long getStopTime() {
+        return stopTime;
+    }
+
+    public void setStopTime(long stopTime) {
+        this.stopTime = stopTime;
+    }
+
+    public String getRoomBaseInfo(){
+        EGameType eGameType = EGameType.getGameByTypeId(roomCfg.getGameID());
+        return " 游戏类型：" + eGameType.getGameDesc() + " 房间配置ID: " + roomCfg.getId() + " 房间ID: " + roomId;
     }
 }

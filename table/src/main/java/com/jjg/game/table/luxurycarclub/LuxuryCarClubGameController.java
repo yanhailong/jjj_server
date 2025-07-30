@@ -68,7 +68,7 @@ public class LuxuryCarClubGameController extends BaseTableGameController<LuxuryC
     }
 
     @Override
-    public void initGame() {
+    public void initial() {
 
     }
 }

@@ -32,9 +32,6 @@ public class TableGroupMessageDispatcher extends BaseRoomMessageDispatcher {
 
     private static final Logger log = LoggerFactory.getLogger(TableGroupMessageDispatcher.class);
 
-    @Autowired
-    private RoomManager roomManager;
-
     /**
      * 请求发送消息
      *

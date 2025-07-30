@@ -19,7 +19,7 @@ public interface IRoomLifeCycle {
     /**
      * 房间初始化,房间被创建后的初始化逻辑,房间内游戏的逻辑初始化
      */
-    void initGame();
+    void initial();
 
     /**
      * 房间就绪
@@ -27,9 +27,9 @@ public interface IRoomLifeCycle {
     void roomReady();
 
     /**
-     * 房间更新,房间内的定时游戏逻辑在此处更新,每10ms Tick一次
+     * 房间更新,房间内的定时游戏逻辑在此处更新,每100ms Tick一次
      */
-    void roomTick();
+    void timeTick();
 
     /**
      * 游戏玩家托管逻辑，游戏中如果默认的出牌超时后，将进入自动托管逻辑，由每个游戏具体实现
@@ -44,7 +44,7 @@ public interface IRoomLifeCycle {
     /**
      * 玩家主动请求退出房间
      */
-    CommonResult<Room> onPlayerLeaveRoom(PlayerController playerController);
+    <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController);
 
     /**
      * 房间解散时调用
@@ -56,6 +56,11 @@ public interface IRoomLifeCycle {
      * 游戏结束
      */
     void gameOver();
+
+    /**
+     * 停止游戏，销毁房间或者停止房间定时器和状态机时调用
+     */
+    void stopGame();
 
     /**
      * 销毁房间前

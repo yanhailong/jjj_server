@@ -7,6 +7,7 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerLoginTimeDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.RobotPlayer;
 import com.jjg.game.core.logger.CoreLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +44,7 @@ public class AbstractPlayerService {
             if (redisLock.lock(key)) {
                 try {
                     Player player = get(playerId);
-                    if (player == null) {
+                    if (player == null || player instanceof RobotPlayer) {
                         return null;
                     }
 
@@ -78,7 +79,8 @@ public class AbstractPlayerService {
             if (redisLock.lock(key)) {
                 try {
                     Player player = get(playerId);
-                    if (player == null) {
+                    // 找不到的玩家或者机器人玩家不保存数据
+                    if (player == null || player instanceof RobotPlayer) {
                         return null;
                     }
                     //如果执行失败

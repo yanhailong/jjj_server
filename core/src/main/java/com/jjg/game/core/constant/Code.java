@@ -13,6 +13,8 @@ public interface Code {
     int ROOM_DESTROYED = 202;
     // 房间不存在
     int ROOM_NOT_FOUND = 203;
+    // 房间处于关闭流程中
+    int ROOM_STOPPING = 204;
     //失败
     int FAIL = 400;
     //错误的请求
@@ -39,6 +41,8 @@ public interface Code {
     int BET_TO_LIMIT = 411;
     //未知错误
     int UNKNOWN_ERROR = 412;
+    // 加入房间失败
+    int JOIN_ROOM_FAILED = 413;
 
     //服务器错误
     int EXCEPTION = 500;

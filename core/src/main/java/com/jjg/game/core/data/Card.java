@@ -7,13 +7,13 @@ package com.jjg.game.core.data;
 
 public class Card {
     /**
-     * 花色
+     * 花色  0: ♠, 1: ♥, 2: ♣, 3: ♦
      */
-    private final int suit; // 0: ♠, 1: ♥, 2: ♣, 3: ♦
+    private final int suit; //
     /**
-     * 点数
+     * 点数  1~13
      */
-    private final int rank; // 1~13
+    private final int rank;
 
     public Card(int value) {
         this.suit = (value - 1) / 13;

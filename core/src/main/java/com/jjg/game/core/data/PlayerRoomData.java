@@ -11,6 +11,13 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document("player_room")
 public class PlayerRoomData {
     @Id
-    private int playerId;
+    private long playerId;
 
+    public long getPlayerId() {
+        return playerId;
+    }
+
+    public void setPlayerId(long playerId) {
+        this.playerId = playerId;
+    }
 }

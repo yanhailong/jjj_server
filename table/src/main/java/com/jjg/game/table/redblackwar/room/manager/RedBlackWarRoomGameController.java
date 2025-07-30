@@ -119,7 +119,7 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
 
 
     @Override
-    public void initGame() {
+    public void initial() {
 
     }
 

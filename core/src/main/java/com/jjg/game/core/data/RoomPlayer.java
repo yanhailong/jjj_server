@@ -26,6 +26,7 @@ public class RoomPlayer {
     public RoomPlayer(byte sit, long playerId) {
         this.sit = sit;
         this.playerId = playerId;
+        this.playerRoomData = new PlayerRoomData();
     }
 
     public int getSit() {

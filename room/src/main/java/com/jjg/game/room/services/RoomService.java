@@ -1,19 +1,14 @@
 package com.jjg.game.room.services;
 
-import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.curator.MarsCurator;
-import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.AbstractRoomDao;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.RobotPlayer;
-import com.jjg.game.core.data.Room;
-import com.jjg.game.core.data.RoomPlayer;
+import com.jjg.game.core.data.*;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.room.manager.RoomManager;
@@ -44,8 +39,6 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
     @Autowired
     private RobotService robotService;
     @Autowired
-    private ClusterSystem clusterSystem;
-    @Autowired
     private TimerCenter timerCenter;
 
     private boolean isInitialed = false;
@@ -67,6 +60,13 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         } catch (Exception e) {
             log.error("房间初始化时异常：{}", e.getMessage(), e);
             throw new RuntimeException(e);
+        }
+        // 删除服务器所有的机器人
+        try {
+            robotService.deleteServerAllRobot();
+        } catch (Exception exception) {
+            log.error("删除服务器所有的机器人时发生异常：{}", exception.getMessage(), exception);
+            throw new RuntimeException(exception);
         }
     }
 
@@ -203,16 +203,19 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         Room room = roomController.getRoom();
         long roomId = room.getId();
         // 创建一个机器人,将机器人放入到游戏中
-        RobotPlayer robotPlayer = robotService.getOrCreateRobotPlayer(warehouseCfg.getId(), roomId);
-        if (robotPlayer != null) {
-            String nodePath = marsCurator.nodePath;
-            PFSession robotSession = new PFSession(null, null, null);
-            robotSession.setGatePath(nodePath);
-            PlayerController robotPlayerController = new PlayerController(robotSession, robotPlayer);
+        PlayerController robotPlayerController =
+            robotService.getOrCreateRobotPlayerController(warehouseCfg.getId(), roomId);
+        if (robotPlayerController != null) {
             // 机器人加入房间
-            roomController.joinRoom(robotPlayerController);
-            log.info("创建游戏类型：{} 房间ID：{} 房间配置ID：{} 并加入初始机器人：{} 机器人初始金币：{}",
-                gameType, roomId, warehouseCfg.getId(), robotPlayer.getId(), robotPlayer.getGold());
+            CommonResult<? extends Room> result = roomController.joinRoom(robotPlayerController);
+            if (result.success()) {
+                log.info("创建游戏类型：{} 房间ID：{} 房间配置ID：{} 并加入初始机器人：{} 机器人初始金币：{}",
+                    gameType, roomId, warehouseCfg.getId(), robotPlayerController.playerId(),
+                    robotPlayerController.getPlayer().getGold());
+            } else {
+                // 加入失败需要销毁机器人
+                robotService.deleteRobotPlayer(warehouseCfg.getId(), robotPlayerController.playerId());
+            }
         }
     }
 
@@ -228,13 +231,13 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
     @Override
     public void shutdown() {
         // 需要执行房间中的关闭逻辑
-        /*if (!roomManager.isStopping()) {
-            roomManager.setStopping(true);
-            // 调用服务器关闭逻辑
+        if (!roomManager.isRoomStopping()) {
+            roomManager.setRoomStopping(true);
+            // 调用房间关闭逻辑
             roomManager.onServerShutdown();
             // 删除当前服务器的机器人
             robotService.deleteServerAllRobot();
-        }*/
+        }
     }
 
     @Override
