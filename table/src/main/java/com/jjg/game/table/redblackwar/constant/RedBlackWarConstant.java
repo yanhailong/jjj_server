@@ -1,6 +1,7 @@
 package com.jjg.game.table.redblackwar.constant;
 
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.core.data.Card;
 
 /**
  * @author 11
@@ -16,7 +17,7 @@ public interface RedBlackWarConstant {
         //红黑大战配置表界限
         int RED_BLACK_LIMIT = 10;
         //幸运一击 对子的界限
-        int PAIR_MIN_LIMIT = 9;
+        Card PAIR_MIN_LIMIT = new Card(1, 9);
         //押注红方区域
         int RED_AREA = 1;
         //押注黑方区域

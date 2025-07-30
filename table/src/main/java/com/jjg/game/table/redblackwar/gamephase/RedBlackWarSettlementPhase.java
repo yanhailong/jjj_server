@@ -163,10 +163,8 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
             black.sort(Comparator.comparingInt(Card::getRank));
             //取中间牌
             Card card = black.get(1);
-            return card.getRank() >= PAIR_MIN_LIMIT;
+            return card.compare(PAIR_MIN_LIMIT, false) >= 0;
         }
         return true;
     }
-
-
 }
