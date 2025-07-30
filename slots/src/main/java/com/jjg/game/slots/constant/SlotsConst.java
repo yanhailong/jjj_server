@@ -125,9 +125,12 @@ public interface SlotsConst {
         int TYPE_GOLD_TRAIN = 3;
         //二选一触发局
         int TYPE_ALL_BOARD = 4;
-
         //二选一之免费
         int TYPE_ALL_BOARD_FREE = 5;
+        //重转之拉火车
+        int TYPE_AGAIN_TRAIN = 6;
+        //重转之黄金列车
+        int TYPE_AGAIN_GOLD_TRAIN = 7;
     }
 
     interface SpecialGird{
