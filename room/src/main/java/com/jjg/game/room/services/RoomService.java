@@ -228,10 +228,13 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
     @Override
     public void shutdown() {
         // 需要执行房间中的关闭逻辑
-        if (!roomManager.isStopping()) {
+        /*if (!roomManager.isStopping()) {
             roomManager.setStopping(true);
+            // 调用服务器关闭逻辑
             roomManager.onServerShutdown();
-        }
+            // 删除当前服务器的机器人
+            robotService.deleteServerAllRobot();
+        }*/
     }
 
     @Override
