@@ -17,7 +17,7 @@ import java.util.List;
  * @author 2CL
  */
 @ProtobufMessage(
-    messageType = MessageConst.MessageTypeDef.BIRDS_ANIMAL_TYPE,
+    messageType = MessageConst.MessageTypeDef.GOOD_CAR_CLUB_TYPE,
     cmd = LuxuryCarClubConstant.RespMsgBean.NOTIFY_LUXURY_CAR_CLUB_TABLE_INFO,
     resp = true
 )

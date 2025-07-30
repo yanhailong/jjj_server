@@ -12,7 +12,7 @@ import com.jjg.game.table.luxurycarclub.constant.LuxuryCarClubConstant;
  * @author 2CL
  */
 @ProtobufMessage(
-    messageType = MessageConst.MessageTypeDef.BIRDS_ANIMAL_TYPE,
+    messageType = MessageConst.MessageTypeDef.GOOD_CAR_CLUB_TYPE,
     cmd = LuxuryCarClubConstant.RespMsgBean.RESP_LUXURY_CAR_CLUB_SETTLEMENT,
     resp = true
 )

@@ -2,13 +2,12 @@ package com.jjg.game.table.baccarat.gamephase;
 
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.utils.PokerCardUtils;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.common.gamephase.WaitReadyPhase;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author 2CL
@@ -31,6 +30,17 @@ public class BaccaratWaitReadyPhase extends WaitReadyPhase<BaccaratGameDataVo> {
             // 重新洗牌
             shuffleCard();
         }
+        List<GamePlayer> topGamePlayers =
+            gameDataVo.getGamePlayerMap().values().stream()
+                .sorted((o1, o2) -> Long.compare(o2.getGold(), o1.getGold()))
+                .limit(7)
+                .toList();
+        for (int i = 1; i <= topGamePlayers.size(); i++) {
+            GamePlayer gamePlayer = topGamePlayers.get(i - 1);
+            gamePlayer.getTableGameData().setSitNum(i);
+        }
+        log.info("{}====================> {} {}",
+            gameDataVo.getRoomCfg().getId(), topGamePlayers.size(), gameDataVo.getGamePlayerMap().size());
     }
 
     /**
