@@ -43,10 +43,4 @@ public class RedBlackWarBetPhase extends BaseTableBetPhase<RedBlackWarGameDataVo
         broadcastMsgToRoom(TableMessageBuilder.getNotifyPhaseChangInfo(EGamePhase.BET, gameDataVo.getPhaseEndTime()));
     }
 
-    @Override
-    public void phaseFinish() {
-
-    }
-
-
 }

@@ -26,8 +26,5 @@ public class LuxuryCarClubPhase extends BaseTableBetPhase<LuxuryCarClubGameDataV
         return super.equals(o);
     }
 
-    @Override
-    public void phaseFinish() {
 
-    }
 }

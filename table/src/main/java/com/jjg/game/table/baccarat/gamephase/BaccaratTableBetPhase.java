@@ -65,10 +65,6 @@ public class BaccaratTableBetPhase extends BaseTableBetPhase<BaccaratGameDataVo>
     }
 
     @Override
-    public void phaseFinish() {
-    }
-
-    @Override
     public boolean equals(Object o) {
         return super.equals(o);
     }

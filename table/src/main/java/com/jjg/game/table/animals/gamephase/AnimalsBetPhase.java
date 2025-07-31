@@ -26,8 +26,4 @@ public class AnimalsBetPhase extends BaseTableBetPhase<AnimalsGameDataVo> {
         return super.equals(o);
     }
 
-    @Override
-    public void phaseFinish() {
-
-    }
 }

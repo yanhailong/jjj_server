@@ -38,9 +38,6 @@ public class LoongTigerWarBetPhase extends BaseTableBetPhase<LoongTigerWarGameDa
         super.phaseDoAction();
         broadcastMsgToRoom(TableMessageBuilder.getNotifyPhaseChangInfo(EGamePhase.BET, gameDataVo.getPhaseEndTime()));
     }
-    @Override
-    public void phaseFinish() {
-    }
 
 
 }
