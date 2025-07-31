@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName SpecialResultLib.xlsx
  * @sheetName SpecialResultLib
  * @author Auto.Generator
- * @date 2025年07月28日 11:01:45
+ * @date 2025年07月30日 10:16:30
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class SpecialResultLibCfg extends BaseCfgBean {

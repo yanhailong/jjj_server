@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName golbal.xlsx
  * @sheetName GolbalConfig
  * @author Auto.Generator
- * @date 2025年07月28日 11:01:45
+ * @date 2025年07月30日 10:16:30
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GolbalConfigCfg extends BaseCfgBean {

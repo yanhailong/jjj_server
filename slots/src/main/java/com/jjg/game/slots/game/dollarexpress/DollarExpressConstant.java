@@ -62,4 +62,10 @@ public interface DollarExpressConstant {
         //黄金列车触发局结果生成倍数
         int TYPE_GOLD_TRAIN = 5;
     }
+
+    interface SpecialGird{
+        int ID_COLLECT_DOLLAR = 3;
+        int ID_AGAIN_GOLD_TRAIN = 4;
+        int ID_NORMAL_GOLD_TRAIN = 5;
+    }
 }

@@ -201,7 +201,6 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
         if(this.testLibDataList == null || this.testLibDataList.isEmpty()){
             return null;
         }
-        System.out.println("size:"+this.testLibDataList.size());
         return this.testLibDataList.poll();
     }
 

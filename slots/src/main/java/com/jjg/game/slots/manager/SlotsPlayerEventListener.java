@@ -39,16 +39,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
 
     @Override
     public void sessionClose(PFSession session) {
-        PlayerController playerController = (PlayerController) session.getReference();
-        if (playerController == null) {
-            log.warn("玩家退出游戏服务器时 playerController 为空,playerId={},sessionId={}", session.getPlayerId(),
-                    session.sessionId());
-            return;
-        }
-
-        boolean exit = dollarExpressGameManager.exit(playerController);
-        playerSessionService.offline(playerController.getPlayer(), !exit);
-        logger.exitGame(playerController.getPlayer());
+        exitGame(session);
     }
 
     @Override
@@ -89,5 +80,18 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         }
     }
 
+    public void exitGame(PFSession session) {
+        PlayerController playerController = (PlayerController) session.getReference();
+        if (playerController == null) {
+            log.warn("玩家退出游戏服务器时 playerController 为空,playerId={},sessionId={}", session.getPlayerId(),
+                    session.sessionId());
+            return;
+        }
+
+        boolean exit = dollarExpressGameManager.exit(playerController);
+        playerSessionService.offline(playerController.getPlayer(), !exit);
+        logger.exitGame(playerController.getPlayer());
+        log.debug("退出游戏结算 playerId = {}",playerController.playerId());
+    }
 
 }

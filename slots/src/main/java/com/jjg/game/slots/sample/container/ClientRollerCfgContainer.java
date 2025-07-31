@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.slots.sample.bean.SpecialGirdCfg;
+import com.jjg.game.slots.sample.bean.ClientRollerCfg;
 
 /**
- * SpecialGird.xlsx配置管理容器
+ * ClientRoller.xlsx配置管理容器
  *
- * @excelName SpecialGird.xlsx
- * @sheetName SpecialGird
+ * @excelName ClientRoller.xlsx
+ * @sheetName ClientRoller
  * @author auto_generator
  * @date 2025年07月30日 10:16:30
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class SpecialGirdCfgContainer extends BaseCfgContainer<SpecialGirdCfg> {
+public class ClientRollerCfgContainer extends BaseCfgContainer<ClientRollerCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -28,23 +28,23 @@ public class SpecialGirdCfgContainer extends BaseCfgContainer<SpecialGirdCfg> {
   }
 
   @Override
-  public SpecialGirdCfgContainer getNewContainer(){
-    return new SpecialGirdCfgContainer();
+  public ClientRollerCfgContainer getNewContainer(){
+    return new ClientRollerCfgContainer();
   }
 
-  public SpecialGirdCfgContainer() {
+  public ClientRollerCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("SpecialGird.xlsx");
+    excelNameList.add("ClientRoller.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected SpecialGirdCfg createNewBean() {
-    return new SpecialGirdCfg();
+  protected ClientRollerCfg createNewBean() {
+    return new ClientRollerCfg();
   }
 }

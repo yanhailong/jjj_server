@@ -23,6 +23,10 @@ public class ResConfigInfo extends AbstractResponse {
     public List<PoolInfo> poolList;
     @ProtoDesc("美元收集目标值")
     public int dollarTargetCount;
+    @ProtoDesc("滚轴")
+    public List<RollerInfo> clientRoller;
+    @ProtoDesc("免费滚轴")
+    public List<RollerInfo> clientFreeRoller;
 
     public ResConfigInfo(int code) {
         super(code);

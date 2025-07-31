@@ -163,7 +163,17 @@ public class DollarExpressMessageHandler implements GmListener {
                     res.code = Code.FAIL;
                     return res;
                 }
-                dollarExpressManager.generateLib(count);
+                dollarExpressManager.addGenerateLibEvent(count);
+            }else if("selectLib".equals(gmOrders[0])) {
+                log.debug("收到选取结果库的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+                int libType = Integer.parseInt(gmOrders[1]);
+                if(libType < 1 || libType > 7){
+                    log.debug("结果库不符合规范，请重新输入 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+                    res.code = Code.FAIL;
+                    return res;
+                }
+                TestLibData testLibData = new TestLibData();
+                testLibData.setLibType(libType);
             }else {
                 res.code = Code.NOT_FOUND;
             }

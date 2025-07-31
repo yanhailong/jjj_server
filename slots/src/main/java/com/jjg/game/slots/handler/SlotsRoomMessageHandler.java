@@ -9,6 +9,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.pb.ReqExitGame;
 import com.jjg.game.core.pb.ResExitGame;
+import com.jjg.game.slots.manager.SlotsPlayerEventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,13 +26,15 @@ public class SlotsRoomMessageHandler {
 
     @Autowired
     private ClusterSystem clusterSystem;
+    @Autowired
+    private SlotsPlayerEventListener slotsPlayerEventListener;
 
     @Command(MessageConst.RoomMessage.REQ_EXIT_GAME)
     public void reqExitGame(PlayerController playerController, ReqExitGame req) {
         try {
             log.debug("退出游戏 playerId = {}", playerController.playerId());
+            slotsPlayerEventListener.exitGame(playerController.getSession());
             clusterSystem.switchNode(playerController.getSession(), NodeType.HALL);
-
             playerController.send(new ResExitGame(Code.SUCCESS));
         } catch (Exception e) {
             log.error("玩家退出房间异常 msg: {}", e.getMessage(), e);
