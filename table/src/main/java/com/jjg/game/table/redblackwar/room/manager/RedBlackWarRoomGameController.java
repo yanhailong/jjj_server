@@ -93,13 +93,15 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
                 List<Integer> betList = playerBetInfo.get(playerController.playerId());
                 long playerBet = betList == null ? 0 : betList.stream().mapToInt(Integer::intValue).sum();
                 long totalBet = 0;
+                List<Integer> betGoldList = new ArrayList<>();
                 for (Map.Entry<Long, List<Integer>> longLongEntry : playerBetInfo.entrySet()) {
                     int playerTotalBet = longLongEntry.getValue().stream().mapToInt(Integer::intValue).sum();
+                    betGoldList.addAll(longLongEntry.getValue());
                     totalBet += playerTotalBet;
                 }
                 betTableInfo.playerBetTotal = playerBet;
                 betTableInfo.betIdxTotal = totalBet;
-                betTableInfo.betGoldList = betList;
+                betTableInfo.betGoldList = betGoldList;
                 tableAreaInfos.add(betTableInfo);
             }
             notifyRedBlackWarInfo.tableAreaInfos = tableAreaInfos;
