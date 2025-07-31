@@ -1,13 +1,17 @@
 package com.jjg.game.table.luxurycarclub;
 
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.BetTableRoom;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.room.base.GameGm;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.luxurycarclub.data.LuxuryCarClubGameDataVo;
 import com.jjg.game.table.luxurycarclub.gamephase.LuxuryCarClubPhase;
@@ -16,7 +20,9 @@ import com.jjg.game.table.luxurycarclub.gamephase.LuxuryCarClubSettlementPhase;
 import com.jjg.game.table.luxurycarclub.message.LuxuryCarClubMessageBuilder;
 import com.jjg.game.table.luxurycarclub.message.NotifyLuxuryCarClubTableInfo;
 
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 
 /**
  * 豪车俱乐部游戏控制器
@@ -70,5 +76,19 @@ public class LuxuryCarClubGameController extends BaseTableGameController<LuxuryC
     @Override
     public void initial() {
 
+    }
+
+    @GameGm(cmd = "settlement_simulate")
+    public CommonResult<Map<Integer, Integer>> simulateSettlement(String[] gmOrders) {
+        if (gmOrders.length == 0) {
+            return new CommonResult<>(Code.PARAM_ERROR);
+        }
+        int times = Integer.parseInt(gmOrders[0]);
+        Map<Integer, Integer> res = new HashMap<>();
+        for (int i = 0; i < times; i++) {
+            WinPosWeightCfg winPosWeightCfg = LuxuryCarClubSettlementPhase.randomRewardCfgByWeight();
+            res.put(winPosWeightCfg.getWinPosID(), res.getOrDefault(winPosWeightCfg.getWinPosID(), 0) + 1);
+        }
+        return new CommonResult<>(Code.SUCCESS, res);
     }
 }

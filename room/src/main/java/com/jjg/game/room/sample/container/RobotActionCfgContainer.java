@@ -12,7 +12,7 @@ import com.jjg.game.room.sample.bean.RobotActionCfg;
  * @excelName RobotAction_Bet.xlsx
  * @sheetName RobotAction
  * @author auto_generator
- * @date 2025年07月21日 14:06:28
+ * @date 2025年07月31日 14:48:30
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class RobotActionCfgContainer extends BaseCfgContainer<RobotActionCfg> {

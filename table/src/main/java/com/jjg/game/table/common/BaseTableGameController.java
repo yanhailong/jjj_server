@@ -80,7 +80,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
             // 调用房间离开流程
             int exitCode = roomController.getRoomManager().robotPlayerExitRoom(needExitRoomRobots);
             if (exitCode != Code.SUCCESS) {
-                log.error("机器人在 {} 中退出房间失败", gameDataVo.getRoomBaseInfo());
+                log.error("机器人在 {} 中退出房间失败", gameDataVo.roomLogInfo());
             }
         }
     }

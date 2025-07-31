@@ -156,7 +156,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             }
             playerRoomEventListener.enter(session, playerController, info);
         } catch (Exception e) {
-            log.error("", e);
+            log.error("player: {} 进入session时发生异常: {}", playerId, e.getMessage(), e);
         }
     }
 

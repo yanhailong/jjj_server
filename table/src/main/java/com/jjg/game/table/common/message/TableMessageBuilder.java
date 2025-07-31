@@ -1,12 +1,11 @@
 package com.jjg.game.table.common.message;
 
 import com.jjg.game.common.proto.Pair;
-import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
@@ -63,14 +62,14 @@ public class TableMessageBuilder {
     /**
      * 构建游戏的前6玩家基础信息
      */
-    public static List<TablePlayerInfo> buildTablePlayerInfo(TableGameDataVo tableGameDataVo) {
+    public static List<TablePlayerInfo> buildTablePlayerInfo(GameDataVo<?> tableGameDataVo) {
         return buildTablePlayerInfo(tableGameDataVo, 7);
     }
 
     /**
      * 构建游戏的前6玩家基础信息
      */
-    public static List<TablePlayerInfo> buildTablePlayerInfo(TableGameDataVo tableGameDataVo, int Limit) {
+    public static List<TablePlayerInfo> buildTablePlayerInfo(GameDataVo<?> tableGameDataVo, int Limit) {
         List<GamePlayer> gamePlayers = getSortedGamePlayer(tableGameDataVo, Limit);
         List<TablePlayerInfo> tablePlayerInfos = new ArrayList<>(gamePlayers.size());
         for (GamePlayer gamePlayer : gamePlayers) {
@@ -86,7 +85,7 @@ public class TableMessageBuilder {
      * @param limit           列表长度（小于等于0为全部）
      * @return 排序后的GamePlayer列表
      */
-    private static List<GamePlayer> getSortedGamePlayer(TableGameDataVo tableGameDataVo, int limit) {
+    private static List<GamePlayer> getSortedGamePlayer(GameDataVo<?> tableGameDataVo, int limit) {
         Stream<GamePlayer> sorted = tableGameDataVo.getGamePlayerMap()
                 .values()
                 .stream().sorted(Comparator.comparingLong(Player::getGold).reversed());

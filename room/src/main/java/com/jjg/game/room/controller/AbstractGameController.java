@@ -88,7 +88,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         if (gamePhaseIterator.hasNext() && gameStarted) {
             // 当前的游戏阶段
             currentGamePhase = gamePhaseIterator.next();
-            currentGamePhase.setRoundCounter(roundCounter.get());
+            currentGamePhase.setRoundCounter(roundCounter.incrementAndGet());
             /*log.debug("[{}] 房间ID: {} 游戏ID: {} 游戏类型: {} 当前阶段：{} 开始运行",
                 currentGamePhase.getRoundCounter(), gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
                 gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());*/

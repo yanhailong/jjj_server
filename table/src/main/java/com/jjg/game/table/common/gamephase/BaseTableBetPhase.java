@@ -18,6 +18,7 @@ import com.jjg.game.table.betsample.sample.GameDataManager;
 import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.data.TableSampleDataHolder;
+import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.TableRoomMessageConstant;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.bean.ReqBetBean;
@@ -34,7 +35,7 @@ import java.util.*;
  * @author 2CL
  */
 public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
-        AbstractMsgDealRoomPhase<Room_BetCfg, D, ReqBet> {
+    AbstractMsgDealRoomPhase<Room_BetCfg, D, ReqBet> {
 
     private static final Logger log = LoggerFactory.getLogger(BaseTableBetPhase.class);
 
@@ -62,6 +63,8 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         // 清除房间的数据
         clearRoomData();
         gameDataVo.setCanExitGame(false);
+        broadcastMsgToRoom(
+            TableMessageBuilder.getNotifyPhaseChangInfo(getGamePhase(), gameDataVo.getPhaseEndTime()));
     }
 
     @Override
@@ -96,7 +99,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         Map<Integer, Long> playerReqBetMap = new HashMap<>();
         for (ReqBetBean betBean : reqBetBeans) {
             playerReqBetMap.put(betBean.betAreaIdx,
-                    playerReqBetMap.getOrDefault(betBean.betAreaIdx, 0L) + betBean.betValue);
+                playerReqBetMap.getOrDefault(betBean.betAreaIdx, 0L) + betBean.betValue);
         }
         for (Map.Entry<Integer, Long> entry : playerReqBetMap.entrySet()) {
             int betAreaIdx = entry.getKey();
@@ -160,14 +163,14 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         List<List<Integer>> betRobotId = robotCfg.getBetRobotID();
         int betActionId = RandomUtils.randomByWeightList(betRobotId);
         Integer betAction = TableSampleDataHolder.getBetActionDataCache(betActionId,
-                gameDataVo.getRoomCfg().getId());
+            gameDataVo.getRoomCfg().getId());
         if (betAction == null) {
             return;
         }
         BetRobotCfg betRobotCfg = com.jjg.game.room.sample.GameDataManager.getBetRobotCfg(betAction);
         if (betRobotCfg == null) {
             throw new GameSampleException("机器人押注错误，机器人：" + gameRobotPlayer.getId()
-                    + "机器人押注表中未找到押注策略配置");
+                + "机器人押注表中未找到押注策略配置");
         }
         // 未触发押注逻辑
         if (!RandomUtils.getRandomBoolean10000(betRobotCfg.getBetAction())) {
@@ -260,9 +263,9 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
      */
     protected Map<Integer, BetAreaCfg> getBetAreaCfgMap() {
         return GameDataManager.getBetAreaCfgList()
-                .stream()
-                .filter(betRobotCfg -> betRobotCfg.getGameID() == gameController.gameControlType().getGameTypeId())
-                .collect(HashMap::new, (map, cfg) -> map.put(cfg.getId(), cfg), HashMap::putAll);
+            .stream()
+            .filter(betRobotCfg -> betRobotCfg.getGameID() == gameController.gameControlType().getGameTypeId())
+            .collect(HashMap::new, (map, cfg) -> map.put(cfg.getId(), cfg), HashMap::putAll);
     }
 
     /**
@@ -281,11 +284,14 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
     protected int checkBetAction(GamePlayer gamePlayer, List<ReqBetBean> reqBetBean) {
         // 检查当前区域是否还可以进行下注
         Map<Integer, BetAreaCfg> betAreaCfgMap = getBetAreaCfgMap();
+        List<Integer> betList = gameDataVo.getRoomCfg().getBetList();
+        // 场上最大下注倍数
+        int betMax = betList.stream().max(Integer::compareTo).get();
         long totalBetValue = 0;
         Map<Integer, Long> playerReqBetMap = new HashMap<>();
         for (ReqBetBean betBean : reqBetBean) {
             playerReqBetMap.put(betBean.betAreaIdx,
-                    playerReqBetMap.getOrDefault(betBean.betAreaIdx, 0L) + betBean.betValue);
+                playerReqBetMap.getOrDefault(betBean.betAreaIdx, 0L) + betBean.betValue);
         }
         for (Map.Entry<Integer, Long> entry : playerReqBetMap.entrySet()) {
             // 下注区域
@@ -299,25 +305,25 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             BetAreaCfg betAreaCfg = betAreaCfgMap.get(betAreaIdx);
             // 判断场上单区域的总数量是否达到上限
             // 配置的上限
-            int roomIdxMaxLimit = betAreaCfg.getTbUpperLimit();
+            int roomIdxMaxLimit = betAreaCfg.getTbUpperLimit() * betMax;
             // 当前房间的请求的下注区的总数
             long curIdxTotalBet = gameDataVo.getAreaTotalBet(betAreaIdx);
             if (curIdxTotalBet + betValue >= roomIdxMaxLimit) {
                 log.debug("区域：{} 房间押注总和：{} 玩家请求：{} 限制值：{}",
-                        betAreaCfg.getId(), curIdxTotalBet, betValue, roomIdxMaxLimit);
+                    betAreaCfg.getId(), curIdxTotalBet, betValue, roomIdxMaxLimit);
                 return Code.BET_TO_LIMIT;
             }
             // 玩家区域上限
-            int playerIdxMaxLimit = betAreaCfg.getTbPlayerUpperLimit();
+            int playerIdxMaxLimit = betAreaCfg.getTbPlayerUpperLimit() * betMax;
             Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(gamePlayer.getId());
             long playerBetTotal = 0;
             if (playerBetInfo != null) {
                 playerBetTotal =
-                        playerBetInfo.getOrDefault(betAreaIdx, new ArrayList<>()).stream().mapToInt(Integer::intValue).sum();
+                    playerBetInfo.getOrDefault(betAreaIdx, new ArrayList<>()).stream().mapToInt(Integer::intValue).sum();
             }
             if (playerBetTotal + betValue >= playerIdxMaxLimit) {
                 log.debug("区域：{} 玩家押注总和：{}  当前下注：{} 限制值：{}",
-                        betAreaCfg.getId(), playerBetTotal, betValue, playerIdxMaxLimit);
+                    betAreaCfg.getId(), playerBetTotal, betValue, playerIdxMaxLimit);
                 return Code.BET_TO_LIMIT;
             }
             totalBetValue += betValue;

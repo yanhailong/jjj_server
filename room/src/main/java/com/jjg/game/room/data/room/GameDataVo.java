@@ -109,8 +109,8 @@ public class GameDataVo<RC extends RoomCfg> {
         this.canExitGame = canExitGame;
     }
 
-    public String getRoomBaseInfo(){
+    public String roomLogInfo(){
         EGameType eGameType = EGameType.getGameByTypeId(roomCfg.getGameID());
-        return " 游戏类型：" + eGameType.getGameDesc() + " 房间配置ID: " + roomCfg.getId() + " 房间ID: " + roomId;
+        return "游戏类型：" + eGameType.getGameDesc() + " 房间配置ID: " + roomCfg.getId() + " 房间ID: " + roomId;
     }
 }

@@ -190,9 +190,10 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 playerGoldChange.playerId = playerEntry.getKey();
                 playerGoldChange.playerWinGold = playerBetWin;
                 playerGoldChange.playerBetGold = playerTotalBetGold;
-                playerChangedGolds.put(playerEntry.getKey(), playerGoldChange);
                 // TODO 给玩家添加金币
                 gamePlayer.setGold(gamePlayer.getGold() + playerBetWin);
+                playerGoldChange.playerCurGold = gamePlayer.getGold();
+                playerChangedGolds.put(playerEntry.getKey(), playerGoldChange);
             }
         }
         return playerChangedGolds;
@@ -274,23 +275,6 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             }
         }
         return playerBetWin;
-    }
-
-    /**
-     * 计算金币数量
-     */
-    protected long calcGold(WinPosWeightCfg weightCfg, long betValue) {
-        int winRatio = gameDataVo.getRoomCfg().getWinRatio();
-        // 倍率计算
-        long multiAdd =
-            (long) Math.floor(betValue * (weightCfg.getOdds() / 100.0) * ((10000 - winRatio) / 10000.0));
-        long betReturn = (long) Math.floor(betValue * (weightCfg.getReturnRate() / 10000.0));
-        // 赢的总值
-        long totalWin = multiAdd + betReturn;
-        log.info("【百家乐】玩家在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{}"
-            , weightCfg.getId(), betValue, multiAdd, betReturn, totalWin);
-        // 倍率 + 压分返还
-        return totalWin;
     }
 
     private byte getCardPointId(byte cardId) {

@@ -6,10 +6,10 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.res.NotifyRoomReadyWait;
 
 /**
@@ -26,9 +26,19 @@ public class WaitReadyPhase<RD extends GameDataVo<Room_BetCfg>> extends Abstract
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
+        // 通知房间等待消息
+        notifyRoomReadyMessage();
+    }
+
+    /**
+     * 通知房间进入ready消息
+     */
+    protected void notifyRoomReadyMessage() {
         NotifyRoomReadyWait notifyRoomReadyWait = new NotifyRoomReadyWait(Code.SUCCESS);
         notifyRoomReadyWait.roomId = gameDataVo.getRoomId();
         notifyRoomReadyWait.waitEndTime = gameDataVo.getPhaseEndTime();
+        notifyRoomReadyWait.tablePlayerInfo = TableMessageBuilder.buildTablePlayerInfo(gameDataVo, 7);
+        notifyRoomReadyWait.totalPlayerNum = gameDataVo.getPlayerNum();
         // 发送进入等待时间的消息
         broadcastMsgToRoom(notifyRoomReadyWait);
     }
