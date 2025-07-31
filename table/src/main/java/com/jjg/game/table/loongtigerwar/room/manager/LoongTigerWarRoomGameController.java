@@ -94,8 +94,8 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
                     int playerTotalBet = longLongEntry.getValue().stream().mapToInt(Integer::intValue).sum();
                     totalBet += playerTotalBet;
                 }
-                betTableInfo.playerBetTotal = totalBet;
-                betTableInfo.betIdxTotal = playerBet;
+                betTableInfo.playerBetTotal = playerBet;
+                betTableInfo.betIdxTotal = totalBet;
                 betTableInfo.betGoldList = betList;
                 tableAreaInfos.add(betTableInfo);
             }

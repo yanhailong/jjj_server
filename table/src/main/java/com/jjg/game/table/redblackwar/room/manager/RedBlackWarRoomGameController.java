@@ -97,8 +97,8 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
                     int playerTotalBet = longLongEntry.getValue().stream().mapToInt(Integer::intValue).sum();
                     totalBet += playerTotalBet;
                 }
-                betTableInfo.playerBetTotal = totalBet;
-                betTableInfo.betIdxTotal = playerBet;
+                betTableInfo.playerBetTotal = playerBet;
+                betTableInfo.betIdxTotal = totalBet;
                 betTableInfo.betGoldList = betList;
                 tableAreaInfos.add(betTableInfo);
             }
@@ -114,7 +114,7 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
         notifyRedBlackWarInfo.totalPlayerNum = gameDataVo.getGamePlayerMap().size();
         //发送给玩家
         broadcastToPlayers(
-            RoomMessageBuilder.newBuilder().addPlayerId(playerController.playerId()).setData(notifyRedBlackWarInfo));
+                RoomMessageBuilder.newBuilder().addPlayerId(playerController.playerId()).setData(notifyRedBlackWarInfo));
     }
 
 
