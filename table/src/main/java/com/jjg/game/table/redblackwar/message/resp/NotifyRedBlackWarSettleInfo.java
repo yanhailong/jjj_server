@@ -33,9 +33,6 @@ public class NotifyRedBlackWarSettleInfo extends AbstractNotice {
     @ProtoDesc("获胜状态(1红方胜 2黑方胜)")
     public int winState;
 
-    @ProtoDesc("前6玩家信息")
-    public List<TablePlayerInfo> playerInfos;
-
     @ProtoDesc("玩家结算信息")
     public List<PlayerChangedGold> playerSettleInfos;
 

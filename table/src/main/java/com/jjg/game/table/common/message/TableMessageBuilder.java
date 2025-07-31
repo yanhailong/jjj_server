@@ -131,7 +131,7 @@ public class TableMessageBuilder {
      * 通知场上玩家信息有变化
      */
     public static NotifyTableRoomPlayerInfoChange buildNotifyTableRoomPlayerInfoChange(
-        long changedPlayerId, int sendSize, TableGameDataVo dataVo) {
+            long changedPlayerId, int sendSize, TableGameDataVo dataVo) {
         NotifyTableRoomPlayerInfoChange infoChange = new NotifyTableRoomPlayerInfoChange();
         infoChange.changedPlayerId = changedPlayerId;
         infoChange.tableChangedPlayerInfos = new ArrayList<>();
@@ -149,7 +149,7 @@ public class TableMessageBuilder {
      *
      * @param playerGet 结算的玩家获得的金币
      */
-    public static List<PlayerChangedGold> getPlayerSettleInfos(Map<Long, DefaultKeyValue<Long, Long>> playerGet) {
+    public static List<PlayerChangedGold> getPlayerSettleInfos(Map<Long, DefaultKeyValue<Long, Long>> playerGet, TableGameDataVo gameDataVo) {
         List<PlayerChangedGold> settleInfoArrayList = new ArrayList<>();
         for (Map.Entry<Long, DefaultKeyValue<Long, Long>> entry : playerGet.entrySet()) {
             PlayerChangedGold info = new PlayerChangedGold();
@@ -157,6 +157,10 @@ public class TableMessageBuilder {
             info.playerWinGold = keyValue.getValue() - keyValue.getKey();
             info.playerId = entry.getKey();
             info.playerBetGold = keyValue.getKey();
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(entry.getKey());
+            if (Objects.nonNull(gamePlayer)) {
+                info.playerCurGold = gamePlayer.getGold();
+            }
             settleInfoArrayList.add(info);
         }
         return settleInfoArrayList;
