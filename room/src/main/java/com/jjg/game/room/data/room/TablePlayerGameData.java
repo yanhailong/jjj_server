@@ -19,6 +19,7 @@ public class TablePlayerGameData {
     // 红黑大战玩家本场此押注总金额
     private long totalBet;
 
+
     public void addBetRecord(long getGold) {
         int i = (betInfoList.size() - 20) + 1;
         if (i > 0) {
@@ -30,6 +31,10 @@ public class TablePlayerGameData {
 
     public List<Pair<Boolean, Long>> getBetInfoList() {
         return betInfoList;
+    }
+
+    public long getTotalBet() {
+        return totalBet;
     }
 
     public void addTotalBet(long bet){

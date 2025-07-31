@@ -62,14 +62,12 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         super.phaseDoAction();
         // 清除房间的数据
         clearRoomData();
-        gameDataVo.setCanExitGame(false);
         broadcastMsgToRoom(
             TableMessageBuilder.getNotifyPhaseChangInfo(getGamePhase(), gameDataVo.getPhaseEndTime()));
     }
 
     @Override
     public void phaseFinish() {
-        gameDataVo.setCanExitGame(true);
     }
 
     @Override

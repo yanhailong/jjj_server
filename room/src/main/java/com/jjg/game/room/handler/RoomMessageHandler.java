@@ -7,6 +7,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.listener.RoomEventListener;
 import com.jjg.game.core.pb.ReqExitGame;
 import com.jjg.game.core.pb.ResExitGame;
@@ -16,6 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.Objects;
 
 /**
  * @author 11
@@ -35,15 +38,21 @@ public class RoomMessageHandler {
     @Command(MessageConst.RoomMessage.REQ_EXIT_GAME)
     public void reqExitGame(PlayerController playerController, ReqExitGame req) {
         try {
-            log.debug("退出游戏 playerId = {}", playerController.playerId());
+            long playerId = playerController.playerId();
+            log.debug("退出游戏 playerId = {}", playerId);
             AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-                    roomManager.getGameControllerByPlayerId(playerController.playerId());
-            int code;
-            if (!gameController.getGameDataVo().isCanExitGame()) {
-                code = Code.FORBID;
-            } else {
-                code = playerEventListener.exitGame(playerController);
+                    roomManager.getGameControllerByPlayerId(playerId);
+            if (Objects.isNull(gameController)) {
+                playerController.send(new ResExitGame(Code.PARAM_ERROR));
+                return;
             }
+            GameDataVo<? extends RoomCfg> gameDataVo = gameController.getGameDataVo();
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+            if (Objects.isNull(gamePlayer) || gamePlayer.getTableGameData().getTotalBet() > 0) {
+                playerController.send(new ResExitGame(Code.FORBID));
+                return;
+            }
+            int code = playerEventListener.exitGame(playerController);
             playerController.send(new ResExitGame(code));
         } catch (Exception e) {
             log.error("玩家退出房间异常 msg: {}", e.getMessage(), e);

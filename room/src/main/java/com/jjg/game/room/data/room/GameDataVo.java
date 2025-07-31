@@ -31,8 +31,7 @@ public class GameDataVo<RC extends RoomCfg> {
     protected long phaseEndTime;
     // 每个阶段需要运行的时间
     protected long phaseRunTime;
-    // 是否能退出游戏 true能
-    protected boolean canExitGame;
+
 
     /**
      * 必须初始化的参数是房间配置RoomCfg，如果后续子类添加数据需要在自己的构造函数中添加
@@ -100,15 +99,6 @@ public class GameDataVo<RC extends RoomCfg> {
     public void setStopTime(long stopTime) {
         this.stopTime = stopTime;
     }
-
-    public boolean isCanExitGame() {
-        return canExitGame;
-    }
-
-    public void setCanExitGame(boolean canExitGame) {
-        this.canExitGame = canExitGame;
-    }
-
     public String roomLogInfo(){
         EGameType eGameType = EGameType.getGameByTypeId(roomCfg.getGameID());
         return "游戏类型：" + eGameType.getGameDesc() + " 房间配置ID: " + roomCfg.getId() + " 房间ID: " + roomId;
