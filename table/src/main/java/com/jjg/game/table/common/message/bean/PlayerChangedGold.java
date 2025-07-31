@@ -20,4 +20,7 @@ public class PlayerChangedGold {
 
     @ProtoDesc("玩家场上下注金币")
     public long playerBetGold;
+
+    @ProtoDesc("玩家当前最新的金币")
+    public long playerCurGold;
 }
