@@ -303,6 +303,10 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         roomProcessor = roomManager.getProcessorExecutors().getProcessorById(room.getId());
         // 创建游戏控制器
         gameController = createGameController(new GameDataVo<>(roomCfg));
+        if (gameController == null) {
+            // 没有找到对应的游戏控制器，可能是没有实现对应的游戏控制器，先中断流程
+            throw new RuntimeException("游戏类型：" + roomCfg.getId() + " 未实现游戏控制器");
+        }
         // 空房间检查
         addEmptyRoomCheckTimer();
         // 房间Timer执行tick时间 现在默认 100ms
