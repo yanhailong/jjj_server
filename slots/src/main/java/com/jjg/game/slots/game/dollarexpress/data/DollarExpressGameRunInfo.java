@@ -18,8 +18,6 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
     private long playerId;
     //标准池子中奖倍数
     private int bigPoolTimes;
-    //小池子中奖
-    private Map<Integer,Long> smallPoolRewardMap;
     //玩家之前的金币
     private long beforeGold;
     //总计获得的金币
@@ -181,14 +179,6 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
         this.stake = stake;
     }
 
-    public Map<Integer, Long> getSmallPoolRewardMap() {
-        return smallPoolRewardMap;
-    }
-
-    public void setSmallPoolRewardMap(Map<Integer, Long> smallPoolRewardMap) {
-        this.smallPoolRewardMap = smallPoolRewardMap;
-    }
-
     public List<Long> getInvestRewardGoldList() {
         return investRewardGoldList;
     }
@@ -217,13 +207,6 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
         this.investRewardGold = investRewardGold;
     }
 
-    public void addSmallPoolReward(int poolId,long value) {
-        if(this.smallPoolRewardMap == null) {
-            this.smallPoolRewardMap = new HashMap<>();
-        }
-        this.smallPoolRewardMap.put(poolId,value);
-    }
-
     public long getBeforeGold() {
         return beforeGold;
     }
@@ -245,13 +228,6 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
             this.trainList = new ArrayList<>();
         }
         this.trainList.add(trainInfo);
-    }
-
-    public long getGoldByPoolId(int poolId) {
-        if(this.smallPoolRewardMap == null) {
-            return 0;
-        }
-        return this.smallPoolRewardMap.get(poolId);
     }
 
     public List<Integer> getChoosableAreas() {

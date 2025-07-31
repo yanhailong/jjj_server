@@ -82,13 +82,13 @@ public class SlotsPoolDao extends AbstractPoolDao {
             if(poolDiff > baseRoomCfg.getFakeCommissionProp().get(0)){
                 BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(1)).divide(tenThousandBigDecimal,4, RoundingMode.HALF_UP);
                 long addToFakeValue = BigDecimal.valueOf(value).multiply(prop).longValue();
-                this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, addToFakeValue);
-                log.debug("添加到假奖池1 gameType = {},roomCfgId = {},addToPoolValue = {},addToFakeValue = {}", gameType, roomCfgId,value, addToFakeValue);
+                long afterValue = this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, addToFakeValue);
+                log.debug("添加到假奖池1 gameType = {},roomCfgId = {},addToPoolValue = {},addToFakeValue = {},afterValue = {}", gameType, roomCfgId,value, addToFakeValue,afterValue);
             }else {
                 BigDecimal prop = BigDecimal.valueOf(baseRoomCfg.getFakeCommissionProp().get(2)).divide(tenThousandBigDecimal,4, RoundingMode.HALF_UP);
                 long addToFakeValue = BigDecimal.valueOf(value).multiply(prop).longValue();
-                this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, addToFakeValue);
-                log.debug("添加到假奖池2 gameType = {},roomCfgId = {},addToPoolValue = {},addToFakeValue = {}", gameType, roomCfgId, value,addToFakeValue);
+                long afterValue = this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, addToFakeValue);
+                log.debug("添加到假奖池2 gameType = {},roomCfgId = {},addToPoolValue = {},addToFakeValue = {},afterValue = {}", gameType, roomCfgId, value,addToFakeValue,afterValue);
             }
         }else {
             Number fakePoolValue = (Number)this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, value);

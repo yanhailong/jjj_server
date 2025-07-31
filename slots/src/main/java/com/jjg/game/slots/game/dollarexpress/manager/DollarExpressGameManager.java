@@ -200,7 +200,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             //检查是否触发投资游戏
             gameRunInfo = checkInvers(playerGameData, gameRunInfo);
 
-            Player player = null;
             //标准池
             if (gameRunInfo.getBigPoolTimes() > 0) {
                 long addGold = playerGameData.getLastBet() * gameRunInfo.getBigPoolTimes();
@@ -212,27 +211,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                         return gameRunInfo;
                     }
                     gameRunInfo.setAllWinGold(addGold);
-                    player = result.data;
                 }
-            }
-
-            //小奖池
-            if (gameRunInfo.getSmallPoolRewardMap() != null && !gameRunInfo.getSmallPoolRewardMap().isEmpty()) {
-                Iterator<Map.Entry<Integer, Long>> it = gameRunInfo.getSmallPoolRewardMap().entrySet().iterator();
-                while (it.hasNext()) {
-                    Map.Entry<Integer, Long> en = it.next();
-                    long addGold = en.getValue();
-                    CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_TRAIN_" + en.getKey());
-                    if (!result.success()) {
-                        log.warn("从小池子给玩家添加金币失败 gameType = {},poolId = {}", this.gameType, en.getKey());
-                        it.remove();
-                        continue;
-                    }
-                    player = result.data;
-                    gameRunInfo.addAllWinGold(addGold);
-                }
-
-                gameRunInfo = addTrainPoolGold(gameRunInfo);
             }
 
             //添加美元收集进度
@@ -241,9 +220,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
 
             //玩家当前金币
-            if (player == null) {
-                player = slotsPlayerService.get(playerGameData.playerId());
-            }
+            Player player = slotsPlayerService.get(playerGameData.playerId());
             gameRunInfo.setAfterGold(player.getGold());
 
             //添加大奖展示id
@@ -575,7 +552,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
 
         //格子修改
-        CommonResult<int[]> updateResult = updateGird(libCfgResult.data.getModelId(), SlotsConst.BaseElementReward.ROTATESTATE_NORMAL, resultLibTypeResult.data,gameRunInfo.getIconArr(), resultLib.getAwardLineInfoList(), updateGird);
+        CommonResult<int[]> updateResult = updateGird(libCfgResult.data.getModelId(), SlotsConst.BaseElementReward.ROTATESTATE_NORMAL, resultLibTypeResult.data, gameRunInfo.getIconArr(), resultLib.getAwardLineInfoList(), updateGird);
         if (updateResult.success()) {
             gameRunInfo.setIconArr(updateResult.data);
         }
@@ -585,7 +562,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //计算火车奖励
         gameRunInfo = calTrainReward(playerGameData, resultLib.getTrainList(), gameRunInfo);
         //添加火车信息
-        gameRunInfo = transTrainPbInfo(gameRunInfo,resultLib.getTrainList(), gameRunInfo.getBet());
+//        gameRunInfo = transTrainPbInfo(gameRunInfo, resultLib.getTrainList(), gameRunInfo.getBet());
 
         //添加中奖线信息
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), gameRunInfo.getBet()));
@@ -639,7 +616,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //计算火车奖励
         gameRunInfo = calTrainReward(playerGameData, trainLib.getTrainList(), gameRunInfo);
         //添加火车信息
-        gameRunInfo = transTrainPbInfo(gameRunInfo,trainLib.getTrainList(), gameRunInfo.getBet());
+//        gameRunInfo = transTrainPbInfo(gameRunInfo, trainLib.getTrainList(), gameRunInfo.getBet());
 
         gameRunInfo.setBigPoolTimes(trainLib.getTimes());
 
@@ -688,7 +665,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         gameRunInfo.setIconArr(goldTrainLib.getIconArr());
 
         //格子修改
-        CommonResult<int[]> updateResult = updateGird(playerGameData.getLastModelId(), SlotsConst.BaseElementReward.ROTATESTATE_AGAIN, SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN,goldTrainLib.getIconArr(), goldTrainLib.getAwardLineInfoList(), updateGird);
+        CommonResult<int[]> updateResult = updateGird(playerGameData.getLastModelId(), SlotsConst.BaseElementReward.ROTATESTATE_AGAIN, SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN, goldTrainLib.getIconArr(), goldTrainLib.getAwardLineInfoList(), updateGird);
         if (updateResult.success()) {
             gameRunInfo.setIconArr(updateResult.data);
         }
@@ -754,7 +731,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //计算火车奖励
         gameRunInfo = calTrainReward(playerGameData, freeGame.getTrainList(), gameRunInfo);
         //添加火车信息
-        gameRunInfo = transTrainPbInfo(gameRunInfo,freeGame.getTrainList(), gameRunInfo.getBet());
+//        gameRunInfo = transTrainPbInfo(gameRunInfo, freeGame.getTrainList(), gameRunInfo.getBet());
         //添加中奖线信息
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), gameRunInfo.getBet()));
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
@@ -796,7 +773,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         gameRunInfo.setIconArr(goldTrainLib.getIconArr());
 
         //格子修改
-        CommonResult<int[]> updateResult = updateGird(playerGameData.getLastModelId(), SlotsConst.BaseElementReward.ROTATESTATE_AGAIN, SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN,goldTrainLib.getIconArr(), goldTrainLib.getAwardLineInfoList(), updateGird);
+        CommonResult<int[]> updateResult = updateGird(playerGameData.getLastModelId(), SlotsConst.BaseElementReward.ROTATESTATE_AGAIN, SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN, goldTrainLib.getIconArr(), goldTrainLib.getAwardLineInfoList(), updateGird);
         if (updateResult.success()) {
             gameRunInfo.setIconArr(updateResult.data);
         }
@@ -823,6 +800,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         BigDecimal bet = BigDecimal.valueOf(betValue);
+        log.debug("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.playerId(), betValue, result.data.getGold());
 
         //给标准池子加钱
         BigDecimal toBigPoolProp = BigDecimal.valueOf(baseRoomCfg.getInitBasePoolProportion()).divide(tenThousandBigDecimal, 4, BigDecimal.ROUND_HALF_UP);
@@ -838,7 +816,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         if (toSmallPoolGold > 0) {
             long poolCoin = slotsPoolDao.addToSmallPool(this.gameType, gameData.getRoomCfgId(), toSmallPoolGold);
             gameData.addAllBet(poolCoin);
-            log.debug("给小池子加钱成功 gameType = {},roomCfgId = {},add = {},afterGold = {}", gameData.getGameType(), gameData.getRoomCfgId(), toSmallPoolGold, poolCoin);
+            long contribtGold = gameData.addContribtPoolGold(poolCoin);
+            log.debug("给小池子加钱成功 gameType = {},roomCfgId = {},add = {},afterGold = {},contribtGold={}", gameData.getGameType(), gameData.getRoomCfgId(), toSmallPoolGold, poolCoin, contribtGold);
         }
         return result;
     }
@@ -875,7 +854,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                     continue;
                 }
                 //格式修改算法
-                if(!checkUpdateType(cfg.getGirdUpdateType(),libType)){
+                if (!checkUpdateType(cfg.getGirdUpdateType(), libType)) {
                     continue;
                 }
                 GirdUpdateConfig config = this.girdUpdateConfigMap.get(cfg.getId());
@@ -930,7 +909,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                         break;
                     }
 
-                    if(cloumnPropInfo.getSum() < 1){
+                    if (cloumnPropInfo.getSum() < 1) {
                         break;
                     }
                     //先随机一列
@@ -1023,7 +1002,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
         }
 
-        log.debug("当前美金数量 count = {},values = {},allDollarTimes = {}", dollarsInfo.dollarIndexIds == null ? 0 : dollarsInfo.dollarIndexIds.size(), dollarsInfo.dollarValueList, gameRunInfo.getDollarsGoldTimes());
+        log.debug("本局出现美金数量 count = {},values = {},allDollarTimes = {}", dollarsInfo.dollarIndexIds == null ? 0 : dollarsInfo.dollarIndexIds.size(), dollarsInfo.dollarValueList, gameRunInfo.getDollarsGoldTimes());
 
         //如果盘面中出现美金,且有保险箱，则会触发现金奖励
         if (dollarsInfo.dollarIndexIds != null && !dollarsInfo.dollarIndexIds.isEmpty()) {
@@ -1067,7 +1046,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
             TrainInfo goldTrainInfo = goldTrainPbInfo(goldTrainCount, gameRunInfo.getDollarsGoldTimes() * gameData.getLastBet());
             gameRunInfo.addTrainInfo(goldTrainInfo);
-            log.debug("添加黄金列车倍数 playerId = {},times = {},lastBet = {},train = {}", gameData.playerId(), times, gameData.getLastBet(),JSON.toJSONString(goldTrainInfo));
+            log.debug("添加黄金列车倍数 playerId = {},times = {},lastBet = {},train = {}", gameData.playerId(), times, gameData.getLastBet(), JSON.toJSONString(goldTrainInfo));
         }
 
         //设置保险箱倍数
@@ -1186,49 +1165,59 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             return gameRunInfo;
         }
 
-        boolean match = trainList.stream().anyMatch(t -> t.getPoolId() > 0);
-        if (!match) {
-            return gameRunInfo;
-        }
-
-        //获取玩家累计贡献金额
-        long contribt = playerGameData.getAllContribtPoolGold(playerGameData.getRoomCfgId());
-        if (contribt < 1) {
-            return gameRunInfo;
-        }
-
-        log.debug("玩家累计贡献金额 playerId = {},contribtGold = {}", playerGameData.playerId(), contribt);
-
-        //真奖池
-        Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
-        if (smallPoolNumber == null) {
-            log.debug("获取小池子金额为空 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
-            return gameRunInfo;
-        }
-        //假奖池
-        Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
-        if (fakeSmallPoolNumber == null) {
-            log.debug("获取(假)小池子金额为空 playerId = {},roomCfgId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId());
-            return gameRunInfo;
-        }
-
-        //当真奖池 >= 假奖池时，才允许中奖
-        long smallPool = smallPoolNumber.longValue();
-        long fakeSmallPool = fakeSmallPoolNumber.longValue();
-
-        if (smallPool < fakeSmallPool) {
-            log.debug("真奖池小于假奖池，不允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
-            return gameRunInfo;
-        }
-
-        BigDecimal pool = BigDecimal.valueOf(smallPoolNumber.longValue());
-
         for (Train t : trainList) {
-            PoolCfg poolCfg = GameDataManager.getPoolCfg(t.getPoolId());
+            //首先转化成消息结构体
+            TrainInfo trainInfo = transTrainPbInfo(t, gameRunInfo.getBet());
+            gameRunInfo.addTrainInfo(trainInfo);
+
+            //获取玩家累计贡献金额
+            long contribt = playerGameData.getAllContribtPoolGold();
+            if (contribt < 1) {
+                break;
+            }
+            log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},trainCoinId = {}", playerGameData.playerId(), contribt, t.getTrainIconId());
+
+            //真奖池
+            Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
+            if (smallPoolNumber == null) {
+                log.debug("获取小池子金额为空 playerId = {},roomCfgId = {},trainCoinId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), t.getTrainIconId());
+                break;
+            }
+            //假奖池
+            Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
+            if (fakeSmallPoolNumber == null) {
+                log.debug("获取(假)小池子金额为空 playerId = {},roomCfgId = {},trainCoinId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), t.getTrainIconId());
+                break;
+            }
+
+            //当真奖池 >= 假奖池时，才允许中奖
+            long smallPool = smallPoolNumber.longValue();
+            long fakeSmallPool = fakeSmallPoolNumber.longValue();
+
+            if (smallPool < fakeSmallPool) {
+                log.debug("真奖池小于假奖池，不允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
+                break;
+            }
+
+            log.debug("真奖池大于假奖池，允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
+            BigDecimal pool = BigDecimal.valueOf(smallPoolNumber.longValue());
+
+            int poolId = getPoolIdByTrain(t.getTrainIconId());
+            if (poolId < 1) {
+                log.debug("获取的池子id小于1 trainCoinId = {},poolId = {}", t.getTrainIconId(), poolId);
+                continue;
+            }
+            PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+            if (poolCfg == null) {
+                log.debug("获取的池子配置为空 trainCoinId = {},poolId = {}", t.getTrainIconId(), poolId);
+                continue;
+            }
             //中奖概率,这里保留了8位，所以最后可以取int值
             int propV = BigDecimal.valueOf(contribt).divide(pool, 8, BigDecimal.ROUND_HALF_UP).divide(BigDecimal.valueOf(poolCfg.getPoolProp()), 8, BigDecimal.ROUND_HALF_UP).multiply(oneHundredMillionBigDecimal).intValue();
             int rand = RandomUtils.randomInt(oneHundredMillion);
+            rand = 1;
             if (rand >= propV) {
+                log.debug("随机概率，未中奖 rand = {},propV = {}", rand, propV);
                 continue;
             }
             //奖池初始金额
@@ -1246,10 +1235,24 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             BigDecimal step1 = BigDecimal.valueOf(y).divide(intervalTime, 4, RoundingMode.HALF_UP);
             BigDecimal step2 = step1.multiply(prop);
             BigDecimal step3 = step2.multiply(initPoolBigDecimal);
-            BigDecimal addGold = initPoolBigDecimal.add(step3);
+            long addGold = initPoolBigDecimal.add(step3).longValue();
 
-            gameRunInfo.addSmallPoolReward(t.getPoolId(), addGold.longValue());
             log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},intervalTime = {},y = {},addGold = {}", playerGameData.playerId(), rand, propV, intervalTime, y, addGold);
+
+            //给玩家加钱
+            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_TRAIN_" + pool);
+            if (!result.success()) {
+                log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
+                break;
+            }
+
+            //缓存中奖金额,以便计算玩家贡献金额
+            playerGameData.addSmallPoolReward(addGold);
+
+            trainInfo.goldList.add(addGold);
+            trainInfo.poolId = poolId;
+//            gameRunInfo.addSmallPoolReward(poolCfg.getId(), addGold);
+            log.debug("该火车中奖，并且加钱成功 playerId = {},addGold = {}", playerGameData.playerId(), addGold);
         }
         return gameRunInfo;
     }
@@ -1397,30 +1400,20 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     /**
      * 将库里面的火车信息转化为消息
      *
-     * @param trainList
+     * @param train
      * @param bet
      * @return
      */
-    private DollarExpressGameRunInfo transTrainPbInfo(DollarExpressGameRunInfo gameRunInfo,List<Train> trainList, long bet) {
-        if (trainList == null || trainList.isEmpty()) {
-            return gameRunInfo;
-        }
-
-        for (Train t : trainList) {
-            TrainInfo trainInfo = new TrainInfo();
-            trainInfo.type = t.getTrainIconId();
-            if (t.getCoachs() != null && !t.getCoachs().isEmpty()) {
-                trainInfo.goldList = new ArrayList<>(t.getCoachs().size());
-                for (int[] arr : t.getCoachs()) {
-                    if (arr[1] < DollarExpressConstant.Common.MINI_POOL_ID) {
-                        trainInfo.goldList.add(bet * arr[1]);
-                    }
-                }
+    private TrainInfo transTrainPbInfo(Train train, long bet) {
+        TrainInfo trainInfo = new TrainInfo();
+        trainInfo.type = train.getTrainIconId();
+        if (train.getCoachs() != null && !train.getCoachs().isEmpty()) {
+            trainInfo.goldList = new ArrayList<>(train.getCoachs().size());
+            for (int[] arr : train.getCoachs()) {
+                trainInfo.goldList.add(bet * arr[1]);
             }
-            trainInfo.poolId = t.getPoolId();
-            gameRunInfo.addTrainInfo(trainInfo);
         }
-        return gameRunInfo;
+        return trainInfo;
     }
 
     private TrainInfo goldTrainPbInfo(int goldTrainCount, long gold) {
@@ -1433,36 +1426,31 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         return goldTrainInfo;
     }
 
-    private DollarExpressGameRunInfo addTrainPoolGold(DollarExpressGameRunInfo gameRunInfo) {
-        if (gameRunInfo.getTrainList() == null || gameRunInfo.getTrainList().isEmpty()) {
-            return gameRunInfo;
-        }
-
-        for (TrainInfo trainInfo : gameRunInfo.getTrainList()) {
-            if (trainInfo.poolId < 1) {
-                continue;
-            }
-            long gold = gameRunInfo.getGoldByPoolId(trainInfo.poolId);
-            if (gold < 0) {
-                continue;
-            }
-            if (trainInfo.goldList == null) {
-                trainInfo.goldList = new ArrayList<>();
-            }
-            trainInfo.goldList.add(gold);
-        }
-        return gameRunInfo;
-    }
-
-    private boolean checkUpdateType(int updateType,int libType){
-        if(libType == SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN){
+    private boolean checkUpdateType(int updateType, int libType) {
+        if (libType == SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN) {
             return updateType == SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT_2;
         }
 
-        if(libType == SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN){
+        if (libType == SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN) {
             return updateType == SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT;
         }
         return false;
+    }
+
+    private int getPoolIdByTrain(int train) {
+        if (train == DollarExpressConstant.BaseElement.ID_GREEN_TRAIN) {
+            return 100100101;
+        }
+        if (train == DollarExpressConstant.BaseElement.ID_BLUE_TRAIN) {
+            return 100100102;
+        }
+        if (train == DollarExpressConstant.BaseElement.ID_PURPLE_TRAIN) {
+            return 100100103;
+        }
+        if (train == DollarExpressConstant.BaseElement.ID_RED_TRAIN) {
+            return 100100104;
+        }
+        return 0;
     }
 
     @Override

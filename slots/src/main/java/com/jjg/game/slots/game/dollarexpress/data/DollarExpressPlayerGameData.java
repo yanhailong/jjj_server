@@ -2,10 +2,7 @@ package com.jjg.game.slots.game.dollarexpress.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -165,16 +162,15 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
 
     /**
      * 获取玩家对奖池的累计贡献金额
-     * @param roomCfgId
      * @return
      */
-    public long getAllContribtPoolGold(int roomCfgId) {
+    public long getAllContribtPoolGold() {
         if(this.contribtPoolGoldMap == null || this.contribtPoolGoldMap.isEmpty()){
             return 0;
         }
 
         //总累计
-        Long contribtGold = this.contribtPoolGoldMap.get(roomCfgId);
+        Long contribtGold = this.contribtPoolGoldMap.get(this.roomCfgId);
         if(contribtGold == null){
             return 0;
         }
@@ -183,11 +179,18 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
             return contribtGold;
         }
         //总获得
-        Long rewardGold = this.rewardPoolGoldMap.get(roomCfgId);
+        Long rewardGold = this.rewardPoolGoldMap.get(this.roomCfgId);
         if(rewardGold == null){
             return contribtGold;
         }
         return contribtGold - rewardGold;
+    }
+
+    public long addContribtPoolGold(long value){
+        if(this.contribtPoolGoldMap == null){
+            this.contribtPoolGoldMap = new HashMap<>();
+        }
+        return this.contribtPoolGoldMap.merge(this.roomCfgId, value, Long::sum);
     }
 
     public void addTestIconsData(TestLibData testLibData) {
@@ -283,5 +286,12 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
 
     public void setAllUnLock(AtomicBoolean allUnLock) {
         this.allUnLock = allUnLock;
+    }
+
+    public long addSmallPoolReward(long gold){
+        if(this.rewardPoolGoldMap == null){
+            this.rewardPoolGoldMap = new HashMap<>();
+        }
+        return this.rewardPoolGoldMap.merge(this.roomCfgId, gold, Long::sum);
     }
 }

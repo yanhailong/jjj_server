@@ -313,8 +313,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     }
 
     public void addGenerateLibEvent(int count) {
-        this.clearAllLibEvent = new TimerEvent<>(this, 1, "generateLibEvent_" + count).withTimeUnit(TimeUnit.MINUTES);
-        this.timerCenter.add(this.clearAllLibEvent);
+        this.generateLibEvent = new TimerEvent<>(this, 10, "generateLibEvent_" + count).withTimeUnit(TimeUnit.SECONDS);
+        this.timerCenter.add(this.generateLibEvent);
     }
 
     @Override
