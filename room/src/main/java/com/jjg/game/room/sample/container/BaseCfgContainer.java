@@ -1234,9 +1234,13 @@ public abstract class BaseCfgContainer<T extends BaseCfgBean> {
         String cellValue = getCellValue(cell);
         cellVal = cellValue.trim();
       }
-      if (colNum == 0 && isEmptyString(cellVal)) {
+
+      if (colNum == 0 && isEmptyString(cellVal) && rowNum == getFieldTypeRow()) {
         // 兼容第一行不填的情况默认为int
         cellVal = "int";
+      } else if (colNum == 0 && rowNum == getFieldNameRow()) {
+        // 兼容id字段，首行id都为小写
+        cellVal = cellVal.toLowerCase();
       }
       return cellVal;
     }

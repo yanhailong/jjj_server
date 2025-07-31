@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName warehouse.xlsx
  * @sheetName Warehouse
  * @author Auto.Generator
- * @date 2025年07月31日 14:48:30
+ * @date 2025年07月31日 16:29:11
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class WarehouseCfg extends BaseCfgBean {
