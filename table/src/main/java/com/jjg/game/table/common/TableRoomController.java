@@ -3,6 +3,7 @@ package com.jjg.game.table.common;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.data.BetTableRoom;
 import com.jjg.game.room.controller.AbstractRoomController;
+import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 
 /**
@@ -14,5 +15,12 @@ public class TableRoomController extends AbstractRoomController<Room_BetCfg, Bet
 
     public TableRoomController(Class<? extends RoomPlayer> roomPlayerClazz, BetTableRoom room) {
         super(roomPlayerClazz, room);
+    }
+
+    @Override
+    public void reloadRoomCfg() {
+        // 重载配置表引用
+        roomCfg = GameDataManager.getRoom_BetCfg(room.getRoomCfgId());
+        gameController.getGameDataVo().reloadRoomCfg();
     }
 }

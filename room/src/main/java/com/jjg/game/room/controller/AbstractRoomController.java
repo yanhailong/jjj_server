@@ -72,9 +72,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     /**
      * 通过配置创建游戏controller
      *
-     * @param gameDataVo 配置
+     * @param roomCfg 配置
      */
-    public <RD extends GameDataVo<RC>> AbstractGameController<RC, RD> createGameController(GameDataVo<RC> gameDataVo) {
+    public <RD extends GameDataVo<RC>> AbstractGameController<RC, RD> createGameController(RC roomCfg) {
         Set<Class<? extends AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> gameControllerClazz =
             roomManager.getGameControllerClazz();
         try {
@@ -82,12 +82,12 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 gameControllerClazz) {
                 GameController gameAnnotateController = controllerClazz.getAnnotation(GameController.class);
                 EGameType games = gameAnnotateController.gameType();
-                if (games.getGameTypeId() == gameDataVo.getRoomCfg().getGameID()) {
+                if (games.getGameTypeId() == roomCfg.getGameID()) {
                     Constructor<AbstractGameController<RC, RD>> constructor =
                         (Constructor<AbstractGameController<RC, RD>>) controllerClazz.getDeclaredConstructor(AbstractRoomController.class);
                     // 将调用当前方法的RoomController写入GameController中
                     AbstractGameController<RC, RD> gameController = constructor.newInstance(this);
-                    RD roomDataVoCopied = gameController.copyRoomDataVo(gameDataVo);
+                    RD roomDataVoCopied = gameController.createRoomDataVo(roomCfg);
                     roomDataVoCopied.setRoomId(room.getId());
                     gameController.setGameDataVo(roomDataVoCopied);
                     gameController.initTimerCenter(timerCenter);
@@ -303,7 +303,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         // 当前房间的线程实例，用于投递一些异步任务
         roomProcessor = roomManager.getProcessorExecutors().getProcessorById(room.getId());
         // 创建游戏控制器
-        gameController = createGameController(new GameDataVo<>(roomCfg));
+        gameController = createGameController(roomCfg);
         if (gameController == null) {
             // 没有找到对应的游戏控制器，可能是没有实现对应的游戏控制器，先中断流程
             throw new RuntimeException("游戏类型：" + roomCfg.getId() + " 未实现游戏控制器");
@@ -579,6 +579,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     public void setRoomCfg(RC roomCfg) {
         this.roomCfg = roomCfg;
     }
+
+    /** 重新获取房间配置 */
+    public abstract void reloadRoomCfg();
 
     public boolean isStoping() {
         return isStoping;

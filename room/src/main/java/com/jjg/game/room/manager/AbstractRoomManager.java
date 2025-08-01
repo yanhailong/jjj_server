@@ -12,6 +12,7 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.AbstractRoomDao;
 import com.jjg.game.core.dao.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.utils.ReflectionTool;
@@ -21,6 +22,8 @@ import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.RoomCfg;
+import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.room.sample.bean.Room_ChessCfg;
 import com.jjg.game.room.services.RobotService;
 import com.jjg.game.room.timer.RoomTimerCenter;
 import jakarta.annotation.PostConstruct;
@@ -45,7 +48,7 @@ import java.util.stream.Collectors;
  * @author 11
  * @date 2025/6/25 10:19
  */
-public abstract class AbstractRoomManager implements ApplicationContextAware {
+public abstract class AbstractRoomManager implements ApplicationContextAware, ConfigExcelChangeListener {
     protected final Logger log = LoggerFactory.getLogger(getClass());
     // 房间管理器是否处于房间关闭流程中
     private boolean isRoomStopping = false;
@@ -685,5 +688,24 @@ public abstract class AbstractRoomManager implements ApplicationContextAware {
 
     public void setRoomStopping(boolean roomStopping) {
         isRoomStopping = roomStopping;
+    }
+
+    @Override
+    public void changeSampleCallbackCollector() {
+        addChangeSampleFileObserveWithCallBack(Room_BetCfg.EXCEL_NAME, this::reloadRoomCfgRef)
+            .addChangeSampleFileObserveWithCallBack(Room_ChessCfg.EXCEL_NAME, this::reloadRoomCfgRef);
+    }
+
+    /**
+     * 更新房间中的配置引用
+     */
+    private void reloadRoomCfgRef() {
+        List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
+            roomControllerMap.values().stream().map(Map::values)
+                .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll);
+        for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : roomControllers) {
+            roomController.reloadRoomCfg();
+        }
+        log.info("更新房间控制器中的配置引用成功！数量：{}", roomControllers.size());
     }
 }

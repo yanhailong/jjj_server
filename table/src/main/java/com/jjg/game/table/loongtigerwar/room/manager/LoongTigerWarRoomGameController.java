@@ -57,8 +57,8 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
 
 
     @Override
-    protected LoongTigerWarGameDataVo copyRoomDataVo(GameDataVo<Room_BetCfg> roomData) {
-        return new LoongTigerWarGameDataVo(roomData.getRoomCfg());
+    protected LoongTigerWarGameDataVo createRoomDataVo(Room_BetCfg roomCfg) {
+        return new LoongTigerWarGameDataVo(roomCfg);
     }
 
     @Override

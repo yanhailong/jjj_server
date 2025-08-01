@@ -43,14 +43,14 @@ public interface ConfigExcelChangeListener {
     /**
      * 获取配置表监听的回调收集器
      */
-    default Map<String, List<DefaultCallback>> getCallbackCollector() {
+    static Map<String, List<DefaultCallback>> getCallbackCollector() {
         return CALLBACK_COLLECTOR;
     }
 
     /**
      * 获取配置表监听的回调收集器
      */
-    default Map<String, List<DefaultCallback>> getChangeCallbackCollector() {
+    static Map<String, List<DefaultCallback>> getChangeCallbackCollector() {
         return CHANGE_CALLBACK_COLLECTOR;
     }
 

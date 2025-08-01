@@ -53,8 +53,8 @@ public class AnimalsGameController extends BaseTableGameController<AnimalsGameDa
     }
 
     @Override
-    protected AnimalsGameDataVo copyRoomDataVo(GameDataVo<Room_BetCfg> roomData) {
-        return new AnimalsGameDataVo(roomData.getRoomCfg());
+    protected AnimalsGameDataVo createRoomDataVo(Room_BetCfg roomCfg) {
+        return new AnimalsGameDataVo(roomCfg);
     }
 
     @Override

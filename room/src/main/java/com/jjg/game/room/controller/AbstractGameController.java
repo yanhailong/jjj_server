@@ -18,8 +18,6 @@ import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.sample.GameDataManager;
-import com.jjg.game.room.sample.bean.RobotCfg;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomPhaseTimeEvent;
@@ -213,7 +211,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 通过初始的RoomDataVo基类，子类自行实例化符合当前的类的VO对象
      */
-    protected abstract G copyRoomDataVo(GameDataVo<RC> roomData);
+    protected abstract G createRoomDataVo(RC roomCfg);
 
     /**
      * 游戏的单轮的所有的阶段都完成了调用

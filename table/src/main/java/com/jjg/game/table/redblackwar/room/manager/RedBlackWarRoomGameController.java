@@ -60,8 +60,8 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
 
 
     @Override
-    protected RedBlackWarGameDataVo copyRoomDataVo(GameDataVo<Room_BetCfg> roomData) {
-        return new RedBlackWarGameDataVo(roomData.getRoomCfg());
+    protected RedBlackWarGameDataVo createRoomDataVo(Room_BetCfg roomCfg) {
+        return new RedBlackWarGameDataVo(roomCfg);
     }
 
     @Override

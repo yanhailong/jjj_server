@@ -49,7 +49,7 @@ public abstract class AbstractSampleManager implements FileLoader {
             initLoadCacheData();
         } catch (Exception e) {
             log.error("配置表加载异常：{}", e.getMessage(), e);
-            throw new GameSampleException(e.getMessage());
+            throw new GameSampleException(e);
         }
         fileMonitor.addDirectoryObserver(getSamplePath(), this);
 
@@ -117,26 +117,25 @@ public abstract class AbstractSampleManager implements FileLoader {
         String fileName = file.getName();
         if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
             try {
+                Map<String, List<DefaultCallback>> callbackCollector = Collections.EMPTY_MAP;
+                if (change) {
+                    callbackCollector = ConfigExcelChangeListener.getChangeCallbackCollector();
+                }
+                if (callbackCollector.isEmpty()) {
+                    callbackCollector = ConfigExcelChangeListener.getCallbackCollector();
+                }
+                if (callbackCollector.containsKey(fileName)) {
+                    // 执行配置表变化监听回调
+                    callbackCollector.get(fileName).forEach(defaultCallback -> {
+                        log.info("配置表文件：{} 变化，调用配置监听的: {} 重载逻辑", fileName, defaultCallback.getClass().getSimpleName());
+                        defaultCallback.run();
+                    });
+                }
                 // 加载配置文件成功后对应变化的CfgBean类
                 Set<Class<?>> changedSampleSet = reloadSampleOnExcelChange(file);
                 Map<String, ConfigExcelChangeListener> configExcelChangeListeners =
-                        CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
+                    CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
                 List<Class<?>> changedSampleList = changedSampleSet.stream().toList();
-                for (ConfigExcelChangeListener listener : configExcelChangeListeners.values()) {
-                    Map<String, List<DefaultCallback>> callbackCollector = Collections.EMPTY_MAP;
-                    if(change){
-                        callbackCollector = listener.getChangeCallbackCollector();
-                    }
-                    if(callbackCollector.isEmpty()){
-                        callbackCollector = listener.getCallbackCollector();
-                    }
-                    if (callbackCollector.containsKey(fileName)) {
-                        log.info("配置表文件：{} 变化，调用：{} 的重载逻辑",
-                                fileName, listener.getClass().getSimpleName());
-                        // 执行配置表变化监听回调
-                        callbackCollector.get(fileName).forEach(DefaultCallback::run);
-                    }
-                }
                 // 变化的配置文件列表
                 for (Class<?> changedSampleClass : changedSampleList) {
                     // 处理监听
