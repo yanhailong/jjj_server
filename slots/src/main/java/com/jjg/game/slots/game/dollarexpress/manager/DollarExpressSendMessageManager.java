@@ -70,6 +70,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             res.dollarTargetCount = generateManager.getDollarExpressCollectDollarConfig().getMax();
             res.clientRoller = getRollerInfo();
             res.clientFreeRoller = getFreeRollerInfo();
+            res.collectMinStake = generateManager.getDollarExpressCollectDollarConfig().getStakeMin();
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
@@ -190,7 +191,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
     private List<Integer> highlight(ResStartGame res, DollarExpressGameRunInfo gameRunInfo) {
         if (res.status == DollarExpressConstant.Status.NORMAL) {  //普通
             //普通火车
-            boolean normalTrain = res.trainInfoList != null && res.trainInfoList.size() > 1;
+            boolean normalTrain = res.trainInfoList != null && res.trainInfoList.stream().anyMatch(trainInfo -> generateManager.trainId(trainInfo.type));
             //黄金列车
             boolean goldTrain = res.trainInfoList != null && res.trainInfoList.stream().anyMatch(trainInfo -> trainInfo.type == DollarExpressConstant.BaseElement.ID_GOLD_TRAIN);
             //现金奖励

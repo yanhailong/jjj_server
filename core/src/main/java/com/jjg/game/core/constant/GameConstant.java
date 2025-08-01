@@ -32,7 +32,7 @@ public class GameConstant {
         public static final String ENCODING = "UTF-8";
 
         //玩家起始id
-        public static final long playerBeginId = 1000000;
+        public static final long defaultPlayerBeginId = 1000000;
 
         //最小房间id
         public static final int ROOM_ID_MIN = 100000;

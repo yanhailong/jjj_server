@@ -312,9 +312,20 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         return result;
     }
 
-    public void addGenerateLibEvent(int count) {
+    public boolean addGenerateLibEvent(int count) {
+        if(this.generateLibEvent != null){
+            log.debug("当前有未执行的生成结果库任务，所以添加失败 count = {}", count);
+            return false;
+        }
+
+        boolean lock = getResultLibDao().getGenerateLock(this.gameType);
+        if (lock) {
+            log.debug("当前正在执行生成结果库任务，请勿打扰.... count = {}", count);
+            return false;
+        }
         this.generateLibEvent = new TimerEvent<>(this, 10, "generateLibEvent_" + count).withTimeUnit(TimeUnit.SECONDS);
         this.timerCenter.add(this.generateLibEvent);
+        return true;
     }
 
     @Override

@@ -270,6 +270,19 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         return this.redisTemplate.opsForValue().setIfAbsent(generateLockTableName(gameType),true,10, TimeUnit.MINUTES);
     }
 
+    /**
+     * 获取是否加锁
+     * @param gameType
+     * @return
+     */
+    public boolean getGenerateLock(int gameType){
+        Object o = this.redisTemplate.opsForValue().get(generateLockTableName(gameType));
+        if(o == null){
+            return false;
+        }
+        return Boolean.parseBoolean(o.toString());
+    }
+
     public void removeGenerateLock(int gameType){
         this.redisTemplate.delete(generateLockTableName(gameType));
     }

@@ -146,7 +146,6 @@ public class HallMessageHandler implements GmListener {
         WareHouseConfigInfo info =
             wareHouseConfigList.stream().filter(c -> c.wareId == roomCfgId).findFirst().orElse(null);
         if (info == null) {
-
             log.debug("未找到对应的游戏场次配置2，选择场次失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId()
                 , gameType, roomCfgId);
             return new CommonResult<>(Code.NOT_FOUND);

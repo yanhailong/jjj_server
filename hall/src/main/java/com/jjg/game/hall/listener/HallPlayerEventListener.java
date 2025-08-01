@@ -20,7 +20,6 @@ import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.PlayerSessionService;
-import com.jjg.game.core.tool.ConsoleDebugger;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.logger.HallLogger;
 import com.jjg.game.hall.pb.GameListConfig;
@@ -67,7 +66,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     @Autowired
     private PlayerLastGameInfoDao playerLastGameInfoDao;
 
-
     @Override
     public void login(PFSession session, byte[] data) {
         ReqLogin req = ProtostuffUtil.deserialize(data, ReqLogin.class);
@@ -75,10 +73,10 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
         res.playerId = req.playerId;
         try {
             log.debug("大厅节点收到校验token的请求 playerId = {},token = {}", req.playerId, req.token);
-            if (req.playerId < GameConstant.Common.playerBeginId) {
+            if (req.playerId < GameConstant.Common.defaultPlayerBeginId) {
                 res.code = Code.ERROR_REQ;
                 session.send(res);
-                log.debug("玩家id不能小于{},登录失败,reqPlayerId={}", GameConstant.Common.playerBeginId, req.playerId);
+                log.debug("玩家id不能小于{},登录失败,reqPlayerId={}", GameConstant.Common.defaultPlayerBeginId, req.playerId);
                 session.verifyPassFail();
                 return;
             }

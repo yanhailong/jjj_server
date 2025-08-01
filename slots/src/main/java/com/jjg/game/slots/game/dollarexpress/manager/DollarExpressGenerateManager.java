@@ -13,6 +13,7 @@ import com.jjg.game.slots.sample.bean.*;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 /**
@@ -20,7 +21,7 @@ import java.util.*;
  * @date 2025/7/7 18:28
  */
 @Component
-public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<DollarExpressAwardLineInfo,DollarExpressResultLib> {
+public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<DollarExpressAwardLineInfo, DollarExpressResultLib> {
     public DollarExpressGenerateManager() {
         super(DollarExpressResultLib.class);
     }
@@ -42,6 +43,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 
     /**
      * 添加中奖线信息
+     *
      * @param baseLineCfg
      * @param rewardCfg
      * @param sameCount
@@ -51,8 +53,8 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @return
      */
     @Override
-    protected DollarExpressAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg,BaseElementRewardCfg rewardCfg,int sameCount,
-                                                          int baseIconId,List<Integer> lineList,int[] arr) {
+    protected DollarExpressAwardLineInfo addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount,
+                                                          int baseIconId, List<Integer> lineList, int[] arr) {
         DollarExpressAwardLineInfo awardLineInfo = new DollarExpressAwardLineInfo();
         awardLineInfo.setId(baseLineCfg.getLineId());
         awardLineInfo.setBaseTimes(rewardCfg.getBet());
@@ -135,17 +137,17 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 }
 
                 //出现的元素种类数
-                if(!checkIconTypes(iconId,iconShowCountMap)){
+                if (!checkIconTypes(iconId, iconShowCountMap)) {
                     continue;
                 }
 
-                if(trainId(iconId)){
+                if (trainId(iconId)) {
                     int forCount = showCount - 1;
-                    for(int i=0;i<forCount;i++){
-                        lib = triggerMiniGame(lib, iconId, miniGameId, rotateState,libList,index);
+                    for (int i = 0; i < forCount; i++) {
+                        lib = triggerMiniGame(lib, iconId, miniGameId, rotateState, libList, index);
                     }
-                }else {
-                    lib = triggerMiniGame(lib, iconId, miniGameId, rotateState,libList,index);
+                } else {
+                    lib = triggerMiniGame(lib, iconId, miniGameId, rotateState, libList, index);
                 }
             }
         }
@@ -206,10 +208,11 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 
     /**
      * 检查保险箱图标个数
+     *
      * @param arr
-     * @return  坐标
+     * @return 坐标
      */
-    public int checkSafeBoxCount(int[] arr){
+    public int checkSafeBoxCount(int[] arr) {
         for (int coloumnId : this.dollarCashConfig.getSafeBoxIconIdShowColumn()) {
             int index = (coloumnId - 1) * this.baseInitCfg.getRows() + 1;
             for (int i = 0; i < this.baseInitCfg.getRows(); i++) {
@@ -229,7 +232,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @param iconArr
      * @return
      */
-    public List<int[]> checkGoldTrain(int count,int[] iconArr,int coachs) {
+    public List<int[]> checkGoldTrain(int count, int[] iconArr, int coachs) {
         if (this.dollarCashConfig == null) {
             return null;
         }
@@ -237,7 +240,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         boolean goldTrain = false;
         int index = (this.baseInitCfg.getCols() - 1) * this.baseInitCfg.getRows() + 1;
         for (int i = 0; i < this.baseInitCfg.getRows(); i++) {
-            int iconId = iconArr[index+i];
+            int iconId = iconArr[index + i];
             if (iconId == DollarExpressConstant.BaseElement.ID_GOLD_TRAIN) {
                 goldTrain = true;
                 break;
@@ -264,6 +267,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 
     /**
      * 处理奖励C
+     *
      * @param lib
      * @param freeAwardRealData
      * @param iconId
@@ -304,20 +308,21 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 
     /**
      * 处理投资游戏中选中3个地图开奖
+     *
      * @param idList
      * @return
      */
-    public InversGoldTrainRewardData handInversGoldTrainReward(List<Integer> idList){
+    public InversGoldTrainRewardData handInversGoldTrainReward(List<Integer> idList) {
         InversGoldTrainRewardData data = new InversGoldTrainRewardData();
 
-        for(int rewardId : idList){
+        for (int rewardId : idList) {
             SpecialAuxiliaryAwardCfg specialAuxiliaryAwardCfg = GameDataManager.getSpecialAuxiliaryAwardCfg(rewardId);
-            if(specialAuxiliaryAwardCfg == null){
+            if (specialAuxiliaryAwardCfg == null) {
                 log.debug("未找到该奖励配置 rewardId = {}", rewardId);
                 continue;
             }
             AuxiliaryAwardType auxiliaryAwardType = AuxiliaryAwardType.getType(specialAuxiliaryAwardCfg.getType());
-            if(auxiliaryAwardType == AuxiliaryAwardType.GOLD){
+            if (auxiliaryAwardType == AuxiliaryAwardType.GOLD) {
                 PropAndAwardInfo<SpecialAuxiliaryAwardC> specialAuxiliaryAwardCPropAndAwardInfo = this.specialAuxiliaryAwardInfoMapC.get(specialAuxiliaryAwardCfg.getId());
                 PropInfo propInfo = specialAuxiliaryAwardCPropAndAwardInfo.getPropInfo(specialAuxiliaryAwardCfg.getId());
                 Integer key = propInfo.getRandKey();
@@ -329,7 +334,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 SpecialAuxiliaryAwardC awardCInfo = specialAuxiliaryAwardCPropAndAwardInfo.getAwardInfo(key);
                 data.addTimes(awardCInfo.getTimes());
 
-            }else if(auxiliaryAwardType == AuxiliaryAwardType.GOLD_PROP){
+            } else if (auxiliaryAwardType == AuxiliaryAwardType.GOLD_PROP) {
                 PropInfo propInfo = this.specialAuxiliaryAwardInfoMapA.get(specialAuxiliaryAwardCfg.getId());
 
                 Integer key = propInfo.getRandKey();
@@ -351,16 +356,16 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @param rotateState
      * @return
      */
-    protected DollarExpressResultLib triggerGoldProp(DollarExpressResultLib slotsResultLib, int count, int rotateState,int awardData,int index) {
+    protected DollarExpressResultLib triggerGoldProp(DollarExpressResultLib slotsResultLib, int count, int rotateState, int awardData, int index) {
         if (rotateState == SlotsConst.BaseElementReward.ROTATESTATE_FREE) {
             int[] iconArr = slotsResultLib.getFreeGameMap().get(index).getIconArr();
-            slotsResultLib.addFreeGameGoldTrainCount(index,checkGoldTrain(count,  iconArr,awardData));
+            slotsResultLib.addFreeGameGoldTrainCount(index, checkGoldTrain(count, iconArr, awardData));
         } else if (rotateState == SlotsConst.BaseElementReward.ROTATESTATE_AGAIN) {
             int[] iconArr = slotsResultLib.getAgainGameMap().get(index).getIconArr();
-            slotsResultLib.addAgainGameGoldTrainCount(index,checkGoldTrain(count,  iconArr,awardData));
+            slotsResultLib.addAgainGameGoldTrainCount(index, checkGoldTrain(count, iconArr, awardData));
         } else {
-            List<int[]> list = checkGoldTrain(count, slotsResultLib.getIconArr(),awardData);
-            if(list != null && !list.isEmpty()){
+            List<int[]> list = checkGoldTrain(count, slotsResultLib.getIconArr(), awardData);
+            if (list != null && !list.isEmpty()) {
                 int[] arr = list.get(0);
                 slotsResultLib.setGoldTrainCount(arr[1]);
                 slotsResultLib.setGoldTrainAllTimes(arr[0]);
@@ -380,11 +385,11 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @return
      */
     protected DollarExpressResultLib triggerFreeGame(DollarExpressResultLib slotsResultLib,
-                                                   List<int[]> specialAuxiliaryAwardDataList,
-                                                   SpecialAuxiliaryCfg specialAuxiliaryCfg,
-                                                   int count,
-                                                   int rotateState,
-                                                   List<DollarExpressResultLib> libList) throws Exception {
+                                                     List<int[]> specialAuxiliaryAwardDataList,
+                                                     SpecialAuxiliaryCfg specialAuxiliaryCfg,
+                                                     int count,
+                                                     int rotateState,
+                                                     List<DollarExpressResultLib> libList) throws Exception {
         int[] arr1 = specialAuxiliaryAwardDataList.get(0);
         int[] arr2 = specialAuxiliaryAwardDataList.get(1);
 
@@ -429,7 +434,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             tempLib.addFreeGame(i, arr, awardLineInfoList);
 
             //检查特殊奖励
-            tempLib = specialAward(arr, tempLib, SlotsConst.BaseElementReward.ROTATESTATE_FREE,libList,i);
+            tempLib = specialAward(arr, tempLib, SlotsConst.BaseElementReward.ROTATESTATE_FREE, libList, i);
         }
         return slotsResultLib;
     }
@@ -444,11 +449,11 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @return
      */
     protected DollarExpressResultLib triggerAgainGame(DollarExpressResultLib slotsResultLib,
-                                                    List<int[]> specialAuxiliaryAwardDataList,
-                                                    SpecialAuxiliaryCfg specialAuxiliaryCfg,
-                                                    int count,
-                                                    int rotateState,
-                                                    List<DollarExpressResultLib> libList) throws Exception {
+                                                      List<int[]> specialAuxiliaryAwardDataList,
+                                                      SpecialAuxiliaryCfg specialAuxiliaryCfg,
+                                                      int count,
+                                                      int rotateState,
+                                                      List<DollarExpressResultLib> libList) throws Exception {
         int[] arr1 = specialAuxiliaryAwardDataList.get(0);
         int[] arr2 = specialAuxiliaryAwardDataList.get(1);
 
@@ -492,21 +497,22 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             girdUpdate(appointRoller, specialAuxiliaryCfg.getSpinType(), SlotsConst.BaseElementReward.ROTATESTATE_AGAIN, arr);
 
             //检查特殊奖励
-            tempLib = specialAward(arr, tempLib, SlotsConst.BaseElementReward.ROTATESTATE_AGAIN,libList,i);
+            tempLib = specialAward(arr, tempLib, SlotsConst.BaseElementReward.ROTATESTATE_AGAIN, libList, i);
         }
         return slotsResultLib;
     }
 
     /**
      * 是否为火车id
+     *
      * @param iconId
      * @return
      */
-    private boolean trainId(int iconId){
-        if(iconId == DollarExpressConstant.BaseElement.ID_GREEN_TRAIN ||
+    public boolean trainId(int iconId) {
+        if (iconId == DollarExpressConstant.BaseElement.ID_GREEN_TRAIN ||
                 iconId == DollarExpressConstant.BaseElement.ID_RED_TRAIN ||
                 iconId == DollarExpressConstant.BaseElement.ID_BLUE_TRAIN ||
-                iconId == DollarExpressConstant.BaseElement.ID_PURPLE_TRAIN){
+                iconId == DollarExpressConstant.BaseElement.ID_PURPLE_TRAIN) {
             return true;
         }
         return false;
@@ -515,7 +521,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
     /**********************************************************************************************/
 
     private void specialPlayConfig() {
-        Map<Integer,PropInfo> map = new HashMap<>();
+        Map<Integer, PropInfo> map = new HashMap<>();
 
         for (Map.Entry<Integer, SpecialPlayCfg> en : GameDataManager.getSpecialPlayCfgMap().entrySet()) {
             SpecialPlayCfg cfg = en.getValue();
@@ -544,7 +550,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                     }
                     propInfo.setSum(end);
                 }
-            } else if(cfg.getPlayType() == DollarExpressConstant.SpecialPlay.TYPE_GOLD_TRAIN){
+            } else if (cfg.getPlayType() == DollarExpressConstant.SpecialPlay.TYPE_GOLD_TRAIN) {
                 this.goldTrainAuxiliaryId = Integer.parseInt(arr[1]);
                 String[] arr2 = arr[0].split(",");
 
@@ -561,7 +567,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                     propInfo.addProp(Integer.parseInt(arr4[0]), begin, end);
                 }
                 propInfo.setSum(end);
-            }else if (cfg.getPlayType() == DollarExpressConstant.SpecialPlay.TYPE_DOLLAR_CASH) {
+            } else if (cfg.getPlayType() == DollarExpressConstant.SpecialPlay.TYPE_DOLLAR_CASH) {
                 DollarCashConfig config = new DollarCashConfig();
 
                 String[] arr2 = arr[0].split(",");
@@ -578,7 +584,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 config.setCollectIconId(Integer.parseInt(arr[3]));
 
                 this.dollarCashConfig = config;
-            }else if(cfg.getPlayType() == DollarExpressConstant.SpecialPlay.TYPE_INVERS){
+            } else if (cfg.getPlayType() == DollarExpressConstant.SpecialPlay.TYPE_INVERS) {
                 DollarExpressCollectDollarConfig config = new DollarExpressCollectDollarConfig();
 
                 String[] arr2 = arr[0].split(",");
@@ -592,13 +598,14 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             }
         }
 
-        if(!map.isEmpty()){
+        if (!map.isEmpty()) {
             this.iconTimesPropMap = map;
         }
     }
 
     /**
      * 检查是不是特殊元素
+     *
      * @param iconId
      * @return
      */
@@ -607,12 +614,18 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         return iconId == DollarExpressConstant.BaseElement.ID_GOLD_TRAIN || iconId == DollarExpressConstant.BaseElement.ID_SAFE_BOX;
     }
 
+    @Override
+    public void generateAfter(DollarExpressResultLib lib) throws Exception {
+        //计算倍数
+        calTimes(lib);
+    }
+
     /**
      * 计算倍数
      *
      * @param lib
      */
-    public void calTimes(DollarExpressResultLib lib) throws Exception{
+    public void calTimes(DollarExpressResultLib lib) throws Exception {
         //中奖线
         lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
         //火车
@@ -620,6 +633,9 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         if (trainResult.success()) {
             lib.addTimes(trainResult.data);
             lib.setLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
+
+            //火车排序
+            lib.setTrainList(sortTrain(lib.getIconArr(),lib.getTrainList()));
         }
 
         if (lib.getGoldTrainCount() > 0) {
@@ -638,6 +654,8 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 trainResult = calTrainTimes(game.getTrainList());
                 if (trainResult.success()) {
                     game.addTimes(trainResult.data);
+                    //火车排序
+                    game.setTrainList(sortTrain(game.getIconArr(),game.getTrainList()));
                 }
                 //美元现金
                 game.addTimes(calDollarCashTimes(game.getDollarInfo()));
@@ -662,9 +680,13 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 trainResult = calTrainTimes(game.getTrainList());
                 if (trainResult.success()) {
                     game.addTimes(trainResult.data);
+
+                    //火车排序
+                    game.setTrainList(sortTrain(game.getIconArr(),game.getTrainList()));
+
                     lib.setLibType(SlotsConst.SpecialResultLib.TYPE_AGAIN_TRAIN);
 
-                    if(lib.getIconArr() != null && lib.getIconArr().length > 0){
+                    if (lib.getIconArr() != null && lib.getIconArr().length > 0) {
                         throw new IllegalArgumentException("重转1的lib里面不会有iconArr");
                     }
 
@@ -673,9 +695,9 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                     it.remove();
                 }
 
-                if(game.getGoldTrainCount() > 0){
+                if (game.getGoldTrainCount() > 0) {
                     lib.setLibType(SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN);
-                    if(lib.getIconArr() != null && lib.getIconArr().length > 0){
+                    if (lib.getIconArr() != null && lib.getIconArr().length > 0) {
                         throw new IllegalArgumentException("重转2的lib里面不会有iconArr");
                     }
 
@@ -685,7 +707,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                     it.remove();
                 }
 
-                if(trainResult.success() && game.getGoldTrainCount() > 0){
+                if (trainResult.success() && game.getGoldTrainCount() > 0) {
                     log.warn("普通火车和黄金列车同时出现了....");
                     throw new IllegalArgumentException("普通火车和黄金列车同时出现了....");
                 }
@@ -694,7 +716,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 lib.addTimes(game.getTimes());
             }
 
-            if(lib.getAgainGameMap().isEmpty()){
+            if (lib.getAgainGameMap().isEmpty()) {
                 lib.setAgainGameMap(null);
             }
         }
@@ -704,10 +726,59 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         //黄金列车
 //        int goldTrainTimes = calGoldTrainTimes(lib.getDollarInfo() == null ? null : lib.getDollarInfo().getDollarTimesList(), lib.getGoldTrainCount());
 
-
-        if(lib.getRollerId() == SlotsConst.BaseElementReward.ROTATESTATE_FREE){
+        if (lib.getRollerId() == SlotsConst.BaseElementReward.ROTATESTATE_FREE) {
             lib.setLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE);
         }
+    }
+
+    /**
+     * 火车排序
+     */
+    private List<Train> sortTrain(int[] arr, List<Train> trainList) {
+        if (trainList == null || trainList.size() < 2) {
+            return trainList;
+        }
+
+        List<Integer> iconShowList = new ArrayList<>();
+        for (int i = 1; i < arr.length; i++) {
+            int iconId = arr[i];
+            if(trainId(iconId)){
+                iconShowList.add(iconId);
+            }
+        }
+
+        // 创建 iconId 到其在 iconShowList 中位置的映射
+        Map<Integer, List<Integer>> iconOrderMap = new HashMap<>();
+        for (int i = 0; i < iconShowList.size(); i++) {
+            int iconId = iconShowList.get(i);
+            iconOrderMap.computeIfAbsent(iconId, k -> new ArrayList<>()).add(i);
+        }
+
+        Train[] trainArr = new Train[trainList.size()];
+        for(Map.Entry<Integer,List<Integer>> en : iconOrderMap.entrySet()){
+            int iconId = en.getKey();
+            List<Integer> indexList = en.getValue();
+
+            Iterator<Integer> it = indexList.iterator();
+            while (it.hasNext()){
+                int index = it.next();
+                trainArr[index] = getTrain(trainList, iconId);
+            }
+        }
+
+        return Arrays.asList(trainArr);
+    }
+
+    private Train getTrain(List<Train> trainList,int iconId){
+        Iterator<Train> it = trainList.iterator();
+        while(it.hasNext()){
+            Train t = it.next();
+            if(t.getTrainIconId() == iconId){
+                it.remove();
+                return t;
+            }
+        }
+        return null;
     }
 
     /**
@@ -717,13 +788,13 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @return
      */
     private int calLineTimes(List<DollarExpressAwardLineInfo> list) {
-        if(list == null || list.isEmpty()){
+        if (list == null || list.isEmpty()) {
             return 0;
         }
 
         int times = 0;
         for (DollarExpressAwardLineInfo awardLineInfo : list) {
-            if(awardLineInfo.getOtherIconAwardInfoMap() == null || awardLineInfo.getOtherIconAwardInfoMap().isEmpty()){
+            if (awardLineInfo.getOtherIconAwardInfoMap() == null || awardLineInfo.getOtherIconAwardInfoMap().isEmpty()) {
                 times += awardLineInfo.getBaseTimes();
                 continue;
             }
@@ -747,16 +818,16 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             for (Train train : list) {
                 if (train.getCoachs() != null && !train.getCoachs().isEmpty()) {
                     for (int[] arr : train.getCoachs()) {
-                        if(arr[0] < 1){
+                        if (arr[0] < 1) {
                             train.setPoolId(arr[1]);
-                        }else {
+                        } else {
                             times += arr[1];
                         }
                     }
                 }
             }
             result.data = times;
-        }else {
+        } else {
             result.code = Code.FAIL;
         }
         return result;
@@ -794,23 +865,25 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 
     /**
      * 随机一个美元钞票的倍数
+     *
      * @return
      */
-    public int randDollarTimes(){
+    public int randDollarTimes() {
         return this.iconTimesPropMap.get(this.dollarCashConfig.getDollarIconId()).getRandKey();
     }
 
 
     /**
      * 检查all board 个数
+     *
      * @param arr
      * @return
      */
-    public int checkAllBoadrd(int[] arr){
+    public int checkAllBoadrd(int[] arr) {
         int count = 0;
-        for(int i=1;i<arr.length;i++){
+        for (int i = 1; i < arr.length; i++) {
             int icon = arr[i];
-            if(icon == DollarExpressConstant.BaseElement.ID_ALL_ABOARD){
+            if (icon == DollarExpressConstant.BaseElement.ID_ALL_ABOARD) {
                 count++;
             }
         }
@@ -824,10 +897,11 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 
     /**
      * 获取黄金列车节数
+     *
      * @return
      */
-    public int getGoldTrainCount(){
-        if(this.goldTrainAuxiliaryId < 1){
+    public int getGoldTrainCount() {
+        if (this.goldTrainAuxiliaryId < 1) {
             return 0;
         }
 

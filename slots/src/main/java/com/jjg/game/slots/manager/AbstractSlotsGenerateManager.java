@@ -147,7 +147,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo,T extends Slot
         specialAward(arr, lib, SlotsConst.BaseElementReward.ROTATESTATE_NORMAL,libList,-1);
 
         for(T tmpLib : libList){
-            calTimes(tmpLib);
+            generateAfter(tmpLib);
         }
         return libList;
     }
@@ -760,6 +760,11 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo,T extends Slot
             }
         }
         return true;
+    }
+
+
+    public void generateAfter(T lib) throws Exception{
+
     }
 
     public void calTimes(T lib) throws Exception{
