@@ -3,16 +3,16 @@ package com.jjg.game.table.animals.gamephase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.animals.data.AnimalsGameDataVo;
-import com.jjg.game.table.common.gamephase.WaitReadyPhase;
+import com.jjg.game.table.common.gamephase.TableWaitReadyPhase;
 
 /**
  * 飞禽走兽等待阶段
  *
  * @author 2CL
  */
-public class AnimalsWaitReadyPhase extends WaitReadyPhase<AnimalsGameDataVo> {
+public class AnimalsTableWaitReadyPhase extends TableWaitReadyPhase<AnimalsGameDataVo> {
 
-    public AnimalsWaitReadyPhase(AbstractGameController<Room_BetCfg, AnimalsGameDataVo> gameController) {
+    public AnimalsTableWaitReadyPhase(AbstractGameController<Room_BetCfg, AnimalsGameDataVo> gameController) {
         super(gameController);
     }
 

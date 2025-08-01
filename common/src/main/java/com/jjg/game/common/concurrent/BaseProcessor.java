@@ -52,7 +52,7 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
      */
     public AtomicLong createAloneNum = new AtomicLong();
 
-    protected BaseHandler currentHandler;
+    protected BaseHandler<?> currentHandler;
 
     /**
      * 单个handler的逻辑操作时间上限，超过时间将打印handler的信息
@@ -228,14 +228,14 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
     /**
      * 当前正在运行的handler
      */
-    public BaseHandler getCurrentHandlerObj() {
+    public BaseHandler<?> getCurrentHandlerObj() {
         return currentHandler;
     }
 
     /**
      * 向线程池投递带有返回值的handler
      */
-    protected Future<String> submitHandler(BaseHandler handler) {
+    protected Future<String> submitHandler(BaseHandler<?> handler) {
         try {
             if (executor.isShutdown()) {
                 logger.error("线程:{} 已经停止,Handler被丢弃: {}", this.name, handler.getClass().getName());
@@ -248,9 +248,9 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
 
             return executor.submit(
                 new Callable<String>() {
-                    private BaseHandler handler;
+                    private BaseHandler<?> handler;
 
-                    public Callable<String> setHandler(BaseHandler handler) {
+                    public Callable<String> setHandler(BaseHandler<?> handler) {
                         this.handler = handler;
                         return this;
                     }
@@ -287,7 +287,7 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
     /**
      * 向该线程投递Handler(Runnable)
      */
-    protected void executeHandler(BaseHandler handler) {
+    protected void executeHandler(BaseHandler<?> handler) {
         try {
             if (executor.isShutdown()) {
                 logger.warn("线程{} 已经停止, Handler被丢弃: {}", this.name, handler.getClass().getName());
@@ -299,7 +299,7 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
 
             if (handler instanceof BasePriorityHandler) {
                 executor.execute(
-                    new BasePriorityHandlerRunnable(((BasePriorityHandler) handler).getPriority()) {
+                    new BasePriorityHandlerRunnable(((BasePriorityHandler<?>) handler).getPriority()) {
                         @Override
                         public void run() {
                             execHandler(this.handler, "BasePriorityHandlerRunnable way");
@@ -333,7 +333,7 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
                 logger.error("线程{} 已经停止, Handler被丢弃: {}", this.name, handler.getClass().getName());
                 return;
             }
-            BaseHandler baseHandler = (BaseHandler) handler;
+            BaseHandler<?> baseHandler = (BaseHandler<?>) handler;
             baseHandler.setTime(System.currentTimeMillis());
             baseHandler.setCreateAloneNum(createAloneNum.incrementAndGet());
             baseHandler.setAloneNum(execAloneNum.get());
@@ -348,7 +348,7 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
     /**
      * 执行投递到该线程中的handler
      */
-    protected void execHandler(BaseHandler handler, String callWay) {
+    protected void execHandler(BaseHandler<?> handler, String callWay) {
         try {
             if (handler != null) {
                 currentHandler = handler;
@@ -384,7 +384,7 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
     }
 
     @Override
-    public void printQueueSize(BaseHandler handler, int size) {
+    public void printQueueSize(BaseHandler<?> handler, int size) {
         if (size < this.logQueueSize) {
             return;
         }
@@ -402,7 +402,7 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
     }
 
     @Override
-    public void printWaitTime(BaseHandler handler, long logDoTime, long waitTime, String callWay) {
+    public void printWaitTime(BaseHandler<?> handler, long logDoTime, long waitTime, String callWay) {
         if (waitTime < this.logWaitQueueTime) {
             return;
         }
@@ -413,7 +413,7 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
         }
         this.printWaitTime = now;
         int priority = -1;
-        if (handler instanceof BasePriorityHandler priorityHandler) {
+        if (handler instanceof BasePriorityHandler<?> priorityHandler) {
             PlayerPriority playerPriority = priorityHandler.getPriority();
             if (playerPriority != null) {
                 priority = playerPriority.getPriority();
@@ -457,7 +457,7 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
     }
 
     @Override
-    public void printDoTime(BaseHandler handler, long doTime, String info) {
+    public void printDoTime(BaseHandler<?> handler, long doTime, String info) {
         if (doTime < doOverTimeThreshold) {
             return;
         }
@@ -467,6 +467,8 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
                 + this.name
                 + ",handler:"
                 + handler.getClass().getName()
+                + "handlerParameter:"
+                + handler.getHandlerParam()
                 + ",doTime:"
                 + doTime
                 + ",queueSize:"
@@ -485,21 +487,21 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
      *
      * @param handler 执行handler
      */
-    protected boolean beforeHandler(BaseHandler handler) {
+    protected boolean beforeHandler(BaseHandler<?> handler) {
         return true;
     }
 
     /**
      * 具体游戏逻辑内部对后置条件的处理
      */
-    protected void afterHandler(BaseHandler handler) throws Exception {
+    protected void afterHandler(BaseHandler<?> handler) throws Exception {
         // do nothing
     }
 
     /**
      * 逻辑内部对异常的处理
      */
-    protected void exceptionHandler(BaseHandler handler, Exception e) {
+    protected void exceptionHandler(BaseHandler<?> handler, Exception e) {
         logger.error(
             "Handler异常: {} {}",
             handler != null ? handler.getClass().getName() : null,

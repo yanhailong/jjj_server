@@ -127,8 +127,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         settleInfo.blackCardType = blackHandType.getRank();
         settleInfo.redCards = redCard.stream().map(Card::getValue).toList();
         settleInfo.redCardType = redHandType.getRank();
-        settleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(playerGet);
-        settleInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(gameDataVo);
+        settleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(playerGet, gameDataVo);
         settleInfo.isLucky = luckBet;
         //更新房间记录
         updateGameHistory(gameDataVo, blackHandType, winState);

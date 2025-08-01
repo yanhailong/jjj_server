@@ -2,7 +2,7 @@ package com.jjg.game.table.luxurycarclub.gamephase;
 
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
-import com.jjg.game.table.common.gamephase.WaitReadyPhase;
+import com.jjg.game.table.common.gamephase.TableWaitReadyPhase;
 import com.jjg.game.table.luxurycarclub.data.LuxuryCarClubGameDataVo;
 
 /**
@@ -10,9 +10,9 @@ import com.jjg.game.table.luxurycarclub.data.LuxuryCarClubGameDataVo;
  *
  * @author 2CL
  */
-public class LuxuryCarClubReadyPhase extends WaitReadyPhase<LuxuryCarClubGameDataVo> {
+public class LuxuryCarClubReadyPhaseTable extends TableWaitReadyPhase<LuxuryCarClubGameDataVo> {
 
-    public LuxuryCarClubReadyPhase(AbstractGameController<Room_BetCfg, LuxuryCarClubGameDataVo> gameController) {
+    public LuxuryCarClubReadyPhaseTable(AbstractGameController<Room_BetCfg, LuxuryCarClubGameDataVo> gameController) {
         super(gameController);
     }
 

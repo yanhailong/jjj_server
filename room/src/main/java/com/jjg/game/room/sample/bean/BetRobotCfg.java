@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName RobotAction_Bet.xlsx
  * @sheetName BetRobot
  * @author Auto.Generator
- * @date 2025年07月21日 14:06:28
+ * @date 2025年07月31日 16:29:11
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BetRobotCfg extends RobotActionCfg {

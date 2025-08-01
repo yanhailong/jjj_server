@@ -19,58 +19,62 @@ public class RoomPhaseTimeEvent<T extends IProcessorHandler, R extends Room> ext
      */
     private boolean canAcrossPhaseExec = false;
 
-    public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerEvent<T> event, R room) {
-        super(event, room);
+    public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerEvent<T> event, R room, RoomEventType roomEventType) {
+        super(event, room, roomEventType);
         this.eGamePhase = eGamePhase;
     }
 
     public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerListener<T> listener, R room, T parameter, int intervalTime
-        , int count, int initTime, boolean absolute) {
-        super(listener, room, parameter, intervalTime, count, initTime, absolute);
+        , int count, int initTime, boolean absolute, RoomEventType roomEventType) {
+        super(listener, room, parameter, intervalTime, count, initTime, absolute, roomEventType);
         this.eGamePhase = eGamePhase;
     }
 
-    public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerListener<T> listener, R room, long time, T parameter) {
-        super(listener, room, time, parameter);
-        this.eGamePhase = eGamePhase;
-    }
-
-    public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerListener<T> listener, R room, T parameter, int intervalTime
-        , int count, int initTime) {
-        super(listener, room, parameter, intervalTime, count, initTime);
+    public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerListener<T> listener, R room, long time, T parameter,
+                              RoomEventType roomEventType) {
+        super(listener, room, time, parameter, roomEventType);
         this.eGamePhase = eGamePhase;
     }
 
     public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerListener<T> listener, R room, T parameter, int intervalTime
-        , int count, boolean absolute) {
-        super(listener, room, parameter, intervalTime, count, absolute);
+        , int count, int initTime, RoomEventType roomEventType) {
+        super(listener, room, parameter, intervalTime, count, initTime, roomEventType);
         this.eGamePhase = eGamePhase;
     }
 
     public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerListener<T> listener, R room, T parameter, int intervalTime
-        , int count) {
-        super(listener, room, parameter, intervalTime, count);
-        this.eGamePhase = eGamePhase;
-    }
-
-    public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerListener<T> listener, R room, T parameter, int intervalTime) {
-        super(listener, room, parameter, intervalTime);
+        , int count, boolean absolute, RoomEventType roomEventType) {
+        super(listener, room, parameter, intervalTime, count, absolute, roomEventType);
         this.eGamePhase = eGamePhase;
     }
 
     public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerListener<T> listener, R room, T parameter, int intervalTime
-        , boolean absolute) {
-        super(listener, room, parameter, intervalTime, absolute);
+        , int count, RoomEventType roomEventType) {
+        super(listener, room, parameter, intervalTime, count, roomEventType);
         this.eGamePhase = eGamePhase;
     }
 
-    public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerListener<T> listener, R room, int initTime, T parameter) {
-        super(listener, room, initTime, parameter);
+    public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerListener<T> listener, R room, T parameter, int intervalTime
+        , RoomEventType roomEventType) {
+        super(listener, room, parameter, intervalTime, roomEventType);
         this.eGamePhase = eGamePhase;
     }
 
-    public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerListener<T> listener, R room, T parameter) {
-        super(listener, room, parameter);
+    public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerListener<T> listener, R room, T parameter, int intervalTime
+        , boolean absolute, RoomEventType roomEventType) {
+        super(listener, room, parameter, intervalTime, absolute, roomEventType);
+        this.eGamePhase = eGamePhase;
+    }
+
+    public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerListener<T> listener, R room, int initTime, T parameter,
+                              RoomEventType roomEventType) {
+        super(listener, room, initTime, parameter, roomEventType);
+        this.eGamePhase = eGamePhase;
+    }
+
+    public RoomPhaseTimeEvent(EGamePhase eGamePhase, TimerListener<T> listener, R room, T parameter,
+                              RoomEventType roomEventType) {
+        super(listener, room, parameter, roomEventType);
         this.eGamePhase = eGamePhase;
     }
 
@@ -84,5 +88,10 @@ public class RoomPhaseTimeEvent<T extends IProcessorHandler, R extends Room> ext
 
     public void setCanAcrossPhaseExec(boolean canAcrossPhaseExec) {
         this.canAcrossPhaseExec = canAcrossPhaseExec;
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() + eGamePhase.getPhaseName();
     }
 }

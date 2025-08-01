@@ -14,10 +14,12 @@ import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.bean.BetRobotCfg;
 import com.jjg.game.room.sample.bean.RobotCfg;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.table.betsample.sample.GameDataManager;
 import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.data.TableSampleDataHolder;
+import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.TableRoomMessageConstant;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.bean.ReqBetBean;
@@ -61,6 +63,12 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         super.phaseDoAction();
         // 清除房间的数据
         clearRoomData();
+        broadcastMsgToRoom(
+            TableMessageBuilder.getNotifyPhaseChangInfo(getGamePhase(), gameDataVo.getPhaseEndTime()));
+    }
+
+    @Override
+    public void phaseFinish() {
     }
 
     @Override
@@ -87,19 +95,19 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         notifyPlayerBet.betTableInfoList = new ArrayList<>();
         // 处理下注数据
         Map<Integer, List<Integer>> playerAreaInfoMap = gameDataVo.getPlayerBetInfo(playerController.playerId());
-        Map<Integer, Long> playerReqBetMap = new HashMap<>();
+        Map<Integer, List<Integer>> playerReqBetMap = new HashMap<>();
         for (ReqBetBean betBean : reqBetBeans) {
-            playerReqBetMap.put(betBean.betAreaIdx,
-                playerReqBetMap.getOrDefault(betBean.betAreaIdx, 0L) + betBean.betValue);
+            playerReqBetMap.computeIfAbsent(betBean.betAreaIdx, k -> new ArrayList<>()).add((int) betBean.betValue);
         }
-        for (Map.Entry<Integer, Long> entry : playerReqBetMap.entrySet()) {
+        for (Map.Entry<Integer, List<Integer>> entry : playerReqBetMap.entrySet()) {
             int betAreaIdx = entry.getKey();
-            long betValue = entry.getValue();
+            long betValue = entry.getValue().stream().mapToInt(Integer::intValue).sum();
             playerTotalBetGold += betValue;
             if (playerAreaInfoMap == null) {
                 playerAreaInfoMap = new HashMap<>();
             }
-            playerAreaInfoMap.computeIfAbsent(betAreaIdx, k -> new ArrayList<>()).add((int) betValue);
+            playerAreaInfoMap.computeIfAbsent(
+                betAreaIdx, k -> new ArrayList<>()).addAll(entry.getValue());
         }
         // 更新押注数据
         gameDataVo.updatePlayerBetInfo(playerController.playerId(), playerAreaInfoMap);
@@ -174,7 +182,9 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             throw new GameSampleException("机器人押注随机时间错误，机器人：" + gameRobotPlayer.getId());
         }
         // 给机器人添加异步执行押注的逻辑,执行时会回调到房间线程处理
-        addPhaseTimer(new TimerEvent<>(gameController, betRandTime, () -> doRobotBet(gameRobotPlayer, betRobotCfg)));
+        addPhaseTimer(
+            new TimerEvent<>(gameController, betRandTime, () -> doRobotBet(gameRobotPlayer, betRobotCfg)),
+            RoomEventType.TRIGGER_ROBOT_BET_ACTION);
     }
 
     /**
@@ -193,9 +203,6 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         }
         // 检查下注行为
         int code = checkBetAction(robotPlayer, randomBetArea, randomGold);
-        /*log.info("机器人：{} 在房间：{} 场次：{} 进行押注逻辑， 押注区域：{} 押注金币：{}",
-            gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
-            robotPlayer.getId(), randomBetArea, randomGold);*/
         // 检查机器人是否下注
         if (code != Code.SUCCESS) {
             return;
@@ -245,7 +252,9 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             throw new GameSampleException("获取" + BetRobotCfg.EXCEL_NAME + "中的机器人再次押注等待时间 异常");
         }
         // 添加计时器，进行循环模拟押注
-        addPhaseTimer(new TimerEvent<>(gameController, roundTime, () -> robotBetAction(robotPlayer)));
+        addPhaseTimer(
+            new TimerEvent<>(gameController, roundTime, () -> robotBetAction(robotPlayer)),
+            RoomEventType.ROBOT_BET_LOOP);
 
     }
 
@@ -275,6 +284,9 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
     protected int checkBetAction(GamePlayer gamePlayer, List<ReqBetBean> reqBetBean) {
         // 检查当前区域是否还可以进行下注
         Map<Integer, BetAreaCfg> betAreaCfgMap = getBetAreaCfgMap();
+        List<Integer> betList = gameDataVo.getRoomCfg().getBetList();
+        // 场上最大下注倍数
+        int betMax = betList.stream().max(Integer::compareTo).get();
         long totalBetValue = 0;
         Map<Integer, Long> playerReqBetMap = new HashMap<>();
         for (ReqBetBean betBean : reqBetBean) {
@@ -293,7 +305,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             BetAreaCfg betAreaCfg = betAreaCfgMap.get(betAreaIdx);
             // 判断场上单区域的总数量是否达到上限
             // 配置的上限
-            int roomIdxMaxLimit = betAreaCfg.getTbUpperLimit();
+            int roomIdxMaxLimit = betAreaCfg.getTbUpperLimit() * betMax;
             // 当前房间的请求的下注区的总数
             long curIdxTotalBet = gameDataVo.getAreaTotalBet(betAreaIdx);
             if (curIdxTotalBet + betValue >= roomIdxMaxLimit) {
@@ -302,7 +314,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
                 return Code.BET_TO_LIMIT;
             }
             // 玩家区域上限
-            int playerIdxMaxLimit = betAreaCfg.getTbPlayerUpperLimit();
+            int playerIdxMaxLimit = betAreaCfg.getTbPlayerUpperLimit() * betMax;
             Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(gamePlayer.getId());
             long playerBetTotal = 0;
             if (playerBetInfo != null) {

@@ -21,6 +21,7 @@ import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.RobotCfg;
 import com.jjg.game.room.sample.bean.RoomCfg;
+import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomPhaseTimeEvent;
 import com.jjg.game.room.timer.RoomTimerCenter;
 import com.jjg.game.room.timer.RoomTimerEvent;
@@ -89,21 +90,27 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             // 当前的游戏阶段
             currentGamePhase = gamePhaseIterator.next();
             currentGamePhase.setRoundCounter(roundCounter.get());
-            /*log.debug("[{}] 房间ID: {} 游戏ID: {} 游戏类型: {} 当前阶段：{} 开始运行",
-                currentGamePhase.getRoundCounter(), gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
-                gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());*/
-            // 执行当前阶段的逻辑 TODO 阶段的逻辑异常处理 房间逻辑异常中断该如何处理
-            currentGamePhase.phaseDoAction();
-            // 调用玩家的行为,主要是机器人和托管的玩家
-            currentGamePhase.playerPhaseAction();
+            // 执行当前阶段的逻辑
+            try {
+                currentGamePhase.phaseDoAction();
+                // 调用玩家的行为,主要是机器人和托管的玩家
+                currentGamePhase.playerPhaseAction();
+            } catch (Exception ex) {
+                // 发生异常中断，不能阻断流程，先打出日志
+                log.error("运行阶段：{} 开始时发生异常！msg: {}",
+                    currentGamePhase.getGamePhase().getPhaseName(), ex.getMessage(), ex);
+            }
             // 将阶段逻辑添加到
             addGameTimeEvent(new TimerEvent<>(this, currentGamePhase.getPhaseRunTime(),
                 () -> {
-                    // 定时器时间到,调用结束逻辑 TODO 阶段的逻辑异常处理 房间逻辑异常中断该如何处理
-                    currentGamePhase.phaseFinish();
-                    /*log.debug("[{}] 房间ID: {} 游戏ID: {} 游戏类型: {} 阶段：{} 运行结束",
-                        currentGamePhase.getRoundCounter(), gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
-                        gameControlType().getGameDesc(), currentGamePhase.getGamePhase().getPhaseName());*/
+                    try {
+                        // 定时器时间到,调用结束逻辑
+                        currentGamePhase.phaseFinish();
+                    } catch (Exception ex) {
+                        // 发生异常中断，不能阻断流程，先打出日志
+                        log.error("运行阶段：{} 结束时发生异常！msg: {}",
+                            currentGamePhase.getGamePhase().getPhaseName(), ex.getMessage(), ex);
+                    }
                     // 如果有绑定的下一个阶段可以切换到
                     IRoomPhase bindNextPhase = currentGamePhase.bindNextPhase();
                     if (bindNextPhase != null) {
@@ -119,7 +126,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                     }
                     // 自动切换到下一个阶段
                     this.autoRunGamePhase();
-                }));
+                }), RoomEventType.ROOM_PHASE_RUN_EVENT);
         } else {
             // 阶段全部运行结束
             phaseRunOver();
@@ -374,8 +381,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 给游戏添加定时器
      */
-    public void addGameTimeEvent(TimerEvent<IProcessorHandler> roomUpdateTimer) {
-        timerCenter.add(new RoomTimerEvent<>(roomUpdateTimer, roomController.getRoom()));
+    public void addGameTimeEvent(TimerEvent<IProcessorHandler> roomUpdateTimer, RoomEventType roomEventType) {
+        timerCenter.add(new RoomTimerEvent<>(roomUpdateTimer, roomController.getRoom(), roomEventType));
     }
 
     /**

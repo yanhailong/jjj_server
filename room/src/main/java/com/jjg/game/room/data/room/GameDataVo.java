@@ -32,6 +32,7 @@ public class GameDataVo<RC extends RoomCfg> {
     // 每个阶段需要运行的时间
     protected long phaseRunTime;
 
+
     /**
      * 必须初始化的参数是房间配置RoomCfg，如果后续子类添加数据需要在自己的构造函数中添加
      */
@@ -98,9 +99,8 @@ public class GameDataVo<RC extends RoomCfg> {
     public void setStopTime(long stopTime) {
         this.stopTime = stopTime;
     }
-
-    public String getRoomBaseInfo(){
+    public String roomLogInfo(){
         EGameType eGameType = EGameType.getGameByTypeId(roomCfg.getGameID());
-        return " 游戏类型：" + eGameType.getGameDesc() + " 房间配置ID: " + roomCfg.getId() + " 房间ID: " + roomId;
+        return "游戏类型：" + eGameType.getGameDesc() + " 房间配置ID: " + roomCfg.getId() + " 房间ID: " + roomId;
     }
 }

@@ -15,7 +15,7 @@ import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.redblackwar.gamephase.RedBlackWarBetPhase;
 import com.jjg.game.table.redblackwar.gamephase.RedBlackWarSettlementPhase;
-import com.jjg.game.table.redblackwar.gamephase.RedBlackWarWaitReadyPhase;
+import com.jjg.game.table.redblackwar.gamephase.RedBlackWarTableWaitReadyPhase;
 import com.jjg.game.table.redblackwar.message.resp.NotifyRedBlackWarInfo;
 import com.jjg.game.table.redblackwar.room.data.RedBlackWarGameDataVo;
 
@@ -52,7 +52,7 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
     @Override
     protected LinkedHashSet<IRoomPhase> initGamePhaseConf() {
         LinkedHashSet<IRoomPhase> gamePhases = new LinkedHashSet<>();
-        gamePhases.add(new RedBlackWarWaitReadyPhase(this));
+        gamePhases.add(new RedBlackWarTableWaitReadyPhase(this));
         gamePhases.add(new RedBlackWarBetPhase(this));
         gamePhases.add(new RedBlackWarSettlementPhase(this));
         return gamePhases;
@@ -93,13 +93,15 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
                 List<Integer> betList = playerBetInfo.get(playerController.playerId());
                 long playerBet = betList == null ? 0 : betList.stream().mapToInt(Integer::intValue).sum();
                 long totalBet = 0;
+                List<Integer> betGoldList = new ArrayList<>();
                 for (Map.Entry<Long, List<Integer>> longLongEntry : playerBetInfo.entrySet()) {
                     int playerTotalBet = longLongEntry.getValue().stream().mapToInt(Integer::intValue).sum();
+                    betGoldList.addAll(longLongEntry.getValue());
                     totalBet += playerTotalBet;
                 }
-                betTableInfo.playerBetTotal = totalBet;
-                betTableInfo.betIdxTotal = playerBet;
-                betTableInfo.betGoldList = betList;
+                betTableInfo.playerBetTotal = playerBet;
+                betTableInfo.betIdxTotal = totalBet;
+                betTableInfo.betGoldList = betGoldList;
                 tableAreaInfos.add(betTableInfo);
             }
             notifyRedBlackWarInfo.tableAreaInfos = tableAreaInfos;
@@ -114,7 +116,7 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
         notifyRedBlackWarInfo.totalPlayerNum = gameDataVo.getGamePlayerMap().size();
         //发送给玩家
         broadcastToPlayers(
-            RoomMessageBuilder.newBuilder().addPlayerId(playerController.playerId()).setData(notifyRedBlackWarInfo));
+                RoomMessageBuilder.newBuilder().addPlayerId(playerController.playerId()).setData(notifyRedBlackWarInfo));
     }
 
 

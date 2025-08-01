@@ -1,12 +1,12 @@
 package com.jjg.game.table.common.message;
 
 import com.jjg.game.common.proto.Pair;
-import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
+import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
@@ -63,14 +63,14 @@ public class TableMessageBuilder {
     /**
      * 构建游戏的前6玩家基础信息
      */
-    public static List<TablePlayerInfo> buildTablePlayerInfo(TableGameDataVo tableGameDataVo) {
-        return buildTablePlayerInfo(tableGameDataVo, 7);
+    public static List<TablePlayerInfo> buildTablePlayerInfo(GameDataVo<?> tableGameDataVo) {
+        return buildTablePlayerInfo(tableGameDataVo, TableConstant.ON_TABLE_PLAYER_NUM);
     }
 
     /**
      * 构建游戏的前6玩家基础信息
      */
-    public static List<TablePlayerInfo> buildTablePlayerInfo(TableGameDataVo tableGameDataVo, int Limit) {
+    public static List<TablePlayerInfo> buildTablePlayerInfo(GameDataVo<?> tableGameDataVo, int Limit) {
         List<GamePlayer> gamePlayers = getSortedGamePlayer(tableGameDataVo, Limit);
         List<TablePlayerInfo> tablePlayerInfos = new ArrayList<>(gamePlayers.size());
         for (GamePlayer gamePlayer : gamePlayers) {
@@ -86,7 +86,7 @@ public class TableMessageBuilder {
      * @param limit           列表长度（小于等于0为全部）
      * @return 排序后的GamePlayer列表
      */
-    private static List<GamePlayer> getSortedGamePlayer(TableGameDataVo tableGameDataVo, int limit) {
+    private static List<GamePlayer> getSortedGamePlayer(GameDataVo<?> tableGameDataVo, int limit) {
         Stream<GamePlayer> sorted = tableGameDataVo.getGamePlayerMap()
                 .values()
                 .stream().sorted(Comparator.comparingLong(Player::getGold).reversed());
@@ -131,7 +131,7 @@ public class TableMessageBuilder {
      * 通知场上玩家信息有变化
      */
     public static NotifyTableRoomPlayerInfoChange buildNotifyTableRoomPlayerInfoChange(
-        long changedPlayerId, int sendSize, TableGameDataVo dataVo) {
+            long changedPlayerId, int sendSize, TableGameDataVo dataVo) {
         NotifyTableRoomPlayerInfoChange infoChange = new NotifyTableRoomPlayerInfoChange();
         infoChange.changedPlayerId = changedPlayerId;
         infoChange.tableChangedPlayerInfos = new ArrayList<>();
@@ -149,7 +149,7 @@ public class TableMessageBuilder {
      *
      * @param playerGet 结算的玩家获得的金币
      */
-    public static List<PlayerChangedGold> getPlayerSettleInfos(Map<Long, DefaultKeyValue<Long, Long>> playerGet) {
+    public static List<PlayerChangedGold> getPlayerSettleInfos(Map<Long, DefaultKeyValue<Long, Long>> playerGet, TableGameDataVo gameDataVo) {
         List<PlayerChangedGold> settleInfoArrayList = new ArrayList<>();
         for (Map.Entry<Long, DefaultKeyValue<Long, Long>> entry : playerGet.entrySet()) {
             PlayerChangedGold info = new PlayerChangedGold();
@@ -157,6 +157,10 @@ public class TableMessageBuilder {
             info.playerWinGold = keyValue.getValue() - keyValue.getKey();
             info.playerId = entry.getKey();
             info.playerBetGold = keyValue.getKey();
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(entry.getKey());
+            if (Objects.nonNull(gamePlayer)) {
+                info.playerCurGold = gamePlayer.getGold();
+            }
             settleInfoArrayList.add(info);
         }
         return settleInfoArrayList;

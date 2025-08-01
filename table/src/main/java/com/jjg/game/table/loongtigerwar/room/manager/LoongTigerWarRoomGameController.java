@@ -14,7 +14,7 @@ import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarBetPhase;
-import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarReadyPhase;
+import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarReadyPhaseTable;
 import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarSettlementPhase;
 import com.jjg.game.table.loongtigerwar.message.resp.NotifyLoongTigerWarInfo;
 import com.jjg.game.table.loongtigerwar.room.data.LoongTigerWarGameDataVo;
@@ -49,7 +49,7 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
     @Override
     protected LinkedHashSet<IRoomPhase> initGamePhaseConf() {
         LinkedHashSet<IRoomPhase> gamePhases = new LinkedHashSet<>();
-        gamePhases.add(new LoongTigerWarReadyPhase(this));
+        gamePhases.add(new LoongTigerWarReadyPhaseTable(this));
         gamePhases.add(new LoongTigerWarBetPhase(this));
         gamePhases.add(new LoongTigerWarSettlementPhase(this));
         return gamePhases;
@@ -90,13 +90,15 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
                 List<Integer> betList = playerBetInfo.get(playerController.playerId());
                 long playerBet = betList == null ? 0 : betList.stream().mapToInt(Integer::intValue).sum();
                 long totalBet = 0;
+                List<Integer> betGoldList = new ArrayList<>();
                 for (Map.Entry<Long, List<Integer>> longLongEntry : playerBetInfo.entrySet()) {
                     int playerTotalBet = longLongEntry.getValue().stream().mapToInt(Integer::intValue).sum();
+                    betGoldList.addAll(longLongEntry.getValue());
                     totalBet += playerTotalBet;
                 }
-                betTableInfo.playerBetTotal = totalBet;
-                betTableInfo.betIdxTotal = playerBet;
-                betTableInfo.betGoldList = betList;
+                betTableInfo.playerBetTotal = playerBet;
+                betTableInfo.betIdxTotal = totalBet;
+                betTableInfo.betGoldList = betGoldList;
                 tableAreaInfos.add(betTableInfo);
             }
             notifyLoongTigerWarInfo.tableAreaInfos = tableAreaInfos;

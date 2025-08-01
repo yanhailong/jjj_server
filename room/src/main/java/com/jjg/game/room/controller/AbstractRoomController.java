@@ -20,6 +20,7 @@ import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.room.sample.bean.WarehouseCfg;
+import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomTimerCenter;
 import com.jjg.game.room.timer.RoomTimerEvent;
 import org.slf4j.Logger;
@@ -303,11 +304,16 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         roomProcessor = roomManager.getProcessorExecutors().getProcessorById(room.getId());
         // 创建游戏控制器
         gameController = createGameController(new GameDataVo<>(roomCfg));
+        if (gameController == null) {
+            // 没有找到对应的游戏控制器，可能是没有实现对应的游戏控制器，先中断流程
+            throw new RuntimeException("游戏类型：" + roomCfg.getId() + " 未实现游戏控制器");
+        }
         // 空房间检查
         addEmptyRoomCheckTimer();
         // 房间Timer执行tick时间 现在默认 100ms
         // 添加房间tick
-        timerCenter.add(new RoomTimerEvent<>(this, room, this::timeTick, RoomConstant.ROOM_TICK_TIME));
+        timerCenter.add(new RoomTimerEvent<>(
+            this, room, this::timeTick, RoomConstant.ROOM_TICK_TIME, RoomEventType.ROOM_PHASE_RUN_EVENT));
     }
 
     /**
@@ -322,7 +328,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         int deleteTimeCheck = roomDeletionSolution.get(1);
         timerCenter.add(new RoomTimerEvent<>(this, room, deleteTimeCheck, () -> {
 
-        }));
+        }, RoomEventType.ROOM_EMPTY_ROOM_CHECK));
     }
 
     @Override

@@ -8,6 +8,7 @@ import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
+import com.jjg.game.table.common.message.TableMessageBuilder;
 
 import java.util.List;
 
@@ -62,7 +63,7 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
     }
 
     /**
-     * 计算金币数量
+     * 计算金币数量, 需要减去押注的钱
      */
     protected long calcGold(WinPosWeightCfg weightCfg, long betValue) {
         int winRatio = gameDataVo.getRoomCfg().getWinRatio();
@@ -73,10 +74,10 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
         long betReturn = (long) Math.floor(betValue * (weightCfg.getReturnRate() / 10000.0));
         // 赢的总值
         long totalWin = multiAdd + betReturn;
-        log.info("玩家在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{}"
-            , weightCfg.getId(), betValue, multiAdd, betReturn, totalWin);
+        log.info("{} 在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{}",
+            gameDataVo.roomLogInfo(), weightCfg.getId(), betValue, multiAdd, betReturn, totalWin);
         // 倍率 + 压分返还
-        return totalWin;
+        return totalWin - betValue;
     }
 
     @Override
