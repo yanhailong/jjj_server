@@ -280,7 +280,7 @@ public class RandomUtils {
      * @param count     选的个数
      * @return
      */
-    public static Set<Integer> getRandomByWeight(Map<Integer, Integer> weightMap, int count) {
+    public static <T> Set<T> getRandomByWeight(Map<T, Integer> weightMap, int count) {
         return getRandomByWeight(weightMap, count, true);
     }
 
@@ -292,8 +292,8 @@ public class RandomUtils {
      * @param checkZeroId 检测0值作为key时的随机退出规则
      * @return
      */
-    public static Set<Integer> getRandomByWeight(
-        Map<Integer, Integer> weightMap, int count, boolean checkZeroId) {
+    public static <T> Set<T> getRandomByWeight(
+        Map<T, Integer> weightMap, int count, boolean checkZeroId) {
         int totalWeight = 0;
         for (Integer val : weightMap.values()) {
             totalWeight += val;
@@ -323,10 +323,10 @@ public class RandomUtils {
      * @param checkZeroId 检测0值作为key时的随机退出规则
      * @return
      */
-    public static Set<Integer> getRandomByWeight(
-        int weight, Map<Integer, Integer> weightMap, int count, boolean checkZeroId) {
-        Map<Integer, Integer> map = new HashMap<>(weightMap);
-        Set<Integer> resultSet = new HashSet();
+    public static <T> Set<T> getRandomByWeight(
+        int weight, Map<T, Integer> weightMap, int count, boolean checkZeroId) {
+        Map<T, Integer> map = new HashMap<>(weightMap);
+        Set<T> resultSet = new HashSet<>();
         for (int i = 1; i <= count; i++) {
             if (weight == 0) {
                 break;
@@ -334,20 +334,20 @@ public class RandomUtils {
             // 随机一个
             int rand = new Random().nextInt(weight) + 1;
             int r = 0;
-            int chooseId = 0;
-            for (int id : map.keySet()) {
+            T choose = null;
+            for (T id : map.keySet()) {
                 int w = map.get(id);
                 r += w;
                 if (rand <= r) {
-                    chooseId = id;
+                    choose = id;
                     break;
                 }
             }
-            if (!checkZeroId || chooseId > 0) {
+            if (!checkZeroId || choose != null) {
                 // 删除本次随机到的id的权重
-                weight -= map.get(chooseId);
-                map.remove(chooseId);
-                resultSet.add(chooseId);
+                weight -= map.get(choose);
+                map.remove(choose);
+                resultSet.add(choose);
             } else {
                 break;
             }
