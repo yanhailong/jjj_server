@@ -123,7 +123,7 @@ public abstract class AbstractSampleManager implements FileLoader {
                         CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
                 List<Class<?>> changedSampleList = changedSampleSet.stream().toList();
                 for (ConfigExcelChangeListener listener : configExcelChangeListeners.values()) {
-                    Map<String, DefaultCallback> callbackCollector = Collections.EMPTY_MAP;
+                    Map<String, List<DefaultCallback>> callbackCollector = Collections.EMPTY_MAP;
                     if(change){
                         callbackCollector = listener.getChangeCallbackCollector();
                     }
@@ -134,7 +134,7 @@ public abstract class AbstractSampleManager implements FileLoader {
                         log.info("配置表文件：{} 变化，调用：{} 的重载逻辑",
                                 fileName, listener.getClass().getSimpleName());
                         // 执行配置表变化监听回调
-                        callbackCollector.get(fileName).run();
+                        callbackCollector.get(fileName).forEach(DefaultCallback::run);
                     }
                 }
                 // 变化的配置文件列表
