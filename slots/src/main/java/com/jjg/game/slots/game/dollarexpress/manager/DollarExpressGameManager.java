@@ -1165,28 +1165,30 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             return gameRunInfo;
         }
 
-        for (Train t : trainList) {
-            //首先转化成消息结构体
-            TrainInfo trainInfo = transTrainPbInfo(t, gameRunInfo.getBet());
+        //先转化程消息结构体
+        for (Train train : trainList) {
+            TrainInfo trainInfo = transTrainPbInfo(train, gameRunInfo.getBet());
             gameRunInfo.addTrainInfo(trainInfo);
+        }
 
+        for (TrainInfo trainInfo : gameRunInfo.getTrainList()) {
             //获取玩家累计贡献金额
             long contribt = playerGameData.getAllContribtPoolGold();
             if (contribt < 1) {
                 break;
             }
-            log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},trainCoinId = {}", playerGameData.playerId(), contribt, t.getTrainIconId());
+            log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},trainCoinId = {}", playerGameData.playerId(), contribt, trainInfo.type);
 
             //真奖池
             Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
             if (smallPoolNumber == null) {
-                log.debug("获取小池子金额为空 playerId = {},roomCfgId = {},trainCoinId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), t.getTrainIconId());
+                log.debug("获取小池子金额为空 playerId = {},roomCfgId = {},trainCoinId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), trainInfo.type);
                 break;
             }
             //假奖池
             Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
             if (fakeSmallPoolNumber == null) {
-                log.debug("获取(假)小池子金额为空 playerId = {},roomCfgId = {},trainCoinId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), t.getTrainIconId());
+                log.debug("获取(假)小池子金额为空 playerId = {},roomCfgId = {},trainCoinId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), trainInfo.type);
                 break;
             }
 
@@ -1202,42 +1204,28 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             log.debug("真奖池大于假奖池，允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
             BigDecimal pool = BigDecimal.valueOf(smallPoolNumber.longValue());
 
-            int poolId = getPoolIdByTrain(t.getTrainIconId());
+            int poolId = getPoolIdByTrain(trainInfo.type);
             if (poolId < 1) {
-                log.debug("获取的池子id小于1 trainCoinId = {},poolId = {}", t.getTrainIconId(), poolId);
+                log.debug("获取的池子id小于1 trainCoinId = {},poolId = {}", trainInfo.type, poolId);
                 continue;
             }
             PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
             if (poolCfg == null) {
-                log.debug("获取的池子配置为空 trainCoinId = {},poolId = {}", t.getTrainIconId(), poolId);
+                log.debug("获取的池子配置为空 trainCoinId = {},poolId = {}", trainInfo.type, poolId);
                 continue;
             }
             //中奖概率,这里保留了8位，所以最后可以取int值
             int propV = BigDecimal.valueOf(contribt).divide(pool, 8, BigDecimal.ROUND_HALF_UP).divide(BigDecimal.valueOf(poolCfg.getPoolProp()), 8, BigDecimal.ROUND_HALF_UP).multiply(oneHundredMillionBigDecimal).intValue();
             int rand = RandomUtils.randomInt(oneHundredMillion);
-            rand = 1;
+//            rand = 1;
             if (rand >= propV) {
                 log.debug("随机概率，未中奖 rand = {},propV = {}", rand, propV);
                 continue;
             }
-            //奖池初始金额
-            BigDecimal initPoolBigDecimal = BigDecimal.valueOf(playerGameData.getLastStake());
-            //间隔时间
-            BigDecimal intervalTime = BigDecimal.valueOf(poolCfg.getGrowthRate().get(0));
-            //增加万分比
-            BigDecimal prop = BigDecimal.valueOf(poolCfg.getGrowthRate().get(1)).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
+            //计算奖池金额
+            long addGold = calTrainPoolValue(playerGameData.getLastStake(),poolCfg.getGrowthRate(),poolCfg.getFakePoolInitTimes());
 
-            //循环时间
-            BigDecimal circulTimeBigDecimal = BigDecimal.ONE.divide(prop, 4, RoundingMode.HALF_UP).multiply(intervalTime);
-            //余数y
-            int y = TimeHelper.getNowDaySeconds() % circulTimeBigDecimal.intValue();
-            //实际金额
-            BigDecimal step1 = BigDecimal.valueOf(y).divide(intervalTime, 4, RoundingMode.HALF_UP);
-            BigDecimal step2 = step1.multiply(prop);
-            BigDecimal step3 = step2.multiply(initPoolBigDecimal);
-            long addGold = initPoolBigDecimal.add(step3).longValue();
-
-            log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},intervalTime = {},y = {},addGold = {}", playerGameData.playerId(), rand, propV, intervalTime, y, addGold);
+            log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},addGold = {}", playerGameData.playerId(), rand, propV, addGold);
 
             //给玩家加钱
             CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_TRAIN_" + pool);
@@ -1251,7 +1239,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
             trainInfo.goldList.add(addGold);
             trainInfo.poolId = poolId;
-//            gameRunInfo.addSmallPoolReward(poolCfg.getId(), addGold);
             log.debug("该火车中奖，并且加钱成功 playerId = {},addGold = {}", playerGameData.playerId(), addGold);
         }
         return gameRunInfo;
@@ -1395,6 +1382,39 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             list.add(resultLineInfo);
         }
         return list;
+    }
+
+    /**
+     * 计算火车奖池金额
+     * @param stake
+     * @param growthRate
+     * @return
+     */
+    public long calTrainPoolValue(long stake, List<Integer> growthRate,int initTimes) {
+        //奖池初始金额
+        BigDecimal initPoolBigDecimal = BigDecimal.valueOf(stake).multiply(BigDecimal.valueOf(initTimes));
+
+        //间隔时间
+        int timeValue = growthRate.get(0);
+        BigDecimal intervalTime = BigDecimal.valueOf(timeValue);
+
+        //增加万分比
+        int propValue = growthRate.get(1);
+        BigDecimal prop = BigDecimal.valueOf(propValue).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
+
+        //循环时间
+        BigDecimal circulTimeBigDecimal = BigDecimal.ONE.divide(prop, 4, RoundingMode.HALF_UP).multiply(intervalTime);
+        //余数y
+        int y = TimeHelper.getNowDaySeconds() % circulTimeBigDecimal.intValue();
+        //实际金额
+        BigDecimal step1 = BigDecimal.valueOf(y).divide(intervalTime, 4, RoundingMode.HALF_UP);
+        BigDecimal step2 = step1.multiply(prop);
+        BigDecimal step3 = step2.multiply(initPoolBigDecimal);
+        long addGold = initPoolBigDecimal.add(step3).longValue();
+
+//        log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},intervalTime = {},y = {},addGold = {}", playerGameData.playerId(), rand, propV, intervalTime, y, addGold);
+        log.debug("计算火车奖池金额 stake = {},timeValue = {},propValue = {},y = {},addGold = {}", stake, timeValue, propValue, y, addGold);
+        return addGold;
     }
 
     /**

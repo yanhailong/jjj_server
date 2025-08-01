@@ -163,7 +163,10 @@ public class DollarExpressMessageHandler implements GmListener {
                     res.code = Code.FAIL;
                     return res;
                 }
-                dollarExpressManager.addGenerateLibEvent(count);
+                boolean success = dollarExpressManager.addGenerateLibEvent(count);
+                if(!success){
+                    res.code = Code.FAIL;
+                }
             }else if("selectLib".equals(gmOrders[0])) {
                 log.debug("收到选取结果库的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 int libType = Integer.parseInt(gmOrders[1]);

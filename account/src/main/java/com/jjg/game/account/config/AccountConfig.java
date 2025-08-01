@@ -7,19 +7,11 @@ import org.springframework.stereotype.Component;
  * @author 11
  * @date 2025/6/9 16:04
  */
-@ConfigurationProperties(prefix = "vegasaccount")
+@ConfigurationProperties(prefix = "jjgaccount")
 @Component
 public class AccountConfig {
-    private String nodename;
     private String gameserver;
-
-    public String getNodename() {
-        return nodename;
-    }
-
-    public void setNodename(String nodename) {
-        this.nodename = nodename;
-    }
+    private long playerBeginId = 1000000;
 
     public String getGameserver() {
         return gameserver;
@@ -27,5 +19,13 @@ public class AccountConfig {
 
     public void setGameserver(String gameserver) {
         this.gameserver = gameserver;
+    }
+
+    public void setPlayerBeginId(long playerBeginId) {
+        this.playerBeginId = playerBeginId;
+    }
+
+    public long getPlayerBeginId() {
+        return playerBeginId;
     }
 }

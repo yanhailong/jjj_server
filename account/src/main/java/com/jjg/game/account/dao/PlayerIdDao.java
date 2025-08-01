@@ -1,5 +1,6 @@
 package com.jjg.game.account.dao;
 
+import com.jjg.game.account.config.AccountConfig;
 import com.jjg.game.core.constant.GameConstant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -16,12 +17,14 @@ public class PlayerIdDao {
 
     @Autowired
     private RedisTemplate redisTemplate;
+    @Autowired
+    private AccountConfig accountConfig;
 
     /**
      * 初始化id
      */
     public void init(){
-        redisTemplate.opsForValue().setIfAbsent(tableName, GameConstant.Common.playerBeginId);
+        redisTemplate.opsForValue().setIfAbsent(tableName, accountConfig.getPlayerBeginId());
     }
 
     /**
