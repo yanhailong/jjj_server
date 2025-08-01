@@ -467,7 +467,7 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
                 + this.name
                 + ",handler:"
                 + handler.getClass().getName()
-                + "handlerParameter"
+                + "handlerParameter:"
                 + handler.getHandlerParam()
                 + ",doTime:"
                 + doTime

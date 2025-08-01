@@ -95,19 +95,19 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         notifyPlayerBet.betTableInfoList = new ArrayList<>();
         // 处理下注数据
         Map<Integer, List<Integer>> playerAreaInfoMap = gameDataVo.getPlayerBetInfo(playerController.playerId());
-        Map<Integer, Long> playerReqBetMap = new HashMap<>();
+        Map<Integer, List<Integer>> playerReqBetMap = new HashMap<>();
         for (ReqBetBean betBean : reqBetBeans) {
-            playerReqBetMap.put(betBean.betAreaIdx,
-                playerReqBetMap.getOrDefault(betBean.betAreaIdx, 0L) + betBean.betValue);
+            playerReqBetMap.computeIfAbsent(betBean.betAreaIdx, k -> new ArrayList<>()).add((int) betBean.betValue);
         }
-        for (Map.Entry<Integer, Long> entry : playerReqBetMap.entrySet()) {
+        for (Map.Entry<Integer, List<Integer>> entry : playerReqBetMap.entrySet()) {
             int betAreaIdx = entry.getKey();
-            long betValue = entry.getValue();
+            long betValue = entry.getValue().stream().mapToInt(Integer::intValue).sum();
             playerTotalBetGold += betValue;
             if (playerAreaInfoMap == null) {
                 playerAreaInfoMap = new HashMap<>();
             }
-            playerAreaInfoMap.computeIfAbsent(betAreaIdx, k -> new ArrayList<>()).add((int) betValue);
+            playerAreaInfoMap.computeIfAbsent(
+                betAreaIdx, k -> new ArrayList<>()).addAll(entry.getValue());
         }
         // 更新押注数据
         gameDataVo.updatePlayerBetInfo(playerController.playerId(), playerAreaInfoMap);
