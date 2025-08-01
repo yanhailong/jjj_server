@@ -8,5 +8,5 @@ import com.jjg.game.common.concurrent.priority.IPriorityHandler;
  *
  * @author 2CL
  */
-public abstract class BasePriorityHandler extends BaseHandler implements IPriorityHandler {
+public abstract class BasePriorityHandler<T> extends BaseHandler<T> implements IPriorityHandler {
 }

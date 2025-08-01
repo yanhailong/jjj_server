@@ -5,6 +5,7 @@ import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.baccarat.message.resp.BaccaratCardState;
 import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratSettlementInfo;
+import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.data.TableGameDataVo;
 
 import java.util.ArrayList;
@@ -42,12 +43,12 @@ public class BaccaratGameDataVo extends TableGameDataVo {
             gamePlayer.getTableGameData().setSitNum(0);
         }
         List<GamePlayer> gamePlayers =
-            // 取金币最高的6个人，放在场上
+            // 取金币最高的7个人，放在场上
             gamePlayerMap.values()
                 .stream()
                 .sorted(Comparator.comparingLong(Player::getGold).reversed()).toList()
-                .subList(0, Math.min(gamePlayerMap.size(), 6));
-        // 将前6个人的位置进行排序
+                .subList(0, Math.min(gamePlayerMap.size(), TableConstant.ON_TABLE_PLAYER_NUM));
+        // 将前7个人的位置进行排序
         for (int i = 1; i <= gamePlayers.size(); i++) {
             GamePlayer gamePlayer = gamePlayers.get(i - 1);
             gamePlayer.getTableGameData().setSitNum(i);

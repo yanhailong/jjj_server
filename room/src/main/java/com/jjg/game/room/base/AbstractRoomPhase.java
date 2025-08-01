@@ -10,6 +10,7 @@ import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.RoomCfg;
+import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomPhaseTimeEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,13 +89,13 @@ public abstract class AbstractRoomPhase<RC extends RoomCfg, G extends GameDataVo
     /**
      * 添加阶段Timer,避免在当前阶段还在执行其他阶段的逻辑，如果定时器到了直接丢弃
      */
-    protected void addPhaseTimer(TimerEvent<IProcessorHandler> event) {
+    protected void addPhaseTimer(TimerEvent<IProcessorHandler> event, RoomEventType roomEventType) {
         if (!(event.getTimerListener() instanceof AbstractGameController<?, ?>)) {
             log.error("添加阶段timer失败, 如果添加普通timeEvent可以自行实现，添加阶段TimeEvent必须在GameController中执行事件");
             return;
         }
         gameController.addGamePhaseTimer(
-            new RoomPhaseTimeEvent<>(getGamePhase(), event, gameController.getRoom()));
+            new RoomPhaseTimeEvent<>(getGamePhase(), event, gameController.getRoom(), roomEventType));
     }
 
     @Override

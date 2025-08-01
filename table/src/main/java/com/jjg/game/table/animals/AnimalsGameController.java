@@ -11,7 +11,7 @@ import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.animals.data.AnimalsGameDataVo;
 import com.jjg.game.table.animals.gamephase.AnimalsBetPhase;
 import com.jjg.game.table.animals.gamephase.AnimalsSettlementPhase;
-import com.jjg.game.table.animals.gamephase.AnimalsWaitReadyPhase;
+import com.jjg.game.table.animals.gamephase.AnimalsTableWaitReadyPhase;
 import com.jjg.game.table.animals.message.AnimalsMessageBuilder;
 import com.jjg.game.table.animals.message.NotifyAnimalsTableInfo;
 import com.jjg.game.table.common.BaseTableGameController;
@@ -46,7 +46,7 @@ public class AnimalsGameController extends BaseTableGameController<AnimalsGameDa
     @Override
     protected LinkedHashSet<IRoomPhase> initGamePhaseConf() {
         LinkedHashSet<IRoomPhase> roomPhases = new LinkedHashSet<>();
-        roomPhases.add(new AnimalsWaitReadyPhase(this));
+        roomPhases.add(new AnimalsTableWaitReadyPhase(this));
         roomPhases.add(new AnimalsBetPhase(this));
         roomPhases.add(new AnimalsSettlementPhase(this));
         return roomPhases;

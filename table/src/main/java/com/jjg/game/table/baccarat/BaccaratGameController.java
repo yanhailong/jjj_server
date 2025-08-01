@@ -14,7 +14,7 @@ import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.gamephase.BaccaratSettlementPhase;
 import com.jjg.game.table.baccarat.gamephase.BaccaratTableBetPhase;
-import com.jjg.game.table.baccarat.gamephase.BaccaratWaitReadyPhase;
+import com.jjg.game.table.baccarat.gamephase.BaccaratTableWaitReadyPhase;
 import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
 import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratSettlementInfo;
 import com.jjg.game.table.baccarat.message.resp.RespBaccaratTableInfo;
@@ -80,7 +80,7 @@ public class BaccaratGameController extends BaseTableGameController<BaccaratGame
     protected LinkedHashSet<IRoomPhase> initGamePhaseConf() {
         LinkedHashSet<IRoomPhase> gamePhases = new LinkedHashSet<>();
         // 初始等待
-        gamePhases.add(new BaccaratWaitReadyPhase(this));
+        gamePhases.add(new BaccaratTableWaitReadyPhase(this));
         // 押注阶段
         gamePhases.add(new BaccaratTableBetPhase(this));
         // 进入结算(发牌、亮牌、补牌、结算对服务端来说只有一个阶段)

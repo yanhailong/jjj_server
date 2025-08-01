@@ -110,7 +110,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         resortPlayerOnTable();
         // 通知场上玩家加入
         NotifyTableRoomPlayerInfoChange playerInfoChange =
-            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), 7, gameDataVo);
+            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
         // 需要排除当前玩家，玩家刚进场给自己发送没有意义
         broadcastToPlayers(RoomMessageBuilder
             .newBuilder()
@@ -127,7 +127,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         resortPlayerOnTable();
         // 通知场上玩家离开
         NotifyTableRoomPlayerInfoChange playerInfoChange =
-            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), 7, gameDataVo);
+            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
         // 需要排除当前玩家，因为给离开的玩家发送已经没有意义
         broadcastToPlayers(RoomMessageBuilder
             .newBuilder()
@@ -144,7 +144,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         List<GamePlayer> topGamePlayers =
             gameDataVo.getGamePlayerMap().values().stream()
                 .sorted((o1, o2) -> Long.compare(o2.getGold(), o1.getGold()))
-                .limit(7)
+                .limit(TableConstant.ON_TABLE_PLAYER_NUM)
                 .toList();
         for (int i = 1; i <= topGamePlayers.size(); i++) {
             GamePlayer player = topGamePlayers.get(i - 1);

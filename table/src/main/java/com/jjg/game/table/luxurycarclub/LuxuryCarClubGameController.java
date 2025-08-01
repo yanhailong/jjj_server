@@ -15,7 +15,7 @@ import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.luxurycarclub.data.LuxuryCarClubGameDataVo;
 import com.jjg.game.table.luxurycarclub.gamephase.LuxuryCarClubPhase;
-import com.jjg.game.table.luxurycarclub.gamephase.LuxuryCarClubReadyPhase;
+import com.jjg.game.table.luxurycarclub.gamephase.LuxuryCarClubReadyPhaseTable;
 import com.jjg.game.table.luxurycarclub.gamephase.LuxuryCarClubSettlementPhase;
 import com.jjg.game.table.luxurycarclub.message.LuxuryCarClubMessageBuilder;
 import com.jjg.game.table.luxurycarclub.message.NotifyLuxuryCarClubTableInfo;
@@ -52,7 +52,7 @@ public class LuxuryCarClubGameController extends BaseTableGameController<LuxuryC
     @Override
     protected LinkedHashSet<IRoomPhase> initGamePhaseConf() {
         LinkedHashSet<IRoomPhase> roomPhases = new LinkedHashSet<>();
-        roomPhases.add(new LuxuryCarClubReadyPhase(this));
+        roomPhases.add(new LuxuryCarClubReadyPhaseTable(this));
         roomPhases.add(new LuxuryCarClubPhase(this));
         roomPhases.add(new LuxuryCarClubSettlementPhase(this));
         return roomPhases;

@@ -14,6 +14,7 @@ import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.bean.BetRobotCfg;
 import com.jjg.game.room.sample.bean.RobotCfg;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.table.betsample.sample.GameDataManager;
 import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
@@ -181,7 +182,9 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             throw new GameSampleException("机器人押注随机时间错误，机器人：" + gameRobotPlayer.getId());
         }
         // 给机器人添加异步执行押注的逻辑,执行时会回调到房间线程处理
-        addPhaseTimer(new TimerEvent<>(gameController, betRandTime, () -> doRobotBet(gameRobotPlayer, betRobotCfg)));
+        addPhaseTimer(
+            new TimerEvent<>(gameController, betRandTime, () -> doRobotBet(gameRobotPlayer, betRobotCfg)),
+            RoomEventType.TRIGGER_ROBOT_BET_ACTION);
     }
 
     /**
@@ -200,9 +203,6 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         }
         // 检查下注行为
         int code = checkBetAction(robotPlayer, randomBetArea, randomGold);
-        /*log.info("机器人：{} 在房间：{} 场次：{} 进行押注逻辑， 押注区域：{} 押注金币：{}",
-            gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId(),
-            robotPlayer.getId(), randomBetArea, randomGold);*/
         // 检查机器人是否下注
         if (code != Code.SUCCESS) {
             return;
@@ -252,7 +252,9 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             throw new GameSampleException("获取" + BetRobotCfg.EXCEL_NAME + "中的机器人再次押注等待时间 异常");
         }
         // 添加计时器，进行循环模拟押注
-        addPhaseTimer(new TimerEvent<>(gameController, roundTime, () -> robotBetAction(robotPlayer)));
+        addPhaseTimer(
+            new TimerEvent<>(gameController, roundTime, () -> robotBetAction(robotPlayer)),
+            RoomEventType.ROBOT_BET_LOOP);
 
     }
 

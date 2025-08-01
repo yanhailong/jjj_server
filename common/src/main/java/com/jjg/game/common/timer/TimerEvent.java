@@ -342,18 +342,17 @@ public class TimerEvent<T> implements Runnable {
         inFire = false;
     }
 
+    @Override
     /* common methods */
     public String toString() {
-        StringBuffer sb = new StringBuffer();
-        sb.append(super.toString());
-        sb.append("[listener=").append(listener);
-        sb.append(", parameter=").append(parameter);
-        sb.append(", intervalTime=").append(intervalTime);
-        sb.append(", count=").append(count);
-        sb.append(", initTime=").append(initTime);
-        sb.append(", absolute=").append(absolute);
-        sb.append("]");
-        return sb.toString();
+        return super.toString() +
+            "[listener=" + listener +
+            ", parameter=" + parameter +
+            ", intervalTime=" + intervalTime +
+            ", count=" + count +
+            ", initTime=" + initTime +
+            ", absolute=" + absolute +
+            "]";
     }
 
     @Override

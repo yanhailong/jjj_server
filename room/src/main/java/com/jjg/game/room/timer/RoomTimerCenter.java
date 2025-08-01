@@ -3,15 +3,11 @@ package com.jjg.game.room.timer;
 import com.jjg.game.common.cluster.ClusterProcessorExecutors;
 import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.BaseHandler;
-import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.timer.BaseTimerCenter;
 import com.jjg.game.core.data.Room;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 
 /**
  * 房间内的timer,和房间线程绑定=玩家和房间交互的逻辑线程
@@ -70,12 +66,12 @@ public class RoomTimerCenter extends BaseTimerCenter<RoomTimerEvent<IProcessorHa
             BaseFuncProcessor baseProcessor = executors.getProcessorById(roomId);
             if (time >= event.getNextTime()) {
                 event.setInFire(true);
-                baseProcessor.executeHandler(new BaseHandler() {
+                baseProcessor.executeHandler(new BaseHandler<>() {
                     @Override
                     public void action() {
                         event.run();
                     }
-                });
+                }.setHandlerParamWithSelf(event));
             }
         }
     }

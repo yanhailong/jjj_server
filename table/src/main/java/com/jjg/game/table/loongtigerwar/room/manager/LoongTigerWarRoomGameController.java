@@ -14,7 +14,7 @@ import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarBetPhase;
-import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarReadyPhase;
+import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarReadyPhaseTable;
 import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarSettlementPhase;
 import com.jjg.game.table.loongtigerwar.message.resp.NotifyLoongTigerWarInfo;
 import com.jjg.game.table.loongtigerwar.room.data.LoongTigerWarGameDataVo;
@@ -49,7 +49,7 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
     @Override
     protected LinkedHashSet<IRoomPhase> initGamePhaseConf() {
         LinkedHashSet<IRoomPhase> gamePhases = new LinkedHashSet<>();
-        gamePhases.add(new LoongTigerWarReadyPhase(this));
+        gamePhases.add(new LoongTigerWarReadyPhaseTable(this));
         gamePhases.add(new LoongTigerWarBetPhase(this));
         gamePhases.add(new LoongTigerWarSettlementPhase(this));
         return gamePhases;

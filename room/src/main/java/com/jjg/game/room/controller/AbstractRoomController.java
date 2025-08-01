@@ -20,6 +20,7 @@ import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.room.sample.bean.WarehouseCfg;
+import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomTimerCenter;
 import com.jjg.game.room.timer.RoomTimerEvent;
 import org.slf4j.Logger;
@@ -311,7 +312,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         addEmptyRoomCheckTimer();
         // 房间Timer执行tick时间 现在默认 100ms
         // 添加房间tick
-        timerCenter.add(new RoomTimerEvent<>(this, room, this::timeTick, RoomConstant.ROOM_TICK_TIME));
+        timerCenter.add(new RoomTimerEvent<>(
+            this, room, this::timeTick, RoomConstant.ROOM_TICK_TIME, RoomEventType.ROOM_PHASE_RUN_EVENT));
     }
 
     /**
@@ -326,7 +328,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         int deleteTimeCheck = roomDeletionSolution.get(1);
         timerCenter.add(new RoomTimerEvent<>(this, room, deleteTimeCheck, () -> {
 
-        }));
+        }, RoomEventType.ROOM_EMPTY_ROOM_CHECK));
     }
 
     @Override

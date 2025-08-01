@@ -15,7 +15,7 @@ import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.redblackwar.gamephase.RedBlackWarBetPhase;
 import com.jjg.game.table.redblackwar.gamephase.RedBlackWarSettlementPhase;
-import com.jjg.game.table.redblackwar.gamephase.RedBlackWarWaitReadyPhase;
+import com.jjg.game.table.redblackwar.gamephase.RedBlackWarTableWaitReadyPhase;
 import com.jjg.game.table.redblackwar.message.resp.NotifyRedBlackWarInfo;
 import com.jjg.game.table.redblackwar.room.data.RedBlackWarGameDataVo;
 
@@ -52,7 +52,7 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
     @Override
     protected LinkedHashSet<IRoomPhase> initGamePhaseConf() {
         LinkedHashSet<IRoomPhase> gamePhases = new LinkedHashSet<>();
-        gamePhases.add(new RedBlackWarWaitReadyPhase(this));
+        gamePhases.add(new RedBlackWarTableWaitReadyPhase(this));
         gamePhases.add(new RedBlackWarBetPhase(this));
         gamePhases.add(new RedBlackWarSettlementPhase(this));
         return gamePhases;

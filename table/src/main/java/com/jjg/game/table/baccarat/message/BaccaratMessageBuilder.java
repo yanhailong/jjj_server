@@ -12,6 +12,7 @@ import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.BaccaratTempRoom;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.message.resp.*;
+import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
@@ -108,7 +109,7 @@ public class BaccaratMessageBuilder {
         }
         notifyBaccaratTableInfo.cardStateList = gameDataVo.getBetRecord();
         notifyBaccaratTableInfo.gamePhase = eGamePhase;
-        notifyBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameDataVo, true);
+        notifyBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameDataVo, true, true);
         return notifyBaccaratTableInfo;
     }
 
@@ -126,7 +127,7 @@ public class BaccaratMessageBuilder {
         }
         respBaccaratTableInfo.cardStateList = gameDataVo.getBetRecord();
         respBaccaratTableInfo.gamePhase = eGamePhase;
-        respBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameDataVo, true);
+        respBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameDataVo, true, true);
         respBaccaratTableInfo.betInfoList = gameDataVo.getRoomCfg().getBetList();
         respBaccaratTableInfo.playerTotalNum = gameDataVo.getPlayerNum();
         return respBaccaratTableInfo;
@@ -138,7 +139,7 @@ public class BaccaratMessageBuilder {
      */
     public static NotifyBaccaratBetStart buildNotifyBaccaratBetStart(BaccaratGameDataVo gameDataVo) {
         NotifyBaccaratBetStart notifyInfo = new NotifyBaccaratBetStart();
-        notifyInfo.baccaratTableInfo = buildTableInfo(gameDataVo, false);
+        notifyInfo.baccaratTableInfo = buildTableInfo(gameDataVo, false, true);
         return notifyInfo;
     }
 
@@ -150,7 +151,7 @@ public class BaccaratMessageBuilder {
                                                                             BaccaratSettlementInfo settlementInfo) {
         NotifyBaccaratSettlementInfo notifyInfo = new NotifyBaccaratSettlementInfo();
         notifyInfo.baccaratSettlementInfo = settlementInfo;
-        notifyInfo.baccaratTableInfo = buildTableInfo(gameDataVo, false);
+        notifyInfo.baccaratTableInfo = buildTableInfo(gameDataVo, false, false);
         notifyInfo.playerChangedGolds = changedGolds;
         notifyInfo.needClearRoad = gameDataVo.getCardList().size() < 6;
         log.info("房间：{} 游戏类型：{} 场上庄家牌：{} 庄家补牌：{} 庄家点数：{} 闲家牌：{} 闲家补牌：{} 闲家点数：{} 输赢结果：{} 牌型结果：{}",
@@ -171,16 +172,19 @@ public class BaccaratMessageBuilder {
     /**
      * 构建百家乐场上基础信息
      */
-    public static BaccaratTableInfo buildTableInfo(BaccaratGameDataVo gameDataVo, boolean needPlayerBetGold) {
+    public static BaccaratTableInfo buildTableInfo(BaccaratGameDataVo gameDataVo, boolean needPlayerBetGold,
+                                                   boolean needTablePlayer) {
         BaccaratTableInfo tableInfo = new BaccaratTableInfo();
         tableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(gameDataVo, needPlayerBetGold);
         tableInfo.tableCountDownTime = gameDataVo.getPhaseEndTime();
         tableInfo.totalTime = (int) (gameDataVo.getPhaseRunTime());
-        // 刷新场上的玩家数据
-        List<GamePlayer> gamePlayers =
-            gameDataVo.getGamePlayerMap().values().stream().filter(g -> g.getTableGameData().getSitNum() > 0).toList();
-        tableInfo.tablePlayerInfoList =
-            gamePlayers.stream().limit(7).map(TableMessageBuilder::buildTablePlayerInfo).toList();
+        if (needTablePlayer) {
+            // 刷新场上的玩家数据
+            List<GamePlayer> gamePlayers =
+                gameDataVo.getGamePlayerMap().values().stream().filter(g -> g.getTableGameData().getSitNum() > 0).toList();
+            tableInfo.tablePlayerInfoList =
+                gamePlayers.stream().limit(TableConstant.ON_TABLE_PLAYER_NUM).map(TableMessageBuilder::buildTablePlayerInfo).toList();
+        }
         return tableInfo;
     }
 

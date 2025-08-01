@@ -6,6 +6,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
@@ -63,7 +64,7 @@ public class TableMessageBuilder {
      * 构建游戏的前6玩家基础信息
      */
     public static List<TablePlayerInfo> buildTablePlayerInfo(GameDataVo<?> tableGameDataVo) {
-        return buildTablePlayerInfo(tableGameDataVo, 7);
+        return buildTablePlayerInfo(tableGameDataVo, TableConstant.ON_TABLE_PLAYER_NUM);
     }
 
     /**

@@ -14,7 +14,7 @@ public class HallProcessor extends BaseFuncProcessor {
     }
 
     @Override
-    public void executeHandler(BaseHandler handler) {
+    public void executeHandler(BaseHandler<?> handler) {
         super.executeHandler(handler);
     }
 }

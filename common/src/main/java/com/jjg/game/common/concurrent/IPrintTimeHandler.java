@@ -10,17 +10,17 @@ public interface IPrintTimeHandler {
     /**
      * handler等待时间
      */
-    void printWaitTime(BaseHandler handler, long logDoTime, long waitTime, String callWay);
+    void printWaitTime(BaseHandler<?> handler, long logDoTime, long waitTime, String callWay);
 
     /**
      * handler执行时间
      */
-    void printDoTime(BaseHandler handler, long doTime, String info);
+    void printDoTime(BaseHandler<?> handler, long doTime, String info);
 
     /**
      * handler队列大小
      *
      * @param size 当前队列大小
      */
-    void printQueueSize(BaseHandler handler, int size);
+    void printQueueSize(BaseHandler<?> handler, int size);
 }

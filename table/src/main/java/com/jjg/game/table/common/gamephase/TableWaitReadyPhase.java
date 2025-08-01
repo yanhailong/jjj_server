@@ -6,9 +6,10 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.table.common.TableConstant;
+import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.res.NotifyRoomReadyWait;
 
@@ -17,9 +18,9 @@ import com.jjg.game.table.common.message.res.NotifyRoomReadyWait;
  *
  * @author 2CL
  */
-public class WaitReadyPhase<RD extends GameDataVo<Room_BetCfg>> extends AbstractRoomPhase<Room_BetCfg, RD> {
+public class TableWaitReadyPhase<T extends TableGameDataVo> extends AbstractRoomPhase<Room_BetCfg, T> {
 
-    public WaitReadyPhase(AbstractGameController<Room_BetCfg, RD> gameController) {
+    public TableWaitReadyPhase(AbstractGameController<Room_BetCfg, T> gameController) {
         super(gameController);
     }
 
@@ -28,6 +29,8 @@ public class WaitReadyPhase<RD extends GameDataVo<Room_BetCfg>> extends Abstract
         super.phaseDoAction();
         // 通知房间等待消息
         notifyRoomReadyMessage();
+        // 清除数据
+        gameDataVo.clearRoundData();
     }
 
     /**
@@ -37,7 +40,8 @@ public class WaitReadyPhase<RD extends GameDataVo<Room_BetCfg>> extends Abstract
         NotifyRoomReadyWait notifyRoomReadyWait = new NotifyRoomReadyWait(Code.SUCCESS);
         notifyRoomReadyWait.roomId = gameDataVo.getRoomId();
         notifyRoomReadyWait.waitEndTime = gameDataVo.getPhaseEndTime();
-        notifyRoomReadyWait.tablePlayerInfo = TableMessageBuilder.buildTablePlayerInfo(gameDataVo, 7);
+        notifyRoomReadyWait.tablePlayerInfo =
+            TableMessageBuilder.buildTablePlayerInfo(gameDataVo, TableConstant.ON_TABLE_PLAYER_NUM);
         notifyRoomReadyWait.totalPlayerNum = gameDataVo.getPlayerNum();
         // 发送进入等待时间的消息
         broadcastMsgToRoom(notifyRoomReadyWait);

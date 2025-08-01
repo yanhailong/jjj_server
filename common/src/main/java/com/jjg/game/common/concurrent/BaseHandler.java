@@ -5,7 +5,7 @@ package com.jjg.game.common.concurrent;
  *
  * @author 2CL
  */
-public abstract class BaseHandler implements IProcessorHandler{
+public abstract class BaseHandler<T> implements IProcessorHandler {
     /**
      * 创建handler时间 *
      */
@@ -13,6 +13,7 @@ public abstract class BaseHandler implements IProcessorHandler{
 
     protected volatile long aloneNum;
     protected volatile long createAloneNum;
+    protected volatile T handlerParam;
 
     /**
      * 执行结果 用于回调类型的handler *
@@ -50,5 +51,18 @@ public abstract class BaseHandler implements IProcessorHandler{
 
     public long getCreateAloneNum() {
         return this.createAloneNum;
+    }
+
+    public T getHandlerParam() {
+        return handlerParam;
+    }
+
+    public void setHandlerParam(T handlerParam) {
+        this.handlerParam = handlerParam;
+    }
+
+    public BaseHandler<T> setHandlerParamWithSelf(T handlerParam) {
+        this.handlerParam = handlerParam;
+        return this;
     }
 }

@@ -91,7 +91,7 @@ public class ClusterMessageDispatcher {
                 handle(connect, session, msg);
             } else {
                 PFSession finalSession = session;
-                processor.executeHandler(new BaseHandler() {
+                processor.executeHandler(new BaseHandler<>() {
                     @Override
                     public void action() {
                         handle(connect, finalSession, msg);

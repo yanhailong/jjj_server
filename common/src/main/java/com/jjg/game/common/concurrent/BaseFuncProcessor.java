@@ -12,7 +12,7 @@ public abstract class BaseFuncProcessor extends BaseProcessor {
     }
 
     @Override
-    public void executeHandler(BaseHandler handler) {
+    public void executeHandler(BaseHandler<?> handler) {
         super.executeHandler(handler);
     }
 }
