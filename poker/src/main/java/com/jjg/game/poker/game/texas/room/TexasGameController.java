@@ -103,7 +103,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             playerInfos.add(playerInfo);
         }
         repsRoomBaseInfo.playerInfos = playerInfos;
-        repsRoomBaseInfo.findDealerTime =
+//        repsRoomBaseInfo.findDealerTime =
                 //客户端初始化完成
                 broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), repsRoomBaseInfo));
     }
