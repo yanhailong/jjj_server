@@ -12,16 +12,19 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.dao.AbstractRoomDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.PropInfo;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SpecialResultLibCacheData;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.sample.GameDataManager;
 import com.jjg.game.slots.sample.bean.*;
@@ -36,7 +39,6 @@ import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author 11
@@ -108,12 +110,65 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     public abstract void init();
 
     /**
+     * 对外调用
      * 生成结果库
-     *
      * @param count
      */
-    protected void generateLib(int count) {
+    public void generateLib(int count) {
+        boolean lock = getResultLibDao().addGenerateLock(this.gameType);
+        if (!lock) {
+            log.debug("当前正在生成结果库，请勿打扰....");
+            return;
+        }
+
+        log.info("开始生成结果库，预期生成 {} 条", count);
+
+        String newDocName = getResultLibDao().getNewMongoLibName();
+        int expectGenerateCount = count;
+        int restCount = Math.min(count, 100);
+
+        List<DollarExpressResultLib> libList = new ArrayList<>();
+        int saveCount = 0;
+        int i = 0;
+
+
+        while (count > 0) {
+            int reduceCount = 0;
+            i++;
+            try {
+                List<DollarExpressResultLib> tempList = getGenerateManager().generateOne();
+                reduceCount = tempList.size();
+
+                libList.addAll(tempList);
+
+                if (libList.size() >= restCount) {
+                    saveCount += getResultLibDao().batchSave(libList, newDocName);
+                    libList = new ArrayList<>();
+                }
+
+                if ((i % 2000) == 0) {
+                    Thread.sleep(500);
+                }
+            } catch (Exception e) {
+                log.error("", e);
+            } finally {
+                count -= reduceCount;
+            }
+        }
+
+        //加载到redis
+        String redisTableName = getResultLibDao().moveToRedis(newDocName, this.resultLibSectionMap);
+        specialResultLibConfig(this.gameType, false);
+
+        log.info("生成结果库结束，预期 {} 条，成功保存到数据库 {} 条,mongoName = {},redisName = {}", expectGenerateCount, saveCount, newDocName, redisTableName);
+
+        this.clearAllLibEvent = new TimerEvent<>(this, 1, "clearLibEvent").withTimeUnit(TimeUnit.MINUTES);
+        this.timerCenter.add(this.clearAllLibEvent);
+
+        //通知其他节点，结果库变更
+        noticeNodeLibChange(SlotsConst.LibChangeType.LIB_CHANGE, Collections.EMPTY_LIST);
     }
+
 
     /**
      * 关闭
@@ -230,27 +285,35 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      * @return
      */
     public T createPlayerGameData(PlayerController playerController) {
-        boolean hasPlay = historySlotsDao.hasPlaySlots(playerController.playerId(), playerController.getPlayer().getGameType());
+        T playerGameData = (T)getGameDataDao().getGameDataByPlayerId(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
 
-        T playerGameData = gameDataMap.computeIfAbsent(playerController.playerId(), k -> {
-            try {
-                Constructor<T> constructor = this.playerGameDataClass.getConstructor();
-                return constructor.newInstance();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return null;
-        });
+        if(playerGameData == null) {
+            playerGameData = gameDataMap.computeIfAbsent(playerController.playerId(), k -> {
+                try {
+                    Constructor<T> constructor = this.playerGameDataClass.getConstructor();
+                    return constructor.newInstance();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return null;
+            });
 
+            //是否玩过该类游戏
+            boolean hasPlay = historySlotsDao.hasPlaySlots(playerController.playerId(), playerGameData.getGameType());
 
+            playerGameData.setGameType(playerController.getPlayer().getGameType());
+            playerGameData.setRoomCfgId(playerController.getPlayer().getRoomCfgId());
+            playerGameData.getHasPlaySlots().set(hasPlay);
+
+            //设置默认押注
+            BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(playerGameData.getRoomCfgId());
+            playerGameData.setLastStake(baseRoomCfg.getDefaultBet().get(0));
+        }else {
+            playerGameData.getHasPlaySlots().set(true);
+            playerGameData = gameDataMap.put(playerController.playerId(), playerGameData);
+        }
+        playerGameData.setOnline(true);
         playerGameData.setPlayerController(playerController);
-        playerGameData.setGameType(playerController.getPlayer().getGameType());
-        playerGameData.setRoomCfgId(playerController.getPlayer().getRoomCfgId());
-        playerGameData.getHasPlaySlots().set(hasPlay);
-
-        //设置默认押注
-        BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(playerGameData.getRoomCfgId());
-        playerGameData.setLastStake(baseRoomCfg.getDefaultBet().get(0));
         return playerGameData;
     }
 
@@ -347,6 +410,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     }
 
     protected <D extends AbstractResultLibDao> D getResultLibDao() {
+        return null;
+    }
+
+    protected <D extends AbstractGameDataDao> D getGameDataDao() {
+        return null;
+    }
+
+    protected <D extends AbstractSlotsGenerateManager> D getGenerateManager() {
         return null;
     }
 
@@ -737,5 +808,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
     public List<ClientFreeRollerCfg> getClientFreeRollerCfgList() {
         return clientFreeRollerCfgList;
+    }
+
+    public void checkNotActive(){
+
     }
 }

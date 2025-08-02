@@ -8,15 +8,11 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGameManager;
 import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressSendMessageManager;
-import com.jjg.game.slots.game.dollarexpress.pb.ReqChooseFreeModel;
-import com.jjg.game.slots.game.dollarexpress.pb.ReqConfigInfo;
-import com.jjg.game.slots.game.dollarexpress.pb.ReqInvestArea;
-import com.jjg.game.slots.game.dollarexpress.pb.ReqStartGame;
+import com.jjg.game.slots.game.dollarexpress.pb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +28,7 @@ public class DollarExpressMessageHandler implements GmListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
-    private DollarExpressGameManager dollarExpressManager;
+    private DollarExpressGameManager gameManager;
     @Autowired
     private DollarExpressSendMessageManager sendMessageManager;
 
@@ -43,7 +39,7 @@ public class DollarExpressMessageHandler implements GmListener {
      * @param playerController
      * @param req
      */
-    @Command(SlotsConst.MsgBean.REQ_CONFIG_INFO)
+    @Command(DollarExpressConstant.MsgBean.REQ_CONFIG_INFO)
     public void reqConfigInfo(PlayerController playerController, ReqConfigInfo req) {
         try {
             log.info("收到玩家请求配置 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
@@ -59,12 +55,12 @@ public class DollarExpressMessageHandler implements GmListener {
      * @param playerController
      * @param req
      */
-    @Command(SlotsConst.MsgBean.REQ_START_GAME)
+    @Command(DollarExpressConstant.MsgBean.REQ_START_GAME)
     public void reqStartGame(PlayerController playerController, ReqStartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            DollarExpressGameRunInfo dollarExpressGameRunInfo = this.dollarExpressManager.playerStartGame(playerController, req.stakeVlue);
-            sendMessageManager.sendStartGameMessage(playerController, dollarExpressGameRunInfo);
+            DollarExpressGameRunInfo gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeVlue);
+            sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -76,11 +72,11 @@ public class DollarExpressMessageHandler implements GmListener {
      * @param playerController
      * @param req
      */
-    @Command(SlotsConst.MsgBean.REQ_CHOOSE_FREE_MODEL)
+    @Command(DollarExpressConstant.MsgBean.REQ_CHOOSE_FREE_MODEL)
     public void reqChooseFreeModel(PlayerController playerController, ReqChooseFreeModel req) {
         try {
             log.info("收到选择免费游戏类型 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            DollarExpressGameRunInfo gameRunInfo = dollarExpressManager.playerChooseFreeGameType(playerController, req.status);
+            DollarExpressGameRunInfo gameRunInfo = gameManager.playerChooseFreeGameType(playerController, req.status);
             sendMessageManager.sendChooseOneMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
@@ -93,12 +89,29 @@ public class DollarExpressMessageHandler implements GmListener {
      * @param playerController
      * @param req
      */
-    @Command(SlotsConst.MsgBean.REQ_INVEST_AREA)
+    @Command(DollarExpressConstant.MsgBean.REQ_INVEST_AREA)
     public void reqInvestArea(PlayerController playerController, ReqInvestArea req) {
         try {
             log.info("收到选择投资游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            DollarExpressGameRunInfo gameRunInfo = dollarExpressManager.invest(playerController, req.areaId);
+            DollarExpressGameRunInfo gameRunInfo = gameManager.invest(playerController, req.areaId);
             sendMessageManager.sendInvers(playerController,gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 奖池
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(DollarExpressConstant.MsgBean.REQ_POOL_VALUE)
+    public void reqPoolValue(PlayerController playerController, ReqPoolValue req) {
+        try {
+            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+            DollarExpressGameRunInfo gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
+            sendMessageManager.sendPoolValue(playerController,gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -122,7 +135,7 @@ public class DollarExpressMessageHandler implements GmListener {
                 if (gmOrders.length > 2) {
                     testLibData.setUpdateGird(Boolean.parseBoolean(gmOrders[2]));
                 }
-                dollarExpressManager.addTestIconData(playerController, testLibData,true);
+                gameManager.addTestIconData(playerController, testLibData,true);
             }else if("setRoller".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到设置滚轴的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 TestLibData testLibData = new TestLibData();
@@ -136,7 +149,7 @@ public class DollarExpressMessageHandler implements GmListener {
                 if (gmOrders.length > 2) {
                     testLibData.setUpdateGird(Boolean.parseBoolean(gmOrders[2]));
                 }
-                dollarExpressManager.addTestIconData(playerController, testLibData,false);
+                gameManager.addTestIconData(playerController, testLibData,false);
             }else if("chooseFreeModel".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到选择免费模式的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 ReqChooseFreeModel req = new ReqChooseFreeModel();
@@ -154,7 +167,7 @@ public class DollarExpressMessageHandler implements GmListener {
                 reqInvestArea(playerController, req);
             }else if("selectAllArea".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到选择所有地区的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
-                dollarExpressManager.selectAllArea(playerController);
+                gameManager.selectAllArea(playerController);
             }else if("adminGenerateLib".equals(gmOrders[0])) {
                 log.debug("收到生成结果库的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 int count = Integer.parseInt(gmOrders[1]);
@@ -163,7 +176,7 @@ public class DollarExpressMessageHandler implements GmListener {
                     res.code = Code.FAIL;
                     return res;
                 }
-                boolean success = dollarExpressManager.addGenerateLibEvent(count);
+                boolean success = gameManager.addGenerateLibEvent(count);
                 if(!success){
                     res.code = Code.FAIL;
                 }

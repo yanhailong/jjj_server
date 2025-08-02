@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName Pool.xlsx
  * @sheetName Pool
  * @author Auto.Generator
- * @date 2025年07月30日 10:16:30
+ * @date 2025年08月02日 14:18:48
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class PoolCfg extends BaseCfgBean {
@@ -20,7 +20,7 @@ public class PoolCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "Pool";
 
   /** 中奖表现延迟时间 */
-  protected int DelayTime;
+  protected int delayTime;
   /** 假奖池初始值倍率 */
   protected int fakePoolInitTimes;
   /** 循环的假奖池上限倍率 */
@@ -34,7 +34,7 @@ public class PoolCfg extends BaseCfgBean {
 
   /** 返回中奖表现延迟时间 */
   public int getDelayTime() {
-    return DelayTime;
+    return delayTime;
   }
 
   /** 返回假奖池初始值倍率 */

@@ -166,6 +166,30 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
     }
 
     /**
+     * 返回奖池结果
+     *
+     * @param playerController
+     * @param gameRunInfo
+     */
+    public void sendPoolValue(PlayerController playerController, DollarExpressGameRunInfo gameRunInfo) {
+        SendInfo sendInfo = new SendInfo();
+
+        ResPoolValue res = new ResPoolValue(gameRunInfo.getCode());
+        if (gameRunInfo.success()) {
+            res.mini = gameRunInfo.getMini();
+            res.minor = gameRunInfo.getMinor();
+            res.major = gameRunInfo.getMajor();
+            res.grand = gameRunInfo.getGrand();
+        } else {
+            log.debug("奖池结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
+        }
+
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendInfo.getLogMessage().add(res);
+        sendRun(playerController, sendInfo, "返回奖池结果", false);
+    }
+
+    /**
      * 金火车信息
      *
      * @param count

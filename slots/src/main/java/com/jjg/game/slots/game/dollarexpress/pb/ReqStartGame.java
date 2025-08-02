@@ -4,13 +4,13 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractMessage;
-import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 
 /**
  * @author 11
  * @date 2025/6/12 17:11
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE, cmd = SlotsConst.MsgBean.REQ_START_GAME)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE, cmd = DollarExpressConstant.MsgBean.REQ_START_GAME)
 @ProtoDesc("请求开始游戏")
 public class ReqStartGame extends AbstractMessage {
     @ProtoDesc("下注金额")

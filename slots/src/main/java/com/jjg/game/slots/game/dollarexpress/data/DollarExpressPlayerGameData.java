@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.dollarexpress.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
+import org.springframework.data.annotation.Transient;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,14 +25,6 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
     private Map<Integer,Long> rewardPoolGoldMap;
     //玩家奖池(倍场)累计贡献金额金额(没有减去已获得金额)
     private Map<Integer,Long> contribtPoolGoldMap;
-    //获取的普通结果库
-    private DollarExpressResultLib lib;
-    //获取的火车结果库
-    private DollarExpressResultLib trainLib;
-    //获取的黄金列车结果库
-    private DollarExpressResultLib goldTrainlib;
-    //获取的免费结果库
-    private DollarExpressResultLib freeLib;
     //累计的美钞数量
     private int totalDollars;
     //记录出现可收集美元的局数
@@ -40,10 +33,12 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
     private int addDollarsTotalStake;
 
     //用于测试
+    @Transient
     private LinkedList<TestLibData> testLibDataList;
 
+    //剩余的免费次数
     private AtomicInteger remainFreeCount = new AtomicInteger(0);
-    //是否可以
+    //是否可以投资
     private AtomicBoolean invers = new AtomicBoolean(false);
     //已经选择的地区
     private Set<Integer> selectedAreaSet;
@@ -56,15 +51,6 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
 
     public void setLastBet(long lastBet) {
         this.lastBet = lastBet;
-    }
-
-
-    public DollarExpressResultLib getLib() {
-        return lib;
-    }
-
-    public void setLib(DollarExpressResultLib lib) {
-        this.lib = lib;
     }
 
     public int getTotalDollars() {
@@ -82,30 +68,6 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
     public void addDollarsTotalStake(long stake){
         this.addDollarsCount ++;
         this.addDollarsTotalStake += stake;
-    }
-
-    public DollarExpressResultLib getTrainLib() {
-        return trainLib;
-    }
-
-    public void setTrainLib(DollarExpressResultLib trainLib) {
-        this.trainLib = trainLib;
-    }
-
-    public DollarExpressResultLib getGoldTrainlib() {
-        return goldTrainlib;
-    }
-
-    public void setGoldTrainlib(DollarExpressResultLib goldTrainlib) {
-        this.goldTrainlib = goldTrainlib;
-    }
-
-    public DollarExpressResultLib getFreeLib() {
-        return freeLib;
-    }
-
-    public void setFreeLib(DollarExpressResultLib freeLib) {
-        this.freeLib = freeLib;
     }
 
     public int getLastModelId() {
@@ -294,4 +256,6 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
         }
         return this.rewardPoolGoldMap.merge(this.roomCfgId, gold, Long::sum);
     }
+
+
 }

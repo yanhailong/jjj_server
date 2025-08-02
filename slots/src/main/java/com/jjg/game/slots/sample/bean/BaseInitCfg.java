@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName BaseInit.xlsx
  * @sheetName BaseInit
  * @author Auto.Generator
- * @date 2025年07月30日 10:16:30
+ * @date 2025年08月02日 14:18:48
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseInitCfg extends BaseCfgBean {
@@ -23,8 +23,6 @@ public class BaseInitCfg extends BaseCfgBean {
   protected int additionalBetRatio;
   /** 是否自动完成 */
   protected int autoCompletion;
-  /** 押分系数 */
-  protected int bettingCoefficient;
   /** 列数 */
   protected int cols;
   /** 分散使用格子 */
@@ -45,8 +43,6 @@ public class BaseInitCfg extends BaseCfgBean {
   protected int rows;
   /** 类型 */
   protected int type;
-  /** 中奖动画条件 */
-  protected String winConditions;
 
   /** 返回额外投注倍率 */
   public int getAdditionalBetRatio() {
@@ -56,11 +52,6 @@ public class BaseInitCfg extends BaseCfgBean {
   /** 返回是否自动完成 */
   public int getAutoCompletion() {
     return autoCompletion;
-  }
-
-  /** 返回押分系数 */
-  public int getBettingCoefficient() {
-    return bettingCoefficient;
   }
 
   /** 返回列数 */
@@ -111,10 +102,5 @@ public class BaseInitCfg extends BaseCfgBean {
   /** 返回类型 */
   public int getType() {
     return type;
-  }
-
-  /** 返回中奖动画条件 */
-  public String getWinConditions() {
-    return winConditions;
   }
 }

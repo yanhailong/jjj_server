@@ -133,7 +133,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo,T extends Slot
         List<T> libList = new ArrayList<>();
 
         lib.setId(RandomUtils.getUUid());
-        lib.setLibType(SlotsConst.SpecialResultLib.TYPE_NORMAL);
+
         libList.add(lib);
 
         lib.setGameType(this.gameType);

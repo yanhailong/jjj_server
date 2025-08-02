@@ -98,6 +98,10 @@ public class CoreMessageHandler {
             Map<String, GmListener> map = CommonUtil.getContext().getBeansOfType(GmListener.class);
             for(Map.Entry<String, GmListener> en : map.entrySet()){
                 CommonResult<String> gmResult = en.getValue().gm(playerController, arr);
+                if(gmResult == null){
+                    continue;
+                }
+
                 if(gmResult.success()){
                     res.result = gmResult.data;
                     playerController.send(res);

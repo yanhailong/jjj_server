@@ -22,6 +22,8 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
     private long beforeGold;
     //总计获得的金币
     private long allWinGold;
+    //总计奖池获得金额
+    private long smallPoolGold;
     //玩家当前的金币
     private long afterGold;
     //单线押分
@@ -56,6 +58,12 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
     private boolean allAreaUnLock;
     //大奖展示id
     private int bigShowId;
+
+    //奖池金额
+    private long mini;
+    private long minor;
+    private long major;
+    private long grand;
 
 
     public DollarExpressGameRunInfo(int code, long playerId) {
@@ -252,5 +260,49 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
 
     public void setBigShowId(int bigShowId) {
         this.bigShowId = bigShowId;
+    }
+
+    public long getMini() {
+        return mini;
+    }
+
+    public void setMini(long mini) {
+        this.mini = mini;
+    }
+
+    public long getMinor() {
+        return minor;
+    }
+
+    public void setMinor(long minor) {
+        this.minor = minor;
+    }
+
+    public long getMajor() {
+        return major;
+    }
+
+    public void setMajor(long major) {
+        this.major = major;
+    }
+
+    public long getGrand() {
+        return grand;
+    }
+
+    public void setGrand(long grand) {
+        this.grand = grand;
+    }
+
+    public long getSmallPoolGold() {
+        return smallPoolGold;
+    }
+
+    public void setSmallPoolGold(long smallPoolGold) {
+        this.smallPoolGold = smallPoolGold;
+    }
+
+    public void addSmallPoolGold(long smallPoolGold) {
+        this.smallPoolGold += smallPoolGold;
     }
 }

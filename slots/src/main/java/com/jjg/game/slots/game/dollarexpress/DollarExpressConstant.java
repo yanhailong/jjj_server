@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.dollarexpress;
 
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.constant.MessageConst;
 
 /**
  * @author 11
@@ -14,6 +15,9 @@ public interface DollarExpressConstant {
 
     interface Common{
         int MINI_POOL_ID = 100100101;
+        int MINOR_POOL_ID = 100100102;
+        int MAJOR_POOL_ID = 100100103;
+        int GRAND_POOL_ID = 100100104;
     }
 
     interface Status{
@@ -67,5 +71,28 @@ public interface DollarExpressConstant {
         int ID_COLLECT_DOLLAR = 3;
         int ID_AGAIN_GOLD_TRAIN = 4;
         int ID_NORMAL_GOLD_TRAIN = 5;
+    }
+
+    interface MsgBean {
+        int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.DOLLAR_EXPRESS_TYPE << MessageConst.MessageCommon.RIGHT_MOVE;
+        //请求选择免费模式的游戏
+        int REQ_CHOOSE_FREE_MODEL = BASE_MSG_PREFIX | 0x1;
+        int RES_CHOOSE_FREE_MODEL = BASE_MSG_PREFIX | 0x2;
+
+        //选择投资地区
+        int REQ_INVEST_AREA = BASE_MSG_PREFIX | 0x3;
+        int RES_INVEST_AREA = BASE_MSG_PREFIX | 0x4;
+
+        //开始游戏
+        int REQ_START_GAME = BASE_MSG_PREFIX | 0x5;
+        int RES_START_GAME = BASE_MSG_PREFIX | 0x6;
+
+        //请求配置
+        int REQ_CONFIG_INFO = BASE_MSG_PREFIX | 0x7;
+        int RES_CONFIG_INFO = BASE_MSG_PREFIX | 0x8;
+
+        //请求奖池
+        int REQ_POOL_VALUE = BASE_MSG_PREFIX | 0x9;
+        int RES_POOL_VALUE = BASE_MSG_PREFIX | 0xA;
     }
 }

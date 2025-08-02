@@ -2,8 +2,10 @@ package com.jjg.game.slots.data;
 
 import org.springframework.data.annotation.Id;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * slots 结果库
@@ -16,7 +18,7 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
     //游戏类型
     protected int gameType;
     //库的类型，在 SpecialResultLib的TypeProp字段中的类型
-    protected int libType;
+    protected Set<Integer> libTypeSet;
     //滚轴模式
     protected int rollerMode;
     //滚轴id
@@ -44,12 +46,12 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
         this.gameType = gameType;
     }
 
-    public int getLibType() {
-        return libType;
+    public Set<Integer> getLibTypeSet() {
+        return libTypeSet;
     }
 
-    public void setLibType(int libType) {
-        this.libType = libType;
+    public void setLibTypeSet(Set<Integer> libTypeSet) {
+        this.libTypeSet = libTypeSet;
     }
 
     public int getRollerMode() {
@@ -94,6 +96,13 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
 
     public void addTimes(int times) {
         this.times += times;
+    }
+
+    public void addLibType(int libType) {
+        if(this.libTypeSet == null) {
+            this.libTypeSet = new HashSet<>();
+        }
+        this.libTypeSet.add(libType);
     }
 
     @Override

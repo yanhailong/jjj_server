@@ -1,6 +1,7 @@
 package com.jjg.game.slots.data;
 
 import com.jjg.game.core.data.PlayerController;
+import org.springframework.data.annotation.Transient;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -15,11 +16,18 @@ public class SlotsPlayerGameData {
     //场次配置id
     protected int roomCfgId;
     //是否玩过该slots游戏
+    @Transient
     protected AtomicBoolean hasPlaySlots = new AtomicBoolean(false);
     //当前所处状态(美元快递) 0.正常  1.二选一  2.正在免费旋转
     protected int status;
     //原始押注值
     private long lastStake;
+    //最后一次活跃时间
+    @Transient
+    private int lastActiveTime;
+    //是否在线
+    @Transient
+    private boolean online;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -72,4 +80,22 @@ public class SlotsPlayerGameData {
     public void setLastStake(long lastStake) {
         this.lastStake = lastStake;
     }
+
+    public int getLastActiveTime() {
+        return lastActiveTime;
+    }
+
+    public void setLastActiveTime(int lastActiveTime) {
+        this.lastActiveTime = lastActiveTime;
+    }
+
+    public boolean isOnline() {
+        return online;
+    }
+
+    public void setOnline(boolean online) {
+        this.online = online;
+    }
+
+
 }

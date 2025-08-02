@@ -2,9 +2,11 @@ package com.jjg.game.slots.dao;
 
 import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.slots.data.SlotsResultLib;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.redis.connection.RedisConnection;
@@ -14,6 +16,7 @@ import org.springframework.data.redis.core.ScanOptions;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -161,13 +164,16 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         //使用游标处理数据
         try (Stream<T> stream = mongoTemplate.stream(query, this.clazz, docName)) {
             stream.forEach(lib -> {
-                int sectionIndex = getSectionIndex(resultLibSectionMap, lib.getRollerMode(), lib.getLibType(), lib.getTimes());
-                if (sectionIndex < 0) {
-                    log.warn("将结果库转移到redis时失败，获取区间失败 gameType = {},modelId = {},libType = {},times = {},libId = {}", this.gameType, lib.getRollerMode(), lib.getLibType(), lib.getTimes(),lib.getId());
-                    return;
-                }
-                this.redisTemplate.opsForSet().add(tabelName(redisTableNameIndex, this.gameType, lib.getRollerMode(), lib.getLibType(), sectionIndex), lib);
+                Set<Integer> libTypeSet = lib.getLibTypeSet();
+                for(int type : libTypeSet){
+                    int sectionIndex = getSectionIndex(resultLibSectionMap, lib.getRollerMode(), type, lib.getTimes());
+                    if (sectionIndex < 0) {
+                        log.warn("将结果库转移到redis时失败，获取区间失败 gameType = {},modelId = {},libType = {},times = {},libId = {}", this.gameType, lib.getRollerMode(), type, lib.getTimes(),lib.getId());
+                        return;
+                    }
+                    this.redisTemplate.opsForSet().add(tabelName(redisTableNameIndex, this.gameType, lib.getRollerMode(), type, sectionIndex), lib);
 //                    this.redisTemplate.opsForSet().add(allSectionTabelName(redisTableNameIndex, this.gameType, lib.getRollerMode(), lib.getLibType()), sectionIndex);
+                }
             });
         }
 
@@ -285,6 +291,19 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
 
     public void removeGenerateLock(int gameType){
         this.redisTemplate.delete(generateLockTableName(gameType));
+    }
+
+    /**
+     * 一次性保存多条结果
+     * @param list
+     * @return
+     */
+    public int batchSave(List<T> list, String docName){
+        BulkOperations bulkOps = this.mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, docName);
+        for (T lib : list) {
+            bulkOps.insert(lib);
+        }
+        return bulkOps.execute().getInsertedCount();
     }
 
 }

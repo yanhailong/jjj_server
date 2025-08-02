@@ -13,7 +13,6 @@ import com.jjg.game.slots.sample.bean.*;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 /**
@@ -412,9 +411,9 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         if (rotateState == SlotsConst.BaseElementReward.ROTATESTATE_NORMAL) {
             tempLib = slotsResultLib.copyBaseData();
             tempLib.setRollerId(appointRoller);
-            tempLib.setLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE);
+            tempLib.addLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE);
             libList.add(tempLib);
-            slotsResultLib.setLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD);
+            slotsResultLib.addLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD);
         } else {
             tempLib = slotsResultLib;
         }
@@ -476,8 +475,8 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         if (rotateState == SlotsConst.BaseElementReward.ROTATESTATE_NORMAL) {
             tempLib = slotsResultLib.copyBaseData();
             tempLib.setRollerId(appointRoller);
-            tempLib.setLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
-            slotsResultLib.setLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD);
+//            tempLib.addLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
+//            slotsResultLib.addLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD);
             libList.add(tempLib);
         } else {
             tempLib = slotsResultLib;
@@ -632,7 +631,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         CommonResult<Integer> trainResult = calTrainTimes(lib.getTrainList());
         if (trainResult.success()) {
             lib.addTimes(trainResult.data);
-            lib.setLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
+            lib.addLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
 
             //火车排序
             lib.setTrainList(sortTrain(lib.getIconArr(),lib.getTrainList()));
@@ -640,7 +639,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 
         if (lib.getGoldTrainCount() > 0) {
 //            lib.addTimes(goldTrainTimes);
-            lib.setLibType(SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN);
+            lib.addLibType(SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN);
         }
 
         //免费游戏
@@ -684,7 +683,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                     //火车排序
                     game.setTrainList(sortTrain(game.getIconArr(),game.getTrainList()));
 
-                    lib.setLibType(SlotsConst.SpecialResultLib.TYPE_AGAIN_TRAIN);
+                    lib.addLibType(SlotsConst.SpecialResultLib.TYPE_AGAIN_TRAIN);
 
                     if (lib.getIconArr() != null && lib.getIconArr().length > 0) {
                         throw new IllegalArgumentException("重转1的lib里面不会有iconArr");
@@ -696,7 +695,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 }
 
                 if (game.getGoldTrainCount() > 0) {
-                    lib.setLibType(SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN);
+                    lib.addLibType(SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN);
                     if (lib.getIconArr() != null && lib.getIconArr().length > 0) {
                         throw new IllegalArgumentException("重转2的lib里面不会有iconArr");
                     }
@@ -727,7 +726,11 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 //        int goldTrainTimes = calGoldTrainTimes(lib.getDollarInfo() == null ? null : lib.getDollarInfo().getDollarTimesList(), lib.getGoldTrainCount());
 
         if (lib.getRollerId() == SlotsConst.BaseElementReward.ROTATESTATE_FREE) {
-            lib.setLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE);
+            lib.addLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE);
+        }
+
+        if(lib.getLibTypeSet() == null || lib.getLibTypeSet().isEmpty()) {
+            lib.addLibType(SlotsConst.SpecialResultLib.TYPE_NORMAL);
         }
     }
 
