@@ -165,15 +165,18 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         try (Stream<T> stream = mongoTemplate.stream(query, this.clazz, docName)) {
             stream.forEach(lib -> {
                 Set<Integer> libTypeSet = lib.getLibTypeSet();
-                for(int type : libTypeSet){
-                    int sectionIndex = getSectionIndex(resultLibSectionMap, lib.getRollerMode(), type, lib.getTimes());
-                    if (sectionIndex < 0) {
-                        log.warn("将结果库转移到redis时失败，获取区间失败 gameType = {},modelId = {},libType = {},times = {},libId = {}", this.gameType, lib.getRollerMode(), type, lib.getTimes(),lib.getId());
-                        return;
-                    }
-                    this.redisTemplate.opsForSet().add(tabelName(redisTableNameIndex, this.gameType, lib.getRollerMode(), type, sectionIndex), lib);
+                if(libTypeSet != null){
+                    for(int type : libTypeSet){
+                        int sectionIndex = getSectionIndex(resultLibSectionMap, lib.getRollerMode(), type, lib.getTimes());
+                        if (sectionIndex < 0) {
+                            log.warn("将结果库转移到redis时失败，获取区间失败 gameType = {},modelId = {},libType = {},times = {},libId = {}", this.gameType, lib.getRollerMode(), type, lib.getTimes(),lib.getId());
+                            return;
+                        }
+                        this.redisTemplate.opsForSet().add(tabelName(redisTableNameIndex, this.gameType, lib.getRollerMode(), type, sectionIndex), lib);
 //                    this.redisTemplate.opsForSet().add(allSectionTabelName(redisTableNameIndex, this.gameType, lib.getRollerMode(), lib.getLibType()), sectionIndex);
+                    }
                 }
+
             });
         }
 
