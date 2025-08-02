@@ -14,7 +14,7 @@ import java.util.Map;
  *
  * @author 2CL
  */
-public abstract class GameDataVo<RC extends RoomCfg> {
+public class GameDataVo<RC extends RoomCfg> {
 
     protected static final Logger log = LoggerFactory.getLogger(GameDataVo.class);
     // 房间配置
@@ -96,7 +96,7 @@ public abstract class GameDataVo<RC extends RoomCfg> {
         return stopTime;
     }
 
-    public abstract void reloadRoomCfg();
+    public void reloadRoomCfg(){}
 
     public void setStopTime(long stopTime) {
         this.stopTime = stopTime;

@@ -40,6 +40,7 @@ public class TablePlayerGameData {
     public void addTotalBet(long bet){
         this.totalBet += bet;
     }
+
     public int getSitNum() {
         return sitNum;
     }
