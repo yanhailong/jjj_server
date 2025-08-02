@@ -53,6 +53,13 @@ public class RoomMessageBuilder<T extends AbstractMessage> {
         return toAll;
     }
 
+    public RoomMessageBuilder<T> sendPlayer(Long playerId,T data){
+        return setPlayerIds(Set.of(playerId)).setData(data);
+    }
+    public RoomMessageBuilder<T> sendAllPlayer(T data){
+        return toAllPlayer().setData(data);
+    }
+
     public void setExceptPlayers(Set<Long> exceptPlayers) {
         this.exceptPlayers = exceptPlayers;
     }

@@ -1,0 +1,92 @@
+//package com.jjg.game.poker.game.blackjack.gamephase;
+//
+//import com.jjg.game.common.utils.CommonUtil;
+//import com.jjg.game.core.data.PlayerController;
+//import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
+//import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
+//import com.jjg.game.poker.game.common.BasePokerGameController;
+//import com.jjg.game.poker.game.common.PokerBuilder;
+//import com.jjg.game.poker.game.common.constant.PokerPhase;
+//import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
+//import com.jjg.game.poker.game.common.gamephase.BaseBetPhase;
+//import com.jjg.game.poker.game.common.gamephase.BasePlayCardPhase;
+//import com.jjg.game.room.constant.EGamePhase;
+//import com.jjg.game.room.controller.AbstractGameController;
+//import com.jjg.game.room.data.room.GamePlayer;
+//import com.jjg.game.room.listener.RoomEventListener;
+//import com.jjg.game.room.sample.bean.Room_ChessCfg;
+//import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
+//
+//import java.util.*;
+//
+///**
+// * @author lm
+// * @date 2025/7/28 14:16
+// */
+//public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
+//
+//    private final RoomEventListener roomEventListener;
+//
+//    public BlackJackBetPhase(AbstractGameController<Room_ChessCfg, BlackJackGameDataVo> gameController) {
+//        super(gameController);
+//        roomEventListener = CommonUtil.getContext().getBean(RoomEventListener.class);
+//    }
+//
+//    @Override
+//    public void phaseDoAction() {
+//        super.phaseDoAction();
+//        Map<Integer, DefaultKeyValue<Long, Boolean>> seatInfo = gameDataVo.getSeatInfo();
+//        // 确定执行顺序
+//        List<PlayerSeatInfo> playerSeatInfo = gameDataVo.getPlayerSeatInfoList();
+//        playerSeatInfo.clear();
+//        for (Map.Entry<Integer, DefaultKeyValue<Long, Boolean>> entry : seatInfo.entrySet()) {
+//            PlayerSeatInfo info = new PlayerSeatInfo(entry.getKey(), entry.getValue().getKey(), new ArrayList<>());
+//            playerSeatInfo.add(info);
+//        }
+//    }
+//
+//    @Override
+//    public void nextPhase() {
+//        //设置当前游戏阶段为发牌
+//        if (gameController instanceof BlackJackGameController controller) {
+//            BlackJackPlayCardPhase gamePhase = new BlackJackPlayCardPhase(controller);
+//            controller.addPokerPhaseTimer(gamePhase);
+//            //通知场上信息
+//            PokerBuilder.buildNotifyPhaseChange(EGamePhase.PLAY_CART, -1);
+//        }
+//    }
+//
+//    @Override
+//    public void phaseFinish() {
+//        //没下注的人直接踢掉
+//        List<PlayerSeatInfo> playerSeatInfo = gameDataVo.getPlayerSeatInfoList();
+//        List<PlayerSeatInfo> noBetPlayer = new ArrayList<>(playerSeatInfo.size());
+//        long timeMillis = System.currentTimeMillis();
+//        for (PlayerSeatInfo seatInfo : playerSeatInfo) {
+//            GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
+//            if (Objects.nonNull(gamePlayer)) {
+//                //TODO 剩余两秒加入的不踢
+//                if (Objects.isNull(seatInfo.getBetInfo()) && timeMillis - 2000 > gamePlayer.getPokerPlayerGameData().getJoinTime()) {
+//                    noBetPlayer.add(seatInfo);
+//                }
+//            }
+//        }
+//        for (PlayerSeatInfo info : noBetPlayer) {
+//            Map<Long, PlayerController> playerControllers = gameController.getRoomController().getPlayerControllers();
+//            PlayerController playerController = playerControllers.get(info.getPlayerId());
+//            if (Objects.nonNull(playerController)) {
+//                log.info("玩家：{}  未押注直接踢掉", info.getPlayerId());
+//                roomEventListener.exitGame(playerController);
+//            }
+//            playerSeatInfo.remove(info);
+//        }
+//        //进入下个阶段
+//        nextPhase();
+//    }
+//
+//    @Override
+//    public int getPhaseRunTime() {
+//        Map<Integer, Integer> chessStageOrder = gameDataVo.getRoomCfg().getChessStageOrder();
+//        return chessStageOrder.get(PokerPhase.BET.getValue());
+//    }
+//}

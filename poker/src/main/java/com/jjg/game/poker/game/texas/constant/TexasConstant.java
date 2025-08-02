@@ -1,6 +1,7 @@
 package com.jjg.game.poker.game.texas.constant;
 
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.constant.MessageConst;
 
 /**
  * @author 11
@@ -12,5 +13,35 @@ public interface TexasConstant {
         //excel配置所在目录
         String SAMPLE_PATH = CoreConst.Common.SAMPLE_ROOT_PATH + "texas";
 
+        //最大轮次
+        int MAX_ROUND = 4;
+    }
+
+
+    interface MsgBean {
+        int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.TEXAS_TYPE << MessageConst.MessageCommon.RIGHT_MOVE;
+        //响应房间基础信息
+        int REPS_ROOM_BASE_INFO = BASE_MSG_PREFIX | 0x1;
+        //通知玩家第一轮信息
+        int NOTIFY_PRE_FLOP_ROUND_INFO = BASE_MSG_PREFIX | 0x2;
+        //通知德州扑克响应消息
+        int NOTIFY_ALL_IN_SETTLEMENT_INFO = BASE_MSG_PREFIX | 0x3;
+        //通知第一轮以外的轮次变化信息
+        int NOTIFY_PUBLIC_CARD_CHANGE = BASE_MSG_PREFIX | 0x4;
+
+        //请求下注
+        int REQ_BET = BASE_MSG_PREFIX | 0x5;
+        //通知下注信息
+        int NOTIFY_BET = BASE_MSG_PREFIX | 0x6;
+        //请求亮牌
+        int REQ_SHOW_CARD = BASE_MSG_PREFIX | 0x7;
+        //通知亮牌
+        int NOTIFY_SHOW_CARD = BASE_MSG_PREFIX | 0x8;
+        //通知玩家变化
+        int NOTIFY_PLAYER_CHANGE = BASE_MSG_PREFIX | 0x9;
+        //请求改变座位状态
+        int REQ_CHANGE_SEAT_STATE = BASE_MSG_PREFIX | 0x10;
+        //通知座位变化
+        int NOTIFY_SEAT_STATE_CHANGE =  BASE_MSG_PREFIX | 0x11;
     }
 }
