@@ -311,7 +311,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             if (curIdxTotalBet + betValue >= roomIdxMaxLimit) {
                 log.debug("区域：{} 房间押注总和：{} 玩家请求：{} 限制值：{}",
                     betAreaCfg.getId(), curIdxTotalBet, betValue, roomIdxMaxLimit);
-                return Code.BET_TO_LIMIT;
+                return Code.AREA_BET_TO_LIMIT;
             }
             // 玩家区域上限
             long playerIdxMaxLimit = (long) betAreaCfg.getTbPlayerUpperLimit() * betMax;

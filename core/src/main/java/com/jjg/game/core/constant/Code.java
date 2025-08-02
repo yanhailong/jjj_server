@@ -43,7 +43,8 @@ public interface Code {
     int UNKNOWN_ERROR = 412;
     // 加入房间失败
     int JOIN_ROOM_FAILED = 413;
-
+    //区域下注已达上限
+    int AREA_BET_TO_LIMIT = 414;
     //服务器错误
     int EXCEPTION = 500;
 }
