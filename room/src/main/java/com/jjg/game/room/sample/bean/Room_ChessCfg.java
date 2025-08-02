@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName Room_Chess.xlsx
  * @sheetName Room_Chess
  * @author Auto.Generator
- * @date 2025年07月31日 16:29:11
+ * @date 2025年08月02日 14:13:24
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class Room_ChessCfg extends RoomCfg {
@@ -95,5 +95,15 @@ public class Room_ChessCfg extends RoomCfg {
   /** 返回阶段信息 */
   public List<List<Integer>> getStageOrder() {
     return stageOrder;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
   }
 }

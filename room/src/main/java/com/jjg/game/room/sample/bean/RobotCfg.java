@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName robot.xlsx
  * @sheetName Robot
  * @author Auto.Generator
- * @date 2025年07月31日 16:29:12
+ * @date 2025年08月02日 14:13:24
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class RobotCfg extends BaseCfgBean {
@@ -88,5 +88,15 @@ public class RobotCfg extends BaseCfgBean {
   /** 返回VIP等级 */
   public int getVipLevel() {
     return VipLevel;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
   }
 }

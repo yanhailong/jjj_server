@@ -1,6 +1,7 @@
 package com.jjg.game.table.common.data;
 
 import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 
@@ -75,6 +76,16 @@ public class TableGameDataVo extends GameDataVo<Room_BetCfg> {
     @Override
     public void reloadRoomCfg() {
         roomCfg = GameDataManager.getRoom_BetCfg(roomCfg.getId());
+    }
+
+    /**
+     * 更新玩家操作时间
+     */
+    public void updatePlayerOperateTime(long playerId) {
+        GamePlayer gamePlayer = gamePlayerMap.get(playerId);
+        if (gamePlayer != null) {
+            gamePlayer.getTableGameData().setPlayerLatestOperateTime(System.currentTimeMillis());
+        }
     }
 }
 

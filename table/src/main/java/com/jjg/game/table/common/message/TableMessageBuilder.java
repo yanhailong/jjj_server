@@ -11,6 +11,8 @@ import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import com.jjg.game.table.common.message.bean.TablePlayerInfo;
+import com.jjg.game.table.common.message.req.NotifyTableExitRoom;
+import com.jjg.game.table.common.message.req.NotifyTableLongTimeNoOperate;
 import com.jjg.game.table.common.message.res.NotifyPhaseChangInfo;
 import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
@@ -88,8 +90,8 @@ public class TableMessageBuilder {
      */
     private static List<GamePlayer> getSortedGamePlayer(GameDataVo<?> tableGameDataVo, int limit) {
         Stream<GamePlayer> sorted = tableGameDataVo.getGamePlayerMap()
-                .values()
-                .stream().sorted(Comparator.comparingLong(Player::getGold).reversed());
+            .values()
+            .stream().sorted(Comparator.comparingLong(Player::getGold).reversed());
         if (limit > 0) {
             sorted = sorted.limit(limit);
         }
@@ -131,7 +133,7 @@ public class TableMessageBuilder {
      * 通知场上玩家信息有变化
      */
     public static NotifyTableRoomPlayerInfoChange buildNotifyTableRoomPlayerInfoChange(
-            long changedPlayerId, int sendSize, TableGameDataVo dataVo) {
+        long changedPlayerId, int sendSize, TableGameDataVo dataVo) {
         NotifyTableRoomPlayerInfoChange infoChange = new NotifyTableRoomPlayerInfoChange();
         infoChange.changedPlayerId = changedPlayerId;
         infoChange.tableChangedPlayerInfos = new ArrayList<>();
@@ -149,7 +151,8 @@ public class TableMessageBuilder {
      *
      * @param playerGet 结算的玩家获得的金币
      */
-    public static List<PlayerChangedGold> getPlayerSettleInfos(Map<Long, DefaultKeyValue<Long, Long>> playerGet, TableGameDataVo gameDataVo) {
+    public static List<PlayerChangedGold> getPlayerSettleInfos(
+        Map<Long, DefaultKeyValue<Long, Long>> playerGet, TableGameDataVo gameDataVo) {
         List<PlayerChangedGold> settleInfoArrayList = new ArrayList<>();
         for (Map.Entry<Long, DefaultKeyValue<Long, Long>> entry : playerGet.entrySet()) {
             PlayerChangedGold info = new PlayerChangedGold();
@@ -197,9 +200,9 @@ public class TableMessageBuilder {
      * 添加玩家下注区域的数据
      */
     public static List<BetTableInfo> buildPlayerBetInfo(
-            List<BetTableInfo> betTableInfos, TableGameDataVo gameDataVo, long playerId) {
+        List<BetTableInfo> betTableInfos, TableGameDataVo gameDataVo, long playerId) {
         Map<Integer, BetTableInfo> baccaratTableInfoMap = betTableInfos.stream()
-                .collect(HashMap::new, (map, e) -> map.put(e.betIdx, e), HashMap::putAll);
+            .collect(HashMap::new, (map, e) -> map.put(e.betIdx, e), HashMap::putAll);
         Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
         if (playerBetInfo == null) {
             return betTableInfos;
@@ -217,5 +220,17 @@ public class TableMessageBuilder {
             }
         }
         return baccaratTableInfoMap.values().stream().toList();
+    }
+
+    public static NotifyTableLongTimeNoOperate buildNotifyTableLongTimeNoOperate(int langId) {
+        NotifyTableLongTimeNoOperate notify = new NotifyTableLongTimeNoOperate();
+        notify.langId = langId;
+        return notify;
+    }
+
+    public static NotifyTableExitRoom buildNotifyTableExitRoom(int langId) {
+        NotifyTableExitRoom notify = new NotifyTableExitRoom();
+        notify.langId = langId;
+        return notify;
     }
 }

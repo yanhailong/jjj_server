@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName RobotAction_Chess.xlsx
  * @sheetName ChessRobot
  * @author Auto.Generator
- * @date 2025年07月31日 16:29:11
+ * @date 2025年08月02日 14:13:24
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class ChessRobotCfg extends RobotActionCfg {
@@ -60,5 +60,15 @@ public class ChessRobotCfg extends RobotActionCfg {
   /** 返回获胜时押注筹码 */
   public List<List<Integer>> getWinBetAction() {
     return WinBetAction;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
   }
 }

@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName RobotAction_Bet.xlsx
  * @sheetName BetRobot
  * @author Auto.Generator
- * @date 2025年07月31日 16:29:11
+ * @date 2025年08月02日 14:13:24
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BetRobotCfg extends RobotActionCfg {
@@ -74,5 +74,15 @@ public class BetRobotCfg extends RobotActionCfg {
   /** 返回再次押注等待 */
   public List<List<Integer>> getNextTime() {
     return NextTime;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
   }
 }

@@ -9,7 +9,6 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.base.AbstractMsgDealRoomPhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
-import com.jjg.game.room.manager.RoomManager;
 import com.jjg.game.room.message.BaseRoomMessageDispatcher;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
@@ -18,7 +17,6 @@ import com.jjg.game.table.common.message.req.ReqTablePlayerInfo;
 import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -43,6 +41,9 @@ public class TableGroupMessageDispatcher extends BaseRoomMessageDispatcher {
         super.dispatchMsg(playerController, message);
     }
 
+    /**
+     * 请求牌桌上玩家信息
+     */
     @Command(value = TableRoomMessageConstant.ReqMsgBean.REQ_TABLE_PLAYER_INFO)
     public void reqTablePlayerInfo(PlayerController playerController, ReqTablePlayerInfo reqTablePlayerInfo) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
@@ -53,11 +54,17 @@ public class TableGroupMessageDispatcher extends BaseRoomMessageDispatcher {
             playerController.send(new RespTablePlayerInfo(code));
             return;
         }
+        TableGameDataVo tableGameDataVo = (TableGameDataVo) gameController.getGameDataVo();
+        // 更新操作时间
+        tableGameDataVo.updatePlayerOperateTime(playerController.playerId());
         RespTablePlayerInfo respTablePlayerInfo =
-            TableMessageBuilder.buildTableAllPlayerInfo((TableGameDataVo) gameController.getGameDataVo());
+            TableMessageBuilder.buildTableAllPlayerInfo(tableGameDataVo);
         playerController.send(respTablePlayerInfo);
     }
 
+    /**
+     * 玩家发送房间初始信息 客户端在刚进入房间时，不能收到服务端的主动推送，所以需要等客户端初始化完成后，主动向服务端请求
+     */
     @Command(value = TableRoomMessageConstant.ReqMsgBean.REQ_ROOM_BASE_INFO)
     public void reqRoomBaseInfo(PlayerController playerController, ReqRoomBaseInfo reqRoomBaseInfo) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
@@ -68,6 +75,9 @@ public class TableGroupMessageDispatcher extends BaseRoomMessageDispatcher {
             return;
         }
         gameController.respRoomInitInfo(playerController);
+        TableGameDataVo tableGameDataVo = (TableGameDataVo) gameController.getGameDataVo();
+        // 更新操作时间
+        tableGameDataVo.updatePlayerOperateTime(playerController.playerId());
     }
 
     /**
