@@ -43,14 +43,12 @@ public class RoomMessageHandler {
             log.debug("退出游戏 playerId = {}", playerId);
             if (playerController.getPlayer().getGameType() != EGameType.BACCARAT.getGameTypeId()) {
                 AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-                    roomManager.getGameControllerByPlayerId(playerId);
+                        roomManager.getGameControllerByPlayerId(playerId);
                 if (Objects.isNull(gameController)) {
                     playerController.send(new ResExitGame(Code.PARAM_ERROR));
                     return;
                 }
-                GameDataVo<? extends RoomCfg> gameDataVo = gameController.getGameDataVo();
-                GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-                if (Objects.isNull(gamePlayer) || gamePlayer.getTableGameData().getTotalBet() > 0) {
+                if (!gameController.canExitGame(playerId)) {
                     playerController.send(new ResExitGame(Code.FORBID));
                     return;
                 }
