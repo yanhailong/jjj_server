@@ -53,7 +53,7 @@ public class HallService implements ConfigExcelChangeListener {
     public boolean canJoinGame(int gameType) {
         GameStatus gameStatus = gameStatusesMap.get(gameType);
         if (Objects.nonNull(gameStatus)) {
-            return gameStatus.open() == 2 && gameStatus.status() == 2;
+            return gameStatus.open() == 1 && gameStatus.status() == 1;
         }
         GameListCfg gameListCfg = GameDataManager.getGameListCfg(gameType);
         if (Objects.nonNull(gameListCfg)) {
