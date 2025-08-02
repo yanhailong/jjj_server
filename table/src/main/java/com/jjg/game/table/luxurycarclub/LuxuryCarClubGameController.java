@@ -59,8 +59,8 @@ public class LuxuryCarClubGameController extends BaseTableGameController<LuxuryC
     }
 
     @Override
-    protected LuxuryCarClubGameDataVo copyRoomDataVo(GameDataVo<Room_BetCfg> roomData) {
-        return new LuxuryCarClubGameDataVo(roomData.getRoomCfg());
+    protected LuxuryCarClubGameDataVo createRoomDataVo(Room_BetCfg roomCfg) {
+        return new LuxuryCarClubGameDataVo(roomCfg);
     }
 
     @Override

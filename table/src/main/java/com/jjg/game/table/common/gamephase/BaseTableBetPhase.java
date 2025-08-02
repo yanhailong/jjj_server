@@ -305,16 +305,16 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             BetAreaCfg betAreaCfg = betAreaCfgMap.get(betAreaIdx);
             // 判断场上单区域的总数量是否达到上限
             // 配置的上限
-            int roomIdxMaxLimit = betAreaCfg.getTbUpperLimit() * betMax;
+            long roomIdxMaxLimit = (long) betAreaCfg.getTbUpperLimit() * betMax;
             // 当前房间的请求的下注区的总数
             long curIdxTotalBet = gameDataVo.getAreaTotalBet(betAreaIdx);
             if (curIdxTotalBet + betValue >= roomIdxMaxLimit) {
                 log.debug("区域：{} 房间押注总和：{} 玩家请求：{} 限制值：{}",
                     betAreaCfg.getId(), curIdxTotalBet, betValue, roomIdxMaxLimit);
-                return Code.BET_TO_LIMIT;
+                return Code.AREA_BET_TO_LIMIT;
             }
             // 玩家区域上限
-            int playerIdxMaxLimit = betAreaCfg.getTbPlayerUpperLimit() * betMax;
+            long playerIdxMaxLimit = (long) betAreaCfg.getTbPlayerUpperLimit() * betMax;
             Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(gamePlayer.getId());
             long playerBetTotal = 0;
             if (playerBetInfo != null) {

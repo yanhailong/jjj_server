@@ -18,6 +18,10 @@ public class TablePlayerGameData {
     private final List<Pair<Boolean, Long>> betInfoList = new ArrayList<>();
     // 红黑大战玩家本场此押注总金额
     private long totalBet;
+    // 玩家上一次在房间主动操作并与服务端有交互的时间
+    private long playerLatestOperateTime;
+    // 玩家上一次在房间主动操作并与服务端有交互的发送标记，防止重发
+    private boolean hasNotifyNoOperate = false;
 
 
     public void addBetRecord(long getGold) {
@@ -37,14 +41,31 @@ public class TablePlayerGameData {
         return totalBet;
     }
 
-    public void addTotalBet(long bet){
+    public void addTotalBet(long bet) {
         this.totalBet += bet;
     }
+
     public int getSitNum() {
         return sitNum;
     }
 
     public void setSitNum(int sitNum) {
         this.sitNum = sitNum;
+    }
+
+    public long getPlayerLatestOperateTime() {
+        return playerLatestOperateTime;
+    }
+
+    public void setPlayerLatestOperateTime(long playerLatestOperateTime) {
+        this.playerLatestOperateTime = playerLatestOperateTime;
+    }
+
+    public boolean isHasNotifyNoOperate() {
+        return hasNotifyNoOperate;
+    }
+
+    public void setHasNotifyNoOperate(boolean hasNotifyNoOperate) {
+        this.hasNotifyNoOperate = hasNotifyNoOperate;
     }
 }

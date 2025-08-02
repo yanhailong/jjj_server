@@ -4,6 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -40,17 +41,17 @@ public class RoomMessageHandler {
         try {
             long playerId = playerController.playerId();
             log.debug("退出游戏 playerId = {}", playerId);
-            AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-                    roomManager.getGameControllerByPlayerId(playerId);
-            if (Objects.isNull(gameController)) {
-                playerController.send(new ResExitGame(Code.PARAM_ERROR));
-                return;
-            }
-            GameDataVo<? extends RoomCfg> gameDataVo = gameController.getGameDataVo();
-            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-            if (Objects.isNull(gamePlayer) || gamePlayer.getTableGameData().getTotalBet() > 0) {
-                playerController.send(new ResExitGame(Code.FORBID));
-                return;
+            if (playerController.getPlayer().getGameType() != EGameType.BACCARAT.getGameTypeId()) {
+                AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
+                        roomManager.getGameControllerByPlayerId(playerId);
+                if (Objects.isNull(gameController)) {
+                    playerController.send(new ResExitGame(Code.PARAM_ERROR));
+                    return;
+                }
+                if (!gameController.canExitGame(playerId)) {
+                    playerController.send(new ResExitGame(Code.FORBID));
+                    return;
+                }
             }
             int code = playerEventListener.exitGame(playerController);
             playerController.send(new ResExitGame(code));

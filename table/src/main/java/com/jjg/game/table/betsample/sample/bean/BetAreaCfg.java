@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName BetArea.xlsx
  * @sheetName BetArea
  * @author Auto.Generator
- * @date 2025年07月23日 18:20:26
+ * @date 2025年08月01日 11:35:51
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BetAreaCfg extends BaseCfgBean {
@@ -67,5 +67,15 @@ public class BetAreaCfg extends BaseCfgBean {
   /** 返回总下注上限倍数 */
   public int getTbUpperLimit() {
     return tbUpperLimit;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
   }
 }

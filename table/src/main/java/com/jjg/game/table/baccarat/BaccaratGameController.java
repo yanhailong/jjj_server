@@ -89,8 +89,8 @@ public class BaccaratGameController extends BaseTableGameController<BaccaratGame
     }
 
     @Override
-    protected BaccaratGameDataVo copyRoomDataVo(GameDataVo<Room_BetCfg> roomData) {
-        return new BaccaratGameDataVo(roomData.getRoomCfg());
+    protected BaccaratGameDataVo createRoomDataVo(Room_BetCfg roomCfg) {
+        return new BaccaratGameDataVo(roomCfg);
     }
 
     @Override

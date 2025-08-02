@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName Room_Bet.xlsx
  * @sheetName Room_Bet
  * @author Auto.Generator
- * @date 2025年07月31日 16:29:11
+ * @date 2025年08月02日 14:13:24
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class Room_BetCfg extends RoomCfg {
@@ -22,7 +22,7 @@ public class Room_BetCfg extends RoomCfg {
   /** 系统抽水万分比 */
   protected int EffectiveRatio;
   /** 不操作退出倒计时秒 */
-  protected int EscText;
+  protected int EscTime;
   /** 踢出房间提示 */
   protected int EscTipText;
   /** 机器人加入房间间隔（毫秒） */
@@ -56,8 +56,8 @@ public class Room_BetCfg extends RoomCfg {
   }
 
   /** 返回不操作退出倒计时秒 */
-  public int getEscText() {
-    return EscText;
+  public int getEscTime() {
+    return EscTime;
   }
 
   /** 返回踢出房间提示 */
@@ -123,5 +123,15 @@ public class Room_BetCfg extends RoomCfg {
   /** 返回倍场ID */
   public int getRoomID() {
     return roomID;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
   }
 }

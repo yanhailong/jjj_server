@@ -1,6 +1,7 @@
 package com.jjg.game.room.data.room;
 
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +61,15 @@ public class GameDataVo<RC extends RoomCfg> {
         return gamePlayerMap;
     }
 
+    /**
+     * 获取除了机器人之外的玩家
+     */
+    public Map<Long, GamePlayer> getGamePlayerMapExceptRobot() {
+        return gamePlayerMap.values().stream()
+            .filter((gamePlayer) -> !(gamePlayer instanceof GameRobotPlayer))
+            .collect(HashMap::new, (map, gamePlayer) -> map.put(gamePlayer.getId(), gamePlayer), HashMap::putAll);
+    }
+
     public GamePlayer getGamePlayer(long playerId) {
         return gamePlayerMap.get(playerId);
     }
@@ -96,10 +106,14 @@ public class GameDataVo<RC extends RoomCfg> {
         return stopTime;
     }
 
+    public void reloadRoomCfg() {
+    }
+
     public void setStopTime(long stopTime) {
         this.stopTime = stopTime;
     }
-    public String roomLogInfo(){
+
+    public String roomLogInfo() {
         EGameType eGameType = EGameType.getGameByTypeId(roomCfg.getGameID());
         return "游戏类型：" + eGameType.getGameDesc() + " 房间配置ID: " + roomCfg.getId() + " 房间ID: " + roomId;
     }

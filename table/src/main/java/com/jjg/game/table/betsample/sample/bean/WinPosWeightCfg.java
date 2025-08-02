@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName WinPosWeight.xlsx
  * @sheetName WinPosWeight
  * @author Auto.Generator
- * @date 2025年07月23日 16:51:19
+ * @date 2025年08月01日 11:35:51
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class WinPosWeightCfg extends BaseCfgBean {
@@ -81,5 +81,15 @@ public class WinPosWeightCfg extends BaseCfgBean {
   /** 返回奖励类型 */
   public int getWinType() {
     return winType;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
   }
 }

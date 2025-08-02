@@ -1,26 +1,36 @@
 package com.jjg.game.table.betsample.sample.container;
 
-import com.jjg.game.table.betsample.sample.bean.BaseCfgBean;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.Validate;
-import org.apache.poi.ss.usermodel.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.processing.Generated;
 import java.io.File;
 import java.lang.reflect.*;
 import java.nio.file.Files;
-import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import javax.annotation.processing.Generated;
+
+import com.jjg.game.table.betsample.sample.bean.BaseCfgBean;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.Validate;
+import org.apache.poi.ss.usermodel.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 配置表容器
@@ -1224,9 +1234,13 @@ public abstract class BaseCfgContainer<T extends BaseCfgBean> {
         String cellValue = getCellValue(cell);
         cellVal = cellValue.trim();
       }
-      if (colNum == 0 && isEmptyString(cellVal)) {
+
+      if (colNum == 0 && isEmptyString(cellVal) && rowNum == getFieldTypeRow()) {
         // 兼容第一行不填的情况默认为int
         cellVal = "int";
+      } else if (colNum == 0 && rowNum == getFieldNameRow()) {
+        // 兼容id字段，首行id都为小写
+        cellVal = cellVal.toLowerCase();
       }
       return cellVal;
     }

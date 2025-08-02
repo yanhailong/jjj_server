@@ -29,6 +29,7 @@ import com.jjg.game.table.baccarat.message.req.ReqBaccaratTableSummaryList;
 import com.jjg.game.table.baccarat.message.req.ReqExitRoomInGame;
 import com.jjg.game.table.baccarat.message.req.ReqJoinRoomInGame;
 import com.jjg.game.table.baccarat.message.resp.*;
+import com.jjg.game.table.common.data.TableGameDataVo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,6 +81,9 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
             return;
         }
         gameController.respRoomInitInfo(playerController);
+        TableGameDataVo tableGameDataVo = (TableGameDataVo) gameController.getGameDataVo();
+        // 更新操作时间
+        tableGameDataVo.updatePlayerOperateTime(playerController.playerId());
     }
 
     @Command(BaccaratMessageConstant.ReqMsgBean.REQ_BACCARAT_TABLE_SUMMARY_LIST)

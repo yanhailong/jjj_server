@@ -1,11 +1,13 @@
 package com.jjg.game.table.common;
 
+import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
+import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
@@ -17,6 +19,8 @@ import com.jjg.game.room.sample.bean.RobotCfg;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.TableMessageBuilder;
+import com.jjg.game.table.common.message.req.NotifyTableExitRoom;
+import com.jjg.game.table.common.message.req.NotifyTableLongTimeNoOperate;
 import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 
 import java.util.ArrayList;
@@ -32,6 +36,9 @@ import java.util.stream.Collectors;
 public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     AbstractGameController<Room_BetCfg, G> {
 
+    // 最近检查玩家未操作的时间戳
+    private long nextPlayerNoOperateCheckTime;
+
     public BaseTableGameController(AbstractRoomController<Room_BetCfg, ? extends Room> roomController) {
         super(roomController);
     }
@@ -41,6 +48,11 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         super.beforeEnterNextRound();
         // 检查机器人是否离开
         checkRobotGamePlayerExit();
+    }
+
+    @Override
+    public boolean canExitGame(long playerId) {
+        return !(getCurrentGamePhase() == EGamePhase.BET && gameDataVo.getPlayerBetInfo().containsKey(playerId));
     }
 
     /**
@@ -110,14 +122,73 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         resortPlayerOnTable();
         // 通知场上玩家加入
         NotifyTableRoomPlayerInfoChange playerInfoChange =
-            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
+            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(),
+                TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
         // 需要排除当前玩家，玩家刚进场给自己发送没有意义
         broadcastToPlayers(RoomMessageBuilder
             .newBuilder()
             .setData(playerInfoChange)
             .toAllPlayer()
             .exceptPlayer(playerController.playerId()));
+        // 进入房间时需要更新操作时间
+        gameDataVo.updatePlayerOperateTime(playerController.playerId());
         return gamePlayer;
+    }
+
+    @Override
+    public void timeTick() {
+        // 检查玩家长时间未操作提示
+        checkPlayerNoOperateAlert();
+    }
+
+    @Override
+    public void dispatchGamePhaseMsg(PlayerController playerController, PFMessage message) {
+        super.dispatchGamePhaseMsg(playerController, message);
+        // 更新玩家操作时间
+        gameDataVo.updatePlayerOperateTime(playerController.playerId());
+    }
+
+    /**
+     * 检查玩家未操作提示
+     */
+    private void checkPlayerNoOperateAlert() {
+        long currentTime = System.currentTimeMillis();
+        if (nextPlayerNoOperateCheckTime != 0 && nextPlayerNoOperateCheckTime > currentTime) {
+            return;
+        }
+        nextPlayerNoOperateCheckTime = currentTime + TableConstant.PLAYER_NO_OPERATE_CHECK_INTERVAL;
+        Map<Long, GamePlayer> gamePlayerMap = gameDataVo.getGamePlayerMapExceptRobot();
+        if (gamePlayerMap.isEmpty()) {
+            return;
+        }
+        int waitTime = gameDataVo.getRoomCfg().getWaitTime();
+        int waitTimeTipLangId = gameDataVo.getRoomCfg().getTipText();
+        int exitTime = gameDataVo.getRoomCfg().getEscTime() + waitTime;
+        int exitTipLangId = gameDataVo.getRoomCfg().getEscTipText();
+        for (Map.Entry<Long, GamePlayer> entry : gamePlayerMap.entrySet()) {
+            GamePlayer gamePlayer = entry.getValue();
+            long playerLatestOperateTime = gamePlayer.getTableGameData().getPlayerLatestOperateTime();
+            // 如果还没进入房间
+            if (playerLatestOperateTime <= 0) {
+                continue;
+            }
+            // 如果超过最大退出时间
+            if (playerLatestOperateTime + exitTime < currentTime) {
+                NotifyTableExitRoom notifyTableExitRoom
+                    = TableMessageBuilder.buildNotifyTableExitRoom(exitTipLangId);
+                broadcastToPlayers(RoomMessageBuilder.newBuilder()
+                    .addPlayerId(entry.getKey()).setData(notifyTableExitRoom));
+                continue;
+            }
+            // 如果超过最大操作等待时间
+            if (playerLatestOperateTime + waitTime < currentTime && !gamePlayer.getTableGameData().isHasNotifyNoOperate()) {
+                gamePlayer.getTableGameData().setHasNotifyNoOperate(true);
+                NotifyTableLongTimeNoOperate notifyTableLongTimeNoOperate =
+                    TableMessageBuilder.buildNotifyTableLongTimeNoOperate(waitTimeTipLangId);
+                broadcastToPlayers(RoomMessageBuilder.newBuilder()
+                    .addPlayerId(entry.getKey()).setData(notifyTableLongTimeNoOperate));
+            }
+        }
     }
 
     @Override
@@ -127,7 +198,8 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         resortPlayerOnTable();
         // 通知场上玩家离开
         NotifyTableRoomPlayerInfoChange playerInfoChange =
-            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
+            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(),
+                TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
         // 需要排除当前玩家，因为给离开的玩家发送已经没有意义
         broadcastToPlayers(RoomMessageBuilder
             .newBuilder()

@@ -1,6 +1,8 @@
 package com.jjg.game.table.common.data;
 
 import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 
 import java.util.HashMap;
@@ -44,18 +46,6 @@ public class TableGameDataVo extends GameDataVo<Room_BetCfg> {
         return areaTotal;
     }
 
-    public Map<Integer, Long> getAreaTotalBetMap() {
-        Map<Integer, Long> areaTotal = new HashMap<>();
-        for (Map<Integer, List<Integer>> value : playerBetInfo.values()) {
-            for (Map.Entry<Integer, List<Integer>> entry : value.entrySet()) {
-                long areaIdxTotal = entry.getValue().stream().mapToLong(Integer::longValue).sum();
-                areaTotal.put(entry.getKey(), areaTotal.getOrDefault(entry.getKey(), 0L) + areaIdxTotal);
-            }
-        }
-        return areaTotal;
-    }
-
-
     public Map<Integer, Map<Long, List<Integer>>> getBetInfo() {
         Map<Integer, Map<Long, List<Integer>>> map = new HashMap<>();
         for (Map.Entry<Long, Map<Integer, List<Integer>>> entry : playerBetInfo.entrySet()) {
@@ -69,6 +59,21 @@ public class TableGameDataVo extends GameDataVo<Room_BetCfg> {
 
     public TableGameDataVo(Room_BetCfg roomCfg) {
         super(roomCfg);
+    }
+
+    @Override
+    public void reloadRoomCfg() {
+        roomCfg = GameDataManager.getRoom_BetCfg(roomCfg.getId());
+    }
+
+    /**
+     * 更新玩家操作时间
+     */
+    public void updatePlayerOperateTime(long playerId) {
+        GamePlayer gamePlayer = gamePlayerMap.get(playerId);
+        if (gamePlayer != null) {
+            gamePlayer.getTableGameData().setPlayerLatestOperateTime(System.currentTimeMillis());
+        }
     }
 }
 

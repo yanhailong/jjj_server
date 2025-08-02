@@ -12,7 +12,7 @@ import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
  * @excelName BetArea.xlsx
  * @sheetName BetArea
  * @author auto_generator
- * @date 2025年07月23日 18:20:26
+ * @date 2025年08月01日 11:35:51
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BetAreaCfgContainer extends BaseCfgContainer<BetAreaCfg> {

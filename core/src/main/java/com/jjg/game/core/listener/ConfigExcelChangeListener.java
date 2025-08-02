@@ -2,10 +2,7 @@ package com.jjg.game.core.listener;
 
 import com.jjg.game.common.baselogic.DefaultCallback;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author 11
@@ -14,9 +11,9 @@ import java.util.Map;
 public interface ConfigExcelChangeListener {
 
     //初始化回调
-    Map<String, DefaultCallback> CALLBACK_COLLECTOR = new HashMap<>();
+    Map<String, List<DefaultCallback>> CALLBACK_COLLECTOR = new HashMap<>();
     //文件变化回调
-    Map<String, DefaultCallback> CHANGE_CALLBACK_COLLECTOR = new HashMap<>();
+    Map<String, List<DefaultCallback>> CHANGE_CALLBACK_COLLECTOR = new HashMap<>();
 
     /**
      * excel文件发生改变时调用
@@ -46,14 +43,14 @@ public interface ConfigExcelChangeListener {
     /**
      * 获取配置表监听的回调收集器
      */
-    default Map<String, DefaultCallback> getCallbackCollector() {
+    static Map<String, List<DefaultCallback>> getCallbackCollector() {
         return CALLBACK_COLLECTOR;
     }
 
     /**
      * 获取配置表监听的回调收集器
      */
-    default Map<String, DefaultCallback> getChangeCallbackCollector() {
+    static Map<String, List<DefaultCallback>> getChangeCallbackCollector() {
         return CHANGE_CALLBACK_COLLECTOR;
     }
 
@@ -61,12 +58,12 @@ public interface ConfigExcelChangeListener {
      * 添加配置表监听的回调收集器
      */
     default ConfigExcelChangeListener addSampleFileObserveWithCallBack(String sampleName, DefaultCallback callback) {
-        CALLBACK_COLLECTOR.put(sampleName, callback);
+        CALLBACK_COLLECTOR.computeIfAbsent(sampleName, k -> new ArrayList<>()).add(callback);
         return this;
     }
 
     default ConfigExcelChangeListener addChangeSampleFileObserveWithCallBack(String sampleName, DefaultCallback callback) {
-        CHANGE_CALLBACK_COLLECTOR.put(sampleName, callback);
+        CHANGE_CALLBACK_COLLECTOR.computeIfAbsent(sampleName, k -> new ArrayList<>()).add(callback);
         return this;
     }
 
