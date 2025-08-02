@@ -130,6 +130,8 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
             .setData(playerInfoChange)
             .toAllPlayer()
             .exceptPlayer(playerController.playerId()));
+        // 进入房间时需要更新操作时间
+        gameDataVo.updatePlayerOperateTime(playerController.playerId());
         return gamePlayer;
     }
 
@@ -166,6 +168,10 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         for (Map.Entry<Long, GamePlayer> entry : gamePlayerMap.entrySet()) {
             GamePlayer gamePlayer = entry.getValue();
             long playerLatestOperateTime = gamePlayer.getTableGameData().getPlayerLatestOperateTime();
+            // 如果还没进入房间
+            if (playerLatestOperateTime <= 0) {
+                continue;
+            }
             // 如果超过最大退出时间
             if (playerLatestOperateTime + exitTime < currentTime) {
                 NotifyTableExitRoom notifyTableExitRoom
@@ -181,7 +187,6 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
                     TableMessageBuilder.buildNotifyTableLongTimeNoOperate(waitTimeTipLangId);
                 broadcastToPlayers(RoomMessageBuilder.newBuilder()
                     .addPlayerId(entry.getKey()).setData(notifyTableLongTimeNoOperate));
-                log.info("玩家：{} 等待超时，发送退出提示通知", entry.getKey());
             }
         }
     }

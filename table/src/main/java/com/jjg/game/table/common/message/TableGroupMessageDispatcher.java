@@ -74,10 +74,10 @@ public class TableGroupMessageDispatcher extends BaseRoomMessageDispatcher {
             log.warn("请求房间初始化消息时失败 CODE：{}", code);
             return;
         }
-        gameController.respRoomInitInfo(playerController);
         TableGameDataVo tableGameDataVo = (TableGameDataVo) gameController.getGameDataVo();
         // 更新操作时间
         tableGameDataVo.updatePlayerOperateTime(playerController.playerId());
+        gameController.respRoomInitInfo(playerController);
     }
 
     /**

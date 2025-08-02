@@ -46,18 +46,6 @@ public class TableGameDataVo extends GameDataVo<Room_BetCfg> {
         return areaTotal;
     }
 
-    public Map<Integer, Long> getAreaTotalBetMap() {
-        Map<Integer, Long> areaTotal = new HashMap<>();
-        for (Map<Integer, List<Integer>> value : playerBetInfo.values()) {
-            for (Map.Entry<Integer, List<Integer>> entry : value.entrySet()) {
-                long areaIdxTotal = entry.getValue().stream().mapToLong(Integer::longValue).sum();
-                areaTotal.put(entry.getKey(), areaTotal.getOrDefault(entry.getKey(), 0L) + areaIdxTotal);
-            }
-        }
-        return areaTotal;
-    }
-
-
     public Map<Integer, Map<Long, List<Integer>>> getBetInfo() {
         Map<Integer, Map<Long, List<Integer>>> map = new HashMap<>();
         for (Map.Entry<Long, Map<Integer, List<Integer>>> entry : playerBetInfo.entrySet()) {
