@@ -288,6 +288,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         roomController.broadcastToPlayers(message);
     }
 
+
     /**
      * 初始化计时器
      */
@@ -386,11 +387,19 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         this.gameDataVo = gameDataVo;
     }
 
+
     /**
      * 给游戏添加定时器
      */
     public void addGameTimeEvent(TimerEvent<IProcessorHandler> roomUpdateTimer, RoomEventType roomEventType) {
         timerCenter.add(new RoomTimerEvent<>(roomUpdateTimer, roomController.getRoom(), roomEventType));
+    }
+
+    /**
+     * 设置游戏当前阶段
+     */
+    public void setCurrentGamePhase(IRoomPhase currentGamePhase) {
+        this.currentGamePhase = currentGamePhase;
     }
 
     /**
@@ -423,6 +432,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
 
     public <E extends RoomTimerEvent<IProcessorHandler, Room>> void addGamePhaseTimer(E roomTimerEvent) {
         timerCenter.add(roomTimerEvent);
+    }
+
+    public AbstractRoomController<RC, ? extends Room> getRoomController() {
+        return roomController;
     }
 
     public <R extends Room> R getRoom() {

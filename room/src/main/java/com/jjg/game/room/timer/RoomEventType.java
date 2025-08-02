@@ -12,6 +12,7 @@ public enum RoomEventType {
     ROOM_TICK("房间tick"),
     ROBOT_BET_LOOP("机器人循环押注"),
     ROOM_EMPTY_ROOM_CHECK("房间空房间检测"),
+    PLAYER_EVENT("玩家事件"),
     ;
     final String eventTypeName;
 
