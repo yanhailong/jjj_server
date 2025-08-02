@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author 2CL
  */
 public abstract class AbstractGameController<RC extends RoomCfg, G extends GameDataVo<RC>> implements TimerListener<IProcessorHandler>,
-    IGameController, IGameLifeCycle {
+        IGameController, IGameLifeCycle {
     protected static final Logger log = LoggerFactory.getLogger(AbstractGameController.class);
     // 游戏配置
     protected G gameDataVo;
@@ -96,35 +96,35 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             } catch (Exception ex) {
                 // 发生异常中断，不能阻断流程，先打出日志
                 log.error("运行阶段：{} 开始时发生异常！msg: {}",
-                    currentGamePhase.getGamePhase().getPhaseName(), ex.getMessage(), ex);
+                        currentGamePhase.getGamePhase().getPhaseName(), ex.getMessage(), ex);
             }
             // 将阶段逻辑添加到
             addGameTimeEvent(new TimerEvent<>(this, currentGamePhase.getPhaseRunTime(),
-                () -> {
-                    try {
-                        // 定时器时间到,调用结束逻辑
-                        currentGamePhase.phaseFinish();
-                    } catch (Exception ex) {
-                        // 发生异常中断，不能阻断流程，先打出日志
-                        log.error("运行阶段：{} 结束时发生异常！msg: {}",
-                            currentGamePhase.getGamePhase().getPhaseName(), ex.getMessage(), ex);
-                    }
-                    // 如果有绑定的下一个阶段可以切换到
-                    IRoomPhase bindNextPhase = currentGamePhase.bindNextPhase();
-                    if (bindNextPhase != null) {
-                        Iterator<IRoomPhase> latestGamePhase = gamePhaseIterator;
-                        while (gamePhaseIterator.hasNext()) {
-                            // 需要将迭代器跳到绑定的阶段,然后继续执行逻辑
-                            latestGamePhase = gamePhaseIterator;
-                            if (gamePhaseIterator.next() == bindNextPhase) {
-                                break;
-                            }
+                    () -> {
+                        try {
+                            // 定时器时间到,调用结束逻辑
+                            currentGamePhase.phaseFinish();
+                        } catch (Exception ex) {
+                            // 发生异常中断，不能阻断流程，先打出日志
+                            log.error("运行阶段：{} 结束时发生异常！msg: {}",
+                                    currentGamePhase.getGamePhase().getPhaseName(), ex.getMessage(), ex);
                         }
-                        gamePhaseIterator = latestGamePhase;
-                    }
-                    // 自动切换到下一个阶段
-                    this.autoRunGamePhase();
-                }), RoomEventType.ROOM_PHASE_RUN_EVENT);
+                        // 如果有绑定的下一个阶段可以切换到
+                        IRoomPhase bindNextPhase = currentGamePhase.bindNextPhase();
+                        if (bindNextPhase != null) {
+                            Iterator<IRoomPhase> latestGamePhase = gamePhaseIterator;
+                            while (gamePhaseIterator.hasNext()) {
+                                // 需要将迭代器跳到绑定的阶段,然后继续执行逻辑
+                                latestGamePhase = gamePhaseIterator;
+                                if (gamePhaseIterator.next() == bindNextPhase) {
+                                    break;
+                                }
+                            }
+                            gamePhaseIterator = latestGamePhase;
+                        }
+                        // 自动切换到下一个阶段
+                        this.autoRunGamePhase();
+                    }), RoomEventType.ROOM_PHASE_RUN_EVENT);
         } else {
             // 阶段全部运行结束
             phaseRunOver();
@@ -151,6 +151,16 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             // 自动进入下一轮
             autoRunGamePhase();
         }
+    }
+
+    /**
+     * 是否能退出游戏
+     *
+     * @param playerId 玩家id
+     * @return true 能 false 不能
+     */
+    public boolean canExitGame(long playerId) {
+        return true;
     }
 
     /**
@@ -226,12 +236,12 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      */
     public <M extends AbstractMessage> void dispatchGamePhaseMsg(PlayerController playerController, PFMessage message) {
         List<IPhaseMsgAdapter<M>> phaseMsgAdapters =
-            gamePhases.stream().filter(gamePhase -> gamePhase instanceof IPhaseMsgAdapter<?>)
-                .map(gamePhase -> (IPhaseMsgAdapter<M>) gamePhase).toList();
+                gamePhases.stream().filter(gamePhase -> gamePhase instanceof IPhaseMsgAdapter<?>)
+                        .map(gamePhase -> (IPhaseMsgAdapter<M>) gamePhase).toList();
         int msgId = message.cmd;
         if (phaseMsgAdapters.isEmpty()) {
             log.error("异常请求，当前房间：{}  cfgId: {} 需要主动接受请求的阶段为空，但是客户端还是在主动请求",
-                gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId());
+                    gameDataVo.getRoomId(), gameDataVo.getRoomCfg().getId());
             return;
         }
         for (IPhaseMsgAdapter<M> phaseMsgAdapter : phaseMsgAdapters) {
@@ -239,10 +249,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 // 如果请求的消息不在此阶段，则直接报错
                 if (currentGamePhase.getGamePhase() != phaseMsgAdapter.getGamePhase()) {
                     log.error("玩家ID: {} 房间不处于阶段：{} 却还在请求,房间当前阶段: {}",
-                        playerController.playerId(), phaseMsgAdapter.getGamePhase(), currentGamePhase.getGamePhase());
+                            playerController.playerId(), phaseMsgAdapter.getGamePhase(), currentGamePhase.getGamePhase());
                 } else {
                     Set<Class<AbstractMessage>> actualTypes =
-                        ReflectionTool.getClassSuperActualType(phaseMsgAdapter.getClass(), AbstractMessage.class);
+                            ReflectionTool.getClassSuperActualType(phaseMsgAdapter.getClass(), AbstractMessage.class);
                     if (actualTypes.isEmpty()) {
                         return;
                     }
@@ -257,9 +267,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                         EGameType eGameType = EGameType.getGameByTypeId(gameDataVo.getRoomCfg().getGameID());
                         // 消息没有继承AbstractMessage类
                         log.error("游戏类型：{} 游戏阶段：{} 消息ID: {} 没有实现AbstractMessage类",
-                            eGameType.getGameDesc(),
-                            currentGamePhase.getGamePhase().getPhaseName(),
-                            Integer.toHexString(msgId).toUpperCase());
+                                eGameType.getGameDesc(),
+                                currentGamePhase.getGamePhase().getPhaseName(),
+                                Integer.toHexString(msgId).toUpperCase());
                         return;
                     }
                     M reqMessage = (M) ProtostuffUtil.deserialize(message.data, mClass);
@@ -346,8 +356,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         gameStarted = false;
         // 再调用游戏内的解散房间逻辑
         gamePhases.stream()
-            .filter(iGamePhase -> iGamePhase.getGamePhase().equals(EGamePhase.DISS_MISS))
-            .forEach(IRoomPhase::phaseDoAction);
+                .filter(iGamePhase -> iGamePhase.getGamePhase().equals(EGamePhase.DISS_MISS))
+                .forEach(IRoomPhase::phaseDoAction);
     }
 
     /**

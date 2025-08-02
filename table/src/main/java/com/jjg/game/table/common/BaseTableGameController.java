@@ -6,6 +6,7 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
+import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
@@ -30,7 +31,7 @@ import java.util.stream.Collectors;
  * @author 2CL
  */
 public abstract class BaseTableGameController<G extends TableGameDataVo> extends
-    AbstractGameController<Room_BetCfg, G> {
+        AbstractGameController<Room_BetCfg, G> {
 
     public BaseTableGameController(AbstractRoomController<Room_BetCfg, ? extends Room> roomController) {
         super(roomController);
@@ -41,6 +42,11 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         super.beforeEnterNextRound();
         // 检查机器人是否离开
         checkRobotGamePlayerExit();
+    }
+
+    @Override
+    public boolean canExitGame(long playerId) {
+        return !(getCurrentGamePhase() == EGamePhase.BET && gameDataVo.getPlayerBetInfo().containsKey(playerId));
     }
 
     /**
@@ -72,11 +78,11 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         if (!needExitRoomRobots.isEmpty()) {
             EGameType eGameType = EGameType.getGameByTypeId(gameDataVo.getRoomCfg().getGameID());
             log.debug("游戏：{} 中机器人开始： {} 退出房间",
-                eGameType.getGameDesc(),
-                needExitRoomRobots.stream()
-                    .map(PlayerController::playerId)
-                    .map(String::valueOf)
-                    .collect(Collectors.joining(",")));
+                    eGameType.getGameDesc(),
+                    needExitRoomRobots.stream()
+                            .map(PlayerController::playerId)
+                            .map(String::valueOf)
+                            .collect(Collectors.joining(",")));
             // 调用房间离开流程
             int exitCode = roomController.getRoomManager().robotPlayerExitRoom(needExitRoomRobots);
             if (exitCode != Code.SUCCESS) {
@@ -110,13 +116,13 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         resortPlayerOnTable();
         // 通知场上玩家加入
         NotifyTableRoomPlayerInfoChange playerInfoChange =
-            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
+                TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
         // 需要排除当前玩家，玩家刚进场给自己发送没有意义
         broadcastToPlayers(RoomMessageBuilder
-            .newBuilder()
-            .setData(playerInfoChange)
-            .toAllPlayer()
-            .exceptPlayer(playerController.playerId()));
+                .newBuilder()
+                .setData(playerInfoChange)
+                .toAllPlayer()
+                .exceptPlayer(playerController.playerId()));
         return gamePlayer;
     }
 
@@ -127,13 +133,13 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         resortPlayerOnTable();
         // 通知场上玩家离开
         NotifyTableRoomPlayerInfoChange playerInfoChange =
-            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
+                TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(), TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
         // 需要排除当前玩家，因为给离开的玩家发送已经没有意义
         broadcastToPlayers(RoomMessageBuilder
-            .newBuilder()
-            .setData(playerInfoChange)
-            .toAllPlayer()
-            .exceptPlayer(playerController.playerId()));
+                .newBuilder()
+                .setData(playerInfoChange)
+                .toAllPlayer()
+                .exceptPlayer(playerController.playerId()));
         return leaveRes;
     }
 
@@ -142,10 +148,10 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
      */
     private void resortPlayerOnTable() {
         List<GamePlayer> topGamePlayers =
-            gameDataVo.getGamePlayerMap().values().stream()
-                .sorted((o1, o2) -> Long.compare(o2.getGold(), o1.getGold()))
-                .limit(TableConstant.ON_TABLE_PLAYER_NUM)
-                .toList();
+                gameDataVo.getGamePlayerMap().values().stream()
+                        .sorted((o1, o2) -> Long.compare(o2.getGold(), o1.getGold()))
+                        .limit(TableConstant.ON_TABLE_PLAYER_NUM)
+                        .toList();
         for (int i = 1; i <= topGamePlayers.size(); i++) {
             GamePlayer player = topGamePlayers.get(i - 1);
             player.getTableGameData().setSitNum(i);
