@@ -350,7 +350,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
     public long getPoolValueByPoolId(int poolId,long stake) throws Exception {
         PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
-        return calTrainPoolValue(stake,poolCfg.getGrowthRate(),poolCfg.getDelayTime());
+        return calTrainPoolValue(stake,poolCfg.getGrowthRate(),poolCfg.getFakePoolInitTimes(),poolCfg.getFakePoolMax());
     }
 
     /**
@@ -1208,7 +1208,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
             //计算奖池金额
             //车厢节数+1，是因为要加上最后一个奖池车厢
-            long addGold = calTrainPoolValue(playerGameData.getLastStake(),poolCfg.getGrowthRate(),poolCfg.getFakePoolInitTimes(),trainInfo.goldList.size()+1,poolCfg.getDelayTime());
+            long addGold = calTrainPoolValue(playerGameData.getLastStake(),poolCfg.getGrowthRate(),poolCfg.getFakePoolInitTimes(),poolCfg.getFakePoolMax(),trainInfo.goldList.size()+1,poolCfg.getDelayTime());
 
             log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},addGold = {}", playerGameData.playerId(), rand, propV, addGold);
 
@@ -1339,7 +1339,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             autoChooseFreeModelType(playerGameData);
         }
 
-        gameDataDao.saveGameData(playerGameData);
+//        gameDataDao.saveGameData(playerGameData);
         return true;
     }
 
@@ -1378,8 +1378,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @param growthRate
      * @return
      */
-    public long calTrainPoolValue(long stake, List<Integer> growthRate,int initTimes) {
-        return calTrainPoolValue(stake,growthRate,initTimes,0,0);
+    public long calTrainPoolValue(long stake, List<Integer> growthRate,int initTimes,int maxTimes) {
+        return calTrainPoolValue(stake,growthRate,initTimes,maxTimes,0,0);
     }
 
     /**
@@ -1388,9 +1388,13 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @param growthRate
      * @return
      */
-    public long calTrainPoolValue(long stake, List<Integer> growthRate,int initTimes,int coach,int delayTime) {
+    public long calTrainPoolValue(long stake, List<Integer> growthRate,int initTimes,int maxTimes,int coach,int delayTime) {
+        //押注
+        BigDecimal stakeBigDecimal = BigDecimal.valueOf(stake);
         //奖池初始金额
-        BigDecimal initPoolBigDecimal = BigDecimal.valueOf(stake).multiply(BigDecimal.valueOf(initTimes));
+        BigDecimal initPoolBigDecimal = stakeBigDecimal.multiply(BigDecimal.valueOf(initTimes));
+        //奖池上限金额
+        BigDecimal maxPoolBigDecimal = stakeBigDecimal.multiply(BigDecimal.valueOf(maxTimes));
 
         //间隔时间
         int timeValue = growthRate.get(0);
@@ -1411,7 +1415,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //实际金额
         BigDecimal step1 = BigDecimal.valueOf(y).divide(intervalTime, 4, RoundingMode.HALF_UP);
         BigDecimal step2 = step1.multiply(prop);
-        BigDecimal step3 = step2.multiply(initPoolBigDecimal);
+        BigDecimal step3 = step2.multiply(maxPoolBigDecimal.subtract(initPoolBigDecimal));
         long addGold = initPoolBigDecimal.add(step3).longValue();
 
 //        log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},intervalTime = {},y = {},addGold = {}", playerGameData.playerId(), rand, propV, intervalTime, y, addGold);
