@@ -28,15 +28,14 @@ import java.util.stream.Stream;
  */
 public class TableMessageBuilder {
 
-
     /**
      * 玩家数据列表
      */
     public static RespTablePlayerInfo buildTableAllPlayerInfo(TableGameDataVo dataVo) {
         RespTablePlayerInfo playerBetInfo = new RespTablePlayerInfo(Code.SUCCESS);
         playerBetInfo.tablePlayerInfo = new ArrayList<>();
-        List<GamePlayer> sortedGamePlayer = getSortedGamePlayer(dataVo, 0);
-        for (GamePlayer gamePlayer : sortedGamePlayer) {
+        Map<Long, GamePlayer> sortedGamePlayers = getSortedGamePlayer(dataVo, 0);
+        for (GamePlayer gamePlayer : sortedGamePlayers.values()) {
             TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(gamePlayer);
             playerBetInfo.tablePlayerInfo.add(tablePlayerInfo);
         }
@@ -65,21 +64,43 @@ public class TableMessageBuilder {
     /**
      * 构建游戏的前6玩家基础信息
      */
-    public static List<TablePlayerInfo> buildTablePlayerInfo(GameDataVo<?> tableGameDataVo) {
+    public static List<TablePlayerInfo> buildPlayerInfoOnTable(GameDataVo<?> tableGameDataVo) {
         return buildTablePlayerInfo(tableGameDataVo, TableConstant.ON_TABLE_PLAYER_NUM);
     }
 
     /**
      * 构建游戏的前6玩家基础信息
      */
-    public static List<TablePlayerInfo> buildTablePlayerInfo(GameDataVo<?> tableGameDataVo, int Limit) {
-        List<GamePlayer> gamePlayers = getSortedGamePlayer(tableGameDataVo, Limit);
+    public static List<TablePlayerInfo> buildTablePlayerInfo(GameDataVo<?> tableGameDataVo, int limit) {
+        Map<Long, GamePlayer> sortedGamePlayers = getSortedGamePlayer(tableGameDataVo, limit);
+        List<TablePlayerInfo> tablePlayerInfos = new ArrayList<>(sortedGamePlayers.size());
+        for (GamePlayer gamePlayer : sortedGamePlayers.values()) {
+            tablePlayerInfos.add(buildTablePlayerInfo(gamePlayer));
+        }
+        return tablePlayerInfos;
+    }
+
+
+    /**
+     * 构建游戏的前7玩家基础信息,包含玩家自己的数据
+     */
+    public static List<TablePlayerInfo> buildTablePlayerInfo(
+        long playerId, TableGameDataVo tableGameDataVo, int limit) {
+        Map<Long, GamePlayer> sortedGamePlayer = getSortedGamePlayer(tableGameDataVo, limit);
+        List<GamePlayer> gamePlayers = new ArrayList<>(sortedGamePlayer.values());
+        if (!sortedGamePlayer.containsKey(playerId)) {
+            if (gamePlayers.size() == limit) {
+                gamePlayers.remove(gamePlayers.size() - 1);
+            }
+            gamePlayers.add(tableGameDataVo.getGamePlayer(playerId));
+        }
         List<TablePlayerInfo> tablePlayerInfos = new ArrayList<>(gamePlayers.size());
         for (GamePlayer gamePlayer : gamePlayers) {
             tablePlayerInfos.add(buildTablePlayerInfo(gamePlayer));
         }
         return tablePlayerInfos;
     }
+
 
     /**
      * 获取根据金币从大到小排序的GamePlayer列表
@@ -88,14 +109,15 @@ public class TableMessageBuilder {
      * @param limit           列表长度（小于等于0为全部）
      * @return 排序后的GamePlayer列表
      */
-    private static List<GamePlayer> getSortedGamePlayer(GameDataVo<?> tableGameDataVo, int limit) {
+    private static Map<Long, GamePlayer> getSortedGamePlayer(GameDataVo<?> tableGameDataVo, int limit) {
         Stream<GamePlayer> sorted = tableGameDataVo.getGamePlayerMap()
             .values()
-            .stream().sorted(Comparator.comparingLong(Player::getGold).reversed());
+            .stream()
+            .sorted(Comparator.comparingLong(Player::getGold).reversed());
         if (limit > 0) {
             sorted = sorted.limit(limit);
         }
-        return sorted.toList();
+        return sorted.collect(LinkedHashMap::new, (map, e) -> map.put(e.getId(), e), HashMap::putAll);
     }
 
     /**
@@ -137,7 +159,8 @@ public class TableMessageBuilder {
         NotifyTableRoomPlayerInfoChange infoChange = new NotifyTableRoomPlayerInfoChange();
         infoChange.changedPlayerId = changedPlayerId;
         infoChange.tableChangedPlayerInfos = new ArrayList<>();
-        List<GamePlayer> sortedPlayersByGold = getSortedGamePlayer(dataVo, sendSize);
+        Map<Long, GamePlayer> sortedGamePlayers = getSortedGamePlayer(dataVo, sendSize);
+        List<GamePlayer> sortedPlayersByGold = new ArrayList<>(sortedGamePlayers.values());
         infoChange.totalPlayerNum = dataVo.getPlayerNum();
         for (GamePlayer gamePlayer : sortedPlayersByGold) {
             TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(gamePlayer);
@@ -201,8 +224,8 @@ public class TableMessageBuilder {
      */
     public static List<BetTableInfo> buildPlayerBetInfo(
         List<BetTableInfo> betTableInfos, TableGameDataVo gameDataVo, long playerId) {
-        Map<Integer, BetTableInfo> baccaratTableInfoMap = betTableInfos.stream()
-            .collect(HashMap::new, (map, e) -> map.put(e.betIdx, e), HashMap::putAll);
+        Map<Integer, BetTableInfo> tableInfoMap =
+            betTableInfos.stream().collect(HashMap::new, (map, e) -> map.put(e.betIdx, e), HashMap::putAll);
         Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
         if (playerBetInfo == null) {
             return betTableInfos;
@@ -210,16 +233,16 @@ public class TableMessageBuilder {
         // 玩家区域信息
         for (Map.Entry<Integer, List<Integer>> entry : playerBetInfo.entrySet()) {
             long areaTotal = entry.getValue().stream().mapToInt(Integer::intValue).sum();
-            if (!baccaratTableInfoMap.containsKey(entry.getKey())) {
+            if (!tableInfoMap.containsKey(entry.getKey())) {
                 BetTableInfo betTableInfo = new BetTableInfo();
                 betTableInfo.betIdx = entry.getKey();
                 betTableInfo.playerBetTotal = areaTotal;
-                baccaratTableInfoMap.put(entry.getKey(), betTableInfo);
+                tableInfoMap.put(entry.getKey(), betTableInfo);
             } else {
-                baccaratTableInfoMap.get(entry.getKey()).playerBetTotal = areaTotal;
+                tableInfoMap.get(entry.getKey()).playerBetTotal = areaTotal;
             }
         }
-        return baccaratTableInfoMap.values().stream().toList();
+        return tableInfoMap.values().stream().toList();
     }
 
     public static NotifyTableLongTimeNoOperate buildNotifyTableLongTimeNoOperate(int langId) {

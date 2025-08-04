@@ -85,7 +85,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             baccaratTableInfo.baccaratTableInfo.tableAreaInfos =
                 BaccaratMessageBuilder.buildPlayerBetInfo(
                     baccaratTableInfo.baccaratTableInfo, gameDataVo, entry.getKey());
-            log.debug("玩家：{} 结算数据: {}", entry.getKey(), JSON.toJSONString(baccaratTableInfo));
+            //log.debug("玩家：{} 结算数据: {}", entry.getKey(), JSON.toJSONString(baccaratTableInfo));
             PlayerChangedGold changedGold = changedGolds.get(entry.getKey());
             // 玩家有赢钱且大于0
             if (changedGold != null && changedGold.playerWinGold > 0) {

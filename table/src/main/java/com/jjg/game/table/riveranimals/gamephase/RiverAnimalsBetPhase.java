@@ -1,0 +1,33 @@
+package com.jjg.game.table.riveranimals.gamephase;
+
+import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
+import com.jjg.game.table.riveranimals.data.RiverAnimalsGameDataVo;
+
+/**
+ * 鱼虾蟹
+ *
+ * @author 2CL
+ */
+public class RiverAnimalsBetPhase extends BaseTableBetPhase<RiverAnimalsGameDataVo> {
+
+    public RiverAnimalsBetPhase(AbstractGameController<Room_BetCfg, RiverAnimalsGameDataVo> gameController) {
+        super(gameController);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o);
+    }
+
+    @Override
+    public void phaseFinish() {
+
+    }
+}
