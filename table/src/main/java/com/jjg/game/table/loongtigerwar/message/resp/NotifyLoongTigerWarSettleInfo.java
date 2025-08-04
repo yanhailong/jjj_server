@@ -28,8 +28,9 @@ public class NotifyLoongTigerWarSettleInfo extends AbstractNotice {
     @ProtoDesc("获胜状态(1龙胜 2虎胜 3和)")
     public int winState;
 
-
     @ProtoDesc("玩家结算信息")
     public List<PlayerChangedGold> playerSettleInfos;
 
+    @ProtoDesc("阶段结束时间")
+    public long waitEndTime;
 }
