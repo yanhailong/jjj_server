@@ -192,6 +192,21 @@ public class RandomUtils {
         return RND.nextInt(t + 1 - f) + f;
     }
 
+
+    /**
+     * 包含最小值和最大值
+     *
+     * @param f
+     * @param t
+     * @return
+     */
+    public static long nextLongInclude(long f, long t) {
+        if (t + 1 <= f) {
+            return f;
+        }
+        return RND.nextLong(t + 1 - f) + f;
+    }
+
     /**
      * 1-max之间的随机整数(包含)
      *
@@ -365,6 +380,19 @@ public class RandomUtils {
         }
         return nextIntInclude(rangList.get(0), rangList.get(1));
     }
+
+
+    /**
+     * 从权重列表中随机一个，并从上下限中随机一个配置格式 (权重:值下限+值上限;)
+     */
+    public static Long randomLongMaxMinByWeightList(List<List<Long>> weightList) {
+        List<Long> rangList = randCollection(weightList);
+        if (rangList == null || rangList.size() < 2) {
+            return null;
+        }
+        return nextLongInclude(rangList.get(0), rangList.get(1));
+    }
+
 
     /**
      * 从权重列表中随机一个

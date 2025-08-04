@@ -122,8 +122,8 @@ public class RobotService implements IRoomStartListener {
         long robotPlayerId = robotPlayer.getId();
         RobotCfg robotCfg = GameDataManager.getRobotCfg((int) robotPlayerId);
         long robotMoneyCarry = robotCfg.getMoney();
-        List<List<Integer>> addMoney = robotCfg.getAddMoney();
-        Integer randomGold = RandomUtils.randomMaxMinByWeightList(addMoney);
+        List<List<Long>> addMoney = robotCfg.getAddMoney();
+        Long randomGold = RandomUtils.randomLongMaxMinByWeightList(addMoney);
         if (randomGold == null) {
             log.error("机器人金币上下限配置异常");
             return;
