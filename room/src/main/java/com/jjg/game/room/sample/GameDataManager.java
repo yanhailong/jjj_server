@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年08月02日 14:13:24
+ * @date 2025年08月04日 10:01:24
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {

@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName robot.xlsx
  * @sheetName Robot
  * @author Auto.Generator
- * @date 2025年08月02日 14:13:24
+ * @date 2025年08月04日 10:01:24
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class RobotCfg extends BaseCfgBean {
@@ -20,7 +20,7 @@ public class RobotCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "Robot";
 
   /** 补充金币 */
-  protected List<List<Integer>> AddMoney;
+  protected List<List<Long>> AddMoney;
   /** 是否可用 */
   protected int Available;
   /** 押注类行为策略ID */
@@ -32,7 +32,7 @@ public class RobotCfg extends BaseCfgBean {
   /** 退出房间时倍数 */
   protected int ExitMultiplier;
   /** 携带基础金币 */
-  protected int Money;
+  protected long Money;
   /** 机器人名字 */
   protected String Name;
   /** 头像资源名 */
@@ -41,7 +41,7 @@ public class RobotCfg extends BaseCfgBean {
   protected int VipLevel;
 
   /** 返回补充金币 */
-  public List<List<Integer>> getAddMoney() {
+  public List<List<Long>> getAddMoney() {
     return AddMoney;
   }
 
@@ -71,7 +71,7 @@ public class RobotCfg extends BaseCfgBean {
   }
 
   /** 返回携带基础金币 */
-  public int getMoney() {
+  public long getMoney() {
     return Money;
   }
 
