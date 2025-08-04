@@ -1,10 +1,9 @@
-package com.jjg.game.table.common;
+package com.jjg.game.room.manager;
 
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.manager.AbstractSampleManager;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.BaseCfgBean;
-import com.jjg.game.table.common.data.TableSampleDataHolder;
 
 import java.io.File;
 import java.util.Collections;
@@ -12,11 +11,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 基础的牌桌类配置表管理
+ * 基础的房间配置表管理，此类负责加载room相关的配置表，子类负责自己模块的配置表加载，子类需要保证一次加载所有的配置表
  *
  * @author 2CL
  */
-public abstract class BaseTableSampleManager extends AbstractSampleManager {
+public abstract class BaseRoomSampleManager extends AbstractSampleManager {
 
     @Override
     protected void initSampleConfig() throws Exception {
