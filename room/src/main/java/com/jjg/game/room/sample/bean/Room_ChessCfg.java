@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName Room_Chess.xlsx
  * @sheetName Room_Chess
  * @author Auto.Generator
- * @date 2025年08月02日 14:13:24
+ * @date 2025年08月04日 10:01:24
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class Room_ChessCfg extends RoomCfg {
@@ -25,6 +25,8 @@ public class Room_ChessCfg extends RoomCfg {
   protected List<Integer> IntervalTime;
   /** 底注 */
   protected int betBase;
+  /** 阶段信息 */
+  protected Map<Integer,Integer> chess_stageOrder;
   /** 游戏ID */
   protected int gameID;
   /** 玩家手牌数量 */
@@ -39,8 +41,6 @@ public class Room_ChessCfg extends RoomCfg {
   protected List<List<Integer>> robot_num;
   /** 房间类型 */
   protected int roomID;
-  /** 阶段信息 */
-  protected List<List<Integer>> stageOrder;
 
   /** 返回系统抽水 */
   public int getEffectiveRatio() {
@@ -55,6 +55,11 @@ public class Room_ChessCfg extends RoomCfg {
   /** 返回底注 */
   public int getBetBase() {
     return betBase;
+  }
+
+  /** 返回阶段信息 */
+  public Map<Integer,Integer> getChess_stageOrder() {
+    return chess_stageOrder;
   }
 
   /** 返回游戏ID */
@@ -90,11 +95,6 @@ public class Room_ChessCfg extends RoomCfg {
   /** 返回房间类型 */
   public int getRoomID() {
     return roomID;
-  }
-
-  /** 返回阶段信息 */
-  public List<List<Integer>> getStageOrder() {
-    return stageOrder;
   }
 
   @Override

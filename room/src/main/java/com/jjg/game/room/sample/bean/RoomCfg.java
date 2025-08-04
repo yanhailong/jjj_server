@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName Room
  * @sheetName Room
  * @author Auto.Generator
- * @date 2025年08月02日 14:13:24
+ * @date 2025年08月04日 10:01:24
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class RoomCfg extends BaseCfgBean {
@@ -41,6 +41,8 @@ public class RoomCfg extends BaseCfgBean {
   protected int betBase;
   /** 押分筹码列表 */
   protected List<Integer> betList;
+  /** 阶段信息 */
+  protected Map<Integer,Integer> chess_stageOrder;
   /** 游戏ID */
   protected int gameID;
   /** 玩家手牌数量 */
@@ -59,8 +61,6 @@ public class RoomCfg extends BaseCfgBean {
   protected List<List<Integer>> robot_num;
   /** 房间类型 */
   protected int roomID;
-  /** 阶段信息 */
-  protected List<List<Integer>> stageOrder;
 
   /** 返回系统抽水 */
   public int getEffectiveRatio() {
@@ -117,6 +117,11 @@ public class RoomCfg extends BaseCfgBean {
     return betList;
   }
 
+  /** 返回阶段信息 */
+  public Map<Integer,Integer> getChess_stageOrder() {
+    return chess_stageOrder;
+  }
+
   /** 返回游戏ID */
   public int getGameID() {
     return gameID;
@@ -160,11 +165,6 @@ public class RoomCfg extends BaseCfgBean {
   /** 返回房间类型 */
   public int getRoomID() {
     return roomID;
-  }
-
-  /** 返回阶段信息 */
-  public List<List<Integer>> getStageOrder() {
-    return stageOrder;
   }
 
   @Override

@@ -12,7 +12,7 @@ import com.jjg.game.room.sample.bean.Room_ChessCfg;
  * @excelName Room_Chess.xlsx
  * @sheetName Room_Chess
  * @author auto_generator
- * @date 2025年08月02日 14:13:24
+ * @date 2025年08月04日 10:01:24
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class Room_ChessCfgContainer extends BaseCfgContainer<Room_ChessCfg> {
