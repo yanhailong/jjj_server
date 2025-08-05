@@ -3,14 +3,13 @@ package com.jjg.game.poker.game.common;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
-import com.jjg.game.poker.game.texas.message.reps.NotifySettlementInfo;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
+import com.jjg.game.poker.game.texas.message.reps.NotifySettlementInfo;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 import com.jjg.game.room.timer.RoomTimerEvent;
-import org.apache.poi.ss.formula.functions.T;
 
 import java.util.*;
 
@@ -71,6 +70,7 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
      * 结算信息
      */
     private NotifySettlementInfo notifySettlementInfo;
+
 
     /**
      * 当前玩家定时器参数

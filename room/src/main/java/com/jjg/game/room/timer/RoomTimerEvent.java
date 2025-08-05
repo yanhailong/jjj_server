@@ -21,6 +21,7 @@ public class RoomTimerEvent<T extends IProcessorHandler, R extends Room> extends
         this.intervalTime = event.getIntervalTime();
         this.count = event.getCount();
         this.initTime = event.getInitTime();
+        this.nextTime = event.getNextTime();
         this.absolute = event.isAbsolute();
         this.room = room;
         this.roomEventType = roomEventType;

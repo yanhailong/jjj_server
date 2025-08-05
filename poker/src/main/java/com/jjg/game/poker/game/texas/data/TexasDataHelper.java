@@ -38,7 +38,7 @@ public class TexasDataHelper {
                         PokerCardUtils.EPokerHumanStr pokerHumanStrByHumanStr = PokerCardUtils.EPokerHumanStr.getPokerHumanStrByHumanStr(cfg.getPoints());
                         PokerCardUtils.EPokerSuit suitByConfig = PokerCardUtils.getSuitByConfig(cfg.getSuit());
                         if (Objects.nonNull(suitByConfig) && Objects.nonNull(pokerHumanStrByHumanStr)) {
-                            Card card = new Card(suitByConfig.getSuitId(), pokerHumanStrByHumanStr.getPointId());
+                            Card card = new Card(suitByConfig.getSuitId() - 1, pokerHumanStrByHumanStr.getPointId());
                             return new PokerCard(cfg.getId(), cfg.getSuitNum(), cfg.getPointsNum(), card.getValue());
                         } else {
                             throw new RuntimeException("配置错误");

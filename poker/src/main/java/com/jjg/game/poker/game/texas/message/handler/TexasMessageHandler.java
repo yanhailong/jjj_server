@@ -54,7 +54,7 @@ public class TexasMessageHandler {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
         if (gameController instanceof TexasGameController controller) {
-            controller.reqShowCard(playerController.playerId(), reqShowCard);
+            controller.reqShowCard(playerController.playerId(), controller);
         }
     }
 

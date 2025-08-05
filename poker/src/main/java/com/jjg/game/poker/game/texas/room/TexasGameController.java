@@ -28,7 +28,6 @@ import com.jjg.game.poker.game.texas.message.reps.NotifyPublicCardChange;
 import com.jjg.game.poker.game.texas.message.reps.NotifyShowCard;
 import com.jjg.game.poker.game.texas.message.reps.RepsRoomBaseInfo;
 import com.jjg.game.poker.game.texas.message.req.ReqPokerBet;
-import com.jjg.game.poker.game.texas.message.req.ReqShowCard;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.poker.game.texas.util.HandResult;
 import com.jjg.game.room.constant.EGamePhase;
@@ -119,8 +118,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     public void tryStartGame() {
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         int total = gameDataVo.getSeatDownNum();
-        //TODO
-        if (roomCfg.getMinPlayer() <= total && total <= roomCfg.getMaxPlayer()) {
+        if (getCurrentGamePhase() == EGamePhase.WAIT_READY && roomCfg.getMinPlayer() <= total && total <= roomCfg.getMaxPlayer()) {
             addPokerPhase(new TexasPlayCardPhase(this));
         }
     }
@@ -427,7 +425,6 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
      */
     public void sampleOperation(PlayerSeatInfo info, int Operation) {
         long playerId = info.getPlayerId();
-        //本轮已有人下注 不能过牌
         info.setOperationType(Operation);
         info.setOver(true);
         //通知其他人
@@ -544,7 +541,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     /**
      * 请求亮牌
      */
-    public void reqShowCard(long playerId, ReqShowCard reqShowCard) {
+    public void reqShowCard(long playerId, TexasGameController controller) {
         //暂定弃牌玩家才可以亮牌
         Optional<PlayerSeatInfo> playerSeatInfo = gameDataVo.getPlayerSeatInfoList().
                 stream()
@@ -552,14 +549,14 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                         info.getOperationType() == PokerConstant.PlayerOperation.DISCARD)
                 .findFirst();
         NotifyShowCard notifyShowCard = new NotifyShowCard();
-        if (playerSeatInfo.isEmpty()) {
+        if (playerSeatInfo.isEmpty() || controller.getCurrentGamePhase() != EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
             notifyShowCard.code = Code.PARAM_ERROR;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifyShowCard));
             return;
         }
         PlayerSeatInfo info = playerSeatInfo.get();
         notifyShowCard.playerId = playerId;
-        notifyShowCard.cards = info.getCurrentCards();
+        notifyShowCard.cards = TexasDataHelper.getClientId(info.getCurrentCards(), gameDataVo.getRoomCfg().getId());
         HandResult tempHandType = TexasBuilder.getTempHandType(info, gameDataVo);
         if (Objects.nonNull(tempHandType)) {
             notifyShowCard.handType = tempHandType.getHandRank().rank;
