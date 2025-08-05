@@ -11,8 +11,9 @@ import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.poker.game.texas.message.reps.NotifySeatStateChange;
-import com.jjg.game.poker.game.texas.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.texas.message.req.ReqChangeSeatState;
+import com.jjg.game.poker.game.texas.message.req.ReqChangeTable;
+import com.jjg.game.poker.game.texas.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.texas.message.req.ReqShowCard;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
@@ -20,7 +21,6 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.data.room.PokerPlayerGameData;
 import com.jjg.game.room.manager.RoomManager;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.RoomCfg;
@@ -67,6 +67,11 @@ public class TexasMessageHandler {
             TexasGameDataVo gameDataVo = controller.getGameDataVo();
             NotifySeatStateChange change = new NotifySeatStateChange();
             SeatInfo seatInfo = gameDataVo.getSeatInfo().get(reqChangeSeatState.seatId);
+            if (Objects.isNull(seatInfo) || seatInfo.getPlayerId() != playerId) {
+                change.code = Code.PARAM_ERROR;
+                controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
+                return;
+            }
             if (seatInfo.getPlayerId() == playerId) {
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
                 if (Objects.isNull(gamePlayer)) {
@@ -83,18 +88,11 @@ public class TexasMessageHandler {
                             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
                             return;
                         }
-                        Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
-                        Long hasGold = gameDataVo.getTempGold().getOrDefault(playerId, 0L);
-                        if (hasGold < roomCfg.getBetBase()) {
-                            //尝试增加临时货币
-                            long autoJoinGold = TexasDataHelper.getDefaultCoinsNum(gameDataVo);
-                            if (gamePlayer.getGold() >= autoJoinGold) {
-                                gameDataVo.getTempGold().put(playerId, autoJoinGold);
-                            } else {
-                                change.code = Code.FORBID;
-                                controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
-                                return;
-                            }
+                        boolean added = controller.addTempGoldOrOutTable(seatInfo, gamePlayer);
+                        if (!added) {
+                            change.code = Code.FORBID;
+                            controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
+                            return;
                         }
                         seatInfo.setSeatDown(true);
                         change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, gameDataVo, false);
@@ -169,19 +167,18 @@ public class TexasMessageHandler {
         SeatInfo remove = gameDataVo.getSeatInfo().remove(seatInfo.getSeatId());
         gameDataVo.getSeatInfo().put(srcSeatId, remove);
         if (seatInfo.isSeatDown()) {
-            Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
-            Long hasGold = gameDataVo.getTempGold().getOrDefault(seatInfo.getPlayerId(), 0L);
-            if (hasGold < roomCfg.getBetBase()) {
-                //尝试增加临时货币
-                long autoJoinGold = TexasDataHelper.getDefaultCoinsNum(gameDataVo);
-                if (gamePlayer.getGold() >= autoJoinGold) {
-                    gameDataVo.getTempGold().put(seatInfo.getPlayerId(), autoJoinGold);
-                } else {
-                    remove.setSeatDown(false);
-                }
-            }
+            controller.addTempGoldOrOutTable(remove, gamePlayer);
         }
         change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, gameDataVo, false);
         return change;
+    }
+
+    @Command(value = TexasConstant.MsgBean.REQ_CHANGE_TABLE)
+    public void reqChangeTable(PlayerController playerController, ReqChangeTable changeTable) {
+        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
+        if (gameController instanceof TexasGameController controller) {
+            controller.reqChangeTable(playerController, controller);
+        }
     }
 }

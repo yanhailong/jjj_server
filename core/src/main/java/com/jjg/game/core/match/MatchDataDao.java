@@ -59,6 +59,38 @@ public class MatchDataDao {
     }
 
     /**
+     * 获取正在等待加入的房间ID(排除老的房间id)
+     *
+     * @return 获取到的等待房间ID
+     */
+    public long getNewWaitJoinRoomId(int gameType, int roomConfigId, long oldRoomId) {
+        if (redisLock.tryLock(getLockMatchRedisKey(gameType, roomConfigId))) {
+            try {
+                // TODO 从尾部拿取
+                Set<ZSetOperations.TypedTuple<String>> roomIds =
+                        matchKeyTemplate.opsForZSet().rangeWithScores(MatchDataRedisKey.getWaitJoinRoomsKey(gameType,
+                                        roomConfigId)
+                                , -1, -1);
+                if (roomIds == null || roomIds.isEmpty()) {
+                    return 0;
+                }
+                for (ZSetOperations.TypedTuple<String> typedTuple : roomIds) {
+                    if (typedTuple == null || typedTuple.getValue() == null) {
+                        continue;
+                    }
+                    long newRoomId = Long.parseLong(typedTuple.getValue());
+                    if (newRoomId != oldRoomId) {
+                        return newRoomId;
+                    }
+                }
+            } finally {
+                redisLock.tryUnlock(getLockMatchRedisKey(gameType, roomConfigId));
+            }
+        }
+        return 0;
+    }
+
+    /**
      * 将房间ID从房间中移除
      */
     public boolean removeWaitJoinRoomId(int gameType, int roomConfigId, long roomId) {

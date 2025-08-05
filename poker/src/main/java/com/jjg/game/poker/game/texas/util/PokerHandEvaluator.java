@@ -13,7 +13,7 @@ public class PokerHandEvaluator {
 
     public static HandResult evaluateBestHand(List<Card> cards) {
         if (cards.size() < 5) {
-            return null;
+            return new HandResult(HandRank.HIGH_CARD, new ArrayList<>(), cards);
         }
         List<List<Card>> allCombos = combinations(cards, 5);
         HandResult best = null;

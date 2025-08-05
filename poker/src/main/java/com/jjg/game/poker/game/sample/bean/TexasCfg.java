@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName Texas.xlsx
  * @sheetName Texas
  * @author Auto.Generator
- * @date 2025年08月04日 10:17:51
+ * @date 2025年08月05日 11:38:22
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class TexasCfg extends BaseCfgBean {
@@ -47,6 +47,8 @@ public class TexasCfg extends BaseCfgBean {
   protected int sbNum;
   /** 结算后看牌 */
   protected boolean showDown;
+  /** 上桌金额 */
+  protected int tablecoin;
 
   /** 返回前注 */
   public int getAnte() {
@@ -116,6 +118,11 @@ public class TexasCfg extends BaseCfgBean {
   /** 返回结算后看牌 */
   public boolean getShowDown() {
     return showDown;
+  }
+
+  /** 返回上桌金额 */
+  public int getTablecoin() {
+    return tablecoin;
   }
 
   @Override

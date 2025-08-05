@@ -12,7 +12,7 @@ import com.jjg.game.poker.game.sample.bean.BlackjackCfg;
  * @excelName Blackjack.xlsx
  * @sheetName Blackjack
  * @author auto_generator
- * @date 2025年08月04日 10:17:51
+ * @date 2025年08月05日 11:38:22
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BlackjackCfgContainer extends BaseCfgContainer<BlackjackCfg> {

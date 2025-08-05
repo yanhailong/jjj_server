@@ -13,8 +13,6 @@ public interface PokerConstant {
     interface MsgBean {
         int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.POKER_GENERAL_TYPE << MessageConst.MessageCommon.RIGHT_MOVE;
 
-        //请求更改座位状态
-        int REQ_CHANGE_SEAT_STATE = BASE_MSG_PREFIX | 0x1;
         //玩家进行简单牌型操作
         int REQ_SAMPLE_CARD_OPERATION = BASE_MSG_PREFIX | 0x2;
         //通知简单房间操作
