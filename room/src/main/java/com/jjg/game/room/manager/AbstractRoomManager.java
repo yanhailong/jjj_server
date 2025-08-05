@@ -353,7 +353,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             R room = roomResult.data;
             if (playerController.isRobotPlayer()) {
                 // 删除机器人数据
-                robotService.deleteRobotPlayer(room.getRoomCfgId(), playerController.playerId());
+                robotService.deleteRobotPlayer(room.getRoomCfgId(), room.getId(), playerController.playerId());
             }
             // TODO 需要检查房间内玩家是否为空，如果为空则需要检查是否需要删除房间，如果房间不能删除则需要添加机器人进入房间
             // 退出房间将当前场景置为空
@@ -412,7 +412,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 R room = leaveRes.data;
                 List<Long> robotPlayers = entry.getValue().stream().map(PlayerController::playerId).toList();
                 // 删除机器人数据
-                robotService.deleteRobotPlayers(room.getRoomCfgId(), robotPlayers);
+                robotService.deleteRobotPlayers(room.getRoomCfgId(), room.getId(), robotPlayers);
                 // 将playerController的场景置空
                 entry.getValue().forEach(playerController -> playerController.setScene(null));
                 /*log.debug("机器人退出房间成功 gameType = {}, roomId = {}, 房间人数：{}, playerIds = {}",

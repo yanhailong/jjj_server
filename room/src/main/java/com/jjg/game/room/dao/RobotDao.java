@@ -45,8 +45,8 @@ public class RobotDao {
     @Autowired
     private NodeManager nodeManager;
 
-    public String getRobotTableName(int roomCfgId) {
-        return ROBOT_REDIS_KEY_PREFIX + roomCfgId;
+    public String getRobotTableName(int roomCfgId, long roomId) {
+        return ROBOT_REDIS_KEY_PREFIX + roomCfgId + StrConstant.COLON + roomId;
     }
 
     /**
@@ -65,8 +65,8 @@ public class RobotDao {
     /**
      * 获取机器人
      */
-    public RobotPlayer getRobotPlayer(int roomCfgId, long robotId) {
-        String robotKey = getRobotTableName(roomCfgId);
+    public RobotPlayer getRobotPlayer(int roomCfgId, long roomId, long robotId) {
+        String robotKey = getRobotTableName(roomCfgId, roomId);
         return (RobotPlayer) redisTemplate.opsForHash().get(robotKey, robotId);
     }
 
@@ -74,8 +74,8 @@ public class RobotDao {
     /**
      * 获取机器人
      */
-    public List<RobotPlayer> getRobotPlayers(int roomCfgId, Collection<Long> robotId) {
-        String robotKey = getRobotTableName(roomCfgId);
+    public List<RobotPlayer> getRobotPlayers(int roomCfgId, long roomId, Collection<Long> robotId) {
+        String robotKey = getRobotTableName(roomCfgId, roomId);
         List<Object> robotIds = robotId.stream().map(l -> (Object) l).toList();
         return redisTemplate.opsForHash().multiGet(robotKey, robotIds).stream().map(o -> (RobotPlayer) o).toList();
     }
@@ -84,18 +84,18 @@ public class RobotDao {
     /**
      * 更新机器人数据
      */
-    public void saveRobotPlayer(int roomCfgId, RobotPlayer robotPlayer) {
-        String robotKey = getRobotTableName(roomCfgId);
+    public void saveRobotPlayer(int roomCfgId, long roomId, RobotPlayer robotPlayer) {
+        String robotKey = getRobotTableName(roomCfgId, roomId);
         redisTemplate.opsForHash().put(robotKey, robotPlayer.getId(), robotPlayer);
     }
 
     /**
      * 获取当前已经创建的机器人ID,根据小房间进行划分
      */
-    public Set<Integer> getRobotIdList(int roomCfgId) {
+    public Set<Integer> getRobotIdList(int roomCfgId, long roomId) {
         return redisTemplate
             .opsForHash()
-            .keys(getRobotTableName(roomCfgId))
+            .keys(getRobotTableName(roomCfgId, roomId))
             .stream()
             .map(robotObj -> (Integer) robotObj)
             .collect(Collectors.toSet());
@@ -104,9 +104,9 @@ public class RobotDao {
     /**
      * 创建一个机器人
      */
-    public RobotPlayer createRobotPlayer(int roomCfgId, int robotId) {
+    public RobotPlayer createRobotPlayer(int roomCfgId, long roomId, int robotId) {
 
-        String robotKey = getRobotTableName(roomCfgId);
+        String robotKey = getRobotTableName(roomCfgId, roomId);
         String serverRobotTableName = getCurServerRobotTableName();
         RobotPlayer robotPlayer = new RobotPlayer();
         robotPlayer.setCreateTime(TimeHelper.nowInt());
@@ -140,10 +140,10 @@ public class RobotDao {
     /**
      * 删除机器人
      */
-    public void deleteRobotPlayers(int roomCfgId, Collection<Long> robotIds) {
+    public void deleteRobotPlayers(int roomCfgId, long roomId, Collection<Long> robotIds) {
         redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             RedisHashCommands hashCommands = connection.hashCommands();
-            String robotKey = getRobotTableName(roomCfgId);
+            String robotKey = getRobotTableName(roomCfgId, roomId);
             deleteServerRobotByTableKey(robotKey, hashCommands, robotIds);
             return null;
         });
@@ -193,7 +193,7 @@ public class RobotDao {
     /**
      * 获取当前机器人数量
      */
-    public long getCurRobotNum(int roomCfgId) {
-        return redisTemplate.opsForHash().size(getRobotTableName(roomCfgId));
+    public long getCurRobotNum(int roomCfgId, long roomId) {
+        return redisTemplate.opsForHash().size(getRobotTableName(roomCfgId, roomId));
     }
 }

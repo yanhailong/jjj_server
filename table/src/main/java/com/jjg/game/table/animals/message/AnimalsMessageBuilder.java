@@ -1,6 +1,8 @@
 package com.jjg.game.table.animals.message;
 
+import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.table.animals.AnimalsGameController;
 import com.jjg.game.table.animals.data.AnimalsGameDataVo;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -73,6 +75,8 @@ public class AnimalsMessageBuilder {
         tableInfo.totalPlayerNum = gameDataVo.getPlayerNum();
         tableInfo.settlementHistory = gameDataVo.getWinAreaCfgIdHistory();
         tableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(gameDataVo, isInitial);
+        tableInfo.maxChipOnTable =
+            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();
         return tableInfo;
     }
 }

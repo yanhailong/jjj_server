@@ -47,4 +47,7 @@ public class NotifyLuxuryCarClubTableInfo extends AbstractNotice {
 
     @ProtoDesc("结算信息，当阶段为结算时发送")
     public LuxuryCarClubSettlementInfo settlementInfo;
+
+    @ProtoDesc("押注桌面展示的筹码数量上限，客户端在房间初始化时需要，需要在每个游戏初始化协议中下发此字段，需要注意")
+    public int maxChipOnTable;
 }
