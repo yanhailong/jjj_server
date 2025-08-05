@@ -40,6 +40,8 @@ import com.jjg.game.room.sample.bean.Room_ChessCfg;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.jjg.game.poker.game.texas.constant.TexasConstant.Common.*;
+
 /**
  * @author lm
  */
@@ -110,6 +112,10 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         repsRoomBaseInfo.findDealerTime = TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.FIND_DEALER);
         repsRoomBaseInfo.sendCardTime = TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS);
         repsRoomBaseInfo.operationTime = TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.PLAY_CARDS);
+        TexasCfg texasCfg = TexasDataHelper.getTexasCfg(gameDataVo);
+        repsRoomBaseInfo.SB = texasCfg.getSbNum();
+        repsRoomBaseInfo.BB = texasCfg.getBbNum();
+        repsRoomBaseInfo.operationTime = TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.PLAY_CARDS);
         //客户端初始化完成
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), repsRoomBaseInfo));
     }
@@ -120,6 +126,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         int total = gameDataVo.getSeatDownNum();
         if (getCurrentGamePhase() == EGamePhase.WAIT_READY && roomCfg.getMinPlayer() <= total && total <= roomCfg.getMaxPlayer()) {
             addPokerPhase(new TexasPlayCardPhase(this));
+            log.info("开启下一局 当前id{}", gameDataVo.getId());
         }
     }
 
@@ -160,14 +167,18 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             betValue = reqPokerBet.betValue;
         }
         Long remain = gameDataVo.getTempGold().get(playerId);
+        long tempTotal = gameDataVo.getMaxBetInfo().getOrDefault(playerId, 0L) + betValue;
         //TODO 大大小小
-        if (betValue == 0 || betValue > remain || betValue < getMinBet() || !allIn && betValue < gameDataVo.getMaxBetValue()) {
+        if (betValue <= 0 || betValue > remain || betValue < getMinBet() || !allIn && tempTotal != gameDataVo.getMaxBetValue()) {
             //TODO 通知 ~
             return;
         }
         info.setOperationType(reqPokerBet.betType);
         info.setOver(true);
-        gameDataVo.setMaxBetValue(Math.max(gameDataVo.getMaxBetValue(), betValue));
+        gameDataVo.getMaxBetInfo().entrySet().stream().max(Comparator.comparingLong(Map.Entry::getValue))
+                .ifPresent((entry) -> {
+                    gameDataVo.setMaxBetValue(entry.getValue());
+                });
         //通知
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         changePlayerGold(gamePlayer, -betValue);
@@ -284,7 +295,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             gameDataVo.setMaxBetValue(0);
             //如果找不到下一轮说明全all
             if (Objects.isNull(nextExePlayer)) {
-                gameDataVo.setSettlement(2);
+                gameDataVo.setSettlement(ALL_SETTLEMENT);
                 //设置阶段结束事件
                 addPokerPhaseTimer(new TexasSettlementPhase(this));
                 return;
@@ -293,7 +304,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             gameDataVo.nextRound();
             log.info("进行下一轮: {}", gameDataVo.getRound());
             //发牌
-            int sendCardNum = gameDataVo.getRound() == 2 ? 3 : 1;
+            int sendCardNum = gameDataVo.getRound() == FLIP_CARDS_ROUND ? SEND_CARD_NUM : ADD_CARDS;
             List<Integer> addCards = new ArrayList<>(sendCardNum);
             for (int i = 0; i < sendCardNum; i++) {
                 Integer card = gameDataVo.getCards().remove(0);
@@ -326,35 +337,32 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     }
 
     @Override
-    public void onPlayerLeaveRoomAction(PlayerController playerController, SeatInfo seatInfo) {
+    public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
         //如果在游戏中删除数据
-        gameDataVo.getTempGold().remove(seatInfo.getPlayerId());
-        RoomPlayer roomPlayer = getRoom().getRoomPlayers().get(playerController.playerId());
-        if (Objects.isNull(roomPlayer)) {
-            return;
-        }
+        gameDataVo.getTempGold().remove(remove.getPlayerId());
+        gameDataVo.getMaxBetInfo().remove(remove.getPlayerId());
         if (inRunPhase()) {
-            runPlayerSeatChange(seatInfo, seatInfo.isSeatDown() && seatInfo.isJoinGame());
+            runPlayerSeatChange(remove, remove.isSeatDown() && remove.isJoinGame());
         }
     }
 
     /**
      * 运行时玩家座位改变
      */
-    public void runPlayerSeatChange(SeatInfo seatInfo, boolean isPlaying) {
+    public void runPlayerSeatChange(SeatInfo remove, boolean isPlaying) {
         //正在游玩
         List<PlayerSeatInfo> playerSeatInfos = gameDataVo.getPlayerSeatInfoList();
         if (isPlaying) {
             final Iterator<PlayerSeatInfo> each = playerSeatInfos.iterator();
             while (each.hasNext()) {
                 PlayerSeatInfo next = each.next();
-                if (next.getPlayerId() == seatInfo.getPlayerId()) {
+                if (next.getPlayerId() == remove.getPlayerId()) {
                     each.remove();
                     break;
                 }
             }
-            seatInfo.setSeatDown(false);
-            seatInfo.setJoinGame(false);
+            remove.setSeatDown(false);
+            remove.setJoinGame(false);
         }
         //如果他是执行人 直接下一轮或结算   他不是执行人 剩一个直接结算
         PlayerSeatInfo nextExePlayer = getNextExePlayer(true);
@@ -394,7 +402,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         Pair<Integer, Integer> result = getGetRemainingPlayerNum(infos);
         //判断弃牌到只剩一名玩家
         if (result.getFirst() == infos.size() - 1) {
-            gameDataVo.setSettlement(1);
+            gameDataVo.setSettlement(DISCARD_SETTLEMENT);
             return true;
         }
         return gameDataVo.getRound() == TexasConstant.Common.MAX_ROUND && result.getSecond() == 0;
@@ -501,6 +509,25 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         }
     }
 
+    /**
+     * 补充临时货币或者下桌
+     */
+    public boolean addTempGoldOrOutTable(SeatInfo seatInfo, GamePlayer gamePlayer) {
+        Long hasTempCurrency = gameDataVo.getTempGold().getOrDefault(seatInfo.getPlayerId(), 0L);
+        TexasCfg texasCfg = TexasDataHelper.getTexasCfg(gameDataVo);
+        if (hasTempCurrency < texasCfg.getTablecoin()) {
+            long defaultCoinsNum = Math.min(TexasDataHelper.getDefaultCoinsNum(gameDataVo), texasCfg.getTablecoin());
+            if (gamePlayer.getGold() >= defaultCoinsNum) {
+                //增加零时货币
+                gameDataVo.getTempGold().put(seatInfo.getPlayerId(), defaultCoinsNum);
+                return true;
+            } else {
+                seatInfo.setSeatDown(false);
+                return false;
+            }
+        }
+        return false;
+    }
 
     /**
      * 构建主池 和 边池
@@ -562,5 +589,16 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             notifyShowCard.handType = tempHandType.getHandRank().rank;
         }
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyShowCard));
+    }
+
+    /**
+     * 换桌
+     */
+    public void reqChangeTable(PlayerController playerController, TexasGameController controller) {
+        AbstractRoomController<Room_ChessCfg, ? extends Room> abstractRoomController = controller.getRoomController();
+        Room room = abstractRoomController.getRoom();
+        boolean changed = abstractRoomController.changeRoom(playerController, room.getId(), room.getGameType(), room.getRoomCfgId());
+        RepsRoomBaseInfo repsRoomBaseInfo = new RepsRoomBaseInfo(changed ? Code.SUCCESS : Code.FAIL);
+        playerController.send(repsRoomBaseInfo);
     }
 }

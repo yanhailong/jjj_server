@@ -54,9 +54,7 @@ public class TexasDataHelper {
     }
 
     public static long getDefaultCoinsNum(TexasGameDataVo gameDataVo) {
-        Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
-        TexasCfg texasCfg = GameDataManager.getTexasCfg(roomCfg.getId());
-        return texasCfg.getCoinsNum();
+        return getTexasCfg(gameDataVo).getCoinsNum();
     }
 
     public static int getExecutionTime(BasePokerGameDataVo gameDataVo, PokerPhase phase) {
@@ -67,5 +65,10 @@ public class TexasDataHelper {
     public static List<Integer> getClientId(List<Integer> cardCfgId, int cfgId) {
         Map<Integer, PokerCard> cardMap = getCardListMap(cfgId);
         return cardCfgId.stream().map(id -> cardMap.get(id).getClientId()).collect(Collectors.toList());
+    }
+
+    public static TexasCfg getTexasCfg(TexasGameDataVo texasGameDataVo) {
+        Room_ChessCfg roomCfg = texasGameDataVo.getRoomCfg();
+        return GameDataManager.getTexasCfg(roomCfg.getId());
     }
 }

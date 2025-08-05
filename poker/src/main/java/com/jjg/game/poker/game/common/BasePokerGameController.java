@@ -6,7 +6,6 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
-import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
 import com.jjg.game.poker.game.common.message.reps.NotifyPlayerChange;
 import com.jjg.game.poker.game.common.message.req.ReqSampleCardOperation;
@@ -165,7 +164,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
 
     }
 
-    public void onPlayerLeaveRoomAction(PlayerController playerController, SeatInfo remove) {
+    public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
 
     }
 
@@ -180,9 +179,12 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
             roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder()
                     .toAllPlayer().exceptPlayer(playerController.playerId())
                     .setData(playerChange));
+            //移除座位信息
             SeatInfo remove = gameDataVo.getSeatInfo().remove(roomPlayer.getSit());
+            //移除下注信息
+            gameDataVo.getBaseBetInfo().remove(roomPlayer.getPlayerId());
             try {
-                onPlayerLeaveRoomAction(playerController, remove);
+                onPlayerLeaveRoomAction(roomPlayer, remove);
             } catch (Exception e) {
                 log.error("onPlayerLeaveRoomAction() failed", e);
             }

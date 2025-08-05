@@ -40,6 +40,11 @@ public class RepsRoomBaseInfo extends AbstractResponse {
     public int sendCardTime;
     @ProtoDesc("操作时间")
     public int operationTime;
+    @ProtoDesc("大盲")
+    public int BB;
+    @ProtoDesc("小盲")
+    public int SB;
+
     public RepsRoomBaseInfo(int code) {
         super(code);
     }

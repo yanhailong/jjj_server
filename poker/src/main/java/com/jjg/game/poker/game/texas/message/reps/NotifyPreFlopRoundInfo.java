@@ -31,6 +31,9 @@ public class NotifyPreFlopRoundInfo extends AbstractNotice {
     public long totalBet;
     @ProtoDesc("玩家状态(true在游戏中 false不在游戏中)")
     public boolean playerStatus;
+    @ProtoDesc("庄家位置")
+    public int seatId;
+
     // Builder 内部类
     public static class Builder {
         private List<Integer> cards;
@@ -40,6 +43,7 @@ public class NotifyPreFlopRoundInfo extends AbstractNotice {
         private long sbBet;
         private long totalBet;
         private boolean playerStatus;
+        private int seatId;
 
         public Builder cards(List<Integer> cards) {
             this.cards = cards;
@@ -70,8 +74,14 @@ public class NotifyPreFlopRoundInfo extends AbstractNotice {
             this.totalBet = totalBet;
             return this;
         }
+
         public Builder playerStatus(boolean playerStatus) {
             this.playerStatus = playerStatus;
+            return this;
+        }
+
+        public Builder seatId(int seatId) {
+            this.seatId = seatId;
             return this;
         }
         public NotifyPreFlopRoundInfo build() {
@@ -83,9 +93,11 @@ public class NotifyPreFlopRoundInfo extends AbstractNotice {
             info.sbBet = this.sbBet;
             info.totalBet = this.totalBet;
             info.playerStatus = this.playerStatus;
+            info.seatId = this.seatId;
             return info;
         }
     }
+
     // 可选：提供一个静态方法方便调用
     public static Builder builder() {
         return new Builder();

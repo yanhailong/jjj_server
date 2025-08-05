@@ -94,10 +94,6 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
         return id;
     }
 
-    public void addId() {
-        this.id += 1;
-    }
-
     public NotifySettlementInfo getNotifySettlementInfo() {
         return notifySettlementInfo;
     }
@@ -138,6 +134,9 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
     }
 
     public PlayerSeatInfo getCurrentPlayerSeatInfo() {
+        if (index >= playerSeatInfoList.size()) {
+            return null;
+        }
         return playerSeatInfoList.get(index);
     }
 
