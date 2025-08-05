@@ -624,7 +624,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     }
 
     /**
-     * 通过玩家ID获取到玩家所在的GameController
+     * 通过玩家ID获取到玩家对应的GameController
      */
     public AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> getGameControllerByPlayerId(long playerId) {
         List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =
@@ -643,7 +643,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     }
 
     /**
-     * 通过玩家ID获取到玩家所在的GameController
+     * 通过房间ID获取到玩家对应的GameController
      */
     public AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> getGameControllerByRoomId(long roomId) {
         List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =

@@ -107,8 +107,14 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
                 // 通杀
                 animalsHistoryBean.animalId = 13;
             } else {
-                // 中奖区域的ID后两位和前端的一致对应
-                animalsHistoryBean.animalId = winPosWeightCfg.getBetArea().get(0) % 100;
+                int betArea = winPosWeightCfg.getBetArea().get(0);
+                int gameTypeId = EGameType.BIRDS_ANIMAL.getGameTypeId();
+                int crawlArea = gameTypeId * 100 + 3, flyArea = gameTypeId * 100 + 4;
+                // 飞禽 走兽区域
+                if (betArea != crawlArea && betArea != flyArea) {
+                    // 中奖区域的ID后两位和前端的一致对应
+                    animalsHistoryBean.animalId = betArea % 100;
+                }
             }
             if (animalsHistoryBean.animalId != 0) {
                 break;

@@ -97,7 +97,7 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         }
         List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameControllers =
             result.data;
-        // 向
+        // 向客户端发送摘要信息
         RespBaccaratTableSummaryList respSummaryList = new RespBaccaratTableSummaryList(Code.SUCCESS);
         respSummaryList.tableSummaryList = new ArrayList<>();
         for (AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameWareController :
