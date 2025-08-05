@@ -60,7 +60,6 @@ public class BaccaratGameController extends BaseTableGameController<BaccaratGame
         NotifyBaccaratSettlementInfo settlementInfo = gameDataVo.getBaccaratSettlementInfo();
         RespBaccaratTableInfo baccaratTableInfo =
             BaccaratMessageBuilder.buildRespBaccaratTableInfo(gameDataVo, eGamePhase, settlementInfo);
-        log.info("百家乐房间初始化数据：{} ", JSON.toJSONString(baccaratTableInfo));
         // send
         playerController.send(Objects.requireNonNullElseGet(baccaratTableInfo,
             () -> new RespBaccaratTableInfo(Code.FAIL)));
