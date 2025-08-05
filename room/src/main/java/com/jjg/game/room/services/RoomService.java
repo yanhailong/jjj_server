@@ -214,8 +214,15 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
                     robotPlayerController.getPlayer().getGold());
             } else {
                 // 加入失败需要销毁机器人
-                robotService.deleteRobotPlayer(warehouseCfg.getId(), robotPlayerController.playerId());
+                robotService.deleteRobotPlayer(warehouseCfg.getId(), roomId, robotPlayerController.playerId());
+                log.error("游戏启动时，机器人加入失败, code: {} roomInfo: {}", result.code, roomController.getRoom().logStr());
             }
+        } else {
+            log.error("启动游戏时，初始化机器人失败：{}", roomController.getRoom().logStr());
+        }
+        if (!roomController.isStartedGame()) {
+            log.error("游戏启动失败 {}", roomController.getRoom().logStr());
+            throw new RuntimeException("游戏启动失败：" + roomController.getRoom().logStr());
         }
     }
 

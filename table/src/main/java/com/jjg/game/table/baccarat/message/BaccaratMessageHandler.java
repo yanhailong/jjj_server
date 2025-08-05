@@ -25,13 +25,10 @@ import com.jjg.game.room.manager.RoomManager;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.BaccaratTempRoom;
-import com.jjg.game.table.baccarat.message.req.ReqBaccaratTableSummaryList;
 import com.jjg.game.table.baccarat.message.req.ReqExitRoomInGame;
 import com.jjg.game.table.baccarat.message.req.ReqJoinRoomInGame;
 import com.jjg.game.table.baccarat.message.resp.*;
 import com.jjg.game.table.common.data.TableGameDataVo;
-import com.jjg.game.table.common.message.TableMessageBuilder;
-import com.jjg.game.table.common.message.res.NotifyTableRoomConf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,15 +83,14 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         TableGameDataVo tableGameDataVo = (TableGameDataVo) gameController.getGameDataVo();
         // 更新操作时间
         tableGameDataVo.updatePlayerOperateTime(playerController.playerId());
-        // 推送房间配置
-        NotifyTableRoomConf notifyTableRoomConf = TableMessageBuilder.buildNotifyTableRoomConf();
-        playerController.send(notifyTableRoomConf);
     }
 
     @Command(BaccaratMessageConstant.ReqMsgBean.REQ_BACCARAT_TABLE_SUMMARY_LIST)
-    public void reqBaccaratSummaryList(PlayerController playerController, ReqBaccaratTableSummaryList req) {
+    public void reqBaccaratSummaryList(PlayerController playerController) {
+        // 获取进入房间时的配置ID
+        int roomCfgId = playerController.getPlayer().getRoomCfgId();
         CommonResult<List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> result =
-            getBaccaratGameController(req.wareId);
+            getBaccaratGameController(roomCfgId);
         if (result.code != Code.SUCCESS) {
             playerController.send(new RespBaccaratTableSummaryList(result.code));
             return;
@@ -163,7 +159,7 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         if (clusterCurrentNodePath.equalsIgnoreCase(room.getPath())) {
             // 将玩家加入房间
             roomManager.joinRoom(playerController, reqJoinRoomInGame.gameType, reqJoinRoomInGame.roomId);
-            log.info("玩家：{} 请求加入房间：{} 处于当前节点", playerController.playerId(), room.getRoomCfgId());
+            log.info("玩家：{} 请求加入房间：{} {} 处于当前节点", playerController.playerId(), room.getRoomCfgId(), room.getId());
         } else {
             // 将玩家的房间ID设置成请求的，在session进入时会自动加入到对应的房间
             playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(reqJoinRoomInGame.roomId));
@@ -199,7 +195,7 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
     /**
      * 获取所有对应场次的百家乐gameController
      */
-    private CommonResult<List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> getBaccaratGameController(int wareId) {
+    private CommonResult<List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> getBaccaratGameController(int roomCfgId) {
         List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameControllers =
             roomManager.getGameControllersByGameType(EGameType.BACCARAT);
         if (gameControllers.isEmpty()) {
@@ -207,7 +203,6 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
             return new CommonResult<>(Code.FAIL);
         }
         // 房间配置ID
-        int roomCfgId = EGameType.BACCARAT.getGameTypeId() * 10 + wareId;
         List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameWareControllers =
             gameControllers.stream().filter(controller -> controller.getRoom().getRoomCfgId() == roomCfgId).toList();
         if (gameWareControllers.isEmpty()) {

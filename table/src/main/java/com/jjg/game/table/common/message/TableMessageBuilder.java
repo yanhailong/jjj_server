@@ -17,7 +17,6 @@ import com.jjg.game.table.common.message.bean.TablePlayerInfo;
 import com.jjg.game.table.common.message.req.NotifyTableExitRoom;
 import com.jjg.game.table.common.message.req.NotifyTableLongTimeNoOperate;
 import com.jjg.game.table.common.message.res.NotifyPhaseChangInfo;
-import com.jjg.game.table.common.message.res.NotifyTableRoomConf;
 import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
 import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
@@ -265,17 +264,5 @@ public class TableMessageBuilder {
         NotifyTableExitRoom notify = new NotifyTableExitRoom();
         notify.langId = langId;
         return notify;
-    }
-
-    /**
-     * 构建房间相关配置通知
-     */
-    public static NotifyTableRoomConf buildNotifyTableRoomConf() {
-        GlobalConfigCfg globalConfigCfg =
-            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE);
-        // 推送房间配置
-        NotifyTableRoomConf notifyTableRoomConf = new NotifyTableRoomConf();
-        notifyTableRoomConf.maxChipOnTable = globalConfigCfg.getIntValue();
-        return notifyTableRoomConf;
     }
 }

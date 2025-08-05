@@ -4,10 +4,13 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.sample.GameDataManager;
+import com.jjg.game.room.sample.bean.GlobalConfigCfg;
 import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.BaccaratTempRoom;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
@@ -130,6 +133,9 @@ public class BaccaratMessageBuilder {
         respBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameDataVo, true, true);
         respBaccaratTableInfo.betInfoList = gameDataVo.getRoomCfg().getBetList();
         respBaccaratTableInfo.playerTotalNum = gameDataVo.getPlayerNum();
+        GlobalConfigCfg globalConfigCfg =
+            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE);
+        respBaccaratTableInfo.maxChipOnTable = globalConfigCfg.getIntValue();
         return respBaccaratTableInfo;
     }
 

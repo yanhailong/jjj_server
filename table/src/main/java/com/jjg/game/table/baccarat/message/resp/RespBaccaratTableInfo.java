@@ -44,6 +44,9 @@ public class RespBaccaratTableInfo extends AbstractResponse {
     @ProtoDesc("玩家总人数")
     public int playerTotalNum;
 
+    @ProtoDesc("押注桌面展示的筹码数量上限")
+    public int maxChipOnTable;
+
     public RespBaccaratTableInfo(int code) {
         super(code);
     }

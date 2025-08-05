@@ -122,7 +122,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                                 playerController.playerId(),
                                 doResult.code);
                     }
-                    result.code = Code.FAIL;
+                    result.code = doResult.code;
                     return result;
                 }
                 this.room = (R) doResult.data;
@@ -475,7 +475,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 /*log.debug("强制离开房间成功, gameType = {},roomId = {},playerIds = {}",
                     room.getRoomCfgId(),
                     room.getId(),
-                    playerControllers.stream().map(PlayerController::playerId).map(String::valueOf).collect(Collectors.joining(",")));*/
+                    playerControllers.stream().map(PlayerController::playerId).map(String::valueOf).collect
+                    (Collectors.joining(",")));*/
             } else {
                 log.debug("将玩家从房间中移除失败 gameType = {},roomId = {},playerIds = {}",
                         this.room.getRoomCfgId(),
@@ -628,5 +629,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         this.timerCenter.remove(this);
         // 暂停游戏
         gameController.stopGame();
+    }
+
+    public boolean isStartedGame() {
+        return gameController.isGameStarted();
     }
 }

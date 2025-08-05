@@ -52,11 +52,11 @@ public class RobotService implements IRoomStartListener {
         for (int i = 0; i < GameConstant.Redis.LOCK_TRY_TIMES; i++) {
             if (redisLock.tryLock(lockKey)) {
                 try {
-                    if (!checkCanCreateRobot(roomCfgId)) {
+                    if (!checkCanCreateRobot(roomCfgId, roomId)) {
                         return null;
                     }
                     // 已经创建的机器人ID列表
-                    Set<Integer> robotIdList = robotDao.getRobotIdList(roomCfgId);
+                    Set<Integer> robotIdList = robotDao.getRobotIdList(roomCfgId, roomId);
                     // 机器人ID
                     List<Integer> configuredRobotIdList =
                         GameDataManager.getRobotCfgList()
@@ -78,7 +78,7 @@ public class RobotService implements IRoomStartListener {
                     }
                     RobotCfg robotCfg = GameDataManager.getRobotCfg(robotId);
                     // 创建一个机器人
-                    RobotPlayer robotPlayer = robotDao.createRobotPlayer(roomCfgId, robotId);
+                    RobotPlayer robotPlayer = robotDao.createRobotPlayer(roomCfgId, roomId, robotId);
                     RoomCfg roomCfg = GameDataManager.getRoomCfg(roomCfgId);
                     robotPlayer.setRoomId(roomId);
                     robotPlayer.setRoomCfgId(roomCfgId);
@@ -86,7 +86,7 @@ public class RobotService implements IRoomStartListener {
                     // 给机器人初始化数据，如果出现机器人某些数据找不到，在此处初始化
                     initialRobotData(robotPlayer, roomCfg);
                     // 回存一次数据 TODO 后续修改
-                    robotDao.saveRobotPlayer(roomCfg.getId(), robotPlayer);
+                    robotDao.saveRobotPlayer(roomCfg.getId(), roomId, robotPlayer);
                     return robotPlayer;
                 } finally {
                     redisLock.tryUnlock(lockKey);
@@ -137,7 +137,7 @@ public class RobotService implements IRoomStartListener {
     /**
      * 检查是否可以创建机器人
      */
-    private boolean checkCanCreateRobot(int roomCfgId) {
+    private boolean checkCanCreateRobot(int roomCfgId, long roomId) {
         // 检查当前游戏的人数是否达到上限
         TreeMap<Integer, Integer> createLimitByTime = roomRobotCreateLimit.get(roomCfgId);
         Calendar calendar = DateUtils.toCalendar(new Date(System.currentTimeMillis()));
@@ -151,20 +151,20 @@ public class RobotService implements IRoomStartListener {
             }
         }
         // 获取当前机器人数量
-        long curRobotNum = robotDao.getCurRobotNum(roomCfgId);
+        long curRobotNum = robotDao.getCurRobotNum(roomCfgId, roomId);
         return curRobotNum < robotLimit;
     }
 
     /**
      * 删除机器人
      */
-    public void deleteRobotPlayer(int roomCfgId, Long robotId) {
+    public void deleteRobotPlayer(int roomCfgId, long roomId, Long robotId) {
         String lockKey = robotDao.getLockRobotTableName(roomCfgId + "");
 
         for (int i = 0; i < GameConstant.Redis.LOCK_TRY_TIMES; i++) {
             if (redisLock.tryLock(lockKey)) {
                 try {
-                    robotDao.deleteRobotPlayers(roomCfgId, Collections.singleton(robotId));
+                    robotDao.deleteRobotPlayers(roomCfgId, roomId, Collections.singleton(robotId));
                 } finally {
                     redisLock.tryUnlock(lockKey);
                 }
@@ -180,12 +180,12 @@ public class RobotService implements IRoomStartListener {
     /**
      * 删除机器人
      */
-    public void deleteRobotPlayers(int roomCfgId, List<Long> robotIds) {
+    public void deleteRobotPlayers(int roomCfgId, long roomId, List<Long> robotIds) {
         String lockKey = robotDao.getLockRobotTableName(roomCfgId + "");
         for (int i = 0; i < GameConstant.Redis.LOCK_TRY_TIMES; i++) {
             if (redisLock.tryLock(lockKey)) {
                 try {
-                    robotDao.deleteRobotPlayers(roomCfgId, robotIds);
+                    robotDao.deleteRobotPlayers(roomCfgId, roomId, robotIds);
                 } finally {
                     redisLock.tryUnlock(lockKey);
                 }

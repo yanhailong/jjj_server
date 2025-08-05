@@ -1,6 +1,8 @@
 package com.jjg.game.table.luxurycarclub.message;
 
+import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.TablePlayerInfo;
 import com.jjg.game.table.luxurycarclub.LuxuryCarClubGameController;
@@ -60,6 +62,8 @@ public class LuxuryCarClubMessageBuilder {
         tableInfo.totalPlayerNum = gameDataVo.getPlayerNum();
         tableInfo.settlementHistory = gameDataVo.getWinAreaCfgIdHistory();
         tableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(gameDataVo, isInitial);
+        tableInfo.maxChipOnTable =
+            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();
         return tableInfo;
     }
 }
