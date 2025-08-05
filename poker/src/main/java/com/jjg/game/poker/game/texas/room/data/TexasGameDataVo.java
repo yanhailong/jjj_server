@@ -1,11 +1,14 @@
 package com.jjg.game.poker.game.texas.room.data;
 
+import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.texas.data.Pot;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 德州扑克
@@ -26,7 +29,7 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
     /**
      * 奖池
      */
-    private  List<Pot> pool = new ArrayList<>();
+    private List<Pot> pool = new ArrayList<>();
     /**
      * 庄家座位号
      */
@@ -42,6 +45,36 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
      */
     private long maxBetValue;
 
+    /**
+     * 本局游戏定时器的id
+     */
+    private int timerId;
+
+    /**
+     * 本轮最大下注
+     */
+    private final Map<Long, Long> maxBetInfo = new HashMap<>();
+
+    /**
+     * 临时gold列表
+     */
+    private final Map<Long, Long> tempGold = new HashMap<>();
+
+    public Map<Long, Long> getTempGold() {
+        return tempGold;
+    }
+
+    public Map<Long, Long> getMaxBetInfo() {
+        return maxBetInfo;
+    }
+
+    public int getTimerId() {
+        return timerId;
+    }
+
+    public void addTimerId() {
+        timerId++;
+    }
 
     public long getMaxBetValue() {
         return maxBetValue;
@@ -84,8 +117,8 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
     }
 
     @Override
-    public void resetData() {
-        super.resetData();
+    public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {
+        super.resetData(controller);
         this.pool.clear();
         this.settlement = 0;
     }

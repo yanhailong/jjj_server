@@ -13,13 +13,22 @@ public class PokerCard extends Card {
     private final int pokerPoolId;
 
     /**
+     * 前端牌id
+     */
+    private final int clientId;
+    /**
      * @param pokerPoolId PokerPool表的id
      * @param suit        花色值
      * @param rank        点数值
      */
-    public PokerCard(int pokerPoolId, int suit, int rank) {
+    public PokerCard(int pokerPoolId, int suit, int rank, int clientId) {
         super(suit, rank);
         this.pokerPoolId = pokerPoolId;
+        this.clientId = clientId;
+    }
+
+    public int getClientId() {
+        return clientId;
     }
 
     public int getPokerPoolId() {

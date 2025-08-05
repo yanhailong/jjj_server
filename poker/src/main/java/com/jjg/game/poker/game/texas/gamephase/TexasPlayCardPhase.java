@@ -4,14 +4,14 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.gamephase.BasePlayCardPhase;
+import com.jjg.game.poker.game.sample.GameDataManager;
+import com.jjg.game.poker.game.sample.bean.TexasCfg;
 import com.jjg.game.poker.game.texas.data.Pot;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.poker.game.texas.message.reps.NotifyPreFlopRoundInfo;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
-import com.jjg.game.poker.game.texas.sample.GameDataManager;
-import com.jjg.game.poker.game.texas.sample.bean.TexasCfg;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
@@ -33,7 +33,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
     @Override
     public void phaseDoAction() {
         if (gameController instanceof TexasGameController controller) {
-            gameDataVo.resetData();
+            gameDataVo.resetData(controller);
             //取配置表
             Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
             TexasCfg texasCfg = GameDataManager.getTexasCfg(roomCfg.getId());
@@ -82,9 +82,12 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
             //从第一个执行者开始发牌
             for (PlayerSeatInfo info : playerSeatInfoList) {
                 sendNum += roomCfg.getHandPoker();
-                List<Integer> playCard = cards.subList(0, roomCfg.getHandPoker());
-                info.setCards(List.of(playCard));
-                playCard.clear();
+                List<Integer> playCard = new ArrayList<>();
+                for (int i = 0; i < roomCfg.getHandPoker(); i++) {
+                    playCard.add(cards.remove(0));
+                }
+                info.setCards(new ArrayList<>());
+                info.getCards().add(playCard);
             }
             //设置第一个开始的玩家 并添加定时
             PlayerSeatInfo first = playerSeatInfoList.get(gameDataVo.getIndex());
@@ -94,7 +97,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
             builder.sbBet(bedAndSBBet.getFirst());
             builder.bbBet(bedAndSBBet.getSecond());
             builder.playerId(first.getPlayerId());
-            builder.overTime(first.getPlayerGameTimerEvent().getNextTime());
+            builder.overTime(gameDataVo.getPlayerTimerEvent().getNextTime());
             builder.totalBet(gameDataVo.getPool().get(0).getAmount());
             Map<Long, PlayerSeatInfo> collect = playerSeatInfo.stream()
                     .collect(Collectors.toMap(PlayerSeatInfo::getPlayerId, info -> info));
@@ -105,8 +108,8 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
                 if (!info.isJoinGame()) {
                     controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, builder.build()));
                 } else {
-                    builder.cards(collect.get(playerId).getCurrentCards());
-                    controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(info.getPlayerId(), builder.build()));
+                    builder.cards(TexasDataHelper.getClientId(collect.get(playerId).getCurrentCards(), gameDataVo.getRoomCfg().getId()));
+                    controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, builder.build()));
                 }
             }
         }

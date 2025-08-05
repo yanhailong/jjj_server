@@ -1,4 +1,4 @@
-package com.jjg.game.poker.game.texas.sample.bean;
+package com.jjg.game.poker.game.sample.bean;
 
 import java.util.*;
 
@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName PokerPool.xlsx
  * @sheetName PokerPool
  * @author Auto.Generator
- * @date 2025年08月02日 13:42:20
+ * @date 2025年08月04日 10:17:51
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class PokerPoolCfg extends BaseCfgBean {
@@ -53,5 +53,15 @@ public class PokerPoolCfg extends BaseCfgBean {
   /** 返回点数2大小 */
   public int getSuitNum() {
     return suitNum;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
   }
 }

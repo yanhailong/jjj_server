@@ -11,11 +11,6 @@ public class PokerPlayerGameData {
     private long joinTime;
 
     /**
-     * 临时货币
-     */
-    private long tempCurrency;
-
-    /**
      * 是否初始化完成
      */
     private boolean isInit;
@@ -27,14 +22,6 @@ public class PokerPlayerGameData {
 
     public void setInit(boolean init) {
         isInit = init;
-    }
-
-    public long getTempCurrency() {
-        return tempCurrency;
-    }
-
-    public void setTempCurrency(long tempCurrency) {
-        this.tempCurrency = tempCurrency;
     }
 
     public long getJoinTime() {

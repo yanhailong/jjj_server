@@ -24,6 +24,8 @@ public class BasePokerSampleLoader implements SmartLifecycle, ApplicationContext
     private static final Logger log = LoggerFactory.getLogger(BasePokerSampleLoader.class);
     @Autowired
     private BasePokerSampleManager basePokerSampleManager;
+    @Autowired
+    private RoomSampleManager roomSampleManager;
     private boolean isRunning;
     private ApplicationContext applicationContext;
 
@@ -34,6 +36,7 @@ public class BasePokerSampleLoader implements SmartLifecycle, ApplicationContext
         }
         try {
             CommonUtil.setContext(applicationContext);
+            roomSampleManager.init();
             basePokerSampleManager.init();
         } catch (Exception exception) {
             log.error("扑克类的公共配置表加载异常 {}", exception.getMessage(), exception);

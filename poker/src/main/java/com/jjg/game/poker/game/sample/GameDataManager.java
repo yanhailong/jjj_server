@@ -1,4 +1,4 @@
-package com.jjg.game.poker.game.texas.sample;
+package com.jjg.game.poker.game.sample;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,10 +25,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 // =================== 模板开始 ===================
-import com.jjg.game.poker.game.texas.sample.bean.*;
-import com.jjg.game.poker.game.texas.sample.container.*;
+import com.jjg.game.poker.game.sample.bean.*;
+import com.jjg.game.poker.game.sample.container.*;
 // =================== 模板结束 ===================
-import com.jjg.game.poker.game.texas.sample.container.BaseCfgContainer.ContainerExceptionBlocker;
+import com.jjg.game.poker.game.sample.container.BaseCfgContainer.ContainerExceptionBlocker;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年08月02日 13:42:20
+ * @date 2025年08月04日 10:17:51
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -118,6 +118,7 @@ public class GameDataManager {
   public Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> initAllContainer() {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
+    containerMap.put(BlackjackCfg.class, new BlackjackCfgContainer());
     containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
     containerMap.put(TexasCfg.class, new TexasCfgContainer());
     // endregion===============cfg加载模板结束===================
@@ -521,6 +522,17 @@ public class GameDataManager {
 
   // region===============cfg获取方法模板开始===================
 
+  public static BlackjackCfg getBlackjackCfg(int key) {
+    return getInstance().getCfgContainer(BlackjackCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, BlackjackCfg> getBlackjackCfgMap() {
+    return getInstance().getCfgContainer(BlackjackCfg.class).getCfgBeanMap();
+  }
+
+  public static List<BlackjackCfg> getBlackjackCfgList() {
+    return getInstance().getCfgContainer(BlackjackCfg.class).getCfgBeanList();
+  }
   public static PokerPoolCfg getPokerPoolCfg(int key) {
     return getInstance().getCfgContainer(PokerPoolCfg.class).getCfgBeanMap().get(key);
   }
@@ -571,6 +583,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("E:\\java\\project2\\poker\\resources\\sample\\texas");
+    loadAllData("E:\\java\\project2\\poker\\resources\\sample\\poker");
   }
 }

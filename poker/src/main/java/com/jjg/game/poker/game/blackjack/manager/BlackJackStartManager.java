@@ -17,14 +17,11 @@ import java.io.File;
 public class BlackJackStartManager implements IRoomStartListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 
-    @Autowired
-    private BlackJackSampleManager blackJackSampleManager;
 
     @Override
     public void start() {
         log.info("正在启动21点游戏...");
 
-        blackJackSampleManager.init();
     }
 
     @Override
