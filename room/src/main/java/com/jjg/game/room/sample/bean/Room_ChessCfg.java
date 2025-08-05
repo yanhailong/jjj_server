@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName Room_Chess.xlsx
  * @sheetName Room_Chess
  * @author Auto.Generator
- * @date 2025年08月04日 10:01:24
+ * @date 2025年08月05日 10:45:14
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class Room_ChessCfg extends RoomCfg {

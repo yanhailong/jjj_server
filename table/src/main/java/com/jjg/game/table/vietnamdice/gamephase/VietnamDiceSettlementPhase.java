@@ -56,7 +56,7 @@ public class VietnamDiceSettlementPhase extends BaseDiceSettlementPhase<VietnamD
                 .map(a -> GameDataManager.getBetAreaCfg((Integer) a)).toList();
         log.info("{} 摇中越南骰子：{}, 区域ID: {} 对应的中奖区域：{}",
             gameDataVo.roomLogInfo(),
-            randomNumDice.stream().map(String::valueOf).collect(Collectors.joining("")),
+            randomNumDice.stream().map(dice -> dice == 2 ? "红" : "黑").collect(Collectors.joining("")),
             winPosWeightCfgs.stream().map(WinPosWeightCfg::getId).collect(Collectors.toList()),
             betAreaCfgs.stream().map(BetAreaCfg::getId).map(String::valueOf).collect(Collectors.joining(",")));
         // 添加中奖记录
@@ -82,7 +82,7 @@ public class VietnamDiceSettlementPhase extends BaseDiceSettlementPhase<VietnamD
         VietnamDiceHistoryBean vietnamDiceHistoryBean = new VietnamDiceHistoryBean();
         byte diceData = 0;
         for (int i = 0; i < randomNumDice.size(); i++) {
-            diceData = randomNumDice.get(i) == 2 ? BitUtils.setBitTrue(diceData, i) : BitUtils.setBitFalse(diceData, i);
+            diceData = randomNumDice.get(i) == 1 ? BitUtils.setBitTrue(diceData, i) : BitUtils.setBitFalse(diceData, i);
         }
         vietnamDiceHistoryBean.diceData = diceData;
         vietnamDiceHistoryBean.betIdxId = betAreaCfgs.stream().map(BetAreaCfg::getId).collect(Collectors.toList());

@@ -184,7 +184,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                     .mapToLong(Integer::longValue)
                     .sum();
             // 玩家押注赢
-            long playerBetWin = checkPlayerBetWin(playerBetInfo, baccaratSettlementInfo);
+            long playerBetWin = checkPlayerBetWin(gamePlayer, playerBetInfo, baccaratSettlementInfo);
             if (playerBetWin > 0) {
                 PlayerChangedGold playerGoldChange = new PlayerChangedGold();
                 playerGoldChange.playerId = playerEntry.getKey();
@@ -230,7 +230,8 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     /**
      * 通过玩家下注数据，计算获得的金币值
      */
-    private long checkPlayerBetWin(Map<Integer, List<Integer>> playerBetInfo, BaccaratSettlementInfo settlementInfo) {
+    private long checkPlayerBetWin(
+        GamePlayer gamePlayer, Map<Integer, List<Integer>> playerBetInfo, BaccaratSettlementInfo settlementInfo) {
         // 下注区域                        1:庄对     2:和    3: 闲对 4: 闲 5: 庄
         // winState          输赢状态      1:庄赢     2:闲赢  3：和
         // cardTypeWinState  牌型的输赢状态 0:默认状态，1:庄对  2：闲对，3：庄和闲都有对子
@@ -246,28 +247,28 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 // 压庄
                 case 1: {
                     if (settlementInfo.cardState.cardTypeWinState == 1 || settlementInfo.cardState.cardTypeWinState == 3) {
-                        playerBetWin += calcGold(weightCfgMap.get(entry.getKey()), areaTotal);
+                        playerBetWin += calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                     }
                     break;
                 }
                 case 2:
                     if (settlementInfo.cardState.winState == 3) {
-                        playerBetWin += calcGold(weightCfgMap.get(entry.getKey()), areaTotal);
+                        playerBetWin += calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                     }
                     break;
                 case 3:
                     if (settlementInfo.cardState.cardTypeWinState == 2 || settlementInfo.cardState.cardTypeWinState == 3) {
-                        playerBetWin += calcGold(weightCfgMap.get(entry.getKey()), areaTotal);
+                        playerBetWin += calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                     }
                     break;
                 case 4:
                     if (settlementInfo.cardState.winState == 2) {
-                        playerBetWin += calcGold(weightCfgMap.get(entry.getKey()), areaTotal);
+                        playerBetWin += calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                     }
                     break;
                 case 5:
                     if (settlementInfo.cardState.winState == 1) {
-                        playerBetWin += calcGold(weightCfgMap.get(entry.getKey()), areaTotal);
+                        playerBetWin += calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                     }
                     break;
                 default:

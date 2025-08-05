@@ -31,9 +31,11 @@ public interface TableRoomMessageConstant {
         int NOTIFY_PLAYER_JOIN_ROOM = BASE_MSG_PREFIX | 0x88;
         // 通知阶段变化
         int NOTIFY_PHASE_CHANG_INFO = BASE_MSG_PREFIX | 0x89;
-        // 通知阶段变化
+        // 通知房间退出
         int NOTIFY_TABLE_EXIT_ROOM = BASE_MSG_PREFIX | 0x90;
-        // 通知阶段变化
+        // 通知房间玩家无操作
         int NOTIFY_TABLE_LONG_TIME_NO_OPERATE = BASE_MSG_PREFIX | 0x91;
+        // 通知房间服务器相关配置
+        int NOTIFY_TABLE_ROOM_CONF = BASE_MSG_PREFIX | 0x92;
     }
 }

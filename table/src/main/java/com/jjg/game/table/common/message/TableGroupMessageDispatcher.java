@@ -14,6 +14,7 @@ import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.req.ReqRoomBaseInfo;
 import com.jjg.game.table.common.message.req.ReqTablePlayerInfo;
+import com.jjg.game.table.common.message.res.NotifyTableRoomConf;
 import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,6 +79,9 @@ public class TableGroupMessageDispatcher extends BaseRoomMessageDispatcher {
         // 更新操作时间
         tableGameDataVo.updatePlayerOperateTime(playerController.playerId());
         gameController.respRoomInitInfo(playerController);
+        // 推送房间配置
+        NotifyTableRoomConf notifyTableRoomConf = TableMessageBuilder.buildNotifyTableRoomConf();
+        playerController.send(notifyTableRoomConf);
     }
 
     /**

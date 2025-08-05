@@ -27,8 +27,8 @@ public class LoongTigerWarSampleManager implements ConfigExcelChangeListener {
 
     @Override
     public void initSampleCallbackCollector() {
-        addSampleFileObserveWithCallBack(BetAreaCfg.EXCEL_NAME, this::initSampleConfig)
-            .addSampleFileObserveWithCallBack(WinPosWeightCfg.EXCEL_NAME, this::initSampleConfig);
+        addInitSampleFileObserveWithCallBack(BetAreaCfg.EXCEL_NAME, this::initSampleConfig)
+            .addInitSampleFileObserveWithCallBack(WinPosWeightCfg.EXCEL_NAME, this::initSampleConfig);
     }
 
     public void initSampleConfig() {

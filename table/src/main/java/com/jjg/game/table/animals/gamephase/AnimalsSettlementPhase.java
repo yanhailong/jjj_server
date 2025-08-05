@@ -68,7 +68,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
                 continue;
             }
             // 给玩家进行结算
-            long playerWin = calcSettlementGold(winPosWeightCfgs, playerBetInfo);
+            long playerWin = calcSettlementGold(gamePlayer, winPosWeightCfgs, playerBetInfo);
             PlayerChangedGold playerChangedGold = new PlayerChangedGold();
             playerChangedGold.playerId = playerId;
             playerChangedGold.playerWinGold = playerWin;
@@ -123,7 +123,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
      * 结算金币
      */
     private long calcSettlementGold(
-        List<WinPosWeightCfg> winPosWeightCfgs, Map<Integer, List<Integer>> playerBetInfo) {
+        GamePlayer gamePlayer, List<WinPosWeightCfg> winPosWeightCfgs, Map<Integer, List<Integer>> playerBetInfo) {
         long playerWin = 0;
         for (WinPosWeightCfg winPosWeightCfg : winPosWeightCfgs) {
             List<Integer> betAreas = winPosWeightCfg.getBetArea();
@@ -135,7 +135,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
                 List<Integer> playerBetGoldList = playerBetInfo.get(betAreaId);
                 // 玩家总押注
                 long playerBetGoldTotal = playerBetGoldList.stream().mapToInt(Integer::intValue).sum();
-                playerWin += calcGold(winPosWeightCfg, playerBetGoldTotal);
+                playerWin += calcGold(gamePlayer, winPosWeightCfg, playerBetGoldTotal);
             } else if (winPosWeightCfg.getWinType() == 4) {
                 // 通赔逻辑
                 for (Map.Entry<Integer, List<Integer>> entry : playerBetInfo.entrySet()) {
@@ -144,7 +144,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
                     int posId = posWinList.get(0);
                     WinPosWeightCfg weightCfg = GameDataManager.getWinPosWeightCfg(posId);
                     int playerBetGoldTotal = entry.getValue().stream().mapToInt(Integer::intValue).sum();
-                    playerWin += calcGold(weightCfg, playerBetGoldTotal);
+                    playerWin += calcGold(gamePlayer, weightCfg, playerBetGoldTotal);
                 }
             }
         }

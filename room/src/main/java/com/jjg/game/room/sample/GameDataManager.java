@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年08月04日 10:01:24
+ * @date 2025年08月05日 10:45:15
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -120,6 +120,7 @@ public class GameDataManager {
     // region===============cfg加载模板开始===================
     containerMap.put(BetRobotCfg.class, new BetRobotCfgContainer());
     containerMap.put(ChessRobotCfg.class, new ChessRobotCfgContainer());
+    containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
     containerMap.put(RobotActionCfg.class, new RobotActionCfgContainer());
     containerMap.put(RobotCfg.class, new RobotCfgContainer());
     containerMap.put(RoomCfg.class, new RoomCfgContainer());
@@ -548,6 +549,17 @@ public class GameDataManager {
 
   public static List<ChessRobotCfg> getChessRobotCfgList() {
     return getInstance().getCfgContainer(ChessRobotCfg.class).getCfgBeanList();
+  }
+  public static GlobalConfigCfg getGlobalConfigCfg(int key) {
+    return getInstance().getCfgContainer(GlobalConfigCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, GlobalConfigCfg> getGlobalConfigCfgMap() {
+    return getInstance().getCfgContainer(GlobalConfigCfg.class).getCfgBeanMap();
+  }
+
+  public static List<GlobalConfigCfg> getGlobalConfigCfgList() {
+    return getInstance().getCfgContainer(GlobalConfigCfg.class).getCfgBeanList();
   }
   public static RobotActionCfg getRobotActionCfg(int key) {
     return getInstance().getCfgContainer(RobotActionCfg.class).getCfgBeanMap().get(key);
