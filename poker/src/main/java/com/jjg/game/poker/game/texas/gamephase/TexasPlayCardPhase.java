@@ -126,7 +126,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         long betValue = texasCfg.getSbNum();
         gameDataVo.getBaseBetInfo().put(info.getPlayerId(), betValue);
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
-        controller.changePlayerGold(gamePlayer, betValue);
+        controller.changePlayerGold(gamePlayer, -betValue);
         gameDataVo.getPool().get(0).addChips(betValue);
         gameDataVo.getPool().get(0).addEligiblePlayer(info.getPlayerId());
         //大盲
@@ -134,7 +134,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         long BBBetValue = texasCfg.getBbNum();
         gameDataVo.getBaseBetInfo().put(info.getPlayerId(), BBBetValue);
         gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
-        controller.changePlayerGold(gamePlayer, BBBetValue);
+        controller.changePlayerGold(gamePlayer, -BBBetValue);
         gameDataVo.getPool().get(0).addChips(BBBetValue);
         gameDataVo.getPool().get(0).addEligiblePlayer(info.getPlayerId());
         return Pair.newPair(betValue, BBBetValue);
