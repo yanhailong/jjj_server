@@ -3,7 +3,7 @@ package com.jjg.game.table.betsample;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.table.betsample.sample.GameDataManager;
 import com.jjg.game.table.betsample.sample.bean.BaseCfgBean;
-import com.jjg.game.table.common.BaseTableSampleManager;
+import com.jjg.game.room.manager.BaseRoomSampleManager;
 import org.springframework.stereotype.Repository;
 
 import java.io.File;
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  * @author 2CL
  */
 @Repository
-public class BaseBetTableSampleManager extends BaseTableSampleManager {
+public class BaseBetTableSampleManager extends BaseRoomSampleManager {
 
     @Override
     protected String getSamplePath() {

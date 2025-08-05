@@ -7,7 +7,6 @@ import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
-import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
@@ -109,7 +108,7 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
         }
         //押分列表
         notifyLoongTigerWarInfo.betPointList = gameDataVo.getRoomCfg().getBetList();
-        notifyLoongTigerWarInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(gameDataVo);
+        notifyLoongTigerWarInfo.playerInfos = TableMessageBuilder.buildPlayerInfoOnTable(gameDataVo);
         notifyLoongTigerWarInfo.totalPlayerNum = gameDataVo.getGamePlayerMap().size();
         //发送给玩家
         broadcastToPlayers(

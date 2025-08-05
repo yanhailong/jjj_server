@@ -7,7 +7,6 @@ import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
-import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
@@ -112,7 +111,7 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
         }
         //押分列表
         notifyRedBlackWarInfo.betPointList = gameDataVo.getRoomCfg().getBetList();
-        notifyRedBlackWarInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(gameDataVo);
+        notifyRedBlackWarInfo.playerInfos = TableMessageBuilder.buildPlayerInfoOnTable(gameDataVo);
         notifyRedBlackWarInfo.totalPlayerNum = gameDataVo.getGamePlayerMap().size();
         //发送给玩家
         broadcastToPlayers(

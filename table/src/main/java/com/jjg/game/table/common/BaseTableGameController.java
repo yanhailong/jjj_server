@@ -82,13 +82,6 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
             }
         }
         if (!needExitRoomRobots.isEmpty()) {
-            EGameType eGameType = EGameType.getGameByTypeId(gameDataVo.getRoomCfg().getGameID());
-            log.debug("游戏：{} 中机器人开始： {} 退出房间",
-                eGameType.getGameDesc(),
-                needExitRoomRobots.stream()
-                    .map(PlayerController::playerId)
-                    .map(String::valueOf)
-                    .collect(Collectors.joining(",")));
             // 调用房间离开流程
             int exitCode = roomController.getRoomManager().robotPlayerExitRoom(needExitRoomRobots);
             if (exitCode != Code.SUCCESS) {

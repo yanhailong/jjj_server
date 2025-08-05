@@ -16,6 +16,7 @@ import com.jjg.game.table.common.message.TableRoomMessageConstant;
         resp = true,
         cmd = TableRoomMessageConstant.RespMsgBean.NOTIFY_PHASE_CHANG_INFO
 )
+@ProtoDesc("通知阶段变化信息")
 public class NotifyPhaseChangInfo extends AbstractNotice {
     @ProtoDesc("当前阶段")
     public EGamePhase gamePhase;

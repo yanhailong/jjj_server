@@ -314,12 +314,12 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 playerController.setPlayer(playerService.doSave(playerController.playerId(), p -> p.setRoomId(roomId)));
             }
             boolean isRobot = playerController.getPlayer() instanceof RobotPlayer;
-            log.debug("{}加入房间成功 gameType = {},roomId = {}, playerId = {} 当前金币：{} 房间人数：{}",
+            /*log.debug("{}加入房间成功 gameType = {},roomId = {}, playerId = {} 当前金币：{} 房间人数：{}",
                 isRobot ? "机器人" : "玩家", roomController.getRoom().getRoomCfgId(),
                 roomId,
                 playerController.playerId(),
                 playerController.getPlayer().getGold(),
-                room.getRoomPlayers().size());
+                room.getRoomPlayers().size());*/
             return Code.SUCCESS;
         } catch (Exception e) {
             log.error("玩家：{} 房间类型：{} 房间ID: {} 加入发生异常", playerController.playerId(), gameType, roomId, e);
@@ -415,11 +415,11 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 robotService.deleteRobotPlayers(room.getRoomCfgId(), robotPlayers);
                 // 将playerController的场景置空
                 entry.getValue().forEach(playerController -> playerController.setScene(null));
-                log.debug("机器人退出房间成功 gameType = {}, roomId = {}, 房间人数：{}, playerIds = {}",
+                /*log.debug("机器人退出房间成功 gameType = {}, roomId = {}, 房间人数：{}, playerIds = {}",
                     room.getRoomCfgId(),
                     room.getId(),
                     robotPlayers.stream().map(String::valueOf).collect(Collectors.joining(",")),
-                    room.getRoomPlayers() != null ? room.getRoomPlayers().size() : 0);
+                    room.getRoomPlayers() != null ? room.getRoomPlayers().size() : 0);*/
                 return Code.SUCCESS;
             }
         } catch (Exception e) {
