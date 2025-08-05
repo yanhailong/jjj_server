@@ -88,6 +88,10 @@ public interface MessageConst {
 
         // 服务器之间的通讯协议
         int TO_SERVER_CONST_TYPE = 0x21;
+
+
+        // 下注房间对战类通用协议类型
+        int POKER_GENERAL_TYPE = 0x22;
     }
 
     interface ToClientConst {

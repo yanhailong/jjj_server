@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
  * @date 2025/7/26 14:01
  */
 @Component
-@MessageType(MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE)
+@MessageType(value = MessageConst.MessageTypeDef.POKER_GENERAL_TYPE,isGroupMessage = true)
 public class BasePokerHandler {
     private final Logger log = LoggerFactory.getLogger(getClass());
     @Autowired

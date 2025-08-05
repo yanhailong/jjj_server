@@ -11,10 +11,6 @@ import java.util.List;
  */
 public class PlayerSeatInfo {
     /**
-     * 玩家的定时对象
-     */
-    private TimerEvent<IProcessorHandler> playerGameTimerEvent;
-    /**
      * 座位id
      */
     private int seatId;
@@ -62,14 +58,6 @@ public class PlayerSeatInfo {
 
     public void setCardIndex(int cardIndex) {
         this.cardIndex = cardIndex;
-    }
-
-    public TimerEvent<IProcessorHandler> getPlayerGameTimerEvent() {
-        return playerGameTimerEvent;
-    }
-
-    public void setPlayerGameTimerEvent(TimerEvent<IProcessorHandler> playerGameTimerEvent) {
-        this.playerGameTimerEvent = playerGameTimerEvent;
     }
 
     public void setCards(List<List<Integer>> cards) {

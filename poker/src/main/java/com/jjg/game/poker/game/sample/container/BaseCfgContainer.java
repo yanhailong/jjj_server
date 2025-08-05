@@ -1,4 +1,4 @@
-package com.jjg.game.poker.game.texas.sample.container;
+package com.jjg.game.poker.game.sample.container;
 
 import java.io.File;
 import java.lang.reflect.*;
@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.processing.Generated;
 
-import com.jjg.game.poker.game.texas.sample.bean.BaseCfgBean;
+import com.jjg.game.poker.game.sample.bean.BaseCfgBean;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.poi.ss.usermodel.*;
@@ -1234,9 +1234,13 @@ public abstract class BaseCfgContainer<T extends BaseCfgBean> {
         String cellValue = getCellValue(cell);
         cellVal = cellValue.trim();
       }
-      if (colNum == 0 && isEmptyString(cellVal)) {
+
+      if (colNum == 0 && isEmptyString(cellVal) && rowNum == getFieldTypeRow()) {
         // 兼容第一行不填的情况默认为int
         cellVal = "int";
+      } else if (colNum == 0 && rowNum == getFieldNameRow()) {
+        // 兼容id字段，首行id都为小写
+        cellVal = cellVal.toLowerCase();
       }
       return cellVal;
     }

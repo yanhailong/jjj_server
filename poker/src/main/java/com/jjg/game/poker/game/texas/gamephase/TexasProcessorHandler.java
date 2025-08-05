@@ -14,17 +14,19 @@ public class TexasProcessorHandler implements IProcessorHandler {
     private final long playerId;
     private final int id;
     private final TexasGameController gameController;
+    private final int timerId;
 
-    public TexasProcessorHandler(long playerId, int id, TexasGameController gameController) {
+    public TexasProcessorHandler(long playerId, int id, TexasGameController gameController, int timerId) {
         this.playerId = playerId;
         this.id = id;
         this.gameController = gameController;
+        this.timerId = timerId;
     }
 
     @Override
     public void action() throws Exception {
         TexasGameDataVo gameDataVo = gameController.getGameDataVo();
-        if (id != gameDataVo.getId()) {
+        if (id != gameDataVo.getId() || timerId != gameDataVo.getTimerId()) {
             return;
         }
         PlayerSeatInfo currentPlayerSeatInfo = gameDataVo.getCurrentPlayerSeatInfo();
@@ -33,8 +35,12 @@ public class TexasProcessorHandler implements IProcessorHandler {
         }
         //①翻牌前圈，弃/过，优先执行弃牌；②翻牌圈开始及后续每轮次，弃/过，优先执行过牌；
         if (gameDataVo.getRound() == 1) {
-            //优先弃牌
-            gameController.discardCard(playerId);
+            if (!gameController.passCards(playerId)) {
+                gameController.discardCard(playerId);
+            }
+            //TODO
+//            //优先弃牌
+//            gameController.discardCard(playerId);
         } else {
             if (!gameController.passCards(playerId)) {
                 gameController.discardCard(playerId);

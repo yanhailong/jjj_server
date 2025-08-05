@@ -17,14 +17,9 @@ import java.io.File;
 public class TexasStartManager implements IRoomStartListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 
-    @Autowired
-    private TexasSampleManager texasSampleManager;
-
     @Override
     public void start() {
         log.info("正在启动德州游戏...");
-
-        texasSampleManager.init();
     }
 
     @Override

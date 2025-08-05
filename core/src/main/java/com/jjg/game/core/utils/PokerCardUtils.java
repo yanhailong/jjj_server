@@ -176,6 +176,33 @@ public class PokerCardUtils {
             }
             return null;
         }
+
+        public static EPokerHumanStr getPokerHumanStrByHumanStr(String humanStr) {
+            for (EPokerHumanStr value : values()) {
+                if (value.getHumanStr().equals(humanStr)) {
+                    return value;
+                }
+            }
+            return null;
+        }
+    }
+
+    public static EPokerSuit getSuitByConfig(String configSuit) {
+        switch (configSuit) {
+            case "Diamond" -> {
+                return EPokerSuit.DIAMOND;
+            }
+            case "Club" -> {
+                return EPokerSuit.CLUBS;
+            }
+            case "Heart" -> {
+                return EPokerSuit.HEART;
+            }
+            case "Spade" -> {
+                return EPokerSuit.SPADES;
+            }
+        }
+        return null;
     }
 
     public enum EPokerSuit {
