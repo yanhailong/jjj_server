@@ -40,8 +40,14 @@ public class DiceDataHolder implements ConfigExcelChangeListener {
     @Override
     public void changeSampleCallbackCollector() {
         // 监听押注区域和投注倍数配置表
-        addSampleFileObserveWithCallBack(WinPosWeightCfg.EXCEL_NAME, DiceDataHolder::buildDiceTreeBySampleData)
-            .addSampleFileObserveWithCallBack(BetAreaCfg.EXCEL_NAME, DiceDataHolder::buildDiceTreeBySampleData);
+        addInitSampleFileObserveWithCallBack(
+            WinPosWeightCfg.EXCEL_NAME, DiceDataHolder::buildDiceTreeBySampleData)
+            .addInitSampleFileObserveWithCallBack(
+                BetAreaCfg.EXCEL_NAME, DiceDataHolder::buildDiceTreeBySampleData)
+            .addChangeSampleFileObserveWithCallBack(
+                WinPosWeightCfg.EXCEL_NAME, DiceDataHolder::buildDiceTreeBySampleData)
+            .addChangeSampleFileObserveWithCallBack(
+                BetAreaCfg.EXCEL_NAME, DiceDataHolder::buildDiceTreeBySampleData);
     }
 
     /**
@@ -60,6 +66,8 @@ public class DiceDataHolder implements ConfigExcelChangeListener {
      * 构建骰子类配置tree
      */
     private static void buildDiceTreeBySampleData() {
+        log.info("构建骰子类奖励树");
+        ROOT_NODES.clear();
         Map<EGameType, DiceMetaData> diceGameTypes = getDiceGameConfig();
         Map<Integer, EGameType> diceGameTypeMap =
             diceGameTypes.keySet().stream()

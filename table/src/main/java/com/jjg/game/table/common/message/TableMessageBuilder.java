@@ -2,10 +2,13 @@ package com.jjg.game.table.common.message;
 
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.sample.GameDataManager;
+import com.jjg.game.room.sample.bean.GlobalConfigCfg;
 import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
@@ -14,6 +17,7 @@ import com.jjg.game.table.common.message.bean.TablePlayerInfo;
 import com.jjg.game.table.common.message.req.NotifyTableExitRoom;
 import com.jjg.game.table.common.message.req.NotifyTableLongTimeNoOperate;
 import com.jjg.game.table.common.message.res.NotifyPhaseChangInfo;
+import com.jjg.game.table.common.message.res.NotifyTableRoomConf;
 import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
 import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
@@ -245,15 +249,33 @@ public class TableMessageBuilder {
         return tableInfoMap.values().stream().toList();
     }
 
+    /**
+     * 构建桌面长时间无操作通知
+     */
     public static NotifyTableLongTimeNoOperate buildNotifyTableLongTimeNoOperate(int langId) {
         NotifyTableLongTimeNoOperate notify = new NotifyTableLongTimeNoOperate();
         notify.langId = langId;
         return notify;
     }
 
+    /**
+     * 构建桌面退出房间通知
+     */
     public static NotifyTableExitRoom buildNotifyTableExitRoom(int langId) {
         NotifyTableExitRoom notify = new NotifyTableExitRoom();
         notify.langId = langId;
         return notify;
+    }
+
+    /**
+     * 构建房间相关配置通知
+     */
+    public static NotifyTableRoomConf buildNotifyTableRoomConf() {
+        GlobalConfigCfg globalConfigCfg =
+            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE);
+        // 推送房间配置
+        NotifyTableRoomConf notifyTableRoomConf = new NotifyTableRoomConf();
+        notifyTableRoomConf.maxChipOnTable = globalConfigCfg.getIntValue();
+        return notifyTableRoomConf;
     }
 }

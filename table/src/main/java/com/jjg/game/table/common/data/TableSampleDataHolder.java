@@ -1,6 +1,5 @@
 package com.jjg.game.table.common.data;
 
-import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.BetRobotCfg;
@@ -24,8 +23,8 @@ public class TableSampleDataHolder implements ConfigExcelChangeListener {
 
     @Override
     public void initSampleCallbackCollector() {
-        addSampleFileObserveWithCallBack(ChessRobotCfg.EXCEL_NAME, TableSampleDataHolder::cacheBetActionData)
-            .addSampleFileObserveWithCallBack(BetRobotCfg.EXCEL_NAME, TableSampleDataHolder::cacheBetActionData);
+        addInitSampleFileObserveWithCallBack(ChessRobotCfg.EXCEL_NAME, TableSampleDataHolder::cacheBetActionData)
+            .addInitSampleFileObserveWithCallBack(BetRobotCfg.EXCEL_NAME, TableSampleDataHolder::cacheBetActionData);
     }
 
     public static void cacheBetActionData() {

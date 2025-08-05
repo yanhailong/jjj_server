@@ -30,6 +30,8 @@ import com.jjg.game.table.baccarat.message.req.ReqExitRoomInGame;
 import com.jjg.game.table.baccarat.message.req.ReqJoinRoomInGame;
 import com.jjg.game.table.baccarat.message.resp.*;
 import com.jjg.game.table.common.data.TableGameDataVo;
+import com.jjg.game.table.common.message.TableMessageBuilder;
+import com.jjg.game.table.common.message.res.NotifyTableRoomConf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,6 +86,9 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         TableGameDataVo tableGameDataVo = (TableGameDataVo) gameController.getGameDataVo();
         // 更新操作时间
         tableGameDataVo.updatePlayerOperateTime(playerController.playerId());
+        // 推送房间配置
+        NotifyTableRoomConf notifyTableRoomConf = TableMessageBuilder.buildNotifyTableRoomConf();
+        playerController.send(notifyTableRoomConf);
     }
 
     @Command(BaccaratMessageConstant.ReqMsgBean.REQ_BACCARAT_TABLE_SUMMARY_LIST)

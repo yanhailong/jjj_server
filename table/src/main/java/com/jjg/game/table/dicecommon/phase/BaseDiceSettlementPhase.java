@@ -42,7 +42,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
                 continue;
             }
             // 给玩家进行结算
-            long playerWin = calcSettlementGold(winPosWeightCfgs, playerBetInfo);
+            long playerWin = calcSettlementGold(gamePlayer, winPosWeightCfgs, playerBetInfo);
             PlayerChangedGold playerChangedGold = new PlayerChangedGold();
             playerChangedGold.playerId = playerId;
             playerChangedGold.playerWinGold = playerWin;
@@ -68,7 +68,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
      * 计算结算金币
      */
     protected long calcSettlementGold(
-        List<WinPosWeightCfg> winPosWeightCfgs, Map<Integer, List<Integer>> playerBetInfo) {
+        GamePlayer gamePlayer, List<WinPosWeightCfg> winPosWeightCfgs, Map<Integer, List<Integer>> playerBetInfo) {
         long playerWin = 0;
         for (WinPosWeightCfg winPosWeightCfg : winPosWeightCfgs) {
             List<Integer> betAreas = winPosWeightCfg.getBetArea();
@@ -77,7 +77,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
                     List<Integer> playerBetGoldList = playerBetInfo.get(betAreaIdx);
                     // 玩家总押注
                     long playerBetGoldTotal = playerBetGoldList.stream().mapToInt(Integer::intValue).sum();
-                    playerWin += calcGold(winPosWeightCfg, playerBetGoldTotal);
+                    playerWin += calcGold(gamePlayer, winPosWeightCfg, playerBetGoldTotal);
                 }
             }
         }

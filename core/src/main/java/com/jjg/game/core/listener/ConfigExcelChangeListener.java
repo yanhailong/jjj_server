@@ -5,14 +5,16 @@ import com.jjg.game.common.baselogic.DefaultCallback;
 import java.util.*;
 
 /**
+ * 注意：初始化回调收集器和文件变化时的回调收集器是分开的
+ *
  * @author 11
  * @date 2025/6/16 10:34
  */
 public interface ConfigExcelChangeListener {
 
-    //初始化回调
-    Map<String, List<DefaultCallback>> CALLBACK_COLLECTOR = new HashMap<>();
-    //文件变化回调
+    // 初始化回调
+    Map<String, List<DefaultCallback>> INIT_CALLBACK_COLLECTOR = new HashMap<>();
+    // 文件变化回调
     Map<String, List<DefaultCallback>> CHANGE_CALLBACK_COLLECTOR = new HashMap<>();
 
     /**
@@ -41,10 +43,10 @@ public interface ConfigExcelChangeListener {
     }
 
     /**
-     * 获取配置表监听的回调收集器
+     * 获取配置表初始化监听的回调收集器
      */
-    static Map<String, List<DefaultCallback>> getCallbackCollector() {
-        return CALLBACK_COLLECTOR;
+    static Map<String, List<DefaultCallback>> getInitCallbackCollector() {
+        return INIT_CALLBACK_COLLECTOR;
     }
 
     /**
@@ -55,14 +57,19 @@ public interface ConfigExcelChangeListener {
     }
 
     /**
-     * 添加配置表监听的回调收集器
+     * 添加配置表初始化时的回调收集器，添加的配置表监听仅在初始化时调用
      */
-    default ConfigExcelChangeListener addSampleFileObserveWithCallBack(String sampleName, DefaultCallback callback) {
-        CALLBACK_COLLECTOR.computeIfAbsent(sampleName, k -> new ArrayList<>()).add(callback);
+    default ConfigExcelChangeListener addInitSampleFileObserveWithCallBack(
+        String sampleName, DefaultCallback callback) {
+        INIT_CALLBACK_COLLECTOR.computeIfAbsent(sampleName, k -> new ArrayList<>()).add(callback);
         return this;
     }
 
-    default ConfigExcelChangeListener addChangeSampleFileObserveWithCallBack(String sampleName, DefaultCallback callback) {
+    /**
+     * 添加配置表变化时的回调收集器，添加的配置表监听仅在变化时调用
+     */
+    default ConfigExcelChangeListener addChangeSampleFileObserveWithCallBack(
+        String sampleName, DefaultCallback callback) {
         CHANGE_CALLBACK_COLLECTOR.computeIfAbsent(sampleName, k -> new ArrayList<>()).add(callback);
         return this;
     }

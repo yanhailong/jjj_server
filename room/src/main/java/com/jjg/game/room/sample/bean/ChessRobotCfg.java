@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName RobotAction_Chess.xlsx
  * @sheetName ChessRobot
  * @author Auto.Generator
- * @date 2025年08月04日 10:01:24
+ * @date 2025年08月05日 10:45:14
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class ChessRobotCfg extends RobotActionCfg {

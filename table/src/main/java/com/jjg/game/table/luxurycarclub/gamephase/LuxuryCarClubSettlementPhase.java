@@ -55,7 +55,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             // 玩家总押注
             long playerBetTotal = playerBetArea.stream().mapToInt(Integer::intValue).sum();
             // 给玩家进行结算
-            long playerWin = calcGold(winPosWeightCfg, playerBetTotal);
+            long playerWin = calcGold(gamePlayer, winPosWeightCfg, playerBetTotal);
             PlayerChangedGold playerChangedGold = new PlayerChangedGold();
             playerChangedGold.playerId = playerId;
             playerChangedGold.playerWinGold = playerWin;
