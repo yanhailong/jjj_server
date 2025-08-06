@@ -1,9 +1,10 @@
 package com.jjg.game.poker.game.blackjack.gamephase;
 
-import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.gamephase.BaseStartGamePhase;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
 /**
  * @author lm
@@ -12,7 +13,7 @@ import com.jjg.game.poker.game.common.gamephase.BaseStartGamePhase;
 public class BlackJackStartGamePhase extends BaseStartGamePhase<BlackJackGameDataVo> {
 
 
-    public BlackJackStartGamePhase(BlackJackGameController gameController) {
+    public BlackJackStartGamePhase(AbstractPhaseGameController<Room_ChessCfg, BlackJackGameDataVo> gameController) {
         super(gameController);
     }
 

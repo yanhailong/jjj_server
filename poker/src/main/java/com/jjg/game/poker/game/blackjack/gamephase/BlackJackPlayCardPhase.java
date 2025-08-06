@@ -9,6 +9,7 @@ import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.gamephase.BasePlayCardPhase;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
@@ -22,7 +23,7 @@ import java.util.Map;
  * @date 2025/7/28 14:48
  */
 public class BlackJackPlayCardPhase extends BasePlayCardPhase<BlackJackGameDataVo> {
-    public BlackJackPlayCardPhase(BlackJackGameController gameController) {
+    public BlackJackPlayCardPhase(AbstractPhaseGameController<Room_ChessCfg, BlackJackGameDataVo> gameController) {
         super(gameController);
     }
 
