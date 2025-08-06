@@ -1,7 +1,12 @@
 package com.jjg.game.table.common.gamephase;
 
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.pb.AbstractMessage;
+import com.jjg.game.room.base.AbstractMsgDealRoomPhase;
 import com.jjg.game.room.base.AbstractRoomPhase;
+import com.jjg.game.room.base.IPhaseMsgAdapter;
+import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
@@ -11,6 +16,8 @@ import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.TableMessageBuilder;
+import com.jjg.game.table.common.message.TableRoomMessageConstant;
+import com.jjg.game.table.common.message.req.ReqBet;
 import com.jjg.game.table.common.message.res.NotifyRoomReadyWait;
 
 /**
@@ -18,7 +25,7 @@ import com.jjg.game.table.common.message.res.NotifyRoomReadyWait;
  *
  * @author 2CL
  */
-public class TableWaitReadyPhase<T extends TableGameDataVo> extends AbstractRoomPhase<Room_BetCfg, T> {
+public class TableWaitReadyPhase<T extends TableGameDataVo> extends AbstractMsgDealRoomPhase<Room_BetCfg, T, ReqBet> {
 
     public TableWaitReadyPhase(AbstractGameController<Room_BetCfg, T> gameController) {
         super(gameController);
@@ -91,5 +98,19 @@ public class TableWaitReadyPhase<T extends TableGameDataVo> extends AbstractRoom
     @Override
     public int hashCode() {
         return super.hashCode();
+    }
+
+    @Override
+    public int reqMsgId() {
+        return TableRoomMessageConstant.ReqMsgBean.REQ_BET;
+    }
+
+    @Override
+    public void dealMsg(PlayerController playerController, ReqBet message) {
+        // 等待阶段也可以进行押注
+        IRoomPhase roomPhase = gameController.findRoomPhase(EGamePhase.BET);
+        if (roomPhase instanceof IPhaseMsgAdapter<?> msgAdapter) {
+            ((IPhaseMsgAdapter<ReqBet>) msgAdapter).dealMsg(playerController, message);
+        }
     }
 }

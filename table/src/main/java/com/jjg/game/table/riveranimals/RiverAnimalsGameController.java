@@ -66,9 +66,4 @@ public class RiverAnimalsGameController extends BaseTableGameController<RiverAni
     public EGameType gameControlType() {
         return EGameType.RIVER_ANIMALS;
     }
-
-    @Override
-    public void initial() {
-
-    }
 }

@@ -67,8 +67,4 @@ public class DiceTreasureDiceGameController extends BaseTableGameController<Dice
         return EGameType.DICE_TREASURE;
     }
 
-    @Override
-    public void initial() {
-
-    }
 }

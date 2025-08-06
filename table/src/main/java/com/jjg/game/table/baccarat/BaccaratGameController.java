@@ -96,11 +96,4 @@ public class BaccaratGameController extends BaseTableGameController<BaccaratGame
     protected void phaseRunOver() {
 
     }
-
-    @Override
-    public void initial() {
-        // TODO 初始化机器人
-        // 初始化启动流程
-
-    }
 }

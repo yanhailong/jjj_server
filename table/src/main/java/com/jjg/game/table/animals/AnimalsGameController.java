@@ -66,9 +66,4 @@ public class AnimalsGameController extends BaseTableGameController<AnimalsGameDa
     public EGameType gameControlType() {
         return EGameType.BIRDS_ANIMAL;
     }
-
-    @Override
-    public void initial() {
-
-    }
 }

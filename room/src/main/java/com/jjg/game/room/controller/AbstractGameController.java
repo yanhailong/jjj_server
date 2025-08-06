@@ -7,10 +7,12 @@ import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.AbstractMessage;
+import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.utils.ReflectionTool;
+import com.jjg.game.room.base.BaseGameTickTask;
+import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
 import com.jjg.game.room.base.IPhaseMsgAdapter;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
@@ -53,6 +55,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     private Iterator<IRoomPhase> gamePhaseIterator;
     // 游戏是否开始
     private boolean gameStarted = false;
+    // tick任务运行时间记录
+    private final Map<ETickTaskType, Long> tickTaskTimeRecMap = new HashMap<>();
+    // tick任务 tick间隔，执行回调 需要放在tick中检查的必须是周期运行的任务
+    protected Map<ETickTaskType, BaseGameTickTask> tickTaskMap = new HashMap<>();
 
     public AbstractGameController(AbstractRoomController<RC, ? extends Room> roomController) {
         this.roomController = roomController;
@@ -109,7 +115,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                         log.error("运行阶段：{} 结束时发生异常！msg: {}",
                             currentGamePhase.getGamePhase().getPhaseName(), ex.getMessage(), ex);
                     }
-                    // 如果有绑定的下一个阶段可以切换到
+                    // 如果有绑定的下一个阶段可以切换，具体的绑定逻辑需要自行判断是否需要跳阶段
                     IRoomPhase bindNextPhase = currentGamePhase.bindNextPhase();
                     if (bindNextPhase != null) {
                         Iterator<IRoomPhase> latestGamePhase = gamePhaseIterator;
@@ -184,7 +190,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      */
     protected GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
         // 将玩家数据复制到玩家游戏数据中
-        Player player = playerController.getPlayer();
+        CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
+        Player player = playerService.get(playerController.playerId());
         String playerJson = JSON.toJSONString(player);
         GamePlayer gamePlayer;
         if (player instanceof RobotPlayer) {
@@ -246,11 +253,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         }
         for (IPhaseMsgAdapter<M> phaseMsgAdapter : phaseMsgAdapters) {
             if (phaseMsgAdapter.reqMsgId() == msgId) {
-                // 如果请求的消息不在此阶段，则直接报错
-                if (currentGamePhase.getGamePhase() != phaseMsgAdapter.getGamePhase()) {
-                    log.error("玩家ID: {} 房间不处于阶段：{} 却还在请求,房间当前阶段: {}",
-                        playerController.playerId(), phaseMsgAdapter.getGamePhase(), currentGamePhase.getGamePhase());
-                } else {
+                // 如果请求在此阶段，直接处理
+                if (currentGamePhase.getGamePhase() == phaseMsgAdapter.getGamePhase()) {
                     Set<Class<AbstractMessage>> actualTypes =
                         ReflectionTool.getClassSuperActualType(phaseMsgAdapter.getClass(), AbstractMessage.class);
                     if (actualTypes.isEmpty()) {
@@ -264,10 +268,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                         }
                     }
                     if (mClass == null) {
-                        EGameType eGameType = EGameType.getGameByTypeId(gameDataVo.getRoomCfg().getGameID());
                         // 消息没有继承AbstractMessage类
-                        log.error("游戏类型：{} 游戏阶段：{} 消息ID: {} 没有实现AbstractMessage类",
-                            eGameType.getGameDesc(),
+                        log.error("{} 游戏阶段：{} 消息ID: {} 对应的消息类没有继承AbstractMessage类",
+                            gameDataVo.roomLogInfo(),
                             currentGamePhase.getGamePhase().getPhaseName(),
                             Integer.toHexString(msgId).toUpperCase());
                         return;
@@ -276,6 +279,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                     log.debug("处理房间：{} 消息：{}", gameDataVo.getRoomId(), JSON.toJSON(reqMessage));
                     // 具体的处理逻辑方法
                     phaseMsgAdapter.dealMsg(playerController, reqMessage);
+                    break;
                 }
             }
         }
@@ -343,7 +347,20 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
 
     @Override
     public void timeTick() {
-        // 每100ms调用一次 定时回存房间数据
+        long currentTime = System.currentTimeMillis();
+        for (Map.Entry<ETickTaskType, BaseGameTickTask> entry : tickTaskMap.entrySet()) {
+            if (!tickTaskTimeRecMap.containsKey(entry.getKey())) {
+                tickTaskTimeRecMap.put(entry.getKey(), currentTime);
+            }
+            long latestRunTime = tickTaskTimeRecMap.get(entry.getKey());
+            if (latestRunTime >= currentTime) {
+                continue;
+            }
+            // 更新tick任务下次触发时间
+            tickTaskTimeRecMap.put(entry.getKey(), currentTime + entry.getValue().getTaskInterval());
+            // 运行tick任务
+            entry.getValue().run(currentTime);
+        }
     }
 
     @Override
@@ -411,6 +428,18 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             return null;
         }
         return currentGamePhase.getGamePhase();
+    }
+
+    /**
+     * 通过阶段类型获取房间阶段，如果需要
+     */
+    public IRoomPhase findRoomPhase(EGamePhase eGamePhase) {
+        for (IRoomPhase gamePhase : gamePhases) {
+            if (gamePhase.getGamePhase() == eGamePhase) {
+                return gamePhase;
+            }
+        }
+        return null;
     }
 
     /**

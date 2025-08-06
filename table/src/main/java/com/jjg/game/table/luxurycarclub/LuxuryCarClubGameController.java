@@ -73,11 +73,6 @@ public class LuxuryCarClubGameController extends BaseTableGameController<LuxuryC
         return EGameType.LUXURY_CAR_CLUB;
     }
 
-    @Override
-    public void initial() {
-
-    }
-
     @GameGm(cmd = "settlement_simulate")
     public CommonResult<Map<Integer, Integer>> simulateSettlement(String[] gmOrders) {
         if (gmOrders.length == 0) {

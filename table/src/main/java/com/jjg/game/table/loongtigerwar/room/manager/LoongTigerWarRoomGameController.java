@@ -119,11 +119,4 @@ public class LoongTigerWarRoomGameController extends BaseTableGameController<Loo
             RoomMessageBuilder.newBuilder().addPlayerId(playerController.playerId()).setData(notifyLoongTigerWarInfo));
     }
 
-
-    @Override
-    public void initial() {
-
-
-    }
-
 }

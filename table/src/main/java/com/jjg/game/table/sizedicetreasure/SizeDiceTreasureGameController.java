@@ -65,9 +65,4 @@ public class SizeDiceTreasureGameController extends BaseTableGameController<Size
     public EGameType gameControlType() {
         return EGameType.SIZE_DICE_TREASURE;
     }
-
-    @Override
-    public void initial() {
-
-    }
 }
