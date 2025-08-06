@@ -65,6 +65,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
             Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
             // 玩家未下注
             if (playerBetInfo == null || playerBetInfo.isEmpty()) {
+                // 添加记录
                 continue;
             }
             // 给玩家进行结算
@@ -73,7 +74,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
             playerChangedGold.playerId = playerId;
             playerChangedGold.playerWinGold = settlementData.getBetWin();
             // 添加记录
-            entry.getValue().getTableGameData().addBetRecord(settlementData.getBetTotal());
+            entry.getValue().getTableGameData().addBetRecord(settlementData.getTotalWin());
             // TODO 给玩家加金币
             gamePlayer.setGold(gamePlayer.getGold() + settlementData.getTotalWin());
             playerChangedGold.playerCurGold = gamePlayer.getGold();

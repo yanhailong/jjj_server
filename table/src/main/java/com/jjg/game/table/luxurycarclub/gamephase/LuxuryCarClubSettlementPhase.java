@@ -49,6 +49,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             GamePlayer gamePlayer = entry.getValue();
             Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
             if (playerBetInfo == null || !playerBetInfo.containsKey(betAreaId)) {
+                // 添加记录
                 continue;
             }
             List<Integer> playerBetArea = playerBetInfo.get(betAreaId);
@@ -60,7 +61,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             playerChangedGold.playerId = playerId;
             playerChangedGold.playerWinGold = playerSettlementData.getBetWin();
             // 添加记录
-            entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getBetTotal());
+            entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
             // TODO 给玩家加金币
             gamePlayer.setGold(gamePlayer.getGold() + playerSettlementData.getTotalWin());
             playerChangedGold.playerCurGold = gamePlayer.getGold();

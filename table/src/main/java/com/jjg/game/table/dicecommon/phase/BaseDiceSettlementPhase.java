@@ -51,7 +51,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             gamePlayer.setGold(gamePlayer.getGold() + playerSettlementData.getTotalWin());
             playerChangedGold.playerCurGold = gamePlayer.getGold();
             // 添加记录
-            entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getBetTotal());
+            entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
         }
         // 场上玩家金币变化
         diceSettlementInfo.playerChangedGolds = playerChangedGolds;

@@ -77,7 +77,6 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         NotifyBaccaratSettlementInfo baccaratTableInfo =
             BaccaratMessageBuilder.buildNotifySettlementMessage(
                 gameDataVo, playerChangedGolds, baccaratSettlementInfo);
-        baccaratTableInfo.playerChangedGolds = playerChangedGolds;
         // 将结算信息写入到场上，方便中途加入的玩家读取
         gameDataVo.setBaccaratSettlementInfo(baccaratTableInfo);
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
@@ -91,6 +90,9 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             if (changedGold != null && changedGold.playerWinGold > 0) {
                 // 给玩家添加历史记录
                 entry.getValue().getTableGameData().addBetRecord(changedGold.playerWinGold);
+            } else if (gameDataVo.getPlayerBetInfo().containsKey(entry.getKey())) {
+                // 玩家有下注但是没有赢奖
+                entry.getValue().getTableGameData().addBetRecord(0);
             }
             // 向每个玩家发送通知消息
             broadcastBuilderToRoom(
