@@ -8,6 +8,7 @@ import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
 /**
@@ -17,7 +18,7 @@ import com.jjg.game.room.sample.bean.Room_ChessCfg;
  * @date 2025/7/26 15:01
  */
 public abstract class BaseStartGamePhase<T extends BasePokerGameDataVo> extends BasePokerPhase<T> {
-    public BaseStartGamePhase(AbstractGameController<Room_ChessCfg, T> gameController) {
+    public BaseStartGamePhase(AbstractPhaseGameController<Room_ChessCfg, T> gameController) {
         super(gameController);
     }
 

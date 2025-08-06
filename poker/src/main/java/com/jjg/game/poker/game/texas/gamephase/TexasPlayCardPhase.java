@@ -13,6 +13,7 @@ import com.jjg.game.poker.game.texas.message.reps.NotifyTexasPreFlopRoundInfo;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
@@ -26,7 +27,7 @@ import java.util.stream.Collectors;
  */
 public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
 
-    public TexasPlayCardPhase(AbstractGameController<Room_ChessCfg, TexasGameDataVo> gameController) {
+    public TexasPlayCardPhase(AbstractPhaseGameController<Room_ChessCfg, TexasGameDataVo> gameController) {
         super(gameController);
     }
 

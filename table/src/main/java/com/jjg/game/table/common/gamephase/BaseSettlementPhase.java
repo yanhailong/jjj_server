@@ -3,6 +3,7 @@ package com.jjg.game.table.common.gamephase;
 import com.jjg.game.room.base.AbstractRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
@@ -18,7 +19,7 @@ import java.util.List;
  */
 public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends AbstractRoomPhase<Room_BetCfg, D> {
 
-    public BaseSettlementPhase(AbstractGameController<Room_BetCfg, D> gameController) {
+    public BaseSettlementPhase(AbstractPhaseGameController<Room_BetCfg, D> gameController) {
         super(gameController);
     }
 

@@ -1,6 +1,7 @@
 package com.jjg.game.table.sizedicetreasure.gamephase;
 
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.gamephase.TableWaitReadyPhase;
 import com.jjg.game.table.sizedicetreasure.data.SizeDiceTreasureGameDataVo;
@@ -12,7 +13,7 @@ import com.jjg.game.table.sizedicetreasure.data.SizeDiceTreasureGameDataVo;
  */
 public class SizeDiceTreasureTableWaitReadyPhase extends TableWaitReadyPhase<SizeDiceTreasureGameDataVo> {
 
-    public SizeDiceTreasureTableWaitReadyPhase(AbstractGameController<Room_BetCfg, SizeDiceTreasureGameDataVo> gameController) {
+    public SizeDiceTreasureTableWaitReadyPhase(AbstractPhaseGameController<Room_BetCfg, SizeDiceTreasureGameDataVo> gameController) {
         super(gameController);
     }
 

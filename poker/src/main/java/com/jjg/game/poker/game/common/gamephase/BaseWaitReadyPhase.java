@@ -7,6 +7,7 @@ import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.room.base.AbstractRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
@@ -21,7 +22,7 @@ import java.util.Map;
 public class BaseWaitReadyPhase<T extends BasePokerGameDataVo> extends BasePokerPhase<T> {
 
 
-    public BaseWaitReadyPhase(AbstractGameController<Room_ChessCfg, T> gameController) {
+    public BaseWaitReadyPhase(AbstractPhaseGameController<Room_ChessCfg, T> gameController) {
         super(gameController);
     }
 

@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.BitUtils;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.betsample.sample.GameDataManager;
@@ -30,7 +31,7 @@ import java.util.stream.Collectors;
  */
 public class VietnamDiceSettlementPhase extends BaseDiceSettlementPhase<VietnamDiceGameDataVo> {
 
-    public VietnamDiceSettlementPhase(AbstractGameController<Room_BetCfg, VietnamDiceGameDataVo> gameController) {
+    public VietnamDiceSettlementPhase(AbstractPhaseGameController<Room_BetCfg, VietnamDiceGameDataVo> gameController) {
         super(gameController);
     }
 

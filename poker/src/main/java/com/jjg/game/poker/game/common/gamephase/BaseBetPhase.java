@@ -5,6 +5,7 @@ import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
 /**
@@ -13,7 +14,7 @@ import com.jjg.game.room.sample.bean.Room_ChessCfg;
  */
 public abstract class BaseBetPhase<T extends BasePokerGameDataVo> extends BasePokerPhase<T> {
 
-    public BaseBetPhase(AbstractGameController<Room_ChessCfg, T> gameController) {
+    public BaseBetPhase(AbstractPhaseGameController<Room_ChessCfg, T> gameController) {
         super(gameController);
     }
 

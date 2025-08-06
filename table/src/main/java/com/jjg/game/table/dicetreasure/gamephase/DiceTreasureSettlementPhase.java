@@ -3,6 +3,7 @@ package com.jjg.game.table.dicetreasure.gamephase;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
@@ -33,7 +34,7 @@ import java.util.stream.Collectors;
  */
 public class DiceTreasureSettlementPhase extends BaseDiceSettlementPhase<DiceTreasureGameDataVo> {
 
-    public DiceTreasureSettlementPhase(AbstractGameController<Room_BetCfg, DiceTreasureGameDataVo> gameController) {
+    public DiceTreasureSettlementPhase(AbstractPhaseGameController<Room_BetCfg, DiceTreasureGameDataVo> gameController) {
         super(gameController);
     }
 

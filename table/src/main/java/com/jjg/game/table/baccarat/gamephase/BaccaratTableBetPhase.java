@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.bean.BetRobotCfg;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
@@ -33,7 +34,7 @@ import java.util.Map;
  */
 public class BaccaratTableBetPhase extends BaseTableBetPhase<BaccaratGameDataVo> {
 
-    public BaccaratTableBetPhase(AbstractGameController<Room_BetCfg, BaccaratGameDataVo> gameController) {
+    public BaccaratTableBetPhase(AbstractPhaseGameController<Room_BetCfg, BaccaratGameDataVo> gameController) {
         super(gameController);
     }
 

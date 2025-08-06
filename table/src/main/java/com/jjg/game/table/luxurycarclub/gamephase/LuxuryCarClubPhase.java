@@ -1,6 +1,7 @@
 package com.jjg.game.table.luxurycarclub.gamephase;
 
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
 import com.jjg.game.table.luxurycarclub.data.LuxuryCarClubGameDataVo;
@@ -12,7 +13,7 @@ import com.jjg.game.table.luxurycarclub.data.LuxuryCarClubGameDataVo;
  */
 public class LuxuryCarClubPhase extends BaseTableBetPhase<LuxuryCarClubGameDataVo> {
 
-    public LuxuryCarClubPhase(AbstractGameController<Room_BetCfg, LuxuryCarClubGameDataVo> gameController) {
+    public LuxuryCarClubPhase(AbstractPhaseGameController<Room_BetCfg, LuxuryCarClubGameDataVo> gameController) {
         super(gameController);
     }
 

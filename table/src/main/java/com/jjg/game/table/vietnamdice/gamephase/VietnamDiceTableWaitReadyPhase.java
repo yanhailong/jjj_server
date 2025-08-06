@@ -1,6 +1,7 @@
 package com.jjg.game.table.vietnamdice.gamephase;
 
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.gamephase.TableWaitReadyPhase;
 import com.jjg.game.table.vietnamdice.data.VietnamDiceGameDataVo;
@@ -12,7 +13,7 @@ import com.jjg.game.table.vietnamdice.data.VietnamDiceGameDataVo;
  */
 public class VietnamDiceTableWaitReadyPhase extends TableWaitReadyPhase<VietnamDiceGameDataVo> {
 
-    public VietnamDiceTableWaitReadyPhase(AbstractGameController<Room_BetCfg, VietnamDiceGameDataVo> gameController) {
+    public VietnamDiceTableWaitReadyPhase(AbstractPhaseGameController<Room_BetCfg, VietnamDiceGameDataVo> gameController) {
         super(gameController);
     }
 

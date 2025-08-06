@@ -9,6 +9,7 @@ import com.jjg.game.core.exception.GameSampleException;
 import com.jjg.game.room.base.AbstractMsgDealRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.bean.BetRobotCfg;
@@ -40,7 +41,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
 
     private static final Logger log = LoggerFactory.getLogger(BaseTableBetPhase.class);
 
-    public BaseTableBetPhase(AbstractGameController<Room_BetCfg, D> gameController) {
+    public BaseTableBetPhase(AbstractPhaseGameController<Room_BetCfg, D> gameController) {
         super(gameController);
     }
 

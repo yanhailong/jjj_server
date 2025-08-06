@@ -1,10 +1,9 @@
 package com.jjg.game.room.message;
 
-import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.manager.RoomManager;
@@ -46,7 +45,9 @@ public abstract class BaseRoomMessageDispatcher {
             log.warn("玩家当前游戏控制器为空，却请求消息：{}", cmd);
             return;
         }
-        // 处理游戏逻辑
-        gameController.dispatchGamePhaseMsg(playerController, pfMessage);
+        if (gameController instanceof AbstractPhaseGameController<?, ?> phaseGameController) {
+            // 处理游戏逻辑
+            phaseGameController.dispatchGamePhaseMsg(playerController, pfMessage);
+        }
     }
 }

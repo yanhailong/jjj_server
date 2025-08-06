@@ -14,6 +14,7 @@ import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.PokerPlayerGameData;
@@ -33,7 +34,7 @@ import static com.jjg.game.room.timer.RoomEventType.ROOM_PHASE_RUN_EVENT;
  * @author lm
  * @date 2025/7/26 10:06
  */
-public abstract class BasePokerGameController<T extends BasePokerGameDataVo> extends AbstractGameController<Room_ChessCfg, T> {
+public abstract class BasePokerGameController<T extends BasePokerGameDataVo> extends AbstractPhaseGameController<Room_ChessCfg, T> {
 
     private TimerEvent<IProcessorHandler> currentGameTimerEvent;
 

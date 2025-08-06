@@ -1,6 +1,7 @@
 package com.jjg.game.table.dicetreasure.gamephase;
 
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
 import com.jjg.game.table.dicetreasure.data.DiceTreasureGameDataVo;
@@ -12,7 +13,7 @@ import com.jjg.game.table.dicetreasure.data.DiceTreasureGameDataVo;
  */
 public class DiceTreasureBetPhase extends BaseTableBetPhase<DiceTreasureGameDataVo> {
 
-    public DiceTreasureBetPhase(AbstractGameController<Room_BetCfg, DiceTreasureGameDataVo> gameController) {
+    public DiceTreasureBetPhase(AbstractPhaseGameController<Room_BetCfg, DiceTreasureGameDataVo> gameController) {
         super(gameController);
     }
 

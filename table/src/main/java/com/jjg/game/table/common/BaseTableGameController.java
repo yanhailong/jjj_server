@@ -8,6 +8,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -34,7 +35,7 @@ import java.util.Map;
  * @author 2CL
  */
 public abstract class BaseTableGameController<G extends TableGameDataVo> extends
-    AbstractGameController<Room_BetCfg, G> {
+    AbstractPhaseGameController<Room_BetCfg, G> {
 
     public BaseTableGameController(AbstractRoomController<Room_BetCfg, ? extends Room> roomController) {
         super(roomController);

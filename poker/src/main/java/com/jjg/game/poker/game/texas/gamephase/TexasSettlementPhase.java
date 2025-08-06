@@ -29,6 +29,7 @@ import com.jjg.game.poker.game.texas.util.HandResult;
 import com.jjg.game.poker.game.texas.util.PlayerHand;
 import com.jjg.game.poker.game.texas.util.PokerHandEvaluator;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
@@ -45,7 +46,7 @@ import static com.jjg.game.poker.game.texas.constant.TexasConstant.Common.*;
 public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
 
 
-    public TexasSettlementPhase(AbstractGameController<Room_ChessCfg, TexasGameDataVo> gameController) {
+    public TexasSettlementPhase(AbstractPhaseGameController<Room_ChessCfg, TexasGameDataVo> gameController) {
         super(gameController);
     }
 

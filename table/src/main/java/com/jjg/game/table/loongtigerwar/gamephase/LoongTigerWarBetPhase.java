@@ -1,6 +1,7 @@
 package com.jjg.game.table.loongtigerwar.gamephase;
 
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
 import com.jjg.game.table.loongtigerwar.room.data.LoongTigerWarGameDataVo;
@@ -12,7 +13,7 @@ import com.jjg.game.table.loongtigerwar.room.data.LoongTigerWarGameDataVo;
  */
 public class LoongTigerWarBetPhase extends BaseTableBetPhase<LoongTigerWarGameDataVo> {
 
-    public LoongTigerWarBetPhase(AbstractGameController<Room_BetCfg, LoongTigerWarGameDataVo> gameController) {
+    public LoongTigerWarBetPhase(AbstractPhaseGameController<Room_BetCfg, LoongTigerWarGameDataVo> gameController) {
         super(gameController);
     }
 }

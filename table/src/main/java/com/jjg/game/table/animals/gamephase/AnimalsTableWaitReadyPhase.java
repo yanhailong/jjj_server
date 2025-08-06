@@ -1,6 +1,7 @@
 package com.jjg.game.table.animals.gamephase;
 
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.animals.data.AnimalsGameDataVo;
 import com.jjg.game.table.common.gamephase.TableWaitReadyPhase;
@@ -12,7 +13,7 @@ import com.jjg.game.table.common.gamephase.TableWaitReadyPhase;
  */
 public class AnimalsTableWaitReadyPhase extends TableWaitReadyPhase<AnimalsGameDataVo> {
 
-    public AnimalsTableWaitReadyPhase(AbstractGameController<Room_BetCfg, AnimalsGameDataVo> gameController) {
+    public AnimalsTableWaitReadyPhase(AbstractPhaseGameController<Room_BetCfg, AnimalsGameDataVo> gameController) {
         super(gameController);
     }
 
