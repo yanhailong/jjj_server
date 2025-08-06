@@ -26,7 +26,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.jjg.game.room.timer.RoomEventType.PLAYER_EVENT;
+import static com.jjg.game.room.timer.RoomEventType.POKER_PLAYER_EVENT;
 import static com.jjg.game.room.timer.RoomEventType.ROOM_PHASE_RUN_EVENT;
 
 /**
@@ -75,7 +75,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     public void addGameTimeEvent(TimerEvent<IProcessorHandler> roomUpdateTimer, RoomEventType roomEventType) {
         RoomTimerEvent<IProcessorHandler, Room> timerEvent = new RoomTimerEvent<>(roomUpdateTimer, roomController.getRoom(), roomEventType);
         timerCenter.add(timerEvent);
-        if (PLAYER_EVENT == roomEventType) {
+        if (POKER_PLAYER_EVENT == roomEventType) {
             gameDataVo.setPlayerTimerEvent(timerEvent);
         }
     }
@@ -87,7 +87,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         if (Objects.nonNull(gameDataVo.getPlayerTimerEvent())) {
             removePlayerTimerEvent(gameDataVo.getPlayerTimerEvent());
         }
-        addGameTimeEvent(playerGameTimerEvent, PLAYER_EVENT);
+        addGameTimeEvent(playerGameTimerEvent, POKER_PLAYER_EVENT);
     }
 
     public void removePlayerTimerEvent(RoomTimerEvent<IProcessorHandler, Room> event) {
@@ -181,7 +181,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     }
 
     @Override
-    public CommonResult<Room> onPlayerLeaveRoom(PlayerController playerController) {
+    public  <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
         // 通知场上玩家离开
         RoomPlayer roomPlayer = getRoom().getRoomPlayers().get(playerController.playerId());
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());

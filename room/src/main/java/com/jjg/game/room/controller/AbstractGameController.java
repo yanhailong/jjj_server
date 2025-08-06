@@ -6,6 +6,7 @@ import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.AbstractMessage;
@@ -16,6 +17,7 @@ import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
 import com.jjg.game.room.base.IPhaseMsgAdapter;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -27,6 +29,7 @@ import com.jjg.game.room.timer.RoomTimerCenter;
 import com.jjg.game.room.timer.RoomTimerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -82,6 +85,21 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         gameStarted = true;
         // 开始
         autoRunGamePhase();
+    }
+
+    @Override
+    public void initial() {
+        // 玩家数据回存检查间隔时间
+        int playerSaveCheckInterval =
+            RandomUtils.randomMinMax(
+                RoomConstant.PLAYER_SAVE_CHECK_INTERVAL_MIN, RoomConstant.PLAYER_SAVE_CHECK_INTERVAL_MAX);
+        tickTaskMap.put(ETickTaskType.ROOM_PLAYER_SAVE_CHECK,
+            new BaseGameTickTask(playerSaveCheckInterval) {
+                @Override
+                public void run(long triggeredTimestamp) {
+                    checkAndSavePlayerData();
+                }
+            });
     }
 
     /**
@@ -328,13 +346,57 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     @Override
-    public CommonResult<Room> onPlayerLeaveRoom(PlayerController playerController) {
+    public <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
         GamePlayer gamePlayer = gameDataVo.getGamePlayerMap().get(playerController.playerId());
         // 玩家中途离开阶段时调用
         currentGamePhase.onPlayerHalfwayExitPhase(gamePlayer);
         // 从玩家列表中移除玩家数据，子类的gameDataVo有和玩家相关的临时数据需要自行删除
         gameDataVo.getGamePlayerMap().remove(playerController.playerId());
+        // 玩家退出时直接回存玩家数据，需要放在游戏离开逻辑最后
+        directlySavePlayerData(gamePlayer);
         return new CommonResult<>(Code.SUCCESS);
+    }
+
+    /**
+     * 回存玩家基础数据、在timeTick中调用
+     */
+    private void checkAndSavePlayerData() {
+        // TODO 还需要优化回存检查
+        // 真人玩家进行数据回存
+        gameDataVo.getGamePlayerMapExceptRobot().values().forEach(gamePlayer -> {
+            int randomTime =
+                RandomUtils.randomMinMax(RoomConstant.PLAYER_SAVE_DB_TIME_MIN, RoomConstant.PLAYER_SAVE_DB_TIME_MAX);
+            // 每个玩家添加随机回存time事件
+            addGameTimeEvent(
+                new TimerEvent<>(this, randomTime, () -> this.directlySavePlayerData(gamePlayer)),
+                RoomEventType.ROOM_SAVE_PLAYER_DATA);
+        });
+    }
+
+    /**
+     * 直接回存玩家数据
+     */
+    protected void directlySavePlayerData(GamePlayer gamePlayer) {
+        if (gamePlayer instanceof GameRobotPlayer) {
+            return;
+        }
+        Player player = roomController.getRoomManager().getPlayerService().get(gamePlayer.getId());
+        long playerUpdateTime = player.getUpdateTime();
+        // 如果游戏端的更新时间和数据库中的不一致，说明玩家数据在游戏外部进行了修改，需要判断使用哪一边的数据，暂时先打日志
+        if (gamePlayer.getUpdateTime() != playerUpdateTime) {
+            log.error("玩家游戏数据: {} 更新时间：{} 和数据库中数据的更新时间: {} 不一致",
+                gamePlayer.getId(), gamePlayer.getUpdateTime(), playerUpdateTime);
+        } else {
+            player = JSON.parseObject(JSON.toJSONString(gamePlayer), Player.class);
+            Player finalPlayer = player;
+            Player updatedPlayer =
+                roomController.getRoomManager().getPlayerService().doSave(player.getId(), (latestPlayer) -> {
+                    //进行值复制
+                    BeanUtils.copyProperties(latestPlayer, finalPlayer);
+                });
+            gamePlayer.setUpdateTime(updatedPlayer.getUpdateTime());
+            log.info("回存玩家: {} 游戏数据成功", finalPlayer.getId());
+        }
     }
 
     @Override

@@ -90,8 +90,8 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
         Object scene = playerController.getScene();
         if (scene instanceof AbstractRoomController<?, ?> abstractRoomController) {
             // 房间进入断线流程，
-            // TODO 考虑保存玩家的数据在内存中，如果有自动托管逻辑，可以使用LRU保存一定的玩家。如果没有需要判断玩家当前处于具体游戏的哪个阶段
-            //  ，是否在需要完成整局再退出房间
+            // TODO 考虑保存玩家的数据在内存中，如果有自动托管逻辑，可以使用LRU保存一定的玩家。
+            //  如果没有需要判断玩家当前处于具体游戏的哪个阶段，是否在需要完成整局再退出房间
             // abstractRoomController.playerOffline(playerController);
             // TODO 先让玩家直接退出，后续添加断线重连逻辑
             roomManager.exitRoom(playerController);

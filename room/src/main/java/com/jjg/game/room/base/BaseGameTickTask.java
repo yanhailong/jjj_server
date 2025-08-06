@@ -15,6 +15,8 @@ public abstract class BaseGameTickTask {
     public enum ETickTaskType {
         // 玩家在游戏中无操作检查
         PLAYER_NO_OPERATE_CHECK,
+        // 玩家数据回存检查
+        ROOM_PLAYER_SAVE_CHECK,
     }
 
     public BaseGameTickTask(int taskInterval) {

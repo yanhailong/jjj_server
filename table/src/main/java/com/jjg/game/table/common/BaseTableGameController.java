@@ -189,8 +189,8 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     }
 
     @Override
-    public CommonResult<Room> onPlayerLeaveRoom(PlayerController playerController) {
-        CommonResult<Room> leaveRes = super.onPlayerLeaveRoom(playerController);
+    public  <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
+        CommonResult<R> leaveRes = super.onPlayerLeaveRoom(playerController);
         // 场上玩家重新排序
         resortPlayerOnTable();
         // 通知场上玩家离开

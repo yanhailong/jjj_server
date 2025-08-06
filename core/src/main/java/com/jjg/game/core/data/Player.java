@@ -38,6 +38,8 @@ public class Player {
     private int deviceType;
     //创建时间
     private int createTime;
+    //玩家数据更新时间
+    private long updateTime;
 
 
     public long getId() {
@@ -145,6 +147,14 @@ public class Player {
 
     public void setCreateTime(int createTime) {
         this.createTime = createTime;
+    }
+
+    public long getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(long updateTime) {
+        this.updateTime = updateTime;
     }
 
     @Override

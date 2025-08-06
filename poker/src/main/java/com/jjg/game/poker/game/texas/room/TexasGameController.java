@@ -555,11 +555,6 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         return pots;
     }
 
-    @Override
-    public void initial() {
-
-    }
-
     /**
      * 请求亮牌
      */

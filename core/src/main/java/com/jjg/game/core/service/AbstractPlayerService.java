@@ -53,7 +53,7 @@ public class AbstractPlayerService {
                     if (!(boolean) cbk.updateDataWithRes(player)) {
                         break;
                     }
-
+                    player.setUpdateTime(System.currentTimeMillis());
                     redisTemplate.opsForHash().put(tableName, playerId, player);
                     return player;
                 } catch (Exception e) {
@@ -86,6 +86,7 @@ public class AbstractPlayerService {
                     }
                     //如果执行失败
                     cbk.updateData(player);
+                    player.setUpdateTime(System.currentTimeMillis());
                     redisTemplate.opsForHash().put(tableName, playerId, player);
                     return player;
                 } catch (Exception e) {

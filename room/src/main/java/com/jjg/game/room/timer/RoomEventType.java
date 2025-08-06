@@ -9,10 +9,10 @@ public enum RoomEventType {
     // 房间阶段运行事件
     ROOM_PHASE_RUN_EVENT("房间阶段运行事件"),
     TRIGGER_ROBOT_BET_ACTION("触发机器人押注"),
-    ROOM_TICK("房间tick"),
     ROBOT_BET_LOOP("机器人循环押注"),
     ROOM_EMPTY_ROOM_CHECK("房间空房间检测"),
-    PLAYER_EVENT("玩家事件"),
+    POKER_PLAYER_EVENT("扑克玩家事件，玩家操作倒计时"),
+    ROOM_SAVE_PLAYER_DATA("房间玩家数据回存"),
     ;
     final String eventTypeName;
 

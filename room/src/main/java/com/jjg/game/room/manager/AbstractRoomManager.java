@@ -20,6 +20,7 @@ import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
@@ -312,6 +313,11 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             roomController.setRoom(room);
             if (!(playerController.getPlayer() instanceof RobotPlayer)) {
                 playerController.setPlayer(playerService.doSave(playerController.playerId(), p -> p.setRoomId(roomId)));
+                // gamePlayer需要同步更新数据
+                GameDataVo<?> gameDataVo = roomController.getGameController().getGameDataVo();
+                GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
+                gamePlayer.setUpdateTime(playerController.getPlayer().getUpdateTime());
+                gamePlayer.setRoomId(roomId);
             }
             boolean isRobot = playerController.getPlayer() instanceof RobotPlayer;
             if (!isRobot) {

@@ -330,7 +330,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             long roomIdxMaxLimit = (long) betAreaCfg.getTbUpperLimit() * betMax;
             // 当前房间的请求的下注区的总数
             long curIdxTotalBet = gameDataVo.getAreaTotalBet(betAreaIdx);
-            if (curIdxTotalBet + betValue >= roomIdxMaxLimit) {
+            if (curIdxTotalBet + betValue > roomIdxMaxLimit) {
                 log.debug("区域：{} 房间押注总和：{} 玩家请求：{} 限制值：{}",
                     betAreaCfg.getId(), curIdxTotalBet, betValue, roomIdxMaxLimit);
                 return Code.AREA_BET_TO_LIMIT;
@@ -343,7 +343,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
                 playerBetTotal =
                     playerBetInfo.getOrDefault(betAreaIdx, new ArrayList<>()).stream().mapToInt(Integer::intValue).sum();
             }
-            if (playerBetTotal + betValue >= playerIdxMaxLimit) {
+            if (playerBetTotal + betValue > playerIdxMaxLimit) {
                 log.debug("区域：{} 玩家押注总和：{}  当前下注：{} 限制值：{}",
                     betAreaCfg.getId(), playerBetTotal, betValue, playerIdxMaxLimit);
                 return Code.BET_TO_LIMIT;
