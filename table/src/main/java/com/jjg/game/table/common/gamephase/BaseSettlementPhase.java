@@ -85,7 +85,7 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
                 totalWin);
         }
         // 倍率 + 压分返还
-        return totalWin - betValue;
+        return totalWin - weightCfg.getReturnRate() == 0 ? 0 : betValue;
     }
 
     @Override
