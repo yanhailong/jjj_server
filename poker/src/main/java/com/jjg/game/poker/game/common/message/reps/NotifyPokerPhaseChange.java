@@ -14,7 +14,7 @@ import com.jjg.game.room.constant.EGamePhase;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.POKER_GENERAL_TYPE,
         cmd = PokerConstant.MsgBean.NOTIFY_PHASE_CHANGE, resp = true)
 @ProtoDesc("游戏大阶段变化")
-public class NotifyPhaseChange extends AbstractNotice {
+public class NotifyPokerPhaseChange extends AbstractNotice {
     @ProtoDesc("当前游戏阶段")
     public EGamePhase phase;
     @ProtoDesc("阶段结束时间（-1为一直持续）")

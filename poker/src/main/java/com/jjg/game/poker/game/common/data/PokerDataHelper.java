@@ -16,33 +16,31 @@ import java.util.stream.Collectors;
  * @date 2025/8/5 18:13
  */
 public class PokerDataHelper {
-    //房间配置id->pokerPoolId->牌
-    private static Map<Integer, Map<Integer, PokerCard>> cardMapListMap;
+    //poolId->pokerPool表Id->牌
+    private static Map<Integer, Map<Integer, PokerCard>> allCardMapListMap;
+
     /**
      * 初始化缓存 cardMapListMap
-     *
      */
-    public static Map<Integer, PokerCard> initCardMapListMap(int poolId) {
+    public static void initData() {
         List<PokerPoolCfg> cfgList = GameDataManager.getPokerPoolCfgList();
-        return cfgList.stream().filter(pokerPoolCfg -> poolId == pokerPoolCfg.getPoolId())
-                .collect(Collectors.toMap(PokerPoolCfg::getId, cfg -> {
-                    PokerCardUtils.EPokerHumanStr pokerHumanStrByHumanStr = PokerCardUtils.EPokerHumanStr.getPokerHumanStrByHumanStr(cfg.getPoints());
-                    PokerCardUtils.EPokerSuit suitByConfig = PokerCardUtils.getSuitByConfig(cfg.getSuit());
-                    if (Objects.nonNull(suitByConfig) && Objects.nonNull(pokerHumanStrByHumanStr)) {
-                        Card card = new Card(suitByConfig.getSuitId() - 1, pokerHumanStrByHumanStr.getPointId());
-                        return new PokerCard(cfg.getId(), cfg.getSuitNum(), cfg.getPointsNum(), card.getValue());
-                    } else {
-                        throw new RuntimeException("配置错误");
-                    }
-                }));
+        Map<Integer, Map<Integer, PokerCard>> mapHashMap = new HashMap<>();
+        for (PokerPoolCfg cfg : cfgList) {
+            Map<Integer, PokerCard> pokerCardMap = mapHashMap.computeIfAbsent(cfg.getPoolId(), (key) -> new HashMap<>());
+            PokerCardUtils.EPokerHumanStr pokerHumanStrByHumanStr = PokerCardUtils.EPokerHumanStr.getPokerHumanStrByHumanStr(cfg.getPoints());
+            PokerCardUtils.EPokerSuit suitByConfig = PokerCardUtils.getSuitByConfig(cfg.getSuit());
+            if (Objects.nonNull(suitByConfig) && Objects.nonNull(pokerHumanStrByHumanStr)) {
+                Card card = new Card(suitByConfig.getSuitId() - 1, pokerHumanStrByHumanStr.getPointId());
+                pokerCardMap.put(cfg.getId(), new PokerCard(cfg.getId(), cfg.getSuitNum(), cfg.getPointsNum(), card.getValue()));
+            } else {
+                throw new RuntimeException("配置错误");
+            }
+        }
+        allCardMapListMap = mapHashMap;
     }
 
-    public static Map<Integer, PokerCard> getCardListMap(int id) {
-        return cardMapListMap.get(id);
-    }
-
-    public static void setCardMapListMap(Map<Integer, Map<Integer, PokerCard>> cardMapListMap) {
-        PokerDataHelper.cardMapListMap = cardMapListMap;
+    public static Map<Integer, PokerCard> getCardListMap(int poolId) {
+        return allCardMapListMap.get(poolId);
     }
 
     public static int getExecutionTime(BasePokerGameDataVo gameDataVo, PokerPhase phase) {
@@ -50,8 +48,8 @@ public class PokerDataHelper {
         return roomCfg.getChess_stageOrder().getOrDefault(phase.getValue(), 0);
     }
 
-    public static List<Integer> getClientId(List<Integer> cardCfgId, int cfgId) {
-        Map<Integer, PokerCard> cardMap = getCardListMap(cfgId);
+    public static List<Integer> getClientId(List<Integer> cardCfgId, int poolId) {
+        Map<Integer, PokerCard> cardMap = getCardListMap(poolId);
         return cardCfgId.stream().map(id -> cardMap.get(id).getClientId()).collect(Collectors.toList());
     }
 }

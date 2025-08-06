@@ -4,7 +4,7 @@ import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
-import com.jjg.game.poker.game.texas.message.reps.NotifySettlementInfo;
+import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementInfo;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.GameDataManager;
@@ -29,7 +29,6 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
     public void reloadRoomCfg() {
         roomCfg = GameDataManager.getRoom_ChessCfg(roomCfg.getId());
     }
-
 
     /**
      * 本轮游戏id
@@ -69,7 +68,7 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
     /**
      * 结算信息
      */
-    private NotifySettlementInfo notifySettlementInfo;
+    private NotifyTexasSettlementInfo notifyTexasSettlementInfo;
 
 
     /**
@@ -94,12 +93,12 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
         return id;
     }
 
-    public NotifySettlementInfo getNotifySettlementInfo() {
-        return notifySettlementInfo;
+    public NotifyTexasSettlementInfo getNotifySettlementInfo() {
+        return notifyTexasSettlementInfo;
     }
 
-    public void setNotifySettlementInfo(NotifySettlementInfo notifySettlementInfo) {
-        this.notifySettlementInfo = notifySettlementInfo;
+    public void setNotifySettlementInfo(NotifyTexasSettlementInfo notifyTexasSettlementInfo) {
+        this.notifyTexasSettlementInfo = notifyTexasSettlementInfo;
     }
 
     /**
@@ -176,7 +175,7 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
         this.publicCards = null;
         this.round = 1;
         this.baseBetInfo.clear();
-        this.notifySettlementInfo = null;
+        this.notifyTexasSettlementInfo = null;
         if (Objects.nonNull(playerTimerEvent)) {
             controller.removePlayerTimerEvent(getPlayerTimerEvent());
         }

@@ -9,9 +9,7 @@ import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerRoomBaseInfo;
-import com.jjg.game.poker.game.common.message.req.ReqSampleCardOperation;
-import com.jjg.game.poker.game.texas.constant.TexasConstant;
-import com.jjg.game.poker.game.texas.room.TexasGameController;
+import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.manager.RoomManager;
@@ -43,7 +41,7 @@ public class BasePokerHandler {
     }
 
     @Command(value = PokerConstant.MsgBean.REQ_SAMPLE_CARD_OPERATION)
-    public void ReqSampleCardOperation(PlayerController playerController, ReqSampleCardOperation msg) {
+    public void reqPokerSampleCardOperation(PlayerController playerController, ReqPokerSampleCardOperation msg) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
         if (gameController instanceof BasePokerGameController<? extends BasePokerGameDataVo> basePokerGameController) {
@@ -53,7 +51,7 @@ public class BasePokerHandler {
 
 
     @Command(value = PokerConstant.MsgBean.REQ_ROOM_BASE_INFO)
-    public void reqRoomBaseInfo(PlayerController playerController, ReqPokerRoomBaseInfo msg) {
+    public void reqPokerRoomBaseInfo(PlayerController playerController, ReqPokerRoomBaseInfo msg) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
         if (gameController instanceof BasePokerGameController<? extends BasePokerGameDataVo> basePokerGameController) {

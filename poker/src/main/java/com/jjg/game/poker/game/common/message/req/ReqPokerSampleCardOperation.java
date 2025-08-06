@@ -13,7 +13,7 @@ import com.jjg.game.poker.game.common.constant.PokerConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.POKER_GENERAL_TYPE,
         cmd = PokerConstant.MsgBean.REQ_SAMPLE_CARD_OPERATION)
 @ProtoDesc("请求过牌,弃牌,停牌")
-public class ReqSampleCardOperation extends AbstractMessage {
-    @ProtoDesc("类型(1过牌 2弃牌 3停牌)")
+public class ReqPokerSampleCardOperation extends AbstractMessage {
+    @ProtoDesc("类型(1弃牌 2过牌 3停牌)")
     public int type = 0;
 }

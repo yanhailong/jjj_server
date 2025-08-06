@@ -12,6 +12,6 @@ import com.jjg.game.poker.game.texas.constant.TexasConstant;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TEXAS_TYPE,cmd = TexasConstant.MsgBean.REQ_SHOW_CARD)
 @ProtoDesc("请求亮牌")
-public class ReqShowCard extends AbstractMessage {
+public class ReqTexasShowCard extends AbstractMessage {
 
 }

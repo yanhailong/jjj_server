@@ -12,7 +12,8 @@ import com.jjg.game.poker.game.common.constant.PokerConstant;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.POKER_GENERAL_TYPE,
         cmd = PokerConstant.MsgBean.NOTIFY_SAMPLE_CARD_OPERATION, resp = true)
-public class NotifySampleCardOperation extends AbstractNotice {
+@ProtoDesc("通知玩家简单的牌操作")
+public class NotifyPokerSampleCardOperation extends AbstractNotice {
     @ProtoDesc("玩家id")
     public long playerId;
     @ProtoDesc("操作类型")

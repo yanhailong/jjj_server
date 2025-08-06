@@ -4,7 +4,6 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractResponse;
-import com.jjg.game.poker.game.common.message.bean.PlayerInfo;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.message.bean.TexasPlayerInfo;
 
@@ -18,7 +17,7 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TEXAS_TYPE
         , cmd = TexasConstant.MsgBean.REPS_ROOM_BASE_INFO, resp = true)
 @ProtoDesc("响应房间基础信息")
-public class RepsRoomBaseInfo extends AbstractResponse {
+public class RepsTexasRoomBaseInfo extends AbstractResponse {
     @ProtoDesc("玩家基础信息")
     public List<TexasPlayerInfo> playerInfos;
     @ProtoDesc("公牌")
@@ -30,7 +29,7 @@ public class RepsRoomBaseInfo extends AbstractResponse {
     @ProtoDesc("底池")
     public long bottomPool;
     @ProtoDesc("结算信息")
-    public NotifySettlementInfo notifySettlementInfo;
+    public NotifyTexasSettlementInfo notifyTexasSettlementInfo;
     @ProtoDesc("边池")
     public List<Long> edgePool;
     @ProtoDesc("庄家座位位置")
@@ -46,7 +45,7 @@ public class RepsRoomBaseInfo extends AbstractResponse {
     @ProtoDesc("小盲")
     public int SB;
 
-    public RepsRoomBaseInfo(int code) {
+    public RepsTexasRoomBaseInfo(int code) {
         super(code);
     }
 

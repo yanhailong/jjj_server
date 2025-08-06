@@ -12,7 +12,7 @@ import com.jjg.game.poker.game.texas.constant.TexasConstant;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TEXAS_TYPE, cmd = TexasConstant.MsgBean.REQ_CHANGE_SEAT_STATE)
 @ProtoDesc("请求坐下或站起")
-public class ReqChangeSeatState extends AbstractMessage {
+public class ReqTexasChangeSeatState extends AbstractMessage {
     @ProtoDesc("类型 1改变站起坐下 2.改变座位位置")
     public int changeType;
     @ProtoDesc("座位id")

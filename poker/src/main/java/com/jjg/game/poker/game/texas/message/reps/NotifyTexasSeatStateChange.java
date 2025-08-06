@@ -4,7 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractNotice;
-import com.jjg.game.poker.game.common.message.bean.PlayerInfo;
+import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 
 /**
@@ -14,7 +14,7 @@ import com.jjg.game.poker.game.texas.constant.TexasConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TEXAS_TYPE
         , cmd = TexasConstant.MsgBean.NOTIFY_SEAT_STATE_CHANGE, resp = true)
 @ProtoDesc("座位状态变化")
-public class NotifySeatStateChange extends AbstractNotice {
+public class NotifyTexasSeatStateChange extends AbstractNotice {
     @ProtoDesc("玩家信息")
-    public PlayerInfo playerChange;
+    public PokerPlayerInfo playerChange;
 }

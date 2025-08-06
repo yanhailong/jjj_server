@@ -9,7 +9,7 @@ import com.jjg.game.poker.game.sample.bean.TexasCfg;
 import com.jjg.game.poker.game.texas.data.Pot;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
-import com.jjg.game.poker.game.texas.message.reps.NotifyPreFlopRoundInfo;
+import com.jjg.game.poker.game.texas.message.reps.NotifyTexasPreFlopRoundInfo;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.room.controller.AbstractGameController;
@@ -73,27 +73,13 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
             gameDataVo.setIndex(controller.getInitIndex());
             //2人庄家是小盲 由大盲注（BB）左侧第一个（即下家）玩家开始选择跟注（call）、加注（raise）、或弃牌（fold），按照顺时针方向其他玩家依次表态，大盲注玩家最后表态；
             //发牌
-            Map<Integer, PokerCard> cardListMap = TexasDataHelper.getCardListMap(roomCfg.getId());
-            gameDataVo.setCards(new ArrayList<>(cardListMap.keySet()));
-            List<Integer> cards = gameDataVo.getCards();
-            Collections.shuffle(cards);
-            List<PlayerSeatInfo> playerSeatInfoList = gameDataVo.getPlayerSeatInfoList();
-            int sendNum = 0;
-            //从第一个执行者开始发牌
-            for (PlayerSeatInfo info : playerSeatInfoList) {
-                sendNum += roomCfg.getHandPoker();
-                List<Integer> playCard = new ArrayList<>();
-                for (int i = 0; i < roomCfg.getHandPoker(); i++) {
-                    playCard.add(cards.remove(0));
-                }
-                info.setCards(new ArrayList<>());
-                info.getCards().add(playCard);
-            }
+            Map<Integer, PokerCard> cardListMap = TexasDataHelper.getCardListMap(TexasDataHelper.getPoolId(gameDataVo));
+            int sendNum = sendCards(cardListMap,gameDataVo);
             //设置第一个开始的玩家 并添加定时
-            PlayerSeatInfo first = playerSeatInfoList.get(gameDataVo.getIndex());
+            PlayerSeatInfo first = playerSeatInfo.get(gameDataVo.getIndex());
             //通知发牌信息 并带第一个操作人的玩家id
             controller.addNextTimer(first, sendNum);
-            NotifyPreFlopRoundInfo.Builder builder = NotifyPreFlopRoundInfo.builder();
+            NotifyTexasPreFlopRoundInfo.Builder builder = NotifyTexasPreFlopRoundInfo.builder();
             builder.sbBet(bedAndSBBet.getFirst())
                     .bbBet(bedAndSBBet.getSecond())
                     .playerId(first.getPlayerId())
@@ -109,7 +95,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
                 if (!info.isJoinGame()) {
                     controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, builder.build()));
                 } else {
-                    builder.cards(TexasDataHelper.getClientId(collect.get(playerId).getCurrentCards(), gameDataVo.getRoomCfg().getId()));
+                    builder.cards(TexasDataHelper.getClientId(collect.get(playerId).getCurrentCards(), TexasDataHelper.getPoolId(gameDataVo)));
                     controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, builder.build()));
                 }
             }

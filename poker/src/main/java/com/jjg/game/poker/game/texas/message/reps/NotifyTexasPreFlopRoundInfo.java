@@ -16,7 +16,7 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TEXAS_TYPE
         , cmd = TexasConstant.MsgBean.NOTIFY_PRE_FLOP_ROUND_INFO, resp = true)
 @ProtoDesc("通知第一轮的信息")
-public class NotifyPreFlopRoundInfo extends AbstractNotice {
+public class NotifyTexasPreFlopRoundInfo extends AbstractNotice {
     @ProtoDesc("手牌")
     public List<Integer> cards;
     @ProtoDesc("当前操作的玩家id")
@@ -84,8 +84,8 @@ public class NotifyPreFlopRoundInfo extends AbstractNotice {
             this.seatId = seatId;
             return this;
         }
-        public NotifyPreFlopRoundInfo build() {
-            NotifyPreFlopRoundInfo info = new NotifyPreFlopRoundInfo();
+        public NotifyTexasPreFlopRoundInfo build() {
+            NotifyTexasPreFlopRoundInfo info = new NotifyTexasPreFlopRoundInfo();
             info.cards = this.cards;
             info.playerId = this.playerId;
             info.overTime = this.overTime;

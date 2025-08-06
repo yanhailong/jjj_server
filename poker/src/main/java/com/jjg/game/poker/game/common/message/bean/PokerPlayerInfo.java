@@ -9,7 +9,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  */
 @ProtobufMessage
 @ProtoDesc("扑克基本玩家信息")
-public class PlayerInfo {
+public class PokerPlayerInfo {
     @ProtoDesc("玩家id")
     public long playerId;
     @ProtoDesc("货币数量")

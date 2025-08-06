@@ -1,8 +1,5 @@
 package com.jjg.game.poker.game.common.data;
 
-import com.jjg.game.common.concurrent.IProcessorHandler;
-import com.jjg.game.common.timer.TimerEvent;
-
 import java.util.List;
 
 /**
