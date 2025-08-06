@@ -55,14 +55,14 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             // 玩家总押注
             long playerBetTotal = playerBetArea.stream().mapToInt(Integer::intValue).sum();
             // 给玩家进行结算
-            long playerWin = calcGold(gamePlayer, winPosWeightCfg, playerBetTotal);
+            SettlementData playerSettlementData = calcGold(gamePlayer, winPosWeightCfg, playerBetTotal);
             PlayerChangedGold playerChangedGold = new PlayerChangedGold();
             playerChangedGold.playerId = playerId;
-            playerChangedGold.playerWinGold = playerWin;
+            playerChangedGold.playerWinGold = playerSettlementData.getBetWin();
             // 添加记录
-            entry.getValue().getTableGameData().addBetRecord(playerWin);
+            entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getBetTotal());
             // TODO 给玩家加金币
-            gamePlayer.setGold(gamePlayer.getGold() + playerWin);
+            gamePlayer.setGold(gamePlayer.getGold() + playerSettlementData.getTotalWin());
             playerChangedGold.playerCurGold = gamePlayer.getGold();
             playerChangedGolds.add(playerChangedGold);
         }

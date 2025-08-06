@@ -191,7 +191,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     protected GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
         // 将玩家数据复制到玩家游戏数据中
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
-        Player player = playerService.get(playerController.playerId());
+        Player player = playerController.isRobotPlayer()
+            ? playerController.getPlayer()
+            : playerService.getOrUpdatePlayerController(playerController);
         String playerJson = JSON.toJSONString(player);
         GamePlayer gamePlayer;
         if (player instanceof RobotPlayer) {

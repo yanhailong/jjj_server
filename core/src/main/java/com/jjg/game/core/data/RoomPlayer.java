@@ -3,7 +3,7 @@ package com.jjg.game.core.data;
 import java.util.Objects;
 
 /**
- * 房间类玩家对象
+ * 房间类玩家对象 roomPlayer不要存Player对象，因为player对象维护不一定是最新的
  *
  * @author 11
  * @date 2025/6/25 9:28
@@ -17,8 +17,8 @@ public class RoomPlayer {
     protected boolean online;
     // 玩家房间数据
     protected PlayerRoomData playerRoomData;
-    // 玩家数据
-    protected Player player;
+    // 玩家是否机器人
+    protected boolean isRobot;
 
     public RoomPlayer() {
     }
@@ -73,15 +73,11 @@ public class RoomPlayer {
         this.playerRoomData = playerRoomData;
     }
 
-    public Player getPlayer() {
-        return player;
+    public boolean isRobot() {
+        return isRobot;
     }
 
-    public void setPlayer(Player player) {
-        this.player = player;
-    }
-
-    public boolean whichIsRobot() {
-        return player instanceof RobotPlayer;
+    public void setRobot(boolean robot) {
+        isRobot = robot;
     }
 }
