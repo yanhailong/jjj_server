@@ -9,6 +9,8 @@ package com.jjg.game.slots.data;
 public class AwardLineInfo {
     //线的id
     protected int id;
+    //中奖类型
+    protected int rewardType;
     //这条线的基础倍数
     protected int baseTimes;
 
@@ -18,6 +20,14 @@ public class AwardLineInfo {
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    public int getRewardType() {
+        return rewardType;
+    }
+
+    public void setRewardType(int rewardType) {
+        this.rewardType = rewardType;
     }
 
     public int getBaseTimes() {

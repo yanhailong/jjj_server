@@ -23,6 +23,7 @@ import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.PropInfo;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialResultLibCacheData;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
@@ -31,6 +32,7 @@ import com.jjg.game.slots.sample.bean.*;
 import com.jjg.game.slots.service.SlotsPlayerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.Constructor;
@@ -104,6 +106,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         this.playerGameDataClass = playerGameDataClass;
     }
 
+    //总押分
+    protected Map<Integer,List<Long>> allStakeMap;
     /**
      * 初始化
      */
@@ -183,6 +187,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         globalConfig(this.gameType);
         clientRollerConfig(this.gameType);
         clientFreeRollerConfig(this.gameType);
+        calAllLineStake();
         log.info("配置重新计算结束 gameType = {}", this.gameType);
     }
 
@@ -284,10 +289,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      * @param playerController
      * @return
      */
-    public T createPlayerGameData(PlayerController playerController) {
-        T playerGameData = (T)getGameDataDao().getGameDataByPlayerId(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+    public <DT extends SlotsPlayerGameDataDTO> T createPlayerGameData(PlayerController playerController) throws Exception{
+        DT playerGameDataDTO = (DT)getGameDataDao().getGameDataByPlayerId(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
 
-        if(playerGameData == null) {
+        T playerGameData = null;
+        if(playerGameDataDTO == null) {
             playerGameData = gameDataMap.computeIfAbsent(playerController.playerId(), k -> {
                 try {
                     Constructor<T> constructor = this.playerGameDataClass.getConstructor();
@@ -309,6 +315,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(playerGameData.getRoomCfgId());
             playerGameData.setLastStake(baseRoomCfg.getDefaultBet().get(0));
         }else {
+            Constructor<T> constructor = this.playerGameDataClass.getConstructor();
+            playerGameData = constructor.newInstance();
+
+            BeanUtils.copyProperties(playerGameDataDTO,playerGameData);
+
+            playerGameData = setGameDataValues(playerGameData,playerGameDataDTO);
+
             playerGameData.getHasPlaySlots().set(true);
             playerGameData = gameDataMap.put(playerController.playerId(), playerGameData);
         }
@@ -418,6 +431,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     }
 
     protected <D extends AbstractSlotsGenerateManager> D getGenerateManager() {
+        return null;
+    }
+
+    protected <D extends SlotsPlayerGameData,DT extends SlotsPlayerGameDataDTO> D setGameDataValues(D d,DT dto){
         return null;
     }
 
@@ -810,7 +827,37 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         return clientFreeRollerCfgList;
     }
 
-    public void checkNotActive(){
+    /**
+     * 将单线押分转化为总押分
+     */
+    public void calAllLineStake(){
+        Map<Integer,List<Long>> tmpAllStakeMap = new HashMap<>();
 
+        int lineCount = getGenerateManager().getBaseInitCfg().getMaxLine();;
+        for(Map.Entry<Integer, BaseRoomCfg> en : this.roomCfgMap.entrySet()){
+            BaseRoomCfg cfg = en.getValue();
+            for(int stake : cfg.getLineBetScore()){
+                long allStake = lineCount * stake * cfg.getBetMultiple().get(0) * cfg.getLineMultiple().get(0);
+                tmpAllStakeMap.computeIfAbsent(cfg.getId(), k -> new ArrayList<>()).add(allStake);
+            }
+        }
+
+        this.allStakeMap = tmpAllStakeMap;
+    }
+
+    public Map<Integer, List<Long>> getAllStakeMap() {
+        return allStakeMap;
+    }
+
+    /**
+     * 单线押分转化为总押分
+     * @param stake
+     * @param roonCfgId
+     * @return
+     */
+    public long oneLineToAllStake(int stake,int roonCfgId){
+        int lineCount = getGenerateManager().getBaseInitCfg().getMaxLine();;
+        BaseRoomCfg cfg = GameDataManager.getBaseRoomCfg(roonCfgId);
+        return lineCount * stake * cfg.getBetMultiple().get(0) * cfg.getLineMultiple().get(0);
     }
 }
