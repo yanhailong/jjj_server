@@ -362,6 +362,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         //退出房间
         int exited = roomManager.exitRoom(playerController);
         if (exited != Code.SUCCESS) {
+            log.info("换房间时退出当前房间失败 playerId:{} oldRoomId:{} gameType:{} roomConfigId:{}", oldRoomId, roomOtherId, gameType, roomConfigId);
             return false;
         }
         //加入房间

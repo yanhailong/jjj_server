@@ -138,6 +138,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         controller.changePlayerGold(gamePlayer, -BBBetValue);
         gameDataVo.getPool().get(0).addChips(BBBetValue);
         gameDataVo.getPool().get(0).addEligiblePlayer(info.getPlayerId());
+        gameDataVo.setMaxBetValue(BBBetValue);
         return Pair.newPair(betValue, BBBetValue);
     }
 

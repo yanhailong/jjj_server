@@ -3,8 +3,6 @@ package com.jjg.game.poker.game.common.message.bean;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
-import java.util.List;
-
 /**
  * @author lm
  * @date 2025/7/26 11:15
@@ -24,10 +22,6 @@ public class PlayerInfo {
     public int seatIndex;
     @ProtoDesc("座位状态(false站起true坐下)")
     public boolean status;
-    @ProtoDesc("总押注")
-    public long totalBet;
-    @ProtoDesc("当前手牌")
-    public List<Integer> handCards;
     @ProtoDesc("本轮操作")
     public int operationType;
     @ProtoDesc("玩家状态(true在游戏中 false不在游戏中)")

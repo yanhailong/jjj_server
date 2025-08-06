@@ -8,6 +8,7 @@ import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
 import com.jjg.game.poker.game.common.message.reps.NotifyPlayerChange;
+import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqSampleCardOperation;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.room.base.IRoomPhase;
@@ -213,4 +214,6 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     @Override
     public void autoRunGamePhase() {
     }
+
+    public abstract void dealBet(long l, ReqPokerBet reqPokerBet);
 }
