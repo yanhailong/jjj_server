@@ -23,11 +23,12 @@ import com.jjg.game.poker.game.texas.gamephase.TexasPlayCardPhase;
 import com.jjg.game.poker.game.texas.gamephase.TexasProcessorHandler;
 import com.jjg.game.poker.game.texas.gamephase.TexasSettlementPhase;
 import com.jjg.game.poker.game.texas.message.TexasBuilder;
+import com.jjg.game.poker.game.texas.message.bean.TexasPlayerInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyBet;
 import com.jjg.game.poker.game.texas.message.reps.NotifyPublicCardChange;
 import com.jjg.game.poker.game.texas.message.reps.NotifyShowCard;
 import com.jjg.game.poker.game.texas.message.reps.RepsRoomBaseInfo;
-import com.jjg.game.poker.game.texas.message.req.ReqPokerBet;
+import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.poker.game.texas.util.HandResult;
 import com.jjg.game.room.constant.EGamePhase;
@@ -84,7 +85,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             }
         }
         repsRoomBaseInfo.notifySettlementInfo = gameDataVo.getNotifySettlementInfo();
-        List<PlayerInfo> playerInfos = new ArrayList<>();
+        List<TexasPlayerInfo> playerInfos = new ArrayList<>();
         //构建玩家信息
         for (Map.Entry<Integer, SeatInfo> entry : gameDataVo.getSeatInfo().entrySet()) {
             SeatInfo seatInfo = entry.getValue();
@@ -99,14 +100,16 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             playerInfo.seatIndex = seatId;
             playerInfo.status = seatInfo.isSeatDown();
             playerInfo.playerStatus = seatInfo.isJoinGame();
-            playerInfo.totalBet = gameDataVo.getBaseBetInfo().getOrDefault(playerId, 0L);
+            TexasPlayerInfo texasPlayerInfo = new TexasPlayerInfo();
+            texasPlayerInfo.playerInfo = playerInfo;
+            texasPlayerInfo.totalBet = gameDataVo.getBaseBetInfo().getOrDefault(playerId, 0L);
             for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
                 if (info.getPlayerId() == entry.getKey()) {
-                    playerInfo.handCards = info.getCurrentCards();
+                    texasPlayerInfo.handCards = info.getCurrentCards();
                     playerInfo.operationType = info.getOperationType();
                 }
             }
-            playerInfos.add(playerInfo);
+            playerInfos.add(texasPlayerInfo);
         }
         repsRoomBaseInfo.playerInfos = playerInfos;
         repsRoomBaseInfo.findDealerTime = TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.FIND_DEALER);
@@ -149,6 +152,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     /**
      * 下注 和 all_in
      */
+    @Override
     public void dealBet(long playerId, ReqPokerBet reqPokerBet) {
         PlayerSeatInfo info = gameDataVo.getCurrentPlayerSeatInfo();
         //不是当前玩家执行
@@ -160,30 +164,32 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
         long tempCurrency = gameDataVo.getTempGold().getOrDefault(playerId, 0L);
         boolean allIn = reqPokerBet.betType == PokerConstant.PlayerOperation.ALL_IN;
+        Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         if (allIn) {
             betValue = tempCurrency;
         } else if (reqPokerBet.betType == PokerConstant.PlayerOperation.BET && tempCurrency >= reqPokerBet.betValue) {
             //正常下注
             betValue = reqPokerBet.betValue;
+        } else if (reqPokerBet.betType == PokerConstant.PlayerOperation.FOLLOW_CARD) {
+            //跟注
+            betValue = gameDataVo.getMaxBetValue() - baseBetInfo.getOrDefault(playerId, 0L);
         }
         Long remain = gameDataVo.getTempGold().get(playerId);
-        long tempTotal = gameDataVo.getMaxBetInfo().getOrDefault(playerId, 0L) + betValue;
+        long tempTotal = baseBetInfo.getOrDefault(playerId, 0L) + betValue;
         //TODO 大大小小
-        if (betValue <= 0 || betValue > remain || betValue < getMinBet() || !allIn && tempTotal != gameDataVo.getMaxBetValue()) {
+        if (betValue <= 0 || betValue > remain || betValue < getMinBet() || !allIn && tempTotal < gameDataVo.getMaxBetValue()) {
             //TODO 通知 ~
+            log.error("出现错误拉");
+            passCards(playerId);
             return;
         }
         info.setOperationType(reqPokerBet.betType);
         info.setOver(true);
-        gameDataVo.getMaxBetInfo().entrySet().stream().max(Comparator.comparingLong(Map.Entry::getValue))
-                .ifPresent((entry) -> {
-                    gameDataVo.setMaxBetValue(entry.getValue());
-                });
+        baseBetInfo.entrySet().stream().max(Comparator.comparingLong(Map.Entry::getValue))
+                .ifPresent((entry) -> gameDataVo.setMaxBetValue(entry.getValue()));
         //通知
-        Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         changePlayerGold(gamePlayer, -betValue);
         baseBetInfo.merge(playerId, betValue, Long::sum);
-        gameDataVo.getMaxBetInfo().merge(playerId, betValue, Math::max);
         NotifyBet notifyBet = new NotifyBet();
         notifyBet.betType = reqPokerBet.betType;
         notifyBet.betValue = betValue;
@@ -222,7 +228,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         int size = playerSeatInfoList.size();
         int dealerIndex = gameDataVo.getDealerIndex();
         if (size == 2) {
-            return dealerIndex == 0 ? 1 : 0;
+            return dealerIndex == 0 ? 0 : 1;
         } else if (size == 3) {
             return dealerIndex;
         }
@@ -242,8 +248,9 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         if (notDoOperation(playerId, info)) {
             return true;
         }
-        //本轮已有人下注 不能过牌
-        if (gameDataVo.getMaxBetValue() > 0) {
+        //下注小于最大下注 不能过牌
+        Long oldBet = gameDataVo.getBaseBetInfo().getOrDefault(playerId, 0L);
+        if (oldBet < gameDataVo.getMaxBetValue()) {
             return false;
         }
         sampleOperation(info, PokerConstant.PlayerOperation.PASS);
@@ -291,8 +298,6 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                 info.setOperationType(PokerConstant.PlayerOperation.NONE);
             }
             PlayerSeatInfo nextExePlayer = getNextExePlayer(false);
-            gameDataVo.getMaxBetInfo().clear();
-            gameDataVo.setMaxBetValue(0);
             //如果找不到下一轮说明全all
             if (Objects.isNull(nextExePlayer)) {
                 gameDataVo.setSettlement(ALL_SETTLEMENT);
@@ -302,6 +307,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             }
             //下一轮
             gameDataVo.nextRound();
+            gameDataVo.setMaxBetValue(0);
             log.info("进行下一轮: {}", gameDataVo.getRound());
             //发牌
             int sendCardNum = gameDataVo.getRound() == FLIP_CARDS_ROUND ? SEND_CARD_NUM : ADD_CARDS;
@@ -340,7 +346,6 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
         //如果在游戏中删除数据
         gameDataVo.getTempGold().remove(remove.getPlayerId());
-        gameDataVo.getMaxBetInfo().remove(remove.getPlayerId());
         if (inRunPhase()) {
             runPlayerSeatChange(remove, remove.isSeatDown() && remove.isJoinGame());
         }
@@ -482,7 +487,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             for (int i = 1; i < playerSeatInfoList.size(); i++) {
                 int newIndex = (index + i) % playerSeatInfoList.size();
                 PlayerSeatInfo info = playerSeatInfoList.get(newIndex);
-                Long betValue = gameDataVo.getMaxBetInfo().getOrDefault(info.getPlayerId(), 0L);
+                Long betValue = gameDataVo.getBaseBetInfo().getOrDefault(info.getPlayerId(), 0L);
                 if (betValue < gameDataVo.getMaxBetValue() && !isOverGame(info)) {
                     if (!tryGet) {
                         info.setOperationType(PokerConstant.PlayerOperation.NONE);

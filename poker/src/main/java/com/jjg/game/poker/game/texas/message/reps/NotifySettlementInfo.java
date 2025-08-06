@@ -7,6 +7,7 @@ import com.jjg.game.core.pb.AbstractNotice;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.message.bean.PlayerSettlementInfo;
 import com.jjg.game.poker.game.texas.message.bean.TexasPotInfo;
+import com.jjg.game.poker.game.texas.message.bean.TexasSettlementPlayerInfo;
 
 import java.util.List;
 
@@ -19,7 +20,7 @@ import java.util.List;
 @ProtoDesc("棋牌结算通知")
 public class NotifySettlementInfo extends AbstractNotice {
     @ProtoDesc("结算时玩家信息")
-    public List<PlayerSettlementInfo> playerSettlementInfos;
+    public List<TexasSettlementPlayerInfo> playerSettlementInfos;
     @ProtoDesc("各个池玩家获得奖励信息")
     public List<TexasPotInfo> potInfos;
     @ProtoDesc("结算结束时间")

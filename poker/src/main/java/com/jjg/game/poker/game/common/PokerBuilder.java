@@ -47,10 +47,8 @@ public class PokerBuilder {
             playerInfo.accountNumber = gamePlayer.getGold();
         }
         if (detail) {
-            playerInfo.totalBet = gameDataVo.getBaseBetInfo().getOrDefault(gamePlayer.getId(), 0L);
             for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
                 if (info.getPlayerId() == gamePlayer.getId()) {
-                    playerInfo.handCards = info.getCurrentCards();
                     playerInfo.operationType = info.getOperationType();
                     break;
                 }

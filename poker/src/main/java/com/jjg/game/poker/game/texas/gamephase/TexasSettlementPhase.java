@@ -18,6 +18,7 @@ import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.poker.game.texas.message.TexasBuilder;
 import com.jjg.game.poker.game.texas.message.bean.TexasPotInfo;
 import com.jjg.game.poker.game.texas.message.bean.TexasRoundInfo;
+import com.jjg.game.poker.game.texas.message.bean.TexasSettlementPlayerInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyAllInSettlementInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifySettlementInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifySettlementPlayerChange;
@@ -139,20 +140,21 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         notifySettlementInfo.potInfos = texasPotInfos;
         notifySettlementInfo.endTime = gameDataVo.getPhaseEndTime();
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
-        List<PlayerSettlementInfo> settlementInfoArrayList = new ArrayList<>();
+        List<TexasSettlementPlayerInfo> settlementInfoArrayList = new ArrayList<>();
         //广播
         for (Map.Entry<Long, Pair<PlayerSeatInfo, List<Card>>> entry : playerCards.entrySet()) {
             Long playerId = entry.getKey();
             Pair<PlayerSeatInfo, List<Card>> pair = entry.getValue();
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-
+            TexasSettlementPlayerInfo settlementPlayerInfo = new TexasSettlementPlayerInfo();
             PlayerSettlementInfo playerSettlementInfo = new PlayerSettlementInfo();
+            settlementPlayerInfo.playerSettlementInfo = playerSettlementInfo;
             playerSettlementInfo.playerId = playerId;
             HandResult handResult = playerFinalCards.get(playerId);
             if (Objects.isNull(handResult)) {
                 handResult = TexasBuilder.getTempHandType(pair.getFirst(), gameDataVo);
             }
-            playerSettlementInfo.cards = handResult.getBestCards().stream()
+            settlementPlayerInfo.cards = handResult.getBestCards().stream()
                     .map(card -> ((PokerCard) card).getClientId()).collect(Collectors.toList());
             long get = playerGet.getOrDefault(playerId, 0L) - baseBetInfo.getOrDefault(playerId, 0L);
             if (get > 0) {
@@ -164,8 +166,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             playerSettlementInfo.currentGold = gamePlayer.getGold();
             playerSettlementInfo.getGold = get;
             playerSettlementInfo.win = playerSettlementInfo.getGold > 0;
-            playerSettlementInfo.cardType = handResult.getHandRank().rank;
-            settlementInfoArrayList.add(playerSettlementInfo);
+            settlementPlayerInfo.cardType = handResult.getHandRank().rank;
+            settlementInfoArrayList.add(settlementPlayerInfo);
         }
         notifySettlementInfo.playerSettlementInfos = settlementInfoArrayList;
         return notifySettlementInfo;
@@ -242,7 +244,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         NotifySettlementInfo notifySettlementInfo = new NotifySettlementInfo();
         notifySettlementInfo.endTime = gameDataVo.getPhaseEndTime();
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
-        List<PlayerSettlementInfo> settlementInfoArrayList = new ArrayList<>();
+        List<TexasSettlementPlayerInfo> settlementInfoArrayList = new ArrayList<>();
         //广播
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
         PlayerSettlementInfo playerSettlementInfo = new PlayerSettlementInfo();
@@ -254,7 +256,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         playerSettlementInfo.currentGold = gamePlayer.getGold();
         playerSettlementInfo.getGold = get;
         playerSettlementInfo.win = playerSettlementInfo.getGold > 0;
-        settlementInfoArrayList.add(playerSettlementInfo);
+        TexasSettlementPlayerInfo settlementPlayerInfo = new TexasSettlementPlayerInfo();
+        settlementPlayerInfo.playerSettlementInfo = playerSettlementInfo;
+        settlementInfoArrayList.add(settlementPlayerInfo);
         notifySettlementInfo.playerSettlementInfos = settlementInfoArrayList;
         broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifySettlementInfo));
         gameDataVo.setNotifySettlementInfo(notifySettlementInfo);

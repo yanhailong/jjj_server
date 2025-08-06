@@ -9,11 +9,10 @@ import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
-import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.poker.game.texas.message.reps.NotifySeatStateChange;
 import com.jjg.game.poker.game.texas.message.req.ReqChangeSeatState;
 import com.jjg.game.poker.game.texas.message.req.ReqChangeTable;
-import com.jjg.game.poker.game.texas.message.req.ReqPokerBet;
+import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.texas.message.req.ReqShowCard;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
@@ -24,7 +23,6 @@ import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.manager.RoomManager;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.RoomCfg;
-import com.jjg.game.room.sample.bean.Room_ChessCfg;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -40,14 +38,6 @@ public class TexasMessageHandler {
     @Autowired
     private RoomManager roomManager;
 
-    @Command(value = TexasConstant.MsgBean.REQ_BET)
-    public void reqBet(PlayerController playerController, ReqPokerBet reqPokerBet) {
-        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-                roomManager.getGameControllerByPlayerId(playerController.playerId());
-        if (gameController instanceof TexasGameController controller) {
-            controller.dealBet(playerController.playerId(), reqPokerBet);
-        }
-    }
 
     @Command(value = TexasConstant.MsgBean.REQ_SHOW_CARD)
     public void reqShowCard(PlayerController playerController, ReqShowCard reqShowCard) {
@@ -165,6 +155,7 @@ public class TexasMessageHandler {
         RoomPlayer roomPlayer = controller.getRoom().getRoomPlayers().get(seatInfo.getPlayerId());
         roomPlayer.setSit(srcSeatId);
         SeatInfo remove = gameDataVo.getSeatInfo().remove(seatInfo.getSeatId());
+        remove.setSeatId(srcSeatId);
         gameDataVo.getSeatInfo().put(srcSeatId, remove);
         if (seatInfo.isSeatDown()) {
             controller.addTempGoldOrOutTable(remove, gamePlayer);

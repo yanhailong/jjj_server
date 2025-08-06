@@ -51,21 +51,12 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
     private int timerId;
 
     /**
-     * 本轮最大下注
-     */
-    private final Map<Long, Long> maxBetInfo = new HashMap<>();
-
-    /**
      * 临时gold列表
      */
     private final Map<Long, Long> tempGold = new HashMap<>();
 
     public Map<Long, Long> getTempGold() {
         return tempGold;
-    }
-
-    public Map<Long, Long> getMaxBetInfo() {
-        return maxBetInfo;
     }
 
     public int getTimerId() {
@@ -120,6 +111,7 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
     public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {
         super.resetData(controller);
         this.pool.clear();
+        this.maxBetValue = 0;
         this.settlement = 0;
     }
 }

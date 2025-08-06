@@ -10,9 +10,6 @@ import com.jjg.game.common.constant.MessageConst;
 public interface TexasConstant {
 
     interface Common {
-        //excel配置所在目录
-        String SAMPLE_PATH = CoreConst.Common.SAMPLE_ROOT_PATH + "texas";
-
         //最大轮次
         int MAX_ROUND = 4;
         //翻牌轮
