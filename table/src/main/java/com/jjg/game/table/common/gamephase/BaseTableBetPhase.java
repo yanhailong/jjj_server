@@ -142,8 +142,8 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         // 机器人押注默认行为
         // 需要将上一局的押注数据进行清除
         clearBetData(gameRobotPlayer);
-        // 判断是否进行押注
-        robotBetAction(gameRobotPlayer);
+        // 机器人逻辑首先进行NextTime等待再进行DelayTime再进行NextTime等待
+        addFirstRobotAction(gameRobotPlayer);
     }
 
     /**
@@ -155,21 +155,23 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
     }
 
     /**
+     * 机器人初始行为逻辑
+     */
+    protected void addFirstRobotAction(GameRobotPlayer gameRobotPlayer) {
+        BetRobotCfg betRobotCfg = getRobotBetActionCfg(gameRobotPlayer);
+        if (betRobotCfg == null) {
+            return;
+        }
+        addRobotBetActionTimer(betRobotCfg, gameRobotPlayer);
+    }
+
+    /**
      * 机器人押注行为
      */
     protected void robotBetAction(GameRobotPlayer gameRobotPlayer) {
-        RobotCfg robotCfg = com.jjg.game.room.sample.GameDataManager.getRobotCfg((int) gameRobotPlayer.getId());
-        List<List<Integer>> betRobotId = robotCfg.getBetRobotID();
-        int betActionId = RandomUtils.randomByWeightList(betRobotId);
-        Integer betAction = TableSampleDataHolder.getBetActionDataCache(betActionId,
-            gameDataVo.getRoomCfg().getId());
-        if (betAction == null) {
-            return;
-        }
-        BetRobotCfg betRobotCfg = com.jjg.game.room.sample.GameDataManager.getBetRobotCfg(betAction);
+        BetRobotCfg betRobotCfg = getRobotBetActionCfg(gameRobotPlayer);
         if (betRobotCfg == null) {
-            throw new GameSampleException("机器人押注错误，机器人：" + gameRobotPlayer.getId()
-                + "机器人押注表中未找到押注策略配置");
+            return;
         }
         // 未触发押注逻辑
         if (!RandomUtils.getRandomBoolean10000(betRobotCfg.getBetAction())) {
@@ -185,6 +187,26 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         addPhaseTimer(
             new TimerEvent<>(gameController, betRandTime, () -> doRobotBet(gameRobotPlayer, betRobotCfg)),
             RoomEventType.TRIGGER_ROBOT_BET_ACTION);
+    }
+
+    /**
+     * 获取机器人押注行为配置
+     */
+    private BetRobotCfg getRobotBetActionCfg(GameRobotPlayer gameRobotPlayer) {
+        RobotCfg robotCfg = com.jjg.game.room.sample.GameDataManager.getRobotCfg((int) gameRobotPlayer.getId());
+        List<List<Integer>> betRobotId = robotCfg.getBetRobotID();
+        int betActionId = RandomUtils.randomByWeightList(betRobotId);
+        Integer betAction = TableSampleDataHolder.getBetActionDataCache(
+            betActionId, gameDataVo.getRoomCfg().getId());
+        if (betAction == null) {
+            return null;
+        }
+        BetRobotCfg betRobotCfg = com.jjg.game.room.sample.GameDataManager.getBetRobotCfg(betAction);
+        if (betRobotCfg == null) {
+            throw new GameSampleException("机器人押注错误，机器人：" + gameRobotPlayer.getId()
+                + "机器人押注表中未找到押注策略配置");
+        }
+        return betRobotCfg;
     }
 
     /**

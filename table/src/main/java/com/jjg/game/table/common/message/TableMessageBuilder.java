@@ -208,13 +208,13 @@ public class TableMessageBuilder {
                     baccaratTableInfoMap.get(entry.getKey()).betIdx = entry.getKey();
                 }
                 BetTableInfo betTableInfo = baccaratTableInfoMap.get(entry.getKey());
-                betTableInfo.betIdxTotal = entry.getValue().stream().mapToInt(Integer::intValue).sum();
                 // 刚进入和断线重连时需要金币列表
                 if (needPlayerBetGold) {
                     if (betTableInfo.betGoldList == null) {
                         betTableInfo.betGoldList = new ArrayList<>();
                     }
                     betTableInfo.betGoldList.addAll(entry.getValue());
+                    betTableInfo.betIdxTotal = betTableInfo.betGoldList.stream().mapToInt(Integer::intValue).sum();
                 }
             }
         }
