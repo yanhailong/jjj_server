@@ -266,13 +266,6 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     }
 
     /**
-     * 设置游戏当前阶段
-     */
-    public void setCurrentGamePhase(IRoomPhase currentGamePhase) {
-        this.currentGamePhase = currentGamePhase;
-    }
-
-    /**
      * 获取游戏当前处于哪个阶段
      */
     public EGamePhase getCurrentGamePhase() {
@@ -284,7 +277,7 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     }
 
     /**
-     * 通过阶段类型获取房间阶段，如果需要
+     * 通过阶段类型获取房间阶段
      */
     public IRoomPhase findRoomPhase(EGamePhase eGamePhase) {
         for (IRoomPhase gamePhase : gamePhases) {

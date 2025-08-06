@@ -53,6 +53,13 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     public abstract PlayerSeatInfo getNextExePlayer(boolean tryGet);
 
     /**
+     * 设置游戏当前阶段
+     */
+    public void setCurrentGamePhase(IRoomPhase currentGamePhase) {
+        this.currentGamePhase = currentGamePhase;
+    }
+
+    /**
      * 简单牌操作
      */
     public abstract void sampleCardOperation(long playerId, ReqPokerSampleCardOperation req);

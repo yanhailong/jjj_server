@@ -2,6 +2,7 @@ package com.jjg.game.poker.game.texas.gamephase;
 
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.data.Card;
+import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
@@ -157,7 +158,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 handResult = TexasBuilder.getTempHandType(pair.getFirst(), gameDataVo);
             }
             settlementPlayerInfo.cards = handResult.getBestCards().stream()
-                    .map(card -> ((PokerCard) card).getClientId()).collect(Collectors.toList());
+                .map(card -> ((PokerCard) card).getClientId()).collect(Collectors.toList());
             long get = playerGet.getOrDefault(playerId, 0L) - baseBetInfo.getOrDefault(playerId, 0L);
             if (get > 0) {
                 //扣税
@@ -231,9 +232,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
 
     public void settlementByOnePlayer(TexasGameController controller) {
         List<PlayerSeatInfo> infoList = gameDataVo.getPlayerSeatInfoList()
-                .stream()
-                .filter(info -> info.getOperationType() != PokerConstant.PlayerOperation.DISCARD)
-                .toList();
+            .stream()
+            .filter(info -> info.getOperationType() != PokerConstant.PlayerOperation.DISCARD)
+            .toList();
         if (infoList.size() > 1) {
             log.error("出现错误 未弃牌人数大于1");
             normalSettlement(controller);
@@ -269,8 +270,10 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
 
     @Override
     public void phaseFinish() {
-        //设置为等待阶段
-        gameController.setCurrentGamePhase(new BaseWaitReadyPhase<>(gameController));
+        if (gameController instanceof BasePokerGameController<TexasGameDataVo> controller) {
+            //设置为等待阶段
+            controller.setCurrentGamePhase(new BaseWaitReadyPhase<>(gameController));
+        }
         //金币不够底注的尝试重新拿金币
         updatePlayerData();
         //开启下一局
