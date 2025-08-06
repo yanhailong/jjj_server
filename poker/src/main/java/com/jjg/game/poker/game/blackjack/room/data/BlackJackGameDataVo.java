@@ -1,10 +1,11 @@
 package com.jjg.game.poker.game.blackjack.room.data;
 
+import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
-import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author lm
@@ -12,33 +13,52 @@ import java.util.List;
  */
 public class BlackJackGameDataVo extends BasePokerGameDataVo {
     /**
-     * 庄家信息
+     * 庄家的牌信息
      */
-    private PlayerSeatInfo master;
+    private List<Integer> dealerCards;
 
     /**
-     * 分牌
+     * 本轮是否能购买ACE
      */
-    private List<Integer> cutCardList;
+    private boolean canBuyACE;
 
+    /**
+     * ACE购买列表
+     */
+    private List<Long> aceBuyPlayerIds;
 
-    public List<Integer> getCutCardList() {
-        return cutCardList;
+    public List<Long> getAceBuyPlayerIds() {
+        return aceBuyPlayerIds;
     }
 
-    public void setCutCardList(List<Integer> cutCardList) {
-        this.cutCardList = cutCardList;
+    public void setAceBuyPlayerIds(List<Long> aceBuyPlayerIds) {
+        this.aceBuyPlayerIds = aceBuyPlayerIds;
+    }
+
+    public boolean isCanBuyACE() {
+        return canBuyACE;
+    }
+
+    public void setCanBuyACE(boolean canBuyACE) {
+        this.canBuyACE = canBuyACE;
     }
 
     public BlackJackGameDataVo(Room_ChessCfg roomCfg) {
         super(roomCfg);
     }
 
-    public PlayerSeatInfo getMaster() {
-        return master;
+    public List<Integer> getDealerCards() {
+        return dealerCards;
     }
 
-    public void setMaster(PlayerSeatInfo master) {
-        this.master = master;
+    public void setDealerCards(List<Integer> dealerCards) {
+        this.dealerCards = dealerCards;
+    }
+
+    @Override
+    public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {
+        super.resetData(controller);
+        dealerCards = null;
+        canBuyACE = false;
     }
 }

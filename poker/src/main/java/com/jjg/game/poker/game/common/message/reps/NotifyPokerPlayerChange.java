@@ -14,7 +14,7 @@ import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.POKER_GENERAL_TYPE,
         cmd = PokerConstant.MsgBean.NOTIFY_PLAYER_CHANGE, resp = true)
 @ProtoDesc("通知玩家变化")
-public class NotifyPlayerChange extends AbstractNotice {
+public class NotifyPokerPlayerChange extends AbstractNotice {
     @ProtoDesc("玩家基本信息")
     public PokerPlayerInfo pokerPlayerInfo;
     @ProtoDesc("房间总人数")

@@ -8,7 +8,7 @@ import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
-import com.jjg.game.poker.game.common.message.reps.NotifyPlayerChange;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerPlayerChange;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
@@ -112,7 +112,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         gamePlayer.getPokerPlayerGameData().setInit(true);
         respRoomInitInfoAction(playerController);
         //通知其他玩家 玩家加入
-        NotifyPlayerChange playerChange = new NotifyPlayerChange();
+        NotifyPokerPlayerChange playerChange = new NotifyPokerPlayerChange();
         playerChange.pokerPlayerInfo = PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(playerController.playerId()), gameDataVo, false);
         playerChange.totalNum = gameDataVo.getGamePlayerMap().size();
         roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(playerChange).exceptPlayer(playerController.playerId()));
@@ -186,7 +186,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         RoomPlayer roomPlayer = getRoom().getRoomPlayers().get(playerController.playerId());
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
         if (Objects.nonNull(gamePlayer) && Objects.nonNull(roomPlayer)) {
-            NotifyPlayerChange playerChange = new NotifyPlayerChange();
+            NotifyPokerPlayerChange playerChange = new NotifyPokerPlayerChange();
             playerChange.pokerPlayerInfo = PokerBuilder.buildPlayerInfo(gamePlayer, gameDataVo, false);
             roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder()
                     .toAllPlayer().exceptPlayer(playerController.playerId())
@@ -226,5 +226,5 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     public void autoRunGamePhase() {
     }
 
-    public abstract void dealBet(long l, ReqPokerBet reqPokerBet);
+    public abstract void dealBet(long playerId, ReqPokerBet reqPokerBet);
 }

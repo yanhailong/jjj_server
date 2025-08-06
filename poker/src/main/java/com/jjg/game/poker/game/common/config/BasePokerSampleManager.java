@@ -3,6 +3,8 @@ package com.jjg.game.poker.game.common.config;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.manager.AbstractSampleManager;
 
+import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
+import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.sample.GameDataManager;
 import com.jjg.game.poker.game.sample.bean.BaseCfgBean;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
@@ -33,7 +35,8 @@ public class BasePokerSampleManager extends BaseRoomSampleManager {
         // 房间类的配置必须要加载房间的配置
         String sampleRoomResourcePath = CoreConst.Common.SAMPLE_ROOT_PATH + "poker";
         GameDataManager.loadAllData(sampleRoomResourcePath);
-        TexasDataHelper.initData();
+        PokerDataHelper.initData();
+//        BlackJackDataHelper.initData();
     }
 
     @Override
