@@ -2,6 +2,7 @@ package com.jjg.game.slots.dao;
 
 import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SlotsResultLib;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +25,7 @@ import java.util.stream.Stream;
  * @author 11
  * @date 2025/8/1 16:53
  */
-public abstract class AbstractGameDataDao<T extends SlotsPlayerGameData> extends MongoBaseDao<T, Long> {
+public abstract class AbstractGameDataDao<T extends SlotsPlayerGameDataDTO> extends MongoBaseDao<T, Long> {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     public AbstractGameDataDao(Class<T> clazz, MongoTemplate mongoTemplate) {

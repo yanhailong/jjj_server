@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.dollarexpress.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.annotation.Transient;
 
 import java.util.*;
@@ -13,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2025/6/10 18:07
  */
 public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
-    //最近一次的押注(除了100)
+    //最近一次的押注(总押分)
     private long lastBet;
     //最近一次的模式id
     private int lastModelId;
@@ -258,4 +259,10 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
     }
 
 
+
+    public DollarExpressPlayerGameDataDTO converToDto(){
+        DollarExpressPlayerGameDataDTO dto = new DollarExpressPlayerGameDataDTO();
+        BeanUtils.copyProperties(this,dto);
+        return dto;
+    }
 }

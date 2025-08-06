@@ -17,7 +17,7 @@ import java.util.Map;
 public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
     private long playerId;
     //标准池子中奖倍数
-    private int bigPoolTimes;
+    private long bigPoolTimes;
     //玩家之前的金币
     private long beforeGold;
     //总计获得的金币
@@ -95,15 +95,15 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
         this.bet = bet;
     }
 
-    public int getBigPoolTimes() {
+    public long getBigPoolTimes() {
         return bigPoolTimes;
     }
 
-    public void setBigPoolTimes(int bigPoolTimes) {
+    public void setBigPoolTimes(long bigPoolTimes) {
         this.bigPoolTimes = bigPoolTimes;
     }
 
-    public void addBigPoolTimes(int allTimes) {
+    public void addBigPoolTimes(long allTimes) {
         this.bigPoolTimes += allTimes;
     }
 

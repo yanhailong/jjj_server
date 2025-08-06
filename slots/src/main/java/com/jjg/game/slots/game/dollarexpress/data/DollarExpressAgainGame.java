@@ -77,7 +77,7 @@ public class DollarExpressAgainGame {
         this.trainList.add(train);
     }
 
-    public void addTimes(int times) {
+    public void addTimes(long times) {
         this.times += times;
     }
 
