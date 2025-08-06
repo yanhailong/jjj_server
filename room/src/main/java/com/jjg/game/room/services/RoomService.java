@@ -1,14 +1,16 @@
 package com.jjg.game.room.services;
 
 import com.jjg.game.common.concurrent.IProcessorHandler;
-import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.AbstractRoomDao;
-import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.Room;
+import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.room.manager.RoomManager;
@@ -34,8 +36,6 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
     private static final Logger log = LoggerFactory.getLogger(RoomService.class);
     @Autowired
     private RoomManager roomManager;
-    @Autowired
-    private MarsCurator marsCurator;
     @Autowired
     private RobotService robotService;
     @Autowired
