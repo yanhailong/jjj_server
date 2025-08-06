@@ -9,11 +9,10 @@ import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
-import com.jjg.game.poker.game.texas.message.reps.NotifySeatStateChange;
-import com.jjg.game.poker.game.texas.message.req.ReqChangeSeatState;
-import com.jjg.game.poker.game.texas.message.req.ReqChangeTable;
-import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
-import com.jjg.game.poker.game.texas.message.req.ReqShowCard;
+import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSeatStateChange;
+import com.jjg.game.poker.game.texas.message.req.ReqTexasChangeSeatState;
+import com.jjg.game.poker.game.texas.message.req.ReqTexasChangeTable;
+import com.jjg.game.poker.game.texas.message.req.ReqTexasShowCard;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.room.constant.EGamePhase;
@@ -40,7 +39,7 @@ public class TexasMessageHandler {
 
 
     @Command(value = TexasConstant.MsgBean.REQ_SHOW_CARD)
-    public void reqShowCard(PlayerController playerController, ReqShowCard reqShowCard) {
+    public void reqTexasShowCard(PlayerController playerController, ReqTexasShowCard reqTexasShowCard) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
         if (gameController instanceof TexasGameController controller) {
@@ -49,14 +48,14 @@ public class TexasMessageHandler {
     }
 
     @Command(value = TexasConstant.MsgBean.REQ_CHANGE_SEAT_STATE)
-    public void reqChangeSeatState(PlayerController playerController, ReqChangeSeatState reqChangeSeatState) {
+    public void reqTexasChangeSeatState(PlayerController playerController, ReqTexasChangeSeatState reqTexasChangeSeatState) {
         long playerId = playerController.playerId();
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
                 roomManager.getGameControllerByPlayerId(playerId);
         if (gameController instanceof TexasGameController controller) {
             TexasGameDataVo gameDataVo = controller.getGameDataVo();
-            NotifySeatStateChange change = new NotifySeatStateChange();
-            SeatInfo seatInfo = gameDataVo.getSeatInfo().get(reqChangeSeatState.seatId);
+            NotifyTexasSeatStateChange change = new NotifyTexasSeatStateChange();
+            SeatInfo seatInfo = gameDataVo.getSeatInfo().get(reqTexasChangeSeatState.seatId);
             if (Objects.isNull(seatInfo) || seatInfo.getPlayerId() != playerId) {
                 change.code = Code.PARAM_ERROR;
                 controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
@@ -70,8 +69,8 @@ public class TexasMessageHandler {
                     return;
                 }
                 //改变座位状态
-                if (reqChangeSeatState.changeType == 1) {
-                    boolean state = reqChangeSeatState.param == 1;
+                if (reqTexasChangeSeatState.changeType == 1) {
+                    boolean state = reqTexasChangeSeatState.param == 1;
                     if (state) {
                         if (controller.inRunPhase()) {
                             change.code = Code.FORBID;
@@ -112,7 +111,7 @@ public class TexasMessageHandler {
                         controller.goBackWaitReadyPhase();
                     }
                     return;
-                } else if (reqChangeSeatState.changeType == 2) {
+                } else if (reqTexasChangeSeatState.changeType == 2) {
                     //改变座位id 当前局还未结束
                     if (controller.inRunPhase()) {
                         //加入游戏 禁止换座位
@@ -120,8 +119,8 @@ public class TexasMessageHandler {
                             change.code = Code.FORBID;
                             gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
                         } else {
-                            NotifySeatStateChange notifySeatStateChange = swapSeat(controller, seatInfo, gamePlayer, reqChangeSeatState.param);
-                            controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifySeatStateChange));
+                            NotifyTexasSeatStateChange notifyTexasSeatStateChange = swapSeat(controller, seatInfo, gamePlayer, reqTexasChangeSeatState.param);
+                            controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifyTexasSeatStateChange));
                         }
                         return;
                     } else {
@@ -131,21 +130,21 @@ public class TexasMessageHandler {
                             gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
                             return;
                         }
-                        NotifySeatStateChange notifySeatStateChange = swapSeat(controller, seatInfo, gamePlayer, reqChangeSeatState.param);
-                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifySeatStateChange));
+                        NotifyTexasSeatStateChange notifyTexasSeatStateChange = swapSeat(controller, seatInfo, gamePlayer, reqTexasChangeSeatState.param);
+                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifyTexasSeatStateChange));
                         return;
                     }
                 }
             }
         }
-        NotifySeatStateChange change = new NotifySeatStateChange();
+        NotifyTexasSeatStateChange change = new NotifyTexasSeatStateChange();
         change.code = Code.FAIL;
         gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
     }
 
-    public NotifySeatStateChange swapSeat(TexasGameController controller, SeatInfo seatInfo, GamePlayer gamePlayer, int srcSeatId) {
+    public NotifyTexasSeatStateChange swapSeat(TexasGameController controller, SeatInfo seatInfo, GamePlayer gamePlayer, int srcSeatId) {
         TexasGameDataVo gameDataVo = controller.getGameDataVo();
-        NotifySeatStateChange change = new NotifySeatStateChange();
+        NotifyTexasSeatStateChange change = new NotifyTexasSeatStateChange();
         //判断目标座位是否有人
         if (gameDataVo.getSeatInfo().containsKey(srcSeatId)) {
             change.code = Code.PARAM_ERROR;
@@ -165,7 +164,7 @@ public class TexasMessageHandler {
     }
 
     @Command(value = TexasConstant.MsgBean.REQ_CHANGE_TABLE)
-    public void reqChangeTable(PlayerController playerController, ReqChangeTable changeTable) {
+    public void reqTexasChangeTable(PlayerController playerController, ReqTexasChangeTable changeTable) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
         if (gameController instanceof TexasGameController controller) {

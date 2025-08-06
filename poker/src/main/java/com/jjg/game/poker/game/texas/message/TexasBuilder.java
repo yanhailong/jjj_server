@@ -1,13 +1,12 @@
 package com.jjg.game.poker.game.texas.message;
 
-import com.jjg.game.core.data.Card;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
-import com.jjg.game.poker.game.texas.message.reps.NotifySettlementInfo;
+import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementInfo;
 import com.jjg.game.poker.game.texas.message.bean.TexasRoundInfo;
-import com.jjg.game.poker.game.texas.message.reps.NotifyAllInSettlementInfo;
-import com.jjg.game.poker.game.texas.message.reps.NotifyPublicCardChange;
+import com.jjg.game.poker.game.texas.message.reps.NotifyTexasAllInSettlementInfo;
+import com.jjg.game.poker.game.texas.message.reps.NotifyTexasPublicCardChange;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.poker.game.texas.util.HandResult;
 import com.jjg.game.poker.game.texas.util.PokerHandEvaluator;
@@ -24,24 +23,24 @@ import java.util.stream.Collectors;
  */
 public class TexasBuilder {
 
-    public static NotifyPublicCardChange getNotifyPublicCardChange(PlayerSeatInfo playerSeatInfo, PlayerSeatInfo nextExePlayer, List<Integer> addCards, TexasGameDataVo gameDataVo) {
-        NotifyPublicCardChange notifyPublicCardChange = new NotifyPublicCardChange();
+    public static NotifyTexasPublicCardChange getNotifyPublicCardChange(PlayerSeatInfo playerSeatInfo, PlayerSeatInfo nextExePlayer, List<Integer> addCards, TexasGameDataVo gameDataVo) {
+        NotifyTexasPublicCardChange notifyTexasPublicCardChange = new NotifyTexasPublicCardChange();
         TexasRoundInfo texasRoundInfo = new TexasRoundInfo();
-        texasRoundInfo.cards = TexasDataHelper.getClientId(addCards,gameDataVo.getRoomCfg().getId());
+        texasRoundInfo.cards = TexasDataHelper.getClientId(addCards,TexasDataHelper.getPoolId(gameDataVo));
         texasRoundInfo.round = gameDataVo.getRound();
         if (Objects.nonNull(playerSeatInfo)) {
             texasRoundInfo.handType = getTempHandType(playerSeatInfo, gameDataVo).getHandRank().rank;
         }
-        notifyPublicCardChange.roundInfo = texasRoundInfo;
-        notifyPublicCardChange.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
-        notifyPublicCardChange.playerId = nextExePlayer.getPlayerId();
-        return notifyPublicCardChange;
+        notifyTexasPublicCardChange.roundInfo = texasRoundInfo;
+        notifyTexasPublicCardChange.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
+        notifyTexasPublicCardChange.playerId = nextExePlayer.getPlayerId();
+        return notifyTexasPublicCardChange;
     }
 
     public static HandResult getTempHandType(PlayerSeatInfo info, TexasGameDataVo gameDataVo) {
         List<Integer> publicCards = new ArrayList<>(gameDataVo.getPublicCards());
         publicCards.addAll(info.getCurrentCards());
-        Map<Integer, PokerCard> cardListMap = TexasDataHelper.getCardListMap(gameDataVo.getRoomCfg().getId());
+        Map<Integer, PokerCard> cardListMap = TexasDataHelper.getCardListMap(TexasDataHelper.getPoolId(gameDataVo));
         return PokerHandEvaluator.evaluateBestHand(publicCards.stream().map(cardListMap::get).collect(Collectors.toList()));
     }
 
@@ -53,10 +52,10 @@ public class TexasBuilder {
         return texasRoundInfo;
     }
 
-    public static NotifyAllInSettlementInfo getNotifyAllInSettlementInfo(NotifySettlementInfo notifySettlementInfo, List<TexasRoundInfo> texasRoundInfos) {
-        NotifyAllInSettlementInfo notifyAllInSettlementInfo = new NotifyAllInSettlementInfo();
-        notifyAllInSettlementInfo.settlementInfo = notifySettlementInfo;
-        notifyAllInSettlementInfo.roundInfos = texasRoundInfos;
-        return  notifyAllInSettlementInfo;
+    public static NotifyTexasAllInSettlementInfo getNotifyAllInSettlementInfo(NotifyTexasSettlementInfo notifyTexasSettlementInfo, List<TexasRoundInfo> texasRoundInfos) {
+        NotifyTexasAllInSettlementInfo notifyTexasAllInSettlementInfo = new NotifyTexasAllInSettlementInfo();
+        notifyTexasAllInSettlementInfo.settlementInfo = notifyTexasSettlementInfo;
+        notifyTexasAllInSettlementInfo.roundInfos = texasRoundInfos;
+        return notifyTexasAllInSettlementInfo;
     }
 }

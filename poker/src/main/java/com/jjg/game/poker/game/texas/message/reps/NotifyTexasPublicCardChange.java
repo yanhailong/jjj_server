@@ -7,8 +7,6 @@ import com.jjg.game.core.pb.AbstractNotice;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.message.bean.TexasRoundInfo;
 
-import java.util.List;
-
 /**
  * @author lm
  * @date 2025/7/30 11:47
@@ -16,7 +14,7 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TEXAS_TYPE
         , cmd = TexasConstant.MsgBean.NOTIFY_PUBLIC_CARD_CHANGE, resp = true)
 @ProtoDesc("通知公区扑克牌变化")
-public class NotifyPublicCardChange extends AbstractNotice {
+public class NotifyTexasPublicCardChange extends AbstractNotice {
     @ProtoDesc("执行的玩家id")
     public long playerId;
     @ProtoDesc("超时时间")

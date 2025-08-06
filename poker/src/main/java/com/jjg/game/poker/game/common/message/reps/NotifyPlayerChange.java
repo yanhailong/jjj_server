@@ -5,7 +5,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractNotice;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
-import com.jjg.game.poker.game.common.message.bean.PlayerInfo;
+import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 
 /**
  * @author lm
@@ -16,7 +16,7 @@ import com.jjg.game.poker.game.common.message.bean.PlayerInfo;
 @ProtoDesc("通知玩家变化")
 public class NotifyPlayerChange extends AbstractNotice {
     @ProtoDesc("玩家基本信息")
-    public PlayerInfo playerInfo;
+    public PokerPlayerInfo pokerPlayerInfo;
     @ProtoDesc("房间总人数")
     public long totalNum;
 }

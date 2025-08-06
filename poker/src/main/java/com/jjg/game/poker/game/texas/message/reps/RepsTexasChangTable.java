@@ -12,8 +12,8 @@ import com.jjg.game.poker.game.texas.constant.TexasConstant;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TEXAS_TYPE,cmd = TexasConstant.MsgBean.REPS_CHANG_TABLE,resp = true)
 @ProtoDesc("响应换桌")
-public class RepsChangTable extends AbstractResponse {
-    public RepsChangTable(int code) {
+public class RepsTexasChangTable extends AbstractResponse {
+    public RepsTexasChangTable(int code) {
         super(code);
     }
 }

@@ -2,7 +2,7 @@ package com.jjg.game.poker.game.texas.message.bean;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.poker.game.common.message.bean.PlayerInfo;
+import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ import java.util.List;
 @ProtoDesc("德州玩家信息")
 public class TexasPlayerInfo {
     @ProtoDesc("基本玩家信息")
-    public PlayerInfo playerInfo;
+    public PokerPlayerInfo pokerPlayerInfo;
     @ProtoDesc("总押注")
     public long totalBet;
     @ProtoDesc("当前手牌")

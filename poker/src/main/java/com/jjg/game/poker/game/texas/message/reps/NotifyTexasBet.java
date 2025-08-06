@@ -15,7 +15,7 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TEXAS_TYPE, cmd = TexasConstant.MsgBean
         .NOTIFY_BET, resp = true)
 @ProtoDesc("响应下注")
-public class NotifyBet extends AbstractNotice {
+public class NotifyTexasBet extends AbstractNotice {
     @ProtoDesc("玩家id")
     public long playerId;
     @ProtoDesc("下一个执行的玩家id")

@@ -4,15 +4,11 @@ import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
-import com.jjg.game.poker.game.common.message.reps.NotifyPhaseChange;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
-import com.jjg.game.room.data.robot.GameRobotPlayer;
-import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
-
-import java.util.Map;
 
 /**
  * 开始游戏阶段
@@ -29,8 +25,8 @@ public abstract class BaseStartGamePhase<T extends BasePokerGameDataVo> extends 
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
-        NotifyPhaseChange notifyPhaseChange = PokerBuilder.buildNotifyPhaseChange(getGamePhase(), getPhaseRunTime());
-        broadcastMsgToRoom(notifyPhaseChange);
+        NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(getGamePhase(), getPhaseRunTime());
+        broadcastMsgToRoom(notifyPokerPhaseChange);
     }
 
     @Override
@@ -41,15 +37,15 @@ public abstract class BaseStartGamePhase<T extends BasePokerGameDataVo> extends 
         if (roomCfg.getMinPlayer() >= total && total <= roomCfg.getMaxPlayer()) {
             //进行下一个阶段
             nextPhase();
-            NotifyPhaseChange notifyPhaseChange = PokerBuilder.buildNotifyPhaseChange(gameController.getCurrentGamePhase(), gameDataVo.getPhaseEndTime());
-            broadcastMsgToRoom(notifyPhaseChange);
+            NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(gameController.getCurrentGamePhase(), gameDataVo.getPhaseEndTime());
+            broadcastMsgToRoom(notifyPokerPhaseChange);
         } else {
             //重新等待
             if (gameController instanceof BasePokerGameController<T> basePokerGameController) {
                 basePokerGameController.goBackWaitReadyPhase();
             }
-            NotifyPhaseChange notifyPhaseChange = PokerBuilder.buildNotifyPhaseChange(EGamePhase.WAIT_READY, -1);
-            broadcastMsgToRoom(notifyPhaseChange);
+            NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(EGamePhase.WAIT_READY, -1);
+            broadcastMsgToRoom(notifyPokerPhaseChange);
         }
     }
 

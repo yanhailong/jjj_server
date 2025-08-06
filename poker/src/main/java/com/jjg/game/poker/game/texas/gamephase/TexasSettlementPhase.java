@@ -7,10 +7,11 @@ import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
+import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
-import com.jjg.game.poker.game.common.message.bean.PlayerInfo;
-import com.jjg.game.poker.game.common.message.bean.PlayerSettlementInfo;
+import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
+import com.jjg.game.poker.game.common.message.bean.PokerPlayerSettlementInfo;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.Pot;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
@@ -19,9 +20,9 @@ import com.jjg.game.poker.game.texas.message.TexasBuilder;
 import com.jjg.game.poker.game.texas.message.bean.TexasPotInfo;
 import com.jjg.game.poker.game.texas.message.bean.TexasRoundInfo;
 import com.jjg.game.poker.game.texas.message.bean.TexasSettlementPlayerInfo;
-import com.jjg.game.poker.game.texas.message.reps.NotifyAllInSettlementInfo;
-import com.jjg.game.poker.game.texas.message.reps.NotifySettlementInfo;
-import com.jjg.game.poker.game.texas.message.reps.NotifySettlementPlayerChange;
+import com.jjg.game.poker.game.texas.message.reps.NotifyTexasAllInSettlementInfo;
+import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementInfo;
+import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementPlayerChange;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.poker.game.texas.util.HandResult;
@@ -82,18 +83,18 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
      * 正常结算
      */
     private void normalSettlement(TexasGameController controller) {
-        NotifySettlementInfo notifySettlementInfo = getNormalSettlementInfo(controller);
-        broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifySettlementInfo));
-        gameDataVo.setNotifySettlementInfo(notifySettlementInfo);
+        NotifyTexasSettlementInfo notifyTexasSettlementInfo = getNormalSettlementInfo(controller);
+        broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSettlementInfo));
+        gameDataVo.setNotifySettlementInfo(notifyTexasSettlementInfo);
     }
 
-    private NotifySettlementInfo getNormalSettlementInfo(TexasGameController controller) {
+    private NotifyTexasSettlementInfo getNormalSettlementInfo(TexasGameController controller) {
         List<Pot> pool = gameDataVo.getPool();
         //用奖池发奖
         Map<Long, Long> playerGet = new HashMap<>();
         Map<Long, HandResult> playerFinalCards = new HashMap<>();
         Map<Long, Pair<PlayerSeatInfo, List<Card>>> playerCards = new HashMap<>();
-        Map<Integer, PokerCard> cardListMap = TexasDataHelper.getCardListMap(gameDataVo.getRoomCfg().getId());
+        Map<Integer, PokerCard> cardListMap = TexasDataHelper.getCardListMap(TexasDataHelper.getPoolId(gameDataVo));
         List<Card> publicCards = gameDataVo.getPublicCards().stream().map(cardListMap::get).collect(Collectors.toList());
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
             if (info.getOperationType() == PokerConstant.PlayerOperation.DISCARD) {
@@ -136,9 +137,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             texasPotInfos.add(texasPotInfo);
         }
         //通知结算
-        NotifySettlementInfo notifySettlementInfo = new NotifySettlementInfo();
-        notifySettlementInfo.potInfos = texasPotInfos;
-        notifySettlementInfo.endTime = gameDataVo.getPhaseEndTime();
+        NotifyTexasSettlementInfo notifyTexasSettlementInfo = new NotifyTexasSettlementInfo();
+        notifyTexasSettlementInfo.potInfos = texasPotInfos;
+        notifyTexasSettlementInfo.endTime = gameDataVo.getPhaseEndTime();
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         List<TexasSettlementPlayerInfo> settlementInfoArrayList = new ArrayList<>();
         //广播
@@ -147,9 +148,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             Pair<PlayerSeatInfo, List<Card>> pair = entry.getValue();
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
             TexasSettlementPlayerInfo settlementPlayerInfo = new TexasSettlementPlayerInfo();
-            PlayerSettlementInfo playerSettlementInfo = new PlayerSettlementInfo();
-            settlementPlayerInfo.playerSettlementInfo = playerSettlementInfo;
-            playerSettlementInfo.playerId = playerId;
+            PokerPlayerSettlementInfo pokerPlayerSettlementInfo = new PokerPlayerSettlementInfo();
+            settlementPlayerInfo.pokerPlayerSettlementInfo = pokerPlayerSettlementInfo;
+            pokerPlayerSettlementInfo.playerId = playerId;
             HandResult handResult = playerFinalCards.get(playerId);
             if (Objects.isNull(handResult)) {
                 handResult = TexasBuilder.getTempHandType(pair.getFirst(), gameDataVo);
@@ -163,14 +164,15 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 //增加金币
                 controller.changePlayerGold(gamePlayer, get);
             }
-            playerSettlementInfo.currentGold = gamePlayer.getGold();
-            playerSettlementInfo.getGold = get;
-            playerSettlementInfo.win = playerSettlementInfo.getGold > 0;
+            pokerPlayerSettlementInfo.currentGold = gamePlayer.getGold();
+            pokerPlayerSettlementInfo.getGold = get;
+            pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;
             settlementPlayerInfo.cardType = handResult.getHandRank().rank;
+            settlementPlayerInfo.handCards = PokerDataHelper.getClientId(pair.getFirst().getCurrentCards(), TexasDataHelper.getPoolId(gameDataVo));
             settlementInfoArrayList.add(settlementPlayerInfo);
         }
-        notifySettlementInfo.playerSettlementInfos = settlementInfoArrayList;
-        return notifySettlementInfo;
+        notifyTexasSettlementInfo.playerSettlementInfos = settlementInfoArrayList;
+        return notifyTexasSettlementInfo;
     }
 
     /**
@@ -202,7 +204,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 tempCardList = List.of(card);
                 addTime += TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS);
             }
-            List<Integer> clientId = TexasDataHelper.getClientId(tempCardList, gameDataVo.getRoomCfg().getId());
+            List<Integer> clientId = TexasDataHelper.getClientId(tempCardList, TexasDataHelper.getPoolId(gameDataVo));
             for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
                 List<TexasRoundInfo> texasRoundInfos = playerRoundInfos.computeIfAbsent(info.getPlayerId(), k -> new ArrayList<>());
                 int rank = TexasBuilder.getTempHandType(info, gameDataVo).getHandRank().rank;
@@ -213,7 +215,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             texasRoundInfo.cards = clientId;
             defaultInfo.add(texasRoundInfo);
         }
-        NotifySettlementInfo normalSettlementInfo = getNormalSettlementInfo(controller);
+        NotifyTexasSettlementInfo normalSettlementInfo = getNormalSettlementInfo(controller);
         //计算最后的结算时间
         gameDataVo.setPhaseEndTime(gameDataVo.getPhaseEndTime() + addTime);
         normalSettlementInfo.endTime = gameDataVo.getPhaseEndTime();
@@ -221,7 +223,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         //通知
         for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
             List<TexasRoundInfo> orDefault = playerRoundInfos.getOrDefault(seatInfo.getPlayerId(), defaultInfo);
-            NotifyAllInSettlementInfo inSettlementInfo = TexasBuilder.getNotifyAllInSettlementInfo(normalSettlementInfo, orDefault);
+            NotifyTexasAllInSettlementInfo inSettlementInfo = TexasBuilder.getNotifyAllInSettlementInfo(normalSettlementInfo, orDefault);
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(seatInfo.getPlayerId(), inSettlementInfo));
         }
     }
@@ -241,27 +243,27 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         for (Pot pot : gameDataVo.getPool()) {
             total += pot.getAmount();
         }
-        NotifySettlementInfo notifySettlementInfo = new NotifySettlementInfo();
-        notifySettlementInfo.endTime = gameDataVo.getPhaseEndTime();
+        NotifyTexasSettlementInfo notifyTexasSettlementInfo = new NotifyTexasSettlementInfo();
+        notifyTexasSettlementInfo.endTime = gameDataVo.getPhaseEndTime();
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         List<TexasSettlementPlayerInfo> settlementInfoArrayList = new ArrayList<>();
         //广播
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-        PlayerSettlementInfo playerSettlementInfo = new PlayerSettlementInfo();
-        playerSettlementInfo.playerId = playerId;
+        PokerPlayerSettlementInfo pokerPlayerSettlementInfo = new PokerPlayerSettlementInfo();
+        pokerPlayerSettlementInfo.playerId = playerId;
         //增加金币
         long get = total - baseBetInfo.getOrDefault(playerId, 0L);
         get = get * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000;
         controller.changePlayerGold(gamePlayer, total);
-        playerSettlementInfo.currentGold = gamePlayer.getGold();
-        playerSettlementInfo.getGold = get;
-        playerSettlementInfo.win = playerSettlementInfo.getGold > 0;
+        pokerPlayerSettlementInfo.currentGold = gamePlayer.getGold();
+        pokerPlayerSettlementInfo.getGold = get;
+        pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;
         TexasSettlementPlayerInfo settlementPlayerInfo = new TexasSettlementPlayerInfo();
-        settlementPlayerInfo.playerSettlementInfo = playerSettlementInfo;
+        settlementPlayerInfo.pokerPlayerSettlementInfo = pokerPlayerSettlementInfo;
         settlementInfoArrayList.add(settlementPlayerInfo);
-        notifySettlementInfo.playerSettlementInfos = settlementInfoArrayList;
-        broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifySettlementInfo));
-        gameDataVo.setNotifySettlementInfo(notifySettlementInfo);
+        notifyTexasSettlementInfo.playerSettlementInfos = settlementInfoArrayList;
+        broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSettlementInfo));
+        gameDataVo.setNotifySettlementInfo(notifyTexasSettlementInfo);
     }
 
     @Override
@@ -278,19 +280,18 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
 
     public void updatePlayerData() {
         if (gameController instanceof TexasGameController controller) {
-            Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
-            List<PlayerInfo> infos = new ArrayList<>();
+            List<PokerPlayerInfo> infos = new ArrayList<>();
             for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
                 seatInfo.setJoinGame(false);
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
                 if (Objects.isNull(gamePlayer)) {
                     continue;
                 }
-                controller.addTempGoldOrOutTable(seatInfo,gamePlayer);
+                controller.addTempGoldOrOutTable(seatInfo, gamePlayer);
                 infos.add(PokerBuilder.buildPlayerInfo(gamePlayer, gameDataVo, false));
             }
-            NotifySettlementPlayerChange notifySettlementPlayerChange = new NotifySettlementPlayerChange();
-            notifySettlementPlayerChange.playerInfos = infos;
+            NotifyTexasSettlementPlayerChange notifySettlementPlayerChange = new NotifyTexasSettlementPlayerChange();
+            notifySettlementPlayerChange.pokerPlayerInfos = infos;
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifySettlementPlayerChange));
         }
     }
