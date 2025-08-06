@@ -7,6 +7,7 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerLoginTimeDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RobotPlayer;
 import com.jjg.game.core.logger.CoreLogger;
 import org.slf4j.Logger;
@@ -157,6 +158,7 @@ public class AbstractPlayerService {
 
     /**
      * 设置vip等级
+     *
      * @param playerId
      * @param addType
      * @param desc
@@ -164,8 +166,8 @@ public class AbstractPlayerService {
      */
     public CommonResult<Player> setVip(long playerId, int vipLevel, String addType, String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
-        if(vipLevel < 0){
-            log.warn("设置vip等级错误 playerId={},vipLevel={}",playerId,vipLevel);
+        if (vipLevel < 0) {
+            log.warn("设置vip等级错误 playerId={},vipLevel={}", playerId, vipLevel);
             result.code = Code.PARAM_ERROR;
             return result;
         }
@@ -189,7 +191,7 @@ public class AbstractPlayerService {
         //记录日志
         if (p != null) {
             //TODO 后期要排除机器人的情况
-            coreLogger.vip(p,beforeLevel[0],vipLevel,addType,desc);
+            coreLogger.vip(p, beforeLevel[0], vipLevel, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
             return result;
@@ -211,7 +213,7 @@ public class AbstractPlayerService {
      * @return
      */
     public CommonResult<Player> addGold(long playerId, long addNum, String addType, String desc) {
-        // TODO 玩家在房间中时，不应由玩家添加金币的逻辑,需要判断.如果玩家在房间中,外部:比如大厅和某些定时产出,还在更新玩家金币和钻石,会导致数据同步问题
+        // TODO 玩家在房间中时，不应有玩家添加金币的逻辑,需要判断.如果玩家在房间中,外部:比如大厅和某些定时产出,还在更新玩家金币和钻石,会导致数据同步问题
         // TODO 添加金币时只能保证分布式服务状态下的更新同步，不能保证当前服的线程安全引起的数据同步问题
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (addNum == 0) {
@@ -265,5 +267,19 @@ public class AbstractPlayerService {
     public Player get(long playerId) {
         HashOperations<String, String, Player> operations = redisTemplate.opsForHash();
         return operations.get(tableName, playerId);
+    }
+
+
+    /**
+     * 通过玩家ID获取玩家对象并更新playerController中的对象值
+     *
+     * @param playerController 玩家controller
+     * @return 玩家对象
+     */
+    public Player getOrUpdatePlayerController(PlayerController playerController) {
+        HashOperations<String, String, Player> operations = redisTemplate.opsForHash();
+        Player player = operations.get(tableName, playerController.playerId());
+        playerController.setPlayer(player);
+        return player;
     }
 }

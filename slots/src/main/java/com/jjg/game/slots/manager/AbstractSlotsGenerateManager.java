@@ -619,11 +619,12 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo,T extends Slot
     /**
      * 随机一个滚轴id
      */
-    public T randRollerId() throws Exception {
+    public T randRollerId(int modeId) throws Exception {
         T slotsResultLib = createResultLib();
         //首先随机模式id
-        int modeId = this.rollModeList.get(RandomUtils.randomInt(this.rollModeList.size()));
-
+        if(modeId < 1){
+            modeId = this.rollModeList.get(RandomUtils.randomInt(this.rollModeList.size()));
+        }
         //根据模式id，获取滚轴id列表
         List<Integer> tmpRollerIdList = this.baseRollerModeCfg.getRollerMode().get(modeId);
         if (tmpRollerIdList == null || tmpRollerIdList.isEmpty()) {
@@ -650,6 +651,13 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo,T extends Slot
         slotsResultLib.setRollerMode(modeId);
         slotsResultLib.setRollerId(rollerId);
         return slotsResultLib;
+    }
+
+    /**
+     * 随机一个滚轴id
+     */
+    public T randRollerId() throws Exception {
+        return randRollerId(0);
     }
 
     /**

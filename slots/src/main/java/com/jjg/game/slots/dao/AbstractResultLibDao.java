@@ -186,7 +186,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         return redisTableNameIndex;
     }
 
-    protected int getSectionIndex(Map<Integer, Map<Integer, Map<Integer, int[]>>> resultLibSectionMap, int modelId, int libType, int times) {
+    protected int getSectionIndex(Map<Integer, Map<Integer, Map<Integer, int[]>>> resultLibSectionMap, int modelId, int libType, long times) {
         Map<Integer, Map<Integer, int[]>> modelMap = resultLibSectionMap.get(modelId);
         if (modelMap == null) {
             return -1;

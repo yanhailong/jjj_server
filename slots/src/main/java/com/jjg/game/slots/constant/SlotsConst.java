@@ -35,6 +35,11 @@ public interface SlotsConst {
 
         //获取lib失败，总计可尝试次数
         int GET_LIB_FAIL_RETRY_COUNT = 5;
+
+        //单线押分
+        int ONE_LINE = 1;
+        //总押分
+        int ALL_LINE = 2;
     }
 
     //结果库变更类型

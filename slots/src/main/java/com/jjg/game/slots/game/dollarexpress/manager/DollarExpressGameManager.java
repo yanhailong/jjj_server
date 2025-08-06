@@ -13,6 +13,8 @@ import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.GirdUpdateConfig;
 import com.jjg.game.slots.data.PropInfo;
+import com.jjg.game.slots.data.SlotsPlayerGameData;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressLogger;
 import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressGameDataDao;
@@ -30,6 +32,8 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 美元快递游戏逻辑处理器
@@ -57,6 +61,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     //在替换格子时限制while最大循环次数
     private final int updateGirdWhildMaxCount = 30;
 
+    //倍率放大倍数
+    private int timesScale = 100;
+    private BigDecimal timesScaleBigDecimal = BigDecimal.valueOf(timesScale);
+
 
     public DollarExpressGameManager() {
         super(DollarExpressPlayerGameData.class);
@@ -68,9 +76,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         this.gameType = CoreConst.GameType.DOLLAR_EXPRESS;
         this.libDao.init(this.gameType);
 
+        this.generateManager.init(this.gameType);
         //计算配置后缓存
         initConfig();
-        this.generateManager.init(this.gameType);
     }
 
     /**
@@ -144,7 +152,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
             //标准池
             if (gameRunInfo.getBigPoolTimes() > 0) {
-                long addGold = playerGameData.getLastBet() * gameRunInfo.getBigPoolTimes();
+                long addGold = calWinGold(playerGameData.getLastBet(),gameRunInfo.getBigPoolTimes());
                 if (addGold > 0) {
                     CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_BET_REWARD");
                     if (!result.success()) {
@@ -156,7 +164,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 }
             }
 
-            gameRunInfo.addAllWinGold(gameRunInfo.getAllWinGold());
+            gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //添加美元收集进度
             if (gameRunInfo.getTotalDollars() < 1) {
@@ -168,7 +176,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             gameRunInfo.setAfterGold(player.getGold());
 
             //添加大奖展示id
-            int times = (int) (gameRunInfo.getAllWinGold() / playerGameData.getLastStake());
+            int times = (int) (gameRunInfo.getAllWinGold() / playerGameData.getLastBet());
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 
@@ -425,7 +433,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         //检查押分是否合法
-        boolean match = baseRoomCfg.getLineBetScore().stream().anyMatch(bet -> bet == betValue);
+        boolean match = this.allStakeMap.get(playerGameData.getRoomCfgId()).stream().anyMatch(bet -> bet == betValue);
         if (!match) {
             log.warn("押分值不合法 playerId = {},gameType = {},roomCfgId = {},betValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), betValue);
             gameRunInfo.setCode(Code.PARAM_ERROR);
@@ -504,10 +512,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             return gameRunInfo;
         }
 
-        long bet = BigDecimal.valueOf(betValue).divide(hundred, 0, BigDecimal.ROUND_HALF_UP).longValue();
+//        long bet = BigDecimal.valueOf(betValue).divide(hundred, 0, BigDecimal.ROUND_HALF_UP).longValue();
         playerGameData.setLastStake(betValue);
-        playerGameData.setLastBet(bet);
-        gameRunInfo.setBet(bet);
+        playerGameData.setLastBet(betValue);
+        gameRunInfo.setBet(betValue);
 
         gameRunInfo.setIconArr(resultLib.getIconArr());
 
@@ -953,6 +961,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                     if (dollarsInfo.dollarValueList == null) {
                         dollarsInfo.dollarValueList = new ArrayList<>();
                     }
+                    //这里的倍数是总押分的正常倍数，不用放大缩小100倍
                     dollarsInfo.dollarValueList.add(times * gameData.getLastBet());
                     gameRunInfo.addDollarsGoldTimes(times);
                 }
@@ -984,7 +993,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         //检查是否收集美元
-        if (gameData.getLastStake() >= generateManager.getDollarExpressCollectDollarConfig().getStakeMin() && dollarsInfo.dollarIndexIds != null && dollarsInfo.dollarValueList != null) {
+        if (gameData.getLastBet() >= generateManager.getDollarExpressCollectDollarConfig().getStakeMin() && dollarsInfo.dollarIndexIds != null && dollarsInfo.dollarValueList != null) {
             dollarsInfo.collectDollarIndexIds = new ArrayList<>();
             boolean collect = false;
             for (int i = 0; i < dollarsInfo.dollarIndexIds.size(); i++) {
@@ -1001,7 +1010,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
 
             if (collect) {
-                gameData.addDollarsTotalStake(gameData.getLastStake());
+                gameData.addDollarsTotalStake(gameData.getLastBet());
                 log.debug("count = {},avg = {}", gameData.getAddDollarsCount(), gameData.getAddDollarsTotalStake() / gameData.getAddDollarsCount());
             }
         }
@@ -1015,7 +1024,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 }
             }
 
-            int times = goldTrainCount * gameRunInfo.getDollarsGoldTimes();
+            int times = goldTrainCount * gameRunInfo.getDollarsGoldTimes() * timesScale;
             gameRunInfo.addBigPoolTimes(times);
 
             TrainInfo goldTrainInfo = goldTrainPbInfo(goldTrainCount, gameRunInfo.getDollarsGoldTimes() * gameData.getLastBet());
@@ -1025,8 +1034,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
         //设置保险箱倍数
         if (dollarsInfo.coinIndexId > 0 && gameRunInfo.getDollarsGoldTimes() > 0) {
-            gameRunInfo.addBigPoolTimes(gameRunInfo.getDollarsGoldTimes());
-            log.debug("添加保险箱倍数 playerId = {},times = {}", gameData.playerId(), gameRunInfo.getDollarsGoldTimes());
+            int addTimes = gameRunInfo.getDollarsGoldTimes() * timesScale;
+            gameRunInfo.addBigPoolTimes(addTimes);
+            log.debug("添加保险箱倍数 playerId = {},times = {}", gameData.playerId(), addTimes);
         }
 
         gameRunInfo.setDollarsInfo(dollarsInfo);
@@ -1046,6 +1056,13 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     @Override
     protected DollarExpressGenerateManager getGenerateManager() {
         return this.generateManager;
+    }
+
+    protected DollarExpressPlayerGameData setGameDataValues(DollarExpressPlayerGameData playerGameData,DollarExpressPlayerGameDataDTO dto) {
+        playerGameData.setRemainFreeCount(new AtomicInteger(dto.getRemainFreeCount()));
+        playerGameData.setInvers(new AtomicBoolean(dto.isInvers()));
+        playerGameData.setAllUnLock(new AtomicBoolean(dto.isAllUnLock()));
+        return playerGameData;
     }
 
     @Override
@@ -1208,7 +1225,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
             //计算奖池金额
             //车厢节数+1，是因为要加上最后一个奖池车厢
-            long addGold = calTrainPoolValue(playerGameData.getLastStake(),poolCfg.getGrowthRate(),poolCfg.getFakePoolInitTimes(),poolCfg.getFakePoolMax(),trainInfo.goldList.size()+1,poolCfg.getDelayTime());
+            long addGold = calTrainPoolValue(playerGameData.getLastBet(),poolCfg.getGrowthRate(),poolCfg.getFakePoolInitTimes(),poolCfg.getFakePoolMax(),trainInfo.goldList.size()+1,poolCfg.getDelayTime());
 
             log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},addGold = {}", playerGameData.playerId(), rand, propV, addGold);
 
@@ -1339,7 +1356,11 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             autoChooseFreeModelType(playerGameData);
         }
 
-//        gameDataDao.saveGameData(playerGameData);
+        DollarExpressPlayerGameDataDTO dto = playerGameData.converToDto();
+        dto.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
+        dto.setInvers(playerGameData.getInvers().get());
+        dto.setAllUnLock(playerGameData.getAllUnLock().get());
+        gameDataDao.saveGameData(dto);
         return true;
     }
 
@@ -1419,7 +1440,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         long addGold = initPoolBigDecimal.add(step3).longValue();
 
 //        log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},intervalTime = {},y = {},addGold = {}", playerGameData.playerId(), rand, propV, intervalTime, y, addGold);
-        log.debug("计算火车奖池金额 stake = {},timeValue = {},propValue = {},y = {},addGold = {}", stake, timeValue, propValue, y, addGold);
+//        log.debug("计算火车奖池金额 stake = {},timeValue = {},propValue = {},y = {},addGold = {}", stake, timeValue, propValue, y, addGold);
         return addGold;
     }
 
@@ -1436,7 +1457,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         if (train.getCoachs() != null && !train.getCoachs().isEmpty()) {
             trainInfo.goldList = new ArrayList<>(train.getCoachs().size());
             for (int[] arr : train.getCoachs()) {
-                trainInfo.goldList.add(bet * arr[1]);
+//                trainInfo.goldList.add(bet * arr[1]);
+                trainInfo.goldList.add(calWinGold(bet,arr[1]));
             }
         }
         return trainInfo;
@@ -1487,5 +1509,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     @Override
     public void shutdown() {
         log.info("正在关闭美元快递游戏管理器");
+    }
+
+    private long calWinGold(long bet,long times){
+        BigDecimal timesBigDecimal = BigDecimal.valueOf(times).divide(timesScaleBigDecimal, 2, RoundingMode.DOWN);
+        return BigDecimal.valueOf(bet).multiply(timesBigDecimal).longValue();
     }
 }

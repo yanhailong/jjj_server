@@ -66,8 +66,4 @@ public class VietnamDiceGameController extends BaseTableGameController<VietnamDi
         return EGameType.VIETNAM_DICE;
     }
 
-    @Override
-    public void initial() {
-
-    }
 }

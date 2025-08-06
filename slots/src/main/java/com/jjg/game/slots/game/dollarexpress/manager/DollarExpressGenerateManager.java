@@ -12,6 +12,8 @@ import com.jjg.game.slots.sample.GameDataManager;
 import com.jjg.game.slots.sample.bean.*;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 
@@ -32,6 +34,10 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 
     //从specialPlay中读取playType = 5时，获得的小游戏id
     private int goldTrainAuxiliaryId = 0;
+
+    //倍数放大了100倍
+    private int timesScale = 100;
+    private BigDecimal timesScaleBigDecimal = BigDecimal.valueOf(timesScale);
 
     @Override
     public void initConfig() {
@@ -58,6 +64,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         awardLineInfo.setId(baseLineCfg.getLineId());
         awardLineInfo.setBaseTimes(rewardCfg.getBet());
         awardLineInfo.setSameCount(sameCount);
+        awardLineInfo.setRewardType(rewardCfg.getRewardType());
         awardLineInfo.setIconId(baseIconId);
 
 //                    slotsResultLib.addTimes(rewardCfg.getBet());
@@ -625,10 +632,16 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @param lib
      */
     public void calTimes(DollarExpressResultLib lib) throws Exception {
+        //获取单线押分
+        BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(1001001);
+        int oneLineStake = baseRoomCfg.getLineBetScore().get(0);
+        //总押分
+        int allLinesStake = this.baseInitCfg.getMaxLine() * oneLineStake * baseRoomCfg.getBetMultiple().get(0) * baseRoomCfg.getLineMultiple().get(0);
+
         //中奖线
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+        lib.addTimes(calLineTimes(lib.getAwardLineInfoList(),oneLineStake,allLinesStake));
         //火车
-        CommonResult<Integer> trainResult = calTrainTimes(lib.getTrainList());
+        CommonResult<Long> trainResult = calTrainTimes(lib.getTrainList(),oneLineStake,allLinesStake);
         if (trainResult.success()) {
             lib.addTimes(trainResult.data);
             lib.addLibType(SlotsConst.SpecialResultLib.TYPE_TRAIN);
@@ -648,16 +661,16 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             for (Map.Entry<Integer, DollarExpressFreeGame> en : lib.getFreeGameMap().entrySet()) {
                 DollarExpressFreeGame game = en.getValue();
                 //中奖线
-                game.addTimes(calLineTimes(game.getAwardLineInfoList()));
+                game.addTimes(calLineTimes(game.getAwardLineInfoList(),oneLineStake,allLinesStake));
                 //火车
-                trainResult = calTrainTimes(game.getTrainList());
+                trainResult = calTrainTimes(game.getTrainList(),oneLineStake,allLinesStake);
                 if (trainResult.success()) {
                     game.addTimes(trainResult.data);
                     //火车排序
                     game.setTrainList(sortTrain(game.getIconArr(),game.getTrainList()));
                 }
                 //美元现金
-                game.addTimes(calDollarCashTimes(game.getDollarInfo()));
+//                game.addTimes(calDollarCashTimes(game.getDollarInfo()));
                 //黄金列车
 //                game.addTimes(calGoldTrainTimes(game.getDollarInfo() == null ? null : game.getDollarInfo().getDollarTimesList(), game.getGoldTrainCount()));
 //                if(game.getGoldTrainCount() > 0){
@@ -676,7 +689,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 DollarExpressAgainGame game = en.getValue();
 
                 //火车
-                trainResult = calTrainTimes(game.getTrainList());
+                trainResult = calTrainTimes(game.getTrainList(),oneLineStake,allLinesStake);
                 if (trainResult.success()) {
                     game.addTimes(trainResult.data);
 
@@ -721,7 +734,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         }
 
         //美元现金
-        lib.addTimes(calDollarCashTimes(lib.getDollarInfo()));
+//        lib.addTimes(calDollarCashTimes(lib.getDollarInfo()));
         //黄金列车
 //        int goldTrainTimes = calGoldTrainTimes(lib.getDollarInfo() == null ? null : lib.getDollarInfo().getDollarTimesList(), lib.getGoldTrainCount());
 
@@ -788,9 +801,11 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * 计算中奖线的倍数
      *
      * @param list
+     * @param oneLineStake 单线押分
+     * @param allLinesStake 总押分
      * @return
      */
-    private int calLineTimes(List<DollarExpressAwardLineInfo> list) {
+    private int calLineTimes(List<DollarExpressAwardLineInfo> list,int oneLineStake,int allLinesStake) {
         if (list == null || list.isEmpty()) {
             return 0;
         }
@@ -798,11 +813,13 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         int times = 0;
         for (DollarExpressAwardLineInfo awardLineInfo : list) {
             if (awardLineInfo.getOtherIconAwardInfoMap() == null || awardLineInfo.getOtherIconAwardInfoMap().isEmpty()) {
-                times += awardLineInfo.getBaseTimes();
+                times += oneLineToAllLineTimes(awardLineInfo.getRewardType(),oneLineStake,awardLineInfo.getBaseTimes(),allLinesStake);
                 continue;
             }
             for (Map.Entry<Integer, Integer> en : awardLineInfo.getOtherIconAwardInfoMap().entrySet()) {
-                times += awardLineInfo.getBaseTimes() * en.getValue();
+                int tmpTimes = awardLineInfo.getBaseTimes() * en.getValue();
+                times += oneLineToAllLineTimes(awardLineInfo.getRewardType(),oneLineStake,tmpTimes,allLinesStake);
+
             }
         }
         return times;
@@ -814,9 +831,9 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @param list
      * @return
      */
-    private CommonResult<Integer> calTrainTimes(List<Train> list) {
-        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
-        int times = 0;
+    private CommonResult<Long> calTrainTimes(List<Train> list,int oneLineStake,int allLinesStake) {
+        CommonResult<Long> result = new CommonResult<>(Code.SUCCESS);
+        long times = 0;
         if (list != null && !list.isEmpty()) {
             for (Train train : list) {
                 if (train.getCoachs() != null && !train.getCoachs().isEmpty()) {
@@ -824,7 +841,9 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                         if (arr[0] < 1) {
                             train.setPoolId(arr[1]);
                         } else {
-                            times += arr[1];
+                            int tmpTimes = (int)oneLineToAllLineTimes(arr[0],oneLineStake,arr[1],allLinesStake);
+                            arr[1] = tmpTimes;
+                            times += tmpTimes;
                         }
                     }
                 }
@@ -917,5 +936,25 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
     public void changeSampleCallbackCollector() {
         super.changeSampleCallbackCollector();
         addChangeSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, this::specialPlayConfig);
+    }
+
+    /**
+     * 单线押分倍数，转化为总押分倍数
+     * @param oneLineStake
+     * @param times
+     * @param allLinesStake
+     * @return
+     */
+    public long oneLineToAllLineTimes(int rewardType,int oneLineStake,long times,int allLinesStake){
+        if(rewardType == SlotsConst.Common.ONE_LINE){
+            BigDecimal step1 = BigDecimal.valueOf(oneLineStake).multiply(BigDecimal.valueOf(times));
+            BigDecimal step2 = step1.divide(BigDecimal.valueOf(allLinesStake), 2, RoundingMode.HALF_UP);
+            return step2.multiply(timesScaleBigDecimal).longValue();
+        }else {
+            if(times < 1){
+                return times;
+            }
+            return times * timesScale;
+        }
     }
 }

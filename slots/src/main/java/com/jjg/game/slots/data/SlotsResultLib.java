@@ -26,7 +26,7 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
     //图标集合
     protected int[] iconArr;
     //总的中奖倍率
-    protected int times;
+    protected long times;
     //中奖线信息
     protected List<T> awardLineInfoList;
 
@@ -78,11 +78,11 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
         this.iconArr = iconArr;
     }
 
-    public int getTimes() {
+    public long getTimes() {
         return times;
     }
 
-    public void setTimes(int times) {
+    public void setTimes(long times) {
         this.times = times;
     }
 
@@ -94,7 +94,7 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
         this.awardLineInfoList = awardLineInfoList;
     }
 
-    public void addTimes(int times) {
+    public void addTimes(long times) {
         this.times += times;
     }
 

@@ -168,7 +168,7 @@ public class Room {
         if (this.roomPlayers == null || this.roomPlayers.isEmpty()) {
             return;
         }
-        this.roomPlayers.entrySet().removeIf(entry -> entry.getValue().getPlayer() instanceof RobotPlayer);
+        this.roomPlayers.entrySet().removeIf(entry -> entry.getValue().isRobot());
     }
 
     public RoomPlayer getPlayer(long playerId) {

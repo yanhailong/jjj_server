@@ -16,9 +16,9 @@ import java.util.List;
 @ProtoDesc("请求配置信息")
 public class ResConfigInfo extends AbstractResponse {
     @ProtoDesc("押注列表")
-    public List<Integer> stakeList;
+    public List<Long> stakeList;
     @ProtoDesc("默认押注")
-    public int defaultBet;
+    public long defaultBet;
     @ProtoDesc("奖池信息")
     public List<PoolInfo> poolList;
     @ProtoDesc("美元收集目标值")

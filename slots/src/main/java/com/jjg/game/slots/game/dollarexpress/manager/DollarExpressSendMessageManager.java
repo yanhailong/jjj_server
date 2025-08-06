@@ -46,8 +46,8 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
 
         ResConfigInfo res = new ResConfigInfo(Code.SUCCESS);
         if (config != null) {
-            res.stakeList = config.getLineBetScore();
-            res.defaultBet = config.getDefaultBet().get(0);
+            res.stakeList = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
+            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0),playerController.getPlayer().getRoomCfgId());
 
             //奖池信息
             if (prizePoolIdList != null && !prizePoolIdList.isEmpty()) {

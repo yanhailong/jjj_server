@@ -1,6 +1,7 @@
 package com.jjg.game.table.baccarat;
 
 import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.room.listener.IPlayerRoomEventListener;
@@ -12,7 +13,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 百家乐临时房间
+ * 百家乐临时房间 TODO 当前只获取了玩家当前服的百家乐房间，如果后续关闭游戏服，但玩家一直停留在百家乐
  *
  * @author 2CL
  */
@@ -24,7 +25,7 @@ public class BaccaratTempRoom implements IPlayerRoomEventListener {
 
     @Override
     public int[] getGameTypes() {
-        return new int[]{200500};
+        return new int[]{EGameType.BACCARAT.getGameTypeId()};
     }
 
     @Override

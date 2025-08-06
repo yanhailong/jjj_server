@@ -3,7 +3,6 @@ package com.jjg.game.table.common;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
@@ -17,6 +16,8 @@ import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.RobotCfg;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.room.base.BaseGameTickTask;
+import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.req.NotifyTableExitRoom;
@@ -26,7 +27,6 @@ import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * table类房间基类
@@ -36,11 +36,20 @@ import java.util.stream.Collectors;
 public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     AbstractGameController<Room_BetCfg, G> {
 
-    // 最近检查玩家未操作的时间戳
-    private long nextPlayerNoOperateCheckTime;
-
     public BaseTableGameController(AbstractRoomController<Room_BetCfg, ? extends Room> roomController) {
         super(roomController);
+    }
+
+    @Override
+    public void initial() {
+        // 玩家长时间未操作检查
+        tickTaskMap.put(ETickTaskType.PLAYER_NO_OPERATE_CHECK,
+            new BaseGameTickTask(TableConstant.PLAYER_NO_OPERATE_CHECK_INTERVAL) {
+                @Override
+                public void run(long triggeredTimestamp) {
+                    checkPlayerNoOperateAlert();
+                }
+            });
     }
 
     @Override
@@ -129,12 +138,6 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     }
 
     @Override
-    public void timeTick() {
-        // 检查玩家长时间未操作提示
-        checkPlayerNoOperateAlert();
-    }
-
-    @Override
     public void dispatchGamePhaseMsg(PlayerController playerController, PFMessage message) {
         super.dispatchGamePhaseMsg(playerController, message);
         // 更新玩家操作时间
@@ -146,17 +149,18 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
      */
     private void checkPlayerNoOperateAlert() {
         long currentTime = System.currentTimeMillis();
-        if (nextPlayerNoOperateCheckTime != 0 && nextPlayerNoOperateCheckTime > currentTime) {
-            return;
-        }
-        nextPlayerNoOperateCheckTime = currentTime + TableConstant.PLAYER_NO_OPERATE_CHECK_INTERVAL;
+        // 获取真人玩家
         Map<Long, GamePlayer> gamePlayerMap = gameDataVo.getGamePlayerMapExceptRobot();
         if (gamePlayerMap.isEmpty()) {
             return;
         }
+        // 长时间无操作触发提示时间
         int waitTime = gameDataVo.getRoomCfg().getWaitTime();
+        // 长时间无操作触发提示语言ID
         int waitTimeTipLangId = gameDataVo.getRoomCfg().getTipText();
+        // 长时间无操作退出触发时间
         int exitTime = gameDataVo.getRoomCfg().getEscTime() + waitTime;
+        // 长时间无操作退出提示语言ID
         int exitTipLangId = gameDataVo.getRoomCfg().getEscTipText();
         for (Map.Entry<Long, GamePlayer> entry : gamePlayerMap.entrySet()) {
             GamePlayer gamePlayer = entry.getValue();

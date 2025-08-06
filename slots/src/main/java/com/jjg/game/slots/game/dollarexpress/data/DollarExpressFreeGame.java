@@ -15,7 +15,7 @@ public class DollarExpressFreeGame {
     //图标集合
     private int[] iconArr;
     //中奖倍率，这次免费游戏的总倍数
-    private int times;
+    private long times;
     //中奖线信息
     private List<DollarExpressAwardLineInfo> awardLineInfoList;
     //火车信息
@@ -50,11 +50,11 @@ public class DollarExpressFreeGame {
         this.iconArr = iconArr;
     }
 
-    public int getTimes() {
+    public long getTimes() {
         return times;
     }
 
-    public void setTimes(int times) {
+    public void setTimes(long times) {
         this.times = times;
     }
 
@@ -101,7 +101,7 @@ public class DollarExpressFreeGame {
         this.trainList.add(train);
     }
 
-    public void addTimes(int times){
+    public void addTimes(long times){
         this.times += times;
     }
 

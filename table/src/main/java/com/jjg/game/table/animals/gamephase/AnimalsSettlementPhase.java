@@ -68,14 +68,14 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
                 continue;
             }
             // 给玩家进行结算
-            long playerWin = calcSettlementGold(gamePlayer, winPosWeightCfgs, playerBetInfo);
+            SettlementData settlementData = calcSettlementGold(gamePlayer, winPosWeightCfgs, playerBetInfo);
             PlayerChangedGold playerChangedGold = new PlayerChangedGold();
             playerChangedGold.playerId = playerId;
-            playerChangedGold.playerWinGold = playerWin;
+            playerChangedGold.playerWinGold = settlementData.getBetWin();
             // 添加记录
-            entry.getValue().getTableGameData().addBetRecord(playerWin);
+            entry.getValue().getTableGameData().addBetRecord(settlementData.getBetTotal());
             // TODO 给玩家加金币
-            gamePlayer.setGold(gamePlayer.getGold() + playerWin);
+            gamePlayer.setGold(gamePlayer.getGold() + settlementData.getTotalWin());
             playerChangedGold.playerCurGold = gamePlayer.getGold();
             playerChangedGolds.add(playerChangedGold);
         }
@@ -128,9 +128,9 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
     /**
      * 结算金币
      */
-    private long calcSettlementGold(
+    private SettlementData calcSettlementGold(
         GamePlayer gamePlayer, List<WinPosWeightCfg> winPosWeightCfgs, Map<Integer, List<Integer>> playerBetInfo) {
-        long playerWin = 0;
+        SettlementData settlementData = new SettlementData();
         for (WinPosWeightCfg winPosWeightCfg : winPosWeightCfgs) {
             List<Integer> betAreas = winPosWeightCfg.getBetArea();
             if (betAreas == null || betAreas.isEmpty()) {
@@ -141,7 +141,8 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
                 List<Integer> playerBetGoldList = playerBetInfo.get(betAreaId);
                 // 玩家总押注
                 long playerBetGoldTotal = playerBetGoldList.stream().mapToInt(Integer::intValue).sum();
-                playerWin += calcGold(gamePlayer, winPosWeightCfg, playerBetGoldTotal);
+                 SettlementData calcGold = calcGold(gamePlayer, winPosWeightCfg, playerBetGoldTotal);
+                 settlementData.increaseBySettlementData(calcGold);
             } else if (winPosWeightCfg.getWinType() == 4) {
                 // 通赔逻辑
                 for (Map.Entry<Integer, List<Integer>> entry : playerBetInfo.entrySet()) {
@@ -150,11 +151,12 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
                     int posId = posWinList.get(0);
                     WinPosWeightCfg weightCfg = GameDataManager.getWinPosWeightCfg(posId);
                     int playerBetGoldTotal = entry.getValue().stream().mapToInt(Integer::intValue).sum();
-                    playerWin += calcGold(gamePlayer, weightCfg, playerBetGoldTotal);
+                    SettlementData calcGold = calcGold(gamePlayer, weightCfg, playerBetGoldTotal);
+                    settlementData.increaseBySettlementData(calcGold);
                 }
             }
         }
-        return playerWin;
+        return settlementData;
     }
 
     @Override

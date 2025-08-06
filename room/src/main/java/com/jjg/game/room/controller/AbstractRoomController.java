@@ -210,7 +210,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                                 if (!flag) {
                                     RoomPlayer tmpRoomPlayer = roomDao.createRoomPlayer(playerController);
                                     tmpRoomPlayer.setSit(i);
-                                    tmpRoomPlayer.setPlayer(playerController.getPlayer());
+                                    tmpRoomPlayer.setRobot(playerController.getPlayer() instanceof RobotPlayer);
                                     room.addPlayer(tmpRoomPlayer);
                                     return true;
                                 }
@@ -274,7 +274,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         PlayerRoomDataDao playerRoomDataDao = roomManager.getPlayerRoomDataDao();
         List<PlayerRoomData> playerRoomDataList = new ArrayList<>();
         for (Map.Entry<Long, RoomPlayer> entry : room.getRoomPlayers().entrySet()) {
-            if (entry.getValue().getPlayer() == null || entry.getValue().whichIsRobot()) {
+            if (entry.getValue().isRobot()) {
                 continue;
             }
             PlayerRoomData playerRoomData = entry.getValue().getPlayerRoomData();

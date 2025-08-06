@@ -122,10 +122,4 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
                 RoomMessageBuilder.newBuilder().addPlayerId(playerController.playerId()).setData(notifyRedBlackWarInfo));
     }
 
-
-    @Override
-    public void initial() {
-
-    }
-
 }
