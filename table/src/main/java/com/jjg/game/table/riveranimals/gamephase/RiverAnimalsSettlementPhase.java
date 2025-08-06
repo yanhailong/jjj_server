@@ -3,6 +3,7 @@ package com.jjg.game.table.riveranimals.gamephase;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.betsample.sample.GameDataManager;
 import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
@@ -27,7 +28,7 @@ import java.util.stream.Collectors;
  */
 public class RiverAnimalsSettlementPhase extends BaseDiceSettlementPhase<RiverAnimalsGameDataVo> {
 
-    public RiverAnimalsSettlementPhase(AbstractGameController<Room_BetCfg, RiverAnimalsGameDataVo> gameController) {
+    public RiverAnimalsSettlementPhase(AbstractPhaseGameController<Room_BetCfg, RiverAnimalsGameDataVo> gameController) {
         super(gameController);
     }
 

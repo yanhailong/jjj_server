@@ -1,6 +1,7 @@
 package com.jjg.game.table.animals.gamephase;
 
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.animals.data.AnimalsGameDataVo;
 import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
@@ -12,7 +13,7 @@ import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
  */
 public class AnimalsBetPhase extends BaseTableBetPhase<AnimalsGameDataVo> {
 
-    public AnimalsBetPhase(AbstractGameController<Room_BetCfg, AnimalsGameDataVo> gameController) {
+    public AnimalsBetPhase(AbstractPhaseGameController<Room_BetCfg, AnimalsGameDataVo> gameController) {
         super(gameController);
     }
 

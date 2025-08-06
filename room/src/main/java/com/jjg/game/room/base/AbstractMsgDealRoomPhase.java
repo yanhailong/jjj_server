@@ -2,6 +2,7 @@ package com.jjg.game.room.base;
 
 import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.sample.bean.RoomCfg;
 
@@ -15,7 +16,7 @@ import com.jjg.game.room.sample.bean.RoomCfg;
 public abstract class AbstractMsgDealRoomPhase<RC extends RoomCfg, G extends GameDataVo<RC>, M extends AbstractMessage>
     extends AbstractRoomPhase<RC, G> implements IPhaseMsgAdapter<M> {
 
-    public AbstractMsgDealRoomPhase(AbstractGameController<RC, G> gameController) {
+    public AbstractMsgDealRoomPhase(AbstractPhaseGameController<RC, G> gameController) {
         super(gameController);
     }
 }

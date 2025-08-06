@@ -2,6 +2,7 @@ package com.jjg.game.table.dicecommon.phase;
 
 import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
@@ -23,7 +24,7 @@ import java.util.Map;
  */
 public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends BaseSettlementPhase<T> {
 
-    public BaseDiceSettlementPhase(AbstractGameController<Room_BetCfg, T> gameController) {
+    public BaseDiceSettlementPhase(AbstractPhaseGameController<Room_BetCfg, T> gameController) {
         super(gameController);
     }
 

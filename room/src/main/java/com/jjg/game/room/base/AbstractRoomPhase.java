@@ -5,6 +5,7 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -28,11 +29,11 @@ public abstract class AbstractRoomPhase<RC extends RoomCfg, G extends GameDataVo
     // 游戏维护的游戏数据
     protected G gameDataVo;
     // 游戏控制器
-    protected AbstractGameController<RC, G> gameController;
+    protected AbstractPhaseGameController<RC, G> gameController;
     // 回合计数器
     protected int roundCounter;
 
-    public AbstractRoomPhase(AbstractGameController<RC, G> gameController) {
+    public AbstractRoomPhase(AbstractPhaseGameController<RC, G> gameController) {
         this.gameController = gameController;
         this.gameDataVo = gameController.getGameDataVo();
     }

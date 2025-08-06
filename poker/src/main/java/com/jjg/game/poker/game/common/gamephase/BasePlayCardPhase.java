@@ -6,6 +6,7 @@ import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
 import java.util.ArrayList;
@@ -18,7 +19,7 @@ import java.util.Map;
  * @date 2025/7/26 15:04
  */
 public abstract class BasePlayCardPhase<T extends BasePokerGameDataVo> extends BasePokerPhase<T> {
-    public BasePlayCardPhase(AbstractGameController<Room_ChessCfg, T> gameController) {
+    public BasePlayCardPhase(AbstractPhaseGameController<Room_ChessCfg, T> gameController) {
         super(gameController);
     }
 
