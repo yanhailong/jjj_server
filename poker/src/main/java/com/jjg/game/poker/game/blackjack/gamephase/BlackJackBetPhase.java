@@ -9,6 +9,7 @@ import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BaseBetPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.listener.RoomEventListener;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
@@ -26,7 +27,7 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
 
     private final RoomEventListener roomEventListener;
 
-    public BlackJackBetPhase(AbstractGameController<Room_ChessCfg, BlackJackGameDataVo> gameController) {
+    public BlackJackBetPhase(AbstractPhaseGameController<Room_ChessCfg, BlackJackGameDataVo> gameController) {
         super(gameController);
         roomEventListener = CommonUtil.getContext().getBean(RoomEventListener.class);
     }
