@@ -25,14 +25,13 @@ public class PokerBuilder {
     /**
      * 构建玩家基本信息
      */
-    public static PlayerInfo buildPlayerInfo(GamePlayer gamePlayer, BasePokerGameDataVo gameDataVo) {
+    public static PlayerInfo buildPlayerInfo(GamePlayer gamePlayer, BasePokerGameDataVo gameDataVo, boolean detail) {
         SeatInfo seatInfo = null;
         for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
             if (info.getPlayerId() == gamePlayer.getId()) {
                 seatInfo = info;
             }
         }
-
         PlayerInfo playerInfo = new PlayerInfo();
         playerInfo.playerId = gamePlayer.getId();
         playerInfo.name = gamePlayer.getNickName();
@@ -42,17 +41,17 @@ public class PokerBuilder {
             playerInfo.status = seatInfo.isSeatDown();
             playerInfo.playerStatus = seatInfo.isJoinGame();
         }
-        if (gameDataVo instanceof TexasGameDataVo) {
-            playerInfo.accountNumber = gamePlayer.getPokerPlayerGameData().getTempCurrency();
+        if (gameDataVo instanceof TexasGameDataVo texasGameDataVo) {
+            playerInfo.accountNumber = texasGameDataVo.getTempGold().getOrDefault(gamePlayer.getId(), 0L);
         } else {
             playerInfo.accountNumber = gamePlayer.getGold();
         }
-        playerInfo.totalBet = gameDataVo.getBaseBetInfo().getOrDefault(gamePlayer.getId(), 0L);
-        for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
-            if (info.getPlayerId() == gamePlayer.getId()) {
-                playerInfo.handCards = info.getCurrentCards();
-                playerInfo.operationType = info.getOperationType();
-                break;
+        if (detail) {
+            for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
+                if (info.getPlayerId() == gamePlayer.getId()) {
+                    playerInfo.operationType = info.getOperationType();
+                    break;
+                }
             }
         }
         return playerInfo;

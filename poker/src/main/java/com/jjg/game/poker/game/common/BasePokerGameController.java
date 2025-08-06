@@ -6,9 +6,9 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
-import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
 import com.jjg.game.poker.game.common.message.reps.NotifyPlayerChange;
+import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqSampleCardOperation;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.room.base.IRoomPhase;
@@ -18,6 +18,8 @@ import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.PokerPlayerGameData;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
+import com.jjg.game.room.timer.RoomEventType;
+import com.jjg.game.room.timer.RoomTimerEvent;
 
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -59,13 +61,26 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         phase.playerPhaseAction();
     }
 
-    public final void addPlayerTimer(PlayerSeatInfo playerSeatInfo, IProcessorHandler handler, int time) {
-        TimerEvent<IProcessorHandler> playerGameTimerEvent = new TimerEvent<>(this, time, handler);
-        if (Objects.nonNull(playerSeatInfo.getPlayerGameTimerEvent())) {
-            timerCenter.remove(this, currentGameTimerEvent);
+    @Override
+    public void addGameTimeEvent(TimerEvent<IProcessorHandler> roomUpdateTimer, RoomEventType roomEventType) {
+        RoomTimerEvent<IProcessorHandler, Room> timerEvent = new RoomTimerEvent<>(roomUpdateTimer, roomController.getRoom(), roomEventType);
+        timerCenter.add(timerEvent);
+        if (PLAYER_EVENT == roomEventType) {
+            gameDataVo.setPlayerTimerEvent(timerEvent);
         }
-        playerSeatInfo.setPlayerGameTimerEvent(playerGameTimerEvent);
-        addGameTimeEvent(currentGameTimerEvent, PLAYER_EVENT);
+    }
+
+    public final void addPlayerTimer(IProcessorHandler handler, int time) {
+        long exeTime = System.currentTimeMillis() + time;
+        TimerEvent<IProcessorHandler> playerGameTimerEvent = new TimerEvent<>(this, exeTime, handler);
+        if (Objects.nonNull(gameDataVo.getPlayerTimerEvent())) {
+            removePlayerTimerEvent(gameDataVo.getPlayerTimerEvent());
+        }
+        addGameTimeEvent(playerGameTimerEvent, PLAYER_EVENT);
+    }
+
+    public void removePlayerTimerEvent(RoomTimerEvent<IProcessorHandler, Room> event) {
+        timerCenter.remove(this, event.getParameter());
     }
 
     public final void removePokerPhaseTimer() {
@@ -87,9 +102,9 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         respRoomInitInfoAction(playerController);
         //通知其他玩家 玩家加入
         NotifyPlayerChange playerChange = new NotifyPlayerChange();
-        playerChange.playerInfo = PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(playerController.playerId()), gameDataVo);
+        playerChange.playerInfo = PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(playerController.playerId()), gameDataVo, false);
         playerChange.totalNum = gameDataVo.getGamePlayerMap().size();
-        roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(playerChange));
+        roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(playerChange).exceptPlayer(playerController.playerId()));
         //尝试开启游戏
         tryStartGame();
     }
@@ -111,7 +126,12 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         gamePlayer.setPokerPlayerGameData(pokerPlayerGameData);
         //存放座位信息 如果座位有人了随便找一个 找不到
         Map<Integer, SeatInfo> seatInfoList = gameDataVo.getSeatInfo();
-        if (!seatInfoList.containsKey(roomPlayer.getSit())) {
+        SeatInfo info = seatInfoList.get(roomPlayer.getSit());
+        boolean nonNull = Objects.nonNull(info);
+        if (nonNull && info.getPlayerId() == playerController.playerId()) {
+            return gamePlayer;
+        }
+        if (nonNull) {
             SeatInfo seatInfo = new SeatInfo();
             seatInfo.setPlayerId(gamePlayer.getId());
             seatInfo.setJoinGame(false);
@@ -145,7 +165,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
 
     }
 
-    public void onPlayerLeaveRoomAction(PlayerController playerController, SeatInfo remove) {
+    public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
 
     }
 
@@ -156,13 +176,16 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
         if (Objects.nonNull(gamePlayer) && Objects.nonNull(roomPlayer)) {
             NotifyPlayerChange playerChange = new NotifyPlayerChange();
-            playerChange.playerInfo = PokerBuilder.buildPlayerInfo(gamePlayer, gameDataVo);
+            playerChange.playerInfo = PokerBuilder.buildPlayerInfo(gamePlayer, gameDataVo, false);
             roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder()
                     .toAllPlayer().exceptPlayer(playerController.playerId())
                     .setData(playerChange));
+            //移除座位信息
             SeatInfo remove = gameDataVo.getSeatInfo().remove(roomPlayer.getSit());
+            //移除下注信息
+            gameDataVo.getBaseBetInfo().remove(roomPlayer.getPlayerId());
             try {
-                onPlayerLeaveRoomAction(playerController,remove);
+                onPlayerLeaveRoomAction(roomPlayer, remove);
             } catch (Exception e) {
                 log.error("onPlayerLeaveRoomAction() failed", e);
             }
@@ -177,7 +200,9 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
 
     @Override
     protected LinkedHashSet<IRoomPhase> initGamePhaseConf() {
-        return null;
+        LinkedHashSet<IRoomPhase> linkedHashSet = new LinkedHashSet<>();
+        linkedHashSet.add(new BaseWaitReadyPhase<>(this));
+        return linkedHashSet;
     }
 
 
@@ -186,5 +211,9 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
 
     }
 
+    @Override
+    public void autoRunGamePhase() {
+    }
 
+    public abstract void dealBet(long l, ReqPokerBet reqPokerBet);
 }

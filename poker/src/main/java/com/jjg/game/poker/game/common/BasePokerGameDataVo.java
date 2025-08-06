@@ -1,11 +1,15 @@
 package com.jjg.game.poker.game.common;
 
+import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.core.data.Room;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
-import com.jjg.game.poker.game.texas.message.reps.NotifySettlementInfo;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
+import com.jjg.game.poker.game.texas.message.reps.NotifySettlementInfo;
 import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
+import com.jjg.game.room.timer.RoomTimerEvent;
 
 import java.util.*;
 
@@ -68,6 +72,19 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
     private NotifySettlementInfo notifySettlementInfo;
 
 
+    /**
+     * 当前玩家定时器参数
+     */
+    private RoomTimerEvent<IProcessorHandler, Room> playerTimerEvent;
+
+    public RoomTimerEvent<IProcessorHandler, Room> getPlayerTimerEvent() {
+        return playerTimerEvent;
+    }
+
+    public void setPlayerTimerEvent(RoomTimerEvent<IProcessorHandler, Room> playerTimerEvent) {
+        this.playerTimerEvent = playerTimerEvent;
+    }
+
     public TreeMap<Integer, SeatInfo> getSeatInfo() {
         return seatInfo;
     }
@@ -75,10 +92,6 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
 
     public int getId() {
         return id;
-    }
-
-    public void addId() {
-        this.id += 1;
     }
 
     public NotifySettlementInfo getNotifySettlementInfo() {
@@ -95,8 +108,13 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
     public int getSeatDownNum() {
         return (int) seatInfo.values()
                 .stream()
-                .filter(SeatInfo::isSeatDown)
-                .count();
+                .filter(info -> {
+                    GamePlayer gamePlayer = getGamePlayer(info.getPlayerId());
+                    if (Objects.nonNull(gamePlayer)) {
+                        return gamePlayer.getPokerPlayerGameData().isInit() && info.isSeatDown();
+                    }
+                    return false;
+                }).count();
     }
 
     public Map<Long, Long> getBaseBetInfo() {
@@ -116,6 +134,9 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
     }
 
     public PlayerSeatInfo getCurrentPlayerSeatInfo() {
+        if (index >= playerSeatInfoList.size()) {
+            return null;
+        }
         return playerSeatInfoList.get(index);
     }
 
@@ -150,11 +171,15 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
         this.index = index;
     }
 
-    public void resetData() {
+    public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {
         this.id++;
         this.publicCards = null;
         this.round = 1;
         this.baseBetInfo.clear();
         this.notifySettlementInfo = null;
+        if (Objects.nonNull(playerTimerEvent)) {
+            controller.removePlayerTimerEvent(getPlayerTimerEvent());
+        }
+        this.playerTimerEvent = null;
     }
 }

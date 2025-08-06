@@ -65,7 +65,7 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
     /**
      * 计算金币数量, 需要减去押注的钱
      */
-    protected long calcGold(WinPosWeightCfg weightCfg, long betValue) {
+    protected long calcGold(GamePlayer gamePlayer, WinPosWeightCfg weightCfg, long betValue) {
         int winRatio = gameDataVo.getRoomCfg().getWinRatio();
         // 倍率计算
         long multiAdd =
@@ -74,8 +74,16 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
         long betReturn = (long) Math.floor(betValue * (weightCfg.getReturnRate() / 10000.0));
         // 赢的总值
         long totalWin = multiAdd + betReturn;
-        log.info("{} 在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{}",
-            gameDataVo.roomLogInfo(), weightCfg.getId(), betValue, multiAdd, betReturn, totalWin);
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            log.info("玩家：{} {} 在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{}",
+                gamePlayer.getId(),
+                gameDataVo.roomLogInfo(),
+                weightCfg.getId(),
+                betValue,
+                multiAdd,
+                betReturn,
+                totalWin);
+        }
         // 倍率 + 压分返还
         return totalWin - betValue;
     }

@@ -49,4 +49,7 @@ public class NotifyRedBlackWarInfo extends AbstractNotice {
 
     @ProtoDesc("房间总人数")
     public int totalPlayerNum;
+
+    @ProtoDesc("押注桌面展示的筹码数量上限，客户端在房间初始化时需要，需要在每个游戏初始化协议中下发此字段，需要注意")
+    public int maxChipOnTable;
 }

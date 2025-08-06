@@ -25,10 +25,6 @@ public class BaseWaitReadyPhase<T extends BasePokerGameDataVo> extends BasePoker
         super(gameController);
     }
 
-    @Override
-    public void nextPhase() {
-
-    }
 
     @Override
     public void phaseDoAction() {

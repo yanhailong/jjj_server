@@ -1,6 +1,8 @@
 package com.jjg.game.table.animals.message;
 
+import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.table.animals.AnimalsGameController;
 import com.jjg.game.table.animals.data.AnimalsGameDataVo;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -18,7 +20,10 @@ import java.util.List;
  */
 public class AnimalsMessageBuilder {
 
-    private static List<Integer> CRAWL_ANIMALS_ID_LIST = Arrays.asList(5, 6, 11, 12);
+    // 爬行类
+    private final static List<Integer> CRAWL_ANIMALS_ID_LIST = Arrays.asList(5, 6, 11, 12);
+    // 飞禽类
+    private final static List<Integer> FLY_ANIMALS_ID_LIST = Arrays.asList(5, 6, 11, 12);
 
     /**
      * 构建结算信息体
@@ -34,7 +39,7 @@ public class AnimalsMessageBuilder {
         if (CRAWL_ANIMALS_ID_LIST.contains(animalsHistoryBean.animalId)) {
             // 走兽
             animalsSettlementInfo.animalsId.add(4);
-        } else {
+        } else if (FLY_ANIMALS_ID_LIST.contains(animalsHistoryBean.animalId)) {
             // 飞禽
             animalsSettlementInfo.animalsId.add(3);
         }
@@ -73,6 +78,8 @@ public class AnimalsMessageBuilder {
         tableInfo.totalPlayerNum = gameDataVo.getPlayerNum();
         tableInfo.settlementHistory = gameDataVo.getWinAreaCfgIdHistory();
         tableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(gameDataVo, isInitial);
+        tableInfo.maxChipOnTable =
+            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();
         return tableInfo;
     }
 }

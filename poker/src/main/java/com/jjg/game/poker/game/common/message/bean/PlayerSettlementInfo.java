@@ -18,10 +18,6 @@ public class PlayerSettlementInfo {
     public long getGold;
     @ProtoDesc("当前金币数")
     public long currentGold;
-    @ProtoDesc("当前牌")
-    public List<Integer> cards;
-    @ProtoDesc("牌型")
-    public int cardType;
     @ProtoDesc("是否获胜")
     public boolean win;
 }

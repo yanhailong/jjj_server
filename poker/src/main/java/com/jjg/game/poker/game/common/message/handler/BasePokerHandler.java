@@ -7,8 +7,11 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
+import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerRoomBaseInfo;
 import com.jjg.game.poker.game.common.message.req.ReqSampleCardOperation;
+import com.jjg.game.poker.game.texas.constant.TexasConstant;
+import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.manager.RoomManager;
@@ -23,13 +26,21 @@ import org.springframework.stereotype.Component;
  * @date 2025/7/26 14:01
  */
 @Component
-@MessageType(MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE)
+@MessageType(value = MessageConst.MessageTypeDef.POKER_GENERAL_TYPE,isGroupMessage = true)
 public class BasePokerHandler {
     private final Logger log = LoggerFactory.getLogger(getClass());
     @Autowired
     private RoomManager roomManager;
 
 
+    @Command(value = PokerConstant.MsgBean.REQ_POKER_BET)
+    public void reqPokerBet(PlayerController playerController, ReqPokerBet reqPokerBet) {
+        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
+        if (gameController instanceof BasePokerGameController<? extends BasePokerGameDataVo> controller) {
+            controller.dealBet(playerController.playerId(), reqPokerBet);
+        }
+    }
 
     @Command(value = PokerConstant.MsgBean.REQ_SAMPLE_CARD_OPERATION)
     public void ReqSampleCardOperation(PlayerController playerController, ReqSampleCardOperation msg) {

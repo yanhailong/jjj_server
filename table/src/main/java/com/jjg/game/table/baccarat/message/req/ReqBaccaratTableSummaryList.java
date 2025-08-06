@@ -14,7 +14,4 @@ import com.jjg.game.table.baccarat.message.BaccaratMessageConstant;
 )
 @ProtoDesc("请求获取百家乐房间摘要信息")
 public class ReqBaccaratTableSummaryList {
-
-    @ProtoDesc("游戏场次")
-    public int wareId;
 }

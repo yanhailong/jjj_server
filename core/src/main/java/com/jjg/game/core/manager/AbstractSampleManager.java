@@ -122,7 +122,7 @@ public abstract class AbstractSampleManager implements FileLoader {
                     callbackCollector = ConfigExcelChangeListener.getChangeCallbackCollector();
                 }
                 if (callbackCollector.isEmpty()) {
-                    callbackCollector = ConfigExcelChangeListener.getCallbackCollector();
+                    callbackCollector = ConfigExcelChangeListener.getInitCallbackCollector();
                 }
                 if (callbackCollector.containsKey(fileName)) {
                     // 执行配置表变化监听回调

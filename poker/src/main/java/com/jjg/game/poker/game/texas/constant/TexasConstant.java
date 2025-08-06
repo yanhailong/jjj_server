@@ -10,11 +10,20 @@ import com.jjg.game.common.constant.MessageConst;
 public interface TexasConstant {
 
     interface Common {
-        //excel配置所在目录
-        String SAMPLE_PATH = CoreConst.Common.SAMPLE_ROOT_PATH + "texas";
-
         //最大轮次
         int MAX_ROUND = 4;
+        //翻牌轮
+        int FLIP_CARDS_ROUND = 2;
+        //初始轮
+        int INIT_ROUND = 1;
+        //翻牌轮发牌数
+        int SEND_CARD_NUM = 3;
+        //翻牌后发牌数
+        int ADD_CARDS = 1;
+        //弃牌结算
+        int DISCARD_SETTLEMENT = 1;
+        //全all结算
+        int ALL_SETTLEMENT = 2;
     }
 
 
@@ -42,6 +51,10 @@ public interface TexasConstant {
         //请求改变座位状态
         int REQ_CHANGE_SEAT_STATE = BASE_MSG_PREFIX | 0x10;
         //通知座位变化
-        int NOTIFY_SEAT_STATE_CHANGE =  BASE_MSG_PREFIX | 0x11;
+        int NOTIFY_SEAT_STATE_CHANGE = BASE_MSG_PREFIX | 0x11;
+        //请求换桌
+        int REQ_CHANGE_TABLE = BASE_MSG_PREFIX | 0x12;
+        //响应换桌
+        int REPS_CHANG_TABLE = BASE_MSG_PREFIX | 0x13;
     }
 }

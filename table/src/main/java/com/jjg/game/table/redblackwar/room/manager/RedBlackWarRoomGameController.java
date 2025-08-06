@@ -1,14 +1,15 @@
 package com.jjg.game.table.redblackwar.room.manager;
 
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.BetTableRoom;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
-import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -112,8 +113,10 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
         }
         //押分列表
         notifyRedBlackWarInfo.betPointList = gameDataVo.getRoomCfg().getBetList();
-        notifyRedBlackWarInfo.playerInfos = TableMessageBuilder.buildTablePlayerInfo(gameDataVo);
+        notifyRedBlackWarInfo.playerInfos = TableMessageBuilder.buildPlayerInfoOnTable(gameDataVo);
         notifyRedBlackWarInfo.totalPlayerNum = gameDataVo.getGamePlayerMap().size();
+        notifyRedBlackWarInfo.maxChipOnTable =
+            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();
         //发送给玩家
         broadcastToPlayers(
                 RoomMessageBuilder.newBuilder().addPlayerId(playerController.playerId()).setData(notifyRedBlackWarInfo));

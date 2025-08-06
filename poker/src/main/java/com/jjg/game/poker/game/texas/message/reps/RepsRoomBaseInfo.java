@@ -5,8 +5,8 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.poker.game.common.message.bean.PlayerInfo;
-import com.jjg.game.poker.game.common.message.bean.PokerCardInfo;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
+import com.jjg.game.poker.game.texas.message.bean.TexasPlayerInfo;
 
 import java.util.List;
 
@@ -20,7 +20,7 @@ import java.util.List;
 @ProtoDesc("响应房间基础信息")
 public class RepsRoomBaseInfo extends AbstractResponse {
     @ProtoDesc("玩家基础信息")
-    public List<PlayerInfo> playerInfos;
+    public List<TexasPlayerInfo> playerInfos;
     @ProtoDesc("公牌")
     public List<Integer> publicCards;
     @ProtoDesc("等待操作用户id")
@@ -41,8 +41,10 @@ public class RepsRoomBaseInfo extends AbstractResponse {
     public int sendCardTime;
     @ProtoDesc("操作时间")
     public int operationTime;
-    @ProtoDesc("牌信息")
-    public List<PokerCardInfo> pokerCards;
+    @ProtoDesc("大盲")
+    public int BB;
+    @ProtoDesc("小盲")
+    public int SB;
 
     public RepsRoomBaseInfo(int code) {
         super(code);

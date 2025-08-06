@@ -64,7 +64,7 @@ public class HallService implements ConfigExcelChangeListener {
 
     @Override
     public void initSampleCallbackCollector() {
-        addSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
+        addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
     }
 
     private void initWareHouseConfigData() {

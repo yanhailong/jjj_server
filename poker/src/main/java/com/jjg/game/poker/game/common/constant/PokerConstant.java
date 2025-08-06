@@ -12,9 +12,8 @@ public interface PokerConstant {
      */
     interface MsgBean {
         int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.POKER_GENERAL_TYPE << MessageConst.MessageCommon.RIGHT_MOVE;
-
-        //请求更改座位状态
-        int REQ_CHANGE_SEAT_STATE = BASE_MSG_PREFIX | 0x1;
+        //请求下注
+        int REQ_POKER_BET = BASE_MSG_PREFIX | 0x1;
         //玩家进行简单牌型操作
         int REQ_SAMPLE_CARD_OPERATION = BASE_MSG_PREFIX | 0x2;
         //通知简单房间操作
@@ -23,11 +22,11 @@ public interface PokerConstant {
         //请求房间基础信息
         int REQ_ROOM_BASE_INFO = BASE_MSG_PREFIX | 0x4;
         //通知阶段变化
-        int NOTIFY_PHASE_CHANGE =  BASE_MSG_PREFIX | 0x5;
+        int NOTIFY_PHASE_CHANGE = BASE_MSG_PREFIX | 0x5;
         //通知玩家变化
-        int NOTIFY_PLAYER_CHANGE =   BASE_MSG_PREFIX | 0x6;
+        int NOTIFY_PLAYER_CHANGE = BASE_MSG_PREFIX | 0x6;
         //通知结算
-        int NOTIFY_SETTLEMENT_INFO =  BASE_MSG_PREFIX | 0x7;
+        int NOTIFY_SETTLEMENT_INFO = BASE_MSG_PREFIX | 0x7;
     }
 
     interface PlayerOperation {
@@ -43,5 +42,13 @@ public interface PokerConstant {
         int BET = 4;
         //全压
         int ALL_IN = 5;
+        //跟牌
+        int FOLLOW_CARD = 6;
+        //分牌
+        int CUT_CARD = 7;
+        //购买ACE
+        int BUY_ACE = 8;
+        //拿牌
+        int GET_CARD = 9;
     }
 }

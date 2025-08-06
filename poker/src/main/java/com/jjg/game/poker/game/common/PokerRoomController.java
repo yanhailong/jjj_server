@@ -23,4 +23,9 @@ public class PokerRoomController extends AbstractRoomController<Room_ChessCfg, P
         roomCfg = GameDataManager.getRoom_ChessCfg(room.getRoomCfgId());
         gameController.getGameDataVo().reloadRoomCfg();
     }
+
+    @Override
+    protected void checkAddRobot() {
+
+    }
 }
