@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.handler.CoreToServerMessageHandler;
 import com.jjg.game.slots.data.SpecialResultLibCacheData;
 import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressResultLibDao;
 import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGameManager;
@@ -24,7 +24,7 @@ import java.util.List;
  */
 @Component
 @MessageType(MessageConst.MessageTypeDef.TO_SERVER_CONST_TYPE)
-public class ToServerMessageHandler {
+public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
