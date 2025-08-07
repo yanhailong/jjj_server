@@ -17,7 +17,9 @@ import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.Pot;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
+import com.jjg.game.poker.game.texas.data.TexasSaveHistory;
 import com.jjg.game.poker.game.texas.message.TexasBuilder;
+import com.jjg.game.poker.game.texas.message.bean.TexasHistoryPlayerInfo;
 import com.jjg.game.poker.game.texas.message.bean.TexasPotInfo;
 import com.jjg.game.poker.game.texas.message.bean.TexasRoundInfo;
 import com.jjg.game.poker.game.texas.message.bean.TexasSettlementPlayerInfo;
@@ -138,6 +140,14 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             texasPotInfo.playerIdPotInfos = playerPotInfos;
             texasPotInfos.add(texasPotInfo);
         }
+        //生成记录
+        TexasSaveHistory texasHistory = gameDataVo.getTexasHistory();
+        Map<Long, List<Integer>> settlementAllCards = new HashMap<>();
+        for (TexasHistoryPlayerInfo info : texasHistory.getTotalPlayerBetInfo()) {
+            info.betValue = playerGet.getOrDefault(info.playerId, 0L) - info.betValue;
+        }
+        texasHistory.setSettlementAllCards(settlementAllCards);
+        texasHistory.setPotList(gameDataVo.getPool().stream().map(Pot::getAmount).collect(Collectors.toList()));
         //通知结算
         NotifyTexasSettlementInfo notifyTexasSettlementInfo = new NotifyTexasSettlementInfo();
         notifyTexasSettlementInfo.potInfos = texasPotInfos;
@@ -158,7 +168,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 handResult = TexasBuilder.getTempHandType(pair.getFirst(), gameDataVo);
             }
             settlementPlayerInfo.cards = handResult.getBestCards().stream()
-                .map(card -> ((PokerCard) card).getClientId()).collect(Collectors.toList());
+                    .map(card -> ((PokerCard) card).getClientId()).collect(Collectors.toList());
+            //添加记录
+            settlementAllCards.put(playerId, settlementPlayerInfo.cards);
             long get = playerGet.getOrDefault(playerId, 0L) - baseBetInfo.getOrDefault(playerId, 0L);
             if (get > 0) {
                 //扣税
@@ -166,6 +178,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 //增加金币
                 controller.changePlayerGold(gamePlayer, get);
             }
+            //添加记录
             pokerPlayerSettlementInfo.currentGold = gamePlayer.getGold();
             pokerPlayerSettlementInfo.getGold = get;
             pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;
@@ -232,9 +245,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
 
     public void settlementByOnePlayer(TexasGameController controller) {
         List<PlayerSeatInfo> infoList = gameDataVo.getPlayerSeatInfoList()
-            .stream()
-            .filter(info -> info.getOperationType() != PokerConstant.PlayerOperation.DISCARD)
-            .toList();
+                .stream()
+                .filter(info -> info.getOperationType() != PokerConstant.PlayerOperation.DISCARD)
+                .toList();
         if (infoList.size() > 1) {
             log.error("出现错误 未弃牌人数大于1");
             normalSettlement(controller);
@@ -255,6 +268,15 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         pokerPlayerSettlementInfo.playerId = playerId;
         //增加金币
         long get = total - baseBetInfo.getOrDefault(playerId, 0L);
+        //添加记录
+        TexasSaveHistory texasHistory = gameDataVo.getTexasHistory();
+        for (TexasHistoryPlayerInfo info : texasHistory.getTotalPlayerBetInfo()) {
+            if (info.playerId == playerId) {
+                info.betValue = get;
+                continue;
+            }
+            info.betValue = -info.betValue;
+        }
         get = get * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000;
         controller.changePlayerGold(gamePlayer, total);
         pokerPlayerSettlementInfo.currentGold = gamePlayer.getGold();
@@ -274,6 +296,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             //设置为等待阶段
             controller.setCurrentGamePhase(new BaseWaitReadyPhase<>(gameController));
         }
+        gameDataVo.getTexasHistoryList().add(gameDataVo.getTexasHistory());
         //金币不够底注的尝试重新拿金币
         updatePlayerData();
         //开启下一局

@@ -116,11 +116,7 @@ public class PokerHandEvaluator {
         for (PlayerHand player : players) {
             List<Card> allCards = new ArrayList<>(communityCards);
             allCards.addAll(player.getHoleCards());
-
             HandResult result = PokerHandEvaluator.evaluateBestHand(allCards);
-
-            logger.info("玩家 {}原牌：{} 牌型: {} 手牌: {}", player.getPlayerId(), player.getHoleCards(), result.getHandRank(), result.getBestCards());
-
             if (bestResult == null || result.compareTo(bestResult) > 0) {
                 bestResult = result;
                 winners.clear();

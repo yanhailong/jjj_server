@@ -35,8 +35,4 @@ public class PokerCard extends Card {
         return pokerPoolId;
     }
 
-    @Override
-    public String toString() {
-        return "PokerCard{}";
-    }
 }

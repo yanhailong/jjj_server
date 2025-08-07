@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.common;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
+import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementInfo;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -33,7 +34,7 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
     /**
      * 本轮游戏id
      */
-    private int id;
+    private long id;
 
     //座位id->座位状态
     private final TreeMap<Integer, SeatInfo> seatInfo = new TreeMap<>();
@@ -60,7 +61,7 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
     /**
      * 执行列表执行的轮次
      */
-    private int round = 1;
+    private int round;
     /**
      * 基础下注信息
      */
@@ -88,8 +89,11 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
         return seatInfo;
     }
 
+    public void setId(long id) {
+        this.id = id;
+    }
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
@@ -171,9 +175,8 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
     }
 
     public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {
-        this.id++;
         this.publicCards = null;
-        this.round = 1;
+        this.round = TexasConstant.Common.INIT_ROUND;
         this.baseBetInfo.clear();
         this.notifyTexasSettlementInfo = null;
         if (Objects.nonNull(playerTimerEvent)) {

@@ -15,11 +15,11 @@ import java.util.Objects;
 public class TexasProcessorHandler implements IProcessorHandler {
 
     private final long playerId;
-    private final int id;
+    private final long id;
     private final TexasGameController gameController;
     private final int timerId;
 
-    public TexasProcessorHandler(long playerId, int id, TexasGameController gameController, int timerId) {
+    public TexasProcessorHandler(long playerId, long id, TexasGameController gameController, int timerId) {
         this.playerId = playerId;
         this.id = id;
         this.gameController = gameController;
@@ -34,6 +34,9 @@ public class TexasProcessorHandler implements IProcessorHandler {
         }
         PlayerSeatInfo currentPlayerSeatInfo = gameDataVo.getCurrentPlayerSeatInfo();
         if (Objects.isNull(currentPlayerSeatInfo) || currentPlayerSeatInfo.getPlayerId() != playerId) {
+            //容错处理
+
+
             return;
         }
         //①翻牌前圈，弃/过，优先执行弃牌；②翻牌圈开始及后续每轮次，弃/过，优先执行过牌；

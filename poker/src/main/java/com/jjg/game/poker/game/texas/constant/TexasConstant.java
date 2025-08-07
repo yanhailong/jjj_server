@@ -56,5 +56,9 @@ public interface TexasConstant {
         int REQ_CHANGE_TABLE = BASE_MSG_PREFIX | 0x12;
         //响应换桌
         int REPS_CHANG_TABLE = BASE_MSG_PREFIX | 0x13;
+        //请求德州扑克历史记录
+        int REQ_TEXAS_HISTORY = BASE_MSG_PREFIX | 0x14;
+        //响应德州扑克历史记录
+        int REQS_TEXAS_HISTORY = BASE_MSG_PREFIX | 0x15;
     }
 }

@@ -50,7 +50,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     /**
      * 获取下一个执行人
      */
-    public abstract PlayerSeatInfo getNextExePlayer(boolean tryGet);
+    public abstract PlayerSeatInfo getNextExePlayer();
 
     /**
      * 设置游戏当前阶段
