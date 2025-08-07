@@ -176,7 +176,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             gameRunInfo.setAfterGold(player.getGold());
 
             //添加大奖展示id
-            int times = (int) (gameRunInfo.getAllWinGold() / playerGameData.getLastBet());
+            int times = (int) (gameRunInfo.getAllWinGold() / betValue);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 
