@@ -91,6 +91,10 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
             return;
         }
         for (WarehouseCfg warehouseCfg : warehouseCfgs) {
+            // 组队类型的房间直接跳过
+            if (warehouseCfg.getRoomType() >= 10) {
+                continue;
+            }
             List<Integer> deletionSolution = warehouseCfg.getRoomDeletion_Solution();
             // 每个游戏最小存在的房间数量
             int minRoomNum = deletionSolution.get(0);
