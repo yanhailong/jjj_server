@@ -836,7 +836,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         int lineCount = getGenerateManager().getBaseInitCfg().getMaxLine();;
         for(Map.Entry<Integer, BaseRoomCfg> en : this.roomCfgMap.entrySet()){
             BaseRoomCfg cfg = en.getValue();
-            for(int stake : cfg.getLineBetScore()){
+            for(long stake : cfg.getLineBetScore()){
                 long allStake = lineCount * stake * cfg.getBetMultiple().get(0) * cfg.getLineMultiple().get(0);
                 tmpAllStakeMap.computeIfAbsent(cfg.getId(), k -> new ArrayList<>()).add(allStake);
             }
