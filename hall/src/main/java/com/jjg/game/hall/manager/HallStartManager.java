@@ -29,8 +29,6 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     @Autowired
     private CoreStartService coreStartService;
     @Autowired
-    private HallPoolDao hallPoolDao;
-    @Autowired
     private HallService hallService;
     @Autowired
     private HallSampleManager hallSampleManager;
@@ -46,7 +44,6 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         marsCoreStartService.init(this.context,Collections.emptySet());
         coreStartService.init(this.context);
         hallSampleManager.init();
-        hallPoolDao.initPool();
         hallService.init();
 
         running = true;

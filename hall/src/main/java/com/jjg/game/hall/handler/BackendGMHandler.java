@@ -4,13 +4,10 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.BackendGMCmd;
+import com.jjg.game.core.handler.CoreToServerMessageHandler;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
-import com.jjg.game.hall.constant.HallCode;
-import com.jjg.game.hall.pb.ResChooseGame;
 import com.jjg.game.hall.service.HallService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -22,8 +19,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @MessageType(MessageConst.MessageTypeDef.TO_SERVER_CONST_TYPE)
-public class BackendGMHandler {
-    private final Logger log = LoggerFactory.getLogger(getClass());
+public class BackendGMHandler extends CoreToServerMessageHandler {
 
     @Autowired
     private HallService hallService;
@@ -43,5 +39,4 @@ public class BackendGMHandler {
         }
         coreLogger.gmOrder(BackendGMCmd.CHANGE_GAME_STATUS + ":" + req.cmdParam, null, result);
     }
-
 }

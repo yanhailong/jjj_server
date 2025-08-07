@@ -16,6 +16,14 @@ public class Player {
     private long id;
     //昵称
     private String nickName;
+    //性别
+    private byte gender;
+    //头像id
+    private int headImgId;
+    //头像框id
+    private int headFrameId;
+    //国旗id
+    private int nationalId;
     //房间id
     private long roomId;
     //游戏类型
@@ -26,6 +34,10 @@ public class Player {
     private long gold;
     //钻石
     private long diamond;
+    //保险箱金币
+    private long safeBoxGold;
+    //保险箱钻石
+    private long safeBoxDiamond;
     //vip等级
     private int vipLevel;
     //经验
@@ -56,6 +68,38 @@ public class Player {
 
     public void setNickName(String nickName) {
         this.nickName = nickName;
+    }
+
+    public byte getGender() {
+        return gender;
+    }
+
+    public void setGender(byte gender) {
+        this.gender = gender;
+    }
+
+    public int getHeadImgId() {
+        return headImgId;
+    }
+
+    public void setHeadImgId(int headImgId) {
+        this.headImgId = headImgId;
+    }
+
+    public int getHeadFrameId() {
+        return headFrameId;
+    }
+
+    public void setHeadFrameId(int headFrameId) {
+        this.headFrameId = headFrameId;
+    }
+
+    public int getNationalId() {
+        return nationalId;
+    }
+
+    public void setNationalId(int nationalId) {
+        this.nationalId = nationalId;
     }
 
     public long getRoomId() {
@@ -99,6 +143,22 @@ public class Player {
 
     public void setDiamond(long diamond) {
         this.diamond = diamond;
+    }
+
+    public long getSafeBoxGold() {
+        return safeBoxGold;
+    }
+
+    public void setSafeBoxGold(long safeBoxGold) {
+        this.safeBoxGold = safeBoxGold;
+    }
+
+    public long getSafeBoxDiamond() {
+        return safeBoxDiamond;
+    }
+
+    public void setSafeBoxDiamond(long safeBoxDiamond) {
+        this.safeBoxDiamond = safeBoxDiamond;
     }
 
     public int getVipLevel() {

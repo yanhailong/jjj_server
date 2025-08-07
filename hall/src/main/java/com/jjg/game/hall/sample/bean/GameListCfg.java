@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName gameList.xlsx
  * @sheetName GameList
  * @author Auto.Generator
- * @date 2025年07月22日 18:30:35
+ * @date 2025年08月06日 20:26:26
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameListCfg extends BaseCfgBean {

@@ -11,10 +11,15 @@ import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.core.constant.BackendGMCmd;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.GameStatus;
+import com.jjg.game.core.pb.gm.ReqMarqueeServer;
 import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
+import com.jjg.game.core.pb.gm.ReqStopMarqueeServer;
 import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.gm.dto.GameStatusDto;
+import com.jjg.game.gm.dto.MailDto;
+import com.jjg.game.gm.dto.MarqueeDto;
 import com.jjg.game.gm.vo.WebResult;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +42,7 @@ public class GMController extends AbstractController {
     private GameStatusService gameStatusService;
 
     /**
-     * 游客登录
+     * 修改游戏状态
      *
      * @param dto
      * @return
@@ -79,5 +84,109 @@ public class GMController extends AbstractController {
         }
         //返回修改结果
         return !res.isEmpty() ? fail(res.toString()) : success("修改成功");
+    }
+
+    /**
+     * 添加跑马灯
+     * @param dto
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.SNED_MARQUEE)
+    public WebResult<String> sendMarquee(@RequestBody @Valid MarqueeDto dto) {
+        log.info("收到后台的跑马灯信息请求 {}", dto);
+        //获取大厅节点
+        List<ClusterClient> hallNodes = ClusterSystem.system.getNodesByType(NodeType.HALL);
+        //获取游戏节点
+        List<ClusterClient> gameNodes = ClusterSystem.system.getNodesByType(NodeType.GAME);
+
+        //构建请求消息
+        ReqMarqueeServer req = new ReqMarqueeServer(Code.SUCCESS);
+        req.content = dto.content();
+        PFMessage pfMessage = MessageUtil.getPFMessage(req);
+        ClusterMessage msg = new ClusterMessage(pfMessage);
+
+        StringBuilder res = new StringBuilder();
+
+        //通知大厅节点
+        for (ClusterClient clusterClient : hallNodes) {
+            try {
+                clusterClient.write(msg);
+            } catch (Exception e) {
+                log.error("gm推送跑马灯信息失败", e);
+                res.append("""
+                        gm推送跑马灯信息到节点 %s 失败""".formatted(clusterClient.nodeConfig.getName()));
+            }
+        }
+
+        //通知游戏节点
+        for (ClusterClient clusterClient : gameNodes) {
+            try {
+                clusterClient.write(msg);
+            } catch (Exception e) {
+                log.error("gm推送跑马灯信息失败", e);
+                res.append("""
+                        gm推送跑马灯信息到节点 %s 失败""".formatted(clusterClient.nodeConfig.getName()));
+            }
+        }
+        //返回修改结果
+        return !res.isEmpty() ? fail(res.toString()) : success("推送成功");
+    }
+
+    /**
+     * 停止跑马灯
+     * @param dto
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.STOP_MARQUEE)
+    public WebResult<String> stopMarquee(@RequestBody @Valid MarqueeDto dto) {
+        log.info("收到后台的停止跑马灯信息请求 {}", dto);
+        //获取大厅节点
+        List<ClusterClient> hallNodes = ClusterSystem.system.getNodesByType(NodeType.HALL);
+        //获取游戏节点
+        List<ClusterClient> gameNodes = ClusterSystem.system.getNodesByType(NodeType.GAME);
+
+        //构建请求消息
+        ReqStopMarqueeServer req = new ReqStopMarqueeServer(Code.SUCCESS);
+        PFMessage pfMessage = MessageUtil.getPFMessage(req);
+        ClusterMessage msg = new ClusterMessage(pfMessage);
+
+        StringBuilder res = new StringBuilder();
+
+        //通知大厅节点
+        for (ClusterClient clusterClient : hallNodes) {
+            try {
+                clusterClient.write(msg);
+            } catch (Exception e) {
+                log.error("gm推送停止跑马灯信息失败", e);
+                res.append("""
+                        gm推送停止跑马灯信息到节点 %s 失败""".formatted(clusterClient.nodeConfig.getName()));
+            }
+        }
+
+        //通知游戏节点
+        for (ClusterClient clusterClient : gameNodes) {
+            try {
+                clusterClient.write(msg);
+            } catch (Exception e) {
+                log.error("gm推送停止跑马灯信息失败", e);
+                res.append("""
+                        gm推送停止跑马灯信息到节点 %s 失败""".formatted(clusterClient.nodeConfig.getName()));
+            }
+        }
+        //返回修改结果
+        return !res.isEmpty() ? fail(res.toString()) : success("推送成功");
+    }
+
+    /**
+     * 邮件
+     * @param dto
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.SEND_EMAIL)
+    public WebResult<String> mail(@RequestBody @Valid MailDto dto) {
+        log.info("收到后台的邮件请求 {}", dto);
+        StringBuilder res = new StringBuilder();
+        //返回修改结果
+        return !res.isEmpty() ? fail(res.toString()) : success("推送成功");
     }
 }

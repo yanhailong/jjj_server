@@ -1,0 +1,71 @@
+package com.jjg.game.hall.sample.bean;
+
+import java.util.*;
+
+import javax.annotation.processing.Generated;
+/**
+ * 配置bean
+ *
+ * @excelName status.xlsx
+ * @sheetName status
+ * @author Auto.Generator
+ * @date 2025年08月06日 20:26:26
+ */
+@Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
+public class StatusCfg extends BaseCfgBean {
+
+  /** 配置表名 */
+  public static final String EXCEL_NAME = "status.xlsx";
+  /** 配置表工作薄名 */
+  public static final String SHEET_NAME = "status";
+
+  /** 图标 */
+  protected String icon;
+  /** 名称 */
+  protected String name;
+  /** 最大堆叠数量 */
+  protected int prop;
+  /** 描述 */
+  protected String text;
+  /** 持续时间 */
+  protected int time;
+  /** 时间类型 */
+  protected int timeType;
+  /** 类型 */
+  protected int type;
+
+  /** 返回图标 */
+  public String getIcon() {
+    return icon;
+  }
+
+  /** 返回名称 */
+  public String getName() {
+    return name;
+  }
+
+  /** 返回最大堆叠数量 */
+  public int getProp() {
+    return prop;
+  }
+
+  /** 返回描述 */
+  public String getText() {
+    return text;
+  }
+
+  /** 返回持续时间 */
+  public int getTime() {
+    return time;
+  }
+
+  /** 返回时间类型 */
+  public int getTimeType() {
+    return timeType;
+  }
+
+  /** 返回类型 */
+  public int getType() {
+    return type;
+  }
+}

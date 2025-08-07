@@ -2,11 +2,11 @@ package com.jjg.game.account.controller;
 
 import com.jjg.game.account.config.AccountConfig;
 import com.jjg.game.account.constant.AccountConstant;
-import com.jjg.game.account.dao.AccountDao;
+import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.account.dao.PlayerIdDao;
 import com.jjg.game.account.logger.AccountLogger;
 import com.jjg.game.account.dto.GuestLoginDto;
-import com.jjg.game.account.entity.Account;
+import com.jjg.game.core.data.Account;
 import com.jjg.game.account.vo.LoginVo;
 import com.jjg.game.account.vo.WebResult;
 import com.jjg.game.core.constant.Code;

@@ -1,7 +1,12 @@
 package com.jjg.game.hall.dao;
 
 import com.jjg.game.core.dao.AbstractPoolDao;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author 11
@@ -11,8 +16,15 @@ import org.springframework.stereotype.Component;
 public class HallPoolDao extends AbstractPoolDao {
     @Override
     public void initPool() {
-//        for(AllWareHouseConfig config : AllWareHouseConfig.factory.getAllSamples()){
-//            redisTemplate.opsForHash().putIfAbsent(pool_prefix + config.gameType,config.getSid(),config.basicWarehouse);
-//        }
+
+    }
+
+    public Map<Object, Object> getSmallPoolByRoomCfgId(int gameType) {
+        // 直接获取整个Hash（因为只有3个字段，HGETALL最有效率）
+        return redisTemplate.opsForHash().entries(smallTableName(gameType));
+    }
+
+    public Map<Object, Object> getFakeSmallPoolByRoomCfgId(int gameType) {
+        return redisTemplate.opsForHash().entries(fakeSmallTableName(gameType));
     }
 }

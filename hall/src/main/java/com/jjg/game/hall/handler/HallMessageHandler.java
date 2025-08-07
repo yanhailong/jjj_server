@@ -2,37 +2,43 @@ package com.jjg.game.hall.handler;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
-import com.jjg.game.common.curator.NodeType;
-import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.dao.AccountDao;
+import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.GameStatusService;
-import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.constant.HallCode;
 import com.jjg.game.hall.constant.HallConstant;
+import com.jjg.game.hall.dao.BindDao;
+import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.pb.*;
 import com.jjg.game.hall.sample.GameDataManager;
 import com.jjg.game.hall.sample.bean.WarehouseCfg;
-import com.jjg.game.hall.service.HallRoomService;
+import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallRoomService;
 import com.jjg.game.hall.service.HallService;
+import com.jjg.game.hall.utils.HallTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author 11
@@ -50,6 +56,14 @@ public class HallMessageHandler implements GmListener {
     private HallRoomService hallRoomService;
     @Autowired
     private GameStatusService gameStatusService;
+    @Autowired
+    private HallPlayerService hallPlayerService;
+    @Autowired
+    private AccountDao accountDao;
+    @Autowired
+    private HallPoolDao poolDao;
+    @Autowired
+    private BindDao bindDao;
 
     /**
      * 进入游戏
@@ -119,6 +133,191 @@ public class HallMessageHandler implements GmListener {
             log.error("", e);
         }
     }
+
+    /**
+     * 获取奖池信息
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_POOL)
+    public void reqPool(PlayerController playerController, ReqPool req) {
+        ResPool res = new ResPool(HallCode.SUCCESS);
+        try {
+            List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(req.gameType);
+            if(wareHouseConfigList == null || wareHouseConfigList.isEmpty()) {
+                res.code = Code.FORBID;
+                log.debug("未找到倍场信息，获取奖池信息失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
+                return;
+            }
+
+            Map<Object, Object> smallPool = poolDao.getSmallPoolByRoomCfgId(req.gameType);
+            Map<Object, Object> fakeSmallPool = poolDao.getFakeSmallPoolByRoomCfgId(req.gameType);
+
+            List<WarePoolInfo> warePoolInfoList = new ArrayList<>();
+            for(Map.Entry<Object,Object> en : smallPool.entrySet()){
+                WarePoolInfo warePoolInfo = new WarePoolInfo();
+                warePoolInfo.wareId = Integer.parseInt(en.getKey().toString());
+                long smallPoolValue = Long.parseLong(en.getValue().toString());
+
+                Object o = fakeSmallPool.get(warePoolInfo.wareId);
+                if(o != null){
+                    long fakeSmallPoolValue = Long.parseLong(o.toString());
+                    if(fakeSmallPoolValue > smallPoolValue){
+                        smallPoolValue = fakeSmallPoolValue;
+                    }
+                }
+
+                warePoolInfo.pool = smallPoolValue;
+                warePoolInfoList.add(warePoolInfo);
+            }
+
+            res.warePoolInfoList = warePoolInfoList;
+            log.info("玩家获取奖池信息，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 获取玩家信息
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_QUERY_PLAYER_INFO)
+    public void reqQueryPlayerInfo(PlayerController playerController, ReqQueryPlayerInfo req) {
+        ResQueryPlayerInfo res = new ResQueryPlayerInfo(HallCode.SUCCESS);
+        try {
+            Player player = hallPlayerService.get(playerController.playerId());
+            if(player == null) {
+                res.code = Code.NOT_FOUND;
+                playerController.send(res);
+                log.debug("玩家信息不存在，获取信息失败 playerId = {}", playerController.playerId());
+                return;
+            }
+
+            res.playerId = player.getId();
+            res.nick = player.getNickName();
+            res.createTime = player.getCreateTime();
+            res.gender = player.getGender();
+            res.vipLevel = player.getVipLevel();
+            res.gold = player.getGold();
+            res.diamond = player.getDiamond();
+            res.safeBoxGold = player.getSafeBoxGold();
+            res.safeBoxDiamond = player.getSafeBoxDiamond();
+
+            Account account = accountDao.queryAccountByPlayerId(playerController.playerId());
+            if (account == null) {
+                log.warn("没有找到玩家的账号信息 playerId = {}", playerController.playerId());
+            }else {
+                res.phoneNumber = account.getPhoneNumber();
+                res.email = account.getEmail();
+            }
+            playerController.setPlayer(player);
+            log.info("获取玩家信息，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 修改玩家信息
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_CHANGE_PLAYER_INFO)
+    public void reqChangePlayerInfo(PlayerController playerController, ReqChangePlayerInfo req) {
+        ResChangePlayerInfo res = new ResChangePlayerInfo(HallCode.SUCCESS);
+        try {
+            byte gender = (byte)req.gender;
+            if(!HallTool.checkGender(gender)) {
+                res.code = Code.NOT_FOUND;
+                playerController.send(res);
+                log.debug("性别参数错误，修改信息失败 playerId = {},gender = {}", playerController.playerId(),req.gender);
+                return;
+            }
+            //TODO 后面要敏感词检测，还要判断是否消费道具
+
+            Player player = hallPlayerService.doSave(playerController.playerId(), p -> {
+                p.setNickName(req.nick);
+                p.setGender(gender);
+            });
+
+            if(player == null) {
+                res.code = Code.NOT_FOUND;
+                playerController.send(res);
+                log.debug("修改信息失败 playerId = {}", playerController.playerId());
+                return;
+            }
+            log.info("修改玩家信息成功，playerId = {}", playerController.playerId());
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 请求验证码
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_VER_CODE)
+    public void reqVerCode(PlayerController playerController, ReqVerCode req) {
+        ResVerCode res = new ResVerCode(HallCode.SUCCESS);
+        try {
+            CommonResult<Integer> result = null;
+            if(req.type == HallConstant.VerCode.TYPE_BIND_PHONE){
+                result = hallService.bindPhone(playerController.playerId(), req.data);
+            }else if(req.type == HallConstant.VerCode.TYPE_BIND_EMAIL){
+                result = hallService.bindEmail(playerController.playerId(), req.data);
+            }else {
+                log.debug("没有该类型的验证码 playerId = {},verCodeType = {},data = {}", playerController.playerId(),req.type,req.data);
+                result = new CommonResult<>(Code.PARAM_ERROR);
+            }
+
+            if(!result.success()) {
+                res.code = result.code;
+                playerController.send(res);
+                return;
+            }
+            res.verCode = result.data;
+            log.info("获取验证码成功，playerId = {},verCodeType = {},data = {},verCode = {}", playerController.playerId(),req.type,req.data,result.data);
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 确认验证码
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_CONFIRM_VER_CODE)
+    public void reqConfirmVerCode(PlayerController playerController, ReqConfirmVerCode req) {
+        ResConfirmVerCode res = new ResConfirmVerCode(HallCode.SUCCESS);
+        try {
+            CommonResult<String> result = hallService.comfirmVerCode(playerController.playerId(), req.verCodeType, req.verCode);
+            if(!result.success()) {
+                res.code = result.code;
+                playerController.send(res);
+                return;
+            }
+            log.info("确认验证码成功 playerId = {},verCodeType = {},verCode = {},data = {}", playerController.playerId(),req.verCodeType,req.verCode,result.data);
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**********************************************************************************************************/
 
     /**
      * 加入房间之前检查前置条件
@@ -191,6 +390,10 @@ public class HallMessageHandler implements GmListener {
                 ReqChooseGame req = new ReqChooseGame();
                 req.gameType = Integer.parseInt(gmOrders[1]);
                 reqChooseGame(playerController, req);
+            }else if("getPool".equalsIgnoreCase(gmOrders[0])) {
+                ReqPool req = new ReqPool();
+                req.gameType = Integer.parseInt(gmOrders[1]);
+                reqPool(playerController, req);
             }else {
                 res.code = Code.NOT_FOUND;
             }
