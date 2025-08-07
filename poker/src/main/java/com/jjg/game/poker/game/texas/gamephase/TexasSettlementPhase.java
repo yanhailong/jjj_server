@@ -89,7 +89,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
     private void normalSettlement(TexasGameController controller) {
         NotifyTexasSettlementInfo notifyTexasSettlementInfo = getNormalSettlementInfo(controller);
         broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSettlementInfo));
-        gameDataVo.setNotifySettlementInfo(notifyTexasSettlementInfo);
+        gameDataVo.setNotifyTexasSettlementInfo(notifyTexasSettlementInfo);
     }
 
     private NotifyTexasSettlementInfo getNormalSettlementInfo(TexasGameController controller) {
@@ -234,7 +234,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         //计算最后的结算时间
         gameDataVo.setPhaseEndTime(gameDataVo.getPhaseEndTime() + addTime);
         normalSettlementInfo.endTime = gameDataVo.getPhaseEndTime();
-        gameDataVo.setNotifySettlementInfo(normalSettlementInfo);
+        gameDataVo.setNotifyTexasSettlementInfo(normalSettlementInfo);
         //通知
         for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
             List<TexasRoundInfo> orDefault = playerRoundInfos.getOrDefault(seatInfo.getPlayerId(), defaultInfo);
@@ -287,7 +287,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         settlementInfoArrayList.add(settlementPlayerInfo);
         notifyTexasSettlementInfo.playerSettlementInfos = settlementInfoArrayList;
         broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSettlementInfo));
-        gameDataVo.setNotifySettlementInfo(notifyTexasSettlementInfo);
+        gameDataVo.setNotifyTexasSettlementInfo(notifyTexasSettlementInfo);
     }
 
     @Override

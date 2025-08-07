@@ -88,7 +88,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                         .toList();
             }
         }
-        repsTexasRoomBaseInfo.notifyTexasSettlementInfo = gameDataVo.getNotifySettlementInfo();
+        repsTexasRoomBaseInfo.notifyTexasSettlementInfo = gameDataVo.getNotifyTexasSettlementInfo();
         List<TexasPlayerInfo> playerInfos = new ArrayList<>();
         //构建玩家信息
         for (Map.Entry<Integer, SeatInfo> entry : gameDataVo.getSeatInfo().entrySet()) {
@@ -176,7 +176,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             passCards(playerId);
             return;
         }
-        info.setOperationType(reqPokerBet.betType);
+        info.setOperationType(betValue == remain ? PokerConstant.PlayerOperation.ALL_IN : reqPokerBet.betType);
         info.setOver(true);
         //添加记录
         TexasHistoryRoundInfo historyRoundInfo = TexasDataHelper.getHistoryRoundInfo(gameDataVo);
@@ -187,7 +187,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         baseBetInfo.entrySet().stream().max(Comparator.comparingLong(Map.Entry::getValue))
                 .ifPresent((entry) -> gameDataVo.setMaxBetValue(entry.getValue()));
         NotifyTexasBet notifyTexasBet = new NotifyTexasBet();
-        notifyTexasBet.betType = reqPokerBet.betType;
+        notifyTexasBet.betType = info.getOperationType();
         notifyTexasBet.betValue = betValue;
         notifyTexasBet.playerId = playerId;
         if (hasAllIn()) {
@@ -618,12 +618,18 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
 
     public void reqTexasHistory(long playerId, ReqTexasHistory req) {
         RepsTexasHistory repsTexasHistory = new RepsTexasHistory(Code.SUCCESS);
-        if (req.index >= gameDataVo.getTexasHistoryList().size()) {
+        int size = gameDataVo.getTexasHistoryList().size();
+        if (size == 0) {
+            repsTexasHistory.maxRecodeNum = 0;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, repsTexasHistory));
+            return;
+        }
+        if (req.index >= size) {
             repsTexasHistory.code = Code.PARAM_ERROR;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, repsTexasHistory));
             return;
         }
-        repsTexasHistory.maxRecodeNum = gameDataVo.getTexasHistoryList().size();
+        repsTexasHistory.maxRecodeNum = size;
         TexasHistory texasHistory = new TexasHistory();
         repsTexasHistory.history = texasHistory;
         TexasSaveHistory texasSaveHistory = gameDataVo.getTexasHistoryList().get(req.index);
@@ -634,31 +640,27 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         texasHistory.thirdCardId = texasSaveHistory.getThirdCardId();
         texasHistory.id = texasSaveHistory.getId();
         texasHistory.preFlop = texasSaveHistory.getPreFlop();
-        List<Integer> cards = texasSaveHistory.getAllCards().get(playerId);
-        if (Objects.nonNull(cards)) {
-            texasHistory.cards = cards;
-        }
+        Map<Long, List<Integer>> allCards = texasSaveHistory.getAllCards();
         if (Objects.nonNull(texasSaveHistory.getSettlementAllCards())) {
-            List<Integer> maxCards = texasSaveHistory.getSettlementAllCards().get(playerId);
-            if (Objects.nonNull(maxCards)) {
-                TexasHistoryRoundInfo texasHistoryRoundInfo = new TexasHistoryRoundInfo(-1);
-                texasHistoryRoundInfo.potAllBet = texasSaveHistory.getPotList();
-                texasHistoryRoundInfo.roundInfo = new ArrayList<>();
-                for (TexasHistoryPlayerInfo playerInfo : texasSaveHistory.getTotalPlayerBetInfo()) {
-                    List<Integer> card = texasSaveHistory.getSettlementAllCards().get(playerId);
-                    if (Objects.isNull(card)) {
-                        continue;
-                    }
-                    //构建摊牌信息
-                    TexasHistoryPlayerInfo texasHistoryPlayerInfo = new TexasHistoryPlayerInfo();
-                    texasHistoryPlayerInfo.playerName = playerInfo.playerName;
-                    texasHistoryPlayerInfo.playerId = playerInfo.playerId;
-                    texasHistoryPlayerInfo.betValue = playerInfo.betValue;
-                    texasHistoryPlayerInfo.index = playerInfo.index;
-                    texasHistoryRoundInfo.roundInfo.add(texasHistoryPlayerInfo);
+            TexasHistoryRoundInfo texasHistoryRoundInfo = new TexasHistoryRoundInfo(-1);
+            texasHistoryRoundInfo.potAllBet = texasSaveHistory.getPotList();
+            texasHistoryRoundInfo.roundInfo = new ArrayList<>();
+            for (TexasHistoryPlayerInfo playerInfo : texasSaveHistory.getTotalPlayerBetInfo()) {
+                List<Integer> card = texasSaveHistory.getSettlementAllCards().get(playerId);
+                if (Objects.isNull(card)) {
+                    continue;
                 }
-                texasHistory.texasHistoryRoundInfos.add(texasHistoryRoundInfo);
+                //构建摊牌信息
+                TexasHistoryPlayerInfo texasHistoryPlayerInfo = new TexasHistoryPlayerInfo();
+                texasHistoryPlayerInfo.playerName = playerInfo.playerName;
+                texasHistoryPlayerInfo.playerId = playerInfo.playerId;
+                texasHistoryPlayerInfo.betValue = playerInfo.betValue;
+                texasHistoryPlayerInfo.index = playerInfo.index;
+                texasHistoryPlayerInfo.cardIds = allCards.get(playerId);
+                playerInfo.cardIds = texasHistoryPlayerInfo.cardIds;
+                texasHistoryRoundInfo.roundInfo.add(texasHistoryPlayerInfo);
             }
+            texasHistory.texasHistoryRoundInfos.add(texasHistoryRoundInfo);
         }
         texasHistory.totalPlayerBetInfo = texasSaveHistory.getTotalPlayerBetInfo();
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, repsTexasHistory));

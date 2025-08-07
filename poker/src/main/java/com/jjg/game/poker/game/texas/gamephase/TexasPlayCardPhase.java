@@ -1,10 +1,9 @@
 package com.jjg.game.poker.game.texas.gamephase;
 
-import cn.hutool.core.lang.Snowflake;
 import com.jjg.game.common.proto.Pair;
-import com.jjg.game.common.utils.IDGenUtil;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
+import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BasePlayCardPhase;
 import com.jjg.game.poker.game.sample.GameDataManager;
 import com.jjg.game.poker.game.sample.bean.TexasCfg;
@@ -13,13 +12,11 @@ import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.poker.game.texas.data.TexasSaveHistory;
 import com.jjg.game.poker.game.texas.message.TexasBuilder;
-import com.jjg.game.poker.game.texas.message.bean.TexasHistory;
 import com.jjg.game.poker.game.texas.message.bean.TexasHistoryPlayerInfo;
 import com.jjg.game.poker.game.texas.message.bean.TexasHistoryRoundInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasPreFlopRoundInfo;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
@@ -43,7 +40,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         if (gameController instanceof TexasGameController controller) {
             gameDataVo.resetData(controller);
             //生成id
-            gameDataVo.setId(IDGenUtil.TEXAS.getNextId());
+            gameDataVo.setId(PokerDataHelper.getNextId());
             //设置记录
             TexasSaveHistory texasHistory = new TexasSaveHistory();
             texasHistory.setId(gameDataVo.getId());
