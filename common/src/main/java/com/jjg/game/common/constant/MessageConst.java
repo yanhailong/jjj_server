@@ -137,8 +137,13 @@ public interface MessageConst {
         //登录
         int REQ_GM = BASE_MSG_PREFIX | 0x1;
         int RES_GM = BASE_MSG_PREFIX | 0x2;
+
         //通知金钱变化
         int NOTICE_MONEY_CHANGE = BASE_MSG_PREFIX | 0x99;
+        //推送跑马灯
+        int NOTICE_MARQUEE = BASE_MSG_PREFIX | 0x9A;
+        //停止跑马灯
+        int NOTICE_STOP_MARQUEE = BASE_MSG_PREFIX | 0x9B;
     }
 
     interface RoomMessage {
@@ -157,5 +162,10 @@ public interface MessageConst {
 
         //通知slots节点，结果库变更
         int NOTICE_SLOTS_LIB_CHANGE = BASE_MSG_PREFIX | 0x2;
+
+        //GM推送跑马灯
+        int NOTICE_MARQUEE = BASE_MSG_PREFIX | 0x3;
+        //GM推送停止跑马灯
+        int NOTICE_STOP_MARQUEE = BASE_MSG_PREFIX | 0x4;
     }
 }

@@ -60,7 +60,9 @@ public class GameConstant {
         public static final int GOOGLE_MAIL = 2;
     }
 
-    public class ExcelGlobal {
-
+    public class Gender {
+        public static final byte WOMAN = 0;
+        public static final byte MAN = 1;
+        public static final byte OTHER = 2;
     }
 }

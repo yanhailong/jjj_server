@@ -1,4 +1,4 @@
-package com.jjg.game.account.entity;
+package com.jjg.game.core.data;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -15,7 +15,9 @@ public class Account {
     //游客登录账号
     private String guest;
     //手机号
-    private long phone;
+    private String phoneNumber;
+    //邮箱账号
+    private String email;
     //0.游客  1.实名用户
     private int accountType;
     //账号创建时间
@@ -45,12 +47,20 @@ public class Account {
         this.accountType = accountType;
     }
 
-    public long getPhone() {
-        return phone;
+    public String getPhoneNumber() {
+        return phoneNumber;
     }
 
-    public void setPhone(long phone) {
-        this.phone = phone;
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public int getCreateTime() {

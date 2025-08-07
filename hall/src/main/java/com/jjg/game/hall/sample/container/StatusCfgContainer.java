@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.hall.sample.bean.WarehouseCfg;
+import com.jjg.game.hall.sample.bean.StatusCfg;
 
 /**
- * warehouse.xlsx配置管理容器
+ * status.xlsx配置管理容器
  *
- * @excelName warehouse.xlsx
- * @sheetName Warehouse
+ * @excelName status.xlsx
+ * @sheetName status
  * @author auto_generator
  * @date 2025年08月06日 20:26:26
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class WarehouseCfgContainer extends BaseCfgContainer<WarehouseCfg> {
+public class StatusCfgContainer extends BaseCfgContainer<StatusCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -28,23 +28,23 @@ public class WarehouseCfgContainer extends BaseCfgContainer<WarehouseCfg> {
   }
 
   @Override
-  public WarehouseCfgContainer getNewContainer(){
-    return new WarehouseCfgContainer();
+  public StatusCfgContainer getNewContainer(){
+    return new StatusCfgContainer();
   }
 
-  public WarehouseCfgContainer() {
+  public StatusCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("warehouse.xlsx");
+    excelNameList.add("status.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected WarehouseCfg createNewBean() {
-    return new WarehouseCfg();
+  protected StatusCfg createNewBean() {
+    return new StatusCfg();
   }
 }

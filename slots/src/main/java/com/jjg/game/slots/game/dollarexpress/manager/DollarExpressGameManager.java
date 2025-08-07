@@ -1334,8 +1334,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         boolean flag = playerGameData.getInvers().compareAndSet(false, true);
         if (flag) {
             gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
-            playerGameData.setTotalDollars(playerGameData.getTotalDollars() - generateManager.getDollarExpressCollectDollarConfig().getMax());
-            log.debug("美金数量达到 {} 个，触发投资小游戏 playerId = {}", generateManager.getDollarExpressCollectDollarConfig().getMax(), playerGameData.playerId());
+            playerGameData.setTotalDollars(0);
+            log.debug("美金累计到 {} 个，触发条件 {} 个，触发投资小游戏后清零 playerId = {}", gameRunInfo.getTotalDollars(),generateManager.getDollarExpressCollectDollarConfig().getMax(), playerGameData.playerId());
         }
         return gameRunInfo;
     }

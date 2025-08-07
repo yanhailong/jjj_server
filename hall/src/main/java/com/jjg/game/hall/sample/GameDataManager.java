@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年07月22日 18:30:35
+ * @date 2025年08月06日 20:26:26
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -119,6 +119,10 @@ public class GameDataManager {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
     containerMap.put(GameListCfg.class, new GameListCfgContainer());
+    containerMap.put(ItemCfg.class, new ItemCfgContainer());
+    containerMap.put(PlayerCfg.class, new PlayerCfgContainer());
+    containerMap.put(StatusCfg.class, new StatusCfgContainer());
+    containerMap.put(VipLevelConfigCfg.class, new VipLevelConfigCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
     // endregion===============cfg加载模板结束===================
     return containerMap;
@@ -531,6 +535,50 @@ public class GameDataManager {
 
   public static List<GameListCfg> getGameListCfgList() {
     return getInstance().getCfgContainer(GameListCfg.class).getCfgBeanList();
+  }
+  public static ItemCfg getItemCfg(int key) {
+    return getInstance().getCfgContainer(ItemCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ItemCfg> getItemCfgMap() {
+    return getInstance().getCfgContainer(ItemCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ItemCfg> getItemCfgList() {
+    return getInstance().getCfgContainer(ItemCfg.class).getCfgBeanList();
+  }
+  public static PlayerCfg getPlayerCfg(int key) {
+    return getInstance().getCfgContainer(PlayerCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PlayerCfg> getPlayerCfgMap() {
+    return getInstance().getCfgContainer(PlayerCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PlayerCfg> getPlayerCfgList() {
+    return getInstance().getCfgContainer(PlayerCfg.class).getCfgBeanList();
+  }
+  public static StatusCfg getStatusCfg(int key) {
+    return getInstance().getCfgContainer(StatusCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, StatusCfg> getStatusCfgMap() {
+    return getInstance().getCfgContainer(StatusCfg.class).getCfgBeanMap();
+  }
+
+  public static List<StatusCfg> getStatusCfgList() {
+    return getInstance().getCfgContainer(StatusCfg.class).getCfgBeanList();
+  }
+  public static VipLevelConfigCfg getVipLevelConfigCfg(int key) {
+    return getInstance().getCfgContainer(VipLevelConfigCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, VipLevelConfigCfg> getVipLevelConfigCfgMap() {
+    return getInstance().getCfgContainer(VipLevelConfigCfg.class).getCfgBeanMap();
+  }
+
+  public static List<VipLevelConfigCfg> getVipLevelConfigCfgList() {
+    return getInstance().getCfgContainer(VipLevelConfigCfg.class).getCfgBeanList();
   }
   public static WarehouseCfg getWarehouseCfg(int key) {
     return getInstance().getCfgContainer(WarehouseCfg.class).getCfgBeanMap().get(key);
