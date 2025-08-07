@@ -160,9 +160,8 @@ public class BaccaratMessageBuilder {
         notifyInfo.baccaratTableInfo = buildTableInfo(gameDataVo, false, false);
         notifyInfo.playerChangedGolds = changedGolds;
         notifyInfo.needClearRoad = gameDataVo.getCardList().size() < 6;
-        log.info("房间：{} 游戏类型：{} 场上庄家牌：{} 庄家补牌：{} 庄家点数：{} 闲家牌：{} 闲家补牌：{} 闲家点数：{} 输赢结果：{} 牌型结果：{}",
-            gameDataVo.getRoomId(),
-            gameDataVo.getRoomCfg().getId(),
+        log.debug("{} 场上庄家牌：{} 庄家补牌：{} 庄家点数：{} 闲家牌：{} 闲家补牌：{} 闲家点数：{} 输赢结果：{} 牌型结果：{}",
+            gameDataVo.roomLogInfo(),
             PokerCardUtils.toHumanString(settlementInfo.bankerCardIds),
             PokerCardUtils.toHumanString(settlementInfo.extraBankerCardId),
             settlementInfo.bankerPointId,

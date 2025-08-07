@@ -55,7 +55,7 @@ public class VietnamDiceSettlementPhase extends BaseDiceSettlementPhase<VietnamD
                 .stream()
                 .distinct()
                 .map(a -> GameDataManager.getBetAreaCfg((Integer) a)).toList();
-        log.info("{} 摇中越南骰子：{}, 区域ID: {} 对应的中奖区域：{}",
+        log.debug("{} 摇中越南骰子：{}, 区域ID: {} 对应的中奖区域：{}",
             gameDataVo.roomLogInfo(),
             randomNumDice.stream().map(dice -> dice == 2 ? "红" : "黑").collect(Collectors.joining("")),
             winPosWeightCfgs.stream().map(WinPosWeightCfg::getId).collect(Collectors.toList()),
