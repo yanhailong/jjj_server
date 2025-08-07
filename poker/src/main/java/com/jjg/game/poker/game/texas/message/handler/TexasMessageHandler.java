@@ -12,6 +12,7 @@ import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSeatStateChange;
 import com.jjg.game.poker.game.texas.message.req.ReqTexasChangeSeatState;
 import com.jjg.game.poker.game.texas.message.req.ReqTexasChangeTable;
+import com.jjg.game.poker.game.texas.message.req.ReqTexasHistory;
 import com.jjg.game.poker.game.texas.message.req.ReqTexasShowCard;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
@@ -155,6 +156,7 @@ public class TexasMessageHandler {
         roomPlayer.setSit(srcSeatId);
         SeatInfo remove = gameDataVo.getSeatInfo().remove(seatInfo.getSeatId());
         remove.setSeatId(srcSeatId);
+        remove.setSeatDown(true);
         gameDataVo.getSeatInfo().put(srcSeatId, remove);
         if (seatInfo.isSeatDown()) {
             controller.addTempGoldOrOutTable(remove, gamePlayer);
@@ -169,6 +171,15 @@ public class TexasMessageHandler {
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
         if (gameController instanceof TexasGameController controller) {
             controller.reqChangeTable(playerController, controller);
+        }
+    }
+
+    @Command(value = TexasConstant.MsgBean.REQ_TEXAS_HISTORY)
+    public void reqTexasHistory(PlayerController playerController, ReqTexasHistory req) {
+        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
+        if (gameController instanceof TexasGameController controller) {
+            controller.reqTexasHistory(playerController.playerId(), req);
         }
     }
 }

@@ -2,6 +2,7 @@ package com.jjg.game.poker.game.common.gamephase;
 
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
+import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
@@ -26,7 +27,7 @@ public abstract class BaseSettlementPhase<T extends BasePokerGameDataVo> extends
 
     @Override
     public int getPhaseRunTime() {
-        return TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SETTLEMENT);
+        return PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.SETTLEMENT);
     }
 
     @Override

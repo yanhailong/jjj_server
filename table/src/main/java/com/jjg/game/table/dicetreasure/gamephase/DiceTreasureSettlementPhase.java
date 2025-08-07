@@ -58,7 +58,7 @@ public class DiceTreasureSettlementPhase extends BaseDiceSettlementPhase<DiceTre
                 .stream()
                 .distinct()
                 .map(a -> GameDataManager.getBetAreaCfg((Integer) a)).toList();
-        log.info("{} 摇中骰子：{}, 区域ID: {} 对应的中奖区域：{}",
+        log.debug("{} 摇中骰子：{}, 区域ID: {} 对应的中奖区域：{}",
             gameDataVo.roomLogInfo(), randomNumDice.stream().map(String::valueOf).collect(Collectors.joining("")),
             winPosWeightCfgs.stream().map(WinPosWeightCfg::getId).collect(Collectors.toList()),
             betAreaCfgs.stream().map(BetAreaCfg::getId).map(String::valueOf).collect(Collectors.joining(",")));

@@ -36,10 +36,10 @@ public class RiverAnimalsSettlementPhase extends BaseDiceSettlementPhase<RiverAn
     public void phaseDoAction() {
         super.phaseDoAction();
         // 随机四个1-2的骰子点数
-        List<Integer> randomNumDice = DiceUtils.randomDice(4, 1, 2);
+        List<Integer> randomNumDice = DiceUtils.randomDice(3, 1, 6);
         // 通过骰子点数获取对应的配置
         List<WinPosWeightCfg> winPosWeightCfgs =
-            DiceDataHolder.getWinPosWeightCfg(EGameType.VIETNAM_DICE, randomNumDice);
+            DiceDataHolder.getWinPosWeightCfg(EGameType.RIVER_ANIMALS, randomNumDice);
         if (winPosWeightCfgs == null || winPosWeightCfgs.isEmpty()) {
             log.error("鱼虾蟹结算异常，随机奖励的区域为空，骰子：{}", randomNumDice);
             return;
@@ -52,9 +52,18 @@ public class RiverAnimalsSettlementPhase extends BaseDiceSettlementPhase<RiverAn
                 .stream()
                 .distinct()
                 .map(a -> GameDataManager.getBetAreaCfg((Integer) a)).toList();
-        log.info("{} 摇中鱼虾蟹：{}, 区域ID: {} 对应的中奖区域：{}",
+        // 1梅花鹿 2葫芦 3鸡 4鱼 5螃蟹 6虾
+        log.debug("{} 摇中鱼虾蟹：{}, 区域ID: {} 对应的中奖区域：{}",
             gameDataVo.roomLogInfo(),
-            randomNumDice.stream().map(String::valueOf).collect(Collectors.joining("")),
+            randomNumDice.stream().map((dice) -> switch (dice) {
+                case 1 -> "梅花鹿";
+                case 2 -> "葫芦";
+                case 3 -> "鸡";
+                case 4 -> "鱼";
+                case 5 -> "螃蟹";
+                case 6 -> "虾";
+                default -> "";
+            }).collect(Collectors.joining(",")),
             winPosWeightCfgs.stream().map(WinPosWeightCfg::getId).collect(Collectors.toList()),
             betAreaCfgs.stream().map(BetAreaCfg::getId).map(String::valueOf).collect(Collectors.joining(",")));
         // 添加中奖记录

@@ -3,6 +3,8 @@ package com.jjg.game.poker.game.texas.room.data;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.texas.data.Pot;
+import com.jjg.game.poker.game.texas.data.TexasSaveHistory;
+import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementInfo;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
 import java.util.ArrayList;
@@ -49,11 +51,48 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
      * 本局游戏定时器的id
      */
     private int timerId;
-
+    /**
+     * 结算信息
+     */
+    private NotifyTexasSettlementInfo notifyTexasSettlementInfo;
     /**
      * 临时gold列表
      */
     private final Map<Long, Long> tempGold = new HashMap<>();
+
+    /**
+     * 房间历史记录
+     */
+    private List<TexasSaveHistory> texasHistoryList = new ArrayList<>();
+
+    /**
+     * 本局历史记录
+     */
+    private TexasSaveHistory texasHistory;
+
+    public List<TexasSaveHistory> getTexasHistoryList() {
+        return texasHistoryList;
+    }
+
+    public NotifyTexasSettlementInfo getNotifyTexasSettlementInfo() {
+        return notifyTexasSettlementInfo;
+    }
+
+    public void setNotifyTexasSettlementInfo(NotifyTexasSettlementInfo notifyTexasSettlementInfo) {
+        this.notifyTexasSettlementInfo = notifyTexasSettlementInfo;
+    }
+
+    public void setTexasHistoryList(List<TexasSaveHistory> texasHistoryList) {
+        this.texasHistoryList = texasHistoryList;
+    }
+
+    public TexasSaveHistory getTexasHistory() {
+        return texasHistory;
+    }
+
+    public void setTexasHistory(TexasSaveHistory texasHistory) {
+        this.texasHistory = texasHistory;
+    }
 
     public Map<Long, Long> getTempGold() {
         return tempGold;
@@ -110,7 +149,9 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
     @Override
     public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {
         super.resetData(controller);
+        this.notifyTexasSettlementInfo = null;
         this.pool.clear();
+        this.texasHistory = null;
         this.maxBetValue = 0;
         this.settlement = 0;
     }
