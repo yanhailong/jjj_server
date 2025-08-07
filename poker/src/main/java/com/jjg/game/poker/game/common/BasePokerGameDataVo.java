@@ -67,12 +67,6 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
      */
     private final Map<Long, Long> baseBetInfo = new HashMap<>();
     /**
-     * 结算信息
-     */
-    private NotifyTexasSettlementInfo notifyTexasSettlementInfo;
-
-
-    /**
      * 当前玩家定时器参数
      */
     private RoomTimerEvent<IProcessorHandler, Room> playerTimerEvent;
@@ -97,13 +91,6 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
         return id;
     }
 
-    public NotifyTexasSettlementInfo getNotifySettlementInfo() {
-        return notifyTexasSettlementInfo;
-    }
-
-    public void setNotifySettlementInfo(NotifyTexasSettlementInfo notifyTexasSettlementInfo) {
-        this.notifyTexasSettlementInfo = notifyTexasSettlementInfo;
-    }
 
     /**
      * 获取已经坐下的玩家人数
@@ -178,7 +165,6 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
         this.publicCards = null;
         this.round = TexasConstant.Common.INIT_ROUND;
         this.baseBetInfo.clear();
-        this.notifyTexasSettlementInfo = null;
         if (Objects.nonNull(playerTimerEvent)) {
             controller.removePlayerTimerEvent(getPlayerTimerEvent());
         }

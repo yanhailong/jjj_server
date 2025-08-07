@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.common.data;
 
+import cn.hutool.core.lang.generator.SnowflakeGenerator;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
@@ -18,6 +19,8 @@ import java.util.stream.Collectors;
 public class PokerDataHelper {
     //poolId->pokerPool表Id->牌
     private static Map<Integer, Map<Integer, PokerCard>> allCardMapListMap;
+    //TODO
+    private static final SnowflakeGenerator GENERATOR = new SnowflakeGenerator();
 
     /**
      * 初始化缓存 cardMapListMap
@@ -37,6 +40,10 @@ public class PokerDataHelper {
             }
         }
         allCardMapListMap = mapHashMap;
+    }
+
+    public static long getNextId() {
+        return GENERATOR.next();
     }
 
     public static Map<Integer, PokerCard> getCardListMap(int poolId) {

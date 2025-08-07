@@ -18,8 +18,6 @@ public class TexasHistory {
     public long SBValue;
     @ProtoDesc("大盲")
     public long BBValue;
-    @ProtoDesc("手牌信息")
-    public List<Integer> cards;
     @ProtoDesc("第二轮公牌前端id")
     public List<Integer> preFlop;
     @ProtoDesc("第三轮公牌前端id")

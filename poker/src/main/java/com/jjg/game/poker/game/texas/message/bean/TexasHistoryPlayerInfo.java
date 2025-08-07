@@ -3,6 +3,8 @@ package com.jjg.game.poker.game.texas.message.bean;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
+import java.util.List;
+
 @ProtobufMessage
 @ProtoDesc("德州记录玩家信息")
 public class TexasHistoryPlayerInfo {
@@ -16,4 +18,6 @@ public class TexasHistoryPlayerInfo {
     public int index;
     @ProtoDesc("押注值")
     public long betValue;
+    @ProtoDesc("手牌信息")
+    public List<Integer> cardIds;
 }

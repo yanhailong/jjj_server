@@ -13,8 +13,6 @@ import java.util.Map;
 public class TexasSaveHistory {
     // 对局id
     private long id;
-    // 参与人数
-    private int joinNum;
     // 小盲
     private long SBValue;
     // 大盲
