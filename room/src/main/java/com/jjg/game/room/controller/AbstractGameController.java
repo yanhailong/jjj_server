@@ -1,6 +1,8 @@
 package com.jjg.game.room.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.concurrent.BaseFuncProcessor;
+import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
@@ -225,7 +227,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     @Override
-    public void timeTick() {
+    public void roomTick() {
         long currentTime = System.currentTimeMillis();
         for (Map.Entry<ETickTaskType, BaseGameTickTask> entry : tickTaskMap.entrySet()) {
             if (!tickTaskTimeRecMap.containsKey(entry.getKey())) {
@@ -237,8 +239,14 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             }
             // 更新tick任务下次触发时间
             tickTaskTimeRecMap.put(entry.getKey(), currentTime + entry.getValue().getTaskInterval());
-            // 运行tick任务
-            entry.getValue().run(currentTime);
+            BaseFuncProcessor baseFuncProcessor = roomController.getRoomProcessor();
+            // 运行tick任务, 需要在房间线程中排队执行，不能阻塞正常的tick，不然会导致 Do Overtime
+            baseFuncProcessor.executeHandler(new BaseHandler<>() {
+                @Override
+                public void action() {
+                    entry.getValue().run(currentTime);
+                }
+            });
         }
     }
 

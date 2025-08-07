@@ -27,9 +27,9 @@ public interface IRoomLifeCycle {
     void roomReady();
 
     /**
-     * 房间更新,房间内的定时游戏逻辑在此处更新,每100ms Tick一次
+     * 房间更新,房间内的定时游戏逻辑在此处更新,每200ms Tick一次,需要控制好tick时间，不能小于最耗时的逻辑代码的时间
      */
-    void timeTick();
+    void roomTick();
 
     /**
      * 游戏玩家托管逻辑，游戏中如果默认的出牌超时后，将进入自动托管逻辑，由每个游戏具体实现

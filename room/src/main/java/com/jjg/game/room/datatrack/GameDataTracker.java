@@ -138,9 +138,12 @@ public class GameDataTracker {
      * 关闭数据收集
      */
     public void shutdownDataTracker() {
+        // 暂停收集
+        finishedDataCollect();
+        // 清除收集数据
         clearRecData();
+        // 清除房间基础数据
         baseGameInfo.clear();
-        isStarted = false;
     }
 
     /**

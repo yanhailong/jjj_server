@@ -1,6 +1,7 @@
 package com.jjg.game.room.controller;
 
 import com.jjg.game.common.concurrent.BaseFuncProcessor;
+import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.timer.TimerEvent;
@@ -310,10 +311,10 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         }
         // 空房间检查
         addEmptyRoomCheckTimer();
-        // 房间Timer执行tick时间 现在默认 100ms
+        // 房间Timer执行tick时间 现在默认 200ms
         // 添加房间tick
         timerCenter.add(new RoomTimerEvent<>(
-                this, room, this::timeTick, RoomConstant.ROOM_TICK_TIME, RoomEventType.ROOM_PHASE_RUN_EVENT));
+                this, room, this::roomTick, RoomConstant.ROOM_TICK_TIME, RoomEventType.ROOM_TICK));
     }
 
     /**
@@ -337,17 +338,23 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
     @Override
-    public void timeTick() {
+    public void roomTick() {
         if (isStoping) {
             return;
         }
         // 游戏启动后进行tick
         if (gameController.isGameStarted()) {
             // 由房间控制器调用game的tick统一控制
-            gameController.timeTick();
+            gameController.roomTick();
         }
-        // 机器人加入逻辑
-        checkAddRobot();
+        // 耗时逻辑需要抛到game线程，保证不能阻塞time tick
+        roomProcessor.executeHandler(new BaseHandler<>() {
+            @Override
+            public void action() {
+                // 机器人加入逻辑
+                checkAddRobot();
+            }
+        });
     }
 
     /**
@@ -589,8 +596,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         return gameController;
     }
 
-    public void getRoomProcessor(BaseFuncProcessor roomProcessor) {
-        this.roomProcessor = roomProcessor;
+    public BaseFuncProcessor getRoomProcessor() {
+        return this.roomProcessor;
     }
 
     public void setGameController(AbstractGameController<RC, ? extends GameDataVo<RC>> gameController) {
