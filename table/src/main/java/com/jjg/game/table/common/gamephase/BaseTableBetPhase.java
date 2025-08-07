@@ -313,6 +313,10 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         long totalBetValue = 0;
         Map<Integer, Long> playerReqBetMap = new HashMap<>();
         for (ReqBetBean betBean : reqBetBean) {
+            // 判断是否合法
+            if (!betList.contains((int) betBean.betValue)) {
+                return Code.PARAM_ERROR;
+            }
             playerReqBetMap.put(betBean.betAreaIdx,
                 playerReqBetMap.getOrDefault(betBean.betAreaIdx, 0L) + betBean.betValue);
         }
@@ -323,10 +327,6 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             long betValue = entry.getValue();
             // 检查是否是合法值
             if (!betAreaCfgMap.containsKey(betAreaIdx)) {
-                return Code.PARAM_ERROR;
-            }
-            // 判断是否合法
-            if (!betList.contains((int) betValue)) {
                 return Code.PARAM_ERROR;
             }
             BetAreaCfg betAreaCfg = betAreaCfgMap.get(betAreaIdx);

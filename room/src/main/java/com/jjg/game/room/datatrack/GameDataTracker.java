@@ -1,7 +1,7 @@
-package com.jjg.game.room.base;
+package com.jjg.game.room.datatrack;
 
-import cn.hutool.core.lang.hash.Hash;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 
 import java.util.Collection;
@@ -13,10 +13,12 @@ import java.util.HashMap;
  * @author 2CL
  */
 public class GameDataTracker {
-    // 埋点数据
-    private final HashMap<String, Object> trackData = new HashMap<>();
+    // 玩家的埋点数据
+    private final HashMap<String, Object> playerTrackData = new HashMap<>();
+    // 房间的埋点数据
+    private final HashMap<String, Object> gameTrackData = new HashMap<>();
     // 埋点日志
-    private GameDataTrackLogger trackLogger;
+    private final RoomDataTrackLogger trackLogger;
     // 游戏日志topic
     private final String gameLogTopic;
     // 是否已经开始
@@ -24,9 +26,9 @@ public class GameDataTracker {
     // 基础游戏埋点数据
     private final HashMap<String, Object> baseGameInfo = new HashMap<>();
 
-    public GameDataTracker(AbstractGameController<?, ?> gameController, GameDataTrackLogger trackerLogger) {
+    public GameDataTracker(AbstractGameController<?, ?> gameController, RoomDataTrackLogger trackerLogger) {
         baseGameInfo.putAll(trackerLogger.buildBaseGameInfo(gameController));
-        gameLogTopic = trackLogger.gameLogTopicPrefix + gameController.getGameDataVo().getRoomCfg().getGameID();
+        gameLogTopic = trackerLogger.gameLogTopicPrefix + gameController.getGameDataVo().getRoomCfg().getGameID();
         this.trackLogger = trackerLogger;
     }
 
@@ -34,16 +36,27 @@ public class GameDataTracker {
      * 埋点开始
      */
     public void start() {
-        trackData.clear();
+        // 清理一次数据再开始
+        clearRecData();
         isStarted = true;
     }
 
     /**
      * 添加埋点日志数据
      */
-    public void addLogData(String logFieldName, Object logValue) {
+    public void addPlayerLogData(String logFieldName, Object logValue) {
         if (isStarted) {
-            trackData.put(logFieldName, logValue);
+            playerTrackData.put(logFieldName, logValue);
+        }
+    }
+
+
+    /**
+     * 添加埋点日志数据
+     */
+    public void addGameLogData(String logFieldName, Object logValue) {
+        if (isStarted) {
+            gameTrackData.put(logFieldName, logValue);
         }
     }
 
@@ -57,26 +70,40 @@ public class GameDataTracker {
     /**
      * 发送玩家的埋点数据
      */
-    public void sendPlayerLog(GamePlayer gamePlayer) {
+    public void sendLogWithPlayer(GamePlayer gamePlayer) {
+        if (gamePlayer instanceof GameRobotPlayer) {
+            return;
+        }
         HashMap<String, Object> tempTrackData = new HashMap<>();
         // 游戏的日志数据
-        tempTrackData.putAll(trackData);
+        tempTrackData.putAll(playerTrackData);
+        // 游戏的日志数据
+        tempTrackData.putAll(gameTrackData);
         // 基础的游戏信息
         tempTrackData.putAll(baseGameInfo);
         // 玩家信息
         tempTrackData.putAll(trackLogger.buildGamePlayerInfo(gamePlayer));
         // 订单ID
         tempTrackData.put("orderId", trackLogger.getSnowflake().nextId());
+        // 发送日志数据
         trackLogger.sendLog(gameLogTopic, tempTrackData);
+        // 给玩家记录的日志，在发送之后需要进行清除
+        playerTrackData.clear();
     }
 
+    /**
+     * 获取数据收集的值
+     */
+    public Object getDataTrackValue(String trackFieldName) {
+        return playerTrackData.get(trackFieldName);
+    }
 
     /**
      * 发送批量的玩家埋点数据
      */
-    public void sendPlayerLog(Collection<GamePlayer> gamePlayers) {
+    public void sendLogWithPlayer(Collection<GamePlayer> gamePlayers) {
         for (GamePlayer gamePlayer : gamePlayers) {
-            sendPlayerLog(gamePlayer);
+            sendLogWithPlayer(gamePlayer);
         }
     }
 
@@ -85,7 +112,7 @@ public class GameDataTracker {
      */
     public void sendAndClose(GamePlayer gamePlayer) {
         // 发送玩家数据
-        sendPlayerLog(gamePlayer);
+        sendLogWithPlayer(gamePlayer);
         // 完成数据收集
         finishedDataCollect();
     }
@@ -95,7 +122,7 @@ public class GameDataTracker {
      */
     public void sendAndClose(Collection<GamePlayer> gamePlayers) {
         // 发送玩家数据
-        sendPlayerLog(gamePlayers);
+        sendLogWithPlayer(gamePlayers);
         // 完成数据收集
         finishedDataCollect();
     }
@@ -111,8 +138,16 @@ public class GameDataTracker {
      * 关闭数据收集
      */
     public void shutdownDataTracker() {
-        trackData.clear();
+        clearRecData();
         baseGameInfo.clear();
         isStarted = false;
+    }
+
+    /**
+     * 清理记录数据
+     */
+    private void clearRecData() {
+        playerTrackData.clear();
+        gameTrackData.clear();
     }
 }

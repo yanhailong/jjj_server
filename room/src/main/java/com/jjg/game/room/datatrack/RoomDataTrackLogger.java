@@ -1,8 +1,7 @@
-package com.jjg.game.room.base;
+package com.jjg.game.room.datatrack;
 
 import cn.hutool.core.lang.Snowflake;
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.core.logger.BaseLogger;
@@ -20,7 +19,7 @@ import java.util.Map;
  * @author 2CL
  */
 @Component
-public class GameDataTrackLogger extends BaseLogger {
+public class RoomDataTrackLogger extends BaseLogger {
 
     @Autowired
     protected NodeConfig nodeConfig;
@@ -46,8 +45,8 @@ public class GameDataTrackLogger extends BaseLogger {
      */
     public Map<String, Object> buildGamePlayerInfo(GamePlayer gamePlayer) {
         HashMap<String, Object> baseGameInfo = new HashMap<>();
-        baseGameInfo.put("id", gamePlayer.getId());
-        baseGameInfo.put("name", gamePlayer.getNickName());
+        baseGameInfo.put("playerId", gamePlayer.getId());
+        baseGameInfo.put("playerName", gamePlayer.getNickName());
         return baseGameInfo;
     }
 

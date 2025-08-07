@@ -16,7 +16,7 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.utils.ReflectionTool;
-import com.jjg.game.room.base.GameDataTrackLogger;
+import com.jjg.game.room.datatrack.RoomDataTrackLogger;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
@@ -69,7 +69,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     @Autowired
     private PlayerRoomDataDao playerRoomDataDao;
     @Autowired
-    private GameDataTrackLogger gameDataTrackLogger;
+    private RoomDataTrackLogger roomDataTrackLogger;
     // context
     protected ApplicationContext applicationContext;
     // 房间计时器(线程池)
@@ -748,7 +748,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     /**
      * 获取游戏埋点数据logger
      */
-    public GameDataTrackLogger getGameDataTrackLogger() {
-        return gameDataTrackLogger;
+    public RoomDataTrackLogger getGameDataTrackLogger() {
+        return roomDataTrackLogger;
     }
 }

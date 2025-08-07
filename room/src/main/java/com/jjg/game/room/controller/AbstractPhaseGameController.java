@@ -11,7 +11,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.core.utils.ReflectionTool;
-import com.jjg.game.room.base.GameDataTracker;
+import com.jjg.game.room.datatrack.GameDataTracker;
 import com.jjg.game.room.base.IPhaseMsgAdapter;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
@@ -60,8 +60,6 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
         roundCounter.set(0);
         // 初始化迭代器
         gamePhaseIterator = gamePhases.iterator();
-        // 开始之前调用一次
-        beforeEnterNextRound();
         // 开始
         autoRunGamePhase();
     }

@@ -11,7 +11,7 @@ import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
-import com.jjg.game.room.base.GameDataTracker;
+import com.jjg.game.room.datatrack.GameDataTracker;
 import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GameDataVo;
