@@ -11,6 +11,7 @@ import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
+import com.jjg.game.room.base.GameDataTracker;
 import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -47,6 +48,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     private final Map<ETickTaskType, Long> tickTaskTimeRecMap = new HashMap<>();
     // tick任务 tick间隔，执行回调 需要放在tick中检查的必须是周期运行的任务
     protected Map<ETickTaskType, BaseGameTickTask> tickTaskMap = new HashMap<>();
+    // 游戏埋点记录
+    protected GameDataTracker gameDataTracker;
 
     public AbstractGameController(AbstractRoomController<RC, ? extends Room> roomController) {
         this.roomController = roomController;
@@ -86,12 +89,6 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      */
     public boolean canExitGame(long playerId) {
         return true;
-    }
-
-    /**
-     * 进入下一轮游戏之前调用
-     */
-    protected void beforeEnterNextRound() {
     }
 
     /**
@@ -254,6 +251,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     public void disbandRoom() {
         // 先暂停房间类的阶段执行逻辑
         gameStarted = false;
+        // 关闭数据收集
+        gameDataTracker.shutdownDataTracker();
     }
 
     /**
@@ -318,5 +317,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
 
     public <R extends Room> R getRoom() {
         return (R) roomController.getRoom();
+    }
+
+    public GameDataTracker getGameDataTracker() {
+        return gameDataTracker;
     }
 }

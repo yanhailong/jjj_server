@@ -32,10 +32,13 @@ public abstract class AbstractRoomPhase<RC extends RoomCfg, G extends GameDataVo
     protected AbstractPhaseGameController<RC, G> gameController;
     // 回合计数器
     protected int roundCounter;
+    // 埋点数据收集器
+    protected GameDataTracker gameDataTracker;
 
     public AbstractRoomPhase(AbstractPhaseGameController<RC, G> gameController) {
         this.gameController = gameController;
         this.gameDataVo = gameController.getGameDataVo();
+        this.gameDataTracker = gameController.getGameDataTracker();
     }
 
     @Override

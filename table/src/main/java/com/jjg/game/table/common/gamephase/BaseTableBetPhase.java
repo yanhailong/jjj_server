@@ -325,6 +325,10 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             if (!betAreaCfgMap.containsKey(betAreaIdx)) {
                 return Code.PARAM_ERROR;
             }
+            // 判断是否合法
+            if (!betList.contains((int) betValue)) {
+                return Code.PARAM_ERROR;
+            }
             BetAreaCfg betAreaCfg = betAreaCfgMap.get(betAreaIdx);
             // 判断场上单区域的总数量是否达到上限
             // 配置的上限
