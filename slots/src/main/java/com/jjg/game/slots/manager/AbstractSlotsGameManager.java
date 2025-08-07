@@ -371,7 +371,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             return result;
         }
         PropInfo propInfo = tempPropMap.get(libType);
-        if (propInfo == null) {
+        if (propInfo == null || propInfo.getSum() < 1) {
             log.debug("未找到 specialResultLib 中 section 相关的权重信息2 modelId = {},gameType = {},libType = {}", modelId, this.gameType, libType);
             result.code = Code.NOT_FOUND;
             return result;
