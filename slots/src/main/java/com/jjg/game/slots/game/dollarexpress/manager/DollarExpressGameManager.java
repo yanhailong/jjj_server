@@ -1475,6 +1475,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     }
 
     private boolean checkUpdateType(int updateType, int libType) {
+        if(libType == SlotsConst.SpecialResultLib.TYPE_NORMAL) {
+            return true;
+        }
+
         if (libType == SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN) {
             return updateType == SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT_2;
         }
