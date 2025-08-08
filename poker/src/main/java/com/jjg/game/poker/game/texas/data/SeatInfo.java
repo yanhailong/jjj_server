@@ -1,6 +1,7 @@
 package com.jjg.game.poker.game.texas.data;
 
 /**
+ * 座位信息
  * @author lm
  * @date 2025/7/31 14:48
  */

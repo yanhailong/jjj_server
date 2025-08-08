@@ -19,11 +19,11 @@ import java.util.stream.Collectors;
 public class PokerDataHelper {
     //poolId->pokerPool表Id->牌
     private static Map<Integer, Map<Integer, PokerCard>> allCardMapListMap;
-    //TODO
-    private static final SnowflakeGenerator GENERATOR = new SnowflakeGenerator();
+    //id生成器
+    private final static SnowflakeGenerator SNOWFLAKE = new SnowflakeGenerator(2, 0);
 
     /**
-     * 初始化缓存 cardMapListMap
+     * 初始化缓存 allCardMapListMap
      */
     public static void initData() {
         List<PokerPoolCfg> cfgList = GameDataManager.getPokerPoolCfgList();
@@ -42,19 +42,37 @@ public class PokerDataHelper {
         allCardMapListMap = mapHashMap;
     }
 
+    /**
+     * 获取id
+     */
     public static long getNextId() {
-        return GENERATOR.next();
+        return SNOWFLAKE.next();
     }
 
+    /**
+     * 获取配置id对应的PokerCard
+     *
+     * @param poolId PokerPool池id
+     * @return 该池id下的所有牌
+     */
     public static Map<Integer, PokerCard> getCardListMap(int poolId) {
         return allCardMapListMap.get(poolId);
     }
 
+    /**
+     * 获取poker每个阶段的执行时间
+     */
     public static int getExecutionTime(BasePokerGameDataVo gameDataVo, PokerPhase phase) {
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         return roomCfg.getChess_stageOrder().getOrDefault(phase.getValue(), 0);
     }
 
+    /**
+     * 获取牌的客户端对应的id
+     *
+     * @param cardCfgId pokerPool配置表id
+     * @param poolId    pokerPool池id
+     */
     public static List<Integer> getClientId(List<Integer> cardCfgId, int poolId) {
         Map<Integer, PokerCard> cardMap = getCardListMap(poolId);
         return cardCfgId.stream().map(id -> cardMap.get(id).getClientId()).collect(Collectors.toList());

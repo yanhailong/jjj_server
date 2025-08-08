@@ -47,6 +47,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
      * 开启下一轮执行 还是直接结算
      */
     public abstract void startNextRoundOrSettlement();
+
     /**
      * 获取下一个执行人
      */
@@ -64,6 +65,11 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
      */
     public abstract void sampleCardOperation(long playerId, ReqPokerSampleCardOperation req);
 
+    /**
+     * 添加节点执行timer
+     *
+     * @param phase
+     */
     public final void addPokerPhaseTimer(IRoomPhase phase) {
         currentGamePhase = phase;
         phase.phaseDoAction();
@@ -73,11 +79,17 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         addGameTimeEvent(currentGameTimerEvent, ROOM_PHASE_RUN_EVENT);
     }
 
+    /**
+     * 添加阶段执行
+     *
+     * @param phase
+     */
     public final void addPokerPhase(IRoomPhase phase) {
         currentGamePhase = phase;
         phase.phaseDoAction();
         phase.playerPhaseAction();
     }
+
 
     @Override
     public void addGameTimeEvent(TimerEvent<IProcessorHandler> roomUpdateTimer, RoomEventType roomEventType) {
@@ -88,7 +100,9 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         }
     }
 
-
+    /**
+     * 添加玩家定时器
+     */
     public final void addPlayerTimer(IProcessorHandler handler, int time) {
         long exeTime = System.currentTimeMillis() + time;
         TimerEvent<IProcessorHandler> playerGameTimerEvent = new TimerEvent<>(this, exeTime, handler);
@@ -98,17 +112,27 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         addGameTimeEvent(playerGameTimerEvent, POKER_PLAYER_EVENT);
     }
 
+    /**
+     * 移除玩家定时器
+     */
     public void removePlayerTimerEvent(RoomTimerEvent<IProcessorHandler, Room> event) {
-        timerCenter.remove(this, event.getParameter());
+        if (Objects.nonNull(event)) {
+            timerCenter.remove(this, event.getParameter());
+        }
     }
 
+    /**
+     * 移除阶段定时器
+     */
     public final void removePokerPhaseTimer() {
         if (Objects.nonNull(currentGameTimerEvent)) {
             timerCenter.remove(this, currentGameTimerEvent);
         }
     }
 
-
+    /**
+     * 跳转到等待阶段
+     */
     public final void goBackWaitReadyPhase() {
         removePokerPhaseTimer();
         setCurrentGamePhase(new BaseWaitReadyPhase<>(this));
@@ -128,10 +152,13 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         tryStartGame();
     }
 
+    /**
+     * 玩家请求初始化房间信息行为
+     */
     public abstract void respRoomInitInfoAction(PlayerController playerController);
 
     /**
-     * 达到游戏开始的条件执行
+     * 尝试开启游戏
      */
     public abstract void tryStartGame();
 
@@ -150,34 +177,32 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         if (nonNull && info.getPlayerId() == playerController.playerId()) {
             return gamePlayer;
         }
-        if (nonNull) {
-            SeatInfo seatInfo = new SeatInfo();
-            seatInfo.setPlayerId(gamePlayer.getId());
-            seatInfo.setJoinGame(false);
-            seatInfo.setSeatDown(true);
-            seatInfo.setSeatId(roomPlayer.getSit());
-            seatInfoList.put(roomPlayer.getSit(), seatInfo);
+        if (!nonNull) {
+            seatInfoList.put(roomPlayer.getSit(), getSeatInfo(gamePlayer, roomPlayer));
         } else {
             for (int i = 0; i < getRoom().getMaxLimit(); i++) {
                 if (!seatInfoList.containsKey(i)) {
                     roomPlayer.setSit(i);
-                    SeatInfo seatInfo = new SeatInfo();
-                    seatInfo.setPlayerId(gamePlayer.getId());
-                    seatInfo.setJoinGame(false);
-                    seatInfo.setSeatDown(true);
-                    seatInfo.setSeatId(roomPlayer.getSit());
-                    seatInfoList.put(roomPlayer.getSit(), seatInfo);
+                    seatInfoList.put(roomPlayer.getSit(), getSeatInfo(gamePlayer, roomPlayer));
                     break;
                 }
             }
         }
-        //TODO 找不到能坐的位置怎么办
         try {
             onPlayerJoinRoomAction(gamePlayer);
         } catch (Exception e) {
             log.error("onPlayerJoinRoomAction() failed", e);
         }
         return gamePlayer;
+    }
+
+    private  SeatInfo getSeatInfo(GamePlayer gamePlayer, RoomPlayer roomPlayer) {
+        SeatInfo seatInfo = new SeatInfo();
+        seatInfo.setPlayerId(gamePlayer.getId());
+        seatInfo.setJoinGame(false);
+        seatInfo.setSeatDown(true);
+        seatInfo.setSeatId(roomPlayer.getSit());
+        return seatInfo;
     }
 
     public void onPlayerJoinRoomAction(GamePlayer gamePlayer) {
@@ -189,25 +214,27 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     }
 
     @Override
-    public  <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
+    public <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
         // 通知场上玩家离开
         RoomPlayer roomPlayer = getRoom().getRoomPlayers().get(playerController.playerId());
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
         if (Objects.nonNull(gamePlayer) && Objects.nonNull(roomPlayer)) {
+            //移除座位信息
+            SeatInfo remove = gameDataVo.getSeatInfo().remove(roomPlayer.getSit());
+            if (Objects.nonNull(remove)) {
+                //移除下注信息
+                gameDataVo.getBaseBetInfo().remove(roomPlayer.getPlayerId());
+                try {
+                    onPlayerLeaveRoomAction(roomPlayer, remove);
+                } catch (Exception e) {
+                    log.error("onPlayerLeaveRoomAction() failed", e);
+                }
+            }
             NotifyPokerPlayerChange playerChange = new NotifyPokerPlayerChange();
-            playerChange.pokerPlayerInfo = PokerBuilder.buildPlayerInfo(gamePlayer, gameDataVo, false);
+            playerChange.pokerPlayerInfo = PokerBuilder.buildPlayerInfo(gamePlayer, remove, gameDataVo, false);
             roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder()
                     .toAllPlayer().exceptPlayer(playerController.playerId())
                     .setData(playerChange));
-            //移除座位信息
-            SeatInfo remove = gameDataVo.getSeatInfo().remove(roomPlayer.getSit());
-            //移除下注信息
-            gameDataVo.getBaseBetInfo().remove(roomPlayer.getPlayerId());
-            try {
-                onPlayerLeaveRoomAction(roomPlayer, remove);
-            } catch (Exception e) {
-                log.error("onPlayerLeaveRoomAction() failed", e);
-            }
         }
         return super.onPlayerLeaveRoom(playerController);
     }
@@ -224,7 +251,6 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         return linkedHashSet;
     }
 
-
     @Override
     protected void phaseRunOver() {
 
@@ -234,5 +260,8 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     public void autoRunGamePhase() {
     }
 
+    /**
+     * 处理下注
+     */
     public abstract void dealBet(long playerId, ReqPokerBet reqPokerBet);
 }

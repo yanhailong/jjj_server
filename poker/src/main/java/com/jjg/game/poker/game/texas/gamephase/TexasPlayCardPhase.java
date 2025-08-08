@@ -51,6 +51,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
             //取配置表
             Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
             TexasCfg texasCfg = GameDataManager.getTexasCfg(roomCfg.getId());
+            //位置信息
             TreeMap<Integer, SeatInfo> seatInfo = gameDataVo.getSeatInfo();
             //定庄 取比他小的位置 和比他大的位置各一个
             int buttonSeatId = getButtonSeatId(seatInfo);
@@ -91,6 +92,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
             //添加总获得记录
             texasHistory.setTotalPlayerBetInfo(new ArrayList<>());
             for (PlayerSeatInfo info : playerSeatInfo) {
+                //手牌记录
                 texasHistory.getAllCards().put(info.getPlayerId(), TexasDataHelper.getClientId(info.getCurrentCards(), TexasDataHelper.getPoolId(gameDataVo)));
                 // 本轮总获得的值
                 Long bet = gameDataVo.getBaseBetInfo().getOrDefault(info.getPlayerId(), 0L);
@@ -127,6 +129,9 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         }
     }
 
+    /**
+     * 下注大小盲注
+     */
     private Pair<Long, Long> BBAndSBBet(TexasGameController controller, TexasCfg texasCfg) {
         List<PlayerSeatInfo> playerSeatInfoList = controller.getGameDataVo().getPlayerSeatInfoList();
         int dealerIndex = gameDataVo.getDealerIndex();
@@ -134,20 +139,20 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         //添加记录
         TexasSaveHistory texasHistory = gameDataVo.getTexasHistory();
         List<TexasHistoryPlayerInfo> list = new ArrayList<>(playerSeatInfoList.size());
-        TexasHistoryRoundInfo historyRoundInfo = TexasDataHelper.getHistoryRoundInfo(gameDataVo);
+        TexasHistoryRoundInfo historyRoundInfo = gameDataVo.getHistoryRoundInfo();
         historyRoundInfo.roundInfo = list;
         //两人时庄家是小盲
         int startIndex = size == 2 ? 0 : 1;
         //小盲
         PlayerSeatInfo info = playerSeatInfoList.get((dealerIndex + startIndex) % size);
-        long betValue = texasCfg.getSbNum();
-        gameDataVo.getBaseBetInfo().put(info.getPlayerId(), betValue);
+        long sBBetValue = texasCfg.getSbNum();
+        gameDataVo.getBaseBetInfo().put(info.getPlayerId(), sBBetValue);
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
-        controller.changePlayerGold(gamePlayer, -betValue);
-        gameDataVo.getPool().get(0).addChips(betValue);
+        controller.changePlayerGold(gamePlayer, -sBBetValue);
+        gameDataVo.getPool().get(0).addChips(sBBetValue);
         gameDataVo.getPool().get(0).addEligiblePlayer(info.getPlayerId());
         //添加记录
-        historyRoundInfo.roundInfo.add(TexasBuilder.getTexasHistoryPlayerInfo(info, gameDataVo, betValue));
+        historyRoundInfo.roundInfo.add(TexasBuilder.getTexasHistoryPlayerInfo(info, gameDataVo, sBBetValue));
         //大盲
         info = playerSeatInfoList.get((dealerIndex + startIndex + 1) % size);
         long BBBetValue = texasCfg.getBbNum();
@@ -160,10 +165,10 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         //添加记录
         historyRoundInfo.roundInfo.add(TexasBuilder.getTexasHistoryPlayerInfo(info, gameDataVo, BBBetValue));
         //添加记录
-        texasHistory.setSBValue(betValue);
+        texasHistory.setSBValue(sBBetValue);
         texasHistory.setBBValue(BBBetValue);
-        historyRoundInfo.potAllBet = Arrays.asList(BBBetValue + betValue);
-        return Pair.newPair(betValue, BBBetValue);
+        historyRoundInfo.potAllBet = Arrays.asList(BBBetValue + sBBetValue);
+        return Pair.newPair(sBBetValue, BBBetValue);
     }
 
     @Override
@@ -171,6 +176,9 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         return -1;
     }
 
+    /**
+     * 获取庄家的位置
+     */
     private int getButtonSeatId(TreeMap<Integer, SeatInfo> seatInfo) {
         int less = -1;
         int more = -1;

@@ -31,7 +31,6 @@ import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.poker.game.texas.util.HandResult;
 import com.jjg.game.poker.game.texas.util.PlayerHand;
 import com.jjg.game.poker.game.texas.util.PokerHandEvaluator;
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
@@ -92,11 +91,16 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         gameDataVo.setNotifyTexasSettlementInfo(notifyTexasSettlementInfo);
     }
 
+    /**
+     * 获取正常结算的结算信息
+     */
     private NotifyTexasSettlementInfo getNormalSettlementInfo(TexasGameController controller) {
         List<Pot> pool = gameDataVo.getPool();
-        //用奖池发奖
+        //玩家获得 玩家id->获得金币
         Map<Long, Long> playerGet = new HashMap<>();
+        //获胜的玩家牌型 玩家id->手牌结果
         Map<Long, HandResult> playerFinalCards = new HashMap<>();
+        //摊牌的玩家信息 玩家id-> 玩家信息->手牌
         Map<Long, Pair<PlayerSeatInfo, List<Card>>> playerCards = new HashMap<>();
         Map<Integer, PokerCard> cardListMap = TexasDataHelper.getCardListMap(TexasDataHelper.getPoolId(gameDataVo));
         List<Card> publicCards = gameDataVo.getPublicCards().stream().map(cardListMap::get).collect(Collectors.toList());
@@ -108,6 +112,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             playerCards.put(info.getPlayerId(), Pair.newPair(info, cards));
         }
         List<TexasPotInfo> texasPotInfos = new ArrayList<>(pool.size());
+        //取所有池子
         for (Pot pot : pool) {
             Set<Long> eligiblePlayers = pot.getEligiblePlayers();
             if (eligiblePlayers.isEmpty()) {
@@ -125,6 +130,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             if (hands.isEmpty()) {
                 continue;
             }
+            //获胜的玩家信息
             List<Pair<Long, HandResult>> winners = PokerHandEvaluator.findWinners(hands, publicCards);
             //直接当抽水
             long remaining = pot.getAmount() % winners.size();
@@ -154,7 +160,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         notifyTexasSettlementInfo.endTime = gameDataVo.getPhaseEndTime();
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         List<TexasSettlementPlayerInfo> settlementInfoArrayList = new ArrayList<>();
-        //广播
+        //生成结算信息 并发奖
         for (Map.Entry<Long, Pair<PlayerSeatInfo, List<Card>>> entry : playerCards.entrySet()) {
             Long playerId = entry.getKey();
             Pair<PlayerSeatInfo, List<Card>> pair = entry.getValue();
@@ -243,6 +249,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         }
     }
 
+    /**
+     * 弃牌到剩一个人结算
+     */
     public void settlementByOnePlayer(TexasGameController controller) {
         List<PlayerSeatInfo> infoList = gameDataVo.getPlayerSeatInfoList()
                 .stream()
@@ -295,16 +304,17 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         if (gameController instanceof BasePokerGameController<TexasGameDataVo> controller) {
             //设置为等待阶段
             controller.setCurrentGamePhase(new BaseWaitReadyPhase<>(gameController));
-        }
-        gameDataVo.getTexasHistoryList().add(gameDataVo.getTexasHistory());
-        //金币不够底注的尝试重新拿金币
-        updatePlayerData();
-        //开启下一局
-        if (gameController instanceof TexasGameController controller) {
+            gameDataVo.getTexasHistoryList().add(0, gameDataVo.getTexasHistory());
+            //金币不够底注的尝试重新拿金币
+            updatePlayerData();
+            //开启下一局
             controller.tryStartGame();
         }
     }
 
+    /**
+     * 结算后更新玩家信息
+     */
     public void updatePlayerData() {
         if (gameController instanceof TexasGameController controller) {
             List<PokerPlayerInfo> infos = new ArrayList<>();

@@ -41,6 +41,9 @@ public class TexasBuilder {
     }
 
     public static HandResult getTempHandType(PlayerSeatInfo info, TexasGameDataVo gameDataVo) {
+        if (Objects.isNull(gameDataVo.getPublicCards())) {
+            return null;
+        }
         List<Integer> publicCards = new ArrayList<>(gameDataVo.getPublicCards());
         publicCards.addAll(info.getCurrentCards());
         Map<Integer, PokerCard> cardListMap = TexasDataHelper.getCardListMap(TexasDataHelper.getPoolId(gameDataVo));

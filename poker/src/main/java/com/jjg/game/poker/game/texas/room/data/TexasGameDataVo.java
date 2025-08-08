@@ -4,6 +4,7 @@ import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.texas.data.Pot;
 import com.jjg.game.poker.game.texas.data.TexasSaveHistory;
+import com.jjg.game.poker.game.texas.message.bean.TexasHistoryRoundInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementInfo;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
@@ -70,6 +71,13 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
      */
     private TexasSaveHistory texasHistory;
 
+
+    /**
+     * 获取当前的历史记录轮信息
+     */
+    public  TexasHistoryRoundInfo getHistoryRoundInfo() {
+        return texasHistory.getTexasHistoryRoundInfos().get(getRound() - 1);
+    }
     public List<TexasSaveHistory> getTexasHistoryList() {
         return texasHistoryList;
     }
