@@ -19,8 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class BaccaratTempRoom implements IPlayerRoomEventListener {
-
-    private static final Logger log = LoggerFactory.getLogger(BaccaratTempRoom.class);
+    // 观察百家乐路单的玩家集合
     private final Map<Integer, Map<Long, PlayerController>> baccaratObserverPlayers = new ConcurrentHashMap<>();
 
     @Override

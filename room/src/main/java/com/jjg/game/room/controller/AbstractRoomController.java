@@ -348,13 +348,13 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             gameController.roomTick();
         }
         // 耗时逻辑需要抛到game线程，保证不能阻塞time tick
-        roomProcessor.executeHandler(new BaseHandler<>() {
+        roomProcessor.executeHandler(new BaseHandler<String>() {
             @Override
             public void action() {
                 // 机器人加入逻辑
                 checkAddRobot();
             }
-        });
+        }.setHandlerParamWithSelf("check robot join"));
     }
 
     /**

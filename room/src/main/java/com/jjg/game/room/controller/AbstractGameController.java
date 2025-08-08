@@ -241,12 +241,12 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             tickTaskTimeRecMap.put(entry.getKey(), currentTime + entry.getValue().getTaskInterval());
             BaseFuncProcessor baseFuncProcessor = roomController.getRoomProcessor();
             // 运行tick任务, 需要在房间线程中排队执行，不能阻塞正常的tick，不然会导致 Do Overtime
-            baseFuncProcessor.executeHandler(new BaseHandler<>() {
+            baseFuncProcessor.executeHandler(new BaseHandler<String>() {
                 @Override
                 public void action() {
                     entry.getValue().run(currentTime);
                 }
-            });
+            }.setHandlerParamWithSelf("room tick"));
         }
     }
 

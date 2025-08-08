@@ -96,7 +96,7 @@ public class ClusterMessageDispatcher {
                     public void action() {
                         handle(connect, finalSession, msg);
                     }
-                });
+                }.setHandlerParamWithSelf("handle message:" + msg.cmd));
             }
         } catch (Exception e) {
             log.warn("", e);
