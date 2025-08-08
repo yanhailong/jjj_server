@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
+ * 奖池
  * @author lm
  * @date 2025/7/29 14:36
  */

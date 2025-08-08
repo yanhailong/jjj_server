@@ -13,10 +13,12 @@ import java.util.Objects;
  * @date 2025/7/28 17:35
  */
 public class TexasProcessorHandler implements IProcessorHandler {
-
+    //玩家id
     private final long playerId;
+    //对局id
     private final long id;
     private final TexasGameController gameController;
+    //本局玩家定时器id
     private final int timerId;
 
     public TexasProcessorHandler(long playerId, long id, TexasGameController gameController, int timerId) {
@@ -34,23 +36,16 @@ public class TexasProcessorHandler implements IProcessorHandler {
         }
         PlayerSeatInfo currentPlayerSeatInfo = gameDataVo.getCurrentPlayerSeatInfo();
         if (Objects.isNull(currentPlayerSeatInfo) || currentPlayerSeatInfo.getPlayerId() != playerId) {
-            //容错处理
-
-
             return;
         }
         //①翻牌前圈，弃/过，优先执行弃牌；②翻牌圈开始及后续每轮次，弃/过，优先执行过牌；
-        ReqPokerBet reqPokerBet = new ReqPokerBet();
-        reqPokerBet.betType = 6;
-        gameController.dealBet(playerId, reqPokerBet);
-        //TODO
-//        if (gameDataVo.getRound() == 1) {
-//            //优先弃牌
-//            gameController.discardCard(playerId);
-//        } else {
-//            if (!gameController.passCards(playerId)) {
-//                gameController.discardCard(playerId);
-//            }
-//        }
+        if (gameDataVo.getRound() == 1) {
+            //优先弃牌
+            gameController.discardCard(playerId);
+        } else {
+            if (!gameController.passCards(playerId)) {
+                gameController.discardCard(playerId);
+            }
+        }
     }
 }

@@ -15,6 +15,6 @@ public class TexasSampleManager implements ConfigExcelChangeListener {
 
     @Override
     public void initSampleCallbackCollector() {
-//        addSampleFileObserveWithCallBack(PokerPoolCfg.EXCEL_NAME, TexasDataHelper::initData);
+        addChangeSampleFileObserveWithCallBack(PokerPoolCfg.EXCEL_NAME, TexasDataHelper::initData);
     }
 }

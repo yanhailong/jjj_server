@@ -8,6 +8,8 @@ import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
 
+import java.util.Objects;
+
 /**
  * @author lm
  * @date 2025/7/26 11:37
@@ -19,11 +21,12 @@ public class PokerBuilder {
     /**
      * 构建玩家基本信息
      */
-    public static PokerPlayerInfo buildPlayerInfo(GamePlayer gamePlayer, BasePokerGameDataVo gameDataVo, boolean detail) {
-        SeatInfo seatInfo = null;
-        for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
-            if (info.getPlayerId() == gamePlayer.getId()) {
-                seatInfo = info;
+    public static PokerPlayerInfo buildPlayerInfo(GamePlayer gamePlayer, SeatInfo seatInfo, BasePokerGameDataVo gameDataVo, boolean detail) {
+        if (Objects.isNull(seatInfo)) {
+            for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
+                if (info.getPlayerId() == gamePlayer.getId()) {
+                    seatInfo = info;
+                }
             }
         }
         PokerPlayerInfo pokerPlayerInfo = new PokerPlayerInfo();
@@ -51,13 +54,17 @@ public class PokerBuilder {
         return pokerPlayerInfo;
     }
 
+    /**
+     * 构建玩家基本信息
+     */
+    public static PokerPlayerInfo buildPlayerInfo(GamePlayer gamePlayer, BasePokerGameDataVo gameDataVo, boolean detail) {
+        return buildPlayerInfo(gamePlayer, null, gameDataVo, detail);
+    }
+
 
     /**
      * 构建阶段变化消息
      *
-     * @param gamePhase
-     * @param endTime
-     * @return
      */
     public static NotifyPokerPhaseChange buildNotifyPhaseChange(EGamePhase gamePhase, long endTime) {
         NotifyPokerPhaseChange notifyPokerPhaseChange = new NotifyPokerPhaseChange();
