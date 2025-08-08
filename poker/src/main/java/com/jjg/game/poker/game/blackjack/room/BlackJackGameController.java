@@ -21,7 +21,6 @@ import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerSampleCardOperation;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
-import com.jjg.game.poker.game.sample.bean.BlackjackCfg;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -49,15 +48,29 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
     }
 
     @Override
-    public PlayerSeatInfo getNextExePlayer(boolean tryGet) {
+    public PlayerSeatInfo getNextExePlayer() {
         int index = gameDataVo.getIndex();
         List<PlayerSeatInfo> seatInfos = gameDataVo.getPlayerSeatInfoList();
-        if (index == seatInfos.size() - 1) {
+        if (index >= seatInfos.size() - 1) {
             return null;
         } else {
-            gameDataVo.setIndex(gameDataVo.getIndex() + 1);
-            return seatInfos.get(gameDataVo.getIndex());
+            Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
+            int newIndex = seatInfos.size() - 1;
+            for (int i = gameDataVo.getIndex() + 1; i < seatInfos.size(); i++) {
+                PlayerSeatInfo info = seatInfos.get(i);
+                int totalPoint = BlackJackDataHelper.getTotalPoint(info.getCurrentCards());
+                if (totalPoint == BlackJackConstant.Common.PERFECT_POINT && info.getCards().size() == 1 && info.getCurrentCards().size() == roomCfg.getHandPoker()) {
+                    continue;
+                }
+                newIndex = i;
+                break;
+            }
+            if (index >= seatInfos.size() - 1) {
+                return null;
+            }
+            gameDataVo.setIndex(newIndex);
         }
+        return seatInfos.get(gameDataVo.getIndex());
     }
 
     @Override
@@ -67,9 +80,21 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             case GET_CARD -> dealPutCard(playerId, req);
             case CUT_CARD -> dealCutCard(playerId, req);
             case BUY_ACE -> dealBuyACE(playerId, req);
+            case DOUBLE_BET -> dealDoubleBet(playerId, req);
         }
     }
 
+    private void dealDoubleBet(long playerId, ReqPokerSampleCardOperation req) {
+
+    }
+
+
+    /**
+     * 处理购买ACE
+     *
+     * @param playerId
+     * @param req
+     */
     private void dealBuyACE(long playerId, ReqPokerSampleCardOperation req) {
         NotifyPokerSampleCardOperation operation = new NotifyPokerSampleCardOperation();
         if (!gameDataVo.isCanBuyACE() || gameDataVo.getAceBuyPlayerIds().contains(playerId)) {
@@ -86,17 +111,20 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         if (Objects.isNull(seatInfo)) {
             return;
         }
+        Long betValue = gameDataVo.getBaseBetInfo().getOrDefault(playerId, 0L);
+        if (betValue == 0) {
+            return;
+        }
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
         if (Objects.isNull(gamePlayer)) {
             return;
         }
-        BlackjackCfg blackjackCfg = BlackJackDataHelper.getBlackjackCfg(gameDataVo);
-        if (gamePlayer.getGold() < blackjackCfg.getInsurance()) {
+        if (gamePlayer.getGold() < betValue) {
             operation.code = Code.NOT_ENOUGH;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, operation));
             return;
         }
-        gamePlayer.setGold(gamePlayer.getGold() - blackjackCfg.getInsurance());
+        gamePlayer.setGold(gamePlayer.getGold() - betValue);
         //购买ACE
         operation.operationType = req.type;
         operation.playerId = playerId;
@@ -222,10 +250,10 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         notified.totalPoint = sum;
         currentPlayerSeatInfo.setOperationType(req.type);
         PlayerSeatInfo nextExePlayer = currentPlayerSeatInfo;
-        if (sum > BlackJackConstant.Common.PERFECT_POINT) {
+        if (sum > BlackJackConstant.Common.PERFECT_POINT || cards.size() >= BlackJackConstant.Common.MAX_GET_CARD) {
             currentPlayerSeatInfo.setOver(true);
             //获取下一个玩家
-            nextExePlayer = getNextExePlayer(true);
+            nextExePlayer = getNextExePlayer();
             if (Objects.isNull(nextExePlayer)) {
                 notified.playerId = currentPlayerSeatInfo.getPlayerId();
                 broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notified));
@@ -240,7 +268,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notified));
     }
 
-    private int getCard(BlackJackGameDataVo gameDataVo) {
+    public int getCard(BlackJackGameDataVo gameDataVo) {
         List<Integer> cards = gameDataVo.getCards();
         if (cards.isEmpty()) {
             Map<Integer, PokerCard> cardListMap = BlackJackDataHelper.getCardListMap(BlackJackDataHelper.getPoolId(gameDataVo));
@@ -283,7 +311,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             currentPlayerSeatInfo.setOver(true);
             //通知
             //获取下一个玩家
-            PlayerSeatInfo nextExePlayer = getNextExePlayer(true);
+            PlayerSeatInfo nextExePlayer = getNextExePlayer();
             //通知
             notify.operationType = type;
             notify.playerId = currentPlayerSeatInfo.getPlayerId();
