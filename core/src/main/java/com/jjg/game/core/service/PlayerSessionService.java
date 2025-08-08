@@ -31,6 +31,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * @author 11
@@ -199,6 +200,7 @@ public class PlayerSessionService implements TimerListener<String> {
             }
         }
         if (!keys.isEmpty()) {
+            log.debug("移除玩家： {} 过期session", keys.stream().map(String::valueOf).collect(Collectors.joining(",")));
             redisTemplate.opsForHash().delete(SESSION_TABLE_NAME, keys.toArray());
             //redisTemplate.opsForSet().remove(ONLINEPLAYERS, keys.toArray());
         }

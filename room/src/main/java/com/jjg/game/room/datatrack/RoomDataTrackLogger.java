@@ -26,7 +26,7 @@ public class RoomDataTrackLogger extends BaseLogger {
     // 雪花算法
     protected Snowflake snowflake = new Snowflake(NodeType.GAME.getValue());
     // 游戏日志topic前缀
-    protected final String gameLogTopicPrefix = "game_log_";
+    protected final String gameLogTopicPrefix = "game_";
 
     /**
      * 构建基础游戏信息
@@ -54,7 +54,9 @@ public class RoomDataTrackLogger extends BaseLogger {
      * 根据topic发送日志
      */
     public void sendLog(String topic, Map<String, Object> data) {
-        kafkaTemplate.send(topic, JSON.toJSONString(data));
+        String sendData = JSON.toJSONString(data);
+        log.debug("发送日志数据：{} {}", topic, sendData);
+        kafkaTemplate.send(topic, sendData);
     }
 
     public Snowflake getSnowflake() {

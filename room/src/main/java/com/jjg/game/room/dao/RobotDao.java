@@ -63,25 +63,6 @@ public class RobotDao {
     }
 
     /**
-     * 获取机器人
-     */
-    public RobotPlayer getRobotPlayer(int roomCfgId, long roomId, long robotId) {
-        String robotKey = getRobotTableName(roomCfgId, roomId);
-        return (RobotPlayer) redisTemplate.opsForHash().get(robotKey, robotId);
-    }
-
-
-    /**
-     * 获取机器人
-     */
-    public List<RobotPlayer> getRobotPlayers(int roomCfgId, long roomId, Collection<Long> robotId) {
-        String robotKey = getRobotTableName(roomCfgId, roomId);
-        List<Object> robotIds = robotId.stream().map(l -> (Object) l).toList();
-        return redisTemplate.opsForHash().multiGet(robotKey, robotIds).stream().map(o -> (RobotPlayer) o).toList();
-    }
-
-
-    /**
      * 更新机器人数据
      */
     public void saveRobotPlayer(int roomCfgId, long roomId, RobotPlayer robotPlayer) {

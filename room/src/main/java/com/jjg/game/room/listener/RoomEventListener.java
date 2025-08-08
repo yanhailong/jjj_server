@@ -69,18 +69,22 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
     @Override
     public void sessionClose(PFSession session) {
         PlayerController playerController = (PlayerController) session.getReference();
-        if (playerController == null) {
+        if (playerController == null || playerController.getPlayer() == null) {
             log.warn("玩家退出游戏服务器时 playerController 为空,playerId={},sessionId={}", session.getPlayerId(),
                 session.sessionId());
             return;
         }
-        PlayerSessionInfo info = playerSessionService.getInfo(playerController.playerId());
+        log.info("玩家：{} 房间开始进入session关闭流程", playerController.playerId());
+        // hall会在sessionClose时删除PlayerSession的数据,虽然RoomEventListener的调用顺序在hallPlayerEventListener之前，
+        // 但是sessionClose消息不能保证到达顺序在hallPlayerEventListener之前，如果hallPlayerEventListener先调用则会出现找不到session的情况
+        // 或者考虑在所有sessionClose调用完成后再删除session信息
+        /*PlayerSessionInfo info = playerSessionService.getInfo(playerController.playerId());
         if (info == null) {
             log.warn("玩家退出游戏服务器时 PlayerSessionInfo 为空 playerId = {}", playerController.playerId());
             return;
-        }
-
-        if (info.getGameType() < 1) {
+        }*/
+        int gameType = playerController.getPlayer().getGameType();
+        if (gameType < 1) {
             log.warn("玩家退出游戏服务器时 PlayerSessionInfo 中的gameType小于1 playerId = {}", playerController.playerId());
             return;
         }
@@ -97,16 +101,16 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             roomManager.exitRoom(playerController);
         }
 
-        IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());
+        IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(gameType);
         if (Objects.nonNull(playerRoomEventListener)) {
-            playerRoomEventListener.exit(session, playerController, info);
+            playerRoomEventListener.exit(session, playerController);
         } else {
             log.warn("玩家退出游戏服务器时未找到 playerRoomEventListener, playerId = {},gameType = {}",
-                playerController.playerId(), info.getGameType());
+                playerController.playerId(), gameType);
         }
 
         logger.exitGame(playerController.getPlayer());
-
+        log.info("房间 session close 成功 player: {}", playerController.playerId());
     }
 
     @Override

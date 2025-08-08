@@ -1,5 +1,6 @@
 package com.jjg.game.room.datatrack;
 
+import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -28,7 +29,9 @@ public class GameDataTracker {
 
     public GameDataTracker(AbstractGameController<?, ?> gameController, RoomDataTrackLogger trackerLogger) {
         baseGameInfo.putAll(trackerLogger.buildBaseGameInfo(gameController));
-        gameLogTopic = trackerLogger.gameLogTopicPrefix + gameController.getGameDataVo().getRoomCfg().getGameID();
+        int gameId = gameController.getGameDataVo().getRoomCfg().getGameID();
+        EGameType eGameType = EGameType.getGameByTypeId(gameId);
+        gameLogTopic = trackerLogger.gameLogTopicPrefix + eGameType.name();
         this.trackLogger = trackerLogger;
     }
 
@@ -70,7 +73,7 @@ public class GameDataTracker {
     /**
      * 发送玩家的埋点数据
      */
-    public void sendLogWithPlayer(GamePlayer gamePlayer) {
+    public void sendLogWithPlayer(GamePlayer gamePlayer, EDataTrackLogType dataTrackLogType) {
         if (gamePlayer instanceof GameRobotPlayer) {
             return;
         }
@@ -85,8 +88,9 @@ public class GameDataTracker {
         tempTrackData.putAll(trackLogger.buildGamePlayerInfo(gamePlayer));
         // 订单ID
         tempTrackData.put("orderId", trackLogger.getSnowflake().nextId());
+        String gameLogTopicTmp = gameLogTopic + "_" + dataTrackLogType.name();
         // 发送日志数据
-        trackLogger.sendLog(gameLogTopic, tempTrackData);
+        trackLogger.sendLog(gameLogTopicTmp, tempTrackData);
         // 给玩家记录的日志，在发送之后需要进行清除
         playerTrackData.clear();
     }
@@ -101,18 +105,18 @@ public class GameDataTracker {
     /**
      * 发送批量的玩家埋点数据
      */
-    public void sendLogWithPlayer(Collection<GamePlayer> gamePlayers) {
+    public void sendLogWithPlayer(Collection<GamePlayer> gamePlayers, EDataTrackLogType dataTrackLogType) {
         for (GamePlayer gamePlayer : gamePlayers) {
-            sendLogWithPlayer(gamePlayer);
+            sendLogWithPlayer(gamePlayer, dataTrackLogType);
         }
     }
 
     /**
      * 发送玩家的埋点数据后关闭收集
      */
-    public void sendAndClose(GamePlayer gamePlayer) {
+    public void sendAndClose(GamePlayer gamePlayer, EDataTrackLogType dataTrackLogType) {
         // 发送玩家数据
-        sendLogWithPlayer(gamePlayer);
+        sendLogWithPlayer(gamePlayer, dataTrackLogType);
         // 完成数据收集
         finishedDataCollect();
     }
@@ -120,9 +124,9 @@ public class GameDataTracker {
     /**
      * 发送批量的玩家埋点数据后关闭收集
      */
-    public void sendAndClose(Collection<GamePlayer> gamePlayers) {
+    public void sendAndClose(Collection<GamePlayer> gamePlayers, EDataTrackLogType dataTrackLogType) {
         // 发送玩家数据
-        sendLogWithPlayer(gamePlayers);
+        sendLogWithPlayer(gamePlayers, dataTrackLogType);
         // 完成数据收集
         finishedDataCollect();
     }

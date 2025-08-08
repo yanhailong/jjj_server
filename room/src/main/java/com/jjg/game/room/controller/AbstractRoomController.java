@@ -130,8 +130,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 // 此时游戏可能还未开始，需要游戏判断加入时逻辑
                 gameController.onPlayerJoinRoom(playerController, gameController.isGameStarted());
             } else {
-                // TODO 异常流程，按道理不应出现此逻辑。后续处理
-                log.debug("玩家已经在房间中 roomId = {},playerId = {}", room.getId(), playerController.playerId());
+                // 异常流程，不应出现此逻辑。玩家重复加入，在上层已处理过一次
+                log.error("玩家已经在房间中 roomId = {},playerId = {}", room.getId(), playerController.playerId());
                 gameController.onPlayerJoinRoom(playerController, gameController.isGameStarted());
             }
             playerControllers.put(playerController.playerId(), playerController);
@@ -263,9 +263,16 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         // 回存房间数据
         saveRoomData();
         // 向玩家发送解散房间消息
-        // broadcastDisbandRoomMsg()
+        broadcastDisbandRoomMsg();
         // 时间管理移除当前注册器
         timerCenter.remove(this);
+    }
+
+    /**
+     * 广播房间解散消息
+     */
+    private void broadcastDisbandRoomMsg() {
+        // TODO 房间解散
     }
 
     /**

@@ -273,7 +273,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                     playerController.playerId());
                 return Code.FAIL;
             }
-
+            // 检查玩家重复加入房间的情况
+            checkRepeatJoinRoom(playerController);
             AbstractRoomController<RC, R> roomController = getRoomController(gameType, roomId);
             if (roomController == null) {
                 AbstractRoomDao<R, ? extends RoomPlayer> roomDao = getRoomDao(gameType);
@@ -314,16 +315,14 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             }
             R room = addResult.data;
             roomController.setRoom(room);
-            if (!(playerController.getPlayer() instanceof RobotPlayer)) {
+            boolean isRobot = playerController.getPlayer() instanceof RobotPlayer;
+            if (!isRobot) {
                 playerController.setPlayer(playerService.doSave(playerController.playerId(), p -> p.setRoomId(roomId)));
                 // gamePlayer需要同步更新数据
                 GameDataVo<?> gameDataVo = roomController.getGameController().getGameDataVo();
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
                 gamePlayer.setUpdateTime(playerController.getPlayer().getUpdateTime());
                 gamePlayer.setRoomId(roomId);
-            }
-            boolean isRobot = playerController.getPlayer() instanceof RobotPlayer;
-            if (!isRobot) {
                 log.debug("玩家加入房间成功 gameType = {},roomId = {}, playerId = {} 当前金币：{} 房间人数：{}",
                     roomController.getRoom().getRoomCfgId(),
                     roomId,
@@ -339,6 +338,46 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     }
 
     /**
+     * 检查玩家是否重复加入
+     * 1. 如果房间退出流程异常会导致房间不能正常退出
+     * 2. 客户端异常导致前端重复发送加入房间
+     */
+    private void checkRepeatJoinRoom(PlayerController playerController) {
+        List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =
+            new ArrayList<>(roomControllerMap.values());
+        long playerId = playerController.playerId();
+        List<AbstractRoomController<? extends RoomCfg, ? extends Room>> playerRoomControllers = new ArrayList<>();
+        for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
+            roomMapControllers) {
+            List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
+                new ArrayList<>(roomControllerMap.values());
+            for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : roomControllers) {
+                if (roomController.getPlayerControllers().containsKey(playerId)) {
+                    playerRoomControllers.add(roomController);
+                }
+            }
+        }
+        // 如果玩家还存在房间中，先执行退出逻辑再进入，保证一个玩家同时只能在一个房间中
+        if (!playerRoomControllers.isEmpty()) {
+            List<Room> leaveFailedRoom = new ArrayList<>();
+            for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : playerRoomControllers) {
+                CommonResult<? extends Room> leaveRes = roomController.onPlayerLeaveRoom(playerController);
+                if (!leaveRes.success()) {
+                    if (leaveRes.data != null) {
+                        leaveFailedRoom.add(leaveRes.data);
+                    }
+                } else {
+                    log.info("处理玩家重复加入房间，玩家: {} 离开房间: {} 成功", playerId, leaveRes.data.logStr());
+                }
+            }
+            if (!leaveFailedRoom.isEmpty()) {
+                log.error("处理玩家重复加入房间时，玩家：{} 离开房间时失败：{}",
+                    playerId, leaveFailedRoom.stream().map(Room::logStr).collect(Collectors.joining(",")));
+            }
+        }
+    }
+
+    /**
      * 玩家退出房间
      */
     public <RC extends RoomCfg, R extends Room> int exitRoom(PlayerController playerController) {
@@ -349,8 +388,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 return Code.FAIL;
             }
 
-            AbstractRoomController<RC, R> roomController = getRoomController(playerController.getPlayer().getGameType(),
-                playerController.roomId());
+            AbstractRoomController<RC, R> roomController =
+                getRoomController(playerController.getPlayer().getGameType(), playerController.roomId());
             if (roomController == null) {
                 log.warn("退出房间失败，该房间不存在 gameType = {},roomId = {},playerId = {}",
                     playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
@@ -372,12 +411,13 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             // 将玩家房间ID置为0
             playerService.doSave(playerController.playerId(), p -> p.setRoomId(0));
             boolean isRobot = playerController.getPlayer() instanceof RobotPlayer;
-            log.debug("{}退出房间成功 gameType = {},roomId = {}, playerId = {}, 房间人数：{}",
-                isRobot ? "机器人" : "玩家",
-                room.getRoomCfgId(),
-                room.getId(),
-                playerController.playerId(),
-                room.getRoomPlayers() != null ? room.getRoomPlayers().size() : 0);
+            if (!isRobot) {
+                log.debug("玩家退出房间成功 gameCfgId = {},roomId = {},playerId = {},房间人数：{}",
+                    room.getRoomCfgId(),
+                    room.getId(),
+                    playerController.playerId(),
+                    room.getRoomPlayers() != null ? room.getRoomPlayers().size() : 0);
+            }
             return Code.SUCCESS;
         } catch (Exception e) {
             log.error("退出房间时异常：{}", e.getMessage(), e);
@@ -504,13 +544,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         }
         // 需要从房间等待列表中删除
         matchDataDao.removeWaitJoinRoomId(room.getGameType(), room.getRoomCfgId(), room.getId());
-    }
-
-    /**
-     * 清除房间
-     */
-    public void clearRoom() {
-
     }
 
     /**

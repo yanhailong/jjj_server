@@ -4,6 +4,7 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
+import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
@@ -204,7 +205,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 gameDataTracker.addPlayerLogData(DataTrackNameConstant.TOTAL_WIN, settlementData.getTotalWin());
                 gameDataTracker.addPlayerLogData(DataTrackNameConstant.INCOME, settlementData.getBetWin());
                 // 发送打点日志
-                gameDataTracker.sendLogWithPlayer(gamePlayer);
+                gameDataTracker.sendLogWithPlayer(gamePlayer, EDataTrackLogType.SETTLEMENT);
             }
         }
         return playerChangedGolds;
