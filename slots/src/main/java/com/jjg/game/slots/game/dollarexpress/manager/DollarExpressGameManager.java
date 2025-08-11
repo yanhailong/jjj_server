@@ -262,6 +262,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 return gameRunInfo;
             }
             playerGameData.addSelectedArea(areaId);
+            playerGameData.clearInvers();
 
             List<Integer> rewardIdList = generateManager.getRewardList(generateManager.getPropAndAwardInfo(generateManager.getDollarExpressCollectDollarConfig().getAuxiliaryId()), playerGameData.getLastModelId());
             //处理奖励逻辑
