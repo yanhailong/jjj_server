@@ -33,8 +33,6 @@ import java.util.Objects;
 @GameController(gameType = EGameType.BACCARAT)
 public class BaccaratGameController extends BaseTableGameController<BaccaratGameDataVo> {
 
-    private static final Logger log = LoggerFactory.getLogger(BaccaratGameController.class);
-
     public BaccaratGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {
         super(roomController);
     }

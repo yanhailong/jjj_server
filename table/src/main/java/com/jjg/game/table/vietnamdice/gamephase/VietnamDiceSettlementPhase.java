@@ -64,8 +64,6 @@ public class VietnamDiceSettlementPhase extends BaseDiceSettlementPhase<VietnamD
         VietnamDiceHistoryBean historyBean = addVietnamDiceHistory(randomNumDice, betAreaCfgs);
         NotifyVietnamDiceSettlement settlement =
             VietnamDiceMessageBuilder.notifyVietnamDiceSettlement(historyBean);
-        // 添加历史
-        gameDataVo.addWinAreaCfgIdHistory(historyBean);
         // 构建结算信息
         settlement.settlementInfo.diceSettlementInfo =
             BaseDiceMessageBuilder.buildDiceSettlementInfo(gameDataVo);

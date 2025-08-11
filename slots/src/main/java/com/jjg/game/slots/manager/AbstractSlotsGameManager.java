@@ -515,6 +515,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         }
 
         updateSpecialResultLibCacheData(data);
+
+        log.info("计算分析缓存 specialResultLib 配置成功 gameType = {}",gameType);
     }
 
     public void updateSpecialResultLibCacheData(SpecialResultLibCacheData data) {

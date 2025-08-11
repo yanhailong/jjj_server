@@ -93,6 +93,7 @@ public class HallMessageHandler implements GmListener {
                 return;
             }
 
+            System.out.println(JSON.toJSONString(wareHouseConfigList));
             res.wareHouseList = wareHouseConfigList;
             playerController.send(res);
             log.info("玩家选择游戏，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
@@ -207,6 +208,9 @@ public class HallMessageHandler implements GmListener {
             res.diamond = player.getDiamond();
             res.safeBoxGold = player.getSafeBoxGold();
             res.safeBoxDiamond = player.getSafeBoxDiamond();
+            res.headImgId = player.getHeadImgId();
+            res.headFrameId = player.getHeadFrameId();
+            res.nationalId = player.getNationalId();
 
             Account account = accountDao.queryAccountByPlayerId(playerController.playerId());
             if (account == null) {
@@ -317,6 +321,29 @@ public class HallMessageHandler implements GmListener {
         playerController.send(res);
     }
 
+    /**
+     * 选择头像框
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_SELECT_AVATAR)
+    public void reqSelectAvatar(PlayerController playerController, ReqSelectAvatar req) {
+        ResSelectAvatar res = new ResSelectAvatar(HallCode.SUCCESS);
+        try {
+            CommonResult<Player> result = hallService.selectAvatar(playerController.playerId(), req.id);
+            if(!result.success()) {
+                res.code = result.code;
+                playerController.send(res);
+                return;
+            }
+            playerController.setPlayer(result.data);
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
     /**********************************************************************************************************/
 
     /**
@@ -390,10 +417,11 @@ public class HallMessageHandler implements GmListener {
                 ReqChooseGame req = new ReqChooseGame();
                 req.gameType = Integer.parseInt(gmOrders[1]);
                 reqChooseGame(playerController, req);
-            }else if("getPool".equalsIgnoreCase(gmOrders[0])) {
-                ReqPool req = new ReqPool();
-                req.gameType = Integer.parseInt(gmOrders[1]);
-                reqPool(playerController, req);
+            }else if("addAvatar".equalsIgnoreCase(gmOrders[0])) {
+                int id = Integer.parseInt(gmOrders[1]);
+                hallService.addPlayerAvatar(playerController.playerId(), id);
+            }else if("addItem".equalsIgnoreCase(gmOrders[0])) {
+
             }else {
                 res.code = Code.NOT_FOUND;
             }

@@ -24,6 +24,8 @@ public class Player {
     private int headFrameId;
     //国旗id
     private int nationalId;
+    //称号id
+    private int titleId;
     //房间id
     private long roomId;
     //游戏类型
@@ -100,6 +102,14 @@ public class Player {
 
     public void setNationalId(int nationalId) {
         this.nationalId = nationalId;
+    }
+
+    public int getTitleId() {
+        return titleId;
+    }
+
+    public void setTitleId(int titleId) {
+        this.titleId = titleId;
     }
 
     public long getRoomId() {

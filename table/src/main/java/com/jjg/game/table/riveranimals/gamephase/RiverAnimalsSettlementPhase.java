@@ -70,8 +70,6 @@ public class RiverAnimalsSettlementPhase extends BaseDiceSettlementPhase<RiverAn
         RiverAnimalsHistoryBean historyBean = addHistory(randomNumDice, betAreaCfgs);
         NotifyRiverAnimalsSettlement settlement =
             RiverAnimalsMessageBuilder.notifyAnimalsSettlement(historyBean);
-        // 添加历史
-        gameDataVo.addWinAreaCfgIdHistory(historyBean);
         // 构建结算信息
         settlement.settlementInfo.diceSettlementInfo =
             BaseDiceMessageBuilder.buildDiceSettlementInfo(gameDataVo);

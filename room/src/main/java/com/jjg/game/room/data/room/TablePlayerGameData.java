@@ -22,6 +22,8 @@ public class TablePlayerGameData {
     private long playerLatestOperateTime;
     // 玩家上一次在房间主动操作并与服务端有交互的发送标记，防止重发
     private boolean hasNotifyNoOperate = false;
+    // 每轮开始时的玩家数据，仅做记录使用
+    private long roundStartPlayerGold;
 
 
     public void addBetRecord(long getGold) {
@@ -67,5 +69,13 @@ public class TablePlayerGameData {
 
     public void setHasNotifyNoOperate(boolean hasNotifyNoOperate) {
         this.hasNotifyNoOperate = hasNotifyNoOperate;
+    }
+
+    public long getRoundStartPlayerGold() {
+        return roundStartPlayerGold;
+    }
+
+    public void setRoundStartPlayerGold(long roundStartPlayerGold) {
+        this.roundStartPlayerGold = roundStartPlayerGold;
     }
 }

@@ -12,7 +12,7 @@ public interface RoomConstant {
     // 最大房间id
     int ROOM_ID_MAX = 999999;
     // 房间每次tick时间
-    int ROOM_TICK_TIME = 100;
+    int ROOM_TICK_TIME = 200;
     // 房间公共配置加载路径
     String ROOM_SAMPLE_PATH = CoreConst.Common.SAMPLE_ROOT_PATH + "common";
     // 玩家数据回存检查间隔时间 10-30分钟检查一次

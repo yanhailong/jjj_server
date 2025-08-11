@@ -13,8 +13,6 @@ import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.GirdUpdateConfig;
 import com.jjg.game.slots.data.PropInfo;
-import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressLogger;
 import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressGameDataDao;

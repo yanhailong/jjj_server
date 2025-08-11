@@ -2,8 +2,6 @@ package com.jjg.game.table.animals.message;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.table.baccarat.message.resp.BaccaratSettlementInfo;
-import com.jjg.game.table.baccarat.message.resp.BaccaratTableInfo;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 

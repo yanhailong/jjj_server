@@ -61,8 +61,6 @@ public class SizeDiceTreasureSettlementPhase extends BaseDiceSettlementPhase<Siz
         SizeDiceTreasureHistoryBean historyBean = addHistory(randomNumDice, betAreaCfgs);
         NotifySizeDiceTreasureSettlement settlement =
             SizeDiceTreasureMessageBuilder.notifySizeDiceSettlement(historyBean);
-        // 添加历史
-        gameDataVo.addWinAreaCfgIdHistory(historyBean);
         // 构建结算信息
         settlement.settlementInfo.diceSettlementInfo =
             BaseDiceMessageBuilder.buildDiceSettlementInfo(gameDataVo);

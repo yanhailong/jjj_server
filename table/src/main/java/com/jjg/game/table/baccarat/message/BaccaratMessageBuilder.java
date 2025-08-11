@@ -55,8 +55,9 @@ public class BaccaratMessageBuilder {
         int roomCfgId = gameController.getGameDataVo().getRoomCfg().getId();
         Collection<PlayerController> playerControllers =
             baccaratTempRoom.getBaccaratObserverPlayers(roomCfgId).values();
+        // TODO 人多时需要分批发送
         playerControllers.forEach(playerController -> {
-            log.debug("给临时房间中的玩家：{} 发送：{} ", playerController.playerId(), JSON.toJSON(notifyBaccaratTableSummary));
+            log.debug("给临时房间中的玩家：{} 发送数据", playerController.playerId());
             playerController.send(notifyBaccaratTableSummary);
         });
     }

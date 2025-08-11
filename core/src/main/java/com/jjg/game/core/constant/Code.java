@@ -5,7 +5,7 @@ package com.jjg.game.core.constant;
  * @date 2025/5/26 11:34
  */
 public interface Code {
-    //成功
+    // 成功
     int SUCCESS = 200;
     // 配置表错误
     int SAMPLE_ERROR = 201;
@@ -15,36 +15,38 @@ public interface Code {
     int ROOM_NOT_FOUND = 203;
     // 房间处于关闭流程中
     int ROOM_STOPPING = 204;
-    //失败
+    // 失败
     int FAIL = 400;
-    //错误的请求
+    // 错误的请求
     int ERROR_REQ = 401;
-    //参数错误
+    // 参数错误
     int PARAM_ERROR = 402;
-    //已存在
+    // 已存在
     int EXIST = 403;
-    //未找到
+    // 未找到
     int NOT_FOUND = 404;
-    //禁止
+    // 禁止
     int FORBID = 405;
-    //重复操作
+    // 重复操作
     int REPEAT_OP = 406;
-    //过期
+    // 过期
     int EXPIRE = 407;
-    //余额不足
+    // 余额不足
     int NOT_ENOUGH = 408;
-    //Vip等级不足
+    // Vip等级不足
     int VIP_NOT_ENOUGH = 409;
-    //玩家金币超过配置
+    // 玩家金币超过配置
     int GOLD_TOO_MUCH = 410;
-    //下注已达上限
+    // 下注已达上限
     int BET_TO_LIMIT = 411;
-    //未知错误
+    // 未知错误
     int UNKNOWN_ERROR = 412;
     // 加入房间失败
     int JOIN_ROOM_FAILED = 413;
-    //区域下注已达上限
+    // 区域下注已达上限
     int AREA_BET_TO_LIMIT = 414;
-    //服务器错误
+    // 重复加入房间
+    int REPEAT_JOIN_ROOM = 415;
+    // 服务器错误
     int EXCEPTION = 500;
 }

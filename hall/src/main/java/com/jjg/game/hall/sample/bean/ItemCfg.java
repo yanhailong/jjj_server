@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName Item.xlsx
  * @sheetName Item
  * @author Auto.Generator
- * @date 2025年08月06日 20:26:26
+ * @date 2025年08月08日 13:44:57
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class ItemCfg extends BaseCfgBean {
@@ -20,30 +20,21 @@ public class ItemCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "Item";
 
   /** 使用道具后获得道具 */
-  protected List<Integer> getItem;
-  /** 使用道具后获得状态 */
-  protected List<Integer> getStatus;
+  protected List<List<Integer>> getItem;
   /** 图标 */
   protected String icon;
   /** 名称 */
-  protected String name;
+  protected int name;
   /** 最大堆叠数量 */
   protected int prop;
-  /** 合成物品信息 */
-  protected Map<Integer,Integer> syntheticProps;
   /** 描述 */
-  protected String text;
+  protected int text;
   /** 类型 */
   protected int type;
 
   /** 返回使用道具后获得道具 */
-  public List<Integer> getGetItem() {
+  public List<List<Integer>> getGetItem() {
     return getItem;
-  }
-
-  /** 返回使用道具后获得状态 */
-  public List<Integer> getGetStatus() {
-    return getStatus;
   }
 
   /** 返回图标 */
@@ -52,7 +43,7 @@ public class ItemCfg extends BaseCfgBean {
   }
 
   /** 返回名称 */
-  public String getName() {
+  public int getName() {
     return name;
   }
 
@@ -61,13 +52,8 @@ public class ItemCfg extends BaseCfgBean {
     return prop;
   }
 
-  /** 返回合成物品信息 */
-  public Map<Integer,Integer> getSyntheticProps() {
-    return syntheticProps;
-  }
-
   /** 返回描述 */
-  public String getText() {
+  public int getText() {
     return text;
   }
 

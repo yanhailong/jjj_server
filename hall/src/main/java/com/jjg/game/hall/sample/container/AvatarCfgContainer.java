@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.hall.sample.bean.PlayerCfg;
+import com.jjg.game.hall.sample.bean.AvatarCfg;
 
 /**
- * player.xlsx配置管理容器
+ * avatar.xlsx配置管理容器
  *
- * @excelName player.xlsx
- * @sheetName player
+ * @excelName avatar.xlsx
+ * @sheetName avatar
  * @author auto_generator
- * @date 2025年08月06日 20:26:26
+ * @date 2025年08月08日 13:44:57
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class PlayerCfgContainer extends BaseCfgContainer<PlayerCfg> {
+public class AvatarCfgContainer extends BaseCfgContainer<AvatarCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -28,23 +28,23 @@ public class PlayerCfgContainer extends BaseCfgContainer<PlayerCfg> {
   }
 
   @Override
-  public PlayerCfgContainer getNewContainer(){
-    return new PlayerCfgContainer();
+  public AvatarCfgContainer getNewContainer(){
+    return new AvatarCfgContainer();
   }
 
-  public PlayerCfgContainer() {
+  public AvatarCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("player.xlsx");
+    excelNameList.add("avatar.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected PlayerCfg createNewBean() {
-    return new PlayerCfg();
+  protected AvatarCfg createNewBean() {
+    return new AvatarCfg();
   }
 }
