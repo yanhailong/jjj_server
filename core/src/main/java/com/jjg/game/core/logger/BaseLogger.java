@@ -61,15 +61,89 @@ public class BaseLogger {
      * @param gold
      * @param addType
      */
-    public void useMoney(Player player, long beforeGold, long gold, String addType, String desc) {
+    public void useGold(Player player, long beforeGold, long gold, String addType, String desc) {
         try {
             JSONObject json = new JSONObject();
-            json.put("beforeGold", beforeGold);
-            json.put("gold", gold);
-            json.put("afterGold", player.getGold());
+
+            json = addGoldChange(json,beforeGold,gold, player.getGold());
+            json = addDiamondChange(json,player.getDiamond(),0, player.getDiamond());
+            json = addSafeBoxGoldChange(json, player.getSafeBoxGold(), 0, player.getSafeBoxGold());
+            json = addSafeBoxDiamondChange(json, player.getSafeBoxDiamond(), 0, player.getSafeBoxDiamond());
+
             json.put("addType", addType);
             json.put("desc", desc);
+            sendLog("goldChange",player, json);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
 
+    /**
+     * 钻石变化
+     *
+     * @param player
+     * @param diamond
+     * @param addType
+     */
+    public void useDiamond(Player player, long beforeDiamond, long diamond, String addType, String desc) {
+        try {
+            JSONObject json = new JSONObject();
+
+            json = addGoldChange(json, player.getGold(), 0, player.getGold());
+            json = addDiamondChange(json,beforeDiamond,diamond, player.getDiamond());
+            json = addSafeBoxGoldChange(json, player.getSafeBoxGold(), 0, player.getSafeBoxGold());
+            json = addSafeBoxDiamondChange(json, player.getSafeBoxDiamond(), 0, player.getSafeBoxDiamond());
+
+            json.put("addType", addType);
+            json.put("desc", desc);
+            sendLog("goldChange",player, json);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 保险箱金币变化
+     *
+     * @param player
+     * @param gold
+     * @param addType
+     */
+    public void useSafeBoxGold(Player player, long beforeGold, long gold, String addType, String desc) {
+        try {
+            JSONObject json = new JSONObject();
+
+            json = addGoldChange(json, player.getGold(), 0, player.getGold());
+            json = addDiamondChange(json,player.getDiamond(),0, player.getDiamond());
+            json = addSafeBoxGoldChange(json, beforeGold, gold, player.getSafeBoxGold());
+            json = addSafeBoxDiamondChange(json, player.getSafeBoxDiamond(), 0, player.getSafeBoxDiamond());
+
+            json.put("addType", addType);
+            json.put("desc", desc);
+            sendLog("goldChange",player, json);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 保险箱钻石变化
+     *
+     * @param player
+     * @param diamond
+     * @param addType
+     */
+    public void useSafeBoxDiamond(Player player, long beforeDiamond, long diamond, String addType, String desc) {
+        try {
+            JSONObject json = new JSONObject();
+
+            json = addGoldChange(json, player.getGold(), 0, player.getGold());
+            json = addDiamondChange(json,beforeDiamond,diamond, player.getDiamond());
+            json = addSafeBoxGoldChange(json, player.getSafeBoxGold(), 0, player.getSafeBoxGold());
+            json = addSafeBoxDiamondChange(json, beforeDiamond, diamond, player.getSafeBoxDiamond());
+
+            json.put("addType", addType);
+            json.put("desc", desc);
             sendLog("goldChange",player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -138,14 +212,57 @@ public class BaseLogger {
     protected void sendLog(String topic,Player player, JSONObject json) {
         if (player != null) {
             json.put("playerId", player.getId());
+            json.put("gameType", player.getGameType());
+            json.put("roomCfgId", player.getRoomCfgId());
         }
 
         json.put("time", System.currentTimeMillis());
         json.put("nodeName", nodeConfig.getName());
-        kafkaTemplate.send(StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic, JSONObject.toJSONString(json));
+        kafkaTemplate.send(StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic.toLowerCase(), JSONObject.toJSONString(json));
     }
 
     protected void sendLog(JSONObject json) {
         sendLog(null, json);
+    }
+
+    /**
+     * 金币变化字段
+     * @return
+     */
+    private JSONObject addGoldChange(JSONObject json,long beforeGold, long goldChange,long afterGold) {
+        json.put("beforeGold", beforeGold);
+        json.put("goldChange", goldChange);
+        json.put("afterGold", afterGold);
+        return json;
+    }
+    /**
+     * 钻石变化字段
+     * @return
+     */
+    private JSONObject addDiamondChange(JSONObject json,long beforeDiamond, long diamondChange,long afterDiamond) {
+        json.put("beforeDiamond", beforeDiamond);
+        json.put("diamondChange", diamondChange);
+        json.put("afterDiamond", afterDiamond);
+        return json;
+    }
+    /**
+     * 保险箱金币变化字段
+     * @return
+     */
+    private JSONObject addSafeBoxGoldChange(JSONObject json,long beforeSafeBoxGold, long safeBoxGoldChange,long afterSafeBoxGold) {
+        json.put("beforeSafeBoxGold", beforeSafeBoxGold);
+        json.put("safeBoxGoldChange", safeBoxGoldChange);
+        json.put("afterSafeBoxGold", afterSafeBoxGold);
+        return json;
+    }
+    /**
+     * 保险箱钻石变化字段
+     * @return
+     */
+    private JSONObject addSafeBoxDiamondChange(JSONObject json,long beforeSafeBoxDiamond, long SafeBoxDiamondChange,long afterSafeBoxDiamond) {
+        json.put("beforeSafeBoxDiamond", beforeSafeBoxDiamond);
+        json.put("safeBoxDiamondChange", SafeBoxDiamondChange);
+        json.put("afterSafeBoxDiamond", afterSafeBoxDiamond);
+        return json;
     }
 }

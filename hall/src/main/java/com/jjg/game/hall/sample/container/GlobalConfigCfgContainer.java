@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.hall.sample.bean.ItemCfg;
+import com.jjg.game.hall.sample.bean.GlobalConfigCfg;
 
 /**
- * Item.xlsx配置管理容器
+ * global.xlsx配置管理容器
  *
- * @excelName Item.xlsx
- * @sheetName Item
+ * @excelName global.xlsx
+ * @sheetName GlobalConfig
  * @author auto_generator
  * @date 2025年08月08日 13:44:57
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class ItemCfgContainer extends BaseCfgContainer<ItemCfg> {
+public class GlobalConfigCfgContainer extends BaseCfgContainer<GlobalConfigCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -28,23 +28,23 @@ public class ItemCfgContainer extends BaseCfgContainer<ItemCfg> {
   }
 
   @Override
-  public ItemCfgContainer getNewContainer(){
-    return new ItemCfgContainer();
+  public GlobalConfigCfgContainer getNewContainer(){
+    return new GlobalConfigCfgContainer();
   }
 
-  public ItemCfgContainer() {
+  public GlobalConfigCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("Item.xlsx");
+    excelNameList.add("global.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected ItemCfg createNewBean() {
-    return new ItemCfg();
+  protected GlobalConfigCfg createNewBean() {
+    return new GlobalConfigCfg();
   }
 }

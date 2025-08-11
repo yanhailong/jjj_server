@@ -50,5 +50,7 @@ public interface PokerConstant {
         int BUY_ACE = 8;
         //拿牌
         int GET_CARD = 9;
+        //双倍
+        int DOUBLE_BET = 10;
     }
 }

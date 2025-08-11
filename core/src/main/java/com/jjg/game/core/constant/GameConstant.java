@@ -38,6 +38,12 @@ public class GameConstant {
         public static final int ROOM_ID_MIN = 100000;
         //最大房间id
         public static final int ROOM_ID_MAX = 999999;
+
+
+        //服务器暂时写死背包最大格子数量
+        public static final int PLAYER_PACK_MAX = 30;
+        //每次背包扩容添加格子数量
+        public static final int PLAYER_PACK_RESIZE = 10;
     }
 
 

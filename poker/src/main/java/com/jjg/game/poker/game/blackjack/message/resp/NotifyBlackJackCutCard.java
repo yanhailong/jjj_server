@@ -13,7 +13,7 @@ import java.util.List;
  * @author lm
  * @date 2025/7/29 10:04
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.BLACK_JACK_TYPE,cmd = BlackJackConstant.MsgBean.NOTIFY_CUT_CARD)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.BLACK_JACK_TYPE, cmd = BlackJackConstant.MsgBean.NOTIFY_CUT_CARD, resp = true)
 @ProtoDesc("通知玩家分牌结果")
 public class NotifyBlackJackCutCard extends AbstractNotice {
     @ProtoDesc("玩家id")

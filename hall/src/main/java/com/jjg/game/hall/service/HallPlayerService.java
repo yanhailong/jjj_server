@@ -8,6 +8,7 @@ import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.service.AbstractPlayerService;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,8 @@ public class HallPlayerService extends AbstractPlayerService {
     private PlayerLastGameInfoDao playerLastGameInfoDao;
     @Autowired
     private PlayerSessionService playerSessionService;
+    @Autowired
+    private PlayerPackService playerPackService;
 
     /**
      * 仅在登录时调用
@@ -119,6 +122,7 @@ public class HallPlayerService extends AbstractPlayerService {
         }
 
         redisTemplate.opsForHash().delete(tableName, playerId);
+        playerPackService.moveToMongo(playerId);
         playerLastGameInfoDao.deleteById(playerId);
         playerLoginTimeDao.remove(playerId);
         return true;

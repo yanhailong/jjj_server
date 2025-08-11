@@ -1,11 +1,11 @@
 package com.jjg.game.poker.game.common.gamephase;
 
+import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
-import com.jjg.game.poker.game.texas.data.TexasDataHelper;
+import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.room.constant.EGamePhase;
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
@@ -26,7 +26,15 @@ public abstract class BasePlayCardPhase<T extends BasePokerGameDataVo> extends B
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
+        if (gameController instanceof BasePokerGameController<T> controller) {
+            gameDataVo.setId(PokerDataHelper.getNextId());
+            gameDataVo.resetData(controller);
+            playCardPhaseDoAction();
+        }
+
     }
+
+    public abstract void playCardPhaseDoAction();
 
 
     @Override
@@ -35,7 +43,7 @@ public abstract class BasePlayCardPhase<T extends BasePokerGameDataVo> extends B
 
     @Override
     public int getPhaseRunTime() {
-        return 150 * 1000;
+        return -1;
     }
 
     @Override

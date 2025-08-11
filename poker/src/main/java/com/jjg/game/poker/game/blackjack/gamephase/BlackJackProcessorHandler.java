@@ -1,39 +1,38 @@
 package com.jjg.game.poker.game.blackjack.gamephase;
 
-import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
-
-import java.util.Objects;
+import com.jjg.game.poker.game.common.gamephase.BasePokerProcessorHandler;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerSampleCardOperation;
+import com.jjg.game.room.message.RoomMessageBuilder;
 
 /**
  * @author lm
  * @date 2025/7/28 17:35
  */
-public class BlackJackProcessorHandler implements IProcessorHandler {
+public class BlackJackProcessorHandler extends BasePokerProcessorHandler<BlackJackGameDataVo> {
 
-    private final long playerId;
-    private final int id;
-    private final BlackJackGameController gameController;
-
-    public BlackJackProcessorHandler(long playerId, int id, BlackJackGameController gameController) {
-        this.playerId = playerId;
-        this.id = id;
-        this.gameController = gameController;
+    public BlackJackProcessorHandler(long playerId, long id, BlackJackGameController gameController) {
+        super(playerId, id, gameController);
     }
 
     @Override
-    public void action() throws Exception {
-        BlackJackGameDataVo gameDataVo = gameController.getGameDataVo();
-        if (gameDataVo.getId() != id) {
-            return;
+    public void addNextPlayer(PlayerSeatInfo nextPlayerSeatInfo) {
+        if (getGameController() instanceof BlackJackGameController controller) {
+            controller.addNextTimer(nextPlayerSeatInfo, 0);
+            NotifyPokerSampleCardOperation notifyPokerSampleCardOperation = new NotifyPokerSampleCardOperation();
+            notifyPokerSampleCardOperation.nextPlayerId = nextPlayerSeatInfo.getPlayerId();
+            notifyPokerSampleCardOperation.overTime = controller.getGameDataVo().getPlayerTimerEvent().getNextTime();
+            controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyPokerSampleCardOperation));
         }
-        PlayerSeatInfo currentPlayerSeatInfo = gameDataVo.getCurrentPlayerSeatInfo();
-        if (Objects.isNull(currentPlayerSeatInfo) || currentPlayerSeatInfo.getPlayerId() != playerId) {
-            return;
+    }
+
+    @Override
+    public void dealAction() {
+        if (getGameController() instanceof BlackJackGameController controller) {
+            controller.dealStopCard(getPlayerId(), PokerConstant.PlayerOperation.STOP);
         }
-        gameController.dealStopCard(playerId, PokerConstant.PlayerOperation.STOP);
     }
 }

@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName vipLevel.xlsx
  * @sheetName VipLevelConfig
  * @author Auto.Generator
- * @date 2025年08月06日 20:26:26
+ * @date 2025年08月08日 13:44:57
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class VipLevelConfigCfg extends BaseCfgBean {
@@ -19,12 +19,21 @@ public class VipLevelConfigCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "VipLevelConfig";
 
+  /** 基础关注数量 */
+  protected int friendsNum;
   /** 升级所需经验 */
   protected int levelUpExp;
   /** 解锁玩家装扮 */
   protected int playerDress;
   /** 额外流水系数 */
   protected int prop;
+  /** 同时创建游戏数量上限 */
+  protected int roomNum;
+
+  /** 返回基础关注数量 */
+  public int getFriendsNum() {
+    return friendsNum;
+  }
 
   /** 返回升级所需经验 */
   public int getLevelUpExp() {
@@ -39,5 +48,10 @@ public class VipLevelConfigCfg extends BaseCfgBean {
   /** 返回额外流水系数 */
   public int getProp() {
     return prop;
+  }
+
+  /** 返回同时创建游戏数量上限 */
+  public int getRoomNum() {
+    return roomNum;
   }
 }

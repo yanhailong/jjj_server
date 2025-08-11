@@ -1,7 +1,6 @@
 package com.jjg.game.poker.game.blackjack.data;
 
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
-import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.sample.GameDataManager;
 import com.jjg.game.poker.game.sample.bean.BlackjackCfg;
@@ -9,7 +8,6 @@ import com.jjg.game.poker.game.sample.bean.PokerPoolCfg;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
 import java.util.List;
-import java.util.Map;
 
 import static com.jjg.game.poker.game.blackjack.constant.BlackJackConstant.Common.PERFECT_POINT;
 
@@ -31,8 +29,12 @@ public class BlackJackDataHelper extends PokerDataHelper {
         return getBlackjackCfg(gameDataVo).getPoolId();
     }
 
-    public static int getClientCardId(BlackJackGameDataVo gameDataVo,int cfgCardId) {
+    public static int getClientCardId(BlackJackGameDataVo gameDataVo, int cfgCardId) {
         return getCardListMap(getBlackjackCfg(gameDataVo).getPoolId()).get(cfgCardId).getClientId();
+    }
+
+    public static long getGetWinValue(long betValue, long param) {
+        return betValue * (100 + param) / 100;
     }
 
     public static int getTotalPoint(List<Integer> cfgCardId) {
@@ -48,5 +50,9 @@ public class BlackJackDataHelper extends PokerDataHelper {
             }
         }
         return maxTotalPoint > PERFECT_POINT ? totalPoint : Math.max(totalPoint, maxTotalPoint);
+    }
+
+    public static int getCfgPoint(int cfgCardId) {
+        return GameDataManager.getPokerPoolCfg(cfgCardId).getPointsNum();
     }
 }

@@ -119,12 +119,21 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 return;
             }
 
+            //标记是否为注册的账号
+            boolean[] register = new boolean[1];
             CommonResult<Player> playerResult = hallPlayerService.loginAndNewOrSave(req.playerId,
                     player -> {
                         if (player.getCreateTime() == 0) {
                             player.setNickName("player" + req.playerId);
                             player.setCreateTime(TimeHelper.nowInt());
                             player.setIp(session.getAddress().getHost());
+
+                            //设置默认装扮
+                            player.setHeadImgId(hallService.getDefaultHeadImgId());
+                            player.setHeadFrameId(hallService.getDefaultHeadFrameId());
+                            player.setNationalId(hallService.getDefaultNationalId());
+                            player.setTitleId(hallService.getDefaultTitlelId());
+                            register[0] = true;
                         } else {
                             player.setIp(session.getAddress().getHost());
                         }
@@ -155,14 +164,18 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.gold = player.getGold();
             res.diamond = player.getDiamond();
             res.vipLevel = player.getVipLevel();
-
             //添加游戏列表
             res.gameList = addGameList();
-            PlayerController playerController = new PlayerController(session, player);
-            session.setReference(playerController);
             session.send(res);
 
+            //发送登录日志
+            PlayerController playerController = new PlayerController(session, player);
+            session.setReference(playerController);
             hallLogger.login(player, req.token, playerSessionToken.getLoginType());
+
+            if(register[0]){
+                hallService.saveDefaultAvatar(req.playerId);
+            }
             log.info("玩家登录成功 playerId = {}", player.getId());
         } catch (Exception e) {
             res.code = Code.EXCEPTION;

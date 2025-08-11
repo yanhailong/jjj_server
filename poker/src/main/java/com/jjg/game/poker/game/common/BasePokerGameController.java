@@ -13,7 +13,6 @@ import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.room.base.IRoomPhase;
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -99,7 +98,6 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
             gameDataVo.setPlayerTimerEvent(timerEvent);
         }
     }
-
     /**
      * 添加玩家定时器
      */
