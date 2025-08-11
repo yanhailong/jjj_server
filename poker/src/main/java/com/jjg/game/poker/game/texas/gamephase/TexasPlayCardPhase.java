@@ -63,6 +63,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
                 SeatInfo info = entry.getValue();
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
                 if (Objects.isNull(gamePlayer)) {
+                    log.error("德州扑克确定执行顺序时GamePlayer 为null playerId:{} id:{}", info.getPlayerId(), gameDataVo.getId());
                     continue;
                 }
                 if (gamePlayer.getPokerPlayerGameData().isInit() && info.isSeatDown()) {

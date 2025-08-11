@@ -619,6 +619,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
 
     /**
      * 请求历史记录
+     *
      * @param playerId
      * @param req
      */
@@ -638,7 +639,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         repsTexasHistory.maxRecodeNum = size;
         TexasHistory texasHistory = new TexasHistory();
         repsTexasHistory.history = texasHistory;
-        TexasSaveHistory texasSaveHistory = gameDataVo.getTexasHistoryList().get(req.index);
+        TexasSaveHistory texasSaveHistory = gameDataVo.getTexasHistoryList().get(req.index - 1);
         texasHistory.BBValue = texasSaveHistory.getBBValue();
         texasHistory.SBValue = texasSaveHistory.getSBValue();
         texasHistory.texasHistoryRoundInfos = texasSaveHistory.getTexasHistoryRoundInfos();

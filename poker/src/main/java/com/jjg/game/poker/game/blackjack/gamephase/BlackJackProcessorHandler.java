@@ -15,10 +15,10 @@ import java.util.Objects;
 public class BlackJackProcessorHandler implements IProcessorHandler {
 
     private final long playerId;
-    private final int id;
+    private final long id;
     private final BlackJackGameController gameController;
 
-    public BlackJackProcessorHandler(long playerId, int id, BlackJackGameController gameController) {
+    public BlackJackProcessorHandler(long playerId, long id, BlackJackGameController gameController) {
         this.playerId = playerId;
         this.id = id;
         this.gameController = gameController;
