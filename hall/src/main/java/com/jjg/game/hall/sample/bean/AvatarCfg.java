@@ -6,30 +6,28 @@ import javax.annotation.processing.Generated;
 /**
  * 配置bean
  *
- * @excelName player.xlsx
- * @sheetName player
+ * @excelName avatar.xlsx
+ * @sheetName avatar
  * @author Auto.Generator
- * @date 2025年08月06日 20:26:26
+ * @date 2025年08月08日 13:44:57
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class PlayerCfg extends BaseCfgBean {
+public class AvatarCfg extends BaseCfgBean {
 
   /** 配置表名 */
-  public static final String EXCEL_NAME = "player.xlsx";
+  public static final String EXCEL_NAME = "avatar.xlsx";
   /** 配置表工作薄名 */
-  public static final String SHEET_NAME = "player";
+  public static final String SHEET_NAME = "avatar";
 
   /** 资源名称 */
-  protected String name;
+  protected int name;
   /** 美术资源名称与路径 */
   protected String resourcePath;
   /** 类型 */
   protected int resourceType;
-  /** 资源id */
-  protected int rid;
 
   /** 返回资源名称 */
-  public String getName() {
+  public int getName() {
     return name;
   }
 
@@ -41,10 +39,5 @@ public class PlayerCfg extends BaseCfgBean {
   /** 返回类型 */
   public int getResourceType() {
     return resourceType;
-  }
-
-  /** 返回资源id */
-  public int getRid() {
-    return rid;
   }
 }

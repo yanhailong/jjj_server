@@ -1,12 +1,13 @@
 package com.jjg.game.hall.service;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
-import com.jjg.game.core.data.Account;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.GameStatus;
+import com.jjg.game.core.dao.PlayerAvatarDao;
+import com.jjg.game.core.dao.PlayerPackDao;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.hall.constant.HallCode;
@@ -14,8 +15,7 @@ import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.dao.BindDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.sample.GameDataManager;
-import com.jjg.game.hall.sample.bean.WarehouseCfg;
-import com.jjg.game.hall.sample.bean.GameListCfg;
+import com.jjg.game.hall.sample.bean.*;
 import com.jjg.game.hall.utils.HallTool;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -40,6 +40,12 @@ public class HallService implements ConfigExcelChangeListener {
     private AccountDao accountDao;
     @Autowired
     private BindDao bindDao;
+    @Autowired
+    private PlayerAvatarDao playerAvatarDao;
+    @Autowired
+    private HallPlayerService hallPlayerService;
+    @Autowired
+    private PlayerPackDao playerPackDao;
 
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
@@ -48,6 +54,15 @@ public class HallService implements ConfigExcelChangeListener {
     public Map<Integer, GameStatus> getGameStatusesMap() {
         return gameStatusesMap;
     }
+
+    //默认头像id
+    private int defaultHeadImgId = 0;
+    //默认头像框id
+    private int defaultHeadFrameId = 0;
+    //默认国旗id
+    private int defaultNationalId = 0;
+    //默认称号id
+    private int defaultTitlelId = 0;
 
     public void loadGameStatuses(List<GameStatus> gameStatuses) {
         if (Objects.nonNull(gameStatuses)) {
@@ -60,7 +75,9 @@ public class HallService implements ConfigExcelChangeListener {
     }
 
     public void init() {
+        //缓存倍场的配置信息
         initWareHouseConfigData();
+        //缓存每个游戏的状态
         loadGameStatuses(gameStatusService.getAllGameStatus());
     }
 
@@ -78,37 +95,6 @@ public class HallService implements ConfigExcelChangeListener {
             return gameListCfg.getStatus() == HallCode.GAME_STATUS_OPEN;
         }
         return false;
-    }
-
-    @Override
-    public void initSampleCallbackCollector() {
-        addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
-    }
-
-    private void initWareHouseConfigData() {
-        Map<Integer, List<WareHouseConfigInfo>> tempwareHouseConfigMap = new HashMap<>();
-
-        for (WarehouseCfg c : GameDataManager.getWarehouseCfgList()) {
-            List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameID(),
-                k -> new ArrayList<>());
-            if(c.getRoomType() < 10){
-                WareHouseConfigInfo info = new WareHouseConfigInfo();
-                info.wareId = c.getId();
-                info.limitGoldMin = c.getEnterLimit();
-                info.limitVipMin = c.getVipLvLimit();
-                info.betShow = c.getBetShow();
-                tempList.add(info);
-            }
-        }
-
-        //根据场次id，从小到大排序
-        tempwareHouseConfigMap.replaceAll((key, list) ->
-                list.stream()
-                        .sorted(Comparator.comparingInt(wh -> wh.wareId))
-                        .collect(Collectors.toList())
-        );
-
-        this.wareHouseConfigMap = tempwareHouseConfigMap;
     }
 
     /**
@@ -199,6 +185,13 @@ public class HallService implements ConfigExcelChangeListener {
         return result;
     }
 
+    /**
+     * 确认验证码
+     * @param playerId
+     * @param verCodeType
+     * @param verCode
+     * @return
+     */
     public CommonResult<String> comfirmVerCode(long playerId,int verCodeType, int verCode){
         CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
         if(verCode < HallConstant.VerCode.CODE_MIN || verCode > HallConstant.VerCode.CODE_MAX) {
@@ -237,5 +230,194 @@ public class HallService implements ConfigExcelChangeListener {
         bindDao.delVerCode(playerId, verCodeType);
         result.data = verResult.data;
         return result;
+    }
+
+    /**
+     * 切换头像
+     * @param playerId
+     * @param id
+     * @return
+     */
+    public CommonResult<Player> selectAvatar(long playerId,int id){
+        CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
+        AvatarCfg avatarCfg = GameDataManager.getAvatarCfg(id);
+        if(avatarCfg == null){
+            log.debug("未在头像配置表中找到该配置 id = {}",id);
+            result.code = Code.NOT_FOUND;
+            return result;
+        }
+
+        //todo 要判断该id是不是默认的id
+//        if(id == defauleId){
+//
+//        }
+
+        //检查玩家是否拥有该id
+        boolean has = false;
+        if(avatarCfg.getResourceType() == HallConstant.Avatar.TYPE_AVATAR){
+            has = playerAvatarDao.hasAvatar(playerId,id);
+        }else if(avatarCfg.getResourceType() == HallConstant.Avatar.TYPE_FRAME){
+            has = playerAvatarDao.hasFrame(playerId,id);
+        }else if(avatarCfg.getResourceType() == HallConstant.Avatar.TYPE_TITLE){
+            has = playerAvatarDao.hasTitle(playerId,id);
+        }
+
+        if(!has){
+           log.debug("玩家没有该头像id = {},type = {}",id,avatarCfg.getResourceType());
+            result.code = Code.NOT_FOUND;
+            return result;
+        }
+
+        Player player = null;
+        if(avatarCfg.getResourceType() == HallConstant.Avatar.TYPE_AVATAR){
+            player = hallPlayerService.doSave(playerId, p -> {
+                p.setHeadImgId(id);
+            });
+        }else if(avatarCfg.getResourceType() == HallConstant.Avatar.TYPE_FRAME){
+            player = hallPlayerService.doSave(playerId, p -> {
+                p.setHeadFrameId(id);
+            });
+        }else if(avatarCfg.getResourceType() == HallConstant.Avatar.TYPE_TITLE){
+            player = hallPlayerService.doSave(playerId, p -> {
+                p.setNationalId(id);
+            });
+        }
+
+        result.data = player;
+        log.info("选择头像资源成功 playerId = {},id = {},type = {}", playerId,id,avatarCfg.getResourceType());
+        return result;
+    }
+
+    /**
+     * 添加头像等信息
+     * @param playerId
+     * @param id
+     */
+    public void addPlayerAvatar(long playerId,int id){
+        AvatarCfg avatarCfg = GameDataManager.getAvatarCfg(id);
+        if(avatarCfg == null){
+            log.debug("未在头像配置表中找到该配置 id = {}",id);
+            return;
+        }
+
+        boolean add = false;
+        if(avatarCfg.getResourceType() == HallConstant.Avatar.TYPE_AVATAR){
+            add = playerAvatarDao.addAvatar(playerId,id);
+        }else if(avatarCfg.getResourceType() == HallConstant.Avatar.TYPE_FRAME){
+            add = playerAvatarDao.addFrame(playerId,id);
+        }else if(avatarCfg.getResourceType() == HallConstant.Avatar.TYPE_TITLE){
+            add = playerAvatarDao.addTitle(playerId,id);
+        }
+
+        if(!add){
+            log.debug("添加头像信息失败 playerId = {},cfgId = {}",playerId,avatarCfg.getId());
+            return;
+        }
+        log.info("添加头像信息成功 playerId = {},cfgId = {}",playerId,avatarCfg.getId());
+    }
+
+    /**
+     * 保存默认的头像信息
+     * @param playerId
+     */
+    public void saveDefaultAvatar(long playerId){
+        try{
+            PlayerAvatar playerAvatar = new PlayerAvatar();
+            playerAvatar.setPlayerId(playerId);
+            playerAvatar.addAvatar(this.defaultHeadImgId);
+            playerAvatar.addFrame(this.defaultHeadFrameId);
+            playerAvatar.addTitle(this.defaultTitlelId);
+            this.playerAvatarDao.save(playerAvatar);
+            log.info("保存默认的头像信息成功  playerId = {}",playerId);
+        }catch (Exception e){
+            log.error("",e);
+        }
+    }
+
+    /**
+     * 添加道具
+     * @param playerId
+     * @param itemId
+     */
+    public void addItem(long playerId,int itemId){
+        try{
+            ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
+            if(itemCfg == null){
+                log.debug("未找到该道具配置 playerId = {},itemId = {}",playerId,itemId);
+                return;
+            }
+
+            playerPackDao.doSave(playerId, pp -> {
+
+            });
+        }catch (Exception e){
+            log.error("",e);
+        }
+    }
+
+
+    /***********************************************************************************************************/
+
+    @Override
+    public void initSampleCallbackCollector() {
+        addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
+        addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig);
+    }
+
+    /**
+     * 缓存倍场配置
+     */
+    private void initWareHouseConfigData() {
+        Map<Integer, List<WareHouseConfigInfo>> tempwareHouseConfigMap = new HashMap<>();
+
+        for (WarehouseCfg c : GameDataManager.getWarehouseCfgList()) {
+            List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameID(),
+                    k -> new ArrayList<>());
+            if(c.getRoomType() < 10){
+                WareHouseConfigInfo info = new WareHouseConfigInfo();
+                info.wareId = c.getId();
+                info.limitGoldMin = c.getEnterLimit();
+                info.limitVipMin = c.getVipLvLimit();
+                info.betShow = c.getBetShow();
+                tempList.add(info);
+            }
+        }
+
+        //根据场次id，从小到大排序
+        tempwareHouseConfigMap.replaceAll((key, list) ->
+                list.stream()
+                        .sorted(Comparator.comparingInt(wh -> wh.wareId))
+                        .collect(Collectors.toList())
+        );
+
+        this.wareHouseConfigMap = tempwareHouseConfigMap;
+    }
+
+    /**
+     * 缓存global表的配置
+     */
+    private void initGlobalConfig() {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(HallConstant.GlobalConfig.DEFAULT_AVATAR_CFG_ID);
+        String[] arr = globalConfigCfg.getValue().split(":");
+        this.defaultHeadImgId = Integer.parseInt(arr[0]);
+        this.defaultHeadFrameId = Integer.parseInt(arr[1]);
+        this.defaultNationalId = Integer.parseInt(arr[2]);
+        this.defaultTitlelId = Integer.parseInt(arr[3]);
+    }
+
+    public int getDefaultHeadImgId() {
+        return defaultHeadImgId;
+    }
+
+    public int getDefaultHeadFrameId() {
+        return defaultHeadFrameId;
+    }
+
+    public int getDefaultNationalId() {
+        return defaultNationalId;
+    }
+
+    public int getDefaultTitlelId() {
+        return defaultTitlelId;
     }
 }

@@ -35,6 +35,13 @@ public class ResQueryPlayerInfo extends AbstractResponse {
     public String phoneNumber;
     @ProtoDesc("邮箱")
     public String email;
+    @ProtoDesc("头像id")
+    public int headImgId;
+    @ProtoDesc("头像框id")
+    public int headFrameId;
+    @ProtoDesc("国旗id")
+    public int nationalId;
+
 
     public ResQueryPlayerInfo(int code) {
         super(code);

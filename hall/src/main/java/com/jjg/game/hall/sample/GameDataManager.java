@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年08月06日 20:26:26
+ * @date 2025年08月08日 13:44:57
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -118,9 +118,11 @@ public class GameDataManager {
   public Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> initAllContainer() {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
+    containerMap.put(AvatarCfg.class, new AvatarCfgContainer());
     containerMap.put(GameListCfg.class, new GameListCfgContainer());
+    containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
     containerMap.put(ItemCfg.class, new ItemCfgContainer());
-    containerMap.put(PlayerCfg.class, new PlayerCfgContainer());
+    containerMap.put(MailCfg.class, new MailCfgContainer());
     containerMap.put(StatusCfg.class, new StatusCfgContainer());
     containerMap.put(VipLevelConfigCfg.class, new VipLevelConfigCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
@@ -525,6 +527,17 @@ public class GameDataManager {
 
   // region===============cfg获取方法模板开始===================
 
+  public static AvatarCfg getAvatarCfg(int key) {
+    return getInstance().getCfgContainer(AvatarCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, AvatarCfg> getAvatarCfgMap() {
+    return getInstance().getCfgContainer(AvatarCfg.class).getCfgBeanMap();
+  }
+
+  public static List<AvatarCfg> getAvatarCfgList() {
+    return getInstance().getCfgContainer(AvatarCfg.class).getCfgBeanList();
+  }
   public static GameListCfg getGameListCfg(int key) {
     return getInstance().getCfgContainer(GameListCfg.class).getCfgBeanMap().get(key);
   }
@@ -535,6 +548,17 @@ public class GameDataManager {
 
   public static List<GameListCfg> getGameListCfgList() {
     return getInstance().getCfgContainer(GameListCfg.class).getCfgBeanList();
+  }
+  public static GlobalConfigCfg getGlobalConfigCfg(int key) {
+    return getInstance().getCfgContainer(GlobalConfigCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, GlobalConfigCfg> getGlobalConfigCfgMap() {
+    return getInstance().getCfgContainer(GlobalConfigCfg.class).getCfgBeanMap();
+  }
+
+  public static List<GlobalConfigCfg> getGlobalConfigCfgList() {
+    return getInstance().getCfgContainer(GlobalConfigCfg.class).getCfgBeanList();
   }
   public static ItemCfg getItemCfg(int key) {
     return getInstance().getCfgContainer(ItemCfg.class).getCfgBeanMap().get(key);
@@ -547,16 +571,16 @@ public class GameDataManager {
   public static List<ItemCfg> getItemCfgList() {
     return getInstance().getCfgContainer(ItemCfg.class).getCfgBeanList();
   }
-  public static PlayerCfg getPlayerCfg(int key) {
-    return getInstance().getCfgContainer(PlayerCfg.class).getCfgBeanMap().get(key);
+  public static MailCfg getMailCfg(int key) {
+    return getInstance().getCfgContainer(MailCfg.class).getCfgBeanMap().get(key);
   }
 
-  public static Map<Integer, PlayerCfg> getPlayerCfgMap() {
-    return getInstance().getCfgContainer(PlayerCfg.class).getCfgBeanMap();
+  public static Map<Integer, MailCfg> getMailCfgMap() {
+    return getInstance().getCfgContainer(MailCfg.class).getCfgBeanMap();
   }
 
-  public static List<PlayerCfg> getPlayerCfgList() {
-    return getInstance().getCfgContainer(PlayerCfg.class).getCfgBeanList();
+  public static List<MailCfg> getMailCfgList() {
+    return getInstance().getCfgContainer(MailCfg.class).getCfgBeanList();
   }
   public static StatusCfg getStatusCfg(int key) {
     return getInstance().getCfgContainer(StatusCfg.class).getCfgBeanMap().get(key);

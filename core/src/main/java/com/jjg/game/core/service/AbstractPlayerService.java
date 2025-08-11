@@ -23,8 +23,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 public class AbstractPlayerService {
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-    protected static final String tableName = "player";
-    private static final String lockTableName = "lockplayer:";
+    protected final String tableName = "player";
+    private final String lockTableName = "lockplayer:";
 
     @Autowired
     protected RedisTemplate<String, Player> redisTemplate;
@@ -149,7 +149,7 @@ public class AbstractPlayerService {
         //记录日志
         if (p != null) {
             //TODO 后期要排除机器人的情况
-            coreLogger.useMoney(p, beforeCoin[0], addNum, addType, desc);
+            coreLogger.useDiamond(p, beforeCoin[0], addNum, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
             return result;
@@ -250,7 +250,7 @@ public class AbstractPlayerService {
         //记录日志
         if (p != null) {
             //TODO 后期要排除机器人的情况
-            coreLogger.useMoney(p, beforeCoin[0], addNum, addType, desc);
+            coreLogger.useGold(p, beforeCoin[0], addNum, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
             return result;
