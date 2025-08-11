@@ -2,19 +2,16 @@ package com.jjg.game.room.dao;
 
 import com.jjg.game.common.constant.StrConstant;
 import com.jjg.game.common.curator.NodeManager;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.data.RobotPlayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.connection.RedisHashCommands;
+import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 机器人数据操作
@@ -31,22 +28,22 @@ import java.util.stream.Collectors;
 @Component
 public class RobotDao {
 
-    // 机器人redis数据 hash 键：robot+房间配置ID 数据：机器人ID <=> 机器人数据
-    private static final String ROBOT_REDIS_KEY_PREFIX = "robot:";
+    // 机器人redis数据 set 键：robotIdList+房间配置ID 数据：机器人ID <=> 机器人数据
+    private static final String ROBOT_ID_LIST_REDIS_KEY_PREFIX = "RobotIdList" + StrConstant.COLON;
     // 每个节点的所有机器人 键：servers_robot+节点路径 数据：机器人ID <=> 机器人redis数据
-    private static final String SERVER_OF_ROBOT = "servers_robot";
+    private static final String SERVER_OF_ROBOT = "ClusterRobot";
 
     private static final Logger log = LoggerFactory.getLogger(RobotDao.class);
 
     @Autowired
-    private RedisTemplate<String, RobotPlayer> redisTemplate;
+    private RedisTemplate<String, Long> redisTemplate;
     @Autowired
     private RedisTemplate<String, String> stringRedisTemplate;
     @Autowired
     private NodeManager nodeManager;
 
-    public String getRobotTableName(int roomCfgId, long roomId) {
-        return ROBOT_REDIS_KEY_PREFIX + roomCfgId + StrConstant.COLON + roomId;
+    public String getRobotIdListTableName() {
+        return ROBOT_ID_LIST_REDIS_KEY_PREFIX;
     }
 
     /**
@@ -58,85 +55,33 @@ public class RobotDao {
         return SERVER_OF_ROBOT + nodePathDataKey;
     }
 
-    public String getLockRobotTableName(String roomCfgId) {
-        return "lock:" + ROBOT_REDIS_KEY_PREFIX + roomCfgId;
+    public String getLockRobotTableName() {
+        return "lock" + StrConstant.COLON + ROBOT_ID_LIST_REDIS_KEY_PREFIX;
     }
 
     /**
      * 更新机器人数据
      */
-    public void saveRobotPlayer(int roomCfgId, long roomId, RobotPlayer robotPlayer) {
-        String robotKey = getRobotTableName(roomCfgId, roomId);
-        redisTemplate.opsForHash().put(robotKey, robotPlayer.getId(), robotPlayer);
-    }
-
-    /**
-     * 获取当前已经创建的机器人ID,根据小房间进行划分
-     */
-    public Set<Integer> getRobotIdList(int roomCfgId, long roomId) {
-        return redisTemplate
-            .opsForHash()
-            .keys(getRobotTableName(roomCfgId, roomId))
-            .stream()
-            .map(robotObj -> (Integer) robotObj)
-            .collect(Collectors.toSet());
-    }
-
-    /**
-     * 创建一个机器人
-     */
-    public RobotPlayer createRobotPlayer(int roomCfgId, long roomId, int robotId) {
-
-        String robotKey = getRobotTableName(roomCfgId, roomId);
+    public void recordCurServerRobotPlayer(RobotPlayer robotPlayer) {
+        long robotId = robotPlayer.getId();
         String serverRobotTableName = getCurServerRobotTableName();
-        RobotPlayer robotPlayer = new RobotPlayer();
-        robotPlayer.setCreateTime(TimeHelper.nowInt());
-        robotPlayer.setId(robotId);
-        robotPlayer.setRoomCfgId(roomCfgId);
-        robotPlayer.setNodePath(nodeManager.getNodePath());
+        stringRedisTemplate.opsForHash().put(serverRobotTableName, robotId + "", System.currentTimeMillis() + "");
+    }
 
-        List<Object> executedRes = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
-            Jackson2JsonRedisSerializer<RobotPlayer> jsonRedisSerializer =
-                new Jackson2JsonRedisSerializer<>(RobotPlayer.class);
-            RedisHashCommands hashCommands = connection.hashCommands();
-            hashCommands.hSet(
-                robotKey.getBytes(),
-                (robotId + "").getBytes(),
-                jsonRedisSerializer.serialize(robotPlayer)
-            );
-            hashCommands.hSet(
-                serverRobotTableName.getBytes(),
-                (robotId + "").getBytes(),
-                robotKey.getBytes()
-            );
-            return null;
-        });
-        boolean allSuccess = executedRes.stream().allMatch("OK"::equals);
-        if (!allSuccess) {
-            //log.error("创建机器人，写入robot数据到redis中时失败");
-        }
-        return robotPlayer;
+    /**
+     * 弹出一个机器人Id
+     */
+    public long popupOneRobotId() {
+        String robotId = redisTemplate.opsForSet().pop(getRobotIdListTableName()) + "";
+        return Long.parseLong(robotId);
     }
 
     /**
      * 删除机器人
      */
-    public void deleteRobotPlayers(int roomCfgId, long roomId, Collection<Long> robotIds) {
+    public void recycleRobotPlayers(Collection<Long> robotIds) {
         redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
-            RedisHashCommands hashCommands = connection.hashCommands();
-            String robotKey = getRobotTableName(roomCfgId, roomId);
-            deleteServerRobotByTableKey(robotKey, hashCommands, robotIds);
-            return null;
-        });
-    }
-
-    /**
-     * 删除机器人
-     */
-    public void deleteRobotPlayers(String tableKey, Collection<Long> robotIds) {
-        redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
-            RedisHashCommands hashCommands = connection.hashCommands();
-            deleteServerRobotByTableKey(tableKey, hashCommands, robotIds);
+            recycleServerRobotByTableKey(connection, robotIds);
             return null;
         });
     }
@@ -144,17 +89,18 @@ public class RobotDao {
     /**
      * 删除tableKey中指定ID的机器人
      */
-    private void deleteServerRobotByTableKey(
-        String tableKey, RedisHashCommands hashCommands, Collection<Long> robotIds) {
+    private void recycleServerRobotByTableKey(RedisConnection connection, Collection<Long> robotIds) {
         byte[][] robotBytes = new byte[robotIds.size()][];
         Long[] robotIdsArray = robotIds.toArray(new Long[0]);
         for (int i = 0; i < robotIdsArray.length; i++) {
             robotBytes[i] = (robotIdsArray[i] + "").getBytes();
         }
+        String robotKey = getRobotIdListTableName();
         String serverRobotTableName = getCurServerRobotTableName();
-        hashCommands.hDel(serverRobotTableName.getBytes(), robotBytes);
-        // 在pipline中返回的是空值
-        hashCommands.hDel(tableKey.getBytes(), robotBytes);
+        // 向总的机器人池重新加入机器人ID数据
+        connection.setCommands().sAdd(robotKey.getBytes(), robotBytes);
+        // 删除服务器中的ID
+        connection.hashCommands().hDel(serverRobotTableName.getBytes(), robotBytes);
     }
 
     /**
@@ -172,9 +118,44 @@ public class RobotDao {
     }
 
     /**
-     * 获取当前机器人数量
+     * 获取当前总池子里面可用的机器人数量
      */
-    public long getCurRobotNum(int roomCfgId, long roomId) {
-        return redisTemplate.opsForHash().size(getRobotTableName(roomCfgId, roomId));
+    public long getAvailableNum() {
+        Long size = redisTemplate.opsForSet().size(getRobotIdListTableName());
+        return size == null ? 0 : size;
+    }
+
+    /**
+     * 获取redis中所有的机器人ID数据，仅服务器启动加载时调用
+     */
+    public List<Long> getAllUsedRobot() {
+        String redisIdListKey = getRobotIdListTableName();
+        // 未被使用的机器人ID列表
+        Set<Long> allRobotIdList = redisTemplate.opsForSet().members(redisIdListKey);
+        if (allRobotIdList == null || allRobotIdList.isEmpty()) {
+            return new ArrayList<>();
+        }
+        // 获取各个服正在使用的机器人
+        Set<String> serverUsedRobotKeys = redisTemplate.keys(SERVER_OF_ROBOT);
+        if (serverUsedRobotKeys.isEmpty()) {
+            return new ArrayList<>();
+        }
+        Set<Long> serversUsedIdList =
+            redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+                for (String serverUsedRobotKey : serverUsedRobotKeys) {
+                    connection.hashCommands().hKeys(serverUsedRobotKey.getBytes());
+                }
+                return null;
+            }).stream().map(a -> (Set<Long>) a).collect(HashSet::new, HashSet::addAll, HashSet::addAll);
+        allRobotIdList.addAll(serversUsedIdList);
+        return allRobotIdList.stream().toList();
+    }
+
+    /**
+     * 添加新的机器人ID
+     */
+    public void addNewRobotIds(List<Long> newRobotIdList) {
+        String redisIdListKey = getRobotIdListTableName();
+        redisTemplate.opsForSet().add(redisIdListKey, newRobotIdList.toArray(Long[]::new));
     }
 }

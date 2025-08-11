@@ -21,6 +21,7 @@ import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.room.sample.bean.WarehouseCfg;
+import com.jjg.game.room.services.RobotService;
 import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomTimerCenter;
 import com.jjg.game.room.timer.RoomTimerEvent;
@@ -413,17 +414,19 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         robotLastCreatedTime = System.currentTimeMillis() + randomTime;
         int roomCfgId = roomCfg.getId();
         long robotCreateStartTime = System.currentTimeMillis();
+        RobotService robotService = roomManager.getRobotService();
+        // 如果房间的
+        if (!robotService.checkCanCreateRobot(roomCfgId, room)) {
+            return;
+        }
+        // 创建一个机器人
         PlayerController robotPlayerController =
-            roomManager.getRobotService().getOrCreateRobotPlayerController(roomCfgId, room.getId());
+            robotService.getOrCreateRobotPlayerController(roomCfgId, room.getId());
         if (System.currentTimeMillis() - robotCreateStartTime >= 200) {
             log.debug("机器人创建超时，花费时间：{}", System.currentTimeMillis() - robotCreateStartTime);
         }
         if (robotPlayerController == null) {
             // 返回
-            return;
-        }
-        // 如果机器人还在房间中，不能重复加入
-        if (room.getRoomPlayers().containsKey(robotPlayerController.playerId())) {
             return;
         }
         // 将机器人加入房间中
@@ -500,13 +503,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 this.room.getGameType(),
                 this.room.getId(),
                 playerControllers.stream().map(PlayerController::playerId).toList());
-            if (room != null) {
-                /*log.debug("强制离开房间成功, gameType = {},roomId = {},playerIds = {}",
-                    room.getRoomCfgId(),
-                    room.getId(),
-                    playerControllers.stream().map(PlayerController::playerId).map(String::valueOf).collect
-                    (Collectors.joining(",")));*/
-            } else {
+            if (room == null) {
                 log.debug("将玩家从房间中移除失败 gameType = {},roomId = {},playerIds = {}",
                     this.room.getRoomCfgId(),
                     this.room.getId(),
@@ -520,7 +517,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             // 退出房间时检查是否可以添加等待房间列表
             updateWaitRoomList();
         } catch (Exception e) {
-            log.error("", e);
+            log.error("机器人退出房间时异常", e);
             result.code = Code.EXCEPTION;
         }
         return result;

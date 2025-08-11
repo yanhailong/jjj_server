@@ -227,6 +227,13 @@ public class Room {
         return removedPlayers;
     }
 
+    /**
+     * 房间中机器人的数量
+     */
+    public int countRobots() {
+        return (int) roomPlayers.values().stream().filter(RoomPlayer::isRobot).count();
+    }
+
     public boolean empty() {
         if (this.roomPlayers == null) {
             return true;
