@@ -57,6 +57,9 @@ public class RobotService implements IRoomStartListener {
                     // 创建一个机器人
                     // 给机器人初始化数据，如果出现机器人某些数据找不到，在此处初始化
                     RobotPlayer robotPlayer = createRobot(randomRobotId, roomId, roomCfg);
+                    if (robotPlayer == null) {
+                        return null;
+                    }
                     // 将机器人写入当前服在用的机器人列表，机器人不用放数据库，后续有类似排行榜展示功能时需要单独处理
                     robotDao.recordCurServerRobotPlayer(robotPlayer);
                     return robotPlayer;
