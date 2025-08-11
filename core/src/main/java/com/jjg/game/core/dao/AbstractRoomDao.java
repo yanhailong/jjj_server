@@ -158,9 +158,6 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
 
     /**
      * 创建房间
-     *
-     * @param room
-     * @return
      */
     protected T createRoom(T room) {
         try {
@@ -220,20 +217,13 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
 
     /**
      * 获取房间数据
-     *
-     * @param gameType
-     * @param roomId
-     * @return
      */
     public T getRoom(int gameType, long roomId) {
-        return (T) redisTemplate.opsForHash().get(getTableName(gameType), roomId);
+        return (T) redisTemplate.opsForHash(). get(getTableName(gameType), roomId);
     }
 
     /**
      * 删除房间
-     *
-     * @param gameType
-     * @param roomId
      */
     public Long removeRoom(int gameType, long roomId, int wareId) {
         String key = getLockName(gameType, roomId);
@@ -325,9 +315,6 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
 
     /**
      * 已存在的房间个数
-     *
-     * @param gameType
-     * @return
      */
     public long existRoomCount(int gameType, int roomCfgId) {
         return redisTemplate.opsForHash().size(getTableName(gameType));
