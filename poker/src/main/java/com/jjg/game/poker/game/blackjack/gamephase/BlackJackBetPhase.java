@@ -8,7 +8,6 @@ import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BaseBetPhase;
 import com.jjg.game.room.constant.EGamePhase;
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.listener.RoomEventListener;
@@ -54,7 +53,6 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
         for (PlayerSeatInfo seatInfo : playerSeatInfo) {
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
             if (Objects.nonNull(gamePlayer)) {
-                //TODO 剩余两秒加入的不踢
                 if (!baseBetInfo.containsKey(gamePlayer.getId()) && timeMillis - 2000 > gamePlayer.getPokerPlayerGameData().getJoinTime()) {
                     noBetPlayer.add(seatInfo);
                 }
