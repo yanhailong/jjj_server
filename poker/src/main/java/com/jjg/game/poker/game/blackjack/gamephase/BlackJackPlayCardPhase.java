@@ -22,6 +22,7 @@ import java.util.Map;
  * @date 2025/7/28 14:48
  */
 public class BlackJackPlayCardPhase extends BasePlayCardPhase<BlackJackGameDataVo> {
+
     public BlackJackPlayCardPhase(AbstractPhaseGameController<Room_ChessCfg, BlackJackGameDataVo> gameController) {
         super(gameController);
     }
@@ -38,12 +39,7 @@ public class BlackJackPlayCardPhase extends BasePlayCardPhase<BlackJackGameDataV
             List<Integer> cards = new ArrayList<>(gameDataVo.getCards().subList(0, roomChessCfg.getHandPoker()));
             gameDataVo.setDealerCards(cards);
             //通知发牌信息
-            //设置第一个开始的玩家 并添加定时
-            PlayerSeatInfo first = gameDataVo.getPlayerSeatInfoList().get(gameDataVo.getIndex());
-            controller.addNextTimer(first, sendNum + roomChessCfg.getHandPoker());
             NotifyBlackJackSendCardInfo notifyBlackJackSendCardInfo = new NotifyBlackJackSendCardInfo();
-            notifyBlackJackSendCardInfo.operationId = first.getPlayerId();
-            notifyBlackJackSendCardInfo.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
             List<BlackJackCardInfo> blackJackCardInfos = new ArrayList<>();
             for (PlayerSeatInfo playerSeatInfo : gameDataVo.getPlayerSeatInfoList()) {
                 BlackJackCardInfo blackJackCardInfo = new BlackJackCardInfo();
@@ -58,8 +54,19 @@ public class BlackJackPlayCardPhase extends BasePlayCardPhase<BlackJackGameDataV
             PokerCard pokerCard = cardListMap.get(gameDataVo.getDealerCards().get(0));
             notifyBlackJackSendCardInfo.cardId = pokerCard.getClientId();
             //如果庄家的牌包含A通知购买ACE
-            notifyBlackJackSendCardInfo.canBuy = pokerCard.getRank() == 1;
-            gameDataVo.setCanBuyACE(notifyBlackJackSendCardInfo.canBuy);
+            boolean canBuy = pokerCard.getRank() == 1;
+            if (canBuy) {
+                // 添加定时器并设置购买ACE结束时间
+                controller.addACETimer(sendNum + roomChessCfg.getHandPoker());
+                gameDataVo.setAceBuyEndTime(gameDataVo.getPlayerTimerEvent().getNextTime());
+            } else {
+                //设置第一个开始的玩家 并添加定时
+                PlayerSeatInfo first = gameDataVo.getPlayerSeatInfoList().get(gameDataVo.getIndex());
+                controller.addNextTimer(first, sendNum + roomChessCfg.getHandPoker());
+                notifyBlackJackSendCardInfo.operationId = first.getPlayerId();
+            }
+            notifyBlackJackSendCardInfo.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
+            gameDataVo.setCanBuyACE(canBuy);
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyBlackJackSendCardInfo));
         }
     }

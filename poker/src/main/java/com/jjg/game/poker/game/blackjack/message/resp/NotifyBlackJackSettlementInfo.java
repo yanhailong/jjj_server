@@ -18,8 +18,8 @@ import java.util.List;
 public class NotifyBlackJackSettlementInfo extends AbstractNotice {
     @ProtoDesc("玩家基本信息")
     public List<PokerPlayerSettlementInfo> settlementInfos;
-    @ProtoDesc("结束时间")
-    public long endTime;
     @ProtoDesc("庄家牌信息")
     public List<Integer> cardIds;
+    @ProtoDesc("结束时间")
+    public long endTime;
 }

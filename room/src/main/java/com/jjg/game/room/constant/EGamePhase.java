@@ -2,7 +2,6 @@ package com.jjg.game.room.constant;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.common.protostuff.MessageType;
 
 /**
  * 游戏阶段枚举

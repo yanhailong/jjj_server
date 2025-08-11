@@ -26,9 +26,8 @@ public abstract class BasePlayCardPhase<T extends BasePokerGameDataVo> extends B
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
-        if (gameController instanceof BasePokerGameController<T> controller) {
+        if (gameController instanceof BasePokerGameController<T>) {
             gameDataVo.setId(PokerDataHelper.getNextId());
-            gameDataVo.resetData(controller);
             playCardPhaseDoAction();
         }
 

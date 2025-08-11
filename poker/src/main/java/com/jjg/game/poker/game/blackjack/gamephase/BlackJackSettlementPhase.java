@@ -6,7 +6,9 @@ import com.jjg.game.poker.game.blackjack.data.MaxPointGetInfo;
 import com.jjg.game.poker.game.blackjack.message.resp.NotifyBlackJackSettlementInfo;
 import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
+import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
+import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerSettlementInfo;
 import com.jjg.game.poker.game.sample.bean.BlackjackCfg;
@@ -58,29 +60,36 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         Map<Long, Long> playerGet = new HashMap<>();
         //押注信息
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
+        Map<Long, Map<Integer, Long>> allBetInfo = gameDataVo.getAllBetInfo();
 
         Set<Long> aceBuyPlayerIds = gameDataVo.getAceBuyPlayerIds();
         if (gameDataVo.isCanBuyACE() && !aceBuyPlayerIds.isEmpty() && maxPointInfo.getMaxPoint() == BlackJackConstant.Common.PERFECT_POINT) {
             //购买ACE发奖
             for (Long playerId : aceBuyPlayerIds) {
                 int insurance = blackjackCfg.getInsurance();
-                Long betValue = gameDataVo.getBaseBet().getOrDefault(playerId, 0L);
+                Long betValue = baseBetInfo.getOrDefault(playerId, 0L);
                 playerGet.put(playerId, BlackJackDataHelper.getGetWinValue(betValue, insurance));
             }
         }
         //结算信息
         NotifyBlackJackSettlementInfo settlementPlayerInfo = new NotifyBlackJackSettlementInfo();
         settlementPlayerInfo.settlementInfos = new ArrayList<>();
-        settlementPlayerInfo.endTime = gameDataVo.getPhaseEndTime();
-        settlementPlayerInfo.cardIds = new ArrayList<>(cardNumWin ? resultCard : resultCard.subList(0, boom ? maxPointInfo.getIndex() + 2 : maxPointInfo.getIndex() + 1));
+        List<Integer> sendCards = cardNumWin ? resultCard : resultCard.subList(0, boom ? maxPointInfo.getIndex() + 2 : maxPointInfo.getIndex() + 1);
+        settlementPlayerInfo.cardIds = new ArrayList<>(sendCards);
+        settlementPlayerInfo.endTime = gameDataVo.getPhaseEndTime()+ (long) sendCards.size() * PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS);
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
             long playerId = info.getPlayerId();
-            for (List<Integer> card : info.getCards()) {
+            for (int i = 0; i < info.getCards().size(); i++) {
+                List<Integer> card = info.getCards().get(i);
                 int point = BlackJackDataHelper.getTotalPoint(card);
                 if (point > BlackJackConstant.Common.PERFECT_POINT) {
                     continue;
                 }
-                Long betValue = baseBetInfo.getOrDefault(playerId, 0L);
+                Map<Integer, Long> betInfo = allBetInfo.get(playerId);
+                Long betValue = betInfo.getOrDefault(i, 0L);
+                if (betValue == 0) {
+                    continue;
+                }
                 //初始为21点 直接发奖
                 if (info.getCards().size() == 1 && info.getCurrentCards().size() == chessCfg.getHandPoker()) {
                     playerGet.merge(playerId, BlackJackDataHelper.getGetWinValue(betValue, blackjackCfg.getBlackjack()) / 100, Long::sum);
@@ -104,7 +113,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             }
             PokerPlayerSettlementInfo blackJackSettlementInfo = new PokerPlayerSettlementInfo();
             blackJackSettlementInfo.playerId = playerId;
-            long get = playerGet.getOrDefault(playerId, 0L) - baseBetInfo.getOrDefault(playerId, 0L);
+            long get = playerGet.getOrDefault(playerId, 0L) - controller.getPlayerTotalBet(playerId);
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
             if (Objects.isNull(gamePlayer)) {
                 log.error("21点发奖找不到GamePlayer playerId:{} get:{} id:{}", playerId, get, gameDataVo.getId());
@@ -117,6 +126,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             blackJackSettlementInfo.currentGold = Objects.isNull(gamePlayer) ? 0 : gamePlayer.getGold();
             settlementPlayerInfo.settlementInfos.add(blackJackSettlementInfo);
         }
+        gameDataVo.setSettlementInfo(settlementPlayerInfo);
         broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(settlementPlayerInfo));
     }
 
@@ -161,15 +171,6 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             return result;
         });
         return totalPointList.get(0);
-    }
-
-
-    @Override
-    public void phaseFinish() {
-        //尝试开启下一局
-        if (gameController instanceof BlackJackGameController controller) {
-            controller.tryStartGame();
-        }
     }
 
 

@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.blackjack.room.data;
 
+import com.jjg.game.poker.game.blackjack.message.resp.NotifyBlackJackSettlementInfo;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
@@ -27,21 +28,40 @@ public class BlackJackGameDataVo extends BasePokerGameDataVo {
     private final Set<Long> aceBuyPlayerIds = new HashSet<>();
 
     /**
-     * 双倍下注玩家id
+     * 基础下注下注后不会变
+     * 玩家id->牌索引->总下注 不包含购买ACE
      */
-    private final Set<Long> doubleBet = new HashSet<>();
+    private final Map<Long, Map<Integer, Long>> allBetInfo = new HashMap<>();
 
     /**
-     * 基础下注下注后不会变
+     * 结算信息
      */
-    private final Map<Long, Long> baseBet = new HashMap<>();
+    private NotifyBlackJackSettlementInfo settlementInfo;
 
-    public Set<Long> getDoubleBet() {
-        return doubleBet;
+    /**
+     * 购买ACE结束时间
+     */
+
+    private long aceBuyEndTime;
+
+    public long getAceBuyEndTime() {
+        return aceBuyEndTime;
     }
 
-    public Map<Long, Long> getBaseBet() {
-        return baseBet;
+    public void setAceBuyEndTime(long aceBuyEndTime) {
+        this.aceBuyEndTime = aceBuyEndTime;
+    }
+
+    public NotifyBlackJackSettlementInfo getSettlementInfo() {
+        return settlementInfo;
+    }
+
+    public void setSettlementInfo(NotifyBlackJackSettlementInfo settlementInfo) {
+        this.settlementInfo = settlementInfo;
+    }
+
+    public Map<Long, Map<Integer, Long>> getAllBetInfo() {
+        return allBetInfo;
     }
 
     public Set<Long> getAceBuyPlayerIds() {
@@ -71,8 +91,9 @@ public class BlackJackGameDataVo extends BasePokerGameDataVo {
     @Override
     public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {
         super.resetData(controller);
-        baseBet.clear();
-        doubleBet.clear();
+        aceBuyEndTime = 0;
+        settlementInfo = null;
+        allBetInfo.clear();
         aceBuyPlayerIds.clear();
         dealerCards = null;
         canBuyACE = false;

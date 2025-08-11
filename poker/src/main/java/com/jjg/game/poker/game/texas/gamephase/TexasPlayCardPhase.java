@@ -168,11 +168,6 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         return Pair.newPair(sBBetValue, BBBetValue);
     }
 
-    @Override
-    public int getPhaseRunTime() {
-        return -1;
-    }
-
     /**
      * 获取庄家的位置
      */

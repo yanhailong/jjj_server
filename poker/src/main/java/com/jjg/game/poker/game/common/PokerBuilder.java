@@ -1,6 +1,5 @@
 package com.jjg.game.poker.game.common;
 
-import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
@@ -21,7 +20,7 @@ public class PokerBuilder {
     /**
      * 构建玩家基本信息
      */
-    public static PokerPlayerInfo buildPlayerInfo(GamePlayer gamePlayer, SeatInfo seatInfo, BasePokerGameDataVo gameDataVo, boolean detail) {
+    public static PokerPlayerInfo buildPlayerInfo(GamePlayer gamePlayer, SeatInfo seatInfo, BasePokerGameDataVo gameDataVo) {
         if (Objects.isNull(seatInfo)) {
             for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
                 if (info.getPlayerId() == gamePlayer.getId()) {
@@ -43,28 +42,12 @@ public class PokerBuilder {
         } else {
             pokerPlayerInfo.accountNumber = gamePlayer.getGold();
         }
-        if (detail) {
-            for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
-                if (info.getPlayerId() == gamePlayer.getId()) {
-                    pokerPlayerInfo.operationType = info.getOperationType();
-                    break;
-                }
-            }
-        }
         return pokerPlayerInfo;
-    }
-
-    /**
-     * 构建玩家基本信息
-     */
-    public static PokerPlayerInfo buildPlayerInfo(GamePlayer gamePlayer, BasePokerGameDataVo gameDataVo, boolean detail) {
-        return buildPlayerInfo(gamePlayer, null, gameDataVo, detail);
     }
 
 
     /**
      * 构建阶段变化消息
-     *
      */
     public static NotifyPokerPhaseChange buildNotifyPhaseChange(EGamePhase gamePhase, long endTime) {
         NotifyPokerPhaseChange notifyPokerPhaseChange = new NotifyPokerPhaseChange();
@@ -73,4 +56,21 @@ public class PokerBuilder {
         return notifyPokerPhaseChange;
     }
 
+    /**
+     * 返回基本的玩家信息(不包含操作类型)
+     */
+    public static PokerPlayerInfo getPokerPlayerInfo(SeatInfo seatInfo, BasePokerGameDataVo gameDataVo) {
+        PokerPlayerInfo pokerPlayerInfo = new PokerPlayerInfo();
+        pokerPlayerInfo.playerId = seatInfo.getPlayerId();
+        pokerPlayerInfo.playerStatus = seatInfo.isJoinGame();
+        pokerPlayerInfo.status = seatInfo.isSeatDown();
+        pokerPlayerInfo.seatIndex = seatInfo.getSeatId();
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
+        if (Objects.nonNull(gamePlayer)) {
+            pokerPlayerInfo.icon = gamePlayer.getNickName();
+            pokerPlayerInfo.name = gamePlayer.getNickName();
+            pokerPlayerInfo.accountNumber = gamePlayer.getGold();
+        }
+        return pokerPlayerInfo;
+    }
 }

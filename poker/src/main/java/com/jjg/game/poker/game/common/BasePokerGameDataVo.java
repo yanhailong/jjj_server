@@ -5,7 +5,6 @@ import com.jjg.game.core.data.Room;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
-import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementInfo;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.sample.GameDataManager;
@@ -13,6 +12,7 @@ import com.jjg.game.room.sample.bean.Room_ChessCfg;
 import com.jjg.game.room.timer.RoomTimerEvent;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author lm
@@ -61,7 +61,7 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
     /**
      * 执行列表执行的轮次
      */
-    private int round;
+    private int round = 1;
     /**
      * 基础下注信息
      */
@@ -159,6 +159,10 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
 
     public void setIndex(int index) {
         this.index = index;
+    }
+
+    public Map<Long, PlayerSeatInfo> getPlayerSeatInfoMap() {
+        return playerSeatInfoList.stream().collect(Collectors.toMap(PlayerSeatInfo::getPlayerId, info -> info));
     }
 
     public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {

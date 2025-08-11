@@ -19,12 +19,12 @@ import java.util.List;
 public class RepsBlackJackRoomBaseInfo extends AbstractNotice {
     @ProtoDesc("玩家信息 不包含庄家")
     public List<BlackJackPlayerInfo> playerInfos;
+    @ProtoDesc("结算信息")
+    public NotifyBlackJackSettlementInfo settlementInfo;
     @ProtoDesc("当前操作人")
     public long operationId;
     @ProtoDesc("操作结束时间")
     public long overTime;
     @ProtoDesc("庄家能展示的牌")
     public List<Integer> cardIds;
-    @ProtoDesc("庄家赢的金额")
-    public long winGold;
 }
