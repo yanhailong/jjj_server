@@ -12,6 +12,13 @@ public interface HallConstant  {
     interface Common {
         //excel配置所在目录
         String SAMPLE_PATH = CoreConst.Common.SAMPLE_ROOT_PATH;
+
+
+    }
+
+    interface GlobalConfig {
+        //默认装备的配置id
+        int DEFAULT_AVATAR_CFG_ID = 14;
     }
 
     interface VerCode{
@@ -22,6 +29,17 @@ public interface HallConstant  {
         //验证码范围
         int CODE_MIN = 1000;
         int CODE_MAX = 9999;
+    }
+
+    interface Avatar{
+        //头像
+        int TYPE_AVATAR = 0;
+        //头像框
+        int TYPE_FRAME = 1;
+        //国旗
+        int TYPE_NATIONAL = 2;
+        //称号
+        int TYPE_TITLE = 3;
     }
 
     /**
@@ -61,5 +79,9 @@ public interface HallConstant  {
         //确认验证码
         int REQ_CONFIRM_VER_CODE = BASE_MSG_PREFIX | 0xF;
         int RES_CONFIRM_VER_CODE = BASE_MSG_PREFIX | 0x10;
+
+        //选择头像等信息(头像，头像框，称号，国旗)
+        int REQ_SELECT_AVATAR = BASE_MSG_PREFIX | 0x11;
+        int RES_SELECT_AVATAR = BASE_MSG_PREFIX | 0x12;
     }
 }

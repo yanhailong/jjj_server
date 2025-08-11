@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName warehouse.xlsx
  * @sheetName Warehouse
  * @author Auto.Generator
- * @date 2025年08月06日 20:26:26
+ * @date 2025年08月08日 13:44:57
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class WarehouseCfg extends BaseCfgBean {
@@ -19,8 +19,6 @@ public class WarehouseCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "Warehouse";
 
-  /** 最少保留房间数量：无人后间隔X秒删除 */
-  protected List<Integer> RoomDeletion_Solution;
   /** 倍场显示默认押注 */
   protected int betShow;
   /** 最小准入 */
@@ -33,15 +31,12 @@ public class WarehouseCfg extends BaseCfgBean {
   protected long marqueeTrigger;
   /** 房间最大人数:达到X人时创建新房间 */
   protected String participants_max;
+  /** 最少保留房间数量：无人后间隔X秒删除 */
+  protected List<Integer> roomDeletion_Solution;
   /** 说明 */
   protected int roomType;
   /** VIP等级限制 */
   protected int vipLvLimit;
-
-  /** 返回最少保留房间数量：无人后间隔X秒删除 */
-  public List<Integer> getRoomDeletion_Solution() {
-    return RoomDeletion_Solution;
-  }
 
   /** 返回倍场显示默认押注 */
   public int getBetShow() {
@@ -71,6 +66,11 @@ public class WarehouseCfg extends BaseCfgBean {
   /** 返回房间最大人数:达到X人时创建新房间 */
   public String getParticipants_max() {
     return participants_max;
+  }
+
+  /** 返回最少保留房间数量：无人后间隔X秒删除 */
+  public List<Integer> getRoomDeletion_Solution() {
+    return roomDeletion_Solution;
   }
 
   /** 返回说明 */

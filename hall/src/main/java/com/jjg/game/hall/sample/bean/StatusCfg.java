@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName status.xlsx
  * @sheetName status
  * @author Auto.Generator
- * @date 2025年08月06日 20:26:26
+ * @date 2025年08月08日 13:44:57
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class StatusCfg extends BaseCfgBean {
@@ -25,6 +25,8 @@ public class StatusCfg extends BaseCfgBean {
   protected String name;
   /** 最大堆叠数量 */
   protected int prop;
+  /** 参数 */
+  protected int staterate;
   /** 描述 */
   protected String text;
   /** 持续时间 */
@@ -47,6 +49,11 @@ public class StatusCfg extends BaseCfgBean {
   /** 返回最大堆叠数量 */
   public int getProp() {
     return prop;
+  }
+
+  /** 返回参数 */
+  public int getStaterate() {
+    return staterate;
   }
 
   /** 返回描述 */
