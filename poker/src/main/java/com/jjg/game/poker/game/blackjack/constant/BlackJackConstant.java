@@ -29,5 +29,9 @@ public interface BlackJackConstant {
         int NOTIFY_SEND_CARD_INFO = BASE_MSG_PREFIX | 0x7;
         //通知玩家拿牌信息
         int NOTIFY_BLACKJACK_PUT_CARD = BASE_MSG_PREFIX | 0x8;
+        //通知玩家进行双倍押注
+        int NOTIFY_BLACKJACK_DOUBLE_BET_INFO = BASE_MSG_PREFIX | 0x9;
+        //响应玩家购买ACE
+        int REPS_BLACKJACK_BUY_ACE = BASE_MSG_PREFIX | 0x10;
     }
 }

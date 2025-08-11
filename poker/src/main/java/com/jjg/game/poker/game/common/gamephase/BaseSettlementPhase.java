@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.common.gamephase;
 
+import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
@@ -24,6 +25,18 @@ public abstract class BaseSettlementPhase<T extends BasePokerGameDataVo> extends
         return PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.SETTLEMENT);
     }
 
+    @Override
+    public void phaseFinish() {
+        if (gameController instanceof BasePokerGameController<T> controller) {
+            phaseFinishDoAction();
+            gameDataVo.resetData(controller);
+            //开启下一局
+            controller.tryStartGame();
+        }
+    }
+
+    public void phaseFinishDoAction() {
+    }
 
     @Override
     public EGamePhase getGamePhase() {

@@ -1,6 +1,8 @@
 package com.jjg.game.room.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.concurrent.BaseFuncProcessor;
+import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
@@ -11,6 +13,7 @@ import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
+import com.jjg.game.room.datatrack.GameDataTracker;
 import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -47,6 +50,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     private final Map<ETickTaskType, Long> tickTaskTimeRecMap = new HashMap<>();
     // tick任务 tick间隔，执行回调 需要放在tick中检查的必须是周期运行的任务
     protected Map<ETickTaskType, BaseGameTickTask> tickTaskMap = new HashMap<>();
+    // 游戏埋点记录
+    protected GameDataTracker gameDataTracker;
 
     public AbstractGameController(AbstractRoomController<RC, ? extends Room> roomController) {
         this.roomController = roomController;
@@ -86,12 +91,6 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      */
     public boolean canExitGame(long playerId) {
         return true;
-    }
-
-    /**
-     * 进入下一轮游戏之前调用
-     */
-    protected void beforeEnterNextRound() {
     }
 
     /**
@@ -228,7 +227,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     @Override
-    public void timeTick() {
+    public void roomTick() {
         long currentTime = System.currentTimeMillis();
         for (Map.Entry<ETickTaskType, BaseGameTickTask> entry : tickTaskMap.entrySet()) {
             if (!tickTaskTimeRecMap.containsKey(entry.getKey())) {
@@ -240,8 +239,14 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             }
             // 更新tick任务下次触发时间
             tickTaskTimeRecMap.put(entry.getKey(), currentTime + entry.getValue().getTaskInterval());
-            // 运行tick任务
-            entry.getValue().run(currentTime);
+            BaseFuncProcessor baseFuncProcessor = roomController.getRoomProcessor();
+            // 运行tick任务, 需要在房间线程中排队执行，不能阻塞正常的tick，不然会导致 Do Overtime
+            baseFuncProcessor.executeHandler(new BaseHandler<String>() {
+                @Override
+                public void action() {
+                    entry.getValue().run(currentTime);
+                }
+            }.setHandlerParamWithSelf("room tick"));
         }
     }
 
@@ -254,6 +259,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     public void disbandRoom() {
         // 先暂停房间类的阶段执行逻辑
         gameStarted = false;
+        // 关闭数据收集
+        gameDataTracker.shutdownDataTracker();
     }
 
     /**
@@ -318,5 +325,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
 
     public <R extends Room> R getRoom() {
         return (R) roomController.getRoom();
+    }
+
+    public GameDataTracker getGameDataTracker() {
+        return gameDataTracker;
     }
 }

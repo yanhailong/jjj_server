@@ -25,7 +25,7 @@ public class PokerRoomController extends AbstractRoomController<Room_ChessCfg, P
     }
 
     @Override
-    protected void checkAddRobot() {
+    protected void checkRobotJoinRoom() {
 
     }
 }

@@ -66,8 +66,6 @@ public class DiceTreasureSettlementPhase extends BaseDiceSettlementPhase<DiceTre
         DiceTreasureHistoryBean historyBean = addDiceTreasureHistory(randomNumDice, betAreaCfgs);
         NotifyDiceTreasureSettlement settlement =
             DiceTreasureMessageBuilder.notifyDiceTreasureSettlement(historyBean);
-        // 添加历史
-        gameDataVo.addWinAreaCfgIdHistory(historyBean);
 
         // 构建结算信息
         settlement.settlementInfo.diceSettlementInfo =

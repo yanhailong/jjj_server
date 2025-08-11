@@ -61,6 +61,15 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     }
 
     @Override
+    protected void nextRoundStart() {
+        super.nextRoundStart();
+        for (GamePlayer value : gameDataVo.getGamePlayerMapExceptRobot().values()) {
+            // 玩家每轮进入时记录一下金币值，打点需要
+            value.getTableGameData().setRoundStartPlayerGold(value.getGold());
+        }
+    }
+
+    @Override
     public boolean canExitGame(long playerId) {
         return !(getCurrentGamePhase() == EGamePhase.BET && gameDataVo.getPlayerBetInfo().containsKey(playerId));
     }
@@ -190,7 +199,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     }
 
     @Override
-    public  <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
+    public <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
         CommonResult<R> leaveRes = super.onPlayerLeaveRoom(playerController);
         // 场上玩家重新排序
         resortPlayerOnTable();

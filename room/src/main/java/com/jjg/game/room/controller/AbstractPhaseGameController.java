@@ -11,6 +11,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.core.utils.ReflectionTool;
+import com.jjg.game.room.datatrack.GameDataTracker;
 import com.jjg.game.room.base.IPhaseMsgAdapter;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
@@ -50,6 +51,8 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     @Override
     public void startGame() {
         super.startGame();
+        // 初始化埋点数据收集
+        gameDataTracker = new GameDataTracker(this, roomController.getRoomManager().getGameDataTrackLogger());
         // 初始化游戏阶段配置
         LinkedHashSet<IRoomPhase> initedGamePhaseConf = initGamePhaseConf();
         log.info("{} 启动加载: {} 个阶段逻辑", this.getClass().getSimpleName(), initedGamePhaseConf.size());
@@ -141,6 +144,22 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     }
 
     /**
+     * 进入下一轮游戏之前调用
+     */
+    protected void beforeEnterNextRound() {
+        if (gameDataTracker.isStarted()) {
+            gameDataTracker.finishedDataCollect();
+        }
+    }
+
+    /**
+     * 进入下一轮游戏开始时调用
+     */
+    protected void nextRoundStart() {
+        gameDataTracker.start();
+    }
+
+    /**
      * 一个回合的房间逻辑结束
      */
     private void roomPhaseRoundOver() {
@@ -157,6 +176,8 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
             roundCounter.incrementAndGet();
             // 自动进入下一轮
             autoRunGamePhase();
+            // 新一轮回合开始
+            nextRoundStart();
         }
     }
 

@@ -16,6 +16,7 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.utils.ReflectionTool;
+import com.jjg.game.room.datatrack.RoomDataTrackLogger;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
@@ -67,6 +68,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     private RobotService robotService;
     @Autowired
     private PlayerRoomDataDao playerRoomDataDao;
+    @Autowired
+    private RoomDataTrackLogger roomDataTrackLogger;
     // context
     protected ApplicationContext applicationContext;
     // 房间计时器(线程池)
@@ -270,7 +273,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                     playerController.playerId());
                 return Code.FAIL;
             }
-
+            // 检查玩家重复加入房间的情况,如果是机器人重复加入直接退出,真人玩家进行兼容处理
+            if (!checkCanRepeatJoinRoom(playerController)) {
+                return Code.REPEAT_JOIN_ROOM;
+            }
             AbstractRoomController<RC, R> roomController = getRoomController(gameType, roomId);
             if (roomController == null) {
                 AbstractRoomDao<R, ? extends RoomPlayer> roomDao = getRoomDao(gameType);
@@ -311,16 +317,14 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             }
             R room = addResult.data;
             roomController.setRoom(room);
-            if (!(playerController.getPlayer() instanceof RobotPlayer)) {
+            boolean isRobot = playerController.getPlayer() instanceof RobotPlayer;
+            if (!isRobot) {
                 playerController.setPlayer(playerService.doSave(playerController.playerId(), p -> p.setRoomId(roomId)));
                 // gamePlayer需要同步更新数据
                 GameDataVo<?> gameDataVo = roomController.getGameController().getGameDataVo();
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
                 gamePlayer.setUpdateTime(playerController.getPlayer().getUpdateTime());
                 gamePlayer.setRoomId(roomId);
-            }
-            boolean isRobot = playerController.getPlayer() instanceof RobotPlayer;
-            if (!isRobot) {
                 log.debug("玩家加入房间成功 gameType = {},roomId = {}, playerId = {} 当前金币：{} 房间人数：{}",
                     roomController.getRoom().getRoomCfgId(),
                     roomId,
@@ -336,6 +340,51 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     }
 
     /**
+     * 检查玩家是否重复加入
+     * 1. 如果房间退出流程异常会导致房间不能正常退出
+     * 2. 客户端异常导致前端重复发送加入房间
+     */
+    private boolean checkCanRepeatJoinRoom(PlayerController playerController) {
+        List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =
+            new ArrayList<>(roomControllerMap.values());
+        long playerId = playerController.playerId();
+        List<AbstractRoomController<? extends RoomCfg, ? extends Room>> playerRoomControllers = new ArrayList<>();
+        for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
+            roomMapControllers) {
+            List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
+                new ArrayList<>(roomControllerMap.values());
+            for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : roomControllers) {
+                if (roomController.getPlayerControllers().containsKey(playerId)) {
+                    playerRoomControllers.add(roomController);
+                }
+            }
+        }
+        // 如果是机器人重复加入的情况直接返回，机器人不能重复加入房间，按理不应出现此情况，除非机器人退出失败
+        if (!playerRoomControllers.isEmpty() && playerController.isRobotPlayer()) {
+            return false;
+        }
+        // 如果玩家还存在房间中，先执行退出逻辑再进入，保证一个玩家同时只能在一个房间中
+        if (!playerRoomControllers.isEmpty()) {
+            List<Room> leaveFailedRoom = new ArrayList<>();
+            for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : playerRoomControllers) {
+                CommonResult<? extends Room> leaveRes = roomController.onPlayerLeaveRoom(playerController);
+                if (!leaveRes.success()) {
+                    if (leaveRes.data != null) {
+                        leaveFailedRoom.add(leaveRes.data);
+                    }
+                } else {
+                    log.info("处理玩家重复加入房间，玩家: {} 离开房间: {} 成功", playerId, leaveRes.data.logStr());
+                }
+            }
+            if (!leaveFailedRoom.isEmpty()) {
+                log.error("处理玩家重复加入房间时，玩家：{} 离开房间时失败：{}",
+                    playerId, leaveFailedRoom.stream().map(Room::logStr).collect(Collectors.joining(",")));
+            }
+        }
+        return true;
+    }
+
+    /**
      * 玩家退出房间
      */
     public <RC extends RoomCfg, R extends Room> int exitRoom(PlayerController playerController) {
@@ -346,8 +395,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 return Code.FAIL;
             }
 
-            AbstractRoomController<RC, R> roomController = getRoomController(playerController.getPlayer().getGameType(),
-                playerController.roomId());
+            AbstractRoomController<RC, R> roomController =
+                getRoomController(playerController.getPlayer().getGameType(), playerController.roomId());
             if (roomController == null) {
                 log.warn("退出房间失败，该房间不存在 gameType = {},roomId = {},playerId = {}",
                     playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
@@ -361,7 +410,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             R room = roomResult.data;
             if (playerController.isRobotPlayer()) {
                 // 删除机器人数据
-                robotService.deleteRobotPlayer(room.getRoomCfgId(), room.getId(), playerController.playerId());
+                robotService.recycleRobotPlayer(playerController.playerId());
             }
             // TODO 需要检查房间内玩家是否为空，如果为空则需要检查是否需要删除房间，如果房间不能删除则需要添加机器人进入房间
             // 退出房间将当前场景置为空
@@ -369,12 +418,13 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             // 将玩家房间ID置为0
             playerService.doSave(playerController.playerId(), p -> p.setRoomId(0));
             boolean isRobot = playerController.getPlayer() instanceof RobotPlayer;
-            log.debug("{}退出房间成功 gameType = {},roomId = {}, playerId = {}, 房间人数：{}",
-                isRobot ? "机器人" : "玩家",
-                room.getRoomCfgId(),
-                room.getId(),
-                playerController.playerId(),
-                room.getRoomPlayers() != null ? room.getRoomPlayers().size() : 0);
+            if (!isRobot) {
+                log.debug("玩家退出房间成功 gameCfgId = {},roomId = {},playerId = {},房间人数：{}",
+                    room.getRoomCfgId(),
+                    room.getId(),
+                    playerController.playerId(),
+                    room.getRoomPlayers() != null ? room.getRoomPlayers().size() : 0);
+            }
             return Code.SUCCESS;
         } catch (Exception e) {
             log.error("退出房间时异常：{}", e.getMessage(), e);
@@ -435,17 +485,11 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 if (!leaveRes.success()) {
                     continue;
                 }
-                R room = leaveRes.data;
                 List<Long> robotPlayers = entry.getValue().stream().map(PlayerController::playerId).toList();
                 // 删除机器人数据
-                robotService.deleteRobotPlayers(room.getRoomCfgId(), room.getId(), robotPlayers);
+                robotService.recycleRobotPlayers(robotPlayers);
                 // 将playerController的场景置空
                 entry.getValue().forEach(playerController -> playerController.setScene(null));
-                /*log.debug("机器人退出房间成功 gameType = {}, roomId = {}, 房间人数：{}, playerIds = {}",
-                    room.getRoomCfgId(),
-                    room.getId(),
-                    robotPlayers.stream().map(String::valueOf).collect(Collectors.joining(",")),
-                    room.getRoomPlayers() != null ? room.getRoomPlayers().size() : 0);*/
                 return Code.SUCCESS;
             }
         } catch (Exception e) {
@@ -501,13 +545,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         }
         // 需要从房间等待列表中删除
         matchDataDao.removeWaitJoinRoomId(room.getGameType(), room.getRoomCfgId(), room.getId());
-    }
-
-    /**
-     * 清除房间
-     */
-    public void clearRoom() {
-
     }
 
     /**
@@ -740,5 +777,12 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      */
     public CorePlayerService getPlayerService() {
         return playerService;
+    }
+
+    /**
+     * 获取游戏埋点数据logger
+     */
+    public RoomDataTrackLogger getGameDataTrackLogger() {
+        return roomDataTrackLogger;
     }
 }

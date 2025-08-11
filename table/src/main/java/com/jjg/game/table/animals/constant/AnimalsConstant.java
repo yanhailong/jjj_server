@@ -2,7 +2,6 @@ package com.jjg.game.table.animals.constant;
 
 import com.jjg.game.common.constant.MessageConst;
 
-import static com.jjg.game.common.constant.MessageConst.MessageTypeDef.BACCARAT_TYPE;
 import static com.jjg.game.common.constant.MessageConst.MessageTypeDef.BIRDS_ANIMAL_TYPE;
 
 /**

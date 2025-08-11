@@ -19,8 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class BaccaratTempRoom implements IPlayerRoomEventListener {
-
-    private static final Logger log = LoggerFactory.getLogger(BaccaratTempRoom.class);
+    // 观察百家乐路单的玩家集合
     private final Map<Integer, Map<Long, PlayerController>> baccaratObserverPlayers = new ConcurrentHashMap<>();
 
     @Override
@@ -35,9 +34,10 @@ public class BaccaratTempRoom implements IPlayerRoomEventListener {
     }
 
     @Override
-    public void exit(PFSession session, PlayerController playerController, PlayerSessionInfo playerSessionInfo) {
-        if (baccaratObserverPlayers.containsKey(playerSessionInfo.getRoomCfgId())) {
-            baccaratObserverPlayers.get(playerSessionInfo.getRoomCfgId()).remove(playerController.playerId());
+    public void exit(PFSession session, PlayerController playerController) {
+        int roomCfgId = playerController.getPlayer().getRoomCfgId();
+        if (baccaratObserverPlayers.containsKey(roomCfgId)) {
+            baccaratObserverPlayers.get(roomCfgId).remove(playerController.playerId());
         }
     }
 

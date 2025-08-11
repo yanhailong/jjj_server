@@ -1,9 +1,10 @@
 package com.jjg.game.table.baccarat.gamephase;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.datatrack.DataTrackNameConstant;
+import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
@@ -196,6 +197,15 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 gamePlayer.setGold(gamePlayer.getGold() + settlementData.getTotalWin());
                 playerGoldChange.playerCurGold = gamePlayer.getGold();
                 playerChangedGolds.put(playerEntry.getKey(), playerGoldChange);
+            }
+            // 有押注值才发送打点
+            if (settlementData.getBetTotal() > 0) {
+                // 打点
+                gameDataTracker.addPlayerLogData(DataTrackNameConstant.TOTAL_BET, settlementData.getBetTotal());
+                gameDataTracker.addPlayerLogData(DataTrackNameConstant.TOTAL_WIN, settlementData.getTotalWin());
+                gameDataTracker.addPlayerLogData(DataTrackNameConstant.INCOME, settlementData.getBetWin());
+                // 发送打点日志
+                gameDataTracker.sendLogWithPlayer(gamePlayer, EDataTrackLogType.SETTLEMENT);
             }
         }
         return playerChangedGolds;

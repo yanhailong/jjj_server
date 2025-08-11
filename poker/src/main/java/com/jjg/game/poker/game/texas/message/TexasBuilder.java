@@ -1,10 +1,15 @@
 package com.jjg.game.poker.game.texas.message;
 
+import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
+import com.jjg.game.poker.game.common.data.PokerDataHelper;
+import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
+import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.poker.game.texas.message.bean.TexasHistoryPlayerInfo;
+import com.jjg.game.poker.game.texas.message.bean.TexasPlayerInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementInfo;
 import com.jjg.game.poker.game.texas.message.bean.TexasRoundInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasAllInSettlementInfo;
@@ -91,5 +96,18 @@ public class TexasBuilder {
             texasHistoryPlayerInfo.operationType = info.getOperationType();
         }
         return texasHistoryPlayerInfo;
+    }
+
+
+    public static TexasPlayerInfo getTexasPlayerInfo(PlayerSeatInfo playerSeatInfo, SeatInfo seatInfo, TexasGameDataVo gameDataVo) {
+        TexasPlayerInfo texasPlayerInfo = new TexasPlayerInfo();
+        texasPlayerInfo.totalBet = gameDataVo.getBaseBetInfo().getOrDefault(seatInfo.getPlayerId(),0L);
+        PokerPlayerInfo playerInfo = PokerBuilder.getPokerPlayerInfo(seatInfo, gameDataVo);
+        if (Objects.nonNull(playerSeatInfo)) {
+            texasPlayerInfo.handCards = PokerDataHelper.getClientId(playerSeatInfo.getCurrentCards(), TexasDataHelper.getPoolId(gameDataVo));
+            playerInfo.operationType = playerSeatInfo.getOperationType();
+        }
+        texasPlayerInfo.pokerPlayerInfo = playerInfo;
+        return texasPlayerInfo;
     }
 }

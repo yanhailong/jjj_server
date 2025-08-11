@@ -46,12 +46,9 @@ import static com.jjg.game.poker.game.texas.constant.TexasConstant.Common.*;
  * @date 2025/7/29 09:31
  */
 public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
-
-
     public TexasSettlementPhase(AbstractPhaseGameController<Room_ChessCfg, TexasGameDataVo> gameController) {
         super(gameController);
     }
-
     @Override
     public int getPhaseRunTime() {
         //全all 计算需要增加的时间
@@ -299,16 +296,15 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         gameDataVo.setNotifyTexasSettlementInfo(notifyTexasSettlementInfo);
     }
 
+
     @Override
-    public void phaseFinish() {
+    public void phaseFinishDoAction() {
         if (gameController instanceof BasePokerGameController<TexasGameDataVo> controller) {
             //设置为等待阶段
             controller.setCurrentGamePhase(new BaseWaitReadyPhase<>(gameController));
-            gameDataVo.getTexasHistoryList().add(0, gameDataVo.getTexasHistory());
+            gameDataVo.getTexasHistoryList().add(gameDataVo.getTexasHistory());
             //金币不够底注的尝试重新拿金币
             updatePlayerData();
-            //开启下一局
-            controller.tryStartGame();
         }
     }
 
@@ -325,7 +321,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                     continue;
                 }
                 controller.addTempGoldOrOutTable(seatInfo, gamePlayer);
-                infos.add(PokerBuilder.buildPlayerInfo(gamePlayer, gameDataVo, false));
+                infos.add(PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, gameDataVo));
             }
             NotifyTexasSettlementPlayerChange notifySettlementPlayerChange = new NotifyTexasSettlementPlayerChange();
             notifySettlementPlayerChange.pokerPlayerInfos = infos;

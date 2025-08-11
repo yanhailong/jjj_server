@@ -23,5 +23,5 @@ public interface IPlayerRoomEventListener {
     /**
      * 离开
      */
-    void exit(PFSession session,PlayerController playerController, PlayerSessionInfo playerSessionInfo);
+    void exit(PFSession session,PlayerController playerController);
 }

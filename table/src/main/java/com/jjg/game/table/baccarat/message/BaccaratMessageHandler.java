@@ -152,9 +152,7 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         // 获取当前节点
         String clusterCurrentNodePath = clusterSystem.getNodePath();
         // 进入房间需要先将玩家从临时房间中移除
-        PlayerSessionInfo playerSessionInfo = new PlayerSessionInfo();
-        playerSessionInfo.setRoomCfgId(room.getRoomCfgId());
-        baccaratTempRoom.exit(playerController.getSession(), playerController, playerSessionInfo);
+        baccaratTempRoom.exit(playerController.getSession(), playerController);
         // 如果就在当前节点
         if (clusterCurrentNodePath.equalsIgnoreCase(room.getPath())) {
             // 将玩家加入房间

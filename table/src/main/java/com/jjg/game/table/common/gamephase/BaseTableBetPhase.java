@@ -214,6 +214,10 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
      * 机器人执行押注逻辑
      */
     protected void doRobotBet(GameRobotPlayer robotPlayer, BetRobotCfg betRobotCfg) {
+        // 机器人已经退出房间了,中断
+        if (!gameDataVo.getGamePlayerMap().containsKey(robotPlayer.getId())) {
+            return;
+        }
         // 随机一个押注区域
         int randomBetArea = robotRandomBetArea(betRobotCfg);
         // 随机押注金额
@@ -313,6 +317,10 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         long totalBetValue = 0;
         Map<Integer, Long> playerReqBetMap = new HashMap<>();
         for (ReqBetBean betBean : reqBetBean) {
+            // 判断是否合法
+            if (!betList.contains((int) betBean.betValue)) {
+                return Code.PARAM_ERROR;
+            }
             playerReqBetMap.put(betBean.betAreaIdx,
                 playerReqBetMap.getOrDefault(betBean.betAreaIdx, 0L) + betBean.betValue);
         }

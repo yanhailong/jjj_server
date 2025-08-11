@@ -174,7 +174,7 @@ public class HallRoomService implements IConsoleReceiver {
         // 查询房间节点
         MarsNode marsNode = marsCurator.getMarsNode(room.getPath());
         if (marsNode == null) {
-            log.error("服务端找不到节点，room: {}", room.getPath());
+            log.error("房间: {} 对应的节点: {} 不存在或者已关闭", room.getId(), room.getPath());
             // TODO 先暂时删除等待房间列表，后续做异常处理
             matchDataDao.removeWaitJoinRoomId(gameType, room.getRoomCfgId(), roomId);
             hallRoomDao.removeRoom(gameType, roomId, room.getRoomCfgId());

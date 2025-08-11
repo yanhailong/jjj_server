@@ -1,11 +1,70 @@
 package com.jjg.game.poker.game.blackjack.data;
 
+import com.jjg.game.poker.game.blackjack.message.bean.BlackJackCardInfo;
+import com.jjg.game.poker.game.blackjack.message.bean.BlackJackPlayerInfo;
+import com.jjg.game.poker.game.blackjack.message.resp.NotifyBlackJackPutCard;
+import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
+import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
+import com.jjg.game.poker.game.common.PokerBuilder;
+import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
+import com.jjg.game.poker.game.common.data.PokerDataHelper;
+import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
+import com.jjg.game.poker.game.texas.data.SeatInfo;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 /**
  * @author lm
  * @date 2025/8/6 14:55
  */
 public class BlackJackBuilder {
     private BlackJackBuilder() {
+    }
+
+    public static NotifyBlackJackPutCard getNotifyBlackJackPutCard(long nextPlayerId, PlayerSeatInfo oldInfo, BlackJackGameDataVo gameDataVo, int cardId) {
+        NotifyBlackJackPutCard jackPutCard = new NotifyBlackJackPutCard();
+        if (nextPlayerId > 0) {
+            jackPutCard.operationId = nextPlayerId;
+            jackPutCard.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
+        }
+        jackPutCard.cardId = cardId;
+        jackPutCard.playerId = oldInfo.getPlayerId();
+        jackPutCard.totalPoint = BlackJackDataHelper.getTotalPoint(oldInfo.getCurrentCards());
+        return jackPutCard;
+    }
+
+
+    public static BlackJackPlayerInfo getBlackJackPlayerInfo(PlayerSeatInfo playerSeatInfo, SeatInfo seatInfo, BlackJackGameController controller) {
+        BlackJackPlayerInfo blackJackPlayerInfo = new BlackJackPlayerInfo();
+        BlackJackGameDataVo gameDataVo = controller.getGameDataVo();
+        PokerPlayerInfo pokerPlayerInfo = PokerBuilder.getPokerPlayerInfo(seatInfo, gameDataVo);
+        if (Objects.nonNull(playerSeatInfo)) {
+            blackJackPlayerInfo.currentCardIds = playerSeatInfo.getCardIndex();
+            pokerPlayerInfo.operationType = playerSeatInfo.getOperationType();
+            blackJackPlayerInfo.cardInfos = getCardInfos(playerSeatInfo, controller);
+        }
+        blackJackPlayerInfo.pokerPlayerInfo = pokerPlayerInfo;
+        return blackJackPlayerInfo;
+    }
+
+    /**
+     * 获取21点手牌详细信息
+     */
+    public static List<BlackJackCardInfo> getCardInfos(PlayerSeatInfo playerSeatInfo, BlackJackGameController controller) {
+        BlackJackGameDataVo gameDataVo = controller.getGameDataVo();
+        List<BlackJackCardInfo> cardInfos = new ArrayList<>();
+        for (int i = 0; i < playerSeatInfo.getCards().size(); i++) {
+            List<Integer> card = playerSeatInfo.getCards().get(i);
+            BlackJackCardInfo blackJackCardInfo = new BlackJackCardInfo();
+            blackJackCardInfo.playerId = playerSeatInfo.getPlayerId();
+            blackJackCardInfo.cardIds = PokerDataHelper.getClientId(card, BlackJackDataHelper.getPoolId(gameDataVo));
+            blackJackCardInfo.totalPoint = BlackJackDataHelper.getTotalPoint(card);
+            blackJackCardInfo.betValue = controller.getPlayerSingleTotalBet(playerSeatInfo.getPlayerId(), i);
+            cardInfos.add(blackJackCardInfo);
+        }
+        return cardInfos;
     }
 }
 

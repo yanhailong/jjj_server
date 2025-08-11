@@ -18,4 +18,6 @@ public class BlackJackCardInfo {
     public List<Integer> cardIds;
     @ProtoDesc("总点数")
     public int totalPoint;
+    @ProtoDesc("押注数量")
+    public long betValue;
 }
