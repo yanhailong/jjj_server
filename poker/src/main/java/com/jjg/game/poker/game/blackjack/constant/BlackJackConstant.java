@@ -9,7 +9,10 @@ import com.jjg.game.common.constant.MessageConst;
 public interface BlackJackConstant {
 
     interface Common {
+        //完美点数
         int PERFECT_POINT = 21;
+        //最大拿牌数
+        int MAX_GET_CARD = 6;
     }
 
     interface MsgBean {
@@ -24,5 +27,7 @@ public interface BlackJackConstant {
         int NOTIFY_CUT_CARD = BASE_MSG_PREFIX | 0x6;
         //通知玩家第一次发牌信息
         int NOTIFY_SEND_CARD_INFO = BASE_MSG_PREFIX | 0x7;
+        //通知玩家拿牌信息
+        int NOTIFY_BLACKJACK_PUT_CARD = BASE_MSG_PREFIX | 0x8;
     }
 }

@@ -1,6 +1,5 @@
 package com.jjg.game.poker.game.blackjack.gamephase;
 
-import com.jjg.game.poker.game.blackjack.data.BlackJackBuilder;
 import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
 import com.jjg.game.poker.game.blackjack.message.bean.BlackJackCardInfo;
 import com.jjg.game.poker.game.blackjack.message.resp.NotifyBlackJackSendCardInfo;
@@ -28,7 +27,7 @@ public class BlackJackPlayCardPhase extends BasePlayCardPhase<BlackJackGameDataV
     }
 
     @Override
-    public void phaseDoAction() {
+    public void playCardPhaseDoAction() {
         if (gameController instanceof BlackJackGameController controller) {
             Room_ChessCfg roomChessCfg = gameDataVo.getRoomCfg();
             //发牌

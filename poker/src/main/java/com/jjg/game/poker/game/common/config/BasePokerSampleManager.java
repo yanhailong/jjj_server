@@ -1,14 +1,11 @@
 package com.jjg.game.poker.game.common.config;
 
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.core.manager.AbstractSampleManager;
-
-import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
+import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.sample.GameDataManager;
 import com.jjg.game.poker.game.sample.bean.BaseCfgBean;
-import com.jjg.game.poker.game.texas.data.TexasDataHelper;
-import com.jjg.game.room.data.room.TablePlayerGameData;
+import com.jjg.game.poker.game.sample.bean.PokerPoolCfg;
 import com.jjg.game.room.manager.BaseRoomSampleManager;
 import org.springframework.stereotype.Component;
 
@@ -23,7 +20,7 @@ import java.util.stream.Collectors;
  * @author 2CL
  */
 @Component
-public class BasePokerSampleManager extends BaseRoomSampleManager {
+public class BasePokerSampleManager extends BaseRoomSampleManager implements ConfigExcelChangeListener {
     @Override
     protected String getSamplePath() {
         return CoreConst.Common.SAMPLE_ROOT_PATH;
@@ -48,5 +45,10 @@ public class BasePokerSampleManager extends BaseRoomSampleManager {
                         sampleRoomResourcePath, Collections.singletonList(file));
         parentSampleSet.addAll(changeCfgBean);
         return parentSampleSet.stream().map(aClass -> (Class<?>) aClass).collect(Collectors.toSet());
+    }
+
+    @Override
+    public void initSampleCallbackCollector() {
+        addChangeSampleFileObserveWithCallBack(PokerPoolCfg.EXCEL_NAME, PokerDataHelper::initData);
     }
 }

@@ -14,7 +14,7 @@ import java.util.List;
  * @date 2025/7/29 13:36
  */
 
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.BLACK_JACK_TYPE, cmd = BlackJackConstant.MsgBean.REPS_BLACK_ROOM_BASE_INFO)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.BLACK_JACK_TYPE, cmd = BlackJackConstant.MsgBean.REPS_BLACK_ROOM_BASE_INFO, resp = true)
 @ProtoDesc("响应房间基本信息")
 public class RepsBlackJackRoomBaseInfo extends AbstractNotice {
     @ProtoDesc("玩家信息 不包含庄家")

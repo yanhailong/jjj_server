@@ -1,13 +1,9 @@
 package com.jjg.game.poker.game.texas.manager;
 
-import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.room.listener.IRoomStartListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.io.File;
 
 /**
  * @author 11

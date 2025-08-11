@@ -101,6 +101,7 @@ public class TexasMessageHandler {
                         seatInfo.setSeatDown(false);
                         change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, gameDataVo, false);
                         controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
+                        return;
                     }
                     // 通知场上玩家加入 准备进入开始阶段
                     boolean canStartGame = gameDataVo.canStartGame();

@@ -3,7 +3,6 @@ package com.jjg.game.poker.game.texas.gamephase;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
-import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BasePlayCardPhase;
 import com.jjg.game.poker.game.sample.GameDataManager;
 import com.jjg.game.poker.game.sample.bean.TexasCfg;
@@ -36,11 +35,8 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
     }
 
     @Override
-    public void phaseDoAction() {
+    public void playCardPhaseDoAction() {
         if (gameController instanceof TexasGameController controller) {
-            gameDataVo.resetData(controller);
-            //生成id
-            gameDataVo.setId(PokerDataHelper.getNextId());
             //设置记录
             TexasSaveHistory texasHistory = new TexasSaveHistory();
             texasHistory.setId(gameDataVo.getId());
@@ -63,6 +59,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
                 SeatInfo info = entry.getValue();
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
                 if (Objects.isNull(gamePlayer)) {
+                    log.error("德州扑克确定执行顺序时GamePlayer 为null playerId:{} id:{}", info.getPlayerId(), gameDataVo.getId());
                     continue;
                 }
                 if (gamePlayer.getPokerPlayerGameData().isInit() && info.isSeatDown()) {
