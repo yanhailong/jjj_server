@@ -18,13 +18,6 @@ public class RobotPool {
     // 机器人缓存池
     private Map<Integer, LRUCache<Long, GameRobotPlayer>> robotCachePool;
 
-
     public RobotPool() {
-        robotCachePool = new HashMap<>();
-        LRUCache<Long, GameRobotPlayer> gameRobotPlayerLruCache = new LRUCache<>(10);
-        gameRobotPlayerLruCache.setListener((key, cachedObject) -> {
-            // 移除的机器人加入数据库队列
-        });
-        robotCachePool.put(EGameType.BACCARAT.getGameTypeId(), gameRobotPlayerLruCache);
     }
 }

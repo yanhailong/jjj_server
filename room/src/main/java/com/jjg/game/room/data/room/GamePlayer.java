@@ -1,6 +1,8 @@
 package com.jjg.game.room.data.room;
 
 import com.jjg.game.core.data.Player;
+import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.datatrack.RoomDataTrackLogger;
 
 /**
  * 玩家游戏中的数据集
@@ -14,9 +16,15 @@ public class GamePlayer extends Player {
     protected transient TablePlayerGameData tableGameData;
     // poker类的玩家数据
     protected transient PokerPlayerGameData pokerPlayerGameData;
+    // 游戏控制器
+    protected transient AbstractGameController<?, ?> gameController;
 
     public void setPokerPlayerGameData(PokerPlayerGameData pokerPlayerGameData) {
         this.pokerPlayerGameData = pokerPlayerGameData;
+    }
+
+    public void setGameController(AbstractGameController<?, ?> gameController) {
+        this.gameController = gameController;
     }
 
     public boolean isHosting() {
@@ -37,5 +45,12 @@ public class GamePlayer extends Player {
 
     public void setTableGameData(TablePlayerGameData tableGameData) {
         this.tableGameData = tableGameData;
+    }
+
+    @Override
+    public void setGold(long gold) {
+        super.setGold(gold);
+        // TODO 临时修改
+        RoomDataTrackLogger trackLogger = gameController.getRoomController().getRoomManager().getGameDataTrackLogger();
     }
 }

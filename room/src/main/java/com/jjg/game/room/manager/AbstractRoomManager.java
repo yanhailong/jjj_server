@@ -273,8 +273,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                     playerController.playerId());
                 return Code.FAIL;
             }
-            // 检查玩家重复加入房间的情况
-            checkRepeatJoinRoom(playerController);
+            // 检查玩家重复加入房间的情况,如果是机器人重复加入直接退出,真人玩家进行兼容处理
+            if (!checkCanRepeatJoinRoom(playerController)) {
+                return Code.REPEAT_JOIN_ROOM;
+            }
             AbstractRoomController<RC, R> roomController = getRoomController(gameType, roomId);
             if (roomController == null) {
                 AbstractRoomDao<R, ? extends RoomPlayer> roomDao = getRoomDao(gameType);
@@ -342,7 +344,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 1. 如果房间退出流程异常会导致房间不能正常退出
      * 2. 客户端异常导致前端重复发送加入房间
      */
-    private void checkRepeatJoinRoom(PlayerController playerController) {
+    private boolean checkCanRepeatJoinRoom(PlayerController playerController) {
         List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =
             new ArrayList<>(roomControllerMap.values());
         long playerId = playerController.playerId();
@@ -356,6 +358,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                     playerRoomControllers.add(roomController);
                 }
             }
+        }
+        // 如果是机器人重复加入的情况直接中断流程
+        if (!playerRoomControllers.isEmpty() && playerController.isRobotPlayer()) {
+            return false;
         }
         // 如果玩家还存在房间中，先执行退出逻辑再进入，保证一个玩家同时只能在一个房间中
         if (!playerRoomControllers.isEmpty()) {
@@ -375,6 +381,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                     playerId, leaveFailedRoom.stream().map(Room::logStr).collect(Collectors.joining(",")));
             }
         }
+        return true;
     }
 
     /**

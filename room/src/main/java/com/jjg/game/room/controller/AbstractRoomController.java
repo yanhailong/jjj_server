@@ -360,13 +360,13 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             gameController.roomTick();
         }
         // 耗时逻辑需要抛到game线程，保证不能阻塞time tick
-        roomProcessor.executeHandler(new BaseHandler<String>() {
+        /*roomProcessor.executeHandler(new BaseHandler<String>() {
             @Override
             public void action() {
-                // 机器人加入逻辑
-                checkAddRobot();
             }
-        }.setHandlerParamWithSelf("check robot join"));
+        }.setHandlerParamWithSelf("check robot join"));*/
+        // 机器人加入逻辑
+        checkRobotJoinRoom();
     }
 
     /**
@@ -393,7 +393,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     /**
      * 检查机器人添加逻辑
      */
-    protected void checkAddRobot() {
+    protected void checkRobotJoinRoom() {
         // 创建人数达到上限
         if (room.getRoomPlayers() != null && room.getRoomPlayers().size() >= room.getMaxLimit()) {
             return;
