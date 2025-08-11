@@ -1,14 +1,13 @@
 package com.jjg.game.slots.game.dollarexpress.data;
 
 import com.jjg.game.core.data.AbstractGameRunInfo;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.slots.game.dollarexpress.pb.DollarsInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ResultLineInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.TrainInfo;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author 11
@@ -64,6 +63,8 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
     private long minor;
     private long major;
     private long grand;
+
+    private Player player;
 
 
     public DollarExpressGameRunInfo(int code, long playerId) {
@@ -304,5 +305,13 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
 
     public void addSmallPoolGold(long smallPoolGold) {
         this.smallPoolGold += smallPoolGold;
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    public void setPlayer(Player player) {
+        this.player = player;
     }
 }

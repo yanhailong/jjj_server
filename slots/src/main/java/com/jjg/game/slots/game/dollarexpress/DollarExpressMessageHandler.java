@@ -93,7 +93,7 @@ public class DollarExpressMessageHandler implements GmListener {
     public void reqInvestArea(PlayerController playerController, ReqInvestArea req) {
         try {
             log.info("收到选择投资游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            DollarExpressGameRunInfo gameRunInfo = gameManager.invest(playerController, req.areaId);
+            DollarExpressGameRunInfo gameRunInfo = gameManager.playerInvest(playerController, req.areaId);
             sendMessageManager.sendInvers(playerController,gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
