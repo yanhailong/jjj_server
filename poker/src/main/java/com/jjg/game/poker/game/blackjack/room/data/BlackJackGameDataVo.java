@@ -4,8 +4,7 @@ import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author lm
@@ -23,16 +22,30 @@ public class BlackJackGameDataVo extends BasePokerGameDataVo {
     private boolean canBuyACE;
 
     /**
-     * ACE购买列表
+     * ACE玩家id
      */
-    private List<Long> aceBuyPlayerIds;
+    private final Set<Long> aceBuyPlayerIds = new HashSet<>();
 
-    public List<Long> getAceBuyPlayerIds() {
-        return aceBuyPlayerIds;
+    /**
+     * 双倍下注玩家id
+     */
+    private final Set<Long> doubleBet = new HashSet<>();
+
+    /**
+     * 基础下注下注后不会变
+     */
+    private final Map<Long, Long> baseBet = new HashMap<>();
+
+    public Set<Long> getDoubleBet() {
+        return doubleBet;
     }
 
-    public void setAceBuyPlayerIds(List<Long> aceBuyPlayerIds) {
-        this.aceBuyPlayerIds = aceBuyPlayerIds;
+    public Map<Long, Long> getBaseBet() {
+        return baseBet;
+    }
+
+    public Set<Long> getAceBuyPlayerIds() {
+        return aceBuyPlayerIds;
     }
 
     public boolean isCanBuyACE() {
@@ -58,6 +71,9 @@ public class BlackJackGameDataVo extends BasePokerGameDataVo {
     @Override
     public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {
         super.resetData(controller);
+        baseBet.clear();
+        doubleBet.clear();
+        aceBuyPlayerIds.clear();
         dealerCards = null;
         canBuyACE = false;
     }

@@ -59,11 +59,12 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         //押注信息
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
 
-        if (gameDataVo.isCanBuyACE() && !gameDataVo.getAceBuyPlayerIds().isEmpty() && maxPointInfo.getMaxPoint() == BlackJackConstant.Common.PERFECT_POINT) {
+        Set<Long> aceBuyPlayerIds = gameDataVo.getAceBuyPlayerIds();
+        if (gameDataVo.isCanBuyACE() && !aceBuyPlayerIds.isEmpty() && maxPointInfo.getMaxPoint() == BlackJackConstant.Common.PERFECT_POINT) {
             //购买ACE发奖
-            for (Long playerId : gameDataVo.getAceBuyPlayerIds()) {
+            for (Long playerId : aceBuyPlayerIds) {
                 int insurance = blackjackCfg.getInsurance();
-                Long betValue = baseBetInfo.getOrDefault(playerId, 0L);
+                Long betValue = gameDataVo.getBaseBet().getOrDefault(playerId, 0L);
                 playerGet.put(playerId, BlackJackDataHelper.getGetWinValue(betValue, insurance));
             }
         }
@@ -106,7 +107,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             long get = playerGet.getOrDefault(playerId, 0L) - baseBetInfo.getOrDefault(playerId, 0L);
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
             if (Objects.isNull(gamePlayer)) {
-                log.error("21点发奖找不到GamePlayer playerId:{} get:{} id:{}", playerId, gamePlayer, gameDataVo.getId());
+                log.error("21点发奖找不到GamePlayer playerId:{} get:{} id:{}", playerId, get, gameDataVo.getId());
             }
             if (get > 0 && Objects.nonNull(gamePlayer)) {
                 gamePlayer.setGold(gamePlayer.getGold() + get);
