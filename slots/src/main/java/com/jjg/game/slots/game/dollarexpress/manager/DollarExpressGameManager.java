@@ -118,7 +118,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             gameRunInfo.setPlayer(playerController.getPlayer());
             playerController.setPlayer(slotsPlayerService.get(playerGameData.playerId()));
         }
-        return invest(playerGameData, areaId);
+        return gameRunInfo;
     }
 
     /**
