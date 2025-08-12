@@ -535,7 +535,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             log.error("向房间广播消息时，消息为空");
             return;
         }
-        // 如果同时需要发送某几个玩家有需要推送所有，则直接推送给所有人
+        // 如果同时需要发送某几个玩家又需要推送所有人，则直接推送给所有人
         if (roomMessageBuilder.isToAll()) {
             // 可能为空 出现在进入房间之前就发房间消息或者在离开房间之后还在发送消息
             playerIds = playerControllers.keySet();
