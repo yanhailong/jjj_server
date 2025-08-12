@@ -244,7 +244,11 @@ public class RobotService implements IRoomStartListener {
      */
     public void checkOrInitRobotIdPool() {
         List<Long> robotCfgList =
-            new ArrayList<>(GameDataManager.getRobotCfgList().stream().map(r -> (long) r.getId()).toList());
+            new ArrayList<>(GameDataManager.getRobotCfgList().stream()
+                .map(r -> (long) r.getId())
+                // 所有的ID必须符合规则
+                .filter(id -> id % 17 == 0)
+                .toList());
         String lockKey = robotDao.getLockRobotTableName();
         // 这里需要多次尝试，一定需要确保删除成功
         for (int i = 0; i < GameConstant.Redis.LOCK_TRY_TIMES; i++) {
