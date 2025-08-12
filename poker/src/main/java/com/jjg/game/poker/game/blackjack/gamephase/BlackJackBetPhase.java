@@ -25,10 +25,12 @@ import java.util.Objects;
 public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
 
     private final RoomEventListener roomEventListener;
+    private final long id;
 
-    public BlackJackBetPhase(AbstractPhaseGameController<Room_ChessCfg, BlackJackGameDataVo> gameController) {
+    public BlackJackBetPhase(AbstractPhaseGameController<Room_ChessCfg, BlackJackGameDataVo> gameController, long id) {
         super(gameController);
         roomEventListener = CommonUtil.getContext().getBean(RoomEventListener.class);
+        this.id = id;
     }
 
 
@@ -45,6 +47,10 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
 
     @Override
     public void phaseFinish() {
+        if (id != gameDataVo.getId()) {
+            log.info("该定时器已经取消或者不需要再执行 id:{}", id);
+            return;
+        }
         //没下注的人直接踢掉
         List<PlayerSeatInfo> playerSeatInfo = gameDataVo.getPlayerSeatInfoList();
         List<PlayerSeatInfo> noBetPlayer = new ArrayList<>(playerSeatInfo.size());

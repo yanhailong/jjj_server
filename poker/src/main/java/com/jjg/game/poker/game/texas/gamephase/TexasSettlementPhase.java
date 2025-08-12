@@ -19,10 +19,7 @@ import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.poker.game.texas.data.TexasSaveHistory;
 import com.jjg.game.poker.game.texas.message.TexasBuilder;
-import com.jjg.game.poker.game.texas.message.bean.TexasHistoryPlayerInfo;
-import com.jjg.game.poker.game.texas.message.bean.TexasPotInfo;
-import com.jjg.game.poker.game.texas.message.bean.TexasRoundInfo;
-import com.jjg.game.poker.game.texas.message.bean.TexasSettlementPlayerInfo;
+import com.jjg.game.poker.game.texas.message.bean.*;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasAllInSettlementInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementPlayerChange;
@@ -49,6 +46,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
     public TexasSettlementPhase(AbstractPhaseGameController<Room_ChessCfg, TexasGameDataVo> gameController) {
         super(gameController);
     }
+
     @Override
     public int getPhaseRunTime() {
         //全all 计算需要增加的时间
@@ -181,7 +179,6 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 //增加金币
                 controller.changePlayerGold(gamePlayer, get);
             }
-            //添加记录
             pokerPlayerSettlementInfo.currentGold = gamePlayer.getGold();
             pokerPlayerSettlementInfo.getGold = get;
             pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;
@@ -204,8 +201,14 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         int addTime = 0;
         Map<Long, List<TexasRoundInfo>> playerRoundInfos = new HashMap<>();
         List<TexasRoundInfo> defaultInfo = new ArrayList<>();
+        //添加记录
+        TexasSaveHistory texasHistory = gameDataVo.getTexasHistory();
+        List<Long> potAllBet = gameDataVo.getPool().stream().map(Pot::getAmount).collect(Collectors.toList());
         for (int i = 0; i < remainingRounds; i++) {
             int nextRound = round + i + 1;
+            TexasHistoryRoundInfo texasHistoryRoundInfo = new TexasHistoryRoundInfo(nextRound);
+            texasHistoryRoundInfo.potAllBet = potAllBet;
+            texasHistory.getTexasHistoryRoundInfos().add(texasHistoryRoundInfo);
             List<Integer> tempCardList;
             List<Integer> publicCards = gameDataVo.getPublicCards();
             if (Objects.isNull(publicCards)) {
@@ -213,19 +216,26 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 addTime += TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) * SEND_CARD_NUM;
                 List<Integer> cardList = gameDataVo.getCards().subList(0, SEND_CARD_NUM);
                 gameDataVo.setPublicCards(new ArrayList<>(cardList));
+                texasHistory.setPreFlop(TexasDataHelper.getClientId(gameDataVo.getPublicCards(), TexasDataHelper.getPoolId(gameDataVo)));
                 tempCardList = new ArrayList<>(cardList);
                 cardList.clear();
             } else {
                 //发一张
                 Integer card = gameDataVo.getCards().remove(0);
                 gameDataVo.getPublicCards().add(card);
+                if (texasHistory.getThirdCardId() == 0) {
+                    texasHistory.setThirdCardId(TexasDataHelper.getClientCardId(gameDataVo, card));
+                } else if (texasHistory.getFourthCardId() == 0) {
+                    texasHistory.setFourthCardId(TexasDataHelper.getClientCardId(gameDataVo, card));
+                }
                 tempCardList = List.of(card);
                 addTime += TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS);
             }
             List<Integer> clientId = TexasDataHelper.getClientId(tempCardList, TexasDataHelper.getPoolId(gameDataVo));
             for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
                 List<TexasRoundInfo> texasRoundInfos = playerRoundInfos.computeIfAbsent(info.getPlayerId(), k -> new ArrayList<>());
-                int rank = TexasBuilder.getTempHandType(info, gameDataVo).getHandRank().rank;
+                HandResult tempHandType = TexasBuilder.getTempHandType(info, gameDataVo);
+                int rank = Objects.nonNull(tempHandType) ? tempHandType.getHandRank().rank : 0;
                 texasRoundInfos.add(TexasBuilder.getTexasRoundInfo(nextRound, clientId, rank));
             }
             TexasRoundInfo texasRoundInfo = new TexasRoundInfo();

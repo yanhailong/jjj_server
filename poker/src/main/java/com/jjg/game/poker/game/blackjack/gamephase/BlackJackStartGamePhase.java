@@ -21,7 +21,7 @@ public class BlackJackStartGamePhase extends BaseStartGamePhase<BlackJackGameDat
     public void nextPhase() {
         //玩家进行下注阶段
         if (gameController instanceof BasePokerGameController<BlackJackGameDataVo> gameC) {
-            BlackJackBetPhase currentGamePhase = new BlackJackBetPhase(gameController);
+            BlackJackBetPhase currentGamePhase = new BlackJackBetPhase(gameController, gameDataVo.getId());
             gameC.addPokerPhaseTimer(currentGamePhase);
         }
     }

@@ -38,5 +38,7 @@ public class TexasDataHelper extends PokerDataHelper {
         return GameDataManager.getTexasCfg(roomCfg.getId());
     }
 
-
+    public static int getClientCardId(TexasGameDataVo gameDataVo, int cfgCardId) {
+        return getCardListMap(getTexasCfg(gameDataVo).getPokerPool()).get(cfgCardId).getClientId();
+    }
 }

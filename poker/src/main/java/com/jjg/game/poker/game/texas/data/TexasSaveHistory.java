@@ -5,6 +5,7 @@ import com.jjg.game.poker.game.texas.message.bean.TexasHistoryRoundInfo;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 德州扑克内存历史记录
@@ -114,6 +115,10 @@ public class TexasSaveHistory {
 
     public void setTotalPlayerBetInfo(List<TexasHistoryPlayerInfo> totalPlayerBetInfo) {
         this.totalPlayerBetInfo = totalPlayerBetInfo;
+    }
+
+    public Map<Long, TexasHistoryPlayerInfo> getTotalPlayerBetInfoMap() {
+        return totalPlayerBetInfo.stream().collect(Collectors.toMap(info -> info.playerId, info -> info));
     }
 
     public List<TexasHistoryRoundInfo> getTexasHistoryRoundInfos() {

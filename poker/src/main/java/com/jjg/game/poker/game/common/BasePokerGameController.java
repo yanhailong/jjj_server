@@ -14,6 +14,7 @@ import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.room.base.IRoomPhase;
+import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -43,6 +44,10 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     public BasePokerGameController(AbstractRoomController<Room_ChessCfg, ? extends Room> roomController) {
         super(roomController);
         currentGamePhase = new BaseWaitReadyPhase<>(this);
+    }
+
+    public boolean inRunPhase() {
+        return getCurrentGamePhase() == EGamePhase.PLAY_CART;
     }
 
     /**
@@ -147,7 +152,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
      */
     public final void removePokerPhaseTimer() {
         if (Objects.nonNull(currentGameTimerEvent)) {
-            timerCenter.remove(this, currentGameTimerEvent);
+            timerCenter.remove(this, currentGameTimerEvent.getParameter());
         }
     }
 
