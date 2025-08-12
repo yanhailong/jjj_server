@@ -1428,8 +1428,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             ResultLineInfo resultLineInfo = new ResultLineInfo();
             resultLineInfo.id = lineInfo.getId();
             resultLineInfo.iconIndexs = getIconIndexsByLineId(lineInfo.getId()).subList(0, lineInfo.getSameCount());
-            resultLineInfo.times = lineInfo.getBaseTimes();
-            resultLineInfo.winGold = bet * lineInfo.getBaseTimes();
+//            resultLineInfo.times = lineInfo.getBaseTimes();
+            resultLineInfo.winGold = calWinGold(bet,lineInfo.getBaseTimes());
             list.add(resultLineInfo);
         }
         return list;
