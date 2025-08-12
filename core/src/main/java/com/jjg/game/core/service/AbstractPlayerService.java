@@ -214,7 +214,6 @@ public class AbstractPlayerService {
      * @return
      */
     public CommonResult<Player> addGold(long playerId, long addNum, String addType, String desc) {
-        // TODO 玩家在房间中时，不应有玩家添加金币的逻辑,需要判断.如果玩家在房间中,外部:比如大厅和某些定时产出,还在更新玩家金币和钻石,会导致数据同步问题
         // TODO 添加金币时只能保证分布式服务状态下的更新同步，不能保证当前服的线程安全引起的数据同步问题
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (addNum == 0) {

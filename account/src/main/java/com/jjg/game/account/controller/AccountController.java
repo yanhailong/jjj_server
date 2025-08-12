@@ -21,8 +21,8 @@ import org.springframework.web.bind.annotation.*;
  * @date 2025/5/24 15:01
  */
 @RestController
-@RequestMapping(method = {RequestMethod.POST},value = "account")
-public class AccountController extends AbstractController{
+@RequestMapping(method = {RequestMethod.POST}, value = "account")
+public class AccountController extends AbstractController {
 
     @Autowired
     private AccountDao accountDao;
@@ -39,40 +39,46 @@ public class AccountController extends AbstractController{
 
     /**
      * 游客登录
+     *
      * @param dto
      * @return
      */
     @RequestMapping("guestlogin")
     public WebResult<LoginVo> guestLogin(@RequestBody GuestLoginDto dto) {
-        try{
-            if(StringUtils.isEmpty(dto.guest)){
+        try {
+            if (StringUtils.isEmpty(dto.guest)) {
                 log.debug("参数为空，游客登录失败");
                 return fail(Code.PARAM_ERROR);
             }
 
-            if(dto.guest.length() < 5 || dto.guest.length() > 50){
-                log.debug("guest长度不在范围内，游客登录失败, guest = {}",  dto.guest);
+            if (dto.guest.length() < 5 || dto.guest.length() > 50) {
+                log.debug("guest长度不在范围内，游客登录失败, guest = {}", dto.guest);
                 return fail(Code.PARAM_ERROR);
             }
 
             //查询该账号是否存在
             Account account = accountDao.queryAccountByGuest(dto.guest);
 
-            if(account == null){
+            if (account == null) {
                 //注册新账号
                 long playerId = playerIdDao.getNewId();
+                // 如果player获取为0，则需要中断流程
+                if (playerId <= 0) {
+                    log.warn("创建新的账号，从数据库中获取玩家ID失败 gust：{}", dto.guest);
+                    return fail(Code.FAIL);
+                }
                 account = new Account();
                 account.setPlayerId(playerId);
                 account.setGuest(dto.guest);
                 account.setAccountType(AccountConstant.AccountType.GUEST);
                 account = accountDao.insert(account);
 
-                accountLogger.register(dto.guest, GameConstant.LoginType.GUEST,playerId);
-                log.debug("创建新的游客账号 guest = {},playerId = {}",dto.guest,playerId);
-            }else {
+                accountLogger.register(dto.guest, GameConstant.LoginType.GUEST, playerId);
+                log.debug("创建新的游客账号 guest = {},playerId = {}", dto.guest, playerId);
+            } else {
                 //如果不为空，要检测是否已经认证
-                if(account.getAccountType() != AccountConstant.AccountType.GUEST){
-                    log.debug("该用户已经认证，无法使用游客登录 guest = {},playerId = {}",dto.guest,account.getPlayerId());
+                if (account.getAccountType() != AccountConstant.AccountType.GUEST) {
+                    log.debug("该用户已经认证，无法使用游客登录 guest = {},playerId = {}", dto.guest, account.getPlayerId());
                     return fail(Code.PARAM_ERROR);
                 }
             }
@@ -80,16 +86,16 @@ public class AccountController extends AbstractController{
             //生成token
             String token = genernateToken();
             //保存token，方便weboskcet连接时进行校验
-            playerSessionTokenDao.save(token, GameConstant.LoginType.GUEST,account.getPlayerId());
+            playerSessionTokenDao.save(token, GameConstant.LoginType.GUEST, account.getPlayerId());
 
             LoginVo vo = new LoginVo();
             vo.setToken(token);
             vo.setGameserver(accountConfig.getGameserver());
             vo.setPlayerId(account.getPlayerId());
-            log.info("游客获取token成功 guest = {},playerId = {}",dto.guest,account.getPlayerId());
+            log.info("游客获取token成功 guest = {},playerId = {}", dto.guest, account.getPlayerId());
             return success(vo);
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
             return exception();
         }
     }

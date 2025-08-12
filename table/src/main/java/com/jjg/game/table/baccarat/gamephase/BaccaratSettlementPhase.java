@@ -201,13 +201,16 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             // 有押注值才发送打点
             if (settlementData.getBetTotal() > 0) {
                 // 打点
-                gameDataTracker.addPlayerLogData(DataTrackNameConstant.TOTAL_BET, settlementData.getBetTotal());
-                gameDataTracker.addPlayerLogData(DataTrackNameConstant.TOTAL_WIN, settlementData.getTotalWin());
-                gameDataTracker.addPlayerLogData(DataTrackNameConstant.INCOME, settlementData.getBetWin());
-                // 发送打点日志
-                gameDataTracker.sendLogWithPlayer(gamePlayer, EDataTrackLogType.SETTLEMENT);
+                gameDataTracker.addPlayerLogData(
+                    gamePlayer, DataTrackNameConstant.TOTAL_BET, settlementData.getBetTotal());
+                gameDataTracker.addPlayerLogData(
+                    gamePlayer, DataTrackNameConstant.TOTAL_WIN, settlementData.getTotalWin());
+                gameDataTracker.addPlayerLogData(
+                    gamePlayer, DataTrackNameConstant.INCOME, settlementData.getBetWin());
             }
         }
+        // 发送打点日志
+        gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
         return playerChangedGolds;
     }
 

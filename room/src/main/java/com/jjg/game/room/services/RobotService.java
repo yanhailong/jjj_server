@@ -157,6 +157,7 @@ public class RobotService implements IRoomStartListener {
             if (redisLock.tryLock(lockKey)) {
                 try {
                     robotDao.recycleRobotPlayers(Collections.singleton(robotId));
+                    return;
                 } finally {
                     redisLock.tryUnlock(lockKey);
                 }
@@ -178,6 +179,7 @@ public class RobotService implements IRoomStartListener {
             if (redisLock.tryLock(lockKey)) {
                 try {
                     robotDao.recycleRobotPlayers(robotIds);
+                    return;
                 } finally {
                     redisLock.tryUnlock(lockKey);
                 }
@@ -209,7 +211,7 @@ public class RobotService implements IRoomStartListener {
                     robotDao.recycleRobotPlayers(allRobots.keySet());
                     log.info("删除机器人Redis数据库：{} 中节点：{} 对应的机器人数据成功 删除数量：{}",
                         serverRobotTableName, nodePath, allRobots.size());
-                    break;
+                    return;
                 } finally {
                     redisLock.tryUnlock(lockKey);
                 }
@@ -244,9 +246,13 @@ public class RobotService implements IRoomStartListener {
      */
     public void checkOrInitRobotIdPool() {
         List<Long> robotCfgList =
-            new ArrayList<>(GameDataManager.getRobotCfgList().stream().map(r -> (long) r.getId()).toList());
+            new ArrayList<>(GameDataManager.getRobotCfgList().stream()
+                .map(r -> (long) r.getId())
+                // 所有的ID必须符合规则
+                .filter(id -> id % 17 == 0)
+                .toList());
         String lockKey = robotDao.getLockRobotTableName();
-        // 这里需要多次尝试，一定需要确保删除成功
+        // 这里需要多次尝试，一定需要确保添加成功
         for (int i = 0; i < GameConstant.Redis.LOCK_TRY_TIMES; i++) {
             if (redisLock.tryLock(lockKey)) {
                 try {
@@ -254,15 +260,21 @@ public class RobotService implements IRoomStartListener {
                     List<Long> databaseAllRobot = robotDao.getAllUsedRobot();
                     // 移除所有数据库中的机器人ID
                     robotCfgList.removeAll(databaseAllRobot);
+                    if (robotCfgList.isEmpty()) {
+                        // 如果没有新的机器人数据
+                        return;
+                    }
                     // 添加所有新增的机器人ID
                     robotDao.addNewRobotIds(robotCfgList);
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException ignored) {
-                    }
+                    log.info("新增机器人ID数量： {}", robotCfgList.size());
+                    return;
                 } finally {
                     redisLock.tryUnlock(lockKey);
                 }
+            }
+            try {
+                Thread.sleep(GameConstant.Redis.PER_TRY_TAKE_MILE_TIME);
+            } catch (InterruptedException ignored) {
             }
         }
     }

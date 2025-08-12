@@ -7,6 +7,7 @@ import com.jjg.game.room.data.room.GamePlayer;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 游戏埋点收集器
@@ -15,7 +16,7 @@ import java.util.HashMap;
  */
 public class GameDataTracker {
     // 玩家的埋点数据
-    private final HashMap<String, Object> playerTrackData = new HashMap<>();
+    private final HashMap<GamePlayer, Object> playerTrackData = new HashMap<>();
     // 房间的埋点数据
     private final HashMap<String, Object> gameTrackData = new HashMap<>();
     // 埋点日志
@@ -31,7 +32,7 @@ public class GameDataTracker {
         baseGameInfo.putAll(trackerLogger.buildBaseGameInfo(gameController));
         int gameId = gameController.getGameDataVo().getRoomCfg().getGameID();
         EGameType eGameType = EGameType.getGameByTypeId(gameId);
-        gameLogTopic = trackerLogger.gameLogTopicPrefix + eGameType.name();
+        gameLogTopic = trackerLogger.gameLogTopicPrefix + eGameType.name().toLowerCase();
         this.trackLogger = trackerLogger;
     }
 
@@ -45,22 +46,37 @@ public class GameDataTracker {
     }
 
     /**
-     * 添加埋点日志数据
+     * 添加玩家埋点日志数据
      */
-    public void addPlayerLogData(String logFieldName, Object logValue) {
+    public void addPlayerLogData(GamePlayer gamePlayer, String logFieldName, Object logValue) {
         if (isStarted) {
-            playerTrackData.put(logFieldName, logValue);
+            // 机器人不打日志
+            if (gamePlayer instanceof GameRobotPlayer) {
+                return;
+            }
+            if (!playerTrackData.containsKey(gamePlayer)) {
+                playerTrackData.put(gamePlayer, new HashMap<>());
+            }
+            HashMap<String, Object> playerDataMap = (HashMap<String, Object>) playerTrackData.get(gamePlayer);
+            playerDataMap.put(logFieldName, logValue);
         }
     }
 
 
     /**
-     * 添加埋点日志数据
+     * 添加游戏中的埋点日志数据
      */
     public void addGameLogData(String logFieldName, Object logValue) {
         if (isStarted) {
             gameTrackData.put(logFieldName, logValue);
         }
+    }
+
+    /**
+     * 获取埋点日志logger
+     */
+    public RoomDataTrackLogger getTrackLogger() {
+        return trackLogger;
     }
 
     /**
@@ -73,22 +89,32 @@ public class GameDataTracker {
     /**
      * 发送玩家的埋点数据
      */
-    public void sendLogWithPlayer(GamePlayer gamePlayer, EDataTrackLogType dataTrackLogType) {
-        if (gamePlayer instanceof GameRobotPlayer) {
+    public void flushDataLog(EDataTrackLogType dataTrackLogType) {
+        HashMap<String, Object> tempTrackData = new HashMap<>();
+        Map<Long, HashMap<String, Object>> playerDataList = new HashMap<>();
+        // 玩家埋点数据为空，退出
+        if (playerTrackData.isEmpty()) {
             return;
         }
-        HashMap<String, Object> tempTrackData = new HashMap<>();
-        // 游戏的日志数据
-        tempTrackData.putAll(playerTrackData);
-        // 游戏的日志数据
-        tempTrackData.putAll(gameTrackData);
-        // 基础的游戏信息
+        // 玩家数据
+        for (Map.Entry<GamePlayer, Object> entry : playerTrackData.entrySet()) {
+            if (entry.getKey() instanceof GameRobotPlayer) {
+                continue;
+            }
+            HashMap<String, Object> playerData = new HashMap<>();
+            playerData.put("playerInfo", trackLogger.buildGamePlayerInfo(entry.getKey()));
+            playerData.put("data", entry.getValue());
+            playerDataList.put(entry.getKey().getId(), playerData);
+        }
+        // 玩家日志数据
+        tempTrackData.put("playerData", playerDataList);
+        // 游戏日志数据
+        tempTrackData.put("gameData", gameTrackData);
+        // 游戏基础信息
         tempTrackData.putAll(baseGameInfo);
-        // 玩家信息
-        tempTrackData.putAll(trackLogger.buildGamePlayerInfo(gamePlayer));
         // 订单ID
         tempTrackData.put("orderId", trackLogger.getSnowflake().nextId());
-        String gameLogTopicTmp = gameLogTopic + "_" + dataTrackLogType.name();
+        String gameLogTopicTmp = gameLogTopic + "_" + dataTrackLogType.name().toLowerCase();
         // 发送日志数据
         trackLogger.sendLog(gameLogTopicTmp, tempTrackData);
         // 给玩家记录的日志，在发送之后需要进行清除
@@ -98,25 +124,25 @@ public class GameDataTracker {
     /**
      * 获取数据收集的值
      */
-    public Object getDataTrackValue(String trackFieldName) {
-        return playerTrackData.get(trackFieldName);
+    public Object getDataTrackValue(GamePlayer gamePlayer) {
+        return playerTrackData.get(gamePlayer);
     }
 
     /**
      * 发送批量的玩家埋点数据
      */
-    public void sendLogWithPlayer(Collection<GamePlayer> gamePlayers, EDataTrackLogType dataTrackLogType) {
+    public void flushDataLog(Collection<GamePlayer> gamePlayers, EDataTrackLogType dataTrackLogType) {
         for (GamePlayer gamePlayer : gamePlayers) {
-            sendLogWithPlayer(gamePlayer, dataTrackLogType);
+            flushDataLog(dataTrackLogType);
         }
     }
 
     /**
      * 发送玩家的埋点数据后关闭收集
      */
-    public void sendAndClose(GamePlayer gamePlayer, EDataTrackLogType dataTrackLogType) {
+    public void sendAndClose(EDataTrackLogType dataTrackLogType) {
         // 发送玩家数据
-        sendLogWithPlayer(gamePlayer, dataTrackLogType);
+        flushDataLog(dataTrackLogType);
         // 完成数据收集
         finishedDataCollect();
     }
@@ -126,7 +152,7 @@ public class GameDataTracker {
      */
     public void sendAndClose(Collection<GamePlayer> gamePlayers, EDataTrackLogType dataTrackLogType) {
         // 发送玩家数据
-        sendLogWithPlayer(gamePlayers, dataTrackLogType);
+        flushDataLog(gamePlayers, dataTrackLogType);
         // 完成数据收集
         finishedDataCollect();
     }

@@ -4,6 +4,8 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.datatrack.RoomDataTrackLogger;
 
+import java.util.Objects;
+
 /**
  * 玩家游戏中的数据集
  *
@@ -44,5 +46,22 @@ public class GamePlayer extends Player {
     @Override
     public void setGold(long gold) {
         super.setGold(gold);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        GamePlayer that = (GamePlayer) o;
+        return getId() == that.getId();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), getId());
     }
 }

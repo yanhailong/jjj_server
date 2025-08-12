@@ -1,6 +1,7 @@
 package com.jjg.game.room.services;
 
 import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
@@ -11,6 +12,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
+import com.jjg.game.core.tool.ConsoleDebugger;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.room.manager.RoomManager;
@@ -42,6 +44,8 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
     private TimerCenter timerCenter;
 
     private boolean isInitialed = false;
+    @Autowired
+    private NodeConfig nodeConfig;
 
 
     /**
@@ -54,6 +58,13 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         }
         timerCenter = new TimerCenter("room-start-timer");
         timerCenter.start();
+        // 先删除服务器所有的机器人，如果服务器异常关闭，可以保证机器人不会被异常占用，能正常进入机器人池
+        try {
+            robotService.deleteServerAllRobot();
+        } catch (Exception exception) {
+            log.error("删除服务器所有的机器人时发生异常：{}", exception.getMessage(), exception);
+            throw new RuntimeException(exception);
+        }
         // 检查或初始化机器人池,创建房间之前需要所有的机器人ID就绪
         robotService.checkOrInitRobotIdPool();
         // 检查房间的创建和初始化
@@ -62,13 +73,6 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         } catch (Exception e) {
             log.error("房间初始化时异常：{}", e.getMessage(), e);
             throw new RuntimeException(e);
-        }
-        // 删除服务器所有的机器人
-        try {
-            robotService.deleteServerAllRobot();
-        } catch (Exception exception) {
-            log.error("删除服务器所有的机器人时发生异常：{}", exception.getMessage(), exception);
-            throw new RuntimeException(exception);
         }
     }
 
@@ -80,6 +84,16 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         // 没有可用的直接退出
         if (availableGames == null || availableGames.isEmpty()) {
             return;
+        }
+        // 本地调试时使用
+        if (ConsoleDebugger.isIdeModel()) {
+            if (nodeConfig.getNeedBootGameId() != null) {
+                List<Integer> needBootGameList = new ArrayList<>();
+                for (int gameId : nodeConfig.getNeedBootGameId()) {
+                    needBootGameList.add(gameId);
+                }
+                availableGames.keySet().removeIf(a -> !needBootGameList.contains(a));
+            }
         }
         String openedGames =
             availableGames.values().stream().map(EGameType::getGameDesc).collect(Collectors.joining(","));
@@ -129,8 +143,8 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         if (availableTypes.isEmpty()) {
             return Collections.emptyMap();
         }
-        return availableTypes.stream().collect(HashMap::new, (map, e) -> map.put(e.getGameTypeId(), e),
-            HashMap::putAll);
+        return availableTypes.stream().
+            collect(HashMap::new, (map, e) -> map.put(e.getGameTypeId(), e), HashMap::putAll);
     }
 
     /**
