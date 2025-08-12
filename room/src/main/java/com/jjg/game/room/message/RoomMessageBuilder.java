@@ -18,17 +18,17 @@ public class RoomMessageBuilder<T extends AbstractMessage> {
     private T data;
 
     /**
-     * 指定发送的玩家ID，如果为空则对房间内的所有玩家进行广播
+     * 指定发送的玩家ID，如果为空则对房间内的所有玩家进行广播 发送优先级1
      */
     private Set<Long> playerIds = new HashSet<>();
 
     /**
-     * 需要排除的玩家ID
+     * 需要排除的玩家ID 发送优先级3
      */
     private Set<Long> exceptPlayers = new HashSet<>();
 
     /**
-     * 是否给所有玩家推送
+     * 是否给所有玩家推送 发送优先级2
      */
     private boolean toAll = false;
 

@@ -195,20 +195,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     /**
      * 根据水池偏差值获取 结果库配置
      *
-     * @param gameType
      * @param diff
      * @return
      */
-    protected SpecialResultLibCfg getLibCfgByPoolDiff(int gameType, long diff) {
-        for (Map.Entry<Integer, SpecialResultLibCfg> en : GameDataManager.getSpecialResultLibCfgMap().entrySet()) {
+    protected SpecialResultLibCfg getLibCfgByPoolDiff(long diff) {
+        for(Map.Entry<Integer,SpecialResultLibCfg> en : this.resultLibMap.entrySet()){
             SpecialResultLibCfg cfg = en.getValue();
-            if (cfg.getGameType() != gameType) {
-                continue;
-            }
-            if (diff >= cfg.getEnterLimitMin() && diff < cfg.getEnterLimitMax()) {
+            if ((diff >= cfg.getEnterLimitMin() || cfg.getEnterLimitMin() <= -999999) && (diff < cfg.getEnterLimitMax() || cfg.getEnterLimitMax() >= 999999)) {
                 return cfg;
             }
         }
+
+
         return null;
     }
 
@@ -236,7 +234,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      * @param gameData
      * @return
      */
-    protected CommonResult<SpecialResultLibCfg> getLibCfg(T gameData, long poolInit) {
+    public CommonResult<SpecialResultLibCfg> getLibCfg(T gameData, long poolInit) {
         CommonResult<SpecialResultLibCfg> result = new CommonResult<>(Code.SUCCESS);
         boolean flag = gameData.getHasPlaySlots().compareAndSet(false, true);
         //表示第一次玩该slots游戏
@@ -261,7 +259,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
             //计算偏差范围
             long diff = BigDecimal.valueOf(poolValue.longValue() - poolInit).divide(BigDecimal.valueOf(poolInit), 6, RoundingMode.HALF_UP).multiply(tenThousandBigDecimal).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
-            SpecialResultLibCfg libCfg = getLibCfgByPoolDiff(gameData.getGameType(), diff);
+            SpecialResultLibCfg libCfg = getLibCfgByPoolDiff(diff);
             if (libCfg == null) {
                 log.warn("获取结果库配置失败 playerId = {},gameType = {},roomCfgId = {},diff = {}", gameData.playerId(), gameData.getGameType(), gameData.getRoomCfgId(), diff);
                 result.code = Code.NOT_FOUND;

@@ -31,7 +31,7 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
     //记录出现可收集美元的局数
     private int addDollarsCount;
     //记录收集美元时的押注总和(用于计算累计的美钞的平均值)
-    private int addDollarsTotalStake;
+    private long addDollarsTotalStake;
 
     //用于测试
     @Transient
@@ -227,11 +227,11 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
         this.addDollarsCount = addDollarsCount;
     }
 
-    public int getAddDollarsTotalStake() {
+    public long getAddDollarsTotalStake() {
         return addDollarsTotalStake;
     }
 
-    public void setAddDollarsTotalStake(int addDollarsTotalStake) {
+    public void setAddDollarsTotalStake(long addDollarsTotalStake) {
         this.addDollarsTotalStake = addDollarsTotalStake;
     }
 

@@ -1,6 +1,7 @@
 package com.jjg.game.core.tool;
 
 import com.jjg.game.common.utils.CommonUtil;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -20,7 +21,7 @@ import java.util.Scanner;
  */
 @Component
 @Order()
-public class ConsoleDebugger implements CommandLineRunner {
+public class ConsoleDebugger {
     private static final Logger logger = LoggerFactory.getLogger(ConsoleDebugger.class);
     private static final String STOP_SERVER = "StopServer";
     /**
@@ -31,6 +32,7 @@ public class ConsoleDebugger implements CommandLineRunner {
     private static volatile boolean IS_STOPPING = false;
     private List<IConsoleReceiver> consoleReceivers = new ArrayList<>();
 
+    @PostConstruct
     public boolean checkDebug() {
         if (IS_IDE_MODEL_FROM_SYSTEM_PROPERTY) {
             return IS_IDE_MODEL;
@@ -50,7 +52,7 @@ public class ConsoleDebugger implements CommandLineRunner {
      * 检查是否开启控制台
      */
     public void checkConsole() {
-        if (checkDebug()) {
+        if (isIdeModel()) {
             logger.info("IDE : Console Opened");
             Scanner scanner = new Scanner(System.in);
             while (!IS_STOPPING) {
@@ -96,10 +98,5 @@ public class ConsoleDebugger implements CommandLineRunner {
         } else if (!hasHandleCommand) {
             logger.info("不能识别的命令: {}", command);
         }
-    }
-
-    @Override
-    public void run(String... args) throws Exception {
-        checkDebug();
     }
 }

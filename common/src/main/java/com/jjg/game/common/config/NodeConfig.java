@@ -25,6 +25,8 @@ public class NodeConfig {
     public int[] gameMajorTypes;
     //节点权重
     public int weight = 2;
+    // 需要启动的游戏ID，仅本地调试生效，正式部署不起效
+    public int[] needBootGameId;
     //IP白名单
     public String[] whiteIpList;
     //用户ID白名单
@@ -150,5 +152,13 @@ public class NodeConfig {
 
     public void setGm(boolean gm) {
         this.gm = gm;
+    }
+
+    public int[] getNeedBootGameId() {
+        return needBootGameId;
+    }
+
+    public void setNeedBootGameId(int[] needBootGameId) {
+        this.needBootGameId = needBootGameId;
     }
 }
