@@ -54,6 +54,13 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         }
         timerCenter = new TimerCenter("room-start-timer");
         timerCenter.start();
+        // 先删除服务器所有的机器人，如果服务器异常关闭，可以保证机器人不会被异常占用，能正常进入机器人池
+        try {
+            robotService.deleteServerAllRobot();
+        } catch (Exception exception) {
+            log.error("删除服务器所有的机器人时发生异常：{}", exception.getMessage(), exception);
+            throw new RuntimeException(exception);
+        }
         // 检查或初始化机器人池,创建房间之前需要所有的机器人ID就绪
         robotService.checkOrInitRobotIdPool();
         // 检查房间的创建和初始化
@@ -62,13 +69,6 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         } catch (Exception e) {
             log.error("房间初始化时异常：{}", e.getMessage(), e);
             throw new RuntimeException(e);
-        }
-        // 删除服务器所有的机器人
-        try {
-            robotService.deleteServerAllRobot();
-        } catch (Exception exception) {
-            log.error("删除服务器所有的机器人时发生异常：{}", exception.getMessage(), exception);
-            throw new RuntimeException(exception);
         }
     }
 

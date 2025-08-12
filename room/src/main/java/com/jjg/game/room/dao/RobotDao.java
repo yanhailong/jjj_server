@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 机器人数据操作
@@ -131,24 +132,29 @@ public class RobotDao {
     public List<Long> getAllUsedRobot() {
         String redisIdListKey = getRobotIdListTableName();
         // 未被使用的机器人ID列表
-        Set<Long> allRobotIdList = redisTemplate.opsForSet().members(redisIdListKey);
-        if (allRobotIdList == null || allRobotIdList.isEmpty()) {
+        Set<String> allRobotStrIdList = stringRedisTemplate.opsForSet().members(redisIdListKey);
+        if (allRobotStrIdList == null || allRobotStrIdList.isEmpty()) {
             return new ArrayList<>();
         }
+        List<Long> allRobotIdList = new ArrayList<>(allRobotStrIdList.stream().map(Long::parseLong).toList());
         // 获取各个服正在使用的机器人
-        Set<String> serverUsedRobotKeys = redisTemplate.keys(SERVER_OF_ROBOT);
+        Set<String> serverUsedRobotKeys = redisTemplate.keys(SERVER_OF_ROBOT + StrConstant.ASTERISK);
         if (serverUsedRobotKeys.isEmpty()) {
-            return new ArrayList<>();
+            return allRobotIdList;
         }
         Set<Long> serversUsedIdList =
-            redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
-                for (String serverUsedRobotKey : serverUsedRobotKeys) {
-                    connection.hashCommands().hKeys(serverUsedRobotKey.getBytes());
-                }
-                return null;
-            }).stream().map(a -> (Set<Long>) a).collect(HashSet::new, HashSet::addAll, HashSet::addAll);
+            stringRedisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+                    for (String serverUsedRobotKey : serverUsedRobotKeys) {
+                        connection.hashCommands().hKeys(serverUsedRobotKey.getBytes());
+                    }
+                    return null;
+                }).stream()
+                .map(a -> (Set<String>) a)
+                .map(a -> a.stream().map(Long::parseLong).toList())
+                .collect(HashSet::new, HashSet::addAll, HashSet::addAll);
+        log.info("可用的机器人数量：{} 服务节点已用的数量：{}", allRobotIdList.size(), serversUsedIdList.size());
         allRobotIdList.addAll(serversUsedIdList);
-        return allRobotIdList.stream().toList();
+        return allRobotIdList;
     }
 
     /**
@@ -156,6 +162,7 @@ public class RobotDao {
      */
     public void addNewRobotIds(List<Long> newRobotIdList) {
         String redisIdListKey = getRobotIdListTableName();
-        redisTemplate.opsForSet().add(redisIdListKey, newRobotIdList.toArray(Long[]::new));
+        stringRedisTemplate.opsForSet()
+            .add(redisIdListKey, newRobotIdList.stream().map(String::valueOf).toArray(String[]::new));
     }
 }
