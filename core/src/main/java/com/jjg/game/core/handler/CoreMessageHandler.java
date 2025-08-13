@@ -4,17 +4,18 @@ import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
-import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.pb.ReqGm;
+import com.jjg.game.core.pb.ReqMarquee;
 import com.jjg.game.core.pb.ResGm;
+import com.jjg.game.core.pb.ResMarquee;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.PlayerPackService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,10 @@ public class CoreMessageHandler {
     private CorePlayerService playerService;
     @Autowired
     private CoreSendMessageManager coreSendMessageManager;
+    @Autowired
+    private PlayerPackService playerPackService;
+    @Autowired
+    private CoreMarqueeManager marqueeManager;
 
     /**
      * @param playerController
@@ -94,6 +99,11 @@ public class CoreMessageHandler {
                 return;
             }
 
+            if("addItem".equalsIgnoreCase(cmd)) {
+                addItem(res, playerController, arr);
+                return;
+            }
+
             int notFound = 0;
             Map<String, GmListener> map = CommonUtil.getContext().getBeansOfType(GmListener.class);
             for(Map.Entry<String, GmListener> en : map.entrySet()){
@@ -128,6 +138,32 @@ public class CoreMessageHandler {
     }
 
     /**
+     * @param playerController
+     * @param req
+     */
+    @Command(MessageConst.CoreMessage.REQ_MARQUEE)
+    public void reqMarquee(PlayerController playerController, ReqMarquee req){
+        ResMarquee res = new ResMarquee(Code.SUCCESS);
+        try{
+            Marquee currentMarquee = marqueeManager.getCurrentMarquee();
+            if(currentMarquee != null){
+                res.id = currentMarquee.getId();
+                res.content = currentMarquee.getContent();
+                res.interval = currentMarquee.getInterval();
+                res.startTime = currentMarquee.getStartTime();
+                res.endTime = currentMarquee.getEndTime();
+            }
+            log.debug("获取当前跑马灯 playerId = {},marqueeId = {}", playerController.playerId(),res.id);
+        }catch (Exception e){
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+
+
+    /**
      * gm修改金币
      * @param res
      * @param playerController
@@ -135,7 +171,7 @@ public class CoreMessageHandler {
      * @param params
      * @throws Exception
      */
-    public void addGold(ResGm res,PlayerController playerController,String order,String params) throws Exception{
+    private void addGold(ResGm res,PlayerController playerController,String order,String params) throws Exception{
         if(params == null || params.isEmpty()){
             res.code = Code.PARAM_ERROR;
             log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(),order);
@@ -161,7 +197,7 @@ public class CoreMessageHandler {
      * @param params
      * @throws Exception
      */
-    public void addDiamond(ResGm res,PlayerController playerController,String order,String params) throws Exception{
+    private void addDiamond(ResGm res,PlayerController playerController,String order,String params) throws Exception{
         if(params == null || params.isEmpty()){
             res.code = Code.PARAM_ERROR;
             log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(),order);
@@ -187,7 +223,7 @@ public class CoreMessageHandler {
      * @param params
      * @throws Exception
      */
-    public void setVip(ResGm res,PlayerController playerController,String order,String params) throws Exception{
+    private void setVip(ResGm res,PlayerController playerController,String order,String params) throws Exception{
         if(params == null || params.isEmpty()){
             res.code = Code.PARAM_ERROR;
             log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(),order);
@@ -203,5 +239,25 @@ public class CoreMessageHandler {
         }
         playerController.getPlayer().setVipLevel(result.data.getVipLevel());
         coreSendMessageManager.packMoneyChangeMessage(playerController,result.data.getGold(),result.data.getDiamond(),result.data.getVipLevel());
+    }
+
+    private void addItem(ResGm res,PlayerController playerController,String[] orders) throws Exception{
+        if(orders.length < 3){
+            res.code = Code.PARAM_ERROR;
+            log.debug("orders 为空，使用gm失败 playerId = {},orders = {}", playerController.playerId(),orders);
+            return;
+        }
+
+        int itemId = Integer.parseInt(orders[1]);
+        int count = Integer.parseInt(orders[2]);
+
+        CommonResult<PlayerPack> result = playerPackService.addItem(playerController.playerId(), itemId, count, 999);
+        if(!result.success()){
+            res.code = result.code;
+            log.debug("使用gm失败 playerId = {},orders = {}",playerController.playerId(),orders);
+            return;
+        }
+        playerController.send(res);
+        log.debug("添加道具成功 playerId = {},orders = {}", playerController.playerId(),orders);
     }
 }

@@ -7,19 +7,23 @@ import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
-import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.BackendGMCmd;
-import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.dao.MarqueeDao;
 import com.jjg.game.core.data.GameStatus;
-import com.jjg.game.core.pb.gm.ReqMarqueeServer;
+import com.jjg.game.core.data.Marquee;
+import com.jjg.game.core.manager.CoreMarqueeManager;
+import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
+import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
-import com.jjg.game.core.pb.gm.ReqStopMarqueeServer;
 import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.gm.dto.GameStatusDto;
 import com.jjg.game.gm.dto.MailDto;
 import com.jjg.game.gm.dto.MarqueeDto;
+import com.jjg.game.gm.dto.StopMarqueeDto;
 import com.jjg.game.gm.vo.WebResult;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +44,10 @@ public class GMController extends AbstractController {
 
     @Autowired
     private GameStatusService gameStatusService;
+    @Autowired
+    private MarqueeDao marqueeDao;
+    @Autowired
+    private CoreMarqueeManager marqueeManager;
 
     /**
      * 修改游戏状态
@@ -94,42 +102,29 @@ public class GMController extends AbstractController {
     @RequestMapping(BackendGMCmd.SNED_MARQUEE)
     public WebResult<String> sendMarquee(@RequestBody @Valid MarqueeDto dto) {
         log.info("收到后台的跑马灯信息请求 {}", dto);
-        //获取大厅节点
-        List<ClusterClient> hallNodes = ClusterSystem.system.getNodesByType(NodeType.HALL);
-        //获取游戏节点
-        List<ClusterClient> gameNodes = ClusterSystem.system.getNodesByType(NodeType.GAME);
+
+        //存储到redis
+        Marquee marquee = new Marquee();
+        marquee.setId(dto.id());
+        marquee.setContent(dto.content());
+        marquee.setInterval(dto.interval_time());
+        marquee.setNums(dto.nums());
+        marquee.setStartTime(TimeHelper.getSecondTime(dto.start_time()));
+        marquee.setEndTime(TimeHelper.getSecondTime(dto.end_time()));
+        marquee.setPriority(dto.priority());
+        marquee.setType(GameConstant.MarqueeType.SYSTEM_MSG);
+        marqueeDao.addMarquee(marquee);
 
         //构建请求消息
-        ReqMarqueeServer req = new ReqMarqueeServer(Code.SUCCESS);
-        req.content = dto.content();
-        PFMessage pfMessage = MessageUtil.getPFMessage(req);
-        ClusterMessage msg = new ClusterMessage(pfMessage);
-
-        StringBuilder res = new StringBuilder();
-
-        //通知大厅节点
-        for (ClusterClient clusterClient : hallNodes) {
-            try {
-                clusterClient.write(msg);
-            } catch (Exception e) {
-                log.error("gm推送跑马灯信息失败", e);
-                res.append("""
-                        gm推送跑马灯信息到节点 %s 失败""".formatted(clusterClient.nodeConfig.getName()));
-            }
-        }
-
-        //通知游戏节点
-        for (ClusterClient clusterClient : gameNodes) {
-            try {
-                clusterClient.write(msg);
-            } catch (Exception e) {
-                log.error("gm推送跑马灯信息失败", e);
-                res.append("""
-                        gm推送跑马灯信息到节点 %s 失败""".formatted(clusterClient.nodeConfig.getName()));
-            }
-        }
+        NotifyAllNodesMarqueeServer notify = new NotifyAllNodesMarqueeServer();
+        notify.id = marquee.getId();
+        notify.content = marquee.getContent();
+        notify.interval = marquee.getInterval();
+        notify.startTime = marquee.getStartTime();
+        notify.endTime = marquee.getEndTime();
+        marqueeManager.notifyHallAndGameNodeStartMarquee(notify);
         //返回修改结果
-        return !res.isEmpty() ? fail(res.toString()) : success("推送成功");
+        return success("推送成功");
     }
 
     /**
@@ -138,43 +133,20 @@ public class GMController extends AbstractController {
      * @return
      */
     @RequestMapping(BackendGMCmd.STOP_MARQUEE)
-    public WebResult<String> stopMarquee(@RequestBody @Valid MarqueeDto dto) {
-        log.info("收到后台的停止跑马灯信息请求 {}", dto);
-        //获取大厅节点
-        List<ClusterClient> hallNodes = ClusterSystem.system.getNodesByType(NodeType.HALL);
-        //获取游戏节点
-        List<ClusterClient> gameNodes = ClusterSystem.system.getNodesByType(NodeType.GAME);
+    public WebResult<String> stopMarquee(@RequestBody StopMarqueeDto dto) {
+        log.info("收到后台的停止跑马灯信息请求 id = {}", dto.id());
+        boolean exist = marqueeDao.exist(dto.id());
+        if (!exist) {
+            return fail("该跑马灯不存在");
+        }
 
         //构建请求消息
-        ReqStopMarqueeServer req = new ReqStopMarqueeServer(Code.SUCCESS);
-        PFMessage pfMessage = MessageUtil.getPFMessage(req);
-        ClusterMessage msg = new ClusterMessage(pfMessage);
+        NotifyAllNodesStopMarqueeServer notify = new NotifyAllNodesStopMarqueeServer();
+        notify.id = dto.id();
+        marqueeManager.notifyHallAndGameNodeStopMarquee(notify);
 
-        StringBuilder res = new StringBuilder();
-
-        //通知大厅节点
-        for (ClusterClient clusterClient : hallNodes) {
-            try {
-                clusterClient.write(msg);
-            } catch (Exception e) {
-                log.error("gm推送停止跑马灯信息失败", e);
-                res.append("""
-                        gm推送停止跑马灯信息到节点 %s 失败""".formatted(clusterClient.nodeConfig.getName()));
-            }
-        }
-
-        //通知游戏节点
-        for (ClusterClient clusterClient : gameNodes) {
-            try {
-                clusterClient.write(msg);
-            } catch (Exception e) {
-                log.error("gm推送停止跑马灯信息失败", e);
-                res.append("""
-                        gm推送停止跑马灯信息到节点 %s 失败""".formatted(clusterClient.nodeConfig.getName()));
-            }
-        }
         //返回修改结果
-        return !res.isEmpty() ? fail(res.toString()) : success("推送成功");
+        return success("推送成功");
     }
 
     /**

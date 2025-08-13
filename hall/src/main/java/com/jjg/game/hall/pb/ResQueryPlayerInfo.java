@@ -41,6 +41,8 @@ public class ResQueryPlayerInfo extends AbstractResponse {
     public int headFrameId;
     @ProtoDesc("国旗id")
     public int nationalId;
+    @ProtoDesc("称号id")
+    public int titleId;
 
 
     public ResQueryPlayerInfo(int code) {

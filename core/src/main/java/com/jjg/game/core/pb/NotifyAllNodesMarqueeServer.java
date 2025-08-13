@@ -6,13 +6,12 @@ import com.jjg.game.common.proto.ProtobufMessage;
 
 /**
  * @author 11
- * @date 2025/8/6 13:58
+ * @date 2025/8/12 10:54
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE,
-        cmd = MessageConst.CoreMessage.NOTICE_MARQUEE, resp = true)
-@ProtoDesc("通知跑马灯信息")
-public class NotifyMarquee extends AbstractNotice{
-    public long id;
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SERVER_CONST_TYPE, cmd = MessageConst.ToServer.NOTICE_MARQUEE_HALL_MASTER,resp = true, toPbFile = false)
+@ProtoDesc("推送到其他节点跑马灯")
+public class NotifyAllNodesMarqueeServer extends AbstractNotice {
+    public int id;
     @ProtoDesc("内容")
     public String content;
     @ProtoDesc("间隔时间")

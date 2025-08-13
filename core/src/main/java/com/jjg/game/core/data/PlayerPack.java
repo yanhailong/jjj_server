@@ -1,5 +1,7 @@
 package com.jjg.game.core.data;
 
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.*;
@@ -17,19 +19,9 @@ public class PlayerPack {
     private Map<Integer, Item> items;
     //道具  道具id -> 格子id
     private Map<Integer, List<Integer>> itemIndexMap;
-    // 格子位置管理
-//    private BitSet usedSlots;
-//
-//    public PlayerPack() {
-//    }
-//
-//    public PlayerPack(int capacity) {
-//        this.usedSlots = new BitSet(capacity);
-//        //初始时所有格子都可用
-//        this.usedSlots.clear(0,capacity);
-//    }
-//
-//
+    // 已经被占用的格子id
+    private Set<Integer> usedGird;
+
     public long getPlayerId() {
         return playerId;
     }
@@ -45,114 +37,168 @@ public class PlayerPack {
     public void setItems(Map<Integer, Item> items) {
         this.items = items;
     }
-//
-//    public Map<Integer, List<Integer>> getItemIndexMap() {
-//        return itemIndexMap;
-//    }
-//
-//    public void setItemIndexMap(Map<Integer, List<Integer>> itemIndexMap) {
-//        this.itemIndexMap = itemIndexMap;
-//    }
-//
-//    public BitSet getUsedSlots() {
-//        return usedSlots;
-//    }
-//
-//    public void setUsedSlots(BitSet usedSlots) {
-//        this.usedSlots = usedSlots;
-//    }
-//
-//    /**
-//     * 往背包中添加道具
-//     * @param id 道具id
-//     * @param num 道具数量
-//     * @param maxNum 该道具最大堆叠数量
-//     */
-//    public void addItem(int id,int num,int maxNum) {
-//        if(num < 1){
-//            return;
-//        }
-//
-//        // 1. 先尝试堆叠到已有道具
-//        if (this.itemIndexMap != null && !this.itemIndexMap.isEmpty() && this.itemIndexMap.containsKey(id)) {
-//            List<Integer> indexes = itemIndexMap.get(id);
-//            for (int index : indexes) {
-//                Item item = items.get(index);
-//                if(item.getCount() >= maxNum){ // 该格子道具已满
-//                    continue;
-//                }
-//
-//                //未到最大堆叠数量，计算出还可以添加的数量
-//                int canAdd = maxNum - item.getCount();
-//                if (num <= canAdd) { // 全部可以添加
-//                    item.addCount(num);
-//                    return;
-//                } else { // 部分添加
-//                    item.addCount(canAdd);
-//                    num -= canAdd;
-//                }
-//            }
-//        }
-//
-//        // 2. 剩余数量需要放入新格子
-//        while (num > 0) {
-//            // 找一个空闲格子
-//            int newIndex = findAvailableIndex();
-//            this.usedSlots.set(newIndex);
-//
-//            // 计算新格子能放多少
-//            int addNum = Math.min(num, maxNum);
-//            Item newItem = new Item(id,addNum);
-//
-//            // 放入背包
-//            addItem(newIndex,newItem);
-//
-//            // 更新索引
-//            if(this.itemIndexMap == null){
-//                this.itemIndexMap = new HashMap<>();
-//            }
-//            itemIndexMap.computeIfAbsent(id, k -> new ArrayList<>()).add(newIndex);
-//            num -= addNum;
-//        }
-//    }
-//
-//    /**
-//     * 删除道具
-//     * @param id
-//     * @param num
-//     * @return
-//     */
-//    public boolean removeItem(int id,int num) {
-//        if(num < 1){
-//            return false;
-//        }
-//
-//        if(this.itemIndexMap == null || this.itemIndexMap.isEmpty()){
-//            return false;
-//        }
-//
-//        List<Integer> indexList = this.itemIndexMap.get(id);
-//        if(indexList == null || indexList.isEmpty()){
-//            return false;
-//        }
-//        return false;
-//
-//    }
-//
-//    /**
-//     * 查找可用的格子索引
-//     * @return 可用索引，
-//     */
-//    private int findAvailableIndex() {
-//        //还要考虑 需要扩容的情况
-//        return this.usedSlots.nextClearBit(0);
-//    }
-//
-//    private void addItem(int index,Item item) {
-//        if(this.items == null){
-//            this.items = new HashMap<>();
-//        }
-//        this.items.put(index, item);
-//    }
+
+    public Map<Integer, List<Integer>> getItemIndexMap() {
+        return itemIndexMap;
+    }
+
+    public void setItemIndexMap(Map<Integer, List<Integer>> itemIndexMap) {
+        this.itemIndexMap = itemIndexMap;
+    }
+
+    public Set<Integer> getUsedGird() {
+        return usedGird;
+    }
+
+    public void setUsedGird(Set<Integer> usedGird) {
+        this.usedGird = usedGird;
+    }
+
+    /**
+     * 往背包中添加道具
+     * @param id 道具id
+     * @param num 道具数量
+     * @param maxNum 该道具最大堆叠数量
+     */
+    public void addItem(int id,int num,int maxNum) {
+        if(num < 1){
+            return;
+        }
+
+        // 1. 先尝试堆叠到已有道具
+        if (this.itemIndexMap != null && !this.itemIndexMap.isEmpty() && this.itemIndexMap.containsKey(id)) {
+            List<Integer> indexes = itemIndexMap.get(id);
+            for (int index : indexes) {
+                Item item = items.get(index);
+                if(maxNum == GameConstant.Item.PROP_MAX){
+                    maxNum = Integer.MAX_VALUE;
+                }
+                if(item.getCount() >= maxNum){ // 该格子道具已满
+                    continue;
+                }
+
+                //未到最大堆叠数量，计算出还可以添加的数量
+                int canAdd = maxNum - item.getCount();
+                if (num <= canAdd) { // 全部可以添加
+                    item.addCount(num);
+                    return;
+                } else { // 部分添加
+                    item.addCount(canAdd);
+                    num -= canAdd;
+                }
+            }
+        }
+
+        // 2. 剩余数量需要放入新格子
+        while (num > 0) {
+            // 找一个空闲格子
+            int newIndex = findAvailableIndex();
+            this.usedGird.add(newIndex);
+
+            // 计算新格子能放多少
+            int addNum = Math.min(num, maxNum);
+            Item newItem = new Item(id,addNum);
+
+            // 放入背包
+            addItem(newIndex,newItem);
+
+            // 更新索引
+            if(this.itemIndexMap == null){
+                this.itemIndexMap = new HashMap<>();
+            }
+            itemIndexMap.computeIfAbsent(id, k -> new ArrayList<>()).add(newIndex);
+            num -= addNum;
+        }
+    }
+
+    /**
+     * 删除道具
+     * @param id
+     * @param num
+     * @return
+     */
+    public CommonResult<Integer> removeItem(int id,int num) {
+        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
+        if(num < 1){
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+
+        // 检查背包中是否有足够的道具
+        int itemCount = getItemCount(id);
+        if(itemCount < num){
+            result.code = Code.NOT_ENOUGH;
+            return result;
+        }
+
+        List<Integer> girdList = itemIndexMap.get(id);
+        int remaining = num;
+        // 使用迭代器安全地移除元素
+        ListIterator<Integer> iterator = girdList.listIterator(girdList.size());
+        while (iterator.hasPrevious() && remaining > 0) {
+            int gird = iterator.previous();
+            Item item = items.get(gird);
+
+            if (item.getCount() <= remaining) {
+                // 移除整个道具
+                remaining -= item.getCount();
+                items.remove(gird);
+                usedGird.remove(gird);
+                iterator.remove(); // 从索引列表中移除
+            } else {
+                // 只减少数量
+                item.addCount(-remaining);
+                remaining = 0;
+            }
+        }
+
+        // 如果该道具的所有格子都被移除，从itemIndexMap中清除
+        if (itemIndexMap.containsKey(id) && itemIndexMap.get(id).isEmpty()) {
+            itemIndexMap.remove(id);
+        }
+
+        result.data = itemCount - num;
+        return result;
+    }
+
+    /**
+     * 获取指定道具的总数量
+     */
+    public int getItemCount(int id) {
+        if(itemIndexMap == null || itemIndexMap.isEmpty()){
+            return 0;
+        }
+        if (!itemIndexMap.containsKey(id)) {
+            return 0;
+        }
+        int total = 0;
+        for (int gird : itemIndexMap.get(id)) {
+            total += items.get(gird).getCount();
+        }
+        return total;
+    }
+
+    /**
+     * 查找可用的格子索引
+     * @return 可用索引，
+     */
+    private int findAvailableIndex() {
+        if(this.usedGird == null || this.usedGird.isEmpty()){
+            this.usedGird = new HashSet<>();
+            return 0;
+        }
+        int i=0;
+        while (this.usedGird.contains(i)) {
+            i++;
+        }
+        return i;
+    }
+
+    private void addItem(int index,Item item) {
+        if(this.items == null){
+            this.items = new HashMap<>();
+        }
+        this.items.put(index, item);
+    }
 
 }

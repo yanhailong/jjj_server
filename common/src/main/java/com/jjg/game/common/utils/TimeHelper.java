@@ -76,7 +76,7 @@ public final class TimeHelper {
      * @return 返回1970年1月1日到目标时间的秒数，如果传入的时间格式不对，则返回-1
      */
     public static int getSecondTimeBy(String strDate) {
-        return getSecondTime(strDate, "yyyy-MM-dd HH:mm:ss");
+        return getSecondTime(strDate, dateFormat);
     }
 
     /**
@@ -96,9 +96,9 @@ public final class TimeHelper {
      * @return
      */
     public static DateFormat getDateFormat() {
-        DateFormat LocaleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+        DateFormat LocaleDateFormat = new SimpleDateFormat(dateFormat,
                 new DateFormatSymbols());
-        LocaleDateFormat.setTimeZone(TimeZone.getTimeZone(""));
+        LocaleDateFormat.setTimeZone(TimeZone.getDefault());
         return LocaleDateFormat;
     }
 

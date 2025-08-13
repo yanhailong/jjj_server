@@ -18,12 +18,22 @@ public class ResLogin extends AbstractResponse {
     public long playerId;
     @ProtoDesc("昵称")
     public String nickName;
+    @ProtoDesc("性别")
+    public int gender;
     @ProtoDesc("金币")
     public long gold;
     @ProtoDesc("钻石")
     public long diamond;
     @ProtoDesc("vip等级")
     public int vipLevel;
+    @ProtoDesc("头像id")
+    public int headImgId;
+    @ProtoDesc("头像框id")
+    public int headFrameId;
+    @ProtoDesc("国旗id")
+    public int nationalId;
+    @ProtoDesc("称号id")
+    public int titleId;
     @ProtoDesc("游戏列表")
     public List<GameListConfig> gameList;
 

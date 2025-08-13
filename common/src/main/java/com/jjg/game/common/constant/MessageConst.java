@@ -134,9 +134,13 @@ public interface MessageConst {
      */
     interface CoreMessage {
         int BASE_MSG_PREFIX = MessageTypeDef.CORE_MESSAGE_TYPE << MessageCommon.RIGHT_MOVE;
-        //登录
+        //gm
         int REQ_GM = BASE_MSG_PREFIX | 0x1;
         int RES_GM = BASE_MSG_PREFIX | 0x2;
+
+        //获取当前跑马灯
+        int REQ_MARQUEE = BASE_MSG_PREFIX | 0x3;
+        int RES_MARQUEE = BASE_MSG_PREFIX | 0x4;
 
         //通知金钱变化
         int NOTICE_MONEY_CHANGE = BASE_MSG_PREFIX | 0x99;
@@ -163,9 +167,9 @@ public interface MessageConst {
         //通知slots节点，结果库变更
         int NOTICE_SLOTS_LIB_CHANGE = BASE_MSG_PREFIX | 0x2;
 
-        //GM推送跑马灯
-        int NOTICE_MARQUEE = BASE_MSG_PREFIX | 0x3;
-        //GM推送停止跑马灯
-        int NOTICE_STOP_MARQUEE = BASE_MSG_PREFIX | 0x4;
+        //向大厅和游戏节点推送跑马灯
+        int NOTICE_MARQUEE_HALL_MASTER = BASE_MSG_PREFIX | 0x3;
+        //向大厅和游戏节点推送停止跑马灯
+        int NOTICE_STOP_MARQUEE_HALL_MASTER = BASE_MSG_PREFIX | 0x4;
     }
 }

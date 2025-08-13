@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName Item.xlsx
  * @sheetName Item
  * @author Auto.Generator
- * @date 2025年08月08日 13:44:57
+ * @date 2025年08月11日 16:24:58
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class ItemCfg extends BaseCfgBean {
@@ -20,20 +20,22 @@ public class ItemCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "Item";
 
   /** 使用道具后获得道具 */
-  protected List<List<Integer>> getItem;
+  protected Map<Integer,Long> getItem;
   /** 图标 */
   protected String icon;
   /** 名称 */
   protected int name;
   /** 最大堆叠数量 */
   protected int prop;
+  /** 道具品质ID */
+  protected int quality;
   /** 描述 */
   protected int text;
   /** 类型 */
   protected int type;
 
   /** 返回使用道具后获得道具 */
-  public List<List<Integer>> getGetItem() {
+  public Map<Integer,Long> getGetItem() {
     return getItem;
   }
 
@@ -50,6 +52,11 @@ public class ItemCfg extends BaseCfgBean {
   /** 返回最大堆叠数量 */
   public int getProp() {
     return prop;
+  }
+
+  /** 返回道具品质ID */
+  public int getQuality() {
+    return quality;
   }
 
   /** 返回描述 */
