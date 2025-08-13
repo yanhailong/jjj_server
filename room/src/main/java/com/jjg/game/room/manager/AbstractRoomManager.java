@@ -16,12 +16,12 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.utils.ReflectionTool;
-import com.jjg.game.room.datatrack.RoomDataTrackLogger;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.datatrack.RoomDataTrackLogger;
 import com.jjg.game.room.sample.GameDataManager;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
@@ -260,6 +260,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     }
 
     /**
+     * FIXME 在房间退出流程中途加入房间时会有异常情况，正常情况不应该出现，出现中途加入的情况可能是闪断造成的，
+     * FIXME 在重复加入时，新加入的玩家有可能还有房间在当前节点，也有可能没有在当前节点，如果没有在当前节点且其他节点还未回存结束，
+     * FIXME 这里数据又有新的产生，就会出现数据不一致的情况，导致数据回滚问题
      * player加入房间
      */
     public <RC extends RoomCfg, R extends Room> int joinRoom(
@@ -363,7 +366,16 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         if (!playerRoomControllers.isEmpty() && playerController.isRobotPlayer()) {
             return false;
         }
-        // 如果玩家还存在房间中，先执行退出逻辑再进入，保证一个玩家同时只能在一个房间中
+        // TODO暂时延迟一秒再进行，等回存结束
+        if (!playerRoomControllers.isEmpty() || playerController.roomId() > 0) {
+            // 如果玩家的房间ID不为0，说明有可能旧的节点还未处理完玩家退出流程，暂时延迟1秒，等待处理
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ignored) {
+            }
+        }
+        // 如果玩家还存在房间中，先执行退出逻辑再进入，TODO 如果后续是断线重连进入则需要进入断线重连逻辑
+        // 需要保证一个玩家同时只能在一个房间中
         if (!playerRoomControllers.isEmpty()) {
             List<Room> leaveFailedRoom = new ArrayList<>();
             for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : playerRoomControllers) {
