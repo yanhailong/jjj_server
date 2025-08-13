@@ -23,5 +23,6 @@
         <module>gate</module>
         <module>slots</module>
         <module>table</module>
+        <module>poker</module>
     </modules>
 </project>
