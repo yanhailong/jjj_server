@@ -13,6 +13,8 @@ public interface BlackJackConstant {
         int PERFECT_POINT = 21;
         //最大拿牌数
         int MAX_GET_CARD = 6;
+        //下注修正时间
+        int BET_FIX_TIME = 5000;
     }
 
     interface MsgBean {
