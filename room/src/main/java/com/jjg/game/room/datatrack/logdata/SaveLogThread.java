@@ -1,4 +1,4 @@
-package com.jjg.game.room.data.logdata;
+package com.jjg.game.room.datatrack.logdata;
 
 
 import com.jjg.game.common.proto.Pair;
