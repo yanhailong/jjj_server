@@ -83,5 +83,17 @@ public interface HallConstant  {
         //选择头像等信息(头像，头像框，称号，国旗)
         int REQ_SELECT_AVATAR = BASE_MSG_PREFIX | 0x11;
         int RES_SELECT_AVATAR = BASE_MSG_PREFIX | 0x12;
+
+        //获取背包
+        int REQ_GET_PACK = BASE_MSG_PREFIX | 0x13;
+        int RES_GET_PACK = BASE_MSG_PREFIX | 0x14;
+
+        //使用道具
+        int REQ_USE_ITEM = BASE_MSG_PREFIX | 0x15;
+        int RES_USE_ITEM = BASE_MSG_PREFIX | 0x16;
+
+        //获取所有头像信息
+        int REQ_ALL_AVATAR = BASE_MSG_PREFIX | 0x17;
+        int RES_ALL_AVATAR = BASE_MSG_PREFIX | 0x18;
     }
 }

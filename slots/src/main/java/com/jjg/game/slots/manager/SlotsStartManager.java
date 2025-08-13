@@ -2,6 +2,7 @@ package com.jjg.game.slots.manager;
 
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressTestManager;
@@ -37,6 +38,8 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
     private SlotsPoolDao slotsPoolDao;
     @Autowired
     private DollarExpressTestManager testManager;
+    @Autowired
+    private CoreMarqueeManager marqueeManager;
     //上下文
     private ApplicationContext context;
 
@@ -55,6 +58,7 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
         //初始化所有游戏管理器
         initGameManager();
 //        testManager.init();
+        this.marqueeManager.init();
         running = true;
     }
 

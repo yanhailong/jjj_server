@@ -1,6 +1,7 @@
 package com.jjg.game.hall.manager;
 
 import com.jjg.game.common.service.MarsCoreStartService;
+import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.service.HallService;
@@ -34,6 +35,8 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private HallSampleManager hallSampleManager;
     @Autowired
     private ApplicationEventPublisher eventPublisher;
+    @Autowired
+    private CoreMarqueeManager marqueeManager;
 
     private ApplicationContext context;
 
@@ -45,6 +48,7 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         coreStartService.init(this.context);
         hallSampleManager.init();
         hallService.init();
+        marqueeManager.init();
 
         running = true;
     }

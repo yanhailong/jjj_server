@@ -161,9 +161,14 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             res.playerId = player.getId();
             res.nickName = player.getNickName();
+            res.gender = player.getGender();
             res.gold = player.getGold();
             res.diamond = player.getDiamond();
             res.vipLevel = player.getVipLevel();
+            res.headImgId = player.getHeadImgId();
+            res.headFrameId = player.getHeadFrameId();
+            res.nationalId = player.getNationalId();
+            res.titleId = player.getTitleId();
             //添加游戏列表
             res.gameList = addGameList();
             session.send(res);

@@ -80,4 +80,13 @@ public class PlayerAvatarDao extends MongoBaseDao<PlayerAvatar,Long>{
         Query query = new Query(Criteria.where("playerId").is(playerId).and("unlockTitleSet").in(titleId));
         return mongoTemplate.exists(query, PlayerAvatar.class);
     }
+
+    /**
+     * 获取玩家头像信息
+     * @param playerId
+     * @return
+     */
+    public PlayerAvatar getPlayerAvatar(long playerId) {
+        return mongoTemplate.findById(playerId, PlayerAvatar.class);
+    }
 }

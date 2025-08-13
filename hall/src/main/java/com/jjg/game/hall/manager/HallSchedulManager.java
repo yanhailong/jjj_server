@@ -1,5 +1,6 @@
 package com.jjg.game.hall.manager;
 
+import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.mongodb.client.result.DeleteResult;
 import com.jjg.game.common.curator.MarsCurator;
@@ -22,7 +23,7 @@ import java.util.Set;
  */
 @Component
 @EnableScheduling
-public class HallClearManager {
+public class HallSchedulManager {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
