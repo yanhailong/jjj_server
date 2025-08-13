@@ -69,7 +69,11 @@ public class PokerBuilder {
         if (Objects.nonNull(gamePlayer)) {
             pokerPlayerInfo.icon = gamePlayer.getNickName();
             pokerPlayerInfo.name = gamePlayer.getNickName();
-            pokerPlayerInfo.accountNumber = gamePlayer.getGold();
+            if (gameDataVo instanceof TexasGameDataVo texasGameDataVo) {
+                pokerPlayerInfo.accountNumber = texasGameDataVo.getTempGold().getOrDefault(gamePlayer.getId(), 0L);
+            } else {
+                pokerPlayerInfo.accountNumber = gamePlayer.getGold();
+            }
         }
         return pokerPlayerInfo;
     }

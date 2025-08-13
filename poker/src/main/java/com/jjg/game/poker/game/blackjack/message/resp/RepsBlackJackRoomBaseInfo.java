@@ -6,6 +6,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractNotice;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
 import com.jjg.game.poker.game.blackjack.message.bean.BlackJackPlayerInfo;
+import com.jjg.game.room.constant.EGamePhase;
 
 import java.util.List;
 
@@ -17,6 +18,8 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.BLACK_JACK_TYPE, cmd = BlackJackConstant.MsgBean.REPS_BLACK_ROOM_BASE_INFO, resp = true)
 @ProtoDesc("响应房间基本信息")
 public class RepsBlackJackRoomBaseInfo extends AbstractNotice {
+    @ProtoDesc("当前阶段")
+    public EGamePhase phase;
     @ProtoDesc("玩家信息 不包含庄家")
     public List<BlackJackPlayerInfo> playerInfos;
     @ProtoDesc("结算信息")
@@ -27,4 +30,6 @@ public class RepsBlackJackRoomBaseInfo extends AbstractNotice {
     public long overTime;
     @ProtoDesc("庄家能展示的牌")
     public List<Integer> cardIds;
+    @ProtoDesc("筹码列表")
+    public List<Integer> chipsList;
 }

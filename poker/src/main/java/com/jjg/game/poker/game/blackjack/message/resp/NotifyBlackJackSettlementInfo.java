@@ -20,6 +20,8 @@ public class NotifyBlackJackSettlementInfo extends AbstractNotice {
     public List<PokerPlayerSettlementInfo> settlementInfos;
     @ProtoDesc("庄家牌信息")
     public List<Integer> cardIds;
+    @ProtoDesc("庄家总点数")
+    public int totalPoint;
     @ProtoDesc("结束时间")
     public long endTime;
 }

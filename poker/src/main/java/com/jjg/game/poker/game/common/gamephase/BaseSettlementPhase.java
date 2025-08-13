@@ -29,6 +29,7 @@ public abstract class BaseSettlementPhase<T extends BasePokerGameDataVo> extends
     public void phaseFinish() {
         if (gameController instanceof BasePokerGameController<T> controller) {
             phaseFinishDoAction();
+            controller.setCurrentGamePhase(new BaseWaitReadyPhase<>(gameController));
             gameDataVo.resetData(controller);
             //开启下一局
             controller.tryStartGame();

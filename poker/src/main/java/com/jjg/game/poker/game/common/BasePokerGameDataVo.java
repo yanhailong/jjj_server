@@ -34,7 +34,7 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
     /**
      * 本轮游戏id
      */
-    private long id;
+    private long id = 0;
 
     //座位id->座位状态
     private final TreeMap<Integer, SeatInfo> seatInfo = new TreeMap<>();
@@ -172,6 +172,8 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
         if (Objects.nonNull(playerTimerEvent)) {
             controller.removePlayerTimerEvent(getPlayerTimerEvent());
         }
+        cards = null;
+        playerSeatInfoList.clear();
         this.playerTimerEvent = null;
     }
 }

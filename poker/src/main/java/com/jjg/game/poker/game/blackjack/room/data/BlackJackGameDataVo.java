@@ -88,10 +88,16 @@ public class BlackJackGameDataVo extends BasePokerGameDataVo {
         this.dealerCards = dealerCards;
     }
 
+    public boolean canStartGame() {
+        int seatDownNum = getSeatDownNum() + 1;
+        return seatDownNum >= getRoomCfg().getMinPlayer() && seatDownNum <= getRoomCfg().getMaxPlayer();
+    }
+
     @Override
     public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {
         super.resetData(controller);
         aceBuyEndTime = 0;
+        setIndex(0);
         settlementInfo = null;
         allBetInfo.clear();
         aceBuyPlayerIds.clear();

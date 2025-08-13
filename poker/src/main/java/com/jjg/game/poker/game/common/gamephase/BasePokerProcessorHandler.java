@@ -26,7 +26,7 @@ public abstract class BasePokerProcessorHandler<T extends BasePokerGameDataVo> i
     @Override
     public void action() throws Exception {
         BasePokerGameDataVo gameDataVo = gameController.getGameDataVo();
-        if (gameDataVo.getId() != id) {
+        if (gameDataVo.getId() != id || !gameController.inRunPhase()) {
             return;
         }
         PlayerSeatInfo currentPlayerSeatInfo = gameDataVo.getCurrentPlayerSeatInfo();

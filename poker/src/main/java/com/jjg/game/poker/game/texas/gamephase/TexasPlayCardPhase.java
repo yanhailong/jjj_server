@@ -54,21 +54,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
             gameDataVo.setDealerSeatId(buttonSeatId);
             // 确定执行顺序
             List<PlayerSeatInfo> playerSeatInfo = gameDataVo.getPlayerSeatInfoList();
-            playerSeatInfo.clear();
-            for (Map.Entry<Integer, SeatInfo> entry : seatInfo.entrySet()) {
-                SeatInfo info = entry.getValue();
-                GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
-                if (Objects.isNull(gamePlayer)) {
-                    log.error("德州扑克确定执行顺序时GamePlayer 为null playerId:{} id:{}", info.getPlayerId(), gameDataVo.getId());
-                    continue;
-                }
-                if (gamePlayer.getPokerPlayerGameData().isInit() && info.isSeatDown()) {
-                    info.setJoinGame(true);
-                    playerSeatInfo.add(new PlayerSeatInfo(entry.getKey(), info.getPlayerId()));
-                } else {
-                    info.setJoinGame(false);
-                }
-            }
+            controller.genPlayerSeatInfoList(seatInfo, playerSeatInfo);
             //确定庄家在执行列表中的位置
             for (int i = 0; i < playerSeatInfo.size(); i++) {
                 if (playerSeatInfo.get(i).getSeatId() == buttonSeatId) {
@@ -93,7 +79,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
                 texasHistory.getAllCards().put(info.getPlayerId(), TexasDataHelper.getClientId(info.getCurrentCards(), TexasDataHelper.getPoolId(gameDataVo)));
                 // 本轮总获得的值
                 Long bet = gameDataVo.getBaseBetInfo().getOrDefault(info.getPlayerId(), 0L);
-                texasHistory.getTotalPlayerBetInfo().add(TexasBuilder.getTexasHistoryPlayerInfo(info, gameDataVo, bet));
+                texasHistory.getTotalPlayerBetInfo().add(TexasBuilder.getTexasHistoryPlayerInfo(info, gameDataVo, true, bet));
             }
             // 小盲 大盲下注
             Pair<Long, Long> bedAndSBBet = BBAndSBBet(controller, texasCfg);
@@ -150,6 +136,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         gameDataVo.getPool().get(0).addEligiblePlayer(info.getPlayerId());
         //添加记录
         historyRoundInfo.roundInfo.add(TexasBuilder.getTexasHistoryPlayerInfo(info, gameDataVo, sBBetValue));
+        texasHistory.getTotalPlayerBetInfoMap().get(info.getPlayerId()).betValue = sBBetValue;
         //大盲
         info = playerSeatInfoList.get((dealerIndex + startIndex + 1) % size);
         long BBBetValue = texasCfg.getBbNum();
@@ -161,6 +148,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         gameDataVo.setMaxBetValue(BBBetValue);
         //添加记录
         historyRoundInfo.roundInfo.add(TexasBuilder.getTexasHistoryPlayerInfo(info, gameDataVo, BBBetValue));
+        texasHistory.getTotalPlayerBetInfoMap().get(info.getPlayerId()).betValue = BBBetValue;
         //添加记录
         texasHistory.setSBValue(sBBetValue);
         texasHistory.setBBValue(BBBetValue);
@@ -175,7 +163,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         int less = -1;
         int more = -1;
         for (Map.Entry<Integer, SeatInfo> entry : seatInfo.entrySet()) {
-            if (entry.getKey() > gameDataVo.getDealerIndex() && entry.getValue().isSeatDown()) {
+            if (entry.getKey() > gameDataVo.getDealerSeatId() && entry.getValue().isSeatDown()) {
                 more = entry.getKey();
                 break;
             } else if (less == -1) {
