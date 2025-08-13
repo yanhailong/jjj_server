@@ -1,7 +1,9 @@
 package com.jjg.game.core.dao;
 
+import cn.hutool.core.lang.Snowflake;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.NodeManager;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
@@ -39,9 +41,10 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     @Autowired
     protected RedisLock redisLock;
     @Autowired
-    PlayerRoomDataDao playerRoomDataDao;
+    private PlayerRoomDataDao playerRoomDataDao;
     @Autowired
-    NodeManager nodeManager;
+    private NodeManager nodeManager;
+    private final Snowflake snowflake = new Snowflake(NodeType.GAME.getValue(), 1);
 
     protected Class<T> roomClazz;
     protected Class<P> roomPlayerClazz;
@@ -162,10 +165,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     protected T createRoom(T room) {
         try {
             //随机房间号
-            // TODO 游戏房间节点处于分布式环境下如何保证房间ID的唯一性,仅在本地100000-999999的范围随机,不能保证不会产生一样的房间ID，并且上层调用并未检查房间ID的合法性
-            // FIXME 1.优先考虑使用雪花算法生成ID，如果房间需要展示ID，可以截取ID的后8位
-            // FIXME 2.如果需要保证无序的房间ID，可以预先随机填充N个一定范围内的唯一ID到redis的List中，再按序取出
-            long roomId = RandomUtils.randomMinMax(GameConstant.Common.ROOM_ID_MIN, GameConstant.Common.ROOM_ID_MAX);
+            long roomId = snowflake.nextId();
             room.setId(roomId);
 
             log.debug("创建房间是生成的房间id = {}", roomId);
@@ -219,7 +219,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
      * 获取房间数据
      */
     public T getRoom(int gameType, long roomId) {
-        return (T) redisTemplate.opsForHash(). get(getTableName(gameType), roomId);
+        return (T) redisTemplate.opsForHash().get(getTableName(gameType), roomId);
     }
 
     /**

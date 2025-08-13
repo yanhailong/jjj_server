@@ -30,4 +30,19 @@ public class TablePlayerInfo {
 
     @ProtoDesc("近20局赢的总局数")
     public int winCount;
+
+    @ProtoDesc("性别")
+    public byte gender;
+
+    @ProtoDesc("头像id")
+    public int headImgId;
+
+    @ProtoDesc("头像框id")
+    public int headFrameId;
+
+    @ProtoDesc("国旗id")
+    public int nationalId;
+
+    @ProtoDesc("称号id")
+    public int titleId;
 }

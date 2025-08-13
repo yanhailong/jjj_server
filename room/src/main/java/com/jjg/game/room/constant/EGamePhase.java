@@ -24,6 +24,8 @@ public enum EGamePhase {
     WAIT_READY("等待开始"),
     @ProtoDesc("游戏一个回合结束进行结算")
     GAME_ROUND_OVER_SETTLEMENT("游戏一个回合结束进行结算"),
+    @ProtoDesc("游戏暂停")
+    GAME_PAUSE("游戏暂停"),
     ;
 
     /**

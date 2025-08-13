@@ -63,6 +63,11 @@ public interface IRoomLifeCycle {
     void stopGame();
 
     /**
+     * 暂停游戏
+     */
+    void pauseGame();
+
+    /**
      * 销毁房间前
      */
     default void beforeDestroyRoom() {

@@ -22,7 +22,7 @@ public class PlayerSessionTokenDao extends MongoBaseDao<PlayerSessionToken,Long>
     }
 
     //token过期时长
-    private final long tokenExpireTime = 24 * TimeHelper.ONE_HOUR;
+    private final long tokenExpireTime = 24 * TimeHelper.ONE_HOUR_OF_MILES;
 
     @Autowired
     private RedisTemplate redisTemplate;

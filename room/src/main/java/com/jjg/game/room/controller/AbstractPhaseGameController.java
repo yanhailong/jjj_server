@@ -112,6 +112,12 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
                     this.autoRunGamePhase();
                 }), RoomEventType.ROOM_PHASE_RUN_EVENT);
         } else {
+            if (closeGameOnNextRound) {
+                // 广播游戏暂停消息
+                broadcastGamePauseInfo();
+                // 暂停进入下一轮
+                return;
+            }
             // 阶段全部运行结束
             phaseRunOver();
             // 全部游戏阶段完成

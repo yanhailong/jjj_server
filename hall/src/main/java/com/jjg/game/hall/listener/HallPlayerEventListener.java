@@ -22,9 +22,9 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.logger.HallLogger;
-import com.jjg.game.hall.pb.GameListConfig;
-import com.jjg.game.hall.pb.ReqLogin;
-import com.jjg.game.hall.pb.ResLogin;
+import com.jjg.game.hall.pb.struct.GameListConfig;
+import com.jjg.game.hall.pb.req.ReqLogin;
+import com.jjg.game.hall.pb.res.ResLogin;
 import com.jjg.game.hall.sample.GameDataManager;
 import com.jjg.game.hall.sample.bean.GameListCfg;
 import com.jjg.game.hall.service.HallPlayerService;
@@ -171,6 +171,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //发送登录日志
             PlayerController playerController = new PlayerController(session, player);
             session.setReference(playerController);
+            //需要设置workId，否则hall模块所有的请求都将处于多线程环境，当连点发生时不能保证逻辑顺序执行
+            session.setWorkId(player.getId());
             hallLogger.login(player, req.token, playerSessionToken.getLoginType());
 
             if(register[0]){

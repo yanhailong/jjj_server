@@ -119,4 +119,21 @@ public class MatchDataDao {
         }
         return false;
     }
+
+
+    /**
+     * 房间等待ID设置为-1将其移动到最前面
+     */
+    public boolean moveWaitJoinRoomIdToLast(int gameType, int roomConfigId, long roomId) {
+        if (redisLock.tryLock(getLockMatchRedisKey(gameType, roomConfigId))) {
+            try {
+                String redisKey = MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);
+                matchKeyTemplate.opsForZSet().add(redisKey, roomId + "", -1);
+                return true;
+            } finally {
+                redisLock.tryUnlock(getLockMatchRedisKey(gameType, roomConfigId));
+            }
+        }
+        return false;
+    }
 }

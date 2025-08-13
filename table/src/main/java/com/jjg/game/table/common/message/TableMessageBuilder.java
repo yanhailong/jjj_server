@@ -141,6 +141,11 @@ public class TableMessageBuilder {
         }
         tablePlayerInfo.totalBet = totalBet;
         tablePlayerInfo.winCount = winNum;
+        tablePlayerInfo.gender = gamePlayer.getGender();
+        tablePlayerInfo.headFrameId = gamePlayer.getHeadFrameId();
+        tablePlayerInfo.nationalId = gamePlayer.getNationalId();
+        tablePlayerInfo.headImgId = gamePlayer.getHeadImgId();
+        tablePlayerInfo.titleId = gamePlayer.getTitleId();
         return tablePlayerInfo;
     }
 

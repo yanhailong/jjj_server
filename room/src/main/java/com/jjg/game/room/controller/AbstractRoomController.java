@@ -156,7 +156,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     /**
      * 更新房间等待列表
      */
-    private void updateWaitRoomList() {
+    protected void updateWaitRoomList() {
         // 如果房间已满，则需要将等待房间列表从redis中删除
         if (!room.canEnter()) {
             roomManager.getMatchDataDao().removeWaitJoinRoomId(
@@ -263,6 +263,11 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
     @Override
+    public void pauseGame() {
+        gameController.pauseGame();
+    }
+
+    @Override
     public void disbandRoom() {
         // 调用房间控制器中的解散房间逻辑
         gameController.disbandRoom();
@@ -359,15 +364,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         if (gameController.isGameStarted()) {
             // 由房间控制器调用game的tick统一控制
             gameController.roomTick();
+            // 机器人加入逻辑
+            checkRobotJoinRoom();
         }
-        // 耗时逻辑需要抛到game线程，保证不能阻塞time tick
-        /*roomProcessor.executeHandler(new BaseHandler<String>() {
-            @Override
-            public void action() {
-            }
-        }.setHandlerParamWithSelf("check robot join"));*/
-        // 机器人加入逻辑
-        checkRobotJoinRoom();
     }
 
     /**
@@ -649,7 +648,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     @Override
     public void stopGame() {
-        log.info("开始暂停游戏 {}", room.logStr());
+        log.info("开始停止游戏 {}", room.logStr());
         this.isStoping = true;
         // 移除定时器
         this.timerCenter.remove(this);
