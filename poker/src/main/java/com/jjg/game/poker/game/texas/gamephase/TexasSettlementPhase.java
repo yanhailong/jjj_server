@@ -10,7 +10,6 @@ import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
-import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerSettlementInfo;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
@@ -311,7 +310,6 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
     public void phaseFinishDoAction() {
         if (gameController instanceof BasePokerGameController<TexasGameDataVo> controller) {
             //设置为等待阶段
-            controller.setCurrentGamePhase(new BaseWaitReadyPhase<>(gameController));
             gameDataVo.getTexasHistoryList().add(gameDataVo.getTexasHistory());
             //金币不够底注的尝试重新拿金币
             updatePlayerData();

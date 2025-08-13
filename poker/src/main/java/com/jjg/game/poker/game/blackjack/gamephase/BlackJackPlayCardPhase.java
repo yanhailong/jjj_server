@@ -36,7 +36,9 @@ public class BlackJackPlayCardPhase extends BasePlayCardPhase<BlackJackGameDataV
             Map<Integer, PokerCard> cardListMap = BlackJackDataHelper.getCardListMap(poolId);
             int sendNum = sendCards(cardListMap, gameDataVo);
             //发庄家
-            List<Integer> cards = new ArrayList<>(gameDataVo.getCards().subList(0, roomChessCfg.getHandPoker()));
+            List<Integer> dealerCards = gameDataVo.getCards().subList(0, roomChessCfg.getHandPoker());
+            List<Integer> cards = new ArrayList<>(dealerCards);
+            dealerCards.clear();
             gameDataVo.setDealerCards(cards);
             //通知发牌信息
             NotifyBlackJackSendCardInfo notifyBlackJackSendCardInfo = new NotifyBlackJackSendCardInfo();
@@ -67,6 +69,7 @@ public class BlackJackPlayCardPhase extends BasePlayCardPhase<BlackJackGameDataV
             }
             notifyBlackJackSendCardInfo.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
             gameDataVo.setCanBuyACE(canBuy);
+            notifyBlackJackSendCardInfo.canBuyACE= canBuy;
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyBlackJackSendCardInfo));
         }
     }

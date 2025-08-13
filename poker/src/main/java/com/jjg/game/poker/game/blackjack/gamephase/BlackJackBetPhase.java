@@ -4,19 +4,19 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
+import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BaseBetPhase;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
+import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.listener.RoomEventListener;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author lm
@@ -42,6 +42,17 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
             controller.addPokerPhase(gamePhase);
             //通知场上信息
             PokerBuilder.buildNotifyPhaseChange(EGamePhase.PLAY_CART, -1);
+        }
+    }
+
+    @Override
+    public void phaseDoAction() {
+        super.phaseDoAction();
+        if (gameController instanceof BlackJackGameController controller) {
+            //生成执行列表
+            TreeMap<Integer, SeatInfo> seatInfo = gameDataVo.getSeatInfo();
+            List<PlayerSeatInfo> playerSeatInfoList = gameDataVo.getPlayerSeatInfoList();
+            controller.genPlayerSeatInfoList(seatInfo, playerSeatInfoList);
         }
     }
 
@@ -73,8 +84,18 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
             }
             playerSeatInfo.remove(info);
         }
-        //进入下个阶段
-        nextPhase();
+        if (gameDataVo.canStartGame()) {
+            //进入下个阶段
+            nextPhase();
+        } else {
+            //重新等待
+            gameDataVo.getPlayerSeatInfoList().clear();
+            if (gameController instanceof BasePokerGameController<BlackJackGameDataVo> basePokerGameController) {
+                basePokerGameController.goBackWaitReadyPhase();
+            }
+            NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(EGamePhase.WAIT_READY, -1);
+            broadcastMsgToRoom(notifyPokerPhaseChange);
+        }
     }
 
 
