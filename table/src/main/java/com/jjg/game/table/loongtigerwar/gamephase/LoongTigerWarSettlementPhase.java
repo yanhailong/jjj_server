@@ -4,9 +4,12 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.utils.PokerCardUtils;
+import com.jjg.game.room.data.log.LogParam;
+import com.jjg.game.room.data.log.SaveLogThread;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.TablePlayerGameData;
-import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -92,11 +95,12 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         NotifyLoongTigerWarSettleInfo warSettleInfo = new NotifyLoongTigerWarSettleInfo();
         warSettleInfo.loongCard = twoSpecificCard.getFirst();
         warSettleInfo.tigerCard = twoSpecificCard.getSecond();
-        warSettleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(playerGet,gameDataVo);
+        warSettleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(playerGet, gameDataVo);
         warSettleInfo.winState = next;
         warSettleInfo.waitEndTime = gameDataVo.getPhaseEndTime();
         //更新房间记录
         updateGameHistory(next);
+        addLog(gameDataVo, playerGet, warSettleInfo.loongCard, warSettleInfo.tigerCard);
         //清除押注历史
         betInfo.clear();
         //更新结算信息
@@ -122,5 +126,23 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         gameDataVo.addHistory(result);
     }
 
-
+    private void addLog(LoongTigerWarGameDataVo gameDataVo, Map<Long, DefaultKeyValue<Long, Long>> playerGetInfo, int loongCard, int tigerCard) {
+        Pair<Map<Long, Map<Integer, List<Integer>>>, Map<Long, DefaultKeyValue<Long, Long>>> data = Pair.newPair(new HashMap<>(gameDataVo.getPlayerBetInfo()), playerGetInfo);
+        Map<Long, GamePlayer> gamePlayerMap = new HashMap<>();
+        for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
+            if (entry.getValue() instanceof GameRobotPlayer) {
+                continue;
+            }
+            gamePlayerMap.put(entry.getKey(), entry.getValue());
+        }
+        LogParam<Pair<Map<Long, Map<Integer, List<Integer>>>, Map<Long, DefaultKeyValue<Long, Long>>>, List<Integer>> logParam = new LogParam<>(data, gamePlayerMap, List.of(loongCard, tigerCard));
+        Thread.ofVirtual().start(new SaveLogThread<>(logParam,
+                (param) -> {
+                    SaveLogThread.generalLog(param, gameDataTracker);
+                    List<Integer>  result = param.result();
+                    gameDataTracker.addGameLogData("loongCard", result.getFirst());
+                    gameDataTracker.addGameLogData("tigerCard", result.getLast());
+                    gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
+                }));
+    }
 }
