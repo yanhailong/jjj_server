@@ -54,21 +54,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
             gameDataVo.setDealerSeatId(buttonSeatId);
             // 确定执行顺序
             List<PlayerSeatInfo> playerSeatInfo = gameDataVo.getPlayerSeatInfoList();
-            playerSeatInfo.clear();
-            for (Map.Entry<Integer, SeatInfo> entry : seatInfo.entrySet()) {
-                SeatInfo info = entry.getValue();
-                GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
-                if (Objects.isNull(gamePlayer)) {
-                    log.error("德州扑克确定执行顺序时GamePlayer 为null playerId:{} id:{}", info.getPlayerId(), gameDataVo.getId());
-                    continue;
-                }
-                if (gamePlayer.getPokerPlayerGameData().isInit() && info.isSeatDown()) {
-                    info.setJoinGame(true);
-                    playerSeatInfo.add(new PlayerSeatInfo(entry.getKey(), info.getPlayerId()));
-                } else {
-                    info.setJoinGame(false);
-                }
-            }
+            controller.genPlayerSeatInfoList(seatInfo, playerSeatInfo);
             //确定庄家在执行列表中的位置
             for (int i = 0; i < playerSeatInfo.size(); i++) {
                 if (playerSeatInfo.get(i).getSeatId() == buttonSeatId) {

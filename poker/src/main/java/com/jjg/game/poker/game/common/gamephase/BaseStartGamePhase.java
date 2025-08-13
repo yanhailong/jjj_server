@@ -7,7 +7,6 @@ import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.room.constant.EGamePhase;
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
@@ -26,7 +25,7 @@ public abstract class BaseStartGamePhase<T extends BasePokerGameDataVo> extends 
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
-        NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(getGamePhase(), getPhaseRunTime());
+        NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(getGamePhase(), gameDataVo.getPhaseEndTime());
         broadcastMsgToRoom(notifyPokerPhaseChange);
     }
 
@@ -35,6 +34,9 @@ public abstract class BaseStartGamePhase<T extends BasePokerGameDataVo> extends 
         //人数足够开始游戏 不够回退到等待阶段
         int total = gameDataVo.getSeatDownNum();
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
+        if (getGamePhase() != EGamePhase.START_GAME) {
+            return;
+        }
         if (roomCfg.getMinPlayer() >= total && total <= roomCfg.getMaxPlayer()) {
             //进行下一个阶段
             nextPhase();
