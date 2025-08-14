@@ -277,9 +277,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 return Code.FAIL;
             }
             // 检查玩家重复加入房间的情况,如果是机器人重复加入直接退出,真人玩家进行兼容处理
-            if (!checkCanRepeatJoinRoom(playerController)) {
+            // TODO 断线重连后修改此段逻辑，需要阻止玩家重复加入
+            /*if (!checkCanRepeatJoinRoom(playerController)) {
                 return Code.REPEAT_JOIN_ROOM;
-            }
+            }*/
             AbstractRoomController<RC, R> roomController = getRoomController(gameType, roomId);
             if (roomController == null) {
                 AbstractRoomDao<R, ? extends RoomPlayer> roomDao = getRoomDao(gameType);
@@ -365,14 +366,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         // 如果是机器人重复加入的情况直接返回，机器人不能重复加入房间，按理不应出现此情况，除非机器人退出失败
         if (!playerRoomControllers.isEmpty() && playerController.isRobotPlayer()) {
             return false;
-        }
-        // TODO暂时延迟一秒再进行，等回存结束
-        if (!playerRoomControllers.isEmpty() || playerController.roomId() > 0) {
-            // 如果玩家的房间ID不为0，说明有可能旧的节点还未处理完玩家退出流程，暂时延迟1秒，等待处理
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ignored) {
-            }
         }
         // 如果玩家还存在房间中，先执行退出逻辑再进入，TODO 如果后续是断线重连进入则需要进入断线重连逻辑
         // 需要保证一个玩家同时只能在一个房间中
