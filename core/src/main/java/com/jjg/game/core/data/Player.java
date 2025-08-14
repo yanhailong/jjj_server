@@ -16,7 +16,7 @@ public class Player {
     private long id;
     //昵称
     private String nickName;
-    //性别
+    //性别  0.女  1.男  2.其他
     private byte gender;
     //头像id
     private int headImgId;
