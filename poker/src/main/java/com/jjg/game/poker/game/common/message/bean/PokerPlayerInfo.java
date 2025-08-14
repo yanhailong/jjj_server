@@ -17,7 +17,7 @@ public class PokerPlayerInfo {
     @ProtoDesc("昵称")
     public String name;
     @ProtoDesc("头像")
-    public String icon;
+    public int icon;
     @ProtoDesc("座位号")
     public int seatIndex;
     @ProtoDesc("座位状态(false站起true坐下)")

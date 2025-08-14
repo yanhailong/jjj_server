@@ -105,7 +105,7 @@ public class PokerHandEvaluator {
         for (int i = start; i <= cards.size() - (k - temp.size()); i++) {
             temp.add(cards.get(i));
             combineHelper(cards, i + 1, k, temp, result);
-            temp.remove(temp.size() - 1);
+            temp.removeLast();
         }
     }
 
@@ -129,47 +129,6 @@ public class PokerHandEvaluator {
         return winners;
     }
 
-    public static void main(String[] args) {
-//        List<Integer> joker = PokerCardUtils.getPokerIntIdExceptJoker();
-//        Collections.shuffle(joker);
-//        List<Integer> list = joker.subList(0, 5);
-//        List<Card> publicCards = list.stream().map(Card::new).collect(Collectors.toList());
-//        list.clear();
-        //全部相比
-        List<Integer> list = new ArrayList<>(13);
-        for (int i = 1; i < 14; i++) {
-            list.add(i);
-        }
-        List<Card> publicCards = List.of(
-                new Card(1, list.remove(2)), // ♠A
-                new Card(2, list.remove(2)), // ♠K
-                new Card(3, list.remove(2)), // ♠Q
-                new Card(1, list.remove(2)), // ♠J
-                new Card(2, list.remove(2))  // ♠10
-        );
-        List<Card> cards = new ArrayList<>();
-
-        //非阶级相比
-        System.out.println("公牌" + publicCards);
-        //随机生成5张
-        //随机生成 9 2
-        List<PlayerHand> players = new ArrayList<>();
-        cards.add(new Card(1, list.remove(0)));
-        cards.add(new Card(2, list.remove(0)));
-        players.add(new PlayerHand(1, cards));
-        Collections.shuffle(list);
-        for (int i = 1; i < 9; i++) {
-            if (list.size() < 4) {
-                break;
-            }
-            cards = new ArrayList<>();
-            cards.add(new Card(1, list.remove(0)));
-            cards.add(new Card(2, list.remove(0)));
-            players.add(new PlayerHand(i + 1, cards));
-        }
-        List<Pair<Long, HandResult>> winners = findWinners(players, publicCards);
-        System.out.println("赢家是: " + winners);
-    }
 }
 
 

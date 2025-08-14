@@ -37,7 +37,10 @@ public class TexasBuilder {
         texasRoundInfo.cards = TexasDataHelper.getClientId(addCards, TexasDataHelper.getPoolId(gameDataVo));
         texasRoundInfo.round = gameDataVo.getRound();
         if (Objects.nonNull(playerSeatInfo)) {
-            texasRoundInfo.handType = getTempHandType(playerSeatInfo, gameDataVo).getHandRank().rank;
+            HandResult tempHandType = getTempHandType(playerSeatInfo, gameDataVo);
+            if (Objects.nonNull(tempHandType)) {
+                texasRoundInfo.handType = tempHandType.getHandRank().rank;
+            }
         }
         notifyTexasPublicCardChange.roundInfo = texasRoundInfo;
         notifyTexasPublicCardChange.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();

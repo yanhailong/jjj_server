@@ -55,6 +55,6 @@ public class HandResult implements Comparable<HandResult> {
     }
 
     public boolean isA2345(List<Integer> kickers) {
-        return kickers.get(0).equals(14) && kickers.contains(2);
+        return kickers.getFirst().equals(14) && kickers.contains(2);
     }
 }
