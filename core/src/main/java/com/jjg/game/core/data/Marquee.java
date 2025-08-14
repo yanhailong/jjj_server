@@ -1,5 +1,7 @@
 package com.jjg.game.core.data;
 
+import java.util.List;
+
 /**
  * @author 11
  * @date 2025/8/11 19:46
@@ -20,8 +22,10 @@ public class Marquee {
     private int startTime;
     //结束时间
     private int endTime;
-    //最近一次推送时间
-    private int lastSendTime;
+    //多语言id
+    private int langId;
+    //参数
+    private List<String> params;
 
     public int getId() {
         return id;
@@ -87,11 +91,19 @@ public class Marquee {
         this.endTime = endTime;
     }
 
-    public int getLastSendTime() {
-        return lastSendTime;
+    public int getLangId() {
+        return langId;
     }
 
-    public void setLastSendTime(int lastSendTime) {
-        this.lastSendTime = lastSendTime;
+    public void setLangId(int langId) {
+        this.langId = langId;
+    }
+
+    public List<String> getParams() {
+        return params;
+    }
+
+    public void setParams(List<String> params) {
+        this.params = params;
     }
 }

@@ -14,7 +14,7 @@ import java.util.List;
 @Document
 public class Mail {
     @Id
-    private long id;
+    private int id;
     //所属玩家ID
     @Indexed
     private long playerId;
@@ -33,11 +33,11 @@ public class Mail {
     //邮件状态 0.未阅读  1.已阅读  2.已领取
     private int status;
 
-    public long getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(int id) {
         this.id = id;
     }
 

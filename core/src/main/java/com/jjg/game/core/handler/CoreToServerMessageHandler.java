@@ -1,5 +1,6 @@
 package com.jjg.game.core.handler;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.core.data.Marquee;
@@ -26,11 +27,12 @@ public class CoreToServerMessageHandler {
     @Command(MessageConst.ToServer.NOTICE_MARQUEE_HALL_MASTER)
     public void notifyMarqueeHallMaster(NotifyAllNodesMarqueeServer notify) {
         try{
-            log.info("收到其他节点推送的跑马灯信息 id = {}",notify.id);
+            log.info("收到其他节点推送的跑马灯信息 notify = {}", JSON.toJSONString(notify));
             Marquee marquee = new Marquee();
             marquee.setId(notify.id);
             marquee.setContent(notify.content);
             marquee.setInterval(notify.interval);
+            marquee.setType(notify.type);
             marquee.setStartTime(notify.startTime);
             marquee.setEndTime(notify.endTime);
 

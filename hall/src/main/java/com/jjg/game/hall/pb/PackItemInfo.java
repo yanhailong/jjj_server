@@ -12,8 +12,6 @@ import com.jjg.game.common.proto.ProtobufMessage;
 public class PackItemInfo {
     @ProtoDesc("格子id")
     public int girdId;
-    @ProtoDesc("道具id")
-    public int itemId;
-    @ProtoDesc("数量")
-    public int count;
+    @ProtoDesc("道具信息")
+    public ItemInfo item;
 }

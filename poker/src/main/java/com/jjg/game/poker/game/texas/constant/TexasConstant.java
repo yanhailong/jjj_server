@@ -1,6 +1,5 @@
 package com.jjg.game.poker.game.texas.constant;
 
-import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 
 /**

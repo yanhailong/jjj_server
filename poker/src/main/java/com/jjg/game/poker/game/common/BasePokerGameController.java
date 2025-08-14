@@ -107,7 +107,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     /**
      * 添加节点执行timer
      *
-     * @param phase
+     * @param phase 阶段定时器
      */
     public final void addPokerPhaseTimer(IRoomPhase phase) {
         currentGamePhase = phase;
@@ -121,7 +121,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     /**
      * 添加阶段执行
      *
-     * @param phase
+     * @param phase 阶段
      */
     public final void addPokerPhase(IRoomPhase phase) {
         currentGamePhase = phase;

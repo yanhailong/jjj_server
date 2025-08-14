@@ -29,7 +29,7 @@ public class PokerHandEvaluator {
     private static HandResult evaluateHand(List<Card> hand) {
         hand.sort((a, b) -> Integer.compare(b.getRank(), a.getRank()));
 
-        boolean flush = hand.stream().allMatch(c -> c.getSuit() == hand.get(0).getSuit());
+        boolean flush = hand.stream().allMatch(c -> c.getSuit() == hand.getFirst().getSuit());
         List<Integer> ranks = hand.stream().map(Card::getRank).collect(Collectors.toList());
 
         boolean straight = isStraight(ranks);

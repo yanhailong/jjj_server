@@ -41,7 +41,7 @@ public class HallSchedulManager {
     @Scheduled(cron = "0 30 4 * * ? ")
     private void dailyClear(){
         //是主节点才能执行
-        if(marsCurator.master(NodeType.HALL.getValue())){
+        if(marsCurator.isMaster()){
             clearPlayerData();
         }
     }
@@ -49,7 +49,7 @@ public class HallSchedulManager {
     @Scheduled(cron = "0 0 0/1 * * ?")
     private void clearToken(){
         //是主节点才能执行
-        if(marsCurator.master(NodeType.HALL.getValue())){
+        if(marsCurator.isMaster()){
             DeleteResult deleteResult = playerSessionTokenDao.clearExpireToken();
             log.info("删除过期token条数: {}", deleteResult.getDeletedCount());
         }

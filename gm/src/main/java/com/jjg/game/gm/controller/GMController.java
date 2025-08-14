@@ -1,5 +1,6 @@
 package com.jjg.game.gm.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.cluster.ClusterClient;
@@ -14,6 +15,7 @@ import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.MarqueeDao;
 import com.jjg.game.core.data.GameStatus;
+import com.jjg.game.core.data.Mail;
 import com.jjg.game.core.data.Marquee;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
@@ -112,7 +114,7 @@ public class GMController extends AbstractController {
         marquee.setStartTime(TimeHelper.getSecondTime(dto.start_time()));
         marquee.setEndTime(TimeHelper.getSecondTime(dto.end_time()));
         marquee.setPriority(dto.priority());
-        marquee.setType(GameConstant.MarqueeType.SYSTEM_MSG);
+        marquee.setType(dto.type() < 1 ? GameConstant.MarqueeType.SYSTEM_MSG : dto.type());
         marqueeDao.addMarquee(marquee);
 
         //构建请求消息
@@ -120,6 +122,7 @@ public class GMController extends AbstractController {
         notify.id = marquee.getId();
         notify.content = marquee.getContent();
         notify.interval = marquee.getInterval();
+        notify.type = marquee.getType();
         notify.startTime = marquee.getStartTime();
         notify.endTime = marquee.getEndTime();
         marqueeManager.notifyHallAndGameNodeStartMarquee(notify);
@@ -157,7 +160,14 @@ public class GMController extends AbstractController {
     @RequestMapping(BackendGMCmd.SEND_EMAIL)
     public WebResult<String> mail(@RequestBody @Valid MailDto dto) {
         log.info("收到后台的邮件请求 {}", dto);
+
+        Mail mail = new Mail();
+
         StringBuilder res = new StringBuilder();
+
+        for(int[] a : dto.items()){
+            System.out.println(a[0] + " " + a[1]);
+        }
         //返回修改结果
         return !res.isEmpty() ? fail(res.toString()) : success("推送成功");
     }
