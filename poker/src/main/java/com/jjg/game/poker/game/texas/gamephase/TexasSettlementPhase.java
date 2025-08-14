@@ -29,6 +29,8 @@ import com.jjg.game.poker.game.texas.util.PlayerHand;
 import com.jjg.game.poker.game.texas.util.PokerHandEvaluator;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.datatrack.logdata.LogParam;
+import com.jjg.game.room.datatrack.logdata.SaveLogThread;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
@@ -220,7 +222,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 cardList.clear();
             } else {
                 //发一张
-                Integer card = gameDataVo.getCards().remove(0);
+                Integer card = gameDataVo.getCards().removeFirst();
                 gameDataVo.getPublicCards().add(card);
                 if (texasHistory.getThirdCardId() == 0) {
                     texasHistory.setThirdCardId(TexasDataHelper.getClientCardId(gameDataVo, card));
@@ -268,7 +270,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             normalSettlement(controller);
             return;
         }
-        long playerId = infoList.get(0).getPlayerId();
+        long playerId = infoList.getFirst().getPlayerId();
         long total = 0;
         for (Pot pot : gameDataVo.getPool()) {
             total += pot.getAmount();
@@ -303,6 +305,19 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         notifyTexasSettlementInfo.playerSettlementInfos = settlementInfoArrayList;
         broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSettlementInfo));
         gameDataVo.setNotifyTexasSettlementInfo(notifyTexasSettlementInfo);
+
+    }
+
+    public void addLog(TexasHistory history,TexasGameController controller,TexasSaveHistory texasSaveHistory) {
+        TexasHistory texasHistory = controller.buildTexasHistory(0, texasSaveHistory);
+        //玩家总赢
+        LogParam<TexasHistory, Object> param = new LogParam<>(texasHistory, null, null);
+        Thread.ofVirtual().start(new SaveLogThread<>(param,(logParam)->{
+            TexasHistory param1 = logParam.param();
+//            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET, totalBet);
+//            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, keyValue.getValue());
+//            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, keyValue.getValue() - totalBet);
+        }));
     }
 
 

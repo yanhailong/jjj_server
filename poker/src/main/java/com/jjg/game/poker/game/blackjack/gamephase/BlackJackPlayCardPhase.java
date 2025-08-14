@@ -53,7 +53,7 @@ public class BlackJackPlayCardPhase extends BasePlayCardPhase<BlackJackGameDataV
             }
             notifyBlackJackSendCardInfo.cardIdList = blackJackCardInfos;
             //添加庄家能显示的牌
-            PokerCard pokerCard = cardListMap.get(gameDataVo.getDealerCards().get(0));
+            PokerCard pokerCard = cardListMap.get(gameDataVo.getDealerCards().getFirst());
             notifyBlackJackSendCardInfo.cardId = pokerCard.getClientId();
             //如果庄家的牌包含A通知购买ACE
             boolean canBuy = pokerCard.getRank() == 1;
