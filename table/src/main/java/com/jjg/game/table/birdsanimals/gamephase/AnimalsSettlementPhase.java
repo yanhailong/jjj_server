@@ -5,6 +5,8 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.datatrack.DataTrackNameConstant;
+import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.birdsanimals.AnimalsGameController;
@@ -58,6 +60,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
         AnimalsHistoryBean historyBean = addAnimalsHistory(randomRewardPosId, winPosWeightCfgs);
         NotifyAnimalsSettlement settlement =
             AnimalsMessageBuilder.notifyAnimalsSettlement((AnimalsGameController) gameController, historyBean);
+        gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, historyBean);
         List<PlayerChangedGold> playerChangedGolds = new ArrayList<>();
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
@@ -86,12 +89,16 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
             long playerId = entry.getKey();
             settlement.settlementInfo.betTableInfos =
                 TableMessageBuilder.buildPlayerBetInfo(settlement.settlementInfo.betTableInfos, gameDataVo, playerId);
+            gameDataTracker.addPlayerLogData(
+                entry.getValue(), DataTrackNameConstant.AREA_DATA,
+                JSON.toJSONString(settlement.settlementInfo.betTableInfos));
             // 给玩家发送结算数据
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(settlement).addPlayerId(playerId));
         }
         log.debug("飞禽走兽房间：{} 结算数据：{}", gameDataVo.getRoomCfg().getId(), JSON.toJSONString(settlement));
         // 保存记录
         gameDataVo.setAnimalsSettlementInfo(settlement.settlementInfo);
+        gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
 
     /**
@@ -142,8 +149,8 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
                 List<Integer> playerBetGoldList = playerBetInfo.get(betAreaId);
                 // 玩家总押注
                 long playerBetGoldTotal = playerBetGoldList.stream().mapToInt(Integer::intValue).sum();
-                 SettlementData calcGold = calcGold(gamePlayer, winPosWeightCfg, playerBetGoldTotal);
-                 settlementData.increaseBySettlementData(calcGold);
+                SettlementData calcGold = calcGold(gamePlayer, winPosWeightCfg, playerBetGoldTotal);
+                settlementData.increaseBySettlementData(calcGold);
             } else if (winPosWeightCfg.getWinType() == 4) {
                 // 通赔逻辑
                 for (Map.Entry<Integer, List<Integer>> entry : playerBetInfo.entrySet()) {
@@ -157,6 +164,9 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
                 }
             }
         }
+        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, settlementData.getBetWin());
+        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET, settlementData.getBetTotal());
+        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, settlementData.getTotalWin());
         return settlementData;
     }
 

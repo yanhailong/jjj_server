@@ -30,9 +30,7 @@ public class GameDataTracker {
 
     public GameDataTracker(AbstractGameController<?, ?> gameController, RoomDataTrackLogger trackerLogger) {
         baseGameInfo.putAll(trackerLogger.buildBaseGameInfo(gameController));
-        int gameId = gameController.getGameDataVo().getRoomCfg().getGameID();
-        EGameType eGameType = EGameType.getGameByTypeId(gameId);
-        gameLogTopic = trackerLogger.gameLogTopicPrefix + eGameType.name().toLowerCase();
+        gameLogTopic = trackerLogger.gameLogTopicPrefix;
         this.trackLogger = trackerLogger;
     }
 

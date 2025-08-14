@@ -12,8 +12,8 @@ public interface DataTrackNameConstant {
     String TOTAL_WIN = "TotalWin";
     // 收入
     String INCOME = "Income";
-    //区域id
-    String AREA_ID = "AreaId";
-    //区域总下注
-    String AREA_TOTAL_BET = "AreaTotalBet";
+    // 区域数据
+    String AREA_DATA = "AreaData";
+    // 结算数据
+    String SETTLEMENT_DATA = "SettlementData";
 }

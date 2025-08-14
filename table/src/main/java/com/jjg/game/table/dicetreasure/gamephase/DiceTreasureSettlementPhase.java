@@ -5,6 +5,8 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.datatrack.DataTrackNameConstant;
+import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.betsample.sample.GameDataManager;
@@ -66,15 +68,15 @@ public class DiceTreasureSettlementPhase extends BaseDiceSettlementPhase<DiceTre
         DiceTreasureHistoryBean historyBean = addDiceTreasureHistory(randomNumDice, betAreaCfgs);
         NotifyDiceTreasureSettlement settlement =
             DiceTreasureMessageBuilder.notifyDiceTreasureSettlement(historyBean);
-
+        gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, historyBean);
         // 构建结算信息
         settlement.settlementInfo.diceSettlementInfo =
             BaseDiceMessageBuilder.buildDiceSettlementInfo(gameDataVo);
         settlementDice(settlement.settlementInfo.diceSettlementInfo, winPosWeightCfgs, settlement);
-
         log.debug("骰宝房间：{} 结算数据：{}", gameDataVo.getRoomCfg().getId(), JSON.toJSONString(settlement));
         // 保存记录
         gameDataVo.setAnimalsSettlementInfo(settlement.settlementInfo);
+        gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
 
     /**

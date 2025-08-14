@@ -26,7 +26,7 @@ public class RoomDataTrackLogger extends BaseLogger {
     // 雪花算法
     protected Snowflake snowflake = new Snowflake(NodeType.GAME.getValue());
     // 游戏日志topic前缀
-    protected final String gameLogTopicPrefix = "game_";
+    protected final String gameLogTopicPrefix = "game_bet";
 
     /**
      * 构建基础游戏信息

@@ -51,24 +51,22 @@ public class SaveLogThread<T, F> implements Runnable {
             }
             Map<Integer, List<Integer>> playerBetInfo = entry.getValue();
             DefaultKeyValue<Long, Long> keyValue = playerGet.get(entry.getKey());
+
             long totalBet = 0;
+            Map<Integer, Long> areaMap = new HashMap<>();
             for (Map.Entry<Integer, List<Integer>> listEntry : playerBetInfo.entrySet()) {
                 List<Integer> value = listEntry.getValue();
                 int sum = value.stream().mapToInt(Integer::intValue).sum();
                 areaTotalBet.merge(listEntry.getKey(), (long) sum, Long::sum);
-                gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_ID, listEntry.getKey());
-                gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_TOTAL_BET, sum);
+                areaMap.put(listEntry.getKey(), (long) sum);
                 totalBet += sum;
             }
             // 打点
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET, totalBet);
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, keyValue.getValue());
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, keyValue.getValue() - totalBet);
-
+            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_DATA, areaMap);
         }
-        for (Map.Entry<Integer, Long> entry : areaTotalBet.entrySet()) {
-            gameDataTracker.addGameLogData(DataTrackNameConstant.AREA_ID, entry.getKey());
-            gameDataTracker.addGameLogData(DataTrackNameConstant.AREA_TOTAL_BET, entry.getValue());
-        }
+        gameDataTracker.addGameLogData(DataTrackNameConstant.AREA_DATA, areaTotalBet);
     }
 }

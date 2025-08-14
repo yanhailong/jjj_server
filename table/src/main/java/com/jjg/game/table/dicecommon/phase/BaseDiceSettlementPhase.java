@@ -1,9 +1,11 @@
 package com.jjg.game.table.dicecommon.phase;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
@@ -60,6 +62,8 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             long playerId = entry.getKey();
             diceSettlementInfo.betTableInfos =
                 TableMessageBuilder.buildPlayerBetInfo(diceSettlementInfo.betTableInfos, gameDataVo, playerId);
+            gameDataTracker.addPlayerLogData(
+                entry.getValue(), DataTrackNameConstant.AREA_DATA, JSON.toJSONString(diceSettlementInfo.betTableInfos));
             // 给玩家发送数据
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(settlement).addPlayerId(playerId));
         }
@@ -83,6 +87,10 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
                 }
             }
         }
+        // 添加流水数据
+        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, playerSettlementData.getBetWin());
+        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET, playerSettlementData.getBetTotal());
+        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, playerSettlementData.getTotalWin());
         return playerSettlementData;
     }
 }

@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.room.datatrack.DataTrackNameConstant;
+import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.betsample.sample.GameDataManager;
 import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
@@ -35,11 +37,11 @@ public class SizeDiceTreasureSettlementPhase extends BaseDiceSettlementPhase<Siz
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
-        // 随机四个1-2的骰子点数
-        List<Integer> randomNumDice = DiceUtils.randomDice(4, 1, 2);
+        // 随机3个1-6的骰子点数
+        List<Integer> randomNumDice = DiceUtils.randomDice(3, 1, 6);
         // 通过骰子点数获取对应的配置
         List<WinPosWeightCfg> winPosWeightCfgs =
-            DiceDataHolder.getWinPosWeightCfg(EGameType.VIETNAM_DICE, randomNumDice);
+            DiceDataHolder.getWinPosWeightCfg(EGameType.SIZE_DICE_TREASURE, randomNumDice);
         if (winPosWeightCfgs == null || winPosWeightCfgs.isEmpty()) {
             log.error("大小骰宝结算异常，随机奖励的区域为空，骰子：{}", randomNumDice);
             return;
@@ -59,6 +61,7 @@ public class SizeDiceTreasureSettlementPhase extends BaseDiceSettlementPhase<Siz
             betAreaCfgs.stream().map(BetAreaCfg::getId).map(String::valueOf).collect(Collectors.joining(",")));
         // 添加中奖记录
         SizeDiceTreasureHistoryBean historyBean = addHistory(randomNumDice, betAreaCfgs);
+        gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, historyBean);
         NotifySizeDiceTreasureSettlement settlement =
             SizeDiceTreasureMessageBuilder.notifySizeDiceSettlement(historyBean);
         // 构建结算信息
@@ -69,6 +72,7 @@ public class SizeDiceTreasureSettlementPhase extends BaseDiceSettlementPhase<Siz
         log.debug("大小骰宝房间：{} 结算数据：{}", gameDataVo.getRoomCfg().getId(), JSON.toJSONString(settlement));
         // 保存记录
         gameDataVo.setAnimalsSettlementInfo(settlement.settlementInfo);
+        gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
 
     /**

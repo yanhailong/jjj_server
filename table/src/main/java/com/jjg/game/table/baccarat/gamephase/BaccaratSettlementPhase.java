@@ -1,5 +1,6 @@
 package com.jjg.game.table.baccarat.gamephase;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -74,6 +75,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         gameDataVo.getBetRecord().add(baccaratSettlementInfo.cardState);
         // 游戏结算，给玩家发送结算信息
         Map<Long, PlayerChangedGold> changedGolds = playerGameSettlement(baccaratSettlementInfo);
+        gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, baccaratSettlementInfo);
         List<PlayerChangedGold> playerChangedGolds = new ArrayList<>(changedGolds.values());
         NotifyBaccaratSettlementInfo baccaratTableInfo =
             BaccaratMessageBuilder.buildNotifySettlementMessage(
@@ -98,9 +100,14 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             // 向每个玩家发送通知消息
             broadcastBuilderToRoom(
                 RoomMessageBuilder.newBuilder().setData(baccaratTableInfo).setPlayerIds(Collections.singleton(entry.getKey())));
+            gameDataTracker.addPlayerLogData(
+                entry.getValue(), DataTrackNameConstant.AREA_DATA,
+                JSON.toJSONString(baccaratTableInfo.baccaratTableInfo.tableAreaInfos));
         }
         // 通知所有观察者
         BaccaratMessageBuilder.notifyObserversOnPhaseChange((BaccaratGameController) gameController);
+        // 发送打点日志
+        gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
 
     /**
@@ -209,8 +216,6 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                     gamePlayer, DataTrackNameConstant.INCOME, settlementData.getBetWin());
             }
         }
-        // 发送打点日志
-        gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
         return playerChangedGolds;
     }
 

@@ -6,6 +6,8 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.datatrack.DataTrackNameConstant;
+import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.betsample.sample.GameDataManager;
@@ -41,6 +43,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
         Integer betAreaId = winPosWeightCfg.getBetArea().get(0);
         // 添加中奖记录
         gameDataVo.addWinAreaCfgIdHistory(clientShowPosId);
+        gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, clientShowPosId);
         NotifyLuxuryCarClubSettlement settlement =
             LuxuryCarClubMessageBuilder.notifyLuxuryCarClubSettlement(
                 (LuxuryCarClubGameController) gameController, clientShowPosId);
@@ -63,6 +66,10 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             playerChangedGold.playerWinGold = playerSettlementData.getBetWin();
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
+            // 添加日志埋点数据
+            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, playerSettlementData.getBetWin());
+            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET, playerSettlementData.getBetTotal());
+            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, playerSettlementData.getTotalWin());
             // TODO 给玩家加金币
             gamePlayer.setGold(gamePlayer.getGold() + playerSettlementData.getTotalWin());
             playerChangedGold.playerCurGold = gamePlayer.getGold();
@@ -74,12 +81,16 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             long playerId = entry.getKey();
             settlement.settlementInfo.betTableInfos =
                 TableMessageBuilder.buildPlayerBetInfo(settlement.settlementInfo.betTableInfos, gameDataVo, playerId);
+            gameDataTracker.addPlayerLogData(
+                entry.getValue(), DataTrackNameConstant.AREA_DATA,
+                JSON.toJSONString(settlement.settlementInfo.betTableInfos));
             // 给玩家发送结算数据
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(settlement).addPlayerId(playerId));
         }
         log.debug("豪车俱乐部：{} 结算数据：{}", gameDataVo.getRoomCfg().getId(), JSON.toJSONString(settlement));
         // 保存记录
         gameDataVo.setAnimalsSettlementInfo(settlement.settlementInfo);
+        gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
 
     /**
