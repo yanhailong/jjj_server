@@ -54,7 +54,7 @@ public class GameConstant {
         int PROP_MAX = -1;
     }
 
-    public interface MarqueeType{
+    public interface Marquee {
         //系统通知
         int SYSTEM_MSG = 100;
         //玩家交易
@@ -68,6 +68,9 @@ public class GameConstant {
         int CLIENT_NORMAL_TYPE = 0;
         //客户端需要进行多语言参数匹配的类型
         int CLIENT_LANG_TYPE = 1;
+
+        //玩家中奖跑马灯，间隔时间
+        int PLAYER_WIN_INTERVAL = 5;
     }
 
 
@@ -90,9 +93,22 @@ public class GameConstant {
         public static final int GOOGLE_MAIL = 2;
     }
 
+    //性别
     public class Gender {
+        //女
         public static final byte WOMAN = 0;
+        //男
         public static final byte MAN = 1;
+        //其他
         public static final byte OTHER = 2;
+    }
+
+    public class Mail{
+        //未阅读
+        public static final int STAUTS_NOT_READ = 0;
+        //已阅读
+        public static final int STAUTS_READ = 1;
+        //已领取
+        public static final int STAUTS_GET_ITEMS = 2;
     }
 }

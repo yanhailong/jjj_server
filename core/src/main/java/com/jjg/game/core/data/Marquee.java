@@ -10,6 +10,8 @@ public class Marquee {
     private int id;
     //跑马灯内容
     private String content;
+    //播放时间
+    private int showTime;
     //间隔时间
     private int interval;
     //次数
@@ -25,7 +27,7 @@ public class Marquee {
     //多语言id
     private int langId;
     //参数
-    private List<String> params;
+    private List<MarqueeParam> params;
 
     public int getId() {
         return id;
@@ -41,6 +43,14 @@ public class Marquee {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public int getShowTime() {
+        return showTime;
+    }
+
+    public void setShowTime(int showTime) {
+        this.showTime = showTime;
     }
 
     public int getInterval() {
@@ -99,11 +109,11 @@ public class Marquee {
         this.langId = langId;
     }
 
-    public List<String> getParams() {
+    public List<MarqueeParam> getParams() {
         return params;
     }
 
-    public void setParams(List<String> params) {
+    public void setParams(List<MarqueeParam> params) {
         this.params = params;
     }
 }

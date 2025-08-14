@@ -14,6 +14,7 @@ import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.GameStatusService;
+import com.jjg.game.core.service.MailService;
 import com.jjg.game.hall.constant.HallCode;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.dao.BindDao;
@@ -59,7 +60,7 @@ public class HallMessageHandler implements GmListener {
     @Autowired
     private HallPoolDao poolDao;
     @Autowired
-    private BindDao bindDao;
+    private MailService mailService;
 
     /**
      * 进入游戏
@@ -89,7 +90,6 @@ public class HallMessageHandler implements GmListener {
                 return;
             }
 
-            System.out.println(JSON.toJSONString(wareHouseConfigList));
             res.wareHouseList = wareHouseConfigList;
             playerController.send(res);
             log.info("玩家选择游戏，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
@@ -323,7 +323,7 @@ public class HallMessageHandler implements GmListener {
      * @param playerController
      * @param req
      */
-    @Command(HallConstant.MsgBean.REQ_SELECT_AVATAR)
+    @Command(HallConstant.MsgBean.REQ_ALL_AVATAR)
     public void reqAllAvatar(PlayerController playerController, ReqAllAvatar req) {
         ResAllAvatar res = new ResAllAvatar(HallCode.SUCCESS);
         try {
@@ -431,17 +431,97 @@ public class HallMessageHandler implements GmListener {
         playerController.send(res);
     }
 
+
     /**
      * 获取邮件
      * @param playerController
      * @param req
      */
     @Command(HallConstant.MsgBean.REQ_GET_MAILS)
-    public void reqGetMails(PlayerController playerController, ReqUseItem req) {
-        ResUseItem res = new ResUseItem(HallCode.SUCCESS);
+    public void reqGetMails(PlayerController playerController, ReqGetMails req) {
+        ResGetMails res = new ResGetMails(HallCode.SUCCESS);
         try {
-            hallService.useItem(playerController.playerId(), req.itemId);
-            log.debug("使用道具 playerId = {}", playerController.playerId());
+            List<Mail> mailList = mailService.getMailByPlayerId(playerController.playerId(), req.page);
+            if(mailList != null && !mailList.isEmpty()) {
+                res.mails = new ArrayList<>(mailList.size());
+
+                mailList.forEach(mail -> {
+                    MailInfo info = new MailInfo();
+                    info.id = mail.getId();
+                    info.title = mail.getTitle();
+                    info.content = mail.getContent();
+                    info.sendTime = mail.getSendTime();
+                    info.timeout = mail.getTimeout();
+                    info.status = mail.getStatus();
+                    if(mail.getItems() != null && !mail.getItems().isEmpty()) {
+                        info.items = new ArrayList<>(mail.getItems().size());
+                        mail.getItems().forEach(mailItem -> {
+                            ItemInfo infoItem = new ItemInfo();
+                            infoItem.itemId = mailItem.getId();
+                            infoItem.count = mailItem.getCount();
+                            info.items.add(infoItem);
+                        });
+
+                    }
+                    res.mails.add(info);
+                });
+            }
+
+            log.debug("玩家获取邮件列表 playerId = {},page = {},size = {}", playerController.playerId(),req.page,res.mails == null ? 0 : res.mails.size());
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 阅读邮件
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_READ_MAIL)
+    public void reqReadMail(PlayerController playerController, ReqReadMail req) {
+        ResReadMail res = new ResReadMail(HallCode.SUCCESS);
+        try {
+            if(req.id < 1){
+                res.code = Code.PARAM_ERROR;
+                playerController.send(res);
+                log.debug("参数错误，阅读邮件失败 playerId = {},id = {}", playerController.playerId(),req.id);
+                return;
+            }
+            boolean flag = mailService.readMail(playerController.playerId(), req.id);
+            if(!flag) {
+                res.code = Code.FAIL;
+                playerController.send(res);
+                log.debug("阅读邮件失败 playerId = {},id = {}", playerController.playerId(),req.id);
+                return;
+            }
+            log.debug("玩家阅读邮件成功 playerId = {},id = {}", playerController.playerId(),req.id);
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 领取邮件内的道具
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_GET_MAIL_ITEMS)
+    public void reqGetMailItems(PlayerController playerController, ReqGetMailItems req) {
+        ResGetMailItems res = new ResGetMailItems(HallCode.SUCCESS);
+        try {
+            if(req.id < 1){
+                res.code = Code.PARAM_ERROR;
+                playerController.send(res);
+                log.debug("参数错误，领取邮件内的道具失败 playerId = {},id = {}", playerController.playerId(),req.id);
+                return;
+            }
+            hallService.getMailItems(playerController.playerId(), req.id);
+
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

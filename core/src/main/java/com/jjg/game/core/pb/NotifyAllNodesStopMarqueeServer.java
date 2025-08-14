@@ -11,5 +11,5 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SERVER_CONST_TYPE, cmd = MessageConst.ToServer.NOTICE_STOP_MARQUEE_HALL_MASTER,resp = true, toPbFile = false)
 @ProtoDesc("大厅主节点推送到其他节点停止跑马灯")
 public class NotifyAllNodesStopMarqueeServer extends AbstractNotice {
-    public long id;
+    public int id;
 }

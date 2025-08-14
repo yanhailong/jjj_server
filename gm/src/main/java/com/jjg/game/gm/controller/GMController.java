@@ -1,6 +1,5 @@
 package com.jjg.game.gm.controller;
 
-import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.cluster.ClusterClient;
@@ -114,13 +113,14 @@ public class GMController extends AbstractController {
         marquee.setStartTime(TimeHelper.getSecondTime(dto.start_time()));
         marquee.setEndTime(TimeHelper.getSecondTime(dto.end_time()));
         marquee.setPriority(dto.priority());
-        marquee.setType(dto.type() < 1 ? GameConstant.MarqueeType.SYSTEM_MSG : dto.type());
+        marquee.setType(dto.type() < 1 ? GameConstant.Marquee.SYSTEM_MSG : dto.type());
         marqueeDao.addMarquee(marquee);
 
         //构建请求消息
         NotifyAllNodesMarqueeServer notify = new NotifyAllNodesMarqueeServer();
         notify.id = marquee.getId();
         notify.content = marquee.getContent();
+        notify.showTime = marquee.getShowTime();
         notify.interval = marquee.getInterval();
         notify.type = marquee.getType();
         notify.startTime = marquee.getStartTime();

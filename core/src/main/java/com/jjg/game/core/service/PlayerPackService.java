@@ -17,6 +17,8 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * @author 11
  * @date 2025/8/7 15:16
@@ -43,6 +45,49 @@ public class PlayerPackService {
 
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
+    }
+
+    /**
+     * 添加多个道具
+     *
+     * @param playerId
+     * @param playerId
+     * @param list  arr -> 0.itemId  1.count  2.max
+     * @return
+     */
+    public CommonResult<PlayerPack> addItems(long playerId, List<int[]> list) {
+        CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
+        String key = getLockKey(playerId);
+        for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
+            if (redisLock.lock(key)) {
+                try {
+                    PlayerPack playerPack = getFromAllDB(playerId);
+                    if (playerPack == null) {
+                        playerPack = new PlayerPack();
+                    }
+
+                    for(int[] arr : list) {
+                        playerPack.addItem(arr[0], arr[1], arr[2]);
+                    }
+
+                    redisTemplate.opsForHash().put(tableName, playerId, playerPack);
+                    result.code = Code.SUCCESS;
+                    result.data = playerPack;
+                    return result;
+                } catch (Exception e) {
+                    log.error("添加多个道具，保存 playerPack 失败 playerId={}", playerId, e);
+                } finally {
+                    redisLock.unlock(key);
+                }
+            }
+
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                log.error("添加多个道具，保存 playerPack 数据失败出现异常,playerId = {}", playerId, e);
+            }
+        }
+        return result;
     }
 
     /**

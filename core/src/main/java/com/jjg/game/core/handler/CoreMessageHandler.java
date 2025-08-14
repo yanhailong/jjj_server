@@ -10,10 +10,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
-import com.jjg.game.core.pb.ReqGm;
-import com.jjg.game.core.pb.ReqMarquee;
-import com.jjg.game.core.pb.ResGm;
-import com.jjg.game.core.pb.ResMarquee;
+import com.jjg.game.core.pb.*;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import org.slf4j.Logger;
@@ -21,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 /**
@@ -154,7 +152,17 @@ public class CoreMessageHandler {
                 res.endTime = currentMarquee.getEndTime();
                 res.type = marqueeManager.getClientShowGarqueeType(currentMarquee.getType());
                 res.langId = currentMarquee.getLangId();
-                res.params = currentMarquee.getParams();
+
+                if(currentMarquee.getParams() != null && !currentMarquee.getParams().isEmpty()){
+                    res.params = new ArrayList<>(currentMarquee.getParams().size());
+
+                    currentMarquee.getParams().forEach(p -> {
+                        MarqueeLangParamInfo info = new MarqueeLangParamInfo();
+                        info.type = p.getType();
+                        info.param = p.getParam();
+                        res.params.add(info);
+                    });
+                }
             }
             log.debug("获取当前跑马灯 playerId = {},marqueeId = {}", playerController.playerId(),res.id);
         }catch (Exception e){

@@ -448,7 +448,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         for (Map.Entry<Integer, BaseRoomCfg> en : GameDataManager.getBaseRoomCfgMap().entrySet()) {
             BaseRoomCfg cfg = en.getValue();
             if (cfg.getGameType() == gameType) {
-                tempRoomCfgMap.put(cfg.getRoomName(), cfg);
+                tempRoomCfgMap.put(cfg.getId(), cfg);
             }
         }
 

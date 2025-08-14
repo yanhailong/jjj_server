@@ -18,6 +18,8 @@ public class ResMarquee extends AbstractResponse{
     public int type;
     @ProtoDesc("内容")
     public String content;
+    @ProtoDesc("播放时间")
+    private int showTime;
     @ProtoDesc("间隔时间")
     public int interval;
     @ProtoDesc("开始时间")
@@ -27,7 +29,7 @@ public class ResMarquee extends AbstractResponse{
     @ProtoDesc("多语言id")
     public int langId;
     @ProtoDesc("参数")
-    public List<String> params;
+    public List<MarqueeLangParamInfo> params;
 
     public ResMarquee(int code) {
         super(code);
