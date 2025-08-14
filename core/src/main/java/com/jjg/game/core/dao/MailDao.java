@@ -48,6 +48,15 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
     }
 
     /**
+     * 删除邮件
+     * @param playerId
+     * @param mailId
+     */
+    public void removeMail(long playerId,int mailId) {
+        mongoTemplate.remove(Query.query(Criteria.where("id").is(mailId).and("playerId").is(playerId)), Mail.class);
+    }
+
+    /**
      * 获取全服邮件
      * @return
      */

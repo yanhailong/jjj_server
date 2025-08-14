@@ -398,8 +398,9 @@ public class HallMessageHandler implements GmListener {
             playerPack.getItems().entrySet().forEach(en -> {
                 PackItemInfo info = new PackItemInfo();
                 info.girdId = en.getKey();
-                info.itemId = en.getValue().getId();
-                info.count = en.getValue().getCount();
+                info.item = new ItemInfo();
+                info.item.itemId = en.getValue().getId();
+                info.item.count = en.getValue().getCount();
                 packItemInfos.add(info);
             });
 
@@ -419,6 +420,24 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_USE_ITEM)
     public void reqUseItem(PlayerController playerController, ReqUseItem req) {
+        ResUseItem res = new ResUseItem(HallCode.SUCCESS);
+        try {
+            hallService.useItem(playerController.playerId(), req.itemId);
+            log.debug("使用道具 playerId = {}", playerController.playerId());
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 获取邮件
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_GET_MAILS)
+    public void reqGetMails(PlayerController playerController, ReqUseItem req) {
         ResUseItem res = new ResUseItem(HallCode.SUCCESS);
         try {
             hallService.useItem(playerController.playerId(), req.itemId);

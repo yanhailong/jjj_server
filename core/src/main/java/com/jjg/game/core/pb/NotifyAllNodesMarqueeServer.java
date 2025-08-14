@@ -16,6 +16,8 @@ public class NotifyAllNodesMarqueeServer extends AbstractNotice {
     public String content;
     @ProtoDesc("间隔时间")
     public int interval;
+    @ProtoDesc("跑马灯类型")
+    public int type;
     @ProtoDesc("开始时间")
     public int startTime;
     @ProtoDesc("结束时间")

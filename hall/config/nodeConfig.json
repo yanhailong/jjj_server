@@ -1,5 +1,5 @@
 {
-  "weight": 1,
-  "whiteIpList":[],
+  "weight": 0,
+  "whiteIpList":["192.168.3.46"],
   "whiteIdList": []
 }

@@ -68,7 +68,7 @@ public class MarsCurator implements TreeCacheListener {
 
     public Map<String, MarsNodeListener> marsNodeListeners;
 
-    private ConcurrentHashMap<Integer, AtomicBoolean> masterMap = new ConcurrentHashMap<>();
+    private AtomicBoolean master = new AtomicBoolean(false);
 
     private NetAddress startClientNetAddress;
     private AtomicBoolean nodeInit = new AtomicBoolean();
@@ -115,70 +115,55 @@ public class MarsCurator implements TreeCacheListener {
                 return;
             }
 
-            Map<Integer, String> pathMap = new HashMap<>();
+            String path = null;
             if (NodeType.GAME.name().equals(nodeConfig.getType())) {
                 int[] gameMajorTypes = nodeConfig.getGameMajorTypes();
                 if (gameMajorTypes == null || gameMajorTypes.length < 1) {
                     log.warn("选举主节点失败,gameMajorTypes 错误 nodeName = {},nodeType = {},gameMajorTypes={}", nodeConfig.getName(),nodeConfig.getType(), gameMajorTypes == null ? 0 : gameMajorTypes.length);
                     return;
                 }
-
-                for (int i = 0; i < gameMajorTypes.length; i++) {
-                    String path = mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType() + "/" + gameMajorTypes[i];
-                    pathMap.put(gameMajorTypes[i], path);
-                }
+                path = mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType() + "/" + gameMajorTypes[0];
             } else if (NodeType.HALL.name().equals(nodeConfig.getType())) {
-                String path = mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType();
-                pathMap.put(NodeType.HALL.getValue(), path);
+                path = mkPath("/" + nodeConfig.getParentPath()) + "/MASTER/" + nodeConfig.getType();
             }
 
-            for (Map.Entry<Integer, String> en : pathMap.entrySet()) {
-                int gameMajorType = en.getKey();
-                masterMap.put(gameMajorType, new AtomicBoolean());
+            if(path == null) {
+                return;
+            }
 
-                String path = en.getValue();
-
-                LeaderLatch latch = new LeaderLatch(client, path, nodeConfig.getName(),
+            final String tmpPath = path;
+            LeaderLatch latch = new LeaderLatch(client, path, nodeConfig.getName(),
                     LeaderLatch.CloseMode.NOTIFY_LEADER);
-                latch.addListener(new LeaderLatchListener() {
-                    @Override
-                    public void isLeader() {
-                        masterMap.computeIfPresent(gameMajorType, (k, v) -> {
-                            v.set(true);
-                            return v;
-                        });
-                        Map<String, IGameClusterLeaderListener>
+            latch.addListener(new LeaderLatchListener() {
+                @Override
+                public void isLeader() {
+                    master.set(true);
+                    Map<String, IGameClusterLeaderListener>
                             listenerMap = CommonUtil.getContext().getBeansOfType(IGameClusterLeaderListener.class);
-                        try {
-                            listenerMap.values().forEach(listener -> listener.isLeader(gameMajorType));
-                        } catch (Exception e) {
-                            log.error("游戏节点：{} 游戏主类型：{} 在选举成master时调用监听器发生异常", path, gameMajorType, e);
-                        }
-                        nodeConfig.setWeight(1);
-                        nodeManager.update();
-                        log.info("该节点被选举为主节点 nodeName = {},nodeType = {},gameChildType={},wight={}",
-                            nodeConfig.getName(), nodeConfig.getType(), gameMajorType, nodeConfig.weight);
+                    try {
+                        listenerMap.values().forEach(listener -> listener.isLeader());
+                    } catch (Exception e) {
+                        log.error("游戏节点：{} 在选举成master时调用监听器发生异常", tmpPath, e);
                     }
+                    nodeConfig.setWeight(1);
+                    nodeManager.update();
+                    log.info("该节点被选举为主节点 nodeName = {},nodeType = {},wight={}",nodeConfig.getName(), nodeConfig.getType(), nodeConfig.weight);
+                }
 
-                    @Override
-                    public void notLeader() {
-                        masterMap.computeIfPresent(gameMajorType, (k, v) -> {
-                            v.set(false);
-                            return v;
-                        });
-                        Map<String, IGameClusterLeaderListener>
+                @Override
+                public void notLeader() {
+                    master.set(false);
+                    Map<String, IGameClusterLeaderListener>
                             listenerMap = CommonUtil.getContext().getBeansOfType(IGameClusterLeaderListener.class);
-                        try {
-                            listenerMap.values().forEach(listener -> listener.notLeader(gameMajorType));
-                        } catch (Exception e) {
-                            log.error("游戏节点：{} 游戏主类型：{} 在变成非master节点时调用监听器发生异常", path, gameMajorType, e);
-                        }
-                        log.info("该节点离开，失去主节点身份 nodeName = {},gameChildType={},nodeType = {}", nodeConfig.getName(),
-                                gameMajorType, nodeConfig.getType());
+                    try {
+                        listenerMap.values().forEach(listener -> listener.notLeader());
+                    } catch (Exception e) {
+                        log.error("游戏节点：{} 在变成非master节点时调用监听器发生异常", tmpPath, e);
                     }
-                });
-                latch.start();
-            }
+                    log.info("该节点离开，失去主节点身份 nodeName = {},nodeType = {}", nodeConfig.getName(),nodeConfig.getType());
+                }
+            });
+            latch.start();
         } catch (Exception e) {
             log.error("启动节点竞选异常", e);
         }
@@ -402,14 +387,11 @@ public class MarsCurator implements TreeCacheListener {
     }
 
     /**
-     * 该节点是不是主节点, 如果是大厅则传入大厅的value值，如果是游戏的话则传入游戏类型
+     * 该节点是不是主节点
+     * @return
      */
-    public boolean master(int gameType) {
-        int gameMajorType = CommonUtil.getMajorTypeByGameType(gameType);
-        if (!masterMap.containsKey(gameMajorType)) {
-            return false;
-        }
-        return masterMap.get(gameMajorType).get();
+    public boolean isMaster() {
+        return master.get();
     }
 
     public NetAddress getStartClientNetAddress() {
