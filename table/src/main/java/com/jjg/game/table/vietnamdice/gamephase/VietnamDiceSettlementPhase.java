@@ -5,6 +5,8 @@ import com.jjg.game.common.utils.BitUtils;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.room.datatrack.DataTrackNameConstant;
+import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.betsample.sample.GameDataManager;
@@ -62,6 +64,7 @@ public class VietnamDiceSettlementPhase extends BaseDiceSettlementPhase<VietnamD
             betAreaCfgs.stream().map(BetAreaCfg::getId).map(String::valueOf).collect(Collectors.joining(",")));
         // 添加中奖记录
         VietnamDiceHistoryBean historyBean = addVietnamDiceHistory(randomNumDice, betAreaCfgs);
+        gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, historyBean);
         NotifyVietnamDiceSettlement settlement =
             VietnamDiceMessageBuilder.notifyVietnamDiceSettlement(historyBean);
         // 构建结算信息
@@ -72,6 +75,7 @@ public class VietnamDiceSettlementPhase extends BaseDiceSettlementPhase<VietnamD
         log.debug("越南色碟房间：{} 结算数据：{}", gameDataVo.getRoomCfg().getId(), JSON.toJSONString(settlement));
         // 保存记录
         gameDataVo.setVietnamDiceSettlementInfo(settlement.settlementInfo);
+        gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
 
     /**

@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.room.datatrack.DataTrackNameConstant;
+import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.table.betsample.sample.GameDataManager;
 import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
@@ -68,6 +70,7 @@ public class RiverAnimalsSettlementPhase extends BaseDiceSettlementPhase<RiverAn
             betAreaCfgs.stream().map(BetAreaCfg::getId).map(String::valueOf).collect(Collectors.joining(",")));
         // 添加中奖记录
         RiverAnimalsHistoryBean historyBean = addHistory(randomNumDice, betAreaCfgs);
+        gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, historyBean);
         NotifyRiverAnimalsSettlement settlement =
             RiverAnimalsMessageBuilder.notifyAnimalsSettlement(historyBean);
         // 构建结算信息
@@ -78,6 +81,7 @@ public class RiverAnimalsSettlementPhase extends BaseDiceSettlementPhase<RiverAn
         log.debug("鱼虾蟹房间：{} 结算数据：{}", gameDataVo.getRoomCfg().getId(), JSON.toJSONString(settlement));
         // 保存记录
         gameDataVo.setAnimalsSettlementInfo(settlement.settlementInfo);
+        gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
 
     /**
