@@ -46,6 +46,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     protected RoomTimerCenter timerCenter;
     // 游戏是否开始
     protected boolean gameStarted = false;
+    // 进入下一轮/下一回合时是否暂停
+    protected boolean closeGameOnNextRound = false;
     // tick任务运行时间记录
     private final Map<ETickTaskType, Long> tickTaskTimeRecMap = new HashMap<>();
     // tick任务 tick间隔，执行回调 需要放在tick中检查的必须是周期运行的任务
@@ -274,6 +276,11 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         gameOverSettlement();
         // 调用房间管理器的解散逻辑
         roomController.getRoomManager().disbandRoom(roomController.getRoom());
+    }
+
+    @Override
+    public void pauseGame() {
+        closeGameOnNextRound = true;
     }
 
     @Override
