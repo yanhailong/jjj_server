@@ -38,7 +38,7 @@ public class SizeDiceTreasureSettlementPhase extends BaseDiceSettlementPhase<Siz
     public void phaseDoAction() {
         super.phaseDoAction();
         // 随机四个1-2的骰子点数
-        List<Integer> randomNumDice = DiceUtils.randomDice(4, 1, 2);
+        List<Integer> randomNumDice = DiceUtils.randomDice(3, 1, 6);
         // 通过骰子点数获取对应的配置
         List<WinPosWeightCfg> winPosWeightCfgs =
             DiceDataHolder.getWinPosWeightCfg(EGameType.SIZE_DICE_TREASURE, randomNumDice);
