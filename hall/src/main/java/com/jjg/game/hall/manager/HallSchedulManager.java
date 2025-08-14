@@ -1,5 +1,6 @@
 package com.jjg.game.hall.manager;
 
+import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.mongodb.client.result.DeleteResult;
 import com.jjg.game.common.curator.MarsCurator;
@@ -22,7 +23,7 @@ import java.util.Set;
  */
 @Component
 @EnableScheduling
-public class HallClearManager {
+public class HallSchedulManager {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -40,7 +41,7 @@ public class HallClearManager {
     @Scheduled(cron = "0 30 4 * * ? ")
     private void dailyClear(){
         //是主节点才能执行
-        if(marsCurator.master(NodeType.HALL.getValue())){
+        if(marsCurator.isMaster()){
             clearPlayerData();
         }
     }
@@ -48,7 +49,7 @@ public class HallClearManager {
     @Scheduled(cron = "0 0 0/1 * * ?")
     private void clearToken(){
         //是主节点才能执行
-        if(marsCurator.master(NodeType.HALL.getValue())){
+        if(marsCurator.isMaster()){
             DeleteResult deleteResult = playerSessionTokenDao.clearExpireToken();
             log.info("删除过期token条数: {}", deleteResult.getDeletedCount());
         }

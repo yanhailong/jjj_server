@@ -28,7 +28,6 @@ public class BlackJackACEProcessorHandler implements IProcessorHandler {
             log.info("购买ACE 定时器执行时id错过了");
             return;
         }
-        //发送第一个人的执行时间
         long aceBuyEndTime = gameDataVo.getAceBuyEndTime();
         if (aceBuyEndTime > 0) {
             gameController.notifyAceResult();

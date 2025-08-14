@@ -322,7 +322,7 @@ public class PlayerSessionService implements TimerListener<String> {
 
     @Override
     public void onTimer(TimerEvent<String> e) {
-        if (e == checkSessionEvent && marsCurator.master(NodeType.HALL.getValue())) {
+        if (e == checkSessionEvent && marsCurator.isMaster()) {
             log.info("开始执行session检查");
             checkSessionByNode();
             Iterator<Map.Entry<String, PFSession>> iterator = clusterSystem.sessionMap().entrySet().iterator();

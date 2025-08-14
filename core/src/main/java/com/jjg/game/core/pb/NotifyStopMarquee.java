@@ -12,4 +12,5 @@ import com.jjg.game.common.proto.ProtobufMessage;
         cmd = MessageConst.CoreMessage.NOTICE_STOP_MARQUEE, resp = true)
 @ProtoDesc("通知停止跑马灯信息")
 public class NotifyStopMarquee extends AbstractNotice{
+    public long id;
 }

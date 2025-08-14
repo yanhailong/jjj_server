@@ -10,7 +10,6 @@ import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
-import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerSettlementInfo;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
@@ -19,10 +18,7 @@ import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.poker.game.texas.data.TexasSaveHistory;
 import com.jjg.game.poker.game.texas.message.TexasBuilder;
-import com.jjg.game.poker.game.texas.message.bean.TexasHistoryPlayerInfo;
-import com.jjg.game.poker.game.texas.message.bean.TexasPotInfo;
-import com.jjg.game.poker.game.texas.message.bean.TexasRoundInfo;
-import com.jjg.game.poker.game.texas.message.bean.TexasSettlementPlayerInfo;
+import com.jjg.game.poker.game.texas.message.bean.*;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasAllInSettlementInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementPlayerChange;
@@ -33,6 +29,8 @@ import com.jjg.game.poker.game.texas.util.PlayerHand;
 import com.jjg.game.poker.game.texas.util.PokerHandEvaluator;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.datatrack.logdata.LogParam;
+import com.jjg.game.room.datatrack.logdata.SaveLogThread;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
@@ -49,6 +47,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
     public TexasSettlementPhase(AbstractPhaseGameController<Room_ChessCfg, TexasGameDataVo> gameController) {
         super(gameController);
     }
+
     @Override
     public int getPhaseRunTime() {
         //全all 计算需要增加的时间
@@ -181,7 +180,6 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 //增加金币
                 controller.changePlayerGold(gamePlayer, get);
             }
-            //添加记录
             pokerPlayerSettlementInfo.currentGold = gamePlayer.getGold();
             pokerPlayerSettlementInfo.getGold = get;
             pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;
@@ -204,8 +202,14 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         int addTime = 0;
         Map<Long, List<TexasRoundInfo>> playerRoundInfos = new HashMap<>();
         List<TexasRoundInfo> defaultInfo = new ArrayList<>();
+        //添加记录
+        TexasSaveHistory texasHistory = gameDataVo.getTexasHistory();
+        List<Long> potAllBet = gameDataVo.getPool().stream().map(Pot::getAmount).collect(Collectors.toList());
         for (int i = 0; i < remainingRounds; i++) {
             int nextRound = round + i + 1;
+            TexasHistoryRoundInfo texasHistoryRoundInfo = new TexasHistoryRoundInfo(nextRound);
+            texasHistoryRoundInfo.potAllBet = potAllBet;
+            texasHistory.getTexasHistoryRoundInfos().add(texasHistoryRoundInfo);
             List<Integer> tempCardList;
             List<Integer> publicCards = gameDataVo.getPublicCards();
             if (Objects.isNull(publicCards)) {
@@ -213,19 +217,26 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 addTime += TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) * SEND_CARD_NUM;
                 List<Integer> cardList = gameDataVo.getCards().subList(0, SEND_CARD_NUM);
                 gameDataVo.setPublicCards(new ArrayList<>(cardList));
+                texasHistory.setPreFlop(TexasDataHelper.getClientId(gameDataVo.getPublicCards(), TexasDataHelper.getPoolId(gameDataVo)));
                 tempCardList = new ArrayList<>(cardList);
                 cardList.clear();
             } else {
                 //发一张
-                Integer card = gameDataVo.getCards().remove(0);
+                Integer card = gameDataVo.getCards().removeFirst();
                 gameDataVo.getPublicCards().add(card);
+                if (texasHistory.getThirdCardId() == 0) {
+                    texasHistory.setThirdCardId(TexasDataHelper.getClientCardId(gameDataVo, card));
+                } else if (texasHistory.getFourthCardId() == 0) {
+                    texasHistory.setFourthCardId(TexasDataHelper.getClientCardId(gameDataVo, card));
+                }
                 tempCardList = List.of(card);
                 addTime += TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS);
             }
             List<Integer> clientId = TexasDataHelper.getClientId(tempCardList, TexasDataHelper.getPoolId(gameDataVo));
             for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
                 List<TexasRoundInfo> texasRoundInfos = playerRoundInfos.computeIfAbsent(info.getPlayerId(), k -> new ArrayList<>());
-                int rank = TexasBuilder.getTempHandType(info, gameDataVo).getHandRank().rank;
+                HandResult tempHandType = TexasBuilder.getTempHandType(info, gameDataVo);
+                int rank = Objects.nonNull(tempHandType) ? tempHandType.getHandRank().rank : 0;
                 texasRoundInfos.add(TexasBuilder.getTexasRoundInfo(nextRound, clientId, rank));
             }
             TexasRoundInfo texasRoundInfo = new TexasRoundInfo();
@@ -259,7 +270,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             normalSettlement(controller);
             return;
         }
-        long playerId = infoList.get(0).getPlayerId();
+        long playerId = infoList.getFirst().getPlayerId();
         long total = 0;
         for (Pot pot : gameDataVo.getPool()) {
             total += pot.getAmount();
@@ -294,6 +305,19 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         notifyTexasSettlementInfo.playerSettlementInfos = settlementInfoArrayList;
         broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSettlementInfo));
         gameDataVo.setNotifyTexasSettlementInfo(notifyTexasSettlementInfo);
+
+    }
+
+    public void addLog(TexasHistory history,TexasGameController controller,TexasSaveHistory texasSaveHistory) {
+        TexasHistory texasHistory = controller.buildTexasHistory(0, texasSaveHistory);
+        //玩家总赢
+        LogParam<TexasHistory, Object> param = new LogParam<>(texasHistory, null, null);
+        Thread.ofVirtual().start(new SaveLogThread<>(param,(logParam)->{
+            TexasHistory param1 = logParam.param();
+//            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET, totalBet);
+//            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, keyValue.getValue());
+//            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, keyValue.getValue() - totalBet);
+        }));
     }
 
 
@@ -301,7 +325,6 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
     public void phaseFinishDoAction() {
         if (gameController instanceof BasePokerGameController<TexasGameDataVo> controller) {
             //设置为等待阶段
-            controller.setCurrentGamePhase(new BaseWaitReadyPhase<>(gameController));
             gameDataVo.getTexasHistoryList().add(gameDataVo.getTexasHistory());
             //金币不够底注的尝试重新拿金币
             updatePlayerData();

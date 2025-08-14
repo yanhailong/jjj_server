@@ -14,6 +14,7 @@ import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.room.base.IRoomPhase;
+import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -23,10 +24,7 @@ import com.jjg.game.room.sample.bean.Room_ChessCfg;
 import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomTimerEvent;
 
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.jjg.game.room.timer.RoomEventType.POKER_PLAYER_EVENT;
@@ -43,6 +41,10 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     public BasePokerGameController(AbstractRoomController<Room_ChessCfg, ? extends Room> roomController) {
         super(roomController);
         currentGamePhase = new BaseWaitReadyPhase<>(this);
+    }
+
+    public boolean inRunPhase() {
+        return getCurrentGamePhase() == EGamePhase.PLAY_CART;
     }
 
     /**
@@ -64,6 +66,22 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
 
     }
 
+    public void  genPlayerSeatInfoList(Map<Integer,SeatInfo> seatInfoMap, List<PlayerSeatInfo> playerSeatInfoList){
+        for (Map.Entry<Integer, SeatInfo> entry : seatInfoMap.entrySet()) {
+            SeatInfo info = entry.getValue();
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
+            if (Objects.isNull(gamePlayer)) {
+                log.error("扑克确定执行顺序时GamePlayer 为null playerId:{} id:{}", info.getPlayerId(), gameDataVo.getId());
+                continue;
+            }
+            if (gamePlayer.getPokerPlayerGameData().isInit() && info.isSeatDown()) {
+                info.setJoinGame(true);
+                playerSeatInfoList.add(new PlayerSeatInfo(entry.getKey(), info.getPlayerId()));
+            } else {
+                info.setJoinGame(false);
+            }
+        }
+    }
     /**
      * 开启下一轮执行 还是直接结算
      */
@@ -89,7 +107,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     /**
      * 添加节点执行timer
      *
-     * @param phase
+     * @param phase 阶段定时器
      */
     public final void addPokerPhaseTimer(IRoomPhase phase) {
         currentGamePhase = phase;
@@ -103,7 +121,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     /**
      * 添加阶段执行
      *
-     * @param phase
+     * @param phase 阶段
      */
     public final void addPokerPhase(IRoomPhase phase) {
         currentGamePhase = phase;
@@ -147,7 +165,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
      */
     public final void removePokerPhaseTimer() {
         if (Objects.nonNull(currentGameTimerEvent)) {
-            timerCenter.remove(this, currentGameTimerEvent);
+            timerCenter.remove(this, currentGameTimerEvent.getParameter());
         }
     }
 

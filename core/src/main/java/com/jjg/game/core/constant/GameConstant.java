@@ -38,12 +38,36 @@ public class GameConstant {
         public static final int ROOM_ID_MIN = 100000;
         //最大房间id ？
         public static final int ROOM_ID_MAX = 999999;
+    }
 
+    public interface Item{
+        //可使用道具
+        int TYPE_CAN_USE = 1;
+        //可合成道具
+        int TYPE_CAN_COMPOUND = 2;
+        //货币类道具
+        int TYPE_MONEY = 3;
 
-        //服务器暂时写死背包最大格子数量
-        public static final int PLAYER_PACK_MAX = 30;
-        //每次背包扩容添加格子数量
-        public static final int PLAYER_PACK_RESIZE = 10;
+        int ID_GOLD = 1030001;
+        int ID_DIAMOND = 1030002;
+
+        int PROP_MAX = -1;
+    }
+
+    public interface MarqueeType{
+        //系统通知
+        int SYSTEM_MSG = 100;
+        //玩家交易
+        int PLAYER_EXCHANGE = 200;
+        //活动公告
+        int AVTIVITY = 300;
+        //玩家赢奖
+        int PLAYER_WIN = 400;
+
+        //客户端原始展示类型
+        int CLIENT_NORMAL_TYPE = 0;
+        //客户端需要进行多语言参数匹配的类型
+        int CLIENT_LANG_TYPE = 1;
     }
 
 

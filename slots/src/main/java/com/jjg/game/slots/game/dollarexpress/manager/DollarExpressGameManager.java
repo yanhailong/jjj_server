@@ -573,7 +573,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             gameRunInfo.setIconArr(updateResult.data);
         }
         //检查与美元相关的逻辑
-        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, resultLib.getGoldTrainCount(), resultLib.getGoldTrainAllTimes());
+        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, resultLib.getGoldTrainCount(), resultLib.getGoldTrainAllTimes(),true);
 
         //计算火车奖励
         gameRunInfo = calTrainReward(playerGameData, resultLib.getTrainList(), gameRunInfo);
@@ -682,7 +682,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         if (updateResult.success()) {
             gameRunInfo.setIconArr(updateResult.data);
         }
-        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, goldTrainLib.getGoldTrainCount(), goldTrainLib.getGoldTrainAllTimes());
+        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, goldTrainLib.getGoldTrainCount(), goldTrainLib.getGoldTrainAllTimes(),false);
 
         gameRunInfo.addBigPoolTimes(goldTrainLib.getTimes());
 
@@ -789,7 +789,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         if (updateResult.success()) {
             gameRunInfo.setIconArr(updateResult.data);
         }
-        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, goldTrainLib.getGoldTrainCount(), goldTrainLib.getGoldTrainAllTimes());
+        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, goldTrainLib.getGoldTrainCount(), goldTrainLib.getGoldTrainAllTimes(),false);
 
         gameRunInfo.setBigPoolTimes(goldTrainLib.getTimes());
         playerGameData.setSelectedAreaSet(null);
@@ -969,7 +969,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @param gameRunInfo
      * @return
      */
-    public DollarExpressGameRunInfo checkDorllar(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData gameData, int goldTrainCount, int dollarAllTimes) {
+    public DollarExpressGameRunInfo checkDorllar(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData gameData, int goldTrainCount, int dollarAllTimes,boolean collectDollar) {
         DollarsInfo dollarsInfo = new DollarsInfo();
         dollarsInfo.dollarIndexIds = null;
         dollarsInfo.dollarValueList = null;
@@ -1023,7 +1023,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         //检查是否收集美元
-        if (gameData.getLastBet() >= generateManager.getDollarExpressCollectDollarConfig().getStakeMin() && dollarsInfo.dollarIndexIds != null && dollarsInfo.dollarValueList != null) {
+        if (collectDollar && gameData.getLastBet() >= generateManager.getDollarExpressCollectDollarConfig().getStakeMin() && dollarsInfo.dollarIndexIds != null && dollarsInfo.dollarValueList != null) {
             dollarsInfo.collectDollarIndexIds = new ArrayList<>();
             boolean collect = false;
             for (int i = 0; i < dollarsInfo.dollarIndexIds.size(); i++) {

@@ -13,6 +13,8 @@ public record MarqueeDto(
         int id,
         @NotBlank(message = "跑马灯内容不能为空")
         String content,
+        @Positive(message = "间隔时间")
+        int interval_time,
         @Positive(message = "次数不能为负")
         int nums,
         @Positive(message = "权重不能为负")
@@ -20,6 +22,7 @@ public record MarqueeDto(
         @NotBlank(message = "开始时间不能为空")
         String start_time,
         @NotBlank(message = "结束时间不能为空")
-        String end_time
+        String end_time,
+        int type
 ) {
 }

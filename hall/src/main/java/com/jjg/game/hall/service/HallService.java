@@ -1,15 +1,15 @@
 package com.jjg.game.hall.service;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.PlayerAvatarDao;
-import com.jjg.game.core.dao.PlayerPackDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.GameStatusService;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.constant.HallCode;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.dao.BindDao;
@@ -45,7 +45,7 @@ public class HallService implements ConfigExcelChangeListener {
     @Autowired
     private HallPlayerService hallPlayerService;
     @Autowired
-    private PlayerPackDao playerPackDao;
+    private PlayerPackService playerPackService;
 
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
@@ -233,6 +233,15 @@ public class HallService implements ConfigExcelChangeListener {
     }
 
     /**
+     * 获取所有头像信息
+     * @param playerId
+     * @return
+     */
+    public PlayerAvatar allAvatar(long playerId){
+        return playerAvatarDao.getPlayerAvatar(playerId);
+    }
+
+    /**
      * 切换头像
      * @param playerId
      * @param id
@@ -335,24 +344,69 @@ public class HallService implements ConfigExcelChangeListener {
     }
 
     /**
-     * 添加道具
+     * 获取玩家背包
+     * @param playerId
+     * @return
+     */
+    public PlayerPack getPlayerPack(long playerId){
+        return this.playerPackService.getFromAllDB(playerId);
+    }
+
+    /**
+     * 使用道具
      * @param playerId
      * @param itemId
      */
-    public void addItem(long playerId,int itemId){
+    public CommonResult<Integer> useItem(long playerId,int itemId){
+        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
         try{
             ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
             if(itemCfg == null){
-                log.debug("未找到该道具配置 playerId = {},itemId = {}",playerId,itemId);
-                return;
+                result.code = Code.NOT_FOUND;
+                log.debug("未找到该道具配置，使用道具失败 playerId = {},itemId = {}",playerId,itemId);
+                return result;
             }
 
-            playerPackDao.doSave(playerId, pp -> {
+            //检查道具类型
+            if(itemCfg.getType() != GameConstant.Item.TYPE_CAN_USE){
+                result.code = Code.FORBID;
+                log.debug("改道具不可被使用，使用道具失败 playerId = {},itemId = {}",playerId,itemId);
+                return result;
+            }
 
-            });
+            if(itemCfg.getGetItem() == null || itemCfg.getGetItem().isEmpty()){
+                result.code = Code.FORBID;
+                log.debug("使用后获取道具配置为空，使用道具失败 playerId = {},itemId = {}",playerId,itemId);
+                return result;
+            }
+
+            CommonResult<PlayerPack> useResult = null;
+            for(Map.Entry<Integer,Long> en : itemCfg.getGetItem().entrySet()){
+                int addItemId = en.getKey();
+                ItemCfg addItemCfg = GameDataManager.getItemCfg(addItemId);
+                if(addItemCfg == null){
+                    log.debug("未找到获得新道具的配置 playerId = {},itemId = {}",playerId,addItemId);
+                    continue;
+                }
+                useResult = playerPackService.useItem(playerId, itemId, itemCfg.getProp(), addItemId, en.getValue(), addItemCfg.getProp(), "packUseItem");
+            }
+
+            if(useResult == null){
+                log.debug("使用道具后获得新道具失败 playerId = {},itemId = {}",playerId,itemId);
+                result.code = Code.FAIL;
+                return result;
+            }
+
+            if(!useResult.success()){
+                result.code = useResult.code;
+                return result;
+            }
+            result.data = useResult.data.getItemCount(itemId);
         }catch (Exception e){
             log.error("",e);
+            result.code = Code.EXCEPTION;
         }
+        return result;
     }
 
 

@@ -1,13 +1,14 @@
 package com.jjg.game.core.handler;
 
-import com.jjg.game.common.cluster.ClusterSystem;
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
-import com.jjg.game.core.pb.NotifyMarquee;
-import com.jjg.game.core.pb.NotifyStopMarquee;
-import com.jjg.game.core.pb.gm.ReqMarqueeServer;
+import com.jjg.game.core.data.Marquee;
+import com.jjg.game.core.manager.CoreMarqueeManager;
+import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author 11
@@ -16,32 +17,40 @@ import org.slf4j.LoggerFactory;
 public class CoreToServerMessageHandler {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
+    @Autowired
+    private CoreMarqueeManager marqueeManager;
+
     /**
-     * 收到跑马灯信息
-     * @param req
+     * 其他节点推送的跑马灯信息
+     * @param notify
      */
-    @Command(MessageConst.ToServer.NOTICE_MARQUEE)
-    public void noticeMarquee(ReqMarqueeServer req) {
+    @Command(MessageConst.ToServer.NOTICE_MARQUEE_HALL_MASTER)
+    public void notifyMarqueeHallMaster(NotifyAllNodesMarqueeServer notify) {
         try{
-            NotifyMarquee notifyMarquee = new NotifyMarquee();
-            notifyMarquee.content = req.content;
-            ClusterSystem.system.sessionMap().entrySet().forEach(en -> {en.getValue().send(notifyMarquee);});
-            log.info("推送跑马灯结束 content = {}",req.content);
+            log.info("收到其他节点推送的跑马灯信息 notify = {}", JSON.toJSONString(notify));
+            Marquee marquee = new Marquee();
+            marquee.setId(notify.id);
+            marquee.setContent(notify.content);
+            marquee.setInterval(notify.interval);
+            marquee.setType(notify.type);
+            marquee.setStartTime(notify.startTime);
+            marquee.setEndTime(notify.endTime);
+
+            marqueeManager.addNewMarquee(marquee);
         }catch (Exception e) {
             log.error("",e);
         }
     }
 
     /**
-     * 收到停止跑马灯信息
-     * @param req
+     * 收到其他节点推送的停止跑马灯信息
+     * @param notify
      */
-    @Command(MessageConst.ToServer.NOTICE_STOP_MARQUEE)
-    public void noticeStopMarquee(ReqMarqueeServer req) {
+    @Command(MessageConst.ToServer.NOTICE_STOP_MARQUEE_HALL_MASTER)
+    public void notifyStopMarqueeHallMaster(NotifyAllNodesMarqueeServer notify) {
         try{
-            NotifyStopMarquee notifyStopMarquee = new NotifyStopMarquee();
-            ClusterSystem.system.sessionMap().entrySet().forEach(en -> {en.getValue().send(notifyStopMarquee);});
-            log.info("停止跑马灯 content = {}",req.content);
+            log.info("收到其他节点推送的停止跑马灯信息 id = {}",notify.id);
+            marqueeManager.removeMarquee(notify.id);
         }catch (Exception e) {
             log.error("",e);
         }

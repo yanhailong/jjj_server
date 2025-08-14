@@ -13,7 +13,7 @@ public interface IGameClusterLeaderListener {
      * 请注意，当此方法调用发生时，hasLeadership可能已经回落到false。
      * 如果发生这种情况，您可以预期{@link notLeader（）}也会被调用。
      */
-    void isLeader(int gameType);
+    void isLeader();
 
     /**
      * 当LeaderLatch的状态从hasLeadership=true变为hasLeadership=false时，就会调用此函数。
@@ -21,5 +21,5 @@ public interface IGameClusterLeaderListener {
      * 请注意，当此方法调用发生时，hasLeadership可能已变为true。
      * 如果发生这种情况，您可以预期{@link isLeader（）}也会被调用。
      */
-    void notLeader(int gameType);
+    void notLeader();
 }

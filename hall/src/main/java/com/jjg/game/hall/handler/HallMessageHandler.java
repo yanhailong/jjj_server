@@ -11,10 +11,7 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
-import com.jjg.game.core.data.Account;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.hall.constant.HallCode;
@@ -37,6 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -211,6 +209,7 @@ public class HallMessageHandler implements GmListener {
             res.headImgId = player.getHeadImgId();
             res.headFrameId = player.getHeadFrameId();
             res.nationalId = player.getNationalId();
+            res.titleId = player.getTitleId();
 
             Account account = accountDao.queryAccountByPlayerId(playerController.playerId());
             if (account == null) {
@@ -322,6 +321,44 @@ public class HallMessageHandler implements GmListener {
     }
 
     /**
+     * 获取所有的头像信息
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_SELECT_AVATAR)
+    public void reqAllAvatar(PlayerController playerController, ReqAllAvatar req) {
+        ResAllAvatar res = new ResAllAvatar(HallCode.SUCCESS);
+        try {
+            PlayerAvatar playerAvatar = hallService.allAvatar(playerController.playerId());
+            if(playerAvatar == null) {
+                res.code = Code.NOT_FOUND;
+                playerController.send(res);
+                log.debug("未找到该玩家的头像信息 playerId = {}", playerController.playerId());
+                return;
+            }
+
+            if(playerAvatar.getUnlockAvatarSet() != null && !playerAvatar.getUnlockAvatarSet().isEmpty()) {
+                res.avatars = new ArrayList<>(playerAvatar.getUnlockAvatarSet().size());
+                playerAvatar.getUnlockAvatarSet().forEach(u -> res.avatars.add(u));
+            }
+            if(playerAvatar.getUnlockFrameSet() != null && !playerAvatar.getUnlockFrameSet().isEmpty()) {
+                res.frames = new ArrayList<>(playerAvatar.getUnlockFrameSet().size());
+                playerAvatar.getUnlockFrameSet().forEach(u -> res.frames.add(u));
+            }
+            if(playerAvatar.getUnlockTitleSet() != null && !playerAvatar.getUnlockTitleSet().isEmpty()) {
+                res.titles = new ArrayList<>(playerAvatar.getUnlockTitleSet().size());
+                playerAvatar.getUnlockTitleSet().forEach(u -> res.titles.add(u));
+            }
+
+            log.debug("玩家获取所有头像信息 playerId = {}", playerController.playerId());
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
      * 选择头像框
      * @param playerController
      * @param req
@@ -337,6 +374,76 @@ public class HallMessageHandler implements GmListener {
                 return;
             }
             playerController.setPlayer(result.data);
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 获取背包
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_GET_PACK)
+    public void reqGetPack(PlayerController playerController, ReqGetPack req) {
+        ResGetPack res = new ResGetPack(HallCode.SUCCESS);
+        try {
+            PlayerPack playerPack = hallService.getPlayerPack(playerController.playerId());
+            if(playerPack == null || playerPack.getItems().isEmpty()) {
+                playerController.send(res);
+                return;
+            }
+
+            List<PackItemInfo> packItemInfos = new ArrayList<>();
+            playerPack.getItems().entrySet().forEach(en -> {
+                PackItemInfo info = new PackItemInfo();
+                info.girdId = en.getKey();
+                info.item = new ItemInfo();
+                info.item.itemId = en.getValue().getId();
+                info.item.count = en.getValue().getCount();
+                packItemInfos.add(info);
+            });
+
+            res.packItemInfos = packItemInfos;
+            log.debug("返回玩家背包数据 playerId = {}", playerController.playerId());
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 使用道具
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_USE_ITEM)
+    public void reqUseItem(PlayerController playerController, ReqUseItem req) {
+        ResUseItem res = new ResUseItem(HallCode.SUCCESS);
+        try {
+            hallService.useItem(playerController.playerId(), req.itemId);
+            log.debug("使用道具 playerId = {}", playerController.playerId());
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 获取邮件
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_GET_MAILS)
+    public void reqGetMails(PlayerController playerController, ReqUseItem req) {
+        ResUseItem res = new ResUseItem(HallCode.SUCCESS);
+        try {
+            hallService.useItem(playerController.playerId(), req.itemId);
+            log.debug("使用道具 playerId = {}", playerController.playerId());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -420,8 +527,6 @@ public class HallMessageHandler implements GmListener {
             }else if("addAvatar".equalsIgnoreCase(gmOrders[0])) {
                 int id = Integer.parseInt(gmOrders[1]);
                 hallService.addPlayerAvatar(playerController.playerId(), id);
-            }else if("addItem".equalsIgnoreCase(gmOrders[0])) {
-
             }else {
                 res.code = Code.NOT_FOUND;
             }

@@ -1,13 +1,17 @@
 package com.jjg.game.table.redblackwar.gamephase;
 
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.core.data.Card;
 import com.jjg.game.core.utils.PokerCardUtils;
+import com.jjg.game.room.datatrack.logdata.LogParam;
+import com.jjg.game.room.datatrack.logdata.SaveLogThread;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.TablePlayerGameData;
-import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
 import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
-import com.jjg.game.core.data.Card;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.redblackwar.constant.HandType;
@@ -129,6 +133,8 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         settleInfo.redCardType = redHandType.getRank();
         settleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(playerGet, gameDataVo);
         settleInfo.isLucky = luckBet;
+        //记录
+        addLog(gameDataVo, playerGet, settleInfo.redCards, settleInfo.blackCards);
         //更新房间记录
         updateGameHistory(gameDataVo, blackHandType, winState);
         //清除押注历史
@@ -151,6 +157,25 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         gameDataVo.setCurrentSettleInfo(null);
     }
 
+    private void addLog(RedBlackWarGameDataVo gameDataVo, Map<Long, DefaultKeyValue<Long, Long>> playerGetInfo, List<Integer> redCards, List<Integer> blackCards) {
+        Pair<Map<Long, Map<Integer, List<Integer>>>, Map<Long, DefaultKeyValue<Long, Long>>> data = Pair.newPair(new HashMap<>(gameDataVo.getPlayerBetInfo()), playerGetInfo);
+        Map<Long, GamePlayer> gamePlayerMap = new HashMap<>();
+        for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
+            if (entry.getValue() instanceof GameRobotPlayer) {
+                continue;
+            }
+            gamePlayerMap.put(entry.getKey(), entry.getValue());
+        }
+        LogParam<Pair<Map<Long, Map<Integer, List<Integer>>>, Map<Long, DefaultKeyValue<Long, Long>>>, List<List<Integer>>> logParam = new LogParam<>(data, gamePlayerMap, List.of(redCards, blackCards));
+        Thread.ofVirtual().start(new SaveLogThread<>(logParam,
+                (param) -> {
+                    SaveLogThread.generalLog(param, gameDataTracker);
+                    List<List<Integer>> result = param.result();
+                    gameDataTracker.addGameLogData("redCard", result.getFirst());
+                    gameDataTracker.addGameLogData("blackCard", result.getLast());
+                    gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
+                }));
+    }
 
     private void updateGameHistory(RedBlackWarGameDataVo gameDataVo, HandType blackHandType, int result) {
         RedBlackWarHistory redBlackWarHistory = new RedBlackWarHistory();

@@ -25,5 +25,7 @@ public class NotifyBlackJackSendCardInfo extends AbstractNotice {
     public int cardId;
     @ProtoDesc("下一个操作人id")
     public long operationId;
+    @ProtoDesc("能否购买ACE")
+    public boolean canBuyACE;
 
 }

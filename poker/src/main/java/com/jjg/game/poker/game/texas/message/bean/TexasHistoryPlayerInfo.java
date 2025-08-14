@@ -20,4 +20,6 @@ public class TexasHistoryPlayerInfo {
     public long betValue;
     @ProtoDesc("手牌信息")
     public List<Integer> cardIds;
+    @ProtoDesc("摊牌的手牌信息")
+    public List<Integer> layCardIds;
 }

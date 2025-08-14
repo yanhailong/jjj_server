@@ -36,7 +36,9 @@ public class BlackJackPlayCardPhase extends BasePlayCardPhase<BlackJackGameDataV
             Map<Integer, PokerCard> cardListMap = BlackJackDataHelper.getCardListMap(poolId);
             int sendNum = sendCards(cardListMap, gameDataVo);
             //发庄家
-            List<Integer> cards = new ArrayList<>(gameDataVo.getCards().subList(0, roomChessCfg.getHandPoker()));
+            List<Integer> dealerCards = gameDataVo.getCards().subList(0, roomChessCfg.getHandPoker());
+            List<Integer> cards = new ArrayList<>(dealerCards);
+            dealerCards.clear();
             gameDataVo.setDealerCards(cards);
             //通知发牌信息
             NotifyBlackJackSendCardInfo notifyBlackJackSendCardInfo = new NotifyBlackJackSendCardInfo();
@@ -51,7 +53,7 @@ public class BlackJackPlayCardPhase extends BasePlayCardPhase<BlackJackGameDataV
             }
             notifyBlackJackSendCardInfo.cardIdList = blackJackCardInfos;
             //添加庄家能显示的牌
-            PokerCard pokerCard = cardListMap.get(gameDataVo.getDealerCards().get(0));
+            PokerCard pokerCard = cardListMap.get(gameDataVo.getDealerCards().getFirst());
             notifyBlackJackSendCardInfo.cardId = pokerCard.getClientId();
             //如果庄家的牌包含A通知购买ACE
             boolean canBuy = pokerCard.getRank() == 1;
@@ -67,6 +69,7 @@ public class BlackJackPlayCardPhase extends BasePlayCardPhase<BlackJackGameDataV
             }
             notifyBlackJackSendCardInfo.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
             gameDataVo.setCanBuyACE(canBuy);
+            notifyBlackJackSendCardInfo.canBuyACE= canBuy;
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyBlackJackSendCardInfo));
         }
     }

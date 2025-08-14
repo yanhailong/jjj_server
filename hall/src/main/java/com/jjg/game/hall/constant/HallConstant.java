@@ -84,6 +84,42 @@ public interface HallConstant {
         int REQ_SELECT_AVATAR = BASE_MSG_PREFIX | 0x11;
         int RES_SELECT_AVATAR = BASE_MSG_PREFIX | 0x12;
 
+        //获取背包
+        int REQ_GET_PACK = BASE_MSG_PREFIX | 0x13;
+        int RES_GET_PACK = BASE_MSG_PREFIX | 0x14;
+
+        //使用道具
+        int REQ_USE_ITEM = BASE_MSG_PREFIX | 0x15;
+        int RES_USE_ITEM = BASE_MSG_PREFIX | 0x16;
+
+        //获取所有头像信息
+        int REQ_ALL_AVATAR = BASE_MSG_PREFIX | 0x17;
+        int RES_ALL_AVATAR = BASE_MSG_PREFIX | 0x18;
+
+        //获取邮件
+        int REQ_GET_MAILS = BASE_MSG_PREFIX | 0x19;
+        int RES_GET_MAILS = BASE_MSG_PREFIX | 0x1A;
+
+        //阅读邮件
+        int REQ_READ_MAIL = BASE_MSG_PREFIX | 0x1B;
+        int RES_READ_MAIL = BASE_MSG_PREFIX | 0x1C;
+
+        //领取邮件内的道具
+        int REQ_GET_MAIL_ITEMS = BASE_MSG_PREFIX | 0x1D;
+        int RES_GET_MAIL_ITEMS = BASE_MSG_PREFIX | 0x1E;
+
+        //删除一封邮件
+        int REQ_REMOVE_MAIL = BASE_MSG_PREFIX | 0x1F;
+        int RES_REMOVE_MAIL = BASE_MSG_PREFIX | 0x20;
+
+        //删除已读邮件
+        int REQ_REMOVE_READ_MAILS = BASE_MSG_PREFIX | 0x21;
+        int RES_REMOVE_READ_MAILS = BASE_MSG_PREFIX | 0x22;
+
+        //一键领取邮件内的道具
+        int REQ_GET_ALL_MAILS_ITEMS = BASE_MSG_PREFIX | 0x23;
+        int RES_GET_ALL_MAILS_ITEMS = BASE_MSG_PREFIX | 0x24;
+
         //region============================== 好友房相关 =============================
 
         // 请求创建好友房

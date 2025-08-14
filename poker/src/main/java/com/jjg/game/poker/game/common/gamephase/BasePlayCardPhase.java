@@ -64,7 +64,7 @@ public abstract class BasePlayCardPhase<T extends BasePokerGameDataVo> extends B
             sendNum += handPoker;
             List<Integer> playCard = new ArrayList<>();
             for (int i = 0; i < handPoker; i++) {
-                playCard.add(cards.remove(0));
+                playCard.add(cards.removeFirst());
             }
             info.setCards(new ArrayList<>());
             info.getCards().add(playCard);

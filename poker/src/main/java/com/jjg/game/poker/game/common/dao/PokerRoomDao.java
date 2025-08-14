@@ -1,6 +1,5 @@
 package com.jjg.game.poker.game.common.dao;
 
-import com.jjg.game.core.data.BetTableRoom;
 import com.jjg.game.core.data.PokerRoom;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.dao.AbstractGoldRoomDao;

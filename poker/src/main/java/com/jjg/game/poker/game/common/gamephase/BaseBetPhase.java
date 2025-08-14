@@ -1,10 +1,11 @@
 package com.jjg.game.poker.game.common.gamephase;
 
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
+import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
 import com.jjg.game.room.constant.EGamePhase;
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
@@ -18,6 +19,12 @@ public abstract class BaseBetPhase<T extends BasePokerGameDataVo> extends BasePo
         super(gameController);
     }
 
+    @Override
+    public void phaseDoAction() {
+        super.phaseDoAction();
+        NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(getGamePhase(), gameDataVo.getPhaseEndTime());
+        broadcastMsgToRoom(notifyPokerPhaseChange);
+    }
 
     @Override
     public EGamePhase getGamePhase() {

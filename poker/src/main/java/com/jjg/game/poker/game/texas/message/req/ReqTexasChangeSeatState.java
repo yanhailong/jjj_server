@@ -15,8 +15,6 @@ import com.jjg.game.poker.game.texas.constant.TexasConstant;
 public class ReqTexasChangeSeatState extends AbstractMessage {
     @ProtoDesc("类型 1改变站起坐下 2.改变座位位置")
     public int changeType;
-    @ProtoDesc("座位id")
-    public int seatId;
     @ProtoDesc("参数（类型1 时为1坐下 2站起 类型2为座位id）")
     public int param;
 }

@@ -56,7 +56,12 @@ public class TexasMessageHandler {
         if (gameController instanceof TexasGameController controller) {
             TexasGameDataVo gameDataVo = controller.getGameDataVo();
             NotifyTexasSeatStateChange change = new NotifyTexasSeatStateChange();
-            SeatInfo seatInfo = gameDataVo.getSeatInfo().get(reqTexasChangeSeatState.seatId);
+            SeatInfo seatInfo = null;
+            for (SeatInfo tempSeatInfo : gameDataVo.getSeatInfo().values()) {
+                if (tempSeatInfo.getPlayerId() == playerId) {
+                    seatInfo = tempSeatInfo;
+                }
+            }
             if (Objects.isNull(seatInfo) || seatInfo.getPlayerId() != playerId) {
                 change.code = Code.PARAM_ERROR;
                 controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
@@ -74,8 +79,8 @@ public class TexasMessageHandler {
                     boolean state = reqTexasChangeSeatState.param == 1;
                     if (state) {
                         if (controller.inRunPhase()) {
-                            change.code = Code.FORBID;
                             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
+                            controller.runPlayerSeatChange(seatInfo,true);
                             return;
                         }
                         boolean added = controller.addTempGoldOrOutTable(seatInfo, gamePlayer);

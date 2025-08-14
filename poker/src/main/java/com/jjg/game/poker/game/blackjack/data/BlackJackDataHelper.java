@@ -39,17 +39,15 @@ public class BlackJackDataHelper extends PokerDataHelper {
 
     public static int getTotalPoint(List<Integer> cfgCardId) {
         int totalPoint = 0;
-        int maxTotalPoint = 0;
+        boolean hasA = false;
         for (Integer cfgId : cfgCardId) {
             PokerPoolCfg pokerPoolCfg = GameDataManager.getPokerPoolCfg(cfgId);
             totalPoint += pokerPoolCfg.getPointsNum();
-            if (pokerPoolCfg.getPointsNum() == 1) {
-                maxTotalPoint += pokerPoolCfg.getPointsNum() + 10;
-            } else {
-                maxTotalPoint += pokerPoolCfg.getPointsNum();
+            if (!hasA && pokerPoolCfg.getPointsNum() == 1) {
+                hasA = true;
             }
         }
-        return maxTotalPoint > PERFECT_POINT ? totalPoint : Math.max(totalPoint, maxTotalPoint);
+        return hasA && (totalPoint + 10 <= PERFECT_POINT) ? totalPoint + 10 : totalPoint;
     }
 
     public static int getCfgPoint(int cfgCardId) {

@@ -37,7 +37,10 @@ public class TexasBuilder {
         texasRoundInfo.cards = TexasDataHelper.getClientId(addCards, TexasDataHelper.getPoolId(gameDataVo));
         texasRoundInfo.round = gameDataVo.getRound();
         if (Objects.nonNull(playerSeatInfo)) {
-            texasRoundInfo.handType = getTempHandType(playerSeatInfo, gameDataVo).getHandRank().rank;
+            HandResult tempHandType = getTempHandType(playerSeatInfo, gameDataVo);
+            if (Objects.nonNull(tempHandType)) {
+                texasRoundInfo.handType = tempHandType.getHandRank().rank;
+            }
         }
         notifyTexasPublicCardChange.roundInfo = texasRoundInfo;
         notifyTexasPublicCardChange.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
@@ -71,21 +74,52 @@ public class TexasBuilder {
     }
 
     public static TexasHistoryPlayerInfo getTexasHistoryPlayerInfo(PlayerSeatInfo info, TexasGameDataVo texasGameDataVo, long betValue) {
+        return getTexasHistoryPlayerInfo(info, texasGameDataVo, false, betValue);
+    }
+
+    public static TexasHistoryPlayerInfo getTexasHistoryPlayerInfo(TexasHistoryPlayerInfo info, Map<Long, List<Integer>> allCards) {
+        TexasHistoryPlayerInfo texasHistoryPlayerInfo = new TexasHistoryPlayerInfo();
+        texasHistoryPlayerInfo.playerName = info.playerName;
+        texasHistoryPlayerInfo.playerId = info.playerId;
+        texasHistoryPlayerInfo.betValue = info.betValue;
+        texasHistoryPlayerInfo.index = info.index;
+        if (Objects.nonNull(allCards)) {
+            texasHistoryPlayerInfo.cardIds = allCards.get(info.playerId);
+        }
+        return texasHistoryPlayerInfo;
+    }
+
+    public static TexasHistoryPlayerInfo getTexasHistoryPlayerInfo(PlayerSeatInfo info, TexasGameDataVo texasGameDataVo, boolean init, long betValue) {
         TexasHistoryPlayerInfo texasHistoryPlayerInfo = new TexasHistoryPlayerInfo();
         texasHistoryPlayerInfo.betValue = betValue;
         texasHistoryPlayerInfo.playerId = info.getPlayerId();
         //获取位置
         int dealerIndex = texasGameDataVo.getDealerIndex();
-        List<TexasHistoryPlayerInfo> totalPlayerBetInfo = texasGameDataVo.getTexasHistory().getTotalPlayerBetInfo();
-        for (int i = 0; i < totalPlayerBetInfo.size(); i++) {
-            TexasHistoryPlayerInfo historyPlayerInfo = totalPlayerBetInfo.get(i);
-            if (historyPlayerInfo.playerId == info.getPlayerId()) {
-                if (i >= dealerIndex) {
-                    texasHistoryPlayerInfo.index = i - dealerIndex;
-                } else {
-                    texasHistoryPlayerInfo.index = totalPlayerBetInfo.size() - dealerIndex + i;
+        if (init) {
+            List<PlayerSeatInfo> playerSeatInfoList = texasGameDataVo.getPlayerSeatInfoList();
+            for (int i = 0; i < playerSeatInfoList.size(); i++) {
+                PlayerSeatInfo seatInfo = playerSeatInfoList.get(i);
+                if (seatInfo.getPlayerId() == info.getPlayerId()) {
+                    if (i >= dealerIndex) {
+                        texasHistoryPlayerInfo.index = i - dealerIndex;
+                    } else {
+                        texasHistoryPlayerInfo.index = playerSeatInfoList.size() - dealerIndex + i;
+                    }
+                    break;
                 }
-                break;
+            }
+        } else {
+            List<TexasHistoryPlayerInfo> totalPlayerBetInfo = texasGameDataVo.getTexasHistory().getTotalPlayerBetInfo();
+            for (int i = 0; i < totalPlayerBetInfo.size(); i++) {
+                TexasHistoryPlayerInfo historyPlayerInfo = totalPlayerBetInfo.get(i);
+                if (historyPlayerInfo.playerId == info.getPlayerId()) {
+                    if (i >= dealerIndex) {
+                        texasHistoryPlayerInfo.index = i - dealerIndex;
+                    } else {
+                        texasHistoryPlayerInfo.index = totalPlayerBetInfo.size() - dealerIndex + i;
+                    }
+                    break;
+                }
             }
         }
         GamePlayer gamePlayer = texasGameDataVo.getGamePlayer(info.getPlayerId());
@@ -101,7 +135,7 @@ public class TexasBuilder {
 
     public static TexasPlayerInfo getTexasPlayerInfo(PlayerSeatInfo playerSeatInfo, SeatInfo seatInfo, TexasGameDataVo gameDataVo) {
         TexasPlayerInfo texasPlayerInfo = new TexasPlayerInfo();
-        texasPlayerInfo.totalBet = gameDataVo.getBaseBetInfo().getOrDefault(seatInfo.getPlayerId(),0L);
+        texasPlayerInfo.totalBet = gameDataVo.getBaseBetInfo().getOrDefault(seatInfo.getPlayerId(), 0L);
         PokerPlayerInfo playerInfo = PokerBuilder.getPokerPlayerInfo(seatInfo, gameDataVo);
         if (Objects.nonNull(playerSeatInfo)) {
             texasPlayerInfo.handCards = PokerDataHelper.getClientId(playerSeatInfo.getCurrentCards(), TexasDataHelper.getPoolId(gameDataVo));

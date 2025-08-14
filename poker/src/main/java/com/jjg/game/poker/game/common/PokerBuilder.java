@@ -31,7 +31,7 @@ public class PokerBuilder {
         PokerPlayerInfo pokerPlayerInfo = new PokerPlayerInfo();
         pokerPlayerInfo.playerId = gamePlayer.getId();
         pokerPlayerInfo.name = gamePlayer.getNickName();
-        pokerPlayerInfo.icon = gamePlayer.getNickName();
+        pokerPlayerInfo.icon = gamePlayer.getHeadImgId();
         if (seatInfo != null) {
             pokerPlayerInfo.seatIndex = seatInfo.getSeatId();
             pokerPlayerInfo.status = seatInfo.isSeatDown();
@@ -67,9 +67,13 @@ public class PokerBuilder {
         pokerPlayerInfo.seatIndex = seatInfo.getSeatId();
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
         if (Objects.nonNull(gamePlayer)) {
-            pokerPlayerInfo.icon = gamePlayer.getNickName();
+            pokerPlayerInfo.icon = gamePlayer.getHeadImgId();
             pokerPlayerInfo.name = gamePlayer.getNickName();
-            pokerPlayerInfo.accountNumber = gamePlayer.getGold();
+            if (gameDataVo instanceof TexasGameDataVo texasGameDataVo) {
+                pokerPlayerInfo.accountNumber = texasGameDataVo.getTempGold().getOrDefault(gamePlayer.getId(), 0L);
+            } else {
+                pokerPlayerInfo.accountNumber = gamePlayer.getGold();
+            }
         }
         return pokerPlayerInfo;
     }

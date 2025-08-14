@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.blackjack.gamephase;
 
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
 import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
 import com.jjg.game.poker.game.blackjack.data.MaxPointGetInfo;
@@ -48,14 +49,18 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         BlackjackCfg blackjackCfg = BlackJackDataHelper.getBlackjackCfg(gameDataVo);
         Room_ChessCfg chessCfg = gameDataVo.getRoomCfg();
         List<Integer> resultCard = new ArrayList<>(dealerCards);
-        int maxCardNum = chessCfg.getHandPoker() + BlackJackConstant.Common.MAX_GET_CARD;
+        int maxCardNum = BlackJackConstant.Common.MAX_GET_CARD - chessCfg.getHandPoker();
         for (int i = 0; i < maxCardNum; i++) {
             resultCard.add(controller.getCard(gameDataVo));
         }
         //获取庄家最大点数
-        MaxPointGetInfo maxPointInfo = getMaxPointInfo(resultCard);
+        Pair<MaxPointGetInfo, Boolean> maxPointInfoPair = getMaxPointInfo(resultCard);
+        MaxPointGetInfo maxPointInfo = maxPointInfoPair.getFirst();
         boolean cardNumWin = maxPointInfo.getIndex() + 1 == maxCardNum;
-        boolean boom = !cardNumWin && maxPointInfo.isSoftHand() && maxPointInfo.getMaxPoint() <= 17;
+        boolean boom = false;
+        if (maxPointInfoPair.getSecond()) {
+            boom = !cardNumWin && (maxPointInfo.getMaxPoint() < 17 || maxPointInfo.isSoftHand() && maxPointInfo.getMaxPoint() == 17);
+        }
         //玩家id->获得的金币
         Map<Long, Long> playerGet = new HashMap<>();
         //押注信息
@@ -75,8 +80,9 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         NotifyBlackJackSettlementInfo settlementPlayerInfo = new NotifyBlackJackSettlementInfo();
         settlementPlayerInfo.settlementInfos = new ArrayList<>();
         List<Integer> sendCards = cardNumWin ? resultCard : resultCard.subList(0, boom ? maxPointInfo.getIndex() + 2 : maxPointInfo.getIndex() + 1);
-        settlementPlayerInfo.cardIds = new ArrayList<>(sendCards);
-        settlementPlayerInfo.endTime = gameDataVo.getPhaseEndTime()+ (long) sendCards.size() * PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS);
+        settlementPlayerInfo.cardIds = BlackJackDataHelper.getClientId(sendCards, BlackJackDataHelper.getPoolId(gameDataVo));
+        settlementPlayerInfo.totalPoint = BlackJackDataHelper.getTotalPoint(sendCards);
+        settlementPlayerInfo.endTime = gameDataVo.getPhaseEndTime() + (long) sendCards.size() * PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS);
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
             long playerId = info.getPlayerId();
             for (int i = 0; i < info.getCards().size(); i++) {
@@ -91,12 +97,14 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                     continue;
                 }
                 //初始为21点 直接发奖
-                if (info.getCards().size() == 1 && info.getCurrentCards().size() == chessCfg.getHandPoker()) {
-                    playerGet.merge(playerId, BlackJackDataHelper.getGetWinValue(betValue, blackjackCfg.getBlackjack()) / 100, Long::sum);
+                if (point == BlackJackConstant.Common.PERFECT_POINT && info.getCards().size() == 1 && info.getCurrentCards().size() == chessCfg.getHandPoker()) {
+                    playerGet.merge(playerId, BlackJackDataHelper.getGetWinValue(betValue, blackjackCfg.getBlackjack()), Long::sum);
+                    continue;
                 }
                 //连续6张直接发奖
                 if (card.size() == maxCardNum) {
                     playerGet.merge(playerId, BlackJackDataHelper.getGetWinValue(betValue, blackjackCfg.getFiveLittleDragons()), Long::sum);
+                    continue;
                 }
                 //庄家6张直接获胜
                 if (cardNumWin) {
@@ -135,27 +143,36 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
      * 返回拿的牌id
      * 庄家只有在“硬 17+”时才会停牌；其余情况一律继续叫牌。
      */
-    public MaxPointGetInfo getMaxPointInfo(List<Integer> maxGetCard) {
+    public static Pair<MaxPointGetInfo, Boolean> getMaxPointInfo(List<Integer> maxGetCard) {
         List<MaxPointGetInfo> totalPointList = new ArrayList<>();
         MaxPointGetInfo base = new MaxPointGetInfo(0, 0, false);
         totalPointList.add(base);
         boolean isMax = false;
+        boolean hasA = false;
         for (int i = 0; i < maxGetCard.size(); i++) {
             int card = maxGetCard.get(i);
             int point = BlackJackDataHelper.getCfgPoint(card);
+            int endNum = 0;
+            for (MaxPointGetInfo value : totalPointList) {
+                if (value.getMaxPoint() + point <= BlackJackConstant.Common.PERFECT_POINT) {
+                    value.setMaxPoint(value.getMaxPoint() + point);
+                    value.setIndex(i);
+                } else {
+                    endNum++;
+                }
+            }
+            if (endNum >= totalPointList.size()) {
+                break;
+            }
             //总点数,索引
             if (!isMax && point == 1) {
+                hasA = true;
                 isMax = base.getMaxPoint() + 10 > BlackJackConstant.Common.PERFECT_POINT;
                 if (!isMax) {
                     totalPointList.add(new MaxPointGetInfo(base.getMaxPoint() + 10, i, true));
                 }
             }
-            for (MaxPointGetInfo value : totalPointList) {
-                if (value.getMaxPoint() + point <= BlackJackConstant.Common.PERFECT_POINT) {
-                    value.setMaxPoint(value.getMaxPoint() + point);
-                    value.setIndex(i);
-                }
-            }
+
         }
         totalPointList.sort((o1, o2) -> {
             if (o1.getIndex() == maxGetCard.size()) {
@@ -170,7 +187,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             }
             return result;
         });
-        return totalPointList.get(0);
+        return Pair.newPair(totalPointList.get(0), hasA);
     }
 
 
