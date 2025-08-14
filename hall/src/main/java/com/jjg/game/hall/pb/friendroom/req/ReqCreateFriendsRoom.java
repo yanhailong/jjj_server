@@ -20,6 +20,9 @@ public class ReqCreateFriendsRoom {
     @ProtoDesc("请求使用的道具ID 金币和券ID")
     public int itemId;
 
+    @ProtoDesc("道具数量")
+    public int itemNum;
+
     @ProtoDesc("房间配置ID，场次ID")
     public int roomCfgId;
 
@@ -33,5 +36,5 @@ public class ReqCreateFriendsRoom {
     public boolean predictCostGoldNum;
 
     @ProtoDesc("房间名")
-    public int roomName;
+    public int roomAliasName;
 }
