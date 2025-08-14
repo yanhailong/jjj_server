@@ -4,7 +4,6 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
-import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BaseBetPhase;
@@ -17,6 +16,8 @@ import com.jjg.game.room.listener.RoomEventListener;
 import com.jjg.game.room.sample.bean.Room_ChessCfg;
 
 import java.util.*;
+
+import static com.jjg.game.poker.game.blackjack.constant.BlackJackConstant.Common.BET_FIX_TIME;
 
 /**
  * @author lm
@@ -48,12 +49,7 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
-        if (gameController instanceof BlackJackGameController controller) {
-            //生成执行列表
-            TreeMap<Integer, SeatInfo> seatInfo = gameDataVo.getSeatInfo();
-            List<PlayerSeatInfo> playerSeatInfoList = gameDataVo.getPlayerSeatInfoList();
-            controller.genPlayerSeatInfoList(seatInfo, playerSeatInfoList);
-        }
+
     }
 
     @Override
@@ -62,41 +58,43 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
             log.info("该定时器已经取消或者不需要再执行 id:{}", id);
             return;
         }
-        //没下注的人直接踢掉
-        List<PlayerSeatInfo> playerSeatInfo = gameDataVo.getPlayerSeatInfoList();
-        List<PlayerSeatInfo> noBetPlayer = new ArrayList<>(playerSeatInfo.size());
-        long timeMillis = System.currentTimeMillis();
-        Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
-        for (PlayerSeatInfo seatInfo : playerSeatInfo) {
-            GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
-            if (Objects.nonNull(gamePlayer)) {
-                if (!baseBetInfo.containsKey(gamePlayer.getId()) && timeMillis - 2000 > gamePlayer.getPokerPlayerGameData().getJoinTime()) {
-                    noBetPlayer.add(seatInfo);
+        if (gameController instanceof BlackJackGameController controller) {
+            //生成执行列表
+            TreeMap<Integer, SeatInfo> seatInfoTreeMap = gameDataVo.getSeatInfo();
+            List<PlayerSeatInfo> playerSeatInfoList = gameDataVo.getPlayerSeatInfoList();
+            controller.genPlayerSeatInfoList(seatInfoTreeMap, playerSeatInfoList);
+            //没下注的人直接踢掉
+            List<PlayerSeatInfo> playerSeatInfo = gameDataVo.getPlayerSeatInfoList();
+            List<PlayerSeatInfo> noBetPlayer = new ArrayList<>(playerSeatInfo.size());
+            long timeMillis = System.currentTimeMillis();
+            Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
+            for (PlayerSeatInfo seatInfo : playerSeatInfo) {
+                GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
+                if (Objects.nonNull(gamePlayer)) {
+                    if (!baseBetInfo.containsKey(gamePlayer.getId()) && timeMillis - BET_FIX_TIME > gamePlayer.getPokerPlayerGameData().getJoinTime()) {
+                        noBetPlayer.add(seatInfo);
+                    }
                 }
             }
-        }
-        for (PlayerSeatInfo info : noBetPlayer) {
-            Map<Long, PlayerController> playerControllers = gameController.getRoomController().getPlayerControllers();
-            PlayerController playerController = playerControllers.get(info.getPlayerId());
-            if (Objects.nonNull(playerController)) {
-                log.info("玩家：{}  未押注直接踢掉", info.getPlayerId());
-                roomEventListener.exitGame(playerController);
+            for (PlayerSeatInfo info : noBetPlayer) {
+                Map<Long, PlayerController> playerControllers = gameController.getRoomController().getPlayerControllers();
+                PlayerController playerController = playerControllers.get(info.getPlayerId());
+                if (Objects.nonNull(playerController)) {
+                    log.info("玩家：{}  未押注直接踢掉", info.getPlayerId());
+                    roomEventListener.exitGame(playerController);
+                }
+                playerSeatInfo.remove(info);
             }
-            playerSeatInfo.remove(info);
-        }
-        if (gameDataVo.canStartGame()) {
-            //进入下个阶段
-            nextPhase();
-        } else {
-            //重新等待
-            gameDataVo.getPlayerSeatInfoList().clear();
-            if (gameController instanceof BasePokerGameController<BlackJackGameDataVo> basePokerGameController) {
-                basePokerGameController.goBackWaitReadyPhase();
+            if (gameDataVo.canStartGame()) {
+                //进入下个阶段
+                nextPhase();
+            } else {
+                //重新等待
+                gameDataVo.getPlayerSeatInfoList().clear();
+                controller.goBackWaitReadyPhase();
+                NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(EGamePhase.WAIT_READY, -1);
+                broadcastMsgToRoom(notifyPokerPhaseChange);
             }
-            NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(EGamePhase.WAIT_READY, -1);
-            broadcastMsgToRoom(notifyPokerPhaseChange);
         }
     }
-
-
 }
