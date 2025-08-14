@@ -589,6 +589,9 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     public void reqShowCard(long playerId, TexasGameController controller) {
         //暂定弃牌和最后剩的玩家才可以亮牌
         PlayerSeatInfo info = gameDataVo.getPlayerSeatInfoMap().get(playerId);
+        if (Objects.isNull(info)) {
+            return;
+        }
         NotifyTexasShowCard notifyTexasShowCard = new NotifyTexasShowCard();
         if ((gameDataVo.getSettlement() != 1 && info.getOperationType() != PokerConstant.PlayerOperation.DISCARD) ||
                 controller.getCurrentGamePhase() != EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
@@ -620,7 +623,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
      * 请求历史记录
      *
      * @param playerId 玩家id
-     * @param req 请求
+     * @param req      请求
      */
     public void reqTexasHistory(long playerId, ReqTexasHistory req) {
         RepsTexasHistory repsTexasHistory = new RepsTexasHistory(Code.SUCCESS);

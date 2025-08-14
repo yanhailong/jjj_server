@@ -180,7 +180,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 //增加金币
                 controller.changePlayerGold(gamePlayer, get);
             }
-            pokerPlayerSettlementInfo.currentGold = gamePlayer.getGold();
+            pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().get(playerId);
             pokerPlayerSettlementInfo.getGold = get;
             pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;
             settlementPlayerInfo.cardType = handResult.getHandRank().rank;
