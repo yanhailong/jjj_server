@@ -29,10 +29,19 @@ public class MailService {
 
     /**
      * 获取玩家的所有邮件
-     * @param playerId 玩家ID
-     * @return 邮件列表
+     * @param playerId
+     * @return
      */
     public List<Mail> getMailByPlayerId(long playerId) {
         return mailDao.getMailByPlayerId(playerId);
+    }
+
+    /**
+     * 删除邮件
+     * @param playerId
+     * @param mailId
+     */
+    public void removeMail(long playerId,int mailId) {
+        mailDao.removeMail(playerId,mailId);
     }
 }

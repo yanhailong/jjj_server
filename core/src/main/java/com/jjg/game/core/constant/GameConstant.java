@@ -63,6 +63,11 @@ public class GameConstant {
         int AVTIVITY = 300;
         //玩家赢奖
         int PLAYER_WIN = 400;
+
+        //客户端原始展示类型
+        int CLIENT_NORMAL_TYPE = 0;
+        //客户端需要进行多语言参数匹配的类型
+        int CLIENT_LANG_TYPE = 1;
     }
 
 

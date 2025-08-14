@@ -95,5 +95,29 @@ public interface HallConstant  {
         //获取所有头像信息
         int REQ_ALL_AVATAR = BASE_MSG_PREFIX | 0x17;
         int RES_ALL_AVATAR = BASE_MSG_PREFIX | 0x18;
+
+        //获取邮件
+        int REQ_GET_MAILS = BASE_MSG_PREFIX | 0x19;
+        int RES_GET_MAILS = BASE_MSG_PREFIX | 0x1A;
+
+        //阅读邮件
+        int REQ_READ_MAIL = BASE_MSG_PREFIX | 0x1B;
+        int RES_READ_MAIL = BASE_MSG_PREFIX | 0x1C;
+
+        //领取邮件内的道具
+        int REQ_GET_MAIL_ITEMS = BASE_MSG_PREFIX | 0x1D;
+        int RES_GET_MAIL_ITEMS = BASE_MSG_PREFIX | 0x1E;
+
+        //删除一封邮件
+        int REQ_REMOVE_MAIL = BASE_MSG_PREFIX | 0x1F;
+        int RES_REMOVE_MAIL = BASE_MSG_PREFIX | 0x20;
+
+        //删除已读邮件
+        int REQ_REMOVE_READ_MAILS = BASE_MSG_PREFIX | 0x21;
+        int RES_REMOVE_READ_MAILS = BASE_MSG_PREFIX | 0x22;
+
+        //一键领取邮件内的道具
+        int REQ_GET_ALL_MAILS_ITEMS = BASE_MSG_PREFIX | 0x23;
+        int RES_GET_ALL_MAILS_ITEMS = BASE_MSG_PREFIX | 0x24;
     }
 }

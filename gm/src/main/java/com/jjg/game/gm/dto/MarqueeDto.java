@@ -22,6 +22,7 @@ public record MarqueeDto(
         @NotBlank(message = "开始时间不能为空")
         String start_time,
         @NotBlank(message = "结束时间不能为空")
-        String end_time
+        String end_time,
+        int type
 ) {
 }

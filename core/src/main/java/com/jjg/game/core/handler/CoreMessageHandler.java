@@ -152,6 +152,9 @@ public class CoreMessageHandler {
                 res.interval = currentMarquee.getInterval();
                 res.startTime = currentMarquee.getStartTime();
                 res.endTime = currentMarquee.getEndTime();
+                res.type = marqueeManager.getClientShowGarqueeType(currentMarquee.getType());
+                res.langId = currentMarquee.getLangId();
+                res.params = currentMarquee.getParams();
             }
             log.debug("获取当前跑马灯 playerId = {},marqueeId = {}", playerController.playerId(),res.id);
         }catch (Exception e){
