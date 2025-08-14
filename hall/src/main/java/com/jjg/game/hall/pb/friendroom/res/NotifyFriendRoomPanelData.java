@@ -6,6 +6,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.pb.friendroom.struct.BaseFriendRoomPlayerInfo;
+import com.jjg.game.hall.pb.friendroom.struct.FriendRoomBaseData;
 
 import java.util.List;
 
@@ -41,6 +42,17 @@ public class NotifyFriendRoomPanelData extends AbstractResponse {
     @ProtoDesc("最大玩家数量")
     public int maxPlayerNumOnTable;
 
+    @ProtoDesc("房间基础信息列表，玩家自己的")
+    public List<FriendRoomBaseData> roomBaseDataList;
+
+    @ProtoDesc("玩家的邀请码")
+    public int invitationCode;
+
+    @ProtoDesc("邀请码剩余重置次数")
+    public int invitationCodeResetRemainingTimes;
+
+    @ProtoDesc("邀请码总共可以重置的次数")
+    public int invitationCodeResetTotalTimes;
 
     public NotifyFriendRoomPanelData(int code) {
         super(code);

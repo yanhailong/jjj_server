@@ -8,9 +8,10 @@ import com.jjg.game.common.proto.ProtobufMessage;
  *
  * @author Administrator
  */
-@ProtoDesc("申请上庄玩家信息l")
+@ProtoDesc("申请上庄玩家信息")
 @ProtobufMessage
 public class ApplyBankPlayerInfo {
+
     @ProtoDesc("玩家信息")
     public BasePlayerInfo basePlayerInfo;
 

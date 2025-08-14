@@ -20,4 +20,7 @@ public class FriendRoomBaseData {
 
     @ProtoDesc("游戏ID")
     public int gameId;
+
+    @ProtoDesc("1. 运行中 2. 暂停中 3. 解散中")
+    public int roomStatus;
 }

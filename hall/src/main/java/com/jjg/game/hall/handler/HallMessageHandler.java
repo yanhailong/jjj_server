@@ -19,6 +19,7 @@ import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.dao.BindDao;
 import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
+import com.jjg.game.hall.pb.*;
 import com.jjg.game.hall.pb.req.*;
 import com.jjg.game.hall.pb.res.*;
 import com.jjg.game.hall.pb.struct.WarePoolInfo;
