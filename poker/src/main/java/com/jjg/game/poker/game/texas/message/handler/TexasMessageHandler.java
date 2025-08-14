@@ -80,7 +80,6 @@ public class TexasMessageHandler {
                     if (state) {
                         if (controller.inRunPhase()) {
                             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
-                            controller.runPlayerSeatChange(seatInfo,true);
                             return;
                         }
                         boolean added = controller.addTempGoldOrOutTable(seatInfo, gamePlayer);
@@ -113,9 +112,6 @@ public class TexasMessageHandler {
                     if (canStartGame && controller.getCurrentGamePhase() == EGamePhase.WAIT_READY) {
                         //尝试开启游戏
                         controller.tryStartGame();
-                    }
-                    if (!canStartGame && controller.getCurrentGamePhase() == EGamePhase.START_GAME) {
-                        controller.goBackWaitReadyPhase();
                     }
                     return;
                 } else if (reqTexasChangeSeatState.changeType == 2) {
