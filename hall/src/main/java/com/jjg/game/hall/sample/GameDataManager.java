@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年08月11日 16:24:58
+ * @date 2025年08月15日 15:43:08
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -119,10 +119,14 @@ public class GameDataManager {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
     containerMap.put(AvatarCfg.class, new AvatarCfgContainer());
+    containerMap.put(GameFunctionCfg.class, new GameFunctionCfgContainer());
     containerMap.put(GameListCfg.class, new GameListCfgContainer());
     containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
     containerMap.put(ItemCfg.class, new ItemCfgContainer());
     containerMap.put(MailCfg.class, new MailCfgContainer());
+    containerMap.put(PlayerLevelConfigCfg.class, new PlayerLevelConfigCfgContainer());
+    containerMap.put(RoomExpendCfg.class, new RoomExpendCfgContainer());
+    containerMap.put(Sheet1Cfg.class, new Sheet1CfgContainer());
     containerMap.put(StatusCfg.class, new StatusCfgContainer());
     containerMap.put(VipLevelConfigCfg.class, new VipLevelConfigCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
@@ -538,6 +542,17 @@ public class GameDataManager {
   public static List<AvatarCfg> getAvatarCfgList() {
     return getInstance().getCfgContainer(AvatarCfg.class).getCfgBeanList();
   }
+  public static GameFunctionCfg getGameFunctionCfg(int key) {
+    return getInstance().getCfgContainer(GameFunctionCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, GameFunctionCfg> getGameFunctionCfgMap() {
+    return getInstance().getCfgContainer(GameFunctionCfg.class).getCfgBeanMap();
+  }
+
+  public static List<GameFunctionCfg> getGameFunctionCfgList() {
+    return getInstance().getCfgContainer(GameFunctionCfg.class).getCfgBeanList();
+  }
   public static GameListCfg getGameListCfg(int key) {
     return getInstance().getCfgContainer(GameListCfg.class).getCfgBeanMap().get(key);
   }
@@ -581,6 +596,39 @@ public class GameDataManager {
 
   public static List<MailCfg> getMailCfgList() {
     return getInstance().getCfgContainer(MailCfg.class).getCfgBeanList();
+  }
+  public static PlayerLevelConfigCfg getPlayerLevelConfigCfg(int key) {
+    return getInstance().getCfgContainer(PlayerLevelConfigCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PlayerLevelConfigCfg> getPlayerLevelConfigCfgMap() {
+    return getInstance().getCfgContainer(PlayerLevelConfigCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PlayerLevelConfigCfg> getPlayerLevelConfigCfgList() {
+    return getInstance().getCfgContainer(PlayerLevelConfigCfg.class).getCfgBeanList();
+  }
+  public static RoomExpendCfg getRoomExpendCfg(int key) {
+    return getInstance().getCfgContainer(RoomExpendCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, RoomExpendCfg> getRoomExpendCfgMap() {
+    return getInstance().getCfgContainer(RoomExpendCfg.class).getCfgBeanMap();
+  }
+
+  public static List<RoomExpendCfg> getRoomExpendCfgList() {
+    return getInstance().getCfgContainer(RoomExpendCfg.class).getCfgBeanList();
+  }
+  public static Sheet1Cfg getSheet1Cfg(int key) {
+    return getInstance().getCfgContainer(Sheet1Cfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, Sheet1Cfg> getSheet1CfgMap() {
+    return getInstance().getCfgContainer(Sheet1Cfg.class).getCfgBeanMap();
+  }
+
+  public static List<Sheet1Cfg> getSheet1CfgList() {
+    return getInstance().getCfgContainer(Sheet1Cfg.class).getCfgBeanList();
   }
   public static StatusCfg getStatusCfg(int key) {
     return getInstance().getCfgContainer(StatusCfg.class).getCfgBeanMap().get(key);
@@ -643,6 +691,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\workspace\\gameserver\\hall\\resources\\sample");
+    loadAllData("D:\\project\\gameserver\\hall\\resources\\sample");
   }
 }

@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName status.xlsx
  * @sheetName status
  * @author Auto.Generator
- * @date 2025年08月11日 16:24:58
+ * @date 2025年08月15日 15:43:07
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class StatusCfg extends BaseCfgBean {
@@ -74,5 +74,15 @@ public class StatusCfg extends BaseCfgBean {
   /** 返回类型 */
   public int getType() {
     return type;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
   }
 }

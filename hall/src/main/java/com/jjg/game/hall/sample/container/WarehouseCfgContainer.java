@@ -12,7 +12,7 @@ import com.jjg.game.hall.sample.bean.WarehouseCfg;
  * @excelName warehouse.xlsx
  * @sheetName Warehouse
  * @author auto_generator
- * @date 2025年08月11日 16:24:58
+ * @date 2025年08月15日 15:43:08
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class WarehouseCfgContainer extends BaseCfgContainer<WarehouseCfg> {

@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName warehouse.xlsx
  * @sheetName Warehouse
  * @author Auto.Generator
- * @date 2025年08月11日 16:24:58
+ * @date 2025年08月15日 15:43:08
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class WarehouseCfg extends BaseCfgBean {
@@ -81,5 +81,15 @@ public class WarehouseCfg extends BaseCfgBean {
   /** 返回VIP等级限制 */
   public int getVipLvLimit() {
     return vipLvLimit;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
   }
 }

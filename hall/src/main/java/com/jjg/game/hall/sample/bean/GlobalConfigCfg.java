@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName global.xlsx
  * @sheetName GlobalConfig
  * @author Auto.Generator
- * @date 2025年08月11日 16:24:58
+ * @date 2025年08月15日 15:43:07
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GlobalConfigCfg extends BaseCfgBean {
@@ -53,5 +53,15 @@ public class GlobalConfigCfg extends BaseCfgBean {
   /** 返回值 */
   public String getValue() {
     return value;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    return super.equals(o);
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode();
   }
 }

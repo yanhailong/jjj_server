@@ -2,8 +2,12 @@ package com.jjg.game.hall.friendroom.dao;
 
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.dao.MongoBaseDao;
+import com.jjg.game.hall.friendroom.data.FriendRoomBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -12,18 +16,18 @@ import org.springframework.stereotype.Repository;
  * @author 2CL
  */
 @Repository
-public class FriendRoomDao {
+public class RoomFriendDao extends MongoBaseDao<FriendRoomBean, Long> {
 
-    private static final Logger log = LoggerFactory.getLogger(FriendRoomDao.class);
+    private static final Logger log = LoggerFactory.getLogger(RoomFriendDao.class);
     // 最大的code
     private static final int MAX_CODE = 9999_9999;
     // code掩码
     private static final int CODE_MASK = MAX_CODE - TimeHelper.ONE_DAY_OF_MILES;
 
-    public FriendRoomDao() {
+    public RoomFriendDao(@Autowired MongoTemplate mongoTemplate) {
+        super(FriendRoomBean.class, mongoTemplate);
 
     }
-
 
     /**
      * 获取一个邀请码

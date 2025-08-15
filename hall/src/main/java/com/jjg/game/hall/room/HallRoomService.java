@@ -6,6 +6,7 @@ import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.match.MatchDataDao;
@@ -13,6 +14,7 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.tool.IConsoleReceiver;
 import com.jjg.game.hall.dao.HallRoomDao;
+import com.jjg.game.hall.friendroom.message.req.ReqCreateFriendsRoom;
 import com.jjg.game.hall.match.MatchService;
 import com.jjg.game.hall.sample.GameDataManager;
 import com.jjg.game.hall.sample.bean.WarehouseCfg;
@@ -146,6 +148,13 @@ public class HallRoomService implements IConsoleReceiver {
     }
 
     /**
+     * 请求创建好友房间
+     */
+    public void createFriendRoom(PlayerController playerController, ReqCreateFriendsRoom reqCreateFriendsRoom) {
+
+    }
+
+    /**
      * 玩家通过房间ID加入房间，需要检查加入房间的前置条件
      */
     public int joinTeamUpRoomByInvitationId(PlayerController playerController, int invitationRoomId, int gameType) {
@@ -155,6 +164,7 @@ public class HallRoomService implements IConsoleReceiver {
             return Code.REPEAT_OP;
         }
         // 通过邀请码获取当前的房间ID
+
         // 加入房间
         return joinRoomById(playerController, invitationRoomId, gameType);
     }
