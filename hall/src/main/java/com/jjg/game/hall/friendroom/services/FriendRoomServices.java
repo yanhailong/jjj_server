@@ -30,7 +30,7 @@ public class FriendRoomServices {
      */
     private int checkCreateRoom(PlayerController playerController, ReqCreateFriendsRoom reqCreateFriendsRoom) {
         // 检查场次是否存在
-        // 牌局时长
+        // 牌局时长合法性检查
         return Code.SUCCESS;
     }
 }
