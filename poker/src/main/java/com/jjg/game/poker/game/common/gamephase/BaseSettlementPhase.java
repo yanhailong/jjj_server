@@ -32,7 +32,7 @@ public abstract class BaseSettlementPhase<T extends BasePokerGameDataVo> extends
             controller.setCurrentGamePhase(new BaseWaitReadyPhase<>(gameController));
             gameDataVo.resetData(controller);
             //开启下一局
-            controller.tryStartGame();
+            controller.tryStartNextGame();
         }
     }
 

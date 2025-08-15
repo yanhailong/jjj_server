@@ -49,7 +49,6 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
 
     /**
      * 重载通知全部时 只发送在座位中的玩家
-     *
      */
     @Override
     public <M extends AbstractMessage> void broadcastToPlayers(RoomMessageBuilder<M> message) {
@@ -66,7 +65,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
 
     }
 
-    public void  genPlayerSeatInfoList(Map<Integer,SeatInfo> seatInfoMap, List<PlayerSeatInfo> playerSeatInfoList){
+    public void genPlayerSeatInfoList(Map<Integer, SeatInfo> seatInfoMap, List<PlayerSeatInfo> playerSeatInfoList) {
         for (Map.Entry<Integer, SeatInfo> entry : seatInfoMap.entrySet()) {
             SeatInfo info = entry.getValue();
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
@@ -82,6 +81,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
             }
         }
     }
+
     /**
      * 开启下一轮执行 还是直接结算
      */
@@ -188,13 +188,24 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         playerChange.totalNum = gameDataVo.getGamePlayerMap().size();
         roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(playerChange).exceptPlayer(playerController.playerId()));
         //尝试开启游戏
-        tryStartGame();
+        tryStartNextGame();
     }
 
     /**
      * 玩家请求初始化房间信息行为
      */
     public abstract void respRoomInitInfoAction(PlayerController playerController);
+
+    /**
+     * 尝试开启下一轮游戏
+     */
+    public void tryStartNextGame() {
+        if (isCloseGameOnNextRound()) {
+            broadcastGamePauseInfo();
+            return;
+        }
+        tryStartGame();
+    }
 
     /**
      * 尝试开启游戏

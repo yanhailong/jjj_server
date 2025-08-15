@@ -95,7 +95,7 @@ public class TexasMessageHandler {
                         boolean canStartGame = gameDataVo.canStartGame();
                         if (canStartGame && controller.getCurrentGamePhase() == EGamePhase.WAIT_READY) {
                             //尝试开启游戏
-                            controller.tryStartGame();
+                            controller.tryStartNextGame();
                         }
                     } else {
                         //非等待 需要移除信息 判断是否需要开启下一轮和结算
@@ -140,7 +140,7 @@ public class TexasMessageHandler {
                     boolean canStartGame = gameDataVo.canStartGame();
                     if (canStartGame && controller.getCurrentGamePhase() == EGamePhase.WAIT_READY) {
                         //尝试开启游戏
-                        controller.tryStartGame();
+                        controller.tryStartNextGame();
                     }
                     return;
                 }
