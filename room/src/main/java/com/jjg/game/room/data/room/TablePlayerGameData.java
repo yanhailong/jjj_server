@@ -3,7 +3,6 @@ package com.jjg.game.room.data.room;
 import com.jjg.game.common.proto.Pair;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 /**

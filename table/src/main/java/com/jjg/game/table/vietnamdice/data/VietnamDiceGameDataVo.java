@@ -1,6 +1,7 @@
 package com.jjg.game.table.vietnamdice.data;
 
-import com.jjg.game.room.sample.bean.Room_BetCfg;
+
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.vietnamdice.message.VietnamDiceHistoryBean;
 import com.jjg.game.table.vietnamdice.message.VietnamDiceSettlementInfo;

@@ -2,7 +2,8 @@ package com.jjg.game.room.controller;
 
 import com.jjg.game.core.data.Room;
 import com.jjg.game.room.data.room.GameDataVo;
-import com.jjg.game.room.sample.bean.RoomCfg;
+import com.jjg.game.sampledata.bean.RoomCfg;
+
 
 /**
  * 开房类型的游戏控制器

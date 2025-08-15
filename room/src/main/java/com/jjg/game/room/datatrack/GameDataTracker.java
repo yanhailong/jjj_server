@@ -1,6 +1,5 @@
 package com.jjg.game.room.datatrack;
 
-import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;

@@ -9,8 +9,8 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.sample.GameDataManager;
-import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
@@ -20,7 +20,10 @@ import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarSettlementPhase;
 import com.jjg.game.table.loongtigerwar.message.resp.NotifyLoongTigerWarInfo;
 import com.jjg.game.table.loongtigerwar.room.data.LoongTigerWarGameDataVo;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 龙虎斗游戏控制器

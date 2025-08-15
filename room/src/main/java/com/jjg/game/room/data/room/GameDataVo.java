@@ -2,7 +2,7 @@ package com.jjg.game.room.data.room;
 
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
-import com.jjg.game.room.sample.bean.RoomCfg;
+import com.jjg.game.sampledata.bean.RoomCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

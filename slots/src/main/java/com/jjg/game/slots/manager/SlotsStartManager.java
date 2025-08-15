@@ -33,8 +33,6 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
     @Autowired
     private CoreStartService coreStartService;
     @Autowired
-    private SlotsSampleManager slotsSampleManager;
-    @Autowired
     private SlotsPoolDao slotsPoolDao;
     @Autowired
     private DollarExpressTestManager testManager;
@@ -51,8 +49,6 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
         marsCoreStartService.init(this.context, Collections.emptySet());
         //启动core模块
         coreStartService.init(this.context);
-        //加载excel配置
-        this.slotsSampleManager.init();
         //初始化池子
         this.slotsPoolDao.initPool();
         //初始化所有游戏管理器

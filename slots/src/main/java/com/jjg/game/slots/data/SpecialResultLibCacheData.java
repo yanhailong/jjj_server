@@ -1,6 +1,6 @@
 package com.jjg.game.slots.data;
 
-import com.jjg.game.slots.sample.bean.SpecialResultLibCfg;
+import com.jjg.game.sampledata.bean.SpecialResultLibCfg;
 
 import java.util.Map;
 

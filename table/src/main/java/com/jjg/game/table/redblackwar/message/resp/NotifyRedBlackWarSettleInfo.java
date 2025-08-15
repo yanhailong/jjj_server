@@ -5,7 +5,6 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractNotice;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
-import com.jjg.game.table.common.message.bean.TablePlayerInfo;
 import com.jjg.game.table.redblackwar.message.RedBlackWarMessageConstant;
 
 import java.util.List;

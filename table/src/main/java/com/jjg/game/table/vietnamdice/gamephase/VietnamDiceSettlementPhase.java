@@ -3,15 +3,13 @@ package com.jjg.game.table.vietnamdice.gamephase;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.BitUtils;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
-import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.sample.bean.Room_BetCfg;
-import com.jjg.game.table.betsample.sample.GameDataManager;
-import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
-import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BetAreaCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
+import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 import com.jjg.game.table.dicecommon.DiceDataHolder;
 import com.jjg.game.table.dicecommon.DiceUtils;
 import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
@@ -23,7 +21,6 @@ import com.jjg.game.table.vietnamdice.message.VietnamDiceMessageBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**

@@ -7,9 +7,9 @@ import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.sample.GameDataManager;
-import com.jjg.game.room.sample.bean.Room_ChessCfg;
 import com.jjg.game.room.timer.RoomTimerEvent;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.*;
 import java.util.stream.Collectors;

@@ -16,6 +16,8 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.dao.AbstractResultLibDao;
@@ -28,8 +30,7 @@ import com.jjg.game.slots.data.SpecialResultLibCacheData;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
-import com.jjg.game.slots.sample.GameDataManager;
-import com.jjg.game.slots.sample.bean.*;
+
 import com.jjg.game.slots.service.SlotsPlayerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -671,7 +672,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     }
 
     protected void calGlobalBigWinShow(int id, int pbShowId, Map<Integer, int[]> map) {
-        GolbalConfigCfg cfg = GameDataManager.getGolbalConfigCfg(id);
+        GlobalConfigCfg cfg = GameDataManager.getGlobalConfigCfg(id);
         String[] arr = cfg.getValue().trim().split(",");
         map.put(pbShowId, new int[]{Integer.parseInt(arr[0]), Integer.parseInt(arr[1])});
     }
@@ -767,7 +768,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
                 .addChangeSampleFileObserveWithCallBack(SpecialResultLibCfg.EXCEL_NAME, () -> specialResultLibConfig(this.gameType, false))
                 .addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig(this.gameType))
                 .addChangeSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, () -> specialGirdConfig(this.gameType))
-                .addChangeSampleFileObserveWithCallBack(GolbalConfigCfg.EXCEL_NAME, () -> globalConfig(this.gameType))
+                .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig(this.gameType))
                 .addChangeSampleFileObserveWithCallBack(ClientRollerCfg.EXCEL_NAME, () -> clientRollerConfig(this.gameType))
                 .addChangeSampleFileObserveWithCallBack(ClientFreeRollerCfg.EXCEL_NAME, () -> clientFreeRollerConfig(this.gameType))
         ;
@@ -836,7 +837,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     public void calAllLineStake(){
         Map<Integer,List<Long>> tmpAllStakeMap = new HashMap<>();
 
-        int lineCount = getGenerateManager().getBaseInitCfg().getMaxLine();;
+        int lineCount = getGenerateManager().getBaseInitCfg().getMaxLine();
         for(Map.Entry<Integer, BaseRoomCfg> en : this.roomCfgMap.entrySet()){
             BaseRoomCfg cfg = en.getValue();
             for(long stake : cfg.getLineBetScore()){

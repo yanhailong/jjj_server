@@ -2,8 +2,8 @@ package com.jjg.game.table.common.utils;
 
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.table.betsample.sample.GameDataManager;
-import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 
 import java.util.Map;
 import java.util.Set;

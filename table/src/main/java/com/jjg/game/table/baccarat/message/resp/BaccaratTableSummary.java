@@ -2,7 +2,6 @@ package com.jjg.game.table.baccarat.message.resp;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.room.constant.EGamePhase;
 
 import java.util.List;
 

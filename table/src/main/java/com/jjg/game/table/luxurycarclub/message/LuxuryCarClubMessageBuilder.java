@@ -2,7 +2,7 @@ package com.jjg.game.table.luxurycarclub.message;
 
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.room.constant.EGamePhase;
-import com.jjg.game.room.sample.GameDataManager;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.TablePlayerInfo;
 import com.jjg.game.table.luxurycarclub.LuxuryCarClubGameController;

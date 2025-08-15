@@ -4,9 +4,6 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractNotice;
-import com.jjg.game.room.constant.EGamePhase;
-import com.jjg.game.table.common.message.bean.BetTableInfo;
-import com.jjg.game.table.common.message.bean.TablePlayerInfo;
 import com.jjg.game.table.dicecommon.message.BaseDiceTableInfo;
 import com.jjg.game.table.sizedicetreasure.constant.SizeDiceTreasureConstant;
 

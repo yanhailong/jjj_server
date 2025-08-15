@@ -1,6 +1,7 @@
 package com.jjg.game.table.birdsanimals.data;
 
-import com.jjg.game.room.sample.bean.Room_BetCfg;
+
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.birdsanimals.message.AnimalsHistoryBean;
 import com.jjg.game.table.birdsanimals.message.AnimalsSettlementInfo;
 import com.jjg.game.table.common.data.TableGameDataVo;

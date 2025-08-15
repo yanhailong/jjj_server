@@ -1,10 +1,10 @@
 package com.jjg.game.poker.game.texas.data;
 
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
-import com.jjg.game.poker.game.sample.GameDataManager;
-import com.jjg.game.poker.game.sample.bean.TexasCfg;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
-import com.jjg.game.room.sample.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.TexasCfg;
 
 /**
  * 处理配置相关的逻辑

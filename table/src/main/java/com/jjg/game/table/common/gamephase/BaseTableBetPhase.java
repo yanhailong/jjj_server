@@ -8,16 +8,15 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.exception.GameSampleException;
 import com.jjg.game.room.base.AbstractMsgDealRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.sample.bean.BetRobotCfg;
-import com.jjg.game.room.sample.bean.RobotCfg;
-import com.jjg.game.room.sample.bean.Room_BetCfg;
 import com.jjg.game.room.timer.RoomEventType;
-import com.jjg.game.table.betsample.sample.GameDataManager;
-import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BetAreaCfg;
+import com.jjg.game.sampledata.bean.BetRobotCfg;
+import com.jjg.game.sampledata.bean.RobotCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.data.TableSampleDataHolder;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -194,7 +193,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
      * 获取机器人押注行为配置
      */
     private BetRobotCfg getRobotBetActionCfg(GameRobotPlayer gameRobotPlayer) {
-        RobotCfg robotCfg = com.jjg.game.room.sample.GameDataManager.getRobotCfg((int) gameRobotPlayer.getId());
+        RobotCfg robotCfg = GameDataManager.getRobotCfg((int) gameRobotPlayer.getId());
         List<List<Integer>> betRobotId = robotCfg.getBetRobotID();
         int betActionId = RandomUtils.randomByWeightList(betRobotId);
         Integer betAction = TableSampleDataHolder.getBetActionDataCache(
@@ -202,7 +201,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         if (betAction == null) {
             return null;
         }
-        BetRobotCfg betRobotCfg = com.jjg.game.room.sample.GameDataManager.getBetRobotCfg(betAction);
+        BetRobotCfg betRobotCfg = GameDataManager.getBetRobotCfg(betAction);
         if (betRobotCfg == null) {
             throw new GameSampleException("机器人押注错误，机器人：" + gameRobotPlayer.getId()
                 + "机器人押注表中未找到押注策略配置");

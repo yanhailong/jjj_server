@@ -1,30 +1,17 @@
 package com.jjg.game.table.baccarat.gamephase;
 
-import com.alibaba.fastjson.JSON;
-import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
-import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.sample.bean.BetRobotCfg;
-import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BetAreaCfg;
+import com.jjg.game.sampledata.bean.BetRobotCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
 import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratBetStart;
-import com.jjg.game.table.betsample.sample.GameDataManager;
-import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
 import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
-import com.jjg.game.table.common.message.req.ReqBet;
-import com.jjg.game.table.common.message.bean.ReqBetBean;
-import com.jjg.game.table.common.message.bean.BetTableInfo;
-import com.jjg.game.table.common.message.res.NotifyPlayerBet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**

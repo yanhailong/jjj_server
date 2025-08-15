@@ -1,8 +1,6 @@
 package com.jjg.game.room.data.room;
 
 import com.jjg.game.core.data.Player;
-import com.jjg.game.room.controller.AbstractGameController;
-import com.jjg.game.room.datatrack.RoomDataTrackLogger;
 
 import java.util.Objects;
 

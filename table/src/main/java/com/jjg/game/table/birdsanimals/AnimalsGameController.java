@@ -6,7 +6,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
-import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.birdsanimals.data.AnimalsGameDataVo;
 import com.jjg.game.table.birdsanimals.gamephase.AnimalsBetPhase;
 import com.jjg.game.table.birdsanimals.gamephase.AnimalsSettlementPhase;

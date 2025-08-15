@@ -2,14 +2,14 @@ package com.jjg.game.slots.game.dollarexpress.manager;
 
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.AuxiliaryAwardType;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.*;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.data.*;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
-import com.jjg.game.slots.sample.GameDataManager;
-import com.jjg.game.slots.sample.bean.*;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;

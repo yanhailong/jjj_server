@@ -5,9 +5,9 @@ import com.jjg.game.core.data.Card;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
-import com.jjg.game.poker.game.sample.GameDataManager;
-import com.jjg.game.poker.game.sample.bean.PokerPoolCfg;
-import com.jjg.game.room.sample.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.PokerPoolCfg;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.HashMap;
 import java.util.List;

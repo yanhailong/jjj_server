@@ -2,13 +2,12 @@ package com.jjg.game.table.dicecommon.phase;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.pb.AbstractMessage;
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.sample.bean.Room_BetCfg;
-import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
+import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;

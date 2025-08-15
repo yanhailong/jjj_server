@@ -3,8 +3,9 @@ package com.jjg.game.poker.game.common;
 import com.jjg.game.core.data.PokerRoom;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.controller.AbstractRoomController;
-import com.jjg.game.room.sample.GameDataManager;
-import com.jjg.game.room.sample.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
+
 
 /**
  * poker类的房间控制器

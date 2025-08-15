@@ -2,15 +2,13 @@ package com.jjg.game.table.riveranimals.gamephase;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
-import com.jjg.game.room.sample.bean.Room_BetCfg;
-import com.jjg.game.table.betsample.sample.GameDataManager;
-import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
-import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
-import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BetAreaCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
+import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 import com.jjg.game.table.dicecommon.DiceDataHolder;
 import com.jjg.game.table.dicecommon.DiceUtils;
 import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
@@ -20,7 +18,8 @@ import com.jjg.game.table.riveranimals.message.NotifyRiverAnimalsSettlement;
 import com.jjg.game.table.riveranimals.message.RiverAnimalsHistoryBean;
 import com.jjg.game.table.riveranimals.message.RiverAnimalsMessageBuilder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**

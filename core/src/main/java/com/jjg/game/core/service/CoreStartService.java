@@ -1,5 +1,6 @@
 package com.jjg.game.core.service;
 
+import com.jjg.game.core.manager.SampleDataManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,8 @@ public class CoreStartService {
 
     @Autowired
     private PlayerSessionService playerSessionService;
+    @Autowired
+    private SampleDataManager sampleDataManager;
 
 
     /**
@@ -21,6 +24,7 @@ public class CoreStartService {
      */
     public void init(ApplicationContext context){
         playerSessionService.init();
+        sampleDataManager.init();
     }
 
     /**

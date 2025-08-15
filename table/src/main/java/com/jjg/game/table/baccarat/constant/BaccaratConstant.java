@@ -1,7 +1,6 @@
 package com.jjg.game.table.baccarat.constant;
 
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.constant.MessageConst;
 
 /**
  * 百家乐常量

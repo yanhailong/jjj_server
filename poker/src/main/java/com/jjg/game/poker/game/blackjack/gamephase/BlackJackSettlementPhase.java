@@ -12,17 +12,17 @@ import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerSettlementInfo;
-import com.jjg.game.poker.game.sample.bean.BlackjackCfg;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.sample.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.BlackjackCfg;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.*;
 
 /**
- * @author lm
- * @date 2025/7/29 09:31
+ * @AUTHOR LM
+ * @DATE 2025/7/29 09:31
  */
 public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameDataVo> {
 

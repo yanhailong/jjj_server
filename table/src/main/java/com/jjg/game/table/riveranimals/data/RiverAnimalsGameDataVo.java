@@ -1,6 +1,7 @@
 package com.jjg.game.table.riveranimals.data;
 
-import com.jjg.game.room.sample.bean.Room_BetCfg;
+
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.riveranimals.message.RiverAnimalsHistoryBean;
 import com.jjg.game.table.riveranimals.message.RiverAnimalsSettlementInfo;
