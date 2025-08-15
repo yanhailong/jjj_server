@@ -33,7 +33,6 @@ public class BasePokerSampleManager extends BaseRoomSampleManager implements Con
         String sampleRoomResourcePath = CoreConst.Common.SAMPLE_ROOT_PATH + "poker";
         GameDataManager.loadAllData(sampleRoomResourcePath);
         PokerDataHelper.initData();
-//        BlackJackDataHelper.initData();
     }
 
     @Override
