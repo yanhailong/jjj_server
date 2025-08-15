@@ -90,6 +90,9 @@ public class ToOneFile2 {
         int maxMessageLen = 36;
         HashMap<Integer, String> cmdChecker = new HashMap<>();
         StringBuilder repeatIdCollector = new StringBuilder();
+
+        sortMessages(classListTmp);
+
         for (Class clazz : classListTmp) {
             Schema<?> schema = RuntimeSchema.getSchema(clazz);
             Annotation annotation = clazz.getAnnotation(ProtobufMessage.class);
@@ -161,9 +164,50 @@ public class ToOneFile2 {
             sb.append(content);
         }
         if (repeatIdCollector.isEmpty()) {
-            FileHelper.saveFile(fileName, sb.toString(), false);
+//            FileHelper.saveFile(fileName, sb.toString(), false);
         } else {
             throw new IllegalArgumentException(repeatIdCollector.toString());
         }
+    }
+
+    /**
+     * 排序
+     * @param classListTmp
+     */
+    public void sortMessages(List<Class> classListTmp) {
+        classListTmp.sort((clazz1, clazz2) -> {
+            try {
+                Annotation annotation1 = clazz1.getAnnotation(ProtobufMessage.class);
+                Annotation annotation2 = clazz2.getAnnotation(ProtobufMessage.class);
+
+                Class c1 = annotation1.getClass();
+                Class c2 = annotation2.getClass();
+
+                Object obj21 = c1.getMethod("messageType").invoke(annotation1);
+                Object obj22 = c2.getMethod("messageType").invoke(annotation2);
+
+                boolean isMessage1 = "0".equals(obj21.toString());
+                boolean isMessage2 = "0".equals(obj22.toString());
+
+                if (isMessage1 && isMessage2) {  // 如果都是消息结构体，按类名首字母排序
+                    return clazz1.getSimpleName().compareTo(clazz2.getSimpleName());
+                }else if (!isMessage1 && !isMessage2) {  // 如果都是协议类，按cmdHex排序
+                    Object obj31 = c1.getMethod("cmd").invoke(annotation1);
+                    Object obj32 = c2.getMethod("cmd").invoke(annotation2);
+
+                    int cmd1 = Integer.parseInt(obj31.toString());
+                    int cmd2 = Integer.parseInt(obj32.toString());
+
+                    return Integer.compare(cmd1, cmd2);
+                }else if (isMessage1) {  // 消息结构体排在前面
+                    return -1;
+                }else {  // 协议类排在后面
+                    return 1;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                return 0;
+            }
+        });
     }
 }
