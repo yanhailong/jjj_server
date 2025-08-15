@@ -26,4 +26,10 @@ public class BaseFriendRoomPlayerInfo {
 
     @ProtoDesc("玩家Vip等级")
     public int playerVipLevel;
+
+    @ProtoDesc("性别  0.女  1.男  2.其他")
+    public byte gender;
+
+    @ProtoDesc("国旗id")
+    public int nationalId;
 }

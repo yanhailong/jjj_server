@@ -23,4 +23,19 @@ public class FriendRoomBaseData {
 
     @ProtoDesc("1. 运行中 2. 暂停中 3. 解散中")
     public int roomStatus;
+
+    @ProtoDesc("房间到期时间戳")
+    public long overdueTime;
+
+    @ProtoDesc("准备金剩余数量")
+    public long predictCostGoldNum;
+
+    @ProtoDesc("在线人数")
+    public long onlinePlayerNum;
+
+    @ProtoDesc("最大人数")
+    public int maxPlayerNum;
+
+    @ProtoDesc("暂停按钮下一次可用的时间，为0或者时间戳到期表示可用")
+    public int nextPauseBtnOverdueTime;
 }

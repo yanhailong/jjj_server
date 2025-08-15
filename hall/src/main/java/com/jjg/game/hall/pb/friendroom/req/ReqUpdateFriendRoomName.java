@@ -3,6 +3,7 @@ package com.jjg.game.hall.pb.friendroom.req;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.hall.constant.HallConstant;
 
 /**
@@ -15,7 +16,7 @@ import com.jjg.game.hall.constant.HallConstant;
     cmd = HallConstant.MsgBean.REQ_CHANGE_FRIEND_ROOM_NAME
 )
 @ProtoDesc("请求更新房间名")
-public class ReqUpdateFriendRoomName {
+public class ReqUpdateFriendRoomName  extends AbstractMessage {
 
     @ProtoDesc("新的名字")
     public String newName;

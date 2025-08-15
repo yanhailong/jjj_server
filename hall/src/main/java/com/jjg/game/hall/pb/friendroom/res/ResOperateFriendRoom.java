@@ -21,8 +21,11 @@ public class ResOperateFriendRoom extends AbstractResponse {
     @ProtoDesc("房间ID")
     public long roomId;
 
-    @ProtoDesc("1. 运行中 2. 暂停中")
+    @ProtoDesc("1. 运行中 2. 暂停中，3. 解散中")
     public int roomStatus;
+
+    @ProtoDesc("暂停按钮下一次可用的时间，为0或者时间戳到期表示可用")
+    public int nextPauseBtnOverdueTime;
 
     public ResOperateFriendRoom(int code) {
         super(code);

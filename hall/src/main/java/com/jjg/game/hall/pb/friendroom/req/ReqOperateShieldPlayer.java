@@ -3,6 +3,7 @@ package com.jjg.game.hall.pb.friendroom.req;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.hall.constant.HallConstant;
 
 import java.util.List;
@@ -17,7 +18,7 @@ import java.util.List;
     cmd = HallConstant.MsgBean.REQ_OPERATE_SHIELD_PLAYER
 )
 @ProtoDesc("请求操作屏蔽玩家")
-public class ReqOperateShieldPlayer {
+public class ReqOperateShieldPlayer  extends AbstractMessage {
 
     @ProtoDesc("玩家ID")
     public List<Long> playerId;

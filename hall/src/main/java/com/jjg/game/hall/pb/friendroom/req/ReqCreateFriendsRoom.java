@@ -3,6 +3,7 @@ package com.jjg.game.hall.pb.friendroom.req;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.hall.constant.HallConstant;
 
 /**
@@ -15,7 +16,7 @@ import com.jjg.game.hall.constant.HallConstant;
     cmd = HallConstant.MsgBean.REQ_CREAT_FRIENDS_ROOM
 )
 @ProtoDesc("请求创建好友房")
-public class ReqCreateFriendsRoom {
+public class ReqCreateFriendsRoom  extends AbstractMessage {
 
     @ProtoDesc("请求使用的道具ID 金币和券ID")
     public int itemId;

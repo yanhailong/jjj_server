@@ -25,6 +25,12 @@ public class ResFriendRoomBillHistory extends AbstractResponse {
     @ProtoDesc("游戏账单数据")
     public List<GameBillInfo> gameBillInfos;
 
+    @ProtoDesc("分页下标，-1表示到末尾")
+    public int pageIdx;
+
+    @ProtoDesc("分页大小")
+    public int pageSize;
+
     public ResFriendRoomBillHistory(int code) {
         super(code);
     }

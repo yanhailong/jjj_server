@@ -18,16 +18,4 @@ public class RoomFriendEnum {
         @ProtoDesc("移除")
         REMOVE,
     }
-
-    @ProtoDesc("好友房操作枚举")
-    @ProtobufMessage
-    public enum EFriendRoomOperate {
-        @ProtoDesc("暂停")
-        PAUSE,
-        @ProtoDesc("重启")
-        RESTART,
-        @ProtoDesc("解散")
-        DISBAND,
-    }
-
 }

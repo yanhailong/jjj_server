@@ -5,6 +5,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.hall.constant.HallConstant;
+import com.jjg.game.hall.pb.friendroom.struct.FriendRoomBaseData;
 
 /**
  * 响应创建好友房消息
@@ -18,6 +19,9 @@ import com.jjg.game.hall.constant.HallConstant;
 )
 @ProtoDesc("响应创建好友房消息")
 public class RespCreateFriendsRoom extends AbstractResponse {
+
+    @ProtoDesc("房间基础信息")
+    public FriendRoomBaseData roomBaseData;
 
     public RespCreateFriendsRoom(int code) {
         super(code);

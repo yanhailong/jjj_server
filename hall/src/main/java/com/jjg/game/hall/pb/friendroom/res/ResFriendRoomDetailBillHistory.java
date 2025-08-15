@@ -5,6 +5,9 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.hall.constant.HallConstant;
+import com.jjg.game.hall.pb.friendroom.struct.FriendRoomBillHistoryMonth;
+
+import java.util.List;
 
 /**
  * 返回好友房详细账单历史
@@ -18,6 +21,15 @@ import com.jjg.game.hall.constant.HallConstant;
 )
 @ProtoDesc("返回好友房详细账单历史")
 public class ResFriendRoomDetailBillHistory extends AbstractResponse {
+
+    @ProtoDesc("按月分的历史数据")
+    public List<FriendRoomBillHistoryMonth> monthBillList;
+
+    @ProtoDesc("分页下标，-1表示到末尾")
+    public int pageIdx;
+
+    @ProtoDesc("分页大小")
+    public int pageSize;
 
     public ResFriendRoomDetailBillHistory(int code) {
         super(code);

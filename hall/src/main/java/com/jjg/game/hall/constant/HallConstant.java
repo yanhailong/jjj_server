@@ -175,5 +175,10 @@ public interface HallConstant {
         int RES_OPERATE_FRIEND_ROOM = BASE_MSG_PREFIX | 0x5B;
 
         // endregion============================== 好友房相关 =============================
+
+        // 请求功能开放列表
+        int REQ_FUNCTION_OPEN_LIST = BASE_MSG_PREFIX | 0x5C;
+        int RES_FUNCTION_OPEN_LIST = BASE_MSG_PREFIX | 0X5D;
+        int NOTIFY_FUNCTION_OPEN_LIST = BASE_MSG_PREFIX | 0X5E;
     }
 }
