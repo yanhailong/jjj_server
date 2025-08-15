@@ -70,7 +70,7 @@ public class GameConstant {
         int CLIENT_LANG_TYPE = 1;
 
         //玩家中奖跑马灯，间隔时间
-        int PLAYER_WIN_INTERVAL = 5;
+        int PLAYER_WIN_INTERVAL = 8;
     }
 
 

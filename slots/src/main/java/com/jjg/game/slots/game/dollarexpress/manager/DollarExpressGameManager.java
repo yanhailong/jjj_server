@@ -201,6 +201,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 
+            //跑马灯
+            checkMarquee(playerGameData,gameRunInfo.getAllWinGold());
+
             //发送日志
             logger.gameResult(player, gameRunInfo);
             return gameRunInfo;
@@ -1560,14 +1563,5 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     private long calWinGold(long bet,long times){
         BigDecimal timesBigDecimal = BigDecimal.valueOf(times).divide(timesScaleBigDecimal, 2, RoundingMode.DOWN);
         return BigDecimal.valueOf(bet).multiply(timesBigDecimal).longValue();
-    }
-
-    private void checkMarquee(DollarExpressPlayerGameData data,long win){
-        BaseRoomCfg baseRoomCfg = this.roomCfgMap.get(data.getRoomCfgId());
-        if(baseRoomCfg == null || win < baseRoomCfg.getMarqueeTrigger().get(0)){
-            return;
-        }
-
-
     }
 }

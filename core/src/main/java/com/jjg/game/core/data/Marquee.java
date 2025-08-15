@@ -28,6 +28,8 @@ public class Marquee {
     private int langId;
     //参数
     private List<MarqueeParam> params;
+    //创建时间
+    private int createTime;
 
     public int getId() {
         return id;
@@ -115,5 +117,13 @@ public class Marquee {
 
     public void setParams(List<MarqueeParam> params) {
         this.params = params;
+    }
+
+    public int getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(int createTime) {
+        this.createTime = createTime;
     }
 }

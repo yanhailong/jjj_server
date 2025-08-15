@@ -12,10 +12,10 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.dao.AbstractRoomDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.dao.AbstractResultLibDao;
@@ -25,6 +25,7 @@ import com.jjg.game.slots.data.PropInfo;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialResultLibCacheData;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.sample.GameDataManager;
@@ -59,6 +60,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     protected TimerCenter timerCenter;
     @Autowired
     protected MarsCurator marsCurator;
+    @Autowired
+    protected CoreMarqueeManager marqueeManager;
 
     //在更新结果库后，要开启清除旧结果库的定时事件
     protected TimerEvent<String> clearAllLibEvent;
@@ -859,5 +862,20 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         int lineCount = getGenerateManager().getBaseInitCfg().getMaxLine();;
         BaseRoomCfg cfg = GameDataManager.getBaseRoomCfg(roonCfgId);
         return lineCount * stake * cfg.getBetMultiple().get(0) * cfg.getLineMultiple().get(0);
+    }
+
+    /**
+     * 检查中奖金额是否要发送跑马灯
+     * @param data
+     * @param win
+     */
+    protected void checkMarquee(T data, long win){
+        BaseRoomCfg baseRoomCfg = this.roomCfgMap.get(data.getRoomCfgId());
+        if(baseRoomCfg == null || win < baseRoomCfg.getMarqueeTrigger().get(0)){
+            return;
+        }
+
+        marqueeManager.playerWinMarquee(data.getPlayerController().getPlayer().getNickName(),
+                baseRoomCfg.getMarqueeTrigger().get(1).intValue(),baseRoomCfg.getNameid(),win);
     }
 }

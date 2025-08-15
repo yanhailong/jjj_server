@@ -35,6 +35,14 @@ public class MarqueeDao {
     }
 
     /**
+     * 添加跑马灯
+     * @param marquee
+     */
+    public boolean addMarqueeIfAbsent(Marquee marquee) {
+        return redisTemplate.opsForHash().putIfAbsent(marqueeTableName, marquee.getId(), marquee);
+    }
+
+    /**
      * 根据id获取跑马灯
      * @param id
      */
