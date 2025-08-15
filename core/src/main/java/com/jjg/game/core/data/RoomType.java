@@ -5,16 +5,19 @@ package com.jjg.game.core.data;
  * @date 2025/6/25 9:24
  */
 public enum RoomType {
-    //主动创建房间，组队
-    TEAM(Room.class),
-    //金币休闲
-    GOLD(GoldRoom.class),
+    //slots
+    SLOTS(Room.class),
     //押注房间类型
     BET_ROOM(BetTableRoom.class),
+    //押注类主动创建房间，组队
+    BET_TEAM_UP_ROOM(BetFriendRoom.class),
     //赛季
     COMPETITION(CompetitionRoom.class),
     //扑克类
-    POKER_ROOM(PokerRoom.class);
+    POKER_ROOM(PokerRoom.class),
+    //扑克类主动创建房间，组队
+    POKER_TEAM_UP_ROOM(PokerFriendRoom.class),
+    ;
 
     private final Class<? extends Room> roomDataType;
 

@@ -19,6 +19,7 @@ import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.message.resp.NotifyPauseGameOnNewRound;
 import com.jjg.game.room.sample.bean.RoomCfg;
 import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomTimerCenter;
@@ -283,6 +284,15 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         closeGameOnNextRound = true;
     }
 
+    /**
+     * 广播游戏暂停通知
+     */
+    public void broadcastGamePauseInfo(){
+        NotifyPauseGameOnNewRound notifyPauseGameOnNewRound = new NotifyPauseGameOnNewRound();
+        broadcastToPlayers(
+            RoomMessageBuilder.newBuilder().setData(notifyPauseGameOnNewRound).toAllPlayer());
+    }
+
     @Override
     public void gameOverSettlement() {
         // 整局结束进入大结算
@@ -336,5 +346,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
 
     public GameDataTracker getGameDataTracker() {
         return gameDataTracker;
+    }
+
+    public boolean isCloseGameOnNextRound() {
+        return closeGameOnNextRound;
     }
 }

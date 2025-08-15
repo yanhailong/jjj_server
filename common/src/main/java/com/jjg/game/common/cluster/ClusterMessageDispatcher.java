@@ -99,7 +99,7 @@ public class ClusterMessageDispatcher {
                 }.setHandlerParamWithSelf("handle message:" + msg.cmd));
             }
         } catch (Exception e) {
-            log.warn("", e);
+            log.warn("节点消息分发异常!", e);
         }
     }
 

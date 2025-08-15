@@ -7,7 +7,7 @@ import com.jjg.game.common.constant.MessageConst;
  * @author 11
  * @date 2025/6/10 17:04
  */
-public interface HallConstant  {
+public interface HallConstant {
 
     interface Common {
         //excel配置所在目录
@@ -21,7 +21,7 @@ public interface HallConstant  {
         int DEFAULT_AVATAR_CFG_ID = 14;
     }
 
-    interface VerCode{
+    interface VerCode {
         //验证码类型
         int TYPE_BIND_PHONE = 0;
         int TYPE_BIND_EMAIL = 1;
@@ -31,7 +31,7 @@ public interface HallConstant  {
         int CODE_MAX = 9999;
     }
 
-    interface Avatar{
+    interface Avatar {
         //头像
         int TYPE_AVATAR = 0;
         //头像框
@@ -119,5 +119,66 @@ public interface HallConstant  {
         //一键领取邮件内的道具
         int REQ_GET_ALL_MAILS_ITEMS = BASE_MSG_PREFIX | 0x23;
         int RES_GET_ALL_MAILS_ITEMS = BASE_MSG_PREFIX | 0x24;
+
+        //region============================== 好友房相关 =============================
+
+        // 请求创建好友房
+        int REQ_CREAT_FRIENDS_ROOM = BASE_MSG_PREFIX | 0x40;
+        int RES_CREAT_FRIENDS_ROOM = BASE_MSG_PREFIX | 0x41;
+
+        // 房间面板信息
+        int REQ_FRIENDS_ROOM_PANEL_DATA = BASE_MSG_PREFIX | 0x42;
+        int RES_FRIENDS_ROOM_PANEL_DATA = BASE_MSG_PREFIX | 0x43;
+
+        // 通过邀请码加入房间
+        int REQ_JOIN_ROOM_BY_INVITATION_CODE = BASE_MSG_PREFIX | 0x45;
+        int RES_JOIN_ROOM_BY_INVITATION_CODE = BASE_MSG_PREFIX | 0x46;
+
+        // 请求操作房间好友列表
+        int REQ_OPERATE_ROOM_FRIENDS_LIST = BASE_MSG_PREFIX | 0x47;
+        int RES_OPERATE_ROOM_FRIENDS_LIST = BASE_MSG_PREFIX | 0x48;
+
+        // 请求关注玩家的房间列表
+        int REQ_FRIEND_ROOM_LIST = BASE_MSG_PREFIX | 0x49;
+        int RES_FRIEND_ROOM_LIST = BASE_MSG_PREFIX | 0x4A;
+
+        // 请求好友房间的详细信息
+        int REQ_FRIEND_ROOM_DETAIL_INFO = BASE_MSG_PREFIX | 0x4B;
+        int RES_FRIEND_ROOM_DETAIL_INFO = BASE_MSG_PREFIX | 0x4C;
+
+        // 请求刷新好友房间列表
+        int REQ_REFRESH_ROOM_FRIEND_LIST = BASE_MSG_PREFIX | 0x4D;
+        int RES_REFRESH_ROOM_FRIEND_LIST = BASE_MSG_PREFIX | 0x4F;
+
+        // 请求操作屏蔽玩家
+        int REQ_OPERATE_SHIELD_PLAYER = BASE_MSG_PREFIX | 0x50;
+        int RES_OPERATE_SHIELD_PLAYER = BASE_MSG_PREFIX | 0x51;
+
+        // 请求获取屏蔽玩家列表
+        int REQ_SHIELD_PLAYER_LIST = BASE_MSG_PREFIX | 0x52;
+        int RES_SHIELD_PLAYER_LIST = BASE_MSG_PREFIX | 0x53;
+
+        // 请求修改房间名
+        int REQ_CHANGE_FRIEND_ROOM_NAME = BASE_MSG_PREFIX | 0x54;
+        int RES_CHANGE_FRIEND_ROOM_NAME = BASE_MSG_PREFIX | 0x55;
+
+        // 请求好友房账单历史数据
+        int REQ_FRIEND_ROOM_BILL_HISTORY = BASE_MSG_PREFIX | 0x56;
+        int RES_FRIEND_ROOM_BILL_HISTORY = BASE_MSG_PREFIX | 0x57;
+
+        // 请求好友房详细账单历史数据
+        int REQ_FRIEND_ROOM_DETAIL_BILL_HISTORY = BASE_MSG_PREFIX | 0x58;
+        int RES_FRIEND_ROOM_DETAIL_BILL_HISTORY = BASE_MSG_PREFIX | 0x59;
+
+        // 请求操作好友房
+        int REQ_OPERATE_FRIEND_ROOM = BASE_MSG_PREFIX | 0x5A;
+        int RES_OPERATE_FRIEND_ROOM = BASE_MSG_PREFIX | 0x5B;
+
+        // endregion============================== 好友房相关 =============================
+
+        // 请求功能开放列表
+        int REQ_FUNCTION_OPEN_LIST = BASE_MSG_PREFIX | 0x5C;
+        int RES_FUNCTION_OPEN_LIST = BASE_MSG_PREFIX | 0X5D;
+        int NOTIFY_FUNCTION_OPEN_LIST = BASE_MSG_PREFIX | 0X5E;
     }
 }

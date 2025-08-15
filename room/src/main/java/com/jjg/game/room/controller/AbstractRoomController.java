@@ -156,7 +156,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     /**
      * 更新房间等待列表
      */
-    private void updateWaitRoomList() {
+    protected void updateWaitRoomList() {
         // 如果房间已满，则需要将等待房间列表从redis中删除
         if (!room.canEnter()) {
             roomManager.getMatchDataDao().removeWaitJoinRoomId(

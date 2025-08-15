@@ -34,9 +34,9 @@ public class GameConstant {
         //玩家起始id
         public static final long defaultPlayerBeginId = 1000000;
 
-        //最小房间id
+        //最小房间id ？
         public static final int ROOM_ID_MIN = 100000;
-        //最大房间id
+        //最大房间id ？
         public static final int ROOM_ID_MAX = 999999;
     }
 

@@ -28,9 +28,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -179,7 +177,7 @@ public class PlayerSessionService implements TimerListener<String> {
                 PlayerSessionInfo playerSessionInfo = en.getValue();
                 long lastActiveTime = playerSessionInfo.getLastActiveTime();
 
-                if (currentTime - lastActiveTime > TimeHelper.ONE_DAY) {
+                if (currentTime - lastActiveTime > TimeHelper.ONE_DAY_OF_MILES) {
                     keys.add(playerSessionInfo.getPlayerId());
 
                     log.info("清除僵尸 playerId={}", playerSessionInfo.getPlayerId());
@@ -193,7 +191,7 @@ public class PlayerSessionService implements TimerListener<String> {
                     continue;
                 }
                 //session 的活跃时间超过三个小时的
-                if (lastActiveTime > 0 && currentTime - lastActiveTime > TimeHelper.ONE_DAY) {
+                if (lastActiveTime > 0 && currentTime - lastActiveTime > TimeHelper.ONE_DAY_OF_MILES) {
                     keys.add(playerSessionInfo.getPlayerId());
                     log.info("移除超时无效session，playerId={}", playerSessionInfo.getPlayerId());
                 }
@@ -333,7 +331,7 @@ public class PlayerSessionService implements TimerListener<String> {
                 Map.Entry<String, PFSession> entry = iterator.next();
                 PFSession pfSession = entry.getValue();
                 //如果session 长时间没有活跃，检查玩家是否还在线
-                if (e.getCurrentTime() - pfSession.activeTime > SESSION_TIME_OUT_MINUTES * TimeHelper.ONE_MINUTE) {
+                if (e.getCurrentTime() - pfSession.activeTime > SESSION_TIME_OUT_MINUTES * TimeHelper.ONE_MINUTE_OF_MILES) {
                     // TODO 在循环中调用数据库接口？
                     PlayerSessionInfo ps = getInfo(pfSession.getPlayerId());
                     if (ps == null) {

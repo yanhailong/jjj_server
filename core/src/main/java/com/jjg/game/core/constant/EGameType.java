@@ -12,16 +12,16 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public enum EGameType {
     // SLOTS
-    DOLLAR_EXPRESS(CoreConst.GameType.DOLLAR_EXPRESS, RoomType.TEAM, "美元快递"),
-    WOODS_MAN(CoreConst.GameType.WOODS_MAN, RoomType.TEAM, "森林人"),
-    SUPER_STAR(CoreConst.GameType.SUPER_STAR, RoomType.TEAM, "超级明星"),
-    BUFFALO_WEALTH(CoreConst.GameType.BUFFALO_WEALTH, RoomType.TEAM, "野牛财富"),
-    FIRE_CAR(CoreConst.GameType.FIRE_CAR, RoomType.TEAM, "消防车"),
-    WOMAN_GOD(CoreConst.GameType.WOMAN_GOD, RoomType.TEAM, "女武神"),
-    MAHJIONG_WIN(CoreConst.GameType.MAHJIONG_WIN, RoomType.TEAM, "麻将胡了"),
-    FORTUNE_CAT(CoreConst.GameType.FORTUNE_CAT, RoomType.TEAM, "招财猫"),
-    PIRATES_CARIBBEAN(CoreConst.GameType.PIRATES_CARIBBEAN, RoomType.TEAM, "加勒比海盗"),
-    GOLD_CITY(CoreConst.GameType.GOLD_CITY, RoomType.TEAM, "夺宝黄金城"),
+    DOLLAR_EXPRESS(CoreConst.GameType.DOLLAR_EXPRESS, RoomType.SLOTS, "美元快递"),
+    WOODS_MAN(CoreConst.GameType.WOODS_MAN, RoomType.SLOTS, "森林人"),
+    SUPER_STAR(CoreConst.GameType.SUPER_STAR, RoomType.SLOTS, "超级明星"),
+    BUFFALO_WEALTH(CoreConst.GameType.BUFFALO_WEALTH, RoomType.SLOTS, "野牛财富"),
+    FIRE_CAR(CoreConst.GameType.FIRE_CAR, RoomType.SLOTS, "消防车"),
+    WOMAN_GOD(CoreConst.GameType.WOMAN_GOD, RoomType.SLOTS, "女武神"),
+    MAHJIONG_WIN(CoreConst.GameType.MAHJIONG_WIN, RoomType.SLOTS, "麻将胡了"),
+    FORTUNE_CAT(CoreConst.GameType.FORTUNE_CAT, RoomType.SLOTS, "招财猫"),
+    PIRATES_CARIBBEAN(CoreConst.GameType.PIRATES_CARIBBEAN, RoomType.SLOTS, "加勒比海盗"),
+    GOLD_CITY(CoreConst.GameType.GOLD_CITY, RoomType.SLOTS, "夺宝黄金城"),
 
 
     // TABLE
@@ -35,8 +35,8 @@ public enum EGameType {
     VIETNAM_DICE(CoreConst.GameType.VIETNAM_SEXY_DISK, RoomType.BET_ROOM, "越南色碟"),
     SIZE_DICE_TREASURE(CoreConst.GameType.SIZE_DICE_BABY, RoomType.BET_ROOM, "大小骰宝"),
     RIVER_ANIMALS(CoreConst.GameType.FISH_SHRIMP_CRAB, RoomType.BET_ROOM, "鱼虾蟹"),
-    APPLE_FRUITS(CoreConst.GameType.APPLE_FRUITS, RoomType.TEAM, "苹果机-水果"),
-    APPLE_ANIMAL(CoreConst.GameType.APPLE_ANIMAL, RoomType.TEAM, "苹果机-动物"),
+    APPLE_FRUITS(CoreConst.GameType.APPLE_FRUITS, RoomType.BET_ROOM, "苹果机-水果"),
+    APPLE_ANIMAL(CoreConst.GameType.APPLE_ANIMAL, RoomType.BET_ROOM, "苹果机-动物"),
 
 
     // POKER

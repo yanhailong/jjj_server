@@ -15,21 +15,29 @@ public interface RoomMessageConstant {
      * 请求消息的bean
      */
     interface ReqMsgBean {
-        int REQ_EXIT_ROOM = BASE_ROOM_MSG_PREFIX | 0x01;
-
-
-
+        // 请求上庄申请列表
+        int REQ_BANKER_APPLY_LIST = BASE_ROOM_MSG_PREFIX | 0x01;
+        // 申请上庄
+        int REQ_APPLY_BANKER = BASE_ROOM_MSG_PREFIX | 0x02;
+        // 申请下庄
+        int REQ_CANCEL_BE_BANKER = BASE_ROOM_MSG_PREFIX | 0x03;
     }
 
     /**
      * 返回消息的bean
      */
     interface RespMsgBean {
-        //退出游戏
-        int RES_EXIT_GAME = BASE_ROOM_MSG_PREFIX | 0x3;
         // 通知退出房间
         int NOTIFY_EXIT_ROOM = BASE_ROOM_MSG_PREFIX | 0x81;
         // 通知房间进入等待时间
         int NOTIFY_ROOM_WAIT_READY = BASE_ROOM_MSG_PREFIX | 0x82;
+        // 申请上庄
+        int RES_APPLY_BANKER = BASE_ROOM_MSG_PREFIX | 0x83;
+        // 申请庄家玩家列表
+        int RES_BANKER_APPLY_LIST = BASE_ROOM_MSG_PREFIX | 0x84;
+        // 申请下庄返回
+        int RES_CANCEL_BE_BANKER = BASE_ROOM_MSG_PREFIX | 0x85;
+        // 通知游戏暂停
+        int NOTIFY_GAME_PAUSE_ON_NEW_ROUND = BASE_ROOM_MSG_PREFIX | 0x86;
     }
 }
