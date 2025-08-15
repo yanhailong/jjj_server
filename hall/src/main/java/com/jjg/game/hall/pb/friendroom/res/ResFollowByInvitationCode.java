@@ -17,7 +17,7 @@ import com.jjg.game.hall.pb.friendroom.struct.BaseFriendRoomPlayerInfo;
     cmd = HallConstant.MsgBean.RES_JOIN_ROOM_BY_INVITATION_CODE,
     resp = true
 )
-@ProtoDesc("响应通过邀请码关注，通过")
+@ProtoDesc("响应通过邀请码关注的玩家")
 public class ResFollowByInvitationCode extends AbstractResponse {
 
     @ProtoDesc("通过邀请码关注的玩家信息，关注后需放在关注列表最前面")
