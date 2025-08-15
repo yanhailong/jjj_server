@@ -58,7 +58,8 @@ public class Player {
     private int createTime;
     //玩家数据更新时间
     private long updateTime;
-
+    //好友房邀请码
+    private int friendRoomInvitationCode;
 
     public long getId() {
         return id;
@@ -245,6 +246,14 @@ public class Player {
 
     public void setUpdateTime(long updateTime) {
         this.updateTime = updateTime;
+    }
+
+    public int getFriendRoomInvitationCode() {
+        return friendRoomInvitationCode;
+    }
+
+    public void setFriendRoomInvitationCode(int friendRoomInvitationCode) {
+        this.friendRoomInvitationCode = friendRoomInvitationCode;
     }
 
     @Override
