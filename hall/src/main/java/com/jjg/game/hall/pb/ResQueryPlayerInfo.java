@@ -43,6 +43,10 @@ public class ResQueryPlayerInfo extends AbstractResponse {
     public int nationalId;
     @ProtoDesc("称号id")
     public int titleId;
+    @ProtoDesc("玩家等级")
+    public int level;
+    @ProtoDesc("经验")
+    public long exp;
 
 
     public ResQueryPlayerInfo(int code) {

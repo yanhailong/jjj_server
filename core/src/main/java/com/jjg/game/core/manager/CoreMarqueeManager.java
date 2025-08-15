@@ -173,7 +173,8 @@ public class CoreMarqueeManager implements TimerListener {
      * @param id
      */
     private void removeFromeRedis(int id){
-        if(marsCurator.isMaster()){
+        //必须是大厅主节点，才能从redis删除
+        if(marsCurator.isMaster() && clusterSystem.nodeConfig.getType().equalsIgnoreCase(NodeType.HALL.name())){
             marqueeDao.removeMarquee(id);
             log.debug("从redis删除跑马灯 id = {}",id);
         }
@@ -203,7 +204,6 @@ public class CoreMarqueeManager implements TimerListener {
         if(this.sortedMarquees == null || this.sortedMarquees.isEmpty()){
             return;
         }
-        log.debug("nowRunMarqueeId = {}", nowRunMarqueeId);
         // 获取从尾部开始的 ListIterator
         ListIterator<Marquee> it = this.sortedMarquees.listIterator(this.sortedMarquees.size());
         int now = TimeHelper.nowInt();
@@ -267,6 +267,9 @@ public class CoreMarqueeManager implements TimerListener {
     private void addNotifyStopEvent(long id){
         TimerEvent<String> nodeEvent = new TimerEvent<>(this, 1, "notifyStopEvent_" + id).withTimeUnit(TimeUnit.SECONDS);
         this.timerCenter.add(nodeEvent);
+        if(this.nowRunMarqueeId == id){
+            this.nowRunMarqueeId = 0;
+        }
         log.debug("添加通知客户端停止跑马灯事件 id = {}",id);
     }
 
@@ -331,6 +334,7 @@ public class CoreMarqueeManager implements TimerListener {
         notify.endTime = marquee.getEndTime();
         notify.type = getClientShowGarqueeType(marquee.getType());
         notify.langId = marquee.getLangId();
+        notify.showTime = marquee.getShowTime();
 
         if(marquee.getParams() != null && !marquee.getParams().isEmpty()){
             notify.params = new ArrayList<>(marquee.getParams().size());

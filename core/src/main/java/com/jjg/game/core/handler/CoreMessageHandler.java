@@ -152,6 +152,7 @@ public class CoreMessageHandler {
                 res.endTime = currentMarquee.getEndTime();
                 res.type = marqueeManager.getClientShowGarqueeType(currentMarquee.getType());
                 res.langId = currentMarquee.getLangId();
+                res.showTime = currentMarquee.getShowTime();
 
                 if(currentMarquee.getParams() != null && !currentMarquee.getParams().isEmpty()){
                     res.params = new ArrayList<>(currentMarquee.getParams().size());

@@ -110,6 +110,7 @@ public class GMController extends AbstractController {
         marquee.setContent(dto.content());
         marquee.setInterval(dto.interval_time());
         marquee.setNums(dto.nums());
+        marquee.setShowTime(dto.showTime());
         marquee.setStartTime(TimeHelper.getSecondTime(dto.start_time()));
         marquee.setEndTime(TimeHelper.getSecondTime(dto.end_time()));
         marquee.setPriority(dto.priority());
