@@ -12,7 +12,7 @@ import com.jjg.game.slots.sample.bean.BaseElementRewardCfg;
  * @excelName BaseElementReward.xlsx
  * @sheetName BaseElementReward
  * @author auto_generator
- * @date 2025年08月02日 14:18:48
+ * @date 2025年08月14日 19:04:33
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseElementRewardCfgContainer extends BaseCfgContainer<BaseElementRewardCfg> {

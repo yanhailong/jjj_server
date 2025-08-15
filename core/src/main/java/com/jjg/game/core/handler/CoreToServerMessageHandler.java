@@ -6,6 +6,7 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.core.data.Marquee;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
+import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,7 @@ public class CoreToServerMessageHandler {
             Marquee marquee = new Marquee();
             marquee.setId(notify.id);
             marquee.setContent(notify.content);
+            marquee.setShowTime(notify.showTime);
             marquee.setInterval(notify.interval);
             marquee.setType(notify.type);
             marquee.setStartTime(notify.startTime);
@@ -47,7 +49,7 @@ public class CoreToServerMessageHandler {
      * @param notify
      */
     @Command(MessageConst.ToServer.NOTICE_STOP_MARQUEE_HALL_MASTER)
-    public void notifyStopMarqueeHallMaster(NotifyAllNodesMarqueeServer notify) {
+    public void notifyStopMarqueeHallMaster(NotifyAllNodesStopMarqueeServer notify) {
         try{
             log.info("收到其他节点推送的停止跑马灯信息 id = {}",notify.id);
             marqueeManager.removeMarquee(notify.id);

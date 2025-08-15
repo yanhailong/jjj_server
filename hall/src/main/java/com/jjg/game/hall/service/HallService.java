@@ -9,6 +9,7 @@ import com.jjg.game.core.dao.PlayerAvatarDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.GameStatusService;
+import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.constant.HallCode;
 import com.jjg.game.hall.constant.HallConstant;
@@ -46,6 +47,8 @@ public class HallService implements ConfigExcelChangeListener {
     private HallPlayerService hallPlayerService;
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private MailService mailService;
 
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
@@ -269,6 +272,8 @@ public class HallService implements ConfigExcelChangeListener {
             has = playerAvatarDao.hasFrame(playerId,id);
         }else if(avatarCfg.getResourceType() == HallConstant.Avatar.TYPE_TITLE){
             has = playerAvatarDao.hasTitle(playerId,id);
+        }else if(avatarCfg.getResourceType() == HallConstant.Avatar.TYPE_NATIONAL){
+            has = true;
         }
 
         if(!has){
@@ -287,6 +292,10 @@ public class HallService implements ConfigExcelChangeListener {
                 p.setHeadFrameId(id);
             });
         }else if(avatarCfg.getResourceType() == HallConstant.Avatar.TYPE_TITLE){
+            player = hallPlayerService.doSave(playerId, p -> {
+                p.setTitleId(id);
+            });
+        }else if(avatarCfg.getResourceType() == HallConstant.Avatar.TYPE_NATIONAL){
             player = hallPlayerService.doSave(playerId, p -> {
                 p.setNationalId(id);
             });
@@ -409,6 +418,54 @@ public class HallService implements ConfigExcelChangeListener {
         return result;
     }
 
+    /**
+     * 领取邮件内的道具
+     * @param playerId
+     * @param mailId
+     * @return
+     */
+    public CommonResult<Integer> getMailItems(long playerId,int mailId){
+        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
+        try{
+            Mail mail = mailService.getMail(playerId, mailId);
+            if(mail == null){
+                result.code = Code.NOT_FOUND;
+                log.debug("未找到玩家有邮件，获取道具失败 playerId = {},mailId = {}",playerId,mailId);
+                return result;
+            }
+
+            if(mail.getStatus() == GameConstant.Mail.STAUTS_GET_ITEMS){
+                result.code = Code.NOT_FOUND;
+                log.debug("该道具已被领取，获取道具失败 playerId = {},mailId = {}",playerId,mailId);
+                return result;
+            }
+
+            if(mail.getItems() == null || mail.getItems().isEmpty()){
+                result.code = Code.NOT_FOUND;
+                log.debug("该邮件内没有道具，获取道具失败 playerId = {},mailId = {}",playerId,mailId);
+                return result;
+            }
+
+            List<int[]> list = new ArrayList<>();
+            mail.getItems().forEach(mailItem -> {
+                int id = mailItem.getId();
+//                GameDataManager.getItemCfg()
+//
+//                int[] arr = new int[3];
+//
+//                arr[0] = mailItem.getId();
+//                arr[1] = mailItem.getCount()
+
+//                list.add(arr);
+            });
+
+            mailService.getMailItems(playerId, mailId);
+        }catch (Exception e){
+            log.error("",e);
+            result.code = Code.EXCEPTION;
+        }
+        return result;
+    }
 
     /***********************************************************************************************************/
 

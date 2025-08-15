@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName SpecialPlay.xlsx
  * @sheetName SpecialPlay
  * @author Auto.Generator
- * @date 2025年08月02日 14:18:48
+ * @date 2025年08月14日 19:04:34
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class SpecialPlayCfg extends BaseCfgBean {

@@ -115,8 +115,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
         DollarExpressGameRunInfo gameRunInfo = invest(playerGameData, areaId);
         if(gameRunInfo.success() && gameRunInfo.getPlayer() == null){
-            gameRunInfo.setPlayer(playerController.getPlayer());
-            playerController.setPlayer(slotsPlayerService.get(playerGameData.playerId()));
+            Player player = slotsPlayerService.get(playerGameData.playerId());
+            playerController.setPlayer(player);
+            gameRunInfo.setPlayer(player);
         }
         return gameRunInfo;
     }
@@ -142,7 +143,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     public DollarExpressGameRunInfo startGame(DollarExpressPlayerGameData playerGameData, long betValue, boolean updateGird) {
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
-
             boolean allAreaUnlock = playerGameData.getAllUnLock().compareAndSet(true, false);
             if (allAreaUnlock) {
                 gameRunInfo = areaAllUnlockGoldTrain(gameRunInfo, playerGameData, updateGird);
@@ -1560,5 +1560,14 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     private long calWinGold(long bet,long times){
         BigDecimal timesBigDecimal = BigDecimal.valueOf(times).divide(timesScaleBigDecimal, 2, RoundingMode.DOWN);
         return BigDecimal.valueOf(bet).multiply(timesBigDecimal).longValue();
+    }
+
+    private void checkMarquee(DollarExpressPlayerGameData data,long win){
+        BaseRoomCfg baseRoomCfg = this.roomCfgMap.get(data.getRoomCfgId());
+        if(baseRoomCfg == null || win < baseRoomCfg.getMarqueeTrigger().get(0)){
+            return;
+        }
+
+
     }
 }

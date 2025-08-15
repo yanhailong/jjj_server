@@ -4,6 +4,7 @@ import com.jjg.game.core.data.Mail;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -34,8 +35,29 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
      * @param playerId
      * @return
      */
-    public List<Mail> getMailByPlayerId(long playerId) {
-        return mongoTemplate.find(Query.query(Criteria.where("playerId").is(playerId)), Mail.class);
+    public List<Mail> getMailsByPlayerId(long playerId,int page,int size) {
+        if(page < 0){
+            page = 0;
+        }
+
+        if(size <= 0){
+            size = 10;
+        }
+
+        Query query = Query.query(Criteria.where("playerId").is(playerId))
+                .with(Sort.by(Sort.Direction.DESC, "sendTime")) // 按发送时间降序排列
+                .skip(page * size)
+                .limit(size);
+        return mongoTemplate.find(query, Mail.class);
+    }
+
+    /**
+     * 获取玩家的一封邮件
+     * @param playerId
+     * @return
+     */
+    public Mail getMailByPlayerId(long playerId,int id) {
+        return mongoTemplate.findOne(Query.query(Criteria.where("id").is(id).and("playerId").is(playerId)), Mail.class);
     }
 
     /**
@@ -43,8 +65,8 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
      * @param mailId
      * @param status
      */
-    public void updateStatus(long mailId, int status) {
-        mongoTemplate.updateFirst(Query.query(Criteria.where("id").is(mailId)), Update.update("status", status), Mail.class);
+    public boolean updateStatus(long playerId,long mailId, int status) {
+        return mongoTemplate.updateFirst(Query.query(Criteria.where("id").is(mailId).and("playerId").is(playerId)), Update.update("status", status), Mail.class).getModifiedCount() > 0;
     }
 
     /**

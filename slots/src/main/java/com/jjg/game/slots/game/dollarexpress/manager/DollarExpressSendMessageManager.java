@@ -155,7 +155,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
                 res.allWinTrainInfo = goldTrain(gameRunInfo.getInvestRewardGoldTrainCount(), gameRunInfo.getInvestRewardGold());
             }
             res.allAreaUnLock = gameRunInfo.isAllAreaUnLock();
-            res.allGold = playerController.getPlayer().getGold();
+            res.allGold = gameRunInfo.getPlayer().getGold();
         } else {
             log.debug("投资游戏结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }

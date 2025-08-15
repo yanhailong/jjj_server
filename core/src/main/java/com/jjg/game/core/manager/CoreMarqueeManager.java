@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
-import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.MessageUtil;
@@ -16,10 +15,8 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.MarqueeDao;
 import com.jjg.game.core.data.Marquee;
-import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
-import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
-import com.jjg.game.core.pb.NotifyMarquee;
-import com.jjg.game.core.pb.NotifyStopMarquee;
+import com.jjg.game.core.data.MarqueeParam;
+import com.jjg.game.core.pb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,8 +41,6 @@ public class CoreMarqueeManager implements TimerListener {
     @Autowired
     private MarsCurator marsCurator;
     @Autowired
-    private NodeConfig nodeConfig;
-    @Autowired
     private ClusterSystem clusterSystem;
 
     //排序后的跑马灯列表,  在列表越靠后，越优先
@@ -60,6 +55,30 @@ public class CoreMarqueeManager implements TimerListener {
     public void init(){
         loadAllmarquee();
         addCheckEvent();
+
+//        test();
+    }
+
+    public void test(){
+        Marquee marquee = new Marquee();
+        marquee.setId(1);
+        marquee.setType(400);
+        marquee.setInterval(10);
+        marquee.setShowTime(8);
+        marquee.setPriority(10);
+        marquee.setStartTime(1755077220);
+        marquee.setEndTime(1755250020);
+        marquee.setLangId(17001);
+
+        List<MarqueeParam> params = new ArrayList<>();
+        addMarqueeParam(params,0,11+"");
+        addMarqueeParam(params,1,100100026+"");
+        addMarqueeParam(params,0,1000000000+"");
+
+        marquee.setParams(params);
+
+        marqueeDao.addMarquee(marquee);
+        addNewMarquee(marquee);
     }
 
     private void addCheckEvent(){
@@ -141,7 +160,6 @@ public class CoreMarqueeManager implements TimerListener {
         this.sortedMarquees = sortMarquee(marqueeList);
         this.marqueeMap.remove(id);
 
-        addNotifyNodeStopEvent(id);
         addNotifyStopEvent(id);
 
         log.debug("删除跑马灯后打印 map.size = {}", this.marqueeMap.size());
@@ -172,8 +190,8 @@ public class CoreMarqueeManager implements TimerListener {
         return list
                 .stream()
                 .sorted(Comparator
-                        .comparingInt(Marquee::getType).reversed()  // 先按 type 降序
-                        .thenComparingInt(Marquee::getPriority)     // 再按 priority 升序
+                        .comparingInt(com.jjg.game.core.data.Marquee::getType).reversed()  // 先按 type 降序
+                        .thenComparingInt(com.jjg.game.core.data.Marquee::getPriority)     // 再按 priority 升序
                 )
                 .collect(Collectors.toCollection(LinkedList::new));
     }
@@ -228,27 +246,6 @@ public class CoreMarqueeManager implements TimerListener {
                 notifyClientMarquee(marquee);
             }else if("notifyStopEvent".equals(arr[0])){
                 notifyClientStopMarquee(id);
-            }else if("notifyNodeSendEvent".equals(arr[0])){
-                Marquee marquee = this.marqueeMap.get(id);
-                if(marquee == null){
-                    return;
-                }
-
-                NotifyAllNodesMarqueeServer notify = new NotifyAllNodesMarqueeServer();
-                notify.id = marquee.getId();
-                notify.content = marquee.getContent();
-                notify.interval = marquee.getInterval();
-                notify.startTime = marquee.getStartTime();
-                notify.endTime = marquee.getEndTime();
-                log.debug("通知跑马灯信息 id = {}",id);
-                notifyHallAndGameNodeStartMarquee(notify);
-                notifyClientMarquee(marquee);
-            }else if("notifyNodeStopEvent".equals(arr[0])){
-                NotifyAllNodesStopMarqueeServer notify = new NotifyAllNodesStopMarqueeServer();
-                notify.id = id;
-                log.debug("通知停止跑马灯信息 id = {}",id);
-                notifyHallAndGameNodeStopMarquee(notify);
-                notifyClientStopMarquee(id);
             }
         }
     }
@@ -271,18 +268,6 @@ public class CoreMarqueeManager implements TimerListener {
         TimerEvent<String> nodeEvent = new TimerEvent<>(this, 1, "notifyStopEvent_" + id).withTimeUnit(TimeUnit.SECONDS);
         this.timerCenter.add(nodeEvent);
         log.debug("添加通知客户端停止跑马灯事件 id = {}",id);
-    }
-
-    /**
-     * 通知其他节点停止跑马灯
-     * @param id
-     */
-    private void addNotifyNodeStopEvent(long id){
-        if(marsCurator.isMaster()){
-            TimerEvent<String> nodeEvent = new TimerEvent<>(this, 1, "notifyNodeStopEvent_" + id).withTimeUnit(TimeUnit.SECONDS);
-            this.timerCenter.add(nodeEvent);
-            log.debug("添加通知节点停止跑马灯事件 id = {}",id);
-        }
     }
 
     /**
@@ -346,7 +331,17 @@ public class CoreMarqueeManager implements TimerListener {
         notify.endTime = marquee.getEndTime();
         notify.type = getClientShowGarqueeType(marquee.getType());
         notify.langId = marquee.getLangId();
-        notify.params = marquee.getParams();
+
+        if(marquee.getParams() != null && !marquee.getParams().isEmpty()){
+            notify.params = new ArrayList<>(marquee.getParams().size());
+
+            marquee.getParams().forEach(p -> {
+                MarqueeLangParamInfo info = new MarqueeLangParamInfo();
+                info.type = p.getType();
+                info.param = p.getParam();
+                notify.params.add(info);
+            });
+        }
         clusterSystem.sessionMap().entrySet().forEach(en -> en.getValue().send(notify));
     }
 
@@ -373,9 +368,35 @@ public class CoreMarqueeManager implements TimerListener {
     }
 
     public int getClientShowGarqueeType(int marqueeType){
-        if(marqueeType == GameConstant.MarqueeType.PLAYER_WIN){
-            return GameConstant.MarqueeType.CLIENT_LANG_TYPE;
+        if(marqueeType == GameConstant.Marquee.PLAYER_WIN){
+            return GameConstant.Marquee.CLIENT_LANG_TYPE;
         }
-        return GameConstant.MarqueeType.CLIENT_NORMAL_TYPE;
+        return GameConstant.Marquee.CLIENT_NORMAL_TYPE;
+    }
+
+    public void playerWinMarquee(String playerNickName,int langId){
+        Marquee marquee = new Marquee();
+        marquee.setId(1);
+        marquee.setType(GameConstant.Marquee.PLAYER_WIN);
+        marquee.setInterval(GameConstant.Marquee.PLAYER_WIN_INTERVAL);
+        marquee.setPriority(10);
+
+        int now = TimeHelper.nowInt();
+        marquee.setStartTime(1755077220);
+        marquee.setEndTime(1755250020);
+        marquee.setLangId(langId);
+    }
+
+    /**
+     * 添加多语言参数
+     * @param params
+     * @param type
+     * @param param
+     */
+    private void addMarqueeParam(List<MarqueeParam> params,int type, String param){
+        MarqueeParam p = new MarqueeParam();
+        p.setType(type);
+        p.setParam(param);
+        params.add(p);
     }
 }

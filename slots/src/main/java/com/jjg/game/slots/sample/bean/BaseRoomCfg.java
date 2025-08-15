@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName BaseRoom.xlsx
  * @sheetName BaseRoom
  * @author Auto.Generator
- * @date 2025年08月02日 14:18:48
+ * @date 2025年08月14日 19:04:34
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseRoomCfg extends BaseCfgBean {
@@ -41,6 +41,10 @@ public class BaseRoomCfg extends BaseCfgBean {
   protected List<Integer> lineBetScore;
   /** 线注倍数 */
   protected List<Integer> lineMultiple;
+  /** 跑马触发金额 */
+  protected List<Long> marqueeTrigger;
+  /** 多语言表ID */
+  protected int nameid;
   /** 房间列表 */
   protected List<Integer> room;
   /** 倍场名称 */
@@ -101,6 +105,16 @@ public class BaseRoomCfg extends BaseCfgBean {
   /** 返回线注倍数 */
   public List<Integer> getLineMultiple() {
     return lineMultiple;
+  }
+
+  /** 返回跑马触发金额 */
+  public List<Long> getMarqueeTrigger() {
+    return marqueeTrigger;
+  }
+
+  /** 返回多语言表ID */
+  public int getNameid() {
+    return nameid;
   }
 
   /** 返回房间列表 */
