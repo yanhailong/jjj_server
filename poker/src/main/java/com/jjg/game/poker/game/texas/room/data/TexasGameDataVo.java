@@ -6,7 +6,7 @@ import com.jjg.game.poker.game.texas.data.Pot;
 import com.jjg.game.poker.game.texas.data.TexasSaveHistory;
 import com.jjg.game.poker.game.texas.message.bean.TexasHistoryRoundInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementInfo;
-import com.jjg.game.room.sample.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.ArrayList;
 import java.util.HashMap;

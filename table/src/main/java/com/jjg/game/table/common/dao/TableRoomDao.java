@@ -1,7 +1,7 @@
 package com.jjg.game.table.common.dao;
 
-import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.data.BetTableRoom;
+import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.dao.AbstractGoldRoomDao;
 import org.springframework.stereotype.Component;
 

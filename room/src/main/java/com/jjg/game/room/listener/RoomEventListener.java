@@ -1,7 +1,6 @@
 package com.jjg.game.room.listener;
 
 import com.jjg.game.common.cluster.ClusterSystem;
-import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;

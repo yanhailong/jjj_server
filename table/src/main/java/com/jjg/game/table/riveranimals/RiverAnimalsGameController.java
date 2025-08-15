@@ -6,15 +6,14 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
-import com.jjg.game.room.data.room.GameDataVo;
-import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.riveranimals.data.RiverAnimalsGameDataVo;
 import com.jjg.game.table.riveranimals.gamephase.RiverAnimalsBetPhase;
 import com.jjg.game.table.riveranimals.gamephase.RiverAnimalsSettlementPhase;
 import com.jjg.game.table.riveranimals.gamephase.RiverAnimalsTableWaitReadyPhase;
-import com.jjg.game.table.riveranimals.message.RiverAnimalsMessageBuilder;
 import com.jjg.game.table.riveranimals.message.NotifyRiverAnimalsTableInfo;
+import com.jjg.game.table.riveranimals.message.RiverAnimalsMessageBuilder;
 
 import java.util.LinkedHashSet;
 

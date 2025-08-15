@@ -1,11 +1,8 @@
 package com.jjg.game.hall.dao;
 
 import com.jjg.game.core.dao.AbstractPoolDao;
-import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 /**

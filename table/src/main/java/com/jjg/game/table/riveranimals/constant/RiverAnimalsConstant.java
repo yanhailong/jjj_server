@@ -2,7 +2,6 @@ package com.jjg.game.table.riveranimals.constant;
 
 import com.jjg.game.common.constant.MessageConst;
 
-import static com.jjg.game.common.constant.MessageConst.MessageTypeDef.BIRDS_ANIMAL_TYPE;
 import static com.jjg.game.common.constant.MessageConst.MessageTypeDef.FISH_SHRIMP_CRAB_TYPE;
 
 /**

@@ -6,15 +6,14 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
-import com.jjg.game.room.data.room.GameDataVo;
-import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.dicetreasure.data.DiceTreasureGameDataVo;
 import com.jjg.game.table.dicetreasure.gamephase.DiceTreasureBetPhase;
 import com.jjg.game.table.dicetreasure.gamephase.DiceTreasureSettlementPhase;
 import com.jjg.game.table.dicetreasure.gamephase.DiceTreasureTableWaitReadyPhase;
-import com.jjg.game.table.dicetreasure.message.NotifyDiceTreasureTableInfo;
 import com.jjg.game.table.dicetreasure.message.DiceTreasureMessageBuilder;
+import com.jjg.game.table.dicetreasure.message.NotifyDiceTreasureTableInfo;
 
 import java.util.LinkedHashSet;
 

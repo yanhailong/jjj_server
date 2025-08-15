@@ -1,7 +1,6 @@
 package com.jjg.game.table.redblackwar.manager;
 
 import com.jjg.game.room.listener.IRoomStartListener;
-import com.jjg.game.table.redblackwar.constant.RedBlackWarConstant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

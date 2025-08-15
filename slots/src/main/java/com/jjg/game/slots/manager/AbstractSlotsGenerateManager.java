@@ -2,11 +2,12 @@ package com.jjg.game.slots.manager;
 
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.AuxiliaryAwardType;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.*;
-import com.jjg.game.slots.sample.GameDataManager;
-import com.jjg.game.slots.sample.bean.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

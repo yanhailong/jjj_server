@@ -2,7 +2,6 @@ package com.jjg.game.table.dicetreasure.constant;
 
 import com.jjg.game.common.constant.MessageConst;
 
-import static com.jjg.game.common.constant.MessageConst.MessageTypeDef.BIRDS_ANIMAL_TYPE;
 import static com.jjg.game.common.constant.MessageConst.MessageTypeDef.DICE_BABY_TYPE;
 
 /**

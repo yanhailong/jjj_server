@@ -15,7 +15,6 @@ import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerSampleCardOperation;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
-import com.jjg.game.poker.game.sample.bean.TexasCfg;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.Pot;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
@@ -38,7 +37,8 @@ import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.sample.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.TexasCfg;
 
 import java.util.*;
 import java.util.stream.Collectors;

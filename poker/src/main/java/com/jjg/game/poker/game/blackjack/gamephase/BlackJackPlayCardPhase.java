@@ -10,7 +10,7 @@ import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.gamephase.BasePlayCardPhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.sample.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.ArrayList;
 import java.util.List;

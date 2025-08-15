@@ -22,4 +22,6 @@ public class NotifyBlackJackCutCard extends AbstractNotice {
     public List<BlackJackCardInfo> cardInfoList;
     @ProtoDesc("当前牌索引")
     public int currentCardIds;
+    @ProtoDesc("结束时间")
+    public long overTime;
 }

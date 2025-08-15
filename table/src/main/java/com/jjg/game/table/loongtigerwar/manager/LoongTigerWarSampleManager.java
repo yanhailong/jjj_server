@@ -2,9 +2,9 @@ package com.jjg.game.table.loongtigerwar.manager;
 
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
-import com.jjg.game.table.betsample.sample.GameDataManager;
-import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
-import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BetAreaCfg;
+import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

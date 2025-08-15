@@ -19,7 +19,7 @@ public class ResMarquee extends AbstractResponse{
     @ProtoDesc("内容")
     public String content;
     @ProtoDesc("播放时间")
-    private int showTime;
+    public int showTime;
     @ProtoDesc("间隔时间")
     public int interval;
     @ProtoDesc("开始时间")

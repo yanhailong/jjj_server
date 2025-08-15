@@ -1,6 +1,5 @@
 package com.jjg.game.table.baccarat.message;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
@@ -9,8 +8,8 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.sample.GameDataManager;
-import com.jjg.game.room.sample.bean.GlobalConfigCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.BaccaratTempRoom;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
@@ -22,8 +21,9 @@ import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * @author Administrator

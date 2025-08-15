@@ -2,8 +2,8 @@ package com.jjg.game.table.common.data;
 
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.sample.GameDataManager;
-import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 
 import java.util.HashMap;
 import java.util.List;

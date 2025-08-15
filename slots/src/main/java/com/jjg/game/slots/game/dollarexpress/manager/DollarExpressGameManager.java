@@ -9,6 +9,11 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BaseRoomCfg;
+import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.sampledata.bean.SpecialGirdCfg;
+import com.jjg.game.sampledata.bean.SpecialResultLibCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.GirdUpdateConfig;
@@ -22,8 +27,6 @@ import com.jjg.game.slots.game.dollarexpress.pb.DollarsInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ResultLineInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.TrainInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import com.jjg.game.slots.sample.GameDataManager;
-import com.jjg.game.slots.sample.bean.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -200,6 +203,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             int times = (int) (gameRunInfo.getAllWinGold() / betValue);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
+
+            //跑马灯
+            checkMarquee(playerGameData,gameRunInfo.getAllWinGold());
 
             //发送日志
             logger.gameResult(player, gameRunInfo);
@@ -1560,14 +1566,5 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     private long calWinGold(long bet,long times){
         BigDecimal timesBigDecimal = BigDecimal.valueOf(times).divide(timesScaleBigDecimal, 2, RoundingMode.DOWN);
         return BigDecimal.valueOf(bet).multiply(timesBigDecimal).longValue();
-    }
-
-    private void checkMarquee(DollarExpressPlayerGameData data,long win){
-        BaseRoomCfg baseRoomCfg = this.roomCfgMap.get(data.getRoomCfgId());
-        if(baseRoomCfg == null || win < baseRoomCfg.getMarqueeTrigger().get(0)){
-            return;
-        }
-
-
     }
 }

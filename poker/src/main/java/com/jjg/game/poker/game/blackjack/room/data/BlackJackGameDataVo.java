@@ -3,7 +3,7 @@ package com.jjg.game.poker.game.blackjack.room.data;
 import com.jjg.game.poker.game.blackjack.message.resp.NotifyBlackJackSettlementInfo;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
-import com.jjg.game.room.sample.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.*;
 

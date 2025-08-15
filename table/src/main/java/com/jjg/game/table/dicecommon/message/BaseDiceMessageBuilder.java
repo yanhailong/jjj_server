@@ -2,7 +2,7 @@ package com.jjg.game.table.dicecommon.message;
 
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.room.constant.EGamePhase;
-import com.jjg.game.room.sample.GameDataManager;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.TableMessageBuilder;

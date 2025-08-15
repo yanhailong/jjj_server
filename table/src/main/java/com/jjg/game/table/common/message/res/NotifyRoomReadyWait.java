@@ -3,7 +3,6 @@ package com.jjg.game.table.common.message.res;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.room.message.RoomMessageConstant;
 import com.jjg.game.table.common.message.bean.TablePlayerInfo;

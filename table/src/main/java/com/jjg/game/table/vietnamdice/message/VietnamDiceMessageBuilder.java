@@ -1,7 +1,5 @@
 package com.jjg.game.table.vietnamdice.message;
 
-import com.jjg.game.table.common.TableConstant;
-import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
 import com.jjg.game.table.vietnamdice.VietnamDiceGameController;
 import com.jjg.game.table.vietnamdice.data.VietnamDiceGameDataVo;

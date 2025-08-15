@@ -2,31 +2,24 @@ package com.jjg.game.table.dicetreasure.gamephase;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
-import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
-import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.sample.bean.Room_BetCfg;
-import com.jjg.game.table.betsample.sample.GameDataManager;
-import com.jjg.game.table.betsample.sample.bean.BetAreaCfg;
-import com.jjg.game.table.betsample.sample.bean.WinPosWeightCfg;
-import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
-import com.jjg.game.table.common.message.TableMessageBuilder;
-import com.jjg.game.table.common.message.bean.PlayerChangedGold;
-import com.jjg.game.table.common.utils.WinPosWeightUtils;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BetAreaCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
+import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 import com.jjg.game.table.dicecommon.DiceDataHolder;
 import com.jjg.game.table.dicecommon.DiceUtils;
 import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
 import com.jjg.game.table.dicecommon.phase.BaseDiceSettlementPhase;
-import com.jjg.game.table.dicetreasure.DiceTreasureDiceGameController;
 import com.jjg.game.table.dicetreasure.data.DiceTreasureGameDataVo;
-import com.jjg.game.table.dicetreasure.message.NotifyDiceTreasureSettlement;
 import com.jjg.game.table.dicetreasure.message.DiceTreasureHistoryBean;
 import com.jjg.game.table.dicetreasure.message.DiceTreasureMessageBuilder;
+import com.jjg.game.table.dicetreasure.message.NotifyDiceTreasureSettlement;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**

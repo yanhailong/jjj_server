@@ -1,8 +1,7 @@
 package com.jjg.game.table.riveranimals.gamephase;
 
-import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
-import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.gamephase.TableWaitReadyPhase;
 import com.jjg.game.table.riveranimals.data.RiverAnimalsGameDataVo;
 

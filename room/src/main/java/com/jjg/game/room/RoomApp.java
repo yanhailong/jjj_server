@@ -1,14 +1,10 @@
 package com.jjg.game.room;
 
 import com.jjg.game.common.config.NodeConfig;
-import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.core.exception.GameSampleException;
-import com.jjg.game.room.constant.RoomConstant;
-import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.service.CoreStartService;
+import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.room.listener.RoomEventListener;
-import com.jjg.game.room.sample.GameDataManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -23,7 +19,8 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.annotation.Order;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * @author 11

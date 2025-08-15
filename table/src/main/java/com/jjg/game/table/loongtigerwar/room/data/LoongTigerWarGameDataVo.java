@@ -1,14 +1,13 @@
 package com.jjg.game.table.loongtigerwar.room.data;
 
-import com.jjg.game.room.sample.bean.Room_BetCfg;
+
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.loongtigerwar.constant.LoongTigerWarConstant;
 import com.jjg.game.table.loongtigerwar.message.resp.NotifyLoongTigerWarSettleInfo;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 对战类游戏的内存常驻数据 Value Object

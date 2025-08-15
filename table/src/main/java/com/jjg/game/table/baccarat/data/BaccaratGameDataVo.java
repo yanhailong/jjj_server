@@ -2,7 +2,7 @@ package com.jjg.game.table.baccarat.data;
 
 import com.jjg.game.core.data.Player;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.baccarat.message.resp.BaccaratCardState;
 import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratSettlementInfo;
 import com.jjg.game.table.common.TableConstant;

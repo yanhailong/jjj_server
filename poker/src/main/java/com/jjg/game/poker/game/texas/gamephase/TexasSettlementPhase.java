@@ -32,7 +32,7 @@ import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.datatrack.logdata.LogParam;
 import com.jjg.game.room.datatrack.logdata.SaveLogThread;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.sample.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.*;
 import java.util.stream.Collectors;

@@ -15,6 +15,8 @@ public interface BlackJackConstant {
         int MAX_GET_CARD = 6;
         //下注修正时间
         int BET_FIX_TIME = 5000;
+        //分牌修正时间
+        int CUT_FIX_TIME = 500;
     }
 
     interface MsgBean {

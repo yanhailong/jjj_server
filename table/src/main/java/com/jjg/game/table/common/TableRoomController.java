@@ -1,10 +1,11 @@
 package com.jjg.game.table.common;
 
-import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.data.BetTableRoom;
+import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.controller.AbstractRoomController;
-import com.jjg.game.room.sample.GameDataManager;
-import com.jjg.game.room.sample.bean.Room_BetCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
+
 
 /**
  * 对战类的房间控制器

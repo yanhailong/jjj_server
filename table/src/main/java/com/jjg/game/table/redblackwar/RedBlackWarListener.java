@@ -8,7 +8,7 @@ import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.manager.RoomManager;
-import com.jjg.game.room.sample.bean.RoomCfg;
+import com.jjg.game.sampledata.bean.RoomCfg;
 import com.jjg.game.table.redblackwar.room.manager.RedBlackWarRoomGameController;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;

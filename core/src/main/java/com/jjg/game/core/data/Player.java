@@ -40,10 +40,14 @@ public class Player {
     private long safeBoxGold;
     //保险箱钻石
     private long safeBoxDiamond;
-    //vip等级
-    private int vipLevel;
+    //等级
+    private int level;
     //经验
     private long exp;
+    //vip等级
+    private int vipLevel;
+    //vip经验
+    private long vipExp;
     //流水
     private long statement;
     //ip地址
@@ -54,7 +58,8 @@ public class Player {
     private int createTime;
     //玩家数据更新时间
     private long updateTime;
-
+    //好友房邀请码
+    private int friendRoomInvitationCode;
 
     public long getId() {
         return id;
@@ -171,12 +176,12 @@ public class Player {
         this.safeBoxDiamond = safeBoxDiamond;
     }
 
-    public int getVipLevel() {
-        return vipLevel;
+    public int getLevel() {
+        return level;
     }
 
-    public void setVipLevel(int vipLevel) {
-        this.vipLevel = vipLevel;
+    public void setLevel(int level) {
+        this.level = level;
     }
 
     public long getExp() {
@@ -185,6 +190,22 @@ public class Player {
 
     public void setExp(long exp) {
         this.exp = exp;
+    }
+
+    public int getVipLevel() {
+        return vipLevel;
+    }
+
+    public void setVipLevel(int vipLevel) {
+        this.vipLevel = vipLevel;
+    }
+
+    public long getVipExp() {
+        return vipExp;
+    }
+
+    public void setVipExp(long vipExp) {
+        this.vipExp = vipExp;
     }
 
     public long getStatement() {
@@ -225,6 +246,14 @@ public class Player {
 
     public void setUpdateTime(long updateTime) {
         this.updateTime = updateTime;
+    }
+
+    public int getFriendRoomInvitationCode() {
+        return friendRoomInvitationCode;
+    }
+
+    public void setFriendRoomInvitationCode(int friendRoomInvitationCode) {
+        this.friendRoomInvitationCode = friendRoomInvitationCode;
     }
 
     @Override

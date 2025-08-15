@@ -10,7 +10,7 @@ import com.jjg.game.room.base.GameGm;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
-import com.jjg.game.room.sample.bean.RoomCfg;
+import com.jjg.game.sampledata.bean.RoomCfg;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.InvocationTargetException;

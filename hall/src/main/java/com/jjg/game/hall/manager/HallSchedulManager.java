@@ -1,13 +1,11 @@
 package com.jjg.game.hall.manager;
 
-import com.jjg.game.core.manager.CoreMarqueeManager;
-import com.jjg.game.hall.service.HallPlayerService;
-import com.mongodb.client.result.DeleteResult;
 import com.jjg.game.common.curator.MarsCurator;
-import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.dao.PlayerLoginTimeDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
+import com.jjg.game.hall.service.HallPlayerService;
+import com.mongodb.client.result.DeleteResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

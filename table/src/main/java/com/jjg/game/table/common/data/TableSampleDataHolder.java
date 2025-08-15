@@ -1,10 +1,10 @@
 package com.jjg.game.table.common.data;
 
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
-import com.jjg.game.room.sample.GameDataManager;
-import com.jjg.game.room.sample.bean.BetRobotCfg;
-import com.jjg.game.room.sample.bean.ChessRobotCfg;
-import com.jjg.game.room.sample.bean.RobotActionCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BetRobotCfg;
+import com.jjg.game.sampledata.bean.ChessRobotCfg;
+import com.jjg.game.sampledata.bean.RobotActionCfg;
 import org.springframework.stereotype.Repository;
 
 import java.util.HashMap;

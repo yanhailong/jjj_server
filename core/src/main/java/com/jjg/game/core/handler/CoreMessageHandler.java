@@ -102,6 +102,11 @@ public class CoreMessageHandler {
                 return;
             }
 
+            if("playerWinMarquee".equalsIgnoreCase(cmd)){
+                marqueeManager.playerWinMarquee("shiyi",17001,100100026,500000);
+                return;
+            }
+
             int notFound = 0;
             Map<String, GmListener> map = CommonUtil.getContext().getBeansOfType(GmListener.class);
             for(Map.Entry<String, GmListener> en : map.entrySet()){
@@ -152,6 +157,7 @@ public class CoreMessageHandler {
                 res.endTime = currentMarquee.getEndTime();
                 res.type = marqueeManager.getClientShowGarqueeType(currentMarquee.getType());
                 res.langId = currentMarquee.getLangId();
+                res.showTime = currentMarquee.getShowTime();
 
                 if(currentMarquee.getParams() != null && !currentMarquee.getParams().isEmpty()){
                     res.params = new ArrayList<>(currentMarquee.getParams().size());

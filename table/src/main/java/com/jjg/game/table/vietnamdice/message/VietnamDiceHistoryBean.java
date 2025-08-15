@@ -1,7 +1,6 @@
 package com.jjg.game.table.vietnamdice.message;
 
 import com.jjg.game.common.proto.ProtoDesc;
-import com.jjg.game.common.proto.ProtobufMessage;
 
 import java.util.List;
 

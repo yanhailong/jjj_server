@@ -1,6 +1,5 @@
 package com.jjg.game.table.loongtigerwar.manager;
 
-import com.jjg.game.table.loongtigerwar.constant.LoongTigerWarConstant;
 import com.jjg.game.room.listener.IRoomStartListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

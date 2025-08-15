@@ -24,5 +24,6 @@
         <module>slots</module>
         <module>table</module>
         <module>poker</module>
+        <module>sampledata</module>
     </modules>
 </project>

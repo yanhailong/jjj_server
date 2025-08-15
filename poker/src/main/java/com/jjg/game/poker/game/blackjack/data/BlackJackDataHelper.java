@@ -2,10 +2,10 @@ package com.jjg.game.poker.game.blackjack.data;
 
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
-import com.jjg.game.poker.game.sample.GameDataManager;
-import com.jjg.game.poker.game.sample.bean.BlackjackCfg;
-import com.jjg.game.poker.game.sample.bean.PokerPoolCfg;
-import com.jjg.game.room.sample.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BlackjackCfg;
+import com.jjg.game.sampledata.bean.PokerPoolCfg;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.List;
 

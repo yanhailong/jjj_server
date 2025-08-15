@@ -4,8 +4,6 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.gamephase.BasePlayCardPhase;
-import com.jjg.game.poker.game.sample.GameDataManager;
-import com.jjg.game.poker.game.sample.bean.TexasCfg;
 import com.jjg.game.poker.game.texas.data.Pot;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
@@ -19,7 +17,9 @@ import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.sample.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.TexasCfg;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -94,7 +94,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
                     .playerId(first.getPlayerId())
                     .seatId(gameDataVo.getDealerSeatId())
                     .overTime(gameDataVo.getPlayerTimerEvent().getNextTime())
-                    .totalBet(gameDataVo.getPool().get(0).getAmount());
+                    .totalBet(gameDataVo.getPool().getFirst().getAmount());
             Map<Long, PlayerSeatInfo> collect = playerSeatInfo.stream()
                     .collect(Collectors.toMap(PlayerSeatInfo::getPlayerId, info -> info));
             //通知玩家
@@ -132,8 +132,8 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         gameDataVo.getBaseBetInfo().put(info.getPlayerId(), sBBetValue);
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
         controller.changePlayerGold(gamePlayer, -sBBetValue);
-        gameDataVo.getPool().get(0).addChips(sBBetValue);
-        gameDataVo.getPool().get(0).addEligiblePlayer(info.getPlayerId());
+        gameDataVo.getPool().getFirst().addChips(sBBetValue);
+        gameDataVo.getPool().getFirst().addEligiblePlayer(info.getPlayerId());
         //添加记录
         historyRoundInfo.roundInfo.add(TexasBuilder.getTexasHistoryPlayerInfo(info, gameDataVo, sBBetValue));
         texasHistory.getTotalPlayerBetInfoMap().get(info.getPlayerId()).betValue = sBBetValue;
@@ -143,8 +143,8 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         gameDataVo.getBaseBetInfo().put(info.getPlayerId(), BBBetValue);
         gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
         controller.changePlayerGold(gamePlayer, -BBBetValue);
-        gameDataVo.getPool().get(0).addChips(BBBetValue);
-        gameDataVo.getPool().get(0).addEligiblePlayer(info.getPlayerId());
+        gameDataVo.getPool().getFirst().addChips(BBBetValue);
+        gameDataVo.getPool().getFirst().addEligiblePlayer(info.getPlayerId());
         gameDataVo.setMaxBetValue(BBBetValue);
         //添加记录
         historyRoundInfo.roundInfo.add(TexasBuilder.getTexasHistoryPlayerInfo(info, gameDataVo, BBBetValue));
