@@ -92,6 +92,8 @@ public interface MessageConst {
 
         // 下注房间对战类通用协议类型
         int POKER_GENERAL_TYPE = 0x22;
+        // 好友房
+        int FRIEND_ROOM_TYPE = 0x23;
     }
 
     interface ToClientConst {

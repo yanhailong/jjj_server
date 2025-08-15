@@ -17,7 +17,6 @@ import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.hall.constant.HallCode;
 import com.jjg.game.hall.constant.HallConstant;
-import com.jjg.game.hall.dao.BindDao;
 import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.pb.*;
@@ -36,7 +35,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
