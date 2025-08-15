@@ -164,7 +164,7 @@ public class ToOneFile2 {
             sb.append(content);
         }
         if (repeatIdCollector.isEmpty()) {
-//            FileHelper.saveFile(fileName, sb.toString(), false);
+            FileHelper.saveFile(fileName, sb.toString(), false);
         } else {
             throw new IllegalArgumentException(repeatIdCollector.toString());
         }
