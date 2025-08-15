@@ -8,6 +8,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  *
  * @author 2CL
  */
+@ProtobufMessage
 public class RoomFriendEnum {
 
     @ProtobufMessage

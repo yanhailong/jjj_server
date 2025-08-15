@@ -9,11 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName playerLevelConfig.xlsx
  * @sheetName playerLevelConfig
  * @author Auto.Generator
-<<<<<<<< HEAD:hall/src/main/java/com/jjg/game/hall/sample/bean/VipLevelConfigCfg.java
- * @date 2025年08月15日 15:43:07
-========
- * @date 2025年08月15日 17:50:22
->>>>>>>> dev:sampledata/src/main/java/com/jjg/game/sampledata/bean/PlayerLevelConfigCfg.java
+ * @date 2025年08月15日 18:30:10
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class PlayerLevelConfigCfg extends BaseCfgBean {

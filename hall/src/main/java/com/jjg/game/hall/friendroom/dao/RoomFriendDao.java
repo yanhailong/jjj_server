@@ -26,7 +26,6 @@ public class RoomFriendDao extends MongoBaseDao<FriendRoomBean, Long> {
 
     public RoomFriendDao(@Autowired MongoTemplate mongoTemplate) {
         super(FriendRoomBean.class, mongoTemplate);
-
     }
 
     /**
@@ -40,5 +39,9 @@ public class RoomFriendDao extends MongoBaseDao<FriendRoomBean, Long> {
         int invitationCode = (int) (curTime - currentDateZeroMileTime + maskData);
         log.info("生成邀请码：{}", invitationCode);
         return invitationCode;
+    }
+
+    public void creatRoom(){
+
     }
 }

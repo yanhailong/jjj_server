@@ -37,5 +37,5 @@ public class ReqCreateFriendsRoom  extends AbstractMessage {
     public boolean predictCostGoldNum;
 
     @ProtoDesc("房间名")
-    public int roomAliasName;
+    public String roomAliasName;
 }
