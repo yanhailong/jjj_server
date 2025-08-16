@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年08月15日 17:50:22
+ * @date 2025年08月15日 18:30:10
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -134,6 +134,7 @@ public class GameDataManager {
     containerMap.put(ChessRobotCfg.class, new ChessRobotCfgContainer());
     containerMap.put(ClientFreeRollerCfg.class, new ClientFreeRollerCfgContainer());
     containerMap.put(ClientRollerCfg.class, new ClientRollerCfgContainer());
+    containerMap.put(ConditionCfg.class, new ConditionCfgContainer());
     containerMap.put(GameFunctionCfg.class, new GameFunctionCfgContainer());
     containerMap.put(GameListCfg.class, new GameListCfgContainer());
     containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
@@ -148,7 +149,6 @@ public class GameDataManager {
     containerMap.put(RoomExpendCfg.class, new RoomExpendCfgContainer());
     containerMap.put(Room_BetCfg.class, new Room_BetCfgContainer());
     containerMap.put(Room_ChessCfg.class, new Room_ChessCfgContainer());
-    containerMap.put(Sheet1Cfg.class, new Sheet1CfgContainer());
     containerMap.put(ShopConfigCfg.class, new ShopConfigCfgContainer());
     containerMap.put(SouthernMoneyCfg.class, new SouthernMoneyCfgContainer());
     containerMap.put(SpecialAuxiliaryAwardCfg.class, new SpecialAuxiliaryAwardCfgContainer());
@@ -737,6 +737,17 @@ public class GameDataManager {
   public static List<ClientRollerCfg> getClientRollerCfgList() {
     return getInstance().getCfgContainer(ClientRollerCfg.class).getCfgBeanList();
   }
+  public static ConditionCfg getConditionCfg(int key) {
+    return getInstance().getCfgContainer(ConditionCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ConditionCfg> getConditionCfgMap() {
+    return getInstance().getCfgContainer(ConditionCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ConditionCfg> getConditionCfgList() {
+    return getInstance().getCfgContainer(ConditionCfg.class).getCfgBeanList();
+  }
   public static GameFunctionCfg getGameFunctionCfg(int key) {
     return getInstance().getCfgContainer(GameFunctionCfg.class).getCfgBeanMap().get(key);
   }
@@ -890,17 +901,6 @@ public class GameDataManager {
 
   public static List<Room_ChessCfg> getRoom_ChessCfgList() {
     return getInstance().getCfgContainer(Room_ChessCfg.class).getCfgBeanList();
-  }
-  public static Sheet1Cfg getSheet1Cfg(int key) {
-    return getInstance().getCfgContainer(Sheet1Cfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, Sheet1Cfg> getSheet1CfgMap() {
-    return getInstance().getCfgContainer(Sheet1Cfg.class).getCfgBeanMap();
-  }
-
-  public static List<Sheet1Cfg> getSheet1CfgList() {
-    return getInstance().getCfgContainer(Sheet1Cfg.class).getCfgBeanList();
   }
   public static ShopConfigCfg getShopConfigCfg(int key) {
     return getInstance().getCfgContainer(ShopConfigCfg.class).getCfgBeanMap().get(key);
