@@ -111,6 +111,8 @@ public class GameDataTracker {
         tempTrackData.putAll(baseGameInfo);
         // 订单ID
         tempTrackData.put("orderId", trackLogger.getSnowflake().nextId());
+        // 添加发送时间
+        tempTrackData.put("sendTime", System.currentTimeMillis());
         String gameLogTopicTmp = gameLogTopic + "_" + dataTrackLogType.name().toLowerCase();
         // 发送日志数据
         trackLogger.sendLog(gameLogTopicTmp, tempTrackData);
