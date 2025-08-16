@@ -37,5 +37,9 @@ public interface BlackJackConstant {
         int NOTIFY_BLACKJACK_DOUBLE_BET_INFO = BASE_MSG_PREFIX | 0x9;
         //响应玩家购买ACE
         int REPS_BLACKJACK_BUY_ACE = BASE_MSG_PREFIX | 0x10;
+        //通知玩家停牌
+        int NOTIFY_BLACKJACK_STOP_CARD = BASE_MSG_PREFIX | 0x11;
+        //通知玩家特殊结算
+        int NOTIFY_BLACKJACK_SPECIAL_SETTLEMENT = BASE_MSG_PREFIX | 0x12;
     }
 }

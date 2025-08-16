@@ -2,12 +2,14 @@ package com.jjg.game.poker.game.common.data;
 
 import cn.hutool.core.lang.generator.SnowflakeGenerator;
 import com.jjg.game.core.data.Card;
+import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PokerPoolCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
+import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.List;
@@ -19,11 +21,18 @@ import java.util.stream.Collectors;
  * @author lm
  * @date 2025/8/5 18:13
  */
-public class PokerDataHelper {
+@Component
+public class PokerDataHelper implements ConfigExcelChangeListener {
     //poolId->pokerPool表Id->牌
     private static Map<Integer, Map<Integer, PokerCard>> allCardMapListMap;
     //id生成器
     private final static SnowflakeGenerator SNOWFLAKE = new SnowflakeGenerator(2, 0);
+
+    @Override
+    public void initSampleCallbackCollector() {
+        addChangeSampleFileObserveWithCallBack(PokerPoolCfg.EXCEL_NAME, PokerDataHelper::initData)
+                .addInitSampleFileObserveWithCallBack(PokerPoolCfg.EXCEL_NAME, PokerDataHelper::initData);
+    }
 
     /**
      * 初始化缓存 allCardMapListMap

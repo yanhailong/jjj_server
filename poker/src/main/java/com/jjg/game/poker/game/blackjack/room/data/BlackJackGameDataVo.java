@@ -41,8 +41,46 @@ public class BlackJackGameDataVo extends BasePokerGameDataVo {
     /**
      * 购买ACE结束时间
      */
-
     private long aceBuyEndTime;
+
+    /**
+     * 结算延迟时间
+     */
+    private int settlementDelayTime;
+
+    /**
+     * 结算类型(0普通结算 1发牌结算)
+     */
+    private int settlementType;
+
+    /**
+     * 显示庄家的牌 (true 显示 false 不显示)
+     */
+    private boolean showDealer;
+
+    public boolean isShowDealer() {
+        return showDealer;
+    }
+
+    public void setShowDealer(boolean showDealer) {
+        this.showDealer = showDealer;
+    }
+
+    public int getSettlementType() {
+        return settlementType;
+    }
+
+    public void setSettlementType(int settlementType) {
+        this.settlementType = settlementType;
+    }
+
+    public int getSettlementDelayTime() {
+        return settlementDelayTime;
+    }
+
+    public void setSettlementDelayTime(int settlementDelayTime) {
+        this.settlementDelayTime = settlementDelayTime;
+    }
 
     public long getAceBuyEndTime() {
         return aceBuyEndTime;
@@ -103,5 +141,7 @@ public class BlackJackGameDataVo extends BasePokerGameDataVo {
         aceBuyPlayerIds.clear();
         dealerCards = null;
         canBuyACE = false;
+        showDealer = true;
+        settlementDelayTime = 0;
     }
 }
