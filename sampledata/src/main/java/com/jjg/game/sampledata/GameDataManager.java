@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年08月15日 18:30:10
+ * @date 2025年08月16日 15:49:32
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -131,10 +131,14 @@ public class GameDataManager {
     containerMap.put(BetAreaCfg.class, new BetAreaCfgContainer());
     containerMap.put(BetRobotCfg.class, new BetRobotCfgContainer());
     containerMap.put(BlackjackCfg.class, new BlackjackCfgContainer());
+    containerMap.put(BuildingFloorCfg.class, new BuildingFloorCfgContainer());
+    containerMap.put(BuildingFunctionCfg.class, new BuildingFunctionCfgContainer());
+    containerMap.put(BuildingGainCfg.class, new BuildingGainCfgContainer());
     containerMap.put(ChessRobotCfg.class, new ChessRobotCfgContainer());
     containerMap.put(ClientFreeRollerCfg.class, new ClientFreeRollerCfgContainer());
     containerMap.put(ClientRollerCfg.class, new ClientRollerCfgContainer());
     containerMap.put(ConditionCfg.class, new ConditionCfgContainer());
+    containerMap.put(DealerFunctionCfg.class, new DealerFunctionCfgContainer());
     containerMap.put(GameFunctionCfg.class, new GameFunctionCfgContainer());
     containerMap.put(GameListCfg.class, new GameListCfgContainer());
     containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
@@ -704,6 +708,39 @@ public class GameDataManager {
   public static List<BlackjackCfg> getBlackjackCfgList() {
     return getInstance().getCfgContainer(BlackjackCfg.class).getCfgBeanList();
   }
+  public static BuildingFloorCfg getBuildingFloorCfg(int key) {
+    return getInstance().getCfgContainer(BuildingFloorCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, BuildingFloorCfg> getBuildingFloorCfgMap() {
+    return getInstance().getCfgContainer(BuildingFloorCfg.class).getCfgBeanMap();
+  }
+
+  public static List<BuildingFloorCfg> getBuildingFloorCfgList() {
+    return getInstance().getCfgContainer(BuildingFloorCfg.class).getCfgBeanList();
+  }
+  public static BuildingFunctionCfg getBuildingFunctionCfg(int key) {
+    return getInstance().getCfgContainer(BuildingFunctionCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, BuildingFunctionCfg> getBuildingFunctionCfgMap() {
+    return getInstance().getCfgContainer(BuildingFunctionCfg.class).getCfgBeanMap();
+  }
+
+  public static List<BuildingFunctionCfg> getBuildingFunctionCfgList() {
+    return getInstance().getCfgContainer(BuildingFunctionCfg.class).getCfgBeanList();
+  }
+  public static BuildingGainCfg getBuildingGainCfg(int key) {
+    return getInstance().getCfgContainer(BuildingGainCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, BuildingGainCfg> getBuildingGainCfgMap() {
+    return getInstance().getCfgContainer(BuildingGainCfg.class).getCfgBeanMap();
+  }
+
+  public static List<BuildingGainCfg> getBuildingGainCfgList() {
+    return getInstance().getCfgContainer(BuildingGainCfg.class).getCfgBeanList();
+  }
   public static ChessRobotCfg getChessRobotCfg(int key) {
     return getInstance().getCfgContainer(ChessRobotCfg.class).getCfgBeanMap().get(key);
   }
@@ -747,6 +784,17 @@ public class GameDataManager {
 
   public static List<ConditionCfg> getConditionCfgList() {
     return getInstance().getCfgContainer(ConditionCfg.class).getCfgBeanList();
+  }
+  public static DealerFunctionCfg getDealerFunctionCfg(int key) {
+    return getInstance().getCfgContainer(DealerFunctionCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, DealerFunctionCfg> getDealerFunctionCfgMap() {
+    return getInstance().getCfgContainer(DealerFunctionCfg.class).getCfgBeanMap();
+  }
+
+  public static List<DealerFunctionCfg> getDealerFunctionCfgList() {
+    return getInstance().getCfgContainer(DealerFunctionCfg.class).getCfgBeanList();
   }
   public static GameFunctionCfg getGameFunctionCfg(int key) {
     return getInstance().getCfgContainer(GameFunctionCfg.class).getCfgBeanMap().get(key);
@@ -1051,6 +1099,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\project\\gamedoc\\游戏配置表");
+    loadAllData("E:\\java\\gamedoc\\游戏配置表");
   }
 }

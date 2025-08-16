@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.texas.room.data;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.texas.data.Pot;
+import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.poker.game.texas.data.TexasSaveHistory;
 import com.jjg.game.poker.game.texas.message.bean.TexasHistoryRoundInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementInfo;
@@ -23,6 +24,8 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
     public TexasGameDataVo(Room_ChessCfg roomCfg) {
         super(roomCfg);
     }
+
+
 
     /**
      * 结算类型 0默认 1弃牌只剩1人 2全all
@@ -153,7 +156,10 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
     public void setSettlement(int settlement) {
         this.settlement = settlement;
     }
-
+    @Override
+    public int getPoolId() {
+        return TexasDataHelper.getPoolId(this);
+    }
     @Override
     public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {
         super.resetData(controller);

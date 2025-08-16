@@ -462,7 +462,6 @@ public class HallMessageHandler implements GmListener {
                             infoItem.count = mailItem.getCount();
                             info.items.add(infoItem);
                         });
-
                     }
                     res.mails.add(info);
                 });
@@ -521,8 +520,78 @@ public class HallMessageHandler implements GmListener {
                 log.debug("参数错误，领取邮件内的道具失败 playerId = {},id = {}", playerController.playerId(),req.id);
                 return;
             }
-            hallService.getMailItems(playerController.playerId(), req.id);
+            CommonResult<Integer> result = mailService.getMailItems(playerController.playerId(), req.id,"playerGetMailItems");
+            if(!result.success()){
+                res.code = result.code;
+                playerController.send(res);
+                return;
+            }
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
 
+    /**
+     * 删除邮件
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_REMOVE_MAIL)
+    public void reqRemoveMail(PlayerController playerController, ReqRemoveMail req) {
+        ResRemoveMail res = new ResRemoveMail(HallCode.SUCCESS);
+        try {
+            if(req.id < 1){
+                res.code = Code.PARAM_ERROR;
+                playerController.send(res);
+                log.debug("参数错误，删除邮件失败 playerId = {},id = {}", playerController.playerId(),req.id);
+                return;
+            }
+            mailService.removeMail(playerController.playerId(), req.id);
+            log.debug("玩家删除邮件成功 playerId = {},id = {}", playerController.playerId(),req.id);
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 删除已读邮件
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_REMOVE_READ_MAILS)
+    public void reqRemoveReadMails(PlayerController playerController, ReqRemoveReadMails req) {
+        ResRemoveReadMails res = new ResRemoveReadMails(HallCode.SUCCESS);
+        try {
+            long count = mailService.removeReadMails(playerController.playerId());
+            log.debug("玩家删除已读邮件 playerId = {},count = {}", playerController.playerId(),count);
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 一键领取
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_GET_ALL_MAILS_ITEMS)
+    public void reqGetAllMailsItems(PlayerController playerController, ReqGetAllMailsItems req) {
+        ResRemoveReadMails res = new ResRemoveReadMails(HallCode.SUCCESS);
+        try {
+            CommonResult<Integer> result = mailService.getAllMailsItems(playerController.playerId());
+            if(!result.success()){
+                res.code = result.code;
+                playerController.send(res);
+                return;
+            }
+
+            log.debug("玩家一键领取 playerId = {}", playerController.playerId());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

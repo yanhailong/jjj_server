@@ -20,8 +20,12 @@ public class NotifyBlackJackCutCard extends AbstractNotice {
     public long playerId;
     @ProtoDesc("玩家牌信息")
     public List<BlackJackCardInfo> cardInfoList;
+    @ProtoDesc("自动牌id")
+    public List<Integer> autoCardList;
     @ProtoDesc("当前牌索引")
     public int currentCardIds;
     @ProtoDesc("结束时间")
     public long overTime;
+    @ProtoDesc("下一个操作人")
+    public long operationId;
 }

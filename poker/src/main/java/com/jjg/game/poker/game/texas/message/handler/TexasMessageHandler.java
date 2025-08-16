@@ -79,6 +79,7 @@ public class TexasMessageHandler {
                     boolean state = reqTexasChangeSeatState.param == 1;
                     if (state) {
                         if (controller.inRunPhase()) {
+                            change.code = Code.FORBID;
                             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
                             return;
                         }
@@ -117,25 +118,14 @@ public class TexasMessageHandler {
                     return;
                 } else if (reqTexasChangeSeatState.changeType == 2) {
                     //改变座位id 当前局还未结束
-                    if (controller.inRunPhase()) {
+                    if (controller.inRunPhase() && seatInfo.isJoinGame() || !controller.inRunPhase() && seatInfo.isSeatDown()) {
                         //加入游戏 禁止换座位
-                        if (seatInfo.isJoinGame()) {
-                            change.code = Code.FORBID;
-                            gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
-                        } else {
-                            NotifyTexasSeatStateChange notifyTexasSeatStateChange = swapSeat(controller, seatInfo, gamePlayer, reqTexasChangeSeatState.param);
-                            controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSeatStateChange));
-                        }
-                    } else {
-                        //等待阶段换座位需要站起
-                        if (seatInfo.isSeatDown()) {
-                            change.code = Code.FORBID;
-                            gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
-                            return;
-                        }
-                        NotifyTexasSeatStateChange notifyTexasSeatStateChange = swapSeat(controller, seatInfo, gamePlayer, reqTexasChangeSeatState.param);
-                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSeatStateChange));
+                        change.code = Code.FORBID;
+                        gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
+                        return;
                     }
+                    NotifyTexasSeatStateChange notifyTexasSeatStateChange = swapSeat(controller, seatInfo, gamePlayer, reqTexasChangeSeatState.param);
+                    controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSeatStateChange));
                     // 通知场上玩家加入 准备进入开始阶段
                     boolean canStartGame = gameDataVo.canStartGame();
                     if (canStartGame && controller.getCurrentGamePhase() == EGamePhase.WAIT_READY) {

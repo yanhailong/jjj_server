@@ -8,7 +8,6 @@ import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
-import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerSettlementInfo;
@@ -29,8 +28,9 @@ import com.jjg.game.poker.game.texas.util.PlayerHand;
 import com.jjg.game.poker.game.texas.util.PokerHandEvaluator;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.datatrack.logdata.LogParam;
-import com.jjg.game.room.datatrack.logdata.SaveLogThread;
+import com.jjg.game.room.data.room.SimplePlayerInfo;
+import com.jjg.game.room.datatrack.DataTrackNameConstant;
+import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
@@ -75,6 +75,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 case ALL_SETTLEMENT -> settlementByAllIn(controller);
                 default -> normalSettlement(controller);
             }
+            addLog(controller, gameDataVo.getTexasHistory());
         }
     }
 
@@ -184,7 +185,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             pokerPlayerSettlementInfo.getGold = get;
             pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;
             settlementPlayerInfo.cardType = handResult.getHandRank().rank;
-            settlementPlayerInfo.handCards = PokerDataHelper.getClientId(pair.getFirst().getCurrentCards(), TexasDataHelper.getPoolId(gameDataVo));
+            settlementPlayerInfo.handCards = TexasDataHelper.getClientId(gameDataVo, pair.getFirst().getCurrentCards());
             settlementInfoArrayList.add(settlementPlayerInfo);
         }
         notifyTexasSettlementInfo.playerSettlementInfos = settlementInfoArrayList;
@@ -217,7 +218,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 addTime += TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) * SEND_CARD_NUM;
                 List<Integer> cardList = gameDataVo.getCards().subList(0, SEND_CARD_NUM);
                 gameDataVo.setPublicCards(new ArrayList<>(cardList));
-                texasHistory.setPreFlop(TexasDataHelper.getClientId(gameDataVo.getPublicCards(), TexasDataHelper.getPoolId(gameDataVo)));
+                texasHistory.setPreFlop(TexasDataHelper.getClientId(gameDataVo, gameDataVo.getPublicCards()));
                 tempCardList = new ArrayList<>(cardList);
                 cardList.clear();
             } else {
@@ -232,7 +233,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 tempCardList = List.of(card);
                 addTime += TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS);
             }
-            List<Integer> clientId = TexasDataHelper.getClientId(tempCardList, TexasDataHelper.getPoolId(gameDataVo));
+            List<Integer> clientId = TexasDataHelper.getClientId(gameDataVo, tempCardList);
             for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
                 List<TexasRoundInfo> texasRoundInfos = playerRoundInfos.computeIfAbsent(info.getPlayerId(), k -> new ArrayList<>());
                 HandResult tempHandType = TexasBuilder.getTempHandType(info, gameDataVo);
@@ -308,16 +309,19 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
 
     }
 
-    public void addLog(TexasHistory history,TexasGameController controller,TexasSaveHistory texasSaveHistory) {
+    public void addLog(TexasGameController controller, TexasSaveHistory texasSaveHistory) {
         TexasHistory texasHistory = controller.buildTexasHistory(0, texasSaveHistory);
-        //玩家总赢
-        LogParam<TexasHistory, Object> param = new LogParam<>(texasHistory, null, null);
-        Thread.ofVirtual().start(new SaveLogThread<>(param,(logParam)->{
-            TexasHistory param1 = logParam.param();
-//            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET, totalBet);
-//            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, keyValue.getValue());
-//            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, keyValue.getValue() - totalBet);
-        }));
+        Map<Long, Long> baseBetInfo = controller.getGameDataVo().getBaseBetInfo();
+        //构建玩家信息
+        for (TexasHistoryPlayerInfo info : texasHistory.totalPlayerBetInfo) {
+            Long betValue = baseBetInfo.getOrDefault(info.playerId, 0L);
+            SimplePlayerInfo simplePlayerInfo = new SimplePlayerInfo(info.playerId, info.playerName);
+            gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.TOTAL_BET, betValue);
+            gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.TOTAL_WIN, betValue + info.betValue);
+            gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.INCOME, info.betValue);
+        }
+        gameDataTracker.addGameLogData("TexasInfo", texasHistory);
+        gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
 
 

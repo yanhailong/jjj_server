@@ -12,7 +12,7 @@ import com.jjg.game.sampledata.bean.RobotCfg;
  * @excelName robot.xlsx
  * @sheetName Robot
  * @author auto_generator
- * @date 2025年08月15日 18:30:10
+ * @date 2025年08月16日 15:49:32
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class RobotCfgContainer extends BaseCfgContainer<RobotCfg> {

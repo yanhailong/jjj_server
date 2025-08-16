@@ -13,5 +13,5 @@ public class ItemInfo {
     @ProtoDesc("道具id")
     public int itemId;
     @ProtoDesc("数量")
-    public int count;
+    public long count;
 }

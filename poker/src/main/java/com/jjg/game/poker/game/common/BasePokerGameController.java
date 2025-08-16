@@ -10,6 +10,7 @@ import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerPlayerChange;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerSampleCardOperation;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
@@ -260,8 +261,56 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     }
 
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
-
+        if (inRunPhase()) {
+            runPlayerSeatChange(remove, remove.isSeatDown() && remove.isJoinGame());
+        }
     }
+
+    /**
+     * 运行时玩家座位改变
+     */
+    public void runPlayerSeatChange(SeatInfo remove, boolean isPlaying) {
+        //正在游玩
+        List<PlayerSeatInfo> playerSeatInfos = gameDataVo.getPlayerSeatInfoList();
+        boolean removePlayerSeatInfo = false;
+        if (isPlaying) {
+            final Iterator<PlayerSeatInfo> each = playerSeatInfos.iterator();
+            while (each.hasNext()) {
+                PlayerSeatInfo next = each.next();
+                if (next.getPlayerId() == remove.getPlayerId()) {
+                    each.remove();
+                    removePlayerSeatInfo = true;
+                    break;
+                }
+            }
+            remove.setSeatDown(false);
+            remove.setJoinGame(false);
+        }
+        if (removePlayerSeatInfo) {
+            //如果他是执行人 直接下一轮或结算   他不是执行人 剩一个直接结算
+            PlayerSeatInfo nextExePlayer = getNextExePlayer();
+            if (Objects.isNull(nextExePlayer)) {
+                //判断是否结算开启下一轮
+                startNextRoundOrSettlement();
+            } else {
+                addNextPlayerAndBroadcast(nextExePlayer, new NotifyPokerSampleCardOperation());
+            }
+        }
+    }
+
+    public void addNextPlayerAndBroadcast(PlayerSeatInfo nextExePlayer, NotifyPokerSampleCardOperation notifyPokerSampleCardOperation) {
+        addNextTimer(nextExePlayer, 0);
+        notifyPokerSampleCardOperation.nextPlayerId = nextExePlayer.getPlayerId();
+        notifyPokerSampleCardOperation.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyPokerSampleCardOperation));
+    }
+
+    /**
+     * 添加下一个玩家定时器
+     * @param nextExePlayer
+     * @param sendCardNum
+     */
+    public abstract void addNextTimer(PlayerSeatInfo nextExePlayer, int sendCardNum);
 
     @Override
     public <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {

@@ -12,7 +12,7 @@ import java.util.List;
 @ProtobufMessage()
 @ProtoDesc("邮件信息")
 public class MailInfo {
-    public int id;
+    public long id;
     @ProtoDesc("邮件标题")
     public String title;
     @ProtoDesc("邮件内容")

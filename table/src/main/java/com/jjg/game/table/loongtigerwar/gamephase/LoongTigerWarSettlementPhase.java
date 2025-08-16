@@ -4,12 +4,10 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.utils.PokerCardUtils;
-import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.TablePlayerGameData;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
-import com.jjg.game.room.datatrack.logdata.LogParam;
-import com.jjg.game.room.datatrack.logdata.SaveLogThread;
+import com.jjg.game.room.datatrack.SaveLogUtil;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -127,22 +125,9 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
     }
 
     private void addLog(LoongTigerWarGameDataVo gameDataVo, Map<Long, DefaultKeyValue<Long, Long>> playerGetInfo, int loongCard, int tigerCard) {
-        Pair<Map<Long, Map<Integer, List<Integer>>>, Map<Long, DefaultKeyValue<Long, Long>>> data = Pair.newPair(new HashMap<>(gameDataVo.getPlayerBetInfo()), playerGetInfo);
-        Map<Long, GamePlayer> gamePlayerMap = new HashMap<>();
-        for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
-            if (entry.getValue() instanceof GameRobotPlayer) {
-                continue;
-            }
-            gamePlayerMap.put(entry.getKey(), entry.getValue());
-        }
-        LogParam<Pair<Map<Long, Map<Integer, List<Integer>>>, Map<Long, DefaultKeyValue<Long, Long>>>, List<Integer>> logParam = new LogParam<>(data, gamePlayerMap, List.of(loongCard, tigerCard));
-        Thread.ofVirtual().start(new SaveLogThread<>(logParam,
-                (param) -> {
-                    SaveLogThread.generalLog(param, gameDataTracker);
-                    List<Integer>  result = param.result();
-                    gameDataTracker.addGameLogData("loongCard", result.getFirst());
-                    gameDataTracker.addGameLogData("tigerCard", result.getLast());
-                    gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
-                }));
+        SaveLogUtil.generalLog(gameDataVo.getPlayerBetInfo(), playerGetInfo, gameDataVo.getGamePlayerMap(), gameDataTracker);
+        gameDataTracker.addGameLogData("loongCard", loongCard);
+        gameDataTracker.addGameLogData("tigerCard", tigerCard);
+        gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
 }

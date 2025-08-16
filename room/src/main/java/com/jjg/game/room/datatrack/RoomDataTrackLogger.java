@@ -7,6 +7,7 @@ import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.core.logger.BaseLogger;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.SimplePlayerInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -47,6 +48,16 @@ public class RoomDataTrackLogger extends BaseLogger {
         HashMap<String, Object> baseGameInfo = new HashMap<>();
         baseGameInfo.put("playerId", gamePlayer.getId());
         baseGameInfo.put("playerName", gamePlayer.getNickName());
+        return baseGameInfo;
+    }
+
+    /**
+     * 构建基础玩家信息
+     */
+    public Map<String, Object> buildGamePlayerInfo(SimplePlayerInfo gamePlayer) {
+        HashMap<String, Object> baseGameInfo = new HashMap<>();
+        baseGameInfo.put("playerId", gamePlayer.playerId());
+        baseGameInfo.put("playerName", gamePlayer.name());
         return baseGameInfo;
     }
 

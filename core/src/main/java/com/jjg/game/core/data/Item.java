@@ -9,12 +9,12 @@ public class Item {
     //道具id
     private int id;
     //道具数量
-    private int count;
+    private long count;
 
     public Item() {
     }
 
-    public Item(int id, int count) {
+    public Item(int id, long count) {
         this.id = id;
         this.count = count;
     }
@@ -27,15 +27,15 @@ public class Item {
         this.id = id;
     }
 
-    public int getCount() {
+    public long getCount() {
         return count;
     }
 
-    public void setCount(int count) {
+    public void setCount(long count) {
         this.count = count;
     }
 
-    public void addCount(int count) {
+    public void addCount(long count) {
         this.count += count;
     }
 }
