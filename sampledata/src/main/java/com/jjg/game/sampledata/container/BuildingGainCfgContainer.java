@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.GameFunctionCfg;
+import com.jjg.game.sampledata.bean.BuildingGainCfg;
 
 /**
- * GameFunction.xlsx配置管理容器
+ * BuildingGain.xlsx配置管理容器
  *
- * @excelName GameFunction.xlsx
- * @sheetName GameFunction
+ * @excelName BuildingGain.xlsx
+ * @sheetName BuildingGain
  * @author auto_generator
  * @date 2025年08月16日 15:49:31
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class GameFunctionCfgContainer extends BaseCfgContainer<GameFunctionCfg> {
+public class BuildingGainCfgContainer extends BaseCfgContainer<BuildingGainCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -28,23 +28,23 @@ public class GameFunctionCfgContainer extends BaseCfgContainer<GameFunctionCfg> 
   }
 
   @Override
-  public GameFunctionCfgContainer getNewContainer(){
-    return new GameFunctionCfgContainer();
+  public BuildingGainCfgContainer getNewContainer(){
+    return new BuildingGainCfgContainer();
   }
 
-  public GameFunctionCfgContainer() {
+  public BuildingGainCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("GameFunction.xlsx");
+    excelNameList.add("BuildingGain.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected GameFunctionCfg createNewBean() {
-    return new GameFunctionCfg();
+  protected BuildingGainCfg createNewBean() {
+    return new BuildingGainCfg();
   }
 }
