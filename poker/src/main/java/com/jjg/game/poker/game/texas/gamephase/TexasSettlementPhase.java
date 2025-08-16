@@ -29,8 +29,6 @@ import com.jjg.game.poker.game.texas.util.PlayerHand;
 import com.jjg.game.poker.game.texas.util.PokerHandEvaluator;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.datatrack.logdata.LogParam;
-import com.jjg.game.room.datatrack.logdata.SaveLogThread;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
@@ -309,15 +307,15 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
     }
 
     public void addLog(TexasHistory history,TexasGameController controller,TexasSaveHistory texasSaveHistory) {
-        TexasHistory texasHistory = controller.buildTexasHistory(0, texasSaveHistory);
+//        TexasHistory texasHistory = controller.buildTexasHistory(0, texasSaveHistory);
         //玩家总赢
-        LogParam<TexasHistory, Object> param = new LogParam<>(texasHistory, null, null);
-        Thread.ofVirtual().start(new SaveLogThread<>(param,(logParam)->{
-            TexasHistory param1 = logParam.param();
+//        LogParam<TexasHistory, Object> param = new LogParam<>(texasHistory, null, null);
+//        Thread.ofVirtual().start(new SaveLogUtil<>(param,(logParam)->{
+//            TexasHistory param1 = logParam.param();
 //            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET, totalBet);
 //            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, keyValue.getValue());
 //            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, keyValue.getValue() - totalBet);
-        }));
+//        }));
     }
 
 

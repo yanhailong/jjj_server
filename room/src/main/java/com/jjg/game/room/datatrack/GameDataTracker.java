@@ -15,7 +15,8 @@ import java.util.Map;
  */
 public class GameDataTracker {
     // 玩家的埋点数据
-    private final HashMap<GamePlayer, Object> playerTrackData = new HashMap<>();
+    private final HashMap<Object, Object> playerTrackData = new HashMap<>();
+
     // 房间的埋点数据
     private final HashMap<String, Object> gameTrackData = new HashMap<>();
     // 埋点日志
@@ -69,6 +70,7 @@ public class GameDataTracker {
         }
     }
 
+
     /**
      * 获取埋点日志logger
      */
@@ -94,14 +96,8 @@ public class GameDataTracker {
             return;
         }
         // 玩家数据
-        for (Map.Entry<GamePlayer, Object> entry : playerTrackData.entrySet()) {
-            if (entry.getKey() instanceof GameRobotPlayer) {
-                continue;
-            }
-            HashMap<String, Object> playerData = new HashMap<>();
-            playerData.put("playerInfo", trackLogger.buildGamePlayerInfo(entry.getKey()));
-            playerData.put("data", entry.getValue());
-            playerDataList.put(entry.getKey().getId(), playerData);
+        for (Map.Entry<Object, Object> entry : playerTrackData.entrySet()) {
+            buildPlayerData(entry, playerDataList);
         }
         // 玩家日志数据
         tempTrackData.put("playerData", playerDataList);
@@ -118,6 +114,19 @@ public class GameDataTracker {
         trackLogger.sendLog(gameLogTopicTmp, tempTrackData);
         // 给玩家记录的日志，在发送之后需要进行清除
         playerTrackData.clear();
+    }
+
+
+    public void buildPlayerData(Map.Entry<Object, Object> entry, Map<Long, HashMap<String, Object>> playerDataList) {
+        if (entry.getKey() instanceof GameRobotPlayer) {
+            return;
+        }
+        if (entry.getKey() instanceof GamePlayer gamePlayer) {
+            HashMap<String, Object> playerData = new HashMap<>();
+            playerData.put("playerInfo", trackLogger.buildGamePlayerInfo(gamePlayer));
+            playerData.put("data", entry.getValue());
+            playerDataList.put(gamePlayer.getId(), playerData);
+        }
     }
 
     /**
