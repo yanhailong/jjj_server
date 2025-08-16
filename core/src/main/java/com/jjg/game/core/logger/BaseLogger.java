@@ -1,5 +1,6 @@
 package com.jjg.game.core.logger;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.core.data.Player;
@@ -8,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
+
+import java.util.Map;
 
 /**
  * @author 11
@@ -212,6 +215,56 @@ public class BaseLogger {
             json.put("count", count);
             json.put("addType", addType);
             sendLog("useitem",null, json);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 获取道具
+     * @param playerId
+     * @param addType
+     */
+    public void addItems(long playerId, Map<Integer,Long> map, String addType){
+        try {
+            JSONObject json = new JSONObject();
+            json.put("playerId", playerId);
+
+            JSONArray jsonArray = new JSONArray();
+            map.forEach((k,v) -> {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("itemId", k);
+                jsonObject.put("count", v);
+                jsonArray.add(jsonObject);
+            });
+
+            json.put("items", jsonArray);
+            json.put("addType", addType);
+            sendLog("addItems",null, json);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 获取道具
+     * @param playerId
+     * @param addType
+     */
+    public void addItem(long playerId, int itemId,long count, String addType){
+        try {
+            JSONObject json = new JSONObject();
+            json.put("playerId", playerId);
+
+            JSONArray jsonArray = new JSONArray();
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("itemId", itemId);
+            jsonObject.put("count", count);
+            jsonArray.add(jsonObject);
+
+            json.put("items", jsonArray);
+            json.put("addType", addType);
+            sendLog("addItems",null, json);
         } catch (Exception e) {
             log.error("", e);
         }

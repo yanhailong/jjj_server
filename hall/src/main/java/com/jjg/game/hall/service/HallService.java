@@ -27,6 +27,8 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static io.lettuce.core.GeoArgs.Sort.desc;
+
 /**
  * @author 11
  * @date 2025/6/18 14:56
@@ -47,8 +49,6 @@ public class HallService implements ConfigExcelChangeListener {
     private HallPlayerService hallPlayerService;
     @Autowired
     private PlayerPackService playerPackService;
-    @Autowired
-    private MailService mailService;
 
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
@@ -366,8 +366,8 @@ public class HallService implements ConfigExcelChangeListener {
      * @param playerId
      * @param itemId
      */
-    public CommonResult<Integer> useItem(long playerId,int itemId){
-        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
+    public CommonResult<PlayerPack> useItem(long playerId,int itemId){
+        CommonResult<PlayerPack> result = new CommonResult<>(Code.SUCCESS);
         try{
             ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
             if(itemCfg == null){
@@ -397,7 +397,7 @@ public class HallService implements ConfigExcelChangeListener {
                     log.debug("未找到获得新道具的配置 playerId = {},itemId = {}",playerId,addItemId);
                     continue;
                 }
-                useResult = playerPackService.useItem(playerId, itemId, itemCfg.getProp(), addItemId, en.getValue(), addItemCfg.getProp(), "packUseItem");
+                useResult = playerPackService.useItem(playerId, itemId, addItemId, en.getValue(), "packUseItem");
             }
 
             if(useResult == null){
@@ -410,56 +410,7 @@ public class HallService implements ConfigExcelChangeListener {
                 result.code = useResult.code;
                 return result;
             }
-            result.data = useResult.data.getItemCount(itemId);
-        }catch (Exception e){
-            log.error("",e);
-            result.code = Code.EXCEPTION;
-        }
-        return result;
-    }
-
-    /**
-     * 领取邮件内的道具
-     * @param playerId
-     * @param mailId
-     * @return
-     */
-    public CommonResult<Integer> getMailItems(long playerId,int mailId){
-        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
-        try{
-            Mail mail = mailService.getMail(playerId, mailId);
-            if(mail == null){
-                result.code = Code.NOT_FOUND;
-                log.debug("未找到玩家有邮件，获取道具失败 playerId = {},mailId = {}",playerId,mailId);
-                return result;
-            }
-
-            if(mail.getStatus() == GameConstant.Mail.STAUTS_GET_ITEMS){
-                result.code = Code.NOT_FOUND;
-                log.debug("该道具已被领取，获取道具失败 playerId = {},mailId = {}",playerId,mailId);
-                return result;
-            }
-
-            if(mail.getItems() == null || mail.getItems().isEmpty()){
-                result.code = Code.NOT_FOUND;
-                log.debug("该邮件内没有道具，获取道具失败 playerId = {},mailId = {}",playerId,mailId);
-                return result;
-            }
-
-            List<int[]> list = new ArrayList<>();
-            mail.getItems().forEach(mailItem -> {
-                int id = mailItem.getId();
-//                GameDataManager.getItemCfg()
-//
-//                int[] arr = new int[3];
-//
-//                arr[0] = mailItem.getId();
-//                arr[1] = mailItem.getCount()
-
-//                list.add(arr);
-            });
-
-            mailService.getMailItems(playerId, mailId);
+            result.data = useResult.data;
         }catch (Exception e){
             log.error("",e);
             result.code = Code.EXCEPTION;

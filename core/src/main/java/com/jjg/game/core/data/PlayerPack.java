@@ -60,7 +60,7 @@ public class PlayerPack {
      * @param num 道具数量
      * @param maxNum 该道具最大堆叠数量
      */
-    public void addItem(int id,int num,int maxNum) {
+    public void addItem(int id,long num,int maxNum) {
         if(num < 1){
             return;
         }
@@ -78,7 +78,7 @@ public class PlayerPack {
                 }
 
                 //未到最大堆叠数量，计算出还可以添加的数量
-                int canAdd = maxNum - item.getCount();
+                long canAdd = maxNum - item.getCount();
                 if (num <= canAdd) { // 全部可以添加
                     item.addCount(num);
                     return;
@@ -96,7 +96,7 @@ public class PlayerPack {
             this.usedGird.add(newIndex);
 
             // 计算新格子能放多少
-            int addNum = Math.min(num, maxNum);
+            long addNum = Math.min(num, maxNum);
             Item newItem = new Item(id,addNum);
 
             // 放入背包

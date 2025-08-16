@@ -1,6 +1,7 @@
 package com.jjg.game.core.constant;
 
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.common.utils.TimeHelper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -110,5 +111,7 @@ public class GameConstant {
         public static final int STAUTS_READ = 1;
         //已领取
         public static final int STAUTS_GET_ITEMS = 2;
+        //邮件过期时间
+        public static final int DEFUALT_EXPIRE_TIME = TimeHelper.DAY_SECOND * 7;
     }
 }

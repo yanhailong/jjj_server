@@ -19,6 +19,7 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.logger.HallLogger;
@@ -65,6 +66,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private HallService hallService;
     @Autowired
     private PlayerLastGameInfoDao playerLastGameInfoDao;
+    @Autowired
+    private MailService mailService;
 
     @Override
     public void login(PFSession session, byte[] data) {
@@ -156,6 +159,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 hallLogger.login(player, req.token, playerSessionToken.getLoginType());
                 return;
             }
+
+            //接收全服邮件
+            mailService.playerGetServerMails(player.getId());
 
             playerSessionService.changeSessionInfo(session, player);
 

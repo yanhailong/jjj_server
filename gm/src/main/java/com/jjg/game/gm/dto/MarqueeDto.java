@@ -15,10 +15,10 @@ public record MarqueeDto(
         String content,
         @Positive(message = "播放时间")
         int showTime,
-        @Positive(message = "间隔时间")
+//        @Positive(message = "间隔时间")
         int interval_time,
-        @Positive(message = "次数不能为负")
-        int nums,
+//        @Positive(message = "次数不能为负")
+//        int nums,
         @Positive(message = "权重不能为负")
         int priority,
         @NotBlank(message = "开始时间不能为空")

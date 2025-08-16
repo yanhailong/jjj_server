@@ -12,9 +12,9 @@ import java.util.List;
  * @date 2025/8/11 17:17
  */
 @Document
-public class Mail {
+public class Mail implements Cloneable{
     @Id
-    private int id;
+    private long id;
     //所属玩家ID
     @Indexed
     private long playerId;
@@ -33,11 +33,11 @@ public class Mail {
     //邮件状态 0.未阅读  1.已阅读  2.已领取
     private int status;
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(long id) {
         this.id = id;
     }
 
@@ -103,5 +103,10 @@ public class Mail {
 
     public void setStatus(int status) {
         this.status = status;
+    }
+
+    @Override
+    public Mail clone() throws CloneNotSupportedException {
+        return (Mail)super.clone();
     }
 }
