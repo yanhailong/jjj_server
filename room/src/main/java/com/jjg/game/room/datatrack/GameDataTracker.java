@@ -3,6 +3,7 @@ package com.jjg.game.room.datatrack;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.SimplePlayerInfo;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -15,7 +16,8 @@ import java.util.Map;
  */
 public class GameDataTracker {
     // 玩家的埋点数据
-    private final HashMap<GamePlayer, Object> playerTrackData = new HashMap<>();
+    private final HashMap<Object, Object> playerTrackData = new HashMap<>();
+
     // 房间的埋点数据
     private final HashMap<String, Object> gameTrackData = new HashMap<>();
     // 埋点日志
@@ -45,7 +47,7 @@ public class GameDataTracker {
     /**
      * 添加玩家埋点日志数据
      */
-    public void addPlayerLogData(GamePlayer gamePlayer, String logFieldName, Object logValue) {
+    public void addPlayerLogData(Object gamePlayer, String logFieldName, Object logValue) {
         if (isStarted) {
             // 机器人不打日志
             if (gamePlayer instanceof GameRobotPlayer) {
@@ -68,6 +70,7 @@ public class GameDataTracker {
             gameTrackData.put(logFieldName, logValue);
         }
     }
+
 
     /**
      * 获取埋点日志logger
@@ -94,14 +97,8 @@ public class GameDataTracker {
             return;
         }
         // 玩家数据
-        for (Map.Entry<GamePlayer, Object> entry : playerTrackData.entrySet()) {
-            if (entry.getKey() instanceof GameRobotPlayer) {
-                continue;
-            }
-            HashMap<String, Object> playerData = new HashMap<>();
-            playerData.put("playerInfo", trackLogger.buildGamePlayerInfo(entry.getKey()));
-            playerData.put("data", entry.getValue());
-            playerDataList.put(entry.getKey().getId(), playerData);
+        for (Map.Entry<Object, Object> entry : playerTrackData.entrySet()) {
+            buildPlayerData(entry, playerDataList);
         }
         // 玩家日志数据
         tempTrackData.put("playerData", playerDataList);
@@ -111,11 +108,35 @@ public class GameDataTracker {
         tempTrackData.putAll(baseGameInfo);
         // 订单ID
         tempTrackData.put("orderId", trackLogger.getSnowflake().nextId());
+        // 添加发送时间
+        tempTrackData.put("sendTime", System.currentTimeMillis());
         String gameLogTopicTmp = gameLogTopic + "_" + dataTrackLogType.name().toLowerCase();
         // 发送日志数据
         trackLogger.sendLog(gameLogTopicTmp, tempTrackData);
         // 给玩家记录的日志，在发送之后需要进行清除
         playerTrackData.clear();
+    }
+
+
+    public void buildPlayerData(Map.Entry<Object, Object> entry, Map<Long, HashMap<String, Object>> playerDataList) {
+        HashMap<String, Object> playerData = new HashMap<>();
+        switch (entry.getKey()) {
+            case GamePlayer gamePlayer -> {
+                if (gamePlayer instanceof GameRobotPlayer) {
+                    return;
+                }
+                playerData.put("playerInfo", trackLogger.buildGamePlayerInfo(gamePlayer));
+                playerData.put("data", entry.getValue());
+                playerDataList.put(gamePlayer.getId(), playerData);
+            }
+            case SimplePlayerInfo playerInfo -> {
+                playerData.put("playerInfo", trackLogger.buildGamePlayerInfo(playerInfo));
+                playerData.put("data", entry.getValue());
+                playerDataList.put(playerInfo.playerId(), playerData);
+            }
+            default -> {
+            }
+        }
     }
 
     /**

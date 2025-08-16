@@ -2,9 +2,11 @@ package com.jjg.game.poker.game.blackjack.gamephase;
 
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
+import com.jjg.game.poker.game.blackjack.data.BlackJackBuilder;
 import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
 import com.jjg.game.poker.game.blackjack.data.MaxPointGetInfo;
 import com.jjg.game.poker.game.blackjack.message.resp.NotifyBlackJackSettlementInfo;
+import com.jjg.game.poker.game.blackjack.message.resp.NotifyBlackJackSpecialSettlement;
 import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
@@ -30,28 +32,53 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         super(gameController);
     }
 
+
+    @Override
+    public int getPhaseRunTime() {
+        return super.getPhaseRunTime() + gameDataVo.getSettlementDelayTime();
+    }
+
     @Override
     public void phaseDoAction() {
-        super.phaseDoAction();
         if (gameController instanceof BlackJackGameController controller) {
-            //庄家发牌
-            dealSettlement(controller);
+            int settlementType = gameDataVo.getSettlementType();
+            if (settlementType == 1) {
+                dealSendCardSettlement(controller);
+            } else {
+                dealSettlement(controller);
+            }
+
         }
     }
 
     /**
-     * 处理庄家的牌
+     * 处理发牌结算
+     *
      */
-    public void dealSettlement(BlackJackGameController controller) {
+    public void dealSendCardSettlement(BlackJackGameController controller) {
+        NotifyBlackJackSpecialSettlement notifyBlackJackSpecialSettlement = new NotifyBlackJackSpecialSettlement();
+        notifyBlackJackSpecialSettlement.cardIdList = BlackJackBuilder.getBlackJackCardInfoList(gameDataVo);
+        notifyBlackJackSpecialSettlement.settlementInfo = normalSettlement(controller);
+        broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyBlackJackSpecialSettlement));
+    }
+
+    /**
+     * 正常结算
+     *
+     */
+    public NotifyBlackJackSettlementInfo normalSettlement(BlackJackGameController controller) {
         //获取总点数
         List<Integer> dealerCards = gameDataVo.getDealerCards();
+        boolean showDealer = gameDataVo.isShowDealer();
         //配置信息
         BlackjackCfg blackjackCfg = BlackJackDataHelper.getBlackjackCfg(gameDataVo);
         Room_ChessCfg chessCfg = gameDataVo.getRoomCfg();
         List<Integer> resultCard = new ArrayList<>(dealerCards);
         int maxCardNum = BlackJackConstant.Common.MAX_GET_CARD - chessCfg.getHandPoker();
-        for (int i = 0; i < maxCardNum; i++) {
-            resultCard.add(controller.getCard(gameDataVo));
+        if (showDealer) {
+            for (int i = 0; i < maxCardNum; i++) {
+                resultCard.add(controller.getCard(gameDataVo));
+            }
         }
         //获取庄家最大点数
         Pair<MaxPointGetInfo, Boolean> maxPointInfoPair = getMaxPointInfo(resultCard);
@@ -79,9 +106,10 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         //结算信息
         NotifyBlackJackSettlementInfo settlementPlayerInfo = new NotifyBlackJackSettlementInfo();
         settlementPlayerInfo.settlementInfos = new ArrayList<>();
-        List<Integer> sendCards = cardNumWin ? resultCard : resultCard.subList(0, boom ? maxPointInfo.getIndex() + 2 : maxPointInfo.getIndex() + 1);
-        settlementPlayerInfo.cardIds = BlackJackDataHelper.getClientId(sendCards, BlackJackDataHelper.getPoolId(gameDataVo));
+        List<Integer> sendCards = cardNumWin ? resultCard : resultCard.subList(0, Math.max(resultCard.size(), boom ? maxPointInfo.getIndex() + 2 : maxPointInfo.getIndex() + 1));
+        settlementPlayerInfo.cardIds = BlackJackDataHelper.getClientId(gameDataVo, sendCards);
         settlementPlayerInfo.totalPoint = BlackJackDataHelper.getTotalPoint(sendCards);
+        settlementPlayerInfo.showDealer = showDealer;
         settlementPlayerInfo.endTime = gameDataVo.getPhaseEndTime() + (long) sendCards.size() * PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS);
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
             long playerId = info.getPlayerId();
@@ -97,7 +125,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                     continue;
                 }
                 //初始为21点 直接发奖
-                if (point == BlackJackConstant.Common.PERFECT_POINT && info.getCards().size() == 1 && info.getCurrentCards().size() == chessCfg.getHandPoker()) {
+                if (point == BlackJackConstant.Common.PERFECT_POINT && info.getCurrentCards().size() == chessCfg.getHandPoker()) {
                     playerGet.merge(playerId, BlackJackDataHelper.getGetWinValue(betValue, blackjackCfg.getBlackjack()), Long::sum);
                     continue;
                 }
@@ -135,7 +163,14 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             settlementPlayerInfo.settlementInfos.add(blackJackSettlementInfo);
         }
         gameDataVo.setSettlementInfo(settlementPlayerInfo);
-        broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(settlementPlayerInfo));
+        return settlementPlayerInfo;
+    }
+
+    /**
+     * 处理庄家的牌
+     */
+    public void dealSettlement(BlackJackGameController controller) {
+        broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(normalSettlement(controller)));
     }
 
 
@@ -187,7 +222,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             }
             return result;
         });
-        return Pair.newPair(totalPointList.get(0), hasA);
+        return Pair.newPair(totalPointList.getFirst(), hasA);
     }
 
 

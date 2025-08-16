@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName BaseLine.xlsx
  * @sheetName BaseLine
  * @author Auto.Generator
- * @date 2025年08月15日 17:50:22
+ * @date 2025年08月15日 18:30:10
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseLineCfg extends BaseCfgBean {

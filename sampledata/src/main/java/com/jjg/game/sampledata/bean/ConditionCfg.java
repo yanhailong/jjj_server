@@ -7,17 +7,17 @@ import javax.annotation.processing.Generated;
  * 配置bean
  *
  * @excelName condition.xlsx
- * @sheetName Sheet1
+ * @sheetName condition
  * @author Auto.Generator
- * @date 2025年08月15日 17:50:22
+ * @date 2025年08月15日 18:30:10
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class Sheet1Cfg extends BaseCfgBean {
+public class ConditionCfg extends BaseCfgBean {
 
   /** 配置表名 */
   public static final String EXCEL_NAME = "condition.xlsx";
   /** 配置表工作薄名 */
-  public static final String SHEET_NAME = "Sheet1";
+  public static final String SHEET_NAME = "condition";
 
   /** 条件参数数量 */
   protected int conditionParameter;

@@ -4,7 +4,6 @@ import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
-import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
@@ -34,7 +33,7 @@ public class TexasBuilder {
     public static NotifyTexasPublicCardChange getNotifyPublicCardChange(PlayerSeatInfo playerSeatInfo, PlayerSeatInfo nextExePlayer, List<Integer> addCards, TexasGameDataVo gameDataVo) {
         NotifyTexasPublicCardChange notifyTexasPublicCardChange = new NotifyTexasPublicCardChange();
         TexasRoundInfo texasRoundInfo = new TexasRoundInfo();
-        texasRoundInfo.cards = TexasDataHelper.getClientId(addCards, TexasDataHelper.getPoolId(gameDataVo));
+        texasRoundInfo.cards = TexasDataHelper.getClientId(gameDataVo, addCards);
         texasRoundInfo.round = gameDataVo.getRound();
         if (Objects.nonNull(playerSeatInfo)) {
             HandResult tempHandType = getTempHandType(playerSeatInfo, gameDataVo);
@@ -138,7 +137,7 @@ public class TexasBuilder {
         texasPlayerInfo.totalBet = gameDataVo.getBaseBetInfo().getOrDefault(seatInfo.getPlayerId(), 0L);
         PokerPlayerInfo playerInfo = PokerBuilder.getPokerPlayerInfo(seatInfo, gameDataVo);
         if (Objects.nonNull(playerSeatInfo)) {
-            texasPlayerInfo.handCards = PokerDataHelper.getClientId(playerSeatInfo.getCurrentCards(), TexasDataHelper.getPoolId(gameDataVo));
+            texasPlayerInfo.handCards = TexasDataHelper.getClientId(gameDataVo, playerSeatInfo.getCurrentCards());
             playerInfo.operationType = playerSeatInfo.getOperationType();
         }
         texasPlayerInfo.pokerPlayerInfo = playerInfo;

@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.Sheet1Cfg;
+import com.jjg.game.sampledata.bean.ConditionCfg;
 
 /**
  * condition.xlsx配置管理容器
  *
  * @excelName condition.xlsx
- * @sheetName Sheet1
+ * @sheetName condition
  * @author auto_generator
- * @date 2025年08月15日 17:50:22
+ * @date 2025年08月15日 18:30:10
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class Sheet1CfgContainer extends BaseCfgContainer<Sheet1Cfg> {
+public class ConditionCfgContainer extends BaseCfgContainer<ConditionCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -28,11 +28,11 @@ public class Sheet1CfgContainer extends BaseCfgContainer<Sheet1Cfg> {
   }
 
   @Override
-  public Sheet1CfgContainer getNewContainer(){
-    return new Sheet1CfgContainer();
+  public ConditionCfgContainer getNewContainer(){
+    return new ConditionCfgContainer();
   }
 
-  public Sheet1CfgContainer() {
+  public ConditionCfgContainer() {
     super();
   }
 
@@ -44,7 +44,7 @@ public class Sheet1CfgContainer extends BaseCfgContainer<Sheet1Cfg> {
   }
 
   @Override
-  protected Sheet1Cfg createNewBean() {
-    return new Sheet1Cfg();
+  protected ConditionCfg createNewBean() {
+    return new ConditionCfg();
   }
 }

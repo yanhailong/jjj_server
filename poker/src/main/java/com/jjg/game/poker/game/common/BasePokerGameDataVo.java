@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  * @author lm
  * @date 2025/7/26 10:07
  */
-public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
+public abstract class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
     /**
      * 必须初始化的参数是房间配置RoomCfg，如果后续子类添加数据需要在自己的构造函数中添加
      */
@@ -164,6 +164,8 @@ public class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
     public Map<Long, PlayerSeatInfo> getPlayerSeatInfoMap() {
         return playerSeatInfoList.stream().collect(Collectors.toMap(PlayerSeatInfo::getPlayerId, info -> info));
     }
+
+    public abstract int getPoolId();
 
     public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {
         this.publicCards = null;
