@@ -76,7 +76,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
             texasHistory.setTotalPlayerBetInfo(new ArrayList<>());
             for (PlayerSeatInfo info : playerSeatInfo) {
                 //手牌记录
-                texasHistory.getAllCards().put(info.getPlayerId(), TexasDataHelper.getClientId(info.getCurrentCards(), TexasDataHelper.getPoolId(gameDataVo)));
+                texasHistory.getAllCards().put(info.getPlayerId(), TexasDataHelper.getClientId(gameDataVo, info.getCurrentCards()));
                 // 本轮总获得的值
                 Long bet = gameDataVo.getBaseBetInfo().getOrDefault(info.getPlayerId(), 0L);
                 texasHistory.getTotalPlayerBetInfo().add(TexasBuilder.getTexasHistoryPlayerInfo(info, gameDataVo, true, bet));
@@ -105,7 +105,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
                 if (!info.isJoinGame()) {
                     controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, builder.build()));
                 } else {
-                    builder.cards(TexasDataHelper.getClientId(collect.get(playerId).getCurrentCards(), TexasDataHelper.getPoolId(gameDataVo)));
+                    builder.cards(TexasDataHelper.getClientId(gameDataVo, collect.get(playerId).getCurrentCards()));
                     controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, builder.build()));
                 }
             }

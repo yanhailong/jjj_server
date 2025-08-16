@@ -53,19 +53,18 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
 
     /**
      * 处理发牌结算
-     * @param controller
+     *
      */
     public void dealSendCardSettlement(BlackJackGameController controller) {
         NotifyBlackJackSpecialSettlement notifyBlackJackSpecialSettlement = new NotifyBlackJackSpecialSettlement();
-        notifyBlackJackSpecialSettlement.cardIdList = BlackJackBuilder.getBlackJackCardInfoList(gameDataVo, BlackJackDataHelper.getPoolId(gameDataVo));
+        notifyBlackJackSpecialSettlement.cardIdList = BlackJackBuilder.getBlackJackCardInfoList(gameDataVo);
         notifyBlackJackSpecialSettlement.settlementInfo = normalSettlement(controller);
         broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyBlackJackSpecialSettlement));
     }
 
     /**
      * 正常结算
-     * @param controller
-     * @return
+     *
      */
     public NotifyBlackJackSettlementInfo normalSettlement(BlackJackGameController controller) {
         //获取总点数
@@ -108,7 +107,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         NotifyBlackJackSettlementInfo settlementPlayerInfo = new NotifyBlackJackSettlementInfo();
         settlementPlayerInfo.settlementInfos = new ArrayList<>();
         List<Integer> sendCards = cardNumWin ? resultCard : resultCard.subList(0, Math.max(resultCard.size(), boom ? maxPointInfo.getIndex() + 2 : maxPointInfo.getIndex() + 1));
-        settlementPlayerInfo.cardIds = BlackJackDataHelper.getClientId(sendCards, BlackJackDataHelper.getPoolId(gameDataVo));
+        settlementPlayerInfo.cardIds = BlackJackDataHelper.getClientId(gameDataVo, sendCards);
         settlementPlayerInfo.totalPoint = BlackJackDataHelper.getTotalPoint(sendCards);
         settlementPlayerInfo.showDealer = showDealer;
         settlementPlayerInfo.endTime = gameDataVo.getPhaseEndTime() + (long) sendCards.size() * PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS);
@@ -223,7 +222,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             }
             return result;
         });
-        return Pair.newPair(totalPointList.get(0), hasA);
+        return Pair.newPair(totalPointList.getFirst(), hasA);
     }
 
 

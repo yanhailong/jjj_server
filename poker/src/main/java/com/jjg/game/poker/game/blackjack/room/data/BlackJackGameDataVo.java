@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.blackjack.room.data;
 
+import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
 import com.jjg.game.poker.game.blackjack.message.resp.NotifyBlackJackSettlementInfo;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
@@ -129,6 +130,11 @@ public class BlackJackGameDataVo extends BasePokerGameDataVo {
     public boolean canStartGame() {
         int seatDownNum = getSeatDownNum() + 1;
         return seatDownNum >= getRoomCfg().getMinPlayer() && seatDownNum <= getRoomCfg().getMaxPlayer();
+    }
+
+    @Override
+    public int getPoolId() {
+        return BlackJackDataHelper.getPoolId(this);
     }
 
     @Override

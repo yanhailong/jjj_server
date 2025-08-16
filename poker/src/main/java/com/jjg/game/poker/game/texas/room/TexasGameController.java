@@ -11,7 +11,6 @@ import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
-import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerSampleCardOperation;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
@@ -72,7 +71,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         RepsTexasRoomBaseInfo repsTexasRoomBaseInfo = new RepsTexasRoomBaseInfo(Code.SUCCESS);
         if (getCurrentGamePhase() == EGamePhase.PLAY_CART) {
             if (Objects.nonNull(gameDataVo.getPublicCards())) {
-                repsTexasRoomBaseInfo.publicCards = PokerDataHelper.getClientId(gameDataVo.getPublicCards(), TexasDataHelper.getPoolId(gameDataVo));
+                repsTexasRoomBaseInfo.publicCards = TexasDataHelper.getClientId(gameDataVo, gameDataVo.getPublicCards());
             }
             repsTexasRoomBaseInfo.waitPlayerId = gameDataVo.getCurrentPlayerSeatInfo().getPlayerId();
             repsTexasRoomBaseInfo.waitEndTime = gameDataVo.getPlayerTimerEvent().getNextTime();
@@ -305,7 +304,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             }
             List<Integer> publicCards = gameDataVo.getPublicCards();
             if (publicCards == null) {
-                texasHistory.setPreFlop(TexasDataHelper.getClientId(addCards, TexasDataHelper.getPoolId(gameDataVo)));
+                texasHistory.setPreFlop(TexasDataHelper.getClientId(gameDataVo, addCards));
                 gameDataVo.setPublicCards(addCards);
             } else {
                 publicCards.addAll(addCards);
@@ -561,7 +560,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             return;
         }
         notifyTexasShowCard.playerId = playerId;
-        notifyTexasShowCard.cards = TexasDataHelper.getClientId(info.getCurrentCards(), TexasDataHelper.getPoolId(gameDataVo));
+        notifyTexasShowCard.cards = TexasDataHelper.getClientId(gameDataVo, info.getCurrentCards());
         HandResult tempHandType = TexasBuilder.getTempHandType(info, gameDataVo);
         if (Objects.nonNull(tempHandType)) {
             notifyTexasShowCard.handType = tempHandType.getHandRank().rank;

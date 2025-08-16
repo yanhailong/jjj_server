@@ -8,7 +8,6 @@ import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
-import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerSettlementInfo;
@@ -186,7 +185,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             pokerPlayerSettlementInfo.getGold = get;
             pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;
             settlementPlayerInfo.cardType = handResult.getHandRank().rank;
-            settlementPlayerInfo.handCards = PokerDataHelper.getClientId(pair.getFirst().getCurrentCards(), TexasDataHelper.getPoolId(gameDataVo));
+            settlementPlayerInfo.handCards = TexasDataHelper.getClientId(gameDataVo, pair.getFirst().getCurrentCards());
             settlementInfoArrayList.add(settlementPlayerInfo);
         }
         notifyTexasSettlementInfo.playerSettlementInfos = settlementInfoArrayList;
@@ -219,7 +218,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 addTime += TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) * SEND_CARD_NUM;
                 List<Integer> cardList = gameDataVo.getCards().subList(0, SEND_CARD_NUM);
                 gameDataVo.setPublicCards(new ArrayList<>(cardList));
-                texasHistory.setPreFlop(TexasDataHelper.getClientId(gameDataVo.getPublicCards(), TexasDataHelper.getPoolId(gameDataVo)));
+                texasHistory.setPreFlop(TexasDataHelper.getClientId(gameDataVo, gameDataVo.getPublicCards()));
                 tempCardList = new ArrayList<>(cardList);
                 cardList.clear();
             } else {
@@ -234,7 +233,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 tempCardList = List.of(card);
                 addTime += TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS);
             }
-            List<Integer> clientId = TexasDataHelper.getClientId(tempCardList, TexasDataHelper.getPoolId(gameDataVo));
+            List<Integer> clientId = TexasDataHelper.getClientId(gameDataVo, tempCardList);
             for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
                 List<TexasRoundInfo> texasRoundInfos = playerRoundInfos.computeIfAbsent(info.getPlayerId(), k -> new ArrayList<>());
                 HandResult tempHandType = TexasBuilder.getTempHandType(info, gameDataVo);

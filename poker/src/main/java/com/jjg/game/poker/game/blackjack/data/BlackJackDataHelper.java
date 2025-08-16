@@ -20,6 +20,7 @@ public class BlackJackDataHelper extends PokerDataHelper {
     }
 
 
+
     public static BlackjackCfg getBlackjackCfg(BlackJackGameDataVo gameDataVo) {
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         return GameDataManager.getBlackjackCfg(roomCfg.getId());

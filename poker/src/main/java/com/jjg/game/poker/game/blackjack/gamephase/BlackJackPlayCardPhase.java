@@ -45,7 +45,7 @@ public class BlackJackPlayCardPhase extends BasePlayCardPhase<BlackJackGameDataV
             gameDataVo.setDealerCards(cards);
             //通知发牌信息
             NotifyBlackJackSendCardInfo notifyBlackJackSendCardInfo = new NotifyBlackJackSendCardInfo();
-            notifyBlackJackSendCardInfo.cardIdList = BlackJackBuilder.getBlackJackCardInfoList(gameDataVo, poolId);
+            notifyBlackJackSendCardInfo.cardIdList = BlackJackBuilder.getBlackJackCardInfoList(gameDataVo);
             //添加庄家能显示的牌
             PokerCard pokerCard = cardListMap.get(gameDataVo.getDealerCards().getFirst());
             notifyBlackJackSendCardInfo.cardId = pokerCard.getClientId();

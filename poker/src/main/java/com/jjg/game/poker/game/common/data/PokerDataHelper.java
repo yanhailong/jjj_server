@@ -82,13 +82,12 @@ public class PokerDataHelper implements ConfigExcelChangeListener {
     /**
      * 获取牌的客户端对应的id
      *
+     * @param gameDataVo 游戏数据
      * @param cardCfgId pokerPool配置表id
-     * @param poolId    pokerPool池id
      */
-    public static List<Integer> getClientId(List<Integer> cardCfgId, int poolId) {
-        Map<Integer, PokerCard> cardMap = getCardListMap(poolId);
+    public static List<Integer> getClientId(BasePokerGameDataVo gameDataVo, List<Integer> cardCfgId) {
+        Map<Integer, PokerCard> cardMap = getCardListMap(gameDataVo.getPoolId());
         return cardCfgId.stream().map(id -> cardMap.get(id).getClientId()).collect(Collectors.toList());
     }
-
 
 }
