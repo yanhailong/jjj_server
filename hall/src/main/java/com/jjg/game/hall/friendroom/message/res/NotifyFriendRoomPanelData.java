@@ -3,6 +3,7 @@ package com.jjg.game.hall.friendroom.message.res;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.AbstractNotice;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
 import com.jjg.game.hall.friendroom.message.struct.BaseFriendRoomPlayerInfo;
@@ -22,7 +23,7 @@ import java.util.List;
     resp = true
 )
 @ProtoDesc("返回好友房面板数据")
-public class NotifyFriendRoomPanelData extends AbstractResponse {
+public class NotifyFriendRoomPanelData extends AbstractNotice {
 
     @ProtoDesc("关注的玩家信息")
     public List<BaseFriendRoomPlayerInfo> roomFriendInfos;
@@ -53,8 +54,4 @@ public class NotifyFriendRoomPanelData extends AbstractResponse {
 
     @ProtoDesc("邀请码总共可以重置的次数")
     public int invitationCodeResetTotalTimes;
-
-    public NotifyFriendRoomPanelData(int code) {
-        super(code);
-    }
 }

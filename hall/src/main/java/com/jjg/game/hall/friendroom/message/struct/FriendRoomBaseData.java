@@ -13,10 +13,10 @@ import com.jjg.game.common.proto.ProtobufMessage;
 public class FriendRoomBaseData {
 
     @ProtoDesc("房间ID")
-    public int roomId;
+    public long roomId;
 
     @ProtoDesc("房间自定义名")
-    public int roomAliasName;
+    public String roomAliasName;
 
     @ProtoDesc("游戏ID")
     public int gameId;
@@ -36,6 +36,6 @@ public class FriendRoomBaseData {
     @ProtoDesc("最大人数")
     public int maxPlayerNum;
 
-    @ProtoDesc("暂停按钮下一次可用的时间，为0或者时间戳到期表示可用")
-    public int nextPauseBtnOverdueTime;
+    @ProtoDesc("暂停按钮下一次可用的时间，时间戳，为0或者时间戳到期表示可用")
+    public long nextPauseBtnOverdueTime;
 }

@@ -13,23 +13,63 @@ public class FriendRoom extends Room {
     @Id
     protected long id;
     // 房间过期时间
-    protected long roomOverdueTime;
+    protected long overdueTime;
     // 房间名
-    protected String roomName;
+    protected String aliasName;
+    // 是否开启自动续费
+    protected boolean autoRenewal;
+    // 预付金
+    protected long predictCostGoldNum;
+    // 房间状态 1. 运行中 2. 暂停中 3. 解散中
+    protected int status;
+    // 房间暂停时间，开启时需要置为0
+    protected long pauseTime;
 
-    public long getRoomOverdueTime() {
-        return roomOverdueTime;
+    public long getOverdueTime() {
+        return overdueTime;
     }
 
-    public void setRoomOverdueTime(long roomOverdueTime) {
-        this.roomOverdueTime = roomOverdueTime;
+    public void setOverdueTime(long overdueTime) {
+        this.overdueTime = overdueTime;
     }
 
-    public String getRoomName() {
-        return roomName;
+    public String getAliasName() {
+        return aliasName;
     }
 
-    public void setRoomName(String roomName) {
-        this.roomName = roomName;
+    public void setAliasName(String aliasName) {
+        this.aliasName = aliasName;
+    }
+
+    public boolean isAutoRenewal() {
+        return autoRenewal;
+    }
+
+    public void setAutoRenewal(boolean autoRenewal) {
+        this.autoRenewal = autoRenewal;
+    }
+
+    public long getPredictCostGoldNum() {
+        return predictCostGoldNum;
+    }
+
+    public void setPredictCostGoldNum(long predictCostGoldNum) {
+        this.predictCostGoldNum = predictCostGoldNum;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
+    }
+
+    public long getPauseTime() {
+        return pauseTime;
+    }
+
+    public void setPauseTime(long pauseTime) {
+        this.pauseTime = pauseTime;
     }
 }

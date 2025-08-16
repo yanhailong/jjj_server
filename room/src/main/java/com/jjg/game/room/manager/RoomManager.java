@@ -84,7 +84,7 @@ public class RoomManager extends AbstractRoomManager implements GmListener {
                         log.error("请求gm：{} 请求没有返回值 {}", gmOrders[0], gameController.getGameDataVo().roomLogInfo());
                         return new CommonResult<>(Code.FAIL);
                     }
-                    if (res instanceof CommonResult result) {
+                    if (res instanceof CommonResult<?> result) {
                         if (result.data instanceof String strData) {
                             return new CommonResult<>(result.code, strData);
                         } else {

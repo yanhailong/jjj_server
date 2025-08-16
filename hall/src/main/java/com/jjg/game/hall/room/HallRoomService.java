@@ -6,6 +6,7 @@ import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.match.MatchDataDao;
@@ -13,13 +14,16 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.tool.IConsoleReceiver;
 import com.jjg.game.hall.dao.HallRoomDao;
+import com.jjg.game.hall.friendroom.message.req.ReqCreateFriendsRoom;
 import com.jjg.game.hall.match.MatchService;
+import com.jjg.game.hall.utils.HallDataUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import reactor.util.function.Tuple2;
 
 import java.util.List;
 
@@ -106,7 +110,8 @@ public class HallRoomService implements IConsoleReceiver {
         long waitingRoomId = matchService.getWaitingRoomId(gameType, roomCfgId);
         // 如果对应的游戏类型没有房间的话则创建一个新的房间
         if (waitingRoomId == 0) {
-            int maxLimit = getRoomMaxLimit(warehouseCfg);
+            Tuple2<Integer, Integer> roomMaxLimitCfg = HallDataUtils.getRoomMaxLimit(warehouseCfg);
+            int maxLimit = roomMaxLimitCfg.getT2();
             Room room = hallRoomDao.createRoom(playerController, gameType, maxLimit, marsNode.getNodePath());
             room.setRoomCfgId(roomCfgId);
             hallRoomDao.saveRoom(room);
@@ -137,12 +142,10 @@ public class HallRoomService implements IConsoleReceiver {
     }
 
     /**
-     * 通过房间配置获取最大限制
+     * 请求创建好友房间
      */
-    private int getRoomMaxLimit(WarehouseCfg warehouseCfg) {
-        String participantsMax = warehouseCfg.getParticipants_max();
-        String[] participantsMaxStrArr = participantsMax.split(":");
-        return Integer.parseInt(participantsMaxStrArr[1]);
+    public void createFriendRoom(PlayerController playerController, ReqCreateFriendsRoom reqCreateFriendsRoom) {
+
     }
 
     /**
@@ -155,6 +158,7 @@ public class HallRoomService implements IConsoleReceiver {
             return Code.REPEAT_OP;
         }
         // 通过邀请码获取当前的房间ID
+
         // 加入房间
         return joinRoomById(playerController, invitationRoomId, gameType);
     }

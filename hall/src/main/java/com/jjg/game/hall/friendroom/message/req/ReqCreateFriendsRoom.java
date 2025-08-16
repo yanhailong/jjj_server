@@ -34,8 +34,8 @@ public class ReqCreateFriendsRoom  extends AbstractMessage {
     public boolean autoRenewal;
 
     @ProtoDesc("庄家准备金")
-    public boolean predictCostGoldNum;
+    public long predictCostGoldNum;
 
     @ProtoDesc("房间名")
-    public int roomAliasName;
+    public String roomAliasName;
 }
