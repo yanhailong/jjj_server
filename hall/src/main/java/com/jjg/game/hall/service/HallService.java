@@ -459,7 +459,7 @@ public class HallService implements ConfigExcelChangeListener {
      * 缓存global表的配置
      */
     private void initGlobalConfig() {
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(HallConstant.GlobalConfig.DEFAULT_AVATAR_CFG_ID);
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.DEFAULT_AVATAR_CFG_ID);
         String[] arr = globalConfigCfg.getValue().split(":");
         this.defaultHeadImgId = Integer.parseInt(arr[0]);
         this.defaultHeadFrameId = Integer.parseInt(arr[1]);

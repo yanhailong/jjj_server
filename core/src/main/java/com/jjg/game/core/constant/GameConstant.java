@@ -111,7 +111,23 @@ public class GameConstant {
         public static final int STAUTS_READ = 1;
         //已领取
         public static final int STAUTS_GET_ITEMS = 2;
-        //邮件过期时间
-        public static final int DEFUALT_EXPIRE_TIME = TimeHelper.DAY_SECOND * 7;
+    }
+
+    public class GlobalConfig{
+        public static final int ID_VIP_OPEN_MAX_LEVEL = 1;
+        public static final int ID_BASE_EXP = 2;
+
+        //5个大奖
+        public static final int ID_SWEET = 6;
+        public static final int ID_BIG = 7;
+        public static final int ID_MEGA = 8;
+        public static final int ID_EPIC = 9;
+        public static final int ID_LEGENDARY = 10;
+
+        //默认装备的配置id
+        public static final int DEFAULT_AVATAR_CFG_ID = 14;
+
+        //默认的邮件有效期
+        public static final int DEFAULT_MAIL_VALID_TIME = 18;
     }
 }

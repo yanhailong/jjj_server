@@ -255,7 +255,6 @@ public class GMController extends AbstractController {
 
         int sendTime = TimeHelper.nowInt();
         mail.setSendTime(sendTime);
-        mail.setTimeout(sendTime + GameConstant.Mail.DEFUALT_EXPIRE_TIME);
 
         if(StringUtils.isNotEmpty(dto.items())){
             List<Item> items = mailItemsPattern.matcher(dto.items())

@@ -16,11 +16,6 @@ public interface HallConstant {
 
     }
 
-    interface GlobalConfig {
-        //默认装备的配置id
-        int DEFAULT_AVATAR_CFG_ID = 14;
-    }
-
     interface VerCode {
         //验证码类型
         int TYPE_BIND_PHONE = 0;
