@@ -3,6 +3,7 @@ package com.jjg.game.room.datatrack;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.SimplePlayerInfo;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -46,7 +47,7 @@ public class GameDataTracker {
     /**
      * 添加玩家埋点日志数据
      */
-    public void addPlayerLogData(GamePlayer gamePlayer, String logFieldName, Object logValue) {
+    public void addPlayerLogData(Object gamePlayer, String logFieldName, Object logValue) {
         if (isStarted) {
             // 机器人不打日志
             if (gamePlayer instanceof GameRobotPlayer) {
@@ -118,14 +119,23 @@ public class GameDataTracker {
 
 
     public void buildPlayerData(Map.Entry<Object, Object> entry, Map<Long, HashMap<String, Object>> playerDataList) {
-        if (entry.getKey() instanceof GameRobotPlayer) {
-            return;
-        }
-        if (entry.getKey() instanceof GamePlayer gamePlayer) {
-            HashMap<String, Object> playerData = new HashMap<>();
-            playerData.put("playerInfo", trackLogger.buildGamePlayerInfo(gamePlayer));
-            playerData.put("data", entry.getValue());
-            playerDataList.put(gamePlayer.getId(), playerData);
+        HashMap<String, Object> playerData = new HashMap<>();
+        switch (entry.getKey()) {
+            case GamePlayer gamePlayer -> {
+                if (gamePlayer instanceof GameRobotPlayer) {
+                    return;
+                }
+                playerData.put("playerInfo", trackLogger.buildGamePlayerInfo(gamePlayer));
+                playerData.put("data", entry.getValue());
+                playerDataList.put(gamePlayer.getId(), playerData);
+            }
+            case SimplePlayerInfo playerInfo -> {
+                playerData.put("playerInfo", trackLogger.buildGamePlayerInfo(playerInfo));
+                playerData.put("data", entry.getValue());
+                playerDataList.put(playerInfo.playerId(), playerData);
+            }
+            default -> {
+            }
         }
     }
 

@@ -131,7 +131,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     @Override
     public void dealBet(long playerId, ReqPokerBet reqPokerBet) {
         PlayerSeatInfo info = gameDataVo.getCurrentPlayerSeatInfo();
-        if (Objects.isNull(info)) {
+        if (Objects.isNull(info) || info.getPlayerId() != playerId) {
             return;
         }
         //不是当前玩家执行
@@ -160,7 +160,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         }
         info.setOperationType(betValue == remain ? PokerConstant.PlayerOperation.ALL_IN : reqPokerBet.betType);
         info.setOver(true);
-        //修改数据
+        //修改玩家数据
         changePlayerGold(gamePlayer, -betValue);
         baseBetInfo.merge(playerId, betValue, Long::sum);
         baseBetInfo.entrySet().stream().max(Comparator.comparingLong(Map.Entry::getValue))
@@ -347,10 +347,6 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             runPlayerSeatChange(remove, remove.isSeatDown() && remove.isJoinGame());
         }
     }
-
-
-
-
 
 
     /**
