@@ -37,4 +37,9 @@ public class FriendRoomMessageHandler {
             log.error("创建服务器异常");
         }
     }
+
+    @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_FRIENDS_ROOM_PANEL_DATA)
+    public void reqFriendRoomPanelData(PlayerController playerController) {
+
+    }
 }

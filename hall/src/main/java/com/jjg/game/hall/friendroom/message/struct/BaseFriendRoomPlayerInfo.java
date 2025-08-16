@@ -22,7 +22,7 @@ public class BaseFriendRoomPlayerInfo {
     public String playerName;
 
     @ProtoDesc("玩家头像Icon")
-    public String playerHeadIcon;
+    public int playerHeadIcon;
 
     @ProtoDesc("玩家Vip等级")
     public int playerVipLevel;
@@ -32,4 +32,7 @@ public class BaseFriendRoomPlayerInfo {
 
     @ProtoDesc("国旗id")
     public int nationalId;
+
+    @ProtoDesc("玩家等级")
+    public int level;
 }

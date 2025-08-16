@@ -18,6 +18,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class RoomFriendDao extends MongoBaseDao<FriendRoomBean, Long> {
 
+
     private static final Logger log = LoggerFactory.getLogger(RoomFriendDao.class);
     // 最大的code
     private static final int MAX_CODE = 9999_9999;
@@ -39,9 +40,5 @@ public class RoomFriendDao extends MongoBaseDao<FriendRoomBean, Long> {
         int invitationCode = (int) (curTime - currentDateZeroMileTime + maskData);
         log.info("生成邀请码：{}", invitationCode);
         return invitationCode;
-    }
-
-    public void creatRoom(){
-
     }
 }

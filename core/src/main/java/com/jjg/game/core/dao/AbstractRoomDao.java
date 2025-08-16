@@ -127,12 +127,12 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
 
             return createRoom(room);
         } catch (Exception e) {
-            log.error("", e);
+            log.error("创建房间异常: {}", e.getMessage(), e);
         }
         return null;
     }
 
-    private T fillBaseRoomData(String nodeName, int gameType, int maxLimit) throws InvocationTargetException,
+    protected T fillBaseRoomData(String nodeName, int gameType, int maxLimit) throws InvocationTargetException,
         InstantiationException,
         IllegalAccessException,
         NoSuchMethodException {

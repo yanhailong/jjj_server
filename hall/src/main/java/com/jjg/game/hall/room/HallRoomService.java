@@ -16,12 +16,14 @@ import com.jjg.game.core.tool.IConsoleReceiver;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.friendroom.message.req.ReqCreateFriendsRoom;
 import com.jjg.game.hall.match.MatchService;
+import com.jjg.game.hall.utils.HallDataUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import reactor.util.function.Tuple2;
 
 import java.util.List;
 
@@ -108,7 +110,8 @@ public class HallRoomService implements IConsoleReceiver {
         long waitingRoomId = matchService.getWaitingRoomId(gameType, roomCfgId);
         // 如果对应的游戏类型没有房间的话则创建一个新的房间
         if (waitingRoomId == 0) {
-            int maxLimit = getRoomMaxLimit(warehouseCfg);
+            Tuple2<Integer, Integer> roomMaxLimitCfg = HallDataUtils.getRoomMaxLimit(warehouseCfg);
+            int maxLimit = roomMaxLimitCfg.getT2();
             Room room = hallRoomDao.createRoom(playerController, gameType, maxLimit, marsNode.getNodePath());
             room.setRoomCfgId(roomCfgId);
             hallRoomDao.saveRoom(room);
@@ -136,15 +139,6 @@ public class HallRoomService implements IConsoleReceiver {
             changeGameType(playerController.playerId(), EGameType.BACCARAT.getGameTypeId(), roomCfgId);
         //切换节点
         clusterSystem.switchNode(playerController.getSession(), marsNode);
-    }
-
-    /**
-     * 通过房间配置获取最大限制
-     */
-    private int getRoomMaxLimit(WarehouseCfg warehouseCfg) {
-        String participantsMax = warehouseCfg.getParticipants_max();
-        String[] participantsMaxStrArr = participantsMax.split(":");
-        return Integer.parseInt(participantsMaxStrArr[1]);
     }
 
     /**
