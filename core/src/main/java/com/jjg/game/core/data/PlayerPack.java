@@ -163,16 +163,6 @@ public class PlayerPack {
         result.data = itemCount - num;
         return result;
     }
-
-    /**
-     * 删除道具
-     *
-     * @param consume 消耗的道具
-     */
-    public CommonResult<Long> removeItem(Item consume) {
-       return removeItem(consume.getId(),consume.getCount());
-    }
-
     /**
      * 获取指定道具的总数量
      */

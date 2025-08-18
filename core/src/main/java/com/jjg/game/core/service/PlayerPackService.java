@@ -6,6 +6,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerPackDao;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.logger.CoreLogger;
@@ -154,14 +155,25 @@ public class PlayerPackService {
     }
 
     /**
-     * 添加道具
+     * 移除道具
+     *
+     * @param playerId 玩家id
+     * @param remove   移除的道具
+     * @return 最新的背包结果
+     */
+    public CommonResult<PlayerPack> removeItem(long playerId, Item remove) {
+        return removeItem(playerId, remove.getId(), remove.getCount());
+    }
+
+    /**
+     * 移除道具
      *
      * @param playerId
      * @param id
      * @param count
      * @return
      */
-    public CommonResult<PlayerPack> removeItem(long playerId, int id, int count) {
+    public CommonResult<PlayerPack> removeItem(long playerId, int id, long count) {
         CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
@@ -228,7 +240,7 @@ public class PlayerPackService {
             //根据不同道具做不同处理
             if (addItemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
                 CommonResult<Player> addResult = corePlayerService.addGold(playerId, addItemCount,
-                    useItemAddType, useItemId + "");
+                        useItemAddType, useItemId + "");
                 if (!addResult.success()) {
                     //如果添加失败，要将道具添加回去
                     playerPack.addItem(useItemId, useCount, useItemPropMax);
@@ -237,7 +249,7 @@ public class PlayerPackService {
                 }
             } else if (addItemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
                 CommonResult<Player> addResult = corePlayerService.addDiamond(playerId, addItemCount,
-                    useItemAddType, useItemId + "");
+                        useItemAddType, useItemId + "");
                 if (!addResult.success()) {
                     //如果添加失败，要将道具添加回去
                     playerPack.addItem(useItemId, useCount, useItemPropMax);
