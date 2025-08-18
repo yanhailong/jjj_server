@@ -19,9 +19,11 @@ import com.jjg.game.hall.constant.HallCode;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
-import com.jjg.game.hall.pb.*;
 import com.jjg.game.hall.pb.req.*;
 import com.jjg.game.hall.pb.res.*;
+import com.jjg.game.hall.pb.struct.ItemInfo;
+import com.jjg.game.hall.pb.struct.MailInfo;
+import com.jjg.game.hall.pb.struct.PackItemInfo;
 import com.jjg.game.hall.pb.struct.WarePoolInfo;
 import com.jjg.game.hall.room.HallRoomService;
 import com.jjg.game.hall.service.HallPlayerService;
@@ -592,6 +594,64 @@ public class HallMessageHandler implements GmListener {
             }
 
             log.debug("玩家一键领取 playerId = {}", playerController.playerId());
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 保险箱转移金币
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_TRANS_SAFE_BOX_GOLD)
+    public void reqTransSafeBoxGold(PlayerController playerController, ReqTransSafeBoxGold req) {
+        ResTransSafeBoxGold res = new ResTransSafeBoxGold(HallCode.SUCCESS);
+        try {
+            CommonResult<Player> result;
+            if(req.deposit){
+                result = hallPlayerService.goldInSafeBox(playerController.playerId(), req.value, "playerDeposit");
+            }else {
+                result = hallPlayerService.goldOutFromSafeBox(playerController.playerId(),req.value,"playerWithdraw");
+            }
+            if(!result.success()){
+                res.code = result.code;
+                playerController.send(res);
+                return;
+            }
+
+            log.debug("玩家转移保险箱金币成功 playerId = {},deposit = {},gold = {}", playerController.playerId(),req.deposit,req.value);
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 保险箱转移钻石
+     * @param playerController
+     * @param req
+     */
+    @Command(HallConstant.MsgBean.REQ_TRANS_SAFE_BOX_DIAMOND)
+    public void reqTransSafeBoxDiamond(PlayerController playerController, ReqTransSafeBoxDiamond req) {
+        ResTransSafeBoxDiamond res = new ResTransSafeBoxDiamond(HallCode.SUCCESS);
+        try {
+            CommonResult<Player> result;
+            if(req.deposit){
+                result = hallPlayerService.diamondInSafeBox(playerController.playerId(), req.value, "playerDeposit");
+            }else {
+                result = hallPlayerService.diamondOutFromSafeBox(playerController.playerId(),req.value,"playerWithdraw");
+            }
+            if(!result.success()){
+                res.code = result.code;
+                playerController.send(res);
+                return;
+            }
+
+            log.debug("玩家转移保险箱钻石成功 playerId = {},deposit = {},diamind = {}", playerController.playerId(),req.deposit,req.value);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
