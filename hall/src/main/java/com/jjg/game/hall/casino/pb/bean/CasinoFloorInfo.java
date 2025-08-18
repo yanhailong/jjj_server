@@ -2,7 +2,7 @@ package com.jjg.game.hall.casino.pb.bean;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.hall.pb.ItemInfo;
+import com.jjg.game.hall.pb.struct.ItemInfo;
 
 import java.util.List;
 
