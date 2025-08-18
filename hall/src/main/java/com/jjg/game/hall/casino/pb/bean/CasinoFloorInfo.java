@@ -1,4 +1,4 @@
-package com.jjg.game.hall.pb.struct;
+package com.jjg.game.hall.casino.pb.bean;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
@@ -15,6 +15,8 @@ import java.util.List;
 public class CasinoFloorInfo {
     @ProtoDesc("楼层id")
     public int floorId;
+    @ProtoDesc("楼层状态")
+    public int state;
     @ProtoDesc("机台信息")
     public List<CasinoMachineInfo> casinoMachineInfos;
     @ProtoDesc("打扫结束时间")
