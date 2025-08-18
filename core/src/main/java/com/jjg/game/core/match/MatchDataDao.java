@@ -40,7 +40,7 @@ public class MatchDataDao {
      */
     public long getWaitJoinRoomId(int gameType, int roomConfigId) {
         try {
-            if (redisLock.tryLock(getLockMatchRedisKey(gameType, roomConfigId), TimeHelper.ONE_SECOND_OF_MILES)) {
+            if (redisLock.tryLock(getLockMatchRedisKey(gameType, roomConfigId), TimeHelper.ONE_SECOND_OF_MILLIS)) {
                 Set<ZSetOperations.TypedTuple<String>> roomIds =
                     matchKeyTemplate.opsForZSet().rangeWithScores(MatchDataRedisKey.getWaitJoinRoomsKey(gameType,
                             roomConfigId)
@@ -68,7 +68,7 @@ public class MatchDataDao {
      */
     public long getNewWaitJoinRoomId(int gameType, int roomConfigId, long oldRoomId) {
         try {
-            if (redisLock.tryLock(getLockMatchRedisKey(gameType, roomConfigId), TimeHelper.ONE_SECOND_OF_MILES)) {
+            if (redisLock.tryLock(getLockMatchRedisKey(gameType, roomConfigId), TimeHelper.ONE_SECOND_OF_MILLIS)) {
                 Set<ZSetOperations.TypedTuple<String>> roomIds =
                     matchKeyTemplate.opsForZSet().rangeWithScores(MatchDataRedisKey.getWaitJoinRoomsKey(gameType,
                             roomConfigId)

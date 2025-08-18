@@ -1,7 +1,6 @@
 package com.jjg.game.core.dao;
 
 import cn.hutool.core.lang.Snowflake;
-import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.data.DataSaveCallback;
@@ -72,7 +71,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     public T nodeCreate(int gameType, int roomCfgId, int maxLimit, String nodeName) {
         String lockKey = getNodeCreateRoomName(gameType);
         // 最大等待3分钟
-        redisLock.lock(lockKey, TimeHelper.ONE_DAY_OF_MILES * 3);
+        redisLock.lock(lockKey, TimeHelper.ONE_DAY_OF_MILLIS * 3);
         try {
             T room = fillBaseRoomData(nodeName, gameType, maxLimit);
             room.setRoomCfgId(roomCfgId);

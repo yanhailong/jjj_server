@@ -21,10 +21,10 @@ public final class TimeHelper {
     /**
      * 时间转换成毫秒数
      */
-    public static final int ONE_SECOND_OF_MILES = 1000,
-        ONE_MINUTE_OF_MILES = 60 * ONE_SECOND_OF_MILES,
-        ONE_HOUR_OF_MILES = 60 * ONE_MINUTE_OF_MILES,
-        ONE_DAY_OF_MILES = 24 * ONE_HOUR_OF_MILES;
+    public static final int ONE_SECOND_OF_MILLIS = 1000,
+        ONE_MINUTE_OF_MILLIS = 60 * ONE_SECOND_OF_MILLIS,
+        ONE_HOUR_OF_MILLIS = 60 * ONE_MINUTE_OF_MILLIS,
+        ONE_DAY_OF_MILLIS = 24 * ONE_HOUR_OF_MILLIS;
 
     /**
      * 一小时的秒数
