@@ -123,7 +123,7 @@ public class PlayerPackService {
     }
 
     /**
-     * 添加道具
+     * 移除道具
      *
      * @param playerId 玩家id
      * @param remove   移除的道具
