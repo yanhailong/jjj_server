@@ -4,6 +4,7 @@ import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.core.RedisLock;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.dao.PlayerDao;
 import com.jjg.game.core.dao.PlayerLoginTimeDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -15,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+
+import java.util.Optional;
 
 /**
  * @author 11
@@ -34,6 +37,8 @@ public class AbstractPlayerService {
     protected PlayerLoginTimeDao playerLoginTimeDao;
     @Autowired
     protected CoreLogger coreLogger;
+    @Autowired
+    protected PlayerDao playerDao;
 
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
@@ -281,5 +286,208 @@ public class AbstractPlayerService {
         Player player = operations.get(tableName, playerController.playerId());
         playerController.setPlayer(player);
         return player;
+    }
+
+    /**
+     * 查询player对象
+     * 先查询redis
+     * 再查询mongodb
+     *
+     * @param playerId
+     * @return
+     */
+    public Player getFromAllDB(long playerId) {
+        Player player = get(playerId);
+        if (player != null) {
+            return player;
+        }
+
+        Optional<Player> optional = playerDao.findById(playerId);
+        return optional.orElse(null);
+    }
+
+    /**
+     * 将金币存入保险箱
+     * @param playerId
+     * @param gold
+     * @return
+     */
+    public CommonResult<Player> goldInSafeBox(long playerId, long gold,String addType) {
+        CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
+        if(gold < 1){
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+
+        final long[] beforeCoin = {0,0};
+        Player p = checkAndSave(playerId, new DataSaveCallback<>() {
+            @Override
+            public void updateData(Player dataEntity) {
+
+            }
+
+            @Override
+            public Boolean updateDataWithRes(Player dataEntity) {
+                if(dataEntity.getGold() < gold) {
+                    result.code = Code.NOT_ENOUGH;
+                    log.debug("携带金币不足，存入保险箱失败 playerId={},gold={},inSafeBoxGold = {}", playerId,dataEntity.getGold(), gold);
+                    return false;
+                }
+
+                beforeCoin[0] = dataEntity.getGold();
+                beforeCoin[1] = dataEntity.getSafeBoxGold();
+
+                dataEntity.setGold(dataEntity.getGold() - gold);
+                dataEntity.setSafeBoxGold(dataEntity.getSafeBoxGold() + gold);
+                return true;
+            }
+        });
+
+        if(p != null){
+            coreLogger.transSafeBoxGold(p, beforeCoin[0], beforeCoin[1],gold,addType,null);
+            result.code = Code.SUCCESS;
+            result.data = p;
+            return result;
+        }
+        return result;
+    }
+
+    /**
+     * 将钻石存入保险箱
+     * @param playerId
+     * @param diamond
+     * @return
+     */
+    public CommonResult<Player> diamondInSafeBox(long playerId, long diamond,String addType) {
+        CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
+        if(diamond < 1){
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+
+        final long[] beforeCoin = {0,0};
+        Player p = checkAndSave(playerId, new DataSaveCallback<>() {
+            @Override
+            public void updateData(Player dataEntity) {
+
+            }
+
+            @Override
+            public Boolean updateDataWithRes(Player dataEntity) {
+                if(dataEntity.getDiamond() < diamond) {
+                    result.code = Code.NOT_ENOUGH;
+                    log.debug("携带钻石不足，存入保险箱失败 playerId={},diamond={},inSafeBoxDiamond = {}", playerId,dataEntity.getDiamond(), diamond);
+                    return false;
+                }
+
+                beforeCoin[0] = dataEntity.getDiamond();
+                beforeCoin[1] = dataEntity.getSafeBoxDiamond();
+
+                dataEntity.setDiamond(dataEntity.getDiamond() - diamond);
+                dataEntity.setSafeBoxDiamond(dataEntity.getSafeBoxDiamond() + diamond);
+                return true;
+            }
+        });
+
+        if(p != null){
+            coreLogger.transSafeBoxDiamond(p, beforeCoin[0], beforeCoin[1],diamond,addType,null);
+            result.code = Code.SUCCESS;
+            result.data = p;
+            return result;
+        }
+        return result;
+    }
+
+    /**
+     * 将金币从保险箱取出
+     * @param playerId
+     * @param gold
+     * @return
+     */
+    public CommonResult<Player> goldOutFromSafeBox(long playerId, long gold,String addType) {
+        CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
+        if(gold < 1){
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+
+        final long[] beforeCoin = {0,0};
+        Player p = checkAndSave(playerId, new DataSaveCallback<>() {
+            @Override
+            public void updateData(Player dataEntity) {
+
+            }
+
+            @Override
+            public Boolean updateDataWithRes(Player dataEntity) {
+                if(dataEntity.getSafeBoxGold() < gold) {
+                    result.code = Code.NOT_ENOUGH;
+                    log.debug("保险箱金币不足，取出失败 playerId={},safeBoxGold={},outFromSafeBoxGold = {}", playerId,dataEntity.getSafeBoxGold(), gold);
+                    return false;
+                }
+
+                beforeCoin[0] = dataEntity.getGold();
+                beforeCoin[1] = dataEntity.getSafeBoxGold();
+
+                dataEntity.setGold(dataEntity.getGold() + gold);
+                dataEntity.setSafeBoxGold(dataEntity.getSafeBoxGold() - gold);
+                return true;
+            }
+        });
+
+        if(p != null){
+            coreLogger.transSafeBoxGold(p, beforeCoin[0], beforeCoin[1],gold,addType,null);
+            result.code = Code.SUCCESS;
+            result.data = p;
+            return result;
+        }
+
+        return result;
+    }
+
+    /**
+     * 将钻石从保险箱取出
+     * @param playerId
+     * @param diamond
+     * @return
+     */
+    public CommonResult<Player> diamondOutFromSafeBox(long playerId, long diamond,String addType) {
+        CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
+        if(diamond < 1){
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+
+        final long[] beforeCoin = {0,0};
+        Player p = checkAndSave(playerId, new DataSaveCallback<>() {
+            @Override
+            public void updateData(Player dataEntity) {
+
+            }
+
+            @Override
+            public Boolean updateDataWithRes(Player dataEntity) {
+                if(dataEntity.getSafeBoxDiamond() < diamond) {
+                    result.code = Code.NOT_ENOUGH;
+                    log.debug("保险箱钻石不足，取出失败 playerId={},safeBoxDiamond={},outFromSafeBoxDiamond = {}", playerId,dataEntity.getSafeBoxDiamond(), diamond);
+                    return false;
+                }
+
+                beforeCoin[0] = dataEntity.getDiamond();
+                beforeCoin[1] = dataEntity.getSafeBoxDiamond();
+
+                dataEntity.setDiamond(dataEntity.getDiamond() + diamond);
+                dataEntity.setSafeBoxDiamond(dataEntity.getSafeBoxDiamond() - diamond);
+                return true;
+            }
+        });
+
+        if(p != null){
+            coreLogger.transSafeBoxDiamond(p, beforeCoin[0], beforeCoin[1],diamond,addType,null);
+            result.code = Code.SUCCESS;
+            result.data = p;
+            return result;
+        }
+        return result;
     }
 }

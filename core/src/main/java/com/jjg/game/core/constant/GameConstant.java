@@ -113,6 +113,7 @@ public class GameConstant {
         public static final int STAUTS_GET_ITEMS = 2;
     }
 
+    //golbal.xlsx中的配置id
     public class GlobalConfig{
         public static final int ID_VIP_OPEN_MAX_LEVEL = 1;
         public static final int ID_BASE_EXP = 2;

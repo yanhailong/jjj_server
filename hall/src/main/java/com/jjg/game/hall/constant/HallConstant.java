@@ -119,5 +119,13 @@ public interface HallConstant {
         int REQ_FUNCTION_OPEN_LIST = BASE_MSG_PREFIX | 0x25;
         int RES_FUNCTION_OPEN_LIST = BASE_MSG_PREFIX | 0X26;
         int NOTIFY_FUNCTION_OPEN_LIST = BASE_MSG_PREFIX | 0X27;
+
+        //保险箱转移金币
+        int REQ_TRANS_SAFE_BOX_GOLD = BASE_MSG_PREFIX | 0x28;
+        int RES_TRANS_SAFE_BOX_GOLD = BASE_MSG_PREFIX | 0x29;
+
+        //保险箱转移钻石
+        int REQ_TRANS_SAFE_BOX_DIAMOND = BASE_MSG_PREFIX | 0x2A;
+        int RES_TRANS_SAFE_BOX_DIAMOND = BASE_MSG_PREFIX | 0x2B;
     }
 }
