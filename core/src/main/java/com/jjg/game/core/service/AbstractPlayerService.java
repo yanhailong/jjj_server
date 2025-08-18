@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 
+import java.util.List;
+
 /**
  * @author 11
  * @date 2025/6/19 10:00
@@ -267,6 +269,14 @@ public class AbstractPlayerService {
     public Player get(long playerId) {
         HashOperations<String, String, Player> operations = redisTemplate.opsForHash();
         return operations.get(tableName, playerId);
+    }
+
+    /**
+     * 批量获取玩家
+     */
+    public List<Player> multiGetPlayer(List<Long> playerId) {
+        HashOperations<String, String, Player> operations = redisTemplate.opsForHash();
+        return operations.multiGet(tableName, playerId.stream().map(String::valueOf).toList());
     }
 
 

@@ -2,19 +2,27 @@ package com.jjg.game.hall.friendroom.services;
 
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.IllegalNameCheckService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.friendroom.dao.RoomFriendDao;
+import com.jjg.game.hall.friendroom.data.FriendRoomFollowBean;
+import com.jjg.game.hall.friendroom.message.FriendRoomMessageBuilder;
 import com.jjg.game.hall.friendroom.message.req.ReqCreateFriendsRoom;
 import com.jjg.game.hall.friendroom.message.res.NotifyFriendRoomPanelData;
+import com.jjg.game.hall.friendroom.message.struct.BaseFriendRoomPlayerInfo;
+import com.jjg.game.hall.friendroom.message.struct.FriendRoomBaseData;
+import com.jjg.game.hall.utils.HallDataUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import reactor.util.function.Tuple2;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -26,7 +34,7 @@ import java.util.List;
 public class FriendRoomServices {
 
     @Autowired
-    private RoomFriendDao friendDao;
+    private RoomFriendDao roomFriendDao;
     @Autowired
     private IllegalNameCheckService illegalNameCheckService;
     @Autowired
@@ -133,7 +141,44 @@ public class FriendRoomServices {
      * 请求好友房数据panel
      */
     private void reqFriendPanelData(PlayerController playerController) {
+        Player player = playerController.getPlayer();
         NotifyFriendRoomPanelData notifyFriendRoomPanelData = new NotifyFriendRoomPanelData();
-        List<FriendRoom> friendRoomList = hallRoomDao.getPlayerAllFriendRoom(playerController.playerId());
+        // 获取玩家创建的好友房数据
+        List<FriendRoom> friendRoomList = hallRoomDao.getPlayerAllFriendRoom(player.getId());
+        // 获取玩家关注列表
+        List<FriendRoomFollowBean> friendRoomFollowBeans = roomFriendDao.getRoomFriendList(player.getId());
+        List<Long> followedPlayerId =
+            friendRoomFollowBeans.stream().map(FriendRoomFollowBean::getFollowedPlayerId).toList();
+        List<Player> followedplayerList = corePlayerService.multiGetPlayer(followedPlayerId);
+        // 好友信息
+        List<BaseFriendRoomPlayerInfo> baseFriendRoomPlayerInfos = new ArrayList<>();
+        for (Player followedPlayer : followedplayerList) {
+            BaseFriendRoomPlayerInfo info = FriendRoomMessageBuilder.buildFriendRoomInfo(followedPlayer);
+            baseFriendRoomPlayerInfos.add(info);
+        }
+        notifyFriendRoomPanelData.roomFriendInfos = baseFriendRoomPlayerInfos;
+        // 房间信息
+        List<FriendRoomBaseData> friendRoomBaseDataList = new ArrayList<>();
+        for (FriendRoom friendRoom : friendRoomList) {
+            FriendRoomBaseData friendRoomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
+            friendRoomBaseDataList.add(friendRoomBaseData);
+        }
+        notifyFriendRoomPanelData.roomBaseDataList = friendRoomBaseDataList;
+        notifyFriendRoomPanelData.invitationCode = playerController.getPlayer().getFriendRoomInvitationCode();
+        GlobalConfigCfg globalConfigCfg =
+            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_RESET_TIMES);
+        notifyFriendRoomPanelData.invitationCodeResetTotalTimes = globalConfigCfg.getIntValue();
+        notifyFriendRoomPanelData.playerNumOnTable =
+            friendRoomBaseDataList.stream().map(a -> a.onlinePlayerNum).mapToInt(Long::intValue).sum();
+        notifyFriendRoomPanelData.curTableNum =
+            friendRoomBaseDataList.stream().map(a -> a.maxPlayerNum).mapToInt(a -> a).sum();
+        notifyFriendRoomPanelData.maxTableNum =
+            friendRoomBaseDataList.stream().map(data -> {
+                Tuple2<Integer, Integer> tuple =
+                    HallDataUtils.getRoomMaxLimit(GameDataManager.getWarehouseCfg(data.gameId));
+                return tuple.getT2();
+            }).mapToInt(a -> a).sum();
+        notifyFriendRoomPanelData.maxPlayerNumOnTable =
+            GameDataManager.getPlayerLevelConfigCfg(player.getLevel()).getRoomNum();
     }
 }
