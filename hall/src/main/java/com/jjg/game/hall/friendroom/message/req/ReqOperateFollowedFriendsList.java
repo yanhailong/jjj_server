@@ -17,7 +17,7 @@ import com.jjg.game.hall.friendroom.message.struct.RoomFriendEnum;
     cmd = FriendRoomMessageConstant.ReqMsgCons.REQ_OPERATE_ROOM_FRIENDS_LIST
 )
 @ProtoDesc("请求操作关注好友列表")
-public class ReqOperateRoomFriendsList  extends AbstractMessage {
+public class ReqOperateFollowedFriendsList extends AbstractMessage {
 
     @ProtoDesc("操作类型")
     public RoomFriendEnum operate;

@@ -68,6 +68,4 @@ public interface FriendRoomMessageConstant {
         // 返回操作好友房
         int RES_OPERATE_FRIEND_ROOM = BASE_MSG_MASK | 0x8D;
     }
-
-
 }
