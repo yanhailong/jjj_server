@@ -15,9 +15,9 @@ import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
     resp = true
 )
 @ProtoDesc("响应更新好友房数据")
-public class ResUpdateFriendRoom extends AbstractResponse {
+public class ResUpdateFriendRoomName extends AbstractResponse {
 
-    public ResUpdateFriendRoom(int code) {
+    public ResUpdateFriendRoomName(int code) {
         super(code);
     }
 }

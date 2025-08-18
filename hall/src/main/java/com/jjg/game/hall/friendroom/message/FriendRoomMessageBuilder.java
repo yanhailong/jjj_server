@@ -4,6 +4,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.hall.friendroom.message.res.NotifyFriendRoomPanelData;
 import com.jjg.game.hall.friendroom.message.struct.BaseFriendRoomPlayerInfo;
 import com.jjg.game.hall.friendroom.message.struct.FriendRoomBaseData;
 import com.jjg.game.hall.utils.HallDataUtils;

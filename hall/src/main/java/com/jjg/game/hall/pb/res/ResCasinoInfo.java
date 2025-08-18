@@ -1,0 +1,30 @@
+package com.jjg.game.hall.pb.res;
+
+import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.pb.AbstractResponse;
+import com.jjg.game.hall.constant.HallConstant;
+import com.jjg.game.hall.pb.struct.CasinoFloorInfo;
+
+import java.util.List;
+
+/**
+ * @author lm
+ * @date 2025/8/18 14:54
+ */
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_CASINO_INFO, resp = true)
+@ProtoDesc("响应赌场信息")
+public class ResCasinoInfo extends AbstractResponse {
+    @ProtoDesc("赌场id")
+    public int casinoId;
+    @ProtoDesc("一键领取结束时间")
+    public long claimAllRewardsEndTime;
+    @ProtoDesc("楼层信息")
+    public List<CasinoFloorInfo> casinoFloorInfos;
+
+    public ResCasinoInfo() {
+        super(Code.SUCCESS);
+    }
+}

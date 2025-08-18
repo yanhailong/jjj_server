@@ -20,12 +20,12 @@ import java.util.List;
     resp = true
 )
 @ProtoDesc("返回关注的好友的房间列表")
-public class ResFriendRoomList extends AbstractResponse {
+public class ResFollowedFriendRoomList extends AbstractResponse {
 
     @ProtoDesc("好友房间基础信息列表")
     public List<FriendRoomBaseData> roomList;
 
-    public ResFriendRoomList(int code) {
+    public ResFollowedFriendRoomList(int code) {
         super(code);
     }
 }

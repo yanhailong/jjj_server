@@ -3,12 +3,16 @@ package com.jjg.game.hall.friendroom.dao;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.dao.MongoBaseDao;
-import com.jjg.game.hall.friendroom.data.FriendRoomBean;
+import com.jjg.game.hall.friendroom.data.FriendRoomFollowBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 /**
  * 房间邀请码，
@@ -16,7 +20,7 @@ import org.springframework.stereotype.Repository;
  * @author 2CL
  */
 @Repository
-public class RoomFriendDao extends MongoBaseDao<FriendRoomBean, Long> {
+public class RoomFriendDao extends MongoBaseDao<FriendRoomFollowBean, Long> {
 
 
     private static final Logger log = LoggerFactory.getLogger(RoomFriendDao.class);
@@ -26,7 +30,7 @@ public class RoomFriendDao extends MongoBaseDao<FriendRoomBean, Long> {
     private static final int CODE_MASK = MAX_CODE - TimeHelper.ONE_DAY_OF_MILES;
 
     public RoomFriendDao(@Autowired MongoTemplate mongoTemplate) {
-        super(FriendRoomBean.class, mongoTemplate);
+        super(FriendRoomFollowBean.class, mongoTemplate);
     }
 
     /**
@@ -40,5 +44,12 @@ public class RoomFriendDao extends MongoBaseDao<FriendRoomBean, Long> {
         int invitationCode = (int) (curTime - currentDateZeroMileTime + maskData);
         log.info("生成邀请码：{}", invitationCode);
         return invitationCode;
+    }
+
+    /**
+     * 获取房间好友列表
+     */
+    public List<FriendRoomFollowBean> getRoomFriendList(long playerId) {
+        return mongoTemplate.find(Query.query(Criteria.where("playerId").is(playerId)), FriendRoomFollowBean.class);
     }
 }

@@ -9,7 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * @author 2CL
  */
 @Document
-public class FriendRoomBean {
+public class FriendRoomFollowBean {
     @Id
     private long id;
     // 玩家ID

@@ -15,6 +15,6 @@ import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
     messageType = MessageConst.MessageTypeDef.HALL_TYPE,
     cmd = FriendRoomMessageConstant.ReqMsgCons.REQ_FRIENDS_ROOM_PANEL_DATA
 )
-@ProtoDesc("请求好友房的面板数据")
+@ProtoDesc("请求玩家好友房面板数据")
 public class ReqFriendsRoomPanelData extends AbstractMessage {
 }

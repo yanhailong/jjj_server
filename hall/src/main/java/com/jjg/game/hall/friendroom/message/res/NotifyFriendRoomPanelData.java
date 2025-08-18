@@ -28,9 +28,6 @@ public class NotifyFriendRoomPanelData extends AbstractNotice {
     @ProtoDesc("关注的玩家信息")
     public List<BaseFriendRoomPlayerInfo> roomFriendInfos;
 
-    @ProtoDesc("最大玩家数量")
-    public int maxPlayerNum;
-
     @ProtoDesc("当前牌局数")
     public int curTableNum;
 
