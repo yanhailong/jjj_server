@@ -26,22 +26,14 @@ public class GameConstant {
     }
 
     public class Common {
-        //redisLock重试次数
-        public static final int REDIS_LOCK_TRY_COUNT = 5;
-        public static final int REDIS_TRANSACTION_TRY_COUNT = 7;
 
         public static final String ENCODING = "UTF-8";
 
         //玩家起始id
         public static final long defaultPlayerBeginId = 1000000;
-
-        //最小房间id ？
-        public static final int ROOM_ID_MIN = 100000;
-        //最大房间id ？
-        public static final int ROOM_ID_MAX = 999999;
     }
 
-    public interface Item{
+    public interface Item {
         //可使用道具
         int TYPE_CAN_USE = 1;
         //可合成道具
@@ -79,9 +71,9 @@ public class GameConstant {
         //游戏状态rediskey
         String GAME_STATUS_KEY = "gm:gamelistconfig";
         // 加锁尝试次数
-        int LOCK_TRY_TIMES = 5;
+        int LOCK_TRY_TIMES = 50;
         // 每次尝试花费的毫秒数
-        int PER_TRY_TAKE_MILE_TIME = 5;
+        int PER_TRY_TAKE_MILE_TIME = 10;
     }
 
     //登录类型
@@ -104,7 +96,7 @@ public class GameConstant {
         public static final byte OTHER = 2;
     }
 
-    public class Mail{
+    public class Mail {
         //未阅读
         public static final int STAUTS_NOT_READ = 0;
         //已阅读
@@ -113,7 +105,7 @@ public class GameConstant {
         public static final int STAUTS_GET_ITEMS = 2;
     }
 
-    public class GlobalConfig{
+    public class GlobalConfig {
         public static final int ID_VIP_OPEN_MAX_LEVEL = 1;
         public static final int ID_BASE_EXP = 2;
 
