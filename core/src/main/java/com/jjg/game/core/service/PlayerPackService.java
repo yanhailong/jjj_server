@@ -1,12 +1,11 @@
 package com.jjg.game.core.service;
 
 import com.jjg.game.common.data.DataSaveCallback;
-import com.jjg.game.core.RedisLock;
+import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerPackDao;
 import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.logger.CoreLogger;
@@ -15,12 +14,10 @@ import com.jjg.game.sampledata.bean.ItemCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -62,38 +59,27 @@ public class PlayerPackService {
     public CommonResult<PlayerPack> addItems(long playerId, Map<Integer, Long> addItemMap, String addType) {
         CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
-        for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
-            if (redisLock.lock(key)) {
-                try {
-                    PlayerPack playerPack = getFromAllDB(playerId);
-                    if (playerPack == null) {
-                        playerPack = new PlayerPack();
-                    }
-
-                    for (Map.Entry<Integer, Long> en : addItemMap.entrySet()) {
-                        int itemId = en.getKey();
-                        ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
-                        playerPack.addItem(itemId, en.getValue(), itemCfg.getProp());
-                    }
-
-                    redisTemplate.opsForHash().put(tableName, playerId, playerPack);
-                    result.code = Code.SUCCESS;
-                    result.data = playerPack;
-                    break;
-                } catch (Exception e) {
-                    log.error("添加多个道具，保存 playerPack 失败 playerId={}", playerId, e);
-                } finally {
-                    redisLock.unlock(key);
-                }
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            PlayerPack playerPack = getFromAllDB(playerId);
+            if (playerPack == null) {
+                playerPack = new PlayerPack();
             }
 
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                log.error("添加多个道具，保存 playerPack 数据失败出现异常,playerId = {}", playerId, e);
+            for (Map.Entry<Integer, Long> en : addItemMap.entrySet()) {
+                int itemId = en.getKey();
+                ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
+                playerPack.addItem(itemId, en.getValue(), itemCfg.getProp());
             }
+
+            redisTemplate.opsForHash().put(tableName, playerId, playerPack);
+            result.code = Code.SUCCESS;
+            result.data = playerPack;
+        } catch (Exception e) {
+            log.error("添加多个道具，保存 playerPack 失败 playerId={}", playerId, e);
+        } finally {
+            redisLock.unlock(key);
         }
-
         if (result.success()) {
             coreLogger.addItems(playerId, addItemMap, addType);
         }
@@ -112,35 +98,23 @@ public class PlayerPackService {
         CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
         int max = GameDataManager.getItemCfg(id).getProp();
-        for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
-            if (redisLock.lock(key)) {
-                try {
-                    PlayerPack playerPack = getFromAllDB(playerId);
-                    if (playerPack == null) {
-                        playerPack = new PlayerPack();
-                    }
-
-                    playerPack.addItem(id, count, max);
-
-                    redisTemplate.opsForHash().put(tableName, playerId, playerPack);
-                    result.code = Code.SUCCESS;
-                    result.data = playerPack;
-                    break;
-                } catch (Exception e) {
-                    log.error("添加道具，保存 playerPack 失败 playerId={}", playerId, e);
-                } finally {
-                    redisLock.unlock(key);
-                }
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            PlayerPack playerPack = getFromAllDB(playerId);
+            if (playerPack == null) {
+                playerPack = new PlayerPack();
             }
 
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                log.error("添加道具，保存 playerPack 数据失败出现异常,playerId = {}", playerId, e);
-            }
+            playerPack.addItem(id, count, max);
 
+            redisTemplate.opsForHash().put(tableName, playerId, playerPack);
+            result.code = Code.SUCCESS;
+            result.data = playerPack;
+        } catch (Exception e) {
+            log.error("添加道具，保存 playerPack 失败 playerId={}", playerId, e);
+        } finally {
+            redisLock.unlock(key);
         }
-
         if (result.success()) {
             coreLogger.addItem(playerId, id, count, addType);
         }
@@ -148,59 +122,38 @@ public class PlayerPackService {
     }
 
     /**
-     * 移除道具
-     *
-     * @param playerId 玩家id
-     * @param remove   删除的道具
-     * @return 背包数据
-     */
-    public CommonResult<PlayerPack> removeItem(long playerId, Item remove) {
-        return removeItem(playerId, remove.getId(), remove.getCount());
-    }
-
-    /**
-     * 移除道具
+     * 添加道具
      *
      * @param playerId
      * @param id
      * @param count
      * @return
      */
-    public CommonResult<PlayerPack> removeItem(long playerId, int id, long count) {
+    public CommonResult<PlayerPack> removeItem(long playerId, int id, int count) {
         CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
-        for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
-            if (redisLock.lock(key)) {
-                try {
-                    PlayerPack playerPack = getFromAllDB(playerId);
-                    if (playerPack == null) {
-                        result.code = Code.NOT_FOUND;
-                        return result;
-                    }
-
-                    CommonResult<Long> removeResult = playerPack.removeItem(id, count);
-                    if (!removeResult.success()) {
-                        result.code = removeResult.code;
-                        return result;
-                    }
-
-                    redisTemplate.opsForHash().put(tableName, playerId, playerPack);
-                    result.code = Code.SUCCESS;
-                    result.data = playerPack;
-                    return result;
-                } catch (Exception e) {
-                    log.error("移除道具，保存 playerPack 失败 playerId={}", playerId, e);
-                } finally {
-                    redisLock.unlock(key);
-                }
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            PlayerPack playerPack = getFromAllDB(playerId);
+            if (playerPack == null) {
+                result.code = Code.NOT_FOUND;
+                return result;
             }
 
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                log.error("移除道具，保存 playerPack 数据失败出现异常,playerId = {}", playerId, e);
+            CommonResult<Long> removeResult = playerPack.removeItem(id, count);
+            if (!removeResult.success()) {
+                result.code = removeResult.code;
+                return result;
             }
 
+            redisTemplate.opsForHash().put(tableName, playerId, playerPack);
+            result.code = Code.SUCCESS;
+            result.data = playerPack;
+            return result;
+        } catch (Exception e) {
+            log.error("移除道具，保存 playerPack 失败 playerId={}", playerId, e);
+        } finally {
+            redisLock.unlock(key);
         }
         return result;
     }
@@ -214,68 +167,62 @@ public class PlayerPackService {
      * @param addItemCount
      * @return
      */
-    public CommonResult<PlayerPack> useItem(long playerId, int useItemId, int addItemId, long addItemCount, String addType) {
+    public CommonResult<PlayerPack> useItem(long playerId, int useItemId, int addItemId, long addItemCount,
+                                            String addType) {
         CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
 
         int useItemPropMax = GameDataManager.getItemCfg(useItemId).getProp();
         int addItemMax = GameDataManager.getItemCfg(addItemId).getProp();
         int useCount = 1;
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            //获取背包数据
+            PlayerPack playerPack = getFromAllDB(playerId);
+            if (playerPack == null) {
+                result.code = Code.NOT_FOUND;
+                return result;
+            }
 
-        for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
-            if (redisLock.lock(key)) {
-                try {
-                    //获取背包数据
-                    PlayerPack playerPack = getFromAllDB(playerId);
-                    if (playerPack == null) {
-                        result.code = Code.NOT_FOUND;
-                        return result;
-                    }
+            //移除道具
+            CommonResult<Long> removeResult = playerPack.removeItem(useItemId, useCount);
+            if (!removeResult.success()) {
+                result.code = removeResult.code;
+                return result;
+            }
 
-                    //移除道具
-                    CommonResult<Long> removeResult = playerPack.removeItem(useItemId, useCount);
-                    if (!removeResult.success()) {
-                        result.code = removeResult.code;
-                        return result;
-                    }
-
-                    //根据不同道具做不同处理
-                    if (addItemId == GameConstant.Item.ID_GOLD) {
-                        CommonResult<Player> addResult = corePlayerService.addGold(playerId, addItemCount, useItemAddType, useItemId + "");
-                        if (!addResult.success()) {
-                            //如果添加失败，要将道具添加回去
-                            playerPack.addItem(useItemId, useCount, useItemPropMax);
-                            break;
-                        }
-                    } else if (addItemId == GameConstant.Item.ID_DIAMOND) {
-                        CommonResult<Player> addResult = corePlayerService.addDiamond(playerId, addItemCount, useItemAddType, useItemId + "");
-                        if (!addResult.success()) {
-                            //如果添加失败，要将道具添加回去
-                            playerPack.addItem(useItemId, useCount, useItemPropMax);
-                            break;
-                        }
-                    } else {
-                        playerPack.addItem(addItemId, (int) addItemCount, addItemMax);
-                    }
-
-                    redisTemplate.opsForHash().put(tableName, playerId, playerPack);
-                    result.code = Code.SUCCESS;
-                    result.data = playerPack;
-                    break;
-                } catch (Exception e) {
-                    log.error("使用道具，保存 playerPack 失败 playerId={}", playerId, e);
-                } finally {
-                    redisLock.unlock(key);
+            //根据不同道具做不同处理
+            if (addItemId == GameConstant.Item.ID_GOLD) {
+                CommonResult<Player> addResult = corePlayerService.addGold(playerId, addItemCount,
+                    useItemAddType, useItemId + "");
+                if (!addResult.success()) {
+                    //如果添加失败，要将道具添加回去
+                    playerPack.addItem(useItemId, useCount, useItemPropMax);
+                    result.code = addResult.code;
+                    return result;
                 }
+            } else if (addItemId == GameConstant.Item.ID_DIAMOND) {
+                CommonResult<Player> addResult = corePlayerService.addDiamond(playerId, addItemCount,
+                    useItemAddType, useItemId + "");
+                if (!addResult.success()) {
+                    //如果添加失败，要将道具添加回去
+                    playerPack.addItem(useItemId, useCount, useItemPropMax);
+                    result.code = addResult.code;
+                    return result;
+                }
+            } else {
+                playerPack.addItem(addItemId, (int) addItemCount, addItemMax);
             }
 
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                log.error("使用道具，保存 playerPack 数据失败出现异常,playerId = {}", playerId, e);
-            }
+            redisTemplate.opsForHash().put(tableName, playerId, playerPack);
+            result.code = Code.SUCCESS;
+            result.data = playerPack;
+            return result;
+        } catch (Exception e) {
+            log.error("使用道具，保存 playerPack 失败 playerId={}", playerId, e);
+        } finally {
+            redisLock.unlock(key);
         }
-
         if (result.success()) {
             coreLogger.useItem(playerId, useItemId, 1, addType);
         }
@@ -284,64 +231,45 @@ public class PlayerPackService {
 
     public PlayerPack checkAndSave(long playerId, DataSaveCallback<PlayerPack> cbk) {
         String key = getLockKey(playerId);
-        for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
-            if (redisLock.lock(key)) {
-                try {
-                    PlayerPack playerPack = redisGet(playerId);
-                    if (playerPack == null) {
-                        return null;
-                    }
-
-                    //如果执行失败
-                    if (!(boolean) cbk.updateDataWithRes(playerPack)) {
-                        break;
-                    }
-
-                    redisTemplate.opsForHash().put(tableName, playerId, playerPack);
-                    return playerPack;
-                } catch (Exception e) {
-                    log.error("保存 playerPack 失败 playerId={}", playerId, e);
-                } finally {
-                    redisLock.unlock(key);
-                }
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            PlayerPack playerPack = redisGet(playerId);
+            if (playerPack == null) {
+                return null;
             }
 
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                log.error("保存 playerPack 数据失败出现异常,playerId = {}", playerId, e);
+            //如果执行失败
+            if (!(boolean) cbk.updateDataWithRes(playerPack)) {
+                return null;
             }
 
+            redisTemplate.opsForHash().put(tableName, playerId, playerPack);
+            return playerPack;
+        } catch (Exception e) {
+            log.error("保存 playerPack 失败 playerId={}", playerId, e);
+        } finally {
+            redisLock.unlock(key);
         }
         return null;
     }
 
     public PlayerPack doSave(long playerId, DataSaveCallback<PlayerPack> cbk) {
         String key = getLockKey(playerId);
-        for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
-            if (redisLock.lock(key)) {
-                try {
-                    PlayerPack playerPack = redisGet(playerId);
-                    // 找不到的玩家或者机器人玩家不保存数据
-                    if (playerPack == null) {
-                        return null;
-                    }
-                    //如果执行失败
-                    cbk.updateData(playerPack);
-                    redisSave(playerPack);
-                    return playerPack;
-                } catch (Exception e) {
-                    log.warn("保存 playerPack 失败 playerId={}", playerId, e);
-                } finally {
-                    redisLock.unlock(key);
-                }
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            PlayerPack playerPack = redisGet(playerId);
+            // 找不到的玩家或者机器人玩家不保存数据
+            if (playerPack == null) {
+                return null;
             }
-
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                log.warn("保存 playerPack 数据失败出现异常44,playerId = " + playerId, e);
-            }
+            //如果执行失败
+            cbk.updateData(playerPack);
+            redisSave(playerPack);
+            return playerPack;
+        } catch (Exception e) {
+            log.warn("保存 playerPack 失败 playerId={}", playerId, e);
+        } finally {
+            redisLock.unlock(key);
         }
         return null;
     }

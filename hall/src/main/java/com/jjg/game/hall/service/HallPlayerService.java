@@ -41,35 +41,26 @@ public class HallPlayerService extends AbstractPlayerService {
     public CommonResult<Player> loginAndNewOrSave(long playerId, DataSaveCallback<Player> cbk) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
-        for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
-            if (redisLock.lock(key)) {
-                try {
-                    Player player = getFromAllDB(playerId);
-                    if (player == null) {
-                        player = new Player();
-                        player.setId(playerId);
-                        cbk.updateData(player);
-                    } else {
-                        cbk.updateData(player);
-                    }
-                    //记录登录时间
-                    playerLoginTimeDao.add(playerId, System.currentTimeMillis());
-                    redisTemplate.opsForHash().put(tableName, playerId, player);
-                    result.code = Code.SUCCESS;
-                    result.data = player;
-                    return result;
-                } catch (Exception e) {
-                    log.warn("创建或保存对象异常1 playerId={}", playerId, e);
-                } finally {
-                    redisLock.unlock(key);
-                }
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            Player player = getFromAllDB(playerId);
+            if (player == null) {
+                player = new Player();
+                player.setId(playerId);
+                cbk.updateData(player);
+            } else {
+                cbk.updateData(player);
             }
-
-            try {
-                Thread.sleep(30);
-            } catch (InterruptedException e) {
-                log.warn("创建或保存对象异常2 playerId={}", playerId, e);
-            }
+            //记录登录时间
+            playerLoginTimeDao.add(playerId, System.currentTimeMillis());
+            redisTemplate.opsForHash().put(tableName, playerId, player);
+            result.code = Code.SUCCESS;
+            result.data = player;
+            return result;
+        } catch (Exception e) {
+            log.warn("创建或保存对象异常 playerId={}", playerId, e);
+        } finally {
+            redisLock.unlock(key);
         }
         return result;
     }

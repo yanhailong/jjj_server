@@ -5,9 +5,8 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.data.DataSaveCallback;
-import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.RedisLock;
+import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.constant.GameConstant;
@@ -71,33 +70,20 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     }
 
     public T nodeCreate(int gameType, int roomCfgId, int maxLimit, String nodeName) {
+        String lockKey = getNodeCreateRoomName(gameType);
+        // 最大等待3分钟
+        redisLock.lock(lockKey, TimeHelper.ONE_DAY_OF_MILES * 3);
         try {
             T room = fillBaseRoomData(nodeName, gameType, maxLimit);
             room.setRoomCfgId(roomCfgId);
-
-            String lockKey = getNodeCreateRoomName(gameType);
-            for (int i = 0; i < CoreConst.Common.REDIS_TRY_COUNT; i++) {
-                if (redisLock.lock(lockKey)) {
-                    try {
-                        T temp = createRoom(room);
-                        if (temp != null) {
-                            return temp;
-                        }
-                    } catch (Exception e) {
-                        log.warn("系统创建房间出现异常,gameType = {},", gameType, e);
-                    } finally {
-                        redisLock.unlock(lockKey);
-                    }
-                }
-                try {
-                    Thread.sleep(20);
-                } catch (InterruptedException e) {
-                    log.warn("保存房间出现异常,gameType = {}", gameType, e);
-                }
-
+            T temp = createRoom(room);
+            if (temp != null) {
+                return temp;
             }
         } catch (Exception e) {
-            log.error("", e);
+            log.error("系统创建房间出现异常,gameType = {},", gameType, e);
+        } finally {
+            redisLock.unlock(lockKey);
         }
         return null;
     }
@@ -187,29 +173,21 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     public CommonResult<? extends Room> doSave(int gameType, long roomId, DataSaveCallback<Room> roomCallback) {
         CommonResult<Room> result = new CommonResult<>(Code.SUCCESS);
         String key = getLockName(gameType, roomId);
-        for (int i = 0; i < CoreConst.Common.REDIS_TRY_COUNT; i++) {
-            if (redisLock.lock(key)) {
-                try {
-                    T room = getRoom(gameType, roomId);
-                    Boolean updateDataWithRes = roomCallback.updateDataWithRes(room);
-                    if (updateDataWithRes != null && updateDataWithRes) {
-                        saveRoom(room);
-                        result.data = room;
-                    } else {
-                        result.code = Code.ERROR_REQ;
-                    }
-                    return result;
-                } catch (Exception e) {
-                    log.warn("保存房间出现异常,gameType = {},roomId = {}", gameType, roomId, e);
-                } finally {
-                    redisLock.unlock(key);
-                }
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            T room = getRoom(gameType, roomId);
+            Boolean updateDataWithRes = roomCallback.updateDataWithRes(room);
+            if (updateDataWithRes != null && updateDataWithRes) {
+                saveRoom(room);
+                result.data = room;
+            } else {
+                result.code = Code.ERROR_REQ;
             }
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                log.warn("保存房间出现异常2,gameType = {},roomId = {}", gameType, roomId, e);
-            }
+            return result;
+        } catch (Exception e) {
+            log.warn("保存房间出现异常,gameType = {},roomId = {}", gameType, roomId, e);
+        } finally {
+            redisLock.unlock(key);
         }
         result.code = Code.FAIL;
         return result;
@@ -227,52 +205,36 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
      */
     public Long removeRoom(int gameType, long roomId, int wareId) {
         String key = getLockName(gameType, roomId);
-        for (int i = 0; i < CoreConst.Common.REDIS_TRY_COUNT; i++) {
-            if (redisLock.lock(key)) {
-                try {
-                    T room = getRoom(gameType, roomId);
-                    if (room != null) {
-                        return redisTemplate.opsForHash().delete(getTableName(gameType), roomId);
-                    }
-                    return null;
-                } catch (Exception e) {
-                    log.warn("清除房间出现异常,gameType = {},roomId = {}", gameType, roomId, e);
-                } finally {
-                    redisLock.unlock(key);
-                }
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            T room = getRoom(gameType, roomId);
+            if (room != null) {
+                return redisTemplate.opsForHash().delete(getTableName(gameType), roomId);
             }
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                log.warn("清除房间出现异常,gameType = {},roomId = {}", gameType, roomId, e);
-            }
+            return null;
+        } catch (Exception e) {
+            log.warn("清除房间出现异常,gameType = {},roomId = {}", gameType, roomId, e);
+        } finally {
+            redisLock.unlock(key);
         }
         return null;
     }
 
     public T removePlayer(int gameType, long roomId, long playerId) {
         String key = getLockName(gameType, roomId);
-        for (int i = 0; i < CoreConst.Common.REDIS_TRY_COUNT; i++) {
-            if (redisLock.lock(key)) {
-                try {
-                    T room = getRoom(gameType, roomId);
-                    if (room != null) {
-                        room.exit(playerId);
-                        saveRoom(room);
-                        return room;
-                    }
-                    return null;
-                } catch (Exception e) {
-                    log.warn("从房间移除玩家数据异常,gameType = {},roomId = {},playerId = {}", gameType, roomId, playerId, e);
-                } finally {
-                    redisLock.unlock(key);
-                }
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            T room = getRoom(gameType, roomId);
+            if (room != null) {
+                room.exit(playerId);
+                saveRoom(room);
+                return room;
             }
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                log.warn("从房间移除玩家数据异常2,gameType = {},roomId = {},playerId = {}", gameType, roomId, playerId, e);
-            }
+            return null;
+        } catch (Exception e) {
+            log.warn("从房间移除玩家数据异常,gameType = {},roomId = {},playerId = {}", gameType, roomId, playerId, e);
+        } finally {
+            redisLock.unlock(key);
         }
         return null;
     }
@@ -282,29 +244,20 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
      */
     public T removePlayers(int gameType, long roomId, List<Long> playerIds) {
         String key = getLockName(gameType, roomId);
-        for (int i = 0; i < CoreConst.Common.REDIS_TRY_COUNT; i++) {
-            if (redisLock.lock(key)) {
-                try {
-                    T room = getRoom(gameType, roomId);
-                    if (room != null) {
-                        room.exitPlayers(playerIds);
-                        saveRoom(room);
-                        return room;
-                    }
-                    return null;
-                } catch (Exception e) {
-                    log.warn("从房间移除玩家数据异常,gameType = {},roomId = {},playerId = {}",
-                        gameType, roomId, playerIds.stream().map(String::valueOf).collect(Collectors.joining(",")), e);
-                } finally {
-                    redisLock.unlock(key);
-                }
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            T room = getRoom(gameType, roomId);
+            if (room != null) {
+                room.exitPlayers(playerIds);
+                saveRoom(room);
+                return room;
             }
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                log.warn("从房间移除玩家数据异常2,gameType = {},roomId = {},playerId = {}",
-                    gameType, roomId, playerIds.stream().map(String::valueOf).collect(Collectors.joining(",")), e);
-            }
+            return null;
+        } catch (Exception e) {
+            log.warn("从房间移除玩家数据异常,gameType = {},roomId = {},playerId = {}",
+                gameType, roomId, playerIds.stream().map(String::valueOf).collect(Collectors.joining(",")), e);
+        } finally {
+            redisLock.unlock(key);
         }
         return null;
     }
