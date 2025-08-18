@@ -173,22 +173,31 @@ public class MailService {
 
     /**
      * 批量保存邮件
-     * @param mails
+     * @param playerIds
+     * @param title
+     * @param content
+     * @param items
      */
-    public void addMails(List<Mail> mails) {
-        int expireTime = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.DEFAULT_MAIL_VALID_TIME).getIntValue();
-        mails.forEach(mail -> {mail.setTimeout(mail.getSendTime() + expireTime);});
+    public void addMails(List<Long> playerIds,String title,String content,List<Item> items){
+        List<Mail> mails = new ArrayList<>();
+        Mail mail = createMail(title,content,items,false);
+        for(long playerId : playerIds){
+            mail.setId(IdUtil.getSnowflakeNextId());
+            mail.setPlayerId(playerId);
+            mails.add(mail);
+        }
         long saveCount = mailDao.batchSaveMails(mails);
         log.debug("批量保存邮件数量 mails.size = {}",saveCount);
     }
 
     /**
      * 添加全服邮件
-     * @param mail
+     * @param title
+     * @param content
+     * @param items
      */
-    public void addAllServerMail(Mail mail) {
-        int expireTime = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.DEFAULT_MAIL_VALID_TIME).getIntValue();
-        mail.setTimeout(mail.getSendTime() + expireTime);
+    public void addAllServerMail(String title,String content,List<Item> items) {
+        Mail mail = createMail(title, content, items, true);
         mailDao.saveServerMail(mail);
     }
 
@@ -241,5 +250,30 @@ public class MailService {
             long count = mailDao.batchSaveMails(getMails);
             log.info("玩家接收全服邮件成功 playerId = {},count = {}",playerId,count);
         }
+    }
+
+    /**
+     * 创建mail对象
+     * @param title
+     * @param content
+     * @param items
+     * @param serverMail
+     * @return
+     */
+    private Mail createMail(String title,String content,List<Item> items,boolean serverMail) {
+        Mail mail = new Mail();
+        mail.setId(IdUtil.getSnowflakeNextId());
+        mail.setTitle(title);
+        mail.setContent(content);
+        mail.setServerMail(serverMail);
+
+        int sendTime = TimeHelper.nowInt();
+        mail.setSendTime(sendTime);
+
+        mail.setItems(items);
+
+        int expireTime = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.DEFAULT_MAIL_VALID_TIME).getIntValue();
+        mail.setTimeout(mail.getSendTime() + expireTime);
+        return mail;
     }
 }

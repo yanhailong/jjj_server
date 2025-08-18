@@ -1,6 +1,5 @@
 package com.jjg.game.gm.controller;
 
-import cn.hutool.core.util.IdUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
@@ -15,19 +14,19 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.MarqueeDao;
 import com.jjg.game.core.data.GameStatus;
 import com.jjg.game.core.data.Item;
-import com.jjg.game.core.data.Mail;
 import com.jjg.game.core.data.Marquee;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
+import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.core.service.MailService;
-import com.jjg.game.gm.dto.GameStatusDto;
-import com.jjg.game.gm.dto.MailDto;
-import com.jjg.game.gm.dto.MarqueeDto;
-import com.jjg.game.gm.dto.StopMarqueeDto;
+import com.jjg.game.gm.dto.*;
 import com.jjg.game.gm.vo.WebResult;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ItemCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,6 +35,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -56,6 +57,8 @@ public class GMController extends AbstractController {
     private CoreMarqueeManager marqueeManager;
     @Autowired
     private MailService mailService;
+    @Autowired
+    private CorePlayerService playerService;
 
     //邮件中的道具string，需要用正则匹配
     private Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)\\]");
@@ -202,6 +205,34 @@ public class GMController extends AbstractController {
     }
 
     /**
+     * 查询玩家信息
+     * @param dto
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.QUERY_ACCOUNT)
+    public WebResult<Player> queryAccount(@RequestBody QueryAccountDto dto) {
+        try{
+            log.info("收到后台查询玩家信息请求 playerId = {}", dto.playerId());
+            if(dto.playerId() < 1){
+                log.debug("玩家id不能小于1，查询玩家信息失败 playerId = {}", dto.playerId());
+                return fail("common.paramerror");
+            }
+
+            Player p = playerService.getFromAllDB(dto.playerId());
+            if(p == null){
+                log.debug("未找到该玩家信息 playerId = {}", dto.playerId());
+                return fail("common.paramerror");
+            }
+
+            //返回修改结果
+            return success(p);
+        }catch (Exception e){
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
      * 邮件
      * @param dto
      * @return
@@ -220,18 +251,35 @@ public class GMController extends AbstractController {
                 return fail("mail.contentnull");
             }
 
+            List<Item> mailItems = null;
+            //解析邮件中的道具
+            if(StringUtils.isNotEmpty(dto.items())){
+                mailItems =  mailItemsPattern.matcher(dto.items())
+                        .results()
+                        .map(match -> new Item(
+                                Integer.parseInt(match.group(1)),
+                                Long.parseLong(match.group(2))
+                        ))
+                        .collect(Collectors.toList());
+
+                for(Item item : mailItems){
+                    ItemCfg itemCfg = GameDataManager.getItemCfg(item.getId());
+                    if(itemCfg == null){
+                        log.warn("邮件中的道具，未在配置表中找到 id = {},count = {}", item.getId(),item.getCount());
+                        return fail("mail.paramerror");
+                    }
+                }
+            }
+
             if(StringUtils.isEmpty(dto.designated())){  //为空表示全服邮件
-                Mail mail = createMail(dto);
-                mailService.addAllServerMail(mail);
+                mailService.addAllServerMail(dto.title(), dto.content(), mailItems);
             }else {
-                List<Mail> list = new ArrayList<>();
+                List<Long> playerIds = new ArrayList<>();
                 String[] arr = dto.designated().split(",");
                 for(String str : arr) {
-                    Mail mail = createMail(dto);
-                    mail.setPlayerId(Long.parseLong(str));
-                    list.add(mail);
+                    playerIds.add(Long.parseLong(str));
                 }
-                mailService.addMails(list);
+                mailService.addMails(playerIds, dto.title(), dto.content(), mailItems);
             }
 
             //返回修改结果
@@ -240,33 +288,5 @@ public class GMController extends AbstractController {
             log.error("", e);
             return fail("common.exception");
         }
-    }
-
-    /**
-     * 创建邮件对象
-     * @param dto
-     * @return
-     */
-    private Mail createMail(MailDto dto) {
-        Mail mail = new Mail();
-        mail.setId(IdUtil.getSnowflakeNextId());
-        mail.setTitle(dto.title());
-        mail.setContent(dto.content());
-
-        int sendTime = TimeHelper.nowInt();
-        mail.setSendTime(sendTime);
-
-        if(StringUtils.isNotEmpty(dto.items())){
-            List<Item> items = mailItemsPattern.matcher(dto.items())
-                    .results()
-                    .map(match -> new Item(
-                            Integer.parseInt(match.group(1)),
-                            Long.parseLong(match.group(2))
-                    ))
-                    .collect(Collectors.toList());
-
-            mail.setItems(items);
-        }
-        return mail;
     }
 }

@@ -3,7 +3,6 @@ package com.jjg.game.hall.service;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.dao.PlayerDao;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -13,16 +12,13 @@ import com.jjg.game.core.service.PlayerSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 /**
  * @author 11
  * @date 2025/5/26 16:49
  */
 @Service
 public class HallPlayerService extends AbstractPlayerService {
-    @Autowired
-    private PlayerDao playerDao;
+
     @Autowired
     private PlayerLastGameInfoDao playerLastGameInfoDao;
     @Autowired
@@ -63,24 +59,6 @@ public class HallPlayerService extends AbstractPlayerService {
             redisLock.unlock(key);
         }
         return result;
-    }
-
-    /**
-     * 查询player对象
-     * 先查询redis
-     * 再查询mongodb
-     *
-     * @param playerId
-     * @return
-     */
-    public Player getFromAllDB(long playerId) {
-        Player player = super.get(playerId);
-        if (player != null) {
-            return player;
-        }
-
-        Optional<Player> optional = playerDao.findById(playerId);
-        return optional.orElse(null);
     }
 
     /**
