@@ -15,7 +15,7 @@ import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
     messageType = MessageConst.MessageTypeDef.HALL_TYPE,
     cmd = FriendRoomMessageConstant.ReqMsgCons.REQ_FRIEND_ROOM_LIST
 )
-@ProtoDesc("请求关注好友的房间详细数据")
+@ProtoDesc("请求关注好友的房间列表数据")
 public class ReqFollowedFriendRoomList extends AbstractMessage {
 
     @ProtoDesc("玩家ID")
