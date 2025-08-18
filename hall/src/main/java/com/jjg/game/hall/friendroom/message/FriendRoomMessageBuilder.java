@@ -4,7 +4,6 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.Player;
-import com.jjg.game.hall.friendroom.message.res.NotifyFriendRoomPanelData;
 import com.jjg.game.hall.friendroom.message.struct.BaseFriendRoomPlayerInfo;
 import com.jjg.game.hall.friendroom.message.struct.FriendRoomBaseData;
 import com.jjg.game.hall.utils.HallDataUtils;
@@ -51,7 +50,7 @@ public class FriendRoomMessageBuilder {
         friendRoomBaseData.predictCostGoldNum = friendRoom.getPredictCostGoldNum();
         GlobalConfigCfg globalConfigCfg =
             GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.FRIEND_ROOM_OPERATE_INTERVAL);
-        int intervalTime = globalConfigCfg.getIntValue() * TimeHelper.ONE_MINUTE_OF_MILES;
+        int intervalTime = globalConfigCfg.getIntValue() * TimeHelper.ONE_MINUTE_OF_MILLIS;
         long curTime = System.currentTimeMillis();
         friendRoomBaseData.nextPauseBtnOverdueTime =
             friendRoom.getPauseTime() + intervalTime > curTime ? friendRoom.getPauseTime() + intervalTime : 0;

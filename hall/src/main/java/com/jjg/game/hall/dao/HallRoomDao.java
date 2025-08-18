@@ -47,7 +47,7 @@ public class HallRoomDao extends AbstractRoomDao<Room, RoomPlayer> {
             FriendRoom friendRoom = fillFriendRoomData(gameType, nodePath, maxLimit);
             friendRoom.setRoomCfgId(roomCfgId);
             friendRoom.setAliasName(req.roomAliasName);
-            long timeOfOpenRoom = (long) req.timeOfOpenRoom * TimeHelper.ONE_MINUTE_OF_MILES;
+            long timeOfOpenRoom = (long) req.timeOfOpenRoom * TimeHelper.ONE_MINUTE_OF_MILLIS;
             friendRoom.setOverdueTime(timeOfOpenRoom + curTime);
             friendRoom.setAutoRenewal(req.autoRenewal);
             friendRoom.setPredictCostGoldNum(req.predictCostGoldNum);

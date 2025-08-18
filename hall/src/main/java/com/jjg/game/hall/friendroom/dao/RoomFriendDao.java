@@ -27,7 +27,7 @@ public class RoomFriendDao extends MongoBaseDao<FriendRoomFollowBean, Long> {
     // 最大的code
     private static final int MAX_CODE = 9999_9999;
     // code掩码
-    private static final int CODE_MASK = MAX_CODE - TimeHelper.ONE_DAY_OF_MILES;
+    private static final int CODE_MASK = MAX_CODE - TimeHelper.ONE_DAY_OF_MILLIS;
 
     public RoomFriendDao(@Autowired MongoTemplate mongoTemplate) {
         super(FriendRoomFollowBean.class, mongoTemplate);

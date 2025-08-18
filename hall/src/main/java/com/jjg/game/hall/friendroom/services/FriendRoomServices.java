@@ -8,6 +8,7 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.IllegalNameCheckService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.dao.HallRoomDao;
+import com.jjg.game.hall.friendroom.dao.FriendRoomInvitationCodeDao;
 import com.jjg.game.hall.friendroom.dao.RoomFriendDao;
 import com.jjg.game.hall.friendroom.data.FriendRoomFollowBean;
 import com.jjg.game.hall.friendroom.message.FriendRoomMessageBuilder;
@@ -43,6 +44,8 @@ public class FriendRoomServices {
     private HallRoomDao hallRoomDao;
     @Autowired
     private CorePlayerService corePlayerService;
+    @Autowired
+    private FriendRoomInvitationCodeDao friendRoomInvitationCodeDao;
 
     /**
      * 创建好友房
@@ -180,5 +183,9 @@ public class FriendRoomServices {
             }).mapToInt(a -> a).sum();
         notifyFriendRoomPanelData.maxPlayerNumOnTable =
             GameDataManager.getPlayerLevelConfigCfg(player.getLevel()).getRoomNum();
+        notifyFriendRoomPanelData.invitationCodeResetRemainingTimes =
+            friendRoomInvitationCodeDao.getUseTimes(player.getId());
+        // 发送数据
+        playerController.send(notifyFriendRoomPanelData);
     }
 }

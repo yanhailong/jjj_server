@@ -21,10 +21,10 @@ public final class TimeHelper {
     /**
      * 时间转换成毫秒数
      */
-    public static final int ONE_SECOND_OF_MILES_OF_MILES = 1000,
-        ONE_MINUTE_OF_MILES = 60 * ONE_SECOND_OF_MILES_OF_MILES,
-        ONE_HOUR_OF_MILES = 60 * ONE_MINUTE_OF_MILES,
-        ONE_DAY_OF_MILES = 24 * ONE_HOUR_OF_MILES;
+    public static final int ONE_SECOND_OF_MILES_OF_MILLIS = 1000,
+        ONE_MINUTE_OF_MILLIS = 60 * ONE_SECOND_OF_MILES_OF_MILLIS,
+        ONE_HOUR_OF_MILLIS = 60 * ONE_MINUTE_OF_MILLIS,
+        ONE_DAY_OF_MILLIS = 24 * ONE_HOUR_OF_MILLIS;
 
     /**
      * 一小时的秒数
@@ -99,7 +99,7 @@ public final class TimeHelper {
      */
     public static DateFormat getDateFormat() {
         DateFormat LocaleDateFormat = new SimpleDateFormat(dateFormat,
-                new DateFormatSymbols());
+            new DateFormatSymbols());
         LocaleDateFormat.setTimeZone(TimeZone.getDefault());
         return LocaleDateFormat;
     }
@@ -273,6 +273,14 @@ public final class TimeHelper {
             new DateFormatSymbols());
         sdf.setTimeZone(TimeZone.getTimeZone(timeZone));
         return sdf.format(date);
+    }
+
+    /**
+     * 获取当天的数字表示, 20201221
+     */
+    public static int getDayNumerical() {
+        String dayStr = getDate(System.currentTimeMillis(), "yyyyMMdd");
+        return Integer.parseInt(dayStr);
     }
 
     /**
