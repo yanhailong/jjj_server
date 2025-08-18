@@ -18,6 +18,10 @@ public abstract class AbstractController {
         return new WebResult<T>(Code.SUCCESS,data);
     }
 
+    protected <T> WebResult<T> success(String msg){
+        return new WebResult<T>(Code.SUCCESS,msg);
+    }
+
     protected <T> WebResult<T> fail(int code){
         return new WebResult<T>(code);
     }

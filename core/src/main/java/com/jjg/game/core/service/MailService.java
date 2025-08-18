@@ -178,6 +178,8 @@ public class MailService {
      * @param mails
      */
     public void addMails(List<Mail> mails) {
+        int expireTime = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.DEFAULT_MAIL_VALID_TIME).getIntValue();
+        mails.forEach(mail -> {mail.setTimeout(mail.getSendTime() + expireTime);});
         long saveCount = mailDao.batchSaveMails(mails);
         log.debug("批量保存邮件数量 mails.size = {}",saveCount);
     }
@@ -187,6 +189,8 @@ public class MailService {
      * @param mail
      */
     public void addAllServerMail(Mail mail) {
+        int expireTime = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.DEFAULT_MAIL_VALID_TIME).getIntValue();
+        mail.setTimeout(mail.getSendTime() + expireTime);
         mailDao.saveServerMail(mail);
     }
 

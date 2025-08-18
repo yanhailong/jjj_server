@@ -1,15 +1,12 @@
 package com.jjg.game.gm.util;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.codec.digest.Md5Crypt;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
-import org.springframework.stereotype.Component;
 
 import javax.crypto.Cipher;
 import java.nio.charset.StandardCharsets;
@@ -105,7 +102,7 @@ public class CryptoUtils {
             if (Objects.nonNull(value)) {
                 builder.append(key)
                         .append("=")
-                        .append(value);
+                        .append(value.toString().trim());
                 if (!key.equals(keyList.get(keyList.size() - 1))) {
                     builder.append("&");
                 }
