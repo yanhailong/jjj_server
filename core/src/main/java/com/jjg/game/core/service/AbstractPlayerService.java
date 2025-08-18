@@ -1,7 +1,7 @@
 package com.jjg.game.core.service;
 
 import com.jjg.game.common.data.DataSaveCallback;
-import com.jjg.game.core.RedisLock;
+import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerDao;

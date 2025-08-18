@@ -1,4 +1,4 @@
-package com.jjg.game.hall.pb.req;
+package com.jjg.game.hall.casino.pb.req;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;

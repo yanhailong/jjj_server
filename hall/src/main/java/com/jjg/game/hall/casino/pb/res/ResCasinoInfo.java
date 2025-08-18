@@ -1,4 +1,4 @@
-package com.jjg.game.hall.pb.res;
+package com.jjg.game.hall.casino.pb.res;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
@@ -6,7 +6,8 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.hall.constant.HallConstant;
-import com.jjg.game.hall.pb.struct.CasinoFloorInfo;
+import com.jjg.game.hall.casino.pb.bean.CasinoFloorInfo;
+import com.jjg.game.hall.pb.struct.ItemInfo;
 
 import java.util.List;
 
@@ -21,6 +22,8 @@ public class ResCasinoInfo extends AbstractResponse {
     public int casinoId;
     @ProtoDesc("一键领取结束时间")
     public long claimAllRewardsEndTime;
+    @ProtoDesc("一键领取购买消耗")
+    public ItemInfo itemInfo;
     @ProtoDesc("楼层信息")
     public List<CasinoFloorInfo> casinoFloorInfos;
 

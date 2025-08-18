@@ -1,8 +1,8 @@
-package com.jjg.game.hall.pb.struct;
+package com.jjg.game.hall.casino.pb.bean;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.hall.pb.ItemInfo;
+import com.jjg.game.hall.pb.struct.ItemInfo;
 
 /**
  * @author lm
@@ -13,6 +13,8 @@ import com.jjg.game.hall.pb.ItemInfo;
 public class CasinoMachineInfo {
     @ProtoDesc("机台id")
     public long machineId;
+    @ProtoDesc("机台状态")
+    public int state;
     @ProtoDesc("BuildingFunction配置表id")
     public int configId;
     @ProtoDesc("雇员配置表id")
