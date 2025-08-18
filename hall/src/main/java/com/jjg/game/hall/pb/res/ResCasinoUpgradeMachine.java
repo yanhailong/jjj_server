@@ -6,7 +6,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.hall.constant.HallConstant;
-import com.jjg.game.hall.pb.ItemInfo;
+import com.jjg.game.hall.pb.struct.ItemInfo;
 
 /**
  * @author lm

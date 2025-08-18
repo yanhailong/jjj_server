@@ -72,7 +72,7 @@ public class PlayerPack {
             List<Integer> indexes = itemIndexMap.get(id);
             for (int index : indexes) {
                 Item item = items.get(index);
-                if (maxNum == GameConstant.Item.PROP_MAX) {
+                if (maxNum < 0) {
                     maxNum = Integer.MAX_VALUE;
                 }
                 if (item.getCount() >= maxNum) { // 该格子道具已满

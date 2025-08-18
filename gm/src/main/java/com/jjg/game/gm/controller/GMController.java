@@ -135,7 +135,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            if(StringUtils.isEmpty(dto.content()) || dto.showTime() < 0 || dto.interval_time() < 1 || dto.priority() < 0 ||
+            if(StringUtils.isEmpty(dto.content()) || dto.showTime() < 0 || dto.interval_time() < 0 || dto.priority() < 0 ||
                     StringUtils.isEmpty(dto.start_time()) || StringUtils.isEmpty(dto.end_time())){
                 log.debug("从后台收到的跑马灯参数错误");
                 return fail("common.paramerror");
@@ -266,7 +266,7 @@ public class GMController extends AbstractController {
                     ItemCfg itemCfg = GameDataManager.getItemCfg(item.getId());
                     if(itemCfg == null){
                         log.warn("邮件中的道具，未在配置表中找到 id = {},count = {}", item.getId(),item.getCount());
-                        return fail("mail.paramerror");
+                        return fail("mail.itemerror");
                     }
                 }
             }

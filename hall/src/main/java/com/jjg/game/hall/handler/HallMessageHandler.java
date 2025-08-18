@@ -307,6 +307,7 @@ public class HallMessageHandler implements GmListener {
     public void reqConfirmVerCode(PlayerController playerController, ReqConfirmVerCode req) {
         ResConfirmVerCode res = new ResConfirmVerCode(HallCode.SUCCESS);
         try {
+            log.debug("确认验证码 req = {}", JSON.toJSONString(req));
             CommonResult<String> result = hallService.comfirmVerCode(playerController.playerId(), req.verCodeType, req.verCode);
             if(!result.success()) {
                 res.code = result.code;
