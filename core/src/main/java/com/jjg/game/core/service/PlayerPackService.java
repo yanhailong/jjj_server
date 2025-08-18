@@ -6,6 +6,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerPackDao;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.logger.CoreLogger;
@@ -55,10 +56,10 @@ public class PlayerPackService {
      *
      * @param playerId
      * @param playerId
-     * @param addItemMap  itemId -> count
+     * @param addItemMap itemId -> count
      * @return
      */
-    public CommonResult<PlayerPack> addItems(long playerId, Map<Integer,Long> addItemMap,String addType) {
+    public CommonResult<PlayerPack> addItems(long playerId, Map<Integer, Long> addItemMap, String addType) {
         CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
         for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
@@ -69,7 +70,7 @@ public class PlayerPackService {
                         playerPack = new PlayerPack();
                     }
 
-                    for(Map.Entry<Integer,Long> en : addItemMap.entrySet()){
+                    for (Map.Entry<Integer, Long> en : addItemMap.entrySet()) {
                         int itemId = en.getKey();
                         ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
                         playerPack.addItem(itemId, en.getValue(), itemCfg.getProp());
@@ -93,8 +94,8 @@ public class PlayerPackService {
             }
         }
 
-        if(result.success()){
-            coreLogger.addItems(playerId,addItemMap,addType);
+        if (result.success()) {
+            coreLogger.addItems(playerId, addItemMap, addType);
         }
         return result;
     }
@@ -107,7 +108,7 @@ public class PlayerPackService {
      * @param count
      * @return
      */
-    public CommonResult<PlayerPack> addItem(long playerId, int id, long count,String addType) {
+    public CommonResult<PlayerPack> addItem(long playerId, int id, long count, String addType) {
         CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
         int max = GameDataManager.getItemCfg(id).getProp();
@@ -140,21 +141,32 @@ public class PlayerPackService {
 
         }
 
-        if(result.success()){
-            coreLogger.addItem(playerId,id,count,addType);
+        if (result.success()) {
+            coreLogger.addItem(playerId, id, count, addType);
         }
         return result;
     }
 
     /**
-     * 添加道具
+     * 移除道具
+     *
+     * @param playerId 玩家id
+     * @param remove   删除的道具
+     * @return 背包数据
+     */
+    public CommonResult<PlayerPack> removeItem(long playerId, Item remove) {
+        return removeItem(playerId, remove.getId(), remove.getCount());
+    }
+
+    /**
+     * 移除道具
      *
      * @param playerId
      * @param id
      * @param count
      * @return
      */
-    public CommonResult<PlayerPack> removeItem(long playerId, int id, int count) {
+    public CommonResult<PlayerPack> removeItem(long playerId, int id, long count) {
         CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
         for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
@@ -202,7 +214,7 @@ public class PlayerPackService {
      * @param addItemCount
      * @return
      */
-    public CommonResult<PlayerPack> useItem(long playerId, int useItemId, int addItemId, long addItemCount,String addType) {
+    public CommonResult<PlayerPack> useItem(long playerId, int useItemId, int addItemId, long addItemCount, String addType) {
         CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
 
@@ -230,16 +242,16 @@ public class PlayerPackService {
                     //根据不同道具做不同处理
                     if (addItemId == GameConstant.Item.ID_GOLD) {
                         CommonResult<Player> addResult = corePlayerService.addGold(playerId, addItemCount, useItemAddType, useItemId + "");
-                        if(!addResult.success()) {
+                        if (!addResult.success()) {
                             //如果添加失败，要将道具添加回去
-                            playerPack.addItem(useItemId,useCount,useItemPropMax);
+                            playerPack.addItem(useItemId, useCount, useItemPropMax);
                             break;
                         }
                     } else if (addItemId == GameConstant.Item.ID_DIAMOND) {
                         CommonResult<Player> addResult = corePlayerService.addDiamond(playerId, addItemCount, useItemAddType, useItemId + "");
-                        if(!addResult.success()) {
+                        if (!addResult.success()) {
                             //如果添加失败，要将道具添加回去
-                            playerPack.addItem(useItemId,useCount,useItemPropMax);
+                            playerPack.addItem(useItemId, useCount, useItemPropMax);
                             break;
                         }
                     } else {
@@ -264,8 +276,8 @@ public class PlayerPackService {
             }
         }
 
-        if(result.success()){
-            coreLogger.useItem(playerId,useItemId,1,addType);
+        if (result.success()) {
+            coreLogger.useItem(playerId, useItemId, 1, addType);
         }
         return result;
     }
