@@ -142,5 +142,13 @@ public interface HallConstant {
         //请求雇佣职员
         int REQ_CASINO_EMPLOY_STAFF = BASE_MSG_PREFIX | 0X33;
         int RES_CASINO_EMPLOY_STAFF = BASE_MSG_PREFIX | 0X34;
+
+        //保险箱转移金币
+        int REQ_TRANS_SAFE_BOX_GOLD = BASE_MSG_PREFIX | 0x35;
+        int RES_TRANS_SAFE_BOX_GOLD = BASE_MSG_PREFIX | 0x36;
+
+        //保险箱转移钻石
+        int REQ_TRANS_SAFE_BOX_DIAMOND = BASE_MSG_PREFIX | 0x37;
+        int RES_TRANS_SAFE_BOX_DIAMOND = BASE_MSG_PREFIX | 0x38;
     }
 }

@@ -10,10 +10,6 @@ public interface BackendGMCmd {
     String SNED_MARQUEE = "sendMarquee";
     //停止跑马灯
     String STOP_MARQUEE = "stopMarquee";
-    //发送公告
-    String SEND_ANNOUNCEMENT = "sendAnnouncement";
-    //删除公告
-    String DEL_ANNOUNCEMENT = "delAnnouncement";
     //查询账户
     String QUERY_ACCOUNT = "queryAccount";
     //金币gm
