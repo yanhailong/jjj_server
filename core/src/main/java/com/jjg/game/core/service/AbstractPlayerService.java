@@ -1,7 +1,7 @@
 package com.jjg.game.core.service;
 
 import com.jjg.game.common.data.DataSaveCallback;
-import com.jjg.game.core.RedisLock;
+import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerLoginTimeDao;
@@ -43,66 +43,46 @@ public class AbstractPlayerService {
 
     public Player checkAndSave(long playerId, DataSaveCallback<Player> cbk) {
         String key = getLockKey(playerId);
-        for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
-            if (redisLock.lock(key)) {
-                try {
-                    Player player = get(playerId);
-                    if (player == null || player instanceof RobotPlayer) {
-                        return null;
-                    }
-
-                    //如果执行失败
-                    if (!(boolean) cbk.updateDataWithRes(player)) {
-                        break;
-                    }
-                    player.setUpdateTime(System.currentTimeMillis());
-                    redisTemplate.opsForHash().put(tableName, playerId, player);
-                    return player;
-                } catch (Exception e) {
-                    log.error("保存player失败 playerId={}", playerId, e);
-                } finally {
-                    redisLock.unlock(key);
-                }
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            Player player = get(playerId);
+            if (player == null || player instanceof RobotPlayer) {
+                return null;
             }
 
-            try {
-                // TODO 需要阻塞的等待 30ms?如果一直拿不到redis锁，最差会将当前调用线程阻塞等待 REDIS_TRANSACTION_TRY_COUNT * 30 ms
-                Thread.sleep(30);
-            } catch (InterruptedException e) {
-                log.error("保存player数据失败出现异常,playerId = {}", playerId, e);
+            //如果执行失败
+            if (!(boolean) cbk.updateDataWithRes(player)) {
+                return null;
             }
-
+            player.setUpdateTime(System.currentTimeMillis());
+            redisTemplate.opsForHash().put(tableName, playerId, player);
+            return player;
+        } catch (Exception e) {
+            log.error("保存player失败 playerId={}", playerId, e);
+        } finally {
+            redisLock.unlock(key);
         }
         return null;
     }
 
     public Player doSave(long playerId, DataSaveCallback<Player> cbk) {
         String key = getLockKey(playerId);
-        for (int i = 0; i < GameConstant.Common.REDIS_TRANSACTION_TRY_COUNT; i++) {
-            if (redisLock.lock(key)) {
-                try {
-                    Player player = get(playerId);
-                    // 找不到的玩家或者机器人玩家不保存数据
-                    if (player == null || player instanceof RobotPlayer) {
-                        return null;
-                    }
-                    //如果执行失败
-                    cbk.updateData(player);
-                    player.setUpdateTime(System.currentTimeMillis());
-                    redisTemplate.opsForHash().put(tableName, playerId, player);
-                    return player;
-                } catch (Exception e) {
-                    log.warn("保存player失败 playerId={}", playerId, e);
-                } finally {
-                    redisLock.unlock(key);
-                }
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            Player player = get(playerId);
+            // 找不到的玩家或者机器人玩家不保存数据
+            if (player == null || player instanceof RobotPlayer) {
+                return null;
             }
-
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                log.warn("保存player数据失败出现异常44,playerId = " + playerId, e);
-            }
+            //如果执行失败
+            cbk.updateData(player);
+            player.setUpdateTime(System.currentTimeMillis());
+            redisTemplate.opsForHash().put(tableName, playerId, player);
+            return player;
+        } catch (Exception e) {
+            log.warn("保存player失败 playerId={}", playerId, e);
+        } finally {
+            redisLock.unlock(key);
         }
         return null;
     }

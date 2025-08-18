@@ -19,8 +19,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
-import static io.lettuce.core.GeoArgs.Sort.desc;
-
 /**
  * @author 11
  * @date 2025/8/11 17:41
@@ -156,7 +154,7 @@ public class MailService {
                 int id = mailItem.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(id);
                 if(itemCfg == null){
-                    log.debug("未找到该道具，领取邮件内道具失败， playerId = {},itemId = {},desc = {}",playerId,id,desc);
+                    log.debug("未找到该道具，领取邮件内道具失败， playerId = {},itemId = {}",playerId,id);
                 }else {
                     map.merge(id,mailItem.getCount(),Long::sum);
                 }

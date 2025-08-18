@@ -123,7 +123,7 @@ public class FriendRoomServices {
         if (playerPack == null && !useGold) {
             return Code.NOT_ENOUGH;
         } else if (playerPack != null) {
-            CommonResult<Integer> removeRes = playerPack.removeItem(itemId, reqCreateFriendsRoom.itemNum);
+            CommonResult<Long> removeRes = playerPack.removeItem(itemId, reqCreateFriendsRoom.itemNum);
             if (!removeRes.success()) {
                 return removeRes.code;
             }
