@@ -13,7 +13,7 @@ import com.jjg.game.hall.pb.ItemInfo;
  * @date 2025/8/18 14:37
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_CASINO_UPGRADE_MACHINE, resp = true)
-@ProtoDesc("请求机台操作")
+@ProtoDesc("响应机台升级")
 public class ResCasinoUpgradeMachine extends AbstractResponse {
     @ProtoDesc("机台id")
     public long machineId;

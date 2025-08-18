@@ -10,7 +10,8 @@ import com.jjg.game.hall.pb.struct.CasinoFloorInfo;
  * @author lm
  * @date 2025/8/18 14:41
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_CASINO_FLOOR_OPERATION)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_CASINO_FLOOR_OPERATION,resp = true)
+@ProtoDesc("响应楼层操作")
 public class ResCasinoFloorOperation {
     @ProtoDesc("赌场id")
     public int casinoId;

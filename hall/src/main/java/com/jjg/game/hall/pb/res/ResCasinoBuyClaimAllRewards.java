@@ -9,7 +9,7 @@ import com.jjg.game.hall.constant.HallConstant;
  * @author lm
  * @date 2025/8/18 14:33
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_CASINO_BUY_CLAIM_ALL_REWARDS)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_CASINO_BUY_CLAIM_ALL_REWARDS,resp = true)
 @ProtoDesc("请求购买一键领取")
 public class ResCasinoBuyClaimAllRewards {
     @ProtoDesc("赌场id")

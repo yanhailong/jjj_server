@@ -9,7 +9,8 @@ import com.jjg.game.hall.constant.HallConstant;
  * @author lm
  * @date 2025/8/18 14:51
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.REQ_CASINO_EMPLOY_STAFF)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_CASINO_EMPLOY_STAFF,resp = true)
+@ProtoDesc("响应雇佣职员")
 public class ResCasinoEmployStaff {
     @ProtoDesc("机台id")
     public long machineId;
