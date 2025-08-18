@@ -166,7 +166,7 @@ public class PlayerPackService {
                         return result;
                     }
 
-                    CommonResult<Integer> removeResult = playerPack.removeItem(id, count);
+                    CommonResult<Long> removeResult = playerPack.removeItem(id, count);
                     if (!removeResult.success()) {
                         result.code = removeResult.code;
                         return result;
@@ -221,7 +221,7 @@ public class PlayerPackService {
                     }
 
                     //移除道具
-                    CommonResult<Integer> removeResult = playerPack.removeItem(useItemId, useCount);
+                    CommonResult<Long> removeResult = playerPack.removeItem(useItemId, useCount);
                     if (!removeResult.success()) {
                         result.code = removeResult.code;
                         return result;

@@ -8,6 +8,7 @@ import java.util.*;
 
 /**
  * 玩家背包数据
+ *
  * @author 11
  * @date 2025/8/6 15:41
  */
@@ -56,12 +57,13 @@ public class PlayerPack {
 
     /**
      * 往背包中添加道具
-     * @param id 道具id
-     * @param num 道具数量
+     *
+     * @param id     道具id
+     * @param num    道具数量
      * @param maxNum 该道具最大堆叠数量
      */
-    public void addItem(int id,long num,int maxNum) {
-        if(num < 1){
+    public void addItem(int id, long num, int maxNum) {
+        if (num < 1) {
             return;
         }
 
@@ -70,10 +72,10 @@ public class PlayerPack {
             List<Integer> indexes = itemIndexMap.get(id);
             for (int index : indexes) {
                 Item item = items.get(index);
-                if(maxNum == GameConstant.Item.PROP_MAX){
+                if (maxNum == GameConstant.Item.PROP_MAX) {
                     maxNum = Integer.MAX_VALUE;
                 }
-                if(item.getCount() >= maxNum){ // 该格子道具已满
+                if (item.getCount() >= maxNum) { // 该格子道具已满
                     continue;
                 }
 
@@ -97,13 +99,13 @@ public class PlayerPack {
 
             // 计算新格子能放多少
             long addNum = Math.min(num, maxNum);
-            Item newItem = new Item(id,addNum);
+            Item newItem = new Item(id, addNum);
 
             // 放入背包
-            addItem(newIndex,newItem);
+            addItem(newIndex, newItem);
 
             // 更新索引
-            if(this.itemIndexMap == null){
+            if (this.itemIndexMap == null) {
                 this.itemIndexMap = new HashMap<>();
             }
             itemIndexMap.computeIfAbsent(id, k -> new ArrayList<>()).add(newIndex);
@@ -113,26 +115,27 @@ public class PlayerPack {
 
     /**
      * 删除道具
+     *
      * @param id
      * @param num
      * @return
      */
-    public CommonResult<Integer> removeItem(int id,int num) {
-        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
-        if(num < 1){
+    public CommonResult<Long> removeItem(int id, int num) {
+        CommonResult<Long> result = new CommonResult<>(Code.SUCCESS);
+        if (num < 1) {
             result.code = Code.PARAM_ERROR;
             return result;
         }
 
         // 检查背包中是否有足够的道具
-        int itemCount = getItemCount(id);
-        if(itemCount < num){
+        long itemCount = getItemCount(id);
+        if (itemCount < num) {
             result.code = Code.NOT_ENOUGH;
             return result;
         }
 
         List<Integer> girdList = itemIndexMap.get(id);
-        int remaining = num;
+        long remaining = num;
         // 使用迭代器安全地移除元素
         ListIterator<Integer> iterator = girdList.listIterator(girdList.size());
         while (iterator.hasPrevious() && remaining > 0) {
@@ -164,14 +167,14 @@ public class PlayerPack {
     /**
      * 获取指定道具的总数量
      */
-    public int getItemCount(int id) {
-        if(itemIndexMap == null || itemIndexMap.isEmpty()){
+    public long getItemCount(int id) {
+        if (itemIndexMap == null || itemIndexMap.isEmpty()) {
             return 0;
         }
         if (!itemIndexMap.containsKey(id)) {
             return 0;
         }
-        int total = 0;
+        long total = 0;
         for (int gird : itemIndexMap.get(id)) {
             total += items.get(gird).getCount();
         }
@@ -180,25 +183,42 @@ public class PlayerPack {
 
     /**
      * 查找可用的格子索引
+     *
      * @return 可用索引，
      */
     private int findAvailableIndex() {
-        if(this.usedGird == null || this.usedGird.isEmpty()){
+        if (this.usedGird == null || this.usedGird.isEmpty()) {
             this.usedGird = new HashSet<>();
             return 0;
         }
-        int i=0;
+        int i = 0;
         while (this.usedGird.contains(i)) {
             i++;
         }
         return i;
     }
 
-    private void addItem(int index,Item item) {
-        if(this.items == null){
+    private void addItem(int index, Item item) {
+        if (this.items == null) {
             this.items = new HashMap<>();
         }
         this.items.put(index, item);
     }
 
+
+    public boolean checkHasItems(List<Item> checkItems) {
+        if (Objects.isNull(checkItems) || checkItems.isEmpty()) {
+            return true;
+        }
+        if (itemIndexMap == null || itemIndexMap.isEmpty()) {
+            return false;
+        }
+        for (Item checkItem : checkItems) {
+            long count = getItemCount(checkItem.getId());
+            if (count < checkItem.getCount()) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
