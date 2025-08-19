@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName BuildingFunction.xlsx
  * @sheetName BuildingFunction
  * @author Auto.Generator
- * @date 2025年08月16日 15:49:31
+ * @date 2025年08月19日 11:30:38
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BuildingFunctionCfg extends BaseCfgBean {
@@ -27,6 +27,8 @@ public class BuildingFunctionCfg extends BaseCfgBean {
   protected int describe;
   /** 建筑多语言ID */
   protected int name;
+  /** 下一级建筑ID */
+  protected int nextlevelID;
   /** 基础产出/分钟 */
   protected List<Integer> output;
   /** 基础存储数量 */
@@ -36,7 +38,7 @@ public class BuildingFunctionCfg extends BaseCfgBean {
   /** 建筑类型 */
   protected int typeID;
   /** 升下一级消耗道具ID */
-  protected Map<Integer,Long> uplevel_itemid;
+  protected Map<Integer,Integer> uplevel_itemid;
   /** 升级耗时/秒 */
   protected int uptime;
 
@@ -60,6 +62,11 @@ public class BuildingFunctionCfg extends BaseCfgBean {
     return name;
   }
 
+  /** 返回下一级建筑ID */
+  public int getNextlevelID() {
+    return nextlevelID;
+  }
+
   /** 返回基础产出/分钟 */
   public List<Integer> getOutput() {
     return output;
@@ -81,7 +88,7 @@ public class BuildingFunctionCfg extends BaseCfgBean {
   }
 
   /** 返回升下一级消耗道具ID */
-  public Map<Integer,Long> getUplevel_itemid() {
+  public Map<Integer,Integer> getUplevel_itemid() {
     return uplevel_itemid;
   }
 

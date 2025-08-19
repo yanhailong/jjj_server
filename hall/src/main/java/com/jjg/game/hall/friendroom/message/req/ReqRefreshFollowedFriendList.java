@@ -16,7 +16,7 @@ import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
     cmd = FriendRoomMessageConstant.ReqMsgCons.REQ_REFRESH_ROOM_FRIEND_LIST
 )
 @ProtoDesc("请求刷新好友关注列表")
-public class RepRefreshFollowedFriendList extends AbstractMessage {
+public class ReqRefreshFollowedFriendList extends AbstractMessage {
 
     @ProtoDesc("分页下标ID，从0开始，初始时请求下一页传1")
     public int pageIdx;

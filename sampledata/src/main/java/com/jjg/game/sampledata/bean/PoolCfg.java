@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName Pool.xlsx
  * @sheetName Pool
  * @author Auto.Generator
- * @date 2025年08月16日 15:49:31
+ * @date 2025年08月19日 11:30:38
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class PoolCfg extends BaseCfgBean {

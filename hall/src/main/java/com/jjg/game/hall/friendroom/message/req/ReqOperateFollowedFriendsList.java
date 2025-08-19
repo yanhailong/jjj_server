@@ -5,7 +5,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
-import com.jjg.game.hall.friendroom.message.struct.RoomFriendEnum;
+import com.jjg.game.hall.friendroom.message.struct.RoomFriendEnum.ERoomFriendListOperate;
 
 /**
  * 请求操作房间好友列表
@@ -20,7 +20,7 @@ import com.jjg.game.hall.friendroom.message.struct.RoomFriendEnum;
 public class ReqOperateFollowedFriendsList extends AbstractMessage {
 
     @ProtoDesc("操作类型")
-    public RoomFriendEnum operate;
+    public ERoomFriendListOperate operate;
 
     @ProtoDesc("操作的玩家ID")
     public long playerId;
