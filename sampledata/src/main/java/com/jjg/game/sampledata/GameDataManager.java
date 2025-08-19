@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年08月19日 11:30:39
+ * @date 2025年08月19日 15:29:43
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -1111,6 +1111,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\project\\gamedoc\\游戏配置表");
+    loadAllData("E:\\java\\gamedoc\\游戏配置表");
   }
 }
