@@ -231,15 +231,12 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         int code = checkBetAction(robotPlayer, randomBetArea, randomGold);
         // 检查机器人是否下注
         if (code != Code.SUCCESS) {
-
-            log.info("机器人请求押注："+ code);
             return;
         }
         Map<Integer, List<Integer>> tableBetAreaInfoMap = gameDataVo.getPlayerBetInfo(robotPlayer.getId());
         if (tableBetAreaInfoMap == null) {
             tableBetAreaInfoMap = new HashMap<>();
         }
-        log.info("机器人请求押注：");
         // 更新押注数据
         gameDataVo.updatePlayerBetInfo(robotPlayer.getId(), tableBetAreaInfoMap);
         tableBetAreaInfoMap.computeIfAbsent(randomBetArea, k -> new ArrayList<>()).add(randomGold);
