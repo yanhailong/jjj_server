@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName BaseRoller.xlsx
  * @sheetName BaseRoller
  * @author Auto.Generator
- * @date 2025年08月19日 11:30:38
+ * @date 2025年08月19日 15:29:43
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseRollerCfg extends BaseCfgBean {
