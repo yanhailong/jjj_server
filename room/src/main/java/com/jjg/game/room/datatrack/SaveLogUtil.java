@@ -23,7 +23,9 @@ public class SaveLogUtil {
             }
             Map<Integer, List<Integer>> playerBetInfo = entry.getValue();
             DefaultKeyValue<Long, Long> keyValue = playerGet.get(entry.getKey());
-
+            if (Objects.isNull(keyValue)) {
+                keyValue = new DefaultKeyValue<>(0L, 0L);
+            }
             long totalBet = 0;
             Map<Integer, Long> areaMap = new HashMap<>();
             for (Map.Entry<Integer, List<Integer>> listEntry : playerBetInfo.entrySet()) {
