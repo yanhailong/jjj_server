@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName warehouse.xlsx
  * @sheetName Warehouse
  * @author Auto.Generator
- * @date 2025年08月19日 11:16:26
+ * @date 2025年08月19日 11:30:38
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class WarehouseCfg extends BaseCfgBean {
@@ -27,6 +27,8 @@ public class WarehouseCfg extends BaseCfgBean {
   protected int enterMax;
   /** 游戏ID */
   protected int gameID;
+  /** 游戏分类 */
+  protected int gameType;
   /** 多语言表ID */
   protected int nameid;
   /** 房间最大人数:达到X人时创建新房间 */
@@ -56,6 +58,11 @@ public class WarehouseCfg extends BaseCfgBean {
   /** 返回游戏ID */
   public int getGameID() {
     return gameID;
+  }
+
+  /** 返回游戏分类 */
+  public int getGameType() {
+    return gameType;
   }
 
   /** 返回多语言表ID */

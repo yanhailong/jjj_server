@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName global.xlsx
  * @sheetName globalConfig
  * @author Auto.Generator
- * @date 2025年08月19日 11:16:26
+ * @date 2025年08月19日 11:30:38
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GlobalConfigCfg extends BaseCfgBean {

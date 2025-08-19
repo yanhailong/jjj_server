@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName BaseElementReward.xlsx
  * @sheetName BaseElementReward
  * @author Auto.Generator
- * @date 2025年08月19日 11:16:26
+ * @date 2025年08月19日 11:30:38
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseElementRewardCfg extends BaseCfgBean {

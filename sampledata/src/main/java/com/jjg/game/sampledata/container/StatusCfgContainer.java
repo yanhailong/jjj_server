@@ -12,7 +12,7 @@ import com.jjg.game.sampledata.bean.StatusCfg;
  * @excelName status.xlsx
  * @sheetName status
  * @author auto_generator
- * @date 2025年08月19日 11:16:26
+ * @date 2025年08月19日 11:30:38
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class StatusCfgContainer extends BaseCfgContainer<StatusCfg> {
