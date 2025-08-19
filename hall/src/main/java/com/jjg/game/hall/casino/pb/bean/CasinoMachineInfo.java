@@ -4,6 +4,8 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.hall.pb.struct.ItemInfo;
 
+import java.util.List;
+
 /**
  * @author lm
  * @date 2025/8/18 14:55
@@ -17,10 +19,8 @@ public class CasinoMachineInfo {
     public int state;
     @ProtoDesc("BuildingFunction配置表id")
     public int configId;
-    @ProtoDesc("雇员配置表id")
-    public int employmentId;
-    @ProtoDesc("雇员结束时间")
-    public long employmentEndTime;
+    @ProtoDesc("雇员信息")
+    public List<CasinoEmploymentInfo> employments;
     @ProtoDesc("机台建造升级结束时间")
     public long buildLvUpEndTime;
     @ProtoDesc("收益开始时间")
