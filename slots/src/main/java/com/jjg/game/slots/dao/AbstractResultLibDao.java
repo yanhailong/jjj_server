@@ -2,23 +2,17 @@ package com.jjg.game.slots.dao;
 
 import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.slots.data.SlotsResultLib;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
+import org.redisson.api.RKeys;
+import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ScanOptions;
 
-import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -50,6 +44,8 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
 
     @Autowired
     protected RedisTemplate redisTemplate;
+    @Autowired
+    private RedissonClient redisson;
 
     private int gameType;
 
@@ -72,13 +68,10 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         return generateLock + ":" + gameType;
     }
 
-    protected String tabelName(String tableIndex, int gameType, int modelId, int libType, int sectionIndex) {
+    protected String tabelName(String tableIndex, int gameType, int libType, int sectionIndex) {
         StringBuilder sb = new StringBuilder();
-        sb.append(tableIndex).append(gameType).append(":").append(modelId).append(":").append(libType).append(":").append(sectionIndex);
+        sb.append(tableIndex).append(gameType).append(":").append(libType).append(":").append(sectionIndex);
         return sb.toString();
-    }
-    protected String allSectionTabelName(String tableIndex, int gameType, int modelId, int libType) {
-        return tableIndex + gameType + ":" + modelId + ":" + libType;
     }
 
     protected String getRedisTableNameIndex(String existTableName) {
@@ -171,7 +164,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
                         log.warn("将结果库转移到redis时失败，获取区间失败 gameType = {},modelId = {},libType = {},times = {},libId = {}", this.gameType, lib.getRollerMode(), type, lib.getTimes(),lib.getId());
                         return;
                     }
-                    this.redisTemplate.opsForSet().add(tabelName(redisTableNameIndex, this.gameType, lib.getRollerMode(), type, sectionIndex), lib);
+                    this.redisTemplate.opsForSet().add(tabelName(redisTableNameIndex, this.gameType, type, sectionIndex), lib);
 //                    this.redisTemplate.opsForSet().add(allSectionTabelName(redisTableNameIndex, this.gameType, lib.getRollerMode(), lib.getLibType()), sectionIndex);
                 }
             });
@@ -228,43 +221,24 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
      * 清除redis结果库
      */
     public void clearRedisLib(){
-        if(this.currentRedisLibName != null && !this.currentRedisLibName.isEmpty()){
-            String removeName;
-            if(this.slotsResultLib1.equals(this.currentRedisLibName)){
-                removeName = this.slotsResultLib2;
-            }else {
-                removeName = this.slotsResultLib1;
-            }
-
-            RedisConnection connection = redisTemplate.getConnectionFactory().getConnection();
-            try (Cursor<byte[]> cursor = connection.scan(ScanOptions.scanOptions().match(removeName + "*").count(1000).build())) {
-                while (cursor.hasNext()) {
-                    byte[] keyBytes = cursor.next();
-                    String key = new String(keyBytes, StandardCharsets.UTF_8);
-                    redisTemplate.delete(key);
-                }
-            }
-            log.debug("从redis移除结果库 removeName = {}", removeName);
-        }else {
+        if (this.currentRedisLibName == null || this.currentRedisLibName.isEmpty()) {
             log.debug("从redis删除结果库失败，currentRedisLibName 为空");
+            return;
         }
+
+        String removeName = this.slotsResultLib1.equals(this.currentRedisLibName)
+                ? this.slotsResultLib2
+                : this.slotsResultLib1;
+
+        RKeys keys = redisson.getKeys();
+        long start = System.currentTimeMillis();
+        long deleted = keys.deleteByPattern(removeName + "*");
+        log.debug("从redis移除结果库 removeName = {}, 删除Key数量 = {},耗时 = {} ms", removeName, deleted,System.currentTimeMillis() - start);
     }
 
-    public T getLibBySectionIndex(int modelId, int libType, int sectionIndex) {
-        String tableName = tabelName(this.currentRedisLibName, this.gameType, modelId, libType, sectionIndex);
+    public T getLibBySectionIndex(int libType, int sectionIndex) {
+        String tableName = tabelName(this.currentRedisLibName, this.gameType, libType, sectionIndex);
         return (T)this.redisTemplate.opsForSet().randomMember(tableName);
-    }
-
-    public Set<Integer> getAllSection(int modelId, int libType){
-        Set members = this.redisTemplate.opsForSet().members(allSectionTabelName(this.currentRedisLibName, this.gameType, modelId, libType));
-        if(members == null || members.isEmpty()){
-            return null;
-        }
-        Set<Integer> sections = new HashSet<>();
-        for(Object o : members){
-            sections.add(Integer.parseInt(o.toString()));
-        }
-        return sections;
     }
 
     /**
@@ -305,5 +279,4 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         }
         return bulkOps.execute().getInsertedCount();
     }
-
 }

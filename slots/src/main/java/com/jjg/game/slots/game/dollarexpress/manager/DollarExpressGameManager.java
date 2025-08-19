@@ -56,8 +56,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     @Autowired
     private DollarExpressGameDataDao gameDataDao;
 
-    private BigDecimal hundred = BigDecimal.valueOf(100);
-
     private Map<Integer, GirdUpdateConfig> girdUpdateConfigMap;
     //在替换格子时限制while最大循环次数
     private final int updateGirdWhildMaxCount = 30;
@@ -517,7 +515,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 }
 
                 //根据倍数区间从结果库里面随机获取一条
-                resultLib = libDao.getLibBySectionIndex(libCfgResult.data.getModelId(), resultLibTypeResult.data, resultLibSectionResult.data);
+                resultLib = libDao.getLibBySectionIndex(resultLibTypeResult.data, resultLibSectionResult.data);
                 if (resultLib == null) {
                     log.debug("获取结果库失败 gameType = {},modelId = {},libType = {},sectionIndex = {},retry = {}", this.gameType, libCfgResult.data.getModelId(), resultLibTypeResult.data, resultLibSectionResult.data, i);
                     continue;
@@ -531,7 +529,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //如果前面没有获取到lib，则获取一个无奖励的结果
         if (resultLib == null) {
             sectionIndex = this.defaultRewardSectionIndex;
-            resultLib = libDao.getLibBySectionIndex(libCfgResult.data.getModelId(), SlotsConst.SpecialResultLib.TYPE_NORMAL, this.defaultRewardSectionIndex);
+            resultLib = libDao.getLibBySectionIndex(SlotsConst.SpecialResultLib.TYPE_NORMAL, this.defaultRewardSectionIndex);
             log.debug("前面获取结果库失败，所以找一个不中奖的结果返回 gameType = {},libType = {}", this.gameType, resultLibTypeResult.data);
         }
 
@@ -612,7 +610,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 continue;
             }
             //获取结果库
-            trainLib = libDao.getLibBySectionIndex(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_AGAIN_TRAIN, result.data);
+            trainLib = libDao.getLibBySectionIndex(SlotsConst.SpecialResultLib.TYPE_AGAIN_TRAIN, result.data);
             if (trainLib == null) {
                 continue;
             }
@@ -663,7 +661,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 continue;
             }
             //获取结果库
-            goldTrainLib = libDao.getLibBySectionIndex(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN, result.data);
+            goldTrainLib = libDao.getLibBySectionIndex(SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN, result.data);
             if (goldTrainLib == null) {
                 continue;
             }
@@ -711,7 +709,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 continue;
             }
             //获取结果库
-            freeLib = libDao.getLibBySectionIndex(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE, result.data);
+            freeLib = libDao.getLibBySectionIndex(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE, result.data);
             if (freeLib == null) {
                 continue;
             }
@@ -774,7 +772,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 continue;
             }
             //获取结果库
-            goldTrainLib = libDao.getLibBySectionIndex(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN, result.data);
+            goldTrainLib = libDao.getLibBySectionIndex(SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN, result.data);
             if (goldTrainLib == null) {
                 continue;
             }
@@ -811,7 +809,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @return
      */
     private CommonResult<Player> goldToPool(DollarExpressPlayerGameData gameData, long betValue, BaseRoomCfg baseRoomCfg) {
-        CommonResult<Player> result = slotsPlayerService.addGold(gameData.playerId(), -betValue, "SLOTS_BET");
+        CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, "SLOTS_BET");
         if (!result.success()) {
             log.debug("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.playerId(), betValue, result.code);
             return result;

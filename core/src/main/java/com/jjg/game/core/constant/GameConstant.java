@@ -104,8 +104,12 @@ public class GameConstant {
     }
 
     public class GlobalConfig {
+        //vip最大开放等级
         public static final int ID_VIP_OPEN_MAX_LEVEL = 1;
-        public static final int ID_BASE_EXP = 2;
+        //基础经验倍率
+        public static final int ID_BASE_EXP_PROP = 2;
+        //基础流水倍率
+        public static final int ID_BASE_STATEMENT_PROP = 3;
 
         //5个大奖
         public static final int ID_SWEET = 6;
@@ -119,5 +123,12 @@ public class GameConstant {
 
         //默认的邮件有效期
         public static final int DEFAULT_MAIL_VALID_TIME = 18;
+    }
+
+    public class PlayerBuff{
+        //经验加成
+        public static final int TYPE_EXP_PROP = 1;
+        //流水加成
+        public static final int TYPE_STATEMENT_PROP = 1;
     }
 }

@@ -13,5 +13,5 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.REQ_GET_MAIL_ITEMS)
 @ProtoDesc("获取邮件内道具")
 public class ReqGetMailItems extends AbstractMessage {
-    public int id;
+    public long id;
 }

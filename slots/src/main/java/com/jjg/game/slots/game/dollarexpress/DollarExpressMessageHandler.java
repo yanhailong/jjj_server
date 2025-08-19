@@ -6,13 +6,17 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressGameDataDao;
+import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressResultLibDao;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGameManager;
 import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressSendMessageManager;
 import com.jjg.game.slots.game.dollarexpress.pb.*;
+import com.jjg.game.slots.service.SlotsPlayerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +35,8 @@ public class DollarExpressMessageHandler implements GmListener {
     private DollarExpressGameManager gameManager;
     @Autowired
     private DollarExpressSendMessageManager sendMessageManager;
+    @Autowired
+    private SlotsPlayerService slotsPlayerService;
 
 
     /**
@@ -190,6 +196,11 @@ public class DollarExpressMessageHandler implements GmListener {
                 }
                 TestLibData testLibData = new TestLibData();
                 testLibData.setLibType(libType);
+            }else if("bet".equals(gmOrders[0])) {
+                log.debug("收到添加经验的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+                long num = Long.parseLong(gmOrders[1]);
+                CommonResult<Player> result = slotsPlayerService.betDeductGold(playerController.playerId(), num, "gmtest");
+                res.code = result.code;
             }else {
                 res.code = Code.NOT_FOUND;
             }
