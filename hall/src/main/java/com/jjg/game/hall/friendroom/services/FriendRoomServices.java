@@ -356,6 +356,13 @@ public class FriendRoomServices {
      * 请求刷新好友列表
      */
     public void reqOperateShieldPlayer(PlayerController playerController, ReqOperateShieldPlayer req) {
+        //friendRoomRedisDao.addInvitationCode();
+    }
 
+    /**
+     * 请求重置邀请码
+     */
+    public void reqResetInvitationCode(PlayerController playerController) {
+        //friendRoomRedisDao.addInvitationCode();
     }
 }
