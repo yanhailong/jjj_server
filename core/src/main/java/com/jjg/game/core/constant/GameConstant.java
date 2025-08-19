@@ -41,10 +41,8 @@ public class GameConstant {
         //货币类道具
         int TYPE_MONEY = 3;
 
-        int ID_GOLD = 1030001;
-        int ID_DIAMOND = 1030002;
-
-        int PROP_MAX = -1;
+        int TYPE_GOLD = 99;
+        int TYPE_DIAMOND = 98;
     }
 
     public interface Marquee {

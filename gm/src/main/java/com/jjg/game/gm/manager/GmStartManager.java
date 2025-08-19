@@ -2,6 +2,7 @@ package com.jjg.game.gm.manager;
 
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.service.MarsCoreStartService;
+import com.jjg.game.core.manager.SampleDataManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -25,6 +26,8 @@ public class GmStartManager implements SmartLifecycle, ApplicationContextAware {
     private MarsCoreStartService marsCoreStartService;
     @Autowired
     private NodeConfig nodeConfig;
+    @Autowired
+    private SampleDataManager sampleDataManager;
 
     private ApplicationContext context;
 
@@ -38,6 +41,7 @@ public class GmStartManager implements SmartLifecycle, ApplicationContextAware {
         }
 
         marsCoreStartService.init(this.context, Collections.emptySet());
+        sampleDataManager.init();
 
         running = true;
     }

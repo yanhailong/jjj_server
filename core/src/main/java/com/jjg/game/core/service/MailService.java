@@ -180,8 +180,8 @@ public class MailService {
      */
     public void addMails(List<Long> playerIds,String title,String content,List<Item> items){
         List<Mail> mails = new ArrayList<>();
-        Mail mail = createMail(title,content,items,false);
         for(long playerId : playerIds){
+            Mail mail = createMail(title,content,items,false);
             mail.setId(IdUtil.getSnowflakeNextId());
             mail.setPlayerId(playerId);
             mails.add(mail);

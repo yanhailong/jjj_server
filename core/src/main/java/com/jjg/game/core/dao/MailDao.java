@@ -268,7 +268,7 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
      * @param playerId
      */
     public Set<Long> getPlayerServerMails(long playerId) {
-        Set rawSet = redisTemplate.opsForSet().members(playerId);
+        Set rawSet = redisTemplate.opsForSet().members(getPlayerServerMailTableName(playerId));
         if (rawSet == null) {
             return Collections.emptySet();
         }

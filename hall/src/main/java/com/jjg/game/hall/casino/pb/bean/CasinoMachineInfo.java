@@ -25,6 +25,8 @@ public class CasinoMachineInfo {
     public long buildLvUpEndTime;
     @ProtoDesc("收益开始时间")
     public long profitStartTime;
+    @ProtoDesc("收益最大时间")
+    public long profitMaxTime;
     @ProtoDesc("加速花费道具")
     public ItemInfo itemInfo;
 }

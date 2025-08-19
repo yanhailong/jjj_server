@@ -20,6 +20,6 @@ public class CoreSendMessageManager extends BaseSendMessageManager{
 
         sendInfo.addPlayerMsg(playerController.playerId(), notice);
         sendInfo.getLogMessage().add(notice);
-        sendRun(playerController,sendInfo,"推送金钱变化信息",false);
+        sendRun(playerController,sendInfo,"推送货币变化信息",false);
     }
 }
