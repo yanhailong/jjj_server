@@ -493,14 +493,8 @@ public class HallMessageHandler implements GmListener {
                 log.debug("参数错误，阅读邮件失败 playerId = {},id = {}", playerController.playerId(),req.id);
                 return;
             }
-            boolean flag = mailService.readMail(playerController.playerId(), req.id);
-            if(!flag) {
-                res.code = Code.FAIL;
-                playerController.send(res);
-                log.debug("阅读邮件失败 playerId = {},id = {}", playerController.playerId(),req.id);
-                return;
-            }
-            log.debug("玩家阅读邮件成功 playerId = {},id = {}", playerController.playerId(),req.id);
+            mailService.readMail(playerController.playerId(), req.id);
+            log.debug("玩家阅读邮件 playerId = {},id = {}", playerController.playerId(),req.id);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
