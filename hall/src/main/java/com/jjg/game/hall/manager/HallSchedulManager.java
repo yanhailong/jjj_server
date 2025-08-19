@@ -63,7 +63,7 @@ public class HallSchedulManager {
         long now = System.currentTimeMillis();
 
         //获取一个时间
-        long expireTime = now - TimeHelper.ONE_DAY_OF_MILES;
+        long expireTime = now - TimeHelper.ONE_DAY_OF_MILLIS;
 
         Set<Object> loginSet = playerLoginTimeDao.getLoginSet(expireTime);
         if(loginSet == null || loginSet.isEmpty()){

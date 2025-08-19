@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName BuildingFloor.xlsx
  * @sheetName BuildingFloor
  * @author Auto.Generator
- * @date 2025年08月16日 15:49:31
+ * @date 2025年08月19日 11:30:38
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BuildingFloorCfg extends BaseCfgBean {
@@ -23,6 +23,8 @@ public class BuildingFloorCfg extends BaseCfgBean {
   protected List<Integer> Architectural;
   /** 赌场ID */
   protected int area;
+  /** 楼层背景资源名称 */
+  protected String background;
   /** 清扫时间(秒) */
   protected int cleartime;
   /** 楼层ID */
@@ -38,6 +40,11 @@ public class BuildingFloorCfg extends BaseCfgBean {
   /** 返回赌场ID */
   public int getArea() {
     return area;
+  }
+
+  /** 返回楼层背景资源名称 */
+  public String getBackground() {
+    return background;
   }
 
   /** 返回清扫时间(秒) */

@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年08月16日 15:49:32
+ * @date 2025年08月19日 11:30:39
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -162,6 +162,7 @@ public class GameDataManager {
     containerMap.put(SpecialResultLibCfg.class, new SpecialResultLibCfgContainer());
     containerMap.put(StatusCfg.class, new StatusCfgContainer());
     containerMap.put(TexasCfg.class, new TexasCfgContainer());
+    containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
     containerMap.put(WinPosWeightCfg.class, new WinPosWeightCfgContainer());
     // endregion===============cfg加载模板结束===================
@@ -1049,6 +1050,17 @@ public class GameDataManager {
   public static List<TexasCfg> getTexasCfgList() {
     return getInstance().getCfgContainer(TexasCfg.class).getCfgBeanList();
   }
+  public static ViplevelCfg getViplevelCfg(int key) {
+    return getInstance().getCfgContainer(ViplevelCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ViplevelCfg> getViplevelCfgMap() {
+    return getInstance().getCfgContainer(ViplevelCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ViplevelCfg> getViplevelCfgList() {
+    return getInstance().getCfgContainer(ViplevelCfg.class).getCfgBeanList();
+  }
   public static WarehouseCfg getWarehouseCfg(int key) {
     return getInstance().getCfgContainer(WarehouseCfg.class).getCfgBeanMap().get(key);
   }
@@ -1099,6 +1111,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("E:\\java\\gamedoc\\游戏配置表");
+    loadAllData("D:\\project\\gamedoc\\游戏配置表");
   }
 }

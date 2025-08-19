@@ -35,4 +35,7 @@ public class BaseFriendRoomPlayerInfo {
 
     @ProtoDesc("玩家等级")
     public int level;
+
+    @ProtoDesc("是否置顶")
+    public boolean isTopUp;
 }
