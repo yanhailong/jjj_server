@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName mail.xlsx
  * @sheetName mail
  * @author Auto.Generator
- * @date 2025年08月19日 11:30:38
+ * @date 2025年08月19日 15:29:42
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class MailCfg extends BaseCfgBean {
@@ -20,21 +20,21 @@ public class MailCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "mail";
 
   /** 发件人 */
-  protected String playername;
+  protected int playername;
   /** 邮件内容 */
-  protected String text;
+  protected int text;
   /** 有效时间/秒 */
   protected int time;
   /** 邮件标题 */
-  protected String title;
+  protected int title;
 
   /** 返回发件人 */
-  public String getPlayername() {
+  public int getPlayername() {
     return playername;
   }
 
   /** 返回邮件内容 */
-  public String getText() {
+  public int getText() {
     return text;
   }
 
@@ -44,7 +44,7 @@ public class MailCfg extends BaseCfgBean {
   }
 
   /** 返回邮件标题 */
-  public String getTitle() {
+  public int getTitle() {
     return title;
   }
 

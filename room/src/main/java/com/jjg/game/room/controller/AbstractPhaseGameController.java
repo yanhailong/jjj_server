@@ -62,6 +62,8 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
         gamePhaseIterator = gamePhases.iterator();
         // 开始
         autoRunGamePhase();
+        // 手动调用进入下一轮
+        nextRoundStart();
     }
 
     /**
