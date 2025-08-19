@@ -333,10 +333,25 @@ public class FriendRoomServices {
         List<Long> followedPlayerId =
             friendRoomFollowBeans.stream().map(FriendRoomFollowBean::getFollowedPlayerId).toList();
         List<Player> followedplayerList = corePlayerService.multiGetPlayer(followedPlayerId);
-        List<Integer> invitationCodeList =
-            friendRoomFollowBeans.stream().map(FriendRoomFollowBean::getInvitationCode).toList();
+        Map<Integer, Long> invitationCodeMap =
+            friendRoomFollowBeans.stream().collect(
+                HashMap::new, (map, e) -> map.put(e.getInvitationCode(), e.getId()), HashMap::putAll);
+        List<Long> containsIds = new ArrayList<>();
         // 移除不包含的邀请码，过期的邀请码
-        followedplayerList.removeIf(p -> !invitationCodeList.contains(p.getFriendRoomInvitationCode()));
+        followedplayerList.removeIf(p -> {
+                boolean checkRes = !invitationCodeMap.containsKey(p.getFriendRoomInvitationCode());
+                if (!checkRes) {
+                    containsIds.add(invitationCodeMap.get(p.getFriendRoomInvitationCode()));
+                }
+                return checkRes;
+            }
+        );
+        invitationCodeMap.values().removeAll(containsIds);
+        if (!invitationCodeMap.isEmpty()) {
+            // 批量删除关注好友
+            roomFriendDao.removeFollowedFriend(invitationCodeMap.values());
+        }
+        // 不包含的，或者过期的需要移除这部分的数据
         res.followedFriendList =
             followedplayerList.stream().map(FriendRoomMessageBuilder::buildFriendRoomInfo).toList();
     }

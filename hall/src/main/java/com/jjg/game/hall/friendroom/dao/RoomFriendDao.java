@@ -13,8 +13,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -53,6 +55,17 @@ public class RoomFriendDao extends MongoBaseDao<FriendRoomFollowBean, Long> {
                         Sort.Order.asc("followedTimeStamp")
                     ))
             ,
+            FriendRoomFollowBean.class
+        );
+    }
+
+    /**
+     * 批量软删除关注玩家
+     */
+    public void removeFollowedFriend(Collection<Long> removeId) {
+        mongoTemplate.updateMulti(
+            Query.query(Criteria.where("id").in(removeId)),
+            Update.update("removeTime", System.currentTimeMillis()),
             FriendRoomFollowBean.class
         );
     }
