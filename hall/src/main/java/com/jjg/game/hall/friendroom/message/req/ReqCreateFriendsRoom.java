@@ -16,7 +16,7 @@ import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
     cmd = FriendRoomMessageConstant.ReqMsgCons.REQ_CREAT_FRIENDS_ROOM
 )
 @ProtoDesc("请求创建好友房")
-public class ReqCreateFriendsRoom  extends AbstractMessage {
+public class ReqCreateFriendsRoom extends AbstractMessage {
 
     @ProtoDesc("请求使用的道具ID 金币和券ID")
     public int itemId;
@@ -38,4 +38,17 @@ public class ReqCreateFriendsRoom  extends AbstractMessage {
 
     @ProtoDesc("房间名")
     public String roomAliasName;
+
+    @Override
+    public String toString() {
+        return "ReqCreateFriendsRoom{" +
+            "itemId=" + itemId +
+            ", itemNum=" + itemNum +
+            ", roomCfgId=" + roomCfgId +
+            ", timeOfOpenRoom=" + timeOfOpenRoom +
+            ", autoRenewal=" + autoRenewal +
+            ", predictCostGoldNum=" + predictCostGoldNum +
+            ", roomAliasName='" + roomAliasName + '\'' +
+            '}';
+    }
 }

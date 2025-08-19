@@ -51,6 +51,10 @@ public interface Code {
     int ILLEGAL_NAME = 416;
     // 房间创建数量已达上限
     int CREATE_ROOM_TO_LIMIT = 417;
+    // 非法的好友房邀请码
+    int ILLEGAL_FRIEND_ROOM_INVITATION_CODE = 418;
+    // 未关注好友
+    int NOT_FOLLOWED = 419;
     // 服务器错误
     int EXCEPTION = 500;
 }

@@ -3,10 +3,13 @@ package com.jjg.game.hall.friendroom.dao;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.dao.MongoBaseDao;
+import com.jjg.game.hall.friendroom.constant.FriendRoomConstant;
 import com.jjg.game.hall.friendroom.data.FriendRoomFollowBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -22,34 +25,69 @@ import java.util.List;
 @Repository
 public class RoomFriendDao extends MongoBaseDao<FriendRoomFollowBean, Long> {
 
-
-    private static final Logger log = LoggerFactory.getLogger(RoomFriendDao.class);
-    // 最大的code
-    private static final int MAX_CODE = 9999_9999;
-    // code掩码
-    private static final int CODE_MASK = MAX_CODE - TimeHelper.ONE_DAY_OF_MILLIS;
-
     public RoomFriendDao(@Autowired MongoTemplate mongoTemplate) {
         super(FriendRoomFollowBean.class, mongoTemplate);
     }
 
     /**
-     * 获取一个邀请码
+     * 获取默认的好友列表，默认第一页
      */
-    public int genInvitationCode() {
-        long curTime = System.currentTimeMillis();
-        long currentDateZeroMileTime = TimeHelper.getCurrentDateZeroMileTime();
-        // 如果想让邀请码最低从 1000_0000 开始，将随机值的最低位设置为 1000_0000
-        int maskData = RandomUtils.randomMinMax(0, CODE_MASK);
-        int invitationCode = (int) (curTime - currentDateZeroMileTime + maskData);
-        log.info("生成邀请码：{}", invitationCode);
-        return invitationCode;
+    public List<FriendRoomFollowBean> getDefualtRoomFriendList(long playerId, int invitationCode) {
+        return getRoomFriendList(playerId, invitationCode, 0, FriendRoomConstant.PAGE_SIZE);
     }
 
     /**
      * 获取房间好友列表
      */
-    public List<FriendRoomFollowBean> getRoomFriendList(long playerId) {
-        return mongoTemplate.find(Query.query(Criteria.where("playerId").is(playerId)), FriendRoomFollowBean.class);
+    public List<FriendRoomFollowBean> getRoomFriendList(long playerId, int invitationCode, int pageNum, int pageSize) {
+        return mongoTemplate.find(
+            Query.query(
+                    Criteria.where("playerId").is(playerId)
+                        .and("invitationCode").is(invitationCode)
+                        .and("removeTime").gt(0)
+                )
+                .with(Pageable.ofSize(pageSize).withPage(pageNum))
+                .with(
+                    Sort.by(
+                        Sort.Order.desc("topUpTimeStamp"),
+                        Sort.Order.asc("followedTimeStamp")
+                    ))
+            ,
+            FriendRoomFollowBean.class
+        );
+    }
+
+    /**
+     * 获取房间好友
+     */
+    public FriendRoomFollowBean getRoomFriend(long playerId, long targetPlayerId, int invitationCode) {
+        return mongoTemplate.findOne(
+            Query.query(
+                Criteria.where("playerId").is(playerId)
+                    .and("invitationCode").is(invitationCode)
+                    .and("followedPlayerId").is(targetPlayerId)
+                    .and("removeTime").gt(0)
+            ),
+            FriendRoomFollowBean.class
+        );
+    }
+
+    /**
+     * 通过邀请码关注好友
+     */
+    public FriendRoomFollowBean addFriendByInvitationCode(long playerId, long followedPlayerId, int invitationCode) {
+        FriendRoomFollowBean friendRoomFollowBean = new FriendRoomFollowBean();
+        friendRoomFollowBean.setFollowedPlayerId(followedPlayerId);
+        friendRoomFollowBean.setPlayerId(playerId);
+        friendRoomFollowBean.setInvitationCode(invitationCode);
+        friendRoomFollowBean.setFollowedTimeStamp(System.currentTimeMillis());
+        return mongoTemplate.insert(friendRoomFollowBean);
+    }
+
+    /**
+     * 更新好友关注bean
+     */
+    public FriendRoomFollowBean updateFriendRoomFollowBean(FriendRoomFollowBean friendRoomFollowBean) {
+        return mongoTemplate.save(friendRoomFollowBean);
     }
 }

@@ -16,7 +16,7 @@ public interface FriendRoomMessageConstant {
         int REQ_CREAT_FRIENDS_ROOM = BASE_MSG_MASK | 0x01;
         // 房间面板信息
         int REQ_FRIENDS_ROOM_PANEL_DATA = BASE_MSG_MASK | 0x02;
-        // 通过邀请码加入房间
+        // 通过邀请码添加关注
         int REQ_JOIN_ROOM_BY_INVITATION_CODE = BASE_MSG_MASK | 0x03;
         // 请求操作房间好友列表
         int REQ_OPERATE_ROOM_FRIENDS_LIST = BASE_MSG_MASK | 0x04;

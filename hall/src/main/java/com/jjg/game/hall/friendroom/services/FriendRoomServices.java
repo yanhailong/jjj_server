@@ -1,5 +1,6 @@
 package com.jjg.game.hall.friendroom.services;
 
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
@@ -13,18 +14,27 @@ import com.jjg.game.hall.friendroom.dao.RoomFriendDao;
 import com.jjg.game.hall.friendroom.data.FriendRoomFollowBean;
 import com.jjg.game.hall.friendroom.message.FriendRoomMessageBuilder;
 import com.jjg.game.hall.friendroom.message.req.ReqCreateFriendsRoom;
-import com.jjg.game.hall.friendroom.message.res.NotifyFriendRoomPanelData;
+import com.jjg.game.hall.friendroom.message.req.ReqFollowedFriendRoomList;
+import com.jjg.game.hall.friendroom.message.req.ReqOperateFollowedFriendsList;
+import com.jjg.game.hall.friendroom.message.req.ReqRefreshFollowedFriendList;
+import com.jjg.game.hall.friendroom.message.res.*;
 import com.jjg.game.hall.friendroom.message.struct.BaseFriendRoomPlayerInfo;
 import com.jjg.game.hall.friendroom.message.struct.FriendRoomBaseData;
+import com.jjg.game.hall.friendroom.message.struct.RoomFriendEnum.ERoomFriendListOperate;
 import com.jjg.game.hall.utils.HallDataUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import org.redisson.misc.Hash;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 好友房服务
@@ -34,6 +44,7 @@ import java.util.List;
 @Service
 public class FriendRoomServices {
 
+    private static final Logger log = LoggerFactory.getLogger(FriendRoomServices.class);
     @Autowired
     private RoomFriendDao roomFriendDao;
     @Autowired
@@ -55,7 +66,19 @@ public class FriendRoomServices {
         // 房间创建检查
         int checkResCode = checkCreateRoom(player, reqCreateFriendsRoom);
         if (checkResCode != Code.SUCCESS) {
+            log.warn("请求创建好友房失败, 检查未通过 req = {}", reqCreateFriendsRoom);
             return checkResCode;
+        }
+        int invitationCode;
+        if (player.getFriendRoomInvitationCode() == 0) {
+            // 生成邀请码
+            invitationCode = friendRoomInvitationCodeDao.genInvitationCode();
+            if (invitationCode <= 0) {
+                log.error("申请邀请失败，时间：{}", TimeHelper.getCurrentDateZeroMileTime());
+                return Code.FAIL;
+            }
+        } else {
+            invitationCode = 0;
         }
         int roomCfgId = reqCreateFriendsRoom.roomCfgId;
         // 扣除道具
@@ -72,6 +95,13 @@ public class FriendRoomServices {
             player.getId(), warehouseCfg.getGameID(), roomCfgId, warehouseCfg.getEnterMax(), reqCreateFriendsRoom);
         if (friendRoom == null) {
             return Code.PARAM_ERROR;
+        }
+        // 保存邀请码
+        if (invitationCode > 0) {
+            // 保存玩家邀请码
+            corePlayerService.doSave(player.getId(), (p) -> p.setFriendRoomInvitationCode(invitationCode));
+            // 添加邀请码映射
+            friendRoomInvitationCodeDao.addInvitationCode(invitationCode, player.getId());
         }
         // 通知前端房间创建
         return Code.SUCCESS;
@@ -143,13 +173,17 @@ public class FriendRoomServices {
     /**
      * 请求好友房数据panel
      */
-    private void reqFriendPanelData(PlayerController playerController) {
+    public void reqFriendPanelData(PlayerController playerController) {
         Player player = playerController.getPlayer();
         NotifyFriendRoomPanelData notifyFriendRoomPanelData = new NotifyFriendRoomPanelData();
         // 获取玩家创建的好友房数据
         List<FriendRoom> friendRoomList = hallRoomDao.getPlayerAllFriendRoom(player.getId());
         // 获取玩家关注列表
-        List<FriendRoomFollowBean> friendRoomFollowBeans = roomFriendDao.getRoomFriendList(player.getId());
+        List<FriendRoomFollowBean> friendRoomFollowBeans =
+            roomFriendDao.getDefualtRoomFriendList(player.getId(), player.getFriendRoomInvitationCode());
+        Map<Long, FriendRoomFollowBean> friendRoomFollowBeanMap =
+            friendRoomFollowBeans.stream().collect(
+                HashMap::new, (map, e) -> map.put(e.getFollowedPlayerId(), e), HashMap::putAll);
         List<Long> followedPlayerId =
             friendRoomFollowBeans.stream().map(FriendRoomFollowBean::getFollowedPlayerId).toList();
         List<Player> followedplayerList = corePlayerService.multiGetPlayer(followedPlayerId);
@@ -157,6 +191,8 @@ public class FriendRoomServices {
         List<BaseFriendRoomPlayerInfo> baseFriendRoomPlayerInfos = new ArrayList<>();
         for (Player followedPlayer : followedplayerList) {
             BaseFriendRoomPlayerInfo info = FriendRoomMessageBuilder.buildFriendRoomInfo(followedPlayer);
+            long topUpTimeStamp = friendRoomFollowBeanMap.get(followedPlayer.getId()).getTopUpTimeStamp();
+            info.isTopUp = topUpTimeStamp > 0;
             baseFriendRoomPlayerInfos.add(info);
         }
         notifyFriendRoomPanelData.roomFriendInfos = baseFriendRoomPlayerInfos;
@@ -168,9 +204,9 @@ public class FriendRoomServices {
         }
         notifyFriendRoomPanelData.roomBaseDataList = friendRoomBaseDataList;
         notifyFriendRoomPanelData.invitationCode = playerController.getPlayer().getFriendRoomInvitationCode();
-        GlobalConfigCfg globalConfigCfg =
+        GlobalConfigCfg invitationResetGlobalConfigCfg =
             GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_RESET_TIMES);
-        notifyFriendRoomPanelData.invitationCodeResetTotalTimes = globalConfigCfg.getIntValue();
+        notifyFriendRoomPanelData.invitationCodeResetTotalTimes = invitationResetGlobalConfigCfg.getIntValue();
         notifyFriendRoomPanelData.playerNumOnTable =
             friendRoomBaseDataList.stream().map(a -> a.onlinePlayerNum).mapToInt(Long::intValue).sum();
         notifyFriendRoomPanelData.curTableNum =
@@ -183,9 +219,122 @@ public class FriendRoomServices {
             }).mapToInt(a -> a).sum();
         notifyFriendRoomPanelData.maxPlayerNumOnTable =
             GameDataManager.getPlayerLevelConfigCfg(player.getLevel()).getRoomNum();
+        // 邀请码重置使用次数
+        int invitationCodeRestTimes = friendRoomInvitationCodeDao.getUseTimes(player.getId());
+        // 邀请码剩余次数
         notifyFriendRoomPanelData.invitationCodeResetRemainingTimes =
-            friendRoomInvitationCodeDao.getUseTimes(player.getId());
+            invitationCodeRestTimes >= invitationResetGlobalConfigCfg.getIntValue() ?
+                0 :
+                invitationResetGlobalConfigCfg.getIntValue() - invitationCodeRestTimes;
         // 发送数据
         playerController.send(notifyFriendRoomPanelData);
+    }
+
+    /**
+     * 请求通过邀请码关注玩家
+     */
+    public void reqFollowedByInvitationCode(PlayerController playerController, int invitationCode) {
+        Player player = playerController.getPlayer();
+        // 先判断邀请码是否存在
+        Long targetPlayerId = friendRoomInvitationCodeDao.getPlayerIdByInvitationCode(invitationCode);
+        ResFollowByInvitationCode res = new ResFollowByInvitationCode(Code.FAIL);
+        if (targetPlayerId == null || targetPlayerId == 0) {
+            res.code = Code.ILLEGAL_FRIEND_ROOM_INVITATION_CODE;
+            playerController.send(res);
+            return;
+        }
+        // 通过邀请码添加关注好友
+        roomFriendDao.addFriendByInvitationCode(player.getId(), targetPlayerId, invitationCode);
+        Player targetPlayer = corePlayerService.get(targetPlayerId);
+        res.playerInfo = FriendRoomMessageBuilder.buildFriendRoomInfo(targetPlayer);
+        res.code = Code.SUCCESS;
+        playerController.send(res);
+    }
+
+    /**
+     * 请求操作关注列表
+     */
+    public void reqOperateFollowedFriendsList(PlayerController playerController, ReqOperateFollowedFriendsList req) {
+        // 必须使用最新的player
+        Player targetPlayer = corePlayerService.get(req.playerId);
+        ResOperateFollowedFriendsList res = new ResOperateFollowedFriendsList(Code.FAIL);
+        int targetPlayerInvitationCode = targetPlayer.getFriendRoomInvitationCode();
+        // 如果目标玩家的邀请码为0则不可能被关注
+        if (targetPlayerInvitationCode < 0) {
+            res.code = Code.PARAM_ERROR;
+            playerController.send(res);
+            return;
+        }
+        // 通过玩家ID，邀请码和目标玩家ID进行查找
+        FriendRoomFollowBean friendRoomFollowBean =
+            roomFriendDao.getRoomFriend(playerController.playerId(), req.playerId, targetPlayerInvitationCode);
+
+        if (req.operate == ERoomFriendListOperate.TOP_UP) {
+            friendRoomFollowBean.setTopUpTimeStamp(System.currentTimeMillis());
+        } else if (req.operate == ERoomFriendListOperate.REMOVE) {
+            friendRoomFollowBean.setRemoveTime(System.currentTimeMillis());
+        }
+        FriendRoomFollowBean updatedFriendRoomFollowBean =
+            roomFriendDao.updateFriendRoomFollowBean(friendRoomFollowBean);
+        if (updatedFriendRoomFollowBean != null) {
+            res.code = Code.SUCCESS;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 请求关注的好友房间列表
+     */
+    public void reqFollowedFriendRoomList(PlayerController playerController, ReqFollowedFriendRoomList req) {
+        ResFollowedFriendRoomList res = new ResFollowedFriendRoomList(Code.FAIL);
+        // 判断当前操作的玩家是否是玩家关注的
+        Player targetPlayer = corePlayerService.get(req.playerId);
+        // 通过玩家ID，邀请码和目标玩家ID进行查找
+        FriendRoomFollowBean friendRoomFollowBean =
+            roomFriendDao.getRoomFriend(
+                playerController.playerId(), req.playerId, targetPlayer.getFriendRoomInvitationCode());
+        // 如果查找不到，有可能对方重新刷新了邀请码
+        if (friendRoomFollowBean == null) {
+            res.code = Code.NOT_FOLLOWED;
+            playerController.send(res);
+            return;
+        }
+        List<FriendRoom> friendRoomList = hallRoomDao.getPlayerAllFriendRoom(req.playerId);
+        // 房间信息
+        List<FriendRoomBaseData> friendRoomBaseDataList = new ArrayList<>();
+        for (FriendRoom friendRoom : friendRoomList) {
+            FriendRoomBaseData friendRoomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
+            friendRoomBaseDataList.add(friendRoomBaseData);
+        }
+        res.roomList = friendRoomBaseDataList;
+        res.code = Code.SUCCESS;
+        playerController.send(res);
+    }
+
+    /**
+     * 请求刷新好友列表
+     */
+    public void reqRefreshFollowedFriendList(PlayerController playerController, ReqRefreshFollowedFriendList req) {
+        ResRefreshFollowedFriendList res = new ResRefreshFollowedFriendList(Code.SUCCESS);
+        if (req.pageSize < 0 || req.pageIdx < 0) {
+            res.code = Code.PARAM_ERROR;
+            playerController.send(res);
+            return;
+        }
+        Player player = corePlayerService.get(playerController.playerId());
+        // 获取玩家关注列表
+        List<FriendRoomFollowBean> friendRoomFollowBeans =
+            roomFriendDao.getRoomFriendList(
+                player.getId(), player.getFriendRoomInvitationCode(), req.pageIdx, req.pageSize);
+        res.pageIdx = friendRoomFollowBeans.size() < req.pageSize ? -1 : req.pageIdx + 1;
+        List<Long> followedPlayerId =
+            friendRoomFollowBeans.stream().map(FriendRoomFollowBean::getFollowedPlayerId).toList();
+        List<Player> followedplayerList = corePlayerService.multiGetPlayer(followedPlayerId);
+        List<Integer> invitationCodeList =
+            friendRoomFollowBeans.stream().map(FriendRoomFollowBean::getInvitationCode).toList();
+        // 移除不包含的邀请码，过期的邀请码
+        followedplayerList.removeIf(p -> !invitationCodeList.contains(p.getFriendRoomInvitationCode()));
+        res.followedFriendList =
+            followedplayerList.stream().map(FriendRoomMessageBuilder::buildFriendRoomInfo).toList();
     }
 }
