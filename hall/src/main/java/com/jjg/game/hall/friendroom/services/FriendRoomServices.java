@@ -58,7 +58,10 @@ public class FriendRoomServices {
         // 扣除道具
         CommonResult<PlayerPack> removeItem =
             playerPackService.removeItem(
-                player.getId(), reqCreateFriendsRoom.itemId, reqCreateFriendsRoom.itemNum);
+                player.getId(),
+                new Item(reqCreateFriendsRoom.itemId, reqCreateFriendsRoom.itemNum),
+                "create_friend_room"
+            );
         // 移除道具失败
         if (!removeItem.success()) {
             return removeItem.code;
