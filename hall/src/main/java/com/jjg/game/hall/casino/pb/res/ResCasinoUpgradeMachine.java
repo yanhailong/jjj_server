@@ -15,6 +15,8 @@ import com.jjg.game.hall.pb.struct.ItemInfo;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_CASINO_UPGRADE_MACHINE, resp = true)
 @ProtoDesc("响应机台升级")
 public class ResCasinoUpgradeMachine extends AbstractResponse {
+    @ProtoDesc("类型 1.机台升级 2.减少升级时间")
+    public int type;
     @ProtoDesc("机台id")
     public long machineId;
     @ProtoDesc("机台建造升级结束时间")
