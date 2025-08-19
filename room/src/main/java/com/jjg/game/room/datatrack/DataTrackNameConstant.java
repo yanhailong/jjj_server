@@ -14,6 +14,8 @@ public interface DataTrackNameConstant {
     String INCOME = "Income";
     // 区域数据
     String AREA_DATA = "AreaData";
+    // 有效押注
+    String EFFECTIVE_BET = "EffectiveBet";
     // 结算数据
     String SETTLEMENT_DATA = "SettlementData";
 }

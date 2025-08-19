@@ -12,6 +12,7 @@ import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
+import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 import com.jjg.game.table.dicecommon.message.BaseDiceSettlementInfo;
 
 import java.util.ArrayList;
@@ -61,8 +62,14 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             long playerId = entry.getKey();
             diceSettlementInfo.betTableInfos =
                 TableMessageBuilder.buildPlayerBetInfo(diceSettlementInfo.betTableInfos, gameDataVo, playerId);
-            gameDataTracker.addPlayerLogData(
-                entry.getValue(), DataTrackNameConstant.AREA_DATA, JSON.toJSONString(diceSettlementInfo.betTableInfos));
+            Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
+            // 玩家未下注
+            if (playerBetInfo != null && !playerBetInfo.isEmpty()) {
+                gameDataTracker.addPlayerLogData(
+                    entry.getValue(),
+                    DataTrackNameConstant.AREA_DATA,
+                    JSON.toJSONString(diceSettlementInfo.betTableInfos));
+            }
             // 给玩家发送数据
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(settlement).addPlayerId(playerId));
         }
@@ -86,10 +93,8 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
                 }
             }
         }
-        // 添加流水数据
-        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, playerSettlementData.getBetWin());
-        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET, playerSettlementData.getBetTotal());
-        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, playerSettlementData.getTotalWin());
+        // 记录日志
+        BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameDataTracker, playerBetInfo);
         return playerSettlementData;
     }
 }

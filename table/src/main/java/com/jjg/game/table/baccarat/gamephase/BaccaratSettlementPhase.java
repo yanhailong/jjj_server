@@ -17,6 +17,7 @@ import com.jjg.game.table.baccarat.message.resp.BaccaratSettlementInfo;
 import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratSettlementInfo;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
+import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,9 +103,11 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             // 向每个玩家发送通知消息
             broadcastBuilderToRoom(
                 RoomMessageBuilder.newBuilder().setData(baccaratTableInfo).setPlayerIds(Collections.singleton(entry.getKey())));
-            gameDataTracker.addPlayerLogData(
-                entry.getValue(), DataTrackNameConstant.AREA_DATA,
-                JSON.toJSONString(baccaratTableInfo.baccaratTableInfo.tableAreaInfos));
+            if (gameDataVo.getPlayerBetInfo().containsKey(entry.getKey())) {
+                gameDataTracker.addPlayerLogData(
+                    entry.getValue(), DataTrackNameConstant.AREA_DATA,
+                    JSON.toJSONString(baccaratTableInfo.baccaratTableInfo.tableAreaInfos));
+            }
         }
         // 通知所有观察者
         BaccaratMessageBuilder.notifyObserversOnPhaseChange((BaccaratGameController) gameController);
@@ -207,16 +210,8 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 playerGoldChange.playerCurGold = gamePlayer.getGold();
                 playerChangedGolds.put(playerEntry.getKey(), playerGoldChange);
             }
-            // 有押注值才发送打点
-            if (settlementData.getBetTotal() > 0) {
-                // 打点
-                gameDataTracker.addPlayerLogData(
-                    gamePlayer, DataTrackNameConstant.TOTAL_BET, settlementData.getBetTotal());
-                gameDataTracker.addPlayerLogData(
-                    gamePlayer, DataTrackNameConstant.TOTAL_WIN, settlementData.getTotalWin());
-                gameDataTracker.addPlayerLogData(
-                    gamePlayer, DataTrackNameConstant.INCOME, settlementData.getBetWin());
-            }
+            // 记录押注日志
+            BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameDataTracker, playerBetInfo);
         }
         return playerChangedGolds;
     }

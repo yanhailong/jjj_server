@@ -20,6 +20,7 @@ import com.jjg.game.table.birdsanimals.message.NotifyAnimalsSettlement;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
+import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 
 import java.util.*;
 
@@ -89,11 +90,13 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
             long playerId = entry.getKey();
             settlement.settlementInfo.betTableInfos =
                 TableMessageBuilder.buildPlayerBetInfo(settlement.settlementInfo.betTableInfos, gameDataVo, playerId);
-            gameDataTracker.addPlayerLogData(
-                entry.getValue(), DataTrackNameConstant.AREA_DATA,
-                JSON.toJSONString(settlement.settlementInfo.betTableInfos));
             // 给玩家发送结算数据
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(settlement).addPlayerId(playerId));
+            if (gameDataVo.getPlayerBetInfo().containsKey(playerId)) {
+                gameDataTracker.addPlayerLogData(
+                    entry.getValue(), DataTrackNameConstant.AREA_DATA,
+                    JSON.toJSONString(settlement.settlementInfo.betTableInfos));
+            }
         }
         log.debug("飞禽走兽房间：{} 结算数据：{}", gameDataVo.getRoomCfg().getId(), JSON.toJSONString(settlement));
         // 保存记录
@@ -164,9 +167,8 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
                 }
             }
         }
-        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, settlementData.getBetWin());
-        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET, settlementData.getBetTotal());
-        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, settlementData.getTotalWin());
+        // 总押注
+        BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameDataTracker, playerBetInfo);
         return settlementData;
     }
 
