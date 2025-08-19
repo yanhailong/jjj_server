@@ -78,4 +78,13 @@ public class FriendRoomMessageHandler {
             log.error("请求刷新关注好友列表异常，{}", e.getMessage(), e);
         }
     }
+
+    @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_OPERATE_SHIELD_PLAYER)
+    public void reqOperateShieldPlayer(PlayerController playerController, ReqOperateShieldPlayer req) {
+        try {
+            friendRoomServices.reqOperateShieldPlayer(playerController, req);
+        } catch (Exception e) {
+            log.error("请求刷新关注好友列表异常，{}", e.getMessage(), e);
+        }
+    }
 }

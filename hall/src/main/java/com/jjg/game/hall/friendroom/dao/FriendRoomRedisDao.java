@@ -16,30 +16,27 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 好友房邀请码dao,重置次数记录
+ * 好友房RedisDao,重置次数记录
  *
  * @author 2CL
  */
 @Repository
-public class FriendRoomInvitationCodeDao {
+public class FriendRoomRedisDao {
     // logger
-    private static final Logger log = LoggerFactory.getLogger(FriendRoomInvitationCodeDao.class);
+    private static final Logger log = LoggerFactory.getLogger(FriendRoomRedisDao.class);
 
     // 最大的code
     private static final int MAX_CODE = 9999_9999;
     // code掩码
     private static final int CODE_MASK = MAX_CODE - TimeHelper.ONE_DAY_OF_MILLIS;
-    /**
-     * table_name TableName + "按天的时间" 玩家ID + 邀请码重置次数
-     */
+    // table_name TableName + "按天的时间" 玩家ID + 邀请码重置次数
     private static final String INVITATION_RESET_TABLE_NAME = "FriendRoomInvitationCode";
-
-    /**
-     * 邀请码对应的玩家ID 邀请码 <=> 玩家ID
-     */
+    // 邀请码对应的玩家ID 邀请码 <=> 玩家ID
     private static final String INVITATION_CODE_OF_PLAYER = "InvitationCodeOfPlayer";
+    // 玩家好友房屏蔽玩家ID列表 玩家ID <=> 玩家ID
+    private static final String FRIEND_SHIELD_PLAYERS = "InvitationCodeOfPlayer";
     // 邀请码和玩家的映射
-    private Map<Integer, Long> invitationCodeRef = new HashMap<>();
+    private final Map<Integer, Long> invitationCodeRefCache = new HashMap<>();
 
     @Autowired
     private RedisTemplate<String, Integer> redisTemplate;
@@ -124,6 +121,7 @@ public class FriendRoomInvitationCodeDao {
      */
     public void addInvitationCode(int invitationCode, Long playerId) {
         String invitationPlayerTableName = getInvitationPlayerTableName();
+        invitationCodeRefCache.put(invitationCode, playerId);
         redisTemplate.opsForHash().put(invitationPlayerTableName, invitationCode, playerId);
     }
 
@@ -132,6 +130,9 @@ public class FriendRoomInvitationCodeDao {
      */
     public Long getPlayerIdByInvitationCode(int invitationCode) {
         String invitationPlayerTableName = getInvitationPlayerTableName();
+        if (invitationCodeRefCache.containsKey(invitationCode)) {
+            return invitationCodeRefCache.get(invitationCode);
+        }
         return (Long) redisTemplate.opsForHash().get(invitationPlayerTableName, invitationCode);
     }
 
@@ -142,6 +143,21 @@ public class FriendRoomInvitationCodeDao {
      */
     public boolean existInvitationCode(int invitationCode) {
         String invitationPlayerTableName = getInvitationPlayerTableName();
+        if (invitationCodeRefCache.containsKey(invitationCode)) {
+            return true;
+        }
         return redisTemplate.opsForHash().hasKey(invitationPlayerTableName, invitationCode);
+    }
+
+    /**
+     * 重置邀请码
+     *
+     * @param oldInvitationCode 旧的邀请码
+     * @param newInvitationCode 新的邀请码
+     * @param playerId          玩家ID
+     */
+    public void resetInvitationCode(int oldInvitationCode, int newInvitationCode, long playerId) {
+        invitationCodeRefCache.remove(oldInvitationCode);
+        addInvitationCode(newInvitationCode, playerId);
     }
 }
