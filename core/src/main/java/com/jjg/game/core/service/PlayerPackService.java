@@ -161,8 +161,8 @@ public class PlayerPackService {
      * @param remove   移除的道具
      * @return 最新的背包结果
      */
-    public CommonResult<PlayerPack> removeItem(long playerId, Item remove) {
-        return removeItem(playerId, remove.getId(), remove.getCount());
+    public CommonResult<PlayerPack> removeItem(long playerId, Item remove,String addType) {
+        return removeItem(playerId, remove.getId(), remove.getCount(),null);
     }
 
     /**
@@ -173,9 +173,16 @@ public class PlayerPackService {
      * @param count
      * @return
      */
-    public CommonResult<PlayerPack> removeItem(long playerId, int id, long count) {
+    public CommonResult<PlayerPack> removeItem(long playerId, int id, long count,String addType) {
         CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
+
+        ItemCfg itemCfg = GameDataManager.getItemCfg(id);
+        if(itemCfg == null){
+            result.code = Code.NOT_FOUND;
+            return result;
+        }
+
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         try {
             PlayerPack playerPack = getFromAllDB(playerId);
@@ -184,10 +191,25 @@ public class PlayerPackService {
                 return result;
             }
 
-            CommonResult<Long> removeResult = playerPack.removeItem(id, count);
-            if (!removeResult.success()) {
-                result.code = removeResult.code;
-                return result;
+            //根据不同道具做不同处理
+            if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
+                CommonResult<Player> removeResult = corePlayerService.deductGold(playerId, count,addType);
+                if(!removeResult.success()){
+                    result.code = removeResult.code;
+                    return result;
+                }
+            } else if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
+                CommonResult<Player> removeResult = corePlayerService.deductDiamond(playerId, count,addType);
+                if(!removeResult.success()){
+                    result.code = removeResult.code;
+                    return result;
+                }
+            } else {
+                CommonResult<Long> removeResult = playerPack.removeItem(id, count);
+                if (!removeResult.success()) {
+                    result.code = removeResult.code;
+                    return result;
+                }
             }
 
             redisTemplate.opsForHash().put(tableName, playerId, playerPack);
