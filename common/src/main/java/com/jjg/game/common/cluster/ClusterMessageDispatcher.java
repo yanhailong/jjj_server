@@ -2,7 +2,6 @@ package com.jjg.game.common.cluster;
 
 import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.BaseHandler;
-import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.protostuff.*;
 import io.netty.channel.ChannelHandler;
@@ -11,9 +10,9 @@ import com.jjg.game.common.net.Connect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 
+import java.lang.reflect.Constructor;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -148,7 +147,7 @@ public class ClusterMessageDispatcher {
      * 处理分组消息
      */
     protected boolean handGropMessage(Connect<ClusterMessage> connect, PFSession session, PFMessage msg,
-                                      MessageController messageController) {
+                                      MessageController messageController) throws Exception{
         Map<Integer, MethodInfo> methodInfos = messageController.MethodInfos;
         Set<MethodInfo> groupMsgDispatcher =
             methodInfos.values().stream().filter(val -> val.getCommandAnno().isGroupMsgDispatcher())
@@ -165,7 +164,7 @@ public class ClusterMessageDispatcher {
      * 调用消息实现方法
      */
     private void invokeMessage(Connect<ClusterMessage> connect, PFSession session, PFMessage msg,
-                               MessageController messageController, MethodInfo methodInfo) {
+                               MessageController messageController, MethodInfo methodInfo) throws Exception{
 
         Object bean = messageController.been;
         if (methodInfo.parms != null && methodInfo.parms.length > 0) {
@@ -190,6 +189,9 @@ public class ClusterMessageDispatcher {
                     if (msg.data != null && msg.data.length > 0) {
                         //System.out.println(Arrays.toString(msg.data));
                         args[i] = ProtostuffUtil.deserialize(msg.data, clazz);
+                    }else {
+                        Constructor<?> constructor = clazz.getConstructor();
+                        args[i] = constructor.newInstance();
                     }
                 }
             }

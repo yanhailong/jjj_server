@@ -13,5 +13,5 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.REQ_READ_MAIL)
 @ProtoDesc("阅读邮件")
 public class ReqReadMail extends AbstractMessage {
-    public int id;
+    public long id;
 }

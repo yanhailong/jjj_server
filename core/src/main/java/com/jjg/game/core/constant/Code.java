@@ -55,6 +55,8 @@ public interface Code {
     int ILLEGAL_FRIEND_ROOM_INVITATION_CODE = 418;
     // 未关注好友
     int NOT_FOLLOWED = 419;
+    // 道具不足
+    int NOT_ENOUGH_ITEM = 420;
     // 服务器错误
     int EXCEPTION = 500;
 }

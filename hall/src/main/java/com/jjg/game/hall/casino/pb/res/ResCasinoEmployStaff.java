@@ -14,13 +14,14 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_CASINO_EMPLOY_STAFF, resp = true)
 @ProtoDesc("响应雇佣职员")
 public class ResCasinoEmployStaff extends AbstractResponse {
+    @ProtoDesc("位置索引")
+    public int index;
     @ProtoDesc("机台id")
     public long machineId;
     @ProtoDesc("职员id")
     public long staffId;
     @ProtoDesc("到期时间")
     public long endTime;
-
     public ResCasinoEmployStaff() {
         super(Code.SUCCESS);
     }

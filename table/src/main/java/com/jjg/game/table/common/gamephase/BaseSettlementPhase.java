@@ -131,6 +131,10 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
             return betTotal;
         }
 
+        public void setBetTotal(long betTotal) {
+            this.betTotal = betTotal;
+        }
+
         /**
          * 增加结算值
          */

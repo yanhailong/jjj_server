@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName BuildingFunction.xlsx
  * @sheetName BuildingFunction
  * @author Auto.Generator
- * @date 2025年08月19日 11:30:38
+ * @date 2025年08月19日 15:29:42
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BuildingFunctionCfg extends BaseCfgBean {
@@ -29,6 +29,8 @@ public class BuildingFunctionCfg extends BaseCfgBean {
   protected int name;
   /** 下一级建筑ID */
   protected int nextlevelID;
+  /** 可雇佣员工数量 */
+  protected int numEmployees;
   /** 基础产出/分钟 */
   protected List<Integer> output;
   /** 基础存储数量 */
@@ -65,6 +67,11 @@ public class BuildingFunctionCfg extends BaseCfgBean {
   /** 返回下一级建筑ID */
   public int getNextlevelID() {
     return nextlevelID;
+  }
+
+  /** 返回可雇佣员工数量 */
+  public int getNumEmployees() {
+    return numEmployees;
   }
 
   /** 返回基础产出/分钟 */

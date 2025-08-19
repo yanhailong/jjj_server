@@ -1,6 +1,6 @@
 package com.jjg.game.gate;
 
-import com.jjg.game.common.redis.RedisConfig;
+import org.redisson.spring.starter.RedissonAutoConfigurationV2;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration;
@@ -14,6 +14,7 @@ import org.springframework.context.annotation.FilterType;
 
 /**
  * 网关服务器启动类
+ *
  * @author 11
  * @date 2025/5/23 16:46
  */
@@ -22,8 +23,12 @@ import org.springframework.context.annotation.FilterType;
         RedisRepositoriesAutoConfiguration.class,
         QuartzAutoConfiguration.class,
         MongoAutoConfiguration.class,
-        MongoDataAutoConfiguration.class})
-@ComponentScan(basePackages = {"com.jjg.game"},excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = {RedisConfig.class}))
+        MongoDataAutoConfiguration.class,
+        RedissonAutoConfigurationV2.class
+})
+@ComponentScan(
+        basePackages = {"com.jjg.game"},
+        excludeFilters = @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.redis.*"))
 public class GateApp {
     public static void main(String[] args) {
         SpringApplication.run(GateApp.class, args);

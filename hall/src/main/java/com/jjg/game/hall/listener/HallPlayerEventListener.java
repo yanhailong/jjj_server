@@ -131,6 +131,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                         player.setNickName("player" + req.playerId);
                         player.setCreateTime(TimeHelper.nowInt());
                         player.setIp(session.getAddress().getHost());
+                        player.setLevel(1);
 
                         //设置默认装扮
                         player.setHeadImgId(hallService.getDefaultHeadImgId());

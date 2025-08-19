@@ -37,6 +37,11 @@ public interface HallConstant {
         int TYPE_TITLE = 3;
     }
 
+    interface Casino{
+        //购买一键领取消耗 global表id
+        int BUY_ALL_CLAIM_ALL_REWARDS = 19;
+    }
+
     /**
      * 传入,返回参数类型
      */

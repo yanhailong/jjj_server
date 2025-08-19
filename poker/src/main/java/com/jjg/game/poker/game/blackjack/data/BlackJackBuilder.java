@@ -13,6 +13,7 @@ import com.jjg.game.poker.game.texas.data.SeatInfo;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -62,6 +63,10 @@ public class BlackJackBuilder {
             BlackJackCardInfo blackJackCardInfo = new BlackJackCardInfo();
             blackJackCardInfo.playerId = playerSeatInfo.getPlayerId();
             blackJackCardInfo.cardIds = BlackJackDataHelper.getClientId(gameDataVo, playerSeatInfo.getCurrentCards());
+            Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().get(playerSeatInfo.getPlayerId());
+            if (Objects.nonNull(betInfo)) {
+                blackJackCardInfo.betValue = betInfo.values().stream().mapToLong(Long::longValue).sum();
+            }
             //计算总点数
             blackJackCardInfo.totalPoint = BlackJackDataHelper.getTotalPoint(playerSeatInfo.getCurrentCards());
             blackJackCardInfos.add(blackJackCardInfo);

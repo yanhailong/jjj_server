@@ -6,17 +6,17 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerDao;
 import com.jjg.game.core.dao.PlayerLoginTimeDao;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.RobotPlayer;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.PlayerLevelConfigCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,6 +40,8 @@ public class AbstractPlayerService {
     protected CoreLogger coreLogger;
     @Autowired
     protected PlayerDao playerDao;
+    @Autowired
+    protected PlayerBuffService playerBuffService;
 
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
@@ -237,6 +239,9 @@ public class AbstractPlayerService {
     public CommonResult<Player> deductGold(long playerId, long addNum, String addType){
         return deductGold(playerId, addNum, addType, null);
     }
+    public CommonResult<Player> betDeductGold(long playerId, long addNum, String addType){
+        return betDeductGold(playerId, addNum, addType, null);
+    }
 
     /**
      * 添加金币
@@ -346,6 +351,30 @@ public class AbstractPlayerService {
 
         final long[] beforeCoin = {0};
 
+        //基础经验倍率
+        int baseExpProp = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_BASE_EXP_PROP).getIntValue();
+        //基础流水倍率
+        int baseStatementProp = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_BASE_STATEMENT_PROP).getIntValue();
+
+        //获取buff，是否有经验和流水的加成
+        List<PlayerBuffDetail> expPropDetails = null;
+        List<PlayerBuffDetail> statementPropDetails = null;
+        PlayerBuff playerBuff = playerBuffService.get(playerId);
+        if(playerBuff != null && playerBuff.getDetails() != null && !playerBuff.getDetails().isEmpty()) {
+            expPropDetails = playerBuff.getDetails().get(GameConstant.PlayerBuff.TYPE_EXP_PROP);
+            statementPropDetails = playerBuff.getDetails().get(GameConstant.PlayerBuff.TYPE_STATEMENT_PROP);
+        }
+
+        BigDecimal expProp = playerBuffService.calProp(baseExpProp,expPropDetails);
+        BigDecimal statementProp = playerBuffService.calProp(baseStatementProp,statementPropDetails);
+
+        BigDecimal value = BigDecimal.valueOf(num);
+        //计算应获得的流水
+        BigDecimal statement = value.multiply(statementProp);
+        //计算应该增加的经验
+        long addExp = statement.multiply(expProp).longValue();
+
+        final BigDecimal finalStatementProp = statementProp;
         Player p = checkAndSave(playerId, new DataSaveCallback<>() {
             @Override
             public void updateData(Player dataEntity) {
@@ -360,6 +389,26 @@ public class AbstractPlayerService {
                     return false;
                 }
                 player.setGold(afterCoin);
+                //获取当前等级升级需要的经验
+                PlayerLevelConfigCfg cfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
+                if(cfg == null){
+                    //增加经验
+                    player.setExp(player.getExp() + addExp);
+                    log.debug("获取等级经验配置失败 playerId={},level={}", playerId, player.getLevel());
+                    return true;
+                }
+
+                long tmpAddExp = addExp;
+                //检查配置中，是否有额外的流水系数
+                if(cfg.getProp() > 0){
+                    BigDecimal tmpStatementProp = playerBuffService.calProp(finalStatementProp,cfg.getProp());
+                    tmpAddExp = value.multiply(tmpStatementProp).multiply(expProp).longValue();
+                }
+                //增加经验
+                player.setExp(player.getExp() + tmpAddExp);
+
+                player = levelUp(player,cfg);
+                log.info("玩家押注获取经验 playerId = {},addExp = {},level = {}", playerId, tmpAddExp, player.getLevel());
                 return true;
             }
         });
@@ -374,7 +423,6 @@ public class AbstractPlayerService {
         }
         return result;
     }
-
 
     /**
      * 通过玩家ID获取玩家对象
@@ -610,5 +658,31 @@ public class AbstractPlayerService {
             return result;
         }
         return result;
+    }
+
+    /**
+     * 升级
+     * @param player
+     * @param cfg
+     * @return
+     */
+    protected Player levelUp(Player player,PlayerLevelConfigCfg cfg){
+        if(cfg.getLevelUpExp() < 1){
+            return player;
+        }
+
+        //判断经验是否足够升级
+        long diffExp = player.getExp() - cfg.getLevelUpExp();
+        if(diffExp < 0){
+            return player;
+        }
+        player.setExp(diffExp);
+        player.setLevel(player.getLevel() + 1);
+
+        cfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
+        if(cfg == null){
+            return player;
+        }
+        return levelUp(player,cfg);
     }
 }

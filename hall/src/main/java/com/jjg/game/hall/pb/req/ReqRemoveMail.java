@@ -13,5 +13,5 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.REQ_REMOVE_MAIL)
 @ProtoDesc("删除一封邮件")
 public class ReqRemoveMail extends AbstractMessage {
-    public int id;
+    public long id;
 }
