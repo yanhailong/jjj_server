@@ -16,4 +16,6 @@ public class GameListConfig {
     public String name;
     @ProtoDesc("状态  0.开启  1.维护  2.关闭 ")
     public int status;
+    @ProtoDesc("状态  0.大  1.小")
+    public int iconType;
 }

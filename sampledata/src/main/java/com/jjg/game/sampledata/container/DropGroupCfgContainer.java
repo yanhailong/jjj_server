@@ -4,18 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.StatusCfg;
+import com.jjg.game.sampledata.bean.DropGroupCfg;
 
 /**
- * status.xlsx配置管理容器
+ * dropGroup.xlsx配置管理容器
  *
- * @excelName status.xlsx
- * @sheetName status
+ * @excelName dropGroup.xlsx
+ * @sheetName dropGroup
  * @author auto_generator
- * @date 2025年08月19日 15:29:43
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class StatusCfgContainer extends BaseCfgContainer<StatusCfg> {
+public class DropGroupCfgContainer extends BaseCfgContainer<DropGroupCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -28,23 +27,23 @@ public class StatusCfgContainer extends BaseCfgContainer<StatusCfg> {
   }
 
   @Override
-  public StatusCfgContainer getNewContainer(){
-    return new StatusCfgContainer();
+  public DropGroupCfgContainer getNewContainer(){
+    return new DropGroupCfgContainer();
   }
 
-  public StatusCfgContainer() {
+  public DropGroupCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("status.xlsx");
+    excelNameList.add("dropGroup.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected StatusCfg createNewBean() {
-    return new StatusCfg();
+  protected DropGroupCfg createNewBean() {
+    return new DropGroupCfg();
   }
 }

@@ -33,3 +33,4 @@ stresstool/config/serverIndex.txt
 **/config/application-*.yaml
 **/config/nodeConfig.json
 *.yaml
+*.class

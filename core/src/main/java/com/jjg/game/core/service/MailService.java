@@ -1,20 +1,18 @@
 package com.jjg.game.core.service;
 
 import cn.hutool.core.util.IdUtil;
+import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.MailDao;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Item;
-import com.jjg.game.core.data.Mail;
-import com.jjg.game.core.data.PlayerPack;
+import com.jjg.game.core.data.*;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -31,6 +29,8 @@ public class MailService {
     private MailDao mailDao;
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private PlayerSessionService playerSessionService;
 
     //每页数量
     private int mailPageSize = 50;
@@ -173,6 +173,21 @@ public class MailService {
     }
 
     /**
+     * 保存邮件
+     * @param playerId
+     * @param title
+     * @param content
+     * @param items
+     */
+    public void addMail(long playerId,String title,String content,List<Item> items){
+        Mail mail = createMail(title,content,items,false);
+        mail.setId(IdUtil.getSnowflakeNextId());
+        mail.setPlayerId(playerId);
+        mailDao.save(mail);
+        log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}",playerId,mail.getId());
+    }
+
+    /**
      * 批量保存邮件
      * @param playerIds
      * @param title
@@ -189,6 +204,15 @@ public class MailService {
         }
         long saveCount = mailDao.batchSaveMails(mails);
         log.debug("批量保存邮件数量 mails.size = {}",saveCount);
+
+        log.warn("这里要通知玩家收到邮件....");
+        //通知收到邮件，
+//        for(long playerId : playerIds){
+//            PFSession session = playerSessionService.getSession(playerId);
+//            if(session == null){
+//                continue;
+//            }
+//        }
     }
 
     /**
@@ -200,6 +224,16 @@ public class MailService {
     public void addAllServerMail(String title,String content,List<Item> items) {
         Mail mail = createMail(title, content, items, true);
         mailDao.saveServerMail(mail);
+
+        //给在线的玩家添加邮件
+        Map<Long, PlayerSessionInfo> all = playerSessionService.getAll();
+        for(Map.Entry<Long, PlayerSessionInfo> en : all.entrySet()){
+            PFSession session = playerSessionService.getSession(en.getValue());
+            if(session == null){
+                continue;
+            }
+            addMail(en.getValue().getPlayerId(),title,content,items);
+        }
     }
 
     /**

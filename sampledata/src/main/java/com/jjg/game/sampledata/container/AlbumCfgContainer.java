@@ -4,21 +4,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.AlbumCfg;
 
 /**
- * Room_Chess.xlsx配置管理容器
+ * album.xlsx配置管理容器
  *
- * @excelName Room_Chess.xlsx
- * @sheetName Room_Chess
+ * @excelName album.xlsx
+ * @sheetName album
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class Room_ChessCfgContainer extends BaseCfgContainer<Room_ChessCfg> {
+public class AlbumCfgContainer extends BaseCfgContainer<AlbumCfg> {
 
   @Override
   public boolean hasRelatedTable() {
-    return true;
+    return false;
   }
 
   @Override
@@ -27,23 +27,23 @@ public class Room_ChessCfgContainer extends BaseCfgContainer<Room_ChessCfg> {
   }
 
   @Override
-  public Room_ChessCfgContainer getNewContainer(){
-    return new Room_ChessCfgContainer();
+  public AlbumCfgContainer getNewContainer(){
+    return new AlbumCfgContainer();
   }
 
-  public Room_ChessCfgContainer() {
+  public AlbumCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("Room_Chess.xlsx");
+    excelNameList.add("album.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected Room_ChessCfg createNewBean() {
-    return new Room_ChessCfg();
+  protected AlbumCfg createNewBean() {
+    return new AlbumCfg();
   }
 }

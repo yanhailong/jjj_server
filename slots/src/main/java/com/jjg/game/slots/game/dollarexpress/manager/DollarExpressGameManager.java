@@ -1009,7 +1009,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //给美钞设值
         if (dollarAllTimes > 0 && dollarsInfo.dollarIndexIds != null) {
             int times = dollarAllTimes / dollarsInfo.dollarIndexIds.size();
-            long value = gameData.getLastBet() * times;
+            long value = calWinGold(gameData.getLastBet(),times);
             if (dollarsInfo.dollarValueList == null) {
                 dollarsInfo.dollarValueList = new ArrayList<>();
             }
