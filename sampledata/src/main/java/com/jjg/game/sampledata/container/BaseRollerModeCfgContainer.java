@@ -12,7 +12,6 @@ import com.jjg.game.sampledata.bean.BaseRollerModeCfg;
  * @excelName BaseRollerMode.xlsx
  * @sheetName BaseRollerMode
  * @author auto_generator
- * @date 2025年08月19日 15:29:43
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BaseRollerModeCfgContainer extends BaseCfgContainer<BaseRollerModeCfg> {

@@ -364,9 +364,10 @@ public class HallService implements ConfigExcelChangeListener {
      * @param playerId
      * @param itemId
      */
-    public CommonResult<PlayerPack> useItem(long playerId,int itemId){
+    public CommonResult<PlayerPack> useItem(long playerId,int girdId,int itemId){
         CommonResult<PlayerPack> result = new CommonResult<>(Code.SUCCESS);
         try{
+            log.debug("玩家使用道具 playerId = {},girdId = {},itemId = {}",playerId,girdId,itemId);
             ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
             if(itemCfg == null){
                 result.code = Code.NOT_FOUND;
@@ -395,7 +396,7 @@ public class HallService implements ConfigExcelChangeListener {
                     log.debug("未找到获得新道具的配置 playerId = {},itemId = {}",playerId,addItemId);
                     continue;
                 }
-                useResult = playerPackService.useItem(playerId, itemId, addItemId, en.getValue(), "packUseItem");
+                useResult = playerPackService.useItem(playerId,girdId, itemId, addItemId, en.getValue(), "packUseItem");
             }
 
             if(useResult == null){

@@ -57,12 +57,16 @@ public interface Code {
     int NOT_FOLLOWED = 419;
     // 道具不足
     int NOT_ENOUGH_ITEM = 420;
+    // 等级不足
+    int Level_NOT_ENOUGH = 421;
+    //  已达等级上限
+    int BUILDING_LEVEL_IS_MAX = 422;
     // 邀请码重置次数不足
-    int INVITATION_CODE_RESET_TIMES_NOT_ENOUGH = 421;
+    int INVITATION_CODE_RESET_TIMES_NOT_ENOUGH = 423;
     // 邀请码重置次数不足
-    int MAX_FOLLOWED_FRIENDS = 422;
+    int MAX_FOLLOWED_FRIENDS = 424;
     // 添加玩家黑名单数量达到限制值
-    int ADD_BLACK_LIST_PLAYER_TO_LIMIT = 423;
+    int ADD_BLACK_LIST_PLAYER_TO_LIMIT = 425;
     // 服务器错误
     int EXCEPTION = 500;
 }

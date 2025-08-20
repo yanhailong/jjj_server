@@ -91,7 +91,7 @@ public class GameDataTracker {
      */
     public void flushDataLog(EDataTrackLogType dataTrackLogType) {
         HashMap<String, Object> tempTrackData = new HashMap<>();
-        Map<Long, HashMap<String, Object>> playerDataList = new HashMap<>();
+        Map<String, HashMap<String, Object>> playerDataList = new HashMap<>();
         // 玩家埋点数据为空，退出
         if (playerTrackData.isEmpty()) {
             return;
@@ -118,7 +118,7 @@ public class GameDataTracker {
     }
 
 
-    public void buildPlayerData(Map.Entry<Object, Object> entry, Map<Long, HashMap<String, Object>> playerDataList) {
+    public void buildPlayerData(Map.Entry<Object, Object> entry, Map<String, HashMap<String, Object>> playerDataList) {
         HashMap<String, Object> playerData = new HashMap<>();
         switch (entry.getKey()) {
             case GamePlayer gamePlayer -> {
@@ -127,12 +127,12 @@ public class GameDataTracker {
                 }
                 playerData.put("playerInfo", trackLogger.buildGamePlayerInfo(gamePlayer));
                 playerData.put("data", entry.getValue());
-                playerDataList.put(gamePlayer.getId(), playerData);
+                playerDataList.put(gamePlayer.getId() + "", playerData);
             }
             case SimplePlayerInfo playerInfo -> {
                 playerData.put("playerInfo", trackLogger.buildGamePlayerInfo(playerInfo));
                 playerData.put("data", entry.getValue());
-                playerDataList.put(playerInfo.playerId(), playerData);
+                playerDataList.put(playerInfo.playerId() + "", playerData);
             }
             default -> {
             }

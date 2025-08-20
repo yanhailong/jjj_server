@@ -5,6 +5,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.pb.AbstractResponse;
+import com.jjg.game.hall.casino.pb.bean.CasinoSimpleMachineInfo;
 import com.jjg.game.hall.constant.HallConstant;
 
 /**
@@ -22,6 +23,8 @@ public class ResCasinoEmployStaff extends AbstractResponse {
     public long staffId;
     @ProtoDesc("到期时间")
     public long endTime;
+    @ProtoDesc("机台简要信息")
+    public CasinoSimpleMachineInfo simpleMachineInfo;
     public ResCasinoEmployStaff() {
         super(Code.SUCCESS);
     }

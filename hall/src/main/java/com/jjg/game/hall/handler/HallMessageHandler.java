@@ -15,6 +15,8 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.core.service.MailService;
+import com.jjg.game.hall.casino.manager.CasinoManager;
+import com.jjg.game.hall.casino.pb.req.*;
 import com.jjg.game.hall.constant.HallCode;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.dao.HallPoolDao;
@@ -36,9 +38,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author 11
@@ -55,7 +55,7 @@ public class HallMessageHandler implements GmListener {
     @Autowired
     private HallRoomService hallRoomService;
     @Autowired
-    private GameStatusService gameStatusService;
+    private CasinoManager casinoManager;
     @Autowired
     private HallPlayerService hallPlayerService;
     @Autowired
@@ -392,24 +392,8 @@ public class HallMessageHandler implements GmListener {
     public void reqGetPack(PlayerController playerController, ReqGetPack req) {
         ResGetPack res = new ResGetPack(HallCode.SUCCESS);
         try {
-            PlayerPack playerPack = hallService.getPlayerPack(playerController.playerId());
-            if(playerPack == null || playerPack.getItems().isEmpty()) {
-                playerController.send(res);
-                return;
-            }
-
-            List<PackItemInfo> packItemInfos = new ArrayList<>();
-            playerPack.getItems().entrySet().forEach(en -> {
-                PackItemInfo info = new PackItemInfo();
-                info.girdId = en.getKey();
-                info.item = new ItemInfo();
-                info.item.itemId = en.getValue().getId();
-                info.item.count = en.getValue().getCount();
-                packItemInfos.add(info);
-            });
-
-            res.packItemInfos = packItemInfos;
-            log.debug("返回玩家背包数据 playerId = {}", playerController.playerId());
+            res.packItemInfos = getPlayerPack(playerController.playerId());
+            log.debug("返回玩家背包数据 playerId = {},res = {}", playerController.playerId(),JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -426,8 +410,9 @@ public class HallMessageHandler implements GmListener {
     public void reqUseItem(PlayerController playerController, ReqUseItem req) {
         ResUseItem res = new ResUseItem(HallCode.SUCCESS);
         try {
-            hallService.useItem(playerController.playerId(), req.itemId);
-            log.debug("使用道具 playerId = {}", playerController.playerId());
+            hallService.useItem(playerController.playerId(), req.girdId,req.itemId);
+            res.packItemInfos = getPlayerPack(playerController.playerId());
+            log.debug("使用道具 playerId = {},res = {}", playerController.playerId(),JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -523,6 +508,7 @@ public class HallMessageHandler implements GmListener {
                 playerController.send(res);
                 return;
             }
+            log.info("领取邮件附件 playerId = {},mailId = {}",playerController.playerId(),req.id);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -579,7 +565,7 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_GET_ALL_MAILS_ITEMS)
     public void reqGetAllMailsItems(PlayerController playerController, ReqGetAllMailsItems req) {
-        ResRemoveReadMails res = new ResRemoveReadMails(HallCode.SUCCESS);
+        ResGetAllMailsItems res = new ResGetAllMailsItems(HallCode.SUCCESS);
         try {
             CommonResult<Integer> result = mailService.getAllMailsItems(playerController.playerId());
             if(!result.success()){
@@ -718,6 +704,80 @@ public class HallMessageHandler implements GmListener {
         return new CommonResult<>(Code.SUCCESS, info);
     }
 
+
+
+
+    /**
+     * 我的赌场 请求购买一键领取
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_BUY_CLAIM_ALL_REWARDS)
+    public void reqCasinoBuyClaimAllRewards(PlayerController playerController, ReqCasinoBuyClaimAllRewards req) {
+        playerController.send(casinoManager.reqCasinoBuyClaimAllRewards(playerController.playerId(), req));
+    }
+
+    /**
+     * 我的赌场 请求玩家赌场信息
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_INFO)
+    public void reqCasinoInfo(PlayerController playerController, ReqCasinoInfo req) {
+        playerController.send(casinoManager.reqCasinoInfo(playerController.playerId(), req));
+    }
+
+    /**
+     * 我的赌场 一键领取收益
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_CLAIM_ALL_REWARDS)
+    public void reqCasinoClaimAllRewards(PlayerController playerController, ReqCasinoClaimAllRewards req) {
+        playerController.send(casinoManager.reqCasinoClaimAllRewards(playerController.playerId(), req));
+    }
+
+    /**
+     * 我的赌场 领取机台收益
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_CLAIM_REWARDS)
+    public void reqCasinoClaimRewards(PlayerController playerController, ReqCasinoClaimRewards req) {
+        playerController.send(casinoManager.reqCasinoClaimRewards(playerController.playerId(), req));
+    }
+
+    /**
+     * 我的赌场 领取机台收益
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_EMPLOY_STAFF)
+    public void reqCasinoEmployStaff(PlayerController playerController, ReqCasinoEmployStaff req) {
+        playerController.send(casinoManager.reqCasinoEmployStaff(playerController.playerId(), req));
+    }
+
+    /**
+     * 我的赌场 请求楼层操作
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_FLOOR_OPERATION)
+    public void reqCasinoFloorOperation(PlayerController playerController, ReqCasinoFloorOperation req) {
+        playerController.send(casinoManager.reqCasinoFloorOperation(playerController.getPlayer(), req));
+    }
+
+    /**
+     * 我的赌场 请求楼层操作
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_UPGRADE_MACHINE)
+    public void reqCasinoUpgradeMachine(PlayerController playerController, ReqCasinoUpgradeMachine req) {
+        playerController.send(casinoManager.reqCasinoUpgradeMachine(playerController.getPlayer(), req));
+    }
+
+
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
         CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
@@ -738,5 +798,31 @@ public class HallMessageHandler implements GmListener {
             res.code = Code.EXCEPTION;
         }
         return res;
+    }
+
+    /*****************************************************************************************************/
+
+
+    /**
+     * 获取玩家的背包数据
+     * @param playerId
+     * @return
+     */
+    private List<PackItemInfo> getPlayerPack(long playerId){
+        PlayerPack playerPack = hallService.getPlayerPack(playerId);
+        if(playerPack == null || playerPack.getItems().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<PackItemInfo> packItemInfos = new ArrayList<>();
+        playerPack.getItems().entrySet().forEach(en -> {
+            PackItemInfo info = new PackItemInfo();
+            info.girdId = en.getKey();
+            info.item = new ItemInfo();
+            info.item.itemId = en.getValue().getId();
+            info.item.count = en.getValue().getCount();
+            packItemInfos.add(info);
+        });
+        return packItemInfos;
     }
 }

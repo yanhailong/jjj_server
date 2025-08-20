@@ -449,16 +449,11 @@ public class MarsCurator implements TreeCacheListener {
                 return true;
             }
             String nodeType = pathArr[3];
-            if (NodeType.HALL.name().equals(nodeType)) {
+            if (NodeType.HALL.name().equals(nodeType) || NodeType.GATE.name().equals(nodeType) || NodeType.GM.name().equals(nodeType)) {
                 return true;
-            } else if (NodeType.GATE.name().equals(nodeType)) {
-                //网关不需要和gm连接
-                if (NodeType.GM.name().equals(this.nodeConfig.getType())) {
-                    log.debug("网关不需要和gm连接1 thisNodeType = {},targetNodeType={}", this.nodeConfig.getType(), nodeType);
-                    return false;
-                }
-                return true;
-            } else if (NodeType.GAME.name().equals(nodeType)) {
+            }
+
+            if (NodeType.GAME.name().equals(nodeType)) {
                 if (StringUtils.isEmpty(data)) {
                     return true;
                 }
@@ -485,13 +480,6 @@ public class MarsCurator implements TreeCacheListener {
                 }
                 log.debug("这个节点不需要缓存  anotherNodeName={},gameMajorTypes={}", anotherNodeConfig.getName(),Arrays.toString(anotherNodeConfig.getGameMajorTypes()));
                 return false;
-            } else if (NodeType.GM.name().equals(nodeType)) {
-                //网关不需要和gm连接
-                if(NodeType.GATE.name().equals(this.nodeConfig.getType())){
-                    log.debug("网关不需要和gm连接2 thisNodeType = {},targetNodeType={}",this.nodeConfig.getType(),nodeType);
-                    return false;
-                }
-                return true;
             }
 
             if ("master".equalsIgnoreCase(nodeType)) {

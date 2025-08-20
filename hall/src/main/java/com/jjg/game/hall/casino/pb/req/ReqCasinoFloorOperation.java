@@ -10,6 +10,7 @@ import com.jjg.game.hall.constant.HallConstant;
  * @date 2025/8/18 14:41
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.REQ_CASINO_FLOOR_OPERATION)
+@ProtoDesc("请求楼层操作")
 public class ReqCasinoFloorOperation {
     @ProtoDesc("赌场id")
     public int casinoId;

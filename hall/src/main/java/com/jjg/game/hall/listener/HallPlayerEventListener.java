@@ -215,6 +215,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                         gameListConfig.name = configCfg.getName();
                         //TODO 配置和后台状态统一
                         gameListConfig.status = gameStatus.open() == 1 ? gameStatus.status() : 2;
+                        gameListConfig.iconType = configCfg.getIconType();
                         list.add(gameListConfig);
                         continue;
                     }
@@ -223,6 +224,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 gameListConfig.sid = configCfg.getId();
                 gameListConfig.name = configCfg.getName();
                 gameListConfig.status = configCfg.getStatus();
+                gameListConfig.iconType = configCfg.getIconType();
                 list.add(gameListConfig);
             }
             return list;

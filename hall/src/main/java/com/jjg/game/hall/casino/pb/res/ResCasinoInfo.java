@@ -26,6 +26,8 @@ public class ResCasinoInfo extends AbstractResponse {
     public ItemInfo itemInfo;
     @ProtoDesc("楼层信息")
     public List<CasinoFloorInfo> casinoFloorInfos;
+    @ProtoDesc("当前最高解锁楼层")
+    public int maxUnlockFloorId;
 
     public ResCasinoInfo() {
         super(Code.SUCCESS);

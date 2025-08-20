@@ -9,7 +9,6 @@ import javax.annotation.processing.Generated;
  * @excelName BuildingFloor.xlsx
  * @sheetName BuildingFloor
  * @author Auto.Generator
- * @date 2025年08月19日 15:29:42
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class BuildingFloorCfg extends BaseCfgBean {
@@ -30,7 +29,7 @@ public class BuildingFloorCfg extends BaseCfgBean {
   /** 楼层ID */
   protected int type;
   /** 楼层解锁条件 */
-  protected List<Integer> unlock;
+  protected Map<Integer,Integer> unlock;
 
   /** 返回楼层建筑组成 */
   public List<Integer> getArchitectural() {
@@ -58,7 +57,7 @@ public class BuildingFloorCfg extends BaseCfgBean {
   }
 
   /** 返回楼层解锁条件 */
-  public List<Integer> getUnlock() {
+  public Map<Integer,Integer> getUnlock() {
     return unlock;
   }
 

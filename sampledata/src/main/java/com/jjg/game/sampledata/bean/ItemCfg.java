@@ -9,7 +9,6 @@ import javax.annotation.processing.Generated;
  * @excelName Item.xlsx
  * @sheetName Item
  * @author Auto.Generator
- * @date 2025年08月19日 15:29:42
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class ItemCfg extends BaseCfgBean {
@@ -19,6 +18,8 @@ public class ItemCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "Item";
 
+  /** 自动激活的图鉴ID */
+  protected int album;
   /** 使用道具后获得道具 */
   protected Map<Integer,Long> getItem;
   /** 图标资源名 */
@@ -33,6 +34,11 @@ public class ItemCfg extends BaseCfgBean {
   protected int text;
   /** 类型 */
   protected int type;
+
+  /** 返回自动激活的图鉴ID */
+  public int getAlbum() {
+    return album;
+  }
 
   /** 返回使用道具后获得道具 */
   public Map<Integer,Long> getGetItem() {
