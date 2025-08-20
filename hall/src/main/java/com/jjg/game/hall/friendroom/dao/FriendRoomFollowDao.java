@@ -21,9 +21,9 @@ import java.util.List;
  * @author 2CL
  */
 @Repository
-public class RoomFriendDao extends MongoBaseDao<FriendRoomFollowBean, Long> {
+public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long> {
 
-    public RoomFriendDao(@Autowired MongoTemplate mongoTemplate) {
+    public FriendRoomFollowDao(@Autowired MongoTemplate mongoTemplate) {
         super(FriendRoomFollowBean.class, mongoTemplate);
     }
 
@@ -56,12 +56,36 @@ public class RoomFriendDao extends MongoBaseDao<FriendRoomFollowBean, Long> {
     }
 
     /**
+     * 玩家好友数量
+     */
+    public long countRoomFriendSize(long playerId) {
+        return mongoTemplate.count(
+            Query.query(
+                Criteria.where("playerId").is(playerId)
+                    .and("removeTime").gt(0)
+            )
+            ,
+            FriendRoomFollowBean.class
+        );
+    }
+
+    /**
      * 批量软删除关注玩家
      */
     public void removeFollowedFriend(Collection<Long> removeId) {
         mongoTemplate.updateMulti(
             Query.query(Criteria.where("id").in(removeId)),
             Update.update("removeTime", System.currentTimeMillis()),
+            FriendRoomFollowBean.class
+        );
+    }
+
+    /**
+     * 通过邀请码删除所有映射关系
+     */
+    public void deleteMappingRelateByInvitationCode(int invitationCode) {
+        mongoTemplate.remove(
+            Query.query(Criteria.where("invitationCode").is(invitationCode)),
             FriendRoomFollowBean.class
         );
     }

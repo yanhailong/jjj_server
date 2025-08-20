@@ -21,7 +21,7 @@ public abstract class AbstractGoldRoomDao<T extends Room,P extends RoomPlayer> e
     }
 
     @Override
-    public boolean putIfAbsent(T room) {
+    protected boolean putIfAbsent(T room) {
         boolean success = super.putIfAbsent(room);
         if(success){
             redisTemplate.opsForList().rightPush(getRoomIdListKey(room.getGameType(),room.getRoomCfgId()), room.getId());

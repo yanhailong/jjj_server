@@ -7,10 +7,13 @@ import com.jjg.game.common.utils.TimeHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -33,13 +36,15 @@ public class FriendRoomRedisDao {
     private static final String INVITATION_RESET_TABLE_NAME = "FriendRoomInvitationCode";
     // 邀请码对应的玩家ID 邀请码 <=> 玩家ID
     private static final String INVITATION_CODE_OF_PLAYER = "InvitationCodeOfPlayer";
-    // 玩家好友房屏蔽玩家ID列表 玩家ID <=> 玩家ID
-    private static final String FRIEND_SHIELD_PLAYERS = "InvitationCodeOfPlayer";
+    // 玩家好友房屏蔽玩家ID列表 玩家ID <=> 屏蔽的玩家ID列表
+    private static final String PLAYER_BLACK_LIST = "PlayerBlackList";
     // 邀请码和玩家的映射
     private final Map<Integer, Long> invitationCodeRefCache = new HashMap<>();
 
     @Autowired
     private RedisTemplate<String, Integer> redisTemplate;
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
     @Autowired
     private RedisLock redisLock;
     // 表名缓存，防止重复判断。如果是重新开服，此值会清空，但是也只是让key值多存一点时间，不影响其他逻辑
@@ -103,7 +108,7 @@ public class FriendRoomRedisDao {
     /**
      * 改变重置次数
      */
-    public long addUseTimes(long playerId) {
+    public long addInvitationCodeResetUseTimes(long playerId) {
         String tableName = getInvitationResetTableName();
         return redisTemplate.opsForHash().increment(tableName, playerId, 1);
     }
@@ -111,7 +116,7 @@ public class FriendRoomRedisDao {
     /**
      * 获取玩家重置次数
      */
-    public Integer getUseTimes(long playerId) {
+    public Integer getInvitationCodeResetUseTimes(long playerId) {
         String tableName = getInvitationResetTableName();
         return (Integer) redisTemplate.opsForHash().get(tableName, playerId);
     }
@@ -157,7 +162,39 @@ public class FriendRoomRedisDao {
      * @param playerId          玩家ID
      */
     public void resetInvitationCode(int oldInvitationCode, int newInvitationCode, long playerId) {
-        invitationCodeRefCache.remove(oldInvitationCode);
-        addInvitationCode(newInvitationCode, playerId);
+        String tableName = getInvitationResetTableName();
+        String invitationPlayerTableName = getInvitationPlayerTableName();
+        redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            // 添加使用次数
+            connection.hashCommands().hIncrBy(tableName.getBytes(), (playerId + "").getBytes(), 1);
+            // 删除旧的邀请码
+            connection.hashCommands().hDel(invitationPlayerTableName.getBytes(), (oldInvitationCode + "").getBytes());
+            // 移除旧的邀请码缓存
+            invitationCodeRefCache.remove(oldInvitationCode);
+            // 添加新的邀请码
+            connection.hashCommands().hSet(
+                invitationPlayerTableName.getBytes(), (newInvitationCode + "").getBytes(), (playerId + "").getBytes());
+            // 添加新的邀请码缓存
+            invitationCodeRefCache.put(newInvitationCode, playerId);
+            return null;
+        });
+    }
+
+    /**
+     * 获取玩家黑名单列表
+     */
+    public List<Long> getPlayerBlackList(long playerId) {
+        return (List<Long>) stringRedisTemplate.opsForHash().get(PLAYER_BLACK_LIST, playerId);
+    }
+
+    /**
+     * 更新玩家屏蔽列表
+     */
+    public void updatePlayerBlackList(long playerId, List<Long> playerBlackList) {
+        if (playerBlackList.isEmpty()) {
+            stringRedisTemplate.opsForHash().delete(PLAYER_BLACK_LIST, playerId);
+        } else {
+            stringRedisTemplate.opsForHash().put(PLAYER_BLACK_LIST, playerId, playerBlackList);
+        }
     }
 }

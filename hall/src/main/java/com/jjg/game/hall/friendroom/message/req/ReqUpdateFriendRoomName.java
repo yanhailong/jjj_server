@@ -16,7 +16,7 @@ import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
     cmd = FriendRoomMessageConstant.ReqMsgCons.REQ_CHANGE_FRIEND_ROOM_NAME
 )
 @ProtoDesc("请求更新房间名")
-public class ReqUpdateFriendRoomName  extends AbstractMessage {
+public class ReqUpdateFriendRoomName extends AbstractMessage {
 
     @ProtoDesc("新的名字")
     public String newName;

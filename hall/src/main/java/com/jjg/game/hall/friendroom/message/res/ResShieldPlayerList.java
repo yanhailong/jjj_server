@@ -3,6 +3,7 @@ package com.jjg.game.hall.friendroom.message.res;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
 import com.jjg.game.hall.friendroom.message.struct.BaseFriendRoomPlayerInfo;
 
@@ -19,8 +20,12 @@ import java.util.List;
     resp = true
 )
 @ProtoDesc("返回屏蔽玩家列表")
-public class ResShieldPlayerList {
+public class ResShieldPlayerList extends AbstractResponse {
 
     @ProtoDesc("屏蔽的玩家列表")
     public List<BaseFriendRoomPlayerInfo> shieldPlayerList;
+
+    public ResShieldPlayerList(int code) {
+        super(code);
+    }
 }

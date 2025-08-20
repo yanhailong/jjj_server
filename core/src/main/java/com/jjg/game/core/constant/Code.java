@@ -57,6 +57,12 @@ public interface Code {
     int NOT_FOLLOWED = 419;
     // 道具不足
     int NOT_ENOUGH_ITEM = 420;
+    // 邀请码重置次数不足
+    int INVITATION_CODE_RESET_TIMES_NOT_ENOUGH = 421;
+    // 邀请码重置次数不足
+    int MAX_FOLLOWED_FRIENDS = 422;
+    // 添加玩家黑名单数量达到限制值
+    int ADD_BLACK_LIST_PLAYER_TO_LIMIT = 423;
     // 服务器错误
     int EXCEPTION = 500;
 }
