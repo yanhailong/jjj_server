@@ -292,7 +292,10 @@ public abstract class BaseCfgContainer<T extends BaseCfgBean> {
       }
       // 如果配置表中的字段未在bean中找到则跳过,说明是表的新字段
       if (!cfgBeanFieldMap.containsKey(fieldName)) {
-        continue;
+        fieldName = FieldDataAdapter.lowerFirst(fieldName);
+        if (!cfgBeanFieldMap.containsKey(fieldName)) {
+          continue;
+        }
       }
       Field field = cfgBeanFieldMap.get(fieldName);
       field.setAccessible(true);
@@ -1136,7 +1139,7 @@ public abstract class BaseCfgContainer<T extends BaseCfgBean> {
     }
 
     /**
-     * 小写第一个字符
+     * 大写第一个字符
      *
      * @param str 待转换的字符串
      * @return 转换后字符串
@@ -1146,6 +1149,22 @@ public abstract class BaseCfgContainer<T extends BaseCfgBean> {
       char lowerCharStart = 'a', lowerCharEnd = 'z';
       if (charArray[0] <= lowerCharEnd && charArray[0] >= lowerCharStart) {
         charArray[0] -= 32;
+        return new String(charArray);
+      }
+      return str;
+    }
+
+    /**
+     * 小写第一个字符
+     *
+     * @param str 待转换的字符串
+     * @return 转换后字符串
+     */
+    public static String lowerFirst(String str) {
+      char[] charArray = str.toCharArray();
+      char lowerCharStart = 'A', lowerCharEnd = 'Z';
+      if (charArray[0] <= lowerCharEnd && charArray[0] >= lowerCharStart) {
+        charArray[0] += 32;
         return new String(charArray);
       }
       return str;

@@ -655,6 +655,10 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             lib.addLibType(SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN);
         }
 
+        if(lib.getGoldTrainAllTimes() > 0){
+            lib.setGoldTrainAllTimes((int)oneLineToAllLineTimes(SlotsConst.Common.ALL_LINE,oneLineStake,lib.getGoldTrainAllTimes(),allLinesStake));
+        }
+
         //免费游戏
         if (lib.getFreeGameMap() != null && !lib.getFreeGameMap().isEmpty()) {
 //            lib.setLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE);
@@ -715,7 +719,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 
                     lib.setIconArr(game.getIconArr());
                     lib.setGoldTrainCount(game.getGoldTrainCount());
-                    lib.setGoldTrainAllTimes(game.getGoldTrainAllTimes());
+                    lib.setGoldTrainAllTimes((int)oneLineToAllLineTimes(SlotsConst.Common.ALL_LINE,oneLineStake,game.getGoldTrainAllTimes(),allLinesStake));
                     it.remove();
                 }
 
@@ -732,11 +736,6 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 lib.setAgainGameMap(null);
             }
         }
-
-        //美元现金
-//        lib.addTimes(calDollarCashTimes(lib.getDollarInfo()));
-        //黄金列车
-//        int goldTrainTimes = calGoldTrainTimes(lib.getDollarInfo() == null ? null : lib.getDollarInfo().getDollarTimesList(), lib.getGoldTrainCount());
 
         if (lib.getRollerId() == SlotsConst.BaseElementReward.ROTATESTATE_FREE) {
             lib.addLibType(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE);

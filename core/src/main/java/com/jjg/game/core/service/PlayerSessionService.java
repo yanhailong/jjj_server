@@ -120,9 +120,6 @@ public class PlayerSessionService implements TimerListener<String> {
     }
 
     public Map<Long, PlayerSessionInfo> getAll() {
-        //Set<String> set = redisTemplate.opsForSet().members(ONLINEPLAYERS);
-        //List<PlayerSessionInfo> playerSessionInfos = redisTemplate.opsForHash().mulget(SESSION_TABLE_NAME,set);
-        //return playerSessionInfos.stream().filter(Objects::nonNull).collect(Collectors.toList());
         HashOperations<String, Long, PlayerSessionInfo> hashOperations = redisTemplate.opsForHash();
         return hashOperations.entries(SESSION_TABLE_NAME);
     }

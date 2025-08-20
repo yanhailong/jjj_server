@@ -12,7 +12,6 @@ import com.jjg.game.sampledata.bean.ClientRollerCfg;
  * @excelName ClientRoller.xlsx
  * @sheetName ClientRoller
  * @author auto_generator
- * @date 2025年08月20日 13:34:26
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class ClientRollerCfgContainer extends BaseCfgContainer<ClientRollerCfg> {

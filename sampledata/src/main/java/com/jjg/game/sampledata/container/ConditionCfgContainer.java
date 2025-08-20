@@ -12,7 +12,6 @@ import com.jjg.game.sampledata.bean.ConditionCfg;
  * @excelName condition.xlsx
  * @sheetName condition
  * @author auto_generator
- * @date 2025年08月20日 13:34:26
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class ConditionCfgContainer extends BaseCfgContainer<ConditionCfg> {
