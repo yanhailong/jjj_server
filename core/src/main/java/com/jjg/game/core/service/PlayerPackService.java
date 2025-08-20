@@ -233,7 +233,7 @@ public class PlayerPackService {
      * @param addItemCount
      * @return
      */
-    public CommonResult<PlayerPack> useItem(long playerId, int useItemId, int addItemId, long addItemCount,
+    public CommonResult<PlayerPack> useItem(long playerId, int girdId, int useItemId, int addItemId, long addItemCount,
                                             String addType) {
         CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
@@ -253,7 +253,7 @@ public class PlayerPackService {
             }
 
             //移除道具
-            CommonResult<Long> removeResult = playerPack.removeItem(useItemId, useCount);
+            CommonResult<Long> removeResult = playerPack.removeItem(girdId, useItemId, useCount);
             if (!removeResult.success()) {
                 result.code = removeResult.code;
                 return result;
@@ -269,6 +269,7 @@ public class PlayerPackService {
                     result.code = addResult.code;
                     return result;
                 }
+                log.debug("使用道具添加金币 playerId = {},useItemId = {},addItemId = {},addItemCount = {}", playerId, useItemId, addItemId, addItemCount);
             } else if (addItemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
                 CommonResult<Player> addResult = corePlayerService.addDiamond(playerId, addItemCount,
                         useItemAddType, useItemId + "");
@@ -278,8 +279,10 @@ public class PlayerPackService {
                     result.code = addResult.code;
                     return result;
                 }
+                log.debug("使用道具添加钻石 playerId = {},useItemId = {},addItemId = {},addItemCount = {}", playerId, useItemId, addItemId, addItemCount);
             } else {
                 playerPack.addItem(addItemId, (int) addItemCount, addItemMax);
+                log.debug("使用道具添加道具 playerId = {},useItemId = {},addItemId = {},addItemCount = {}", playerId, useItemId, addItemId, addItemCount);
             }
 
             redisTemplate.opsForHash().put(tableName, playerId, playerPack);

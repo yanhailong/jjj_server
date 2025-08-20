@@ -106,7 +106,7 @@ public class RedisLock {
      */
     public void lock(String key, int waitTime) {
         RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
-        redissonLock.lock(waitTime, TimeUnit.SECONDS);
+        redissonLock.lock(waitTime, TimeUnit.MILLISECONDS);
     }
 
     /**

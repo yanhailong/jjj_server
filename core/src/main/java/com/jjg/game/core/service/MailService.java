@@ -49,7 +49,7 @@ public class MailService {
      * @param mailId
      */
     public boolean readMail(long playerId,long mailId) {
-        return mailDao.updateStatus(playerId,mailId, GameConstant.Mail.STAUTS_READ);
+        return mailDao.readMail(playerId,mailId);
     }
 
     /**
@@ -92,6 +92,7 @@ public class MailService {
             });
 
             if(!map.isEmpty()){
+                mailDao.getMailItems(playerId,mailId);
                 playerPackService.addItems(playerId,map,"getMailItems");
             }
         }catch (Exception e){

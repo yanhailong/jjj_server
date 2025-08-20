@@ -111,12 +111,25 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
     }
 
     /**
+     * @param mailId
+     */
+    public boolean readMail(long playerId,long mailId) {
+        Query query = Query.query(Criteria.where("id").is(mailId)
+                .and("playerId").is(playerId)
+                .and("status").lt(GameConstant.Mail.STAUTS_READ));
+        return mongoTemplate.updateFirst(query, Update.update("status", GameConstant.Mail.STAUTS_READ), Mail.class).getModifiedCount() > 0;
+    }
+
+    /**
      * 修改邮件状态
      * @param mailId
-     * @param status
      */
-    public boolean updateStatus(long playerId,long mailId, int status) {
-        return mongoTemplate.updateFirst(Query.query(Criteria.where("id").is(mailId).and("playerId").is(playerId)), Update.update("status", status), Mail.class).getModifiedCount() > 0;
+    public boolean getMailItems(long playerId,long mailId) {
+        Query query = Query.query(Criteria.where("id").is(mailId)
+                .and("playerId").is(playerId)
+                .and("status").lte(GameConstant.Mail.STAUTS_READ));
+
+        return mongoTemplate.updateFirst(query, Update.update("status", GameConstant.Mail.STAUTS_GET_ITEMS), Mail.class).getModifiedCount() > 0;
     }
 
     /**
