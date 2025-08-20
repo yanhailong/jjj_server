@@ -12,7 +12,6 @@ import com.jjg.game.sampledata.bean.DropGroupCfg;
  * @excelName dropGroup.xlsx
  * @sheetName dropGroup
  * @author auto_generator
- * @date 2025年08月20日 13:34:26
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class DropGroupCfgContainer extends BaseCfgContainer<DropGroupCfg> {

@@ -9,7 +9,6 @@ import javax.annotation.processing.Generated;
  * @excelName Room
  * @sheetName Room
  * @author Auto.Generator
- * @date 2025年08月20日 13:34:25
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class RoomCfg extends BaseCfgBean {
