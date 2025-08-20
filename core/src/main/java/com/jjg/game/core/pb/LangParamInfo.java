@@ -5,11 +5,11 @@ import com.jjg.game.common.proto.ProtobufMessage;
 
 /**
  * @author 11
- * @date 2025/8/14 18:13
+ * @date 2025/8/20 15:39
  */
 @ProtobufMessage
-@ProtoDesc("跑马灯中多语言参数")
-public class MarqueeLangParamInfo {
+@ProtoDesc("多语言参数")
+public class LangParamInfo {
     @ProtoDesc("0.原始展示  1.多语言id")
     public int type;
     @ProtoDesc("参数")

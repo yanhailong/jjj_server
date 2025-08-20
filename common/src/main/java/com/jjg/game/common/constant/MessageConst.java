@@ -141,8 +141,8 @@ public interface MessageConst {
         int RES_GM = BASE_MSG_PREFIX | 0x2;
 
         //获取当前跑马灯
-        int REQ_MARQUEE = BASE_MSG_PREFIX | 0x3;
-        int RES_MARQUEE = BASE_MSG_PREFIX | 0x4;
+//        int REQ_MARQUEE = BASE_MSG_PREFIX | 0x3;
+//        int RES_MARQUEE = BASE_MSG_PREFIX | 0x4;
 
         //通知金钱变化
         int NOTICE_MONEY_CHANGE = BASE_MSG_PREFIX | 0x99;

@@ -318,7 +318,6 @@ public class CoreMarqueeManager implements TimerListener {
     private void addNotifySendEvent(long id) {
         TimerEvent<String> nodeEvent = new TimerEvent<>(this, 1, "notifySendEvent_" + id).withTimeUnit(TimeUnit.SECONDS);
         this.timerCenter.add(nodeEvent);
-        log.debug("添加通知客户端跑马灯事件 id = {}", id);
     }
 
     /**
@@ -398,27 +397,9 @@ public class CoreMarqueeManager implements TimerListener {
         }
 
         NotifyMarquee notify = new NotifyMarquee();
-        notify.id = marquee.getId();
-        notify.content = marquee.getContent();
-        notify.interval = marquee.getInterval();
-        notify.startTime = marquee.getStartTime();
-        notify.endTime = marquee.getEndTime();
-        notify.type = getClientShowGarqueeType(marquee.getType());
-        notify.langId = marquee.getLangId();
-        notify.showTime = marquee.getShowTime();
-
-        if (marquee.getParams() != null && !marquee.getParams().isEmpty()) {
-            notify.params = new ArrayList<>(marquee.getParams().size());
-
-            marquee.getParams().forEach(p -> {
-                MarqueeLangParamInfo info = new MarqueeLangParamInfo();
-                info.type = p.getType();
-                info.param = p.getParam();
-                notify.params.add(info);
-            });
-        }
+        notify.marqueeInfo = transMarqueeInfo(marquee);
         clusterSystem.sessionMap().entrySet().forEach(en -> en.getValue().send(notify));
-        log.debug("通知客户端跑马灯 marquee = {}", JSON.toJSONString(marquee));
+        log.debug("通知客户端跑马灯 marquee = {}", JSON.toJSONString(notify));
     }
 
     /**
@@ -508,5 +489,36 @@ public class CoreMarqueeManager implements TimerListener {
         p.setType(type);
         p.setParam(param);
         params.add(p);
+    }
+
+    /**
+     * 将跑马灯对象转化为 协议结构体
+     * @param marquee
+     * @return
+     */
+    public MarqueeInfo transMarqueeInfo(Marquee marquee) {
+        MarqueeInfo marqueeInfo = new MarqueeInfo();
+        marqueeInfo.id = marquee.getId();
+        marqueeInfo.interval = marquee.getInterval();
+        marqueeInfo.startTime = marquee.getStartTime();
+        marqueeInfo.endTime = marquee.getEndTime();
+        marqueeInfo.showTime = marquee.getShowTime();
+
+        marqueeInfo.content = new LanguageInfo();
+        marqueeInfo.content.content = marquee.getContent();
+        marqueeInfo.content.type = getClientShowGarqueeType(marquee.getType());
+        marqueeInfo.content.langId = marquee.getLangId();
+
+        if(marquee.getParams() != null && !marquee.getParams().isEmpty()){
+            marqueeInfo.content.params = new ArrayList<>(marquee.getParams().size());
+
+            marquee.getParams().forEach(p -> {
+                LangParamInfo langParamInfo = new LangParamInfo();
+                langParamInfo.type = p.getType();
+                langParamInfo.param = p.getParam();
+                marqueeInfo.content.params.add(langParamInfo);
+            });
+        }
+        return marqueeInfo;
     }
 }

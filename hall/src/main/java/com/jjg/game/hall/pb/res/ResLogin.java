@@ -4,6 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractResponse;
+import com.jjg.game.core.pb.MarqueeInfo;
 import com.jjg.game.hall.pb.struct.GameListConfig;
 
 import java.util.List;
@@ -37,6 +38,8 @@ public class ResLogin extends AbstractResponse {
     public int titleId;
     @ProtoDesc("游戏列表")
     public List<GameListConfig> gameList;
+    @ProtoDesc("跑马灯信息")
+    public MarqueeInfo marqueeInfo;
 
     public ResLogin(int code) {
         super(code);

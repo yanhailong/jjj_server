@@ -144,39 +144,42 @@ public class CoreMessageHandler {
      * @param playerController
      * @param req
      */
-    @Command(MessageConst.CoreMessage.REQ_MARQUEE)
-    public void reqMarquee(PlayerController playerController, ReqMarquee req){
-        ResMarquee res = new ResMarquee(Code.SUCCESS);
-        try{
-            Marquee currentMarquee = marqueeManager.getCurrentMarquee();
-            if(currentMarquee != null){
-                res.id = currentMarquee.getId();
-                res.content = currentMarquee.getContent();
-                res.interval = currentMarquee.getInterval();
-                res.startTime = currentMarquee.getStartTime();
-                res.endTime = currentMarquee.getEndTime();
-                res.type = marqueeManager.getClientShowGarqueeType(currentMarquee.getType());
-                res.langId = currentMarquee.getLangId();
-                res.showTime = currentMarquee.getShowTime();
-
-                if(currentMarquee.getParams() != null && !currentMarquee.getParams().isEmpty()){
-                    res.params = new ArrayList<>(currentMarquee.getParams().size());
-
-                    currentMarquee.getParams().forEach(p -> {
-                        MarqueeLangParamInfo info = new MarqueeLangParamInfo();
-                        info.type = p.getType();
-                        info.param = p.getParam();
-                        res.params.add(info);
-                    });
-                }
-            }
-            log.debug("获取当前跑马灯 playerId = {},marqueeId = {}", playerController.playerId(),res.id);
-        }catch (Exception e){
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        playerController.send(res);
-    }
+//    @Command(MessageConst.CoreMessage.REQ_MARQUEE)
+//    public void reqMarquee(PlayerController playerController, ReqMarquee req){
+//        ResMarquee res = new ResMarquee(Code.SUCCESS);
+//        try{
+//            Marquee currentMarquee = marqueeManager.getCurrentMarquee();
+//            if(currentMarquee != null){
+//                res.id = currentMarquee.getId();
+//                res.interval = currentMarquee.getInterval();
+//                res.startTime = currentMarquee.getStartTime();
+//                res.endTime = currentMarquee.getEndTime();
+//                res.showTime = currentMarquee.getShowTime();
+//
+//                res.content = new LanguageInfo();
+//                res.content.content = currentMarquee.getContent();
+//                res.content.content = currentMarquee.getContent();
+//                res.content.type = marqueeManager.getClientShowGarqueeType(currentMarquee.getType());
+//                res.content.langId = currentMarquee.getLangId();
+//
+//                if(currentMarquee.getParams() != null && !currentMarquee.getParams().isEmpty()){
+//                    res.content.params = new ArrayList<>(currentMarquee.getParams().size());
+//
+//                    currentMarquee.getParams().forEach(p -> {
+//                        LangParamInfo info = new LangParamInfo();
+//                        info.type = p.getType();
+//                        info.param = p.getParam();
+//                        res.content.params.add(info);
+//                    });
+//                }
+//            }
+//            log.debug("获取当前跑马灯 playerId = {},marqueeId = {}", playerController.playerId(),res.id);
+//        }catch (Exception e){
+//            log.error("", e);
+//            res.code = Code.EXCEPTION;
+//        }
+//        playerController.send(res);
+//    }
 
 
 

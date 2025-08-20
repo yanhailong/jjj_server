@@ -19,9 +19,9 @@ public class Mail implements Cloneable{
     @Indexed
     private long playerId;
     //邮件标题
-    private String title;
+    private LanguageData title;
     //邮件内容
-    private String content;
+    private LanguageData content;
     //发送邮件的时间
     private int sendTime;
     //超时时间
@@ -49,19 +49,19 @@ public class Mail implements Cloneable{
         this.playerId = playerId;
     }
 
-    public String getTitle() {
+    public LanguageData getTitle() {
         return title;
     }
 
-    public void setTitle(String title) {
+    public void setTitle(LanguageData title) {
         this.title = title;
     }
 
-    public String getContent() {
+    public LanguageData getContent() {
         return content;
     }
 
-    public void setContent(String content) {
+    public void setContent(LanguageData content) {
         this.content = content;
     }
 

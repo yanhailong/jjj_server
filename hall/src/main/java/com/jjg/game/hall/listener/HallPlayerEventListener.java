@@ -1,5 +1,6 @@
 package com.jjg.game.hall.listener;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.MarsNode;
@@ -19,6 +20,10 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.manager.CoreMarqueeManager;
+import com.jjg.game.core.pb.LangParamInfo;
+import com.jjg.game.core.pb.LanguageInfo;
+import com.jjg.game.core.pb.MarqueeInfo;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.dao.HallRoomDao;
@@ -69,6 +74,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private PlayerLastGameInfoDao playerLastGameInfoDao;
     @Autowired
     private MailService mailService;
+    @Autowired
+    private CoreMarqueeManager marqueeManager;
 
     @Override
     public void login(PFSession session, byte[] data) {
@@ -179,6 +186,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.titleId = player.getTitleId();
             //添加游戏列表
             res.gameList = addGameList();
+            //添加跑马灯
+            res.marqueeInfo = addMarquee();
             session.send(res);
 
             //发送登录日志
@@ -388,5 +397,25 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             node.getNodePath());
         clusterSystem.switchNode(session, node);
         return true;
+    }
+
+    /**
+     * 获取当前跑马灯
+     * @return
+     */
+    private MarqueeInfo addMarquee(){
+        try{
+            Marquee marquee = marqueeManager.getCurrentMarquee();
+            if(marquee == null){
+                return null;
+            }
+
+            MarqueeInfo marqueeInfo = marqueeManager.transMarqueeInfo(marquee);
+            log.debug("登录获取当前跑马灯 marqueeInfo = {}", JSON.toJSONString(marqueeInfo));
+            return marqueeInfo;
+        }catch (Exception e){
+            log.error("", e);
+        }
+        return null;
     }
 }
