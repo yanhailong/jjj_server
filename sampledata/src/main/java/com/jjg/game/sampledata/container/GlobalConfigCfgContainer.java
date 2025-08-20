@@ -12,7 +12,7 @@ import com.jjg.game.sampledata.bean.GlobalConfigCfg;
  * @excelName global.xlsx
  * @sheetName globalConfig
  * @author auto_generator
- * @date 2025年08月19日 15:29:42
+ * @date 2025年08月20日 13:34:26
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GlobalConfigCfgContainer extends BaseCfgContainer<GlobalConfigCfg> {

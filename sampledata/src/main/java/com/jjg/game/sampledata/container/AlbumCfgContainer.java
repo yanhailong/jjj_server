@@ -4,22 +4,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.Room_BetCfg;
+import com.jjg.game.sampledata.bean.AlbumCfg;
 
 /**
- * Room_Bet.xlsx配置管理容器
+ * album.xlsx配置管理容器
  *
- * @excelName Room_Bet.xlsx
- * @sheetName Room_Bet
+ * @excelName album.xlsx
+ * @sheetName album
  * @author auto_generator
  * @date 2025年08月20日 13:34:26
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class Room_BetCfgContainer extends BaseCfgContainer<Room_BetCfg> {
+public class AlbumCfgContainer extends BaseCfgContainer<AlbumCfg> {
 
   @Override
   public boolean hasRelatedTable() {
-    return true;
+    return false;
   }
 
   @Override
@@ -28,23 +28,23 @@ public class Room_BetCfgContainer extends BaseCfgContainer<Room_BetCfg> {
   }
 
   @Override
-  public Room_BetCfgContainer getNewContainer(){
-    return new Room_BetCfgContainer();
+  public AlbumCfgContainer getNewContainer(){
+    return new AlbumCfgContainer();
   }
 
-  public Room_BetCfgContainer() {
+  public AlbumCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("Room_Bet.xlsx");
+    excelNameList.add("album.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected Room_BetCfg createNewBean() {
-    return new Room_BetCfg();
+  protected AlbumCfg createNewBean() {
+    return new AlbumCfg();
   }
 }

@@ -38,7 +38,7 @@ import javax.annotation.processing.Generated;
  * 游戏数据管理器
  *
  * @author auto_gen
- * @date 2025年08月19日 15:29:43
+ * @date 2025年08月20日 13:34:27
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class GameDataManager {
@@ -118,6 +118,7 @@ public class GameDataManager {
   public Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> initAllContainer() {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
+    containerMap.put(AlbumCfg.class, new AlbumCfgContainer());
     containerMap.put(AuxiliaryAwardCfg.class, new AuxiliaryAwardCfgContainer());
     containerMap.put(AvatarCfg.class, new AvatarCfgContainer());
     containerMap.put(BaseElementCfg.class, new BaseElementCfgContainer());
@@ -139,6 +140,8 @@ public class GameDataManager {
     containerMap.put(ClientRollerCfg.class, new ClientRollerCfgContainer());
     containerMap.put(ConditionCfg.class, new ConditionCfgContainer());
     containerMap.put(DealerFunctionCfg.class, new DealerFunctionCfgContainer());
+    containerMap.put(DropDetailedCfg.class, new DropDetailedCfgContainer());
+    containerMap.put(DropGroupCfg.class, new DropGroupCfgContainer());
     containerMap.put(GameFunctionCfg.class, new GameFunctionCfgContainer());
     containerMap.put(GameListCfg.class, new GameListCfgContainer());
     containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
@@ -566,6 +569,17 @@ public class GameDataManager {
 
   // region===============cfg获取方法模板开始===================
 
+  public static AlbumCfg getAlbumCfg(int key) {
+    return getInstance().getCfgContainer(AlbumCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, AlbumCfg> getAlbumCfgMap() {
+    return getInstance().getCfgContainer(AlbumCfg.class).getCfgBeanMap();
+  }
+
+  public static List<AlbumCfg> getAlbumCfgList() {
+    return getInstance().getCfgContainer(AlbumCfg.class).getCfgBeanList();
+  }
   public static AuxiliaryAwardCfg getAuxiliaryAwardCfg(int key) {
     return getInstance().getCfgContainer(AuxiliaryAwardCfg.class).getCfgBeanMap().get(key);
   }
@@ -796,6 +810,28 @@ public class GameDataManager {
 
   public static List<DealerFunctionCfg> getDealerFunctionCfgList() {
     return getInstance().getCfgContainer(DealerFunctionCfg.class).getCfgBeanList();
+  }
+  public static DropDetailedCfg getDropDetailedCfg(int key) {
+    return getInstance().getCfgContainer(DropDetailedCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, DropDetailedCfg> getDropDetailedCfgMap() {
+    return getInstance().getCfgContainer(DropDetailedCfg.class).getCfgBeanMap();
+  }
+
+  public static List<DropDetailedCfg> getDropDetailedCfgList() {
+    return getInstance().getCfgContainer(DropDetailedCfg.class).getCfgBeanList();
+  }
+  public static DropGroupCfg getDropGroupCfg(int key) {
+    return getInstance().getCfgContainer(DropGroupCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, DropGroupCfg> getDropGroupCfgMap() {
+    return getInstance().getCfgContainer(DropGroupCfg.class).getCfgBeanMap();
+  }
+
+  public static List<DropGroupCfg> getDropGroupCfgList() {
+    return getInstance().getCfgContainer(DropGroupCfg.class).getCfgBeanList();
   }
   public static GameFunctionCfg getGameFunctionCfg(int key) {
     return getInstance().getCfgContainer(GameFunctionCfg.class).getCfgBeanMap().get(key);

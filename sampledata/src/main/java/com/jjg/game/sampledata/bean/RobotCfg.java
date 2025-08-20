@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
  * @excelName robot.xlsx
  * @sheetName Robot
  * @author Auto.Generator
- * @date 2025年08月19日 15:29:43
+ * @date 2025年08月20日 13:34:27
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class RobotCfg extends BaseCfgBean {
