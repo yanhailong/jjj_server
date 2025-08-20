@@ -2,7 +2,10 @@ package com.jjg.game.core.pb;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.data.LanguageData;
+import com.jjg.game.core.data.LanguageParamData;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,4 +23,23 @@ public class LanguageInfo {
     public int langId;
     @ProtoDesc("参数")
     public List<LangParamInfo> params;
+
+
+    public LanguageData toData(){
+        LanguageData d = new LanguageData();
+        d.setType(this.type);
+        d.setContent(this.content);
+        d.setLangId(this.langId);
+
+        if(this.params != null && !this.params.isEmpty()){
+            List<LanguageParamData> paramsData = new ArrayList<>(this.params.size());
+            for(LangParamInfo p : this.params){
+                LanguageParamData pd = new LanguageParamData();
+                pd.setType(p.type);
+                pd.setParam(p.param);
+            }
+            d.setParams(paramsData);
+        }
+        return d;
+    }
 }

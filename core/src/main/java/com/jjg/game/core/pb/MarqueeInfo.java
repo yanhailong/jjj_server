@@ -10,7 +10,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage
 @ProtoDesc("跑马灯信息")
 public class MarqueeInfo {
-    public long id;
+    public int id;
     @ProtoDesc("内容")
     public LanguageInfo content;
     @ProtoDesc("播放时间")

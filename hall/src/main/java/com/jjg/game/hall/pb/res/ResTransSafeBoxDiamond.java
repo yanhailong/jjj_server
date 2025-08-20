@@ -13,6 +13,10 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_TRANS_SAFE_BOX_DIAMOND)
 @ProtoDesc("转移保险箱钻石返回")
 public class ResTransSafeBoxDiamond extends AbstractResponse {
+    @ProtoDesc("钻石")
+    public long diamond;
+    @ProtoDesc("保险箱钻石")
+    public long safeBoxDiamond;
     public ResTransSafeBoxDiamond(int code) {
         super(code);
     }

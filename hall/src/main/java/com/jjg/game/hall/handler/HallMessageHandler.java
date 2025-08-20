@@ -610,6 +610,8 @@ public class HallMessageHandler implements GmListener {
                 return;
             }
 
+            res.gold = result.data.getGold();
+            res.safeBoxGold = result.data.getSafeBoxGold();
             log.debug("玩家转移保险箱金币成功 playerId = {},deposit = {},gold = {}", playerController.playerId(),req.deposit,req.value);
         } catch (Exception e) {
             log.error("", e);
@@ -639,6 +641,8 @@ public class HallMessageHandler implements GmListener {
                 return;
             }
 
+            res.diamond = result.data.getDiamond();
+            res.safeBoxDiamond = result.data.getSafeBoxDiamond();
             log.debug("玩家转移保险箱钻石成功 playerId = {},deposit = {},diamind = {}", playerController.playerId(),req.deposit,req.value);
         } catch (Exception e) {
             log.error("", e);
