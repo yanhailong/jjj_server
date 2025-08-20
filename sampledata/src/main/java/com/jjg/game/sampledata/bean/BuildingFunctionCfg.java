@@ -43,7 +43,7 @@ public class BuildingFunctionCfg extends BaseCfgBean {
   /** 建筑类型 */
   protected int typeID;
   /** 升下一级消耗道具ID */
-  protected Map<Integer,Integer> uplevel_itemid;
+  protected Map<Integer,Long> uplevel_itemid;
   /** 升级耗时/秒 */
   protected int uptime;
 
@@ -108,7 +108,7 @@ public class BuildingFunctionCfg extends BaseCfgBean {
   }
 
   /** 返回升下一级消耗道具ID */
-  public Map<Integer,Integer> getUplevel_itemid() {
+  public Map<Integer,Long> getUplevel_itemid() {
     return uplevel_itemid;
   }
 
