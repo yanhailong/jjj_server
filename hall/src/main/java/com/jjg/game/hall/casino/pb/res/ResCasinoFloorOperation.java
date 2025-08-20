@@ -21,6 +21,8 @@ public class ResCasinoFloorOperation extends AbstractResponse {
     public int type;
     @ProtoDesc("楼层信息")
     public CasinoFloorInfo casinoFloorInfo;
+    @ProtoDesc("打扫结束时间")
+    public long cleanEndTime;
 
     public ResCasinoFloorOperation() {
         super(Code.SUCCESS);

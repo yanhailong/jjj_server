@@ -12,6 +12,8 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE,cmd = HallConstant.MsgBean.REQ_CASINO_CLAIM_REWARDS)
 @ProtoDesc("请求领取赌场收益")
 public class ReqCasinoClaimRewards {
+    @ProtoDesc("赌场id")
+    public int casinoId;
     @ProtoDesc("机台id")
     public long machineId;
 }

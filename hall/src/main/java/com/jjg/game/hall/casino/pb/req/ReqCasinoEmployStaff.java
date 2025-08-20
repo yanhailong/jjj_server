@@ -12,10 +12,12 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.REQ_CASINO_EMPLOY_STAFF)
 @ProtoDesc("请求雇员职员")
 public class ReqCasinoEmployStaff {
+    @ProtoDesc("赌场id")
+    public int casinoId;
     @ProtoDesc("位置索引")
     public int index;
     @ProtoDesc("机台id")
     public long machineId;
     @ProtoDesc("职员id")
-    public long staffId;
+    public int staffId;
 }

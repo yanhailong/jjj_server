@@ -1,6 +1,9 @@
 package com.jjg.game.hall.casino.data;
 
-import java.util.List;
+import com.jjg.game.hall.utils.HallTool;
+import com.jjg.game.sampledata.bean.BuildingFunctionCfg;
+
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -12,20 +15,14 @@ public class MachineInfo {
     private long id;
     //BuildingFunction配置表id
     private int configId;
-    //雇员配置表id
-    private int employmentId;
-    //雇员开始时间
-    private long employmentStartTime;
-    //雇员结束时间
-    private long employmentEndTime;
     //机台建造升级结束时间
     private long buildLvUpEndTime;
     //机台建造升级开始时间
     private long buildLvUpStartTime;
     //收益开始时间
     private long profitStartTime;
-    //雇员信息
-    List<CasinoEmployment> employmentList;
+    //雇员信息 索引id 雇员信息
+    Map<Integer, CasinoEmployment> employmentMap;
 
     public long getId() {
         return id;
@@ -35,44 +32,16 @@ public class MachineInfo {
         this.id = id;
     }
 
-    public List<CasinoEmployment> getEmploymentList() {
-        return employmentList;
+    public Map<Integer, CasinoEmployment> getEmploymentMap() {
+        return employmentMap;
     }
 
-    public void setEmploymentList(List<CasinoEmployment> employmentList) {
-        this.employmentList = employmentList;
+    public void setEmploymentMap(Map<Integer, CasinoEmployment> employmentMap) {
+        this.employmentMap = employmentMap;
     }
 
     public int getConfigId() {
         return configId;
-    }
-
-    public long getEmploymentStartTime() {
-        return employmentStartTime;
-    }
-
-    public void setEmploymentStartTime(long employmentStartTime) {
-        this.employmentStartTime = employmentStartTime;
-    }
-
-    public void setConfigId(int configId) {
-        this.configId = configId;
-    }
-
-    public int getEmploymentId() {
-        return employmentId;
-    }
-
-    public void setEmploymentId(int employmentId) {
-        this.employmentId = employmentId;
-    }
-
-    public long getEmploymentEndTime() {
-        return employmentEndTime;
-    }
-
-    public void setEmploymentEndTime(long employmentEndTime) {
-        this.employmentEndTime = employmentEndTime;
     }
 
     public long getProfitStartTime() {
@@ -97,5 +66,15 @@ public class MachineInfo {
 
     public void setBuildLvUpStartTime(long buildLvUpStartTime) {
         this.buildLvUpStartTime = buildLvUpStartTime;
+    }
+
+    public static MachineInfo getNewMachineInfo(int casinoId, BuildingFunctionCfg cfg) {
+        MachineInfo machineInfo = new MachineInfo();
+        if (cfg.getNumEmployees() > 0) {
+            machineInfo.employmentMap = new HashMap<>();
+        }
+        machineInfo.configId = cfg.getId();
+        machineInfo.id = HallTool.getNextId();
+        return machineInfo;
     }
 }
