@@ -9,14 +9,11 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.IllegalNameCheckService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.dao.HallRoomDao;
-import com.jjg.game.hall.friendroom.dao.FriendRoomInvitationCodeDao;
+import com.jjg.game.hall.friendroom.dao.FriendRoomRedisDao;
 import com.jjg.game.hall.friendroom.dao.RoomFriendDao;
 import com.jjg.game.hall.friendroom.data.FriendRoomFollowBean;
 import com.jjg.game.hall.friendroom.message.FriendRoomMessageBuilder;
-import com.jjg.game.hall.friendroom.message.req.ReqCreateFriendsRoom;
-import com.jjg.game.hall.friendroom.message.req.ReqFollowedFriendRoomList;
-import com.jjg.game.hall.friendroom.message.req.ReqOperateFollowedFriendsList;
-import com.jjg.game.hall.friendroom.message.req.ReqRefreshFollowedFriendList;
+import com.jjg.game.hall.friendroom.message.req.*;
 import com.jjg.game.hall.friendroom.message.res.*;
 import com.jjg.game.hall.friendroom.message.struct.BaseFriendRoomPlayerInfo;
 import com.jjg.game.hall.friendroom.message.struct.FriendRoomBaseData;
@@ -24,7 +21,6 @@ import com.jjg.game.hall.friendroom.message.struct.RoomFriendEnum.ERoomFriendLis
 import com.jjg.game.hall.utils.HallDataUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
-import org.redisson.misc.Hash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +52,7 @@ public class FriendRoomServices {
     @Autowired
     private CorePlayerService corePlayerService;
     @Autowired
-    private FriendRoomInvitationCodeDao friendRoomInvitationCodeDao;
+    private FriendRoomRedisDao friendRoomRedisDao;
 
     /**
      * 创建好友房
@@ -72,7 +68,7 @@ public class FriendRoomServices {
         int invitationCode;
         if (player.getFriendRoomInvitationCode() == 0) {
             // 生成邀请码
-            invitationCode = friendRoomInvitationCodeDao.genInvitationCode();
+            invitationCode = friendRoomRedisDao.genInvitationCode();
             if (invitationCode <= 0) {
                 log.error("申请邀请失败，时间：{}", TimeHelper.getCurrentDateZeroMileTime());
                 return Code.FAIL;
@@ -104,7 +100,7 @@ public class FriendRoomServices {
             // 保存玩家邀请码
             corePlayerService.doSave(player.getId(), (p) -> p.setFriendRoomInvitationCode(invitationCode));
             // 添加邀请码映射
-            friendRoomInvitationCodeDao.addInvitationCode(invitationCode, player.getId());
+            friendRoomRedisDao.addInvitationCode(invitationCode, player.getId());
         }
         // 通知前端房间创建
         return Code.SUCCESS;
@@ -223,7 +219,7 @@ public class FriendRoomServices {
         notifyFriendRoomPanelData.maxPlayerNumOnTable =
             GameDataManager.getPlayerLevelConfigCfg(player.getLevel()).getRoomNum();
         // 邀请码重置使用次数
-        int invitationCodeRestTimes = friendRoomInvitationCodeDao.getUseTimes(player.getId());
+        int invitationCodeRestTimes = friendRoomRedisDao.getUseTimes(player.getId());
         // 邀请码剩余次数
         notifyFriendRoomPanelData.invitationCodeResetRemainingTimes =
             invitationCodeRestTimes >= invitationResetGlobalConfigCfg.getIntValue() ?
@@ -239,7 +235,7 @@ public class FriendRoomServices {
     public void reqFollowedByInvitationCode(PlayerController playerController, int invitationCode) {
         Player player = playerController.getPlayer();
         // 先判断邀请码是否存在
-        Long targetPlayerId = friendRoomInvitationCodeDao.getPlayerIdByInvitationCode(invitationCode);
+        Long targetPlayerId = friendRoomRedisDao.getPlayerIdByInvitationCode(invitationCode);
         ResFollowByInvitationCode res = new ResFollowByInvitationCode(Code.FAIL);
         if (targetPlayerId == null || targetPlayerId == 0) {
             res.code = Code.ILLEGAL_FRIEND_ROOM_INVITATION_CODE;
@@ -333,11 +329,40 @@ public class FriendRoomServices {
         List<Long> followedPlayerId =
             friendRoomFollowBeans.stream().map(FriendRoomFollowBean::getFollowedPlayerId).toList();
         List<Player> followedplayerList = corePlayerService.multiGetPlayer(followedPlayerId);
-        List<Integer> invitationCodeList =
-            friendRoomFollowBeans.stream().map(FriendRoomFollowBean::getInvitationCode).toList();
+        Map<Integer, Long> invitationCodeMap =
+            friendRoomFollowBeans.stream().collect(
+                HashMap::new, (map, e) -> map.put(e.getInvitationCode(), e.getId()), HashMap::putAll);
+        List<Long> containsIds = new ArrayList<>();
         // 移除不包含的邀请码，过期的邀请码
-        followedplayerList.removeIf(p -> !invitationCodeList.contains(p.getFriendRoomInvitationCode()));
+        followedplayerList.removeIf(p -> {
+                boolean checkRes = !invitationCodeMap.containsKey(p.getFriendRoomInvitationCode());
+                if (!checkRes) {
+                    containsIds.add(invitationCodeMap.get(p.getFriendRoomInvitationCode()));
+                }
+                return checkRes;
+            }
+        );
+        invitationCodeMap.values().removeAll(containsIds);
+        if (!invitationCodeMap.isEmpty()) {
+            // 批量删除关注好友
+            roomFriendDao.removeFollowedFriend(invitationCodeMap.values());
+        }
+        // 不包含的，或者过期的需要移除这部分的数据
         res.followedFriendList =
             followedplayerList.stream().map(FriendRoomMessageBuilder::buildFriendRoomInfo).toList();
+    }
+
+    /**
+     * 请求刷新好友列表
+     */
+    public void reqOperateShieldPlayer(PlayerController playerController, ReqOperateShieldPlayer req) {
+        //friendRoomRedisDao.addInvitationCode();
+    }
+
+    /**
+     * 请求重置邀请码
+     */
+    public void reqResetInvitationCode(PlayerController playerController) {
+        //friendRoomRedisDao.addInvitationCode();
     }
 }

@@ -1,24 +1,22 @@
 package com.jjg.game.hall.friendroom.dao;
 
-import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.hall.friendroom.constant.FriendRoomConstant;
 import com.jjg.game.hall.friendroom.data.FriendRoomFollowBean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
- * 房间邀请码，
+ * 房间好友Dao
  *
  * @author 2CL
  */
@@ -53,6 +51,17 @@ public class RoomFriendDao extends MongoBaseDao<FriendRoomFollowBean, Long> {
                         Sort.Order.asc("followedTimeStamp")
                     ))
             ,
+            FriendRoomFollowBean.class
+        );
+    }
+
+    /**
+     * 批量软删除关注玩家
+     */
+    public void removeFollowedFriend(Collection<Long> removeId) {
+        mongoTemplate.updateMulti(
+            Query.query(Criteria.where("id").in(removeId)),
+            Update.update("removeTime", System.currentTimeMillis()),
             FriendRoomFollowBean.class
         );
     }

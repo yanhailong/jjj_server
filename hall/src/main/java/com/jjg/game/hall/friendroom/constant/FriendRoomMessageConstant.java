@@ -38,6 +38,8 @@ public interface FriendRoomMessageConstant {
         int REQ_FRIEND_ROOM_DETAIL_BILL_HISTORY = BASE_MSG_MASK | 0x0C;
         // 请求操作好友房
         int REQ_OPERATE_FRIEND_ROOM = BASE_MSG_MASK | 0x0D;
+        // 请求重置邀请码
+        int REQ_RESET_INVITATION_CODE = BASE_MSG_MASK | 0x0E;
     }
 
     interface ResMsgCons {
@@ -67,5 +69,7 @@ public interface FriendRoomMessageConstant {
         int RES_FRIEND_ROOM_DETAIL_BILL_HISTORY = BASE_MSG_MASK | 0x8C;
         // 返回操作好友房
         int RES_OPERATE_FRIEND_ROOM = BASE_MSG_MASK | 0x8D;
+        // 重置邀请码返回
+        int RES_RESET_INVITATION_CODE = BASE_MSG_MASK | 0x8E;
     }
 }
