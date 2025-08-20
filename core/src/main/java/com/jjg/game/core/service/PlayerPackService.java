@@ -192,7 +192,7 @@ public class PlayerPackService {
                 result.code = Code.NOT_FOUND;
                 return result;
             }
-        //TODO 检查道具
+            //TODO 检查道具
             //根据不同道具做不同处理
             if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
                 CommonResult<Player> removeResult = corePlayerService.deductGold(playerId, count, addType);
@@ -225,6 +225,67 @@ public class PlayerPackService {
         }
         return result;
     }
+
+
+    /**
+     * 移除道具
+     *
+     * @param playerId
+     * @return
+     */
+    public CommonResult<PlayerPack> removeItems(long playerId, Map<Integer, Long> removeItemMap, String addType) {
+        CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
+        String key = getLockKey(playerId);
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            PlayerPack playerPack = getFromAllDB(playerId);
+            if (playerPack == null) {
+                result.code = Code.NOT_FOUND;
+                return result;
+            }
+            //TODO 检查道具
+            //根据不同道具做不同处理
+            for (Map.Entry<Integer, Long> entry : removeItemMap.entrySet()) {
+                Integer id = entry.getKey();
+                Long count = entry.getValue();
+                ItemCfg itemCfg = GameDataManager.getItemCfg(id);
+                if (itemCfg == null) {
+                    result.code = Code.NOT_FOUND;
+                    return result;
+                }
+                if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
+                    CommonResult<Player> removeResult = corePlayerService.deductGold(playerId, count, addType);
+                    if (!removeResult.success()) {
+                        result.code = removeResult.code;
+                        return result;
+                    }
+                } else if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
+                    CommonResult<Player> removeResult = corePlayerService.deductDiamond(playerId, count, addType);
+                    if (!removeResult.success()) {
+                        result.code = removeResult.code;
+                        return result;
+                    }
+                } else {
+                    CommonResult<Long> removeResult = playerPack.removeItem(id, count);
+                    if (!removeResult.success()) {
+                        result.code = removeResult.code;
+                        return result;
+                    }
+                }
+            }
+
+            redisTemplate.opsForHash().put(tableName, playerId, playerPack);
+            result.code = Code.SUCCESS;
+            result.data = playerPack;
+            return result;
+        } catch (Exception e) {
+            log.error("移除道具，保存 playerPack 失败 playerId={}", playerId, e);
+        } finally {
+            redisLock.unlock(key);
+        }
+        return result;
+    }
+
 
     /**
      * 检查是否拥有道具

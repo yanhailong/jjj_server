@@ -767,6 +767,15 @@ public class HallMessageHandler implements GmListener {
         playerController.send(casinoManager.reqCasinoFloorOperation(playerController.playerId(), req));
     }
 
+    /**
+     * 我的赌场 请求楼层操作
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_UPGRADE_MACHINE)
+    public void reqCasinoUpgradeMachine(PlayerController playerController, ReqCasinoUpgradeMachine req) {
+        playerController.send(casinoManager.reqCasinoUpgradeMachine(playerController.getPlayer(), req));
+    }
 
 
     @Override

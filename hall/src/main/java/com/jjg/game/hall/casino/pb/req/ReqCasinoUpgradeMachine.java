@@ -12,6 +12,8 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE,cmd = HallConstant.MsgBean.REQ_CASINO_UPGRADE_MACHINE)
 @ProtoDesc("请求机台升级")
 public class ReqCasinoUpgradeMachine {
+    @ProtoDesc("赌场id")
+    public int casinoId;
     @ProtoDesc("类型 1.机台升级 2.减少升级时间")
     public int type;
     @ProtoDesc("机台id")
