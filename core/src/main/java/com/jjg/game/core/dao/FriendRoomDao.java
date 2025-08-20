@@ -28,8 +28,8 @@ public class FriendRoomDao extends AbstractRoomDao<FriendRoom, RoomPlayer> {
     private static final String PLAYER_FRIEND_ROOM = "PlayerFriendRoomId";
 
 
-    public FriendRoomDao(Class<FriendRoom> roomClazz, Class<RoomPlayer> roomPlayerClazz) {
-        super(roomClazz, roomPlayerClazz);
+    public FriendRoomDao() {
+        super(FriendRoom.class, RoomPlayer.class);
     }
 
     private String getPlayerFriendRoomTableName(long playerId) {
