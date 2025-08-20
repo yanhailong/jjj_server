@@ -7,6 +7,7 @@ import com.jjg.game.common.proto.ProtoDesc;
  * @date 2025/5/24 14:34
  */
 public class AbstractResponse extends AbstractMessage{
+
     @ProtoDesc("状态码")
     public int code;
 
