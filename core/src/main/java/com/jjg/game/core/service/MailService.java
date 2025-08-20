@@ -1,8 +1,10 @@
 package com.jjg.game.core.service;
 
 import cn.hutool.core.util.IdUtil;
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.common.timer.TimerCenter;
+import com.jjg.game.common.timer.TimerEvent;
+import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -22,7 +24,7 @@ import java.util.*;
  * @date 2025/8/11 17:41
  */
 @Service
-public class MailService {
+public class MailService implements TimerListener {
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
@@ -31,6 +33,8 @@ public class MailService {
     private PlayerPackService playerPackService;
     @Autowired
     private PlayerSessionService playerSessionService;
+    @Autowired
+    private TimerCenter timerCenter;
 
     //每页数量
     private int mailPageSize = 50;
@@ -180,6 +184,24 @@ public class MailService {
      * @param items
      */
     public void addMail(long playerId,String title,String content,List<Item> items){
+        LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL,title);
+        LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL,content);
+
+        Mail mail = createMail(titleData,contentData,items,false);
+        mail.setId(IdUtil.getSnowflakeNextId());
+        mail.setPlayerId(playerId);
+        mailDao.save(mail);
+        log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}",playerId,mail.getId());
+    }
+
+    /**
+     * 保存多语言邮件
+     * @param playerId
+     * @param title
+     * @param content
+     * @param items
+     */
+    public void addLangMail(long playerId,LanguageData title,LanguageData content,List<Item> items){
         Mail mail = createMail(title,content,items,false);
         mail.setId(IdUtil.getSnowflakeNextId());
         mail.setPlayerId(playerId);
@@ -196,8 +218,12 @@ public class MailService {
      */
     public void addMails(List<Long> playerIds,String title,String content,List<Item> items){
         List<Mail> mails = new ArrayList<>();
+
+        LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL,title);
+        LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL,content);
+
         for(long playerId : playerIds){
-            Mail mail = createMail(title,content,items,false);
+            Mail mail = createMail(titleData,contentData,items,false);
             mail.setId(IdUtil.getSnowflakeNextId());
             mail.setPlayerId(playerId);
             mails.add(mail);
@@ -222,7 +248,10 @@ public class MailService {
      * @param items
      */
     public void addAllServerMail(String title,String content,List<Item> items) {
-        Mail mail = createMail(title, content, items, true);
+        LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL,title);
+        LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL,content);
+
+        Mail mail = createMail(titleData, contentData, items, true);
         mailDao.saveServerMail(mail);
 
         //给在线的玩家添加邮件
@@ -295,11 +324,12 @@ public class MailService {
      * @param serverMail
      * @return
      */
-    private Mail createMail(String title,String content,List<Item> items,boolean serverMail) {
+    private Mail createMail(LanguageData title, LanguageData content, List<Item> items, boolean serverMail) {
         Mail mail = new Mail();
         mail.setId(IdUtil.getSnowflakeNextId());
         mail.setTitle(title);
         mail.setContent(content);
+
         mail.setServerMail(serverMail);
 
         int sendTime = TimeHelper.nowInt();
@@ -310,5 +340,10 @@ public class MailService {
         int expireTime = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.DEFAULT_MAIL_VALID_TIME).getIntValue();
         mail.setTimeout(mail.getSendTime() + expireTime);
         return mail;
+    }
+
+    @Override
+    public void onTimer(TimerEvent e) {
+
     }
 }

@@ -131,4 +131,11 @@ public class GameConstant {
         //流水加成
         public static final int TYPE_STATEMENT_PROP = 1;
     }
+
+    public class Language{
+        //原始展示
+        public static final int TYPE_ORIGINAL = 0;
+        //多语言
+        public static final int TYPE_LANGUAGE_MATCH = 1;
+    }
 }

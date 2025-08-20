@@ -33,6 +33,7 @@ import com.jjg.game.hall.service.HallService;
 import com.jjg.game.hall.utils.HallTool;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -437,8 +438,14 @@ public class HallMessageHandler implements GmListener {
                 mailList.forEach(mail -> {
                     MailInfo info = new MailInfo();
                     info.id = mail.getId();
-                    info.title = mail.getTitle();
-                    info.content = mail.getContent();
+
+                    if(mail.getTitle() != null){
+                        info.title = mail.getTitle().toPbInfo();
+                    }
+
+                    if(mail.getContent() != null){
+                        info.content = mail.getContent().toPbInfo();
+                    }
                     info.sendTime = mail.getSendTime();
                     info.timeout = mail.getTimeout();
                     info.status = mail.getStatus();

@@ -2,6 +2,7 @@ package com.jjg.game.hall.pb.struct;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.LanguageInfo;
 
 import java.util.List;
 
@@ -14,9 +15,9 @@ import java.util.List;
 public class MailInfo {
     public long id;
     @ProtoDesc("邮件标题")
-    public String title;
+    public LanguageInfo title;
     @ProtoDesc("邮件内容")
-    public String content;
+    public LanguageInfo content;
     @ProtoDesc("发送邮件的时间")
     public int sendTime;
     @ProtoDesc("超时时间")
