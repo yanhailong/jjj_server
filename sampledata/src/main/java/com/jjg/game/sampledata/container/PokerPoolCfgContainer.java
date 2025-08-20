@@ -12,6 +12,7 @@ import com.jjg.game.sampledata.bean.PokerPoolCfg;
  * @excelName PokerPool.xlsx
  * @sheetName PokerPool
  * @author auto_generator
+ * @date 2025年08月20日 13:34:26
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
 public class PokerPoolCfgContainer extends BaseCfgContainer<PokerPoolCfg> {
