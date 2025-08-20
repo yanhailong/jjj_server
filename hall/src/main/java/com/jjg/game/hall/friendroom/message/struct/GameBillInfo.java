@@ -13,8 +13,8 @@ public class GameBillInfo {
     @ProtoDesc("房间ID")
     public long roomId;
 
-    @ProtoDesc("游戏配置ID")
-    public int gameCfgId;
+    @ProtoDesc("游戏类型ID")
+    public int gameType;
 
     @ProtoDesc("总流水")
     public long totalFlow;

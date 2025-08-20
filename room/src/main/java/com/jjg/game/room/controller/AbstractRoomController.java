@@ -509,7 +509,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 return result;
             }
             result.data = room;
-            roomDao.saveRoom(room);
             this.room = room;
             // 退出房间时检查是否可以添加等待房间列表
             updateWaitRoomList();

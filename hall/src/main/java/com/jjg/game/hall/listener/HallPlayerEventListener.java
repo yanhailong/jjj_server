@@ -337,8 +337,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                         result.data = player;
                         return result;
                     }
-                    room.setPath(marsNode.getNodePath());
-                    roomDao.saveRoom(room);
+                    final String marsNodePath = marsNode.getNodePath();
+                    roomDao.doSave(room.getGameType(), room.getId(), (r) -> r.setPath(marsNodePath));
                 } catch (Exception e) {
                     log.warn("房间迁移重试 playerId={},gameType = {},roomId = {}",
                         player.getId(), player.getGameType(), player.getRoomId(), e);

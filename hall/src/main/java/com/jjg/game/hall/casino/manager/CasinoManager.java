@@ -6,6 +6,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.hall.casino.data.CasinoEmployment;
 import com.jjg.game.hall.casino.data.CasinoInfo;
@@ -20,6 +21,7 @@ import com.jjg.game.hall.casino.pb.CasinoBuilder;
 import com.jjg.game.hall.casino.pb.bean.CasinoFloorInfo;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.pb.struct.ItemInfo;
+import com.jjg.game.hall.utils.ConditionUtil;
 import com.jjg.game.hall.utils.GlobalDataCache;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingFloorCfg;
@@ -128,22 +130,24 @@ public class CasinoManager {
             return res;
         }
         CasinoInfo casinoInfo = playerBuilding.getBuildingData().get(req.casinoId);
-        res.claimAllRewardsEndTime = casinoInfo.getOneClickClaimEndTime();
-        Pair<Item, Integer> buyClaimAllRewardsConsumer = GlobalDataCache.getBuyClaimAllRewardsConsumer();
-        Item item = buyClaimAllRewardsConsumer.getFirst();
-        res.itemInfo = CasinoBuilder.buildItemInfo(item);
-        res.casinoId = req.casinoId;
-        Map<Integer, List<Long>> map = casinoInfo.getBuildingData();
-        res.maxUnlockFloorId = getMaxUnlockFloorId(map);
-        //构建全部楼层信息
-        res.casinoFloorInfos = new ArrayList<>();
-        long timeMillis = System.currentTimeMillis();
-        Map<Long, MachineInfo> machineData = casinoInfo.getMachineInfoData();
-        for (Map.Entry<Integer, List<Long>> entry : map.entrySet()) {
-            //构建楼层信息
-            Long endTime = casinoInfo.getBuildingCleaningEndTime().getOrDefault(entry.getKey(), 0L);
-            CasinoFloorInfo casinoFloorInfo = CasinoBuilder.buildCasinoFloorInfo(entry.getKey(), entry.getValue(), machineData, endTime, timeMillis);
-            res.casinoFloorInfos.add(casinoFloorInfo);
+        if (Objects.nonNull(casinoInfo)) {
+            res.claimAllRewardsEndTime = casinoInfo.getOneClickClaimEndTime();
+            Pair<Item, Integer> buyClaimAllRewardsConsumer = GlobalDataCache.getBuyClaimAllRewardsConsumer();
+            Item item = buyClaimAllRewardsConsumer.getFirst();
+            res.itemInfo = CasinoBuilder.buildItemInfo(item);
+            res.casinoId = req.casinoId;
+            Map<Integer, List<Long>> map = casinoInfo.getBuildingData();
+            res.maxUnlockFloorId = getMaxUnlockFloorId(map);
+            //构建全部楼层信息
+            res.casinoFloorInfos = new ArrayList<>();
+            long timeMillis = System.currentTimeMillis();
+            Map<Long, MachineInfo> machineData = casinoInfo.getMachineInfoData();
+            for (Map.Entry<Integer, List<Long>> entry : map.entrySet()) {
+                //构建楼层信息
+                Long endTime = casinoInfo.getBuildingCleaningEndTime().getOrDefault(entry.getKey(), 0L);
+                CasinoFloorInfo casinoFloorInfo = CasinoBuilder.buildCasinoFloorInfo(entry.getKey(), entry.getValue(), machineData, endTime, timeMillis);
+                res.casinoFloorInfos.add(casinoFloorInfo);
+            }
         }
         return res;
     }
@@ -350,18 +354,18 @@ public class CasinoManager {
      * @param req    请求
      * @return 响应
      */
-    public ResCasinoFloorOperation reqCasinoFloorOperation(long player, ReqCasinoFloorOperation req) {
+    public ResCasinoFloorOperation reqCasinoFloorOperation(Player player, ReqCasinoFloorOperation req) {
         ResCasinoFloorOperation res = new ResCasinoFloorOperation();
         try {
             switch (req.type) {
                 case 1 -> {
-                    return unlockFloor(player, req);
+                    return unlockFloor(player, req, res);
                 }
                 case 2 -> {
-                    return cleanFloor(player, req);
+                    return cleanFloor(player.getId(), req, res);
                 }
                 case 3 -> {
-                    return overClean(player, req);
+                    return overClean(player.getId(), req, res);
                 }
                 default -> {
                     res.code = Code.PARAM_ERROR;
@@ -375,23 +379,43 @@ public class CasinoManager {
         return res;
     }
 
-    private ResCasinoFloorOperation overClean(long player, ReqCasinoFloorOperation req) {
-        ResCasinoFloorOperation res = new ResCasinoFloorOperation();
+    private ResCasinoFloorOperation overClean(long player, ReqCasinoFloorOperation req, ResCasinoFloorOperation res) {
         BuildingFloorCfg buildingFloorCfg = GameDataManager.getBuildingFloorCfg(req.floorId);
         if (Objects.isNull(buildingFloorCfg)) {
             res.code = Code.PARAM_ERROR;
             return res;
         }
-        String path = """
-                $.buildingData.%d.buildingCleaningEndTime.%d""".formatted(req.casinoId, req.floorId);
-        playerBuildingService.updateData(player,(result)->{
-
+        String path = String.format("$.buildingData.%d.buildingCleaningEndTime.%d", req.casinoId, req.floorId);
+        CommonResult<Long> updated = playerBuildingService.updateData(player, (result) -> {
+            Long buildingCleaningEndTime = playerBuildingService.getDataOfPath(player, path, new TypeReference<>() {
+            });
+            long timeMillis = System.currentTimeMillis();
+            if (Objects.isNull(buildingCleaningEndTime) || buildingCleaningEndTime < timeMillis) {
+                result.code = Code.PARAM_ERROR;
+                return;
+            }
+            //计算消耗
+            ItemInfo itemInfo = CasinoBuilder.calculateCostItemInfo(buildingCleaningEndTime, timeMillis);
+            if (Objects.isNull(itemInfo)) {
+                result.code = Code.PARAM_ERROR;
+                return;
+            }
+            //扣除消耗
+            playerPackService.removeItem(player, itemInfo.itemId, itemInfo.count, "加速清理");
+            //更新数据
+            playerBuildingService.setDataOfPath(player, path, timeMillis);
+            result.data = timeMillis;
+            result.code = Code.SUCCESS;
         });
+        if (!updated.success()) {
+            res.code = updated.code;
+            return res;
+        }
+        res.cleanEndTime = updated.data;
         return res;
     }
 
-    private ResCasinoFloorOperation cleanFloor(long player, ReqCasinoFloorOperation req) {
-        ResCasinoFloorOperation res = new ResCasinoFloorOperation();
+    private ResCasinoFloorOperation cleanFloor(long player, ReqCasinoFloorOperation req, ResCasinoFloorOperation res) {
         BuildingFloorCfg buildingFloorCfg = GameDataManager.getBuildingFloorCfg(req.floorId);
         if (Objects.isNull(buildingFloorCfg)) {
             res.code = Code.PARAM_ERROR;
@@ -422,46 +446,53 @@ public class CasinoManager {
         return res;
     }
 
-    private ResCasinoFloorOperation unlockFloor(long player, ReqCasinoFloorOperation req) {
-        ResCasinoFloorOperation res = new ResCasinoFloorOperation();
+    private ResCasinoFloorOperation unlockFloor(Player player, ReqCasinoFloorOperation req, ResCasinoFloorOperation res) {
         BuildingFloorCfg buildingFloorCfg = GameDataManager.getBuildingFloorCfg(req.floorId);
         //配置检查
         if (Objects.isNull(buildingFloorCfg) || buildingFloorCfg.getArea() != req.casinoId) {
             res.code = Code.PARAM_ERROR;
             return res;
         }
-        String path = String.format("$.buildingData.%d.buildingData", req.casinoId);
-        CommonResult<Integer> updated = playerBuildingService.updateData(player, (result) -> {
-            Map<Integer, List<Long>> buildingData = playerBuildingService.getDataOfPath(player, path, new TypeReference<>() {
+        long playerId = player.getId();
+        String path = String.format("$.buildingData.%d", req.casinoId);
+        CommonResult<CasinoInfo> updated = playerBuildingService.updateData(playerId, (result) -> {
+            //检查条件
+            BuildingFloorCfg floorCfg = GameDataManager.getBuildingFloorCfg(req.floorId);
+            if (Objects.isNull(floorCfg)) {
+                result.code = Code.PARAM_ERROR;
+                return;
+            }
+            int checked = ConditionUtil.checkCondition(player, floorCfg.getUnlock());
+            if (checked != Code.SUCCESS) {
+                result.code = checked;
+                return;
+            }
+            CasinoInfo casinoInfo = playerBuildingService.getDataOfPath(playerId, path, new TypeReference<>() {
             });
+            if (Objects.isNull(casinoInfo)) {
+                casinoInfo = CasinoInfo.getNewCasinoInfo(req.casinoId);
+            }
+            Map<Integer, List<Long>> buildingData = casinoInfo.getBuildingData();
             int maxUnlockFloorId = getMaxUnlockFloorId(buildingData);
             if (maxUnlockFloorId + 1 != req.floorId) {
                 result.code = Code.PARAM_ERROR;
                 return;
             }
-            BuildingFloorCfg floorCfg = GameDataManager.getBuildingFloorCfg(maxUnlockFloorId);
-            //检查消耗
-            List<Integer> unlock = floorCfg.getUnlock();
-            if (unlock.size() != 2) {
-                result.code = Code.PARAM_ERROR;
-                return;
-            }
-            Item item = new Item(unlock.getFirst(), unlock.getLast());
-            if (!playerPackService.checkHasItems(player, item)) {
-                result.code = Code.NOT_ENOUGH_ITEM;
-                return;
-            }
-            //扣除道具
-            CommonResult<PlayerPack> removed = playerPackService.removeItem(player, item, "解锁楼层");
-            if (!removed.success()) {
-                result.code = Code.NOT_ENOUGH_ITEM;
-                return;
+            //创建机台数据
+            List<Integer> architectural = floorCfg.getArchitectural();
+            List<Long> mId = new ArrayList<>();
+            Map<Long, MachineInfo> machineInfoData = casinoInfo.getMachineInfoData();
+            for (Integer builderCfgId : architectural) {
+                BuildingFunctionCfg cfg = GameDataManager.getBuildingFunctionCfg(builderCfgId);
+                MachineInfo newMachineInfo = MachineInfo.getNewMachineInfo(req.casinoId, cfg);
+                machineInfoData.put(newMachineInfo.getId(), newMachineInfo);
+                mId.add(newMachineInfo.getId());
             }
             //创建楼层数据
-            buildingData.put(req.floorId, new ArrayList<>());
+            buildingData.put(req.floorId, mId);
             //保存数据
-            playerBuildingService.setDataOfPath(player, path, buildingData);
-            result.data = floorCfg.getId();
+            playerBuildingService.setDataOfPath(playerId, path, casinoInfo);
+            result.data = casinoInfo;
             result.code = Code.SUCCESS;
 
         });
@@ -471,7 +502,165 @@ public class CasinoManager {
         }
         res.casinoId = req.casinoId;
         res.type = req.type;
-        res.casinoFloorInfo = CasinoBuilder.buildCasinoFloorInfo(req.floorId, null, null, 0, System.currentTimeMillis());
+        CasinoInfo casinoInfo = updated.data;
+        List<Long> mIds = casinoInfo.getBuildingData().get(req.floorId);
+        Long cleanEndTime = casinoInfo.getBuildingCleaningEndTime().getOrDefault(req.floorId, 0L);
+        res.casinoFloorInfo = CasinoBuilder.buildCasinoFloorInfo(req.floorId, mIds, casinoInfo.getMachineInfoData(), cleanEndTime, System.currentTimeMillis());
+        return res;
+    }
+
+    public ResCasinoUpgradeMachine reqCasinoUpgradeMachine(Player player, ReqCasinoUpgradeMachine req) {
+        ResCasinoUpgradeMachine res = new ResCasinoUpgradeMachine();
+        try {
+            switch (req.type) {
+                //升级
+                case 1 -> {
+                    return lvUp(player, req, res);
+                }
+                //快速升级
+                case 2 -> {
+                    return quickUpgrade(player, req, res);
+                }
+                default -> {
+                    res.code = Code.PARAM_ERROR;
+                    return res;
+                }
+            }
+        } catch (Exception e) {
+            res.code = Code.EXCEPTION;
+            log.error("请求楼层操作异常", e);
+        }
+        return res;
+    }
+
+    private ResCasinoUpgradeMachine lvUp(Player player, ReqCasinoUpgradeMachine req, ResCasinoUpgradeMachine res) {
+        String path = String.format("$.buildingData.%d.machineInfoData", req.casinoId);
+        long playerId = player.getId();
+        long timeMillis = System.currentTimeMillis();
+        CommonResult<MachineInfo> updated = playerBuildingService.updateData(playerId, (result) -> {
+            Map<Long, MachineInfo> machineInfoData = playerBuildingService.getDataOfPath(playerId, path, new TypeReference<>() {
+            });
+            if (CollectionUtil.isEmpty(machineInfoData)) {
+                result.code = Code.PARAM_ERROR;
+                return;
+            }
+            MachineInfo machineInfo = machineInfoData.get(req.machineId);
+            if (Objects.isNull(machineInfo)) {
+                result.code = Code.PARAM_ERROR;
+                return;
+            }
+            //获取配置
+            BuildingFunctionCfg functionCfg = GameDataManager.getBuildingFunctionCfg(machineInfo.getConfigId());
+            if (Objects.isNull(functionCfg) || functionCfg.getNextlevelID() <= 0) {
+                result.code = Code.PARAM_ERROR;
+                return;
+            }
+            //获取下一级id
+            BuildingFunctionCfg nextCfg = GameDataManager.getBuildingFunctionCfg(functionCfg.getNextlevelID());
+            if (Objects.isNull(nextCfg)) {
+                result.code = Code.PARAM_ERROR;
+                return;
+            }
+            //判断时间
+
+            //判断当前状态
+            if (machineInfo.getBuildLvUpEndTime() > timeMillis) {
+                result.code = Code.PARAM_ERROR;
+                return;
+            }
+            //判断升级条件
+            Map<Integer, Integer> condition = functionCfg.getCondition();
+            int checked = ConditionUtil.checkCondition(player, condition);
+            if (checked != Code.SUCCESS) {
+                result.code = checked;
+                return;
+            }
+            int maxLevelType = functionCfg.getMaxLevelType();
+            if (maxLevelType > 0) {
+                //获取最大等级
+                Optional<BuildingFunctionCfg> max = machineInfoData.values().stream()
+                        .map(info -> GameDataManager.getBuildingFunctionCfg(info.getConfigId()))
+                        .filter(info -> Objects.nonNull(info) && info.getTypeID() == maxLevelType)
+                        .min(Comparator.comparingInt(BuildingFunctionCfg::getBuldlevel));
+                if (max.isPresent() && functionCfg.getBuldlevel() >= max.get().getBuldlevel()) {
+                    result.code = Code.BUILDING_LEVEL_IS_MAX;
+                    return;
+                }
+            }
+            //扣除消耗
+            CommonResult<PlayerPack> removed = playerPackService.removeItems(playerId, functionCfg.getUplevel_itemid(), "升级建筑");
+            if (!removed.success()) {
+                result.code = removed.code;
+                return;
+            }
+            //修改数据
+            machineInfo.setConfigId(nextCfg.getId());
+            machineInfo.setBuildLvUpStartTime(timeMillis);
+            machineInfo.setBuildLvUpEndTime(timeMillis + nextCfg.getUptime());
+            //回存数据
+            playerBuildingService.setDataOfPath(playerId, path, machineInfoData);
+            result.data = machineInfo;
+            result.code = Code.SUCCESS;
+        });
+        if (!updated.success()) {
+            res.code = updated.code;
+            return res;
+        }
+        //构建响应
+        res.type = req.type;
+        res.buildLvUpEndTime = updated.data.getBuildLvUpEndTime();
+        res.configId = updated.data.getConfigId();
+        res.itemInfo = CasinoBuilder.calculateCostItemInfo(res.buildLvUpEndTime, timeMillis);
+        res.machineId = updated.data.getId();
+        return res;
+    }
+
+
+    private ResCasinoUpgradeMachine quickUpgrade(Player player, ReqCasinoUpgradeMachine req, ResCasinoUpgradeMachine res) {
+        String path = String.format("$.buildingData.%d.machineInfoData", req.casinoId);
+        long playerId = player.getId();
+        long timeMillis = System.currentTimeMillis();
+        CommonResult<Map<Long, MachineInfo>> updated = playerBuildingService.updateData(playerId, (result) -> {
+            Map<Long, MachineInfo> machineInfoData = playerBuildingService.getDataOfPath(playerId, path, new TypeReference<>() {
+            });
+            if (Objects.isNull(machineInfoData)) {
+                result.code = Code.PARAM_ERROR;
+                return;
+            }
+            MachineInfo machineInfo = machineInfoData.get(req.machineId);
+            if (Objects.isNull(machineInfo)) {
+                result.code = Code.PARAM_ERROR;
+                return;
+            }
+            long buildLvUpEndTime = machineInfo.getBuildLvUpEndTime();
+            if (buildLvUpEndTime < timeMillis) {
+                result.code = Code.PARAM_ERROR;
+                return;
+            }
+            //计算消耗
+            ItemInfo itemInfo = CasinoBuilder.calculateCostItemInfo(buildLvUpEndTime, timeMillis);
+            if (Objects.isNull(itemInfo)) {
+                result.code = Code.PARAM_ERROR;
+                return;
+            }
+            //扣除消耗
+            playerPackService.removeItem(playerId, itemInfo.itemId, itemInfo.count, "加速升级");
+            machineInfo.setBuildLvUpEndTime(timeMillis);
+            //更新数据
+            playerBuildingService.setDataOfPath(playerId, path, machineInfoData);
+            result.data = machineInfoData;
+            result.code = Code.SUCCESS;
+        });
+        if (!updated.success()) {
+            res.code = updated.code;
+            return res;
+        }
+        //构建响应
+        Map<Long, MachineInfo> data = updated.data;
+        res.type = req.type;
+        res.buildLvUpEndTime = timeMillis;
+        res.configId = data.get(req.machineId).getConfigId();
+        res.machineId = req.machineId;
         return res;
     }
 

@@ -7,20 +7,17 @@ import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
 
 /**
- * 请求更新房间名
+ * 请求好友房账单，单个账单点击时获取整场所有玩家信息
  *
  * @author 2CL
  */
 @ProtobufMessage(
     messageType = MessageConst.MessageTypeDef.HALL_TYPE,
-    cmd = FriendRoomMessageConstant.ReqMsgCons.REQ_CHANGE_FRIEND_ROOM_NAME
+    cmd = FriendRoomMessageConstant.ReqMsgCons.REQ_FRIEND_ROOM_BILL_PLAYER_INFO
 )
-@ProtoDesc("请求更新房间名")
-public class ReqUpdateFriendRoomName extends AbstractMessage {
+@ProtoDesc("请求好友账单数据中单局玩家数据")
+public class ReqFriendRoomBillPlayerInfo extends AbstractMessage {
 
-    @ProtoDesc("新的名字")
-    public String newName;
-
-    @ProtoDesc("房间ID")
-    public long roomId;
+    @ProtoDesc("账单ID")
+    public long id;
 }

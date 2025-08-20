@@ -40,6 +40,10 @@ public interface FriendRoomMessageConstant {
         int REQ_OPERATE_FRIEND_ROOM = BASE_MSG_MASK | 0x0D;
         // 请求重置邀请码
         int REQ_RESET_INVITATION_CODE = BASE_MSG_MASK | 0x0E;
+        // 请求好友账单数据中单局玩家数据
+        int REQ_FRIEND_ROOM_BILL_PLAYER_INFO = BASE_MSG_MASK | 0x1F;
+        // 请求一键领取账单收益奖励
+        int REQ_TAKE_FRIEND_ROOM_BILL_INCOME = BASE_MSG_MASK | 0x20;
     }
 
     interface ResMsgCons {
@@ -71,5 +75,9 @@ public interface FriendRoomMessageConstant {
         int RES_OPERATE_FRIEND_ROOM = BASE_MSG_MASK | 0x8D;
         // 重置邀请码返回
         int RES_RESET_INVITATION_CODE = BASE_MSG_MASK | 0x8E;
+        // 请求好友账单数据中单局玩家数据
+        int RES_FRIEND_ROOM_BILL_PLAYER_INFO = BASE_MSG_MASK | 0x8F;
+        // 请求一键领取账单收益奖励
+        int RES_TAKE_FRIEND_ROOM_BILL_INCOME = BASE_MSG_MASK | 0x90;
     }
 }

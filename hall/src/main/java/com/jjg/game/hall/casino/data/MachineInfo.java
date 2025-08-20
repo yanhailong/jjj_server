@@ -40,6 +40,10 @@ public class MachineInfo {
         this.employmentMap = employmentMap;
     }
 
+    public void setConfigId(int configId) {
+        this.configId = configId;
+    }
+
     public int getConfigId() {
         return configId;
     }

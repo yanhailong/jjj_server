@@ -25,6 +25,9 @@ public class ResFriendRoomBillHistory extends AbstractResponse {
     @ProtoDesc("游戏账单数据")
     public List<GameBillInfo> gameBillInfos;
 
+    @ProtoDesc("返回可以领取的收益")
+    public long canTakeIncome;
+
     @ProtoDesc("分页下标，-1表示到末尾")
     public int pageIdx;
 

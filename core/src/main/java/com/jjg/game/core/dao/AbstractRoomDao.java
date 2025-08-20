@@ -64,7 +64,8 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         return this.lockNodeCreateKey + gameType;
     }
 
-    public boolean putIfAbsent(T room) {
+    // 禁止向外部暴露可以直接操作房间的接口
+    protected boolean putIfAbsent(T room) {
         return redisTemplate.opsForHash().putIfAbsent(getTableName(room.getGameType()), room.getId(), room);
     }
 
@@ -90,7 +91,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     /**
      * 创建房间
      */
-    public T createRoom(PlayerController playerController, int gameType, int maxLimit, String nodeName) {
+    public T createRoom(PlayerController playerController, int gameType, int roomCfgId, int maxLimit, String nodeName) {
         try {
             long playerId = playerController.playerId();
             T room = fillBaseRoomData(nodeName, gameType, maxLimit);
@@ -165,11 +166,12 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         return null;
     }
 
-    public void saveRoom(T room) {
+    // 禁止向外部暴露可以直接操作房间的接口
+    protected void saveRoom(T room) {
         redisTemplate.opsForHash().put(getTableName(room.getGameType()), room.getId(), room);
     }
 
-    public CommonResult<? extends Room> doSave(int gameType, long roomId, DataSaveCallback<Room> roomCallback) {
+    public CommonResult<? extends Room> doSave(int gameType, long roomId, DataSaveCallback<T> roomCallback) {
         CommonResult<Room> result = new CommonResult<>(Code.SUCCESS);
         String key = getLockName(gameType, roomId);
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);

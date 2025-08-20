@@ -14,6 +14,9 @@ import java.util.List;
 @ProtoDesc("好友房账单历史")
 public class FriendRoomBillHistory {
 
+    @ProtoDesc("账单ID")
+    public long id;
+
     @ProtoDesc("创建时间")
     public long createdTime;
 
@@ -23,6 +26,6 @@ public class FriendRoomBillHistory {
     @ProtoDesc("总收益")
     public long totalIncome;
 
-    @ProtoDesc("玩家流水信息")
-    public List<BaseFriendRoomPlayerInfo> playerInfos;
+    @ProtoDesc("玩家参数人数")
+    public int partInNum;
 }

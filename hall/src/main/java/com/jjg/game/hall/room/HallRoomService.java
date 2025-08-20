@@ -112,9 +112,7 @@ public class HallRoomService implements IConsoleReceiver {
         if (waitingRoomId == 0) {
             Tuple2<Integer, Integer> roomMaxLimitCfg = HallDataUtils.getRoomMaxLimit(warehouseCfg);
             int maxLimit = roomMaxLimitCfg.getT2();
-            Room room = hallRoomDao.createRoom(playerController, gameType, maxLimit, marsNode.getNodePath());
-            room.setRoomCfgId(roomCfgId);
-            hallRoomDao.saveRoom(room);
+            Room room = hallRoomDao.createRoom(playerController, gameType, roomCfgId, maxLimit, marsNode.getNodePath());
             if (maxLimit != 1) {
                 // 如果房间的限制人数不止一个，则将当前房间ID挂到房间等待列表中，等待后续玩家的加入
                 matchService.addWaitingRoomId(gameType, roomCfgId, room.getId(), room.getCreateTime());

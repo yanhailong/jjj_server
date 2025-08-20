@@ -1,10 +1,12 @@
 package com.jjg.game.hall.casino.data;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * 赌场信息
+ *
  * @author lm
  * @date 2025/8/20 09:56
  */
@@ -57,5 +59,14 @@ public class CasinoInfo {
 
     public void setOneClickClaimEndTime(long oneClickClaimEndTime) {
         this.oneClickClaimEndTime = oneClickClaimEndTime;
+    }
+
+    public static CasinoInfo getNewCasinoInfo(int casinoId) {
+        CasinoInfo casinoInfo = new CasinoInfo();
+        casinoInfo.buildingCleaningEndTime = new HashMap<>();
+        casinoInfo.buildingData = new HashMap<>();
+        casinoInfo.machineInfoData = new HashMap<>();
+        casinoInfo.id = casinoId;
+        return casinoInfo;
     }
 }

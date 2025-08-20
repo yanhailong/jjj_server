@@ -4,19 +4,24 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
+import com.jjg.game.core.dao.FriendRoomBillHistoryDao;
+import com.jjg.game.core.dao.FriendRoomBillHistoryDao.GameBillResult;
+import com.jjg.game.core.dao.FriendRoomDao;
+import com.jjg.game.core.dao.FriendRoomDao.CreateFriendsRoom;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.IllegalNameCheckService;
 import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.hall.dao.HallRoomDao;
+import com.jjg.game.hall.friendroom.constant.FriendRoomConstant;
+import com.jjg.game.hall.friendroom.dao.FriendRoomFollowDao;
 import com.jjg.game.hall.friendroom.dao.FriendRoomRedisDao;
-import com.jjg.game.hall.friendroom.dao.RoomFriendDao;
 import com.jjg.game.hall.friendroom.data.FriendRoomFollowBean;
 import com.jjg.game.hall.friendroom.message.FriendRoomMessageBuilder;
 import com.jjg.game.hall.friendroom.message.req.*;
 import com.jjg.game.hall.friendroom.message.res.*;
 import com.jjg.game.hall.friendroom.message.struct.BaseFriendRoomPlayerInfo;
 import com.jjg.game.hall.friendroom.message.struct.FriendRoomBaseData;
+import com.jjg.game.hall.friendroom.message.struct.GameBillInfo;
 import com.jjg.game.hall.friendroom.message.struct.RoomFriendEnum.ERoomFriendListOperate;
 import com.jjg.game.hall.utils.HallDataUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -42,63 +47,69 @@ public class FriendRoomServices {
 
     private static final Logger log = LoggerFactory.getLogger(FriendRoomServices.class);
     @Autowired
-    private RoomFriendDao roomFriendDao;
+    private FriendRoomFollowDao friendRoomFollowDao;
     @Autowired
     private IllegalNameCheckService illegalNameCheckService;
     @Autowired
     private PlayerPackService playerPackService;
     @Autowired
-    private HallRoomDao hallRoomDao;
+    private FriendRoomDao friendRoomDao;
+    @Autowired
+    private FriendRoomRedisDao friendRoomRedisDao;
     @Autowired
     private CorePlayerService corePlayerService;
     @Autowired
-    private FriendRoomRedisDao friendRoomRedisDao;
+    private FriendRoomBillHistoryDao historyDao;
 
     /**
      * 创建好友房
      */
-    public int createFriendRoom(PlayerController playerController, ReqCreateFriendsRoom reqCreateFriendsRoom) {
+    public int createFriendRoom(PlayerController playerController, ReqCreateFriendsRoom req) {
         Player player = corePlayerService.get(playerController.playerId());
         // 房间创建检查
-        int checkResCode = checkCreateRoom(player, reqCreateFriendsRoom);
+        int checkResCode = checkCreateRoom(player, req);
         if (checkResCode != Code.SUCCESS) {
-            log.warn("请求创建好友房失败, 检查未通过 req = {}", reqCreateFriendsRoom);
+            log.warn("请求创建好友房失败, 检查未通过 req = {}", req);
             return checkResCode;
         }
-        int invitationCode;
-        if (player.getFriendRoomInvitationCode() == 0) {
+        int invitationCode = player.getFriendRoomInvitationCode();
+        if (invitationCode == 0) {
             // 生成邀请码
             invitationCode = friendRoomRedisDao.genInvitationCode();
             if (invitationCode <= 0) {
-                log.error("申请邀请失败，时间：{}", TimeHelper.getCurrentDateZeroMileTime());
+                log.error("创建房间时，申请邀请码失败，时间：{}", TimeHelper.getCurrentDateZeroMileTime());
                 return Code.FAIL;
             }
-        } else {
-            invitationCode = 0;
         }
-        int roomCfgId = reqCreateFriendsRoom.roomCfgId;
+        int roomCfgId = req.roomCfgId;
         // 扣除道具
         CommonResult<PlayerPack> removeItem =
             playerPackService.removeItem(
                 player.getId(),
-                new Item(reqCreateFriendsRoom.itemId, reqCreateFriendsRoom.itemNum),
-                "create_friend_room"
+                new Item(req.itemId, req.itemNum), "create_friend_room"
             );
         // 移除道具失败
         if (!removeItem.success()) {
             return removeItem.code;
         }
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
+
         // 创建房间
-        FriendRoom friendRoom = hallRoomDao.createBetFriendRoom(
-            player.getId(), warehouseCfg.getGameID(), roomCfgId, warehouseCfg.getEnterMax(), reqCreateFriendsRoom);
+        FriendRoom friendRoom = this.friendRoomDao.createBetFriendRoom(
+            player.getId(),
+            warehouseCfg.getGameID(),
+            roomCfgId,
+            warehouseCfg.getEnterMax(),
+            new CreateFriendsRoom(req.itemId, req.roomCfgId, req.timeOfOpenRoom, req.autoRenewal,
+                req.predictCostGoldNum, req.roomAliasName));
         if (friendRoom == null) {
             return Code.PARAM_ERROR;
         }
         // 保存邀请码
-        if (invitationCode > 0) {
+        if (invitationCode != player.getFriendRoomInvitationCode()) {
+            final int newInvitationCode = invitationCode;
             // 保存玩家邀请码
-            corePlayerService.doSave(player.getId(), (p) -> p.setFriendRoomInvitationCode(invitationCode));
+            corePlayerService.doSave(player.getId(), (p) -> p.setFriendRoomInvitationCode(newInvitationCode));
             // 添加邀请码映射
             friendRoomRedisDao.addInvitationCode(invitationCode, player.getId());
         }
@@ -140,7 +151,7 @@ public class FriendRoomServices {
         }
         // 房间数量检查
         PlayerLevelConfigCfg playerLevelConfigCfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
-        long playerRoomSize = hallRoomDao.getPlayerRoomSize(player.getId());
+        long playerRoomSize = friendRoomDao.getPlayerRoomSize(player.getId());
         if (playerRoomSize >= playerLevelConfigCfg.getRoomNum()) {
             return Code.CREATE_ROOM_TO_LIMIT;
         }
@@ -176,10 +187,10 @@ public class FriendRoomServices {
         Player player = playerController.getPlayer();
         NotifyFriendRoomPanelData notifyFriendRoomPanelData = new NotifyFriendRoomPanelData();
         // 获取玩家创建的好友房数据
-        List<FriendRoom> friendRoomList = hallRoomDao.getPlayerAllFriendRoom(player.getId());
+        List<FriendRoom> friendRoomList = friendRoomDao.getPlayerAllFriendRoom(player.getId());
         // 获取玩家关注列表
         List<FriendRoomFollowBean> friendRoomFollowBeans =
-            roomFriendDao.getDefualtRoomFriendList(player.getId(), player.getFriendRoomInvitationCode());
+            friendRoomFollowDao.getDefualtRoomFriendList(player.getId(), player.getFriendRoomInvitationCode());
         Map<Long, FriendRoomFollowBean> friendRoomFollowBeanMap =
             friendRoomFollowBeans.stream().collect(
                 HashMap::new, (map, e) -> map.put(e.getFollowedPlayerId(), e), HashMap::putAll);
@@ -219,7 +230,7 @@ public class FriendRoomServices {
         notifyFriendRoomPanelData.maxPlayerNumOnTable =
             GameDataManager.getPlayerLevelConfigCfg(player.getLevel()).getRoomNum();
         // 邀请码重置使用次数
-        int invitationCodeRestTimes = friendRoomRedisDao.getUseTimes(player.getId());
+        int invitationCodeRestTimes = friendRoomRedisDao.getInvitationCodeResetUseTimes(player.getId());
         // 邀请码剩余次数
         notifyFriendRoomPanelData.invitationCodeResetRemainingTimes =
             invitationCodeRestTimes >= invitationResetGlobalConfigCfg.getIntValue() ?
@@ -242,9 +253,23 @@ public class FriendRoomServices {
             playerController.send(res);
             return;
         }
-        // 通过邀请码添加关注好友
-        roomFriendDao.addFriendByInvitationCode(player.getId(), targetPlayerId, invitationCode);
+        // 判断玩家好友是否达到上限
+        long roomFriendSize = friendRoomFollowDao.countRoomFriendSize(player.getId());
+        PlayerLevelConfigCfg levelCfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
+        int maxFriendsNum = levelCfg.getFriendsNum();
+        if (roomFriendSize >= maxFriendsNum) {
+            res.code = Code.MAX_FOLLOWED_FRIENDS;
+            playerController.send(res);
+            return;
+        }
         Player targetPlayer = corePlayerService.get(targetPlayerId);
+        // 如果目标玩家为空
+        if (targetPlayer == null) {
+            playerController.send(res);
+            return;
+        }
+        // 通过邀请码添加关注好友
+        friendRoomFollowDao.addFriendByInvitationCode(player.getId(), targetPlayerId, invitationCode);
         res.playerInfo = FriendRoomMessageBuilder.buildFriendRoomInfo(targetPlayer);
         res.code = Code.SUCCESS;
         playerController.send(res);
@@ -266,15 +291,19 @@ public class FriendRoomServices {
         }
         // 通过玩家ID，邀请码和目标玩家ID进行查找
         FriendRoomFollowBean friendRoomFollowBean =
-            roomFriendDao.getRoomFriend(playerController.playerId(), req.playerId, targetPlayerInvitationCode);
-
+            friendRoomFollowDao.getRoomFriend(playerController.playerId(), req.playerId, targetPlayerInvitationCode);
+        if (friendRoomFollowBean == null) {
+            res.code = Code.NOT_FOUND;
+            playerController.send(res);
+            return;
+        }
         if (req.operate == ERoomFriendListOperate.TOP_UP) {
             friendRoomFollowBean.setTopUpTimeStamp(System.currentTimeMillis());
         } else if (req.operate == ERoomFriendListOperate.REMOVE) {
             friendRoomFollowBean.setRemoveTime(System.currentTimeMillis());
         }
         FriendRoomFollowBean updatedFriendRoomFollowBean =
-            roomFriendDao.updateFriendRoomFollowBean(friendRoomFollowBean);
+            friendRoomFollowDao.updateFriendRoomFollowBean(friendRoomFollowBean);
         if (updatedFriendRoomFollowBean != null) {
             res.code = Code.SUCCESS;
         }
@@ -290,7 +319,7 @@ public class FriendRoomServices {
         Player targetPlayer = corePlayerService.get(req.playerId);
         // 通过玩家ID，邀请码和目标玩家ID进行查找
         FriendRoomFollowBean friendRoomFollowBean =
-            roomFriendDao.getRoomFriend(
+            friendRoomFollowDao.getRoomFriend(
                 playerController.playerId(), req.playerId, targetPlayer.getFriendRoomInvitationCode());
         // 如果查找不到，有可能对方重新刷新了邀请码
         if (friendRoomFollowBean == null) {
@@ -298,7 +327,7 @@ public class FriendRoomServices {
             playerController.send(res);
             return;
         }
-        List<FriendRoom> friendRoomList = hallRoomDao.getPlayerAllFriendRoom(req.playerId);
+        List<FriendRoom> friendRoomList = friendRoomDao.getPlayerAllFriendRoom(req.playerId);
         // 房间信息
         List<FriendRoomBaseData> friendRoomBaseDataList = new ArrayList<>();
         for (FriendRoom friendRoom : friendRoomList) {
@@ -315,7 +344,7 @@ public class FriendRoomServices {
      */
     public void reqRefreshFollowedFriendList(PlayerController playerController, ReqRefreshFollowedFriendList req) {
         ResRefreshFollowedFriendList res = new ResRefreshFollowedFriendList(Code.SUCCESS);
-        if (req.pageSize < 0 || req.pageIdx < 0) {
+        if (req.pageSize < FriendRoomConstant.PAGE_SIZE || req.pageIdx < 0) {
             res.code = Code.PARAM_ERROR;
             playerController.send(res);
             return;
@@ -323,7 +352,7 @@ public class FriendRoomServices {
         Player player = corePlayerService.get(playerController.playerId());
         // 获取玩家关注列表
         List<FriendRoomFollowBean> friendRoomFollowBeans =
-            roomFriendDao.getRoomFriendList(
+            friendRoomFollowDao.getRoomFriendList(
                 player.getId(), player.getFriendRoomInvitationCode(), req.pageIdx, req.pageSize);
         res.pageIdx = friendRoomFollowBeans.size() < req.pageSize ? -1 : req.pageIdx + 1;
         List<Long> followedPlayerId =
@@ -345,7 +374,7 @@ public class FriendRoomServices {
         invitationCodeMap.values().removeAll(containsIds);
         if (!invitationCodeMap.isEmpty()) {
             // 批量删除关注好友
-            roomFriendDao.removeFollowedFriend(invitationCodeMap.values());
+            friendRoomFollowDao.removeFollowedFriend(invitationCodeMap.values());
         }
         // 不包含的，或者过期的需要移除这部分的数据
         res.followedFriendList =
@@ -353,16 +382,168 @@ public class FriendRoomServices {
     }
 
     /**
-     * 请求刷新好友列表
+     * 请求操作屏蔽玩家
      */
     public void reqOperateShieldPlayer(PlayerController playerController, ReqOperateShieldPlayer req) {
-        //friendRoomRedisDao.addInvitationCode();
+        ResOperateShieldPlayer res = new ResOperateShieldPlayer(Code.PARAM_ERROR);
+        Player player = corePlayerService.get(playerController.playerId());
+        if (req.operateCode < 1 || req.operateCode > 3) {
+            playerController.send(res);
+            return;
+        }
+        PlayerLevelConfigCfg levelConfigCfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
+        // 黑名单数量
+        int blockListNum = levelConfigCfg.getBlockListNum();
+        List<Long> playerBlackList = friendRoomRedisDao.getPlayerBlackList(playerController.playerId());
+        switch (req.operateCode) {
+            case 1: {
+                playerBlackList.addAll(req.playerId);
+                // 如果添加的黑名单数量大于了配置值
+                if (playerBlackList.size() > blockListNum) {
+                    res.code = Code.ADD_BLACK_LIST_PLAYER_TO_LIMIT;
+                    playerController.send(res);
+                    return;
+                }
+                break;
+            }
+            case 2: {
+                if (playerBlackList.isEmpty()) {
+                    // 非法操作
+                    res.code = Code.PARAM_ERROR;
+                    playerController.send(res);
+                    return;
+                }
+                // 移除黑名单
+                playerBlackList.removeAll(req.playerId);
+                break;
+            }
+            case 3: {
+                if (playerBlackList.isEmpty()) {
+                    // 非法操作
+                    res.code = Code.PARAM_ERROR;
+                    playerController.send(res);
+                    return;
+                }
+                playerBlackList.clear();
+            }
+            default:
+                break;
+        }
+        // 更新玩家黑名单
+        friendRoomRedisDao.updatePlayerBlackList(playerController.playerId(), playerBlackList);
+        res.code = Code.SUCCESS;
+        playerController.send(res);
+    }
+
+    /**
+     * 请你黑名单玩家
+     */
+    public void reqPlayerBlackList(PlayerController playerController) {
+        List<Long> playerBlackList = friendRoomRedisDao.getPlayerBlackList(playerController.playerId());
+        ResShieldPlayerList res = new ResShieldPlayerList(Code.SUCCESS);
+        List<Player> blackListPlayers = corePlayerService.multiGetPlayer(playerBlackList);
+        res.shieldPlayerList =
+            blackListPlayers.stream().map(FriendRoomMessageBuilder::buildFriendRoomInfo).toList();
+        playerController.send(res);
+    }
+
+    /**
+     * 修改好友房名字
+     */
+    public void reqUpdateFriendRoomName(PlayerController playerController, ReqUpdateFriendRoomName roomName) {
+        ResUpdateFriendRoomName res = new ResUpdateFriendRoomName(Code.ILLEGAL_NAME);
+        // 屏蔽字检查
+        if (illegalNameCheckService.illegalNameCheck(roomName.newName)) {
+            playerController.send(res);
+            return;
+        }
+        FriendRoom friendRoom = friendRoomDao.getFriendRoomById(playerController.playerId(), roomName.roomId);
+        if (friendRoom == null) {
+            res.code = Code.PARAM_ERROR;
+            playerController.send(res);
+            return;
+        }
+        friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), (r) -> r.setAliasName(roomName.newName));
+        res.code = Code.SUCCESS;
+        playerController.send(res);
+    }
+
+    /**
+     * 请求好友房历史账单
+     */
+    public void reqFriendRoomBillHistory(PlayerController playerController, ReqFriendRoomBillHistory req) {
+        ResFriendRoomBillHistory res = new ResFriendRoomBillHistory(Code.PARAM_ERROR);
+        if (req.pageIdx < 0 || req.pageSize < FriendRoomConstant.PAGE_SIZE) {
+            playerController.send(res);
+            return;
+        }
+        List<GameBillResult> gameBillResults =
+            historyDao.pageFriendRoomBillByGameType(playerController.playerId(), req.pageIdx, req.pageSize);
+        List<GameBillInfo> gameBillInfos = new ArrayList<>();
+        for (GameBillResult gameBillResult : gameBillResults) {
+            GameBillInfo gameBillInfo = new GameBillInfo();
+            gameBillInfo.gameType = gameBillResult.getId();
+            gameBillInfo.totalRound = gameBillResult.getTotalRound();
+            gameBillInfo.canTakeIncome = gameBillResult.getTotalIncomeCanTake();
+            gameBillInfo.totalIncome = gameBillResult.getTotalIncome();
+            gameBillInfo.totalFlow = gameBillResult.getTotalWin();
+            gameBillInfos.add(gameBillInfo);
+        }
+        res.gameBillInfos = gameBillInfos;
+        res.code = Code.SUCCESS;
+        playerController.send(res);
+    }
+
+    /**
+     * 请求好友房详细账单历史数据
+     */
+    public void reqFriendRoomDetailBillHistory(PlayerController playerController, ReqFriendRoomDetailBillHistory req) {
+        ResFriendRoomDetailBillHistory res = new ResFriendRoomDetailBillHistory(Code.PARAM_ERROR);
+        if (req.pageSize < FriendRoomConstant.PAGE_SIZE || req.pageIdx < 0) {
+            playerController.send(res);
+            return;
+        }
+        List<FriendBillHistoryBean> pageFriendRoomBillHistory =
+            historyDao.pageFriendRoomBillHistory(playerController.playerId(), req.pageIdx, req.pageSize);
+
     }
 
     /**
      * 请求重置邀请码
      */
     public void reqResetInvitationCode(PlayerController playerController) {
-        //friendRoomRedisDao.addInvitationCode();
+        Player player = corePlayerService.get(playerController.playerId());
+        ResResetInvitationCode res = new ResResetInvitationCode(Code.PARAM_ERROR);
+        int oldInvitationCode = player.getFriendRoomInvitationCode();
+        if (oldInvitationCode == 0) {
+            // 玩家邀请码为0但是还在请求重置
+            playerController.send(res);
+            return;
+        }
+        GlobalConfigCfg invitationResetGlobalConfigCfg =
+            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_RESET_TIMES);
+        // 检查次数
+        Integer resetTimes = friendRoomRedisDao.getInvitationCodeResetUseTimes(player.getId());
+        if (resetTimes != null && resetTimes >= invitationResetGlobalConfigCfg.getIntValue()) {
+            res.code = Code.INVITATION_CODE_RESET_TIMES_NOT_ENOUGH;
+            playerController.send(res);
+            return;
+        }
+        int newInvitationCode = friendRoomRedisDao.genInvitationCode();
+        if (newInvitationCode <= 0) {
+            log.error("重置邀请码时，生成邀请码失败，时间：{}", TimeHelper.getCurrentDateZeroMileTime());
+            res.code = Code.FAIL;
+            playerController.send(res);
+            return;
+        }
+        // 重置邀请码
+        friendRoomRedisDao.resetInvitationCode(oldInvitationCode, newInvitationCode, player.getId());
+        // 删除好友映射关系
+        friendRoomFollowDao.deleteMappingRelateByInvitationCode(oldInvitationCode);
+        // 保存玩家邀请码
+        corePlayerService.doSave(player.getId(), (p) -> p.setFriendRoomInvitationCode(newInvitationCode));
+        res.resetTimes = resetTimes == null ? 0 : resetTimes + 1;
+        res.invitationCode = newInvitationCode;
+        playerController.send(res);
     }
 }

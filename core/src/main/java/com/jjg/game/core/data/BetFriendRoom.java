@@ -6,4 +6,15 @@ package com.jjg.game.core.data;
  * @author 2CL
  */
 public class BetFriendRoom extends FriendRoom {
+
+    // 房间的庄家ID
+    private long bankerId;
+
+    public long getBankerId() {
+        return bankerId;
+    }
+
+    public void setBankerId(long bankerId) {
+        this.bankerId = bankerId;
+    }
 }

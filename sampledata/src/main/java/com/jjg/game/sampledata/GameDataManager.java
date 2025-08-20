@@ -162,6 +162,7 @@ public class GameDataManager {
     containerMap.put(SpecialGirdCfg.class, new SpecialGirdCfgContainer());
     containerMap.put(SpecialPlayCfg.class, new SpecialPlayCfgContainer());
     containerMap.put(SpecialResultLibCfg.class, new SpecialResultLibCfgContainer());
+    containerMap.put(StatusCfg.class, new StatusCfgContainer());
     containerMap.put(TexasCfg.class, new TexasCfgContainer());
     containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
@@ -1107,6 +1108,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(SpecialResultLibCfg.class).getCfgBeanList();
   }
 
+  public static StatusCfg getStatusCfg(int key) {
+    return getInstance().getCfgContainer(StatusCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, StatusCfg> getStatusCfgMap() {
+    return getInstance().getCfgContainer(StatusCfg.class).getCfgBeanMap();
+  }
+
+  public static List<StatusCfg> getStatusCfgList() {
+    return getInstance().getCfgContainer(StatusCfg.class).getCfgBeanList();
+  }
+
   public static TexasCfg getTexasCfg(int key) {
     return getInstance().getCfgContainer(TexasCfg.class).getCfgBeanMap().get(key);
   }
@@ -1183,6 +1196,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\workspace\\gamedoc\\游戏配置表");
+    loadAllData("E:\\java\\gamedoc\\游戏配置表");
   }
 }
