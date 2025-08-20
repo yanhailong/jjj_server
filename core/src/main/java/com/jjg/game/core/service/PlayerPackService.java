@@ -19,7 +19,9 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author 11
@@ -72,27 +74,27 @@ public class PlayerPackService {
             for (Map.Entry<Integer, Long> en : addItemMap.entrySet()) {
                 int itemId = en.getKey();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
-                if(itemCfg == null){
+                if (itemCfg == null) {
                     continue;
                 }
 
-                if(itemCfg.getType() == GameConstant.Item.TYPE_GOLD){
+                if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
                     addGold += en.getValue();
                     continue;
                 }
-                if(itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND){
+                if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
                     addDiamond += en.getValue();
                     continue;
                 }
                 playerPack.addItem(itemId, en.getValue(), itemCfg.getProp());
             }
 
-            if(addGold > 0){
-                corePlayerService.addGold(playerId, addGold,addType);
+            if (addGold > 0) {
+                corePlayerService.addGold(playerId, addGold, addType);
             }
 
-            if(addDiamond > 0){
-                corePlayerService.addGold(playerId, addDiamond,addType);
+            if (addDiamond > 0) {
+                corePlayerService.addGold(playerId, addDiamond, addType);
             }
 
             redisTemplate.opsForHash().put(tableName, playerId, playerPack);
@@ -133,9 +135,9 @@ public class PlayerPackService {
 
             //根据不同道具做不同处理
             if (addItemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
-                corePlayerService.addGold(playerId, count,addType);
+                corePlayerService.addGold(playerId, count, addType);
             } else if (addItemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
-                corePlayerService.addDiamond(playerId, count,addType);
+                corePlayerService.addDiamond(playerId, count, addType);
             } else {
                 playerPack.addItem(id, count, max);
             }
@@ -161,8 +163,8 @@ public class PlayerPackService {
      * @param remove   移除的道具
      * @return 最新的背包结果
      */
-    public CommonResult<PlayerPack> removeItem(long playerId, Item remove,String addType) {
-        return removeItem(playerId, remove.getId(), remove.getCount(),null);
+    public CommonResult<PlayerPack> removeItem(long playerId, Item remove, String addType) {
+        return removeItem(playerId, remove.getId(), remove.getCount(), null);
     }
 
     /**
@@ -173,12 +175,12 @@ public class PlayerPackService {
      * @param count
      * @return
      */
-    public CommonResult<PlayerPack> removeItem(long playerId, int id, long count,String addType) {
+    public CommonResult<PlayerPack> removeItem(long playerId, int id, long count, String addType) {
         CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
 
         ItemCfg itemCfg = GameDataManager.getItemCfg(id);
-        if(itemCfg == null){
+        if (itemCfg == null) {
             result.code = Code.NOT_FOUND;
             return result;
         }
@@ -190,17 +192,17 @@ public class PlayerPackService {
                 result.code = Code.NOT_FOUND;
                 return result;
             }
-
+        //TODO 检查道具
             //根据不同道具做不同处理
             if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
-                CommonResult<Player> removeResult = corePlayerService.deductGold(playerId, count,addType);
-                if(!removeResult.success()){
+                CommonResult<Player> removeResult = corePlayerService.deductGold(playerId, count, addType);
+                if (!removeResult.success()) {
                     result.code = removeResult.code;
                     return result;
                 }
             } else if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
-                CommonResult<Player> removeResult = corePlayerService.deductDiamond(playerId, count,addType);
-                if(!removeResult.success()){
+                CommonResult<Player> removeResult = corePlayerService.deductDiamond(playerId, count, addType);
+                if (!removeResult.success()) {
                     result.code = removeResult.code;
                     return result;
                 }
@@ -223,6 +225,47 @@ public class PlayerPackService {
         }
         return result;
     }
+
+    /**
+     * 检查是否拥有道具
+     *
+     * @param playerId 玩家id
+     * @param item     拥有道具
+     * @return true 拥有 false 未拥有
+     */
+    public boolean checkHasItems(long playerId, List<Item> item) {
+        try {
+            PlayerPack playerPack = getFromAllDB(playerId);
+            if (Objects.isNull(playerPack)) {
+                return false;
+            }
+            return playerPack.checkHasItems(item);
+        } catch (Exception e) {
+            log.error("移除道具，保存 playerPack 失败 playerId={}", playerId, e);
+        }
+        return false;
+    }
+
+    /**
+     * 检查是否拥有道具
+     *
+     * @param playerId 玩家id
+     * @param item     拥有道具
+     * @return true 拥有 false 未拥有
+     */
+    public boolean checkHasItems(long playerId, Item item) {
+        try {
+            PlayerPack playerPack = getFromAllDB(playerId);
+            if (Objects.isNull(playerPack)) {
+                return false;
+            }
+            return playerPack.checkHasItems(List.of(item));
+        } catch (Exception e) {
+            log.error("移除道具，保存 playerPack 失败 playerId={}", playerId, e);
+        }
+        return false;
+    }
+
 
     /**
      * 使用道具

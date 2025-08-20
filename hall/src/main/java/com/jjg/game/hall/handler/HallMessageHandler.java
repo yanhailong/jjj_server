@@ -15,6 +15,8 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.core.service.MailService;
+import com.jjg.game.hall.casino.manager.CasinoManager;
+import com.jjg.game.hall.casino.pb.req.*;
 import com.jjg.game.hall.constant.HallCode;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.dao.HallPoolDao;
@@ -53,7 +55,7 @@ public class HallMessageHandler implements GmListener {
     @Autowired
     private HallRoomService hallRoomService;
     @Autowired
-    private GameStatusService gameStatusService;
+    private CasinoManager casinoManager;
     @Autowired
     private HallPlayerService hallPlayerService;
     @Autowired
@@ -701,6 +703,71 @@ public class HallMessageHandler implements GmListener {
 //        }
         return new CommonResult<>(Code.SUCCESS, info);
     }
+
+
+
+
+    /**
+     * 我的赌场 请求购买一键领取
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_BUY_CLAIM_ALL_REWARDS)
+    public void reqCasinoBuyClaimAllRewards(PlayerController playerController, ReqCasinoBuyClaimAllRewards req) {
+        playerController.send(casinoManager.reqCasinoBuyClaimAllRewards(playerController.playerId(), req));
+    }
+
+    /**
+     * 我的赌场 请求玩家赌场信息
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_INFO)
+    public void reqCasinoInfo(PlayerController playerController, ReqCasinoInfo req) {
+        playerController.send(casinoManager.reqCasinoInfo(playerController.playerId(), req));
+    }
+
+    /**
+     * 我的赌场 一键领取收益
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_CLAIM_ALL_REWARDS)
+    public void reqCasinoClaimAllRewards(PlayerController playerController, ReqCasinoClaimAllRewards req) {
+        playerController.send(casinoManager.reqCasinoClaimAllRewards(playerController.playerId(), req));
+    }
+
+    /**
+     * 我的赌场 领取机台收益
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_CLAIM_REWARDS)
+    public void reqCasinoClaimRewards(PlayerController playerController, ReqCasinoClaimRewards req) {
+        playerController.send(casinoManager.reqCasinoClaimRewards(playerController.playerId(), req));
+    }
+
+    /**
+     * 我的赌场 领取机台收益
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_EMPLOY_STAFF)
+    public void reqCasinoEmployStaff(PlayerController playerController, ReqCasinoEmployStaff req) {
+        playerController.send(casinoManager.reqCasinoEmployStaff(playerController.playerId(), req));
+    }
+
+    /**
+     * 我的赌场 请求楼层操作
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_FLOOR_OPERATION)
+    public void reqCasinoFloorOperation(PlayerController playerController, ReqCasinoFloorOperation req) {
+        playerController.send(casinoManager.reqCasinoFloorOperation(playerController.playerId(), req));
+    }
+
+
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
