@@ -29,7 +29,7 @@ public class BuildingFloorCfg extends BaseCfgBean {
   /** 楼层ID */
   protected int type;
   /** 楼层解锁条件 */
-  protected List<Integer> unlock;
+  protected Map<Integer,Integer> unlock;
 
   /** 返回楼层建筑组成 */
   public List<Integer> getArchitectural() {
@@ -57,7 +57,7 @@ public class BuildingFloorCfg extends BaseCfgBean {
   }
 
   /** 返回楼层解锁条件 */
-  public List<Integer> getUnlock() {
+  public Map<Integer,Integer> getUnlock() {
     return unlock;
   }
 

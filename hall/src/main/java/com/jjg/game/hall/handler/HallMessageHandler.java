@@ -764,7 +764,7 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_FLOOR_OPERATION)
     public void reqCasinoFloorOperation(PlayerController playerController, ReqCasinoFloorOperation req) {
-        playerController.send(casinoManager.reqCasinoFloorOperation(playerController.playerId(), req));
+        playerController.send(casinoManager.reqCasinoFloorOperation(playerController.getPlayer(), req));
     }
 
     /**
