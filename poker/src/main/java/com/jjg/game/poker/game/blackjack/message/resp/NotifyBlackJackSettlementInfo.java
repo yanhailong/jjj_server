@@ -16,6 +16,10 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.BLACK_JACK_TYPE, cmd = BlackJackConstant.MsgBean.NOTIFY_BLACK_JACK_SETTLEMENT_INFO, resp = true)
 @ProtoDesc("通知21点结算信息")
 public class NotifyBlackJackSettlementInfo extends AbstractNotice {
+    @ProtoDesc("玩家id")
+    public long playerId;
+    @ProtoDesc("操作类型")
+    public int type;
     @ProtoDesc("玩家基本信息")
     public List<BlackJackSettlementInfo> settlementInfos;
     @ProtoDesc("庄家牌信息")

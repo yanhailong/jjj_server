@@ -56,7 +56,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             return null;
         } else {
             Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
-            int newIndex = seatInfos.size() - 1;
+            int newIndex = seatInfos.size();
             for (int i = gameDataVo.getIndex() + 1; i < seatInfos.size(); i++) {
                 PlayerSeatInfo info = seatInfos.get(i);
                 int totalPoint = BlackJackDataHelper.getTotalPoint(info.getCurrentCards());
