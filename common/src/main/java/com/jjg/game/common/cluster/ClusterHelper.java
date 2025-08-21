@@ -27,7 +27,7 @@ public class ClusterHelper {
             return false;
         }
         for (String wId : whiteList) {
-            if (wId.equals(playerId)) {
+            if (Long.parseLong(wId) == playerId) {
                 return true;
             }
         }
