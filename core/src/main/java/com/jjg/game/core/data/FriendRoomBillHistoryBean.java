@@ -11,7 +11,7 @@ import java.util.Map;
  * @author 2CL
  */
 @Document
-public class FriendBillHistoryBean {
+public class FriendRoomBillHistoryBean {
     @Id
     private long id;
     // 游戏类型

@@ -1,6 +1,8 @@
 package com.jjg.game.core.dao;
 
-import com.jjg.game.core.data.FriendBillHistoryBean;
+import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.redis.RedissonLock;
+import com.jjg.game.core.data.FriendRoomBillHistoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -21,31 +23,42 @@ import java.util.List;
  * @author 2CL
  */
 @Repository
-public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendBillHistoryBean, Long> {
+public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistoryBean, Long> {
+
+    @Autowired
+    private RedisLock redisLock;
 
     public FriendRoomBillHistoryDao(@Autowired MongoTemplate mongoTemplate) {
-        super(FriendBillHistoryBean.class, mongoTemplate);
+        super(FriendRoomBillHistoryBean.class, mongoTemplate);
     }
 
     /**
      * 添加好友房历史记录
      */
-    public void addFriendRoomBillHistory(FriendBillHistoryBean historyBean) {
+    @RedissonLock(key = "'FriendRoomBillUpdate:'#historyBean.roomCreator")
+    public void addFriendRoomBillHistory(FriendRoomBillHistoryBean historyBean) {
         mongoTemplate.save(historyBean);
     }
 
     /**
      * 好友房历史账单分页
      */
-    public List<FriendBillHistoryBean> pageFriendRoomBillHistory(long playerId, int pageIdx, int pageSize) {
+    public List<FriendRoomBillHistoryBean> pageFriendRoomBillHistory(long playerId, int pageIdx, int pageSize) {
         return mongoTemplate.find(
             Query.query(
                     Criteria.where("playerId").is(playerId)
                 )
                 .with(Pageable.ofSize(pageSize).withPage(pageIdx))
                 .with(Sort.by("createdAt").descending()),
-            FriendBillHistoryBean.class
+            FriendRoomBillHistoryBean.class
         );
+    }
+
+    /**
+     * 根据ID查找账单数据
+     */
+    public FriendRoomBillHistoryBean getOneFriendRoomBillInfo(long billId) {
+        return mongoTemplate.findOne(Query.query(Criteria.where("id").is(billId)), FriendRoomBillHistoryBean.class);
     }
 
     /**
@@ -74,13 +87,21 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendBillHistoryBean
     /**
      * 更新所有未领奖的状态为已领取
      */
+    @RedissonLock(key = "'FriendRoomBillUpdate:'#playerId")
     public void updateAllHistoryRewardTook(long playerId) {
         // 更新玩家所有未领取的奖励状态
         mongoTemplate.updateMulti(Query.query(
                 Criteria.where("playerId").is(playerId).and("hasTookIncome").is(false)
             ),
             Update.update("hasTookIncome", true),
-            FriendBillHistoryBean.class);
+            FriendRoomBillHistoryBean.class);
+    }
+
+    /**
+     * 账单锁key，防止玩家一键领取时，有其他节点写入账单数据
+     */
+    private String getPlayerBillLockKey(long playerId) {
+        return "FriendRoomBillUpdate:" + playerId;
     }
 
     /**

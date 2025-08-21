@@ -319,6 +319,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.TOTAL_BET, betValue);
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.TOTAL_WIN, betValue + info.betValue);
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.INCOME, info.betValue);
+            gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.EFFECTIVE_BET, betValue);
         }
         gameDataTracker.addGameLogData("TexasInfo", texasHistory);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
