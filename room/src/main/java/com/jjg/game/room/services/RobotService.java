@@ -49,7 +49,6 @@ public class RobotService implements IRoomStartListener {
     /**
      * 通过游戏类型创建机器人,TODO 还可以通过添加机器人池的方式继续优化机器人的创建
      */
-    @RedissonLock(key = "RobotIdList")
     public RobotPlayer getOrCreateRobotPlayer(int roomCfgId, long roomId) {
         String lockKey = robotDao.getLockRobotTableName();
         try {

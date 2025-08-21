@@ -42,26 +42,16 @@ public class MatchDataDao {
      */
     @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)", waitTime = MATCH_MAX_LOCK_HOLD_TIME)
     public long getWaitJoinRoomId(@Param("gameType") int gameType, @Param("roomConfigId") int roomConfigId) {
-        try {
-            if (redisLock.tryLock(getLockMatchRedisKey(gameType, roomConfigId), TimeHelper.ONE_SECOND_OF_MILLIS)) {
-                Set<ZSetOperations.TypedTuple<String>> roomIds =
-                    matchKeyTemplate.opsForZSet().rangeWithScores(MatchDataRedisKey.getWaitJoinRoomsKey(gameType,
-                            roomConfigId)
-                        , -1, -1);
-                if (roomIds == null || roomIds.isEmpty()) {
-                    return 0;
-                }
-                ZSetOperations.TypedTuple<String> typedTuple = roomIds.iterator().next();
-                if (typedTuple == null || typedTuple.getValue() == null) {
-                    return 0;
-                }
-                return roomIds.isEmpty() ? 0 : Long.parseLong(typedTuple.getValue());
-            }
-        } catch (InterruptedException ignored) {
-        } finally {
-            redisLock.tryUnlock(getLockMatchRedisKey(gameType, roomConfigId));
+        Set<ZSetOperations.TypedTuple<String>> roomIds =
+            matchKeyTemplate.opsForZSet().rangeWithScores(getMatchRedisKey(gameType, roomConfigId), -1, -1);
+        if (roomIds == null || roomIds.isEmpty()) {
+            return 0;
         }
-        return 0;
+        ZSetOperations.TypedTuple<String> typedTuple = roomIds.iterator().next();
+        if (typedTuple == null || typedTuple.getValue() == null) {
+            return 0;
+        }
+        return roomIds.isEmpty() ? 0 : Long.parseLong(typedTuple.getValue());
     }
 
     /**
@@ -72,28 +62,19 @@ public class MatchDataDao {
     @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)", waitTime = MATCH_MAX_LOCK_HOLD_TIME)
     public long getNewWaitJoinRoomId(
         @Param("gameType") int gameType, @Param("roomConfigId") int roomConfigId, long oldRoomId) {
-        try {
-            if (redisLock.tryLock(getLockMatchRedisKey(gameType, roomConfigId), TimeHelper.ONE_SECOND_OF_MILLIS)) {
-                Set<ZSetOperations.TypedTuple<String>> roomIds =
-                    matchKeyTemplate.opsForZSet().rangeWithScores(MatchDataRedisKey.getWaitJoinRoomsKey(gameType,
-                            roomConfigId)
-                        , -1, -1);
-                if (roomIds == null || roomIds.isEmpty()) {
-                    return 0;
-                }
-                for (ZSetOperations.TypedTuple<String> typedTuple : roomIds) {
-                    if (typedTuple == null || typedTuple.getValue() == null) {
-                        continue;
-                    }
-                    long newRoomId = Long.parseLong(typedTuple.getValue());
-                    if (newRoomId != oldRoomId) {
-                        return newRoomId;
-                    }
-                }
+        Set<ZSetOperations.TypedTuple<String>> roomIds =
+            matchKeyTemplate.opsForZSet().rangeWithScores(getMatchRedisKey(gameType, roomConfigId), -1, -1);
+        if (roomIds == null || roomIds.isEmpty()) {
+            return 0;
+        }
+        for (ZSetOperations.TypedTuple<String> typedTuple : roomIds) {
+            if (typedTuple == null || typedTuple.getValue() == null) {
+                continue;
             }
-        } catch (InterruptedException ignored) {
-        } finally {
-            redisLock.tryUnlock(getLockMatchRedisKey(gameType, roomConfigId));
+            long newRoomId = Long.parseLong(typedTuple.getValue());
+            if (newRoomId != oldRoomId) {
+                return newRoomId;
+            }
         }
         return 0;
     }
@@ -104,14 +85,9 @@ public class MatchDataDao {
     @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)", waitTime = MATCH_MAX_LOCK_HOLD_TIME)
     public boolean removeWaitJoinRoomId(
         @Param("gameType") int gameType, @Param("roomConfigId") int roomConfigId, long roomId) {
-        redisLock.lock(getLockMatchRedisKey(gameType, roomConfigId), MATCH_MAX_LOCK_HOLD_TIME);
-        try {
-            String redisKey = MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);
-            matchKeyTemplate.opsForZSet().remove(redisKey, String.valueOf(roomId));
-            return true;
-        } finally {
-            redisLock.unlock(getLockMatchRedisKey(gameType, roomConfigId));
-        }
+        String redisKey = getMatchRedisKey(gameType, roomConfigId);
+        matchKeyTemplate.opsForZSet().remove(redisKey, String.valueOf(roomId));
+        return true;
     }
 
     /**
@@ -120,7 +96,7 @@ public class MatchDataDao {
     @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)", waitTime = MATCH_MAX_LOCK_HOLD_TIME)
     public boolean addWaitJoinRoomId(
         @Param("gameType") int gameType, @Param("roomConfigId") int roomConfigId, long roomId, long roomCreateTime) {
-        String redisKey = MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);
+        String redisKey = getMatchRedisKey(gameType, roomConfigId);
         matchKeyTemplate.opsForZSet().add(redisKey, roomId + "", roomCreateTime);
         return true;
     }
@@ -131,7 +107,7 @@ public class MatchDataDao {
     @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)", waitTime = MATCH_MAX_LOCK_HOLD_TIME)
     public boolean moveWaitJoinRoomIdToLast(
         @Param("gameType") int gameType, @Param("roomConfigId") int roomConfigId, long roomId) {
-        String redisKey = MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);
+        String redisKey = getMatchRedisKey(gameType, roomConfigId);
         matchKeyTemplate.opsForZSet().add(redisKey, roomId + "", -1);
         return true;
     }
