@@ -3,6 +3,7 @@ package com.jjg.game.room.services;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.common.redis.RedissonLock;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.GameConstant;
@@ -48,6 +49,7 @@ public class RobotService implements IRoomStartListener {
     /**
      * 通过游戏类型创建机器人,TODO 还可以通过添加机器人池的方式继续优化机器人的创建
      */
+    @RedissonLock(key = "RobotIdList")
     public RobotPlayer getOrCreateRobotPlayer(int roomCfgId, long roomId) {
         String lockKey = robotDao.getLockRobotTableName();
         try {

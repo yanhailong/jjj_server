@@ -1,11 +1,13 @@
 package com.jjg.game.core.match;
 
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.redis.RedissonLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.match.data.MatchDataRedisKey;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -22,8 +24,8 @@ public class MatchDataDao {
     private RedisTemplate<String, String> matchKeyTemplate;
     @Autowired
     private RedisLock redisLock;
-    // 匹配逻辑最大锁持有时间
-    private static final int MATCH_MAX_LOCK_HOLD_TIME = 1;
+    // 匹配逻辑最大锁持有时间 ms
+    private static final int MATCH_MAX_LOCK_HOLD_TIME = 1000;
 
     public String getMatchRedisKey(int gameType, int roomConfigId) {
         return MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);
@@ -38,7 +40,8 @@ public class MatchDataDao {
      *
      * @return 获取到的等待房间ID
      */
-    public long getWaitJoinRoomId(int gameType, int roomConfigId) {
+    @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)", waitTime = MATCH_MAX_LOCK_HOLD_TIME)
+    public long getWaitJoinRoomId(@Param("gameType") int gameType, @Param("roomConfigId") int roomConfigId) {
         try {
             if (redisLock.tryLock(getLockMatchRedisKey(gameType, roomConfigId), TimeHelper.ONE_SECOND_OF_MILLIS)) {
                 Set<ZSetOperations.TypedTuple<String>> roomIds =
@@ -66,7 +69,9 @@ public class MatchDataDao {
      *
      * @return 获取到的等待房间ID
      */
-    public long getNewWaitJoinRoomId(int gameType, int roomConfigId, long oldRoomId) {
+    @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)", waitTime = MATCH_MAX_LOCK_HOLD_TIME)
+    public long getNewWaitJoinRoomId(
+        @Param("gameType") int gameType, @Param("roomConfigId") int roomConfigId, long oldRoomId) {
         try {
             if (redisLock.tryLock(getLockMatchRedisKey(gameType, roomConfigId), TimeHelper.ONE_SECOND_OF_MILLIS)) {
                 Set<ZSetOperations.TypedTuple<String>> roomIds =
@@ -96,7 +101,9 @@ public class MatchDataDao {
     /**
      * 将房间ID从房间中移除
      */
-    public boolean removeWaitJoinRoomId(int gameType, int roomConfigId, long roomId) {
+    @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)", waitTime = MATCH_MAX_LOCK_HOLD_TIME)
+    public boolean removeWaitJoinRoomId(
+        @Param("gameType") int gameType, @Param("roomConfigId") int roomConfigId, long roomId) {
         redisLock.lock(getLockMatchRedisKey(gameType, roomConfigId), MATCH_MAX_LOCK_HOLD_TIME);
         try {
             String redisKey = MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);
@@ -110,30 +117,22 @@ public class MatchDataDao {
     /**
      * 添加房间等待ID
      */
-    public boolean addWaitJoinRoomId(int gameType, int roomConfigId, long roomId, long roomCreateTime) {
-        // 最长等待5s
-        redisLock.lock(getLockMatchRedisKey(gameType, roomConfigId), MATCH_MAX_LOCK_HOLD_TIME);
-        try {
-            String redisKey = MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);
-            matchKeyTemplate.opsForZSet().add(redisKey, roomId + "", roomCreateTime);
-            return true;
-        } finally {
-            redisLock.unlock(getLockMatchRedisKey(gameType, roomConfigId));
-        }
+    @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)", waitTime = MATCH_MAX_LOCK_HOLD_TIME)
+    public boolean addWaitJoinRoomId(
+        @Param("gameType") int gameType, @Param("roomConfigId") int roomConfigId, long roomId, long roomCreateTime) {
+        String redisKey = MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);
+        matchKeyTemplate.opsForZSet().add(redisKey, roomId + "", roomCreateTime);
+        return true;
     }
-
 
     /**
      * 房间等待ID设置为-1将其移动到最前面
      */
-    public boolean moveWaitJoinRoomIdToLast(int gameType, int roomConfigId, long roomId) {
-        redisLock.lock(getLockMatchRedisKey(gameType, roomConfigId), MATCH_MAX_LOCK_HOLD_TIME);
-        try {
-            String redisKey = MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);
-            matchKeyTemplate.opsForZSet().add(redisKey, roomId + "", -1);
-            return true;
-        } finally {
-            redisLock.tryUnlock(getLockMatchRedisKey(gameType, roomConfigId));
-        }
+    @RedissonLock(key = "#root.getLockMatchRedisKey(#gameType, #roomConfigId)", waitTime = MATCH_MAX_LOCK_HOLD_TIME)
+    public boolean moveWaitJoinRoomIdToLast(
+        @Param("gameType") int gameType, @Param("roomConfigId") int roomConfigId, long roomId) {
+        String redisKey = MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);
+        matchKeyTemplate.opsForZSet().add(redisKey, roomId + "", -1);
+        return true;
     }
 }

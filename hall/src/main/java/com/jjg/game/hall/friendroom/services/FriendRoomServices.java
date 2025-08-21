@@ -503,7 +503,7 @@ public class FriendRoomServices {
             playerController.send(res);
             return;
         }
-        List<FriendBillHistoryBean> pageFriendRoomBillHistory =
+        List<FriendRoomBillHistoryBean> pageFriendRoomBillHistory =
             historyDao.pageFriendRoomBillHistory(playerController.playerId(), req.pageIdx, req.pageSize);
 
     }

@@ -4,21 +4,24 @@ import org.redisson.RedissonLock;
 import org.redisson.api.RLock;
 import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
 
 /**
- * redis分布式锁, TODO 后续优化添加注解加锁和释放锁的方式
+ * redis分布式锁
  *
- * @author 11
+ * @author 2CL
  * @date 2025/5/26 9:44
  */
 @Component
 public class RedisLock {
 
     private static final String LOCK_TABLE_NAME = "RDlock:";
+    private static final Logger log = LoggerFactory.getLogger(RedisLock.class);
 
     @Autowired
     private RedissonClient redissonClient;
@@ -47,6 +50,9 @@ public class RedisLock {
      * @throws InterruptedException e
      */
     public boolean tryLock(String key, long waitTime) throws InterruptedException {
+        if (isIllegalWaitTime(key, waitTime, TimeUnit.MILLISECONDS)) {
+            return false;
+        }
         RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
         return redissonLock.tryLock(waitTime, TimeUnit.MILLISECONDS);
     }
@@ -61,6 +67,9 @@ public class RedisLock {
      * @throws InterruptedException e
      */
     public boolean tryLock(String key, long waitTime, TimeUnit timeUnit) throws InterruptedException {
+        if (isIllegalWaitTime(key, waitTime, timeUnit)) {
+            return false;
+        }
         RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
         return redissonLock.tryLock(waitTime, timeUnit);
     }
@@ -105,6 +114,9 @@ public class RedisLock {
      * @param waitTime 等待时间
      */
     public void lock(String key, int waitTime) {
+        if (isIllegalWaitTime(key, waitTime, TimeUnit.MILLISECONDS)) {
+            return;
+        }
         RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
         redissonLock.lock(waitTime, TimeUnit.MILLISECONDS);
     }
@@ -116,6 +128,9 @@ public class RedisLock {
      * @param leaseTime 等待时间
      */
     public void lock(String key, long leaseTime, TimeUnit timeUnit) throws InterruptedException {
+        if (isIllegalWaitTime(key, leaseTime, timeUnit)) {
+            return;
+        }
         RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
         redissonLock.lock(leaseTime, timeUnit);
     }
@@ -139,10 +154,41 @@ public class RedisLock {
      * @param keyName 锁名
      */
     public RLock getWriteLock(String keyName, long writeWaitTime) throws InterruptedException {
+        if (isIllegalWaitTime(keyName, writeWaitTime, TimeUnit.MILLISECONDS)) {
+            return null;
+        }
         RReadWriteLock rReadWriteLock = redissonClient.getReadWriteLock(getKey(keyName));
         RLock rLock = rReadWriteLock.writeLock();
         rLock.tryLock(writeWaitTime, TimeUnit.MILLISECONDS);
         return rLock;
+    }
+
+    /**
+     * 检查等待时间是否正确,
+     * 建议将尝试获取锁的时间设置至少5ms以上，避免出现  attempt to unlock lock, not locked by current thread 错误
+     *
+     * @param key      待检查的键
+     * @param waitTime 等待时间
+     * @param timeUnit 时间单位
+     * @return 返回结果
+     */
+    private boolean isIllegalWaitTime(String key, long waitTime, TimeUnit timeUnit) {
+        if (waitTime <= 0) {
+            log.warn("尝试加锁或解锁时，等待时间为 0，key: {}", key);
+            return true;
+        }
+        if (!timeUnit.equals(TimeUnit.MILLISECONDS) && !timeUnit.equals(TimeUnit.MICROSECONDS)) {
+            return false;
+        }
+        int leastMillisTime = 5, leastMircoTime = 5_000;
+        if (timeUnit.equals(TimeUnit.MILLISECONDS) && waitTime > leastMillisTime) {
+            return false;
+        }
+        if (timeUnit.equals(TimeUnit.MICROSECONDS) && waitTime > leastMircoTime) {
+            return false;
+        }
+        log.warn("加锁：{} 时尝试时间过短！ waitTime: {} timeUnit: {}", key, waitTime, timeUnit);
+        return true;
     }
 
     /**
