@@ -18,4 +18,6 @@ public class NotifyBlackJackStopCard extends AbstractNotice {
     public NotifyPokerSampleCardOperation operation;
     @ProtoDesc("自动牌id")
     public int autoCardId;
+    @ProtoDesc("自动牌总点数")
+    public int autoCardTotal;
 }

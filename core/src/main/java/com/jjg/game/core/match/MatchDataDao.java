@@ -23,7 +23,7 @@ public class MatchDataDao {
     @Autowired
     private RedisLock redisLock;
     // 匹配逻辑最大锁持有时间
-    private static final int MATCH_MAX_LOCK_HOLD_TIME = 1;
+    private static final int MATCH_MAX_LOCK_HOLD_TIME = 100;
 
     public String getMatchRedisKey(int gameType, int roomConfigId) {
         return MatchDataRedisKey.getWaitJoinRoomsKey(gameType, roomConfigId);

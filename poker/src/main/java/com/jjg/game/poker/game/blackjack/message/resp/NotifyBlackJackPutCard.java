@@ -19,12 +19,14 @@ public class NotifyBlackJackPutCard extends AbstractNotice {
     public int cardId;
     @ProtoDesc("分牌自动发牌牌id")
     public int autoCardId;
+    @ProtoDesc("分牌自动发牌总点数")
+    public int nextTotalPoint;
     @ProtoDesc("总点数")
     public int totalPoint;
     @ProtoDesc("下一个操作人")
     public long operationId;
     @ProtoDesc("操作结束时间")
     public long overTime;
-    @ProtoDesc("当前牌索引")
+    @ProtoDesc("当前牌组索引")
     public int cardIndex;
 }

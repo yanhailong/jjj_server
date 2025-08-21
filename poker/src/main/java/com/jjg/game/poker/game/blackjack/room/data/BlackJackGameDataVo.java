@@ -50,9 +50,10 @@ public class BlackJackGameDataVo extends BasePokerGameDataVo {
     private int settlementDelayTime;
 
     /**
-     * 结算类型(0普通结算 1发牌结算)
+     * 结算类型(0普通结算 1特殊结算 2.正常延期结算)
      */
     private int settlementType;
+
 
     /**
      * 显示庄家的牌 (true 显示 false 不显示)
@@ -148,6 +149,7 @@ public class BlackJackGameDataVo extends BasePokerGameDataVo {
         dealerCards = null;
         canBuyACE = false;
         showDealer = true;
+        settlementType = 0;
         settlementDelayTime = 0;
     }
 }
