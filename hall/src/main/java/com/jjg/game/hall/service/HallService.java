@@ -85,6 +85,7 @@ public class HallService implements ConfigExcelChangeListener {
 
         NotifyGameList notify = new NotifyGameList();
         notify.gameList = addGameList();
+        log.debug("推送游戏列表");
         clusterSystem.sessionMap().entrySet().forEach(en -> en.getValue().send(notify));
     }
 
