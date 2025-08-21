@@ -22,7 +22,7 @@ public class FriendRoomMessageBuilder {
     /**
      * 构建好友房数据
      */
-    public static BaseFriendRoomPlayerInfo buildFriendRoomInfo(Player player) {
+    public static BaseFriendRoomPlayerInfo buildFriendRoomPlayerInfo(Player player) {
         BaseFriendRoomPlayerInfo baseFriendRoomPlayerInfo = new BaseFriendRoomPlayerInfo();
         baseFriendRoomPlayerInfo.playerId = player.getId();
         baseFriendRoomPlayerInfo.playerName = player.getNickName();

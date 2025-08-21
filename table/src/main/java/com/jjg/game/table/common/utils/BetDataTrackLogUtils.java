@@ -27,14 +27,14 @@ public class BetDataTrackLogUtils {
                 playerBetInfo.values().stream().mapToLong(a -> a.stream().mapToInt(b -> b).sum()).sum());
         }
         // 添加流水数据
-        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME,
-            settlementData.getBetWin());
-        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET,
-            settlementData.getBetTotal());
-        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN,
-            settlementData.getTotalWin());
+        gameDataTracker.addPlayerLogData(
+            gamePlayer, DataTrackNameConstant.INCOME, settlementData.getBetWin());
+        gameDataTracker.addPlayerLogData(
+            gamePlayer, DataTrackNameConstant.TOTAL_BET, settlementData.getBetTotal());
+        gameDataTracker.addPlayerLogData(
+            gamePlayer, DataTrackNameConstant.TOTAL_WIN, settlementData.getTotalWin());
         // TODO 有效流水
-        gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.EFFECTIVE_BET,
-            settlementData.getBetTotal());
+        gameDataTracker.addPlayerLogData(
+            gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, settlementData.getBetTotal());
     }
 }

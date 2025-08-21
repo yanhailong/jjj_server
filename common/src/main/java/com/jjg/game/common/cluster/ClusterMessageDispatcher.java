@@ -50,7 +50,7 @@ public class ClusterMessageDispatcher {
     }
 
     public PFSession getPFSession(String id) {
-        PFSession pfSession = clusterSystem.sessionMap().get(id);
+        PFSession pfSession = clusterSystem.getSession(id);
 //        if (pfSession==null){
 //            return new PFSession();
 //        }

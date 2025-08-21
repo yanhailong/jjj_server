@@ -185,7 +185,7 @@ public class PlayerSessionService implements TimerListener<String> {
                 if (!currentNode.equals(playerSessionInfo.getCurrentNode())) {
                     continue;
                 }
-                if (clusterSystem.sessionMap().containsKey(playerSessionInfo.getSessionId())) {
+                if (clusterSystem.existSession(playerSessionInfo.getSessionId())) {
                     continue;
                 }
                 //session 的活跃时间超过三个小时的
@@ -323,6 +323,7 @@ public class PlayerSessionService implements TimerListener<String> {
         if (e == checkSessionEvent && marsCurator.isMaster()) {
             log.info("开始执行session检查");
             checkSessionByNode();
+            // TODO 不能直接调用SessionMap方法
             Iterator<Map.Entry<String, PFSession>> iterator = clusterSystem.sessionMap().entrySet().iterator();
             // 分批处理玩家，如果在线玩家过多，会出现问题
             while (iterator.hasNext()) {

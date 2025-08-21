@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 大厅的房间处理
@@ -180,8 +181,8 @@ public class HallRoomService implements IConsoleReceiver {
             log.error("房间: {} 对应的节点: {} 不存在或者已关闭", room.getId(), room.getPath());
             // 将有问题的房间ID移动到最前面，房间主节点去处理异常的房间
             matchDataDao.moveWaitJoinRoomIdToLast(gameType, room.getRoomCfgId(), roomId);
-            // 重试
-            return hallJoinRoom(playerController, room.getRoomCfgId());
+            // 直接返回错误
+            return Code.FAIL;
         }
         // 更新玩家的房间ID
         playerController.setPlayer(

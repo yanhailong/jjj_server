@@ -35,7 +35,7 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
     /**
      * 添加好友房历史记录
      */
-    @RedissonLock(key = "'FriendRoomBillUpdate:'#historyBean.roomCreator")
+    @RedissonLock(key = "#root.getPlayerBillLockKey(#playerId)")
     public void addFriendRoomBillHistory(FriendRoomBillHistoryBean historyBean) {
         mongoTemplate.save(historyBean);
     }
@@ -85,9 +85,23 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
     }
 
     /**
-     * 更新所有未领奖的状态为已领取
+     * 获取所有玩家所有未领取的收益
+     *
+     * @return 玩家所有收益奖励
      */
-    @RedissonLock(key = "'FriendRoomBillUpdate:'#playerId")
+    public long getPlayerAllReward(long playerId) {
+        Aggregation aggregation =
+            Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("playerId").is(playerId).and("hasTookIncome").is(true)),
+                Aggregation.group("playerId").sum("totalIncome").as("total")
+            );
+        AggregationResults<Long> results = mongoTemplate.aggregate(aggregation, "FriendBillHistoryBean", Long.class);
+        return results.getMappedResults().getFirst();
+    }
+
+    /**
+     * 更新所有未领奖的状态为已领取,仅在一键领取中调用
+     */
     public void updateAllHistoryRewardTook(long playerId) {
         // 更新玩家所有未领取的奖励状态
         mongoTemplate.updateMulti(Query.query(
