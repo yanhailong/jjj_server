@@ -81,6 +81,7 @@ public class PlayerSessionService implements TimerListener<String> {
         //设置当前节点
         playerSessionInfo.setCurrentNode(clusterSystem.getNodePath());
 
+        log.debug("设置当前节点 playerId = {},node = {}", playerSessionInfo.getPlayerId(), playerSessionInfo.getCurrentNode());
         redisTemplate.opsForHash().put(SESSION_TABLE_NAME, playerSessionInfo.getPlayerId(), playerSessionInfo);
         //redisTemplate.opsForSet().add(ONLINEPLAYERS, playerSessionInfo.getPlayerId());
         return playerSessionInfo;

@@ -39,6 +39,11 @@ public class ResStartGame extends AbstractResponse {
     public long bigWinShow;
     @ProtoDesc("高亮坐标")
     public List<Integer> highlightList;
+    @ProtoDesc("玩家等级")
+    public int level;
+    @ProtoDesc("经验")
+    public long exp;
+
 
     public ResStartGame(int code) {
         super(code);

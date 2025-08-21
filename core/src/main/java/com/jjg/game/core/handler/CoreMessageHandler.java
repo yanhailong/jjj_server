@@ -79,6 +79,7 @@ public class CoreMessageHandler {
                 return;
             }
 
+            log.debug("收到gm命令 playerId = {},order = {}", playerController.playerId(),req.order);
             String cmd = arr[0];
             String params = arr[1];
 

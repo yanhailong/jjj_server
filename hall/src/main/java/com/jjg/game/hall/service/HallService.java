@@ -1,5 +1,6 @@
 package com.jjg.game.hall.service;
 
+import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
@@ -9,12 +10,14 @@ import com.jjg.game.core.dao.PlayerAvatarDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.GameStatusService;
-import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.constant.HallCode;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.dao.BindDao;
+import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
+import com.jjg.game.hall.pb.res.NotifyGameList;
+import com.jjg.game.hall.pb.struct.GameListConfig;
 import com.jjg.game.hall.utils.HallTool;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -47,6 +50,10 @@ public class HallService implements ConfigExcelChangeListener {
     private HallPlayerService hallPlayerService;
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private LikeGameDao likeGameDao;
+    @Autowired
+    private ClusterSystem clusterSystem;
 
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
@@ -66,13 +73,19 @@ public class HallService implements ConfigExcelChangeListener {
     private int defaultTitlelId = 0;
 
     public void loadGameStatuses(List<GameStatus> gameStatuses) {
-        if (Objects.nonNull(gameStatuses)) {
-            gameStatusesMap = gameStatuses.stream().collect(Collectors.toMap(GameStatus::gameId, gs -> gs));
+        if(gameStatuses == null || gameStatuses.isEmpty()) {
+            this.gameStatusesMap = new HashMap<>();
+        }else {
+            this.gameStatusesMap = gameStatuses.stream().collect(Collectors.toMap(GameStatus::gameId, gs -> gs));
         }
     }
 
     public void refreshGameStatuses() {
         loadGameStatuses(gameStatusService.getAllGameStatus());
+
+        NotifyGameList notify = new NotifyGameList();
+        notify.gameList = addGameList();
+        clusterSystem.sessionMap().entrySet().forEach(en -> en.getValue().send(notify));
     }
 
     public void init() {
@@ -417,6 +430,31 @@ public class HallService implements ConfigExcelChangeListener {
         return result;
     }
 
+    /**
+     * 添加收藏游戏
+     * @param playerId
+     * @param gameType
+     * @return
+     */
+    public List<Integer> addLikeGame(long playerId,int gameType){
+        TreeSet<Integer> set = likeGameDao.addLikeGame(playerId, gameType);
+        return new ArrayList<>(set);
+    }
+
+    /**
+     * 添加收藏游戏
+     * @param playerId
+     * @param gameTypes
+     * @return
+     */
+    public List<Integer> cancelLikeGames(long playerId,List<Integer> gameTypes){
+        TreeSet<Integer> set = likeGameDao.calcelLikeGame(playerId, gameTypes);
+        if(set == null){
+            return null;
+        }
+        return new ArrayList<>(set);
+    }
+
     /***********************************************************************************************************/
 
     @Override
@@ -480,5 +518,40 @@ public class HallService implements ConfigExcelChangeListener {
 
     public int getDefaultTitlelId() {
         return defaultTitlelId;
+    }
+
+    /**
+     * 游戏列表配置
+     */
+    public List<GameListConfig> addGameList() {
+        try {
+            List<GameListConfig> list = new ArrayList<>();
+            Map<Integer, GameStatus> gameStatusesMap = getGameStatusesMap();
+            for (GameListCfg configCfg : GameDataManager.getGameListCfgList()) {
+                if (Objects.nonNull(gameStatusesMap)) {
+                    GameStatus gameStatus = gameStatusesMap.get(configCfg.getId());
+                    if (Objects.nonNull(gameStatus)) {
+                        GameListConfig gameListConfig = new GameListConfig();
+                        gameListConfig.sid = gameStatus.gameId();
+                        gameListConfig.name = configCfg.getName();
+                        //TODO 配置和后台状态统一
+                        gameListConfig.status = gameStatus.open() == 1 ? gameStatus.status() : 2;
+                        gameListConfig.iconType = configCfg.getIconType();
+                        list.add(gameListConfig);
+                        continue;
+                    }
+                }
+                GameListConfig gameListConfig = new GameListConfig();
+                gameListConfig.sid = configCfg.getId();
+                gameListConfig.name = configCfg.getName();
+                gameListConfig.status = configCfg.getStatus();
+                gameListConfig.iconType = configCfg.getIconType();
+                list.add(gameListConfig);
+            }
+            return list;
+        } catch (Exception e) {
+            log.error("", e);
+        }
+        return Collections.emptyList();
     }
 }

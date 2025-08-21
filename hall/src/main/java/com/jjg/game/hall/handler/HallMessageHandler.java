@@ -212,6 +212,8 @@ public class HallMessageHandler implements GmListener {
             res.headFrameId = player.getHeadFrameId();
             res.nationalId = player.getNationalId();
             res.titleId = player.getTitleId();
+            res.level = player.getLevel();
+            res.exp = player.getExp();
 
             Account account = accountDao.queryAccountByPlayerId(playerController.playerId());
             if (account == null) {
@@ -612,7 +614,7 @@ public class HallMessageHandler implements GmListener {
 
             res.gold = result.data.getGold();
             res.safeBoxGold = result.data.getSafeBoxGold();
-            log.debug("玩家转移保险箱金币成功 playerId = {},deposit = {},gold = {}", playerController.playerId(),req.deposit,req.value);
+            log.debug("玩家转移保险箱金币成功 playerId = {},deposit = {},gold = {},changeGold = {},safeBoxGold = {}", playerController.playerId(),req.deposit,result.data.getGold(),req.value,result.data.getSafeBoxGold());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -643,7 +645,7 @@ public class HallMessageHandler implements GmListener {
 
             res.diamond = result.data.getDiamond();
             res.safeBoxDiamond = result.data.getSafeBoxDiamond();
-            log.debug("玩家转移保险箱钻石成功 playerId = {},deposit = {},diamind = {}", playerController.playerId(),req.deposit,req.value);
+            log.debug("玩家转移保险箱钻石成功 playerId = {},deposit = {},diamond = {},changeDiamond = {},safeBoxDiamond = {}", playerController.playerId(),req.deposit,result.data.getGold(),req.value,result.data.getSafeBoxGold());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -786,6 +788,42 @@ public class HallMessageHandler implements GmListener {
     @Command(HallConstant.MsgBean.REQ_CASINO_UPGRADE_MACHINE)
     public void reqCasinoUpgradeMachine(PlayerController playerController, ReqCasinoUpgradeMachine req) {
         playerController.send(casinoManager.reqCasinoUpgradeMachine(playerController.getPlayer(), req));
+    }
+
+    /**
+     * 添加收藏游戏
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_LIKE_GAME)
+    public void reqLikeGame(PlayerController playerController, ReqLikeGame req) {
+        ResLikeGame res = new ResLikeGame(Code.SUCCESS);
+        try {
+            res.gameTypeList = hallService.addLikeGame(playerController.playerId(),req.gameType);
+            log.debug("添加收藏游戏后，返回列表 res = {}",JSON.toJSONString(res));
+        }catch (Exception e) {
+            log.error("",e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 添加收藏游戏
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CANCEL_LIKE_GAME)
+    public void reqCancelLikeGame(PlayerController playerController, ReqCancelLikeGame req) {
+        ResLikeGame res = new ResLikeGame(Code.SUCCESS);
+        try {
+            res.gameTypeList = hallService.cancelLikeGames(playerController.playerId(),req.gameTypes);
+            log.debug("取消收藏游戏后，返回列表 res = {}",JSON.toJSONString(res));
+        }catch (Exception e) {
+            log.error("",e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
     }
 
 

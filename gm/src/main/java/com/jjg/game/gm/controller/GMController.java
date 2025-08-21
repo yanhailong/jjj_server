@@ -85,8 +85,13 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
+            if(dto.icon_category() != 0 && dto.icon_category() != 1){
+                log.debug("图标大小错误，只能为0(大)或1(小)  dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
             boolean saved = gameStatusService.saveOrUpdateGameStatus(new GameStatus(dto.number(),
-                    dto.open(), dto.status(), dto.right_top_icon()));
+                    dto.open(), dto.status(), dto.right_top_icon(),dto.icon_category()));
 
             if (!saved) {
                 log.info("修改游戏状态失败,无法保存到Redis , dto = {}", dto);

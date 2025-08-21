@@ -306,12 +306,4 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
     public void addSmallPoolGold(long smallPoolGold) {
         this.smallPoolGold += smallPoolGold;
     }
-
-    public Player getPlayer() {
-        return player;
-    }
-
-    public void setPlayer(Player player) {
-        this.player = player;
-    }
 }

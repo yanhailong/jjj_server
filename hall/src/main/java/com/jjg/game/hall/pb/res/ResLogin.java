@@ -40,6 +40,22 @@ public class ResLogin extends AbstractResponse {
     public List<GameListConfig> gameList;
     @ProtoDesc("跑马灯信息")
     public MarqueeInfo marqueeInfo;
+    @ProtoDesc("保险箱金币")
+    public long safeBoxGold;
+    @ProtoDesc("保险箱钻石")
+    public long safeBoxDiamond;
+    @ProtoDesc("玩家等级")
+    public int level;
+    @ProtoDesc("经验")
+    public long exp;
+    @ProtoDesc("收藏游戏列表")
+    public List<Integer> gameTypeList;
+    @ProtoDesc("筹码样式")
+    public int chipStyle;
+    @ProtoDesc("poker样式")
+    public int pokerStyle;
+    @ProtoDesc("大厅背景")
+    public int hallBg;
 
     public ResLogin(int code) {
         super(code);

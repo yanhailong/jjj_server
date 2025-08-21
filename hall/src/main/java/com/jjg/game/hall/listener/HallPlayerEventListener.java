@@ -21,20 +21,16 @@ import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
-import com.jjg.game.core.pb.LangParamInfo;
-import com.jjg.game.core.pb.LanguageInfo;
 import com.jjg.game.core.pb.MarqueeInfo;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.dao.HallRoomDao;
+import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.logger.HallLogger;
 import com.jjg.game.hall.pb.req.ReqLogin;
 import com.jjg.game.hall.pb.res.ResLogin;
-import com.jjg.game.hall.pb.struct.GameListConfig;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
-import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.GameListCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,6 +72,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private MailService mailService;
     @Autowired
     private CoreMarqueeManager marqueeManager;
+    @Autowired
+    private LikeGameDao likeGameDao;
 
     @Override
     public void login(PFSession session, byte[] data) {
@@ -185,9 +183,16 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.nationalId = player.getNationalId();
             res.titleId = player.getTitleId();
             //添加游戏列表
-            res.gameList = addGameList();
+            res.gameList = hallService.addGameList();
             //添加跑马灯
             res.marqueeInfo = addMarquee();
+
+            res.safeBoxGold = player.getSafeBoxGold();
+            res.safeBoxDiamond = player.getSafeBoxDiamond();
+            res.level = player.getLevel();
+            res.exp = player.getExp();
+            res.gameTypeList = likeGameDao.getLikeGames(player.getId());
+
             session.send(res);
 
             //发送登录日志
@@ -200,47 +205,12 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             if (register[0]) {
                 hallService.saveDefaultAvatar(req.playerId);
             }
-            log.info("玩家登录成功 playerId = {}", player.getId());
+            log.info("玩家登录成功 playerId = {},register = {}", player.getId(),register[0]);
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             session.send(res);
             log.error("", e);
         }
-    }
-
-    /**
-     * 游戏列表配置
-     */
-    private List<GameListConfig> addGameList() {
-        try {
-            List<GameListConfig> list = new ArrayList<>();
-            Map<Integer, GameStatus> gameStatusesMap = hallService.getGameStatusesMap();
-            for (GameListCfg configCfg : GameDataManager.getGameListCfgList()) {
-                if (Objects.nonNull(gameStatusesMap)) {
-                    GameStatus gameStatus = gameStatusesMap.get(configCfg.getId());
-                    if (Objects.nonNull(gameStatus)) {
-                        GameListConfig gameListConfig = new GameListConfig();
-                        gameListConfig.sid = gameStatus.gameId();
-                        gameListConfig.name = configCfg.getName();
-                        //TODO 配置和后台状态统一
-                        gameListConfig.status = gameStatus.open() == 1 ? gameStatus.status() : 2;
-                        gameListConfig.iconType = configCfg.getIconType();
-                        list.add(gameListConfig);
-                        continue;
-                    }
-                }
-                GameListConfig gameListConfig = new GameListConfig();
-                gameListConfig.sid = configCfg.getId();
-                gameListConfig.name = configCfg.getName();
-                gameListConfig.status = configCfg.getStatus();
-                gameListConfig.iconType = configCfg.getIconType();
-                list.add(gameListConfig);
-            }
-            return list;
-        } catch (Exception e) {
-            log.error("", e);
-        }
-        return Collections.emptyList();
     }
 
     @Override
