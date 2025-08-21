@@ -10,7 +10,7 @@ import com.jjg.game.hall.constant.HallConstant;
  * @author 11
  * @date 2025/8/18 15:19
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_TRANS_SAFE_BOX_GOLD)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_TRANS_SAFE_BOX_GOLD,resp = true)
 @ProtoDesc("转移保险箱金币返回")
 public class ResTransSafeBoxGold extends AbstractResponse {
     @ProtoDesc("金币")
