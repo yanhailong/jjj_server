@@ -454,6 +454,7 @@ public class CoreMarqueeManager implements TimerListener {
 
         LanguageData contentData = new LanguageData();
         contentData.setLangId(langId);
+        contentData.setType(GameConstant.Language.TYPE_LANGUAGE_MATCH);
 
         List<LanguageParamData> params = new ArrayList<>();
         addMarqueeParam(params, GameConstant.Marquee.CLIENT_NORMAL_TYPE, playerNickName);
