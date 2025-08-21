@@ -399,8 +399,8 @@ public class CoreMarqueeManager implements TimerListener {
 
         NotifyMarquee notify = new NotifyMarquee();
         notify.marqueeInfo = transMarqueeInfo(marquee);
-        clusterSystem.sessionMap().entrySet().forEach(en -> en.getValue().send(notify));
         log.debug("通知客户端跑马灯 marquee = {}", JSON.toJSONString(notify));
+        clusterSystem.sessionMap().entrySet().forEach(en -> en.getValue().send(notify));
     }
 
     /**

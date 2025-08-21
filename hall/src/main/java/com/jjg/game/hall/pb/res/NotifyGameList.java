@@ -14,7 +14,7 @@ import java.util.List;
  * @date 2025/8/21 13:47
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.NOTIFY_GAME_LIST,resp = true)
-@ProtoDesc("返回邮件数据")
+@ProtoDesc("推送游戏列表")
 public class NotifyGameList extends AbstractNotice {
     @ProtoDesc("游戏列表")
     public List<GameListConfig> gameList;

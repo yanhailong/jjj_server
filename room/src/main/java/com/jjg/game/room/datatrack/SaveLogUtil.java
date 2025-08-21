@@ -41,7 +41,11 @@ public class SaveLogUtil {
                 int sum = value.stream().mapToInt(Integer::intValue).sum();
                 //计算有效流水
                 Long bet = effectiveWaterFlow.getOrDefault(betAreaCfg.getRepulsionID(), 0L);
-                effectiveWaterFlow.put(key, sum - bet);
+                if (bet > 0) {
+                    effectiveWaterFlow.put(betAreaCfg.getRepulsionID(), sum - bet);
+                } else {
+                    effectiveWaterFlow.put(key, (long) sum);
+                }
                 areaTotalBet.merge(key, (long) sum, Long::sum);
                 areaMap.put(key, (long) sum);
                 totalBet += sum;
