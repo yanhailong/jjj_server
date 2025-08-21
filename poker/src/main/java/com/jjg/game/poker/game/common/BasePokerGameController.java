@@ -261,6 +261,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     }
 
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
+        remove.setSeatDown(false);
         if (inRunPhase()) {
             runPlayerSeatChange(remove, remove.isSeatDown() && remove.isJoinGame());
         }
@@ -283,7 +284,6 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                     break;
                 }
             }
-            remove.setSeatDown(false);
             remove.setJoinGame(false);
         }
         if (removePlayerSeatInfo) {

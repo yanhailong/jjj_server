@@ -1,7 +1,9 @@
 package com.jjg.game.poker.game.blackjack.gamephase;
 
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.pb.ResExitGame;
 import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
 import com.jjg.game.poker.game.common.PokerBuilder;
@@ -13,6 +15,7 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.listener.RoomEventListener;
+import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.*;
@@ -81,11 +84,12 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
                 PlayerController playerController = playerControllers.get(info.getPlayerId());
                 if (Objects.nonNull(playerController)) {
                     log.info("玩家：{}  未押注直接踢掉", info.getPlayerId());
+                    broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), new ResExitGame(Code.SUCCESS)));
                     roomEventListener.exitGame(playerController);
                 }
                 playerSeatInfo.remove(info);
             }
-            if (gameDataVo.canStartGame()) {
+            if (gameDataVo.canStartGame() && !gameDataVo.getAllBetInfo().isEmpty()) {
                 //进入下个阶段
                 nextPhase();
             } else {

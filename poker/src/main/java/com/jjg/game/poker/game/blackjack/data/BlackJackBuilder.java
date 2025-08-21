@@ -35,9 +35,13 @@ public class BlackJackBuilder {
             jackPutCard.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
         }
         jackPutCard.cardId = cardId;
-        jackPutCard.autoCardId = autoCardId;
+        jackPutCard.cardIndex = oldInfo.getCardIndex();
+        if (autoCardId > 0) {
+            jackPutCard.autoCardId = autoCardId;
+            jackPutCard.nextTotalPoint = BlackJackDataHelper.getTotalPoint(oldInfo.getCards().getLast());
+        }
         jackPutCard.playerId = oldInfo.getPlayerId();
-        jackPutCard.totalPoint = BlackJackDataHelper.getTotalPoint(oldInfo.getCurrentCards());
+        jackPutCard.totalPoint = BlackJackDataHelper.getTotalPoint(oldInfo.getCards().getFirst());
         return jackPutCard;
     }
 
