@@ -214,7 +214,7 @@ public class PlayerSessionService implements TimerListener<String> {
                 timerCenter.add(checkSessionEvent);
             }
 
-            if (NodeType.GAME.name().equals(nodeManager.nodeConfig.getType())) {
+            if (NodeType.HALL.name().equals(nodeManager.nodeConfig.getType()) || NodeType.GAME.name().equals(nodeManager.nodeConfig.getType())) {
                 onlineCountEvent =
                     new TimerEvent<>(this, "OnlineCount", ONLINE_COUNT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
                 timerCenter.add(onlineCountEvent);

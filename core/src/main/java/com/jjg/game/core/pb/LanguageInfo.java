@@ -37,6 +37,7 @@ public class LanguageInfo {
                 LanguageParamData pd = new LanguageParamData();
                 pd.setType(p.type);
                 pd.setParam(p.param);
+                paramsData.add(pd);
             }
             d.setParams(paramsData);
         }

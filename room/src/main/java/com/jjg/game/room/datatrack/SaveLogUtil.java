@@ -2,6 +2,8 @@ package com.jjg.game.room.datatrack;
 
 
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BetAreaCfg;
 import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
 
 import java.util.HashMap;
@@ -28,17 +30,31 @@ public class SaveLogUtil {
             }
             long totalBet = 0;
             Map<Integer, Long> areaMap = new HashMap<>();
+            Map<Integer, Long> effectiveWaterFlow = new HashMap<>();
             for (Map.Entry<Integer, List<Integer>> listEntry : playerBetInfo.entrySet()) {
+                Integer key = listEntry.getKey();
+                BetAreaCfg betAreaCfg = GameDataManager.getBetAreaCfg(key);
+                if (Objects.isNull(betAreaCfg)) {
+                    continue;
+                }
                 List<Integer> value = listEntry.getValue();
                 int sum = value.stream().mapToInt(Integer::intValue).sum();
-                areaTotalBet.merge(listEntry.getKey(), (long) sum, Long::sum);
-                areaMap.put(listEntry.getKey(), (long) sum);
+                //计算有效流水
+                Long bet = effectiveWaterFlow.getOrDefault(betAreaCfg.getRepulsionID(), 0L);
+                if (bet > 0) {
+                    effectiveWaterFlow.put(betAreaCfg.getRepulsionID(), sum - bet);
+                } else {
+                    effectiveWaterFlow.put(key, (long) sum);
+                }
+                areaTotalBet.merge(key, (long) sum, Long::sum);
+                areaMap.put(key, (long) sum);
                 totalBet += sum;
             }
             // 打点
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET, totalBet);
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, keyValue.getValue());
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, keyValue.getValue() - totalBet);
+            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, effectiveWaterFlow.values().stream().mapToLong(Math::abs).sum());
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_DATA, areaMap);
         }
         gameDataTracker.addGameLogData(DataTrackNameConstant.AREA_DATA, areaTotalBet);

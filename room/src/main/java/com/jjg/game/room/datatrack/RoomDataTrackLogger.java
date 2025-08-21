@@ -2,6 +2,7 @@ package com.jjg.game.room.datatrack;
 
 import cn.hutool.core.lang.Snowflake;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.core.logger.BaseLogger;
@@ -65,7 +66,7 @@ public class RoomDataTrackLogger extends BaseLogger {
      * 根据topic发送日志
      */
     public void sendLog(String topic, Map<String, Object> data) {
-        String sendData = JSON.toJSONString(data);
+        String sendData = JSON.toJSONString(data, SerializerFeature.WriteNonStringKeyAsString);
         log.debug("发送日志数据：{} {}", topic, sendData);
         kafkaTemplate.send(topic, sendData);
     }

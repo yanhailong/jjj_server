@@ -399,9 +399,9 @@ public class CoreMarqueeManager implements TimerListener {
 
         NotifyMarquee notify = new NotifyMarquee();
         notify.marqueeInfo = transMarqueeInfo(marquee);
+        log.debug("通知客户端跑马灯 marquee = {}", JSON.toJSONString(notify));
         // 广播消息
         clusterSystem.broadcastToOnlinePlayer(notify);
-        log.debug("通知客户端跑马灯 marquee = {}", JSON.toJSONString(notify));
     }
 
     /**

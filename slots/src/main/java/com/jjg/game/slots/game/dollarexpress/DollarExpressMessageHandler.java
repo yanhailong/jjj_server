@@ -196,11 +196,6 @@ public class DollarExpressMessageHandler implements GmListener {
                 }
                 TestLibData testLibData = new TestLibData();
                 testLibData.setLibType(libType);
-            }else if("bet".equals(gmOrders[0])) {
-                log.debug("收到添加经验的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
-                long num = Long.parseLong(gmOrders[1]);
-                CommonResult<Player> result = slotsPlayerService.betDeductGold(playerController.playerId(), num, "gmtest");
-                res.code = result.code;
             }else {
                 res.code = Code.NOT_FOUND;
             }

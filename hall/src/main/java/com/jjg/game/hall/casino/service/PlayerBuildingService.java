@@ -1,7 +1,5 @@
 package com.jjg.game.hall.casino.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.jjg.game.common.redis.RedisJsonTemplate;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -11,11 +9,13 @@ import com.jjg.game.hall.casino.data.PlayerBuilding;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Objects;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 /**
  * @author 11
@@ -25,13 +25,11 @@ import java.util.function.Consumer;
 public class PlayerBuildingService {
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
-    private final String tableName = "player:building:";
+    private final String tableName = "playerBuilding:";
     private final String lockTableName = "lock:" + tableName;
 
     @Autowired
-    private RedisTemplate<String, String> redisTemplate;
-    @Autowired
-    private RedisJsonTemplate redisJsonTemplate;
+    private RedisTemplate<String, PlayerBuilding> redisTemplate;
     @Autowired
     private PlayerBuildingDao playerBuildingDao;
     @Autowired
@@ -45,12 +43,22 @@ public class PlayerBuildingService {
     /**
      * 更新赌场信息
      */
-    public <T> CommonResult<T> updateData(long playerId, Consumer<CommonResult<T>> callback) {
-        CommonResult<T> result = new CommonResult<>(Code.FAIL);
+    public <K> CommonResult<K> updateData(long playerId, int casinoId, BiConsumer<CommonResult<K>, PlayerBuilding> callback) {
+        CommonResult<K> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         try {
-            callback.accept(result);
+            //获取赌场信息
+            PlayerBuilding playerBuilding = getCasinoInfoFromAllDB(playerId, casinoId);
+            if (Objects.isNull(playerBuilding)) {
+                result.code = Code.PARAM_ERROR;
+                return result;
+            }
+            callback.accept(result, playerBuilding);
+            //回存数据
+            if (result.code == Code.SUCCESS) {
+                redisSave(playerId, casinoId, playerBuilding);
+            }
         } catch (Exception e) {
             log.error("玩家更新赌场信息，修改数据 失败 playerId={}", playerId, e);
         } finally {
@@ -68,13 +76,30 @@ public class PlayerBuildingService {
      * @param playerId 玩家id
      * @return 玩家建筑数据
      */
-    public PlayerBuilding getFromAllDB(long playerId) {
-        PlayerBuilding playerBuilding = redisGet(playerId);
+    public List<PlayerBuilding> getFromAllDB(long playerId) {
+        List<PlayerBuilding> playerBuildings = redisGetAll(playerId);
+        if (playerBuildings != null) {
+            return playerBuildings;
+        }
+        //TODO保存到redis
+        return playerBuildingDao.findByPlayerId(playerId);
+    }
+
+    /**
+     * 查询 PlayerBuilding 对象
+     * 先查询redis
+     * 再查询mongodb
+     *
+     * @param playerId 玩家id
+     * @return 玩家建筑数据
+     */
+    public PlayerBuilding getCasinoInfoFromAllDB(long playerId, int casinoId) {
+        PlayerBuilding playerBuilding = redisGet(playerId, casinoId);
         if (playerBuilding != null) {
             return playerBuilding;
         }
         //TODO保存到redis
-        return playerBuildingDao.findById(playerId);
+        return playerBuildingDao.findByPlayerIdAndCasinoId(playerId, casinoId);
     }
 
     /**
@@ -83,12 +108,12 @@ public class PlayerBuildingService {
      * @param playerId 玩家id
      */
     public void moveToMongo(long playerId) {
-        PlayerBuilding playerBuilding = redisGet(playerId);
+        List<PlayerBuilding> playerBuilding = getFromAllDB(playerId);
         if (playerBuilding == null) {
             return;
         }
-        playerBuildingDao.save(playerBuilding);
-        redisDel(playerBuilding.getPlayerId());
+        playerBuildingDao.saveAll(playerBuilding);
+        redisDel(playerId);
     }
 
     private String getKey(long playerId) {
@@ -98,8 +123,8 @@ public class PlayerBuildingService {
     /**
      * 保存整个对象
      */
-    public void redisSave(PlayerBuilding playerBuilding) {
-        redisJsonTemplate.set(getKey(playerBuilding.getPlayerId()), playerBuilding);
+    public void redisSave(long playerId, int casinoId, PlayerBuilding playerBuilding) {
+        redisTemplate.opsForHash().put(getKey(playerId), casinoId, playerBuilding);
     }
 
     /**
@@ -115,23 +140,20 @@ public class PlayerBuildingService {
      * @param playerId 玩家ID
      * @return 玩家建筑信息
      */
-    public PlayerBuilding redisGet(long playerId) {
-        return redisJsonTemplate.get(getKey(playerId), new TypeReference<>() {
-        });
+    public List<PlayerBuilding> redisGetAll(long playerId) {
+        HashOperations<String, Object, PlayerBuilding> hash = redisTemplate.opsForHash();
+        return hash.values(getKey(playerId));
     }
 
     /**
-     * 根据JSONPath获取数据
+     * 通过玩家ID获取玩家单个建筑信息
+     *
+     * @param playerId 玩家ID
+     * @return 玩家建筑信息
      */
-    public <K> K getDataOfPath(long playerId, String path, TypeReference<K> typeRef) {
-        return redisJsonTemplate.getPath(getKey(playerId), path, typeRef);
-    }
-
-    /**
-     * 根据JSONPath设置数据
-     */
-    public <K> void setDataOfPath(long playerId, String path, K k) {
-        redisJsonTemplate.setPath(getKey(playerId), path, k);
+    public PlayerBuilding redisGet(long playerId, int casinoId) {
+        HashOperations<String, Object, PlayerBuilding> hash = redisTemplate.opsForHash();
+        return hash.get(getKey(playerId), casinoId);
     }
 
 
