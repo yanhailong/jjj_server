@@ -146,6 +146,9 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         if (allIn) {
             betValue = tempCurrency;
         } else if (reqPokerBet.betType == PokerConstant.PlayerOperation.BET && tempCurrency >= reqPokerBet.betValue) {
+            if (!isAllAllIn(playerId)) {
+                return;
+            }
             //正常下注
             betValue = reqPokerBet.betValue;
         } else if (reqPokerBet.betType == PokerConstant.PlayerOperation.FOLLOW_CARD) {
@@ -201,6 +204,19 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                 .stream()
                 .anyMatch(info -> info.getOperationType() == PokerConstant.PlayerOperation.ALL_IN);
     }
+
+    public boolean isAllAllIn(long playerId) {
+        for (PlayerSeatInfo seatInfo : gameDataVo.getPlayerSeatInfoList()) {
+            if (seatInfo.getPlayerId() == playerId) {
+                continue;
+            }
+            if (seatInfo.getOperationType() != PokerConstant.PlayerOperation.ALL_IN) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     /**
      * 获取初始执行的index
