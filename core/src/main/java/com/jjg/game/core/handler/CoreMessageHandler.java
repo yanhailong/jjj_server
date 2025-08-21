@@ -108,6 +108,15 @@ public class CoreMessageHandler {
                 return;
             }
 
+            if("bet".equals(cmd)) {
+                log.debug("收到添加经验的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), arr);
+                long num = Long.parseLong(params);
+                CommonResult<Player> result = playerService.betDeductGold(playerController.playerId(), num, "gmtest");
+                res.code = result.code;
+                playerController.send(res);
+                return;
+            }
+
             int notFound = 0;
             Map<String, GmListener> map = CommonUtil.getContext().getBeansOfType(GmListener.class);
             for(Map.Entry<String, GmListener> en : map.entrySet()){
