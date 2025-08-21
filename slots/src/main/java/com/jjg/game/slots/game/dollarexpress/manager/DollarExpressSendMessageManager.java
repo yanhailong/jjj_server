@@ -113,6 +113,10 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             res.bigWinShow = gameRunInfo.getBigShowId();
             //高亮展示
             res.highlightList = highlight(res,gameRunInfo);
+
+            //等级信息
+            res.level = playerController.getPlayer().getLevel();
+            res.exp = playerController.getPlayer().getExp();
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
@@ -155,7 +159,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
                 res.allWinTrainInfo = goldTrain(gameRunInfo.getInvestRewardGoldTrainCount(), gameRunInfo.getInvestRewardGold());
             }
             res.allAreaUnLock = gameRunInfo.isAllAreaUnLock();
-            res.allGold = gameRunInfo.getPlayer().getGold();
+            res.allGold = playerController.getPlayer().getGold();
         } else {
             log.debug("投资游戏结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }

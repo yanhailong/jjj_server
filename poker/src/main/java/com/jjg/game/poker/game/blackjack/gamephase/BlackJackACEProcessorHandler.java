@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.blackjack.gamephase;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
+import com.jjg.game.room.constant.EGamePhase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +27,9 @@ public class BlackJackACEProcessorHandler implements IProcessorHandler {
         BlackJackGameDataVo gameDataVo = gameController.getGameDataVo();
         if (gameDataVo.getId() != id) {
             log.info("购买ACE 定时器执行时id错过了");
+            return;
+        }
+        if (gameController.getCurrentGamePhase() != EGamePhase.PLAY_CART) {
             return;
         }
         long aceBuyEndTime = gameDataVo.getAceBuyEndTime();

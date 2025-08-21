@@ -96,7 +96,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerGameData, betValue, true);
+        return startGame(playerController,playerGameData, betValue, true);
     }
 
     /**
@@ -114,13 +114,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
         playerGameData.setLastActiveTime(TimeHelper.nowInt());
 
-        DollarExpressGameRunInfo gameRunInfo = invest(playerGameData, areaId);
-        if(gameRunInfo.success() && gameRunInfo.getPlayer() == null){
-            Player player = slotsPlayerService.get(playerGameData.playerId());
-            playerController.setPlayer(player);
-            gameRunInfo.setPlayer(player);
-        }
-        return gameRunInfo;
+        return invest(playerController,playerGameData, areaId);
     }
 
     /**
@@ -132,7 +126,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     public DollarExpressGameRunInfo autoStartGame(DollarExpressPlayerGameData playerGameData, long betValue) {
         log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
 
-        return startGame(playerGameData, betValue, true);
+        return startGame(null,playerGameData, betValue, true);
     }
 
     /**
@@ -141,7 +135,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @param betValue
      * @return
      */
-    public DollarExpressGameRunInfo startGame(DollarExpressPlayerGameData playerGameData, long betValue, boolean updateGird) {
+    public DollarExpressGameRunInfo startGame(PlayerController playerController,DollarExpressPlayerGameData playerGameData, long betValue, boolean updateGird) {
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             boolean allAreaUnlock = playerGameData.getAllUnLock().compareAndSet(true, false);
@@ -196,6 +190,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             gameRunInfo.setAfterGold(player.getGold());
+            playerController.setPlayer(player);
 
             //添加大奖展示id
             int times = (int) (gameRunInfo.getAllWinGold() / betValue);
@@ -204,7 +199,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
             //跑马灯
             checkMarquee(playerGameData,gameRunInfo.getAllWinGold());
-
             //发送日志
             logger.gameResult(player, gameRunInfo);
             return gameRunInfo;
@@ -253,7 +247,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     /**
      * 投资游戏选择地区
      */
-    public DollarExpressGameRunInfo invest(DollarExpressPlayerGameData playerGameData, int areaId) {
+    public DollarExpressGameRunInfo invest(PlayerController playerController,DollarExpressPlayerGameData playerGameData, int areaId) {
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             if (areaId < 1 || areaId > 8) {
@@ -337,7 +331,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 playerGameData.getAllUnLock().compareAndSet(false, true);
             }
 
-            gameRunInfo.setPlayer(player);
+            if(playerController != null && player != null){
+                playerController.setPlayer(player);
+            }
             playerGameData.clearInvers();
         } catch (Exception e) {
             log.error("", e);
@@ -413,7 +409,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 return;
             }
             int areaId = choosableAreas.get(RandomUtils.randomInt(choosableAreas.size()));
-            invest(playerGameData,areaId);
+            invest(null,playerGameData,areaId);
             log.info("系统自动投资游戏选择小地区结束 playerId = {},areaId = {}", playerGameData.playerId(), areaId);
         } catch (Exception e) {
             log.error("", e);

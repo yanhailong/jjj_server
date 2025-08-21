@@ -1,7 +1,5 @@
 package com.jjg.game.core.data;
 
-import java.util.List;
-
 /**
  * @author 11
  * @date 2025/8/11 19:46
@@ -9,7 +7,7 @@ import java.util.List;
 public class Marquee {
     private int id;
     //跑马灯内容
-    private String content;
+    private LanguageData content;
     //播放时间
     private int showTime;
     //间隔时间
@@ -24,10 +22,6 @@ public class Marquee {
     private int startTime;
     //结束时间
     private int endTime;
-    //多语言id
-    private int langId;
-    //参数
-    private List<MarqueeParam> params;
     //创建时间
     private int createTime;
 
@@ -39,11 +33,11 @@ public class Marquee {
         this.id = id;
     }
 
-    public String getContent() {
+    public LanguageData getContent() {
         return content;
     }
 
-    public void setContent(String content) {
+    public void setContent(LanguageData content) {
         this.content = content;
     }
 
@@ -101,22 +95,6 @@ public class Marquee {
 
     public void setEndTime(int endTime) {
         this.endTime = endTime;
-    }
-
-    public int getLangId() {
-        return langId;
-    }
-
-    public void setLangId(int langId) {
-        this.langId = langId;
-    }
-
-    public List<MarqueeParam> getParams() {
-        return params;
-    }
-
-    public void setParams(List<MarqueeParam> params) {
-        this.params = params;
     }
 
     public int getCreateTime() {

@@ -16,8 +16,9 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.MarqueeDao;
+import com.jjg.game.core.data.LanguageData;
+import com.jjg.game.core.data.LanguageParamData;
 import com.jjg.game.core.data.Marquee;
-import com.jjg.game.core.data.MarqueeParam;
 import com.jjg.game.core.pb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -441,19 +442,27 @@ public class CoreMarqueeManager implements TimerListener {
      * @param value          金额
      */
     public void playerWinMarquee(String playerNickName, int langId, int gameLangId, long value) {
+
+        log.debug("添加玩家中奖的跑马灯 nick = {},langId = {},gameLangId = {},value = {}", playerNickName, langId, gameLangId,value);
+
         Marquee marquee = new Marquee();
 
         marquee.setType(GameConstant.Marquee.PLAYER_WIN);
         marquee.setShowTime(GameConstant.Marquee.PLAYER_WIN_INTERVAL);
         marquee.setInterval(GameConstant.Marquee.PLAYER_WIN_INTERVAL);
-        marquee.setLangId(langId);
         marquee.setCreateTime(TimeHelper.nowInt());
 
-        List<MarqueeParam> params = new ArrayList<>();
+        LanguageData contentData = new LanguageData();
+        contentData.setLangId(langId);
+        contentData.setType(GameConstant.Language.TYPE_LANGUAGE_MATCH);
+
+        List<LanguageParamData> params = new ArrayList<>();
         addMarqueeParam(params, GameConstant.Marquee.CLIENT_NORMAL_TYPE, playerNickName);
         addMarqueeParam(params, GameConstant.Marquee.CLIENT_LANG_TYPE, gameLangId + "");
         addMarqueeParam(params, GameConstant.Marquee.CLIENT_NORMAL_TYPE, value + "");
-        marquee.setParams(params);
+        contentData.setParams(params);
+
+        marquee.setContent(contentData);
 
         for (int i = 0; i < CoreConst.Common.REDIS_TRY_COUNT; i++) {
             marquee.setId(RandomUtils.randomNum(-999999, -1));
@@ -463,13 +472,8 @@ public class CoreMarqueeManager implements TimerListener {
                 //通知其他服务器
                 //构建请求消息
                 NotifyAllNodesMarqueeServer notify = new NotifyAllNodesMarqueeServer();
-                notify.id = marquee.getId();
-                notify.content = marquee.getContent();
-                notify.showTime = marquee.getShowTime();
-                notify.interval = marquee.getInterval();
+                notify.marqueeInfo = transMarqueeInfo(marquee);
                 notify.type = marquee.getType();
-                notify.startTime = marquee.getStartTime();
-                notify.endTime = marquee.getEndTime();
                 notifyHallAndGameNodeStartMarquee(notify);
                 addNewMarquee(marquee);
                 break;
@@ -484,11 +488,11 @@ public class CoreMarqueeManager implements TimerListener {
      * @param type
      * @param param
      */
-    private void addMarqueeParam(List<MarqueeParam> params, int type, String param) {
-        MarqueeParam p = new MarqueeParam();
-        p.setType(type);
-        p.setParam(param);
-        params.add(p);
+    private void addMarqueeParam(List<LanguageParamData> params, int type, String param) {
+        LanguageParamData lang = new LanguageParamData();
+        lang.setType(type);
+        lang.setParam(param);
+        params.add(lang);
     }
 
     /**
@@ -504,21 +508,8 @@ public class CoreMarqueeManager implements TimerListener {
         marqueeInfo.endTime = marquee.getEndTime();
         marqueeInfo.showTime = marquee.getShowTime();
 
-        marqueeInfo.content = new LanguageInfo();
-        marqueeInfo.content.content = marquee.getContent();
+        marqueeInfo.content = marquee.getContent().toPbInfo();
         marqueeInfo.content.type = getClientShowGarqueeType(marquee.getType());
-        marqueeInfo.content.langId = marquee.getLangId();
-
-        if(marquee.getParams() != null && !marquee.getParams().isEmpty()){
-            marqueeInfo.content.params = new ArrayList<>(marquee.getParams().size());
-
-            marquee.getParams().forEach(p -> {
-                LangParamInfo langParamInfo = new LangParamInfo();
-                langParamInfo.type = p.getType();
-                langParamInfo.param = p.getParam();
-                marqueeInfo.content.params.add(langParamInfo);
-            });
-        }
         return marqueeInfo;
     }
 }

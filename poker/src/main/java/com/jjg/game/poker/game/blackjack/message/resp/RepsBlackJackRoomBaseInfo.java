@@ -32,4 +32,15 @@ public class RepsBlackJackRoomBaseInfo extends AbstractNotice {
     public List<Integer> cardIds;
     @ProtoDesc("筹码列表")
     public List<Integer> chipsList;
+    @ProtoDesc("购买ACE的总下注值")
+    public long aceTotalBet;
+    @ProtoDesc("ACE个人下注")
+    public long aceBet;
+    @ProtoDesc("下注阶段配置时间")
+    public int betTime;
+    @ProtoDesc("玩家操作配置时间")
+    public int operationTime;
+    @ProtoDesc("发牌配置时间")
+    public int sendCardTime;
+
 }

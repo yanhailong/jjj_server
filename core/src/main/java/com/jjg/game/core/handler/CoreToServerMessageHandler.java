@@ -30,13 +30,17 @@ public class CoreToServerMessageHandler {
         try{
             log.info("收到其他节点推送的跑马灯信息 notify = {}", JSON.toJSONString(notify));
             Marquee marquee = new Marquee();
-            marquee.setId(notify.id);
-            marquee.setContent(notify.content);
-            marquee.setShowTime(notify.showTime);
-            marquee.setInterval(notify.interval);
+            marquee.setId(notify.marqueeInfo.id);
+
+            if(notify.marqueeInfo.content != null){
+                marquee.setContent(notify.marqueeInfo.content.toData());
+            }
+
+            marquee.setShowTime(notify.marqueeInfo.showTime);
+            marquee.setInterval(notify.marqueeInfo.interval);
             marquee.setType(notify.type);
-            marquee.setStartTime(notify.startTime);
-            marquee.setEndTime(notify.endTime);
+            marquee.setStartTime(notify.marqueeInfo.startTime);
+            marquee.setEndTime(notify.marqueeInfo.endTime);
 
             marqueeManager.addNewMarquee(marquee);
         }catch (Exception e) {

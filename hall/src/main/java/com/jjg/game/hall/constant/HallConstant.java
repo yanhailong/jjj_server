@@ -155,5 +155,16 @@ public interface HallConstant {
         //保险箱转移钻石
         int REQ_TRANS_SAFE_BOX_DIAMOND = BASE_MSG_PREFIX | 0x37;
         int RES_TRANS_SAFE_BOX_DIAMOND = BASE_MSG_PREFIX | 0x38;
+
+        //收藏游戏
+        int REQ_LIKE_GAME = BASE_MSG_PREFIX | 0x39;
+        int RES_LIKE_GAME = BASE_MSG_PREFIX | 0x3A;
+
+        //取消收藏游戏
+        int REQ_CANCEL_LIKE_GAME = BASE_MSG_PREFIX | 0x3B;
+        int RES_CANCEL_LIKE_GAME = BASE_MSG_PREFIX | 0x3C;
+
+        //通知游戏列表
+        int NOTIFY_GAME_LIST = BASE_MSG_PREFIX | 0x3D;
     }
 }

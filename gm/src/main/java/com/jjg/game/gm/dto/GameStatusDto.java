@@ -9,5 +9,7 @@ public record GameStatusDto(
         int open,
         int status,
         //角标
-        String right_top_icon) {
+        String right_top_icon,
+        //大小图标 0.大  1.小
+        int icon_category) {
 }

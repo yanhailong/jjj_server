@@ -16,9 +16,24 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.BLACK_JACK_TYPE, cmd = BlackJackConstant.MsgBean.NOTIFY_BLACKJACK_SPECIAL_SETTLEMENT, resp = true)
 @ProtoDesc("通知特殊结算")
 public class NotifyBlackJackSpecialSettlement extends AbstractNotice {
+    @ProtoDesc("玩家id")
+    public long playerId;
+    @ProtoDesc("操作类型")
+    public int type;
+    @ProtoDesc("玩家的牌信息 发牌结算为所有玩家牌信息 分牌时为玩家自己的牌信息")
+    public List<BlackJackCardInfo> cardIdList;
+    @ProtoDesc("庄家的牌信息")
+    public int cardId;
+    @ProtoDesc("自动牌id")
+    public int autoCard;
+    @ProtoDesc("拿牌id")
+    public int sendCardId;
+    @ProtoDesc("拿牌后总点数")
+    public int putCardTotal;
+    @ProtoDesc("下注金额")
+    public long betValue;
+    @ProtoDesc("当前牌组索引")
+    public int currentCardIds;
     @ProtoDesc("结算信息")
     public NotifyBlackJackSettlementInfo settlementInfo;
-    @ProtoDesc("所有玩家的牌信息")
-    public List<BlackJackCardInfo> cardIdList;
-
 }

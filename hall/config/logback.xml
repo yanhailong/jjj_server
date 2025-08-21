@@ -8,7 +8,7 @@
 
         <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
                 <encoder>
-                        <pattern>%4d{yyyy-MM-dd HH:mm:ss} %highlight(%-5level) [%thread] at %class.%method \(%file:%line\) - %m%n
+                        <pattern>%4d{yyyy-MM-dd HH:mm:ss} %highlight(%-5level) [%thread] at %class.%method \(%file:%line\) [%X{playerId}] - %m%n
                         </pattern>
                         <charset>UTF-8</charset>
                 </encoder>

@@ -12,10 +12,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.MarqueeDao;
-import com.jjg.game.core.data.GameStatus;
-import com.jjg.game.core.data.Item;
-import com.jjg.game.core.data.Marquee;
-import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
@@ -88,8 +85,13 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
+            if(dto.icon_category() != 0 && dto.icon_category() != 1){
+                log.debug("图标大小错误，只能为0(大)或1(小)  dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
             boolean saved = gameStatusService.saveOrUpdateGameStatus(new GameStatus(dto.number(),
-                    dto.open(), dto.status(), dto.right_top_icon()));
+                    dto.open(), dto.status(), dto.right_top_icon(),dto.icon_category()));
 
             if (!saved) {
                 log.info("修改游戏状态失败,无法保存到Redis , dto = {}", dto);
@@ -144,7 +146,12 @@ public class GMController extends AbstractController {
             //存储到redis
             Marquee marquee = new Marquee();
             marquee.setId(dto.id());
-            marquee.setContent(dto.content());
+
+            LanguageData contentData = new LanguageData();
+            contentData.setType(GameConstant.Language.TYPE_ORIGINAL);
+            contentData.setContent(dto.content());
+            marquee.setContent(contentData);
+
             marquee.setInterval(dto.interval_time());
             marquee.setNums(0);
             marquee.setShowTime(dto.showTime());
@@ -154,15 +161,10 @@ public class GMController extends AbstractController {
             marquee.setType(dto.type() < 1 ? GameConstant.Marquee.SYSTEM_MSG : dto.type());
             marqueeDao.addMarquee(marquee);
 
-            //构建请求消息
+            //构建请求消息,发送到其他节点
             NotifyAllNodesMarqueeServer notify = new NotifyAllNodesMarqueeServer();
-            notify.id = marquee.getId();
-            notify.content = marquee.getContent();
-            notify.showTime = marquee.getShowTime();
-            notify.interval = marquee.getInterval();
+            notify.marqueeInfo = marqueeManager.transMarqueeInfo(marquee);
             notify.type = marquee.getType();
-            notify.startTime = marquee.getStartTime();
-            notify.endTime = marquee.getEndTime();
             marqueeManager.notifyHallAndGameNodeStartMarquee(notify);
             //返回修改结果
             return success("common.success");
