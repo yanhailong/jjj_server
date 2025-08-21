@@ -95,6 +95,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         try {
             long playerId = playerController.playerId();
             T room = fillBaseRoomData(nodeName, gameType, maxLimit);
+            room.setRoomCfgId(roomCfgId);
             //添加玩家
             if (playerId > 0) {
                 RoomPlayer roomPlayer = createRoomPlayer(playerController);
