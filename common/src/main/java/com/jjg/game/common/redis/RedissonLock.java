@@ -24,9 +24,9 @@ public @interface RedissonLock {
     String[] keys() default {};
 
     /**
-     * 锁超时释放时间leaseTime
+     * 锁超时释放时间leaseTime 30s
      */
-    long leaseTime() default 30;
+    long leaseTime() default 30_000;
 
     /**
      * 等待时间,tryLock等待的最大时长
@@ -44,7 +44,7 @@ public @interface RedissonLock {
     LockFailedStrategy failedStrategy() default LockFailedStrategy.EXCEPTION;
 
     /**
-     * 当失败策略为CALLBACK时,指定回调的方法,只能调用注解方法内中的函数
+     * 当失败策略为CALLBACK时,指定回调的方法,只能调用注解方法内的函数
      */
     String fallbackMethod() default "";
 }
