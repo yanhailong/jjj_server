@@ -55,7 +55,12 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     public <M extends AbstractMessage> void broadcastToPlayers(RoomMessageBuilder<M> message) {
         if (message.isToAll()) {
             Set<Long> playerIds = gameDataVo.getSeatInfo().values()
-                    .stream().map(SeatInfo::getPlayerId)
+                    .stream()
+                    .map(SeatInfo::getPlayerId)
+                    .filter(playerId -> {
+                        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+                        return Objects.nonNull(gamePlayer) && gamePlayer.getPokerPlayerGameData().isInit();
+                    })
                     .collect(Collectors.toSet());
             message.setPlayerIds(playerIds);
             message.setToAll(false);
@@ -307,6 +312,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
 
     /**
      * 添加下一个玩家定时器
+     *
      * @param nextExePlayer
      * @param sendCardNum
      */
