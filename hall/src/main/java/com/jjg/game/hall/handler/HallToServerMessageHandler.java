@@ -1,5 +1,6 @@
 package com.jjg.game.hall.handler;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
@@ -26,7 +27,7 @@ public class HallToServerMessageHandler extends CoreToServerMessageHandler {
 
     @Command(MessageConst.ToServer.REQ_REFRESH_GAME_STATUS)
     public void reqRefreshGameStatus(ReqRefreshGameStatus req) {
-        log.info("收到刷新游戏状态命令: {}", req);
+        log.info("收到刷新游戏状态命令: {}", JSON.toJSONString(req));
         String result = BackendGMCmd.Result.SUCCESS;
         try {
             hallService.refreshGameStatuses();

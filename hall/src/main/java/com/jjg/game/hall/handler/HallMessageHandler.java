@@ -799,7 +799,7 @@ public class HallMessageHandler implements GmListener {
     public void reqLikeGame(PlayerController playerController, ReqLikeGame req) {
         ResLikeGame res = new ResLikeGame(Code.SUCCESS);
         try {
-            res.gameTypeList = hallService.addLikeGame(playerController.playerId(),req.gameType);
+            res.gameTypeList = hallService.addLikeGame(playerController.playerId(),req.gameTypes);
             log.debug("添加收藏游戏后，返回列表 res = {}",JSON.toJSONString(res));
         }catch (Exception e) {
             log.error("",e);
@@ -815,7 +815,7 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CANCEL_LIKE_GAME)
     public void reqCancelLikeGame(PlayerController playerController, ReqCancelLikeGame req) {
-        ResLikeGame res = new ResLikeGame(Code.SUCCESS);
+        ResCancelLikeGame res = new ResCancelLikeGame(Code.SUCCESS);
         try {
             res.gameTypeList = hallService.cancelLikeGames(playerController.playerId(),req.gameTypes);
             log.debug("取消收藏游戏后，返回列表 res = {}",JSON.toJSONString(res));
