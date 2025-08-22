@@ -52,7 +52,7 @@ public class ClusterMessageHandler {
     public void sessionClose(SessionQuit sessionQuit) {
         String sessionId = sessionQuit.sessionId;
         log.info("用户连接退出，sessionId={}", sessionId);
-        PFSession pfSession = clusterSystem.sessionMap().remove(sessionId);
+        PFSession pfSession = clusterSystem.removeSession(sessionId);
         if (sessionCloseListenerMap != null && !sessionCloseListenerMap.isEmpty() && pfSession != null) {
             for (Map.Entry<String, SessionCloseListener> en : sessionCloseListenerMap.entrySet()) {
                 en.getValue().sessionClose(pfSession);
@@ -95,7 +95,7 @@ public class ClusterMessageHandler {
             pfSession = new PFSession(sessionId, connect, sessionCreate.netAddress);
         }
         pfSession.setAddress(sessionCreate.netAddress);
-        clusterSystem.sessionMap().put(sessionId, pfSession);
+        clusterSystem.putSession(sessionId, pfSession);
         pfSession.gatePath = gatePath;
 
         if (sessionCreate.loginData != null && this.sessionLoginListenerMap != null && !this.sessionLoginListenerMap.isEmpty()) {

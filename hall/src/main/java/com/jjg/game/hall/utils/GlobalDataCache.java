@@ -20,6 +20,7 @@ import java.util.Objects;
  * @author lm
  * @date 2025/8/19 09:47
  */
+@Component
 public class GlobalDataCache implements ConfigExcelChangeListener {
     private static final Logger log = LoggerFactory.getLogger(GlobalDataCache.class);
     private static Pair<Item, Integer> buyClaimAllRewardsConsumer;
@@ -27,8 +28,8 @@ public class GlobalDataCache implements ConfigExcelChangeListener {
 
     @Override
     public void initSampleCallbackCollector() {
-        addChangeSampleFileObserveWithCallBack(PokerPoolCfg.EXCEL_NAME, GlobalDataCache::changeCacheData)
-                .addInitSampleFileObserveWithCallBack(PokerPoolCfg.EXCEL_NAME, GlobalDataCache::changeCacheData);
+        addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, GlobalDataCache::changeCacheData)
+                .addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, GlobalDataCache::changeCacheData);
     }
 
     public static void changeCacheData() {

@@ -11,7 +11,7 @@ public class CoreConst {
     /**
      * 游戏主分类
      */
-    public static class GameMajorType{
+    public static class GameMajorType {
         //slots类游戏
         public static final int SLOTS = 1;
         //押注类游戏
@@ -91,4 +91,8 @@ public class CoreConst {
         public static final String BASE_PROJECT_PACKAGE_PATH = "com.jjg.game";
     }
 
+    public static class Session {
+        // session广播批量发送限制，超过此值开始分批发送
+        public static final int SESSION_BROADCAST_BATCH_LIMIT = 100;
+    }
 }

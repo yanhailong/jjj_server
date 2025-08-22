@@ -1,5 +1,6 @@
 package com.jjg.game.hall.friendroom.services;
 
+import com.jjg.game.common.redis.RedissonLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -19,9 +20,7 @@ import com.jjg.game.hall.friendroom.data.FriendRoomFollowBean;
 import com.jjg.game.hall.friendroom.message.FriendRoomMessageBuilder;
 import com.jjg.game.hall.friendroom.message.req.*;
 import com.jjg.game.hall.friendroom.message.res.*;
-import com.jjg.game.hall.friendroom.message.struct.BaseFriendRoomPlayerInfo;
-import com.jjg.game.hall.friendroom.message.struct.FriendRoomBaseData;
-import com.jjg.game.hall.friendroom.message.struct.GameBillInfo;
+import com.jjg.game.hall.friendroom.message.struct.*;
 import com.jjg.game.hall.friendroom.message.struct.RoomFriendEnum.ERoomFriendListOperate;
 import com.jjg.game.hall.utils.HallDataUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -32,10 +31,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 好友房服务
@@ -59,7 +56,7 @@ public class FriendRoomServices {
     @Autowired
     private CorePlayerService corePlayerService;
     @Autowired
-    private FriendRoomBillHistoryDao historyDao;
+    private FriendRoomBillHistoryDao billHistoryDao;
 
     /**
      * 创建好友房
@@ -200,7 +197,7 @@ public class FriendRoomServices {
         // 好友信息
         List<BaseFriendRoomPlayerInfo> baseFriendRoomPlayerInfos = new ArrayList<>();
         for (Player followedPlayer : followedplayerList) {
-            BaseFriendRoomPlayerInfo info = FriendRoomMessageBuilder.buildFriendRoomInfo(followedPlayer);
+            BaseFriendRoomPlayerInfo info = FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(followedPlayer);
             long topUpTimeStamp = friendRoomFollowBeanMap.get(followedPlayer.getId()).getTopUpTimeStamp();
             info.isTopUp = topUpTimeStamp > 0;
             baseFriendRoomPlayerInfos.add(info);
@@ -270,7 +267,7 @@ public class FriendRoomServices {
         }
         // 通过邀请码添加关注好友
         friendRoomFollowDao.addFriendByInvitationCode(player.getId(), targetPlayerId, invitationCode);
-        res.playerInfo = FriendRoomMessageBuilder.buildFriendRoomInfo(targetPlayer);
+        res.playerInfo = FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(targetPlayer);
         res.code = Code.SUCCESS;
         playerController.send(res);
     }
@@ -378,7 +375,7 @@ public class FriendRoomServices {
         }
         // 不包含的，或者过期的需要移除这部分的数据
         res.followedFriendList =
-            followedplayerList.stream().map(FriendRoomMessageBuilder::buildFriendRoomInfo).toList();
+            followedplayerList.stream().map(FriendRoomMessageBuilder::buildFriendRoomPlayerInfo).toList();
     }
 
     /**
@@ -443,7 +440,7 @@ public class FriendRoomServices {
         ResShieldPlayerList res = new ResShieldPlayerList(Code.SUCCESS);
         List<Player> blackListPlayers = corePlayerService.multiGetPlayer(playerBlackList);
         res.shieldPlayerList =
-            blackListPlayers.stream().map(FriendRoomMessageBuilder::buildFriendRoomInfo).toList();
+            blackListPlayers.stream().map(FriendRoomMessageBuilder::buildFriendRoomPlayerInfo).toList();
         playerController.send(res);
     }
 
@@ -478,7 +475,7 @@ public class FriendRoomServices {
             return;
         }
         List<GameBillResult> gameBillResults =
-            historyDao.pageFriendRoomBillByGameType(playerController.playerId(), req.pageIdx, req.pageSize);
+            billHistoryDao.pageFriendRoomBillByGameType(playerController.playerId(), req.pageIdx, req.pageSize);
         List<GameBillInfo> gameBillInfos = new ArrayList<>();
         for (GameBillResult gameBillResult : gameBillResults) {
             GameBillInfo gameBillInfo = new GameBillInfo();
@@ -504,7 +501,96 @@ public class FriendRoomServices {
             return;
         }
         List<FriendRoomBillHistoryBean> pageFriendRoomBillHistory =
-            historyDao.pageFriendRoomBillHistory(playerController.playerId(), req.pageIdx, req.pageSize);
+            billHistoryDao.pageFriendRoomBillHistory(playerController.playerId(), req.pageIdx, req.pageSize);
+        // 按月分的好友房账单历史
+        Map<Integer, List<FriendRoomBillHistory>> friendRoomBillOfMonth = new HashMap<>();
+        // 构建好友房账单历史
+        for (FriendRoomBillHistoryBean friendRoomBillHistoryBean : pageFriendRoomBillHistory) {
+            FriendRoomBillHistory friendRoomBillHistory = new FriendRoomBillHistory();
+            friendRoomBillHistory.id = friendRoomBillHistoryBean.getId();
+            friendRoomBillHistory.createdTime = friendRoomBillHistoryBean.getCreatedAt();
+            friendRoomBillHistory.partInNum = friendRoomBillHistoryBean.getPartInPlayerIncome().size();
+            friendRoomBillHistory.totalIncome = friendRoomBillHistoryBean.getTotalIncome();
+            friendRoomBillHistory.totalWin =
+                friendRoomBillHistoryBean.getPartInPlayerIncome().values().stream().mapToLong(a -> a).sum();
+            Calendar calendar = Calendar.getInstance();
+            Date date = new Date(friendRoomBillHistory.createdTime);
+            calendar.setTime(date);
+            friendRoomBillOfMonth.computeIfAbsent(calendar.get(Calendar.MONTH), k -> new ArrayList<>()).add(friendRoomBillHistory);
+        }
+        List<FriendRoomBillHistoryMonth> friendRoomBillHistoryMonths = new ArrayList<>();
+        for (Map.Entry<Integer, List<FriendRoomBillHistory>> entry : friendRoomBillOfMonth.entrySet()) {
+            FriendRoomBillHistoryMonth friendRoomBillHistoryMonth = new FriendRoomBillHistoryMonth();
+            friendRoomBillHistoryMonth.month = entry.getKey();
+            friendRoomBillHistoryMonth.billHistories = entry.getValue();
+            friendRoomBillHistoryMonth.totalIncome =
+                entry.getValue().stream().map(f -> f.totalWin).mapToLong(a -> a).sum();
+            friendRoomBillHistoryMonths.add(friendRoomBillHistoryMonth);
+        }
+        res.monthBillList = friendRoomBillHistoryMonths;
+        res.pageSize = req.pageSize;
+        res.pageIdx = pageFriendRoomBillHistory.size() < req.pageSize ? -1 : req.pageIdx + 1;
+        res.code = Code.SUCCESS;
+        playerController.send(res);
+    }
+
+    /**
+     * 请求好友房中账单历史中玩家信息
+     */
+    public void reqFriendRoomBillPlayerInfo(PlayerController playerController, ReqFriendRoomBillPlayerInfo req) {
+        ResFriendRoomBillPlayerInfo res = new ResFriendRoomBillPlayerInfo(Code.PARAM_ERROR);
+        if (req.id <= 0) {
+            playerController.send(res);
+            return;
+        }
+        // 获取单个好友房间账单信息
+        FriendRoomBillHistoryBean historyBean = billHistoryDao.getOneFriendRoomBillInfo(req.id);
+        if (historyBean.getPartInPlayerIncome().isEmpty()) {
+            playerController.send(new ResFriendRoomBillPlayerInfo(Code.SUCCESS));
+            return;
+        }
+        // 获取所有加入的玩家
+        Map<Long, Player> playerMap = corePlayerService.multiGetPlayerMap(historyBean.getPartInPlayerIncome().keySet());
+        List<FriendRoomBillPlayerInfo> playerInfos = new ArrayList<>();
+        for (Map.Entry<Long, Long> entry : historyBean.getPartInPlayerIncome().entrySet()) {
+            if (!playerMap.containsKey(entry.getKey())) {
+                continue;
+            }
+            FriendRoomBillPlayerInfo playerInfo = new FriendRoomBillPlayerInfo();
+            playerInfo.billFlow = entry.getValue();
+            playerInfo.baseFriendRoomPlayerInfo =
+                FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(playerMap.get(entry.getKey()));
+            playerInfos.add(playerInfo);
+        }
+        res.playerInfos = playerInfos;
+        res.code = Code.SUCCESS;
+        playerController.send(res);
+    }
+
+    /**
+     * 请求一键领取所有的房间收益,为了避免更新到新加入的账单数据，所以需要对领取方法进行加锁
+     */
+    @RedissonLock(key = "FriendRoomBillUpdate:#playerController.playerId()", waitTime = 20, timeUnit = TimeUnit.SECONDS)
+    public void reqTakeFriendRoomIncomeReward(PlayerController playerController) {
+        ResTakeFriendRoomBillIncome res = new ResTakeFriendRoomBillIncome(Code.SUCCESS);
+        // 查询所有收益
+        long playerAllReward = billHistoryDao.getPlayerAllReward(playerController.playerId());
+        if (playerAllReward == 0) {
+            playerController.send(res);
+            return;
+        }
+        // 更新所有领奖状态
+        billHistoryDao.updateAllHistoryRewardTook(playerController.playerId());
+        // 给玩家添加金币
+        corePlayerService.addGold(playerController.playerId(), playerAllReward, "friend_room_income_take_all");
+        // 发送消息
+        playerController.send(res);
+    }
+
+    /**
+     * 请求操作好友房
+     */
+    public void reqOperateFriendRoom(PlayerController playerController, ReqOperateFriendRoom req) {
 
     }
 

@@ -400,7 +400,8 @@ public class CoreMarqueeManager implements TimerListener {
         NotifyMarquee notify = new NotifyMarquee();
         notify.marqueeInfo = transMarqueeInfo(marquee);
         log.debug("通知客户端跑马灯 marquee = {}", JSON.toJSONString(notify));
-        clusterSystem.sessionMap().entrySet().forEach(en -> en.getValue().send(notify));
+        // 广播消息
+        clusterSystem.broadcastToOnlinePlayer(notify);
     }
 
     /**
@@ -411,7 +412,8 @@ public class CoreMarqueeManager implements TimerListener {
     private void notifyClientStopMarquee(int id) {
         NotifyStopMarquee notify = new NotifyStopMarquee();
         notify.id = id;
-        clusterSystem.sessionMap().entrySet().forEach(en -> en.getValue().send(notify));
+        // 广播消息
+        clusterSystem.broadcastToOnlinePlayer(notify);
     }
 
     /**

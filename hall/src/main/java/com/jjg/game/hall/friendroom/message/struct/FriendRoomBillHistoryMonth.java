@@ -16,7 +16,7 @@ public class FriendRoomBillHistoryMonth {
     public int month;
 
     @ProtoDesc("总收益")
-    public int totalIncome;
+    public long totalIncome;
 
     @ProtoDesc("账单历史")
     public List<FriendRoomBillHistory> billHistories;

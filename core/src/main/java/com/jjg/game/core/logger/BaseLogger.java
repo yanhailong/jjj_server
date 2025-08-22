@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.RobotPlayer;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +36,7 @@ public class BaseLogger {
             JSONObject json = new JSONObject();
             json.put("num", num);
             json.put("serverIp", serverIp);
-            sendLog("online",null, json);
+            sendLog("online", null, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -50,7 +51,7 @@ public class BaseLogger {
                 json.put("playerId", playerId);
             }
             json.put("result", result);
-            sendLog("gm",null, json);
+            sendLog("gm", null, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -65,15 +66,18 @@ public class BaseLogger {
      * @param addType
      */
     public void useGold(Player player, long beforeGold, long gold, String addType, String desc) {
+        if (player instanceof RobotPlayer) {
+            return;
+        }
         try {
             JSONObject json = new JSONObject();
 
-            json = addGoldChange(json,beforeGold,gold, player.getGold());
+            json = addGoldChange(json, beforeGold, gold, player.getGold());
             json = addSafeBoxGoldChange(json, player.getSafeBoxGold(), 0, player.getSafeBoxGold());
 
             json.put("addType", addType);
             json.put("desc", desc);
-            sendLog("goldChange",player, json);
+            sendLog("goldChange", player, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -85,16 +89,20 @@ public class BaseLogger {
      * @param player
      * @param addType
      */
-    public void transSafeBoxGold(Player player, long beforeGold,long beforeSafeBoxGold, long gold, String addType, String desc) {
+    public void transSafeBoxGold(Player player, long beforeGold, long beforeSafeBoxGold, long gold, String addType,
+                                 String desc) {
+        if (player instanceof RobotPlayer) {
+            return;
+        }
         try {
             JSONObject json = new JSONObject();
 
-            json = addGoldChange(json,beforeGold,gold, player.getGold());
+            json = addGoldChange(json, beforeGold, gold, player.getGold());
             json = addSafeBoxGoldChange(json, beforeSafeBoxGold, gold, player.getSafeBoxGold());
 
             json.put("addType", addType);
             json.put("desc", desc);
-            sendLog("goldChange",player, json);
+            sendLog("goldChange", player, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -108,15 +116,18 @@ public class BaseLogger {
      * @param addType
      */
     public void useDiamond(Player player, long beforeDiamond, long diamond, String addType, String desc) {
+        if (player instanceof RobotPlayer) {
+            return;
+        }
         try {
             JSONObject json = new JSONObject();
 
-            json = addDiamondChange(json,beforeDiamond,diamond, player.getDiamond());
+            json = addDiamondChange(json, beforeDiamond, diamond, player.getDiamond());
             json = addSafeBoxDiamondChange(json, player.getSafeBoxDiamond(), 0, player.getSafeBoxDiamond());
 
             json.put("addType", addType);
             json.put("desc", desc);
-            sendLog("diamondChange",player, json);
+            sendLog("diamondChange", player, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -128,16 +139,21 @@ public class BaseLogger {
      * @param player
      * @param addType
      */
-    public void transSafeBoxDiamond(Player player, long beforeDiamond,long beforeSafeBoxDiamond, long diamond, String addType, String desc) {
+    public void transSafeBoxDiamond(Player player, long beforeDiamond, long beforeSafeBoxDiamond, long diamond,
+                                    String addType, String desc) {
+
+        if (player instanceof RobotPlayer) {
+            return;
+        }
         try {
             JSONObject json = new JSONObject();
 
-            json = addDiamondChange(json,beforeDiamond,diamond, player.getDiamond());
+            json = addDiamondChange(json, beforeDiamond, diamond, player.getDiamond());
             json = addSafeBoxDiamondChange(json, beforeSafeBoxDiamond, diamond, player.getSafeBoxDiamond());
 
             json.put("addType", addType);
             json.put("desc", desc);
-            sendLog("diamondChange",player, json);
+            sendLog("diamondChange", player, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -151,6 +167,9 @@ public class BaseLogger {
      * @param addType
      */
     public void useSafeBoxGold(Player player, long beforeGold, long gold, String addType, String desc) {
+        if (player instanceof RobotPlayer) {
+            return;
+        }
         try {
             JSONObject json = new JSONObject();
 
@@ -159,7 +178,7 @@ public class BaseLogger {
 
             json.put("addType", addType);
             json.put("desc", desc);
-            sendLog("goldChange",player, json);
+            sendLog("goldChange", player, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -173,15 +192,18 @@ public class BaseLogger {
      * @param addType
      */
     public void useSafeBoxDiamond(Player player, long beforeDiamond, long diamond, String addType, String desc) {
+        if (player instanceof RobotPlayer) {
+            return;
+        }
         try {
             JSONObject json = new JSONObject();
 
-            json = addDiamondChange(json,beforeDiamond,diamond, player.getDiamond());
+            json = addDiamondChange(json, beforeDiamond, diamond, player.getDiamond());
             json = addSafeBoxDiamondChange(json, beforeDiamond, diamond, player.getSafeBoxDiamond());
 
             json.put("addType", addType);
             json.put("desc", desc);
-            sendLog("diamondChange",player, json);
+            sendLog("diamondChange", player, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -196,13 +218,16 @@ public class BaseLogger {
      * @param addType
      */
     public void vip(Player player, int beforeLevel, int vipLevel, String addType, String desc) {
+        if (player instanceof RobotPlayer) {
+            return;
+        }
         try {
             JSONObject json = new JSONObject();
             json.put("beforeLevel", beforeLevel);
             json.put("currentLevel", vipLevel);
             json.put("addType", addType);
             json.put("desc", desc);
-            sendLog("vipLevelChange",player, json);
+            sendLog("vipLevelChange", player, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -216,11 +241,14 @@ public class BaseLogger {
      * @return
      */
     public void enterGame(Player player, int gameType, int roomCfgId) {
+        if (player instanceof RobotPlayer) {
+            return;
+        }
         try {
             JSONObject json = new JSONObject();
             json.put("gameType", gameType);
             json.put("roomCfgId", roomCfgId);
-            sendLog("enterGame",player, json);
+            sendLog("enterGame", player, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -233,10 +261,13 @@ public class BaseLogger {
      * @return
      */
     public void exitGame(Player player) {
+        if (player instanceof RobotPlayer) {
+            return;
+        }
         try {
             JSONObject json = new JSONObject();
             json.put("gameType", player.getGameType());
-            sendLog("exitGame",player, json);
+            sendLog("exitGame", player, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -244,19 +275,20 @@ public class BaseLogger {
 
     /**
      * 使用道具
+     *
      * @param playerId
      * @param itemId
      * @param count
      * @param addType
      */
-    public void useItem(long playerId,int itemId,int count,String addType){
+    public void useItem(long playerId, int itemId, int count, String addType) {
         try {
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
             json.put("itemId", itemId);
             json.put("count", count);
             json.put("addType", addType);
-            sendLog("useitem",null, json);
+            sendLog("useitem", null, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -264,16 +296,17 @@ public class BaseLogger {
 
     /**
      * 获取道具
+     *
      * @param playerId
      * @param addType
      */
-    public void addItems(long playerId, Map<Integer,Long> map, String addType){
+    public void addItems(long playerId, Map<Integer, Long> map, String addType) {
         try {
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
 
             JSONArray jsonArray = new JSONArray();
-            map.forEach((k,v) -> {
+            map.forEach((k, v) -> {
                 JSONObject jsonObject = new JSONObject();
                 jsonObject.put("itemId", k);
                 jsonObject.put("count", v);
@@ -282,7 +315,7 @@ public class BaseLogger {
 
             json.put("items", jsonArray);
             json.put("addType", addType);
-            sendLog("addItems",null, json);
+            sendLog("addItems", null, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -290,10 +323,11 @@ public class BaseLogger {
 
     /**
      * 获取道具
+     *
      * @param playerId
      * @param addType
      */
-    public void addItem(long playerId, int itemId,long count, String addType){
+    public void addItem(long playerId, int itemId, long count, String addType) {
         try {
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
@@ -306,21 +340,23 @@ public class BaseLogger {
 
             json.put("items", jsonArray);
             json.put("addType", addType);
-            sendLog("addItems",null, json);
+            sendLog("addItems", null, json);
         } catch (Exception e) {
             log.error("", e);
         }
     }
 
 
-
     /***********************************************************************************************/
 
     protected void sendLog(Player player, JSONObject json) {
-        sendLog(null,player,json);
+        sendLog(null, player, json);
     }
 
-    protected void sendLog(String topic,Player player, JSONObject json) {
+    protected void sendLog(String topic, Player player, JSONObject json) {
+        if (player instanceof RobotPlayer) {
+            return;
+        }
         if (player != null) {
             json.put("playerId", player.getId());
             json.put("gameType", player.getGameType());
@@ -330,7 +366,8 @@ public class BaseLogger {
         json.put("time", System.currentTimeMillis());
         json.put("nodeName", nodeConfig.getName());
         json.put("nodeType", nodeConfig.getType());
-        kafkaTemplate.send(StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic.toLowerCase(), JSONObject.toJSONString(json));
+        kafkaTemplate.send(StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic.toLowerCase(),
+            JSONObject.toJSONString(json));
     }
 
     protected void sendLog(JSONObject json) {
@@ -339,39 +376,48 @@ public class BaseLogger {
 
     /**
      * 金币变化字段
+     *
      * @return
      */
-    private JSONObject addGoldChange(JSONObject json,long beforeGold, long goldChange,long afterGold) {
+    private JSONObject addGoldChange(JSONObject json, long beforeGold, long goldChange, long afterGold) {
         json.put("beforeGold", beforeGold);
         json.put("goldChange", goldChange);
         json.put("afterGold", afterGold);
         return json;
     }
+
     /**
      * 钻石变化字段
+     *
      * @return
      */
-    private JSONObject addDiamondChange(JSONObject json,long beforeDiamond, long diamondChange,long afterDiamond) {
+    private JSONObject addDiamondChange(JSONObject json, long beforeDiamond, long diamondChange, long afterDiamond) {
         json.put("beforeDiamond", beforeDiamond);
         json.put("diamondChange", diamondChange);
         json.put("afterDiamond", afterDiamond);
         return json;
     }
+
     /**
      * 保险箱金币变化字段
+     *
      * @return
      */
-    private JSONObject addSafeBoxGoldChange(JSONObject json,long beforeSafeBoxGold, long safeBoxGoldChange,long afterSafeBoxGold) {
+    private JSONObject addSafeBoxGoldChange(JSONObject json, long beforeSafeBoxGold, long safeBoxGoldChange,
+                                            long afterSafeBoxGold) {
         json.put("beforeSafeBoxGold", beforeSafeBoxGold);
         json.put("safeBoxGoldChange", safeBoxGoldChange);
         json.put("afterSafeBoxGold", afterSafeBoxGold);
         return json;
     }
+
     /**
      * 保险箱钻石变化字段
+     *
      * @return
      */
-    private JSONObject addSafeBoxDiamondChange(JSONObject json,long beforeSafeBoxDiamond, long SafeBoxDiamondChange,long afterSafeBoxDiamond) {
+    private JSONObject addSafeBoxDiamondChange(JSONObject json, long beforeSafeBoxDiamond, long SafeBoxDiamondChange,
+                                               long afterSafeBoxDiamond) {
         json.put("beforeSafeBoxDiamond", beforeSafeBoxDiamond);
         json.put("safeBoxDiamondChange", SafeBoxDiamondChange);
         json.put("afterSafeBoxDiamond", afterSafeBoxDiamond);

@@ -125,6 +125,33 @@ public class FriendRoomMessageHandler {
         }
     }
 
+    @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_FRIEND_ROOM_BILL_PLAYER_INFO)
+    public void reqFriendRoomBillPlayerInfo(PlayerController playerController, ReqFriendRoomBillPlayerInfo req) {
+        try {
+            friendRoomServices.reqFriendRoomBillPlayerInfo(playerController, req);
+        } catch (Exception e) {
+            log.error("请求屏蔽玩家异常，{}", e.getMessage(), e);
+        }
+    }
+
+    @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_TAKE_FRIEND_ROOM_BILL_INCOME)
+    public void reqTakeFriendRoomIncomeReward(PlayerController playerController) {
+        try {
+            friendRoomServices.reqTakeFriendRoomIncomeReward(playerController);
+        } catch (Exception e) {
+            log.error("请求屏蔽玩家异常，{}", e.getMessage(), e);
+        }
+    }
+
+    @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_OPERATE_FRIEND_ROOM)
+    public void reqOperateFriendRoom(PlayerController playerController, ReqOperateFriendRoom req) {
+        try {
+            friendRoomServices.reqOperateFriendRoom(playerController, req);
+        } catch (Exception e) {
+            log.error("请求屏蔽玩家异常，{}", e.getMessage(), e);
+        }
+    }
+
     @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_RESET_INVITATION_CODE)
     public void reqResetInvitationCode(PlayerController playerController) {
         try {

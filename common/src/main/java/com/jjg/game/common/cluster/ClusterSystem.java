@@ -1,6 +1,7 @@
 package com.jjg.game.common.cluster;
 
 import com.jjg.game.common.config.NodeConfig;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.*;
 import com.jjg.game.common.gate.GateClusterMessageDispatcher;
 import com.jjg.game.common.message.SwitchNodeMessage;
@@ -13,6 +14,7 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.CommonUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +24,13 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -70,7 +77,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     private TimerEvent<String> clusterSystemEvent;
 
     @Bean
-    public ClusterMessageDispatcher clusterMessageDispacher() {
+    public ClusterMessageDispatcher clusterMessageDispatcher() {
         if (NodeType.GATE.toString().equals(nodeManager.nodeConfig.getType())) {
             return clusterMessageDispatcher = new GateClusterMessageDispatcher(this);
         } else {
@@ -84,8 +91,90 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
         return initializer;
     }
 
+    /**
+     * 不要暴露此接口，不应直接向外部返回sessionMap，而是提供对应的操作方法
+     */
+    @Deprecated
     public Map<String, PFSession> sessionMap() {
         return sessionMap;
+    }
+
+    /**
+     * 广播消息给所有在线玩家
+     *
+     * @param notify 通知消息
+     * @param <T>    t
+     */
+    public <T> void broadcastToOnlinePlayer(T notify) {
+        broadcastToOnlinePlayer(notify, CoreConst.Session.SESSION_BROADCAST_BATCH_LIMIT);
+    }
+
+    /**
+     * 广播消息给所有在线玩家
+     *
+     * @param notify     通知消息
+     * @param batchBlock 分批发送，每批次发送多少
+     * @param <T>        t
+     */
+    public <T> void broadcastToOnlinePlayer(T notify, int batchBlock) {
+        // 如果在线人数超过指定分批发送限制值
+        if (sessionMap.size() > batchBlock) {
+            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+                List<PFSession> sessionList = new ArrayList<>(sessionMap.values());
+                int sessionSize = sessionList.size(), batchSize =
+                    (int) Math.ceil(sessionList.size() / (batchBlock * 1.0));
+                for (int i = 0; i < batchSize; i++) {
+                    int startP = i * batchBlock;
+                    int endP = Math.min((i + 1) * batchBlock, sessionSize);
+                    List<PFSession> subList = sessionList.subList(startP, endP);
+                    // 分批次向客户端发送，避免同一时间发送大量消息
+                    executor.submit(() -> {
+                        if (!subList.isEmpty()) {
+                            subList.forEach(pf -> {
+                                if (pf.getConnect() != null && pf.getConnect().isActive()) {
+                                    pf.send(notify);
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+        } else {
+            sessionMap.forEach((key, session) -> {
+                if (session.getConnect() != null && session.getConnect().isActive()) {
+                    session.send(notify);
+                }
+            });
+        }
+    }
+
+    /**
+     * 是否存在session
+     */
+    public boolean existSession(String sessionId) {
+        if (StringUtils.isEmpty(sessionId)) {
+            return false;
+        }
+        return sessionMap.containsKey(sessionId);
+    }
+
+    /**
+     * 通过sessionId获取session
+     */
+    public PFSession getSession(String sessionId) {
+        if (StringUtils.isEmpty(sessionId)) {
+            return null;
+        }
+        return sessionMap.get(sessionId);
+    }
+
+    /**
+     * 添加session
+     */
+    public void putSession(String sessionId, PFSession pfSession) {
+        if (!StringUtils.isEmpty(sessionId) && pfSession != null) {
+            sessionMap.put(sessionId, pfSession);
+        }
     }
 
     /**
@@ -298,7 +387,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
      * @return
      */
     public List<ClusterClient> getNodesByType(NodeType nodeType, int gameType) {
-        return getNodesByType(nodeType,gameType,false);
+        return getNodesByType(nodeType, gameType, false);
     }
 
     /**
@@ -309,18 +398,18 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
      * @return
      */
     public List<ClusterClient> getNodesByTypeExcludeSelf(NodeType nodeType, int gameType) {
-        return getNodesByType(nodeType,gameType,true);
+        return getNodesByType(nodeType, gameType, true);
     }
 
     /**
      * 获取该类型的所有节点
      *
-     * @param nodeType 节点类型
-     * @param gameType 游戏类型
+     * @param nodeType    节点类型
+     * @param gameType    游戏类型
      * @param excludeSelf 是否排除本节点
      * @return
      */
-    public List<ClusterClient> getNodesByType(NodeType nodeType, int gameType,boolean excludeSelf) {
+    public List<ClusterClient> getNodesByType(NodeType nodeType, int gameType, boolean excludeSelf) {
         List<ClusterClient> clusterClients = new ArrayList<>();
         String name = nodeType.toString();
 
@@ -336,7 +425,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
             }
 
             //排除本节点
-            if(excludeSelf && client.nodeConfig.getName().equals(this.nodeConfig.getName())) {
+            if (excludeSelf && client.nodeConfig.getName().equals(this.nodeConfig.getName())) {
                 continue;
             }
 
