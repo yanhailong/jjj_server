@@ -6,6 +6,8 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractNotice;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
 
+import java.util.List;
+
 /**
  * @author lm
  * @date 2025/8/6 16:22
@@ -20,9 +22,9 @@ public class NotifyBlackJackPutCard extends AbstractNotice {
     @ProtoDesc("分牌自动发牌牌id")
     public int autoCardId;
     @ProtoDesc("分牌自动发牌总点数")
-    public int nextTotalPoint;
+    public List<Integer> nextTotalPoint;
     @ProtoDesc("总点数")
-    public int totalPoint;
+    public List<Integer> totalPoint;
     @ProtoDesc("下一个操作人")
     public long operationId;
     @ProtoDesc("操作结束时间")

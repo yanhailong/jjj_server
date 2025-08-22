@@ -29,7 +29,7 @@ public class NotifyBlackJackSpecialSettlement extends AbstractNotice {
     @ProtoDesc("拿牌id")
     public int sendCardId;
     @ProtoDesc("拿牌后总点数")
-    public int putCardTotal;
+    public List<Integer> putCardTotal;
     @ProtoDesc("下注金额")
     public long betValue;
     @ProtoDesc("当前牌组索引")

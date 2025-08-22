@@ -50,13 +50,19 @@ public abstract class BasePlayCardPhase<T extends BasePokerGameDataVo> extends B
         return EGamePhase.PLAY_CART;
     }
 
+    public List<Integer> getCards(Map<Integer, PokerCard> cardListMap) {
+        List<Integer> list = new ArrayList<>(cardListMap.keySet());
+        Collections.shuffle(list);
+        return list;
+    }
+
     /**
      * 发牌
      */
     public int sendCards(Map<Integer, PokerCard> cardListMap, BasePokerGameDataVo gameDataVo) {
-        gameDataVo.setCards(new ArrayList<>(cardListMap.keySet()));
+
+        gameDataVo.setCards(getCards(cardListMap));
         List<Integer> cards = gameDataVo.getCards();
-        Collections.shuffle(cards);
         int sendNum = 0;
         //从第一个执行者开始发牌
         int handPoker = gameDataVo.getRoomCfg().getHandPoker();

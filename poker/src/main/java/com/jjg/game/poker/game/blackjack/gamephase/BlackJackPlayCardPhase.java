@@ -10,6 +10,7 @@ import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.gamephase.BasePlayCardPhase;
+import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -31,8 +32,20 @@ public class BlackJackPlayCardPhase extends BasePlayCardPhase<BlackJackGameDataV
     }
 
     @Override
+    public List<Integer> getCards(Map<Integer, PokerCard> cardListMap) {
+        if (Objects.nonNull(gameDataVo.getTempCard())) {
+            return new ArrayList<>(gameDataVo.getTempCard());
+        }
+        return super.getCards(cardListMap);
+    }
+
+    @Override
     public void playCardPhaseDoAction() {
         if (gameController instanceof BlackJackGameController controller) {
+            if (gameDataVo.getPlayerSeatInfoList().isEmpty()) {
+                controller.addPokerPhase(new BaseWaitReadyPhase<>(controller));
+                return;
+            }
             Room_ChessCfg roomChessCfg = gameDataVo.getRoomCfg();
             //发牌
             int poolId = BlackJackDataHelper.getPoolId(gameDataVo);
