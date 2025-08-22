@@ -58,6 +58,8 @@ public class HallService implements ConfigExcelChangeListener {
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
     private Map<Integer, GameStatus> gameStatusesMap;
+    //排序后的gameList
+    private List<GameListConfig> sortGameList;
 
     public Map<Integer, GameStatus> getGameStatusesMap() {
         return gameStatusesMap;
@@ -72,28 +74,29 @@ public class HallService implements ConfigExcelChangeListener {
     //默认称号id
     private int defaultTitlelId = 0;
 
+    public void init() {
+        //缓存倍场的配置信息
+        initWareHouseConfigData();
+        //缓存每个游戏的状态
+        loadGameStatuses(gameStatusService.getAllGameStatus());
+    }
+
     public void loadGameStatuses(List<GameStatus> gameStatuses) {
         if(gameStatuses == null || gameStatuses.isEmpty()) {
             this.gameStatusesMap = new HashMap<>();
         }else {
             this.gameStatusesMap = gameStatuses.stream().collect(Collectors.toMap(GameStatus::gameId, gs -> gs));
         }
+        this.sortGameList = sortGameList();
     }
 
     public void refreshGameStatuses() {
         loadGameStatuses(gameStatusService.getAllGameStatus());
 
         NotifyGameList notify = new NotifyGameList();
-        notify.gameList = addGameList();
+        notify.gameList = this.sortGameList;
         log.debug("推送游戏列表");
         clusterSystem.sessionMap().entrySet().forEach(en -> en.getValue().send(notify));
-    }
-
-    public void init() {
-        //缓存倍场的配置信息
-        initWareHouseConfigData();
-        //缓存每个游戏的状态
-        loadGameStatuses(gameStatusService.getAllGameStatus());
     }
 
     public List<WareHouseConfigInfo> getWareHouseConfigByGameType(int gameType) {
@@ -524,35 +527,56 @@ public class HallService implements ConfigExcelChangeListener {
     /**
      * 游戏列表配置
      */
-    public List<GameListConfig> addGameList() {
+    public List<GameListConfig> sortGameList() {
         try {
-            List<GameListConfig> list = new ArrayList<>();
             Map<Integer, GameStatus> gameStatusesMap = getGameStatusesMap();
-            for (GameListCfg configCfg : GameDataManager.getGameListCfgList()) {
-                if (Objects.nonNull(gameStatusesMap)) {
-                    GameStatus gameStatus = gameStatusesMap.get(configCfg.getId());
-                    if (Objects.nonNull(gameStatus)) {
-                        GameListConfig gameListConfig = new GameListConfig();
-                        gameListConfig.sid = gameStatus.gameId();
-                        gameListConfig.name = configCfg.getName();
-                        //TODO 配置和后台状态统一
-                        gameListConfig.status = gameStatus.open() == 1 ? gameStatus.status() : 2;
-                        gameListConfig.iconType = configCfg.getIconType();
-                        list.add(gameListConfig);
-                        continue;
-                    }
-                }
-                GameListConfig gameListConfig = new GameListConfig();
-                gameListConfig.sid = configCfg.getId();
-                gameListConfig.name = configCfg.getName();
-                gameListConfig.status = configCfg.getStatus();
-                gameListConfig.iconType = configCfg.getIconType();
-                list.add(gameListConfig);
-            }
-            return list;
+
+            return GameDataManager.getGameListCfgList().stream()
+                    .map(configCfg -> {
+                        GameListConfig config = new GameListConfig();
+                        int gameId = configCfg.getId();
+                        int sortValue = Integer.MAX_VALUE;
+
+                        if (Objects.nonNull(gameStatusesMap)) {
+                            GameStatus gameStatus = gameStatusesMap.get(gameId);
+                            if (Objects.nonNull(gameStatus)) {
+                                config.sid = gameStatus.gameId();
+                                config.name = configCfg.getName();
+                                config.status = gameStatus.status();
+                                config.iconType = gameStatus.icon_category();
+                                config.rightTopIcon = gameStatus.right_top_icon();
+                                sortValue = gameStatus.sort();
+                            } else {
+                                config.sid = gameId;
+                                config.name = configCfg.getName();
+                                config.status = configCfg.getStatus();
+                                config.iconType = configCfg.getIconType();
+                            }
+                        } else {
+                            config.sid = gameId;
+                            config.name = configCfg.getName();
+                            config.status = configCfg.getStatus();
+                            config.iconType = configCfg.getIconType();
+                        }
+
+                        return new AbstractMap.SimpleEntry<>(config, sortValue);
+                    })
+                    .sorted((a, b) -> {
+                        int sortCompare = Integer.compare(a.getValue(), b.getValue());
+                        if (sortCompare != 0) {
+                            return sortCompare;
+                        }
+                        return Integer.compare(a.getKey().sid, b.getKey().sid);
+                    })
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("", e);
         }
         return Collections.emptyList();
+    }
+
+    public List<GameListConfig> getSortGameList() {
+        return sortGameList;
     }
 }

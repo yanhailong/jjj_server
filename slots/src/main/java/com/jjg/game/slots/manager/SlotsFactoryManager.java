@@ -36,10 +36,10 @@ public class SlotsFactoryManager {
      */
     private void initGameManager(ApplicationContext context){
         Map<String, AbstractSlotsGameManager> gameManages = context.getBeansOfType(AbstractSlotsGameManager.class);
-        gameManages.entrySet().forEach(en -> {
-            AbstractSlotsGameManager manager = en.getValue();
-            int gameType = manager.getGameType();
-            this.slotsGameManagerMap.put(gameType,manager);
+        gameManages.forEach((k,v) -> {
+            v.init();
+            int gameType = v.getGameType();
+            this.slotsGameManagerMap.put(gameType,v);
         });
     }
 
@@ -47,7 +47,7 @@ public class SlotsFactoryManager {
      * 关闭游戏管理器
      */
     private void closeGameManager(){
-        this.slotsGameManagerMap.entrySet().forEach(en -> en.getValue().shutdown());
+        this.slotsGameManagerMap.forEach((k,v) -> v.shutdown());
     }
 
     public AbstractSlotsGameManager getGameManager(int gameType){

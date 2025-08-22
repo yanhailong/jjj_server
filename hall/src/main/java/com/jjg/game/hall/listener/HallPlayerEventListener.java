@@ -2,11 +2,8 @@ package com.jjg.game.hall.listener;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
-import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
-import com.jjg.game.common.curator.NodeType;
-import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.listener.SessionLoginListener;
@@ -175,7 +172,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.nationalId = player.getNationalId();
             res.titleId = player.getTitleId();
             //添加游戏列表
-            res.gameList = hallService.addGameList();
+            res.gameList = hallService.getSortGameList();
             //添加跑马灯
             res.marqueeInfo = addMarquee();
 
@@ -184,6 +181,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.level = player.getLevel();
             res.exp = player.getExp();
             res.gameTypeList = likeGameDao.getLikeGames(player.getId());
+
+            //更新session
+            playerSessionService.changeSessionInfo(session, player);
 
             //检查重连
             if (reconnect(session, player)) {
@@ -201,8 +201,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             //接收全服邮件
             mailService.playerGetServerMails(player.getId());
-            //更新session
-            playerSessionService.changeSessionInfo(session, player);
 
             //创建 playerController
             PlayerController playerController = new PlayerController(session, player);
@@ -213,7 +211,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             if (register[0]) {
                 hallService.saveDefaultAvatar(req.playerId);
             }
-            log.info("玩家登录成功 playerId = {},register = {}", player.getId(),register[0]);
+            log.info("玩家登录成功 playerId = {},res = {}", player.getId(),JSON.toJSONString(res));
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             session.send(res);
@@ -238,108 +236,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
         PlayerController playerController = new PlayerController(session, player);
         session.setReference(playerController);
 
-        playerSessionService.changeSessionInfo(session, player);
+        playerSessionService.updateNodePath(session, player);
         log.debug("玩家进入大厅节点 playerId={}", playerId);
-    }
-
-    /**
-     * 重连进入房间
-     *
-     * @param session
-     * @param player
-     * @return
-     */
-    private CommonResult<Player> enterRoom(PFSession session, Player player) {
-        CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
-        try {
-            Room room = roomDao.getRoom(player.getGameType(), player.getRoomId());
-            if (room == null) {
-                player = hallPlayerService.checkAndSave(player.getId(), new DataSaveCallback<>() {
-                    @Override
-                    public void updateData(Player dataEntity) {
-                    }
-
-                    @Override
-                    public Boolean updateDataWithRes(Player p) {
-                        p.setRoomId(0);
-                        p.setGameType(0);
-                        p.setRoomCfgId(0);
-                        return true;
-                    }
-                });
-                log.debug("获取房间信息失败,重连进入房间失败 playerId={},gameType = {},roomId = {}", player.getId(),
-                    player.getGameType(), player.getRoomId());
-                result.code = Code.FAIL;
-                result.data = player;
-                return result;
-            }
-
-            log.debug("玩家重连开始进入房间 playerId = {},gameType = {},roomId = {}", player.getId(), player.getGameType(),
-                player.getRoomId());
-            String nodePath = room.getPath();
-            if (StringUtils.isEmpty(nodePath)) {
-                player = hallPlayerService.checkAndSave(player.getId(), new DataSaveCallback<>() {
-                    @Override
-                    public void updateData(Player dataEntity) {
-                    }
-
-                    @Override
-                    public Boolean updateDataWithRes(Player p) {
-                        p.setRoomId(0);
-                        p.setGameType(0);
-                        p.setRoomCfgId(0);
-                        return true;
-                    }
-                });
-                log.debug("房间节点为空，重连进入房间失败 playerId={},gameType = {},roomId = {}", player.getId(),
-                    player.getGameType(), player.getRoomId());
-                result.code = Code.FAIL;
-                result.data = player;
-                return result;
-            }
-
-            //获取房间所在节点
-            MarsNode marsNode = clusterSystem.getNode(nodePath);
-            if (marsNode == null) {
-                log.warn("找不到源房间所在节点,开始寻找新服务的节点,playerId={},gameType = {},roomId={},nodePath={}", player.getId(),
-                    player.getGameType(), player.getRoomId(), nodePath);
-                String lockKey = roomDao.getLockName(player.getGameType(), player.getRoomId());
-                int tryTime = GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES;
-                redisLock.lock(lockKey, tryTime);
-                try {
-                    marsNode = nodeManager.getGameNodeByWeight(player.getGameType(), player.getId(),
-                        player.getIp());
-                    if (marsNode == null) {
-                        log.warn("无可用节点，nodeType={},gameType={}", NodeType.GAME, player.getGameType());
-                        result.code = Code.FAIL;
-                        result.data = player;
-                        return result;
-                    }
-                    final String marsNodePath = marsNode.getNodePath();
-                    roomDao.doSave(room.getGameType(), room.getId(), (r) -> r.setPath(marsNodePath));
-                } catch (Exception e) {
-                    log.warn("房间迁移重试 playerId={},gameType = {},roomId = {}",
-                        player.getId(), player.getGameType(), player.getRoomId(), e);
-                } finally {
-                    redisLock.unlock(lockKey);
-                }
-            }
-
-            if (marsNode == null) {
-                log.debug("房间迁移失败，未找到新的节点 playerId={},gameType = {},roomId={}", player.getId(), player.getGameType(),
-                    player.getRoomId());
-                result.code = Code.FAIL;
-                result.data = player;
-                return result;
-            }
-
-            clusterSystem.switchNode(session, marsNode);
-        } catch (Exception e) {
-            log.error("", e);
-            result.code = Code.EXCEPTION;
-        }
-        result.data = player;
-        return result;
     }
 
     /**

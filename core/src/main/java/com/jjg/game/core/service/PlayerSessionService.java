@@ -270,6 +270,24 @@ public class PlayerSessionService implements TimerListener<String> {
         return redisTemplate.opsForHash().hasKey(SESSION_TABLE_NAME, playerId);
     }
 
+    /**
+     * 更新玩家当前所在节点
+     * @param pfSession
+     * @param player
+     */
+    public void updateNodePath(PFSession pfSession, Player player) {
+        PlayerSessionInfo info = getInfo(player.getId());
+        if(info == null) {
+            info = new PlayerSessionInfo();
+            info.setNodeName(pfSession.gatePath);
+            info.setPlayerId(player.getId());
+            info.setGameType(player.getGameType());
+            info.setRoomCfgId(player.getRoomCfgId());
+            info.setSessionId(pfSession.sessionId());
+        }
+        save(info);
+    }
+
     public void changeSessionInfo(PFSession pfSession, Player player) {
         changeSessionInfo(pfSession, player, player.getGameType(), player.getRoomCfgId());
     }

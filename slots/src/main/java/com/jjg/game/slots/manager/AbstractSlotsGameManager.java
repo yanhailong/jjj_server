@@ -122,8 +122,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      * 初始化
      */
     public void init(){
-        getResultLibDao().init(getGameType());
-        getGenerateManager().init(getGameType());
+        this.gameType = getGameType();
+
+        getResultLibDao().init(this.gameType);
+        getGenerateManager().init(this.gameType);
         initConfig();
 
         addCheckOffLineEvent();
