@@ -413,7 +413,7 @@ public class HallService implements ConfigExcelChangeListener {
                     log.debug("未找到获得新道具的配置 playerId = {},itemId = {}",playerId,addItemId);
                     continue;
                 }
-                useResult = playerPackService.useItem(playerId,girdId, itemId, addItemId, en.getValue(), "packUseItem");
+                useResult = playerPackService.useItem(playerId,girdId, itemId,1, addItemId, en.getValue(), "packUseItem");
             }
 
             if(useResult == null){

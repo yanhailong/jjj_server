@@ -23,6 +23,13 @@ public class PlayerPack {
     // 已经被占用的格子id
     private Set<Integer> usedGird;
 
+    public PlayerPack() {
+    }
+
+    public PlayerPack(long playerId) {
+        this.playerId = playerId;
+    }
+
     public long getPlayerId() {
         return playerId;
     }
