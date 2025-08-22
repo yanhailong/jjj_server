@@ -6,6 +6,8 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.hall.constant.HallConstant;
 
+import java.util.List;
+
 /**
  * @author 11
  * @date 2025/8/21 9:48
@@ -13,5 +15,5 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.REQ_LIKE_GAME)
 @ProtoDesc("请求收藏游戏列表")
 public class ReqLikeGame extends AbstractMessage {
-    public int gameType;
+    public List<Integer> gameTypes;
 }

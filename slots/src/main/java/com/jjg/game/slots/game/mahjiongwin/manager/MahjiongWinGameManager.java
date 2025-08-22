@@ -30,7 +30,6 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
     @Autowired
     private MahjiongWinGameDataDao gameDataDao;
 
-
     public MahjiongWinGameManager() {
         super(MahjiongWinPlayerGameData.class);
     }
@@ -38,12 +37,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
     @Override
     public void init() {
         log.info("启动麻将胡了游戏管理器...");
-        this.gameType = CoreConst.GameType.MAHJIONG_WIN;
         this.libDao.init(this.gameType);
-
-        //计算配置后缓存
-//        initConfig();
-//        this.generateManager.init(this.gameType);
     }
 
     /**
@@ -58,6 +52,21 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
 
     @Override
     public void shutdown() {
+        try{
+            super.shutdown();
+            log.info("已关闭麻将胡了游戏管理器");
+        }catch (Exception e){
+            log.error("",e);
+        }
+    }
+
+    @Override
+    public int getGameType() {
+        return CoreConst.GameType.MAHJIONG_WIN;
+    }
+
+    @Override
+    protected void offlineSaveGameDataDto(MahjiongWinPlayerGameData gameData) {
 
     }
 }

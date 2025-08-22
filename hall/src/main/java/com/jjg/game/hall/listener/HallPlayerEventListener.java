@@ -29,6 +29,7 @@ import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.logger.HallLogger;
 import com.jjg.game.hall.pb.req.ReqLogin;
 import com.jjg.game.hall.pb.res.ResLogin;
+import com.jjg.game.hall.pb.struct.GameWareInfo;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
 import org.apache.commons.lang3.StringUtils;
@@ -74,6 +75,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private CoreMarqueeManager marqueeManager;
     @Autowired
     private LikeGameDao likeGameDao;
+    @Autowired
+    private HallRoomDao hallRoomDao;
 
     @Override
     public void login(PFSession session, byte[] data) {
@@ -110,7 +113,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             //校验token
             if (!playerSessionToken.getToken().equals(req.token)) {
-                res.code = Code.ERROR_REQ;
+                res.code = Code.EXPIRE;
                 session.send(res);
                 log.debug("token校验失败,登录失败, playerId = {},dbToken = {},reqToken = {}", req.playerId,
                     playerSessionToken.getToken(), req.token);
@@ -161,17 +164,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             session.verifyPass(player.getId(), player.getIp(), null);
 
-            //检查重连
-            if (reconnect(session, player)) {
-                hallLogger.login(player, req.token, playerSessionToken.getLoginType());
-                return;
-            }
-
-            //接收全服邮件
-            mailService.playerGetServerMails(player.getId());
-
-            playerSessionService.changeSessionInfo(session, player);
-
             res.playerId = player.getId();
             res.nickName = player.getNickName();
             res.gender = player.getGender();
@@ -193,14 +185,30 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.exp = player.getExp();
             res.gameTypeList = likeGameDao.getLikeGames(player.getId());
 
-            session.send(res);
+            //检查重连
+            if (reconnect(session, player)) {
+                res.gameWareInfo = new GameWareInfo();
+                res.gameWareInfo.gameType = player.getGameType();
+                res.gameWareInfo.roomCfgId = player.getRoomCfgId();
+                session.send(res);
+                hallLogger.login(player, req.token, playerSessionToken.getLoginType());
+                return;
+            }
 
-            //发送登录日志
+            //返回登录消息
+            session.send(res);
+            hallLogger.login(player, req.token, playerSessionToken.getLoginType());
+
+            //接收全服邮件
+            mailService.playerGetServerMails(player.getId());
+            //更新session
+            playerSessionService.changeSessionInfo(session, player);
+
+            //创建 playerController
             PlayerController playerController = new PlayerController(session, player);
             session.setReference(playerController);
             //需要设置workId，否则hall模块所有的请求都将处于多线程环境，当连点发生时不能保证逻辑顺序执行
             session.setWorkId(player.getId());
-            hallLogger.login(player, req.token, playerSessionToken.getLoginType());
 
             if (register[0]) {
                 hallService.saveDefaultAvatar(req.playerId);
@@ -341,30 +349,57 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
      * @return
      */
     private boolean reconnect(PFSession session, Player player) {
-        boolean halfOffLine = false;
-        Optional<PlayerLastGameInfo> op = playerLastGameInfoDao.findById(player.getId());
-        PlayerLastGameInfo playerLastGameInfo = null;
-        if (op.isPresent()) {
-            playerLastGameInfo = op.get();
-            if (playerLastGameInfo.isHalfwayOffline() && StringUtils.isNotEmpty(playerLastGameInfo.getNodePath())) {
-                halfOffLine = true;
+        MarsNode node = null;
+        //先判断有房间类的游戏重连
+        if(player.getRoomId() > 0){
+            //获取该房间数据
+            Room room = hallRoomDao.getRoom(player.getGameType(), player.getRoomId());
+            if(room == null){
+                log.warn("断线重连时，获取房间对象为空 playerId = {},roomId = {}", player.getId(), player.getRoomId());
+                hallPlayerService.doSave(player.getId(), (p) -> {
+                    p.setRoomId(0);
+                    p.setGameType(0);
+                    p.setRoomCfgId(0);
+                });
+                return false;
             }
-        }
+            String path = room.getPath();
+            //获取房间所在的节点
+            node = clusterSystem.getNode(path);
+            if(node == null){
+                log.warn("断线重连时，房间所在的节点为空 playerId = {},roomId = {},path = {}", player.getId(), player.getRoomId(),node.getNodePath());
+                hallPlayerService.doSave(player.getId(), (p) -> {
+                    p.setRoomId(0);
+                    p.setGameType(0);
+                    p.setRoomCfgId(0);
+                });
+                return false;
+            }
+        }else {
+            //没有房间类的游戏重连
+            Optional<PlayerLastGameInfo> op = playerLastGameInfoDao.findById(player.getId());
+            if (op.isEmpty()) {
+                return false;
+            }
 
-        if (!halfOffLine) {
-            return false;
-        }
+            PlayerLastGameInfo playerLastGameInfo = op.get();
+            if (!playerLastGameInfo.isHalfwayOffline() || StringUtils.isEmpty(playerLastGameInfo.getNodePath())) {
+                return false;
+            }
 
-        MarsNode node = clusterSystem.getNode(playerLastGameInfo.getNodePath());
-        if (node == null) {
-            node = nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
+            //获取节点
+            node = clusterSystem.getNode(playerLastGameInfo.getNodePath());
             if (node == null) {
-                log.info("重连时未发现该类型游戏节点 playerId={},gameType={}", player.getId(), player.getGameType());
-                return false; //这里不能返回true，不然玩家无法登录
+                node = nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
+                if (node == null) {
+                    playerLastGameInfo.setHalfwayOffline(false);
+                    playerLastGameInfo.setNodePath(null);
+                    playerLastGameInfoDao.save(playerLastGameInfo);
+                    return false;
+                }
             }
         }
-        log.info("玩家重连开始切换节点 playerId={},gameType={},toNode = {}", player.getId(), player.getGameType(),
-            node.getNodePath());
+        log.info("玩家重连开始切换节点 playerId={},gameType={},toNode = {}", player.getId(), player.getGameType(),node.getNodePath());
         clusterSystem.switchNode(session, node);
         return true;
     }

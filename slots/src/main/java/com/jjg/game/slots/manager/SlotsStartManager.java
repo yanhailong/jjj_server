@@ -1,13 +1,8 @@
 package com.jjg.game.slots.manager;
 
 import com.jjg.game.common.service.MarsCoreStartService;
-import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
-import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressTestManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -16,7 +11,6 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
-import java.util.Map;
 
 
 /**
@@ -26,18 +20,14 @@ import java.util.Map;
  */
 @Component
 public class SlotsStartManager implements SmartLifecycle, ApplicationContextAware {
-    private Logger log = LoggerFactory.getLogger(getClass());
-
     @Autowired
     private MarsCoreStartService marsCoreStartService;
     @Autowired
     private CoreStartService coreStartService;
     @Autowired
-    private SlotsPoolDao slotsPoolDao;
-    @Autowired
-    private DollarExpressTestManager testManager;
-    @Autowired
     private CoreMarqueeManager marqueeManager;
+    @Autowired
+    private SlotsFactoryManager slotsFactoryManager;
     //上下文
     private ApplicationContext context;
 
@@ -46,22 +36,20 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
     @Override
     public void start() {
         //启动基础设施
-        marsCoreStartService.init(this.context, Collections.emptySet());
+        this.marsCoreStartService.init(this.context, Collections.emptySet());
         //启动core模块
-        coreStartService.init(this.context);
-        //初始化池子
-        this.slotsPoolDao.initPool();
-        //初始化所有游戏管理器
-        initGameManager();
-//        testManager.init();
+        this.coreStartService.init(this.context);
+        //slots 工厂
+        this.slotsFactoryManager.init(this.context);
+        //跑马灯
         this.marqueeManager.init();
         running = true;
     }
 
     @Override
     public void stop() {
-        //关闭游戏管理器
-        closeGameManager();
+        //关闭工厂
+        this.slotsFactoryManager.shutdown();
         //关闭core模块
         coreStartService.shutdown();
         //关闭基础设施
@@ -78,21 +66,5 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
     @Override
     public void setApplicationContext(ApplicationContext context) throws BeansException {
         this.context = context;
-    }
-
-    /**
-     * 初始化游戏管理器
-     */
-    private void initGameManager(){
-        Map<String, AbstractSlotsGameManager> gameManagerMap = CommonUtil.getContext().getBeansOfType(AbstractSlotsGameManager.class);
-        gameManagerMap.entrySet().forEach(en -> en.getValue().init());
-    }
-
-    /**
-     * 关闭游戏管理器
-     */
-    private void closeGameManager(){
-        Map<String, AbstractSlotsGameManager> gameManagerMap = CommonUtil.getContext().getBeansOfType(AbstractSlotsGameManager.class);
-        gameManagerMap.entrySet().forEach(en -> en.getValue().shutdown());
     }
 }

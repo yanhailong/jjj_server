@@ -434,11 +434,11 @@ public class HallService implements ConfigExcelChangeListener {
     /**
      * 添加收藏游戏
      * @param playerId
-     * @param gameType
+     * @param gameTypes
      * @return
      */
-    public List<Integer> addLikeGame(long playerId,int gameType){
-        TreeSet<Integer> set = likeGameDao.addLikeGame(playerId, gameType);
+    public List<Integer> addLikeGame(long playerId,List<Integer> gameTypes){
+        TreeSet<Integer> set = likeGameDao.addLikeGame(playerId, gameTypes);
         return new ArrayList<>(set);
     }
 

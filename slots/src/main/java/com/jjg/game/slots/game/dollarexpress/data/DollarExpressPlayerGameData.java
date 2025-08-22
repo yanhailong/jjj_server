@@ -2,7 +2,6 @@ package com.jjg.game.slots.game.dollarexpress.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import org.springframework.beans.BeanUtils;
-import org.springframework.data.annotation.Transient;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,7 +33,6 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
     private long addDollarsTotalStake;
 
     //用于测试
-    @Transient
     private LinkedList<TestLibData> testLibDataList;
 
     //剩余的免费次数
