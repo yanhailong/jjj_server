@@ -34,14 +34,14 @@ public class BlackJackBuilder {
             jackPutCard.operationId = nextPlayerId;
             jackPutCard.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
         }
-        jackPutCard.cardId = cardId;
-        jackPutCard.cardIndex = oldInfo.getCurrentCards().size() > 1 ? oldInfo.getCardIndex() + 1 : oldInfo.getCardIndex();
+        jackPutCard.cardId = BlackJackDataHelper.getClientCardId(gameDataVo,cardId);
+        jackPutCard.cardIndex = oldInfo.getCards().size() > 1 && autoCardId == 0 ? oldInfo.getCardIndex() + 1 : oldInfo.getCardIndex();
         if (autoCardId > 0) {
-            jackPutCard.autoCardId = autoCardId;
-            jackPutCard.nextTotalPoint = BlackJackDataHelper.getTotalPoint(oldInfo.getCards().getLast());
+            jackPutCard.autoCardId = BlackJackDataHelper.getClientCardId(gameDataVo,cardId);;
+            jackPutCard.nextTotalPoint = BlackJackDataHelper.getShowTotalPoint(oldInfo.getCards().getLast());
         }
         jackPutCard.playerId = oldInfo.getPlayerId();
-        jackPutCard.totalPoint = BlackJackDataHelper.getTotalPoint(oldInfo.getCards().getFirst());
+        jackPutCard.totalPoint = BlackJackDataHelper.getShowTotalPoint(oldInfo.getCards().getFirst());
         return jackPutCard;
     }
 
@@ -72,7 +72,7 @@ public class BlackJackBuilder {
                 blackJackCardInfo.betValue = betInfo.values().stream().mapToLong(Long::longValue).sum();
             }
             //计算总点数
-            blackJackCardInfo.totalPoint = BlackJackDataHelper.getTotalPoint(playerSeatInfo.getCurrentCards());
+            blackJackCardInfo.totalPoint = BlackJackDataHelper.getShowTotalPoint(playerSeatInfo.getCurrentCards());
             blackJackCardInfos.add(blackJackCardInfo);
         }
         return blackJackCardInfos;
@@ -89,7 +89,7 @@ public class BlackJackBuilder {
             BlackJackCardInfo blackJackCardInfo = new BlackJackCardInfo();
             blackJackCardInfo.playerId = playerSeatInfo.getPlayerId();
             blackJackCardInfo.cardIds = BlackJackDataHelper.getClientId(gameDataVo, card);
-            blackJackCardInfo.totalPoint = BlackJackDataHelper.getTotalPoint(card);
+            blackJackCardInfo.totalPoint = BlackJackDataHelper.getShowTotalPoint(card);
             blackJackCardInfo.betValue = controller.getPlayerSingleTotalBet(playerSeatInfo.getPlayerId(), i);
             cardInfos.add(blackJackCardInfo);
         }

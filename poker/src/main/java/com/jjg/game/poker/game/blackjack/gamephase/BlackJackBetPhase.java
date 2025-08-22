@@ -1,9 +1,8 @@
 package com.jjg.game.poker.game.blackjack.gamephase;
 
 import com.jjg.game.common.utils.CommonUtil;
-import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.pb.ResExitGame;
+import com.jjg.game.core.pb.NotifyTableExitRoom;
 import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
 import com.jjg.game.poker.game.common.PokerBuilder;
@@ -84,8 +83,8 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
                 PlayerController playerController = playerControllers.get(info.getPlayerId());
                 if (Objects.nonNull(playerController)) {
                     log.info("玩家：{}  未押注直接踢掉", info.getPlayerId());
-                    broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), new ResExitGame(Code.SUCCESS)));
-                    roomEventListener.exitGame(playerController);
+                    NotifyTableExitRoom timeNoOperate = new NotifyTableExitRoom();
+                    broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), timeNoOperate));
                 }
                 playerSeatInfo.remove(info);
             }

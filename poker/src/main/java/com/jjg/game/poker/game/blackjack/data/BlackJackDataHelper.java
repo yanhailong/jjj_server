@@ -20,7 +20,6 @@ public class BlackJackDataHelper extends PokerDataHelper {
     }
 
 
-
     public static BlackjackCfg getBlackjackCfg(BlackJackGameDataVo gameDataVo) {
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         return GameDataManager.getBlackjackCfg(roomCfg.getId());
@@ -49,6 +48,24 @@ public class BlackJackDataHelper extends PokerDataHelper {
             }
         }
         return hasA && (totalPoint + 10 <= PERFECT_POINT) ? totalPoint + 10 : totalPoint;
+    }
+
+
+    public static List<Integer> getShowTotalPoint(List<Integer> cfgCardId) {
+        int totalPoint = 0;
+        boolean hasA = false;
+        for (Integer cfgId : cfgCardId) {
+            PokerPoolCfg pokerPoolCfg = GameDataManager.getPokerPoolCfg(cfgId);
+            totalPoint += pokerPoolCfg.getPointsNum();
+            if (!hasA && pokerPoolCfg.getPointsNum() == 1) {
+                hasA = true;
+            }
+        }
+        if (hasA) {
+            return (totalPoint + 10 < PERFECT_POINT) ? List.of(totalPoint, totalPoint + 10) : List.of(totalPoint + 10 == PERFECT_POINT ? totalPoint + 10 : totalPoint);
+        } else {
+            return List.of(totalPoint);
+        }
     }
 
     public static int getCfgPoint(int cfgCardId) {

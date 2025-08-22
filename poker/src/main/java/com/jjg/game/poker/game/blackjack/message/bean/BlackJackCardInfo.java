@@ -17,7 +17,7 @@ public class BlackJackCardInfo {
     @ProtoDesc("手牌")
     public List<Integer> cardIds;
     @ProtoDesc("总点数")
-    public int totalPoint;
+    public List<Integer> totalPoint;
     @ProtoDesc("押注数量")
     public long betValue;
 }

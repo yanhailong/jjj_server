@@ -416,7 +416,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             notifyCutCard.cardInfoList = BlackJackBuilder.getCardInfos(seatInfo, this);
             if (BlackJackDataHelper.getTotalPoint(seatInfo.getCurrentCards()) == BlackJackConstant.Common.PERFECT_POINT) {
                 PlayerSeatInfo nextExePlayer = getNextExePlayer();
-                notifyCutCard.autoCard = autoCard;
+                notifyCutCard.autoCard = BlackJackDataHelper.getClientCardId(gameDataVo, autoCard);
                 if (Objects.isNull(nextExePlayer)) {
                     //直接进行结算
                     gameDataVo.setSettlementType(1);
@@ -468,7 +468,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         NotifyBlackJackPutCard notified = new NotifyBlackJackPutCard();
         notified.playerId = seatInfo.getPlayerId();
         notified.cardId = BlackJackDataHelper.getClientCardId(gameDataVo, card);
-        notified.totalPoint = sum;
+        notified.totalPoint = BlackJackDataHelper.getShowTotalPoint(cards);
         seatInfo.setOperationType(req.type);
         PlayerSeatInfo nextExePlayer = seatInfo;
         //21点和爆
@@ -481,7 +481,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
                 notified.autoCardId = BlackJackDataHelper.getClientCardId(gameDataVo, autoCard);
                 //判断是否是21点
                 int totalPoint = BlackJackDataHelper.getTotalPoint(seatInfo.getCurrentCards());
-                notified.nextTotalPoint = totalPoint;
+                notified.nextTotalPoint = BlackJackDataHelper.getShowTotalPoint(seatInfo.getCurrentCards());
                 notified.cardIndex = nextExePlayer.getCardIndex();
                 if (totalPoint == BlackJackConstant.Common.PERFECT_POINT) {
                     nextExePlayer = getNextExePlayer();
@@ -526,11 +526,16 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
     public int getCard(BlackJackGameDataVo gameDataVo) {
         List<Integer> cards = gameDataVo.getCards();
         if (cards.isEmpty()) {
-            Map<Integer, PokerCard> cardListMap = BlackJackDataHelper.getCardListMap(BlackJackDataHelper.getPoolId(gameDataVo));
-            gameDataVo.setCards(new ArrayList<>(cardListMap.keySet()));
-            cards = gameDataVo.getCards();
-            Collections.shuffle(cards);
-            gameDataVo.setCards(cards);
+            if (Objects.nonNull(gameDataVo.getTempCard())) {
+                gameDataVo.setCards(new ArrayList<>(gameDataVo.getTempCard()));
+                cards = gameDataVo.getCards();
+            } else {
+                Map<Integer, PokerCard> cardListMap = BlackJackDataHelper.getCardListMap(BlackJackDataHelper.getPoolId(gameDataVo));
+                gameDataVo.setCards(new ArrayList<>(cardListMap.keySet()));
+                cards = gameDataVo.getCards();
+                Collections.shuffle(cards);
+                gameDataVo.setCards(cards);
+            }
         }
         return cards.removeFirst();
     }
@@ -560,7 +565,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             int autoCard = getCard(gameDataVo);
             seatInfo.getCurrentCards().add(autoCard);
             msg.autoCardId = BlackJackDataHelper.getClientCardId(gameDataVo, autoCard);
-            msg.autoCardTotal = BlackJackDataHelper.getTotalPoint(seatInfo.getCurrentCards());
+            msg.autoCardTotal = BlackJackDataHelper.getShowTotalPoint(seatInfo.getCurrentCards());
             int totalPoint = BlackJackDataHelper.getTotalPoint(seatInfo.getCurrentCards());
             if (totalPoint == BlackJackConstant.Common.PERFECT_POINT) {
                 PlayerSeatInfo nextExePlayer = getNextExePlayer();
