@@ -464,9 +464,11 @@ public class PlayerPackService {
             return result;
         }
 
-        if (result.success()) {
+        if (addResult.success()) {
             coreLogger.useItem(playerId, useItemId, 1, addType);
         }
+        result.code = Code.SUCCESS;
+        result.data = addResult.data;
         return result;
     }
 

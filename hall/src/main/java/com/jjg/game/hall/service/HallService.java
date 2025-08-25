@@ -433,8 +433,8 @@ public class HallService implements ConfigExcelChangeListener {
      * @param playerId
      * @param itemId
      */
-    public CommonResult<PlayerPack> useItem(long playerId,int girdId,int itemId,long useItemCount){
-        CommonResult<PlayerPack> result = new CommonResult<>(Code.SUCCESS);
+    public CommonResult<Map<Integer,Long>> useItem(long playerId,int girdId,int itemId,long useItemCount){
+        CommonResult<Map<Integer,Long>> result = new CommonResult<>(Code.SUCCESS);
         try{
             log.debug("玩家使用道具 playerId = {},girdId = {},itemId = {}",playerId,girdId,itemId);
             ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
@@ -468,6 +468,9 @@ public class HallService implements ConfigExcelChangeListener {
                 }
                 addItemsMap.merge(addItemId,en.getValue(),Long::sum);
             }
+
+            Map<Integer,Long> tmpAddItemsMap = new HashMap<>(addItemsMap);
+
             useResult = playerPackService.useItem(playerId,girdId, itemId,useItemCount, addItemsMap, "packUseItem");
 
             if(useResult == null){
@@ -480,7 +483,7 @@ public class HallService implements ConfigExcelChangeListener {
                 result.code = useResult.code;
                 return result;
             }
-            result.data = useResult.data;
+            result.data = tmpAddItemsMap;
         }catch (Exception e){
             log.error("",e);
             result.code = Code.EXCEPTION;

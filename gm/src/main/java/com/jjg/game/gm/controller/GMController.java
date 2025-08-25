@@ -17,6 +17,7 @@ import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.MarqueeDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
+import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.common.pb.NotifyExit;
@@ -428,6 +429,16 @@ public class GMController extends AbstractController {
             if(!result.success()){
                 log.debug("修改货币时错误 ,playerId = {},code = {}", dto.playerId(),result.code);
                 return fail("common.fail");
+            }
+
+            if(dto.operator_type() == 1){  //如果是账户修改，则要进行通知
+                PFSession session = playerSessionService.getSession(dto.playerId());
+                if(session != null){
+                    NoticeBaseInfoChange notice = new NoticeBaseInfoChange();
+                    notice.gold = result.data.getGold();
+                    notice.diamond = result.data.getDiamond();
+                    notice.vipLevel = result.data.getVipLevel();
+                }
             }
 
             //返回修改结果
