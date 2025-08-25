@@ -23,7 +23,9 @@ import java.util.Objects;
 @Component
 public class GlobalDataCache implements ConfigExcelChangeListener {
     private static final Logger log = LoggerFactory.getLogger(GlobalDataCache.class);
+    //道具信息 持续时间
     private static Pair<Item, Integer> buyClaimAllRewardsConsumer;
+    //道具信息 减少时间
     private static Pair<Item, Integer> reduceTimeConfig;
 
     @Override

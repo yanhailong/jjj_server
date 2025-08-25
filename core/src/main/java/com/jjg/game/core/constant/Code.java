@@ -58,7 +58,7 @@ public interface Code {
     // 道具不足
     int NOT_ENOUGH_ITEM = 420;
     // 等级不足
-    int Level_NOT_ENOUGH = 421;
+    int LEVEL_NOT_ENOUGH = 421;
     //  已达等级上限
     int BUILDING_LEVEL_IS_MAX = 422;
     // 邀请码重置次数不足

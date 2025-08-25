@@ -15,6 +15,17 @@ public class CasinoEmployment {
     private int employmentId;
     //雇员结束时间
     private long employmentEndTime;
+    //雇员开始时间
+    private long employmentStartTime;
+
+
+    public long getEmploymentStartTime() {
+        return employmentStartTime;
+    }
+
+    public void setEmploymentStartTime(long employmentStartTime) {
+        this.employmentStartTime = employmentStartTime;
+    }
 
     public long getId() {
         return id;
@@ -40,7 +51,7 @@ public class CasinoEmployment {
         this.employmentEndTime = employmentEndTime;
     }
 
-    public CasinoEmploymentInfo getCasinoEmploymentInfo() {
+    public CasinoEmploymentInfo getNewCasinoEmploymentInfo() {
         CasinoEmploymentInfo employmentInfo = new CasinoEmploymentInfo();
         employmentInfo.employmentId = employmentId;
         employmentInfo.employmentEndTime = employmentEndTime;
