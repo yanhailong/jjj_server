@@ -11,10 +11,10 @@ import com.jjg.game.common.proto.ProtobufMessage;
  */
 @ProtobufMessage(
     messageType = MessageConst.MessageTypeDef.SESSION_TYPE,
-    cmd = MessageConst.SessionConst.RPC_SERVICE_DATA_CARRIER,
+    cmd = MessageConst.SessionConst.RPC_REQ_SERVICE_DATA_CARRIER,
     toPbFile = false
 )
-public class RpcServiceDataCarrierMessage {
+public class ReqRpcServiceData {
 
     @ProtoDesc("请求ID")
     public long requestId;
@@ -27,9 +27,6 @@ public class RpcServiceDataCarrierMessage {
 
     @ProtoDesc("调用参数数据，json数据 map数据集，param类型 <=> param具体的数据")
     public String parameterTypeWithData;
-
-    @ProtoDesc("调用参数数据，json数据 返回消息，满足调用方法的返回类型")
-    public String responseData;
 
     @Override
     public String toString() {

@@ -26,7 +26,7 @@ public class ClusterRpcPostProcessor implements BeanPostProcessor {
                 ClusterRpcReference annotation = declaredField.getAnnotation(ClusterRpcReference.class);
                 RpcClientProxy rpcClientProxy = new RpcClientProxy();
                 Object proxiedRpcReference =
-                    rpcClientProxy.proxyRpcInterface(bean.getClass(), rpcClientService, annotation);
+                    rpcClientProxy.proxyRpcInterface(declaredField.getType(), rpcClientService, annotation);
                 declaredField.setAccessible(true);
                 try {
                     declaredField.set(bean, proxiedRpcReference);

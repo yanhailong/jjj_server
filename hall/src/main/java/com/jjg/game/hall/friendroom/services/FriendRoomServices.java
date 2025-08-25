@@ -1,5 +1,7 @@
 package com.jjg.game.hall.friendroom.services;
 
+import com.jjg.game.common.baselogic.IConsoleReceiver;
+import com.jjg.game.common.constant.CoreConst.GameMajorType;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.redis.RedissonLock;
 import com.jjg.game.common.utils.TimeHelper;
@@ -43,7 +45,7 @@ import java.util.concurrent.TimeUnit;
  * @author 2CL
  */
 @Service
-public class FriendRoomServices {
+public class FriendRoomServices implements IConsoleReceiver {
 
     private static final Logger log = LoggerFactory.getLogger(FriendRoomServices.class);
     @Autowired
@@ -60,7 +62,10 @@ public class FriendRoomServices {
     private CorePlayerService corePlayerService;
     @Autowired
     private FriendRoomBillHistoryDao billHistoryDao;
-    @ClusterRpcReference(providerNodeType = {NodeType.GAME})
+    @ClusterRpcReference(
+        providerNodeType = {NodeType.GAME},
+        gameMajorType = {GameMajorType.TABLE, GameMajorType.POKER}
+    )
     private HallRoomBridge hallRoomBridge;
 
     /**
@@ -685,5 +690,23 @@ public class FriendRoomServices {
         res.resetTimes = resetTimes == null ? 0 : resetTimes + 1;
         res.invitationCode = newInvitationCode;
         playerController.send(res);
+    }
+
+    @Override
+    public void doCommand(String command, List<String> params) {
+        switch (command) {
+            case "RpcTest": {
+                FriendRoom friendRoom = hallRoomBridge.getFriendRoomInfo(200000000L);
+                log.info("data id: {}", friendRoom.getId());
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    @Override
+    public List<String> needHandleCommands() {
+        return List.of("RpcTest");
     }
 }

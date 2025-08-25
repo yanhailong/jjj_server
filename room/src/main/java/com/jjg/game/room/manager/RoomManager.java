@@ -1,6 +1,7 @@
 package com.jjg.game.room.manager;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.rpc.GameRpcService;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.CommonResult;
@@ -29,6 +30,7 @@ import java.util.Set;
  * @author 2CL
  */
 @Component
+@GameRpcService
 public class RoomManager extends AbstractRoomManager implements GmListener, HallRoomBridge {
 
     public RoomManager() {
@@ -170,6 +172,8 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
 
     @Override
     public FriendRoom getFriendRoomInfo(long roomId) {
-        return null;
+        FriendRoom friendRoom = new FriendRoom();
+        friendRoom.setId(roomId);
+        return friendRoom;
     }
 }

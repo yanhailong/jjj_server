@@ -10,10 +10,5 @@ import java.lang.annotation.*;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface ClusterRpcProvider {
-
-    /**
-     * 服务接口类
-     */
-    Class<?> serviceInterface();
+public @interface GameRpcService {
 }

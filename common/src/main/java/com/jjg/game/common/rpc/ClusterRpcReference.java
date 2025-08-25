@@ -20,6 +20,11 @@ public @interface ClusterRpcReference {
     NodeType[] providerNodeType();
 
     /**
+     * {@link com.jjg.game.common.constant.CoreConst.GameMajorType}中的值
+     */
+    int[] gameMajorType() default {};
+
+    /**
      * 超时时间，默认10ms
      */
     int timeoutMillis() default 10;

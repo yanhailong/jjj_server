@@ -22,13 +22,12 @@ public class ClusterRpcService {
 
     /**
      * 初始化rpc服务提供类
+     * TODO 待优化，可以向所有节点广播服务提供者的消息，【节点数据，类名，方法名】本地缓存后可以提高查询效率，减少IO请求
      */
     public void initProvider() {
-        Map<String, Object> providers = CommonUtil.getContext().getBeansWithAnnotation(ClusterRpcProvider.class);
+        Map<String, Object> providers = CommonUtil.getContext().getBeansWithAnnotation(GameRpcService.class);
         if (!providers.isEmpty()) {
-            providers.forEach((s, provider) -> {
-                log.info("发现rpc服务提供者：{}", s);
-            });
+            providers.forEach((s, provider) -> log.info("发现rpc服务提供者：{}", s));
             providerMap.putAll(providers);
         }
     }

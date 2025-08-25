@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 集群节点配置信息
+ *
  * @since 1.0
  */
 @ConfigurationProperties(prefix = "cluster")
@@ -88,6 +89,18 @@ public class NodeConfig {
 
     public void setGameMajorTypes(int[] gameMajorTypes) {
         this.gameMajorTypes = gameMajorTypes;
+    }
+
+    public boolean inMajorType(int gameMajorType) {
+        if (gameMajorTypes == null) {
+            return false;
+        }
+        for (int v : gameMajorTypes) {
+            if (v == gameMajorType) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public int getWeight() {
