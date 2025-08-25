@@ -9,9 +9,11 @@ import com.jjg.game.common.proto.ProtobufMessage;
  */
 @ProtobufMessage
 @ProtoDesc("机台基本信息")
-public class CasinoSimpleMachineInfo {
+public class CasinoSimpleInfo {
     @ProtoDesc("机台id")
     public long machineId;
+    @ProtoDesc("配置表id")
+    public int configId;
     @ProtoDesc("收益开始时间")
     public long profitStartTime;
     @ProtoDesc("收益最大时间")
