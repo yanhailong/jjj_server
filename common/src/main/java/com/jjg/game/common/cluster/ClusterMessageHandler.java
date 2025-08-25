@@ -11,7 +11,9 @@ import com.jjg.game.common.netty.NettyConnect;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.common.rpc.ClusterRpcService;
 import com.jjg.game.common.utils.CommonUtil;
+import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +38,8 @@ public class ClusterMessageHandler {
     private Logger log = LoggerFactory.getLogger(getClass());
     @Autowired
     private ClusterSystem clusterSystem;
+    @Autowired
+    private ClusterRpcService clusterRpcService;
 
     public void init() {
         sessionVerifyListenerMap = CommonUtil.getContext().getBeansOfType(SessionVerifyListener.class);
@@ -187,5 +191,16 @@ public class ClusterMessageHandler {
                 v.write(broadCastMessage.msg);
             }
         });
+    }
+
+    /**
+     * rpc消息请求
+     *
+     * @param rpcServiceDataCarrierMessage rpc消息
+     */
+    @Command(MessageConst.SessionConst.RPC_SERVICE_DATA_CARRIER)
+    public void clusterRpcMessage(RpcServiceDataCarrierMessage rpcServiceDataCarrierMessage) {
+        Object provider = clusterRpcService.getProvider(rpcServiceDataCarrierMessage.serviceClassName);
+
     }
 }

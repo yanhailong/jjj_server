@@ -1,5 +1,6 @@
 package com.jjg.game.hall.friendroom.services;
 
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.redis.RedissonLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
@@ -11,6 +12,7 @@ import com.jjg.game.core.dao.room.FriendRoomDao;
 import com.jjg.game.core.dao.room.FriendRoomDao.CreateFriendsRoom;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.rpc.HallRoomBridge;
+import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.IllegalNameCheckService;
 import com.jjg.game.core.service.PlayerPackService;
@@ -58,6 +60,7 @@ public class FriendRoomServices {
     private CorePlayerService corePlayerService;
     @Autowired
     private FriendRoomBillHistoryDao billHistoryDao;
+    @ClusterRpcReference(providerNodeType = {NodeType.GAME})
     private HallRoomBridge hallRoomBridge;
 
     /**

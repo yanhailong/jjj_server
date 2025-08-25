@@ -56,6 +56,7 @@ public class RoomMessageBuilder<T extends AbstractMessage> {
     public RoomMessageBuilder<T> sendPlayer(Long playerId,T data){
         return setPlayerIds(Set.of(playerId)).setData(data);
     }
+
     public RoomMessageBuilder<T> sendAllPlayer(T data){
         return toAllPlayer().setData(data);
     }
