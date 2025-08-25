@@ -1,22 +1,22 @@
-package com.jjg.game.core.pb;
+package com.jjg.game.common.pb;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
 /**
- * 通知房间退出提示
- *
+ * 通知踢人提示
  * @author 2CL
  */
-@ProtoDesc("通知房间退出的提示")
+@ProtoDesc("通知踢人提示")
 @ProtobufMessage(
     messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
-    cmd = MessageConst.CoreMessage.NOTIFY_TABLE_EXIT_ROOM,
+    cmd = MessageConst.CoreMessage.NOTIFY_EXIT,
     resp = true
 )
-public class NotifyTableExitRoom extends AbstractNotice {
-
+public class NotifyExit {
+    @ProtoDesc("状态码")
+    public int code = 200;
     @ProtoDesc("多语言ID")
     public int langId;
 }

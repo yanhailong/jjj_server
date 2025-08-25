@@ -247,17 +247,11 @@ public class HallMessageHandler implements GmListener {
                 log.debug("性别参数错误，修改信息失败 playerId = {},gender = {}", playerController.playerId(),req.gender);
                 return;
             }
-            //TODO 后面要敏感词检测，还要判断是否消费道具
 
-            Player player = hallPlayerService.doSave(playerController.playerId(), p -> {
-                p.setNickName(req.nick);
-                p.setGender(gender);
-            });
-
-            if(player == null) {
-                res.code = Code.NOT_FOUND;
+            CommonResult<Player> result = hallService.changePlayerInfo(playerController,req.nick, (byte)req.gender);
+            if(!result.success()){
+                res.code = result.code;
                 playerController.send(res);
-                log.debug("修改信息失败 playerId = {}", playerController.playerId());
                 return;
             }
             log.info("修改玩家信息成功，playerId = {}", playerController.playerId());
@@ -413,7 +407,7 @@ public class HallMessageHandler implements GmListener {
     public void reqUseItem(PlayerController playerController, ReqUseItem req) {
         ResUseItem res = new ResUseItem(HallCode.SUCCESS);
         try {
-            hallService.useItem(playerController.playerId(), req.girdId,req.itemId);
+            hallService.useItem(playerController.playerId(), req.girdId,req.itemId,req.useItemCount);
             res.packItemInfos = getPlayerPack(playerController.playerId());
             log.debug("使用道具 playerId = {},res = {}", playerController.playerId(),JSON.toJSONString(res));
         } catch (Exception e) {

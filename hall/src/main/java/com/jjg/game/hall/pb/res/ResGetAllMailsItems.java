@@ -3,8 +3,11 @@ package com.jjg.game.hall.pb.res;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.data.Item;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.hall.constant.HallConstant;
+
+import java.util.List;
 
 /**
  * @author 11
@@ -13,6 +16,9 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_GET_ALL_MAILS_ITEMS,resp = true)
 @ProtoDesc("一键领取邮件内的道具返回")
 public class ResGetAllMailsItems extends AbstractResponse {
+    @ProtoDesc("增加的道具")
+    public List<Item> items;
+
     public ResGetAllMailsItems(int code) {
         super(code);
     }

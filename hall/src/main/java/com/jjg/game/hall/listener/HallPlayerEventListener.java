@@ -210,6 +210,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             if (register[0]) {
                 hallService.saveDefaultAvatar(req.playerId);
+                hallPlayerService.savePlayerNick(req.playerId, player.getNickName());
             }
             log.info("玩家登录成功 playerId = {},res = {}", player.getId(),JSON.toJSONString(res));
         } catch (Exception e) {

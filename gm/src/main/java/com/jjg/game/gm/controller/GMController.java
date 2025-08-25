@@ -6,20 +6,26 @@ import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
+import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.MarqueeDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
+import com.jjg.game.common.pb.NotifyExit;
+import com.jjg.game.core.pb.gm.ReqAllKickout;
 import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.core.service.MailService;
+import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.gm.dto.*;
 import com.jjg.game.gm.vo.WebResult;
 import com.jjg.game.sampledata.GameDataManager;
@@ -32,8 +38,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -56,6 +60,12 @@ public class GMController extends AbstractController {
     private MailService mailService;
     @Autowired
     private CorePlayerService playerService;
+    @Autowired
+    private AccountDao accountDao;
+    @Autowired
+    private PlayerSessionService playerSessionService;
+    @Autowired
+    private ClusterSystem clusterSystem;
 
     //邮件中的道具string，需要用正则匹配
     private Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)\\]");
@@ -212,22 +222,80 @@ public class GMController extends AbstractController {
      * @return
      */
     @RequestMapping(BackendGMCmd.QUERY_ACCOUNT)
-    public WebResult<Player> queryAccount(@RequestBody QueryAccountDto dto) {
+    public WebResult<PlayerInfo> queryAccount(@RequestBody QueryAccountDto dto) {
         try{
-            log.info("收到后台查询玩家信息请求 playerId = {}", dto.playerId());
-            if(dto.playerId() < 1){
-                log.debug("玩家id不能小于1，查询玩家信息失败 playerId = {}", dto.playerId());
-                return fail("common.paramerror");
+            log.info("收到后台查询玩家信息请求 dto = {}", dto);
+
+            Player p = null;
+            Account account = null;
+            if(dto.playerId() > 0){  //根据玩家id查询
+                p = playerService.getFromAllDB(dto.playerId());
+                account = accountDao.queryAccountByPlayerId(dto.playerId());
+            }else if(StringUtils.isNotEmpty(dto.registerMac())){  //根据注册mac
+                account = accountDao.queryByRegisterMac(dto.registerMac());
+                if(account == null){
+                    log.debug("未找到该玩家账号信息 registerMac = {}", dto.registerMac());
+                    return fail("common.fail");
+                }
+                p = playerService.getFromAllDB(account.getPlayerId());
+            }else if(StringUtils.isNotEmpty(dto.loginMac())){  //根据登录mac
+                account = accountDao.queryByLoginMac(dto.loginMac());
+                if(account == null){
+                    log.debug("未找到该玩家账号信息 loginMac = {}", dto.loginMac());
+                    return fail("common.fail");
+                }
+                p = playerService.getFromAllDB(account.getPlayerId());
+            }else if(StringUtils.isNotEmpty(dto.nickName())){   //根据昵称
+                long playerId = playerService.queryPlayerIdByNick(dto.nickName());
+                if(playerId < 1){
+                    log.debug("未找到该玩家账号信息 nick = {}", dto.nickName());
+                    return fail("common.fail");
+                }
+                p = playerService.getFromAllDB(dto.playerId());
+                account = accountDao.queryAccountByPlayerId(dto.playerId());
+            }else if(StringUtils.isNotEmpty(dto.phone())){  //根据手机号
+                account = accountDao.queryByPhone(dto.phone());
+                if(account == null){
+                    log.debug("未找到该玩家账号信息 phone = {}", dto.phone());
+                    return fail("common.fail");
+                }
+                p = playerService.getFromAllDB(account.getPlayerId());
             }
 
-            Player p = playerService.getFromAllDB(dto.playerId());
-            if(p == null){
-                log.debug("未找到该玩家信息 playerId = {}", dto.playerId());
-                return fail("common.paramerror");
+            if(account == null || p == null){
+                if(account == null){
+                    log.debug("未找到该玩家账号信息 dto = {}", dto);
+                    return fail("common.fail");
+                }
+            }
+
+            boolean check = checkPlayerInfo(dto,p,account);
+            if(!check){
+                log.debug("获取后检验信息失败 dto = {},playerId = {}", dto,p.getId());
+                return fail("common.fail");
             }
 
             //返回修改结果
-            return success(p);
+            PlayerInfo info = new PlayerInfo();
+            info.setPlayerId(p.getId());
+            info.setNickName(p.getNickName());
+            info.setGold(p.getGold());
+            info.setDiamond(p.getDiamond());
+            info.setVipLevel(p.getVipLevel());
+            info.setIp(p.getIp());
+            info.setCreateTime(p.getCreateTime());
+            info.setRegisterMac(account.getRegisterMac());
+            info.setIsBan(account.getStatus());
+            info.setIsOffline(playerSessionService.hasSession(p.getId()) ? 0 : 1);
+            info.setMobile(account.getPhoneNumber());
+
+            SafeInfo safeInfo = new SafeInfo();
+            safeInfo.setSafeGold(p.getSafeBoxGold());
+            safeInfo.setSafeDiamond(p.getSafeBoxDiamond());
+            info.setSafeInfo(safeInfo);
+
+            log.info("返回玩家信息 info = {}", info);
+            return success(info);
         }catch (Exception e){
             log.error("", e);
             return fail("common.exception");
@@ -290,5 +358,222 @@ public class GMController extends AbstractController {
             log.error("", e);
             return fail("common.exception");
         }
+    }
+
+    /**
+     * 货币操作
+     * @param dto
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.GOLD_OPERATOR)
+    public WebResult<String> goldOperator(@RequestBody GoldOperatorDto dto) {
+        try{
+            log.debug("收到后台的修改玩家货币的请求 dto = {}", dto);
+            if(dto.playerId() < 1){
+                log.debug("修改货币时，玩家id不能小于 1,playerId = {}", dto.playerId());
+                return fail("common.paramerror");
+            }
+
+            if(dto.currency_id() != GameConstant.Item.TYPE_DIAMOND && dto.currency_id() != GameConstant.Item.TYPE_GOLD){
+                log.debug("修改货币时，货币类型错误 currency_type = {}",dto.currency_id());
+                return fail("common.paramerror");
+            }
+
+            if(dto.type() != 1 && dto.type() != 2){
+                log.debug("修改货币时，操作类型错误 type = {}",dto.type());
+                return fail("common.paramerror");
+            }
+
+            if(dto.operator_type() != 1 && dto.operator_type() != 2){
+                log.debug("修改货币时，增减资金流向错误 operator_type = {}",dto.operator_type());
+                return fail("common.paramerror");
+            }
+
+            if(dto.quantity() < 1){
+                log.debug("修改货币时，增减数量错误 quantity = {}",dto.quantity());
+                return fail("common.paramerror");
+            }
+
+            CommonResult<Player> result;
+            if(dto.type() == 1){  //增加
+                if(dto.operator_type() == 1){ //账户
+                    if(dto.currency_id() != GameConstant.Item.TYPE_GOLD){ //金币
+                        result = playerService.addGold(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
+                    }else {  //钻石
+                        result = playerService.addDiamond(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
+                    }
+                }else { //保险箱
+                    if(dto.currency_id() != GameConstant.Item.TYPE_GOLD){ //金币
+                        result = playerService.addSafeBoxGold(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
+                    }else {  //钻石
+                        result = playerService.addSafeBoxDiamond(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
+                    }
+                }
+            }else {  //减少
+                if(dto.operator_type() == 1){ //账户
+                    if(dto.currency_id() != GameConstant.Item.TYPE_GOLD){ //金币
+                        result = playerService.deductGold(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
+                    }else {  //钻石
+                        result = playerService.deductDiamond(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
+                    }
+                }else { //保险箱
+                    if(dto.currency_id() != GameConstant.Item.TYPE_GOLD){ //金币
+                        result = playerService.deductSafeBoxGold(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
+                    }else {  //钻石
+                        result = playerService.deductSafeBoxDiamond(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
+                    }
+                }
+            }
+
+            if(!result.success()){
+                log.debug("修改货币时错误 ,playerId = {},code = {}", dto.playerId(),result.code);
+                return fail("common.fail");
+            }
+
+            //返回修改结果
+            return success("common.success");
+        }catch (Exception e){
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 踢出玩家
+     * @param dto
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.KICK_ACCOUNT)
+    public WebResult<String> kickAccount(@RequestBody KickAccountDto dto) {
+        try{
+            log.info("收到后台踢人的请求 dto = {}", dto);
+            if(dto.type() == 1){  //指定id
+                if(StringUtils.isEmpty(dto.ids())){
+                    log.debug("指定id踢人时，ids不能为空 dto = {}",dto);
+                    return fail("common.paramerror");
+                }
+                String[] arr = dto.ids().trim().split(",");
+                if(arr.length < 1){
+                    log.debug("踢人的玩家id不能为空 type = {}",dto.type());
+                    return fail("common.paramerror");
+                }
+
+                NotifyExit notifyExit = new NotifyExit();
+                notifyExit.langId = dto.langId();
+                for(String str : arr) {
+                    long playerId = Long.parseLong(str);
+                    PFSession session = playerSessionService.getSession(playerId);
+                    if(session == null){
+                        continue;
+                    }
+                    session.send(notifyExit);
+                }
+            }else if(dto.type() == 2){  //全服
+                ReqAllKickout req = new ReqAllKickout();
+                req.langId = dto.langId();
+                PFMessage pfMessage = MessageUtil.getPFMessage(req);
+                clusterSystem.notifyHallAndGameNode(pfMessage);
+            }else {
+                log.debug("踢人类型错误 type = {}",dto.type());
+                return fail("common.paramerror");
+            }
+            //返回修改结果
+            return success("common.success");
+        }catch (Exception e){
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 封禁
+     * @param dto
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.BAN_ACCOUNT)
+    public WebResult<String> banAccount(@RequestBody BanAccountDto dto) {
+        try{
+            log.info("收到后台封禁账号的请求 dto = {}", dto);
+            if(dto.type() != 1 && dto.type() != 2){
+                log.debug("封禁类型错误 type = {}",dto.type());
+                return fail("common.paramerror");
+            }
+
+            String[] arr = dto.playerIds().trim().split(",");
+            if(arr.length < 1){
+                log.debug("封禁的玩家id不能为空 type = {}",dto.type());
+                return fail("common.paramerror");
+            }
+
+            //先踢人
+            NotifyExit notifyExit = new NotifyExit();
+            for(String str : arr){
+                long playerId = Long.parseLong(str);
+
+                if(dto.type() == 1){  //封
+                    accountDao.updateAccountStatus(playerId,GameConstant.AccountStatus.BAN);
+                    PFSession session = playerSessionService.getSession(playerId);
+                    if(session == null){
+                        continue;
+                    }
+                    session.send(notifyExit);
+                }else {  //解
+                    accountDao.updateAccountStatus(playerId,GameConstant.AccountStatus.NORMAL);
+                }
+            }
+            //返回修改结果
+            return success("common.success");
+        }catch (Exception e){
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+
+    /****************************************************************************************************************/
+
+    /**
+     * 检验玩家信息
+     * @param dto
+     * @param player
+     * @param account
+     * @return
+     */
+    private boolean checkPlayerInfo(QueryAccountDto dto,Player player,Account account){
+        //检查玩家id
+        if(dto.playerId() > 0){
+            if(dto.playerId() != player.getId() || dto.playerId() != account.getPlayerId()){
+                return false;
+            }
+        }
+
+        //检查注册的mac
+        if(StringUtils.isNotEmpty(dto.registerMac())){
+            if(!dto.registerMac().equals(account.getRegisterMac())){
+                return false;
+            }
+        }
+
+        //检查登录的mac
+        if(StringUtils.isNotEmpty(dto.loginMac())){
+            if(!dto.loginMac().equals(account.getLastLoginMac())){
+                return false;
+            }
+        }
+
+        //检查昵称
+        if(StringUtils.isNotEmpty(dto.nickName())){
+            if(!dto.nickName().equals(player.getNickName())){
+                return false;
+            }
+        }
+
+        //检查手机号
+        if(StringUtils.isNotEmpty(dto.phone())){
+            if(!dto.phone().equals(account.getPhoneNumber())){
+                return false;
+            }
+        }
+        return true;
     }
 }

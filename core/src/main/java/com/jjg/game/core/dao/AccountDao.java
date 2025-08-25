@@ -62,4 +62,53 @@ public class AccountDao extends MongoBaseDao<Account,Long> {
         Update update = new Update().set("email", email);
         return mongoTemplate.updateFirst(query,update,this.clazz).getModifiedCount() > 0;
     }
+
+    /**
+     * 根据注册mac查询
+     * @return
+     */
+    public Account queryByRegisterMac(String registerMac){
+        Query query = new Query(Criteria.where("registerMac").is(registerMac));
+        return mongoTemplate.findOne(query,this.clazz);
+    }
+
+    /**
+     * 根据登录mac查询
+     * @return
+     */
+    public Account queryByLoginMac(String loginMac){
+        Query query = new Query(Criteria.where("lastLoginMac").is(loginMac));
+        return mongoTemplate.findOne(query,this.clazz);
+    }
+
+    /**
+     * 根据手机号查询
+     * @return
+     */
+    public Account queryByPhone(String phoneNumber){
+        Query query = new Query(Criteria.where("phoneNumber").is(phoneNumber));
+        return mongoTemplate.findOne(query,this.clazz);
+    }
+
+    /**
+     * 根据邮箱查询
+     * @return
+     */
+    public Account queryByEmail(String email){
+        Query query = new Query(Criteria.where("email").is(email));
+        return mongoTemplate.findOne(query,this.clazz);
+    }
+
+    /**
+     * 修改账号状态
+     * @param playerId
+     * @param status
+     * @return
+     */
+    public boolean updateAccountStatus(long playerId,int status){
+        Query query = new Query(Criteria.where("playerId").is(playerId));
+
+        Update update = new Update().set("status", status);
+        return mongoTemplate.updateFirst(query,update,this.clazz).getModifiedCount() > 0;
+    }
 }

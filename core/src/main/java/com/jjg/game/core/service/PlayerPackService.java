@@ -241,6 +241,60 @@ public class PlayerPackService {
         return result;
     }
 
+    /**
+     * 移除道具
+     *
+     * @param playerId
+     * @param id
+     * @param count
+     * @return
+     */
+    public CommonResult<PlayerPack> removeItem(long playerId, int girdId, int id, long count, String addType) {
+        CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
+
+        ItemCfg itemCfg = GameDataManager.getItemCfg(id);
+        if (itemCfg == null) {
+            result.code = Code.NOT_FOUND;
+            return result;
+        }
+
+        if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {  //消耗金币
+            CommonResult<Player> removeResult = corePlayerService.deductGold(playerId, count, addType);
+            result.code = removeResult.code;
+            return result;
+        } else if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {  //消耗钻石
+            CommonResult<Player> removeResult = corePlayerService.deductDiamond(playerId, count, addType);
+            result.code = removeResult.code;
+            return result;
+        }
+
+        String key = getLockKey(playerId);
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            PlayerPack playerPack = getFromAllDB(playerId);
+            if (playerPack == null) {
+                result.code = Code.NOT_FOUND;
+                return result;
+            }
+
+            CommonResult<Long> removeResult = playerPack.removeItem(girdId,id, count);
+            if (!removeResult.success()) {
+                result.code = removeResult.code;
+                return result;
+            }
+
+            redisTemplate.opsForHash().put(tableName, playerId, playerPack);
+            result.code = Code.SUCCESS;
+            result.data = playerPack;
+            return result;
+        } catch (Exception e) {
+            log.error("移除格子道具，保存 playerPack 失败 playerId={}", playerId, e);
+        } finally {
+            redisLock.unlock(key);
+        }
+        return result;
+    }
+
 
     /**
      * 移除道具
@@ -375,85 +429,27 @@ public class PlayerPackService {
      *
      * @param playerId
      * @param useItemId
-     * @param addItemId
-     * @param addItemCount
      * @return
      */
-    public CommonResult<PlayerPack> useItem(long playerId, int girdId, int useItemId, long useItemCount,int addItemId, long addItemCount,
+    public CommonResult<PlayerPack> useItem(long playerId, int girdId, int useItemId, long useItemCount,Map<Integer,Long> addItemsMap,
                                             String addType) {
         CommonResult<PlayerPack> result = new CommonResult<>(Code.FAIL);
-        ItemCfg useItemCfg = GameDataManager.getItemCfg(useItemId);
-        if(useItemCfg == null){
-            log.debug("使用道具时，未找到配置 playerId = {},useItemId = {}", playerId, useItemId);
-            result.code = Code.NOT_FOUND;
+
+        CommonResult<PlayerPack> removeResult = removeItem(playerId, girdId, useItemId, useItemCount, addType);
+        if(!removeResult.success()){
+            result.code = removeResult.code;
             return result;
         }
 
-        if(useItemCfg.getType() == GameConstant.Item.TYPE_GOLD){
-            CommonResult<Player> removeResult = corePlayerService.deductGold(playerId, Math.abs(useItemCount), addType);
-            if (!removeResult.success()) {
-                result.code = removeResult.code;
-                return result;
-            }
-        }else if(useItemCfg.getType() == GameConstant.Item.TYPE_DIAMOND){
-            CommonResult<Player> removeResult = corePlayerService.deductDiamond(playerId, Math.abs(useItemCount), addType);
-            if (!removeResult.success()) {
-                result.code = removeResult.code;
-                return result;
-            }
-        }
-
-        ItemCfg addItemCfg = GameDataManager.getItemCfg(addItemId);
-        String key = getLockKey(playerId);
-
-        int addItemMax = addItemCfg.getProp();
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-        try {
-            //获取背包数据
-            PlayerPack playerPack = getFromAllDB(playerId);
-            if (playerPack == null) {
-                result.code = Code.NOT_FOUND;
-                return result;
-            }
-
-            //移除道具
-            CommonResult<Long> removeResult = playerPack.removeItem(girdId, useItemId, useItemCount);
-            if (!removeResult.success()) {
-                result.code = removeResult.code;
-                return result;
-            }
-
-            //根据不同道具做不同处理
-            if (addItemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
-                CommonResult<Player> addResult = corePlayerService.addGold(playerId, addItemCount,
-                        useItemAddType, useItemId + "");
-                if (!addResult.success()) {
-                    result.code = addResult.code;
-                    return result;
-                }
-                log.debug("使用道具添加金币 playerId = {},useItemId = {},addItemId = {},addItemCount = {}", playerId, useItemId, addItemId, addItemCount);
-            } else if (addItemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
-                CommonResult<Player> addResult = corePlayerService.addDiamond(playerId, addItemCount,
-                        useItemAddType, useItemId + "");
-                if (!addResult.success()) {
-                    result.code = addResult.code;
-                    return result;
-                }
-                log.debug("使用道具添加钻石 playerId = {},useItemId = {},addItemId = {},addItemCount = {}", playerId, useItemId, addItemId, addItemCount);
-            } else {
-                playerPack.addItem(addItemId, (int) addItemCount, addItemMax);
-                log.debug("使用道具添加道具 playerId = {},useItemId = {},addItemId = {},addItemCount = {}", playerId, useItemId, addItemId, addItemCount);
-            }
-
-            redisTemplate.opsForHash().put(tableName, playerId, playerPack);
-            result.code = Code.SUCCESS;
-            result.data = playerPack;
+        CommonResult<PlayerPack> addResult = addItems(playerId, addItemsMap, addType);
+        if(!addResult.success()){
+            //添加失败，要将之前扣除的道具加回去
+            addItem(playerId, useItemId,useItemCount,"fail.rollback");
+            result.code = addResult.code;
+            log.debug("使用道具时，添加失败 playerId = {},girdId = {},useItemId = {}", playerId, girdId, useItemId);
             return result;
-        } catch (Exception e) {
-            log.error("使用道具，保存 playerPack 失败 playerId={}", playerId, e);
-        } finally {
-            redisLock.unlock(key);
         }
+
         if (result.success()) {
             coreLogger.useItem(playerId, useItemId, 1, addType);
         }

@@ -22,6 +22,12 @@ public class Account {
     private int accountType;
     //账号创建时间
     private int createTime;
+    //注册时的mac
+    private String registerMac;
+    //最近一次登录的mac
+    private String lastLoginMac;
+    //当前状态
+    private int status;
 
     public long getPlayerId() {
         return playerId;
@@ -69,5 +75,29 @@ public class Account {
 
     public void setCreateTime(int createTime) {
         this.createTime = createTime;
+    }
+
+    public String getRegisterMac() {
+        return registerMac;
+    }
+
+    public void setRegisterMac(String registerMac) {
+        this.registerMac = registerMac;
+    }
+
+    public String getLastLoginMac() {
+        return lastLoginMac;
+    }
+
+    public void setLastLoginMac(String lastLoginMac) {
+        this.lastLoginMac = lastLoginMac;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
     }
 }

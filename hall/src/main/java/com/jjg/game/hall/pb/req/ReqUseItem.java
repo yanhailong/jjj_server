@@ -17,4 +17,6 @@ public class ReqUseItem extends AbstractMessage {
     public int girdId;
     @ProtoDesc("道具id")
     public int itemId;
+    @ProtoDesc("使用道具数量")
+    public long useItemCount;
 }

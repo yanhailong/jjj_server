@@ -251,6 +251,58 @@ public class HallService implements ConfigExcelChangeListener {
     }
 
     /**
+     * 用户修改信息
+     * @param nick
+     * @param gender
+     * @return
+     */
+    public CommonResult<Player> changePlayerInfo(PlayerController playerController,String nick,byte gender){
+        CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
+        try{
+            boolean[] change = new boolean[2];
+            //TODO 后面要敏感词检测，还要判断是否消费道具
+            if(!nick.equals(playerController.getPlayer().getNickName())){  //修改昵称
+                change[0] = true;
+            }
+
+            if(gender != playerController.getPlayer().getGender()){  //修改性别
+                change[1] = true;
+            }
+
+            if(!change[0] && !change[1]){
+                result.code = Code.PARAM_ERROR;
+                log.debug("玩家请求修改的昵称和性别与原本一致，无需修改 playerId = {},nick = {},gender = {}", playerController.getPlayer().getId(),nick,gender);
+                return result;
+            }
+
+            Player player = hallPlayerService.doSave(playerController.playerId(), p -> {
+                if(change[0]){
+                    p.setNickName(nick);
+                }
+                if(change[1]){
+                    p.setGender(gender);
+                }
+            });
+
+            if(player == null) {
+                result.code = Code.NOT_FOUND;
+                log.debug("修改信息失败 playerId = {}", playerController.playerId());
+                return result;
+            }
+
+            playerController.setPlayer(player);
+            result.data = player;
+
+            if(change[0]){
+                hallPlayerService.savePlayerNick(playerController.playerId(), nick);
+            }
+        }catch (Exception e){
+            log.error("",e);
+        }
+        return result;
+    }
+
+    /**
      * 获取所有头像信息
      * @param playerId
      * @return
@@ -381,7 +433,7 @@ public class HallService implements ConfigExcelChangeListener {
      * @param playerId
      * @param itemId
      */
-    public CommonResult<PlayerPack> useItem(long playerId,int girdId,int itemId){
+    public CommonResult<PlayerPack> useItem(long playerId,int girdId,int itemId,long useItemCount){
         CommonResult<PlayerPack> result = new CommonResult<>(Code.SUCCESS);
         try{
             log.debug("玩家使用道具 playerId = {},girdId = {},itemId = {}",playerId,girdId,itemId);
@@ -405,6 +457,7 @@ public class HallService implements ConfigExcelChangeListener {
                 return result;
             }
 
+            Map<Integer,Long> addItemsMap = new HashMap<>();
             CommonResult<PlayerPack> useResult = null;
             for(Map.Entry<Integer,Long> en : itemCfg.getGetItem().entrySet()){
                 int addItemId = en.getKey();
@@ -413,8 +466,9 @@ public class HallService implements ConfigExcelChangeListener {
                     log.debug("未找到获得新道具的配置 playerId = {},itemId = {}",playerId,addItemId);
                     continue;
                 }
-                useResult = playerPackService.useItem(playerId,girdId, itemId,1, addItemId, en.getValue(), "packUseItem");
+                addItemsMap.merge(addItemId,en.getValue(),Long::sum);
             }
+            useResult = playerPackService.useItem(playerId,girdId, itemId,useItemCount, addItemsMap, "packUseItem");
 
             if(useResult == null){
                 log.debug("使用道具后获得新道具失败 playerId = {},itemId = {}",playerId,itemId);

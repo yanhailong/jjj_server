@@ -6,4 +6,5 @@ package com.jjg.game.account.dto;
  */
 public class GuestLoginDto {
     public String guest;
+    public String mac;
 }

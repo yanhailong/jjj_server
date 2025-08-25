@@ -150,8 +150,8 @@ public interface MessageConst {
         int NOTICE_MARQUEE = BASE_MSG_PREFIX | 0x9A;
         //停止跑马灯
         int NOTICE_STOP_MARQUEE = BASE_MSG_PREFIX | 0x9B;
-        //通知提出房间
-        int NOTIFY_TABLE_EXIT_ROOM = BASE_MSG_PREFIX | 0x9C;
+        //通知踢人
+        int NOTIFY_EXIT = BASE_MSG_PREFIX | 0x9C;
     }
 
     interface RoomMessage {
@@ -175,5 +175,7 @@ public interface MessageConst {
         int NOTICE_MARQUEE_HALL_MASTER = BASE_MSG_PREFIX | 0x3;
         //向大厅和游戏节点推送停止跑马灯
         int NOTICE_STOP_MARQUEE_HALL_MASTER = BASE_MSG_PREFIX | 0x4;
+        //向其他节点发送全服踢人
+        int NOTICE_ALL_KICK_OUT = BASE_MSG_PREFIX | 0x5;
     }
 }

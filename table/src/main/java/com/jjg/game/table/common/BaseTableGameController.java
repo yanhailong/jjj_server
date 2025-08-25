@@ -6,7 +6,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
-import com.jjg.game.core.pb.NotifyTableExitRoom;
+import com.jjg.game.common.pb.NotifyExit;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
 import com.jjg.game.room.constant.EGamePhase;
@@ -180,10 +180,10 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
             }
             // 如果超过最大退出时间
             if (playerLatestOperateTime + exitTime < currentTime) {
-                NotifyTableExitRoom notifyTableExitRoom
+                NotifyExit notifyExit
                     = TableMessageBuilder.buildNotifyTableExitRoom(exitTipLangId);
                 broadcastToPlayers(RoomMessageBuilder.newBuilder()
-                    .addPlayerId(entry.getKey()).setData(notifyTableExitRoom));
+                    .addPlayerId(entry.getKey()).setData(notifyExit));
                 continue;
             }
             // 如果超过最大操作等待时间

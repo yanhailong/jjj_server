@@ -16,6 +16,10 @@ public interface BackendGMCmd {
     String GOLD_OPERATOR = "goldOperator";
     //发送邮件
     String SEND_EMAIL = "sendEmail";
+    //踢玩家
+    String KICK_ACCOUNT = "kickAccount";
+    //封禁账号
+    String BAN_ACCOUNT = "banAccount";
 
     interface Result {
         String SUCCESS = "success";
