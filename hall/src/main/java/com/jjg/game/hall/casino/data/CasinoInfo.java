@@ -3,6 +3,7 @@ package com.jjg.game.hall.casino.data;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 赌场信息
@@ -17,7 +18,7 @@ public class CasinoInfo {
     //楼层打扫信息  BuildingFloorId -> 打扫结束时间
     private Map<Integer, Long> buildingCleaningEndTime;
     //机台详细信息 机台id->建筑信息
-    private Map<Long, MachineInfo> machineInfoData;
+    private Map<Long, CasinoMachineInfo> machineInfoData;
     //一键领取结束时间 -1为永久 赌场id-> 结束时间
     private long oneClickClaimEndTime;
 
@@ -45,11 +46,11 @@ public class CasinoInfo {
         this.buildingCleaningEndTime = buildingCleaningEndTime;
     }
 
-    public Map<Long, MachineInfo> getMachineInfoData() {
+    public Map<Long, CasinoMachineInfo> getMachineInfoData() {
         return machineInfoData;
     }
 
-    public void setMachineInfoData(Map<Long, MachineInfo> machineInfoData) {
+    public void setMachineInfoData(Map<Long, CasinoMachineInfo> machineInfoData) {
         this.machineInfoData = machineInfoData;
     }
 
@@ -63,10 +64,21 @@ public class CasinoInfo {
 
     public static CasinoInfo getNewCasinoInfo(int casinoId) {
         CasinoInfo casinoInfo = new CasinoInfo();
-        casinoInfo.buildingCleaningEndTime = new HashMap<>();
-        casinoInfo.buildingData = new HashMap<>();
-        casinoInfo.machineInfoData = new HashMap<>();
+        casinoInfo.buildingCleaningEndTime = new ConcurrentHashMap<>();
+        casinoInfo.buildingData = new ConcurrentHashMap<>();
+        casinoInfo.machineInfoData = new ConcurrentHashMap<>();
         casinoInfo.id = casinoId;
         return casinoInfo;
+    }
+
+    @Override
+    public String toString() {
+        return "CasinoInfo{" +
+                "id=" + id +
+                ", buildingData=" + buildingData +
+                ", buildingCleaningEndTime=" + buildingCleaningEndTime +
+                ", machineInfoData=" + machineInfoData +
+                ", oneClickClaimEndTime=" + oneClickClaimEndTime +
+                '}';
     }
 }

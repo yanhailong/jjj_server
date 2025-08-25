@@ -18,5 +18,7 @@ public class RoomFriendEnum {
         TOP_UP,
         @ProtoDesc("移除")
         REMOVE,
+        @ProtoDesc("取消置顶")
+        CANCEL_TOP_UP,
     }
 }

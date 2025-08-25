@@ -38,4 +38,7 @@ public class FriendRoomBaseData {
 
     @ProtoDesc("暂停按钮下一次可用的时间，时间戳，为0或者时间戳到期表示可用")
     public long nextPauseBtnOverdueTime;
+
+    @ProtoDesc("进入最低金币数量")
+    public long limitGoldMin;
 }

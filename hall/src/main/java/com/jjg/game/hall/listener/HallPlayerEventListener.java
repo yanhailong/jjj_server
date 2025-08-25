@@ -57,10 +57,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     @Autowired
     private HallLogger hallLogger;
     @Autowired
-    private HallRoomDao roomDao;
-    @Autowired
-    private RedisLock redisLock;
-    @Autowired
     private NodeManager nodeManager;
     @Autowired
     private HallService hallService;
@@ -229,6 +225,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     @Override
     public void sessionClose(PFSession session) {
         session.setReference(null);
+
     }
 
     @Override

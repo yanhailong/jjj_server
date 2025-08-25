@@ -17,12 +17,10 @@ import com.jjg.game.hall.casino.pb.bean.CasinoFloorInfo;
 public class ResCasinoFloorOperation extends AbstractResponse {
     @ProtoDesc("赌场id")
     public int casinoId;
-    @ProtoDesc("类型 1解锁楼层 2打扫楼层 3提前结束楼层打扫")
+    @ProtoDesc("类型  2打扫楼层 3提前结束楼层打扫")
     public int type;
     @ProtoDesc("楼层信息")
     public CasinoFloorInfo casinoFloorInfo;
-    @ProtoDesc("打扫结束时间")
-    public long cleanEndTime;
 
     public ResCasinoFloorOperation() {
         super(Code.SUCCESS);
