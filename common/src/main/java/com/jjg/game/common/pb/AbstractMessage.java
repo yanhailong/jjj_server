@@ -1,4 +1,4 @@
-package com.jjg.game.core.pb;
+package com.jjg.game.common.pb;
 
 /**
  * @author 11

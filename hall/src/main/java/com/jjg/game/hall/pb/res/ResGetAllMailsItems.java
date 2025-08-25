@@ -4,8 +4,9 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.data.Item;
-import com.jjg.game.core.pb.AbstractResponse;
+import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.hall.constant.HallConstant;
+import com.jjg.game.hall.pb.struct.ItemInfo;
 
 import java.util.List;
 
@@ -17,7 +18,7 @@ import java.util.List;
 @ProtoDesc("一键领取邮件内的道具返回")
 public class ResGetAllMailsItems extends AbstractResponse {
     @ProtoDesc("增加的道具")
-    public List<Item> items;
+    public List<ItemInfo> items;
 
     public ResGetAllMailsItems(int code) {
         super(code);

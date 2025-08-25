@@ -3,7 +3,7 @@ package com.jjg.game.hall.friendroom.message.res;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.core.pb.AbstractResponse;
+import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
 import com.jjg.game.hall.friendroom.message.struct.GameBillInfo;
 

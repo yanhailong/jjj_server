@@ -2,7 +2,7 @@ package com.jjg.game.room.base;
 
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.timer.TimerEvent;
-import com.jjg.game.core.pb.AbstractMessage;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractPhaseGameController;

@@ -6,7 +6,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
-import com.jjg.game.core.pb.AbstractMessage;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerPlayerChange;

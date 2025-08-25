@@ -1,7 +1,7 @@
 package com.jjg.game.table.dicecommon.phase;
 
 import com.alibaba.fastjson.JSON;
-import com.jjg.game.core.pb.AbstractMessage;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;

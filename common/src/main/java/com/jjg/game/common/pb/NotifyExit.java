@@ -14,9 +14,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
     cmd = MessageConst.CoreMessage.NOTIFY_EXIT,
     resp = true
 )
-public class NotifyExit {
-    @ProtoDesc("状态码")
-    public int code = 200;
+public class NotifyExit extends AbstractNotice{
     @ProtoDesc("多语言ID")
     public int langId;
 }

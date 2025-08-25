@@ -11,7 +11,7 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
 import com.jjg.game.core.dao.room.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.pb.AbstractMessage;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayFlowPojo;

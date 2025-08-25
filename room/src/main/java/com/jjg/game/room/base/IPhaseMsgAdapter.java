@@ -1,7 +1,7 @@
 package com.jjg.game.room.base;
 
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.pb.AbstractMessage;
+import com.jjg.game.common.pb.AbstractMessage;
 
 /**
  * 需要接收客户端消息的游戏阶段
