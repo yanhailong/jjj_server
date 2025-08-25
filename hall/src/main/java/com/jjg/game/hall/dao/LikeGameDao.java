@@ -8,7 +8,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.TreeSet;
 
@@ -27,16 +26,23 @@ public class LikeGameDao {
     /**
      * 添加收藏的游戏
      * @param playerId
-     * @param gameType
+     * @param gameTypes
      * @return
      */
-    public TreeSet<Integer> addLikeGame(long playerId, int gameType){
+    public TreeSet<Integer> addLikeGame(long playerId, List<Integer> gameTypes){
         LikeGame likeGame = getLikeGame(playerId);
         if(likeGame == null){
             likeGame = new LikeGame();
             likeGame.setPlayerId(playerId);
         }
-        likeGame.addLikeGame(gameType);
+
+        if(gameTypes == null || gameTypes.isEmpty()){
+            return likeGame.getGameTypeSet();
+        }
+
+        for(int gameType : gameTypes){
+            likeGame.addLikeGame(gameType);
+        }
         save(likeGame);
         return likeGame.getGameTypeSet();
     }

@@ -67,7 +67,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         notifyBlackJackSpecialSettlement.type = seatInfo.getOperationType();
         notifyBlackJackSpecialSettlement.playerId = seatInfo.getPlayerId();
         notifyBlackJackSpecialSettlement.sendCardId = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCurrentCards().getLast());
-        notifyBlackJackSpecialSettlement.putCardTotal = BlackJackDataHelper.getTotalPoint(seatInfo.getCurrentCards());
+        notifyBlackJackSpecialSettlement.putCardTotal = BlackJackDataHelper.getShowTotalPoint(seatInfo.getCurrentCards());
         if (seatInfo.getOperationType() == PokerConstant.PlayerOperation.DOUBLE_BET) {
             notifyBlackJackSpecialSettlement.betValue = gameDataVo.getBaseBetInfo().getOrDefault(seatInfo.getPlayerId(), 0L);
         }
@@ -96,7 +96,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             //第一组的最后一张牌
             notifyBlackJackSpecialSettlement.sendCardId = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCards().getFirst().getLast());
             notifyBlackJackSpecialSettlement.autoCard = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCurrentCards().getLast());
-            notifyBlackJackSpecialSettlement.putCardTotal = BlackJackDataHelper.getTotalPoint(seatInfo.getCards().getFirst());
+            notifyBlackJackSpecialSettlement.putCardTotal = BlackJackDataHelper.getShowTotalPoint(seatInfo.getCards().getFirst());
         }
         if (seatInfo.getOperationType() == PokerConstant.PlayerOperation.STOP) {
             notifyBlackJackSpecialSettlement.autoCard = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCurrentCards().getLast());
@@ -104,7 +104,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         if (seatInfo.getOperationType() == PokerConstant.PlayerOperation.DOUBLE_BET) {
             notifyBlackJackSpecialSettlement.sendCardId = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCards().getFirst().getLast());
             notifyBlackJackSpecialSettlement.autoCard = BlackJackDataHelper.getClientCardId(gameDataVo, seatInfo.getCurrentCards().getLast());
-            notifyBlackJackSpecialSettlement.putCardTotal = BlackJackDataHelper.getTotalPoint(seatInfo.getCards().getFirst());
+            notifyBlackJackSpecialSettlement.putCardTotal = BlackJackDataHelper.getShowTotalPoint(seatInfo.getCards().getFirst());
             notifyBlackJackSpecialSettlement.betValue = gameDataVo.getBaseBetInfo().getOrDefault(seatInfo.getPlayerId(), 0L);
         }
         notifyBlackJackSpecialSettlement.cardIdList = BlackJackBuilder.getCardInfos(seatInfo, controller);
@@ -189,7 +189,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                     continue;
                 }
                 //初始为21点 直接发奖
-                if (point == BlackJackConstant.Common.PERFECT_POINT && info.getCurrentCards().size() == chessCfg.getHandPoker()) {
+                if (point == BlackJackConstant.Common.PERFECT_POINT && card.size() == chessCfg.getHandPoker()) {
                     if (tianHu) {
                         settlementInfo.cardGroupState.add(2);
                         continue;
@@ -203,7 +203,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                     continue;
                 }
                 //连续6张直接发奖
-                if (card.size() == maxCardNum) {
+                if (card.size() == BlackJackConstant.Common.MAX_GET_CARD) {
                     playerGet.merge(playerId, BlackJackDataHelper.getGetWinValue(betValue, blackjackCfg.getFiveLittleDragons()), Long::sum);
                     settlementInfo.cardGroupState.add(1);
                     continue;

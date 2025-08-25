@@ -150,6 +150,8 @@ public interface MessageConst {
         int NOTICE_MARQUEE = BASE_MSG_PREFIX | 0x9A;
         //停止跑马灯
         int NOTICE_STOP_MARQUEE = BASE_MSG_PREFIX | 0x9B;
+        //通知提出房间
+        int NOTIFY_TABLE_EXIT_ROOM = BASE_MSG_PREFIX | 0x9C;
     }
 
     interface RoomMessage {

@@ -98,6 +98,9 @@ public class AbstractPlayerService {
     public CommonResult<Player> addDiamond(long playerId, long addNum, String addType) {
         return addDiamond(playerId, addNum, addType, null);
     }
+    public CommonResult<Player> addGoldAndDiamond(long playerId, long goldNum,long diamondNum, String addType) {
+        return addGoldAndDiamond(playerId, goldNum, diamondNum,addType, null);
+    }
 
     public CommonResult<Player> deductDiamond(long playerId, long addNum, String addType) {
         return deductDiamond(playerId, addNum, addType, null);
@@ -139,6 +142,56 @@ public class AbstractPlayerService {
         if (p != null) {
             //TODO 后期要排除机器人的情况
             coreLogger.useDiamond(p, beforeCoin[0], addNum, addType, desc);
+            result.code = Code.SUCCESS;
+            result.data = p;
+            return result;
+        }
+        return result;
+    }
+
+    /**
+     * 添加金币和钻石
+     *
+     * @param playerId
+     * @param addType
+     * @param desc
+     * @return
+     */
+    public CommonResult<Player> addGoldAndDiamond(long playerId, long goldNum,long diamondNum, String addType, String desc) {
+        // TODO 添加金币时只能保证分布式服务状态下的更新同步，不能保证当前服的线程安全引起的数据同步问题
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
+        if (goldNum < 0 || diamondNum < 0 || (goldNum + diamondNum) < 1) {
+            log.warn("添加金币和钻石数量错误 playerId={},goldNum={},diamondNum = {}", playerId, goldNum,diamondNum);
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+
+        final long[] beforeCoin = {0,0};
+
+        Player p = checkAndSave(playerId, new DataSaveCallback<>() {
+            @Override
+            public void updateData(Player dataEntity) {
+            }
+
+            @Override
+            public Boolean updateDataWithRes(Player player) {
+                beforeCoin[0] = player.getGold();
+                beforeCoin[1] = player.getDiamond();
+                player.setGold(player.getGold() + goldNum);
+                player.setDiamond(player.getDiamond() + diamondNum);
+                return true;
+            }
+        });
+
+        //记录日志
+        if (p != null) {
+            //TODO 后期要排除机器人的情况
+            if(goldNum > 0){
+                coreLogger.useGold(p, beforeCoin[0], goldNum, addType, desc);
+            }
+            if(diamondNum > 0){
+                coreLogger.useDiamond(p, beforeCoin[1], diamondNum, addType, desc);
+            }
             result.code = Code.SUCCESS;
             result.data = p;
             return result;
@@ -247,6 +300,9 @@ public class AbstractPlayerService {
     public CommonResult<Player> betDeductGold(long playerId, long addNum, String addType) {
         return betDeductGold(playerId, addNum, addType, null);
     }
+    public CommonResult<Player> deductGoldAndDiamond(long playerId, long goldNum,long diamondNum, String addType) {
+        return deductGoldAndDiamond(playerId, goldNum,diamondNum, addType, null);
+    }
 
     /**
      * 添加金币
@@ -350,6 +406,68 @@ public class AbstractPlayerService {
         if (p != null) {
             //TODO 后期要排除机器人的情况
             coreLogger.useGold(p, beforeCoin[0], -num, addType, desc);
+            result.code = Code.SUCCESS;
+            result.data = p;
+            return result;
+        }
+        return result;
+    }
+
+    /**
+     * 扣除金币和钻石
+     *
+     * @param playerId
+     * @param addType
+     * @param desc
+     * @return
+     */
+    public CommonResult<Player> deductGoldAndDiamond(long playerId, long goldNum,long diamondNum, String addType, String desc) {
+        // TODO 添加金币时只能保证分布式服务状态下的更新同步，不能保证当前服的线程安全引起的数据同步问题
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
+        if (goldNum < 0 || diamondNum < 0 || (goldNum + diamondNum) < 1) {
+            log.warn("扣除金币和钻石数量错误 playerId={},goldNum={},diamondNum = {}", playerId, goldNum,diamondNum);
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+
+        final long[] beforeCoin = {0,0};
+
+        Player p = checkAndSave(playerId, new DataSaveCallback<>() {
+            @Override
+            public void updateData(Player dataEntity) {
+            }
+
+            @Override
+            public Boolean updateDataWithRes(Player player) {
+                beforeCoin[0] = player.getGold();
+                beforeCoin[1] = player.getDiamond();
+                long afterGold = player.getGold() - goldNum;
+                long afterDiamond = player.getDiamond() - diamondNum;
+                if (afterGold < 0) {
+                    result.code = Code.NOT_ENOUGH;
+                    log.debug("同时扣除金币钻石时，金币不足  playerId = {},gold = {},deductGold = {}",playerId,player.getGold(),goldNum);
+                    return false;
+                }
+                if (afterDiamond < 0) {
+                    result.code = Code.NOT_ENOUGH;
+                    log.debug("同时扣除金币钻石时，钻石不足  playerId = {},diamond = {},deductDiamond = {}",playerId,player.getDiamond(),diamondNum);
+                    return false;
+                }
+                player.setGold(afterGold);
+                player.setDiamond(afterDiamond);
+                return true;
+            }
+        });
+
+        //记录日志
+        if (p != null) {
+            //TODO 后期要排除机器人的情况
+            if(goldNum > 0){
+                coreLogger.useGold(p, beforeCoin[0], -goldNum, addType, desc);
+            }
+            if(diamondNum > 0){
+                coreLogger.useDiamond(p, beforeCoin[1], -diamondNum, addType, desc);
+            }
             result.code = Code.SUCCESS;
             result.data = p;
             return result;

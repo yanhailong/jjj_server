@@ -91,7 +91,7 @@ public class GMController extends AbstractController {
             }
 
             boolean saved = gameStatusService.saveOrUpdateGameStatus(new GameStatus(dto.number(),
-                    dto.open(), dto.status(), dto.right_top_icon(),dto.icon_category()));
+                    dto.open(), dto.status(), dto.right_top_icon(),dto.icon_category(),dto.sort()));
 
             if (!saved) {
                 log.info("修改游戏状态失败,无法保存到Redis , dto = {}", dto);

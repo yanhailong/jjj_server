@@ -6,6 +6,8 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.hall.constant.HallConstant;
 
+import java.util.List;
+
 /**
  * @author 11
  * @date 2025/8/21 11:30
@@ -13,6 +15,8 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_CANCEL_LIKE_GAME,resp = true)
 @ProtoDesc("取消收藏返回")
 public class ResCancelLikeGame extends AbstractResponse {
+    @ProtoDesc("收藏游戏列表")
+    public List<Integer> gameTypeList;
     public ResCancelLikeGame(int code) {
         super(code);
     }

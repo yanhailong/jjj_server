@@ -11,6 +11,7 @@ import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
@@ -113,10 +114,27 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
     //总押分
     protected Map<Integer,List<Long>> allStakeMap;
+
+    //检查离线玩家事件
+    private TimerEvent<String> checkOffLineEvent;
+
     /**
      * 初始化
      */
-    public abstract void init();
+    public void init(){
+        this.gameType = getGameType();
+
+        getResultLibDao().init(this.gameType);
+        getGenerateManager().init(this.gameType);
+        initConfig();
+
+        addCheckOffLineEvent();
+    }
+
+    protected void addCheckOffLineEvent(){
+        this.checkOffLineEvent = new TimerEvent<>(this, "offLineEvent", 1).withTimeUnit(TimeUnit.MINUTES);
+        timerCenter.add(this.checkOffLineEvent);
+    }
 
     /**
      * 对外调用
@@ -182,7 +200,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     /**
      * 关闭
      */
-    public abstract void shutdown();
+    public void shutdown(){
+        this.gameDataMap.entrySet().forEach(en -> {
+            T gameData = en.getValue();
+            offlineSaveGameDataDto(gameData);
+        });
+    }
 
     protected void initConfig() {
         baseRoomConfig(this.gameType);
@@ -409,7 +432,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
     @Override
     public void onTimer(TimerEvent e) {
-        if (this.clearAllLibEvent == e) {
+        if(this.checkOffLineEvent == e){
+            checkOffLine();
+        }else if (this.clearAllLibEvent == e) {
             getResultLibDao().clearMongoLib();
             getResultLibDao().clearRedisLib();
             this.clearAllLibEvent = null;
@@ -440,6 +465,32 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     protected <D extends SlotsPlayerGameData,DT extends SlotsPlayerGameDataDTO> D setGameDataValues(D d,DT dto){
         return null;
     }
+
+    /**
+     * 检查已离线的玩家，并且要保存数据
+     */
+    protected void checkOffLine(){
+        int now = TimeHelper.nowInt();
+        this.gameDataMap.entrySet().removeIf(en -> {
+            T gameData = en.getValue();
+            if(gameData.isOnline()){
+                return false;
+            }
+
+            int diff = now - gameData.getLastActiveTime();
+            //60s = 1分钟
+            if(diff < 60){
+                return false;
+            }
+            offlineSaveGameDataDto(gameData);
+            return true;
+        });
+    }
+
+    /**
+     * 玩家离线保存gameDataDto
+     */
+    protected abstract void offlineSaveGameDataDto(T gameData);
 
     /*****************************************************************************************************************************/
 
@@ -678,9 +729,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         map.put(pbShowId, new int[]{Integer.parseInt(arr[0]), Integer.parseInt(arr[1])});
     }
 
-    public int getGameType() {
-        return gameType;
-    }
+    public abstract int getGameType();
 
     public Map<Integer, BaseRoomCfg> getRoomCfgMap() {
         return roomCfgMap;

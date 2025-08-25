@@ -6,6 +6,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractResponse;
 import com.jjg.game.core.pb.MarqueeInfo;
 import com.jjg.game.hall.pb.struct.GameListConfig;
+import com.jjg.game.hall.pb.struct.GameWareInfo;
 
 import java.util.List;
 
@@ -56,6 +57,8 @@ public class ResLogin extends AbstractResponse {
     public int pokerStyle;
     @ProtoDesc("大厅背景")
     public int hallBg;
+    @ProtoDesc("如果有值，表示要重连进入游戏")
+    public GameWareInfo gameWareInfo;
 
     public ResLogin(int code) {
         super(code);

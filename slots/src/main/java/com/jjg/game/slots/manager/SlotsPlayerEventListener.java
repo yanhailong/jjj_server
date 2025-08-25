@@ -1,20 +1,23 @@
 package com.jjg.game.slots.manager;
 
-import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.PlayerLastGameInfo;
 import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
-import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGameManager;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 
 /**
@@ -32,9 +35,9 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     @Autowired
     private CoreLogger logger;
     @Autowired
-    private ClusterSystem clusterSystem;
+    private PlayerLastGameInfoDao playerLastGameInfoDao;
     @Autowired
-    private DollarExpressGameManager dollarExpressGameManager;
+    private SlotsFactoryManager slotsFactoryManager;
 
 
     @Override
@@ -53,8 +56,24 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 return;
             }
 
-            if (info.getGameType() < 1) {
-                log.warn("sessionEnter时 PlayerSessionInfo 中的gameType小于1 playerId = {}", playerId);
+            //先检查是否为断线重连
+            Optional<PlayerLastGameInfo> op = playerLastGameInfoDao.findById(playerId);
+            if (op.isPresent()) {
+                PlayerLastGameInfo playerLastGameInfo = op.get();
+                if (playerLastGameInfo.isHalfwayOffline() && StringUtils.isNotEmpty(playerLastGameInfo.getNodePath())) {
+                    info.setGameType(playerLastGameInfo.getGameType());
+                    info.setRoomCfgId(playerLastGameInfo.getRoomCfgId());
+                }
+            }else {
+                if (info.getGameType() < 1) {
+                    log.warn("sessionEnter时 PlayerSessionInfo 中的gameType小于1 playerId = {}", playerId);
+                    return;
+                }
+            }
+
+            AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(info.getGameType());
+            if(gameManager == null){
+                log.debug("sessionEnter时，获取游戏管理器失败 playerId = {},gameType = {}", playerId, info.getGameType());
                 return;
             }
 
@@ -71,10 +90,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             session.setReference(playerController);
 
             logger.enterGame(player, info.getGameType(), info.getRoomCfgId());
-
             //创建 PlayerGameData
-            dollarExpressGameManager.createPlayerGameData(playerController);
-            log.info("玩家进入美元快递游戏 playerId = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+            gameManager.createPlayerGameData(playerController);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -88,7 +105,13 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             return;
         }
 
-        boolean exit = dollarExpressGameManager.exit(playerController);
+        AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType());
+        if(gameManager == null){
+            log.debug("退出游戏时，获取游戏管理器失败 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
+            return;
+        }
+
+        boolean exit = gameManager.exit(playerController);
         playerSessionService.offline(playerController.getPlayer(), !exit);
         logger.exitGame(playerController.getPlayer());
         log.debug("退出游戏结算 playerId = {}",playerController.playerId());

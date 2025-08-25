@@ -71,13 +71,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
     @Override
     public void init() {
-        log.info("启动美元快递游戏管理器...");
-        this.gameType = CoreConst.GameType.DOLLAR_EXPRESS;
-        this.libDao.init(this.gameType);
-
-        this.generateManager.init(this.gameType);
-        //计算配置后缓存
-        initConfig();
+       log.info("启动美元快递游戏管理器...");
+       super.init();
     }
 
     /**
@@ -1380,8 +1375,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
     /**
      * 退出游戏
-     *
      * @param playerController
+     * @return 返回值来标记是否可以进行断线重连
      */
     @Override
     public boolean exit(PlayerController playerController) {
@@ -1398,17 +1393,30 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             autoInvest(playerGameData);
         }
 
-        DollarExpressPlayerGameDataDTO dto = playerGameData.converToDto();
-        dto.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
-        dto.setInvers(playerGameData.getInvers().get());
-        dto.setAllUnLock(playerGameData.getAllUnLock().get());
-        gameDataDao.saveGameData(dto);
+        playerGameData.setOnline(false);
         return true;
     }
 
     @Override
     public void onTimer(TimerEvent e) {
         super.onTimer(e);
+    }
+
+    @Override
+    public int getGameType() {
+        return CoreConst.GameType.DOLLAR_EXPRESS;
+    }
+
+    /**
+     * 玩家离线保存gameDataDto
+     */
+    @Override
+    protected void offlineSaveGameDataDto(DollarExpressPlayerGameData playerGameData) {
+        DollarExpressPlayerGameDataDTO dto = playerGameData.converToDto();
+        dto.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
+        dto.setInvers(playerGameData.getInvers().get());
+        dto.setAllUnLock(playerGameData.getAllUnLock().get());
+        gameDataDao.saveGameData(dto);
     }
 
     /**
@@ -1554,7 +1562,12 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
     @Override
     public void shutdown() {
-        log.info("正在关闭美元快递游戏管理器");
+        try{
+            super.shutdown();
+            log.info("已关闭美元快递游戏管理器");
+        }catch (Exception e){
+            log.error("",e);
+        }
     }
 
     private long calWinGold(long bet,long times){
