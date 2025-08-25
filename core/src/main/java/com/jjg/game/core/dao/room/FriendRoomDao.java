@@ -1,11 +1,9 @@
-package com.jjg.game.core.dao;
+package com.jjg.game.core.dao.room;
 
-import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.StrConstant;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.stereotype.Repository;
 
@@ -22,8 +20,6 @@ import java.util.Map;
 @Repository
 public class FriendRoomDao extends AbstractRoomDao<FriendRoom, RoomPlayer> {
 
-    @Autowired
-    private NodeConfig nodeConfig;
     // 玩家好友房
     private static final String PLAYER_FRIEND_ROOM = "PlayerFriendRoomId";
 
@@ -69,7 +65,7 @@ public class FriendRoomDao extends AbstractRoomDao<FriendRoom, RoomPlayer> {
     public FriendRoom createBetFriendRoom(
         long playerId, int gameType, int roomCfgId, int maxLimit, CreateFriendsRoom req) {
         try {
-            String nodePath = nodeConfig.getName();
+            String nodePath = nodeManager.getNodePath();
             long curTime = System.currentTimeMillis();
             FriendRoom friendRoom = fillFriendRoomData(gameType, nodePath, maxLimit);
             friendRoom.setRoomCfgId(roomCfgId);

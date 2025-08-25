@@ -1,5 +1,6 @@
-package com.jjg.game.core.dao;
+package com.jjg.game.core.dao.room;
 
+import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.core.data.PlayerRoomData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;

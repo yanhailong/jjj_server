@@ -1,4 +1,4 @@
-package com.jjg.game.core.tool;
+package com.jjg.game.common.baselogic;
 
 import java.util.List;
 

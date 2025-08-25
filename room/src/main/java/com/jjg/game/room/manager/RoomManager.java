@@ -4,10 +4,14 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.Room;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.core.rpc.HallRoomBridge;
 import com.jjg.game.room.base.GameGm;
 import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.sampledata.bean.RoomCfg;
@@ -25,7 +29,7 @@ import java.util.Set;
  * @author 2CL
  */
 @Component
-public class RoomManager extends AbstractRoomManager implements GmListener {
+public class RoomManager extends AbstractRoomManager implements GmListener, HallRoomBridge {
 
     public RoomManager() {
         super();
@@ -130,5 +134,42 @@ public class RoomManager extends AbstractRoomManager implements GmListener {
             }
         }
         return method.invoke(gameController, params);
+    }
+
+    /**
+     * 操作好友房
+     *
+     * @param roomId      房间ID
+     * @param operateCode 操作码 1. 暂停 2. 重新开启 3. 解散
+     */
+    @Override
+    public void operateFriendRoom(long roomId, int operateCode) {
+        if (operateCode < 1 || operateCode > 3) {
+            return;
+        }
+        // 获取房间控制器
+        AbstractRoomController<? extends RoomCfg, ? extends Room> roomController = getRoomControllerByRoomId(roomId);
+        if (roomController == null) {
+            return;
+        }
+        switch (operateCode) {
+            case 1:
+                // 暂停房间
+                roomController.pauseGame();
+                break;
+            case 2:
+                // 继续游戏
+                roomController.continueGame();
+                break;
+            case 3:
+                // 解散房间
+                roomController.gameOver();
+                break;
+        }
+    }
+
+    @Override
+    public FriendRoom getFriendRoomInfo(long roomId) {
+        return null;
     }
 }

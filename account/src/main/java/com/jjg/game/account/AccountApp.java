@@ -14,21 +14,22 @@ import org.springframework.context.annotation.FilterType;
 @ComponentScan(
     basePackages = "com.jjg.game",
     excludeFilters = {
-      @ComponentScan.Filter(
-          type = FilterType.ASSIGNABLE_TYPE,
-          classes = {
-            com.jjg.game.common.service.MarsCoreStartService.class,
-            com.jjg.game.core.handler.CoreMessageHandler.class,
-          }),
-      @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.cluster.*"),
-      @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.curator.*"),
-      @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.gate.*"),
-      @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.service.*"),
-      @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.manager.*")
+        @ComponentScan.Filter(
+            type = FilterType.ASSIGNABLE_TYPE,
+            classes = {
+                com.jjg.game.common.service.MarsCoreStartService.class,
+                com.jjg.game.core.handler.CoreMessageHandler.class,
+            }),
+        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.cluster.*"),
+        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.curator.*"),
+        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.gate.*"),
+        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.service.*"),
+        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.manager.*"),
+        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.dao.room.*")
     })
 public class AccountApp {
 
-  public static void main(String[] args) {
-    SpringApplication.run(AccountApp.class, args);
-  }
+    public static void main(String[] args) {
+        SpringApplication.run(AccountApp.class, args);
+    }
 }

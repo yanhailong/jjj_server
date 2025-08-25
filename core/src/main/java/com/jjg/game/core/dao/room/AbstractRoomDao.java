@@ -1,4 +1,4 @@
-package com.jjg.game.core.dao;
+package com.jjg.game.core.dao.room;
 
 import cn.hutool.core.lang.Snowflake;
 import com.jjg.game.common.curator.NodeManager;
@@ -41,7 +41,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     @Autowired
     private PlayerRoomDataDao playerRoomDataDao;
     @Autowired
-    private NodeManager nodeManager;
+    protected NodeManager nodeManager;
     private final Snowflake snowflake = new Snowflake(NodeType.GAME.getValue(), 1);
 
     protected Class<T> roomClazz;

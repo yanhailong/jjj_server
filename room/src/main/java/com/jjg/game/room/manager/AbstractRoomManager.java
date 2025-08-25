@@ -9,8 +9,8 @@ import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.dao.AbstractRoomDao;
-import com.jjg.game.core.dao.PlayerRoomDataDao;
+import com.jjg.game.core.dao.room.AbstractRoomDao;
+import com.jjg.game.core.dao.room.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.match.MatchDataDao;
@@ -101,7 +101,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             Reflections reflections = new Reflections(CoreConst.Common.BASE_PROJECT_PACKAGE_PATH);
             // 房间控制器初始化
             Set<Class<? extends AbstractRoomController>> allRoomController =
-                reflections.getSubTypesOf(AbstractRoomController.class);
+                reflections.getSubTypesOf(AbstractRoomController.class).stream()
+                    .filter(c -> !Modifier.isAbstract(c.getModifiers()))
+                    .collect(Collectors.toSet());
             log.info("获取到房间控制器: {}", allRoomController.stream().map(Class::getSimpleName).collect(Collectors.joining(
                 ",")));
             roomControllerClazz = allRoomController;
@@ -692,9 +694,12 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     }
 
     /**
-     * 通过玩家ID获取到玩家对应的GameController
+     * 获取房间控制器
+     *
+     * @param playerId 玩家ID
+     * @return 房间控制器
      */
-    public AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> getGameControllerByPlayerId(long playerId) {
+    public AbstractRoomController<? extends RoomCfg, ? extends Room> getRoomControllerByPlayer(long playerId) {
         List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =
             new ArrayList<>(roomControllerMap.values());
         for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
@@ -703,7 +708,41 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 new ArrayList<>(roomControllerMap.values());
             for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : roomControllers) {
                 if (roomController.getPlayerControllers().containsKey(playerId)) {
-                    return roomController.getGameController();
+                    return roomController;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 通过玩家ID获取到玩家对应的GameController
+     */
+    public AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> getGameControllerByPlayerId(long playerId) {
+        AbstractRoomController<? extends RoomCfg, ? extends Room> roomController = getRoomControllerByPlayer(playerId);
+        if (roomController == null) {
+            return null;
+        }
+        return roomController.getGameController();
+    }
+
+
+    /**
+     * 获取房间控制器
+     *
+     * @param roomId 房间ID
+     * @return 房间控制器
+     */
+    public AbstractRoomController<? extends RoomCfg, ? extends Room> getRoomControllerByRoomId(long roomId) {
+        List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =
+            new ArrayList<>(roomControllerMap.values());
+        for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
+            roomMapControllers) {
+            List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
+                new ArrayList<>(roomControllerMap.values());
+            for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : roomControllers) {
+                if (roomController.getRoom().getId() == roomId) {
+                    return roomController;
                 }
             }
         }
@@ -714,19 +753,11 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 通过房间ID获取到玩家对应的GameController
      */
     public AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> getGameControllerByRoomId(long roomId) {
-        List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =
-            new ArrayList<>(roomControllerMap.values());
-        for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
-            roomMapControllers) {
-            List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
-                new ArrayList<>(roomControllerMap.values());
-            for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : roomControllers) {
-                if (roomController.getRoom().getId() == roomId) {
-                    return roomController.getGameController();
-                }
-            }
+        AbstractRoomController<? extends RoomCfg, ? extends Room> roomController = getRoomControllerByRoomId(roomId);
+        if (roomController == null) {
+            return null;
         }
-        return null;
+        return roomController.getGameController();
     }
 
     /**

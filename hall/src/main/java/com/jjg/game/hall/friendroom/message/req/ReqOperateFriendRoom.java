@@ -5,6 +5,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
+import com.jjg.game.hall.friendroom.message.struct.RoomFriendEnum;
 
 /**
  * 请求操作好友房间

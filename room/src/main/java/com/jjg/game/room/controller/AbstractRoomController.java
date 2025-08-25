@@ -8,8 +8,8 @@ import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.dao.AbstractRoomDao;
-import com.jjg.game.core.dao.PlayerRoomDataDao;
+import com.jjg.game.core.dao.room.AbstractRoomDao;
+import com.jjg.game.core.dao.room.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.AbstractMessage;
 import com.jjg.game.room.constant.RoomConstant;
@@ -264,6 +264,11 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     @Override
     public void pauseGame() {
         gameController.pauseGame();
+    }
+
+    @Override
+    public void continueGame(){
+        gameController.continueGame();
     }
 
     @Override

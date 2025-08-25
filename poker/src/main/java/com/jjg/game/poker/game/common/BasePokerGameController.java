@@ -202,6 +202,12 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
      */
     public abstract void respRoomInitInfoAction(PlayerController playerController);
 
+    @Override
+    public void continueGame() {
+        super.continueGame();
+        tryStartNextGame();
+    }
+
     /**
      * 尝试开启下一轮游戏
      */

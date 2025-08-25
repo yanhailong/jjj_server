@@ -22,8 +22,6 @@ public interface FriendRoomMessageConstant {
         int REQ_OPERATE_ROOM_FRIENDS_LIST = BASE_MSG_MASK | 0x04;
         // 请求关注玩家的房间列表
         int REQ_FRIEND_ROOM_LIST = BASE_MSG_MASK | 0x05;
-        // 请求好友房间的详细信息
-        int REQ_FRIEND_ROOM_DETAIL_INFO = BASE_MSG_MASK | 0x06;
         // 请求刷新好友房间列表
         int REQ_REFRESH_ROOM_FRIEND_LIST = BASE_MSG_MASK | 0x07;
         // 请求操作屏蔽玩家
@@ -57,8 +55,6 @@ public interface FriendRoomMessageConstant {
         int RES_OPERATE_ROOM_FRIENDS_LIST = BASE_MSG_MASK | 0x84;
         // 返回关注玩家的房间列表
         int RES_FRIEND_ROOM_LIST = BASE_MSG_MASK | 0x85;
-        // 返回好友房间的详细信息
-        int RES_FRIEND_ROOM_DETAIL_INFO = BASE_MSG_MASK | 0x86;
         // 返回刷新好友房间列表
         int RES_REFRESH_ROOM_FRIEND_LIST = BASE_MSG_MASK | 0x87;
         // 返回操作屏蔽玩家

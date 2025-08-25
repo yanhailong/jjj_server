@@ -17,7 +17,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.service.CorePlayerService;
-import com.jjg.game.core.tool.IConsoleReceiver;
+import com.jjg.game.common.baselogic.IConsoleReceiver;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.dao.RoomDao;
 import com.jjg.game.room.data.room.GameDataVo;

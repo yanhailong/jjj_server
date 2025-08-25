@@ -113,7 +113,7 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
                     // 自动切换到下一个阶段
                     this.autoRunGamePhase();
                 }), RoomEventType.ROOM_PHASE_RUN_EVENT);
-        } else {
+        } else if (gameStarted) {
             if (closeGameOnNextRound) {
                 // 广播游戏暂停消息
                 broadcastGamePauseInfo();
@@ -122,9 +122,17 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
             }
             // 阶段全部运行结束
             phaseRunOver();
+            // 进入下一轮之前调用
+            beforeEnterNextRound();
             // 全部游戏阶段完成
             roomPhaseRoundOver();
         }
+    }
+
+    @Override
+    public void continueGame() {
+        super.continueGame();
+        autoRunGamePhase();
     }
 
     /**
@@ -176,8 +184,6 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
             // 调用roomController的游戏结束逻辑
             roomController.gameOver();
         } else {
-            // 进入下一轮之前调用
-            beforeEnterNextRound();
             // 初始化迭代器
             gamePhaseIterator = gamePhases.iterator();
             // 回合计数++

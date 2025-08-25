@@ -49,7 +49,7 @@ public class FriendRoomMessageBuilder {
         friendRoomBaseData.overdueTime = friendRoom.getOverdueTime();
         friendRoomBaseData.predictCostGoldNum = friendRoom.getPredictCostGoldNum();
         GlobalConfigCfg globalConfigCfg =
-            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.FRIEND_ROOM_OPERATE_INTERVAL);
+            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_REFRESH_INTERVAL);
         int intervalTime = globalConfigCfg.getIntValue() * TimeHelper.ONE_MINUTE_OF_MILLIS;
         long curTime = System.currentTimeMillis();
         friendRoomBaseData.nextPauseBtnOverdueTime =

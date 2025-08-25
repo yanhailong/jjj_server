@@ -36,7 +36,6 @@ public class TableSampleDataHolder implements ConfigExcelChangeListener {
             BET_ACTION_DATA_CACHE.computeIfAbsent(entry.getValue().getActionID(), k -> new HashMap<>())
                 .put(entry.getValue().getGameID(), entry.getKey());
         }
-        System.out.println(JSON.toJSONString(BET_ACTION_DATA_CACHE));
     }
 
     public static Integer getBetActionDataCache(int actionId, int gameId) {

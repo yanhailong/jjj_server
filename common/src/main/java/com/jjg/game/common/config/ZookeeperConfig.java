@@ -5,9 +5,9 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * zk 配置信息
- * 
+ *
  * @scene 1.0
- * 
+ *
  */
 @Configuration
 @ConfigurationProperties(prefix = "zookeeper")
@@ -23,7 +23,7 @@ public class ZookeeperConfig {
 	/**
 	 * 最大重试次数
 	 */
-	private int maxRetries = 3;
+	private int maxRetries = 10;
 
 	/**
 	 * 根目录

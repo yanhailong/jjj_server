@@ -3,10 +3,9 @@ package com.jjg.game.core.data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.List;
-
 /**
- * 匹配房间，需要存库
+ * 匹配房间，需要存库，因为玩家可以暂停房间中的时间，而且后续还可以恢复房间，所以需要在玩家暂停一定时间之后直接存库，
+ * 然后销毁内存和redis中的房间数据，当玩家再次运行房间时需要恢复房间中的状态
  *
  * @author 2CL
  */
@@ -26,8 +25,6 @@ public class FriendRoom extends Room {
     protected int status;
     // 房间暂停时间，开启时需要置为0
     protected long pauseTime;
-    // 屏蔽玩家
-    protected List<Player> shieldPlayers;
 
     public long getOverdueTime() {
         return overdueTime;
@@ -75,13 +72,5 @@ public class FriendRoom extends Room {
 
     public void setPauseTime(long pauseTime) {
         this.pauseTime = pauseTime;
-    }
-
-    public List<Player> getShieldPlayers() {
-        return shieldPlayers;
-    }
-
-    public void setShieldPlayers(List<Player> shieldPlayers) {
-        this.shieldPlayers = shieldPlayers;
     }
 }

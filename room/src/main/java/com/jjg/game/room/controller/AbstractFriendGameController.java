@@ -10,10 +10,10 @@ import com.jjg.game.sampledata.bean.RoomCfg;
  *
  * @author 2CL
  */
-public abstract class AbstractInviteGameController<RC extends RoomCfg, G extends GameDataVo<RC>>
+public abstract class AbstractFriendGameController<RC extends RoomCfg, G extends GameDataVo<RC>>
     extends AbstractGameController<RC, G> {
 
-    public AbstractInviteGameController(AbstractRoomController<RC, ? extends Room> roomController) {
+    public AbstractFriendGameController(AbstractRoomController<RC, ? extends Room> roomController) {
         super(roomController);
     }
 }

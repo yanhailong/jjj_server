@@ -284,10 +284,15 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         closeGameOnNextRound = true;
     }
 
+    @Override
+    public void continueGame() {
+        closeGameOnNextRound = false;
+    }
+
     /**
      * 广播游戏暂停通知
      */
-    public void broadcastGamePauseInfo(){
+    public void broadcastGamePauseInfo() {
         NotifyPauseGameOnNewRound notifyPauseGameOnNewRound = new NotifyPauseGameOnNewRound();
         broadcastToPlayers(
             RoomMessageBuilder.newBuilder().setData(notifyPauseGameOnNewRound).toAllPlayer());

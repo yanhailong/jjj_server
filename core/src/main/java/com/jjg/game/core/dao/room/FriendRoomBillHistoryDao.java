@@ -1,7 +1,8 @@
-package com.jjg.game.core.dao;
+package com.jjg.game.core.dao.room;
 
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.redis.RedissonLock;
+import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.core.data.FriendRoomBillHistoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;

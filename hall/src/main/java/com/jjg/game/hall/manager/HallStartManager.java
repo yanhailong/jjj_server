@@ -4,6 +4,7 @@ import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.hall.service.HallService;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -41,7 +42,7 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
 
     @Override
     public void start() {
-        marsCoreStartService.init(this.context,Collections.emptySet());
+        marsCoreStartService.init(this.context, Collections.emptySet());
         coreStartService.init(this.context);
         hallService.init();
         marqueeManager.init();

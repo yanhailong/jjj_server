@@ -25,7 +25,7 @@ public class ResOperateFriendRoom extends AbstractResponse {
     public int roomStatus;
 
     @ProtoDesc("暂停按钮下一次可用的时间，为0或者时间戳到期表示可用")
-    public int nextPauseBtnOverdueTime;
+    public long nextPauseBtnOverdueTime;
 
     public ResOperateFriendRoom(int code) {
         super(code);

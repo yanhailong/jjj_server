@@ -5,11 +5,12 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
-import com.jjg.game.core.dao.FriendRoomBillHistoryDao;
-import com.jjg.game.core.dao.FriendRoomBillHistoryDao.GameBillResult;
-import com.jjg.game.core.dao.FriendRoomDao;
-import com.jjg.game.core.dao.FriendRoomDao.CreateFriendsRoom;
+import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
+import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao.GameBillResult;
+import com.jjg.game.core.dao.room.FriendRoomDao;
+import com.jjg.game.core.dao.room.FriendRoomDao.CreateFriendsRoom;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.rpc.HallRoomBridge;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.IllegalNameCheckService;
 import com.jjg.game.core.service.PlayerPackService;
@@ -57,6 +58,7 @@ public class FriendRoomServices {
     private CorePlayerService corePlayerService;
     @Autowired
     private FriendRoomBillHistoryDao billHistoryDao;
+    private HallRoomBridge hallRoomBridge;
 
     /**
      * 创建好友房
@@ -212,7 +214,7 @@ public class FriendRoomServices {
         notifyFriendRoomPanelData.roomBaseDataList = friendRoomBaseDataList;
         notifyFriendRoomPanelData.invitationCode = playerController.getPlayer().getFriendRoomInvitationCode();
         GlobalConfigCfg invitationResetGlobalConfigCfg =
-            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_RESET_TIMES);
+            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_REFRESH_INTERVAL);
         notifyFriendRoomPanelData.invitationCodeResetTotalTimes = invitationResetGlobalConfigCfg.getIntValue();
         notifyFriendRoomPanelData.playerNumOnTable =
             friendRoomBaseDataList.stream().map(a -> a.onlinePlayerNum).mapToInt(Long::intValue).sum();
@@ -591,7 +593,56 @@ public class FriendRoomServices {
      * 请求操作好友房
      */
     public void reqOperateFriendRoom(PlayerController playerController, ReqOperateFriendRoom req) {
-
+        ResOperateFriendRoom res = new ResOperateFriendRoom(Code.PARAM_ERROR);
+        if (req.operateCode < 1 || req.operateCode > 3) {
+            playerController.send(res);
+            return;
+        }
+        long playerId = playerController.playerId();
+        FriendRoom friendRoom = friendRoomDao.getFriendRoomById(playerId, req.roomId);
+        // 房间不存在
+        if (friendRoom == null) {
+            res.code = Code.ROOM_NOT_FOUND;
+            playerController.send(res);
+            return;
+        }
+        switch (req.operateCode) {
+            // 暂停
+            case 1:
+                if (friendRoom.getStatus() != 0) {
+                    log.warn("房间状态不为默认开启状态，却还在请求暂停！player: {}, roomId: {} status: {}",
+                        playerId, req.roomId, friendRoom.getStatus());
+                    res.code = Code.ERROR_REQ;
+                    playerController.send(res);
+                    return;
+                }
+                // 重新开始
+            case 2:
+                if (friendRoom.getStatus() != 1) {
+                    // 房间不为暂停，但是却还是在请求恢复
+                    log.warn("房间状态不为暂停状态，却还在请求恢复！player: {}, roomId: {}, status: {}",
+                        playerId, req.roomId, friendRoom.getStatus());
+                    res.code = Code.ERROR_REQ;
+                    playerController.send(res);
+                    return;
+                }
+                // 解散
+            case 3:
+                // 操作房间
+                hallRoomBridge.operateFriendRoom(req.roomId, req.operateCode);
+                break;
+            default:
+                break;
+        }
+        friendRoom = friendRoomDao.getFriendRoomById(playerController.playerId(), req.roomId);
+        res.roomStatus = friendRoom.getStatus();
+        GlobalConfigCfg globalConfigCfg =
+            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_REFRESH_INTERVAL);
+        int intervalTime = globalConfigCfg.getIntValue() * TimeHelper.ONE_MINUTE_OF_MILLIS;
+        long curTime = System.currentTimeMillis();
+        res.nextPauseBtnOverdueTime =
+            friendRoom.getPauseTime() + intervalTime > curTime ? friendRoom.getPauseTime() + intervalTime : 0;
+        playerController.send(res);
     }
 
     /**
@@ -607,7 +658,7 @@ public class FriendRoomServices {
             return;
         }
         GlobalConfigCfg invitationResetGlobalConfigCfg =
-            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_RESET_TIMES);
+            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_REFRESH_INTERVAL);
         // 检查次数
         Integer resetTimes = friendRoomRedisDao.getInvitationCodeResetUseTimes(player.getId());
         if (resetTimes != null && resetTimes >= invitationResetGlobalConfigCfg.getIntValue()) {

@@ -1,10 +1,9 @@
-package com.jjg.game.core.tool;
+package com.jjg.game.common.baselogic;
 
 import com.jjg.game.common.utils.CommonUtil;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -85,7 +84,7 @@ public class ConsoleDebugger {
         // 执行指令
         for (IConsoleReceiver consoleReceiver : consoleReceivers) {
             if (consoleReceiver.needHandleCommands().stream().anyMatch(s -> s.equalsIgnoreCase(command))) {
-                logger.info("IDE : Running command: {}", command);
+                logger.info("IDE : Running command: {}, {}", command, params);
                 consoleReceiver.doCommand(command, params);
                 hasHandleCommand = true;
             }
