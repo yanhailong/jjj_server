@@ -727,7 +727,7 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_BUY_CLAIM_ALL_REWARDS)
     public void reqCasinoBuyClaimAllRewards(PlayerController playerController, ReqCasinoBuyClaimAllRewards req) {
-        playerController.send(casinoManager.reqCasinoBuyClaimAllRewards(playerController.playerId(), req));
+        playerController.send(casinoManager.reqCasinoBuyClaimAllRewards(playerController.getPlayer(), req));
     }
 
     /**
@@ -737,7 +737,7 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_INFO)
     public void reqCasinoInfo(PlayerController playerController, ReqCasinoInfo req) {
-        playerController.send(casinoManager.reqCasinoInfo(playerController.playerId(), req));
+        playerController.send(casinoManager.reqCasinoInfo(playerController, req));
     }
 
     /**

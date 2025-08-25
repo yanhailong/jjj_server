@@ -21,8 +21,6 @@ public class ResCasinoUpgradeMachine extends AbstractResponse {
     public long machineId;
     @ProtoDesc("机台建造升级结束时间")
     public long buildLvUpEndTime;
-    @ProtoDesc("加速花费道具")
-    public ItemInfo itemInfo;
     @ProtoDesc("BuildingFunction配置表id")
     public int configId;
     public ResCasinoUpgradeMachine() {

@@ -37,9 +37,15 @@ public interface HallConstant {
         int TYPE_TITLE = 3;
     }
 
-    interface Casino{
-        //购买一键领取消耗 global表id
-        int BUY_ALL_CLAIM_ALL_REWARDS = 19;
+    interface Casino {
+        //休息区类型
+        int REST_AREA_TYPE = 5;
+        //提款区类型
+        int WITHDRAWAL_AREA_TYPE = 6;
+        //增加收益
+        int FIXED_INCOME_ATTR = 1;
+        //增加收益上限
+        int EARNINGS_PER_TEN_THOUSAND = 2;
     }
 
     /**
@@ -166,5 +172,8 @@ public interface HallConstant {
 
         //通知游戏列表
         int NOTIFY_GAME_LIST = BASE_MSG_PREFIX | 0x3D;
+
+        //通知我的赌场简单信息变化
+        int NOTIFY_CASINO_SIMPLE_CHANGE = BASE_MSG_PREFIX | 0X3F;
     }
 }

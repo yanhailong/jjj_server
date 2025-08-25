@@ -38,4 +38,13 @@ public class BaseFriendRoomPlayerInfo {
 
     @ProtoDesc("是否置顶")
     public boolean isTopUp;
+
+    @ProtoDesc("是否丢失好友关系,对方如果重置邀请码，此状态将为true")
+    public boolean isLostFriendRelationship;
+
+    @ProtoDesc("当前好友的房间数量")
+    public int curRoomNum;
+
+    @ProtoDesc("好友最大房间数量")
+    public int maxRoomNum;
 }

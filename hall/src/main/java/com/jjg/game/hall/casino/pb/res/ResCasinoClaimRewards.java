@@ -5,7 +5,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.pb.AbstractResponse;
-import com.jjg.game.hall.casino.pb.bean.CasinoSimpleMachineInfo;
+import com.jjg.game.hall.casino.pb.bean.CasinoSimpleInfo;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.pb.struct.ItemInfo;
 
@@ -23,7 +23,7 @@ public class ResCasinoClaimRewards extends AbstractResponse {
     @ProtoDesc("奖励道具信息")
     public List<ItemInfo> itemInfos;
     @ProtoDesc("机台信息")
-    public List<CasinoSimpleMachineInfo> casinoSimpleMachineInfos;
+    public List<CasinoSimpleInfo> casinoSimpleInfos;
 
     public ResCasinoClaimRewards() {
         super(Code.SUCCESS);

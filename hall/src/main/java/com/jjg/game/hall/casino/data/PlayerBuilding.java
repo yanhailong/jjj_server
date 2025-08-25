@@ -41,4 +41,13 @@ public class PlayerBuilding {
     public void setCasinoInfo(CasinoInfo casinoInfo) {
         this.casinoInfo = casinoInfo;
     }
+
+    @Override
+    public String toString() {
+        return "PlayerBuilding{" +
+                "playerId=" + playerId +
+                ", casinoId=" + casinoId +
+                ", casinoInfo=" + casinoInfo +
+                '}';
+    }
 }

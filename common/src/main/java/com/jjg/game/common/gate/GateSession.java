@@ -79,7 +79,7 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
         if (msg.cmd == MessageConst.ToClientConst.REQ_HEART_BEAT) {
             activeTime = System.currentTimeMillis();
             PFMessage pfMessage = new PFMessage(MessageConst.ToClientConst.RES_HEART_BEAT,
-                ProtostuffUtil.serialize(new ResHeartBeat(activeTime)));
+                    ProtostuffUtil.serialize(new ResHeartBeat(activeTime)));
             write(pfMessage);
             return;
         }
@@ -168,7 +168,7 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
             return;
         }
         log.debug("向集群节点发送进入消息,nodeName={},nodeAddress={}", currentClient.nodeConfig.getName(),
-            currentClient.nodeConfig.getTcpAddress());
+                currentClient.nodeConfig.getTcpAddress());
         SessionCreate sessionCreate = new SessionCreate();
         sessionCreate.sessionId = sessionId;
         sessionCreate.netAddress = remoteAddress;
@@ -244,7 +244,7 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
 
     public void switchNode(ClusterClient clusterClient) {
         log.debug("切换节点,sessionId={},playerId={},srcPath={},targetPath={},certify={}", sessionId, playerId,
-            this.currentClient.nodeConfig.getName(), clusterClient.nodeConfig.getName(), certify);
+                this.currentClient.nodeConfig.getName(), clusterClient.nodeConfig.getName(), certify);
         if (certify) {
             //向源节点发送退出
             sendClose();
@@ -360,10 +360,10 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
     @Override
     public String toString() {
         return "GateSession{" +
-            "sessionId='" + sessionId + '\'' +
-            ", playerId=" + playerId +
-            ", certify=" + certify +
-            ", connect=" + connect +
-            '}';
+                "sessionId='" + sessionId + '\'' +
+                ", playerId=" + playerId +
+                ", certify=" + certify +
+                ", connect=" + connect +
+                '}';
     }
 }

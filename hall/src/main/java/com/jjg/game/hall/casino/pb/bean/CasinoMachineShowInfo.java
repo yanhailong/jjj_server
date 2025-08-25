@@ -2,7 +2,6 @@ package com.jjg.game.hall.casino.pb.bean;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.hall.pb.struct.ItemInfo;
 
 import java.util.List;
 
@@ -12,7 +11,7 @@ import java.util.List;
  */
 @ProtobufMessage
 @ProtoDesc("机台信息")
-public class CasinoMachineInfo {
+public class CasinoMachineShowInfo {
     @ProtoDesc("机台id")
     public long machineId;
     @ProtoDesc("机台状态")
@@ -27,6 +26,4 @@ public class CasinoMachineInfo {
     public long profitStartTime;
     @ProtoDesc("收益最大时间")
     public long profitMaxTime;
-    @ProtoDesc("加速花费道具")
-    public ItemInfo itemInfo;
 }

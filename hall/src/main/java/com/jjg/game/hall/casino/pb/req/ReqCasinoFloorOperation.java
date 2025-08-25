@@ -16,6 +16,6 @@ public class ReqCasinoFloorOperation {
     public int casinoId;
     @ProtoDesc("楼层id")
     public int floorId;
-    @ProtoDesc("类型 1解锁楼层 2打扫楼层 3提前结束楼层打扫")
+    @ProtoDesc("类型 2打扫楼层 3提前结束楼层打扫")
     public int type;
 }

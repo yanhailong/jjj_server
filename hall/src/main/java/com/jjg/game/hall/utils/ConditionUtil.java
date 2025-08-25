@@ -27,7 +27,7 @@ public class ConditionUtil {
                 //等级
                 case 1 -> {
                     if (player.getLevel() < entry.getValue()) {
-                        return Code.Level_NOT_ENOUGH;
+                        return Code.LEVEL_NOT_ENOUGH;
                     }
                 }
                 //开服天数

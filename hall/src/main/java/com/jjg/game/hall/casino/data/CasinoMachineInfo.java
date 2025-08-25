@@ -5,16 +5,20 @@ import com.jjg.game.sampledata.bean.BuildingFunctionCfg;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author lm
  * @date 2025/8/16 17:00
  */
-public class MachineInfo {
+public class CasinoMachineInfo {
     //机台id
     private long id;
     //BuildingFunction配置表id
     private int configId;
+    //BuildingFunction配置表上一级id
+    private int lastConfigId;
     //机台建造升级结束时间
     private long buildLvUpEndTime;
     //机台建造升级开始时间
@@ -23,6 +27,14 @@ public class MachineInfo {
     private long profitStartTime;
     //雇员信息 索引id 雇员信息
     Map<Integer, CasinoEmployment> employmentMap;
+
+    public int getLastConfigId() {
+        return lastConfigId;
+    }
+
+    public void setLastConfigId(int lastConfigId) {
+        this.lastConfigId = lastConfigId;
+    }
 
     public long getId() {
         return id;
@@ -72,13 +84,41 @@ public class MachineInfo {
         this.buildLvUpStartTime = buildLvUpStartTime;
     }
 
-    public static MachineInfo getNewMachineInfo(int casinoId, BuildingFunctionCfg cfg) {
-        MachineInfo machineInfo = new MachineInfo();
-        if (cfg.getNumEmployees() > 0) {
-            machineInfo.employmentMap = new HashMap<>();
+    public int getRealConfigId(long timeMillis) {
+        if (buildLvUpEndTime > timeMillis) {
+            return lastConfigId;
+        } else {
+            return configId;
         }
-        machineInfo.configId = cfg.getId();
-        machineInfo.id = HallTool.getNextId();
-        return machineInfo;
+    }
+
+    public long getRunEmploymentNum(long timeMillis) {
+        return Objects.isNull(employmentMap) ? 0 : employmentMap.values().stream()
+                .filter(employment -> employment.getEmploymentEndTime() > timeMillis)
+                .count();
+    }
+
+    public static CasinoMachineInfo getNewMachineInfo(BuildingFunctionCfg cfg) {
+        CasinoMachineInfo casinoMachineInfo = new CasinoMachineInfo();
+        if (cfg.getNumEmployees() > 0) {
+            casinoMachineInfo.employmentMap = new ConcurrentHashMap<>();
+        }
+        casinoMachineInfo.lastConfigId = cfg.getId();
+        casinoMachineInfo.configId = cfg.getId();
+        casinoMachineInfo.id = HallTool.getNextId();
+        return casinoMachineInfo;
+    }
+
+    @Override
+    public String toString() {
+        return "CasinoMachineShowInfo{" +
+                "id=" + id +
+                ", configId=" + configId +
+                ", lastConfigId=" + lastConfigId +
+                ", buildLvUpEndTime=" + buildLvUpEndTime +
+                ", buildLvUpStartTime=" + buildLvUpStartTime +
+                ", profitStartTime=" + profitStartTime +
+                ", employmentMap=" + employmentMap +
+                '}';
     }
 }
