@@ -74,4 +74,5 @@ public class TimeNodeData {
         machineData.lastLevelConfigId = lastLevelConfigId;
         return machineData;
     }
+
 }

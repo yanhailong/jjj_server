@@ -1,6 +1,7 @@
 package com.jjg.game.hall.casino.pb.req;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.hall.constant.HallConstant;
@@ -11,7 +12,7 @@ import com.jjg.game.hall.constant.HallConstant;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE,cmd = HallConstant.MsgBean.REQ_CASINO_CLAIM_REWARDS)
 @ProtoDesc("请求领取赌场收益")
-public class ReqCasinoClaimRewards {
+public class ReqCasinoClaimRewards extends AbstractMessage {
     @ProtoDesc("赌场id")
     public int casinoId;
     @ProtoDesc("机台id")

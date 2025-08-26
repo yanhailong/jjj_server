@@ -10,6 +10,7 @@ import com.jjg.game.hall.casino.data.TimeNodeData;
 import com.jjg.game.hall.casino.pb.bean.CasinoFloorInfo;
 import com.jjg.game.hall.casino.pb.bean.CasinoMachineShowInfo;
 import com.jjg.game.hall.casino.pb.bean.CasinoSimpleInfo;
+import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.pb.struct.ItemInfo;
 import com.jjg.game.hall.utils.GlobalDataCache;
 import com.jjg.game.sampledata.GameDataManager;
@@ -212,10 +213,14 @@ public class CasinoBuilder {
         //数量
         int num = getInstantaneousNum(hashMap, cfg.getOutput().getLast());
         //总数量
-        int totalNum = getTotalNum(hashMap, cfg.getSavenum());
-        int remainder = totalNum % num;
-        long times = ((totalNum - remainder) / num) + remainder > 0 ? 1 : 0;
-        return times * intervalTime * ONE_MINUTE_OF_MILLIS;
+        long totalNum = getTotalNum(hashMap, cfg.getSavenum());
+        totalNum = totalNum - casinoMachineInfo.getLastProfit();
+        if (totalNum <= 0) {
+            return totalNum;
+        }
+        long remainder = totalNum % num;
+        long times = ((totalNum - remainder) / num) + (remainder > 0 ? 1 : 0);
+        return times * intervalTime * ONE_MINUTE_OF_MILLIS + casinoMachineInfo.getProfitStartTime();
     }
 
 
@@ -229,7 +234,7 @@ public class CasinoBuilder {
      * @return 机台总收益
      */
     public static long getTotalNum(List<TimeNodeData> areaAdd, CasinoMachineInfo casinoMachineInfo, BuildingFunctionCfg cfg, long timeMillis) {
-        long totalNum = 0;
+        long totalNum = casinoMachineInfo.getLastProfit();
         long startTime = casinoMachineInfo.getProfitStartTime();
         //获取雇员数据
         Map<Integer, CasinoEmployment> employmentMap = casinoMachineInfo.getEmploymentMap();
@@ -249,39 +254,120 @@ public class CasinoBuilder {
         if (tempAreaAdd.size() - areaAdd.size() < cfg.getNumEmployees()) {
             return 0;
         }
-        //去除全在时间内的
-        Iterator<TimeNodeData> iterator = areaAdd.iterator();
+        //按时间拆分的时间段
+        List<Long> timePeriod = new ArrayList<>();
+        timePeriod.add(startTime);
+        timePeriod.add(timeMillis);
+        //全部在时间内的
         List<TimeNodeData> allInTime = new ArrayList<>();
+        //去除全在时间内的
+        Iterator<TimeNodeData> iterator = tempAreaAdd.iterator();
         while (iterator.hasNext()) {
             TimeNodeData next = iterator.next();
             if (next.getStartTime() < startTime && next.getEndTime() < startTime) {
                 allInTime.add(next);
                 iterator.remove();
+                continue;
+            }
+            timePeriod.add(Math.max(next.getStartTime(), startTime));
+            timePeriod.add(Math.min(timeMillis, next.getEndTime()));
+        }
+        Map<Integer, Integer> base = new HashMap<>();
+        if (!allInTime.isEmpty()) {
+            for (TimeNodeData timeNodeData : allInTime) {
+                //机台
+                if (timeNodeData.getType() == 1) {
+                    BuildingFunctionCfg buildingFunctionCfg = GameDataManager.getBuildingFunctionCfg(timeNodeData.getLastLevelConfigId());
+                    BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(buildingFunctionCfg.getBuffid());
+                    base.merge(buildingGainCfg.getBufftype(), buildingGainCfg.getAddvalue(), Integer::sum);
+                } else {
+                    DealerFunctionCfg dealerFunctionCfg = GameDataManager.getDealerFunctionCfg(timeNodeData.getConfigId());
+                    BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(dealerFunctionCfg.getBuffid());
+                    base.merge(buildingGainCfg.getBufftype(), buildingGainCfg.getAddvalue(), Integer::sum);
+                }
             }
         }
         //计算时间 按时间排序
-        areaAdd.sort(Comparator.comparingLong(TimeNodeData::getStartTime));
+        List<Long> finalTimePeriod = timePeriod.stream().distinct().sorted().toList();
         //收益结束到现在全部都在时间内
-        for (int i = 0; i < areaAdd.size(); i++) {
-            TimeNodeData info = areaAdd.get(i);
-            //从时间线计算每段时间的收益
-            if (info.getStartTime() < startTime && info.getEndTime() > startTime) {
-
+        for (int i = 0; i < finalTimePeriod.size(); i++) {
+            Long startPeriod = finalTimePeriod.get(i);
+            int nextTime = i + 1;
+            Map<Integer, Integer> casinoMaxProfitBonus;
+            Long endPeriod = timeMillis;
+            if (nextTime < timePeriod.size()) {
+                endPeriod = finalTimePeriod.get(nextTime);
+                casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, startPeriod, endPeriod);
+            } else {
+                //直接计算单个
+                if (startPeriod.equals(endPeriod)) {
+                    break;
+                }
+                casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, startPeriod, endPeriod);
             }
-            //2.结束时间在内
-            //3.开始时间在内
+            //总数量
+            int totalMaxNum = getTotalNum(casinoMaxProfitBonus, cfg.getSavenum());
+            if (totalNum >= totalMaxNum) {
+                continue;
+            }
+            //时间
+            Integer intervalTime = cfg.getOutput().getFirst();
+            long period = endPeriod - startTime;
+            long times = period / intervalTime;
+            if (times == 0) {
+                continue;
+            }
+            //数量
+            int num = getInstantaneousNum(casinoMaxProfitBonus, cfg.getOutput().getLast());
+            long remainder = period % intervalTime;
+            totalNum = Math.min(totalNum + times * num + (remainder > 0 ? num : 0), totalMaxNum);
         }
-        long remain = cfg.getSavenum() - totalNum;
-        if (remain <= 0) {
-            return totalNum;
-        }
-        //计算升级结束到现在时间的收益
-        totalNum += getProfitMaxNum(cfg, startTime, timeMillis);
-        return Math.min(totalNum, cfg.getSavenum());
+        return totalNum;
     }
 
-    public static Map<Integer, Integer> getCasinoMaxProfitBonus(List<TimeNodeData> data, Map<Integer, Integer> base, long endTime) {
+    public static Map<Integer, Integer> getCasinoMaxProfitBonus(List<TimeNodeData> data, Map<Integer, Integer> base, long startTime, long endTime) {
+        Map<Integer, Integer> addMap = new HashMap<>(base);
+        for (TimeNodeData nodeData : data) {
+            if (nodeData.getType() == 2) {
+                //雇员
+                if (nodeData.getStartTime() <= startTime && nodeData.getEndTime() >= endTime) {
+                    //包含
+                    DealerFunctionCfg cfg = GameDataManager.getDealerFunctionCfg(nodeData.getConfigId());
+                    BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(cfg.getBuffid());
+                    addMap.merge(buildingGainCfg.getBufftype(), buildingGainCfg.getAddvalue(), Integer::sum);
+                }
+            } else {
+                //机台
+                int id = nodeData.getLastLevelConfigId();
+                if (nodeData.getEndTime() < endTime) {
+                    id = nodeData.getConfigId();
+                }
+                BuildingFunctionCfg buildingFunctionCfg = GameDataManager.getBuildingFunctionCfg(id);
+                BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(buildingFunctionCfg.getBuffid());
+                addMap.merge(buildingGainCfg.getBufftype(), buildingGainCfg.getAddvalue(), Integer::sum);
+            }
+        }
+        return addMap;
+    }
 
-        return null;
+    public static List<TimeNodeData> getTimeNodeData(Map<Long, CasinoMachineInfo> machineInfoData, long timeMillis) {
+        //总加成
+        List<TimeNodeData> areaAdd = new ArrayList<>();
+        //获取提款机等级 获取休息区等级
+        for (CasinoMachineInfo casinoMachineInfo : machineInfoData.values()) {
+            BuildingFunctionCfg cfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(timeMillis));
+            if (Objects.isNull(cfg)) {
+                continue;
+            }
+            if (cfg.getTypeID() == HallConstant.Casino.REST_AREA_TYPE || cfg.getTypeID() == HallConstant.Casino.WITHDRAWAL_AREA_TYPE) {
+                BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(cfg.getBuffid());
+                if (Objects.isNull(buildingGainCfg) || buildingGainCfg.getBufftype() == 0) {
+                    continue;
+                }
+                BuildingFunctionCfg functionCfg = CasinoBuilder.getLastBuildingFunctionCfg(buildingGainCfg.getId());
+                areaAdd.add(TimeNodeData.getNewTimeNodeData(casinoMachineInfo, Objects.isNull(functionCfg) ? 0 : functionCfg.getId()));
+            }
+        }
+        return areaAdd;
     }
 }

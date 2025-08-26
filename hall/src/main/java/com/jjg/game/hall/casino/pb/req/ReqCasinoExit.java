@@ -8,11 +8,9 @@ import com.jjg.game.hall.constant.HallConstant;
 
 /**
  * @author lm
- * @date 2025/8/18 14:30
+ * @date 2025/8/26 09:35
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.REQ_CASINO_INFO)
-@ProtoDesc("请求我的赌场信息")
-public class ReqCasinoInfo extends AbstractMessage {
-    @ProtoDesc("赌场id")
-    public int casinoId;
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.REQ_CASINO_EXIT)
+@ProtoDesc("请求退出我的赌场")
+public class ReqCasinoExit extends AbstractMessage {
 }
