@@ -1,12 +1,12 @@
 package com.jjg.game.poker.game.common;
 
 import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
-import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerPlayerChange;
@@ -283,10 +283,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     }
 
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
-        remove.setSeatDown(false);
-        if (inRunPhase()) {
-            runPlayerSeatChange(remove, remove.isSeatDown() && remove.isJoinGame());
-        }
+
     }
 
     /**
@@ -346,6 +343,10 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
             if (Objects.nonNull(remove)) {
                 //移除下注信息
                 gameDataVo.getBaseBetInfo().remove(roomPlayer.getPlayerId());
+                remove.setSeatDown(false);
+                if (inRunPhase()) {
+                    runPlayerSeatChange(remove, remove.isSeatDown() && remove.isJoinGame());
+                }
                 try {
                     onPlayerLeaveRoomAction(roomPlayer, remove);
                 } catch (Exception e) {

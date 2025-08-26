@@ -358,9 +358,6 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
         //如果在游戏中删除数据
         gameDataVo.getTempGold().remove(remove.getPlayerId());
-        if (inRunPhase()) {
-            runPlayerSeatChange(remove, remove.isSeatDown() && remove.isJoinGame());
-        }
     }
 
 

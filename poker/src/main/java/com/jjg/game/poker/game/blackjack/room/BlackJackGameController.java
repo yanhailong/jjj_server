@@ -1,9 +1,11 @@
 package com.jjg.game.poker.game.blackjack.room;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
+import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
 import com.jjg.game.poker.game.blackjack.data.BlackJackBuilder;
 import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
@@ -251,6 +253,23 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             }
         }
         return true;
+    }
+
+    @Override
+    public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
+        //下注阶段离开
+        if (getCurrentGamePhase() == EGamePhase.BET) {
+            Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
+            if (CollectionUtil.isNotEmpty(baseBetInfo)) {
+                //如果全部押注完成 进入下一阶段
+                if (isAllOver(baseBetInfo.keySet())) {
+                    genPlayerSeatInfoList(gameDataVo.getSeatInfo(), gameDataVo.getPlayerSeatInfoList());
+                    removePokerPhaseTimer();
+                    BlackJackPlayCardPhase gamePhase = new BlackJackPlayCardPhase(this);
+                    addPokerPhase(gamePhase);
+                }
+            }
+        }
     }
 
     /**
