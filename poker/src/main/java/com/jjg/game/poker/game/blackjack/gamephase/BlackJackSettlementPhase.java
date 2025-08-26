@@ -129,7 +129,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         //获取庄家最大点数
         MaxPointGetInfo maxPointInfo = getMaxPointInfo(resultCard);
         boolean cardNumWin = maxPointInfo.getIndex() + 1 == BlackJackConstant.Common.MAX_GET_CARD;
-        boolean boom = !cardNumWin && (maxPointInfo.getMaxPoint() < 17 || maxPointInfo.isSoftHand() && maxPointInfo.getMaxPoint() == 17);
+        boolean boom = !cardNumWin && (maxPointInfo.getMaxPoint() < BlackJackConstant.Common.GET_CARD_POINT);
         //玩家id->获得的金币
         Map<Long, Long> playerGet = new HashMap<>();
         //押注信息
@@ -277,13 +277,12 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                     totalPointList.add(new MaxPointGetInfo(base.getMaxPoint() + 10, i, true));
                 }
             }
-
         }
         totalPointList.sort((o1, o2) -> {
-            if (o1.getIndex() == maxGetCard.size()) {
+            if (o1.getIndex() == maxGetCard.size() - 1) {
                 return 1;
             }
-            if (o2.getIndex() == maxGetCard.size()) {
+            if (o2.getIndex() == maxGetCard.size() - 1) {
                 return -1;
             }
             int result = o2.getMaxPoint() - o1.getMaxPoint();
@@ -292,6 +291,16 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             }
             return result;
         });
+        //找出非硬手17点最大的
+        for (MaxPointGetInfo info : totalPointList) {
+            if (info.getIndex() == maxGetCard.size() - 1) {
+                return info;
+            }
+            if (info.isSoftHand() && info.getMaxPoint() <= BlackJackConstant.Common.GET_CARD_POINT) {
+                continue;
+            }
+            return info;
+        }
         return totalPointList.getFirst();
     }
 
