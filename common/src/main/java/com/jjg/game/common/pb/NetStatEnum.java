@@ -15,9 +15,7 @@ public enum NetStatEnum {
     @ProtoDesc("连接成功")
     NETWORK_SUCCESS(1, "连接成功"),
     @ProtoDesc("服务不可用")
-    SERVICE_CANT_USE(2, "服务不可用"),
-    @ProtoDesc("踢出下线")
-    PLAYER_KICKOUT(3, "踢出下线");
+    SERVICE_CANT_USE(2, "服务不可用");
 
 
     public int code;

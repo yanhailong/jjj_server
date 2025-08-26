@@ -51,7 +51,7 @@ public class CasinoEmployment {
         this.employmentEndTime = employmentEndTime;
     }
 
-    public CasinoEmploymentInfo getNewCasinoEmploymentInfo() {
+    public CasinoEmploymentInfo buildNewCasinoEmploymentInfo() {
         CasinoEmploymentInfo employmentInfo = new CasinoEmploymentInfo();
         employmentInfo.employmentId = employmentId;
         employmentInfo.employmentEndTime = employmentEndTime;

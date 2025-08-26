@@ -5,6 +5,10 @@ package com.jjg.game.gm.dto;
  * @date 2025/8/18 11:12
  */
 public record QueryAccountDto(
-        long playerId
+        long playerId,
+        String registerMac,
+        String loginMac,
+        String nickName,
+        String phone
 ) {
 }

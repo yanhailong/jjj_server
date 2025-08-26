@@ -1,6 +1,4 @@
-package com.jjg.game.core.pb;
-
-import com.jjg.game.core.constant.Code;
+package com.jjg.game.common.pb;
 
 /**
  * @author 11
@@ -9,6 +7,6 @@ import com.jjg.game.core.constant.Code;
 public class AbstractNotice extends AbstractResponse {
 
     public AbstractNotice() {
-        super(Code.SUCCESS);
+        super(200);
     }
 }

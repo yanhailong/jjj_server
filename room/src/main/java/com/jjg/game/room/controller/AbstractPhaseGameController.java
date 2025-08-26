@@ -9,7 +9,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
-import com.jjg.game.core.pb.AbstractMessage;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.core.utils.ReflectionTool;
 import com.jjg.game.room.base.IPhaseMsgAdapter;
 import com.jjg.game.room.base.IRoomPhase;

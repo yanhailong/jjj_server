@@ -3,7 +3,7 @@ package com.jjg.game.hall.casino.pb.res;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.core.pb.AbstractNotice;
+import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.hall.casino.pb.bean.CasinoSimpleInfo;
 import com.jjg.game.hall.constant.HallConstant;
 

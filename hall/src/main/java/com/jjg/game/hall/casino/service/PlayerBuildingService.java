@@ -39,35 +39,6 @@ public class PlayerBuildingService {
         return lockTableName + playerId;
     }
 
-
-    /**
-     * 更新赌场信息
-     */
-    public <K> CommonResult<K> updateData(long playerId, int casinoId, BiConsumer<CommonResult<K>, PlayerBuilding> callback) {
-        CommonResult<K> result = new CommonResult<>(Code.FAIL);
-        String key = getLockKey(playerId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-        try {
-            //获取赌场信息
-            PlayerBuilding playerBuilding = getCasinoInfoFromAllDB(playerId, casinoId);
-            if (Objects.isNull(playerBuilding)) {
-                result.code = Code.PARAM_ERROR;
-                return result;
-            }
-            callback.accept(result, playerBuilding);
-            //回存数据
-            if (result.code == Code.SUCCESS) {
-                redisSave(playerId, casinoId, playerBuilding);
-            }
-        } catch (Exception e) {
-            log.error("玩家更新赌场信息，修改数据 失败 playerId={}", playerId, e);
-        } finally {
-            redisLock.unlock(key);
-        }
-        return result;
-    }
-
-
     /**
      * 查询 PlayerBuilding 对象
      * 先查询redis
@@ -81,7 +52,6 @@ public class PlayerBuildingService {
         if (playerBuildings != null) {
             return playerBuildings;
         }
-        //TODO保存到redis
         return playerBuildingDao.findByPlayerId(playerId);
     }
 
@@ -98,7 +68,6 @@ public class PlayerBuildingService {
         if (playerBuilding != null) {
             return playerBuilding;
         }
-        //TODO保存到redis
         return playerBuildingDao.findByPlayerIdAndCasinoId(playerId, casinoId);
     }
 
@@ -108,24 +77,30 @@ public class PlayerBuildingService {
      * @param playerId 玩家id
      */
     public void moveToMongo(long playerId) {
-        List<PlayerBuilding> playerBuilding = getFromAllDB(playerId);
-        if (playerBuilding == null) {
-            return;
+        try {
+            List<PlayerBuilding> playerBuilding = getFromAllDB(playerId);
+            if (playerBuilding == null) {
+                return;
+            }
+            playerBuildingDao.saveAll(playerBuilding);
+            redisDel(playerId);
+        } catch (Exception e) {
+            log.error("保存到mongo失败 playerId:{}", playerId);
         }
-        playerBuildingDao.saveAll(playerBuilding);
-        redisDel(playerId);
     }
 
     private String getKey(long playerId) {
         return tableName + playerId;
     }
 
+
     /**
      * 保存整个对象
      */
-    public void redisSave(long playerId, int casinoId, PlayerBuilding playerBuilding) {
-        redisTemplate.opsForHash().put(getKey(playerId), casinoId, playerBuilding);
+    public void redisSave(PlayerBuilding playerBuilding) {
+        redisTemplate.opsForHash().put(getKey(playerBuilding.getPlayerId()), playerBuilding.getCasinoId(), playerBuilding);
     }
+
 
     /**
      * 删除整个对象

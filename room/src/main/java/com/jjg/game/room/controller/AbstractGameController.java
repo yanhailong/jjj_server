@@ -9,7 +9,7 @@ import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.pb.AbstractMessage;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;

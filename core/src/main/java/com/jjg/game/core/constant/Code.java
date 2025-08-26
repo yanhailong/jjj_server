@@ -67,6 +67,8 @@ public interface Code {
     int MAX_FOLLOWED_FRIENDS = 424;
     // 添加玩家黑名单数量达到限制值
     int ADD_BLACK_LIST_PLAYER_TO_LIMIT = 425;
+    // 被封号，禁止登录
+    int BAN_ACCOUNT = 426;
     // 服务器错误
     int EXCEPTION = 500;
 }

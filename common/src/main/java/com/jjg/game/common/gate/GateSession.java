@@ -15,6 +15,7 @@ import com.jjg.game.common.net.NetAddress;
 import com.jjg.game.common.netty.NettyConnect;
 import com.jjg.game.common.pb.NetStatEnum;
 import com.jjg.game.common.pb.NoticeServerStatus;
+import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.pb.ResHeartBeat;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
@@ -258,7 +259,7 @@ public class GateSession extends NettyConnect<PFMessage> implements Inbox<PFMess
         log.info("用户被顶号下线，sessionId={}，playerId={}", sessionId, playerId);
         playerId = 0;
         try {
-            writeAndClose(MessageUtil.getPFMessage(new NoticeServerStatus(NetStatEnum.PLAYER_KICKOUT)));
+            writeAndClose(MessageUtil.getPFMessage(new NotifyKickout()));
             this.channelInactive(this.ctx);
         } catch (Exception e) {
             log.error("用户顶号下线时,消息发送异常，", e);

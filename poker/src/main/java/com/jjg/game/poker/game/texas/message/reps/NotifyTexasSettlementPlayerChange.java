@@ -3,7 +3,7 @@ package com.jjg.game.poker.game.texas.message.reps;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.core.pb.AbstractNotice;
+import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 

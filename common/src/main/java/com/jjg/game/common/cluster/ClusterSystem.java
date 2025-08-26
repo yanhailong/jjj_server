@@ -9,6 +9,7 @@ import com.jjg.game.common.net.NetAddress;
 import com.jjg.game.common.netty.ConnectPool;
 import com.jjg.game.common.netty.NettyConnect;
 import com.jjg.game.common.netty.NettyServer;
+import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
@@ -639,6 +640,38 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
             log.info("节点权重={},当前session数量={}", nodeConfig.weight, clusterSessionSize());
             if (nodeConfig.weight == 0 && sessionMap.isEmpty()) {
                 System.exit(0);
+            }
+        }
+    }
+
+    /**
+     * 通知所有的大厅和游戏节点
+     */
+    public void notifyHallAndGameNode(PFMessage pfMessage) {
+        ClusterMessage msg = new ClusterMessage(pfMessage);
+
+        //获取大厅节点
+        List<ClusterClient> hallNodes = getNodesByType(NodeType.HALL);
+        //获取游戏节点
+        List<ClusterClient> gameNodes = getNodesByType(NodeType.GAME);
+
+        //通知大厅节点
+        for (ClusterClient clusterClient : hallNodes) {
+            try {
+                clusterClient.write(msg);
+                log.debug("给大厅节点推送消息 node = {}", clusterClient.nodeConfig.getName());
+            } catch (Exception e) {
+                log.error("推送到所有大厅节点信息异常 node = {}", clusterClient.nodeConfig.getName(), e);
+            }
+        }
+
+        //通知游戏节点
+        for (ClusterClient clusterClient : gameNodes) {
+            try {
+                clusterClient.write(msg);
+                log.debug("给游戏节点推送消息 node = {}", clusterClient.nodeConfig.getName());
+            } catch (Exception e) {
+                log.error("推送到所有游戏节点信息异常 node = {}", clusterClient.nodeConfig.getName(), e);
             }
         }
     }

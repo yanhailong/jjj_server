@@ -247,17 +247,11 @@ public class HallMessageHandler implements GmListener {
                 log.debug("性别参数错误，修改信息失败 playerId = {},gender = {}", playerController.playerId(),req.gender);
                 return;
             }
-            //TODO 后面要敏感词检测，还要判断是否消费道具
 
-            Player player = hallPlayerService.doSave(playerController.playerId(), p -> {
-                p.setNickName(req.nick);
-                p.setGender(gender);
-            });
-
-            if(player == null) {
-                res.code = Code.NOT_FOUND;
+            CommonResult<Player> result = hallService.changePlayerInfo(playerController,req.nick, (byte)req.gender);
+            if(!result.success()){
+                res.code = result.code;
                 playerController.send(res);
-                log.debug("修改信息失败 playerId = {}", playerController.playerId());
                 return;
             }
             log.info("修改玩家信息成功，playerId = {}", playerController.playerId());
@@ -413,8 +407,24 @@ public class HallMessageHandler implements GmListener {
     public void reqUseItem(PlayerController playerController, ReqUseItem req) {
         ResUseItem res = new ResUseItem(HallCode.SUCCESS);
         try {
-            hallService.useItem(playerController.playerId(), req.girdId,req.itemId);
+            CommonResult<Map<Integer, Long>> useResult = hallService.useItem(playerController.playerId(), req.girdId, req.itemId, req.useItemCount);
+            if(!useResult.success()) {
+                res.code = useResult.code;
+                playerController.send(res);
+                return;
+            }
+
             res.packItemInfos = getPlayerPack(playerController.playerId());
+            log.debug("data = {}", JSON.toJSONString(useResult.data));
+
+            List<ItemInfo> items = new ArrayList<>();
+            useResult.data.forEach((k,v) -> {
+                ItemInfo item = new ItemInfo();
+                item.itemId = k;
+                item.count = v;
+                items.add(item);
+            });
+            res.addItemInfos = items;
             log.debug("使用道具 playerId = {},res = {}", playerController.playerId(),JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
@@ -576,13 +586,23 @@ public class HallMessageHandler implements GmListener {
     public void reqGetAllMailsItems(PlayerController playerController, ReqGetAllMailsItems req) {
         ResGetAllMailsItems res = new ResGetAllMailsItems(HallCode.SUCCESS);
         try {
-            CommonResult<Integer> result = mailService.getAllMailsItems(playerController.playerId());
+            CommonResult<Map<Integer,Long>> result = mailService.getAllMailsItems(playerController.playerId());
             if(!result.success()){
                 res.code = result.code;
                 playerController.send(res);
                 return;
             }
 
+            List<ItemInfo> items = new ArrayList<>();
+
+            result.data.forEach((k,v) -> {
+                ItemInfo item = new ItemInfo();
+                item.itemId = k;
+                item.count = v;
+                items.add(item);
+            });
+
+            res.items = items;
             log.debug("玩家一键领取 playerId = {}", playerController.playerId());
         } catch (Exception e) {
             log.error("", e);
@@ -788,6 +808,16 @@ public class HallMessageHandler implements GmListener {
     @Command(HallConstant.MsgBean.REQ_CASINO_UPGRADE_MACHINE)
     public void reqCasinoUpgradeMachine(PlayerController playerController, ReqCasinoUpgradeMachine req) {
         playerController.send(casinoManager.reqCasinoUpgradeMachine(playerController.getPlayer(), req));
+    }
+
+    /**
+     * 我的赌场 请求退出赌场
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_EXIT)
+    public void reqCasinoExit(PlayerController playerController, ReqCasinoExit req) {
+        playerController.send(casinoManager.reqCasinoExit(playerController.getPlayer(), req));
     }
 
     /**

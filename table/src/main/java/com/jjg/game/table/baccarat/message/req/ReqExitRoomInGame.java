@@ -3,7 +3,7 @@ package com.jjg.game.table.baccarat.message.req;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.core.pb.AbstractMessage;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.table.baccarat.message.BaccaratMessageConstant;
 
 /**

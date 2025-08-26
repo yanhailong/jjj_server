@@ -1,6 +1,6 @@
 package com.jjg.game.room.message;
 
-import com.jjg.game.core.pb.AbstractMessage;
+import com.jjg.game.common.pb.AbstractMessage;
 
 import java.util.HashSet;
 import java.util.Set;

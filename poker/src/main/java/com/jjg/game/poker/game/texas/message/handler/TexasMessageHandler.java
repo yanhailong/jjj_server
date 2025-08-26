@@ -152,14 +152,17 @@ public class TexasMessageHandler {
         //换座位
         RoomPlayer roomPlayer = controller.getRoom().getRoomPlayers().get(seatInfo.getPlayerId());
         roomPlayer.setSit(srcSeatId);
-        SeatInfo remove = gameDataVo.getSeatInfo().remove(seatInfo.getSeatId());
-        remove.setSeatId(srcSeatId);
-        remove.setSeatDown(true);
-        gameDataVo.getSeatInfo().put(srcSeatId, remove);
-        if (seatInfo.isSeatDown()) {
-            controller.addTempGoldOrOutTable(remove, gamePlayer);
+        gameDataVo.getSeatInfo().remove(seatInfo.getSeatId());
+        SeatInfo newSeatInfo = new SeatInfo();
+        newSeatInfo.setPlayerId(seatInfo.getPlayerId());
+        newSeatInfo.setJoinGame(seatInfo.isJoinGame());
+        newSeatInfo.setSeatId(srcSeatId);
+        newSeatInfo.setSeatDown(true);
+        gameDataVo.getSeatInfo().put(srcSeatId, newSeatInfo);
+        if (newSeatInfo.isSeatDown()) {
+            controller.addTempGoldOrOutTable(newSeatInfo, gamePlayer);
         }
-        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, remove, gameDataVo);
+        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, newSeatInfo, gameDataVo);
         return change;
     }
 

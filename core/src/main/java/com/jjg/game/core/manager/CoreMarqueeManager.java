@@ -340,7 +340,7 @@ public class CoreMarqueeManager implements TimerListener {
      */
     public void notifyHallAndGameNodeStartMarquee(NotifyAllNodesMarqueeServer notify) {
         PFMessage pfMessage = MessageUtil.getPFMessage(notify);
-        notifyHallAndGameNode(pfMessage);
+        clusterSystem.notifyHallAndGameNode(pfMessage);
     }
 
     /**
@@ -348,40 +348,10 @@ public class CoreMarqueeManager implements TimerListener {
      */
     public void notifyHallAndGameNodeStopMarquee(NotifyAllNodesStopMarqueeServer notify) {
         PFMessage pfMessage = MessageUtil.getPFMessage(notify);
-        notifyHallAndGameNode(pfMessage);
+        clusterSystem.notifyHallAndGameNode(pfMessage);
     }
 
-    /**
-     * 通知所有的大厅和游戏节点
-     */
-    private void notifyHallAndGameNode(PFMessage pfMessage) {
-        ClusterMessage msg = new ClusterMessage(pfMessage);
 
-        //获取大厅节点
-        List<ClusterClient> hallNodes = ClusterSystem.system.getNodesByType(NodeType.HALL);
-        //获取游戏节点
-        List<ClusterClient> gameNodes = ClusterSystem.system.getNodesByType(NodeType.GAME);
-
-        //通知大厅节点
-        for (ClusterClient clusterClient : hallNodes) {
-            try {
-                clusterClient.write(msg);
-                log.debug("给大厅节点推送消息 node = {}", clusterClient.nodeConfig.getName());
-            } catch (Exception e) {
-                log.error("推送到所有大厅节点信息异常 node = {}", clusterClient.nodeConfig.getName(), e);
-            }
-        }
-
-        //通知游戏节点
-        for (ClusterClient clusterClient : gameNodes) {
-            try {
-                clusterClient.write(msg);
-                log.debug("给游戏节点推送消息 node = {}", clusterClient.nodeConfig.getName());
-            } catch (Exception e) {
-                log.error("推送到所有游戏节点信息异常 node = {}", clusterClient.nodeConfig.getName(), e);
-            }
-        }
-    }
 
     /**
      * 通知当前节点，所有的客户端要展示的跑马灯

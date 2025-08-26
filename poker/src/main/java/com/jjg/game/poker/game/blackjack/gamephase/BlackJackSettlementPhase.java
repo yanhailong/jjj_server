@@ -1,6 +1,5 @@
 package com.jjg.game.poker.game.blackjack.gamephase;
 
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
 import com.jjg.game.poker.game.blackjack.data.BlackJackBuilder;
 import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
@@ -13,21 +12,16 @@ import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
-import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerSettlementInfo;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BlackjackCfg;
-import com.jjg.game.sampledata.bean.PokerPoolCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.*;
-
-import static com.jjg.game.common.constant.CoreConst.Common.SAMPLE_ROOT_PATH;
 
 /**
  * @AUTHOR LM
@@ -133,13 +127,9 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             }
         }
         //获取庄家最大点数
-        Pair<MaxPointGetInfo, Boolean> maxPointInfoPair = getMaxPointInfo(resultCard);
-        MaxPointGetInfo maxPointInfo = maxPointInfoPair.getFirst();
+        MaxPointGetInfo maxPointInfo = getMaxPointInfo(resultCard);
         boolean cardNumWin = maxPointInfo.getIndex() + 1 == BlackJackConstant.Common.MAX_GET_CARD;
-        boolean boom = false;
-        if (maxPointInfoPair.getSecond()) {
-            boom = !cardNumWin && (maxPointInfo.getMaxPoint() < 17 || maxPointInfo.isSoftHand() && maxPointInfo.getMaxPoint() == 17);
-        }
+        boolean boom = !cardNumWin && (maxPointInfo.getMaxPoint() < 17 || maxPointInfo.isSoftHand() && maxPointInfo.getMaxPoint() == 17);
         //玩家id->获得的金币
         Map<Long, Long> playerGet = new HashMap<>();
         //押注信息
@@ -230,13 +220,14 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             PokerPlayerSettlementInfo blackJackSettlementInfo = new PokerPlayerSettlementInfo();
             settlementInfo.settlementInfo = blackJackSettlementInfo;
             blackJackSettlementInfo.playerId = playerId;
-            long get = playerGet.getOrDefault(playerId, 0L) - controller.getPlayerTotalBet(playerId);
+            Long totalGet = playerGet.getOrDefault(playerId, 0L);
+            long get = totalGet - controller.getPlayerTotalBet(playerId);
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
             if (Objects.isNull(gamePlayer)) {
                 log.error("21点发奖找不到GamePlayer playerId:{} get:{} id:{}", playerId, get, gameDataVo.getId());
             }
-            if (get > 0 && Objects.nonNull(gamePlayer)) {
-                gamePlayer.setGold(gamePlayer.getGold() + get);
+            if (totalGet > 0 && Objects.nonNull(gamePlayer)) {
+                gamePlayer.setGold(gamePlayer.getGold() + totalGet);
             }
             blackJackSettlementInfo.getGold = get;
             blackJackSettlementInfo.win = get >= 0;
@@ -259,12 +250,11 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
      * 返回拿的牌id
      * 庄家只有在“硬 17+”时才会停牌；其余情况一律继续叫牌。
      */
-    public static Pair<MaxPointGetInfo, Boolean> getMaxPointInfo(List<Integer> maxGetCard) {
+    public static MaxPointGetInfo getMaxPointInfo(List<Integer> maxGetCard) {
         List<MaxPointGetInfo> totalPointList = new ArrayList<>();
         MaxPointGetInfo base = new MaxPointGetInfo(0, 0, false);
         totalPointList.add(base);
         boolean isMax = false;
-        boolean hasA = false;
         for (int i = 0; i < maxGetCard.size(); i++) {
             int card = maxGetCard.get(i);
             int point = BlackJackDataHelper.getCfgPoint(card);
@@ -282,7 +272,6 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             }
             //总点数,索引
             if (!isMax && point == 1) {
-                hasA = true;
                 isMax = base.getMaxPoint() + 10 > BlackJackConstant.Common.PERFECT_POINT;
                 if (!isMax) {
                     totalPointList.add(new MaxPointGetInfo(base.getMaxPoint() + 10, i, true));
@@ -303,44 +292,8 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             }
             return result;
         });
-        return Pair.newPair(totalPointList.getFirst(), hasA);
+        return totalPointList.getFirst();
     }
 
-    public static void main(String[] args) throws Exception {
-        GameDataManager.loadAllData(SAMPLE_ROOT_PATH);
-        BlackJackDataHelper.initData();
-        Map<Integer, PokerCard> cardListMap = BlackJackDataHelper.getCardListMap(100001);
-        ArrayList<Integer> card = new ArrayList<>(cardListMap.keySet());
-        int maxCardNum = 2 + BlackJackConstant.Common.MAX_GET_CARD;
-        Collections.shuffle(card);
-        List<Integer> resultCard = new ArrayList<>();
-        resultCard.add(41);
-        resultCard.add(25);
-        resultCard.add(1);
-        resultCard.add(2);
-        resultCard.add(29);
-        resultCard.add(45);
-//            for (int i = 0; i < (BlackJackConstant.Common.MAX_GET_CARD + 2); i++) {
-//                resultCard.add(card.remove(0));
-//            }
-        //获取庄家最大点数
-        Pair<MaxPointGetInfo, Boolean> maxPointInfoPair = getMaxPointInfo(resultCard);
-        MaxPointGetInfo maxPointInfo = maxPointInfoPair.getFirst();
-        boolean cardNumWin = maxPointInfo.getIndex() + 1 == maxCardNum;
-        boolean boom = false;
-        if (maxPointInfoPair.getSecond()) {
-            boom = !cardNumWin && (maxPointInfo.getMaxPoint() < 17 || maxPointInfo.isSoftHand() && maxPointInfo.getMaxPoint() == 17);
-        }
-        List<Integer> sendCards = cardNumWin ? resultCard : resultCard.subList(0, Math.min(resultCard.size(), boom ? maxPointInfo.getIndex() + 2 : maxPointInfo.getIndex() + 1));
-        BlackJackDataHelper.getTotalPoint(sendCards);
-        System.out.println(sendCards);
-        int totalPoint = BlackJackDataHelper.getTotalPoint(sendCards);
-        System.out.println("总点数" + totalPoint);
-        for (Integer sendCard : sendCards) {
-            PokerPoolCfg pokerPoolCfg = GameDataManager.getPokerPoolCfg(sendCard);
-            System.out.println("点数：" + pokerPoolCfg.getPointsNum());
-        }
-
-    }
 
 }

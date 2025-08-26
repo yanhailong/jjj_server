@@ -138,8 +138,8 @@ public class MailService implements TimerListener {
      * 一键领取
      * @param playerId
      */
-    public CommonResult<Integer> getAllMailsItems(long playerId){
-        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
+    public CommonResult<Map<Integer,Long>> getAllMailsItems(long playerId){
+        CommonResult<Map<Integer,Long>> result = new CommonResult<>(Code.SUCCESS);
         List<Mail> itemMails = mailDao.getItemMails(playerId);
         if(itemMails == null || itemMails.isEmpty()){
             result.code = Code.NOT_FOUND;
@@ -168,11 +168,20 @@ public class MailService implements TimerListener {
             mailIds.add(mail.getId());
         }
 
-        if(!map.isEmpty()){
-            long count = mailDao.batchUpdateMailStatus(mailIds,GameConstant.Mail.STAUTS_GET_ITEMS);
-            CommonResult<PlayerPack> addItemsResult = playerPackService.addItems(playerId, map, "getAllMailsItems");
-            log.info("一键领取结果 playerId = {}, batchUpdateCount = {}, addItemsResultCode = {}",playerId,count,addItemsResult.code);
+        if(map.isEmpty()){
+            result.data = map;
+            return result;
         }
+
+        long count = mailDao.batchUpdateMailStatus(mailIds,GameConstant.Mail.STAUTS_GET_ITEMS);
+        CommonResult<PlayerPack> addItemsResult = playerPackService.addItems(playerId, map, "getAllMailsItems");
+        if(!addItemsResult.success()){
+            log.debug("一键领取失败 playerId = {},code = {}",playerId,addItemsResult.code);
+            result.code = addItemsResult.code;
+            return result;
+        }
+        result.data = map;
+        log.info("一键领取结果 playerId = {}, batchUpdateCount = {}, addItemsResultCode = {}",playerId,count,addItemsResult.code);
         return result;
     }
 

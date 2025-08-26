@@ -9,9 +9,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_CLIENT_TYPE, cmd = MessageConst.ToClientConst.NOTICE_SERVER_STATUS,resp = true)
 @ProtoDesc("通知网络状态")
-public class NoticeServerStatus {
-    @ProtoDesc("状态码")
-    public int code = 200;
+public class NoticeServerStatus extends AbstractNotice{
     public NetStatEnum result;
 
     public NoticeServerStatus(NetStatEnum result) {
