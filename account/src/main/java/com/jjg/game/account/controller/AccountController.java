@@ -88,7 +88,7 @@ public class AccountController extends AbstractController {
 
                 if(account.getStatus() == GameConstant.AccountStatus.BAN){
                     log.debug("该用户已被封号，无法登录 guest = {},playerId = {}", dto.guest, account.getPlayerId());
-                    return fail(Code.PARAM_ERROR);
+                    return fail(Code.BAN_ACCOUNT);
                 }
 
                 if(!Objects.equals(dto.mac,account.getLastLoginMac())){

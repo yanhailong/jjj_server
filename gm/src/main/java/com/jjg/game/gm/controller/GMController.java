@@ -6,6 +6,7 @@ import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.PFSession;
@@ -20,7 +21,7 @@ import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
-import com.jjg.game.common.pb.NotifyExit;
+import com.jjg.game.core.pb.NotifyTableExitRoom;
 import com.jjg.game.core.pb.gm.ReqAllKickout;
 import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
 import com.jjg.game.core.service.CorePlayerService;
@@ -395,16 +396,32 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
+            if(StringUtils.isEmpty(dto.playerName())){
+                log.debug("修改货币时，用户名不能为空");
+                return fail("common.paramerror");
+            }
+
+            Player player = playerService.get(dto.playerId());
+            if(player == null){
+                log.debug("修改货币时，未找到该用户 playerId = {}", dto.playerId());
+                return fail("common.paramerror");
+            }
+
+            if(!dto.playerName().equals(player.getNickName())){
+                log.debug("修改货币时，用户名校验错误 playerId = {},paramNick = {},dbNick = {}", dto.playerId(),dto.playerName(),player.getNickName());
+                return fail("common.paramerror");
+            }
+
             CommonResult<Player> result;
             if(dto.type() == 1){  //增加
                 if(dto.operator_type() == 1){ //账户
-                    if(dto.currency_id() != GameConstant.Item.TYPE_GOLD){ //金币
+                    if(dto.currency_id() == GameConstant.Item.TYPE_GOLD){ //金币
                         result = playerService.addGold(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
                     }else {  //钻石
                         result = playerService.addDiamond(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
                     }
                 }else { //保险箱
-                    if(dto.currency_id() != GameConstant.Item.TYPE_GOLD){ //金币
+                    if(dto.currency_id() == GameConstant.Item.TYPE_GOLD){ //金币
                         result = playerService.addSafeBoxGold(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
                     }else {  //钻石
                         result = playerService.addSafeBoxDiamond(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
@@ -412,13 +429,13 @@ public class GMController extends AbstractController {
                 }
             }else {  //减少
                 if(dto.operator_type() == 1){ //账户
-                    if(dto.currency_id() != GameConstant.Item.TYPE_GOLD){ //金币
+                    if(dto.currency_id() == GameConstant.Item.TYPE_GOLD){ //金币
                         result = playerService.deductGold(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
                     }else {  //钻石
                         result = playerService.deductDiamond(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
                     }
                 }else { //保险箱
-                    if(dto.currency_id() != GameConstant.Item.TYPE_GOLD){ //金币
+                    if(dto.currency_id() == GameConstant.Item.TYPE_GOLD){ //金币
                         result = playerService.deductSafeBoxGold(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
                     }else {  //钻石
                         result = playerService.deductSafeBoxDiamond(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
@@ -438,6 +455,7 @@ public class GMController extends AbstractController {
                     notice.gold = result.data.getGold();
                     notice.diamond = result.data.getDiamond();
                     notice.vipLevel = result.data.getVipLevel();
+                    session.send(notice);
                 }
             }
 
@@ -469,19 +487,19 @@ public class GMController extends AbstractController {
                     return fail("common.paramerror");
                 }
 
-                NotifyExit notifyExit = new NotifyExit();
-                notifyExit.langId = dto.langId();
+                NotifyKickout notifyKickout = new NotifyKickout();
+                notifyKickout.langId = dto.tips();
                 for(String str : arr) {
                     long playerId = Long.parseLong(str);
                     PFSession session = playerSessionService.getSession(playerId);
                     if(session == null){
                         continue;
                     }
-                    session.send(notifyExit);
+                    session.send(notifyKickout);
                 }
             }else if(dto.type() == 2){  //全服
                 ReqAllKickout req = new ReqAllKickout();
-                req.langId = dto.langId();
+                req.langId = dto.tips();
                 PFMessage pfMessage = MessageUtil.getPFMessage(req);
                 clusterSystem.notifyHallAndGameNode(pfMessage);
             }else {
@@ -517,7 +535,7 @@ public class GMController extends AbstractController {
             }
 
             //先踢人
-            NotifyExit notifyExit = new NotifyExit();
+            NotifyKickout notifyKickout = new NotifyKickout();
             for(String str : arr){
                 long playerId = Long.parseLong(str);
 
@@ -527,7 +545,7 @@ public class GMController extends AbstractController {
                     if(session == null){
                         continue;
                     }
-                    session.send(notifyExit);
+                    session.send(notifyKickout);
                 }else {  //解
                     accountDao.updateAccountStatus(playerId,GameConstant.AccountStatus.NORMAL);
                 }
