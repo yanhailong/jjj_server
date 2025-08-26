@@ -29,7 +29,11 @@ public abstract class BaseSettlementPhase<T extends BasePokerGameDataVo> extends
     @Override
     public void phaseFinish() {
         if (gameController instanceof BasePokerGameController<T> controller) {
-            phaseFinishDoAction();
+            try {
+                phaseFinishDoAction();
+            } catch (Exception e) {
+                log.error("结算结算处理异常", e);
+            }
             controller.setCurrentGamePhase(new BaseWaitReadyPhase<>(gameController));
             gameDataVo.resetData(controller);
             //开启下一局

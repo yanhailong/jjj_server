@@ -42,13 +42,17 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
-        if (gameController instanceof BlackJackGameController controller) {
-            int settlementType = gameDataVo.getSettlementType();
-            switch (settlementType) {
-                case 1 -> dealSpecialSettlement(controller);
-                case 2 -> dealNormalSpecialSettlement(controller);
-                default -> dealSettlement(controller);
+        try {
+            if (gameController instanceof BlackJackGameController controller) {
+                int settlementType = gameDataVo.getSettlementType();
+                switch (settlementType) {
+                    case 1 -> dealSpecialSettlement(controller);
+                    case 2 -> dealNormalSpecialSettlement(controller);
+                    default -> dealSettlement(controller);
+                }
             }
+        } catch (Exception e) {
+            log.error("21点结算异常", e);
         }
     }
 

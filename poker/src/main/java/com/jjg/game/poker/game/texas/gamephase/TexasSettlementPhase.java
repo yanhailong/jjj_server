@@ -69,13 +69,17 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
-        if (gameController instanceof TexasGameController controller) {
-            switch (gameDataVo.getSettlement()) {
-                case DISCARD_SETTLEMENT -> settlementByOnePlayer(controller);
-                case ALL_SETTLEMENT -> settlementByAllIn(controller);
-                default -> normalSettlement(controller);
+        try {
+            if (gameController instanceof TexasGameController controller) {
+                switch (gameDataVo.getSettlement()) {
+                    case DISCARD_SETTLEMENT -> settlementByOnePlayer(controller);
+                    case ALL_SETTLEMENT -> settlementByAllIn(controller);
+                    default -> normalSettlement(controller);
+                }
+                addLog(controller, gameDataVo.getTexasHistory());
             }
-            addLog(controller, gameDataVo.getTexasHistory());
+        } catch (Exception e) {
+            log.error("德州扑克结算异常", e);
         }
     }
 
