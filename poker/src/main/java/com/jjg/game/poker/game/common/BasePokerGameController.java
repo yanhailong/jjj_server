@@ -225,6 +225,16 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     public abstract void tryStartGame();
 
 
+    public int isSeatDown(Map<Integer, SeatInfo> seatInfoList, long playerId) {
+        for (Map.Entry<Integer, SeatInfo> entry : seatInfoList.entrySet()) {
+            SeatInfo seatInfo = entry.getValue();
+            if (seatInfo.getPlayerId() == playerId) {
+                return entry.getKey();
+            }
+        }
+        return -1;
+    }
+
     @Override
     protected final GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
         GamePlayer gamePlayer = super.onPlayerJoinRoom(playerController, gameStartStatus);
@@ -232,14 +242,20 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         PokerPlayerGameData pokerPlayerGameData = new PokerPlayerGameData();
         pokerPlayerGameData.setJoinTime(System.currentTimeMillis());
         gamePlayer.setPokerPlayerGameData(pokerPlayerGameData);
+        try {
+            onPlayerJoinRoomAction(gamePlayer);
+        } catch (Exception e) {
+            log.error("onPlayerJoinRoomAction() failed", e);
+        }
         //存放座位信息 如果座位有人了随便找一个 找不到
         Map<Integer, SeatInfo> seatInfoList = gameDataVo.getSeatInfo();
-        SeatInfo info = seatInfoList.get(roomPlayer.getSit());
-        boolean nonNull = Objects.nonNull(info);
-        if (nonNull && info.getPlayerId() == playerController.playerId()) {
+        int seatDown = isSeatDown(seatInfoList, playerController.playerId());
+        if (seatDown != -1) {
+            roomPlayer.setSit(seatDown);
             return gamePlayer;
         }
-        if (!nonNull) {
+        SeatInfo seatInfo = seatInfoList.get(roomPlayer.getSit());
+        if (Objects.isNull(seatInfo)) {
             seatInfoList.put(roomPlayer.getSit(), getSeatInfo(gamePlayer, roomPlayer));
         } else {
             for (int i = 0; i < getRoom().getMaxLimit(); i++) {
@@ -249,11 +265,6 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                     break;
                 }
             }
-        }
-        try {
-            onPlayerJoinRoomAction(gamePlayer);
-        } catch (Exception e) {
-            log.error("onPlayerJoinRoomAction() failed", e);
         }
         return gamePlayer;
     }
