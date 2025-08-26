@@ -13,10 +13,11 @@ public interface HallRoomBridge extends IGameRpc {
     /**
      * 操作好友房
      *
+     * @param playerId    玩家ID
      * @param roomId      房间ID
      * @param operateCode 操作码 1. 暂停 2. 重新开启 3. 解散
      */
-    void operateFriendRoom(long roomId, int operateCode);
+    void operateFriendRoom(long playerId, long roomId, int operateCode);
 
     /**
      * 获取好友房信息

@@ -446,11 +446,15 @@ public class FriendRoomServices implements IConsoleReceiver {
     }
 
     /**
-     * 请你黑名单玩家
+     * 请求黑名单玩家
      */
     public void reqPlayerBlackList(PlayerController playerController) {
         List<Long> playerBlackList = friendRoomRedisDao.getPlayerBlackList(playerController.playerId());
         ResShieldPlayerList res = new ResShieldPlayerList(Code.SUCCESS);
+        Player player = corePlayerService.get(playerController.playerId());
+        PlayerLevelConfigCfg levelConfigCfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
+        // 黑名单数量
+        res.maxLimit = levelConfigCfg.getBlockListNum();
         List<Player> blackListPlayers = corePlayerService.multiGetPlayer(playerBlackList);
         res.shieldPlayerList =
             blackListPlayers.stream().map(FriendRoomMessageBuilder::buildFriendRoomPlayerInfo).toList();
@@ -662,12 +666,14 @@ public class FriendRoomServices implements IConsoleReceiver {
         PlayerController playerController, ClusterClient client, ReqOperateFriendRoom req) {
         ResOperateFriendRoom res = new ResOperateFriendRoom(Code.PARAM_ERROR);
         try {
+            // 单房间，直接等返回
             GameRpcContext.getContext().setReqParameterBuilder(
                 RpcReqParameterBuilder.create()
                     .addClusterClient(client)
                     .setTryMillisPerClient(1000));
             // 操作房间
-            hallRoomBridge.operateFriendRoom(req.roomId, req.operateCode);
+            hallRoomBridge.operateFriendRoom(playerController.playerId(), req.roomId, req.operateCode);
+            // 操作完成后再获取
             FriendRoom friendRoom = friendRoomDao.getFriendRoomById(playerController.playerId(), req.roomId);
             res.roomStatus = friendRoom.getStatus();
             GlobalConfigCfg globalConfigCfg =
@@ -728,19 +734,21 @@ public class FriendRoomServices implements IConsoleReceiver {
         switch (command) {
             case "RpcCallDemo": {
                 try {
+                    long playerId = Long.parseLong(params.get(0));
+                    long roomId = Long.parseLong(params.get(1));
+                    int operateCode = Integer.parseInt(params.get(2));
                     GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create()
-                            .setRetryTimesPerClient(10)
-                            .setTryMillisPerClient(200)
-                            .addProviderNodeType(NodeType.GAME)
-                            .addGameMajorType(GameMajorType.TABLE)
-                            .setAllFinishedCallback(() -> log.info("全部结束"))
-                            .setAllSuccessCallback(() -> log.info("全部成功"))
-                            .addClientFilter((c) -> !c.nodeConfig.getName().contains("CCL"))
-                        )
-                        .asyncCall(() -> hallRoomBridge.getFriendRoomInfo(200000000L))
-                        .whenCompleteAsync((friendRoom, throwable) ->
-                            log.info("data id: {}", friendRoom.getId())
-                        );
+                        .setRetryTimesPerClient(10)
+                        .setTryMillisPerClient(200)
+                        .addProviderNodeType(NodeType.GAME)
+                        .addGameMajorType(GameMajorType.TABLE)
+                        .setAllFinishedCallback(() -> log.info("全部结束"))
+                        .setAllSuccessCallback(() -> log.info("全部成功"))
+                        .addClientFilter((c) -> !c.nodeConfig.getName().contains("CCL"))
+                    );
+                    hallRoomBridge.operateFriendRoom(playerId, roomId, operateCode);
+                    FriendRoom friendRoom = friendRoomDao.getFriendRoomById(playerId, roomId);
+                    log.info("操作结果: {}", friendRoom.getStatus());
                 } catch (Exception e) {
                     log.error("{}", e.getMessage(), e);
                 } finally {

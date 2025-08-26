@@ -143,7 +143,7 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
      * @param operateCode 操作码 1. 暂停 2. 重新开启 3. 解散
      */
     @Override
-    public void operateFriendRoom(long roomId, int operateCode) {
+    public void operateFriendRoom(long playerId, long roomId, int operateCode) {
         if (operateCode < 1 || operateCode > 3) {
             return;
         }
@@ -151,6 +151,12 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
         AbstractRoomController<? extends RoomCfg, ? extends Room> roomController = getRoomControllerByRoomId(roomId);
         if (roomController == null) {
             // TODO 如果是继续房间还需要查库和恢复房间的操作
+            return;
+        }
+        // 房主
+        long roomCreator = roomController.getRoom().getCreator();
+        if (roomCreator != playerId) {
+            log.error("操作异常，玩家：{} 请求操作房间，但房间房主ID为：{}", playerId, roomCreator);
             return;
         }
         switch (operateCode) {

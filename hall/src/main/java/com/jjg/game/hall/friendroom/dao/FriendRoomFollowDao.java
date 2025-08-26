@@ -81,11 +81,12 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
     }
 
     /**
-     * 通过邀请码删除所有映射关系
+     * 通过邀请码软删除所有映射关系
      */
     public void deleteMappingRelateByInvitationCode(int invitationCode) {
-        mongoTemplate.remove(
+        mongoTemplate.updateMulti(
             Query.query(Criteria.where("invitationCode").is(invitationCode)),
+            Update.update("removeTime", System.currentTimeMillis()),
             FriendRoomFollowBean.class
         );
     }

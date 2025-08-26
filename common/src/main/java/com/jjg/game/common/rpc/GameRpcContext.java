@@ -71,7 +71,7 @@ public class GameRpcContext {
     }
 
     public void clearRpcBuilderData() {
-        METADATA_CARRIER_THREAD_LOCAL.get().reset();
+        reset();
         setReqParameterBuilder(null);
     }
 
@@ -79,13 +79,14 @@ public class GameRpcContext {
      * 异步请求
      */
     public <T> CompletableFuture<T> asyncCall(Callable<T> callable) {
+        // 需要将外部参数进行传递
         RpcReqParameterBuilder rpcReqParameterBuilder = GameRpcContext.getContext().getReqParameterBuilder();
         return CompletableFuture.supplyAsync(() -> {
             GameRpcContext.getContext().setReqParameterBuilder(rpcReqParameterBuilder);
             try {
                 return callable.call();
             } catch (Exception e) {
-                log.error("调用发生异常 {}", e.getMessage(), e);
+                log.error("异步调用rpc发生异常 {}", e.getMessage(), e);
                 throw new RuntimeException(e);
             } finally {
                 GameRpcContext.getContext().clearRpcBuilderData();
