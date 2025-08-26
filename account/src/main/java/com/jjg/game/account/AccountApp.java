@@ -22,6 +22,7 @@ import org.springframework.context.annotation.FilterType;
             }),
         @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.cluster.*"),
         @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.curator.*"),
+        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.rpc.*"),
         @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.gate.*"),
         @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.service.*"),
         @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.manager.*"),

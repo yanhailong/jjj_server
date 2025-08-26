@@ -1,6 +1,13 @@
 package com.jjg.game.hall.friendroom.services;
 
+import com.jjg.game.common.baselogic.IConsoleReceiver;
+import com.jjg.game.common.cluster.ClusterClient;
+import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.constant.CoreConst.GameMajorType;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.redis.RedissonLock;
+import com.jjg.game.common.rpc.GameRpcContext;
+import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -11,6 +18,7 @@ import com.jjg.game.core.dao.room.FriendRoomDao;
 import com.jjg.game.core.dao.room.FriendRoomDao.CreateFriendsRoom;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.rpc.HallRoomBridge;
+import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.IllegalNameCheckService;
 import com.jjg.game.core.service.PlayerPackService;
@@ -41,7 +49,7 @@ import java.util.concurrent.TimeUnit;
  * @author 2CL
  */
 @Service
-public class FriendRoomServices {
+public class FriendRoomServices implements IConsoleReceiver {
 
     private static final Logger log = LoggerFactory.getLogger(FriendRoomServices.class);
     @Autowired
@@ -58,7 +66,10 @@ public class FriendRoomServices {
     private CorePlayerService corePlayerService;
     @Autowired
     private FriendRoomBillHistoryDao billHistoryDao;
+    @ClusterRpcReference()
     private HallRoomBridge hallRoomBridge;
+    @Autowired
+    private ClusterSystem clusterSystem;
 
     /**
      * 创建好友房
@@ -628,21 +639,49 @@ public class FriendRoomServices {
                 }
                 // 解散
             case 3:
-                // 操作房间
-                hallRoomBridge.operateFriendRoom(req.roomId, req.operateCode);
+                ClusterClient client = clusterSystem.getClusterByPath(friendRoom.getPath());
+                // 被操作的房间不能为空
+                if (client != null) {
+                    // 操作方房间
+                    operateFriendRoom(playerController, client, req);
+                } else {
+                    // 房间对应的节点找不到
+                    res.code = Code.FAIL;
+                    playerController.send(res);
+                }
                 break;
             default:
                 break;
         }
-        friendRoom = friendRoomDao.getFriendRoomById(playerController.playerId(), req.roomId);
-        res.roomStatus = friendRoom.getStatus();
-        GlobalConfigCfg globalConfigCfg =
-            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_REFRESH_INTERVAL);
-        int intervalTime = globalConfigCfg.getIntValue() * TimeHelper.ONE_MINUTE_OF_MILLIS;
-        long curTime = System.currentTimeMillis();
-        res.nextPauseBtnOverdueTime =
-            friendRoom.getPauseTime() + intervalTime > curTime ? friendRoom.getPauseTime() + intervalTime : 0;
-        playerController.send(res);
+    }
+
+    /**
+     * 请求操作好友房
+     */
+    private void operateFriendRoom(
+        PlayerController playerController, ClusterClient client, ReqOperateFriendRoom req) {
+        ResOperateFriendRoom res = new ResOperateFriendRoom(Code.PARAM_ERROR);
+        try {
+            GameRpcContext.getContext().setReqParameterBuilder(
+                RpcReqParameterBuilder.create()
+                    .addClusterClient(client)
+                    .setTryMillisPerClient(1000));
+            // 操作房间
+            hallRoomBridge.operateFriendRoom(req.roomId, req.operateCode);
+            FriendRoom friendRoom = friendRoomDao.getFriendRoomById(playerController.playerId(), req.roomId);
+            res.roomStatus = friendRoom.getStatus();
+            GlobalConfigCfg globalConfigCfg =
+                GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_REFRESH_INTERVAL);
+            int intervalTime = globalConfigCfg.getIntValue() * TimeHelper.ONE_MINUTE_OF_MILLIS;
+            long curTime = System.currentTimeMillis();
+            // 更新下次可操作的时间
+            res.nextPauseBtnOverdueTime =
+                friendRoom.getPauseTime() + intervalTime > curTime ?
+                    friendRoom.getPauseTime() + intervalTime : 0;
+            playerController.send(res);
+        } finally {
+            GameRpcContext.getContext().clearRpcBuilderData();
+        }
     }
 
     /**
@@ -682,5 +721,40 @@ public class FriendRoomServices {
         res.resetTimes = resetTimes == null ? 0 : resetTimes + 1;
         res.invitationCode = newInvitationCode;
         playerController.send(res);
+    }
+
+    @Override
+    public void doCommand(String command, List<String> params) {
+        switch (command) {
+            case "RpcCallDemo": {
+                try {
+                    GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create()
+                            .setRetryTimesPerClient(10)
+                            .setTryMillisPerClient(200)
+                            .addProviderNodeType(NodeType.GAME)
+                            .addGameMajorType(GameMajorType.TABLE)
+                            .setAllFinishedCallback(() -> log.info("全部结束"))
+                            .setAllSuccessCallback(() -> log.info("全部成功"))
+                            .addClientFilter((c) -> !c.nodeConfig.getName().contains("CCL"))
+                        )
+                        .asyncCall(() -> hallRoomBridge.getFriendRoomInfo(200000000L))
+                        .whenCompleteAsync((friendRoom, throwable) ->
+                            log.info("data id: {}", friendRoom.getId())
+                        );
+                } catch (Exception e) {
+                    log.error("{}", e.getMessage(), e);
+                } finally {
+                    GameRpcContext.getContext().clearRpcBuilderData();
+                }
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    @Override
+    public List<String> needHandleCommands() {
+        return List.of("RpcCallDemo");
     }
 }

@@ -119,6 +119,9 @@ public interface MessageConst {
         int CLUSTER_CONNECT_REGISTER = BASE_MSG_PREFIX | 0x08;
         //广播消息
         int BROADCAST_MSG = (MessageTypeDef.SESSION_TYPE << 8) | 0x9;
+        // rpc请求消息
+        int RPC_REQ_SERVICE_DATA_CARRIER = BASE_MSG_PREFIX | 0x0A;// rpc请求消息
+        int RPC_RES_SERVICE_DATA_CARRIER = BASE_MSG_PREFIX | 0x0B;
     }
 
     /**

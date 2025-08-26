@@ -1,10 +1,13 @@
 package com.jjg.game.common.netty;
 
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import com.jjg.game.common.net.Connect;
 import com.jjg.game.common.net.ConnectListener;
 import com.jjg.game.common.net.NetAddress;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +70,18 @@ public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> imp
         }
 
         return true;
+    }
+
+    /**
+     * 发送消息并添加自定义监听
+     */
+    public void writeWithFuture(Object msg, GenericFutureListener<? extends Future<? super Void>> future) {
+        try {
+            ctx.writeAndFlush(msg).addListener(future);
+        } catch (Exception e) {
+            log.error("发送消息出现异常", e);
+            throw new RuntimeException("发送消息出现异常", e);
+        }
     }
 
     @Override

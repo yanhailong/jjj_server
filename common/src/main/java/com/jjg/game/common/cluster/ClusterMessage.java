@@ -1,5 +1,6 @@
 package com.jjg.game.common.cluster;
 
+import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 
 /**
@@ -26,6 +27,10 @@ public class ClusterMessage {
         this.sessionId = sessionId;
         this.msg = msg;
         this.playerId = playerId;
+    }
+
+    public ClusterMessage(Object originMessage) {
+        this.msg = MessageUtil.getPFMessage(originMessage);
     }
 
     public String getSessionId() {
