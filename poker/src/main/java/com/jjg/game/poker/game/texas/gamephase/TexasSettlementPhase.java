@@ -181,7 +181,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 //增加金币
                 controller.changePlayerGold(gamePlayer, get);
             }
-            pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().get(playerId);
+            pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().getOrDefault(playerId, 0L);
             pokerPlayerSettlementInfo.getGold = get;
             pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;
             settlementPlayerInfo.cardType = handResult.getHandRank().rank;
@@ -297,7 +297,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         }
         get = get * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000;
         controller.changePlayerGold(gamePlayer, total);
-        pokerPlayerSettlementInfo.currentGold = gamePlayer.getGold();
+        pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().getOrDefault(playerId, 0L);
         pokerPlayerSettlementInfo.getGold = get;
         pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;
         TexasSettlementPlayerInfo settlementPlayerInfo = new TexasSettlementPlayerInfo();
@@ -328,7 +328,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
 
     @Override
     public void phaseFinishDoAction() {
-        if (gameController instanceof BasePokerGameController<TexasGameDataVo> controller) {
+        if (gameController instanceof BasePokerGameController<TexasGameDataVo>) {
             //设置为等待阶段
             gameDataVo.getTexasHistoryList().add(gameDataVo.getTexasHistory());
             //金币不够底注的尝试重新拿金币
