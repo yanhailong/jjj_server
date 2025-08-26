@@ -96,7 +96,7 @@ public class CasinoBuilder {
         if (CollectionUtil.isNotEmpty(machineInfo.getEmploymentMap())) {
             casinoMachineShowInfo.employments = new ArrayList<>();
             for (CasinoEmployment employment : machineInfo.getEmploymentMap().values()) {
-                casinoMachineShowInfo.employments.add(employment.getNewCasinoEmploymentInfo());
+                casinoMachineShowInfo.employments.add(employment.buildNewCasinoEmploymentInfo());
             }
         }
         return casinoMachineShowInfo;
@@ -209,7 +209,7 @@ public class CasinoBuilder {
         }
         //计算瞬时收益
         //时间
-        Integer intervalTime = cfg.getOutput().getFirst();
+        int intervalTime = cfg.getOutput().getFirst();
         //数量
         int num = getInstantaneousNum(hashMap, cfg.getOutput().getLast());
         //总数量
@@ -311,7 +311,7 @@ public class CasinoBuilder {
                 continue;
             }
             //时间
-            Integer intervalTime = cfg.getOutput().getFirst();
+            int intervalTime = cfg.getOutput().getFirst() * ONE_MINUTE_OF_MILLIS;
             long period = endPeriod - startTime;
             long times = period / intervalTime;
             if (times == 0) {
