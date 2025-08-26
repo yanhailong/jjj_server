@@ -1,5 +1,6 @@
 package com.jjg.game.gm.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
@@ -21,7 +22,6 @@ import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
-import com.jjg.game.core.pb.NotifyTableExitRoom;
 import com.jjg.game.core.pb.gm.ReqAllKickout;
 import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
 import com.jjg.game.core.service.CorePlayerService;
@@ -253,12 +253,12 @@ public class GMController extends AbstractController {
                     log.debug("未找到该玩家账号信息 nick = {}", dto.nickName());
                     return fail("common.fail");
                 }
-                p = playerService.getFromAllDB(dto.playerId());
-                account = accountDao.queryAccountByPlayerId(dto.playerId());
-            }else if(StringUtils.isNotEmpty(dto.phone())){  //根据手机号
-                account = accountDao.queryByPhone(dto.phone());
+                p = playerService.getFromAllDB(playerId);
+                account = accountDao.queryAccountByPlayerId(playerId);
+            }else if(StringUtils.isNotEmpty(dto.mobile())){  //根据手机号
+                account = accountDao.queryByPhone(dto.mobile());
                 if(account == null){
-                    log.debug("未找到该玩家账号信息 phone = {}", dto.phone());
+                    log.debug("未找到该玩家账号信息 mobile = {}", dto.mobile());
                     return fail("common.fail");
                 }
                 p = playerService.getFromAllDB(account.getPlayerId());
@@ -296,7 +296,7 @@ public class GMController extends AbstractController {
             safeInfo.setSafeDiamond(p.getSafeBoxDiamond());
             info.setSafeInfo(safeInfo);
 
-            log.info("返回玩家信息 info = {}", info);
+            log.info("返回玩家信息 info = {}", JSON.toJSONString(info));
             return success(info);
         }catch (Exception e){
             log.error("", e);
@@ -598,8 +598,8 @@ public class GMController extends AbstractController {
         }
 
         //检查手机号
-        if(StringUtils.isNotEmpty(dto.phone())){
-            if(!dto.phone().equals(account.getPhoneNumber())){
+        if(StringUtils.isNotEmpty(dto.mobile())){
+            if(!dto.mobile().equals(account.getPhoneNumber())){
                 return false;
             }
         }

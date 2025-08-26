@@ -1,9 +1,12 @@
 package com.jjg.game.core.manager;
 
+import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
+import com.jjg.game.core.service.PlayerSessionService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -12,6 +15,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class CoreSendMessageManager extends BaseSendMessageManager {
+    @Autowired
+    private PlayerSessionService playerSessionService;
 
     public void packMoneyChangeMessage(PlayerController playerController, long gold, long diamond, int vipLevel) {
         SendInfo sendInfo = new SendInfo();
@@ -28,14 +33,17 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
     /**
      * 构建玩家货币信息
      */
-    public void buildPlayerMoneyInfo(PlayerController playerController, Player player) {
-        SendInfo sendInfo = new SendInfo();
+    public void buildPlayerMoneyInfo(Player player) {
+        PFSession session = playerSessionService.getSession(player.getId());
+        if(session == null) {
+            return;
+        }
+
         NoticeBaseInfoChange notice = new NoticeBaseInfoChange();
         notice.gold = player.getGold();
         notice.diamond = player.getDiamond();
         notice.vipLevel = player.getVipLevel();
-        sendInfo.addPlayerMsg(playerController.playerId(), notice);
-        sendInfo.getLogMessage().add(notice);
-        sendRun(playerController, sendInfo, "推送货币变化信息", false);
+        session.send(notice);
+        log.debug("推送玩家货币变化信息 playerId = {},notice = {}", player.getId(), notice);
     }
 }

@@ -85,7 +85,7 @@ public class PlayerPackService {
         }
 
         if (addGold > 0 || addDiamond > 0) {
-            corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType);
+            corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType,true,null);
         }
 
         if (addItemMap.isEmpty()) {
