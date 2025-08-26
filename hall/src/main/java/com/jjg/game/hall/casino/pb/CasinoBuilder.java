@@ -10,7 +10,6 @@ import com.jjg.game.hall.casino.data.TimeNodeData;
 import com.jjg.game.hall.casino.pb.bean.CasinoFloorInfo;
 import com.jjg.game.hall.casino.pb.bean.CasinoMachineShowInfo;
 import com.jjg.game.hall.casino.pb.bean.CasinoSimpleInfo;
-import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.pb.struct.ItemInfo;
 import com.jjg.game.hall.utils.GlobalDataCache;
 import com.jjg.game.sampledata.GameDataManager;
@@ -21,8 +20,6 @@ import com.jjg.game.sampledata.bean.DealerFunctionCfg;
 import java.util.*;
 
 import static com.jjg.game.common.utils.TimeHelper.ONE_MINUTE_OF_MILLIS;
-import static com.jjg.game.hall.constant.HallConstant.Casino.REST_AREA_TYPE;
-import static com.jjg.game.hall.constant.HallConstant.Casino.WITHDRAWAL_AREA_TYPE;
 
 
 /**
@@ -73,7 +70,7 @@ public class CasinoBuilder {
             if (Objects.isNull(functionCfg)) {
                 continue;
             }
-            if (functionCfg.getTypeID() == REST_AREA_TYPE || functionCfg.getTypeID() == WITHDRAWAL_AREA_TYPE) {
+            if (functionCfg.getTypeID() > 0) {
                 BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(functionCfg.getBuffid());
                 if (Objects.isNull(buildingGainCfg)) {
                     continue;
@@ -295,16 +292,15 @@ public class CasinoBuilder {
             int nextTime = i + 1;
             Map<Integer, Integer> casinoMaxProfitBonus;
             Long endPeriod = timeMillis;
-            if (nextTime < timePeriod.size()) {
+            if (nextTime < finalTimePeriod.size()) {
                 endPeriod = finalTimePeriod.get(nextTime);
-                casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, startPeriod, endPeriod);
             } else {
                 //直接计算单个
                 if (startPeriod.equals(endPeriod)) {
                     break;
                 }
-                casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, startPeriod, endPeriod);
             }
+            casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, startPeriod, endPeriod);
             //总数量
             int totalMaxNum = getTotalNum(casinoMaxProfitBonus, cfg.getSavenum());
             if (totalNum >= totalMaxNum) {
@@ -359,7 +355,7 @@ public class CasinoBuilder {
             if (Objects.isNull(cfg)) {
                 continue;
             }
-            if (cfg.getTypeID() == HallConstant.Casino.REST_AREA_TYPE || cfg.getTypeID() == HallConstant.Casino.WITHDRAWAL_AREA_TYPE) {
+            if (cfg.getBuffid() > 0) {
                 BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(cfg.getBuffid());
                 if (Objects.isNull(buildingGainCfg) || buildingGainCfg.getBufftype() == 0) {
                     continue;
