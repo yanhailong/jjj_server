@@ -1,6 +1,5 @@
 package com.jjg.game.poker.game.blackjack.gamephase;
 
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
 import com.jjg.game.poker.game.blackjack.data.BlackJackBuilder;
 import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
@@ -221,13 +220,14 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             PokerPlayerSettlementInfo blackJackSettlementInfo = new PokerPlayerSettlementInfo();
             settlementInfo.settlementInfo = blackJackSettlementInfo;
             blackJackSettlementInfo.playerId = playerId;
-            long get = playerGet.getOrDefault(playerId, 0L) - controller.getPlayerTotalBet(playerId);
+            Long totalGet = playerGet.getOrDefault(playerId, 0L);
+            long get = totalGet - controller.getPlayerTotalBet(playerId);
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
             if (Objects.isNull(gamePlayer)) {
                 log.error("21点发奖找不到GamePlayer playerId:{} get:{} id:{}", playerId, get, gameDataVo.getId());
             }
-            if (get > 0 && Objects.nonNull(gamePlayer)) {
-                gamePlayer.setGold(gamePlayer.getGold() + get);
+            if (totalGet > 0 && Objects.nonNull(gamePlayer)) {
+                gamePlayer.setGold(gamePlayer.getGold() + totalGet);
             }
             blackJackSettlementInfo.getGold = get;
             blackJackSettlementInfo.win = get >= 0;
