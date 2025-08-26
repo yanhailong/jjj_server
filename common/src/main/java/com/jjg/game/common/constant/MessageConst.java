@@ -101,6 +101,7 @@ public interface MessageConst {
         int REQ_HEART_BEAT = BASE_MSG_PREFIX | 0x01;
         int RES_HEART_BEAT = BASE_MSG_PREFIX | 0x02;
         int NOTICE_SERVER_STATUS = BASE_MSG_PREFIX | 0x03;
+        int NOTIFY_KICK_OUT = BASE_MSG_PREFIX | 0x05;
     }
 
     /**
