@@ -64,6 +64,9 @@ public class BlackJackBuilder {
     public static List<BlackJackCardInfo> getBlackJackCardInfoList(BlackJackGameDataVo gameDataVo) {
         List<BlackJackCardInfo> blackJackCardInfos = new ArrayList<>();
         for (PlayerSeatInfo playerSeatInfo : gameDataVo.getPlayerSeatInfoList()) {
+            if (playerSeatInfo.isDelState()) {
+                continue;
+            }
             BlackJackCardInfo blackJackCardInfo = new BlackJackCardInfo();
             blackJackCardInfo.playerId = playerSeatInfo.getPlayerId();
             blackJackCardInfo.cardIds = BlackJackDataHelper.getClientId(gameDataVo, playerSeatInfo.getCurrentCards());

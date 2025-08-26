@@ -102,7 +102,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         Map<Integer, PokerCard> cardListMap = TexasDataHelper.getCardListMap(TexasDataHelper.getPoolId(gameDataVo));
         List<Card> publicCards = gameDataVo.getPublicCards().stream().map(cardListMap::get).collect(Collectors.toList());
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
-            if (info.getOperationType() == PokerConstant.PlayerOperation.DISCARD) {
+            if (info.getOperationType() == PokerConstant.PlayerOperation.DISCARD || info.isDelState()) {
                 continue;
             }
             List<Card> cards = info.getCurrentCards().stream().map(cardListMap::get).collect(Collectors.toList());
@@ -235,6 +235,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             }
             List<Integer> clientId = TexasDataHelper.getClientId(gameDataVo, tempCardList);
             for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
+                if (info.isDelState()) {
+                    continue;
+                }
                 List<TexasRoundInfo> texasRoundInfos = playerRoundInfos.computeIfAbsent(info.getPlayerId(), k -> new ArrayList<>());
                 HandResult tempHandType = TexasBuilder.getTempHandType(info, gameDataVo);
                 int rank = Objects.nonNull(tempHandType) ? tempHandType.getHandRank().rank : 0;
@@ -252,6 +255,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         gameDataVo.setNotifyTexasSettlementInfo(normalSettlementInfo);
         //通知
         for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
+            if (controller.playerNotInit(seatInfo.getPlayerId())) {
+                continue;
+            }
             List<TexasRoundInfo> orDefault = playerRoundInfos.getOrDefault(seatInfo.getPlayerId(), defaultInfo);
             NotifyTexasAllInSettlementInfo inSettlementInfo = TexasBuilder.getNotifyAllInSettlementInfo(normalSettlementInfo, orDefault);
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(seatInfo.getPlayerId(), inSettlementInfo));
@@ -264,7 +270,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
     public void settlementByOnePlayer(TexasGameController controller) {
         List<PlayerSeatInfo> infoList = gameDataVo.getPlayerSeatInfoList()
                 .stream()
-                .filter(info -> info.getOperationType() != PokerConstant.PlayerOperation.DISCARD)
+                .filter(info -> info.getOperationType() != PokerConstant.PlayerOperation.DISCARD && !info.isDelState())
                 .toList();
         if (infoList.size() > 1) {
             log.error("出现错误 未弃牌人数大于1");

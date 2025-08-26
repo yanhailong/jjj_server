@@ -67,6 +67,9 @@ public abstract class BasePlayCardPhase<T extends BasePokerGameDataVo> extends B
         //从第一个执行者开始发牌
         int handPoker = gameDataVo.getRoomCfg().getHandPoker();
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
+            if (info.isDelState()) {
+                continue;
+            }
             sendNum += handPoker;
             List<Integer> playCard = new ArrayList<>();
             for (int i = 0; i < handPoker; i++) {

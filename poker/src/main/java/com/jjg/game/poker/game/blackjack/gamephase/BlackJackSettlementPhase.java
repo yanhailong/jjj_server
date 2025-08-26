@@ -157,6 +157,9 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         settlementPlayerInfo.type = gameDataVo.getCurrentPlayerSeatInfo().getOperationType();
         settlementPlayerInfo.endTime = gameDataVo.getPhaseEndTime() + (showDealer ? (long) sendCards.size() * PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) : 0);
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
+            if (info.isDelState()) {
+                continue;
+            }
             long playerId = info.getPlayerId();
             BlackJackSettlementInfo settlementInfo = new BlackJackSettlementInfo();
             int size = info.getCards().size();
