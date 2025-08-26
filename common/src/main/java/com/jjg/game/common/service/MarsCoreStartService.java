@@ -7,6 +7,7 @@ import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.monitor.FileMonitor;
+import com.jjg.game.common.rpc.ClusterRpcService;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.utils.CommonUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,42 +38,49 @@ public class MarsCoreStartService {
     private ClusterMessageHandler clusterMessageHandler;
     @Autowired
     private NodeConfig nodeConfig;
+    @Autowired
+    private ClusterRpcService clusterRpcService;
 
     private TimerCenter timerCenter;
 
     /**
      * 启动时初始化
+     *
      * @param context
      */
-    public void init(ApplicationContext context,Set<Integer> noStartGameMsgTypeSet){
-        init(context,true,noStartGameMsgTypeSet);
+    public void init(ApplicationContext context, Set<Integer> noStartGameMsgTypeSet) {
+        init(context, true, noStartGameMsgTypeSet);
     }
 
     /**
      * 启动时初始化
+     *
      * @param context
      */
-    public void init(ApplicationContext context, boolean clusterSystemOntimer, Set<Integer> noStartGameMsgTypeSet){
+    public void init(ApplicationContext context, boolean clusterSystemOntimer, Set<Integer> noStartGameMsgTypeSet) {
         initTimerCenter();
         CommonUtil.setContext(context);
         clusterMessageHandler.init();
-        clusterSystem.init(clusterSystemOntimer,this.timerCenter);
-        clusterMessageDispatcher.init(context,noStartGameMsgTypeSet);
+        clusterSystem.init(clusterSystemOntimer, this.timerCenter);
+        clusterMessageDispatcher.init(context, noStartGameMsgTypeSet);
         marsCurator.init(context);
         nodeManager.init(marsCurator);
         fileMonitor.start();
+        // 初始化RPC服务提供者
+        clusterRpcService.initProvider();
     }
 
-    public void initTimerCenter(){
+    public void initTimerCenter() {
         this.timerCenter.start();
     }
 
-    public void shutdown(){}
+    public void shutdown() {
+    }
 
 
     @Bean
     public TimerCenter timerCenter() {
         int cpuNum = Runtime.getRuntime().availableProcessors();
-        return this.timerCenter = new TimerCenter("timer-center",cpuNum,cpuNum * 2,50);
+        return this.timerCenter = new TimerCenter("timer-center", cpuNum, cpuNum * 2, 50);
     }
 }

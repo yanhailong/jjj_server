@@ -108,6 +108,10 @@ public class CasinoMachineInfo {
                 .count();
     }
 
+    public void addLastProfit(long add) {
+        this.lastProfit += add;
+    }
+
     public static CasinoMachineInfo getNewMachineInfo(BuildingFunctionCfg cfg) {
         CasinoMachineInfo casinoMachineInfo = new CasinoMachineInfo();
         if (cfg.getNumEmployees() > 0) {
@@ -118,6 +122,7 @@ public class CasinoMachineInfo {
         casinoMachineInfo.id = HallTool.getNextId();
         return casinoMachineInfo;
     }
+
 
     @Override
     public String toString() {

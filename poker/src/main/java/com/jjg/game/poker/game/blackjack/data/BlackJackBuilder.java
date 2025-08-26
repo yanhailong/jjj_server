@@ -34,10 +34,10 @@ public class BlackJackBuilder {
             jackPutCard.operationId = nextPlayerId;
             jackPutCard.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
         }
-        jackPutCard.cardId = BlackJackDataHelper.getClientCardId(gameDataVo,cardId);
+        jackPutCard.cardId = BlackJackDataHelper.getClientCardId(gameDataVo, cardId);
         jackPutCard.cardIndex = oldInfo.getCards().size() > 1 && autoCardId == 0 ? oldInfo.getCardIndex() + 1 : oldInfo.getCardIndex();
         if (autoCardId > 0) {
-            jackPutCard.autoCardId = BlackJackDataHelper.getClientCardId(gameDataVo,cardId);;
+            jackPutCard.autoCardId = BlackJackDataHelper.getClientCardId(gameDataVo, autoCardId);
             jackPutCard.nextTotalPoint = BlackJackDataHelper.getShowTotalPoint(oldInfo.getCards().getLast());
         }
         jackPutCard.playerId = oldInfo.getPlayerId();

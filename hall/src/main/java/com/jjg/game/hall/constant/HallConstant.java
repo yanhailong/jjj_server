@@ -38,14 +38,7 @@ public interface HallConstant {
     }
 
     interface Casino {
-        //休息区类型
-        int REST_AREA_TYPE = 5;
-        //提款区类型
-        int WITHDRAWAL_AREA_TYPE = 6;
-        //增加收益
-        int FIXED_INCOME_ATTR = 1;
-        //增加收益上限
-        int EARNINGS_PER_TEN_THOUSAND = 2;
+
     }
 
     /**
