@@ -1,5 +1,6 @@
 package com.jjg.game.common.cluster;
 
+import cn.hutool.core.convert.BasicType;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.gate.GateSession;
@@ -12,6 +13,9 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.rpc.ClusterRpcService;
 import com.jjg.game.common.rpc.RpcClientService;
+import com.jjg.game.common.rpc.RpcServerService;
+import com.jjg.game.common.rpc.msg.ReqRpcServiceData;
+import com.jjg.game.common.rpc.msg.RespRpcServiceData;
 import com.jjg.game.common.utils.CommonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +24,7 @@ import org.springframework.stereotype.Component;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -41,9 +46,7 @@ public class ClusterMessageHandler {
     @Autowired
     private ClusterSystem clusterSystem;
     @Autowired
-    private ClusterRpcService clusterRpcService;
-    @Autowired
-    private RpcClientService rpcClientService;
+    private RpcServerService rpcServerService;
 
     public void init() {
         sessionVerifyListenerMap = CommonUtil.getContext().getBeansOfType(SessionVerifyListener.class);
@@ -203,49 +206,8 @@ public class ClusterMessageHandler {
      * @param req rpc消息
      */
     @Command(MessageConst.SessionConst.RPC_REQ_SERVICE_DATA_CARRIER)
-    public void reqClusterRpcMessage(PFSession pfSession, ReqRpcServiceData req) {
-        RespRpcServiceData resp = new RespRpcServiceData();
-        if (req == null) {
-            throw new RuntimeException("调用RPC时，参数为空");
-        }
-        log.debug("节点：{} 收到RPC消息:{}", clusterSystem.getNodePath(), req);
-        resp.requestId = req.requestId;
-        resp.success = false;
-        Object provider = clusterRpcService.getProvider(req.serviceClassName);
-        // 如果没有找到对应的Provider
-        if (provider == null) {
-            log.debug("节点：{} 找不到对应的服务提供者: {}", clusterSystem.getNodePath(), req.serviceClassName);
-            // 发送返回数据
-            pfSession.send(resp);
-            return;
-        }
-        Map<String, Object> parameterNameOfData =
-            JSON.parseObject(req.parameterTypeWithData);
-        Class<?>[] parameterTypes = new Class[parameterNameOfData.size()];
-        // 数据
-        Object[] args = new Object[parameterNameOfData.size()];
-        int i = 0;
-        try {
-            for (Map.Entry<String, Object> entry : parameterNameOfData.entrySet()) {
-                parameterTypes[i++] = Class.forName(entry.getKey());
-                args[i] = entry.getValue();
-            }
-            Method method = provider.getClass().getMethod(req.serviceMethodName, parameterTypes);
-            method.setAccessible(true);
-            // 调用provider中的方法
-            Object o = method.invoke(provider, args);
-            // 序列化后返回
-            resp.responseData = JSON.toJSONString(o);
-            resp.success = true;
-            pfSession.send(resp);
-            log.debug("向发送方：{} 返回调用RPC结果:{}", pfSession.gatePath, resp);
-        } catch (NoSuchMethodException e) {
-            log.error("调用RPC时，未找到类：{} 对应的方法：{}", req.serviceClassName, req.serviceMethodName, e);
-        } catch (ClassNotFoundException e) {
-            log.error("调用RPC时，通过类型未找到对应的类. {}", e.getMessage(), e);
-        } catch (InvocationTargetException | IllegalAccessException e) {
-            log.error("调用RPC时，发生逻辑异常 类：{} 对应的方法：{}", req.serviceClassName, req.serviceMethodName, e);
-        }
+    public void reqClusterRpcMessage(ClusterConnect clusterConnect, ReqRpcServiceData req) {
+        rpcServerService.reqClusterRpcMessage(clusterConnect, req);
     }
 
 
@@ -256,18 +218,6 @@ public class ClusterMessageHandler {
      */
     @Command(MessageConst.SessionConst.RPC_RES_SERVICE_DATA_CARRIER)
     public void resClusterRpcMessage(RespRpcServiceData res) {
-        if (res == null || res.requestId == 0) {
-            log.debug("收到RPC返回消息，但是节点：{} 接收的数据为空", clusterSystem.getNodePath());
-            return;
-        }
-        CompletableFuture<RespRpcServiceData> completableFuture =
-            rpcClientService.completeCompletableFuture(res.requestId);
-        // 按道理不应为空
-        if (completableFuture == null) {
-            log.debug("节点：{} 找不到对应rpc：{} 的Future", clusterSystem.getNodePath(), res.requestId);
-            return;
-        }
-        // 收到消息，调用完成
-        completableFuture.complete(res);
+        rpcServerService.resClusterRpcMessage(res);
     }
 }

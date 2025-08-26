@@ -1,4 +1,4 @@
-package com.jjg.game.common.message;
+package com.jjg.game.common.rpc.msg;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
@@ -12,8 +12,10 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(
     messageType = MessageConst.MessageTypeDef.SESSION_TYPE,
     cmd = MessageConst.SessionConst.RPC_RES_SERVICE_DATA_CARRIER,
-    toPbFile = false
+    toPbFile = false,
+    resp = true
 )
+@ProtoDesc("响应RPC，返回数据")
 public class RespRpcServiceData {
 
     @ProtoDesc("请求ID")

@@ -1,7 +1,6 @@
 package com.jjg.game.room.manager;
 
 import com.alibaba.fastjson.JSON;
-import com.jjg.game.common.rpc.GameRpcService;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.CommonResult;
@@ -30,7 +29,6 @@ import java.util.Set;
  * @author 2CL
  */
 @Component
-@GameRpcService
 public class RoomManager extends AbstractRoomManager implements GmListener, HallRoomBridge {
 
     public RoomManager() {
@@ -152,18 +150,22 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
         // 获取房间控制器
         AbstractRoomController<? extends RoomCfg, ? extends Room> roomController = getRoomControllerByRoomId(roomId);
         if (roomController == null) {
+            // TODO 如果是继续房间还需要查库和恢复房间的操作
             return;
         }
         switch (operateCode) {
             case 1:
+                log.info("收到请求暂停房间：{} 的请求", roomId);
                 // 暂停房间
                 roomController.pauseGame();
                 break;
             case 2:
+                log.info("收到请求继续房间：{} 的请求", roomId);
                 // 继续游戏
                 roomController.continueGame();
                 break;
             case 3:
+                log.info("收到请求结算房间：{} 的请求", roomId);
                 // 解散房间
                 roomController.gameOver();
                 break;
@@ -173,7 +175,7 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
     @Override
     public FriendRoom getFriendRoomInfo(long roomId) {
         FriendRoom friendRoom = new FriendRoom();
-        friendRoom.setId(roomId);
+        friendRoom.setId(1000000L);
         return friendRoom;
     }
 }

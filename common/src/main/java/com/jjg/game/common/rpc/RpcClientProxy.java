@@ -24,7 +24,7 @@ public class RpcClientProxy {
                 return method.invoke(this, args);
             }
             // 尝试调用远程类的方法
-            return clientService.tryInvokeRemote(clazz.getSimpleName(), method, args, clusterRpcReference);
+            return clientService.tryInvokeRemote(clazz.getName(), method, args, clusterRpcReference);
         };
         return (T) Proxy.newProxyInstance(clazz.getClassLoader(), new Class[]{clazz}, invocationHandler);
     }

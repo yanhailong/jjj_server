@@ -15,19 +15,14 @@ import java.lang.annotation.*;
 public @interface ClusterRpcReference {
 
     /**
-     * 服务提供方的节点类型
+     * 目标节点的节点路径
      */
-    NodeType[] providerNodeType();
-
-    /**
-     * {@link com.jjg.game.common.constant.CoreConst.GameMajorType}中的值
-     */
-    int[] gameMajorType() default {};
+    String targetNodePath() default "";
 
     /**
      * 超时时间，默认10ms
      */
-    int timeoutMillis() default 10;
+    int timeoutMillis() default 200;
 
     /**
      * 重试次数，默认调用时尝试5次
