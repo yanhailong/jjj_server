@@ -57,7 +57,7 @@ public class BlackJackGameDataVo extends BasePokerGameDataVo {
     /**
      * 显示庄家的牌 (true 显示 false 不显示)
      */
-    private boolean showDealer;
+    private boolean showDealer = true;
 
     /**
      * gm临时牌组
