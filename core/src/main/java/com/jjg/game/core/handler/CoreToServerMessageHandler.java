@@ -3,12 +3,13 @@ package com.jjg.game.core.handler;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.core.data.Marquee;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
-import com.jjg.game.common.pb.NotifyExit;
+import com.jjg.game.core.pb.NotifyTableExitRoom;
 import com.jjg.game.core.pb.gm.ReqAllKickout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,10 +72,10 @@ public class CoreToServerMessageHandler {
     public void reqAllKickout(ReqAllKickout req) {
         log.info("收到其他节点推送的全服踢人的请求 langId = {}",req.langId);
         try{
-            NotifyExit notifyExit = new NotifyExit();
-            notifyExit.langId = req.langId;
+            NotifyKickout notifyKickout = new NotifyKickout();
+            notifyKickout.langId = req.langId;
 
-            clusterSystem.broadcastToOnlinePlayer(notifyExit);
+            clusterSystem.broadcastToOnlinePlayer(notifyKickout);
         }catch (Exception e) {
             log.error("",e);
         }

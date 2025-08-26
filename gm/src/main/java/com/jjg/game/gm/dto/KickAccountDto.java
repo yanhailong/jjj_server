@@ -7,6 +7,6 @@ package com.jjg.game.gm.dto;
 public record KickAccountDto (
         int type,  //1.指定id  2.全服
         String ids,
-        int langId //多语言id
+        int tips //多语言id
 ){
 }

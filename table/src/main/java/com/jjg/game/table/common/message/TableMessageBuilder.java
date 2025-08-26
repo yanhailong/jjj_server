@@ -3,7 +3,7 @@ package com.jjg.game.table.common.message;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
-import com.jjg.game.common.pb.NotifyExit;
+import com.jjg.game.core.pb.NotifyTableExitRoom;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -262,8 +262,8 @@ public class TableMessageBuilder {
     /**
      * 构建桌面退出房间通知
      */
-    public static NotifyExit buildNotifyTableExitRoom(int langId) {
-        NotifyExit notify = new NotifyExit();
+    public static NotifyTableExitRoom buildNotifyTableExitRoom(int langId) {
+        NotifyTableExitRoom notify = new NotifyTableExitRoom();
         notify.langId = langId;
         return notify;
     }

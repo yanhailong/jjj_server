@@ -6,16 +6,16 @@ package com.jjg.game.gm.vo;
  */
 public class WebResult <T>{
     private int code;
-    private String msg;
+    private String message;
     private T data;
 
     public WebResult(int code) {
         this.code = code;
     }
 
-    public WebResult(int code, String msg) {
+    public WebResult(int code, String message) {
         this.code = code;
-        this.msg = msg;
+        this.message = message;
     }
 
     public WebResult(int code, T data) {
@@ -23,9 +23,9 @@ public class WebResult <T>{
         this.data = data;
     }
 
-    public WebResult(int code, String msg, T data) {
+    public WebResult(int code, String message, T data) {
         this.code = code;
-        this.msg = msg;
+        this.message = message;
         this.data = data;
     }
 
@@ -37,12 +37,12 @@ public class WebResult <T>{
         this.code = code;
     }
 
-    public String getMsg() {
-        return msg;
+    public String getMessage() {
+        return message;
     }
 
-    public void setMsg(String msg) {
-        this.msg = msg;
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     public T getData() {
