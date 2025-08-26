@@ -109,16 +109,6 @@ public class CasinoBuilder {
         return casinoSimpleInfo;
     }
 
-    public static long getProfitMaxNum(BuildingFunctionCfg cfg, long startTime, long endTime) {
-        //计算升级前的收益
-        //计算触发次数
-        long times = Math.max(0, endTime - startTime) / (ONE_MINUTE_OF_MILLIS);
-        //每次获取数量
-        Integer everyTimeCount = cfg.getOutput().getLast();
-        //总获取
-        long totalCount = times * everyTimeCount;
-        return Math.min(cfg.getSavenum(), totalCount);
-    }
 
     public static BuildingFunctionCfg getLastBuildingFunctionCfg(int configId) {
         List<BuildingFunctionCfg> buildingFunctionCfgList = GameDataManager.getBuildingFunctionCfgList();
@@ -213,7 +203,7 @@ public class CasinoBuilder {
         long totalNum = getTotalNum(hashMap, cfg.getSavenum());
         totalNum = totalNum - casinoMachineInfo.getLastProfit();
         if (totalNum <= 0) {
-            return totalNum;
+            return 0;
         }
         long remainder = totalNum % num;
         long times = ((totalNum - remainder) / num) + (remainder > 0 ? 1 : 0);
