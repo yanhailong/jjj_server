@@ -34,6 +34,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import static com.jjg.game.common.utils.TimeHelper.ONE_MINUTE_OF_MILLIS;
+
 /**
  * @author lm
  * @date 2025/8/18 16:24
@@ -96,11 +98,6 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 return res;
             }
             //检查消耗
-            PlayerPack pack = playerPackService.getFromAllDB(playerId);
-            if (Objects.isNull(pack)) {
-                res.code = Code.NOT_ENOUGH_ITEM;
-                return res;
-            }
             Pair<Item, Integer> buyClaimAllRewardsConsumer = GlobalDataCache.getBuyClaimAllRewardsConsumer();
             if (!playerPackService.checkHasItems(player, List.of(buyClaimAllRewardsConsumer.getFirst()))) {
                 res.code = Code.NOT_ENOUGH_ITEM;
@@ -118,7 +115,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 return res;
             }
             //添加数据
-            long endTime = System.currentTimeMillis() + buyClaimAllRewardsConsumer.getSecond() * 1000;
+            long endTime = System.currentTimeMillis() + buyClaimAllRewardsConsumer.getSecond() * ONE_MINUTE_OF_MILLIS;
             casinoInfo.setOneClickClaimEndTime(endTime);
             casinoInfo.setChange(true);
             res.endTime = casinoInfo.getOneClickClaimEndTime();
@@ -264,8 +261,8 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                     getReward.merge(cfg.getOutput().get(1), totalNum, Long::sum);
                     //修改数据
                     casinoMachineInfo.setProfitStartTime(timeMillis);
-                    casinoSimpleInfos.add(CasinoBuilder.buildCasinoSimpleMachineInfo(casinoInfo, casinoMachineInfo, timeMillis));
                     casinoMachineInfo.setLastProfit(0);
+                    casinoSimpleInfos.add(CasinoBuilder.buildCasinoSimpleMachineInfo(casinoInfo, casinoMachineInfo, timeMillis));
                     casinoInfo.setChange(true);
                 }
                 //发奖

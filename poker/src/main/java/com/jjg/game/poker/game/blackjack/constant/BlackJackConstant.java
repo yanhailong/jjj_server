@@ -17,6 +17,8 @@ public interface BlackJackConstant {
         int BET_FIX_TIME = 5000;
         //分牌修正时间
         int CUT_FIX_TIME = 500;
+        //拿牌点数
+        int GET_CARD_POINT = 17;
     }
 
     interface MsgBean {
@@ -41,5 +43,5 @@ public interface BlackJackConstant {
         int NOTIFY_BLACKJACK_STOP_CARD = BASE_MSG_PREFIX | 0x11;
         //通知玩家开局结算
         int NOTIFY_BLACKJACK_SPECIAL_SETTLEMENT = BASE_MSG_PREFIX | 0x12;
-   }
+    }
 }
