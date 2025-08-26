@@ -10,7 +10,6 @@ import com.jjg.game.hall.casino.data.TimeNodeData;
 import com.jjg.game.hall.casino.pb.bean.CasinoFloorInfo;
 import com.jjg.game.hall.casino.pb.bean.CasinoMachineShowInfo;
 import com.jjg.game.hall.casino.pb.bean.CasinoSimpleInfo;
-import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.pb.struct.ItemInfo;
 import com.jjg.game.hall.utils.GlobalDataCache;
 import com.jjg.game.sampledata.GameDataManager;
@@ -21,8 +20,6 @@ import com.jjg.game.sampledata.bean.DealerFunctionCfg;
 import java.util.*;
 
 import static com.jjg.game.common.utils.TimeHelper.ONE_MINUTE_OF_MILLIS;
-import static com.jjg.game.hall.constant.HallConstant.Casino.REST_AREA_TYPE;
-import static com.jjg.game.hall.constant.HallConstant.Casino.WITHDRAWAL_AREA_TYPE;
 
 
 /**
@@ -73,7 +70,7 @@ public class CasinoBuilder {
             if (Objects.isNull(functionCfg)) {
                 continue;
             }
-            if (functionCfg.getTypeID() == REST_AREA_TYPE || functionCfg.getTypeID() == WITHDRAWAL_AREA_TYPE) {
+            if (functionCfg.getTypeID() > 0) {
                 BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(functionCfg.getBuffid());
                 if (Objects.isNull(buildingGainCfg)) {
                     continue;
@@ -96,7 +93,7 @@ public class CasinoBuilder {
         if (CollectionUtil.isNotEmpty(machineInfo.getEmploymentMap())) {
             casinoMachineShowInfo.employments = new ArrayList<>();
             for (CasinoEmployment employment : machineInfo.getEmploymentMap().values()) {
-                casinoMachineShowInfo.employments.add(employment.getNewCasinoEmploymentInfo());
+                casinoMachineShowInfo.employments.add(employment.buildNewCasinoEmploymentInfo());
             }
         }
         return casinoMachineShowInfo;
@@ -112,16 +109,6 @@ public class CasinoBuilder {
         return casinoSimpleInfo;
     }
 
-    public static long getProfitMaxNum(BuildingFunctionCfg cfg, long startTime, long endTime) {
-        //计算升级前的收益
-        //计算触发次数
-        long times = Math.max(0, endTime - startTime) / (ONE_MINUTE_OF_MILLIS);
-        //每次获取数量
-        Integer everyTimeCount = cfg.getOutput().getLast();
-        //总获取
-        long totalCount = times * everyTimeCount;
-        return Math.min(cfg.getSavenum(), totalCount);
-    }
 
     public static BuildingFunctionCfg getLastBuildingFunctionCfg(int configId) {
         List<BuildingFunctionCfg> buildingFunctionCfgList = GameDataManager.getBuildingFunctionCfgList();
@@ -209,14 +196,14 @@ public class CasinoBuilder {
         }
         //计算瞬时收益
         //时间
-        Integer intervalTime = cfg.getOutput().getFirst();
+        int intervalTime = cfg.getOutput().getFirst();
         //数量
         int num = getInstantaneousNum(hashMap, cfg.getOutput().getLast());
         //总数量
         long totalNum = getTotalNum(hashMap, cfg.getSavenum());
         totalNum = totalNum - casinoMachineInfo.getLastProfit();
         if (totalNum <= 0) {
-            return totalNum;
+            return 0;
         }
         long remainder = totalNum % num;
         long times = ((totalNum - remainder) / num) + (remainder > 0 ? 1 : 0);
@@ -295,23 +282,22 @@ public class CasinoBuilder {
             int nextTime = i + 1;
             Map<Integer, Integer> casinoMaxProfitBonus;
             Long endPeriod = timeMillis;
-            if (nextTime < timePeriod.size()) {
+            if (nextTime < finalTimePeriod.size()) {
                 endPeriod = finalTimePeriod.get(nextTime);
-                casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, startPeriod, endPeriod);
             } else {
                 //直接计算单个
                 if (startPeriod.equals(endPeriod)) {
                     break;
                 }
-                casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, startPeriod, endPeriod);
             }
+            casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, startPeriod, endPeriod);
             //总数量
             int totalMaxNum = getTotalNum(casinoMaxProfitBonus, cfg.getSavenum());
             if (totalNum >= totalMaxNum) {
                 continue;
             }
             //时间
-            Integer intervalTime = cfg.getOutput().getFirst();
+            int intervalTime = cfg.getOutput().getFirst() * ONE_MINUTE_OF_MILLIS;
             long period = endPeriod - startTime;
             long times = period / intervalTime;
             if (times == 0) {
@@ -359,7 +345,7 @@ public class CasinoBuilder {
             if (Objects.isNull(cfg)) {
                 continue;
             }
-            if (cfg.getTypeID() == HallConstant.Casino.REST_AREA_TYPE || cfg.getTypeID() == HallConstant.Casino.WITHDRAWAL_AREA_TYPE) {
+            if (cfg.getBuffid() > 0) {
                 BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(cfg.getBuffid());
                 if (Objects.isNull(buildingGainCfg) || buildingGainCfg.getBufftype() == 0) {
                     continue;

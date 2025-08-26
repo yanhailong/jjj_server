@@ -9,6 +9,6 @@ public record QueryAccountDto(
         String registerMac,
         String loginMac,
         String nickName,
-        String phone
+        String mobile
 ) {
 }

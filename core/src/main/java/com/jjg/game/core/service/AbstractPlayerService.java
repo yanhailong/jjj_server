@@ -104,7 +104,7 @@ public class AbstractPlayerService {
         return addSafeBoxDiamond(playerId, addNum, addType, null);
     }
     public CommonResult<Player> addGoldAndDiamond(long playerId, long goldNum,long diamondNum, String addType) {
-        return addGoldAndDiamond(playerId, goldNum, diamondNum,addType, null);
+        return addGoldAndDiamond(playerId, goldNum, diamondNum,addType, false,null);
     }
 
     public CommonResult<Player> deductDiamond(long playerId, long addNum, String addType) {
@@ -208,7 +208,7 @@ public class AbstractPlayerService {
      * @param desc
      * @return
      */
-    public CommonResult<Player> addGoldAndDiamond(long playerId, long goldNum,long diamondNum, String addType, String desc) {
+    public CommonResult<Player> addGoldAndDiamond(long playerId, long goldNum,long diamondNum, String addType, boolean isNotify, String desc) {
         // TODO 添加金币时只能保证分布式服务状态下的更新同步，不能保证当前服的线程安全引起的数据同步问题
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (goldNum < 0 || diamondNum < 0 || (goldNum + diamondNum) < 1) {
@@ -245,6 +245,10 @@ public class AbstractPlayerService {
             }
             result.code = Code.SUCCESS;
             result.data = p;
+
+            if(isNotify){
+                sendMessageManager.buildPlayerMoneyInfo(p);
+            }
             return result;
         }
         return result;
@@ -465,11 +469,11 @@ public class AbstractPlayerService {
             coreLogger.useGold(p, beforeCoin[0], addNum, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
+            if (isNotify) {
+                // 推送金币变化消息
+                sendMessageManager.buildPlayerMoneyInfo(p);
+            }
             return result;
-        }
-        if (isNotify) {
-            // TODO 广播金币变化消息
-            //sendMessageManager.buildPlayerMoneyInfo();
         }
         return result;
     }
@@ -512,12 +516,13 @@ public class AbstractPlayerService {
             coreLogger.useSafeBoxGold(p, beforeCoin[0], addNum, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
+            if (isNotify) {
+                // 推送金币变化消息
+                sendMessageManager.buildPlayerMoneyInfo(p);
+            }
             return result;
         }
-        if (isNotify) {
-            // TODO 广播金币变化消息
-            //sendMessageManager.buildPlayerMoneyInfo();
-        }
+
         return result;
     }
 
@@ -1087,7 +1092,11 @@ public class AbstractPlayerService {
     }
 
     public long queryPlayerIdByNick(String nick) {
-        HashOperations<String, String, Long> operations = redisTemplate.opsForHash();
-        return operations.get(nickTableName, encodeNickname(nick));
+        Object o = redisTemplate.opsForHash().get(nickTableName, encodeNickname(nick));
+        if(o == null){
+            return 0;
+        }
+
+        return Long.parseLong(o.toString());
     }
 }

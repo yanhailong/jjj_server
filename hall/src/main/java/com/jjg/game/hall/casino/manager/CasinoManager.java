@@ -34,6 +34,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import static com.jjg.game.common.utils.TimeHelper.ONE_MINUTE_OF_MILLIS;
+
 /**
  * @author lm
  * @date 2025/8/18 16:24
@@ -96,11 +98,6 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 return res;
             }
             //检查消耗
-            PlayerPack pack = playerPackService.getFromAllDB(playerId);
-            if (Objects.isNull(pack)) {
-                res.code = Code.NOT_ENOUGH_ITEM;
-                return res;
-            }
             Pair<Item, Integer> buyClaimAllRewardsConsumer = GlobalDataCache.getBuyClaimAllRewardsConsumer();
             if (!playerPackService.checkHasItems(player, List.of(buyClaimAllRewardsConsumer.getFirst()))) {
                 res.code = Code.NOT_ENOUGH_ITEM;
@@ -118,7 +115,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 return res;
             }
             //添加数据
-            long endTime = System.currentTimeMillis() + buyClaimAllRewardsConsumer.getSecond() * 1000;
+            long endTime = System.currentTimeMillis() + buyClaimAllRewardsConsumer.getSecond() * ONE_MINUTE_OF_MILLIS;
             casinoInfo.setOneClickClaimEndTime(endTime);
             casinoInfo.setChange(true);
             res.endTime = casinoInfo.getOneClickClaimEndTime();
@@ -261,9 +258,10 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                     if (totalNum == 0) {
                         continue;
                     }
-                    getReward.merge(cfg.getOutput().getFirst(), totalNum, Long::sum);
+                    getReward.merge(cfg.getOutput().get(1), totalNum, Long::sum);
                     //修改数据
                     casinoMachineInfo.setProfitStartTime(timeMillis);
+                    casinoMachineInfo.setLastProfit(0);
                     casinoSimpleInfos.add(CasinoBuilder.buildCasinoSimpleMachineInfo(casinoInfo, casinoMachineInfo, timeMillis));
                     casinoInfo.setChange(true);
                 }
@@ -319,6 +317,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             //计算总收获
             long totalNum = CasinoBuilder.getTotalNum(areaAdd, casinoMachineInfo, cfg, timeMillis);
             casinoMachineInfo.setProfitStartTime(timeMillis);
+            casinoMachineInfo.setLastProfit(0);
             casinoInfo.setChange(true);
             //发奖
             Item item = new Item(cfg.getOutput().get(1), totalNum);
@@ -369,18 +368,13 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 res.code = Code.PARAM_ERROR;
                 return res;
             }
-            List<Integer> cost = dealerFunctionCfg.getHiringExpenses();
             Map<Integer, CasinoEmployment> employmentMap = casinoMachineInfo.getEmploymentMap();
             if (Objects.isNull(employmentMap)) {
                 res.code = Code.PARAM_ERROR;
                 return res;
             }
             CasinoEmployment casinoEmployment = employmentMap.getOrDefault(req.index, new CasinoEmployment());
-            //已经购买还没到结束时间
-            if (casinoEmployment.getEmploymentEndTime() > timeMillis) {
-                res.code = Code.PARAM_ERROR;
-                return res;
-            }
+            List<Integer> cost = dealerFunctionCfg.getHiringExpenses();
             Item costItem = new Item(cost.getFirst(), cost.getLast());
             CommonResult<PlayerPack> removed = playerPackService.removeItem(playerId, costItem, "请求雇员职员");
             if (!removed.success()) {
@@ -388,16 +382,17 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 return res;
             }
             //如果之前已经停止受益了 计算停止的收益
-            if (casinoMachineInfo.getRunEmploymentNum(timeMillis) < cfg.getNumEmployees()) {
+            if (casinoMachineInfo.getRunEmploymentNum(timeMillis) < cfg.getNumEmployees() || casinoEmployment.getEmploymentEndTime() > timeMillis) {
                 //计算之前的收益
                 List<TimeNodeData> areaAdd = CasinoBuilder.getTimeNodeData(casinoInfo.getMachineInfoData(), timeMillis);
                 long totalNum = CasinoBuilder.getTotalNum(areaAdd, casinoMachineInfo, cfg, timeMillis);
-                casinoMachineInfo.setLastProfit(totalNum);
+                casinoMachineInfo.addLastProfit(totalNum);
             }
             employmentMap.put(req.index, casinoEmployment);
             //设置数据
             casinoEmployment.setEmploymentId(req.staffId);
-            casinoEmployment.setEmploymentEndTime(timeMillis + dealerFunctionCfg.getDuration());
+            casinoEmployment.setEmploymentEndTime(timeMillis + dealerFunctionCfg.getDuration() * 1000L);
+            casinoEmployment.setId(dealerFunctionCfg.getId());
             casinoInfo.setChange(true);
             res.simpleMachineInfo = CasinoBuilder.buildCasinoSimpleMachineInfo(casinoInfo, casinoMachineInfo, timeMillis);
             res.index = req.index;

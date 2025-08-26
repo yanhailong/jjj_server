@@ -1,5 +1,6 @@
 package com.jjg.game.core.rpc;
 
+import com.jjg.game.common.rpc.IGameRpc;
 import com.jjg.game.core.data.FriendRoom;
 
 /**
@@ -7,7 +8,7 @@ import com.jjg.game.core.data.FriendRoom;
  *
  * @author 2CL
  */
-public interface HallRoomBridge {
+public interface HallRoomBridge extends IGameRpc {
 
     /**
      * 操作好友房
