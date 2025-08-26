@@ -27,6 +27,16 @@ public class CasinoMachineInfo {
     private long profitStartTime;
     //雇员信息 索引id 雇员信息
     Map<Integer, CasinoEmployment> employmentMap;
+    //雇员停止时的收益在重新雇佣雇员的时候设置
+    private long lastProfit;
+
+    public long getLastProfit() {
+        return lastProfit;
+    }
+
+    public void setLastProfit(long lastProfit) {
+        this.lastProfit = lastProfit;
+    }
 
     public int getLastConfigId() {
         return lastConfigId;

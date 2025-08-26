@@ -1,5 +1,8 @@
 package com.jjg.game.hall.casino.data;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.springframework.data.annotation.Transient;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +24,18 @@ public class CasinoInfo {
     private Map<Long, CasinoMachineInfo> machineInfoData;
     //一键领取结束时间 -1为永久 赌场id-> 结束时间
     private long oneClickClaimEndTime;
+    //是否变化
+    @Transient
+    @JsonIgnore
+    private volatile boolean change;
+
+    public boolean isChange() {
+        return change;
+    }
+
+    public void setChange(boolean change) {
+        this.change = change;
+    }
 
     public int getId() {
         return id;

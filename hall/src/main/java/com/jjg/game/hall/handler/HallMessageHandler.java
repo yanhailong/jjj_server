@@ -811,6 +811,16 @@ public class HallMessageHandler implements GmListener {
     }
 
     /**
+     * 我的赌场 请求退出赌场
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_CASINO_EXIT)
+    public void reqCasinoExit(PlayerController playerController, ReqCasinoExit req) {
+        playerController.send(casinoManager.reqCasinoExit(playerController.getPlayer(), req));
+    }
+
+    /**
      * 添加收藏游戏
      *
      * @param playerController 玩家信息

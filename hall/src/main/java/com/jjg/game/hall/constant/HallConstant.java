@@ -172,8 +172,12 @@ public interface HallConstant {
 
         //通知游戏列表
         int NOTIFY_GAME_LIST = BASE_MSG_PREFIX | 0x3D;
-
         //通知我的赌场简单信息变化
         int NOTIFY_CASINO_SIMPLE_CHANGE = BASE_MSG_PREFIX | 0X3F;
+
+        //请求退出我的赌场
+        int REQ_CASINO_EXIT = BASE_MSG_PREFIX | 0X3E;
+        int RES_CASINO_EXIT = BASE_MSG_PREFIX | 0X40;
+
     }
 }
