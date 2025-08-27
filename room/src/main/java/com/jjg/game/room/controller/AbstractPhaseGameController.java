@@ -43,6 +43,8 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     protected AtomicInteger roundCounter = new AtomicInteger(0);
     // 游戏阶段的迭代器,在每个游戏结束时进行重置
     private Iterator<IRoomPhase> gamePhaseIterator;
+    // 房间
+    private boolean paused;
 
     public AbstractPhaseGameController(AbstractRoomController<RC, ? extends Room> roomController) {
         super(roomController);
@@ -133,7 +135,7 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     protected abstract void phaseRunOver();
 
     /**
-     * 在单个游戏阶段结束后，判断房间是否全部结束
+     * 在单个游戏阶段结束后，判断房间是否全部结束，应调用房间控制器是否可以进行的判断
      *
      * @return 是否结束整个游戏
      */

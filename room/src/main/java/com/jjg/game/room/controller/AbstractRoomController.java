@@ -12,6 +12,7 @@ import com.jjg.game.core.dao.room.AbstractRoomDao;
 import com.jjg.game.core.dao.room.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.common.pb.AbstractMessage;
+import com.jjg.game.room.base.ERoomState;
 import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayFlowPojo;
@@ -64,6 +65,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     private long robotLastCreatedTime;
     // 是否开始停止逻辑
     private volatile boolean isStoping = false;
+    // 房间状态
+    private volatile ERoomState roomState;
 
     public AbstractRoomController(Class<? extends RoomPlayer> roomPlayerClazz, R room) {
         this.roomPlayerClazz = roomPlayerClazz;
@@ -233,7 +236,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
     /**
-     * 开始游戏
+     * 直接，开始游戏，不等待玩家
      */
     @Override
     public void startGame() {
@@ -326,6 +329,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      */
     @Override
     public void initial() {
+        roomState = ERoomState.INIT_START;
         // 当前房间的线程实例，用于投递一些异步任务
         roomProcessor = roomManager.getProcessorExecutors().getProcessorById(room.getId());
         // 创建游戏控制器
@@ -663,5 +667,19 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     public boolean isStartedGame() {
         return gameController.isGameStarted();
+    }
+
+    /**
+     * 检查房间是否可以继续
+     */
+    public boolean checkRoomCanContinue() {
+        return true;
+    }
+
+    /**
+     * 当检查房间不能继续时调用
+     */
+    public void onRoomCantContinue() {
+
     }
 }
