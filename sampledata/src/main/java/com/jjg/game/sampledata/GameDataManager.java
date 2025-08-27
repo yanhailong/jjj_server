@@ -168,7 +168,6 @@ public class GameDataManager {
     containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
     containerMap.put(WinPosWeightCfg.class, new WinPosWeightCfgContainer());
-    containerMap.put(签到每天奖Cfg.class, new 签到每天奖CfgContainer());
     // endregion===============cfg加载模板结束===================
     return containerMap;
   }
@@ -1180,18 +1179,6 @@ public class GameDataManager {
 
   public static List<WinPosWeightCfg> getWinPosWeightCfgList() {
     return getInstance().getCfgContainer(WinPosWeightCfg.class).getCfgBeanList();
-  }
-
-  public static 签到每天奖Cfg get签到每天奖Cfg(int key) {
-    return getInstance().getCfgContainer(签到每天奖Cfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, 签到每天奖Cfg> get签到每天奖CfgMap() {
-    return getInstance().getCfgContainer(签到每天奖Cfg.class).getCfgBeanMap();
-  }
-
-  public static List<签到每天奖Cfg> get签到每天奖CfgList() {
-    return getInstance().getCfgContainer(签到每天奖Cfg.class).getCfgBeanList();
   }
 
 
