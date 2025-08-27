@@ -1,9 +1,7 @@
 package com.jjg.game.hall.casino.service;
 
 import com.jjg.game.common.redis.RedisLock;
-import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.hall.casino.dao.PlayerBuildingDao;
 import com.jjg.game.hall.casino.data.PlayerBuilding;
 import org.slf4j.Logger;
@@ -14,11 +12,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.function.BiConsumer;
 
 /**
- * @author 11
+ * @author lm
  * @date 2025/8/7 15:16
  */
 @Service
@@ -26,17 +22,15 @@ public class PlayerBuildingService {
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
     private final String tableName = "playerBuilding:";
-    private final String lockTableName = "lock:" + tableName;
 
-    @Autowired
-    private RedisTemplate<String, PlayerBuilding> redisTemplate;
-    @Autowired
-    private PlayerBuildingDao playerBuildingDao;
-    @Autowired
-    private RedisLock redisLock;
+    private final RedisTemplate<String, PlayerBuilding> redisTemplate;
 
-    protected String getLockKey(long playerId) {
-        return lockTableName + playerId;
+    private final PlayerBuildingDao playerBuildingDao;
+
+    public PlayerBuildingService(@Autowired RedisTemplate<String, PlayerBuilding> redisTemplate,
+                                 @Autowired PlayerBuildingDao playerBuildingDao) {
+        this.redisTemplate = redisTemplate;
+        this.playerBuildingDao = playerBuildingDao;
     }
 
     /**

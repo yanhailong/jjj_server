@@ -43,16 +43,24 @@ import static com.jjg.game.common.utils.TimeHelper.ONE_MINUTE_OF_MILLIS;
 @Component
 public class CasinoManager implements TimerListener<String>, SessionCloseListener {
     private final Logger log = LoggerFactory.getLogger(CasinoManager.class);
-    @Autowired
-    private PlayerBuildingService playerBuildingService;
-    @Autowired
-    private PlayerPackService playerPackService;
-    @Autowired
-    private TimerCenter timerCenter;
+    private final PlayerBuildingService playerBuildingService;
+
+    private final PlayerPackService playerPackService;
+
+    private final TimerCenter timerCenter;
+
     private final Map<Long, Map<Integer, PlayerBuilding>> dataMap = new ConcurrentHashMap<>();
     private final Map<Long, PlayerController> playerControllerMap = new ConcurrentHashMap<>();
     private TimerEvent<String> casinoSave;
     private TimerEvent<String> casinoCheck;
+
+    public CasinoManager(@Autowired PlayerBuildingService playerBuildingService,
+                         @Autowired PlayerPackService playerPackService,
+                         @Autowired TimerCenter timerCenter) {
+        this.playerBuildingService = playerBuildingService;
+        this.playerPackService = playerPackService;
+        this.timerCenter = timerCenter;
+    }
 
     @PostConstruct
     public void init() {

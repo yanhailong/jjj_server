@@ -21,14 +21,14 @@ public class PlayerBuildingDao extends MongoBaseDao<PlayerBuilding, Long> {
         super(PlayerBuilding.class, mongoTemplate);
     }
 
-    public List<PlayerBuilding> findByPlayerId(Long playerId) {
+    public List<PlayerBuilding> findByPlayerId(long playerId) {
         return mongoTemplate.find(
                 Query.query(Criteria.where("playerId").is(playerId)),
                 PlayerBuilding.class
         );
     }
 
-    public PlayerBuilding findByPlayerIdAndCasinoId(Long playerId, int casinoId) {
+    public PlayerBuilding findByPlayerIdAndCasinoId(long playerId, int casinoId) {
         return mongoTemplate.findOne(
                 Query.query(Criteria.where("playerId").is(playerId)
                         .and("casinoId").is(casinoId)),

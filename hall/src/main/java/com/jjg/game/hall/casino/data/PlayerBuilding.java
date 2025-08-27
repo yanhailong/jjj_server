@@ -9,9 +9,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * @date 2025/8/16 16:06
  */
 @Document(collection = "player_building")
-@CompoundIndexes({
-        @CompoundIndex(name = "player_casino_idx", def = "{'playerId': 1, 'casinoId': 1}", unique = true)
-})
 public class PlayerBuilding {
     //玩家id
     private long playerId;
