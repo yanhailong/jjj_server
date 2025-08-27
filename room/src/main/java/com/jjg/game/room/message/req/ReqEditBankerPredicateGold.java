@@ -12,7 +12,7 @@ import com.jjg.game.room.message.RoomMessageConstant;
  */
 @ProtobufMessage(
     messageType = MessageConst.MessageTypeDef.ROOM_TYPE,
-    cmd = RoomMessageConstant.ReqMsgBean.REQ_CANCEL_BE_BANKER
+    cmd = RoomMessageConstant.ReqMsgBean.REQ_EDIT_BANKER_PREDICATE_GOLD
 )
 @ProtoDesc("请求编辑庄家预付金，只能当前庄家操作")
 public class ReqEditBankerPredicateGold {
