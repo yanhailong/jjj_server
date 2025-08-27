@@ -2,7 +2,7 @@ package com.jjg.game.poker.game.common;
 
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.RoomPlayer;
-import com.jjg.game.room.controller.AbstractFriendRoomController;
+import com.jjg.game.room.friendroom.AbstractFriendRoomController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 

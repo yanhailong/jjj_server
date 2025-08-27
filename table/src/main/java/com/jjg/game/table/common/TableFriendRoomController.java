@@ -2,8 +2,7 @@ package com.jjg.game.table.common;
 
 import com.jjg.game.core.data.BetFriendRoom;
 import com.jjg.game.core.data.RoomPlayer;
-import com.jjg.game.room.controller.AbstractFriendRoomController;
-import com.jjg.game.room.controller.AbstractRoomController;
+import com.jjg.game.room.friendroom.AbstractFriendRoomController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 

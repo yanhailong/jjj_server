@@ -34,6 +34,17 @@ public class FriendRoom extends Room {
     // 房间创建者收益
     protected long creatorIncome;
 
+    // 房间的庄家ID
+    private long bankerId;
+
+    public long getBankerId() {
+        return bankerId;
+    }
+
+    public void setBankerId(long bankerId) {
+        this.bankerId = bankerId;
+    }
+
     public long getOverdueTime() {
         return overdueTime;
     }

@@ -114,16 +114,8 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
                     this.autoRunGamePhase();
                 }), RoomEventType.ROOM_PHASE_RUN_EVENT);
         } else if (gameStarted) {
-            if (closeGameOnNextRound) {
-                // 广播游戏暂停消息
-                broadcastGamePauseInfo();
-                // 暂停进入下一轮
-                return;
-            }
             // 阶段全部运行结束
             phaseRunOver();
-            // 进入下一轮之前调用
-            beforeEnterNextRound();
             // 全部游戏阶段完成
             roomPhaseRoundOver();
         }
@@ -184,15 +176,39 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
             // 调用roomController的游戏结束逻辑
             roomController.gameOver();
         } else {
-            // 初始化迭代器
-            gamePhaseIterator = gamePhases.iterator();
-            // 回合计数++
-            roundCounter.incrementAndGet();
-            // 自动进入下一轮
-            autoRunGamePhase();
-            // 新一轮回合开始
-            nextRoundStart();
+            // 检查房间是否可以进入下一轮
+            boolean checkRes = checkRoomCanNextRound();
+            if (checkRes) {
+                // 进入下一轮之前调用
+                beforeEnterNextRound();
+                // 初始化迭代器
+                gamePhaseIterator = gamePhases.iterator();
+                // 回合计数++
+                roundCounter.incrementAndGet();
+                // 自动进入下一轮
+                autoRunGamePhase();
+                // 新一轮回合开始
+                nextRoundStart();
+            } else {
+                // 当不能开始进入下一轮时
+                onCantNextRound();
+            }
         }
+    }
+
+    /**
+     * 进入下一轮时，检查房间是否还可以继续进行
+     */
+    protected boolean checkRoomCanNextRound() {
+        return !closeGameOnNextRound;
+    }
+
+    /**
+     * 当不能进入下一轮时的房间行为
+     */
+    protected void onCantNextRound() {
+        // 必须广播游戏暂停消息
+        broadcastGamePauseInfo();
     }
 
     @Override

@@ -1,7 +1,8 @@
-package com.jjg.game.room.controller;
+package com.jjg.game.room.friendroom;
 
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.RoomPlayer;
+import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.sampledata.bean.RoomCfg;
 
 /**
