@@ -43,7 +43,9 @@ public class GamePlayer extends Player {
 
     @Override
     public void setGold(long gold) {
-        super.setGold(gold);
+        if (gold < 0) {
+            throw new RuntimeException("给玩家设置负数金币值");
+        }
     }
 
     @Override

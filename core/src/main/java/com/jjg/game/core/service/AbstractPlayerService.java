@@ -827,17 +827,15 @@ public class AbstractPlayerService {
      * 批量获取玩家
      */
     public List<Player> multiGetPlayer(Collection<Long> playerId) {
-        HashOperations<String, String, Player> operations = redisTemplate.opsForHash();
-        return operations.multiGet(tableName, playerId.stream().map(java.lang.String::valueOf).toList());
+        HashOperations<String, Long, Player> operations = redisTemplate.opsForHash();
+        return operations.multiGet(tableName, playerId);
     }
 
     /**
      * 批量获取玩家
      */
     public Map<Long, Player> multiGetPlayerMap(Collection<Long> playerId) {
-        HashOperations<String, String, Player> operations = redisTemplate.opsForHash();
-        List<Player> players = operations.multiGet(tableName,
-                playerId.stream().map(java.lang.String::valueOf).toList());
+        List<Player> players = multiGetPlayer(playerId);
         return players.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e), HashMap::putAll);
     }
 
@@ -1131,10 +1129,98 @@ public class AbstractPlayerService {
 
     /**
      * 检查昵称是否已经存在
+     *
      * @param nick
      * @return
      */
     public boolean nickExist(String nick) {
         return redisTemplate.opsForHash().hasKey(nickTableName, encodeNickname(nick));
+    }
+
+
+    /**
+     * gm使用 修改金币
+     * 该功能为gm专用，因为正常情况不会将玩家的金币钻石设置为负数
+     *
+     * @param playerId 玩家ID
+     * @param num      添加数量
+     * @param addType  添加类型
+     * @param desc     dec
+     * @return 最新Player
+     */
+    public CommonResult<Player> gmSetGold(long playerId, long num, String addType, String desc) {
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
+
+        final long[] beforeCoin = {0};
+
+        Player p = checkAndSave(playerId, new DataSaveCallback<>() {
+            @Override
+            public void updateData(Player dataEntity) {
+            }
+
+            @Override
+            public Boolean updateDataWithRes(Player player) {
+                beforeCoin[0] = player.getGold();
+
+                if (num >= 0) {
+                    player.setGold(Math.min(Long.MAX_VALUE, num));
+                } else {
+                    player.setGold(Math.max(Long.MIN_VALUE, num));
+                }
+                return true;
+            }
+        });
+
+        //记录日志
+        if (p != null) {
+            coreLogger.useGold(p, beforeCoin[0], beforeCoin[0] - p.getGold(), addType, desc);
+            result.code = Code.SUCCESS;
+            result.data = p;
+            return result;
+        }
+        return result;
+    }
+
+    /**
+     * gm使用 修改钻石
+     * 该功能为gm专用，因为正常情况不会将玩家的金币钻石设置为负数
+     *
+     * @param playerId 玩家ID
+     * @param num      添加数量
+     * @param addType  添加类型
+     * @param desc     dec
+     * @return 最新Player
+     */
+    public CommonResult<Player> gmSetDiamond(long playerId, long num, String addType, String desc) {
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
+
+        final long[] beforeCoin = {0};
+
+        Player p = checkAndSave(playerId, new DataSaveCallback<>() {
+            @Override
+            public void updateData(Player dataEntity) {
+            }
+
+            @Override
+            public Boolean updateDataWithRes(Player player) {
+                beforeCoin[0] = player.getDiamond();
+
+                if (num >= 0) {
+                    player.setDiamond(Math.min(Long.MAX_VALUE, num));
+                } else {
+                    player.setDiamond(Math.max(Long.MIN_VALUE, num));
+                }
+                return true;
+            }
+        });
+
+        //记录日志
+        if (p != null) {
+            coreLogger.useDiamond(p, beforeCoin[0], beforeCoin[0] - p.getDiamond(), addType, desc);
+            result.code = Code.SUCCESS;
+            result.data = p;
+            return result;
+        }
+        return result;
     }
 }

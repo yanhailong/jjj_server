@@ -14,34 +14,39 @@ import java.util.UUID;
 public abstract class AbstractController {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
-    protected <T> WebResult<T> success(T data){
-        return new WebResult<T>(Code.SUCCESS,data);
+    protected <T> WebResult<T> success(T data) {
+        return new WebResult<T>(Code.SUCCESS, data);
     }
 
-    protected <T> WebResult<T> success(String msg){
-        return new WebResult<T>(Code.SUCCESS,msg);
+    protected <T> WebResult<T> success(String msg, T data) {
+        return new WebResult<T>(Code.SUCCESS, msg, data);
     }
 
-    protected <T> WebResult<T> fail(int code){
+    protected <T> WebResult<T> success(String msg) {
+        return new WebResult<T>(Code.SUCCESS, msg);
+    }
+
+    protected <T> WebResult<T> fail(int code) {
         return new WebResult<T>(code);
     }
-    protected <T> WebResult<T> fail(){
+
+    protected <T> WebResult<T> fail() {
         return new WebResult<T>(Code.FAIL);
     }
 
-    protected <T> WebResult<T> fail(String msg){
-        return new WebResult<T>(Code.FAIL,msg);
+    protected <T> WebResult<T> fail(String msg) {
+        return new WebResult<T>(Code.FAIL, msg);
     }
 
-    protected <T> WebResult<T> fail(T data){
-        return new WebResult<T>(Code.FAIL,data);
+    protected <T> WebResult<T> fail(T data) {
+        return new WebResult<T>(Code.FAIL, data);
     }
 
-    protected <T> WebResult<T> exception(){
+    protected <T> WebResult<T> exception() {
         return new WebResult<T>(Code.EXCEPTION);
     }
 
-    protected String genernateToken(){
-        return UUID.randomUUID().toString().replaceAll("-","");
+    protected String genernateToken() {
+        return UUID.randomUUID().toString().replaceAll("-", "");
     }
 }

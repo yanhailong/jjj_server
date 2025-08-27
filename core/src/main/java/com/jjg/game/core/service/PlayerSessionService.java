@@ -15,6 +15,7 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.dao.OnlinePlayerDao;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerLastGameInfo;
@@ -61,6 +62,10 @@ public class PlayerSessionService implements TimerListener<String> {
     private NodeManager nodeManager;
     @Autowired
     private PlayerLastGameInfoDao playerLastGameInfoDao;
+    @Autowired
+    private OnlinePlayerDao onlinePlayerDao;
+
+
     private TimerEvent<String> checkSessionEvent;
     private TimerEvent<String> onlineCountEvent;
 
@@ -96,8 +101,7 @@ public class PlayerSessionService implements TimerListener<String> {
         try {
             connect = clusterSystem.getClusterByPath(playerSessionInfo.getNodeName()).getConnect();
         } catch (Exception e) {
-            log.error("获取Netty连接失败!playerSessionInfo={},nodeName={}", playerSessionInfo,
-                playerSessionInfo.getNodeName(), e);
+            log.error("获取Netty连接失败!playerSessionInfo={},nodeName={}", playerSessionInfo, playerSessionInfo.getNodeName(), e);
             return null;
         }
         if (connect == null) {
@@ -117,6 +121,7 @@ public class PlayerSessionService implements TimerListener<String> {
 
     public void remove(long playerId) {
         redisTemplate.opsForHash().delete(SESSION_TABLE_NAME, playerId);
+        onlinePlayerDao.delete(playerId);
         //redisTemplate.opsForSet().remove(ONLINEPLAYERS, playerId);
     }
 
@@ -141,6 +146,7 @@ public class PlayerSessionService implements TimerListener<String> {
         }
         if (!keys.isEmpty()) {
             redisTemplate.opsForHash().delete(SESSION_TABLE_NAME, keys.toArray());
+            onlinePlayerDao.delete(keys);
         }
     }
 
@@ -158,6 +164,7 @@ public class PlayerSessionService implements TimerListener<String> {
         if (!keys.isEmpty()) {
             //log.debug("删除session表的id  keys={}",keys);
             Long num = redisTemplate.opsForHash().delete(SESSION_TABLE_NAME, keys.toArray());
+            onlinePlayerDao.delete(keys);
             log.debug("删除session表的结果  num={}", num);
         }
     }
@@ -198,6 +205,7 @@ public class PlayerSessionService implements TimerListener<String> {
         if (!keys.isEmpty()) {
             log.debug("移除玩家： {} 过期session", keys.stream().map(String::valueOf).collect(Collectors.joining(",")));
             redisTemplate.opsForHash().delete(SESSION_TABLE_NAME, keys.toArray());
+            onlinePlayerDao.delete(keys);
             //redisTemplate.opsForSet().remove(ONLINEPLAYERS, keys.toArray());
         }
     }
@@ -209,14 +217,12 @@ public class PlayerSessionService implements TimerListener<String> {
     public void init() {
         if (timerCenter != null) {
             if (NodeType.HALL.name().equals(nodeManager.nodeConfig.getType())) {
-                checkSessionEvent =
-                    new TimerEvent<>(this, "PlayerSession", SESSION_TIME_OUT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
+                checkSessionEvent = new TimerEvent<>(this, "PlayerSession", SESSION_TIME_OUT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
                 timerCenter.add(checkSessionEvent);
             }
 
             if (NodeType.HALL.name().equals(nodeManager.nodeConfig.getType()) || NodeType.GAME.name().equals(nodeManager.nodeConfig.getType())) {
-                onlineCountEvent =
-                    new TimerEvent<>(this, "OnlineCount", ONLINE_COUNT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
+                onlineCountEvent = new TimerEvent<>(this, "OnlineCount", ONLINE_COUNT_MINUTES).withTimeUnit(TimeUnit.MINUTES);
                 timerCenter.add(onlineCountEvent);
             }
         }
@@ -227,33 +233,35 @@ public class PlayerSessionService implements TimerListener<String> {
         info.setGameType(gameType);
         info.setRoomCfgId(roomCfgId);
         save(info);
+        onlinePlayerDao.changeGameType(playerId, gameType);
     }
 
     public PlayerSessionInfo enterGameServer(Player player) {
-        return enterGameServer(player,false,null);
+        return enterGameServer(player, false, null);
     }
 
     public PlayerSessionInfo enterGameServer(Player player, boolean halfwayOffline, String extra) {
-        playerLastGameInfo(player,0,halfwayOffline,extra);
+        playerLastGameInfo(player, 0, halfwayOffline, extra);
         PlayerSessionInfo info = getInfo(player.getId());
         save(info);
+        onlinePlayerDao.changeGameType(player.getId(), player.getGameType());
         return info;
     }
 
 
     public void offline(Player player, boolean halfwayOffline) {
-        offline(player,0,halfwayOffline,null);
+        offline(player, 0, halfwayOffline, null);
     }
 
-    public void offline(Player player, boolean halfwayOffline,String extra) {
-        offline(player,0,halfwayOffline,extra);
+    public void offline(Player player, boolean halfwayOffline, String extra) {
+        offline(player, 0, halfwayOffline, extra);
     }
 
-    public void offline(Player player, int gameUniqueId, boolean halfwayOffline,String extra) {
+    public void offline(Player player, int gameUniqueId, boolean halfwayOffline, String extra) {
         playerLastGameInfo(player, gameUniqueId, halfwayOffline, extra);
     }
 
-    public void playerLastGameInfo(Player player, int gameUniqueId, boolean halfwayOffline,String extra) {
+    public void playerLastGameInfo(Player player, int gameUniqueId, boolean halfwayOffline, String extra) {
         PlayerLastGameInfo playerLastGameInfo = new PlayerLastGameInfo();
         playerLastGameInfo.setPlayerId(player.getId());
         playerLastGameInfo.setGameUniqueId(gameUniqueId);
@@ -272,24 +280,30 @@ public class PlayerSessionService implements TimerListener<String> {
 
     /**
      * 更新玩家当前所在节点
+     *
      * @param pfSession
      * @param player
      */
     public void updateNodePath(PFSession pfSession, Player player) {
         PlayerSessionInfo info = getInfo(player.getId());
-        if(info == null) {
+        if (info == null) {
             info = new PlayerSessionInfo();
             info.setNodeName(pfSession.gatePath);
             info.setPlayerId(player.getId());
             info.setGameType(player.getGameType());
             info.setRoomCfgId(player.getRoomCfgId());
             info.setSessionId(pfSession.sessionId());
+        } else {
+            info.setGameType(player.getGameType());
+            info.setRoomCfgId(player.getRoomCfgId());
+            info.setSessionId(pfSession.sessionId());
         }
         save(info);
+        onlinePlayerDao.changeGameType(player.getId(), player.getGameType());
     }
 
-    public void changeSessionInfo(PFSession pfSession, Player player) {
-        changeSessionInfo(pfSession, player, player.getGameType(), player.getRoomCfgId());
+    public void online(PFSession pfSession, Player player) {
+        online(pfSession, player, player.getGameType(), player.getRoomCfgId());
     }
 
     /**
@@ -298,7 +312,7 @@ public class PlayerSessionService implements TimerListener<String> {
      * @param pfSession
      * @param player
      */
-    public void changeSessionInfo(PFSession pfSession, Player player, int gameType, int roomCfgId) {
+    public void online(PFSession pfSession, Player player, int gameType, int roomCfgId) {
         PlayerSessionInfo info = getInfo(player.getId());
         if (info != null) {
             if (Objects.equals(pfSession.sessionId(), info.getSessionId())) {
@@ -334,6 +348,7 @@ public class PlayerSessionService implements TimerListener<String> {
             info.setSessionId(pfSession.sessionId());
         }
         save(info);
+        onlinePlayerDao.online(player.getId());
     }
 
     @Override
@@ -356,8 +371,7 @@ public class PlayerSessionService implements TimerListener<String> {
                         iterator.remove();
                         //offlineCount(spiltInfo(ps.getOnlineKey()));
                     } else if (pfSession.getReference() == null) {
-                        log.warn("移除无效session，playerId={},sessionId={}", pfSession.getPlayerId(),
-                            pfSession.sessionId());
+                        log.warn("移除无效session，playerId={},sessionId={}", pfSession.getPlayerId(), pfSession.sessionId());
                         iterator.remove();
                     }
                 }
