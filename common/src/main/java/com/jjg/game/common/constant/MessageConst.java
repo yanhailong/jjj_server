@@ -94,6 +94,14 @@ public interface MessageConst {
         int POKER_GENERAL_TYPE = 0x22;
         // 好友房
         int FRIEND_ROOM_TYPE = 0x23;
+
+
+        //财神
+        int WEALTH_GOD = 0x24;
+        //西游
+        int WEST_JOURNEY = 0x25;
+        //埃及艳后
+        int CLEOPATRA = 0x26;
     }
 
     interface ToClientConst {

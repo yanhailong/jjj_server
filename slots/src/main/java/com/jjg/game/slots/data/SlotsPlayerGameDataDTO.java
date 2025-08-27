@@ -1,10 +1,14 @@
 package com.jjg.game.slots.data;
 
+import org.springframework.data.annotation.Id;
+
 /**
  * @author 11
  * @date 2025/8/5 14:11
  */
 public class SlotsPlayerGameDataDTO {
+    @Id
+    protected long playerId;
     //游戏类型
     protected int gameType;
     //场次配置id
@@ -13,6 +17,14 @@ public class SlotsPlayerGameDataDTO {
     protected int status;
     //原始押注值
     protected long lastStake;
+
+    public long getPlayerId() {
+        return playerId;
+    }
+
+    public void setPlayerId(long playerId) {
+        this.playerId = playerId;
+    }
 
     public int getGameType() {
         return gameType;

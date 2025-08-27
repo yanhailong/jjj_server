@@ -1,4 +1,4 @@
-package com.jjg.game.slots.game.dollarexpress;
+package com.jjg.game.slots.logger;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -11,10 +11,14 @@ import org.springframework.stereotype.Component;
 
 /**
  * @author 11
- * @date 2025/6/10 18:08
+ * @date 2025/8/27 10:24
  */
 @Component
-public class DollarExpressLogger extends BaseLogger {
+public class SlotsLogger extends BaseLogger {
+
+
+    /******************************** 美元快递 begin ********************************/
+
     /**
      * 游戏开奖结果
      * @param player
@@ -104,4 +108,6 @@ public class DollarExpressLogger extends BaseLogger {
         json.put("dollarsInfo",tempJson);
         return json;
     }
+
+    /******************************** 美元快递 end ********************************/
 }

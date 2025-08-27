@@ -41,6 +41,12 @@ public class CoreConst {
         public static final int PIRATES_CARIBBEAN = 100900;
         //夺宝黄金城
         public static final int GOLD_CITY = 101100;
+        //财神
+        public static final int WEALTH_GOD = 101200;
+        //西游
+        public static final int WEST_JOURNEY = 101300;
+        //埃及艳后
+        public static final int CLEOPATRA = 101400;
 
 
         //红黑大战

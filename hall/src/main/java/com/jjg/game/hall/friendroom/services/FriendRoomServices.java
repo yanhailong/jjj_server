@@ -100,7 +100,7 @@ public class FriendRoomServices implements IConsoleReceiver {
         }
         int roomCfgId = req.roomCfgId;
         // 扣除道具
-        CommonResult<PlayerPack> removeItem =
+        CommonResult<PackChangeResult> removeItem =
             playerPackService.removeItem(
                 player.getId(),
                 new Item(req.itemId, req.itemNum), "create_friend_room"

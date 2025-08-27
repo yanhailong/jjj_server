@@ -12,5 +12,5 @@ import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.MAHJIONG_WIN_TYPE, cmd = MahjiongWinConstant.MsgBean.REQ_START_GAME)
 @ProtoDesc("请求开始游戏")
-public class ReqStartGame extends AbstractMessage {
+public class ReqMahjiongwinStartGame extends AbstractMessage {
 }

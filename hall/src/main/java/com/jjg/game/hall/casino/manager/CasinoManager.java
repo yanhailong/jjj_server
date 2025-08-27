@@ -91,13 +91,14 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     /**
      * 请求购买一键领取
      *
-     * @param player 玩家
+     * @param playerController 玩家
      * @param req    请求
      * @return 响应
      */
-    public ResCasinoBuyClaimAllRewards reqCasinoBuyClaimAllRewards(Player player, ReqCasinoBuyClaimAllRewards req) {
+    public ResCasinoBuyClaimAllRewards reqCasinoBuyClaimAllRewards(PlayerController playerController, ReqCasinoBuyClaimAllRewards req) {
         ResCasinoBuyClaimAllRewards res = new ResCasinoBuyClaimAllRewards();
         res.casinoId = req.casinoId;
+        Player player = playerController.getPlayer();
         long playerId = player.getId();
         try {
             CasinoInfo casinoInfo = getCasinoInfo(playerId, req.casinoId);
@@ -117,8 +118,8 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 return res;
             }
             //扣除道具
-            CommonResult<PlayerPack> removed = playerPackService.removeItem(playerId, buyClaimAllRewardsConsumer.getFirst(), "一键升级购买");
-            if (!removed.success()) {
+            int result = playerPackService.removeItem(playerController, buyClaimAllRewardsConsumer.getFirst(), "一键升级购买");
+            if (result != Code.SUCCESS) {
                 res.code = Code.NOT_ENOUGH_ITEM;
                 return res;
             }
@@ -236,12 +237,13 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     /**
      * 请求一键领取
      *
-     * @param playerId 玩家id
+     * @param playerController 玩家控制器
      * @param req      请求
      * @return 一键领取结果
      */
-    public ResCasinoClaimRewards reqCasinoClaimAllRewards(long playerId, ReqCasinoClaimAllRewards req) {
+    public ResCasinoClaimRewards reqCasinoClaimAllRewards(PlayerController playerController, ReqCasinoClaimAllRewards req) {
         ResCasinoClaimRewards res = new ResCasinoClaimRewards();
+        long playerId = playerController.playerId();
         try {
             CasinoInfo casinoInfo = getCasinoInfo(playerId, req.casinoId);
             if (Objects.isNull(casinoInfo)) {
@@ -274,8 +276,8 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                     casinoInfo.setChange(true);
                 }
                 //发奖
-                CommonResult<PlayerPack> addItems = playerPackService.addItems(playerId, getReward, "一键领取赌场收益");
-                if (!addItems.success()) {
+                int result = playerPackService.addItems(playerController, getReward, "一键领取赌场收益");
+                if (result != Code.SUCCESS) {
                     res.code = Code.UNKNOWN_ERROR;
                     return res;
                 }
@@ -298,12 +300,13 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     /**
      * 领取机台收益
      *
-     * @param playerId 玩家id
+     * @param playerController 玩家控制器
      * @param req      请求
      * @return 领取机台收益结果
      */
-    public ResCasinoClaimRewards reqCasinoClaimRewards(long playerId, ReqCasinoClaimRewards req) {
+    public ResCasinoClaimRewards reqCasinoClaimRewards(PlayerController playerController, ReqCasinoClaimRewards req) {
         ResCasinoClaimRewards res = new ResCasinoClaimRewards();
+        long playerId = playerController.playerId();
         try {
             CasinoInfo casinoInfo = getCasinoInfo(playerId, req.casinoId);
             if (Objects.isNull(casinoInfo)) {
@@ -329,8 +332,8 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             casinoInfo.setChange(true);
             //发奖
             Item item = new Item(cfg.getOutput().get(1), totalNum);
-            CommonResult<PlayerPack> addItem = playerPackService.addItem(playerId, item.getId(), item.getCount(), "一键领取机台收益");
-            if (!addItem.success()) {
+            int result = playerPackService.addItem(playerController, item, "一键领取机台收益");
+            if (result != Code.SUCCESS) {
                 res.code = Code.UNKNOWN_ERROR;
                 return res;
             }
@@ -349,12 +352,13 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     /**
      * 请求雇员职员
      *
-     * @param playerId 玩家id
+     * @param playerController 玩家控制器
      * @param req      请求
      * @return 响应
      */
-    public ResCasinoEmployStaff reqCasinoEmployStaff(long playerId, ReqCasinoEmployStaff req) {
+    public ResCasinoEmployStaff reqCasinoEmployStaff(PlayerController playerController, ReqCasinoEmployStaff req) {
         ResCasinoEmployStaff res = new ResCasinoEmployStaff();
+        long playerId = playerController.playerId();
         try {
             CasinoInfo casinoInfo = getCasinoInfo(playerId, req.casinoId);
             if (Objects.isNull(casinoInfo)) {
@@ -385,8 +389,8 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             CasinoEmployment casinoEmployment = employmentMap.getOrDefault(req.index, new CasinoEmployment());
             List<Integer> cost = dealerFunctionCfg.getHiringExpenses();
             Item costItem = new Item(cost.getFirst(), cost.getLast());
-            CommonResult<PlayerPack> removed = playerPackService.removeItem(playerId, costItem, "请求雇员职员");
-            if (!removed.success()) {
+            int result = playerPackService.removeItem(playerController, costItem, "请求雇员职员");
+            if (result != Code.SUCCESS) {
                 res.code = Code.NOT_ENOUGH_ITEM;
                 return res;
             }
@@ -419,12 +423,13 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     /**
      * 请求楼层操作
      *
-     * @param player 玩家id
+     * @param playerController 玩家控制器
      * @param req    请求
      * @return 响应
      */
-    public ResCasinoFloorOperation reqCasinoFloorOperation(Player player, ReqCasinoFloorOperation req) {
+    public ResCasinoFloorOperation reqCasinoFloorOperation(PlayerController playerController, ReqCasinoFloorOperation req) {
         ResCasinoFloorOperation res = new ResCasinoFloorOperation();
+        Player player = playerController.getPlayer();
         try {
             CasinoInfo casinoInfo = getCasinoInfo(player.getId(), req.casinoId);
             if (Objects.isNull(casinoInfo)) {
@@ -436,7 +441,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                     return cleanFloor(req, res, casinoInfo);
                 }
                 case 3 -> {
-                    return overClean(player.getId(), req, res, casinoInfo);
+                    return overClean(playerController, req, res, casinoInfo);
                 }
                 default -> {
                     res.code = Code.PARAM_ERROR;
@@ -450,7 +455,8 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
         return res;
     }
 
-    private ResCasinoFloorOperation overClean(long player, ReqCasinoFloorOperation req, ResCasinoFloorOperation res, CasinoInfo casinoInfo) {
+    private ResCasinoFloorOperation overClean(PlayerController playerController, ReqCasinoFloorOperation req, ResCasinoFloorOperation res, CasinoInfo casinoInfo) {
+        Player player = playerController.getPlayer();
         BuildingFloorCfg buildingFloorCfg = GameDataManager.getBuildingFloorCfg(req.floorId);
         if (Objects.isNull(buildingFloorCfg)) {
             res.code = Code.PARAM_ERROR;
@@ -463,15 +469,15 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             return res;
         }
         //计算消耗
-        ItemInfo itemInfo = CasinoBuilder.calculateCostItemInfo(buildingCleaningEndTime, timeMillis);
-        if (Objects.isNull(itemInfo)) {
+        Item item = CasinoBuilder.calculateCostItemInfo(buildingCleaningEndTime, timeMillis);
+        if (Objects.isNull(item)) {
             res.code = Code.PARAM_ERROR;
             return res;
         }
         //扣除消耗
-        CommonResult<PlayerPack> removed = playerPackService.removeItem(player, itemInfo.itemId, itemInfo.count, "加速清理");
-        if (!removed.success()) {
-            res.code = removed.code;
+        int result = playerPackService.removeItem(playerController, item, "加速清理");
+        if (result != Code.SUCCESS) {
+            res.code = result;
             return res;
         }
         casinoInfo.getBuildingCleaningEndTime().put(req.floorId, timeMillis);
@@ -503,9 +509,14 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
         return res;
     }
 
-
-    public ResCasinoUpgradeMachine reqCasinoUpgradeMachine(Player player, ReqCasinoUpgradeMachine req) {
+    /**
+     *
+     * @param playerController 玩家控制器
+     * @param req 请求
+     */
+    public ResCasinoUpgradeMachine reqCasinoUpgradeMachine(PlayerController playerController, ReqCasinoUpgradeMachine req) {
         ResCasinoUpgradeMachine res = new ResCasinoUpgradeMachine();
+        Player player = playerController.getPlayer();
         try {
             CasinoInfo casinoInfo = getCasinoInfo(player.getId(), req.casinoId);
             if (Objects.isNull(casinoInfo)) {
@@ -519,7 +530,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 }
                 //快速升级
                 case 2 -> {
-                    return quickUpgrade(player, req, res, casinoInfo);
+                    return quickUpgrade(playerController, req, res, casinoInfo);
                 }
                 default -> {
                     res.code = Code.PARAM_ERROR;
@@ -590,7 +601,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             return res;
         }
         //扣除消耗
-        CommonResult<PlayerPack> removed = playerPackService.removeItems(playerId, functionCfg.getUplevel_itemid(), "升级建筑");
+        CommonResult<PackChangeResult> removed = playerPackService.removeItems(playerId, functionCfg.getUplevel_itemid(), "升级建筑");
         if (!removed.success()) {
             res.code = Code.NOT_ENOUGH_ITEM;
             return res;
@@ -610,8 +621,8 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     }
 
 
-    private ResCasinoUpgradeMachine quickUpgrade(Player player, ReqCasinoUpgradeMachine req, ResCasinoUpgradeMachine res, CasinoInfo casinoInfo) {
-        long playerId = player.getId();
+    private ResCasinoUpgradeMachine quickUpgrade(PlayerController playerController, ReqCasinoUpgradeMachine req, ResCasinoUpgradeMachine res, CasinoInfo casinoInfo) {
+        long playerId = playerController.playerId();
         long timeMillis = System.currentTimeMillis();
         Map<Long, CasinoMachineInfo> machineInfoData = casinoInfo.getMachineInfoData();
         if (Objects.isNull(machineInfoData)) {
@@ -629,14 +640,14 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             return res;
         }
         //计算消耗
-        ItemInfo itemInfo = CasinoBuilder.calculateCostItemInfo(buildLvUpEndTime, timeMillis);
-        if (Objects.isNull(itemInfo)) {
+        Item item = CasinoBuilder.calculateCostItemInfo(buildLvUpEndTime, timeMillis);
+        if (Objects.isNull(item)) {
             res.code = Code.PARAM_ERROR;
             return res;
         }
         //扣除消耗
-        CommonResult<PlayerPack> removed = playerPackService.removeItem(playerId, itemInfo.itemId, itemInfo.count, "加速升级");
-        if (!removed.success()) {
+        int result = playerPackService.removeItem(playerController, item, "加速升级");
+        if (result != Code.SUCCESS) {
             res.code = Code.NOT_ENOUGH_ITEM;
             return res;
         }

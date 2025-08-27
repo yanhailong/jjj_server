@@ -777,7 +777,7 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_BUY_CLAIM_ALL_REWARDS)
     public void reqCasinoBuyClaimAllRewards(PlayerController playerController, ReqCasinoBuyClaimAllRewards req) {
-        playerController.send(casinoManager.reqCasinoBuyClaimAllRewards(playerController.getPlayer(), req));
+        playerController.send(casinoManager.reqCasinoBuyClaimAllRewards(playerController, req));
     }
 
     /**
@@ -797,7 +797,7 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_CLAIM_ALL_REWARDS)
     public void reqCasinoClaimAllRewards(PlayerController playerController, ReqCasinoClaimAllRewards req) {
-        playerController.send(casinoManager.reqCasinoClaimAllRewards(playerController.playerId(), req));
+        playerController.send(casinoManager.reqCasinoClaimAllRewards(playerController, req));
     }
 
     /**
@@ -807,7 +807,7 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_CLAIM_REWARDS)
     public void reqCasinoClaimRewards(PlayerController playerController, ReqCasinoClaimRewards req) {
-        playerController.send(casinoManager.reqCasinoClaimRewards(playerController.playerId(), req));
+        playerController.send(casinoManager.reqCasinoClaimRewards(playerController, req));
     }
 
     /**
@@ -817,7 +817,7 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_EMPLOY_STAFF)
     public void reqCasinoEmployStaff(PlayerController playerController, ReqCasinoEmployStaff req) {
-        playerController.send(casinoManager.reqCasinoEmployStaff(playerController.playerId(), req));
+        playerController.send(casinoManager.reqCasinoEmployStaff(playerController, req));
     }
 
     /**
@@ -827,7 +827,7 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_FLOOR_OPERATION)
     public void reqCasinoFloorOperation(PlayerController playerController, ReqCasinoFloorOperation req) {
-        playerController.send(casinoManager.reqCasinoFloorOperation(playerController.getPlayer(), req));
+        playerController.send(casinoManager.reqCasinoFloorOperation(playerController, req));
     }
 
     /**
@@ -837,7 +837,7 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_UPGRADE_MACHINE)
     public void reqCasinoUpgradeMachine(PlayerController playerController, ReqCasinoUpgradeMachine req) {
-        playerController.send(casinoManager.reqCasinoUpgradeMachine(playerController.getPlayer(), req));
+        playerController.send(casinoManager.reqCasinoUpgradeMachine(playerController, req));
     }
 
     /**

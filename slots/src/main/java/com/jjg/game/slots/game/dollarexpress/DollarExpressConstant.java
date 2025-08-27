@@ -34,6 +34,13 @@ public interface DollarExpressConstant {
         int ALL_BOARD_FREE = 5;
     }
 
+    interface EventName{
+        //自动二选一
+        String AUTO_CHOOSE_FREEMODEL_TYPE = "autoChooseFreeModelTypeEvent";
+        //自动投资游戏
+        String AUTO_INVERS = "autoInvestEvent";
+    }
+
     /**
      * 基础元素
      */
@@ -94,5 +101,9 @@ public interface DollarExpressConstant {
         //请求奖池
         int REQ_POOL_VALUE = BASE_MSG_PREFIX | 0x9;
         int RES_POOL_VALUE = BASE_MSG_PREFIX | 0xA;
+
+        //请求重连信息
+        int REQ_DOLLAR_EXPRESS_RECONNECT = BASE_MSG_PREFIX | 0xB;
+        int RES_DOLLAR_EXPRESS_RECONNECT = BASE_MSG_PREFIX | 0xC;
     }
 }

@@ -7,10 +7,8 @@ import com.jjg.game.core.data.AbstractGameRunInfo;
  * @date 2025/8/1 17:55
  */
 public class MahjiongWinGameRunInfo extends AbstractGameRunInfo {
-    private long playerId;
 
     public MahjiongWinGameRunInfo(int code, long playerId) {
-        super(code);
-        this.playerId = playerId;
+        super(code,playerId);
     }
 }

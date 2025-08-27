@@ -54,6 +54,10 @@ public class SlotsFactoryManager {
         return this.slotsGameManagerMap.get(gameType);
     }
 
+    public void clearPlayerEvent(long playerId){
+        this.slotsGameManagerMap.forEach((k,v) -> v.clearPlayerEvent(playerId));
+    }
+
     /**
      * 关闭工厂
      */

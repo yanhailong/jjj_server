@@ -12,9 +12,9 @@ import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.MAHJIONG_WIN_TYPE, cmd = MahjiongWinConstant.MsgBean.RES_START_GAME,resp = true)
 @ProtoDesc("开始游戏结果返回")
-public class ResStartGame extends AbstractResponse {
+public class ResMahjiongwinStartGame extends AbstractResponse {
 
-    public ResStartGame(int code) {
+    public ResMahjiongwinStartGame(int code) {
         super(code);
     }
 }

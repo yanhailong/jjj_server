@@ -29,8 +29,8 @@ import com.jjg.game.slots.data.PropInfo;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialResultLibCacheData;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
+import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 
 import com.jjg.game.slots.service.SlotsPlayerService;
@@ -65,6 +65,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     protected MarsCurator marsCurator;
     @Autowired
     protected CoreMarqueeManager marqueeManager;
+    @Autowired
+    protected SlotsLogger logger;
 
     //在更新结果库后，要开启清除旧结果库的定时事件
     protected TimerEvent<String> clearAllLibEvent;
@@ -207,6 +209,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         });
     }
 
+    public void clearPlayerEvent(long playerId) {
+
+    }
+
     protected void initConfig() {
         baseRoomConfig(this.gameType);
         baseLineConfig(this.gameType);
@@ -316,19 +322,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      * @return
      */
     public <DT extends SlotsPlayerGameDataDTO> T createPlayerGameData(PlayerController playerController) throws Exception{
-        DT playerGameDataDTO = (DT)getGameDataDao().getGameDataByPlayerId(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+        T playerGameData = gameDataMap.get(playerController.playerId());
+        if(playerGameData != null){
+            return playerGameData;
+        }
 
-        T playerGameData = null;
+
+        DT playerGameDataDTO = (DT)getGameDataDao().getGameDataByPlayerId(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
         if(playerGameDataDTO == null) {
-            playerGameData = gameDataMap.computeIfAbsent(playerController.playerId(), k -> {
-                try {
-                    Constructor<T> constructor = this.playerGameDataClass.getConstructor();
-                    return constructor.newInstance();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                return null;
-            });
+            Constructor<T> constructor = this.playerGameDataClass.getConstructor();
+            playerGameData = constructor.newInstance();
 
             //是否玩过该类游戏
             boolean hasPlay = historySlotsDao.hasPlaySlots(playerController.playerId(), playerGameData.getGameType());
@@ -349,11 +352,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             playerGameData = setGameDataValues(playerGameData,playerGameDataDTO);
 
             playerGameData.getHasPlaySlots().set(true);
-            playerGameData = gameDataMap.put(playerController.playerId(), playerGameData);
         }
         playerGameData.setOnline(true);
         playerGameData.setPlayerController(playerController);
-        return playerGameData;
+        return gameDataMap.put(playerController.playerId(), playerGameData);
     }
 
     /**
@@ -462,7 +464,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         return null;
     }
 
-    protected <D extends SlotsPlayerGameData,DT extends SlotsPlayerGameDataDTO> D setGameDataValues(D d,DT dto){
+    protected T setGameDataValues(T d, SlotsPlayerGameDataDTO dto) {
         return null;
     }
 

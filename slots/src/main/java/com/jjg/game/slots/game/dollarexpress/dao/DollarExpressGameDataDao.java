@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 
 /**
  * @author 11
- * @date 2025/8/1 16:48
+ * @date 2025/8/27 10:43
  */
 @Repository
 public class DollarExpressGameDataDao extends AbstractGameDataDao<DollarExpressPlayerGameDataDTO> {

@@ -22,6 +22,9 @@ public enum EGameType {
     FORTUNE_CAT(CoreConst.GameType.FORTUNE_CAT, RoomType.SLOTS, "招财猫"),
     PIRATES_CARIBBEAN(CoreConst.GameType.PIRATES_CARIBBEAN, RoomType.SLOTS, "加勒比海盗"),
     GOLD_CITY(CoreConst.GameType.GOLD_CITY, RoomType.SLOTS, "夺宝黄金城"),
+    WEALTH_GOD(CoreConst.GameType.WEALTH_GOD, RoomType.SLOTS, "财神"),
+    WEST_JOURNEY(CoreConst.GameType.WEST_JOURNEY, RoomType.SLOTS, "西游"),
+    CLEOPATRA(CoreConst.GameType.CLEOPATRA, RoomType.SLOTS, "埃及艳后"),
 
 
     // TABLE

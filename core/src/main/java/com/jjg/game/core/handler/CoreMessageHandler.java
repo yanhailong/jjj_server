@@ -6,11 +6,15 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.PackChangeResult;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
-import com.jjg.game.core.pb.*;
+import com.jjg.game.core.pb.ReqGm;
+import com.jjg.game.core.pb.ResGm;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import org.slf4j.Logger;
@@ -18,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.Map;
 
 /**
@@ -281,7 +284,7 @@ public class CoreMessageHandler {
         int itemId = Integer.parseInt(orders[1]);
         int count = Integer.parseInt(orders[2]);
 
-        CommonResult<PlayerPack> result = playerPackService.addItem(playerController.playerId(), itemId, count,"gmAdd");
+        CommonResult<PackChangeResult> result = playerPackService.addItem(playerController.playerId(), itemId, count,"gmAdd");
         if(!result.success()){
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},orders = {}",playerController.playerId(),orders);
