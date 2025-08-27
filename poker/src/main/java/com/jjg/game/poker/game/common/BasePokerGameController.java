@@ -304,6 +304,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                 if (seatInfo.getPlayerId() == remove.getPlayerId()) {
                     index = i;
                     seatInfo.setDelState(true);
+                    seatInfo.setOver(true);
                     break;
                 }
             }
