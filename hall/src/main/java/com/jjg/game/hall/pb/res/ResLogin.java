@@ -37,6 +37,12 @@ public class ResLogin extends AbstractResponse {
     public int nationalId;
     @ProtoDesc("称号id")
     public int titleId;
+    @ProtoDesc("当前使用的筹码id")
+    public int chipsId;
+    @ProtoDesc("当前使用的背景id")
+    public int backgroundId;
+    @ProtoDesc("当前使用的牌背ID")
+    public int cardBackgroundId;
     @ProtoDesc("游戏列表")
     public List<GameListConfig> gameList;
     @ProtoDesc("跑马灯信息")

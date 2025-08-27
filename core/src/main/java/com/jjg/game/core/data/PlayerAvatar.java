@@ -21,6 +21,36 @@ public class PlayerAvatar {
     private Set<Integer> unlockFrameSet;
     //已解锁的称号列表
     private Set<Integer> unlockTitleSet;
+    //已解锁的筹码列表
+    private Set<Integer> unlockChipsSet;
+    //已解锁的背景图列表
+    private Set<Integer> unlockBackgroundSet;
+    //已解锁的牌背列表
+    private Set<Integer> unlockCardBackgroundSet;
+
+    public Set<Integer> getUnlockChipsSet() {
+        return unlockChipsSet;
+    }
+
+    public void setUnlockChipsSet(Set<Integer> unlockChipsSet) {
+        this.unlockChipsSet = unlockChipsSet;
+    }
+
+    public Set<Integer> getUnlockBackgroundSet() {
+        return unlockBackgroundSet;
+    }
+
+    public void setUnlockBackgroundSet(Set<Integer> unlockBackgroundSet) {
+        this.unlockBackgroundSet = unlockBackgroundSet;
+    }
+
+    public Set<Integer> getUnlockCardBackgroundSet() {
+        return unlockCardBackgroundSet;
+    }
+
+    public void setUnlockCardBackgroundSet(Set<Integer> unlockCardBackgroundSet) {
+        this.unlockCardBackgroundSet = unlockCardBackgroundSet;
+    }
 
     public long getPlayerId() {
         return playerId;
@@ -80,5 +110,32 @@ public class PlayerAvatar {
             this.unlockTitleSet = new HashSet<>();
         }
         this.unlockTitleSet.add(id);
+    }
+    public void addChip(int id){
+        if(id < 1){
+            return;
+        }
+        if(this.unlockChipsSet == null){
+            this.unlockChipsSet = new HashSet<>();
+        }
+        this.unlockChipsSet.add(id);
+    }
+    public void addBackground(int id){
+        if(id < 1){
+            return;
+        }
+        if(this.unlockBackgroundSet == null){
+            this.unlockBackgroundSet = new HashSet<>();
+        }
+        this.unlockBackgroundSet.add(id);
+    }
+    public void addCardBackground(int id){
+        if(id < 1){
+            return;
+        }
+        if(this.unlockCardBackgroundSet == null){
+            this.unlockCardBackgroundSet = new HashSet<>();
+        }
+        this.unlockCardBackgroundSet.add(id);
     }
 }

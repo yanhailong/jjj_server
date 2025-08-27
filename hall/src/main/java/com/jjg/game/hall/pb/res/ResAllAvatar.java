@@ -21,7 +21,18 @@ public class ResAllAvatar extends AbstractResponse {
     public List<Integer> frames;
     @ProtoDesc("称号")
     public List<Integer> titles;
-
+    @ProtoDesc("当前使用的筹码id")
+    public int chipsId;
+    @ProtoDesc("当前使用的背景id")
+    public int backgroundId;
+    @ProtoDesc("当前使用的牌背ID")
+    public int cardBackgroundId;
+    @ProtoDesc("已经解锁的筹码id")
+    public List<Integer> unlockChipsId;
+    @ProtoDesc("已经解锁的背景id")
+    public List<Integer> unlockBackgroundId;
+    @ProtoDesc("已经解锁的牌背ID")
+    public List<Integer> unlockCardBackgroundId;
     public ResAllAvatar(int code) {
         super(code);
     }

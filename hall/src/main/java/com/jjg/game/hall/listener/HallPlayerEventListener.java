@@ -138,7 +138,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                         player.setHeadImgId(hallService.getDefaultHeadImgId());
                         player.setHeadFrameId(hallService.getDefaultHeadFrameId());
                         player.setNationalId(hallService.getDefaultNationalId());
-                        player.setTitleId(hallService.getDefaultTitlelId());
+                        player.setTitleId(hallService.getDefaultTitleId());
                         register[0] = true;
                     } else {
                         player.setIp(session.getAddress().getHost());
@@ -167,6 +167,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.headFrameId = player.getHeadFrameId();
             res.nationalId = player.getNationalId();
             res.titleId = player.getTitleId();
+            res.chipsId = player.getChipsId();
+            res.backgroundId = player.getBackgroundId();
+            res.cardBackgroundId = player.getCardBackgroundId();
             //添加游戏列表
             res.gameList = hallService.getSortGameList();
             //添加跑马灯
