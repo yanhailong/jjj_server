@@ -5,6 +5,7 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.BetTableRoom;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.RoomType;
 import com.jjg.game.room.base.GameGm;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractRoomController;
@@ -28,7 +29,7 @@ import java.util.Map;
  *
  * @author 2CL
  */
-@GameController(gameType = EGameType.LUXURY_CAR_CLUB)
+@GameController(gameType = EGameType.LUXURY_CAR_CLUB, roomType = RoomType.BET_ROOM)
 public class LuxuryCarClubGameController extends BaseTableGameController<LuxuryCarClubGameDataVo> {
 
     public LuxuryCarClubGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {

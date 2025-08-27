@@ -6,7 +6,7 @@ import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.hall.friendroom.message.struct.BaseFriendRoomPlayerInfo;
 import com.jjg.game.hall.friendroom.message.struct.FriendRoomBaseData;
-import com.jjg.game.hall.utils.HallDataUtils;
+import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
@@ -54,7 +54,7 @@ public class FriendRoomMessageBuilder {
         long curTime = System.currentTimeMillis();
         friendRoomBaseData.nextPauseBtnOverdueTime =
             friendRoom.getPauseTime() + intervalTime > curTime ? friendRoom.getPauseTime() + intervalTime : 0;
-        Tuple2<Integer, Integer> roomMaxLimitCfg = HallDataUtils.getRoomMaxLimit(warehouseCfg);
+        Tuple2<Integer, Integer> roomMaxLimitCfg = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
         friendRoomBaseData.maxPlayerNum = roomMaxLimitCfg.getT2();
         return friendRoomBaseData;
     }

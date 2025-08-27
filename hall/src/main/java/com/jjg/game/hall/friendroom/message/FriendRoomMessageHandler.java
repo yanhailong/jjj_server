@@ -3,9 +3,11 @@ package com.jjg.game.hall.friendroom.message;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
 import com.jjg.game.hall.friendroom.message.req.*;
+import com.jjg.game.hall.friendroom.message.res.RespCreateFriendsRoom;
 import com.jjg.game.hall.friendroom.services.FriendRoomServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +30,11 @@ public class FriendRoomMessageHandler {
     @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_CREAT_FRIENDS_ROOM)
     public void reqCreateFriendRoom(PlayerController playerController, ReqCreateFriendsRoom reqCreateFriendsRoom) {
         try {
-            friendRoomServices.createFriendRoom(playerController, reqCreateFriendsRoom);
+            int errCode = friendRoomServices.createFriendRoom(playerController, reqCreateFriendsRoom);
+            if (errCode != Code.SUCCESS) {
+                RespCreateFriendsRoom res = new RespCreateFriendsRoom(errCode);
+                playerController.send(res);
+            }
         } catch (Exception e) {
             log.error("创建好友房异常，{}", e.getMessage(), e);
         }
@@ -84,7 +90,7 @@ public class FriendRoomMessageHandler {
         try {
             friendRoomServices.reqOperateShieldPlayer(playerController, req);
         } catch (Exception e) {
-            log.error("请求屏蔽玩家异常，{}", e.getMessage(), e);
+            log.error("请求操作屏蔽玩家异常，{}", e.getMessage(), e);
         }
     }
 
@@ -103,7 +109,7 @@ public class FriendRoomMessageHandler {
         try {
             friendRoomServices.reqUpdateFriendRoomName(playerController, req);
         } catch (Exception e) {
-            log.error("请求屏蔽玩家异常，{}", e.getMessage(), e);
+            log.error("请求更新房间名异常，{}", e.getMessage(), e);
         }
     }
 
@@ -112,7 +118,7 @@ public class FriendRoomMessageHandler {
         try {
             friendRoomServices.reqFriendRoomBillHistory(playerController, req);
         } catch (Exception e) {
-            log.error("请求屏蔽玩家异常，{}", e.getMessage(), e);
+            log.error("请求好友房账单历史，{}", e.getMessage(), e);
         }
     }
 
@@ -121,7 +127,7 @@ public class FriendRoomMessageHandler {
         try {
             friendRoomServices.reqFriendRoomDetailBillHistory(playerController, req);
         } catch (Exception e) {
-            log.error("请求屏蔽玩家异常，{}", e.getMessage(), e);
+            log.error("请求好友房详细账单历史，{}", e.getMessage(), e);
         }
     }
 
@@ -130,7 +136,7 @@ public class FriendRoomMessageHandler {
         try {
             friendRoomServices.reqFriendRoomBillPlayerInfo(playerController, req);
         } catch (Exception e) {
-            log.error("请求屏蔽玩家异常，{}", e.getMessage(), e);
+            log.error("请求好友房账单中玩家信息异常，{}", e.getMessage(), e);
         }
     }
 
@@ -139,7 +145,7 @@ public class FriendRoomMessageHandler {
         try {
             friendRoomServices.reqTakeFriendRoomIncomeReward(playerController);
         } catch (Exception e) {
-            log.error("请求屏蔽玩家异常，{}", e.getMessage(), e);
+            log.error("请求一键领取好友房收益奖励异常，{}", e.getMessage(), e);
         }
     }
 
@@ -148,7 +154,7 @@ public class FriendRoomMessageHandler {
         try {
             friendRoomServices.reqOperateFriendRoom(playerController, req);
         } catch (Exception e) {
-            log.error("请求屏蔽玩家异常，{}", e.getMessage(), e);
+            log.error("请求操作好友房异常，{}", e.getMessage(), e);
         }
     }
 
@@ -156,6 +162,15 @@ public class FriendRoomMessageHandler {
     public void reqResetInvitationCode(PlayerController playerController) {
         try {
             friendRoomServices.reqResetInvitationCode(playerController);
+        } catch (Exception e) {
+            log.error("请求刷新关注好友列表异常，{}", e.getMessage(), e);
+        }
+    }
+
+    @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_JOIN_FRIEND_ROOM)
+    public void reqJoinFriendRoom(PlayerController playerController, ReqJoinFriendRoom req) {
+        try {
+            friendRoomServices.reqJoinFriendRoom(playerController, req);
         } catch (Exception e) {
             log.error("请求刷新关注好友列表异常，{}", e.getMessage(), e);
         }

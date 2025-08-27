@@ -130,17 +130,22 @@ public class GameConstant {
         public static final int DEFAULT_MAIL_VALID_TIME = 18;
     }
 
-    public class PlayerBuff{
+    public class PlayerBuff {
         //经验加成
         public static final int TYPE_EXP_PROP = 1;
         //流水加成
         public static final int TYPE_STATEMENT_PROP = 1;
     }
 
-    public class Language{
+    public class Language {
         //原始展示
         public static final int TYPE_ORIGINAL = 0;
         //多语言
         public static final int TYPE_LANGUAGE_MATCH = 1;
+    }
+
+    public interface RoomTypeCons {
+        // 好友房 房间类型开始...
+        int FRIEND_ROOM_TYPE_START = 10;
     }
 }

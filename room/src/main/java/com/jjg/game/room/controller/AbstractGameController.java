@@ -13,6 +13,7 @@ import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
+import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -45,10 +46,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     protected AbstractRoomController<RC, ? extends Room> roomController;
     // 游戏定时器，用于更新游戏中的操作逻辑，不要直接将引用暴露到外面，有需要的逻辑需要在此类中添加
     protected RoomTimerCenter timerCenter;
-    // 游戏是否开始
-    protected boolean gameStarted = false;
-    // 进入下一轮/下一回合时是否暂停
-    protected boolean closeGameOnNextRound = false;
+    // 游戏状态枚举
+    protected EGameState gameState;
     // tick任务运行时间记录
     private final Map<ETickTaskType, Long> tickTaskTimeRecMap = new HashMap<>();
     // tick任务 tick间隔，执行回调 需要放在tick中检查的必须是周期运行的任务
@@ -68,11 +67,13 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         // 记录开始时间
         gameDataVo.setStartTime(System.currentTimeMillis());
         // 标记房间开始运行
-        gameStarted = true;
+        gameState = EGameState.STARTED;
     }
 
-    @Override
-    public void initial() {
+    /**
+     * 初始化游戏中的逻辑
+     */
+    public void initialGame() {
         // 玩家数据回存检查间隔时间
         int playerSaveCheckInterval =
             RandomUtils.randomMinMax(
@@ -84,6 +85,12 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                     checkAndSavePlayerData();
                 }
             });
+        gameState = EGameState.READY;
+    }
+
+    @Override
+    public <R extends Room> void initial(R room) {
+        gameState = EGameState.INIT_DONE;
     }
 
     /**
@@ -101,7 +108,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      */
     protected boolean checkRoomCanStart() {
         // 房间玩家不为空
-        return !roomController.getRoom().getRoomPlayers().isEmpty() && !gameStarted;
+        return !roomController.getRoom().getRoomPlayers().isEmpty() && gameState == EGameState.INIT_DONE;
     }
 
     /**
@@ -143,7 +150,6 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     public <M extends AbstractMessage> void broadcastToPlayers(RoomMessageBuilder<M> message) {
         roomController.broadcastToPlayers(message);
     }
-
 
     /**
      * 初始化计时器
@@ -255,15 +261,21 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
 
     @Override
     public void roomReady() {
-
     }
 
     @Override
     public void disbandRoom() {
         // 先暂停房间类的阶段执行逻辑
-        gameStarted = false;
+        gameState = EGameState.DESTROYING;
         // 关闭数据收集
         gameDataTracker.shutdownDataTracker();
+    }
+
+    /**
+     * 销毁完成
+     */
+    public void markDestroyed() {
+        gameState = EGameState.DESTROYED;
     }
 
     /**
@@ -281,12 +293,11 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
 
     @Override
     public void pauseGame() {
-        closeGameOnNextRound = true;
+        gameState = EGameState.PAUSING_ON_NEXT_ROUND;
     }
 
     @Override
     public void continueGame() {
-        closeGameOnNextRound = false;
     }
 
     /**
@@ -327,13 +338,21 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
 
     }
 
+    /**
+     * 游戏是否开始 PAUSING_ON_NEXT_ROUND 也需要继续运行，只是在下一轮时不能继续
+     */
     public boolean isGameStarted() {
-        return gameStarted;
+        return gameState == EGameState.STARTED ||
+            gameState == EGameState.GAMING ||
+            gameState == EGameState.PAUSING_ON_NEXT_ROUND ||
+            gameState == EGameState.ROUND_SETTLEMENT ||
+            gameState == EGameState.ROUND_OVER;
     }
 
     @Override
     public void stopGame() {
-        gameStarted = false;
+        // 停止游戏
+        gameState = EGameState.STOPING;
         gameDataVo.setStopTime(System.currentTimeMillis());
         // 房间结束前调用
         beforeDestroyRoom();
@@ -353,7 +372,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         return gameDataTracker;
     }
 
-    public boolean isCloseGameOnNextRound() {
-        return closeGameOnNextRound;
+    public EGameState getGameState() {
+        return gameState;
     }
 }

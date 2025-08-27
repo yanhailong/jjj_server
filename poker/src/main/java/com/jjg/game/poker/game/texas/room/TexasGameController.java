@@ -6,6 +6,7 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
+import com.jjg.game.core.data.RoomType;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
@@ -48,7 +49,7 @@ import static com.jjg.game.poker.game.texas.constant.TexasConstant.Common.*;
 /**
  * @author lm
  */
-@GameController(gameType = EGameType.TEXAS)
+@GameController(gameType = EGameType.TEXAS, roomType = RoomType.POKER_ROOM)
 public class TexasGameController extends BasePokerGameController<TexasGameDataVo> {
     public TexasGameController(AbstractRoomController<Room_ChessCfg, ? extends Room> roomController) {
         super(roomController);

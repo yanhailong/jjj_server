@@ -41,7 +41,8 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     }
 
     @Override
-    public void initial() {
+    public <R extends Room> void initial(R room) {
+        super.initial(room);
         // 玩家长时间未操作检查
         tickTaskMap.put(ETickTaskType.PLAYER_NO_OPERATE_CHECK,
             new BaseGameTickTask(TableConstant.PLAYER_NO_OPERATE_CHECK_INTERVAL) {
@@ -156,7 +157,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     /**
      * 检查玩家未操作提示
      */
-    private void checkPlayerNoOperateAlert() {
+    protected void checkPlayerNoOperateAlert() {
         long currentTime = System.currentTimeMillis();
         // 获取真人玩家
         Map<Long, GamePlayer> gamePlayerMap = gameDataVo.getGamePlayerMapExceptRobot();

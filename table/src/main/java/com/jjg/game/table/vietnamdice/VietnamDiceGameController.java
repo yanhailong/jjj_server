@@ -3,6 +3,7 @@ package com.jjg.game.table.vietnamdice;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.BetTableRoom;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.RoomType;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
@@ -22,7 +23,7 @@ import java.util.LinkedHashSet;
  *
  * @author 2CL
  */
-@GameController(gameType = EGameType.VIETNAM_DICE)
+@GameController(gameType = EGameType.VIETNAM_DICE, roomType = RoomType.BET_ROOM)
 public class VietnamDiceGameController extends BaseTableGameController<VietnamDiceGameDataVo> {
 
     public VietnamDiceGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {

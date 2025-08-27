@@ -12,10 +12,7 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.NetUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.PlayerSessionInfo;
-import com.jjg.game.core.data.Room;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.common.baselogic.IConsoleReceiver;
 import com.jjg.game.room.controller.AbstractGameController;
@@ -156,7 +153,8 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         // 如果就在当前节点
         if (clusterCurrentNodePath.equalsIgnoreCase(room.getPath())) {
             // 将玩家加入房间
-            roomManager.joinRoom(playerController, reqJoinRoomInGame.gameType, reqJoinRoomInGame.roomId);
+            roomManager.joinRoom(
+                playerController, reqJoinRoomInGame.gameType, room.getRoomCfgId(), reqJoinRoomInGame.roomId);
             log.info("玩家：{} 请求加入房间：{} {} 处于当前节点", playerController.playerId(), room.getRoomCfgId(), room.getId());
         } else {
             // 将玩家的房间ID设置成请求的，在session进入时会自动加入到对应的房间
@@ -195,7 +193,7 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
      */
     private CommonResult<List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> getBaccaratGameController(int roomCfgId) {
         List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameControllers =
-            roomManager.getGameControllersByGameType(EGameType.BACCARAT);
+            roomManager.getGameControllersByGameType(EGameType.BACCARAT, RoomType.BET_ROOM);
         if (gameControllers.isEmpty()) {
             // 没有找到百家乐的房间
             return new CommonResult<>(Code.FAIL);

@@ -55,7 +55,7 @@ public class FriendRoomRedisDao {
      */
     public int genInvitationCode() {
         String invitationPlayerTableName = getInvitationPlayerTableName();
-        redisLock.lock(invitationPlayerTableName, 1);
+        redisLock.lock(invitationPlayerTableName, 200);
         try {
             int invitationCode = Integer.MIN_VALUE, tryTimes = 5;
             while (tryTimes-- > 0) {

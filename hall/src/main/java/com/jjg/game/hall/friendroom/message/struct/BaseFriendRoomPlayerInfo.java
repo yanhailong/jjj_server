@@ -47,4 +47,10 @@ public class BaseFriendRoomPlayerInfo {
 
     @ProtoDesc("好友最大房间数量")
     public int maxRoomNum;
+
+    @ProtoDesc("置顶时间")
+    public long topUpTime;
+
+    @ProtoDesc("添加此好友的时间")
+    public long addTime;
 }

@@ -6,6 +6,7 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
+import com.jjg.game.core.data.RoomType;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
 import com.jjg.game.poker.game.blackjack.data.BlackJackBuilder;
 import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
@@ -39,7 +40,7 @@ import static com.jjg.game.poker.game.common.constant.PokerConstant.PlayerOperat
  * @author lm
  * @date 2025/7/28 14:03
  */
-@GameController(gameType = EGameType.BLACK_JACK)
+@GameController(gameType = EGameType.BLACK_JACK, roomType = RoomType.POKER_ROOM)
 public class BlackJackGameController extends BasePokerGameController<BlackJackGameDataVo> {
 
     public BlackJackGameController(AbstractRoomController<Room_ChessCfg, ? extends Room> roomController) {
@@ -720,7 +721,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
     }
 
     @Override
-    public void initial() {
-
+    public <R extends Room> void initial(R room) {
+        super.initial(room);
     }
 }

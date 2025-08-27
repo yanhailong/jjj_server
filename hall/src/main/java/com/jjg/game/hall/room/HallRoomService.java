@@ -13,9 +13,8 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.common.baselogic.IConsoleReceiver;
 import com.jjg.game.hall.dao.HallRoomDao;
-import com.jjg.game.hall.friendroom.message.req.ReqCreateFriendsRoom;
 import com.jjg.game.hall.match.MatchService;
-import com.jjg.game.hall.utils.HallDataUtils;
+import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.slf4j.Logger;
@@ -79,13 +78,6 @@ public class HallRoomService implements IConsoleReceiver {
      * @param roomCfgId        大厅房间默认配置ID
      */
     public int hallJoinRoom(PlayerController playerController, int roomCfgId) {
-        // 处理玩家重复加入房间的问题
-//        if (playerController.getPlayer().getRoomId() > 0) {
-//            int code = dealPlayerRepeatJoin(playerController, playerController.getPlayer().getRoomId());
-//            if (code != Code.SUCCESS) {
-//                return code;
-//            }
-//        }
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         if (warehouseCfg == null) {
             log.error("加入房间时 配置表异常，未在房间表（warehouse.xlsx）中找到房间配置表ID: {}", roomCfgId);
@@ -109,7 +101,7 @@ public class HallRoomService implements IConsoleReceiver {
         long waitingRoomId = matchService.getWaitingRoomId(gameType, roomCfgId);
         // 如果对应的游戏类型没有房间的话则创建一个新的房间
         if (waitingRoomId == 0) {
-            Tuple2<Integer, Integer> roomMaxLimitCfg = HallDataUtils.getRoomMaxLimit(warehouseCfg);
+            Tuple2<Integer, Integer> roomMaxLimitCfg = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
             int maxLimit = roomMaxLimitCfg.getT2();
             Room room = hallRoomDao.createRoom(playerController, gameType, roomCfgId, maxLimit, marsNode.getNodePath());
             if (maxLimit != 1) {
@@ -139,25 +131,11 @@ public class HallRoomService implements IConsoleReceiver {
     }
 
     /**
-     * 请求创建好友房间
+     * 加入好友房房间
      */
-    public void createFriendRoom(PlayerController playerController, ReqCreateFriendsRoom reqCreateFriendsRoom) {
-
-    }
-
-    /**
-     * 玩家通过房间ID加入房间，需要检查加入房间的前置条件
-     */
-    public int joinTeamUpRoomByInvitationId(PlayerController playerController, int invitationRoomId, int gameType) {
+    public int joinFriendRoom(PlayerController playerController, long roomId, int gameType) {
         // 玩家不能重复加入房间
-        if (playerController.getPlayer().getRoomId() > 0) {
-            dealPlayerRepeatJoin(playerController, invitationRoomId);
-            return Code.REPEAT_OP;
-        }
-        // 通过邀请码获取当前的房间ID
-
-        // 加入房间
-        return joinRoomById(playerController, invitationRoomId, gameType);
+        return joinRoomById(playerController, roomId, gameType);
     }
 
     /**

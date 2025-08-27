@@ -3,6 +3,7 @@ package com.jjg.game.table.sizedicetreasure;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.BetTableRoom;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.RoomType;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
@@ -22,7 +23,7 @@ import java.util.LinkedHashSet;
  *
  * @author 2CL
  */
-@GameController(gameType = EGameType.SIZE_DICE_TREASURE)
+@GameController(gameType = EGameType.SIZE_DICE_TREASURE, roomType = RoomType.BET_ROOM)
 public class SizeDiceTreasureGameController extends BaseTableGameController<SizeDiceTreasureGameDataVo> {
 
     public SizeDiceTreasureGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {

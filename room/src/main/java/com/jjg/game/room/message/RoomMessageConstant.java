@@ -17,10 +17,14 @@ public interface RoomMessageConstant {
     interface ReqMsgBean {
         // 请求上庄申请列表
         int REQ_BANKER_APPLY_LIST = BASE_ROOM_MSG_PREFIX | 0x01;
+        // 退出游戏
+        int REQ_EXIT_GAME = BASE_ROOM_MSG_PREFIX | 0x2;
+        // 返回退出
+        int RES_EXIT_GAME = BASE_ROOM_MSG_PREFIX | 0x3;
         // 申请上庄
-        int REQ_APPLY_BANKER = BASE_ROOM_MSG_PREFIX | 0x02;
+        int REQ_APPLY_BANKER = BASE_ROOM_MSG_PREFIX | 0x04;
         // 申请下庄
-        int REQ_CANCEL_BE_BANKER = BASE_ROOM_MSG_PREFIX | 0x03;
+        int REQ_CANCEL_BE_BANKER = BASE_ROOM_MSG_PREFIX | 0x05;
     }
 
     /**

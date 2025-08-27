@@ -19,7 +19,7 @@ public interface IRoomLifeCycle {
     /**
      * 房间初始化,房间被创建后的初始化逻辑,房间内游戏的逻辑初始化
      */
-    void initial();
+    <R extends Room> void initial(R room);
 
     /**
      * 房间就绪

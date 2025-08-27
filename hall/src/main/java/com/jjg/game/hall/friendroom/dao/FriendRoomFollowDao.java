@@ -42,7 +42,7 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
             Query.query(
                     Criteria.where("playerId").is(playerId)
                         .and("invitationCode").is(invitationCode)
-                        .and("removeTime").gt(0)
+                        .and("removeTime").is(0)
                 )
                 .with(Pageable.ofSize(pageSize).withPage(pageNum))
                 .with(
@@ -62,7 +62,7 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
         return mongoTemplate.count(
             Query.query(
                 Criteria.where("playerId").is(playerId)
-                    .and("removeTime").gt(0)
+                    .and("removeTime").is(0)
             )
             ,
             FriendRoomFollowBean.class
@@ -81,11 +81,12 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
     }
 
     /**
-     * 通过邀请码删除所有映射关系
+     * 通过邀请码软删除所有映射关系
      */
     public void deleteMappingRelateByInvitationCode(int invitationCode) {
-        mongoTemplate.remove(
+        mongoTemplate.updateMulti(
             Query.query(Criteria.where("invitationCode").is(invitationCode)),
+            Update.update("removeTime", System.currentTimeMillis()),
             FriendRoomFollowBean.class
         );
     }
@@ -99,7 +100,7 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
                 Criteria.where("playerId").is(playerId)
                     .and("invitationCode").is(invitationCode)
                     .and("followedPlayerId").is(targetPlayerId)
-                    .and("removeTime").gt(0)
+                    .and("removeTime").is(0)
             ),
             FriendRoomFollowBean.class
         );

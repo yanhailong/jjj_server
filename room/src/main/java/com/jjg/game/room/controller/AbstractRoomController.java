@@ -12,6 +12,7 @@ import com.jjg.game.core.dao.room.AbstractRoomDao;
 import com.jjg.game.core.dao.room.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.common.pb.AbstractMessage;
+import com.jjg.game.room.base.ERoomState;
 import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayFlowPojo;
@@ -62,8 +63,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     protected RC roomCfg;
     // 机器人上次创建的时间
     private long robotLastCreatedTime;
-    // 是否开始停止逻辑
-    private volatile boolean isStoping = false;
+    // 房间状态
+    private volatile ERoomState roomState;
 
     public AbstractRoomController(Class<? extends RoomPlayer> roomPlayerClazz, R room) {
         this.roomPlayerClazz = roomPlayerClazz;
@@ -83,7 +84,10 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 gameControllerClazz) {
                 GameController gameAnnotateController = controllerClazz.getAnnotation(GameController.class);
                 EGameType games = gameAnnotateController.gameType();
-                if (games.getGameTypeId() == roomCfg.getGameID()) {
+                RoomType roomType = RoomType.getRoomType(roomCfg.getId());
+                boolean isEqualsRoomType = roomType.equals(gameAnnotateController.roomType());
+                // 游戏类型和房间类型必须一致
+                if (games.getGameTypeId() == roomCfg.getGameID() && isEqualsRoomType) {
                     Constructor<AbstractGameController<RC, RD>> constructor =
                         (Constructor<AbstractGameController<RC, RD>>) controllerClazz.getDeclaredConstructor(AbstractRoomController.class);
                     // 将调用当前方法的RoomController写入GameController中
@@ -92,6 +96,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                     roomDataVoCopied.setRoomId(room.getId());
                     gameController.setGameDataVo(roomDataVoCopied);
                     gameController.initTimerCenter(timerCenter);
+                    gameController.initial(room);
                     return gameController;
                 }
             }
@@ -230,14 +235,16 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
     /**
-     * 开始游戏
+     * 直接，开始游戏，不等待玩家
      */
     @Override
     public void startGame() {
         // 调用游戏本身的初始化逻辑
-        gameController.initial();
+        gameController.initialGame();
         // 调用子类的启动方法
         gameController.startGame();
+        // 修改状态
+        roomState = ERoomState.GAMING;
     }
 
     @Override
@@ -263,11 +270,16 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     @Override
     public void pauseGame() {
+        roomState = ERoomState.PAUSING;
         gameController.pauseGame();
     }
 
+    public void pausedGame() {
+        roomState = ERoomState.PAUSED;
+    }
+
     @Override
-    public void continueGame(){
+    public void continueGame() {
         gameController.continueGame();
     }
 
@@ -275,6 +287,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     public void disbandRoom() {
         // 调用房间控制器中的解散房间逻辑
         gameController.disbandRoom();
+        // 标记游戏状态为销毁完成
+        gameController.markDestroyed();
         // 回存房间数据
         saveRoomData();
         // 向玩家发送解散房间消息
@@ -322,7 +336,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      * 初始化房间控制器逻辑，添加定时逻辑、初始化线程...
      */
     @Override
-    public void initial() {
+    public <G extends Room> void initial(G room) {
+        roomState = ERoomState.INIT_START;
         // 当前房间的线程实例，用于投递一些异步任务
         roomProcessor = roomManager.getProcessorExecutors().getProcessorById(room.getId());
         // 创建游戏控制器
@@ -337,6 +352,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         // 添加房间tick
         timerCenter.add(new RoomTimerEvent<>(
             this, room, this::roomTick, RoomConstant.ROOM_TICK_TIME, RoomEventType.ROOM_TICK));
+        roomState = ERoomState.READY;
     }
 
     /**
@@ -361,7 +377,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     @Override
     public void roomTick() {
-        if (isStoping) {
+        if (isStoping()) {
             return;
         }
         // 游戏启动后进行tick
@@ -390,7 +406,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             return false;
         }
         //加入房间
-        int joined = roomManager.joinRoom(playerController, gameType, roomOtherId);
+        int joined = roomManager.joinRoom(playerController, gameType, roomConfigId, roomOtherId);
         return joined == Code.SUCCESS;
     }
 
@@ -433,7 +449,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             return;
         }
         // 将机器人加入房间中
-        int code = roomManager.joinRoom(robotPlayerController, room.getGameType(), room.getId());
+        int code = roomManager.joinRoom(robotPlayerController, room.getGameType(), roomCfgId, room.getId());
         // 如果加入失败则走一次退出房间逻辑
         if (code != Code.SUCCESS) {
             log.debug("机器人加入房间失败, code : {} {}", code, room.logStr());
@@ -632,8 +648,11 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      */
     public abstract void reloadRoomCfg();
 
+    /**
+     * 是否停止游戏
+     */
     public boolean isStoping() {
-        return isStoping;
+        return roomState == ERoomState.ROOM_DESTROYING || roomState == ERoomState.ROOM_DESTROYED;
     }
 
     @Override
@@ -651,7 +670,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     @Override
     public void stopGame() {
         log.info("开始停止游戏 {}", room.logStr());
-        this.isStoping = true;
+        roomState = ERoomState.ROOM_DESTROYING;
         // 移除定时器
         this.timerCenter.remove(this);
         // 暂停游戏
@@ -660,5 +679,23 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     public boolean isStartedGame() {
         return gameController.isGameStarted();
+    }
+
+    /**
+     * 检查房间是否可以继续
+     */
+    public boolean checkRoomCanContinue() {
+        return true;
+    }
+
+    /**
+     * 当检查房间不能继续时调用
+     */
+    public void onRoomCantContinue() {
+
+    }
+
+    public ERoomState getRoomState() {
+        return roomState;
     }
 }
