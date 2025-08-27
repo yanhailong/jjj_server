@@ -22,7 +22,7 @@ public class ConditionUtil {
             return Code.PARAM_ERROR;
         }
         for (Map.Entry<Integer, Integer> entry : condition.entrySet()) {
-            Integer type = entry.getValue();
+            Integer type = entry.getKey();
             switch (type) {
                 //等级
                 case 1 -> {
