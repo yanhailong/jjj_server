@@ -12,9 +12,9 @@ import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.MAHJIONG_WIN_TYPE, cmd = MahjiongWinConstant.MsgBean.RES_CONFIG_INFO, resp = true)
 @ProtoDesc("返回配置信息")
-public class ResConfigInfo extends AbstractResponse {
+public class ResMahjiongwinConfigInfo extends AbstractResponse {
 
-    public ResConfigInfo(int code) {
+    public ResMahjiongwinConfigInfo(int code) {
         super(code);
     }
 }

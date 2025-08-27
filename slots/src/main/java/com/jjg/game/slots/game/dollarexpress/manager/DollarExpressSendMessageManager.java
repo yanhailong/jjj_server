@@ -12,6 +12,7 @@ import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.*;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -117,6 +118,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
+            gameManager.saveResGame(playerController,res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
@@ -191,6 +193,25 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回奖池结果", false);
+    }
+
+    /**
+     * 返回重连结果
+     *
+     * @param playerController
+     */
+    public void sendDollarExpressReconnect(PlayerController playerController) {
+        SendInfo sendInfo = new SendInfo();
+
+        ResDollarExpressReconnect res = new ResDollarExpressReconnect(Code.SUCCESS);
+        ResStartGame resStartGame = gameManager.getResStartGame(playerController);
+        if(resStartGame != null){
+            BeanUtils.copyProperties(resStartGame,res);
+        }
+
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendInfo.getLogMessage().add(res);
+        sendRun(playerController, sendInfo, "返回重连结果", false);
     }
 
     /**

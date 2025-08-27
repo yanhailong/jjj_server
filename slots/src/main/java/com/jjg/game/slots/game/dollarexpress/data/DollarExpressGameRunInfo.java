@@ -14,7 +14,6 @@ import java.util.List;
  * @date 2025/6/12 17:21
  */
 public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
-    private long playerId;
     //标准池子中奖倍数
     private long bigPoolTimes;
     //玩家之前的金币
@@ -64,20 +63,8 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
     private long major;
     private long grand;
 
-    private Player player;
-
-
     public DollarExpressGameRunInfo(int code, long playerId) {
-        super(code);
-        this.playerId = playerId;
-    }
-
-    public long getPlayerId() {
-        return playerId;
-    }
-
-    public void setPlayerId(long playerId) {
-        this.playerId = playerId;
+        super(code, playerId);
     }
 
     public long getAllWinGold() {

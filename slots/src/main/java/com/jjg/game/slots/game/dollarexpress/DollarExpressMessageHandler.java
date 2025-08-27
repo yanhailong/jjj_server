@@ -6,11 +6,8 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressGameDataDao;
-import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressResultLibDao;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGameManager;
@@ -118,6 +115,22 @@ public class DollarExpressMessageHandler implements GmListener {
             log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             DollarExpressGameRunInfo gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
             sendMessageManager.sendPoolValue(playerController,gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 重连
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(DollarExpressConstant.MsgBean.REQ_DOLLAR_EXPRESS_RECONNECT)
+    public void reqDollarExpressReconnect(PlayerController playerController, ReqDollarExpressReconnect req) {
+        try {
+            log.info("收到重连请求 playerId={}", playerController.playerId());
+            sendMessageManager.sendDollarExpressReconnect(playerController);
         } catch (Exception e) {
             log.error("", e);
         }

@@ -1,0 +1,16 @@
+package com.jjg.game.slots.game.cleopatra.pb;
+
+import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractMessage;
+import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.slots.game.cleopatra.CleopatraConstant;
+
+/**
+ * @author 11
+ * @date 2025/8/1 17:50
+ */
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CLEOPATRA, cmd = CleopatraConstant.MsgBean.REQ_START_GAME)
+@ProtoDesc("请求开始游戏")
+public class ReqCleopatraStartGame extends AbstractMessage {
+}
