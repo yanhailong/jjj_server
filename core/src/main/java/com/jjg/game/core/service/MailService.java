@@ -174,7 +174,7 @@ public class MailService implements TimerListener {
         }
 
         long count = mailDao.batchUpdateMailStatus(mailIds,GameConstant.Mail.STAUTS_GET_ITEMS);
-        CommonResult<PlayerPack> addItemsResult = playerPackService.addItems(playerId, map, "getAllMailsItems");
+        CommonResult<PackChangeResult> addItemsResult = playerPackService.addItems(playerId, map, "getAllMailsItems");
         if(!addItemsResult.success()){
             log.debug("一键领取失败 playerId = {},code = {}",playerId,addItemsResult.code);
             result.code = addItemsResult.code;
