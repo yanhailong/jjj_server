@@ -27,14 +27,7 @@ public interface HallConstant {
     }
 
     interface Avatar {
-        //头像
-        int TYPE_AVATAR = 0;
-        //头像框
-        int TYPE_FRAME = 1;
-        //国旗
-        int TYPE_NATIONAL = 2;
-        //称号
-        int TYPE_TITLE = 3;
+
     }
 
     interface Casino {

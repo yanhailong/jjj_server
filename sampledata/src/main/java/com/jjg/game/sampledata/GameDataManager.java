@@ -117,6 +117,7 @@ public class GameDataManager {
   public Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> initAllContainer() {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
+    containerMap.put(ActivityConfigCfg.class, new ActivityConfigCfgContainer());
     containerMap.put(AlbumCfg.class, new AlbumCfgContainer());
     containerMap.put(AuxiliaryAwardCfg.class, new AuxiliaryAwardCfgContainer());
     containerMap.put(AvatarCfg.class, new AvatarCfgContainer());
@@ -567,6 +568,18 @@ public class GameDataManager {
   }
 
   // region===============cfg获取方法模板开始===================
+
+  public static ActivityConfigCfg getActivityConfigCfg(int key) {
+    return getInstance().getCfgContainer(ActivityConfigCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ActivityConfigCfg> getActivityConfigCfgMap() {
+    return getInstance().getCfgContainer(ActivityConfigCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ActivityConfigCfg> getActivityConfigCfgList() {
+    return getInstance().getCfgContainer(ActivityConfigCfg.class).getCfgBeanList();
+  }
 
   public static AlbumCfg getAlbumCfg(int key) {
     return getInstance().getCfgContainer(AlbumCfg.class).getCfgBeanMap().get(key);

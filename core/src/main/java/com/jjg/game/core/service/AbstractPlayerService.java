@@ -11,6 +11,7 @@ import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PlayerLevelConfigCfg;
+import org.apache.poi.ss.formula.functions.T;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.function.BiConsumer;
 
 /**
  * @author 11
@@ -97,19 +99,43 @@ public class AbstractPlayerService {
         return null;
     }
 
+    public <K> Player doSave(long playerId, K k, BiConsumer<Player, K> cbk) {
+        String key = getLockKey(playerId);
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            Player player = get(playerId);
+            // 找不到的玩家或者机器人玩家不保存数据
+            if (player == null || player instanceof RobotPlayer) {
+                return null;
+            }
+            cbk.accept(player, k);
+            player.setUpdateTime(System.currentTimeMillis());
+            redisTemplate.opsForHash().put(tableName, playerId, player);
+            return player;
+        } catch (Exception e) {
+            log.warn("保存player失败 playerId={}", playerId, e);
+        } finally {
+            redisLock.unlock(key);
+        }
+        return null;
+    }
+
     public CommonResult<Player> addDiamond(long playerId, long addNum, String addType) {
         return addDiamond(playerId, addNum, addType, null);
     }
+
     public CommonResult<Player> addSafeBoxDiamond(long playerId, long addNum, String addType) {
         return addSafeBoxDiamond(playerId, addNum, addType, null);
     }
-    public CommonResult<Player> addGoldAndDiamond(long playerId, long goldNum,long diamondNum, String addType) {
-        return addGoldAndDiamond(playerId, goldNum, diamondNum,addType, false,null);
+
+    public CommonResult<Player> addGoldAndDiamond(long playerId, long goldNum, long diamondNum, String addType) {
+        return addGoldAndDiamond(playerId, goldNum, diamondNum, addType, false, null);
     }
 
     public CommonResult<Player> deductDiamond(long playerId, long addNum, String addType) {
         return deductDiamond(playerId, addNum, addType, null);
     }
+
     public CommonResult<Player> deductSafeBoxDiamond(long playerId, long addNum, String addType) {
         return deductSafeBoxDiamond(playerId, addNum, addType, null);
     }
@@ -158,7 +184,7 @@ public class AbstractPlayerService {
     }
 
     /**
-     *添加保险箱钻石
+     * 添加保险箱钻石
      *
      * @param playerId
      * @param addNum
@@ -208,16 +234,16 @@ public class AbstractPlayerService {
      * @param desc
      * @return
      */
-    public CommonResult<Player> addGoldAndDiamond(long playerId, long goldNum,long diamondNum, String addType, boolean isNotify, String desc) {
+    public CommonResult<Player> addGoldAndDiamond(long playerId, long goldNum, long diamondNum, String addType, boolean isNotify, String desc) {
         // TODO 添加金币时只能保证分布式服务状态下的更新同步，不能保证当前服的线程安全引起的数据同步问题
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (goldNum < 0 || diamondNum < 0 || (goldNum + diamondNum) < 1) {
-            log.warn("添加金币和钻石数量错误 playerId={},goldNum={},diamondNum = {}", playerId, goldNum,diamondNum);
+            log.warn("添加金币和钻石数量错误 playerId={},goldNum={},diamondNum = {}", playerId, goldNum, diamondNum);
             result.code = Code.PARAM_ERROR;
             return result;
         }
 
-        final long[] beforeCoin = {0,0};
+        final long[] beforeCoin = {0, 0};
 
         Player p = checkAndSave(playerId, new DataSaveCallback<>() {
             @Override
@@ -237,16 +263,16 @@ public class AbstractPlayerService {
         //记录日志
         if (p != null) {
             //TODO 后期要排除机器人的情况
-            if(goldNum > 0){
+            if (goldNum > 0) {
                 coreLogger.useGold(p, beforeCoin[0], goldNum, addType, desc);
             }
-            if(diamondNum > 0){
+            if (diamondNum > 0) {
                 coreLogger.useDiamond(p, beforeCoin[1], diamondNum, addType, desc);
             }
             result.code = Code.SUCCESS;
             result.data = p;
 
-            if(isNotify){
+            if (isNotify) {
                 sendMessageManager.buildPlayerMoneyInfo(p);
             }
             return result;
@@ -406,8 +432,9 @@ public class AbstractPlayerService {
     public CommonResult<Player> betDeductGold(long playerId, long addNum, String addType) {
         return betDeductGold(playerId, addNum, addType, null);
     }
-    public CommonResult<Player> deductGoldAndDiamond(long playerId, long goldNum,long diamondNum, String addType) {
-        return deductGoldAndDiamond(playerId, goldNum,diamondNum, addType, null);
+
+    public CommonResult<Player> deductGoldAndDiamond(long playerId, long goldNum, long diamondNum, String addType) {
+        return deductGoldAndDiamond(playerId, goldNum, diamondNum, addType, null);
     }
 
     /**
@@ -630,16 +657,16 @@ public class AbstractPlayerService {
      * @param desc
      * @return
      */
-    public CommonResult<Player> deductGoldAndDiamond(long playerId, long goldNum,long diamondNum, String addType, String desc) {
+    public CommonResult<Player> deductGoldAndDiamond(long playerId, long goldNum, long diamondNum, String addType, String desc) {
         // TODO 添加金币时只能保证分布式服务状态下的更新同步，不能保证当前服的线程安全引起的数据同步问题
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (goldNum < 0 || diamondNum < 0 || (goldNum + diamondNum) < 1) {
-            log.warn("扣除金币和钻石数量错误 playerId={},goldNum={},diamondNum = {}", playerId, goldNum,diamondNum);
+            log.warn("扣除金币和钻石数量错误 playerId={},goldNum={},diamondNum = {}", playerId, goldNum, diamondNum);
             result.code = Code.PARAM_ERROR;
             return result;
         }
 
-        final long[] beforeCoin = {0,0};
+        final long[] beforeCoin = {0, 0};
 
         Player p = checkAndSave(playerId, new DataSaveCallback<>() {
             @Override
@@ -654,12 +681,12 @@ public class AbstractPlayerService {
                 long afterDiamond = player.getDiamond() - diamondNum;
                 if (afterGold < 0) {
                     result.code = Code.NOT_ENOUGH;
-                    log.debug("同时扣除金币钻石时，金币不足  playerId = {},gold = {},deductGold = {}",playerId,player.getGold(),goldNum);
+                    log.debug("同时扣除金币钻石时，金币不足  playerId = {},gold = {},deductGold = {}", playerId, player.getGold(), goldNum);
                     return false;
                 }
                 if (afterDiamond < 0) {
                     result.code = Code.NOT_ENOUGH;
-                    log.debug("同时扣除金币钻石时，钻石不足  playerId = {},diamond = {},deductDiamond = {}",playerId,player.getDiamond(),diamondNum);
+                    log.debug("同时扣除金币钻石时，钻石不足  playerId = {},diamond = {},deductDiamond = {}", playerId, player.getDiamond(), diamondNum);
                     return false;
                 }
                 player.setGold(afterGold);
@@ -671,10 +698,10 @@ public class AbstractPlayerService {
         //记录日志
         if (p != null) {
             //TODO 后期要排除机器人的情况
-            if(goldNum > 0){
+            if (goldNum > 0) {
                 coreLogger.useGold(p, beforeCoin[0], -goldNum, addType, desc);
             }
-            if(diamondNum > 0){
+            if (diamondNum > 0) {
                 coreLogger.useDiamond(p, beforeCoin[1], -diamondNum, addType, desc);
             }
             result.code = Code.SUCCESS;
@@ -706,7 +733,7 @@ public class AbstractPlayerService {
         int baseExpProp = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_BASE_EXP_PROP).getIntValue();
         //基础流水倍率
         int baseStatementProp =
-            GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_BASE_STATEMENT_PROP).getIntValue();
+                GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_BASE_STATEMENT_PROP).getIntValue();
 
         //获取buff，是否有经验和流水的加成
         List<PlayerBuffDetail> expPropDetails = null;
@@ -810,7 +837,7 @@ public class AbstractPlayerService {
     public Map<Long, Player> multiGetPlayerMap(Collection<Long> playerId) {
         HashOperations<String, String, Player> operations = redisTemplate.opsForHash();
         List<Player> players = operations.multiGet(tableName,
-            playerId.stream().map(java.lang.String::valueOf).toList());
+                playerId.stream().map(java.lang.String::valueOf).toList());
         return players.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e), HashMap::putAll);
     }
 
@@ -871,7 +898,7 @@ public class AbstractPlayerService {
                 if (dataEntity.getGold() < gold) {
                     result.code = Code.NOT_ENOUGH;
                     log.debug("携带金币不足，存入保险箱失败 playerId={},gold={},inSafeBoxGold = {}", playerId, dataEntity.getGold()
-                        , gold);
+                            , gold);
                     return false;
                 }
 
@@ -919,7 +946,7 @@ public class AbstractPlayerService {
                 if (dataEntity.getDiamond() < diamond) {
                     result.code = Code.NOT_ENOUGH;
                     log.debug("携带钻石不足，存入保险箱失败 playerId={},diamond={},inSafeBoxDiamond = {}", playerId,
-                        dataEntity.getDiamond(), diamond);
+                            dataEntity.getDiamond(), diamond);
                     return false;
                 }
 
@@ -967,7 +994,7 @@ public class AbstractPlayerService {
                 if (dataEntity.getSafeBoxGold() < gold) {
                     result.code = Code.NOT_ENOUGH;
                     log.debug("保险箱金币不足，取出失败 playerId={},safeBoxGold={},outFromSafeBoxGold = {}", playerId,
-                        dataEntity.getSafeBoxGold(), gold);
+                            dataEntity.getSafeBoxGold(), gold);
                     return false;
                 }
 
@@ -1016,7 +1043,7 @@ public class AbstractPlayerService {
                 if (dataEntity.getSafeBoxDiamond() < diamond) {
                     result.code = Code.NOT_ENOUGH;
                     log.debug("保险箱钻石不足，取出失败 playerId={},safeBoxDiamond={},outFromSafeBoxDiamond = {}", playerId,
-                        dataEntity.getSafeBoxDiamond(), diamond);
+                            dataEntity.getSafeBoxDiamond(), diamond);
                     return false;
                 }
 
@@ -1067,10 +1094,11 @@ public class AbstractPlayerService {
 
     /**
      * 将昵称转换为安全的存储格式
+     *
      * @param nick
      * @return
      */
-    private String encodeNickname(String nick){
+    private String encodeNickname(String nick) {
         nick = nick.trim();
         byte[] bytes = nick.getBytes(StandardCharsets.UTF_8);
         return Base64.getEncoder().encodeToString(bytes);
@@ -1083,6 +1111,7 @@ public class AbstractPlayerService {
 
     /**
      * 因为玩家昵称不能重复，所以要单独存储
+     *
      * @param playerId
      * @param nick
      */
@@ -1093,7 +1122,7 @@ public class AbstractPlayerService {
 
     public long queryPlayerIdByNick(String nick) {
         Object o = redisTemplate.opsForHash().get(nickTableName, encodeNickname(nick));
-        if(o == null){
+        if (o == null) {
             return 0;
         }
 

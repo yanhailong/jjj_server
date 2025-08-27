@@ -1,5 +1,6 @@
 package com.jjg.game.hall.handler;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
@@ -31,6 +32,7 @@ import com.jjg.game.hall.room.HallRoomService;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.hall.utils.HallTool;
+import com.jjg.game.hall.vip.service.VipService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.apache.commons.lang3.StringUtils;
@@ -65,6 +67,8 @@ public class HallMessageHandler implements GmListener {
     private HallPoolDao poolDao;
     @Autowired
     private MailService mailService;
+    @Autowired
+    private VipService vipService;
 
     /**
      * 进入游戏
@@ -114,7 +118,7 @@ public class HallMessageHandler implements GmListener {
         try {
             log.info("收到玩家选择游戏场次 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             CommonResult<WareHouseConfigInfo> checkRes =
-                checkBeforeJoinRoom(playerController, req.gameType, req.wareId);
+                    checkBeforeJoinRoom(playerController, req.gameType, req.wareId);
             if (checkRes.code != Code.SUCCESS) {
                 res.code = checkRes.code;
                 playerController.send(res);
@@ -146,7 +150,7 @@ public class HallMessageHandler implements GmListener {
         ResPool res = new ResPool(HallCode.SUCCESS);
         try {
             List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(req.gameType);
-            if(wareHouseConfigList == null || wareHouseConfigList.isEmpty()) {
+            if (wareHouseConfigList == null || wareHouseConfigList.isEmpty()) {
                 res.code = Code.FORBID;
                 log.debug("未找到倍场信息，获取奖池信息失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
                 return;
@@ -156,15 +160,15 @@ public class HallMessageHandler implements GmListener {
             Map<Object, Object> fakeSmallPool = poolDao.getFakeSmallPoolByRoomCfgId(req.gameType);
 
             List<WarePoolInfo> warePoolInfoList = new ArrayList<>();
-            for(Map.Entry<Object,Object> en : smallPool.entrySet()){
+            for (Map.Entry<Object, Object> en : smallPool.entrySet()) {
                 WarePoolInfo warePoolInfo = new WarePoolInfo();
                 warePoolInfo.wareId = Integer.parseInt(en.getKey().toString());
                 long smallPoolValue = Long.parseLong(en.getValue().toString());
 
                 Object o = fakeSmallPool.get(warePoolInfo.wareId);
-                if(o != null){
+                if (o != null) {
                     long fakeSmallPoolValue = Long.parseLong(o.toString());
-                    if(fakeSmallPoolValue > smallPoolValue){
+                    if (fakeSmallPoolValue > smallPoolValue) {
                         smallPoolValue = fakeSmallPoolValue;
                     }
                 }
@@ -184,6 +188,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 获取玩家信息
+     *
      * @param playerController
      * @param req
      */
@@ -192,7 +197,7 @@ public class HallMessageHandler implements GmListener {
         ResQueryPlayerInfo res = new ResQueryPlayerInfo(HallCode.SUCCESS);
         try {
             Player player = hallPlayerService.get(playerController.playerId());
-            if(player == null) {
+            if (player == null) {
                 res.code = Code.NOT_FOUND;
                 playerController.send(res);
                 log.debug("玩家信息不存在，获取信息失败 playerId = {}", playerController.playerId());
@@ -218,7 +223,7 @@ public class HallMessageHandler implements GmListener {
             Account account = accountDao.queryAccountByPlayerId(playerController.playerId());
             if (account == null) {
                 log.warn("没有找到玩家的账号信息 playerId = {}", playerController.playerId());
-            }else {
+            } else {
                 res.phoneNumber = account.getPhoneNumber();
                 res.email = account.getEmail();
             }
@@ -233,6 +238,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 修改玩家信息
+     *
      * @param playerController
      * @param req
      */
@@ -240,16 +246,16 @@ public class HallMessageHandler implements GmListener {
     public void reqChangePlayerInfo(PlayerController playerController, ReqChangePlayerInfo req) {
         ResChangePlayerInfo res = new ResChangePlayerInfo(HallCode.SUCCESS);
         try {
-            byte gender = (byte)req.gender;
-            if(!HallTool.checkGender(gender)) {
+            byte gender = (byte) req.gender;
+            if (!HallTool.checkGender(gender)) {
                 res.code = Code.NOT_FOUND;
                 playerController.send(res);
-                log.debug("性别参数错误，修改信息失败 playerId = {},gender = {}", playerController.playerId(),req.gender);
+                log.debug("性别参数错误，修改信息失败 playerId = {},gender = {}", playerController.playerId(), req.gender);
                 return;
             }
 
-            CommonResult<Player> result = hallService.changePlayerInfo(playerController,req.nick, (byte)req.gender);
-            if(!result.success()){
+            CommonResult<Player> result = hallService.changePlayerInfo(playerController, req.nick, (byte) req.gender);
+            if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);
                 return;
@@ -264,6 +270,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 请求验证码
+     *
      * @param playerController
      * @param req
      */
@@ -272,22 +279,22 @@ public class HallMessageHandler implements GmListener {
         ResVerCode res = new ResVerCode(HallCode.SUCCESS);
         try {
             CommonResult<Integer> result = null;
-            if(req.type == HallConstant.VerCode.TYPE_BIND_PHONE){
+            if (req.type == HallConstant.VerCode.TYPE_BIND_PHONE) {
                 result = hallService.bindPhone(playerController.playerId(), req.data);
-            }else if(req.type == HallConstant.VerCode.TYPE_BIND_EMAIL){
+            } else if (req.type == HallConstant.VerCode.TYPE_BIND_EMAIL) {
                 result = hallService.bindEmail(playerController.playerId(), req.data);
-            }else {
-                log.debug("没有该类型的验证码 playerId = {},verCodeType = {},data = {}", playerController.playerId(),req.type,req.data);
+            } else {
+                log.debug("没有该类型的验证码 playerId = {},verCodeType = {},data = {}", playerController.playerId(), req.type, req.data);
                 result = new CommonResult<>(Code.PARAM_ERROR);
             }
 
-            if(!result.success()) {
+            if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);
                 return;
             }
             res.verCode = result.data;
-            log.info("获取验证码成功，playerId = {},verCodeType = {},data = {},verCode = {}", playerController.playerId(),req.type,req.data,result.data);
+            log.info("获取验证码成功，playerId = {},verCodeType = {},data = {},verCode = {}", playerController.playerId(), req.type, req.data, result.data);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -297,6 +304,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 确认验证码
+     *
      * @param playerController
      * @param req
      */
@@ -306,12 +314,12 @@ public class HallMessageHandler implements GmListener {
         try {
             log.debug("确认验证码 req = {}", JSON.toJSONString(req));
             CommonResult<String> result = hallService.comfirmVerCode(playerController.playerId(), req.verCodeType, req.verCode);
-            if(!result.success()) {
+            if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);
                 return;
             }
-            log.info("确认验证码成功 playerId = {},verCodeType = {},verCode = {},data = {}", playerController.playerId(),req.verCodeType,req.verCode,result.data);
+            log.info("确认验证码成功 playerId = {},verCodeType = {},verCode = {},data = {}", playerController.playerId(), req.verCodeType, req.verCode, result.data);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -321,6 +329,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 获取所有的头像信息
+     *
      * @param playerController
      * @param req
      */
@@ -329,24 +338,36 @@ public class HallMessageHandler implements GmListener {
         ResAllAvatar res = new ResAllAvatar(HallCode.SUCCESS);
         try {
             PlayerAvatar playerAvatar = hallService.allAvatar(playerController.playerId());
-            if(playerAvatar == null) {
+            if (playerAvatar == null) {
                 res.code = Code.NOT_FOUND;
                 playerController.send(res);
                 log.debug("未找到该玩家的头像信息 playerId = {}", playerController.playerId());
                 return;
             }
 
-            if(playerAvatar.getUnlockAvatarSet() != null && !playerAvatar.getUnlockAvatarSet().isEmpty()) {
+            if (playerAvatar.getUnlockAvatarSet() != null && !playerAvatar.getUnlockAvatarSet().isEmpty()) {
                 res.avatars = new ArrayList<>(playerAvatar.getUnlockAvatarSet().size());
-                playerAvatar.getUnlockAvatarSet().forEach(u -> res.avatars.add(u));
+                res.avatars.addAll(playerAvatar.getUnlockAvatarSet());
             }
-            if(playerAvatar.getUnlockFrameSet() != null && !playerAvatar.getUnlockFrameSet().isEmpty()) {
+            if (playerAvatar.getUnlockFrameSet() != null && !playerAvatar.getUnlockFrameSet().isEmpty()) {
                 res.frames = new ArrayList<>(playerAvatar.getUnlockFrameSet().size());
-                playerAvatar.getUnlockFrameSet().forEach(u -> res.frames.add(u));
+                res.frames.addAll(playerAvatar.getUnlockFrameSet());
             }
-            if(playerAvatar.getUnlockTitleSet() != null && !playerAvatar.getUnlockTitleSet().isEmpty()) {
+            if (playerAvatar.getUnlockTitleSet() != null && !playerAvatar.getUnlockTitleSet().isEmpty()) {
                 res.titles = new ArrayList<>(playerAvatar.getUnlockTitleSet().size());
-                playerAvatar.getUnlockTitleSet().forEach(u -> res.titles.add(u));
+                res.titles.addAll(playerAvatar.getUnlockTitleSet());
+            }
+            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockChipsSet())) {
+                res.unlockChipsId = new ArrayList<>(playerAvatar.getUnlockChipsSet().size());
+                res.unlockChipsId.addAll(playerAvatar.getUnlockChipsSet());
+            }
+            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockBackgroundSet())) {
+                res.unlockBackgroundId = new ArrayList<>(playerAvatar.getUnlockBackgroundSet().size());
+                res.unlockBackgroundId.addAll(playerAvatar.getUnlockBackgroundSet());
+            }
+            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockCardBackgroundSet())) {
+                res.unlockCardBackgroundId = new ArrayList<>(playerAvatar.getUnlockCardBackgroundSet().size());
+                res.unlockCardBackgroundId.addAll(playerAvatar.getUnlockCardBackgroundSet());
             }
 
             log.debug("玩家获取所有头像信息 playerId = {}", playerController.playerId());
@@ -359,6 +380,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 选择头像框
+     *
      * @param playerController
      * @param req
      */
@@ -367,7 +389,7 @@ public class HallMessageHandler implements GmListener {
         ResSelectAvatar res = new ResSelectAvatar(HallCode.SUCCESS);
         try {
             CommonResult<Player> result = hallService.selectAvatar(playerController.playerId(), req.id);
-            if(!result.success()) {
+            if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);
                 return;
@@ -382,6 +404,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 获取背包
+     *
      * @param playerController
      * @param req
      */
@@ -390,7 +413,7 @@ public class HallMessageHandler implements GmListener {
         ResGetPack res = new ResGetPack(HallCode.SUCCESS);
         try {
             res.packItemInfos = getPlayerPack(playerController.playerId());
-            log.debug("返回玩家背包数据 playerId = {},res = {}", playerController.playerId(),JSON.toJSONString(res));
+            log.debug("返回玩家背包数据 playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -400,6 +423,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 使用道具
+     *
      * @param playerController
      * @param req
      */
@@ -408,7 +432,7 @@ public class HallMessageHandler implements GmListener {
         ResUseItem res = new ResUseItem(HallCode.SUCCESS);
         try {
             CommonResult<Map<Integer, Long>> useResult = hallService.useItem(playerController.playerId(), req.girdId, req.itemId, req.useItemCount);
-            if(!useResult.success()) {
+            if (!useResult.success()) {
                 res.code = useResult.code;
                 playerController.send(res);
                 return;
@@ -418,14 +442,14 @@ public class HallMessageHandler implements GmListener {
             log.debug("data = {}", JSON.toJSONString(useResult.data));
 
             List<ItemInfo> items = new ArrayList<>();
-            useResult.data.forEach((k,v) -> {
+            useResult.data.forEach((k, v) -> {
                 ItemInfo item = new ItemInfo();
                 item.itemId = k;
                 item.count = v;
                 items.add(item);
             });
             res.addItemInfos = items;
-            log.debug("使用道具 playerId = {},res = {}", playerController.playerId(),JSON.toJSONString(res));
+            log.debug("使用道具 playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -436,6 +460,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 获取邮件
+     *
      * @param playerController
      * @param req
      */
@@ -444,24 +469,24 @@ public class HallMessageHandler implements GmListener {
         ResGetMails res = new ResGetMails(HallCode.SUCCESS);
         try {
             List<Mail> mailList = mailService.getMailByPlayerId(playerController.playerId(), req.page);
-            if(mailList != null && !mailList.isEmpty()) {
+            if (mailList != null && !mailList.isEmpty()) {
                 res.mails = new ArrayList<>(mailList.size());
 
                 mailList.forEach(mail -> {
                     MailInfo info = new MailInfo();
                     info.id = mail.getId();
 
-                    if(mail.getTitle() != null){
+                    if (mail.getTitle() != null) {
                         info.title = mail.getTitle().toPbInfo();
                     }
 
-                    if(mail.getContent() != null){
+                    if (mail.getContent() != null) {
                         info.content = mail.getContent().toPbInfo();
                     }
                     info.sendTime = mail.getSendTime();
                     info.timeout = mail.getTimeout();
                     info.status = mail.getStatus();
-                    if(mail.getItems() != null && !mail.getItems().isEmpty()) {
+                    if (mail.getItems() != null && !mail.getItems().isEmpty()) {
                         info.items = new ArrayList<>(mail.getItems().size());
                         mail.getItems().forEach(mailItem -> {
                             ItemInfo infoItem = new ItemInfo();
@@ -474,7 +499,7 @@ public class HallMessageHandler implements GmListener {
                 });
             }
 
-            log.debug("玩家获取邮件列表 playerId = {},page = {},size = {}", playerController.playerId(),req.page,res.mails == null ? 0 : res.mails.size());
+            log.debug("玩家获取邮件列表 playerId = {},page = {},size = {}", playerController.playerId(), req.page, res.mails == null ? 0 : res.mails.size());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -484,6 +509,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 阅读邮件
+     *
      * @param playerController
      * @param req
      */
@@ -491,14 +517,14 @@ public class HallMessageHandler implements GmListener {
     public void reqReadMail(PlayerController playerController, ReqReadMail req) {
         ResReadMail res = new ResReadMail(HallCode.SUCCESS);
         try {
-            if(req.id < 1){
+            if (req.id < 1) {
                 res.code = Code.PARAM_ERROR;
                 playerController.send(res);
-                log.debug("参数错误，阅读邮件失败 playerId = {},id = {}", playerController.playerId(),req.id);
+                log.debug("参数错误，阅读邮件失败 playerId = {},id = {}", playerController.playerId(), req.id);
                 return;
             }
             mailService.readMail(playerController.playerId(), req.id);
-            log.debug("玩家阅读邮件 playerId = {},id = {}", playerController.playerId(),req.id);
+            log.debug("玩家阅读邮件 playerId = {},id = {}", playerController.playerId(), req.id);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -508,6 +534,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 领取邮件内的道具
+     *
      * @param playerController
      * @param req
      */
@@ -515,19 +542,19 @@ public class HallMessageHandler implements GmListener {
     public void reqGetMailItems(PlayerController playerController, ReqGetMailItems req) {
         ResGetMailItems res = new ResGetMailItems(HallCode.SUCCESS);
         try {
-            if(req.id < 1){
+            if (req.id < 1) {
                 res.code = Code.PARAM_ERROR;
                 playerController.send(res);
-                log.debug("参数错误，领取邮件内的道具失败 playerId = {},id = {}", playerController.playerId(),req.id);
+                log.debug("参数错误，领取邮件内的道具失败 playerId = {},id = {}", playerController.playerId(), req.id);
                 return;
             }
-            CommonResult<Integer> result = mailService.getMailItems(playerController.playerId(), req.id,"playerGetMailItems");
-            if(!result.success()){
+            CommonResult<Integer> result = mailService.getMailItems(playerController.playerId(), req.id, "playerGetMailItems");
+            if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);
                 return;
             }
-            log.info("领取邮件附件 playerId = {},mailId = {}",playerController.playerId(),req.id);
+            log.info("领取邮件附件 playerId = {},mailId = {}", playerController.playerId(), req.id);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -537,6 +564,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 删除邮件
+     *
      * @param playerController
      * @param req
      */
@@ -544,14 +572,14 @@ public class HallMessageHandler implements GmListener {
     public void reqRemoveMail(PlayerController playerController, ReqRemoveMail req) {
         ResRemoveMail res = new ResRemoveMail(HallCode.SUCCESS);
         try {
-            if(req.id < 1){
+            if (req.id < 1) {
                 res.code = Code.PARAM_ERROR;
                 playerController.send(res);
-                log.debug("参数错误，删除邮件失败 playerId = {},id = {}", playerController.playerId(),req.id);
+                log.debug("参数错误，删除邮件失败 playerId = {},id = {}", playerController.playerId(), req.id);
                 return;
             }
             mailService.removeMail(playerController.playerId(), req.id);
-            log.debug("玩家删除邮件成功 playerId = {},id = {}", playerController.playerId(),req.id);
+            log.debug("玩家删除邮件成功 playerId = {},id = {}", playerController.playerId(), req.id);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -561,6 +589,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 删除已读邮件
+     *
      * @param playerController
      * @param req
      */
@@ -569,7 +598,7 @@ public class HallMessageHandler implements GmListener {
         ResRemoveReadMails res = new ResRemoveReadMails(HallCode.SUCCESS);
         try {
             long count = mailService.removeReadMails(playerController.playerId());
-            log.debug("玩家删除已读邮件 playerId = {},count = {}", playerController.playerId(),count);
+            log.debug("玩家删除已读邮件 playerId = {},count = {}", playerController.playerId(), count);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -579,6 +608,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 一键领取
+     *
      * @param playerController
      * @param req
      */
@@ -586,8 +616,8 @@ public class HallMessageHandler implements GmListener {
     public void reqGetAllMailsItems(PlayerController playerController, ReqGetAllMailsItems req) {
         ResGetAllMailsItems res = new ResGetAllMailsItems(HallCode.SUCCESS);
         try {
-            CommonResult<Map<Integer,Long>> result = mailService.getAllMailsItems(playerController.playerId());
-            if(!result.success()){
+            CommonResult<Map<Integer, Long>> result = mailService.getAllMailsItems(playerController.playerId());
+            if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);
                 return;
@@ -595,7 +625,7 @@ public class HallMessageHandler implements GmListener {
 
             List<ItemInfo> items = new ArrayList<>();
 
-            result.data.forEach((k,v) -> {
+            result.data.forEach((k, v) -> {
                 ItemInfo item = new ItemInfo();
                 item.itemId = k;
                 item.count = v;
@@ -613,6 +643,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 保险箱转移金币
+     *
      * @param playerController
      * @param req
      */
@@ -621,12 +652,12 @@ public class HallMessageHandler implements GmListener {
         ResTransSafeBoxGold res = new ResTransSafeBoxGold(HallCode.SUCCESS);
         try {
             CommonResult<Player> result;
-            if(req.deposit){
+            if (req.deposit) {
                 result = hallPlayerService.goldInSafeBox(playerController.playerId(), req.value, "playerDeposit");
-            }else {
-                result = hallPlayerService.goldOutFromSafeBox(playerController.playerId(),req.value,"playerWithdraw");
+            } else {
+                result = hallPlayerService.goldOutFromSafeBox(playerController.playerId(), req.value, "playerWithdraw");
             }
-            if(!result.success()){
+            if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);
                 return;
@@ -634,7 +665,7 @@ public class HallMessageHandler implements GmListener {
 
             res.gold = result.data.getGold();
             res.safeBoxGold = result.data.getSafeBoxGold();
-            log.debug("玩家转移保险箱金币成功 playerId = {},deposit = {},gold = {},changeGold = {},safeBoxGold = {}", playerController.playerId(),req.deposit,result.data.getGold(),req.value,result.data.getSafeBoxGold());
+            log.debug("玩家转移保险箱金币成功 playerId = {},deposit = {},gold = {},changeGold = {},safeBoxGold = {}", playerController.playerId(), req.deposit, result.data.getGold(), req.value, result.data.getSafeBoxGold());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -644,6 +675,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 保险箱转移钻石
+     *
      * @param playerController
      * @param req
      */
@@ -652,12 +684,12 @@ public class HallMessageHandler implements GmListener {
         ResTransSafeBoxDiamond res = new ResTransSafeBoxDiamond(HallCode.SUCCESS);
         try {
             CommonResult<Player> result;
-            if(req.deposit){
+            if (req.deposit) {
                 result = hallPlayerService.diamondInSafeBox(playerController.playerId(), req.value, "playerDeposit");
-            }else {
-                result = hallPlayerService.diamondOutFromSafeBox(playerController.playerId(),req.value,"playerWithdraw");
+            } else {
+                result = hallPlayerService.diamondOutFromSafeBox(playerController.playerId(), req.value, "playerWithdraw");
             }
-            if(!result.success()){
+            if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);
                 return;
@@ -665,7 +697,7 @@ public class HallMessageHandler implements GmListener {
 
             res.diamond = result.data.getDiamond();
             res.safeBoxDiamond = result.data.getSafeBoxDiamond();
-            log.debug("玩家转移保险箱钻石成功 playerId = {},deposit = {},diamond = {},changeDiamond = {},safeBoxDiamond = {}", playerController.playerId(),req.deposit,result.data.getGold(),req.value,result.data.getSafeBoxGold());
+            log.debug("玩家转移保险箱钻石成功 playerId = {},deposit = {},diamond = {},changeDiamond = {},safeBoxDiamond = {}", playerController.playerId(), req.deposit, result.data.getGold(), req.value, result.data.getSafeBoxGold());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -699,29 +731,29 @@ public class HallMessageHandler implements GmListener {
         }
 
         WareHouseConfigInfo info =
-            wareHouseConfigList.stream().filter(c -> c.wareId == roomCfgId).findFirst().orElse(null);
+                wareHouseConfigList.stream().filter(c -> c.wareId == roomCfgId).findFirst().orElse(null);
         if (info == null) {
             log.debug("未找到对应的游戏场次配置2，选择场次失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId()
-                , gameType, roomCfgId);
+                    , gameType, roomCfgId);
             return new CommonResult<>(Code.NOT_FOUND);
         }
 
         // TODO 临时代码 info.limitGoldMin != -1
         if (info.limitGoldMin != -1 && info.limitGoldMin > playerController.getPlayer().getGold()) {
             log.debug("玩家金币不足 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), gameType
-                , roomCfgId);
+                    , roomCfgId);
             return new CommonResult<>(Code.NOT_ENOUGH);
         }
 
         if (info.limitVipMin > playerController.getPlayer().getVipLevel()) {
             log.debug("玩家vip等级不足 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(),
-                gameType, roomCfgId);
+                    gameType, roomCfgId);
             return new CommonResult<>(Code.VIP_NOT_ENOUGH);
         }
 
 
         MarsNode node = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(),
-            playerController.getPlayer().getIp());
+                playerController.getPlayer().getIp());
         if (node == null) {
             log.debug("获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
             return new CommonResult<>(Code.NOT_FOUND);
@@ -736,8 +768,6 @@ public class HallMessageHandler implements GmListener {
 //        }
         return new CommonResult<>(Code.SUCCESS, info);
     }
-
-
 
 
     /**
@@ -829,10 +859,10 @@ public class HallMessageHandler implements GmListener {
     public void reqLikeGame(PlayerController playerController, ReqLikeGame req) {
         ResLikeGame res = new ResLikeGame(Code.SUCCESS);
         try {
-            res.gameTypeList = hallService.addLikeGame(playerController.playerId(),req.gameTypes);
-            log.debug("添加收藏游戏后，返回列表 res = {}",JSON.toJSONString(res));
-        }catch (Exception e) {
-            log.error("",e);
+            res.gameTypeList = hallService.addLikeGame(playerController.playerId(), req.gameTypes);
+            log.debug("添加收藏游戏后，返回列表 res = {}", JSON.toJSONString(res));
+        } catch (Exception e) {
+            log.error("", e);
             res.code = Code.EXCEPTION;
         }
         playerController.send(res);
@@ -847,10 +877,10 @@ public class HallMessageHandler implements GmListener {
     public void reqCancelLikeGame(PlayerController playerController, ReqCancelLikeGame req) {
         ResCancelLikeGame res = new ResCancelLikeGame(Code.SUCCESS);
         try {
-            res.gameTypeList = hallService.cancelLikeGames(playerController.playerId(),req.gameTypes);
-            log.debug("取消收藏游戏后，返回列表 res = {}",JSON.toJSONString(res));
-        }catch (Exception e) {
-            log.error("",e);
+            res.gameTypeList = hallService.cancelLikeGames(playerController.playerId(), req.gameTypes);
+            log.debug("取消收藏游戏后，返回列表 res = {}", JSON.toJSONString(res));
+        } catch (Exception e) {
+            log.error("", e);
             res.code = Code.EXCEPTION;
         }
         playerController.send(res);
@@ -866,10 +896,10 @@ public class HallMessageHandler implements GmListener {
                 ReqChooseGame req = new ReqChooseGame();
                 req.gameType = Integer.parseInt(gmOrders[1]);
                 reqChooseGame(playerController, req);
-            }else if("addAvatar".equalsIgnoreCase(gmOrders[0])) {
+            } else if ("addAvatar".equalsIgnoreCase(gmOrders[0])) {
                 int id = Integer.parseInt(gmOrders[1]);
                 hallService.addPlayerAvatar(playerController.playerId(), id);
-            }else {
+            } else {
                 res.code = Code.NOT_FOUND;
             }
         } catch (Exception e) {
@@ -884,12 +914,13 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 获取玩家的背包数据
+     *
      * @param playerId
      * @return
      */
-    private List<PackItemInfo> getPlayerPack(long playerId){
+    private List<PackItemInfo> getPlayerPack(long playerId) {
         PlayerPack playerPack = hallService.getPlayerPack(playerId);
-        if(playerPack == null || playerPack.getItems().isEmpty()) {
+        if (playerPack == null || playerPack.getItems().isEmpty()) {
             return Collections.emptyList();
         }
 

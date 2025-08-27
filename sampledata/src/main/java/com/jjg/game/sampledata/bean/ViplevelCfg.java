@@ -36,6 +36,8 @@ public class ViplevelCfg extends BaseCfgBean {
   protected int recharge;
   /** 回退间隔_回退经验 */
   protected List<Integer> rollback;
+  /** VIP等级 */
+  protected int viplevel;
   /** 升级所需经验 */
   protected long viplevelUpExp;
   /** 每周奖励 */
@@ -84,6 +86,11 @@ public class ViplevelCfg extends BaseCfgBean {
   /** 返回回退间隔_回退经验 */
   public List<Integer> getRollback() {
     return rollback;
+  }
+
+  /** 返回VIP等级 */
+  public int getViplevel() {
+    return viplevel;
   }
 
   /** 返回升级所需经验 */
