@@ -1,9 +1,9 @@
 package com.jjg.game.room.message.resp;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.room.message.RoomMessageConstant;
 import com.jjg.game.room.message.struct.ApplyBankPlayerInfo;
 
@@ -22,6 +22,9 @@ public class ResBankerApplyListInFriendRoom extends AbstractResponse {
 
     @ProtoDesc("申请上庄的玩家信息")
     public List<ApplyBankPlayerInfo> applyBankPlayerInfos;
+
+    @ProtoDesc("庄家信息")
+    public ApplyBankPlayerInfo bankPlayerInfo;
 
     public ResBankerApplyListInFriendRoom(int code) {
         super(code);
