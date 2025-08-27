@@ -9,7 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document
 public class PlayerBuilding {
     //玩家id
-    private Long playerId;
+    private long playerId;
     //赌场id
     private int casinoId;
     //楼层信息 赌场id->赌场信息
