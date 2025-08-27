@@ -141,7 +141,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         Map<Long, Map<Integer, Long>> allBetInfo = gameDataVo.getAllBetInfo();
 
         Set<Long> aceBuyPlayerIds = gameDataVo.getAceBuyPlayerIds();
-        if (gameDataVo.isCanBuyACE() && !aceBuyPlayerIds.isEmpty() && maxPointInfo.getMaxPoint() == BlackJackConstant.Common.PERFECT_POINT) {
+        if (gameDataVo.isCanBuyACE() && !aceBuyPlayerIds.isEmpty() && tianHu) {
             //购买ACE发奖
             for (Long playerId : aceBuyPlayerIds) {
                 int insurance = blackjackCfg.getInsurance();
