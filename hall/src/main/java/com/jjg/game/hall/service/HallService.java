@@ -266,11 +266,23 @@ public class HallService implements ConfigExcelChangeListener {
         try {
             boolean[] change = new boolean[2];
             //TODO 后面要敏感词检测，还要判断是否消费道具
-            if (!nick.equals(playerController.getPlayer().getNickName())) {  //修改昵称
+            if(StringUtils.isNotEmpty(nick) && !nick.equals(playerController.getPlayer().getNickName())){  //修改昵称
+                //检查新的昵称是否存在
+                boolean exist = hallPlayerService.nickExist(nick);
+                if(exist){
+                    result.code = Code.EXIST;
+                    log.debug("该昵称已经存在，修改昵称失败 playerId = {},newNick = {}", playerController.getPlayer().getId(),nick);
+                    return result;
+                }
                 change[0] = true;
             }
 
-            if (gender != playerController.getPlayer().getGender()) {  //修改性别
+            if(gender != playerController.getPlayer().getGender()){  //修改性别
+                if(!HallTool.checkGender(gender)){
+                    result.code = Code.PARAM_ERROR;
+                    log.debug("性别参数错误，修改性别失败 playerId = {},newGender = {}", playerController.getPlayer().getId(),gender);
+                    return result;
+                }
                 change[1] = true;
             }
 

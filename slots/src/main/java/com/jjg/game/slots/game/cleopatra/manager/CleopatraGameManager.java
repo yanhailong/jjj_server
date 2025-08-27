@@ -1,12 +1,13 @@
-package com.jjg.game.slots.game.mahjiongwin.manager;
+package com.jjg.game.slots.game.cleopatra.manager;
 
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
+import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinGameDataDao;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinResultLibDao;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinPlayerGameData;
+import com.jjg.game.slots.game.mahjiongwin.manager.MajiongWinGenerateManager;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,25 +19,21 @@ import org.springframework.stereotype.Component;
  * @date 2025/8/1 17:25
  */
 @Component
-public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWinPlayerGameData> {
+public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlayerGameData> {
     @Autowired
     private MahjiongWinResultLibDao libDao;
     @Autowired
     private MajiongWinGenerateManager generateManager;
     @Autowired
-    private SlotsPoolDao slotsPoolDao;
-    @Autowired
-    private SlotsLogger logger;
-    @Autowired
     private MahjiongWinGameDataDao gameDataDao;
 
-    public MahjiongWinGameManager() {
-        super(MahjiongWinPlayerGameData.class);
+    public CleopatraGameManager() {
+        super(CleopatraPlayerGameData.class);
     }
 
     @Override
     public void init() {
-        log.info("启动麻将胡了游戏管理器...");
+        log.info("启动埃及艳后游戏管理器...");
         this.libDao.init(this.gameType);
     }
 
@@ -46,7 +43,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
      * @param stake
      * @return
      */
-    public MahjiongWinGameRunInfo playerStartGame(PlayerController playerController,long stake){
+    public CleopatraGameRunInfo playerStartGame(PlayerController playerController, long stake){
         return null;
     }
 
@@ -54,7 +51,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
     public void shutdown() {
         try{
             super.shutdown();
-            log.info("已关闭麻将胡了游戏管理器");
+            log.info("已关闭埃及艳后游戏管理器");
         }catch (Exception e){
             log.error("",e);
         }
@@ -66,7 +63,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
     }
 
     @Override
-    protected void offlineSaveGameDataDto(MahjiongWinPlayerGameData gameData) {
+    protected void offlineSaveGameDataDto(CleopatraPlayerGameData gameData) {
 
     }
 }

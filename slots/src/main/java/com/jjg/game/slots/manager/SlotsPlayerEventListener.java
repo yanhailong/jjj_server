@@ -92,6 +92,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             logger.enterGame(player, info.getGameType(), info.getRoomCfgId());
             //创建 PlayerGameData
             gameManager.createPlayerGameData(playerController);
+
+            slotsFactoryManager.clearPlayerEvent(playerId);
         } catch (Exception e) {
             log.error("", e);
         }

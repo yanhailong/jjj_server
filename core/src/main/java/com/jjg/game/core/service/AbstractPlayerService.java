@@ -1128,4 +1128,13 @@ public class AbstractPlayerService {
 
         return Long.parseLong(o.toString());
     }
+
+    /**
+     * 检查昵称是否已经存在
+     * @param nick
+     * @return
+     */
+    public boolean nickExist(String nick) {
+        return redisTemplate.opsForHash().hasKey(nickTableName, encodeNickname(nick));
+    }
 }

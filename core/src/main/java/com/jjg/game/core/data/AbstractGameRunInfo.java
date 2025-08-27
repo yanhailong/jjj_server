@@ -7,10 +7,12 @@ import com.jjg.game.core.constant.Code;
  * @date 2025/6/12 17:38
  */
 public class AbstractGameRunInfo {
-    private int code;
+    protected int code;
+    protected long playerId;
 
-    public AbstractGameRunInfo(int code) {
+    public AbstractGameRunInfo(int code,long playerId) {
         this.code = code;
+        this.playerId = playerId;
     }
 
     public boolean success(){
@@ -23,5 +25,13 @@ public class AbstractGameRunInfo {
 
     public void setCode(int code) {
         this.code = code;
+    }
+
+    public long getPlayerId() {
+        return playerId;
+    }
+
+    public void setPlayerId(long playerId) {
+        this.playerId = playerId;
     }
 }

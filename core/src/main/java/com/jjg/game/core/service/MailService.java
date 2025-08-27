@@ -2,9 +2,6 @@ package com.jjg.game.core.service;
 
 import cn.hutool.core.util.IdUtil;
 import com.jjg.game.common.protostuff.PFSession;
-import com.jjg.game.common.timer.TimerCenter;
-import com.jjg.game.common.timer.TimerEvent;
-import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -24,7 +21,7 @@ import java.util.*;
  * @date 2025/8/11 17:41
  */
 @Service
-public class MailService implements TimerListener {
+public class MailService {
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
@@ -33,74 +30,75 @@ public class MailService implements TimerListener {
     private PlayerPackService playerPackService;
     @Autowired
     private PlayerSessionService playerSessionService;
-    @Autowired
-    private TimerCenter timerCenter;
 
     //每页数量
     private int mailPageSize = 50;
 
     /**
      * 获取玩家的邮件
+     *
      * @param playerId
      * @return
      */
-    public List<Mail> getMailByPlayerId(long playerId,int page) {
-        return mailDao.getMailsByPlayerId(playerId,page,mailPageSize);
+    public List<Mail> getMailByPlayerId(long playerId, int page) {
+        return mailDao.getMailsByPlayerId(playerId, page, mailPageSize);
     }
 
     /**
      * 阅读邮件
+     *
      * @param mailId
      */
-    public boolean readMail(long playerId,long mailId) {
-        return mailDao.readMail(playerId,mailId);
+    public boolean readMail(long playerId, long mailId) {
+        return mailDao.readMail(playerId, mailId);
     }
 
     /**
      * 领取邮件内的道具
+     *
      * @param playerId
      * @param mailId
      * @return
      */
-    public CommonResult<Integer> getMailItems(long playerId, long mailId, String desc){
+    public CommonResult<Integer> getMailItems(long playerId, long mailId, String desc) {
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
-        try{
+        try {
             Mail mail = getMail(playerId, mailId);
-            if(mail == null){
+            if (mail == null) {
                 result.code = Code.NOT_FOUND;
-                log.debug("未找到玩家有邮件，获取道具失败 playerId = {},mailId = {},desc = {}",playerId,mailId,desc);
+                log.debug("未找到玩家有邮件，获取道具失败 playerId = {},mailId = {},desc = {}", playerId, mailId, desc);
                 return result;
             }
 
-            if(mail.getStatus() == GameConstant.Mail.STAUTS_GET_ITEMS){
+            if (mail.getStatus() == GameConstant.Mail.STAUTS_GET_ITEMS) {
                 result.code = Code.NOT_FOUND;
-                log.debug("该道具已被领取，获取道具失败 playerId = {},mailId = {},desc = {}",playerId,mailId,desc);
+                log.debug("该道具已被领取，获取道具失败 playerId = {},mailId = {},desc = {}", playerId, mailId, desc);
                 return result;
             }
 
-            if(mail.getItems() == null || mail.getItems().isEmpty()){
+            if (mail.getItems() == null || mail.getItems().isEmpty()) {
                 result.code = Code.NOT_FOUND;
-                log.debug("该邮件内没有道具，获取道具失败 playerId = {},mailId = {},desc = {}",playerId,mailId,desc);
+                log.debug("该邮件内没有道具，获取道具失败 playerId = {},mailId = {},desc = {}", playerId, mailId, desc);
                 return result;
             }
 
-            Map<Integer,Long> map = new HashMap<>();
+            Map<Integer, Long> map = new HashMap<>();
             mail.getItems().forEach(mailItem -> {
                 int id = mailItem.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(id);
-                if(itemCfg == null){
-                    log.debug("未找到该道具，领取邮件内道具失败， playerId = {},itemId = {},desc = {}",playerId,id,desc);
-                }else {
-                    map.merge(id,mailItem.getCount(),Long::sum);
+                if (itemCfg == null) {
+                    log.debug("未找到该道具，领取邮件内道具失败， playerId = {},itemId = {},desc = {}", playerId, id, desc);
+                } else {
+                    map.merge(id, mailItem.getCount(), Long::sum);
                 }
             });
 
-            if(!map.isEmpty()){
-                mailDao.getMailItems(playerId,mailId);
-                playerPackService.addItems(playerId,map,"getMailItems");
+            if (!map.isEmpty()) {
+                mailDao.getMailItems(playerId, mailId);
+                playerPackService.addItems(playerId, map, "getMailItems");
             }
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
             result.code = Code.EXCEPTION;
         }
         return result;
@@ -108,137 +106,144 @@ public class MailService implements TimerListener {
 
     /**
      * 删除邮件
+     *
      * @param playerId
      * @param mailId
      */
-    public void removeMail(long playerId,long mailId) {
-        getMailItems(playerId, mailId,"removeGetMailItems");
-        mailDao.removeMail(playerId,mailId);
+    public void removeMail(long playerId, long mailId) {
+        getMailItems(playerId, mailId, "removeGetMailItems");
+        mailDao.removeMail(playerId, mailId);
     }
 
     /**
      * 获取玩家的一封邮件
+     *
      * @param playerId
      * @return
      */
-    public Mail getMail(long playerId,long mailId) {
-        return mailDao.getMailByPlayerId(playerId,mailId);
+    public Mail getMail(long playerId, long mailId) {
+        return mailDao.getMailByPlayerId(playerId, mailId);
     }
 
     /**
      * 删除已读邮件
+     *
      * @param playerId
      * @return
      */
-    public long removeReadMails(long playerId){
+    public long removeReadMails(long playerId) {
         return mailDao.removeReadMails(playerId);
     }
 
     /**
      * 一键领取
+     *
      * @param playerId
      */
-    public CommonResult<Map<Integer,Long>> getAllMailsItems(long playerId){
-        CommonResult<Map<Integer,Long>> result = new CommonResult<>(Code.SUCCESS);
+    public CommonResult<Map<Integer, Long>> getAllMailsItems(long playerId) {
+        CommonResult<Map<Integer, Long>> result = new CommonResult<>(Code.SUCCESS);
         List<Mail> itemMails = mailDao.getItemMails(playerId);
-        if(itemMails == null || itemMails.isEmpty()){
+        if (itemMails == null || itemMails.isEmpty()) {
             result.code = Code.NOT_FOUND;
             return result;
         }
 
         List<Long> mailIds = new ArrayList<>();
-        Map<Integer,Long> map = new HashMap<>();
-        for(Mail mail : itemMails){
-            if(mail.getStatus() == GameConstant.Mail.STAUTS_GET_ITEMS){
+        Map<Integer, Long> map = new HashMap<>();
+        for (Mail mail : itemMails) {
+            if (mail.getStatus() == GameConstant.Mail.STAUTS_GET_ITEMS) {
                 continue;
             }
-            if(mail.getItems() == null || mail.getItems().isEmpty()){
+            if (mail.getItems() == null || mail.getItems().isEmpty()) {
                 continue;
             }
             mail.getItems().forEach(mailItem -> {
                 int id = mailItem.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(id);
-                if(itemCfg == null){
-                    log.debug("未找到该道具，领取邮件内道具失败， playerId = {},itemId = {}",playerId,id);
-                }else {
-                    map.merge(id,mailItem.getCount(),Long::sum);
+                if (itemCfg == null) {
+                    log.debug("未找到该道具，领取邮件内道具失败， playerId = {},itemId = {}", playerId, id);
+                } else {
+                    map.merge(id, mailItem.getCount(), Long::sum);
                 }
             });
 
             mailIds.add(mail.getId());
         }
 
-        if(map.isEmpty()){
+        if (map.isEmpty()) {
             result.data = map;
             return result;
         }
 
-        long count = mailDao.batchUpdateMailStatus(mailIds,GameConstant.Mail.STAUTS_GET_ITEMS);
+        long count = mailDao.batchUpdateMailStatus(mailIds, GameConstant.Mail.STAUTS_GET_ITEMS);
         CommonResult<PlayerPack> addItemsResult = playerPackService.addItems(playerId, map, "getAllMailsItems");
-        if(!addItemsResult.success()){
-            log.debug("一键领取失败 playerId = {},code = {}",playerId,addItemsResult.code);
+        if (!addItemsResult.success()) {
+            log.debug("一键领取失败 playerId = {},code = {}", playerId, addItemsResult.code);
             result.code = addItemsResult.code;
             return result;
         }
         result.data = map;
-        log.info("一键领取结果 playerId = {}, batchUpdateCount = {}, addItemsResultCode = {}",playerId,count,addItemsResult.code);
+        log.info("一键领取结果 playerId = {}, batchUpdateCount = {}, addItemsResultCode = {}", playerId, count, addItemsResult.code);
         return result;
     }
 
     /**
      * 保存邮件
+     *
      * @param playerId
      * @param title
      * @param content
      * @param items
      */
-    public void addMail(long playerId,String title,String content,List<Item> items){
-        LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL,title);
-        LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL,content);
+    public void addMail(long playerId, String title, String content, List<Item> items) {
+        LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, title);
+        LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, content);
 
-        Mail mail = createMail(titleData,contentData,items,false);
+        Mail mail = createMail(titleData, contentData, items, false);
         mail.setId(IdUtil.getSnowflakeNextId());
         mail.setPlayerId(playerId);
         mailDao.save(mail);
-        log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}",playerId,mail.getId());
+        log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}", playerId, mail.getId());
     }
 
     /**
      * 保存多语言邮件
+     *
      * @param playerId
      * @param title
      * @param content
      * @param items
      */
-    public void addLangMail(long playerId,LanguageData title,LanguageData content,List<Item> items){
-        Mail mail = createMail(title,content,items,false);
+    public void addLangMail(long playerId, LanguageData title, LanguageData content, List<Item> items) {
+        Mail mail = createMail(title, content, items, false);
         mail.setId(IdUtil.getSnowflakeNextId());
         mail.setPlayerId(playerId);
         mailDao.save(mail);
-        log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}",playerId,mail.getId());
+        log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}", playerId, mail.getId());
     }
 
     /**
      * 批量保存邮件
+     *
      * @param playerIds
      * @param title
      * @param content
      * @param items
      */
-    public void addMails(List<Long> playerIds,String title,String content,List<Item> items){
+    public void addMails(List<Long> playerIds, String title, String content, List<Item> items) {
         List<Mail> mails = new ArrayList<>();
 
-        LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL,title);
-        LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL,content);
+        LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, title);
+        LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, content);
 
-        for(long playerId : playerIds){
-            Mail mail = createMail(titleData,contentData,items,false);
+        for (long playerId : playerIds) {
+            Mail mail = createMail(titleData, contentData, items, false);
             mail.setId(IdUtil.getSnowflakeNextId());
             mail.setPlayerId(playerId);
             mails.add(mail);
         }
         long saveCount = mailDao.batchSaveMails(mails);
-        log.debug("批量保存邮件数量 mails.size = {}",saveCount);
+        log.debug("批量保存邮件数量 mails.size = {}", saveCount);
 
         log.warn("这里要通知玩家收到邮件....");
         //通知收到邮件，
@@ -252,81 +257,87 @@ public class MailService implements TimerListener {
 
     /**
      * 添加全服邮件
+     *
      * @param title
      * @param content
      * @param items
      */
-    public void addAllServerMail(String title,String content,List<Item> items) {
-        LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL,title);
-        LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL,content);
+    public void addAllServerMail(String title, String content, List<Item> items) {
+        LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, title);
+        LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, content);
 
         Mail mail = createMail(titleData, contentData, items, true);
         mailDao.saveServerMail(mail);
 
         //给在线的玩家添加邮件
         Map<Long, PlayerSessionInfo> all = playerSessionService.getAll();
-        for(Map.Entry<Long, PlayerSessionInfo> en : all.entrySet()){
+        Set<Long> playerIds = new HashSet<>();
+        for (Map.Entry<Long, PlayerSessionInfo> en : all.entrySet()) {
             PFSession session = playerSessionService.getSession(en.getValue());
-            if(session == null){
+            if (session == null) {
                 continue;
             }
-            addMail(en.getValue().getPlayerId(),title,content,items);
+            addMail(en.getValue().getPlayerId(), title, content, items);
+            playerIds.add(en.getValue().getPlayerId());
+        }
+
+        if (!playerIds.isEmpty()) {
+            mailDao.addPlayersServerMail(playerIds, mail.getId());
         }
     }
 
     /**
      * 玩家获取全服邮件
+     *
      * @param playerId
      */
     public void playerGetServerMails(long playerId) {
         List<Mail> serverMail = mailDao.getServerMails();
-        if(serverMail == null || serverMail.isEmpty()){
+        if (serverMail == null || serverMail.isEmpty()) {
             return;
         }
 
-        //本次领取的邮件列表
+        //本次接收的全服邮件列表
         List<Mail> getMails = new ArrayList<>();
-        //获取玩家已经领取的全服邮件id
-        Set<Long> playerServerMails = mailDao.getPlayerServerMails(playerId);
 
         int now = TimeHelper.nowInt();
         for (Mail mail : serverMail) {
-            try{
-                //是否领取邮件
-                boolean reve = playerServerMails.contains(mail.getId());
-
+            try {
+                //是否接收邮件
+                boolean reve = mailDao.playerHasServerMail(playerId, mail.getId());
                 //检查邮件是否过期
-                if(mail.getTimeout() < now){
-                    log.info("检测到系统邮件到期 mailId = {},title = {},timeout = {}",mail.getId(),mail.getTitle(),mail.getTimeout());
-                    if(reve){
+                if (mail.getTimeout() < now) {
+                    log.info("检测到系统邮件到期 mailId = {},title = {},timeout = {}", mail.getId(), mail.getTitle(), mail.getTimeout());
+                    if (reve) {
                         mailDao.removeServerMail(mail.getId());
                     }
                     continue;
                 }
 
-                if(reve){
+                if (reve) {
                     continue;
                 }
-                mailDao.addPlayerServerMail(playerId,mail.getId());
+                mailDao.addPlayerServerMail(playerId, mail.getId());
 
                 Mail getMail = mail.clone();
                 getMail.setId(IdUtil.getSnowflakeNextId());
                 getMail.setServerMail(false);
                 getMail.setPlayerId(playerId);
                 getMails.add(getMail);
-            }catch (Exception e){
-                log.error("领取全服邮件异常 playerId = {},mailId = {}",playerId,mail.getId(),e);
+            } catch (Exception e) {
+                log.error("领取全服邮件异常 playerId = {},mailId = {}", playerId, mail.getId(), e);
             }
         }
 
-        if(!getMails.isEmpty()){
+        if (!getMails.isEmpty()) {
             long count = mailDao.batchSaveMails(getMails);
-            log.info("玩家接收全服邮件成功 playerId = {},count = {}",playerId,count);
+            log.info("玩家接收全服邮件成功 playerId = {},count = {}", playerId, count);
         }
     }
 
     /**
      * 创建mail对象
+     *
      * @param title
      * @param content
      * @param items
@@ -351,8 +362,7 @@ public class MailService implements TimerListener {
         return mail;
     }
 
-    @Override
-    public void onTimer(TimerEvent e) {
-
+    public void cleanMails() {
+        mailDao.cleanMails();
     }
 }

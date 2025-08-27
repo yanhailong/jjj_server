@@ -1,8 +1,10 @@
 package com.jjg.game.core.dao;
 
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Mail;
 import com.mongodb.bulk.BulkWriteResult;
+import com.mongodb.client.result.DeleteResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +24,7 @@ import java.util.*;
  * @date 2025/8/11 17:22
  */
 @Repository
-public class MailDao extends MongoBaseDao<Mail, Long>{
+public class MailDao extends MongoBaseDao<Mail, Long> {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     public MailDao(@Autowired MongoTemplate mongoTemplate) {
@@ -35,21 +37,22 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
     @Autowired
     private RedisTemplate redisTemplate;
 
-    private String getPlayerServerMailTableName(long playerId){
-        return playerServerMailTableName + ":" + playerId;
+    private String getPlayerServerMailTableName(long mailId) {
+        return playerServerMailTableName + ":" + mailId;
     }
 
     /**
      * 获取玩家的所有邮件
+     *
      * @param playerId
      * @return
      */
-    public List<Mail> getMailsByPlayerId(long playerId,int page,int size) {
-        if(page < 0){
+    public List<Mail> getMailsByPlayerId(long playerId, int page, int size) {
+        if (page < 0) {
             page = 0;
         }
 
-        if(size <= 0){
+        if (size <= 0) {
             size = 10;
         }
 
@@ -62,19 +65,21 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
 
     /**
      * 获取玩家的一封邮件
+     *
      * @param playerId
      * @return
      */
-    public Mail getMailByPlayerId(long playerId,long id) {
+    public Mail getMailByPlayerId(long playerId, long id) {
         return mongoTemplate.findOne(Query.query(Criteria.where("id").is(id).and("playerId").is(playerId)), Mail.class);
     }
 
     /**
      * 删除已读邮件,和已领取的邮件
+     *
      * @param playerId
      * @return
      */
-    public long removeReadMails(long playerId){
+    public long removeReadMails(long playerId) {
         // 创建查询条件
         Criteria criteria = Criteria.where("playerId").is(playerId)
                 .andOperator(
@@ -96,10 +101,11 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
 
     /**
      * 获取未领取道具的邮件
+     *
      * @param playerId
      * @return
      */
-    public List<Mail> getItemMails(long playerId){
+    public List<Mail> getItemMails(long playerId) {
         // 创建查询条件
         Criteria criteria = Criteria.where("playerId").is(playerId).and("status").ne(GameConstant.Mail.STAUTS_GET_ITEMS)
                 .and("items").exists(true)
@@ -113,7 +119,7 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
     /**
      * @param mailId
      */
-    public boolean readMail(long playerId,long mailId) {
+    public boolean readMail(long playerId, long mailId) {
         Query query = Query.query(Criteria.where("id").is(mailId)
                 .and("playerId").is(playerId)
                 .and("status").lt(GameConstant.Mail.STAUTS_READ));
@@ -122,9 +128,10 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
 
     /**
      * 修改邮件状态
+     *
      * @param mailId
      */
-    public boolean getMailItems(long playerId,long mailId) {
+    public boolean getMailItems(long playerId, long mailId) {
         Query query = Query.query(Criteria.where("id").is(mailId)
                 .and("playerId").is(playerId)
                 .and("status").lte(GameConstant.Mail.STAUTS_READ));
@@ -134,10 +141,11 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
 
     /**
      * 删除邮件
+     *
      * @param playerId
      * @param mailId
      */
-    public void removeMail(long playerId,long mailId) {
+    public void removeMail(long playerId, long mailId) {
         mongoTemplate.remove(Query.query(Criteria.where("id").is(mailId).and("playerId").is(playerId)), Mail.class);
     }
 
@@ -150,6 +158,7 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
 
     /**
      * 批量更新邮件状态
+     *
      * @param mailIds
      * @param newStatus
      * @return
@@ -175,6 +184,7 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
 
     /**
      * 使用BulkOperations批量保存Mail对象
+     *
      * @param mails 要保存的Mail对象列表
      * @return 操作影响的文档数量
      */
@@ -200,6 +210,7 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
 
     /**
      * 获取全服邮件
+     *
      * @return
      */
     public List<Mail> getServerMails() {
@@ -208,39 +219,52 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
 
     /**
      * 获取全服邮件
+     *
      * @param mailId
      * @return
      */
-    public Mail getServerMailById(long mailId){
-        return (Mail) redisTemplate.opsForHash().get(serverMailTableName,mailId);
+    public Mail getServerMailById(long mailId) {
+        return (Mail) redisTemplate.opsForHash().get(serverMailTableName, mailId);
     }
 
     /**
      * 删除一个全服邮件
+     *
      * @param mailId
      * @return
      */
-    public void removeServerMail(long mailId){
-        redisTemplate.opsForHash().delete(serverMailTableName,mailId);
+    public void removeServerMail(long mailId) {
+        redisTemplate.opsForHash().delete(serverMailTableName, mailId);
+        redisTemplate.delete(getPlayerServerMailTableName(mailId));
     }
 
     /**
      * 清除过期邮件
      */
-    public void cleanMail() {
+    public void cleanMails() {
+        int now = TimeHelper.nowInt();
         //清除已到期的
-        mongoTemplate.remove(Query.query(Criteria.where("timeout").lt(System.currentTimeMillis()).gt(0)), Mail.class); // 删除没有附件且超时的邮件
+        DeleteResult deleteResult = mongoTemplate.remove(Query.query(Criteria.where("timeout").lt(now).gt(0)), Mail.class);// 删除没有附件且超时的邮件
+
         //清除系统邮件
+        Set<Long> removeSet = new HashSet<>();
         List<Mail> mailList = getServerMails();
         for (Mail mail : mailList) {
-            if (mail.getTimeout() != -1 && mail.getTimeout() < System.currentTimeMillis()) {
-                redisTemplate.opsForHash().delete(serverMailTableName, mail.getId());
+            if (mail.getTimeout() != -1 && mail.getTimeout() < now) {
+                removeSet.add(mail.getId());
             }
         }
+
+        long deletedServermails = 0;
+        if (!removeSet.isEmpty()) {
+            deletedServermails = redisTemplate.opsForHash().delete(serverMailTableName, removeSet.toArray());
+        }
+        log.info("删除玩家过期邮件数 : {} , 删除过期全服邮件数: {}", deleteResult.getDeletedCount(), deletedServermails);
     }
 
     /**
      * 更新过期时间
+     *
      * @param mailId
      * @param timeout
      */
@@ -250,6 +274,7 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
 
     /**
      * 保存全服邮件
+     *
      * @param mail
      */
     public void saveServerMail(Mail mail) {
@@ -257,47 +282,32 @@ public class MailDao extends MongoBaseDao<Mail, Long>{
     }
 
     /**
-     * 将全服邮件迁移到redis
-     */
-    public void moveServerMailToRedis() {
-        List<Mail> mailList = mongoTemplate.find(Query.query(Criteria.where("serverMail").is(true)), Mail.class);
-        for (Mail mail : mailList) {
-            saveServerMail(mail);
-            log.info("系统邮件:mailId = {} , title = {}  迁移完成 ,", mail.getId(), mail.getTitle());
-        }
-    }
-
-    /**
      * 添加玩家已领取的全服邮件id
+     *
      * @param playerId
      * @param mailId
      */
     public void addPlayerServerMail(long playerId, long mailId) {
-        redisTemplate.opsForSet().add(getPlayerServerMailTableName(playerId), mailId);
+        redisTemplate.opsForSet().add(getPlayerServerMailTableName(mailId), playerId);
     }
 
     /**
-     * 获取玩家已经领取的全服邮件id
-     * @param playerId
+     * 添加玩家已领取的全服邮件id
+     *
+     * @param mailId
      */
-    public Set<Long> getPlayerServerMails(long playerId) {
-        Set rawSet = redisTemplate.opsForSet().members(getPlayerServerMailTableName(playerId));
-        if (rawSet == null) {
-            return Collections.emptySet();
-        }
-
-        Set<Long> result = new HashSet<>(rawSet.size());
-        for (Object item : rawSet) {
-            result.add(Long.valueOf(item.toString()));
-        }
-        return result;
+    public void addPlayersServerMail(Set<Long> playerIdSet, long mailId) {
+        redisTemplate.opsForSet().add(getPlayerServerMailTableName(mailId), playerIdSet.toArray());
     }
 
     /**
-     * 移除玩家已领取的全服邮件id
+     * 检查玩家是否领取过该全服邮件
+     *
      * @param playerId
+     * @param mailId
+     * @return
      */
-    public void removePlayerServerMail(long playerId,long id) {
-        redisTemplate.opsForSet().remove(getPlayerServerMailTableName(playerId), id);
+    public boolean playerHasServerMail(long playerId, long mailId) {
+        return redisTemplate.opsForSet().isMember(getPlayerServerMailTableName(mailId), playerId);
     }
 }

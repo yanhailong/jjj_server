@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 
 /**
  * @author 11
- * @date 2025/8/1 17:39
+ * @date 2025/8/27 10:46
  */
 @Repository
 public class MahjiongWinGameDataDao extends AbstractGameDataDao<MahjiongWinPlayerGameDataDTO> {
