@@ -41,7 +41,8 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     }
 
     @Override
-    public void initial() {
+    public <R extends Room> void initial(R room) {
+        super.initial(room);
         // 玩家长时间未操作检查
         tickTaskMap.put(ETickTaskType.PLAYER_NO_OPERATE_CHECK,
             new BaseGameTickTask(TableConstant.PLAYER_NO_OPERATE_CHECK_INTERVAL) {

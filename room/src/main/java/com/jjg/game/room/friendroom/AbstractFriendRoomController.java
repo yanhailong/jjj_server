@@ -17,13 +17,19 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
     @Override
     public void continueGame() {
         super.continueGame();
-        roomDao.doSave(room.getGameType(), room.getId(), (r) -> r.setStatus(0));
+        roomDao.doSave(room.getGameType(), room.getId(), (r) -> {
+            r.setStatus(0);
+            r.setPauseTime(0);
+        });
     }
 
     @Override
     public void pauseGame() {
         super.pauseGame();
-        roomDao.doSave(room.getGameType(), room.getId(), (r) -> r.setStatus(1));
+        roomDao.doSave(room.getGameType(), room.getId(), (r) -> {
+            r.setStatus(1);
+            r.setPauseTime(System.currentTimeMillis());
+        });
     }
 
     @Override
@@ -31,7 +37,20 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
         super.stopGame();
     }
 
+    /**
+     * 不能让机器人加入房间
+     */
     @Override
     protected void checkRobotJoinRoom() {
+    }
+
+    @Override
+    public boolean checkRoomCanContinue() {
+        return super.checkRoomCanContinue();
+    }
+
+    @Override
+    public void onRoomCantContinue() {
+        super.onRoomCantContinue();
     }
 }

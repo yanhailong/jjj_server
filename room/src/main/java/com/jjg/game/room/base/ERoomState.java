@@ -8,10 +8,6 @@ package com.jjg.game.room.base;
 public enum ERoomState {
     // 初始化完成
     INIT_START("初始化开始"),
-    // 初始化完成
-    INIT_DONE("初始化完成"),
-    // 等待加入
-    WAIT_JOIN("等待加入"),
     // 房间就绪，对于需要等房间人满才开始的房间，此状态在人满之后设置
     READY("房间就绪"),
     // 游戏中
@@ -20,13 +16,9 @@ public enum ERoomState {
     PAUSING("暂停中"),
     // 游戏暂停中
     PAUSED("游戏已暂停"),
-    // 房间小结算
-    ROUND_SETTLEMENT("房间小结算"),
-    // 房间小循环结束
-    ROUND_OVER("房间小循环结束"),
     // 房间结算
     ROOM_SETTLEMENT("房间大结算"),
-    // 房间完全结束,包括大循环
+    // 房间结算完后完全结束,包括大循环
     ROOM_FINISHED("房间完全结束"),
     // 房间shutdown时
     ROOM_DESTROYING("房间销毁中"),

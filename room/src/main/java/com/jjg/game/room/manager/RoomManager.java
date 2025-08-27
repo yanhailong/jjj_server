@@ -162,7 +162,7 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
         Tuple2<Integer, Integer> tuples = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
         try {
             AbstractRoomController<?, ?> roomController =
-                initExistRoomByRoomId(warehouseCfg.getGameID(), roomCfgId, tuples.getT2(), roomId);
+                initExistEmptyRoomByRoomId(warehouseCfg.getGameID(), roomCfgId, tuples.getT2(), roomId);
             if (roomController == null) {
                 log.warn("通过cfgId: {} roomId: {} 初始化房间失败", roomCfgId, roomId);
             }

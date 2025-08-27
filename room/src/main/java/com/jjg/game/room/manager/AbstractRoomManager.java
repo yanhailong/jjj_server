@@ -9,7 +9,6 @@ import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
 import com.jjg.game.core.dao.room.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
@@ -205,9 +204,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     }
 
     /**
-     * 通过房间ID初始化存在的房间
+     * 通过房间ID初始化存在的空房间
      */
-    public <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> initExistRoomByRoomId(
+    public <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> initExistEmptyRoomByRoomId(
         int gameType, int roomCfgId, int maxLimit, long roomId) throws Exception {
         RoomType roomType = RoomType.getRoomType(roomCfgId);
         // 获取roomDao
@@ -222,7 +221,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             return null;
         }
 
-        // 按道理新房间不会有玩家
+        // 按道理房间不会有玩家
         if (existedRoom.getRoomPlayers() != null && !existedRoom.getRoomPlayers().isEmpty()) {
             log.error("初始化新房间中,有玩家：{}",
                 existedRoom.getRoomPlayers().keySet().stream().map(String::valueOf).collect(Collectors.joining(",")));
@@ -661,7 +660,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         roomController.setTimerCenter(this.roomTimerCenter);
         roomController.setRoomManager(this);
         // 调用房间管理器的初始化方法
-        roomController.initial();
+        roomController.initial(room);
         return roomController;
     }
 

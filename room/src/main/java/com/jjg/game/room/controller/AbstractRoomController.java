@@ -63,8 +63,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     protected RC roomCfg;
     // 机器人上次创建的时间
     private long robotLastCreatedTime;
-    // 是否开始停止逻辑
-    private volatile boolean isStoping = false;
     // 房间状态
     private volatile ERoomState roomState;
 
@@ -98,6 +96,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                     roomDataVoCopied.setRoomId(room.getId());
                     gameController.setGameDataVo(roomDataVoCopied);
                     gameController.initTimerCenter(timerCenter);
+                    gameController.initial(room);
                     return gameController;
                 }
             }
@@ -241,9 +240,11 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     @Override
     public void startGame() {
         // 调用游戏本身的初始化逻辑
-        gameController.initial();
+        gameController.initialGame();
         // 调用子类的启动方法
         gameController.startGame();
+        // 修改状态
+        roomState = ERoomState.GAMING;
     }
 
     @Override
@@ -269,7 +270,12 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     @Override
     public void pauseGame() {
+        roomState = ERoomState.PAUSING;
         gameController.pauseGame();
+    }
+
+    public void pausedGame() {
+        roomState = ERoomState.PAUSED;
     }
 
     @Override
@@ -281,6 +287,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     public void disbandRoom() {
         // 调用房间控制器中的解散房间逻辑
         gameController.disbandRoom();
+        // 标记游戏状态为销毁完成
+        gameController.markDestroyed();
         // 回存房间数据
         saveRoomData();
         // 向玩家发送解散房间消息
@@ -328,7 +336,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      * 初始化房间控制器逻辑，添加定时逻辑、初始化线程...
      */
     @Override
-    public void initial() {
+    public <G extends Room> void initial(G room) {
         roomState = ERoomState.INIT_START;
         // 当前房间的线程实例，用于投递一些异步任务
         roomProcessor = roomManager.getProcessorExecutors().getProcessorById(room.getId());
@@ -344,6 +352,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         // 添加房间tick
         timerCenter.add(new RoomTimerEvent<>(
             this, room, this::roomTick, RoomConstant.ROOM_TICK_TIME, RoomEventType.ROOM_TICK));
+        roomState = ERoomState.READY;
     }
 
     /**
@@ -368,7 +377,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     @Override
     public void roomTick() {
-        if (isStoping) {
+        if (isStoping()) {
             return;
         }
         // 游戏启动后进行tick
@@ -639,8 +648,11 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      */
     public abstract void reloadRoomCfg();
 
+    /**
+     * 是否停止游戏
+     */
     public boolean isStoping() {
-        return isStoping;
+        return roomState == ERoomState.ROOM_DESTROYING || roomState == ERoomState.ROOM_DESTROYED;
     }
 
     @Override
@@ -658,7 +670,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     @Override
     public void stopGame() {
         log.info("开始停止游戏 {}", room.logStr());
-        this.isStoping = true;
+        roomState = ERoomState.ROOM_DESTROYING;
         // 移除定时器
         this.timerCenter.remove(this);
         // 暂停游戏
@@ -681,5 +693,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      */
     public void onRoomCantContinue() {
 
+    }
+
+    public ERoomState getRoomState() {
+        return roomState;
     }
 }

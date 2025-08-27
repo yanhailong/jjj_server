@@ -461,6 +461,8 @@ public class FriendRoomServices implements IConsoleReceiver {
         // 不包含的，或者过期的需要移除这部分的数据
         res.followedFriendList =
             followedplayerList.stream().map(FriendRoomMessageBuilder::buildFriendRoomPlayerInfo).toList();
+
+        playerController.send(res);
     }
 
     /**

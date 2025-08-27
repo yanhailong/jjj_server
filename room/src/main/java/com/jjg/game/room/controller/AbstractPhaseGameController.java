@@ -11,6 +11,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.core.utils.ReflectionTool;
+import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.IPhaseMsgAdapter;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
@@ -66,6 +67,8 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
         autoRunGamePhase();
         // 手动调用进入下一轮
         nextRoundStart();
+        // 游戏中
+        gameState = EGameState.GAMING;
     }
 
     /**
@@ -74,7 +77,7 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     @Override
     public void autoRunGamePhase() {
         // 房间是否还有逻辑需要执行
-        if (gamePhaseIterator.hasNext() && gameStarted) {
+        if (gamePhaseIterator.hasNext() && isGameStarted()) {
             // 当前的游戏阶段
             currentGamePhase = gamePhaseIterator.next();
             currentGamePhase.setRoundCounter(roundCounter.get());
@@ -115,7 +118,7 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
                     // 自动切换到下一个阶段
                     this.autoRunGamePhase();
                 }), RoomEventType.ROOM_PHASE_RUN_EVENT);
-        } else if (gameStarted) {
+        } else if (isGameStarted()) {
             // 阶段全部运行结束
             phaseRunOver();
             // 全部游戏阶段完成
@@ -125,8 +128,8 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
 
     @Override
     public void continueGame() {
-        super.continueGame();
         autoRunGamePhase();
+        gameState = EGameState.GAMING;
     }
 
     /**
@@ -202,7 +205,7 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
      * 进入下一轮时，检查房间是否还可以继续进行
      */
     protected boolean checkRoomCanNextRound() {
-        return !closeGameOnNextRound;
+        return gameState != EGameState.PAUSING_ON_NEXT_ROUND;
     }
 
     /**
@@ -211,13 +214,17 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     protected void onCantNextRound() {
         // 必须广播游戏暂停消息
         broadcastGamePauseInfo();
+        // 房间暂停结束
+        roomController.pausedGame();
+        // 标记为暂停完成
+        gameState = EGameState.PAUSED;
     }
 
     @Override
     protected GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
         GamePlayer gamePlayer = super.onPlayerJoinRoom(playerController, gameStartStatus);
         // 当玩家中途加入阶段时
-        if (gameStarted) {
+        if (isGameStarted()) {
             currentGamePhase.onPlayerHalfwayJoinPhase(gamePlayer);
         }
         return gamePlayer;

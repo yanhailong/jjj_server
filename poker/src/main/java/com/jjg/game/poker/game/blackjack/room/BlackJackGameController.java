@@ -721,7 +721,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
     }
 
     @Override
-    public void initial() {
-
+    public <R extends Room> void initial(R room) {
+        super.initial(room);
     }
 }
