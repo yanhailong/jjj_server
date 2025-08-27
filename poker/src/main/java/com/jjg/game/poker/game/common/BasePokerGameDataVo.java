@@ -165,6 +165,10 @@ public abstract class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
         return playerSeatInfoList.stream().collect(Collectors.toMap(PlayerSeatInfo::getPlayerId, info -> info));
     }
 
+    public long getPlayerGameNnm() {
+        return playerSeatInfoList.stream().filter(info->!info.isDelState()).count();
+    }
+
     public abstract int getPoolId();
 
     public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {
