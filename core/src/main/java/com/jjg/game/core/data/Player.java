@@ -26,6 +26,12 @@ public class Player {
     private int nationalId;
     //称号id
     private int titleId;
+    //当前使用的筹码id
+    private int chipsId;
+    //当前使用的背景id
+    private int backgroundId;
+    //当前使用的牌背ID
+    private int cardBackgroundId;
     //房间id
     private long roomId;
     //游戏类型
@@ -150,6 +156,30 @@ public class Player {
             throw new RuntimeException("给玩家设置负数金币值");
         }
         this.gold = gold;
+    }
+
+    public int getChipsId() {
+        return chipsId;
+    }
+
+    public void setChipsId(int chipsId) {
+        this.chipsId = chipsId;
+    }
+
+    public int getBackgroundId() {
+        return backgroundId;
+    }
+
+    public void setBackgroundId(int backgroundId) {
+        this.backgroundId = backgroundId;
+    }
+
+    public int getCardBackgroundId() {
+        return cardBackgroundId;
+    }
+
+    public void setCardBackgroundId(int cardBackgroundId) {
+        this.cardBackgroundId = cardBackgroundId;
     }
 
     public long getDiamond() {
