@@ -1,5 +1,9 @@
 package com.jjg.game.hall.casino.data;
 
+import com.jjg.game.sampledata.bean.BuildingFunctionCfg;
+
+import java.util.Objects;
+
 /**
  * @author lm
  * @date 2025/8/22 14:05
@@ -65,13 +69,13 @@ public class TimeNodeData {
         return machineData;
     }
 
-    public static TimeNodeData getNewTimeNodeData(CasinoMachineInfo casinoMachineInfo, int lastLevelConfigId) {
+    public static TimeNodeData getNewTimeNodeData(CasinoMachineInfo casinoMachineInfo, BuildingFunctionCfg lastLevelConfig) {
         TimeNodeData machineData = new TimeNodeData();
         machineData.type = 1;
         machineData.configId = casinoMachineInfo.getConfigId();
         machineData.startTime = casinoMachineInfo.getBuildLvUpStartTime();
         machineData.endTime = casinoMachineInfo.getBuildLvUpEndTime();
-        machineData.lastLevelConfigId = lastLevelConfigId;
+        machineData.lastLevelConfigId = Objects.isNull(lastLevelConfig) ? 0 : lastLevelConfig.getId();
         return machineData;
     }
 
