@@ -12,6 +12,7 @@ import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
+import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerSampleCardOperation;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
@@ -203,11 +204,15 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     public boolean hasAllIn() {
         return gameDataVo.getPlayerSeatInfoList()
                 .stream()
+                .filter(playerSeatInfo -> !playerSeatInfo.isDelState())
                 .anyMatch(info -> info.getOperationType() == PokerConstant.PlayerOperation.ALL_IN);
     }
 
     public boolean isAllAllIn(long playerId) {
         for (PlayerSeatInfo seatInfo : gameDataVo.getPlayerSeatInfoList()) {
+            if (seatInfo.isDelState()) {
+                continue;
+            }
             if (seatInfo.getPlayerId() == playerId) {
                 continue;
             }
@@ -278,6 +283,11 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
      * 开启下一轮还是进行结算
      */
     public void startNextRoundOrSettlement() {
+        if (gameDataVo.getPlayerSeatInfoList().isEmpty()) {
+            setCurrentGamePhase(new BaseWaitReadyPhase<>(this));
+            gameDataVo.resetData(this);
+            return;
+        }
         boolean nextRoundOrSettlement = isNextRoundOrSettlement();
         //结算
         if (nextRoundOrSettlement) {
@@ -337,6 +347,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             addNextTimer(nextExePlayer, sendCardNum);
             //下发本轮数据
             Map<Long, PlayerSeatInfo> collect = gameDataVo.getPlayerSeatInfoList().stream()
+                    .filter(info -> !info.isDelState())
                     .collect(Collectors.toMap(PlayerSeatInfo::getPlayerId, info -> info));
             for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
                 PlayerSeatInfo info = null;
@@ -359,11 +370,26 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
         //如果在游戏中删除数据
         gameDataVo.getTempGold().remove(remove.getPlayerId());
-        if (inRunPhase()) {
-            runPlayerSeatChange(remove, remove.isSeatDown() && remove.isJoinGame());
-        }
     }
 
+    @Override
+    public void onRunGamePlayerLeaveRoom(SeatInfo remove) {
+        PlayerSeatInfo currentPlayerSeatInfo = gameDataVo.getCurrentPlayerSeatInfo();
+        if (currentPlayerSeatInfo.getPlayerId() == remove.getPlayerId()) {
+            //如果他是执行人 直接下一轮或结算   他不是执行人 剩一个直接结算
+            PlayerSeatInfo nextExePlayer = getNextExePlayer();
+            if (Objects.isNull(nextExePlayer)) {
+                //判断是否结算开启下一轮
+                startNextRoundOrSettlement();
+            } else {
+                addNextPlayerAndBroadcast(nextExePlayer, new NotifyPokerSampleCardOperation());
+            }
+        } else {
+            if (isNextRoundOrSettlement()) {
+                startNextRoundOrSettlement();
+            }
+        }
+    }
 
     /**
      * 添加下一个玩家的执行timer
@@ -381,7 +407,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
      */
     public boolean isOverGame(PlayerSeatInfo info) {
         return info.getOperationType() == PokerConstant.PlayerOperation.ALL_IN
-                || info.getOperationType() == PokerConstant.PlayerOperation.DISCARD;
+                || info.getOperationType() == PokerConstant.PlayerOperation.DISCARD || info.isDelState();
     }
 
     /**
@@ -412,7 +438,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             if (!info.isOver()) {
                 notOverNum++;
             } else {
-                if (info.getOperationType() == PokerConstant.PlayerOperation.DISCARD) {
+                if (info.getOperationType() == PokerConstant.PlayerOperation.DISCARD || info.isDelState()) {
                     discardNum++;
                 }
             }

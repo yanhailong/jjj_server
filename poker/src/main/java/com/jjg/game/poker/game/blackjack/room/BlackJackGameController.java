@@ -1,9 +1,11 @@
 package com.jjg.game.poker.game.blackjack.room;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
+import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
 import com.jjg.game.poker.game.blackjack.data.BlackJackBuilder;
@@ -16,6 +18,7 @@ import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
+import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerSampleCardOperation;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
@@ -46,7 +49,12 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
 
     @Override
     public void startNextRoundOrSettlement() {
-        addPokerPhaseTimer(new BlackJackSettlementPhase(this));
+        if (gameDataVo.getPlayerSeatInfoList().isEmpty()) {
+            setCurrentGamePhase(new BaseWaitReadyPhase<>(this));
+            gameDataVo.resetData(this);
+        } else {
+            addPokerPhaseTimer(new BlackJackSettlementPhase(this));
+        }
     }
 
     @Override
@@ -60,6 +68,9 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             int newIndex = seatInfos.size();
             for (int i = gameDataVo.getIndex() + 1; i < seatInfos.size(); i++) {
                 PlayerSeatInfo info = seatInfos.get(i);
+                if (info.isDelState()) {
+                    continue;
+                }
                 int totalPoint = BlackJackDataHelper.getTotalPoint(info.getCurrentCards());
                 if (totalPoint == BlackJackConstant.Common.PERFECT_POINT && info.getCards().size() == 1 && info.getCurrentCards().size() == roomCfg.getHandPoker()) {
                     continue;
@@ -247,11 +258,46 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
      */
     public boolean isAllOver(Set<Long> overSet) {
         for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
+            if (playerNotInit(seatInfo.getPlayerId())) {
+                continue;
+            }
             if (seatInfo.isSeatDown() && !overSet.contains(seatInfo.getPlayerId())) {
                 return false;
             }
         }
         return true;
+    }
+
+    @Override
+    public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
+        //下注阶段离开
+        if (getCurrentGamePhase() == EGamePhase.BET) {
+            Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
+            if (CollectionUtil.isNotEmpty(baseBetInfo)) {
+                //如果全部押注完成 进入下一阶段
+                if (isAllOver(baseBetInfo.keySet())) {
+                    genPlayerSeatInfoList(gameDataVo.getSeatInfo(), gameDataVo.getPlayerSeatInfoList());
+                    removePokerPhaseTimer();
+                    BlackJackPlayCardPhase gamePhase = new BlackJackPlayCardPhase(this);
+                    addPokerPhase(gamePhase);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onRunGamePlayerLeaveRoom(SeatInfo remove) {
+        PlayerSeatInfo currentPlayerSeatInfo = gameDataVo.getCurrentPlayerSeatInfo();
+        if (currentPlayerSeatInfo.getPlayerId() == remove.getPlayerId()) {
+            //如果他是执行人 直接下一轮或结算
+            PlayerSeatInfo nextExePlayer = getNextExePlayer();
+            if (Objects.isNull(nextExePlayer)) {
+                //判断是否结算开启下一轮
+                startNextRoundOrSettlement();
+            } else {
+                addNextPlayerAndBroadcast(nextExePlayer, new NotifyPokerSampleCardOperation());
+            }
+        }
     }
 
     /**
@@ -265,7 +311,16 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         }
         NotifyBlackJackBuyACE msg = new NotifyBlackJackBuyACE();
         //设置第一个开始的玩家 并添加定时
-        PlayerSeatInfo first = gameDataVo.getPlayerSeatInfoList().get(gameDataVo.getIndex());
+        List<PlayerSeatInfo> playerSeatInfoList = gameDataVo.getPlayerSeatInfoList();
+        for (int i = 0; i < playerSeatInfoList.size(); i++) {
+            PlayerSeatInfo seatInfo = playerSeatInfoList.get(i);
+            if (seatInfo.isDelState()) {
+                continue;
+            }
+            gameDataVo.setIndex(i);
+            break;
+        }
+        PlayerSeatInfo first = playerSeatInfoList.get(gameDataVo.getIndex());
         addNextTimer(first, 0);
         msg.nextPlayerId = first.getPlayerId();
         msg.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
@@ -446,6 +501,9 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
     public boolean isAllCutCard() {
         List<PlayerSeatInfo> playerSeatInfoList = gameDataVo.getPlayerSeatInfoList();
         for (PlayerSeatInfo seatInfo : playerSeatInfoList) {
+            if (seatInfo.isDelState()) {
+                continue;
+            }
             if (seatInfo.getOperationType() != CUT_CARD) {
                 return false;
             }
@@ -610,6 +668,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
 
     }
 
+
     @Override
     public void respRoomInitInfoAction(PlayerController playerController) {
         RepsBlackJackRoomBaseInfo baseInfo = new RepsBlackJackRoomBaseInfo();
@@ -619,6 +678,9 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         baseInfo.phase = getCurrentGamePhase();
         for (Map.Entry<Integer, SeatInfo> entry : gameDataVo.getSeatInfo().entrySet()) {
             SeatInfo seatInfo = entry.getValue();
+            if (playerNotInit(seatInfo.getPlayerId())) {
+                continue;
+            }
             baseInfo.playerInfos.add(BlackJackBuilder.getBlackJackPlayerInfo(playerSeatInfoMap.get(seatInfo.getPlayerId()), seatInfo, this));
         }
         if (baseInfo.phase == EGamePhase.PLAY_CART) {

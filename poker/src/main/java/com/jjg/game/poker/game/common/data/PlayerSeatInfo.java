@@ -32,6 +32,19 @@ public class PlayerSeatInfo {
      */
     private int cardIndex;
 
+    /**
+     * 删除标记
+     */
+    private boolean delState;
+
+
+    public boolean isDelState() {
+        return delState;
+    }
+
+    public void setDelState(boolean delState) {
+        this.delState = delState;
+    }
 
     public PlayerSeatInfo() {
     }

@@ -33,7 +33,7 @@ import java.util.Objects;
  * @date 2025/7/30 14:16
  */
 @Component
-@MessageType(MessageConst.MessageTypeDef.TEXAS_TYPE)
+@MessageType(value = MessageConst.MessageTypeDef.TEXAS_TYPE)
 public class TexasMessageHandler {
     @Autowired
     private RoomManager roomManager;

@@ -1,12 +1,12 @@
 package com.jjg.game.poker.game.common;
 
 import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
-import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerPlayerChange;
@@ -208,6 +208,11 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         tryStartNextGame();
     }
 
+    public boolean playerNotInit(long playerId) {
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        return (Objects.isNull(gamePlayer) || Objects.isNull(gamePlayer.getPokerPlayerGameData()) || !gamePlayer.getPokerPlayerGameData().isInit());
+    }
+
     /**
      * 尝试开启下一轮游戏
      */
@@ -283,10 +288,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     }
 
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
-        remove.setSeatDown(false);
-        if (inRunPhase()) {
-            runPlayerSeatChange(remove, remove.isSeatDown() && remove.isJoinGame());
-        }
+
     }
 
     /**
@@ -295,30 +297,27 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     public void runPlayerSeatChange(SeatInfo remove, boolean isPlaying) {
         //正在游玩
         List<PlayerSeatInfo> playerSeatInfos = gameDataVo.getPlayerSeatInfoList();
-        boolean removePlayerSeatInfo = false;
+        int index = -1;
         if (isPlaying) {
-            final Iterator<PlayerSeatInfo> each = playerSeatInfos.iterator();
-            while (each.hasNext()) {
-                PlayerSeatInfo next = each.next();
-                if (next.getPlayerId() == remove.getPlayerId()) {
-                    each.remove();
-                    removePlayerSeatInfo = true;
+            for (int i = 0; i < playerSeatInfos.size(); i++) {
+                PlayerSeatInfo seatInfo = playerSeatInfos.get(i);
+                if (seatInfo.getPlayerId() == remove.getPlayerId()) {
+                    index = i;
+                    seatInfo.setDelState(true);
+                    seatInfo.setOver(true);
                     break;
                 }
             }
             remove.setJoinGame(false);
         }
-        if (removePlayerSeatInfo) {
-            //如果他是执行人 直接下一轮或结算   他不是执行人 剩一个直接结算
-            PlayerSeatInfo nextExePlayer = getNextExePlayer();
-            if (Objects.isNull(nextExePlayer)) {
-                //判断是否结算开启下一轮
-                startNextRoundOrSettlement();
-            } else {
-                addNextPlayerAndBroadcast(nextExePlayer, new NotifyPokerSampleCardOperation());
-            }
+        if (index != -1) {
+            onRunGamePlayerLeaveRoom(remove);
         }
+
     }
+
+
+    public abstract void onRunGamePlayerLeaveRoom(SeatInfo remove);
 
     public void addNextPlayerAndBroadcast(PlayerSeatInfo nextExePlayer, NotifyPokerSampleCardOperation notifyPokerSampleCardOperation) {
         addNextTimer(nextExePlayer, 0);
@@ -346,6 +345,10 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
             if (Objects.nonNull(remove)) {
                 //移除下注信息
                 gameDataVo.getBaseBetInfo().remove(roomPlayer.getPlayerId());
+                if (inRunPhase()) {
+                    runPlayerSeatChange(remove, remove.isSeatDown() && remove.isJoinGame());
+                }
+                remove.setSeatDown(false);
                 try {
                     onPlayerLeaveRoomAction(roomPlayer, remove);
                 } catch (Exception e) {

@@ -42,13 +42,17 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
-        if (gameController instanceof BlackJackGameController controller) {
-            int settlementType = gameDataVo.getSettlementType();
-            switch (settlementType) {
-                case 1 -> dealSpecialSettlement(controller);
-                case 2 -> dealNormalSpecialSettlement(controller);
-                default -> dealSettlement(controller);
+        try {
+            if (gameController instanceof BlackJackGameController controller) {
+                int settlementType = gameDataVo.getSettlementType();
+                switch (settlementType) {
+                    case 1 -> dealSpecialSettlement(controller);
+                    case 2 -> dealNormalSpecialSettlement(controller);
+                    default -> dealSettlement(controller);
+                }
             }
+        } catch (Exception e) {
+            log.error("21点结算异常", e);
         }
     }
 
@@ -157,6 +161,9 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         settlementPlayerInfo.type = gameDataVo.getCurrentPlayerSeatInfo().getOperationType();
         settlementPlayerInfo.endTime = gameDataVo.getPhaseEndTime() + (showDealer ? (long) sendCards.size() * PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) : 0);
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
+            if (info.isDelState()) {
+                continue;
+            }
             long playerId = info.getPlayerId();
             BlackJackSettlementInfo settlementInfo = new BlackJackSettlementInfo();
             int size = info.getCards().size();
