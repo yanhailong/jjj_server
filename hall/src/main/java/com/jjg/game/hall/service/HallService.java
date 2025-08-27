@@ -452,7 +452,7 @@ public class HallService implements ConfigExcelChangeListener {
             }
 
             Map<Integer, Long> addItemsMap = new HashMap<>();
-            CommonResult<PlayerPack> useResult = null;
+            CommonResult<PackChangeResult> useResult = null;
             for (Map.Entry<Integer, Long> en : itemCfg.getGetItem().entrySet()) {
                 int addItemId = en.getKey();
                 ItemCfg addItemCfg = GameDataManager.getItemCfg(addItemId);

@@ -13,9 +13,10 @@ public interface GlobalSampleConstantId {
     int INVITATION_REFRESH_INTERVAL = 13;
     // 好友房操作间隔时间
     int FRIEND_ROOM_OPERATE_INTERVAL = 15;
+    // 连续坐庄上限
+    int BE_BANKER_MAX_ROUND = 16;
     //我的赌场清除CD价值，每X秒需要Y钻石
     int CASINO_REDUCE_TIME_CONFIG = 17;
     //购买一键领取消耗 global表id
     int BUY_ALL_CLAIM_ALL_REWARDS = 19;
-
 }

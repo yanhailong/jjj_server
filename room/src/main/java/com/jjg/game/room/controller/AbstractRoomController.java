@@ -144,8 +144,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             // 检查等待房间的逻辑
             updateWaitRoomList();
             playerController.setScene(this);
-            // 检查房间开始的逻辑，由游戏自行判断开启时机
-            if (gameController.checkRoomCanStart()) {
+            // 检查房间开始的逻辑，由房间判断和游戏判断开启时机
+            if (checkRoomCanContinue() && gameController.checkRoomCanStart()) {
                 // 检查通过开始游戏
                 startGame();
             }

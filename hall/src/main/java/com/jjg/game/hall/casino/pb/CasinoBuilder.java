@@ -123,7 +123,7 @@ public class CasinoBuilder {
         return 3;
     }
 
-    public static ItemInfo calculateCostItemInfo(long endTime, long timeMillis) {
+    public static Item calculateCostItemInfo(long endTime, long timeMillis) {
         long needTime = endTime - timeMillis;
         if (needTime < 0) {
             return null;
@@ -132,10 +132,7 @@ public class CasinoBuilder {
         //需要的秒数
         long needS = needTime / 1000;
         long num = needS / reduceTimeConfig.getSecond() + (needS % reduceTimeConfig.getSecond() == 0 ? 0 : 1);
-        ItemInfo itemInfo = new ItemInfo();
-        itemInfo.itemId = reduceTimeConfig.getFirst().getId();
-        itemInfo.count = reduceTimeConfig.getFirst().getCount() * num;
-        return itemInfo;
+        return new Item(reduceTimeConfig.getFirst().getId(),reduceTimeConfig.getFirst().getCount() * num);
     }
 
     public static int getMachineState(CasinoMachineInfo casinoMachineInfo, long timeMillis) {

@@ -171,11 +171,6 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             settlementInfo.cardGroupState = new ArrayList<>(size);
             for (int i = 0; i < size; i++) {
                 List<Integer> card = info.getCards().get(i);
-                int point = BlackJackDataHelper.getTotalPoint(card);
-                if (point > BlackJackConstant.Common.PERFECT_POINT) {
-                    settlementInfo.cardGroupState.add(0);
-                    continue;
-                }
                 Map<Integer, Long> betInfo = allBetInfo.get(playerId);
                 if (Objects.isNull(betInfo)) {
                     continue;
@@ -183,6 +178,15 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                 Long betValue = betInfo.getOrDefault(i, 0L);
                 if (betValue == 0) {
                     settlementInfo.cardGroupState.add(2);
+                    continue;
+                }
+                int point = BlackJackDataHelper.getTotalPoint(card);
+                if (point > BlackJackConstant.Common.PERFECT_POINT) {
+                    if(boom){
+                        playerGet.merge(playerId, BlackJackDataHelper.getGetWinValue(betValue, blackjackCfg.getDraw()), Long::sum);
+                        settlementInfo.cardGroupState.add(2);
+                    }
+                    settlementInfo.cardGroupState.add(0);
                     continue;
                 }
                 //初始为21点 直接发奖

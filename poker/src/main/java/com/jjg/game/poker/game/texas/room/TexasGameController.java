@@ -283,7 +283,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
      * 开启下一轮还是进行结算
      */
     public void startNextRoundOrSettlement() {
-        if (gameDataVo.getPlayerSeatInfoList().isEmpty()) {
+        if (gameDataVo.getPlayerGameNnm() == 0) {
             setCurrentGamePhase(new BaseWaitReadyPhase<>(this));
             gameDataVo.resetData(this);
             return;
