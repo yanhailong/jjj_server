@@ -205,7 +205,8 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
      * 进入下一轮时，检查房间是否还可以继续进行
      */
     protected boolean checkRoomCanNextRound() {
-        return gameState != EGameState.PAUSING_ON_NEXT_ROUND;
+        // 游戏状态：在下一轮暂停，房间层面检查是否可以继续
+        return gameState != EGameState.PAUSING_ON_NEXT_ROUND && roomController.checkRoomCanContinue();
     }
 
     /**

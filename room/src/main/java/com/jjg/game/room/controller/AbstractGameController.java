@@ -217,8 +217,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             Player finalPlayer = player;
             Player updatedPlayer =
                 roomController.getRoomManager().getPlayerService().doSave(player.getId(), (latestPlayer) -> {
+                    // TODO 后续换一种效率更高的复制方法
                     //进行值复制
-                    BeanUtils.copyProperties(latestPlayer, finalPlayer);
+                    BeanUtils.copyProperties(finalPlayer, latestPlayer);
                 });
             gamePlayer.setUpdateTime(updatedPlayer.getUpdateTime());
             log.info("回存玩家: {} 游戏数据成功", finalPlayer.getId());
@@ -322,14 +323,12 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         this.gameDataVo = gameDataVo;
     }
 
-
     /**
      * 给游戏添加定时器
      */
     public void addGameTimeEvent(TimerEvent<IProcessorHandler> roomUpdateTimer, RoomEventType roomEventType) {
         timerCenter.add(new RoomTimerEvent<>(roomUpdateTimer, roomController.getRoom(), roomEventType));
     }
-
 
     /**
      * 获取房间统计信息

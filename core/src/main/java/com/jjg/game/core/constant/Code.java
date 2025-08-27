@@ -71,6 +71,8 @@ public interface Code {
     int BAN_ACCOUNT = 426;
     // 好友未关注
     int FRIEND_NOT_FOLLOWED = 427;
+    // 房主不能上庄
+    int ROOM_CREATOR_CANT_BE_BANKER = 428;
     // 服务器错误
     int EXCEPTION = 500;
 }

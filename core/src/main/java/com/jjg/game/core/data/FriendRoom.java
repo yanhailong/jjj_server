@@ -3,6 +3,8 @@ package com.jjg.game.core.data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -20,7 +22,7 @@ public class FriendRoom extends Room {
     protected String aliasName;
     // 是否开启自动续费
     protected boolean autoRenewal;
-    // 预付金
+    // 庄家的预付金
     protected long predictCostGoldNum;
     // 房间状态 1. 运行中 2. 暂停中 3. 解散中
     protected int status;
@@ -28,20 +30,29 @@ public class FriendRoom extends Room {
     protected long pauseTime;
     // 总流水
     protected long totalFlowing;
+    // 申请庄家的预付金
+    protected LinkedHashMap<Long, Long> bankerPredicateMap = new LinkedHashMap<>();
     // 每个玩家的收益流水
-    protected Map<Long, Long> playerIncomeRec;
+    protected Map<Long, Long> playerIncomeRec = new HashMap<>();
     // 房间创建者收益
     protected long creatorIncome;
 
-    // 房间的庄家ID
-    private long bankerId;
-
-    public long getBankerId() {
-        return bankerId;
+    /**
+     * 房间庄家ID
+     */
+    public long roomBankerId() {
+        if (bankerPredicateMap.isEmpty()) {
+            return 0L;
+        }
+        return bankerPredicateMap.firstEntry().getKey();
     }
 
-    public void setBankerId(long bankerId) {
-        this.bankerId = bankerId;
+    /**
+     * 添加预付金
+     */
+    public void addBankerSupply(long bankerId, long predictCostGoldNum) {
+        bankerPredicateMap.put(bankerId,
+            bankerPredicateMap.getOrDefault(bankerId, 0L) + predictCostGoldNum);
     }
 
     public long getOverdueTime() {
@@ -114,5 +125,13 @@ public class FriendRoom extends Room {
 
     public void setCreatorIncome(long creatorIncome) {
         this.creatorIncome = creatorIncome;
+    }
+
+    public LinkedHashMap<Long, Long> getBankerPredicateMap() {
+        return bankerPredicateMap;
+    }
+
+    public void setBankerPredicateMap(LinkedHashMap<Long, Long> bankerPredicateMap) {
+        this.bankerPredicateMap = bankerPredicateMap;
     }
 }
