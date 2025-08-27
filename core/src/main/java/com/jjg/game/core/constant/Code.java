@@ -69,6 +69,8 @@ public interface Code {
     int ADD_BLACK_LIST_PLAYER_TO_LIMIT = 425;
     // 被封号，禁止登录
     int BAN_ACCOUNT = 426;
+    // 好友未关注
+    int FRIEND_NOT_FOLLOWED = 427;
     // 服务器错误
     int EXCEPTION = 500;
 }

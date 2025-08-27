@@ -42,6 +42,8 @@ public interface FriendRoomMessageConstant {
         int REQ_FRIEND_ROOM_BILL_PLAYER_INFO = BASE_MSG_MASK | 0x1F;
         // 请求一键领取账单收益奖励
         int REQ_TAKE_FRIEND_ROOM_BILL_INCOME = BASE_MSG_MASK | 0x20;
+        // 请求进入好友房
+        int REQ_JOIN_FRIEND_ROOM = BASE_MSG_MASK | 0x21;
     }
 
     interface ResMsgCons {
@@ -75,5 +77,7 @@ public interface FriendRoomMessageConstant {
         int RES_FRIEND_ROOM_BILL_PLAYER_INFO = BASE_MSG_MASK | 0x8F;
         // 请求一键领取账单收益奖励
         int RES_TAKE_FRIEND_ROOM_BILL_INCOME = BASE_MSG_MASK | 0x90;
+        // 返回进入好友房
+        int RES_JOIN_FRIEND_ROOM = BASE_MSG_MASK | 0x91;
     }
 }

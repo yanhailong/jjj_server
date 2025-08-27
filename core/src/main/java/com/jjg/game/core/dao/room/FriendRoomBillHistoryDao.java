@@ -101,7 +101,7 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
     }
 
     /**
-     * 更新所有未领奖的状态为已领取,仅在一键领取中调用
+     * 更新所有未领奖的状态为已领取,仅在一键领取中调用，需要在调用上层进行加锁
      */
     public void updateAllHistoryRewardTook(long playerId) {
         // 更新玩家所有未领取的奖励状态

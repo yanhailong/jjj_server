@@ -3,9 +3,11 @@ package com.jjg.game.hall.friendroom.message;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
 import com.jjg.game.hall.friendroom.message.req.*;
+import com.jjg.game.hall.friendroom.message.res.RespCreateFriendsRoom;
 import com.jjg.game.hall.friendroom.services.FriendRoomServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +30,11 @@ public class FriendRoomMessageHandler {
     @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_CREAT_FRIENDS_ROOM)
     public void reqCreateFriendRoom(PlayerController playerController, ReqCreateFriendsRoom reqCreateFriendsRoom) {
         try {
-            friendRoomServices.createFriendRoom(playerController, reqCreateFriendsRoom);
+            int errCode = friendRoomServices.createFriendRoom(playerController, reqCreateFriendsRoom);
+            if (errCode != Code.SUCCESS) {
+                RespCreateFriendsRoom res = new RespCreateFriendsRoom(errCode);
+                playerController.send(res);
+            }
         } catch (Exception e) {
             log.error("创建好友房异常，{}", e.getMessage(), e);
         }
@@ -156,6 +162,15 @@ public class FriendRoomMessageHandler {
     public void reqResetInvitationCode(PlayerController playerController) {
         try {
             friendRoomServices.reqResetInvitationCode(playerController);
+        } catch (Exception e) {
+            log.error("请求刷新关注好友列表异常，{}", e.getMessage(), e);
+        }
+    }
+
+    @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_JOIN_FRIEND_ROOM)
+    public void reqJoinFriendRoom(PlayerController playerController, ReqJoinFriendRoom req) {
+        try {
+            friendRoomServices.reqJoinFriendRoom(playerController, req);
         } catch (Exception e) {
             log.error("请求刷新关注好友列表异常，{}", e.getMessage(), e);
         }

@@ -74,7 +74,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         // 最大等待3分钟
         redisLock.lock(lockKey, TimeHelper.ONE_DAY_OF_MILLIS * 3);
         try {
-            T room = fillBaseRoomData(nodeName, gameType, maxLimit);
+            T room = fillBaseRoomData(nodeName, gameType, roomCfgId, maxLimit);
             room.setRoomCfgId(roomCfgId);
             T temp = createRoom(room);
             if (temp != null) {
@@ -94,7 +94,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     public T createRoom(PlayerController playerController, int gameType, int roomCfgId, int maxLimit, String nodeName) {
         try {
             long playerId = playerController.playerId();
-            T room = fillBaseRoomData(nodeName, gameType, maxLimit);
+            T room = fillBaseRoomData(nodeName, gameType, roomCfgId, maxLimit);
             room.setRoomCfgId(roomCfgId);
             //添加玩家
             if (playerId > 0) {
@@ -119,16 +119,16 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         return null;
     }
 
-    protected T fillBaseRoomData(String nodeName, int gameType, int maxLimit) throws InvocationTargetException,
+    protected T fillBaseRoomData(String nodeName, int gameType, int gameCfgId, int maxLimit) throws InvocationTargetException,
         InstantiationException,
         IllegalAccessException,
         NoSuchMethodException {
-        EGameType eGameType = EGameType.getGameByTypeId(gameType);
-        Constructor<? extends Room> constructor = eGameType.getRoomType().getRoomDataType().getConstructor();
+        RoomType roomType = RoomType.getRoomType(gameCfgId);
+        Constructor<? extends Room> constructor = roomType.getRoomDataType().getConstructor();
         T room = (T) constructor.newInstance();
         room.setCreateTime(TimeHelper.nowInt());
         room.setPath(nodeName);
-        room.setType(eGameType.getRoomType());
+        room.setType(roomType);
         room.setGameType(gameType);
         room.setMaxLimit(maxLimit);
         return room;

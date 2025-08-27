@@ -156,7 +156,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     /**
      * 检查玩家未操作提示
      */
-    private void checkPlayerNoOperateAlert() {
+    protected void checkPlayerNoOperateAlert() {
         long currentTime = System.currentTimeMillis();
         // 获取真人玩家
         Map<Long, GamePlayer> gamePlayerMap = gameDataVo.getGamePlayerMapExceptRobot();

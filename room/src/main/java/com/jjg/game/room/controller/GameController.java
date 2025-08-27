@@ -2,6 +2,7 @@ package com.jjg.game.room.controller;
 
 
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.data.RoomType;
 
 import java.lang.annotation.*;
 
@@ -14,6 +15,10 @@ import java.lang.annotation.*;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 public @interface GameController {
+
     // 游戏类型
     EGameType gameType();
+
+    // 房间类型
+    RoomType roomType();
 }

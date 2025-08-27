@@ -87,6 +87,7 @@ public class RoomMessageBuilder<T extends AbstractMessage> {
     public void setToAll(boolean toAll) {
         this.toAll = toAll;
     }
+
     public T getData() {
         return data;
     }

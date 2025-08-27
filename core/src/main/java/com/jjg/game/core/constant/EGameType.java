@@ -68,6 +68,9 @@ public enum EGameType {
         return gameDesc;
     }
 
+    /**
+     * 不要通过游戏类型获取房间类型，需要通过{@link RoomType#getRoomType(int)}获取
+     */
     public RoomType getRoomType() {
         return roomType;
     }
@@ -88,18 +91,5 @@ public enum EGameType {
             gameType = GAME_TYPE_ID_SET.get(gameTypeId);
         }
         return gameType;
-    }
-
-    /**
-     * 通过房间类型获取所有的游戏
-     */
-    public static List<EGameType> getGameTypesSetByRoomType(RoomType roomType) {
-        List<EGameType> set = new ArrayList<>();
-        for (EGameType value : values()) {
-            if (value.getRoomType().equals(roomType)) {
-                set.add(value);
-            }
-        }
-        return set;
     }
 }

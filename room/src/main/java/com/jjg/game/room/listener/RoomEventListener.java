@@ -146,7 +146,8 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             if (player.getRoomId() > 0) {
                 // 设置workId
                 session.setWorkId(player.getRoomId());
-                int code = roomManager.joinRoom(playerController, info.getGameType(), player.getRoomId());
+                int code = roomManager.joinRoom(
+                    playerController, info.getGameType(), info.getRoomCfgId(), player.getRoomId());
                 if (code == Code.SUCCESS) {
                     return;
                 }

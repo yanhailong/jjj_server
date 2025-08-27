@@ -3,19 +3,25 @@ package com.jjg.game.room.manager;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.dao.room.AbstractFriendRoomDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.rpc.HallRoomBridge;
+import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.base.GameGm;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.RoomCfg;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import reactor.util.function.Tuple2;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -30,6 +36,9 @@ import java.util.Set;
  */
 @Component
 public class RoomManager extends AbstractRoomManager implements GmListener, HallRoomBridge {
+
+    @Autowired
+    private AbstractFriendRoomDao friendRoomDao;
 
     public RoomManager() {
         super();
@@ -137,6 +146,32 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
     }
 
     /**
+     * 先创建好空的好友房
+     *
+     * @param roomId 房间ID
+     */
+    @Override
+    public void createFriendRoom(int roomCfgId, long roomId) {
+        // 获取配置
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
+        if (warehouseCfg == null) {
+            // 配置异常
+            log.error("通过rpc调用好友房创建时异常，找不到WarehouseCfg配置， {}", roomCfgId);
+            return;
+        }
+        Tuple2<Integer, Integer> tuples = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
+        try {
+            AbstractRoomController<?, ?> roomController =
+                initExistRoomByRoomId(warehouseCfg.getGameID(), roomCfgId, tuples.getT2(), roomId);
+            if (roomController == null) {
+                log.warn("通过cfgId: {} roomId: {} 初始化房间失败", roomCfgId, roomId);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
      * 操作好友房
      *
      * @param roomId      房间ID
@@ -180,8 +215,13 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
 
     @Override
     public FriendRoom getFriendRoomInfo(long roomId) {
-        FriendRoom friendRoom = new FriendRoom();
-        friendRoom.setId(1000000L);
-        return friendRoom;
+        AbstractRoomController<? extends RoomCfg, ? extends Room> roomController = getRoomControllerByRoomId(roomId);
+        if (roomController == null) {
+            return null;
+        }
+        if (roomController.getRoom() instanceof FriendRoom friendRoom) {
+            return friendRoom;
+        }
+        return null;
     }
 }

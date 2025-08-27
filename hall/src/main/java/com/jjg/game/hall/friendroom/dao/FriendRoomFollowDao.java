@@ -42,7 +42,7 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
             Query.query(
                     Criteria.where("playerId").is(playerId)
                         .and("invitationCode").is(invitationCode)
-                        .and("removeTime").gt(0)
+                        .and("removeTime").is(0)
                 )
                 .with(Pageable.ofSize(pageSize).withPage(pageNum))
                 .with(
@@ -62,7 +62,7 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
         return mongoTemplate.count(
             Query.query(
                 Criteria.where("playerId").is(playerId)
-                    .and("removeTime").gt(0)
+                    .and("removeTime").is(0)
             )
             ,
             FriendRoomFollowBean.class
@@ -100,7 +100,7 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
                 Criteria.where("playerId").is(playerId)
                     .and("invitationCode").is(invitationCode)
                     .and("followedPlayerId").is(targetPlayerId)
-                    .and("removeTime").gt(0)
+                    .and("removeTime").is(0)
             ),
             FriendRoomFollowBean.class
         );

@@ -4,8 +4,11 @@ import com.jjg.game.common.constant.StrConstant;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.utils.SampleDataUtils;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.stereotype.Repository;
+import reactor.util.function.Tuple2;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,14 +21,13 @@ import java.util.Map;
  * @author 2CL
  */
 @Repository
-public class FriendRoomDao extends AbstractRoomDao<FriendRoom, RoomPlayer> {
+public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends RoomPlayer> extends AbstractRoomDao<T, P> {
 
     // 玩家好友房
     private static final String PLAYER_FRIEND_ROOM = "PlayerFriendRoomId";
 
-
-    public FriendRoomDao() {
-        super(FriendRoom.class, RoomPlayer.class);
+    public AbstractFriendRoomDao(Class<T> roomClazz, Class<P> roomPlayerClazz) {
+        super(roomClazz, roomPlayerClazz);
     }
 
     private String getPlayerFriendRoomTableName(long playerId) {
@@ -63,11 +65,14 @@ public class FriendRoomDao extends AbstractRoomDao<FriendRoom, RoomPlayer> {
      * 创建押注好友房
      */
     public FriendRoom createBetFriendRoom(
-        long playerId, int gameType, int roomCfgId, int maxLimit, CreateFriendsRoom req) {
+        long playerId, String nodePath, WarehouseCfg warehouseCfg, CreateFriendsRoom req) {
         try {
-            String nodePath = nodeManager.getNodePath();
+            int gameType = warehouseCfg.getGameID();
+            int roomCfgId = warehouseCfg.getId();
+            Tuple2<Integer, Integer> roomMaxLimit = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
+            int maxLimit = roomMaxLimit.getT1();
             long curTime = System.currentTimeMillis();
-            FriendRoom friendRoom = fillFriendRoomData(gameType, nodePath, maxLimit);
+            T friendRoom = fillFriendRoomData(gameType, warehouseCfg, nodePath, maxLimit);
             friendRoom.setRoomCfgId(roomCfgId);
             friendRoom.setAliasName(req.roomAliasName);
             long timeOfOpenRoom = (long) req.timeOfOpenRoom * TimeHelper.ONE_MINUTE_OF_MILLIS;
@@ -79,7 +84,7 @@ public class FriendRoomDao extends AbstractRoomDao<FriendRoom, RoomPlayer> {
             redisTemplate.opsForHash().put(tableName, friendRoom.getId(), gameType);
             return createRoom(friendRoom);
         } catch (Exception e) {
-            log.error("创建好友房出现异常");
+            log.error("创建好友房出现异常, {}", e.getMessage(), e);
         }
         return null;
     }
@@ -87,24 +92,21 @@ public class FriendRoomDao extends AbstractRoomDao<FriendRoom, RoomPlayer> {
     /**
      * 填充好友房数据
      */
-    protected FriendRoom fillFriendRoomData(int gameType, String nodeName, int maxLimit) {
-        EGameType eGameType = EGameType.getGameByTypeId(gameType);
-        FriendRoom room = null;
-        if (eGameType.getRoomType() == RoomType.BET_ROOM) {
-            room = new BetFriendRoom();
-        } else if (eGameType.getRoomType() == RoomType.POKER_ROOM) {
-            room = new PokerFriendRoom();
-        }
+    protected T fillFriendRoomData(int gameType, WarehouseCfg warehouseCfg, String nodeName, int maxLimit) {
+        RoomType roomType = RoomType.getRoomType(warehouseCfg.getId());
+        T room = createNewEmptyFriendRoom(warehouseCfg);
         if (room == null) {
             throw new IllegalArgumentException("通过房间类型：" + gameType + " 创建好友房异常,找不到游戏类型对应的房间类型");
         }
         room.setCreateTime(TimeHelper.nowInt());
         room.setPath(nodeName);
-        room.setType(eGameType.getRoomType());
+        room.setType(roomType);
         room.setGameType(gameType);
         room.setMaxLimit(maxLimit);
         return room;
     }
+
+    protected abstract T createNewEmptyFriendRoom(WarehouseCfg warehouseCfg);
 
     /**
      * 获取玩家房间数量

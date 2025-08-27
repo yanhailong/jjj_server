@@ -83,7 +83,10 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 gameControllerClazz) {
                 GameController gameAnnotateController = controllerClazz.getAnnotation(GameController.class);
                 EGameType games = gameAnnotateController.gameType();
-                if (games.getGameTypeId() == roomCfg.getGameID()) {
+                RoomType roomType = RoomType.getRoomType(roomCfg.getId());
+                boolean isEqualsRoomType = roomType.equals(gameAnnotateController.roomType());
+                // 游戏类型和房间类型必须一致
+                if (games.getGameTypeId() == roomCfg.getGameID() && isEqualsRoomType) {
                     Constructor<AbstractGameController<RC, RD>> constructor =
                         (Constructor<AbstractGameController<RC, RD>>) controllerClazz.getDeclaredConstructor(AbstractRoomController.class);
                     // 将调用当前方法的RoomController写入GameController中
@@ -267,7 +270,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
     @Override
-    public void continueGame(){
+    public void continueGame() {
         gameController.continueGame();
     }
 
@@ -390,7 +393,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             return false;
         }
         //加入房间
-        int joined = roomManager.joinRoom(playerController, gameType, roomOtherId);
+        int joined = roomManager.joinRoom(playerController, gameType, roomConfigId, roomOtherId);
         return joined == Code.SUCCESS;
     }
 
@@ -433,7 +436,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             return;
         }
         // 将机器人加入房间中
-        int code = roomManager.joinRoom(robotPlayerController, room.getGameType(), room.getId());
+        int code = roomManager.joinRoom(robotPlayerController, room.getGameType(), roomCfgId, room.getId());
         // 如果加入失败则走一次退出房间逻辑
         if (code != Code.SUCCESS) {
             log.debug("机器人加入房间失败, code : {} {}", code, room.logStr());

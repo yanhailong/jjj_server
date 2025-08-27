@@ -11,6 +11,13 @@ import com.jjg.game.core.data.FriendRoom;
 public interface HallRoomBridge extends IGameRpc {
 
     /**
+     * 在节点中，创建一个好友房，空房间，但是需要走时间
+     *
+     * @param roomId 房间ID
+     */
+    void createFriendRoom(int roomCfgId, long roomId);
+
+    /**
      * 操作好友房
      *
      * @param playerId    玩家ID

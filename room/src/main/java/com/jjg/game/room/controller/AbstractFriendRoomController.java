@@ -29,4 +29,8 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
     public void stopGame() {
         super.stopGame();
     }
+
+    @Override
+    protected void checkRobotJoinRoom() {
+    }
 }

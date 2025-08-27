@@ -4,6 +4,7 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.BetTableRoom;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.RoomType;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
@@ -30,7 +31,7 @@ import java.util.Map;
  *
  * @author 2CL
  */
-@GameController(gameType = EGameType.LOONG_TIGER_WAR)
+@GameController(gameType = EGameType.LOONG_TIGER_WAR, roomType = RoomType.BET_ROOM)
 public class LoongTigerWarRoomGameController extends BaseTableGameController<LoongTigerWarGameDataVo> {
 
     public LoongTigerWarRoomGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {

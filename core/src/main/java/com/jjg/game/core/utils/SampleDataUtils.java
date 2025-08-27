@@ -1,4 +1,4 @@
-package com.jjg.game.hall.utils;
+package com.jjg.game.core.utils;
 
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import reactor.util.function.Tuple2;
@@ -9,7 +9,7 @@ import reactor.util.function.Tuples;
  *
  * @author 2CL
  */
-public class HallDataUtils {
+public class SampleDataUtils {
 
     /**
      * 通过房间配置获取最大限制

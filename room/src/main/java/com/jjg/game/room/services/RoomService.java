@@ -13,6 +13,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.common.baselogic.ConsoleDebugger;
+import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.room.manager.RoomManager;
@@ -23,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import reactor.util.function.Tuple2;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -152,7 +154,7 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
      */
     private void checkRoomInit(WarehouseCfg warehouseCfg, int minRoomNum) throws Exception {
         int gameType = warehouseCfg.getGameID();
-        AbstractRoomDao<Room, ? extends RoomPlayer> roomDao = roomManager.getRoomDao(gameType);
+        AbstractRoomDao<Room, ? extends RoomPlayer> roomDao = roomManager.getRoomDao(warehouseCfg.getId());
         if (roomDao == null) {
             log.warn("游戏类型：{} 找不到对应的RoomDao", gameType);
             return;
@@ -250,9 +252,8 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
      * 获取房间的最大限制值
      */
     private int getRoomMaxLimit(WarehouseCfg warehouseCfg) {
-        String participantsMax = warehouseCfg.getParticipants_max();
-        String[] participantsMaxStrArr = participantsMax.split(":");
-        return Integer.parseInt(participantsMaxStrArr[1]);
+        Tuple2<Integer, Integer> tuple2 = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
+        return tuple2.getT2();
     }
 
     @Override
