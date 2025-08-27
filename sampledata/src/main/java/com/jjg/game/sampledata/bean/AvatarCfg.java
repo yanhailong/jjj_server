@@ -20,6 +20,8 @@ public class AvatarCfg extends BaseCfgBean {
 
   /** 资源描述 */
   protected int Dec;
+  /** 获得条件 */
+  protected int VIPLevel;
   /** 资源名称 */
   protected int name;
   /** 美术资源名称与路径 */
@@ -30,6 +32,11 @@ public class AvatarCfg extends BaseCfgBean {
   /** 返回资源描述 */
   public int getDec() {
     return Dec;
+  }
+
+  /** 返回获得条件 */
+  public int getVIPLevel() {
+    return VIPLevel;
   }
 
   /** 返回资源名称 */

@@ -117,6 +117,7 @@ public class GameDataManager {
   public Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> initAllContainer() {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
+    containerMap.put(ActivityConfigCfg.class, new ActivityConfigCfgContainer());
     containerMap.put(AlbumCfg.class, new AlbumCfgContainer());
     containerMap.put(AuxiliaryAwardCfg.class, new AuxiliaryAwardCfgContainer());
     containerMap.put(AvatarCfg.class, new AvatarCfgContainer());
@@ -167,6 +168,7 @@ public class GameDataManager {
     containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
     containerMap.put(WinPosWeightCfg.class, new WinPosWeightCfgContainer());
+    containerMap.put(签到每天奖Cfg.class, new 签到每天奖CfgContainer());
     // endregion===============cfg加载模板结束===================
     return containerMap;
   }
@@ -567,6 +569,18 @@ public class GameDataManager {
   }
 
   // region===============cfg获取方法模板开始===================
+
+  public static ActivityConfigCfg getActivityConfigCfg(int key) {
+    return getInstance().getCfgContainer(ActivityConfigCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ActivityConfigCfg> getActivityConfigCfgMap() {
+    return getInstance().getCfgContainer(ActivityConfigCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ActivityConfigCfg> getActivityConfigCfgList() {
+    return getInstance().getCfgContainer(ActivityConfigCfg.class).getCfgBeanList();
+  }
 
   public static AlbumCfg getAlbumCfg(int key) {
     return getInstance().getCfgContainer(AlbumCfg.class).getCfgBeanMap().get(key);
@@ -1166,6 +1180,18 @@ public class GameDataManager {
 
   public static List<WinPosWeightCfg> getWinPosWeightCfgList() {
     return getInstance().getCfgContainer(WinPosWeightCfg.class).getCfgBeanList();
+  }
+
+  public static 签到每天奖Cfg get签到每天奖Cfg(int key) {
+    return getInstance().getCfgContainer(签到每天奖Cfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, 签到每天奖Cfg> get签到每天奖CfgMap() {
+    return getInstance().getCfgContainer(签到每天奖Cfg.class).getCfgBeanMap();
+  }
+
+  public static List<签到每天奖Cfg> get签到每天奖CfgList() {
+    return getInstance().getCfgContainer(签到每天奖Cfg.class).getCfgBeanList();
   }
 
 
