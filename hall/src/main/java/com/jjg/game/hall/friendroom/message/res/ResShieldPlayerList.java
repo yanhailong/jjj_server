@@ -25,6 +25,9 @@ public class ResShieldPlayerList extends AbstractResponse {
     @ProtoDesc("屏蔽的玩家列表")
     public List<BaseFriendRoomPlayerInfo> shieldPlayerList;
 
+    @ProtoDesc("可操作屏蔽玩家数量的上限")
+    public int maxLimit;
+
     public ResShieldPlayerList(int code) {
         super(code);
     }

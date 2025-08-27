@@ -31,6 +31,9 @@ public class ResRefreshFollowedFriendList extends AbstractResponse {
     @ProtoDesc("页大小")
     public int pageSize;
 
+    @ProtoDesc("关注上限")
+    public int maxFollowLimit;
+
     public ResRefreshFollowedFriendList(int code) {
         super(code);
     }
