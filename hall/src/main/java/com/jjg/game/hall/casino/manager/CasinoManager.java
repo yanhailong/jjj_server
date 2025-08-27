@@ -327,6 +327,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 return res;
             }
             casinoSimpleInfos.add(CasinoBuilder.buildCasinoSimpleMachineInfo(casinoInfo, casinoMachineInfo, timeMillis));
+            res.machineId = req.machineId;
             res.itemInfos = new ArrayList<>();
             res.itemInfos.add(CasinoBuilder.buildItemInfo(item));
             return res;

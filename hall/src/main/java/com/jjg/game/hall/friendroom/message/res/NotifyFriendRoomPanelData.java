@@ -50,4 +50,7 @@ public class NotifyFriendRoomPanelData extends AbstractNotice {
 
     @ProtoDesc("邀请码总共可以重置的次数")
     public int invitationCodeResetTotalTimes;
+
+    @ProtoDesc("关注上限")
+    public int maxFollowedLimit;
 }

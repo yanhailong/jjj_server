@@ -70,13 +70,7 @@ public class CasinoBuilder {
             if (Objects.isNull(functionCfg)) {
                 continue;
             }
-            if (functionCfg.getTypeID() > 0) {
-                BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(functionCfg.getBuffid());
-                if (Objects.isNull(buildingGainCfg)) {
-                    continue;
-                }
-                add.merge(buildingGainCfg.getBufftype(), buildingGainCfg.getAddvalue(), Integer::sum);
-            }
+            addBuffValue(functionCfg.getBuffid(), add);
         }
         return add;
     }
@@ -186,11 +180,7 @@ public class CasinoBuilder {
                     if (Objects.isNull(dealerFunctionCfg)) {
                         continue;
                     }
-                    BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(dealerFunctionCfg.getBuffid());
-                    if (Objects.isNull(buildingGainCfg)) {
-                        continue;
-                    }
-                    hashMap.merge(buildingGainCfg.getBufftype(), buildingGainCfg.getAddvalue(), Integer::sum);
+                    addBuffValue(dealerFunctionCfg.getBuffid(), hashMap);
                 }
             }
         }
@@ -241,6 +231,7 @@ public class CasinoBuilder {
         if (tempAreaAdd.size() - areaAdd.size() < cfg.getNumEmployees()) {
             return 0;
         }
+        tempAreaAdd.add(TimeNodeData.getNewTimeNodeData(casinoMachineInfo, getLastBuildingFunctionCfg(casinoMachineInfo.getConfigId())));
         //按时间拆分的时间段
         List<Long> timePeriod = new ArrayList<>();
         timePeriod.add(startTime);
@@ -251,7 +242,7 @@ public class CasinoBuilder {
         Iterator<TimeNodeData> iterator = tempAreaAdd.iterator();
         while (iterator.hasNext()) {
             TimeNodeData next = iterator.next();
-            if (next.getStartTime() < startTime && next.getEndTime() < startTime) {
+            if (next.getEndTime() > 0 && next.getStartTime() < startTime && next.getEndTime() < startTime) {
                 allInTime.add(next);
                 iterator.remove();
                 continue;
@@ -264,13 +255,11 @@ public class CasinoBuilder {
             for (TimeNodeData timeNodeData : allInTime) {
                 //机台
                 if (timeNodeData.getType() == 1) {
-                    BuildingFunctionCfg buildingFunctionCfg = GameDataManager.getBuildingFunctionCfg(timeNodeData.getLastLevelConfigId());
-                    BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(buildingFunctionCfg.getBuffid());
-                    base.merge(buildingGainCfg.getBufftype(), buildingGainCfg.getAddvalue(), Integer::sum);
+                    BuildingFunctionCfg buildingFunctionCfg = GameDataManager.getBuildingFunctionCfg(timeNodeData.getConfigId());
+                    addBuffValue(buildingFunctionCfg.getBuffid(), base);
                 } else {
                     DealerFunctionCfg dealerFunctionCfg = GameDataManager.getDealerFunctionCfg(timeNodeData.getConfigId());
-                    BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(dealerFunctionCfg.getBuffid());
-                    base.merge(buildingGainCfg.getBufftype(), buildingGainCfg.getAddvalue(), Integer::sum);
+                    addBuffValue(dealerFunctionCfg.getBuffid(), base);
                 }
             }
         }
@@ -311,6 +300,22 @@ public class CasinoBuilder {
         return totalNum;
     }
 
+
+    /**
+     * 添加buff值
+     *
+     * @param buffId
+     * @param base
+     */
+    private static void addBuffValue(int buffId, Map<Integer, Integer> base) {
+        if (buffId > 0) {
+            BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(buffId);
+            if (Objects.nonNull(buildingGainCfg) && buildingGainCfg.getBufftype() > 0) {
+                base.merge(buildingGainCfg.getBufftype(), buildingGainCfg.getAddvalue(), Integer::sum);
+            }
+        }
+    }
+
     public static Map<Integer, Integer> getCasinoMaxProfitBonus(List<TimeNodeData> data, Map<Integer, Integer> base, long startTime, long endTime) {
         Map<Integer, Integer> addMap = new HashMap<>(base);
         for (TimeNodeData nodeData : data) {
@@ -319,8 +324,7 @@ public class CasinoBuilder {
                 if (nodeData.getStartTime() <= startTime && nodeData.getEndTime() >= endTime) {
                     //包含
                     DealerFunctionCfg cfg = GameDataManager.getDealerFunctionCfg(nodeData.getConfigId());
-                    BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(cfg.getBuffid());
-                    addMap.merge(buildingGainCfg.getBufftype(), buildingGainCfg.getAddvalue(), Integer::sum);
+                    addBuffValue(cfg.getBuffid(), addMap);
                 }
             } else {
                 //机台
@@ -329,8 +333,7 @@ public class CasinoBuilder {
                     id = nodeData.getConfigId();
                 }
                 BuildingFunctionCfg buildingFunctionCfg = GameDataManager.getBuildingFunctionCfg(id);
-                BuildingGainCfg buildingGainCfg = GameDataManager.getBuildingGainCfg(buildingFunctionCfg.getBuffid());
-                addMap.merge(buildingGainCfg.getBufftype(), buildingGainCfg.getAddvalue(), Integer::sum);
+                addBuffValue(buildingFunctionCfg.getBuffid(), addMap);
             }
         }
         return addMap;
@@ -350,8 +353,8 @@ public class CasinoBuilder {
                 if (Objects.isNull(buildingGainCfg) || buildingGainCfg.getBufftype() == 0) {
                     continue;
                 }
-                BuildingFunctionCfg functionCfg = CasinoBuilder.getLastBuildingFunctionCfg(buildingGainCfg.getId());
-                areaAdd.add(TimeNodeData.getNewTimeNodeData(casinoMachineInfo, Objects.isNull(functionCfg) ? 0 : functionCfg.getId()));
+                BuildingFunctionCfg functionCfg = CasinoBuilder.getLastBuildingFunctionCfg(cfg.getId());
+                areaAdd.add(TimeNodeData.getNewTimeNodeData(casinoMachineInfo, functionCfg));
             }
         }
         return areaAdd;
