@@ -14,8 +14,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class BetTableFriendRoomDao extends AbstractFriendRoomDao<BetFriendRoom, RoomPlayer> {
 
-    public BetTableFriendRoomDao(Class<BetFriendRoom> roomClazz, Class<RoomPlayer> roomPlayerClazz) {
-        super(roomClazz, roomPlayerClazz);
+    public BetTableFriendRoomDao() {
+        super(BetFriendRoom.class, RoomPlayer.class);
     }
 
     @Override

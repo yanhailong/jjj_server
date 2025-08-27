@@ -20,7 +20,6 @@ import java.util.Map;
  *
  * @author 2CL
  */
-@Repository
 public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends RoomPlayer> extends AbstractRoomDao<T, P> {
 
     // 玩家好友房

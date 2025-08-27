@@ -375,4 +375,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     public EGameState getGameState() {
         return gameState;
     }
+
+    public GamePlayer getGamePlayer(long playerId) {
+        return gameDataVo.getGamePlayer(playerId);
+    }
 }

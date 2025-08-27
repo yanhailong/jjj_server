@@ -11,7 +11,6 @@ import java.util.Map;
  *
  * @author 2CL
  */
-@Document(collection = "FriendRoom")
 public class FriendRoom extends Room {
     @Id
     protected long id;

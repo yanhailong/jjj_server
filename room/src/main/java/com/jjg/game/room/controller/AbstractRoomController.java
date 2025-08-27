@@ -16,6 +16,7 @@ import com.jjg.game.room.base.ERoomState;
 import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayFlowPojo;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.manager.AbstractRoomManager;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.services.RobotService;

@@ -16,6 +16,8 @@ import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.message.req.ReqApplyBankerInFriendRoom;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.RoomCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
@@ -36,9 +38,6 @@ import java.util.Set;
  */
 @Component
 public class RoomManager extends AbstractRoomManager implements GmListener, HallRoomBridge {
-
-    @Autowired
-    private AbstractFriendRoomDao friendRoomDao;
 
     public RoomManager() {
         super();
@@ -143,6 +142,20 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
             }
         }
         return method.invoke(gameController, params);
+    }
+
+    /**
+     * 申请成为庄家
+     */
+    public void supplyBeBanker(PlayerController playerController, ReqApplyBankerInFriendRoom req) {
+        long playerId = playerController.playerId();
+        AbstractRoomController<? extends RoomCfg, ? extends Room> roomController = getRoomControllerByPlayer(playerId);
+        // 检查玩家金币是否足够
+        GamePlayer gamePlayer = roomController.getGameController().getGamePlayer(playerId);
+        // 判断金币是否足够
+        if (gamePlayer.getGold() < req.predictCostGold) {
+
+        }
     }
 
     /**

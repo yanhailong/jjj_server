@@ -42,7 +42,7 @@ public class RoomMessageHandler {
             log.debug("退出游戏 playerId = {}", playerId);
             if (playerController.getPlayer().getGameType() != EGameType.BACCARAT.getGameTypeId()) {
                 AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-                        roomManager.getGameControllerByPlayerId(playerId);
+                    roomManager.getGameControllerByPlayerId(playerId);
                 if (Objects.isNull(gameController)) {
                     playerController.send(new ResExitGame(Code.PARAM_ERROR));
                     return;
@@ -57,5 +57,27 @@ public class RoomMessageHandler {
         } catch (Exception e) {
             log.error("玩家退出房间异常 msg: {}", e.getMessage(), e);
         }
+    }
+
+
+    /**
+     * 请求申请成为庄家
+     */
+    public void reqApplyBanker(PlayerController playerController) {
+
+    }
+
+    /**
+     * 取消成为庄家
+     */
+    public void reqCancelBeBanker() {
+
+    }
+
+    /**
+     * 请求庄家列表
+     */
+    public void reqBankerList() {
+
     }
 }
