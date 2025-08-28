@@ -4,6 +4,8 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 
 /**
+ * rpc客户端方法调用代理
+ *
  * @author 2CL
  */
 public class RpcClientProxy {

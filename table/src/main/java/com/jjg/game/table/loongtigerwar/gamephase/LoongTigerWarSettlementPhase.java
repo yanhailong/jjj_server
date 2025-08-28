@@ -4,6 +4,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.utils.PokerCardUtils;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.TablePlayerGameData;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
@@ -82,8 +83,12 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
                         canGet = canGet * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
                     }
                     canGet += backBet;
-                    gamePlayer.setGold(canGet + gamePlayer.getGold());
-                    DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId, key -> new DefaultKeyValue<>(0L, 0L));
+                    // 给玩家添加金币
+                    gameController.addGold(
+                        gamePlayer.getId(), canGet,
+                        ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
+                    DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId,
+                        key -> new DefaultKeyValue<>(0L, 0L));
                     keyValue.setKey(keyValue.getKey() + totalBet);
                     keyValue.setValue(keyValue.getValue() + canGet);
                 }
@@ -124,8 +129,10 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         gameDataVo.addHistory(result);
     }
 
-    private void addLog(LoongTigerWarGameDataVo gameDataVo, Map<Long, DefaultKeyValue<Long, Long>> playerGetInfo, int loongCard, int tigerCard) {
-        SaveLogUtil.generalLog(gameDataVo.getPlayerBetInfo(), playerGetInfo, gameDataVo.getGamePlayerMap(), gameDataTracker);
+    private void addLog(LoongTigerWarGameDataVo gameDataVo, Map<Long, DefaultKeyValue<Long, Long>> playerGetInfo,
+                        int loongCard, int tigerCard) {
+        SaveLogUtil.generalLog(gameDataVo.getPlayerBetInfo(), playerGetInfo, gameDataVo.getGamePlayerMap(),
+            gameDataTracker);
         gameDataTracker.addGameLogData("loongCard", loongCard);
         gameDataTracker.addGameLogData("tigerCard", tigerCard);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);

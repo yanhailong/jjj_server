@@ -199,7 +199,7 @@ public class FriendRoomServices implements IConsoleReceiver {
         // 准备金扣费检查
         PlayerPack playerPack = playerPackService.redisGet(player.getId());
         ItemCfg goldItemCfg =
-            GameDataManager.getItemCfgList().stream().filter(cfg -> cfg.getType() == GameConstant.Item.TYPE_MONEY).findFirst().get();
+            GameDataManager.getItemCfgList().stream().filter(cfg -> cfg.getType() == GameConstant.Item.TYPE_DIAMOND).findFirst().get();
         boolean useGold = itemId == goldItemCfg.getId();
         if (playerPack == null && !useGold) {
             return Code.NOT_ENOUGH;

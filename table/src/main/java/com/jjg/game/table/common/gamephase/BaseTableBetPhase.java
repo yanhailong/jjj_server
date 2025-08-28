@@ -7,6 +7,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.exception.GameSampleException;
 import com.jjg.game.room.base.AbstractMsgDealRoomPhase;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
@@ -123,8 +124,10 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             betTableInfo.betValue = betValue;
             notifyPlayerBet.betTableInfoList.add(betTableInfo);
         }
-        // TODO 扣除玩家金币
-        gamePlayer.setGold(gamePlayer.getGold() - playerTotalBetGold);
+        // 扣除玩家金币
+        gameController.deductGold(
+            gamePlayer.getId(), playerTotalBetGold,
+            ERoomItemReason.GAME_BET.withCfgId(gameDataVo.getRoomCfg().getId()));
         gamePlayer.getTableGameData().addTotalBet(playerTotalBetGold);
         notifyPlayerBet.playerCurGold = gamePlayer.getGold();
         // 向房间广播下注改变信息
@@ -250,9 +253,12 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         betTableInfo.playerBetTotal = tableBetAreaInfoMap.get(randomBetArea).stream().mapToInt(Integer::intValue).sum();
         // 更新单局总押注数据
         betTableInfo.betIdxTotal = gameDataVo.getAreaTotalBet(randomBetArea);
-        // TODO 给机器人扣除金币
+        // 给机器人直接扣金币
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(robotPlayer.getId());
-        gamePlayer.setGold(gamePlayer.getGold() - randomGold);
+        // 给玩家添加金币
+        gameController.deductGold(
+            gamePlayer.getId(), randomGold,
+            ERoomItemReason.GAME_BET.withCfgId(gameDataVo.getRoomCfg().getId()));
         gamePlayer.getTableGameData().addTotalBet(randomGold);
         notifyPlayerBet.playerCurGold = gamePlayer.getGold();
         // 向玩家广播下注数据

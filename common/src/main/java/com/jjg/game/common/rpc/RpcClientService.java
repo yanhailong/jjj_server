@@ -22,6 +22,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
+ * rpc客户端服务
  *
  * @author 2CL
  */

@@ -2,6 +2,7 @@ package com.jjg.game.table.dicecommon.phase;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.pb.AbstractMessage;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
@@ -50,8 +51,10 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             playerChangedGold.playerId = playerId;
             playerChangedGold.playerWinGold = playerSettlementData.getBetWin();
             playerChangedGolds.add(playerChangedGold);
-            // TODO 给玩家加金币
-            gamePlayer.setGold(gamePlayer.getGold() + playerSettlementData.getTotalWin());
+            // 给玩家添加金币
+            gameController.addGold(
+                gamePlayer.getId(), playerSettlementData.getTotalWin(),
+                ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
             playerChangedGold.playerCurGold = gamePlayer.getGold();
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());

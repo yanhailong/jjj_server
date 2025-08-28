@@ -77,6 +77,7 @@ public class BaseLogger {
 
             json.put("addType", addType);
             json.put("desc", desc);
+            log.info("k--------{}", json);
             sendLog("goldChange", player, json);
         } catch (Exception e) {
             log.error("", e);

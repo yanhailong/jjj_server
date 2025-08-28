@@ -14,6 +14,7 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
 import com.jjg.game.room.base.EGameState;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -25,12 +26,15 @@ import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomTimerCenter;
 import com.jjg.game.room.timer.RoomTimerEvent;
 import com.jjg.game.sampledata.bean.RoomCfg;
+import org.apache.kafka.common.utils.PrimitiveRef;
+import org.apache.kafka.common.utils.PrimitiveRef.LongRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * 抽象游戏流程控制器
@@ -210,8 +214,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         long playerUpdateTime = player.getUpdateTime();
         // 如果游戏端的更新时间和数据库中的不一致，说明玩家数据在游戏外部进行了修改，需要判断使用哪一边的数据，暂时先打日志
         if (gamePlayer.getUpdateTime() != playerUpdateTime) {
-            log.error("玩家游戏数据: {} 更新时间：{} 和数据库中数据的更新时间: {} 不一致",
-                gamePlayer.getId(), gamePlayer.getUpdateTime(), playerUpdateTime);
+            log.error("玩家游戏数据: {} 更新时间：{} 和数据库中数据的更新时间: {} 不一致, {}",
+                gamePlayer.getId(), gamePlayer.getUpdateTime(), playerUpdateTime, gameDataVo.roomLogInfo());
         } else {
             player = JSON.parseObject(JSON.toJSONString(gamePlayer), Player.class);
             Player finalPlayer = player;
@@ -298,7 +302,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     @Override
-    public void continueGame() {
+    public boolean continueGame() {
+        return true;
     }
 
     /**
@@ -377,5 +382,116 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
 
     public GamePlayer getGamePlayer(long playerId) {
         return gameDataVo.getGamePlayer(playerId);
+    }
+
+    /**
+     * 扣除金币
+     */
+    public int deductGold(long playerId, long num, ERoomItemReason deductType) {
+        return deductGold(playerId, num, deductType.name(), deductType.getGameCfgId() + "", false);
+    }
+
+    /**
+     * 扣除金币
+     */
+    public int deductGold(long playerId, long num, String deductType) {
+        return deductGold(playerId, num, deductType, "", false);
+    }
+
+    /**
+     * 扣除金币
+     */
+    public int deductGold(long playerId, long num, String deductType, String desc) {
+        return deductGold(playerId, num, deductType, desc, false);
+    }
+
+    /**
+     * 扣除金币
+     *
+     * @param playerId   玩家ID
+     * @param num        金币数量
+     * @param deductType 扣除类型
+     * @param desc       描述
+     * @param isNotify   是否通知
+     * @return 扣除结果
+     */
+    public int deductGold(long playerId, long num, String deductType, String desc, boolean isNotify) {
+        CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
+        LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        Supplier<GamePlayer> supplier = () -> {
+            beforeUpdateGold.value = gamePlayer.getGold();
+            long afterCoin = gamePlayer.getGold() - num;
+            if (afterCoin < 0) {
+                return null;
+            }
+            gamePlayer.setGold(afterCoin);
+            return gamePlayer;
+        };
+        // 机器人直接扣除
+        if (gamePlayer instanceof GameRobotPlayer) {
+            supplier.get();
+            return Code.SUCCESS;
+        }
+        CommonResult<GamePlayer> result =
+            playerService.deductGold(playerId, num, deductType, desc, isNotify, supplier, beforeUpdateGold);
+        if (result.data == null) {
+            return Code.NOT_ENOUGH;
+        }
+        return result.code;
+    }
+
+
+    /**
+     * 添加金币
+     */
+    public int addGold(long playerId, long num, ERoomItemReason addType) {
+        return addGold(playerId, num, addType.name(), addType.getGameCfgId() + "", false);
+    }
+
+    /**
+     * 添加金币
+     */
+    public int addGold(long playerId, long num, String addType) {
+        return addGold(playerId, num, addType, "", false);
+    }
+
+    /**
+     * 添加金币
+     */
+    public int addGold(long playerId, long num, String addType, String desc) {
+        return addGold(playerId, num, addType, desc, false);
+    }
+
+    /**
+     * 添加金币
+     *
+     * @param playerId 玩家ID
+     * @param num      金币数量
+     * @param addType  添加类型
+     * @param desc     描述
+     * @param isNotify 是否通知
+     * @return 扣除结果
+     */
+    public int addGold(long playerId, long num, String addType, String desc, boolean isNotify) {
+        CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
+        LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        Supplier<GamePlayer> supplier = () -> {
+            beforeUpdateGold.value = gamePlayer.getGold();
+            gamePlayer.setGold(Math.min(Long.MAX_VALUE, gamePlayer.getGold() + num));
+            return gamePlayer;
+        };
+        // 机器人直接扣除
+        if (gamePlayer instanceof GameRobotPlayer) {
+            supplier.get();
+            return Code.SUCCESS;
+        }
+        CommonResult<GamePlayer> result =
+            playerService.addGold(playerId, num, addType, desc, isNotify, supplier, beforeUpdateGold);
+        if (result.data == null) {
+            return Code.FAIL;
+        }
+        return result.code;
     }
 }

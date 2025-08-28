@@ -4,6 +4,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.BetTableRoom;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
@@ -30,7 +31,7 @@ import java.util.Objects;
 @GameController(gameType = EGameType.BACCARAT, roomType = RoomType.BET_ROOM)
 public class BaccaratGameController extends BaseTableGameController<BaccaratGameDataVo> {
 
-    public BaccaratGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {
+    public BaccaratGameController(AbstractRoomController<Room_BetCfg, ? extends Room> roomController) {
         super(roomController);
     }
 

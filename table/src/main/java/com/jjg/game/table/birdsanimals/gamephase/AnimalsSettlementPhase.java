@@ -3,6 +3,7 @@ package com.jjg.game.table.birdsanimals.gamephase;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
@@ -79,8 +80,10 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
             playerChangedGold.playerWinGold = settlementData.getBetWin();
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(settlementData.getTotalWin());
-            // TODO 给玩家加金币
-            gamePlayer.setGold(gamePlayer.getGold() + settlementData.getTotalWin());
+            // 给玩家添加金币
+            gameController.addGold(
+                gamePlayer.getId(), settlementData.getTotalWin(),
+                ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
             playerChangedGold.playerCurGold = gamePlayer.getGold();
             playerChangedGolds.add(playerChangedGold);
         }

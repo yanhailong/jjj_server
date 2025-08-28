@@ -3,6 +3,7 @@ package com.jjg.game.table.redblackwar.gamephase;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.utils.PokerCardUtils;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.TablePlayerGameData;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
@@ -113,7 +114,10 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                         canGet = canGet * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
                     }
                     canGet += backBet;
-                    gamePlayer.setGold(canGet + gamePlayer.getGold());
+                    // 给玩家添加金币
+                    gameController.addGold(
+                        gamePlayer.getId(), canGet,
+                        ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
                     DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId, key -> new DefaultKeyValue<>(0L, 0L));
                     keyValue.setKey(keyValue.getKey() + totalBet);
                     keyValue.setValue(keyValue.getValue() + canGet);

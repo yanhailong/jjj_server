@@ -3,7 +3,6 @@ package com.jjg.game.room.manager;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.dao.room.AbstractFriendRoomDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.PlayerController;
@@ -16,14 +15,9 @@ import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
-import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.friendroom.AbstractFriendRoomController;
-import com.jjg.game.room.message.req.ReqApplyBankerInFriendRoom;
-import com.jjg.game.room.message.resp.ResApplyBankerInFriendRoom;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.RoomCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.util.function.Tuple2;
 
@@ -144,28 +138,6 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
             }
         }
         return method.invoke(gameController, params);
-    }
-
-    /**
-     * 申请成为庄家
-     */
-    public void supplyBeBanker(PlayerController playerController, ReqApplyBankerInFriendRoom req) {
-        ResApplyBankerInFriendRoom res = new ResApplyBankerInFriendRoom(Code.PARAM_ERROR);
-        long playerId = playerController.playerId();
-        if (req.predictCostGold <= 0) {
-            playerController.send(res);
-            return;
-        }
-        AbstractRoomController<? extends RoomCfg, ? extends Room> roomController = getRoomControllerByPlayer(playerId);
-        // 如果玩家不在房间中，或者不在好友房中
-        if (!(roomController instanceof AbstractFriendRoomController<?> friendRoomController)) {
-            res.code = Code.ROOM_NOT_FOUND;
-            playerController.send(res);
-            return;
-        }
-        // 申请成为庄家
-        res.code = friendRoomController.supplyBeBanker(playerController, req.predictCostGold);
-        playerController.send(res);
     }
 
     /**

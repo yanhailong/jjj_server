@@ -42,11 +42,6 @@ public class GamePlayer extends Player {
     }
 
     @Override
-    public void setGold(long gold) {
-        super.setGold(gold);
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) {
             return false;

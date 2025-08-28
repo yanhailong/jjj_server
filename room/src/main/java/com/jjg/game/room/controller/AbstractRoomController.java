@@ -280,8 +280,12 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
     @Override
-    public void continueGame() {
-        gameController.continueGame();
+    public boolean continueGame() {
+        if (gameController.continueGame()) {
+            roomState = ERoomState.GAMING;
+            return true;
+        }
+        return false;
     }
 
     @Override

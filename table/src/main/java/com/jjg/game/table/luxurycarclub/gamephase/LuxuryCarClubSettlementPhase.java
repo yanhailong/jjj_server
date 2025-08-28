@@ -3,6 +3,7 @@ package com.jjg.game.table.luxurycarclub.gamephase;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
@@ -72,8 +73,10 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
             // 添加日志埋点数据
             BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameDataTracker, playerBetInfo);
-            // TODO 给玩家加金币
-            gamePlayer.setGold(gamePlayer.getGold() + playerSettlementData.getTotalWin());
+            // 给玩家添加金币
+            gameController.addGold(
+                gamePlayer.getId(), playerSettlementData.getTotalWin(),
+                ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
             playerChangedGold.playerCurGold = gamePlayer.getGold();
             playerChangedGolds.add(playerChangedGold);
         }

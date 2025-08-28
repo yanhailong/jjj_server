@@ -38,6 +38,13 @@ public class FriendRoom extends Room {
     protected long creatorIncome;
 
     /**
+     * 场上是否有庄家
+     */
+    public boolean hasBanker() {
+        return !bankerPredicateMap.isEmpty();
+    }
+
+    /**
      * 房间庄家ID
      */
     public long roomBankerId() {
@@ -45,6 +52,25 @@ public class FriendRoom extends Room {
             return 0L;
         }
         return bankerPredicateMap.firstEntry().getKey();
+    }
+
+    /**
+     * 房间庄家剩余金币
+     */
+    public long roomBankerResetGold() {
+        if (bankerPredicateMap.isEmpty()) {
+            return 0L;
+        }
+        return bankerPredicateMap.firstEntry().getValue();
+    }
+
+    /**
+     * 移除庄家
+     *
+     * @return 剩余的准备金
+     */
+    public Map.Entry<Long, Long> removeBanker() {
+        return bankerPredicateMap.pollFirstEntry();
     }
 
     /**
