@@ -1,7 +1,6 @@
 package com.jjg.game.slots.game.dollarexpress.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.game.dollarexpress.pb.ResStartGame;
 import org.springframework.beans.BeanUtils;
 
 import java.util.*;
@@ -44,8 +43,6 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
     private Set<Integer> selectedAreaSet;
     //全地图解锁
     private AtomicBoolean allUnLock = new AtomicBoolean(false);
-
-    private ResStartGame resStartGame;
 
     public long getLastBet() {
         return lastBet;
@@ -242,13 +239,5 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
         BeanUtils.copyProperties(this,dto);
         dto.setPlayerId(this.playerId());
         return dto;
-    }
-
-    public ResStartGame getResStartGame() {
-        return resStartGame;
-    }
-
-    public void setResStartGame(ResStartGame resStartGame) {
-        this.resStartGame = resStartGame;
     }
 }

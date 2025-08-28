@@ -39,7 +39,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
      *
      * @param playerController
      */
-    public void sendConfigMessage(PlayerController playerController) {
+    public void sendConfigMessage(PlayerController playerController,DollarExpressGameRunInfo gameRunInfo) {
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
         List<Integer> prizePoolIdList = generateManager.getBaseInitCfg().getPrizePoolIdList();
 
@@ -72,6 +72,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             res.clientRoller = getRollerInfo();
             res.clientFreeRoller = getFreeRollerInfo();
             res.collectMinStake = generateManager.getDollarExpressCollectDollarConfig().getStakeMin();
+            res.dollarCollectedCount = gameRunInfo.getTotalDollars();
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
@@ -118,7 +119,6 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
-            gameManager.saveResGame(playerController,res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
@@ -193,25 +193,6 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回奖池结果", false);
-    }
-
-    /**
-     * 返回重连结果
-     *
-     * @param playerController
-     */
-    public void sendDollarExpressReconnect(PlayerController playerController) {
-        SendInfo sendInfo = new SendInfo();
-
-        ResDollarExpressReconnect res = new ResDollarExpressReconnect(Code.SUCCESS);
-        ResStartGame resStartGame = gameManager.getResStartGame(playerController);
-        if(resStartGame != null){
-            BeanUtils.copyProperties(resStartGame,res);
-        }
-
-        sendInfo.addPlayerMsg(playerController.playerId(), res);
-        sendInfo.getLogMessage().add(res);
-        sendRun(playerController, sendInfo, "返回重连结果", false);
     }
 
     /**

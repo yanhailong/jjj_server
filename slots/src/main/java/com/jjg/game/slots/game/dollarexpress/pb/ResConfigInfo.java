@@ -29,6 +29,8 @@ public class ResConfigInfo extends AbstractResponse {
     public List<RollerInfo> clientFreeRoller;
     @ProtoDesc("达到收集美元的最低押注")
     public long collectMinStake;
+    @ProtoDesc("当前已收集美元个数")
+    public int dollarCollectedCount;
 
     public ResConfigInfo(int code) {
         super(code);

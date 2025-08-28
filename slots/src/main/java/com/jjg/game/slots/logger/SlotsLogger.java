@@ -32,6 +32,7 @@ public class SlotsLogger extends BaseLogger {
             json.put("afterGold",player.getGold());
             json.put("icon",gameRunInfo.getIconArr());
             json.put("status",gameRunInfo.getStatus());
+            json.put("auto",gameRunInfo.isAuto());
 
             //添加中奖线
             json = getAwardLineInfo(json,gameRunInfo);
