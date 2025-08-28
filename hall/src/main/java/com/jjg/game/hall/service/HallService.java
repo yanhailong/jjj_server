@@ -287,7 +287,7 @@ public class HallService implements ConfigExcelChangeListener {
             }
 
             if (!change[0] && !change[1]) {
-                result.code = Code.PARAM_ERROR;
+                result.code = Code.SUCCESS;
                 log.debug("玩家请求修改的昵称和性别与原本一致，无需修改 playerId = {},nick = {},gender = {}", playerController.getPlayer().getId(), nick, gender);
                 return result;
             }
