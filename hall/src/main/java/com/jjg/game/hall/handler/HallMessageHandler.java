@@ -32,6 +32,10 @@ import com.jjg.game.hall.room.HallRoomService;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.hall.utils.HallTool;
+import com.jjg.game.hall.vip.VipManager;
+import com.jjg.game.hall.vip.data.VipCfgCache;
+import com.jjg.game.hall.vip.pb.req.ReqVipClaimGiftReward;
+import com.jjg.game.hall.vip.pb.req.ReqVipInfo;
 import com.jjg.game.hall.vip.service.VipService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
@@ -68,7 +72,7 @@ public class HallMessageHandler implements GmListener {
     @Autowired
     private MailService mailService;
     @Autowired
-    private VipService vipService;
+    private VipManager vipManager;
 
     /**
      * 进入游戏
@@ -336,6 +340,7 @@ public class HallMessageHandler implements GmListener {
     @Command(HallConstant.MsgBean.REQ_ALL_AVATAR)
     public void reqAllAvatar(PlayerController playerController, ReqAllAvatar req) {
         ResAllAvatar res = new ResAllAvatar(HallCode.SUCCESS);
+        Player player = playerController.getPlayer();
         try {
             PlayerAvatar playerAvatar = hallService.allAvatar(playerController.playerId());
             if (playerAvatar == null) {
@@ -357,18 +362,9 @@ public class HallMessageHandler implements GmListener {
                 res.titles = new ArrayList<>(playerAvatar.getUnlockTitleSet().size());
                 res.titles.addAll(playerAvatar.getUnlockTitleSet());
             }
-            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockChipsSet())) {
-                res.unlockChipsId = new ArrayList<>(playerAvatar.getUnlockChipsSet().size());
-                res.unlockChipsId.addAll(playerAvatar.getUnlockChipsSet());
-            }
-            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockBackgroundSet())) {
-                res.unlockBackgroundId = new ArrayList<>(playerAvatar.getUnlockBackgroundSet().size());
-                res.unlockBackgroundId.addAll(playerAvatar.getUnlockBackgroundSet());
-            }
-            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockCardBackgroundSet())) {
-                res.unlockCardBackgroundId = new ArrayList<>(playerAvatar.getUnlockCardBackgroundSet().size());
-                res.unlockCardBackgroundId.addAll(playerAvatar.getUnlockCardBackgroundSet());
-            }
+            res.unlockChipsId = VipCfgCache.getSkinsByType(player.getVipLevel(), AvatarType.CHIP.getType());
+            res.unlockBackgroundId = VipCfgCache.getSkinsByType(player.getVipLevel(), AvatarType.BACKGROUND.getType());
+            res.unlockCardBackgroundId = VipCfgCache.getSkinsByType(player.getVipLevel(), AvatarType.CARD_BACKGROUND.getType());
 
             log.debug("玩家获取所有头像信息 playerId = {}", playerController.playerId());
         } catch (Exception e) {
@@ -388,7 +384,7 @@ public class HallMessageHandler implements GmListener {
     public void reqSelectAvatar(PlayerController playerController, ReqSelectAvatar req) {
         ResSelectAvatar res = new ResSelectAvatar(HallCode.SUCCESS);
         try {
-            CommonResult<Player> result = hallService.selectAvatar(playerController.playerId(), req.id);
+            CommonResult<Player> result = hallService.selectAvatar(playerController.getPlayer(), req.id);
             if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);
@@ -886,6 +882,26 @@ public class HallMessageHandler implements GmListener {
         playerController.send(res);
     }
 
+    /**
+     * VIP 请求Vip数据
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_VIP_INFO)
+    public void reqVipInfo(PlayerController playerController, ReqVipInfo req) {
+        playerController.send(vipManager.reqVipInfo(playerController, req));
+    }
+
+    /**
+     * VIP 请求领取VIP礼包
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_VIP_INFO)
+    public void reqVipClaimGiftReward(PlayerController playerController, ReqVipClaimGiftReward req) {
+        playerController.send(vipManager.reqVipClaimGiftReward(playerController, req));
+    }
+
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
@@ -925,12 +941,12 @@ public class HallMessageHandler implements GmListener {
         }
 
         List<PackItemInfo> packItemInfos = new ArrayList<>();
-        playerPack.getItems().entrySet().forEach(en -> {
+        playerPack.getItems().forEach((key, value) -> {
             PackItemInfo info = new PackItemInfo();
-            info.girdId = en.getKey();
+            info.girdId = key;
             info.item = new ItemInfo();
-            info.item.itemId = en.getValue().getId();
-            info.item.count = en.getValue().getCount();
+            info.item.itemId = value.getId();
+            info.item.count = value.getCount();
             packItemInfos.add(info);
         });
         return packItemInfos;

@@ -139,6 +139,7 @@ public class GameDataManager {
     containerMap.put(ClientFreeRollerCfg.class, new ClientFreeRollerCfgContainer());
     containerMap.put(ClientRollerCfg.class, new ClientRollerCfgContainer());
     containerMap.put(ConditionCfg.class, new ConditionCfgContainer());
+    containerMap.put(DailyRewardsCfg.class, new DailyRewardsCfgContainer());
     containerMap.put(DealerFunctionCfg.class, new DealerFunctionCfgContainer());
     containerMap.put(DropDetailedCfg.class, new DropDetailedCfgContainer());
     containerMap.put(DropGroupCfg.class, new DropGroupCfgContainer());
@@ -831,6 +832,18 @@ public class GameDataManager {
 
   public static List<ConditionCfg> getConditionCfgList() {
     return getInstance().getCfgContainer(ConditionCfg.class).getCfgBeanList();
+  }
+
+  public static DailyRewardsCfg getDailyRewardsCfg(int key) {
+    return getInstance().getCfgContainer(DailyRewardsCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, DailyRewardsCfg> getDailyRewardsCfgMap() {
+    return getInstance().getCfgContainer(DailyRewardsCfg.class).getCfgBeanMap();
+  }
+
+  public static List<DailyRewardsCfg> getDailyRewardsCfgList() {
+    return getInstance().getCfgContainer(DailyRewardsCfg.class).getCfgBeanList();
   }
 
   public static DealerFunctionCfg getDealerFunctionCfg(int key) {

@@ -26,13 +26,6 @@ public interface HallConstant {
         int CODE_MAX = 9999;
     }
 
-    interface Avatar {
-
-    }
-
-    interface Casino {
-
-    }
 
     /**
      * 传入,返回参数类型
@@ -165,5 +158,12 @@ public interface HallConstant {
         int REQ_CASINO_EXIT = BASE_MSG_PREFIX | 0X3E;
         int RES_CASINO_EXIT = BASE_MSG_PREFIX | 0X40;
 
+        //请求vip信息
+        int REQ_VIP_INFO = BASE_MSG_PREFIX | 0X41;
+        int RES_VIP_INFO = BASE_MSG_PREFIX | 0X42;
+
+        //请求vip请求领取礼包
+        int REQ_VIP_CLAIM_GIFT_REWARD = BASE_MSG_PREFIX | 0X43;
+        int RES_VIP_CLAIM_GIFT_REWARD = BASE_MSG_PREFIX | 0X44;
     }
 }

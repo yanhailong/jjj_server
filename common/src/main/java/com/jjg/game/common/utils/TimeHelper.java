@@ -4,10 +4,12 @@ import java.text.DateFormat;
 import java.text.DateFormatSymbols;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
+import java.time.temporal.TemporalField;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -22,9 +24,9 @@ public final class TimeHelper {
      * 时间转换成毫秒数
      */
     public static final int ONE_SECOND_OF_MILLIS = 1000,
-        ONE_MINUTE_OF_MILLIS = 60 * ONE_SECOND_OF_MILLIS,
-        ONE_HOUR_OF_MILLIS = 60 * ONE_MINUTE_OF_MILLIS,
-        ONE_DAY_OF_MILLIS = 24 * ONE_HOUR_OF_MILLIS;
+            ONE_MINUTE_OF_MILLIS = 60 * ONE_SECOND_OF_MILLIS,
+            ONE_HOUR_OF_MILLIS = 60 * ONE_MINUTE_OF_MILLIS,
+            ONE_DAY_OF_MILLIS = 24 * ONE_HOUR_OF_MILLIS;
 
     /**
      * 一小时的秒数
@@ -99,7 +101,7 @@ public final class TimeHelper {
      */
     public static DateFormat getDateFormat() {
         DateFormat LocaleDateFormat = new SimpleDateFormat(dateFormat,
-            new DateFormatSymbols());
+                new DateFormatSymbols());
         LocaleDateFormat.setTimeZone(TimeZone.getDefault());
         return LocaleDateFormat;
     }
@@ -149,7 +151,7 @@ public final class TimeHelper {
      */
     public static DateFormat getDateFormat(String format) {
         DateFormat LocaleDateFormat = new SimpleDateFormat(format,
-            new DateFormatSymbols());
+                new DateFormatSymbols());
         LocaleDateFormat.setLenient(false);
         LocaleDateFormat.setTimeZone(TimeZone.getTimeZone(timeZone));
         return LocaleDateFormat;
@@ -165,7 +167,7 @@ public final class TimeHelper {
     public static boolean isNewWeek(int currentTime, int lastTime) {
 
         Calendar calendar = Calendar
-            .getInstance(TimeZone.getTimeZone(timeZone));
+                .getInstance(TimeZone.getTimeZone(timeZone));
         calendar.setFirstDayOfWeek(Calendar.MONDAY);
         // 将日历设定到当前时间
         calendar.setTimeInMillis((long) currentTime * 1000L);
@@ -205,7 +207,7 @@ public final class TimeHelper {
     public static boolean isNewDay(int currentTime, int lastTime) {
 
         Calendar calendar = Calendar
-            .getInstance(TimeZone.getTimeZone(timeZone));
+                .getInstance(TimeZone.getTimeZone(timeZone));
         calendar.setFirstDayOfWeek(Calendar.MONDAY);
         // 将日历设定到当前时间
         calendar.setTimeInMillis((long) currentTime * 1000L);
@@ -240,7 +242,7 @@ public final class TimeHelper {
     public static int getThisWeekTime(int currentTime, int week, int hour,
                                       int min) {
         Calendar calendar = Calendar
-            .getInstance(TimeZone.getTimeZone(timeZone));
+                .getInstance(TimeZone.getTimeZone(timeZone));
         calendar.setFirstDayOfWeek(Calendar.MONDAY);
         // 将日历设定到当前时间
         calendar.setTimeInMillis((long) currentTime * 1000L);
@@ -270,7 +272,7 @@ public final class TimeHelper {
     public static String getDate(long currentTime) {
         Date date = new Date(currentTime);
         SimpleDateFormat sdf = new SimpleDateFormat(dateFormat,
-            new DateFormatSymbols());
+                new DateFormatSymbols());
         sdf.setTimeZone(TimeZone.getTimeZone(timeZone));
         return sdf.format(date);
     }
@@ -292,7 +294,7 @@ public final class TimeHelper {
     public static String getDate(long currentTime, String format) {
         Date date = new Date(currentTime);
         SimpleDateFormat sdf = new SimpleDateFormat(format,
-            new DateFormatSymbols());
+                new DateFormatSymbols());
         sdf.setTimeZone(TimeZone.getTimeZone(timeZone));
         return sdf.format(date);
     }
@@ -306,7 +308,7 @@ public final class TimeHelper {
     public static String get14PositionDate(int currentTime) {
         Date date = new Date((long) currentTime * 1000L);
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss",
-            new DateFormatSymbols());
+                new DateFormatSymbols());
         sdf.setTimeZone(TimeZone.getTimeZone(timeZone));
         return sdf.format(date);
     }
@@ -434,7 +436,7 @@ public final class TimeHelper {
     public static String getDate() {
         Date date = new Date();
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd",
-            new DateFormatSymbols());
+                new DateFormatSymbols());
         return simpleDateFormat.format(date);
     }
 
@@ -478,7 +480,7 @@ public final class TimeHelper {
      */
     public static int getYear(int currentTime) {
         Calendar calendar = Calendar
-            .getInstance(TimeZone.getTimeZone(timeZone));
+                .getInstance(TimeZone.getTimeZone(timeZone));
         calendar.setFirstDayOfWeek(Calendar.MONDAY);
         // 将日历设定到当前时间
         calendar.setTimeInMillis((long) currentTime * 1000L);
@@ -495,7 +497,7 @@ public final class TimeHelper {
      */
     public static int getMonthOfYear(int currentTime) {
         Calendar calendar = Calendar
-            .getInstance(TimeZone.getTimeZone(timeZone));
+                .getInstance(TimeZone.getTimeZone(timeZone));
         calendar.setFirstDayOfWeek(Calendar.MONDAY);
         // 将日历设定到当前时间
         calendar.setTimeInMillis((long) currentTime * 1000L);
@@ -512,7 +514,7 @@ public final class TimeHelper {
      */
     public static int getDateOfMonth(int currentTime) {
         Calendar calendar = Calendar
-            .getInstance(TimeZone.getTimeZone(timeZone));
+                .getInstance(TimeZone.getTimeZone(timeZone));
         calendar.setFirstDayOfWeek(Calendar.MONDAY);
         // 将日历设定到当前时间
         calendar.setTimeInMillis((long) currentTime * 1000L);
@@ -529,7 +531,7 @@ public final class TimeHelper {
      */
     public static int getWeek(int currentTime) {
         Calendar calendar = Calendar
-            .getInstance(TimeZone.getTimeZone(timeZone));
+                .getInstance(TimeZone.getTimeZone(timeZone));
         calendar.setFirstDayOfWeek(Calendar.MONDAY);
         // 将日历设定到当前时间
         calendar.setTimeInMillis((long) currentTime * 1000L);
@@ -545,7 +547,7 @@ public final class TimeHelper {
         int[] weekDays = {7, 1, 2, 3, 4, 5, 6};
 
         Calendar calendar = Calendar
-            .getInstance(TimeZone.getTimeZone(timeZone));
+                .getInstance(TimeZone.getTimeZone(timeZone));
         calendar.setTimeInMillis((long) currentTime * 1000L);
         int w = calendar.get(Calendar.DAY_OF_WEEK) - 1;
         if (w < 0)
@@ -559,7 +561,7 @@ public final class TimeHelper {
      */
     public static int getHour(int currentTime) {
         Calendar calendar = Calendar
-            .getInstance(TimeZone.getTimeZone(timeZone));
+                .getInstance(TimeZone.getTimeZone(timeZone));
         calendar.setFirstDayOfWeek(Calendar.MONDAY);
         // 将日历设定到当前时间
         calendar.setTimeInMillis((long) currentTime * 1000L);
@@ -608,4 +610,80 @@ public final class TimeHelper {
         // 计算两者之间的秒数差
         return (int) Duration.between(midnight, now).getSeconds();
     }
+
+    private static final ZoneId DEFAULT_ZONE = ZoneId.systemDefault();
+
+    /**
+     * 判断两个时间戳是否在同一天
+     */
+    public static boolean inSameDay(long t1, long t2) {
+        return inSameDay(t1, t2, DEFAULT_ZONE);
+    }
+
+    public static boolean inSameDay(long t1, long t2, ZoneId zone) {
+        LocalDate d1 = Instant.ofEpochMilli(t1).atZone(zone).toLocalDate();
+        LocalDate d2 = Instant.ofEpochMilli(t2).atZone(zone).toLocalDate();
+        return d1.equals(d2);
+    }
+
+    /**
+     * 判断两个时间戳是否在同一周
+     */
+    public static boolean inSameWeek(long t1, long t2) {
+        return inSameWeek(t1, t2, DEFAULT_ZONE);
+    }
+
+    public static boolean inSameWeek(long t1, long t2, ZoneId zone) {
+        LocalDate d1 = Instant.ofEpochMilli(t1).atZone(zone).toLocalDate();
+        LocalDate d2 = Instant.ofEpochMilli(t2).atZone(zone).toLocalDate();
+        return d1.get(ChronoField.ALIGNED_WEEK_OF_YEAR) == d2.get(ChronoField.ALIGNED_WEEK_OF_YEAR)
+                && d1.getYear() == d2.getYear();
+    }
+
+    /**
+     * 判断两个时间戳是否在同一月
+     */
+    public static boolean inSameMonth(long t1, long t2) {
+        return inSameMonth(t1, t2, DEFAULT_ZONE);
+    }
+
+    public static boolean inSameMonth(long t1, long t2, ZoneId zone) {
+        LocalDate d1 = Instant.ofEpochMilli(t1).atZone(zone).toLocalDate();
+        LocalDate d2 = Instant.ofEpochMilli(t2).atZone(zone).toLocalDate();
+        return d1.getYear() == d2.getYear() && d1.getMonthValue() == d2.getMonthValue();
+    }
+
+    /**
+     * 判断时间戳是否是当年的最后一天
+     */
+    public static boolean isLastDayOfYear(long t) {
+        return isLastDayOfYear(t, DEFAULT_ZONE);
+    }
+
+    public static boolean isLastDayOfYear(long t, ZoneId zone) {
+        LocalDate d = Instant.ofEpochMilli(t).atZone(zone).toLocalDate();
+        return d.equals(d.withMonth(12).withDayOfMonth(31));
+    }
+
+    /**
+     * 获取下周一的开始时间（下周一 00:00:00）
+     */
+    public static long getNextWeekdayEnd(DayOfWeek dayOfWeek) {
+        LocalDate now = LocalDate.now(DEFAULT_ZONE);
+        LocalDate nextTarget = now.with(TemporalAdjusters.next(dayOfWeek));
+        LocalDateTime endOfDay = nextTarget.atTime(LocalTime.MIN);
+        return endOfDay.atZone(DEFAULT_ZONE).toInstant().toEpochMilli();
+    }
+
+    /**
+     * 获取今年最后一天的开始时间（12-31 00:00:00）
+     */
+    public static long getYearDayEnd() {
+        LocalDate now = LocalDate.now(DEFAULT_ZONE);
+        LocalDate lastDay = now.withMonth(12).withDayOfMonth(31);
+        LocalDateTime endOfDay = lastDay.atTime(LocalTime.MIN);
+        return endOfDay.atZone(DEFAULT_ZONE).toInstant().toEpochMilli();
+    }
+
+
 }
