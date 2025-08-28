@@ -1,9 +1,9 @@
 package com.jjg.game.hall.pb.res;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.hall.constant.HallConstant;
 
 import java.util.List;
@@ -21,12 +21,6 @@ public class ResAllAvatar extends AbstractResponse {
     public List<Integer> frames;
     @ProtoDesc("称号")
     public List<Integer> titles;
-    @ProtoDesc("当前使用的筹码id")
-    public int chipsId;
-    @ProtoDesc("当前使用的背景id")
-    public int backgroundId;
-    @ProtoDesc("当前使用的牌背ID")
-    public int cardBackgroundId;
     @ProtoDesc("已经解锁的筹码id")
     public List<Integer> unlockChipsId;
     @ProtoDesc("已经解锁的背景id")

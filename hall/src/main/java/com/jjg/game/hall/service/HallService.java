@@ -20,6 +20,7 @@ import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.pb.res.NotifyGameList;
 import com.jjg.game.hall.pb.struct.GameListConfig;
 import com.jjg.game.hall.utils.HallTool;
+import com.jjg.game.hall.vip.data.VipCfgCache;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import org.apache.commons.lang3.StringUtils;
@@ -266,21 +267,21 @@ public class HallService implements ConfigExcelChangeListener {
         try {
             boolean[] change = new boolean[2];
             //TODO 后面要敏感词检测，还要判断是否消费道具
-            if(StringUtils.isNotEmpty(nick) && !nick.equals(playerController.getPlayer().getNickName())){  //修改昵称
+            if (StringUtils.isNotEmpty(nick) && !nick.equals(playerController.getPlayer().getNickName())) {  //修改昵称
                 //检查新的昵称是否存在
                 boolean exist = hallPlayerService.nickExist(nick);
-                if(exist){
+                if (exist) {
                     result.code = Code.EXIST;
-                    log.debug("该昵称已经存在，修改昵称失败 playerId = {},newNick = {}", playerController.getPlayer().getId(),nick);
+                    log.debug("该昵称已经存在，修改昵称失败 playerId = {},newNick = {}", playerController.getPlayer().getId(), nick);
                     return result;
                 }
                 change[0] = true;
             }
 
-            if(gender != playerController.getPlayer().getGender()){  //修改性别
-                if(!HallTool.checkGender(gender)){
+            if (gender != playerController.getPlayer().getGender()) {  //修改性别
+                if (!HallTool.checkGender(gender)) {
                     result.code = Code.PARAM_ERROR;
-                    log.debug("性别参数错误，修改性别失败 playerId = {},newGender = {}", playerController.getPlayer().getId(),gender);
+                    log.debug("性别参数错误，修改性别失败 playerId = {},newGender = {}", playerController.getPlayer().getId(), gender);
                     return result;
                 }
                 change[1] = true;
@@ -332,30 +333,36 @@ public class HallService implements ConfigExcelChangeListener {
     /**
      * 切换头像
      *
-     * @param playerId
-     * @param id
-     * @return
+     * @param player 玩家信息
+     * @param id     皮肤id
+     * @return 选择结果
      */
-    public CommonResult<Player> selectAvatar(long playerId, int id) {
+    public CommonResult<Player> selectAvatar(Player player, int id) {
         CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
+        long playerId = player.getId();
         AvatarCfg avatarCfg = GameDataManager.getAvatarCfg(id);
         if (avatarCfg == null) {
             log.debug("未在头像配置表中找到该配置 id = {}", id);
             result.code = Code.NOT_FOUND;
             return result;
         }
-
-        //todo 要判断该id是不是默认的id
-//        if(id == defauleId){
-//
-//        }
         AvatarType type = EnumUtil.getBy(AvatarType.class, (avatarType -> avatarType.getType() == avatarCfg.getResourceType()));
         if (Objects.isNull(type)) {
             result.code = Code.PARAM_ERROR;
             return result;
         }
+        Integer nowId = type.getGetter().apply(player);
+        if (nowId == id) {
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+        boolean has;
+        if (StringUtils.isEmpty(type.getField())) {
+            has = VipCfgCache.hasSkin(player.getVipLevel(), type.getType(), id);
+        } else {
+            has = playerAvatarDao.hasByType(playerId, type, id);
+        }
         //检查玩家是否拥有该id
-        boolean has = playerAvatarDao.hasByType(playerId, type, id);
         if (!has) {
             log.debug("玩家没有该头像id = {},type = {}", id, avatarCfg.getResourceType());
             result.code = Code.NOT_FOUND;
@@ -384,7 +391,7 @@ public class HallService implements ConfigExcelChangeListener {
             log.debug("添加头像信息失败该类型 playerId = {},cfgId = {}", playerId, avatarCfg.getId());
             return;
         }
-        boolean add = playerAvatarDao.addByType(playerId,type,id);
+        boolean add = playerAvatarDao.addByType(playerId, type, id);
         if (!add) {
             log.debug("添加头像信息失败 playerId = {},cfgId = {}", playerId, avatarCfg.getId());
             return;
