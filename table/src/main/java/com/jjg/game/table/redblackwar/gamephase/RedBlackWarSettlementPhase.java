@@ -150,7 +150,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
     }
 
     @Override
-    public void phaseFinish() {
+    public void phaseFinishAction() {
         gameDataVo.setCurrentSettleInfo(null);
     }
 

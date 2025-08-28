@@ -311,11 +311,6 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     }
 
     @Override
-    public void phaseFinish() {
-        super.phaseFinish();
-    }
-
-    @Override
     public boolean equals(Object o) {
         return super.equals(o);
     }
