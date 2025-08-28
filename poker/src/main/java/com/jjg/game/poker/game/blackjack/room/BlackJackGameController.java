@@ -497,7 +497,6 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         int sendCardNum = 1;
         notifyCutCard.playerId = playerId;
         notifyCutCard.cardInfoList = BlackJackBuilder.getCardInfos(seatInfo, this);
-        notifyCutCard.firstAutoCard = BlackJackDataHelper.getClientCardId(gameDataVo, autoCard);
         //判断是否是21点
         if (totalPoint == BlackJackConstant.Common.PERFECT_POINT) {
             //判断
@@ -506,9 +505,9 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             autoCard = getCard(gameDataVo);
             newCards.add(autoCard);
             notifyCutCard.cardInfoList = BlackJackBuilder.getCardInfos(seatInfo, this);
+            notifyCutCard.autoCard = BlackJackDataHelper.getClientCardId(gameDataVo, autoCard);
             if (BlackJackDataHelper.getTotalPoint(seatInfo.getCurrentCards()) == BlackJackConstant.Common.PERFECT_POINT) {
                 PlayerSeatInfo nextExePlayer = getNextExePlayer();
-                notifyCutCard.secondAutoCard = BlackJackDataHelper.getClientCardId(gameDataVo, autoCard);
                 if (Objects.isNull(nextExePlayer)) {
                     //直接进行结算
                     gameDataVo.setSettlementType(1);
