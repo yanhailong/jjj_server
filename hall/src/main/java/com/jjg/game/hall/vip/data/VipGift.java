@@ -57,7 +57,7 @@ public enum VipGift {
                     yield true;
                 }
                 int maxLv = Collections.max(vip.getLvGiftGetTime().keySet());
-                yield maxLv < player.getLevel();
+                yield maxLv < player.getVipLevel();
             }
         };
     }
