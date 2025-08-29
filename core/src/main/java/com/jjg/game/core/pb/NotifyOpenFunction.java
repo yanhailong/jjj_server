@@ -14,7 +14,7 @@ import java.util.List;
  */
 @ProtobufMessage(
     messageType = MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE,
-    cmd = MessageConst.CoreMessage.NOTICE_MARQUEE,
+    cmd = MessageConst.CoreMessage.NOTIFY_FUNC_OPEN,
     resp = true
 )
 @ProtoDesc("通知功能开放，通过游戏中的某些操作触发了功能的开放")
