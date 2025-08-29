@@ -11,11 +11,22 @@ public class MaxPointGetInfo {
     private int index;
     //是否是软手
     private final boolean isSoftHand;
+    //是否已经结束
+    private boolean end;
 
-    public MaxPointGetInfo(int maxPoint, int index, boolean isSoftHand) {
+    public MaxPointGetInfo(int maxPoint, int index, boolean isSoftHand, boolean end) {
         this.maxPoint = maxPoint;
         this.index = index;
         this.isSoftHand = isSoftHand;
+        this.end = end;
+    }
+
+    public boolean isEnd() {
+        return end;
+    }
+
+    public void setEnd(boolean end) {
+        this.end = end;
     }
 
     public boolean isSoftHand() {
