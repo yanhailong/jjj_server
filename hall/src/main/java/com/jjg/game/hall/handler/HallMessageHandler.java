@@ -897,7 +897,7 @@ public class HallMessageHandler implements GmListener {
      *
      * @param playerController 玩家信息
      */
-    @Command(HallConstant.MsgBean.REQ_VIP_INFO)
+    @Command(HallConstant.MsgBean.REQ_VIP_CLAIM_GIFT_REWARD)
     public void reqVipClaimGiftReward(PlayerController playerController, ReqVipClaimGiftReward req) {
         playerController.send(vipManager.reqVipClaimGiftReward(playerController, req));
     }

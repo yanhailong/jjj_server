@@ -2,7 +2,6 @@ package com.jjg.game.hall.vip;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.EnumUtil;
-import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -18,7 +17,6 @@ import com.jjg.game.hall.vip.pb.req.ReqVipInfo;
 import com.jjg.game.hall.vip.pb.res.ResVipClaimGiftReward;
 import com.jjg.game.hall.vip.pb.res.ResVipInfo;
 import com.jjg.game.hall.vip.service.VipService;
-import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ViplevelCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +61,7 @@ public class VipManager implements ConfigExcelChangeListener {
         Player player = playerController.getPlayer();
         long playerId = player.getId();
         try {
-            ViplevelCfg viplevelCfg = GameDataManager.getViplevelCfg(player.getVipLevel());
+            ViplevelCfg viplevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
             if (Objects.isNull(viplevelCfg)) {
                 res.code = Code.SAMPLE_ERROR;
                 return res;
@@ -81,7 +79,7 @@ public class VipManager implements ConfigExcelChangeListener {
             for (VipGift gift : VipGift.values()) {
                 VipGiftInfo vipGiftInfo = new VipGiftInfo();
                 vipGiftInfo.type = gift.getType();
-                vipGiftInfo.nextTime = gift.getNextClaimNeed(player, true);
+                vipGiftInfo.nextTime = gift.getNextClaimNeed(player, true) - timeMillis;
                 vipGiftInfo.needRecharge = gift.getNextClaimNeed(player, false);
                 if (vipGiftInfo.needRecharge > 0) {
                     res.needExp = vipGiftInfo.needRecharge;
@@ -103,7 +101,7 @@ public class VipManager implements ConfigExcelChangeListener {
         long playerId = player.getId();
         try {
             //当前vip配置
-            ViplevelCfg viplevelCfg = GameDataManager.getViplevelCfg(player.getVipLevel());
+            ViplevelCfg viplevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
             if (Objects.isNull(viplevelCfg)) {
                 res.code = Code.SAMPLE_ERROR;
                 return res;
@@ -125,9 +123,14 @@ public class VipManager implements ConfigExcelChangeListener {
                 res.code = Code.PARAM_ERROR;
                 return res;
             }
+            int nowMax = CollectionUtil.isEmpty(vip.getLvGiftGetTime()) ? 0 : Collections.max(vip.getLvGiftGetTime().keySet());
+            if (nowMax != req.vipLevel) {
+                res.code = Code.PARAM_ERROR;
+                return res;
+            }
             Map<Integer, Long> rewards;
             if (gift == VipGift.PROMOTION) {
-                ViplevelCfg claimCfg = GameDataManager.getViplevelCfg(req.vipLevel);
+                ViplevelCfg claimCfg = VipCfgCache.getVipLevelCfg(req.vipLevel);
                 if (Objects.isNull(claimCfg)) {
                     res.code = Code.SAMPLE_ERROR;
                     return res;
@@ -162,7 +165,7 @@ public class VipManager implements ConfigExcelChangeListener {
                 info.count = entry.getValue();
                 res.items.add(info);
             }
-            res.claimMaxLv = Collections.max(vip.getLvGiftGetTime().keySet());
+            res.claimMaxLv = CollectionUtil.isEmpty(vip.getLvGiftGetTime()) ? 0 : Collections.max(vip.getLvGiftGetTime().keySet());
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             log.error("请求领取VIP信息异常 playerId:{}", playerController.playerId(), e);
