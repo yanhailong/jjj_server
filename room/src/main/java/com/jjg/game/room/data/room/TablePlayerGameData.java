@@ -15,7 +15,7 @@ public class TablePlayerGameData {
     private int sitNum;
     // 最近20场的下注数据 / 临时数据
     private final List<Pair<Boolean, Long>> betInfoList = new ArrayList<>();
-    // 红黑大战玩家本场此押注总金额
+    // 红黑大战玩家本场此押注总金币
     private long totalBet;
     // 玩家上一次在房间主动操作并与服务端有交互的时间
     private long playerLatestOperateTime;

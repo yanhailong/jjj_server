@@ -181,8 +181,8 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
             }
             // 如果超过最大退出时间
             if (playerLatestOperateTime + exitTime < currentTime) {
-                NotifyTableExitRoom notifyTableExitRoom
-                    = TableMessageBuilder.buildNotifyTableExitRoom(exitTipLangId);
+                NotifyTableExitRoom notifyTableExitRoom =
+                    TableMessageBuilder.buildNotifyTableExitRoom(exitTipLangId);
                 broadcastToPlayers(RoomMessageBuilder.newBuilder()
                     .addPlayerId(entry.getKey()).setData(notifyTableExitRoom));
                 continue;

@@ -12,7 +12,7 @@ import com.jjg.game.sampledata.bean.RoomCfg;
 public class FriendRoomSampleUtils {
 
     /**
-     * 获取房间最低上庄金额
+     * 获取房间最低上庄金币
      */
     public static int getRoomMinBankerAmount(int roomCfgId) {
         RoomCfg roomCfg = GameDataManager.getRoomCfg(roomCfgId);

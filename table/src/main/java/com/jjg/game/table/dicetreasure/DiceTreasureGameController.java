@@ -24,9 +24,9 @@ import java.util.LinkedHashSet;
  * @author 2CL
  */
 @GameController(gameType = EGameType.DICE_TREASURE, roomType = RoomType.BET_ROOM)
-public class DiceTreasureDiceGameController extends BaseTableGameController<DiceTreasureGameDataVo> {
+public class DiceTreasureGameController extends BaseTableGameController<DiceTreasureGameDataVo> {
 
-    public DiceTreasureDiceGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {
+    public DiceTreasureGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {
         super(roomController);
     }
 

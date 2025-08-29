@@ -241,6 +241,32 @@ public class Room {
         return this.roomPlayers.isEmpty();
     }
 
+    /**
+     * 返回房间id, 默认为系统庄家
+     */
+    public long roomBankerId() {
+        return Long.MIN_VALUE;
+    }
+
+    /**
+     * 庄家总金币
+     */
+    public long bankerTotalGold() {
+        return Long.MIN_VALUE;
+    }
+
+    /**
+     * 扣除庄家金币
+     */
+    public void deductBankerGold(long deductGold) {
+    }
+
+    /**
+     * 添加庄家金币
+     */
+    public void addBankerGold(long addGold) {
+    }
+
     public String logStr() {
         EGameType eGameType = EGameType.getGameByTypeId(gameType);
         return "roomId: " + id + " game: " + eGameType.getGameDesc() + " roomCfgId: " + roomCfgId;

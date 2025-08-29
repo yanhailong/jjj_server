@@ -16,7 +16,7 @@ import java.util.Map;
  */
 public class TableGameDataVo extends GameDataVo<Room_BetCfg> {
 
-    // 玩家下注数据 玩家ID：下注区域ID：下注金额列表
+    // 玩家下注数据 玩家ID：下注区域ID：下注金币列表
     protected final Map<Long, Map<Integer, List<Integer>>> playerBetInfo = new HashMap<>();
 
     public void clearRoundData() {

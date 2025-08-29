@@ -18,6 +18,7 @@ import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.redblackwar.gamephase.RedBlackWarBetPhase;
 import com.jjg.game.table.redblackwar.gamephase.RedBlackWarSettlementPhase;
 import com.jjg.game.table.redblackwar.gamephase.RedBlackWarTableWaitReadyPhase;
+import com.jjg.game.table.redblackwar.message.RedBlackMessageBuilder;
 import com.jjg.game.table.redblackwar.message.resp.NotifyRedBlackWarInfo;
 import com.jjg.game.table.redblackwar.room.data.RedBlackWarGameDataVo;
 
@@ -75,52 +76,11 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
     public void respRoomInitInfo(PlayerController playerController) {
         //发送房间信息
         RedBlackWarGameDataVo dataVo = getGameDataVo();
-        NotifyRedBlackWarInfo notifyRedBlackWarInfo = new NotifyRedBlackWarInfo();
-        //历史记录
-        notifyRedBlackWarInfo.redBlackHistories = dataVo.getHistories();
-        //阶段信息
-        notifyRedBlackWarInfo.gamePhase = getCurrentGamePhase();
-        //阶段结束时间
-        notifyRedBlackWarInfo.tableCountDownTime = dataVo.getPhaseEndTime();
-        //各区域押注信息
-        Map<Integer, Map<Long, List<Integer>>> betInfoMap = dataVo.getBetInfo();
-        if (!betInfoMap.isEmpty()) {
-            List<BetTableInfo> tableAreaInfos = new ArrayList<>();
-            //遍历押注信息
-            for (Map.Entry<Integer, Map<Long, List<Integer>>> mapEntry : betInfoMap.entrySet()) {
-                Map<Long, List<Integer>> playerBetInfo = mapEntry.getValue();
-                BetTableInfo betTableInfo = new BetTableInfo();
-                betTableInfo.betIdx = mapEntry.getKey();
-                //计算个人押注和总押注
-                List<Integer> betList = playerBetInfo.get(playerController.playerId());
-                long playerBet = betList == null ? 0 : betList.stream().mapToInt(Integer::intValue).sum();
-                long totalBet = 0;
-                List<Integer> betGoldList = new ArrayList<>();
-                for (Map.Entry<Long, List<Integer>> longLongEntry : playerBetInfo.entrySet()) {
-                    int playerTotalBet = longLongEntry.getValue().stream().mapToInt(Integer::intValue).sum();
-                    betGoldList.addAll(longLongEntry.getValue());
-                    totalBet += playerTotalBet;
-                }
-                betTableInfo.playerBetTotal = playerBet;
-                betTableInfo.betIdxTotal = totalBet;
-                betTableInfo.betGoldList = betGoldList;
-                tableAreaInfos.add(betTableInfo);
-            }
-            notifyRedBlackWarInfo.tableAreaInfos = tableAreaInfos;
-        }
-        //添加结算信息
-        if (getCurrentGamePhase() == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
-            notifyRedBlackWarInfo.settleInfos = gameDataVo.getCurrentSettleInfo();
-        }
-        //押分列表
-        notifyRedBlackWarInfo.betPointList = gameDataVo.getRoomCfg().getBetList();
-        notifyRedBlackWarInfo.playerInfos = TableMessageBuilder.buildPlayerInfoOnTable(gameDataVo);
-        notifyRedBlackWarInfo.totalPlayerNum = gameDataVo.getGamePlayerMap().size();
-        notifyRedBlackWarInfo.maxChipOnTable =
-            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();
+        NotifyRedBlackWarInfo notifyRedBlackWarInfo =
+            RedBlackMessageBuilder.buildInitInfo(playerController.playerId(), dataVo, getCurrentGamePhase());
         //发送给玩家
         broadcastToPlayers(
-                RoomMessageBuilder.newBuilder().addPlayerId(playerController.playerId()).setData(notifyRedBlackWarInfo));
+            RoomMessageBuilder.newBuilder().addPlayerId(playerController.playerId()).setData(notifyRedBlackWarInfo));
     }
 
 }

@@ -24,7 +24,7 @@ public class FriendRoomBaseData {
     @ProtoDesc("1. 运行中 2. 暂停中 3. 解散中")
     public int roomStatus;
 
-    @ProtoDesc("房间到期时间戳")
+    @ProtoDesc("房间剩余时间，毫秒")
     public long overdueTime;
 
     @ProtoDesc("准备金剩余数量")

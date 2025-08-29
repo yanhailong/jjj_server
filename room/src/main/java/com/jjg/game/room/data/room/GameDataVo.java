@@ -34,6 +34,8 @@ public class GameDataVo<RC extends RoomCfg> {
     protected long phaseRunTime;
     // 当前庄家连续坐庄次数
     protected int beBankerTimes;
+    // 当前申请下庄的玩家ID
+    protected long applyCancelBeBankerPlayer;
 
 
     /**
@@ -130,5 +132,13 @@ public class GameDataVo<RC extends RoomCfg> {
 
     public int getBeBankerTimes() {
         return beBankerTimes;
+    }
+
+    public long getApplyCancelBeBankerPlayer() {
+        return applyCancelBeBankerPlayer;
+    }
+
+    public void setApplyCancelBeBankerPlayer(long applyCancelBeBankerPlayer) {
+        this.applyCancelBeBankerPlayer = applyCancelBeBankerPlayer;
     }
 }

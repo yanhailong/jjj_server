@@ -3,6 +3,7 @@ package com.jjg.game.table.luxurycarclub.message;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.TablePlayerInfo;
 import com.jjg.game.table.luxurycarclub.LuxuryCarClubGameController;
@@ -34,7 +35,7 @@ public class LuxuryCarClubMessageBuilder {
      * 结算信息
      */
     public static NotifyLuxuryCarClubSettlement notifyLuxuryCarClubSettlement(
-        LuxuryCarClubGameController gameController, int rewardPosId) {
+        BaseTableGameController<LuxuryCarClubGameDataVo> gameController, int rewardPosId) {
         LuxuryCarClubGameDataVo gameDataVo = gameController.getGameDataVo();
         NotifyLuxuryCarClubSettlement settlement = new NotifyLuxuryCarClubSettlement();
         settlement.settlementInfo = buildLuxuryCarClubSettlementInfo(gameDataVo, rewardPosId);
@@ -45,7 +46,7 @@ public class LuxuryCarClubMessageBuilder {
      * 桌面信息
      */
     public static NotifyLuxuryCarClubTableInfo notifyLuxuryCarClubTableInfo(
-        LuxuryCarClubGameController gameController, boolean isInitial, long playerId) {
+        BaseTableGameController<LuxuryCarClubGameDataVo> gameController, boolean isInitial, long playerId) {
         NotifyLuxuryCarClubTableInfo tableInfo = new NotifyLuxuryCarClubTableInfo();
         LuxuryCarClubGameDataVo gameDataVo = gameController.getGameDataVo();
         tableInfo.gamePhase = gameController.getCurrentGamePhase();

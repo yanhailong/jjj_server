@@ -7,7 +7,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.room.message.RoomMessageConstant;
 
 /**
- * 返回编辑庄家预付金
+ * 返回编辑庄家预付金币
  *
  * @author 2CL
  */
@@ -16,13 +16,13 @@ import com.jjg.game.room.message.RoomMessageConstant;
     cmd = RoomMessageConstant.RespMsgBean.RES_EDIT_BANKER_PREDICATE_GOLD,
     resp = true
 )
-@ProtoDesc("返回修改庄家预付金")
+@ProtoDesc("返回修改庄家预付金币")
 public class ResEditBankerPredicateGold extends AbstractResponse {
 
-    @ProtoDesc("最新的预付金额")
+    @ProtoDesc("最新的预付金币币")
     public long newlyPredicateGold;
 
-    @ProtoDesc("庄家剩余金额")
+    @ProtoDesc("庄家剩余金币")
     public long bankerResetGold;
 
     public ResEditBankerPredicateGold(int code) {

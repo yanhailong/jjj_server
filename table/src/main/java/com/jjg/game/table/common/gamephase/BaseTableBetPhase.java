@@ -222,7 +222,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         }
         // 随机一个押注区域
         int randomBetArea = robotRandomBetArea(betRobotCfg);
-        // 随机押注金额
+        // 随机押注金币
         int randomGoldIdx = RandomUtils.randomByWeightList(betRobotCfg.getBetChips());
         List<Integer> betList = gameDataVo.getRoomCfg().getBetList();
         Integer randomGold = betList.get(randomGoldIdx - 1);
@@ -368,6 +368,46 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         long needTake = totalBetValue;
         if (needTake > gamePlayer.getGold()) {
             return Code.NOT_ENOUGH;
+        }
+        // 检查庄家是否有足够的钱去赔付
+        return checkBankerCanPay(playerReqBetMap);
+    }
+
+    /**
+     * 检查庄家是否能赔付
+     */
+    protected int checkBankerCanPay(Map<Integer, Long> playerReqBetMap) {
+        long bankerTotalGold = gameController.getRoom().bankerTotalGold();
+        // 如果房间庄家总金币小于0，说明是系统做庄，无视赔付
+        if (bankerTotalGold < 0) {
+            return Code.SUCCESS;
+        }
+        Map<Integer, BetAreaCfg> betAreaCfgMap = getBetAreaCfgMap();
+        // 玩家押注数据
+        Map<Integer, Map<Long, List<Integer>>> playerBetInfo = gameDataVo.getBetInfo();
+        long bankerNeedPay = 0, repulsionAreaTotal = 0;
+        for (Map.Entry<Integer, BetAreaCfg> entry : betAreaCfgMap.entrySet()) {
+            long playerReqBet = playerReqBetMap.getOrDefault(entry.getKey(), 0L);
+            // 获取区域，所有玩家的下注总和
+            long playerBet =
+                playerBetInfo.getOrDefault(entry.getKey(), new HashMap<>()).values()
+                    .stream()
+                    .map(l -> l.stream().mapToInt(a -> a).sum())
+                    .mapToLong(a -> a)
+                    .sum();
+            long areaTotalBet = playerBet + playerReqBet;
+            // 需要乘以赔付倍数
+            areaTotalBet = areaTotalBet * (entry.getValue().getMaxPetMultiplier() / 100);
+            if (entry.getValue().getRepulsionID() > 0) {
+                repulsionAreaTotal = Math.abs(repulsionAreaTotal - areaTotalBet);
+            } else {
+                bankerNeedPay += areaTotalBet;
+            }
+        }
+        bankerNeedPay += repulsionAreaTotal;
+        // 如果庄家能赔付的钱小于了场上能赢的钱
+        if (bankerTotalGold < bankerNeedPay) {
+            return Code.BANKER_GOLD_NOT_ENOUGH_TO_PAY;
         }
         return Code.SUCCESS;
     }

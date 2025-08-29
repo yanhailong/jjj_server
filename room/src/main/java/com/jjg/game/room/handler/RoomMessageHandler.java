@@ -9,6 +9,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.pb.ReqExitGame;
 import com.jjg.game.core.pb.ResExitGame;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -107,8 +108,8 @@ public class RoomMessageHandler {
             playerController.send(res);
             return;
         }
-        // 调用房间的取消庄家
-        res.code = friendRoomController.cancelBeBanker(playerId);
+        // 调用房间的取消庄家,先标记，在下一轮开始前下庄
+        res.code = friendRoomController.markBankerCancel(playerId);
         playerController.send(res);
     }
 
@@ -127,7 +128,7 @@ public class RoomMessageHandler {
     }
 
     /**
-     * 请求修改庄家预付金
+     * 请求修改庄家预付金币
      */
     @Command(RoomMessageConstant.ReqMsgBean.REQ_EDIT_BANKER_PREDICATE_GOLD)
     public void reqEditBankerPredicateGold(PlayerController playerController, ReqEditBankerPredicateGold req) {
@@ -137,8 +138,10 @@ public class RoomMessageHandler {
             playerController.send(res);
             return;
         }
-        res.code = controller.bankerEditPredicateGold(playerController.playerId(), req.predicateGold);
-        playerController.send(res);
+        res.code = controller.bankerEditPredicateGold(playerController, req.predicateGold);
+        if (res.code != Code.SUCCESS) {
+            playerController.send(res);
+        }
     }
 
     /**

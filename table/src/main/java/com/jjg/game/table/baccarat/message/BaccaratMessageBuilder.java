@@ -14,6 +14,7 @@ import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.BaccaratTempRoom;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.message.resp.*;
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.BetTableInfo;
@@ -48,7 +49,7 @@ public class BaccaratMessageBuilder {
     /**
      * 通知所有的观察者
      */
-    public static void notifyObserversOnPhaseChange(BaccaratGameController gameController) {
+    public static void notifyObserversOnPhaseChange(BaseTableGameController<BaccaratGameDataVo> gameController) {
         BaccaratTempRoom baccaratTempRoom = CommonUtil.getContext().getBean(BaccaratTempRoom.class);
         NotifyBaccaratTableSummary notifyBaccaratTableSummary =
             BaccaratMessageBuilder.buildBaccaratSingleSummaryInfo(gameController);
@@ -66,7 +67,7 @@ public class BaccaratMessageBuilder {
     /**
      * 获取单局摘要数据
      */
-    public static NotifyBaccaratTableSummary buildBaccaratSingleSummaryInfo(BaccaratGameController gameController) {
+    public static NotifyBaccaratTableSummary buildBaccaratSingleSummaryInfo(BaseTableGameController<BaccaratGameDataVo> gameController) {
         NotifyBaccaratTableSummary notifyBaccaratTableSummary = new NotifyBaccaratTableSummary();
         BaccaratGameDataVo gameDataVo = gameController.getGameDataVo();
         notifyBaccaratTableSummary.tableSummary = new BaccaratTableSingleRes();
@@ -85,7 +86,7 @@ public class BaccaratMessageBuilder {
     /**
      * 构建百家乐外部展示的基础信息
      */
-    private static BaccaratBaseInfo buildBaccaratBaseInfo(BaccaratGameController gameController) {
+    private static BaccaratBaseInfo buildBaccaratBaseInfo(BaseTableGameController<BaccaratGameDataVo> gameController) {
         BaccaratGameDataVo gameDataVo = gameController.getGameDataVo();
         BaccaratBaseInfo baccaratBaseInfo = new BaccaratBaseInfo();
         baccaratBaseInfo.eGamePhase = gameController.getCurrentGamePhase();
@@ -123,7 +124,12 @@ public class BaccaratMessageBuilder {
      * 构建百家乐面板数据
      */
     public static RespBaccaratTableInfo buildRespBaccaratTableInfo(
-        BaccaratGameDataVo gameDataVo, EGamePhase eGamePhase, NotifyBaccaratSettlementInfo settlementInfo) {
+        BaccaratGameDataVo gameDataVo, EGamePhase eGamePhase) {
+        // 如果刚好处于等待阶段则直接设置为下注阶段
+        if (eGamePhase == EGamePhase.WAIT_READY) {
+            eGamePhase = EGamePhase.BET;
+        }
+        NotifyBaccaratSettlementInfo settlementInfo = gameDataVo.getBaccaratSettlementInfo();
         RespBaccaratTableInfo respBaccaratTableInfo = new RespBaccaratTableInfo(Code.SUCCESS);
         if (settlementInfo != null) {
             respBaccaratTableInfo.baccaratSettlementInfo = settlementInfo.baccaratSettlementInfo;

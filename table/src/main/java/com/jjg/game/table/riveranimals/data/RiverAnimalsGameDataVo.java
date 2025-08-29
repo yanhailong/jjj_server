@@ -24,6 +24,12 @@ public class RiverAnimalsGameDataVo extends TableGameDataVo {
         super(roomCfg);
     }
 
+    @Override
+    public void clearRoundData() {
+        super.clearRoundData();
+        riverAnimalsSettlementInfo = null;
+    }
+
     public List<RiverAnimalsHistoryBean> getWinAreaCfgIdHistory() {
         return winAreaCfgIdHistory;
     }

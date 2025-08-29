@@ -19,6 +19,7 @@ import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.GameDataTracker;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.message.resp.NotifyPauseGameOnNewRound;
@@ -382,6 +383,14 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
 
     public GamePlayer getGamePlayer(long playerId) {
         return gameDataVo.getGamePlayer(playerId);
+    }
+
+    /**
+     * 处理庄家流水，默认是系统，不处理
+     *
+     * @param bankerFlowing 庄家输赢流水
+     */
+    public void dealBankerFlowing(long bankerFlowing, Map<Long, SettlementData> settlementDataMap) {
     }
 
     /**

@@ -25,7 +25,7 @@ public interface RoomMessageConstant {
         int REQ_APPLY_BANKER = BASE_ROOM_MSG_PREFIX | 0x04;
         // 申请下庄
         int REQ_CANCEL_BE_BANKER = BASE_ROOM_MSG_PREFIX | 0x05;
-        // 请求修改庄家预付金，只能增加，不能减少
+        // 请求修改庄家预付金币，只能增加，不能减少
         int REQ_EDIT_BANKER_PREDICATE_GOLD = BASE_ROOM_MSG_PREFIX | 0x06;
     }
 
@@ -45,7 +45,7 @@ public interface RoomMessageConstant {
         int RES_CANCEL_BE_BANKER = BASE_ROOM_MSG_PREFIX | 0x85;
         // 通知游戏暂停
         int NOTIFY_GAME_PAUSE_ON_NEW_ROUND = BASE_ROOM_MSG_PREFIX | 0x86;
-        // 返回庄家预付金修改结果
+        // 返回庄家预付金币修改结果
         int RES_EDIT_BANKER_PREDICATE_GOLD = BASE_ROOM_MSG_PREFIX | 0x87;
     }
 }

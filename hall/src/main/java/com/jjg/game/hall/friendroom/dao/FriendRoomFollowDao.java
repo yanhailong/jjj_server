@@ -42,7 +42,6 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
             Query.query(
                     Criteria.where("playerId").is(playerId)
                         .and("invitationCode").is(invitationCode)
-                        .and("removeTime").is(0)
                 )
                 .with(Pageable.ofSize(pageSize).withPage(pageNum))
                 .with(

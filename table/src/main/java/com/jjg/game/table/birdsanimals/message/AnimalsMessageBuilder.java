@@ -5,6 +5,7 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.table.birdsanimals.AnimalsGameController;
 import com.jjg.game.table.birdsanimals.data.AnimalsGameDataVo;
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.TablePlayerInfo;
 
@@ -50,7 +51,7 @@ public class AnimalsMessageBuilder {
      * 结算信息
      */
     public static NotifyAnimalsSettlement notifyAnimalsSettlement(
-        AnimalsGameController gameController, AnimalsHistoryBean animalsHistoryBean) {
+        BaseTableGameController<AnimalsGameDataVo> gameController, AnimalsHistoryBean animalsHistoryBean) {
         AnimalsGameDataVo gameDataVo = gameController.getGameDataVo();
         NotifyAnimalsSettlement settlement = new NotifyAnimalsSettlement();
         settlement.settlementInfo = buildAnimalsSettlementInfo(gameDataVo, animalsHistoryBean);
@@ -61,7 +62,7 @@ public class AnimalsMessageBuilder {
      * 桌面信息
      */
     public static NotifyAnimalsTableInfo notifyAnimalsTableInfo(
-        AnimalsGameController gameController, boolean isInitial, long playerId) {
+        BaseTableGameController<AnimalsGameDataVo> gameController, boolean isInitial, long playerId) {
         NotifyAnimalsTableInfo tableInfo = new NotifyAnimalsTableInfo();
         AnimalsGameDataVo gameDataVo = gameController.getGameDataVo();
         tableInfo.gamePhase = gameController.getCurrentGamePhase();

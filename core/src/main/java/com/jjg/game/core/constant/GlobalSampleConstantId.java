@@ -9,6 +9,8 @@ public interface GlobalSampleConstantId {
 
     // 押注桌面展示的筹码数量上限
     int MAX_CHIP_ON_TABLE = 11;
+    // 创建房间功能基础收益万分比
+    int CREATE_ROOM_FUNC_INCOME_RATIO = 12;
     // 邀请码刷新间隔
     int INVITATION_REFRESH_INTERVAL = 13;
     // 好友房操作间隔时间

@@ -26,6 +26,12 @@ public class ResBankerApplyListInFriendRoom extends AbstractResponse {
     @ProtoDesc("庄家信息")
     public ApplyBankPlayerInfo bankPlayerInfo;
 
+    @ProtoDesc("连续坐庄次数")
+    public int beBankerTimes;
+
+    @ProtoDesc("最大连续坐庄次数")
+    public int maxBankerTimes;
+
     public ResBankerApplyListInFriendRoom(int code) {
         super(code);
     }

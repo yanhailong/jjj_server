@@ -1,9 +1,9 @@
 package com.jjg.game.table.common.utils;
 
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.GameDataTracker;
-import com.jjg.game.table.common.gamephase.BaseSettlementPhase.SettlementData;
 
 import java.util.List;
 import java.util.Map;

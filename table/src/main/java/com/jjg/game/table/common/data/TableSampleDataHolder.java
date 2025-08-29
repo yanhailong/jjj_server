@@ -1,6 +1,5 @@
 package com.jjg.game.table.common.data;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BetRobotCfg;
