@@ -71,6 +71,7 @@ public abstract class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
      */
     private RoomTimerEvent<IProcessorHandler, Room> playerTimerEvent;
 
+
     public RoomTimerEvent<IProcessorHandler, Room> getPlayerTimerEvent() {
         return playerTimerEvent;
     }

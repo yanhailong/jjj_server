@@ -24,8 +24,8 @@ import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import java.util.*;
 
 /**
- * @AUTHOR LM
- * @DATE 2025/7/29 09:31
+ * @author LM
+ * @date 2025/7/29 09:31
  */
 public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameDataVo> {
 
@@ -315,6 +315,5 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         }
         return totalPointList.getFirst();
     }
-
 
 }

@@ -21,14 +21,12 @@ import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.datatrack.RoomDataTrackLogger;
 import com.jjg.game.room.services.RobotService;
 import com.jjg.game.room.timer.RoomTimerCenter;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.RoomCfg;
-import com.jjg.game.sampledata.bean.Room_BetCfg;
-import com.jjg.game.sampledata.bean.Room_ChessCfg;
-import com.jjg.game.sampledata.bean.WarehouseCfg;
+import com.jjg.game.sampledata.bean.*;
 import jakarta.annotation.PostConstruct;
 import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
@@ -851,7 +849,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
     @Override
     public void changeSampleCallbackCollector() {
-        addChangeSampleFileObserveWithCallBack(Room_BetCfg.EXCEL_NAME, this::reloadRoomCfgRef)
+        addInitSampleFileObserveWithCallBack(ViplevelCfg.EXCEL_NAME, RoomDataHelper::initVipLevelCfg)
+                .addChangeSampleFileObserveWithCallBack(ViplevelCfg.EXCEL_NAME, RoomDataHelper::initVipLevelCfg)
+                .addChangeSampleFileObserveWithCallBack(Room_BetCfg.EXCEL_NAME, this::reloadRoomCfgRef)
                 .addChangeSampleFileObserveWithCallBack(Room_ChessCfg.EXCEL_NAME, this::reloadRoomCfgRef);
     }
 

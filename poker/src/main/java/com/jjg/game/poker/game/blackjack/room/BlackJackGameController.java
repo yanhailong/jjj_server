@@ -27,6 +27,7 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.BlackjackCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -131,6 +132,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
         betInfo.merge(seatInfo.getCardIndex(), betValue, Long::sum);
         gamePlayer.setGold(gamePlayer.getGold() - betValue);
+        RoomDataHelper.checkPlayerVipLevel(gamePlayer, betValue);
         int card = getCard(gameDataVo);
         seatInfo.getCurrentCards().add(card);
         seatInfo.setOperationType(req.type);
@@ -248,6 +250,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             return;
         }
         gamePlayer.setGold(gamePlayer.getGold() - betValue);
+        RoomDataHelper.checkPlayerVipLevel(gamePlayer, betValue);
         gameDataVo.getAceBuyPlayerIds().add(playerId);
         //计算购买ace总金额
         long totalBet = 0;
@@ -406,6 +409,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             return;
         }
         gamePlayer.setGold(gamePlayer.getGold() - betValue);
+        RoomDataHelper.checkPlayerVipLevel(gamePlayer, betValue);
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         baseBetInfo.merge(playerId, betValue, Long::sum);
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
@@ -491,6 +495,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         totalCards.getFirst().add(autoCard);
         //下注
         gamePlayer.setGold(gamePlayer.getGold() - betValue);
+        RoomDataHelper.checkPlayerVipLevel(gamePlayer, betValue);
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
         betInfo.merge(seatInfo.getCardIndex() + 1, betValue, Long::sum);
         int totalPoint = BlackJackDataHelper.getTotalPoint(seatInfo.getCurrentCards());
