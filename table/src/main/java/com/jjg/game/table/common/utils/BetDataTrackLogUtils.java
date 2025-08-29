@@ -7,7 +7,6 @@ import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.GameDataTracker;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BetAreaCfg;
-import com.jjg.game.table.common.gamephase.BaseSettlementPhase.SettlementData;
 
 import java.util.HashMap;
 import java.util.List;
