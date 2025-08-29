@@ -6,7 +6,6 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.AbstractGameRunInfo;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -21,10 +20,9 @@ import com.jjg.game.slots.data.PropInfo;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressGameDataDao;
-import com.jjg.game.slots.game.dollarexpress.data.*;
 import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressResultLibDao;
+import com.jjg.game.slots.game.dollarexpress.data.*;
 import com.jjg.game.slots.game.dollarexpress.pb.DollarsInfo;
-import com.jjg.game.slots.game.dollarexpress.pb.ResStartGame;
 import com.jjg.game.slots.game.dollarexpress.pb.ResultLineInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.TrainInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
@@ -90,12 +88,12 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
 
             //执行自动二选一
-            if(playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD){
+            if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD) {
                 autoChooseFreeModelType(playerGameData);
             }
 
             //自动投资游戏
-            if(playerGameData.getInvers().get()){
+            if (playerGameData.getInvers().get()) {
                 autoInvest(playerGameData);
             }
 
@@ -238,7 +236,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 
             //系统自动玩的游戏，不会走跑马灯
-            if(!auto){
+            if (!auto) {
                 checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             }
             //发送日志
@@ -848,7 +846,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @return
      */
     private CommonResult<Player> goldToPool(DollarExpressPlayerGameData gameData, long betValue, BaseRoomCfg baseRoomCfg) {
-        CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, "SLOTS_BET");
+        CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, true, "SLOTS_BET");
         if (!result.success()) {
             log.debug("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.playerId(), betValue, result.code);
             return result;
@@ -1654,8 +1652,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     @Override
     public void shutdown() {
         try {
-            this.autoChooseFreeModeEventMap.forEach((k,v) -> v.run());
-            this.autoInversEventMap.forEach((k,v) -> v.run());
+            this.autoChooseFreeModeEventMap.forEach((k, v) -> v.run());
+            this.autoInversEventMap.forEach((k, v) -> v.run());
             super.shutdown();
             log.info("已关闭美元快递游戏管理器");
         } catch (Exception e) {

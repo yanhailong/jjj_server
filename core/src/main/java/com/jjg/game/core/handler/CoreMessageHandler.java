@@ -124,7 +124,7 @@ public class CoreMessageHandler {
             if ("bet".equals(cmd)) {
                 log.debug("收到添加经验的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), arr);
                 long num = Long.parseLong(params);
-                CommonResult<Player> result = playerService.betDeductGold(playerController.playerId(), num, "gmtest");
+                CommonResult<Player> result = playerService.betDeductGold(playerController.playerId(), num, true, "gmtest");
                 res.code = result.code;
                 playerController.send(res);
                 return;

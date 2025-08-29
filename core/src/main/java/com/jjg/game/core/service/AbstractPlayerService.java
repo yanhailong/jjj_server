@@ -12,6 +12,7 @@ import com.jjg.game.core.dao.PlayerLoginTimeDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.CoreSendMessageManager;
+import com.jjg.game.core.utils.VipUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PlayerLevelConfigCfg;
 import org.apache.kafka.common.utils.PrimitiveRef;
@@ -445,8 +446,8 @@ public class AbstractPlayerService {
         return deductSafeBoxGold(playerId, addNum, addType, null);
     }
 
-    public CommonResult<Player> betDeductGold(long playerId, long addNum, String addType) {
-        return betDeductGold(playerId, addNum, addType, null);
+    public CommonResult<Player> betDeductGold(long playerId, long addNum, boolean effective, String addType) {
+        return betDeductGold(playerId, addNum, addType, effective, null);
     }
 
     public CommonResult<Player> deductGoldAndDiamond(long playerId, long goldNum, long diamondNum, String addType) {
@@ -516,13 +517,13 @@ public class AbstractPlayerService {
      * @return 最新Player
      */
     public <P extends Player> CommonResult<P> addGold(
-        long playerId,
-        long addNum,
-        String addType,
-        String desc,
-        boolean isNotify,
-        Supplier<P> updatePlayerMethod,
-        LongRef beforeUpdateGold) {
+            long playerId,
+            long addNum,
+            String addType,
+            String desc,
+            boolean isNotify,
+            Supplier<P> updatePlayerMethod,
+            LongRef beforeUpdateGold) {
         CommonResult<P> result = new CommonResult<>(Code.FAIL);
         if (addNum < 1) {
             log.warn("添加金币错误 playerId={},addNum={}", playerId, addNum);
@@ -623,13 +624,13 @@ public class AbstractPlayerService {
      * 扣除金币
      */
     public <P extends Player> CommonResult<P> deductGold(
-        long playerId,
-        long num,
-        String addType,
-        String desc,
-        boolean isNotify,
-        Supplier<P> playerUpdateMethod,
-        LongRef beforeUpdateGold) {
+            long playerId,
+            long num,
+            String addType,
+            String desc,
+            boolean isNotify,
+            Supplier<P> playerUpdateMethod,
+            LongRef beforeUpdateGold) {
         CommonResult<P> result = new CommonResult<>(Code.FAIL);
         if (num < 1) {
             log.warn("扣除金币错误 playerId={},num={}", playerId, num);
@@ -737,13 +738,13 @@ public class AbstractPlayerService {
                 if (afterGold < 0) {
                     result.code = Code.NOT_ENOUGH;
                     log.debug("同时扣除金币钻石时，金币不足  playerId = {},gold = {},deductGold = {}", playerId, player.getGold(),
-                        goldNum);
+                            goldNum);
                     return false;
                 }
                 if (afterDiamond < 0) {
                     result.code = Code.NOT_ENOUGH;
                     log.debug("同时扣除金币钻石时，钻石不足  playerId = {},diamond = {},deductDiamond = {}", playerId,
-                        player.getDiamond(), diamondNum);
+                            player.getDiamond(), diamondNum);
                     return false;
                 }
                 player.setGold(afterGold);
@@ -774,9 +775,10 @@ public class AbstractPlayerService {
      * @param playerId
      * @param addType
      * @param desc
+     * @param effective ture 是有效流水
      * @return
      */
-    public CommonResult<Player> betDeductGold(long playerId, long num, String addType, String desc) {
+    public CommonResult<Player> betDeductGold(long playerId, long num, String addType, boolean effective, String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (num < 1) {
             log.warn("押注扣除金币错误 playerId={},num={}", playerId, num);
@@ -790,7 +792,7 @@ public class AbstractPlayerService {
         int baseExpProp = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_BASE_EXP_PROP).getIntValue();
         //基础流水倍率
         int baseStatementProp =
-            GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_BASE_STATEMENT_PROP).getIntValue();
+                GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_BASE_STATEMENT_PROP).getIntValue();
 
         //获取buff，是否有经验和流水的加成
         List<PlayerBuffDetail> expPropDetails = null;
@@ -844,6 +846,9 @@ public class AbstractPlayerService {
                 player.setExp(player.getExp() + tmpAddExp);
 
                 player = levelUp(player, cfg);
+                if (effective) {
+                    VipUtil.checkVipLevel(player);
+                }
                 log.info("玩家押注获取经验 playerId = {},addExp = {},level = {}", playerId, tmpAddExp, player.getLevel());
                 return true;
             }
@@ -953,7 +958,7 @@ public class AbstractPlayerService {
                 if (dataEntity.getGold() < gold) {
                     result.code = Code.NOT_ENOUGH;
                     log.debug("携带金币不足，存入保险箱失败 playerId={},gold={},inSafeBoxGold = {}", playerId, dataEntity.getGold()
-                        , gold);
+                            , gold);
                     return false;
                 }
 
@@ -1001,7 +1006,7 @@ public class AbstractPlayerService {
                 if (dataEntity.getDiamond() < diamond) {
                     result.code = Code.NOT_ENOUGH;
                     log.debug("携带钻石不足，存入保险箱失败 playerId={},diamond={},inSafeBoxDiamond = {}", playerId,
-                        dataEntity.getDiamond(), diamond);
+                            dataEntity.getDiamond(), diamond);
                     return false;
                 }
 
@@ -1049,7 +1054,7 @@ public class AbstractPlayerService {
                 if (dataEntity.getSafeBoxGold() < gold) {
                     result.code = Code.NOT_ENOUGH;
                     log.debug("保险箱金币不足，取出失败 playerId={},safeBoxGold={},outFromSafeBoxGold = {}", playerId,
-                        dataEntity.getSafeBoxGold(), gold);
+                            dataEntity.getSafeBoxGold(), gold);
                     return false;
                 }
 
@@ -1098,7 +1103,7 @@ public class AbstractPlayerService {
                 if (dataEntity.getSafeBoxDiamond() < diamond) {
                     result.code = Code.NOT_ENOUGH;
                     log.debug("保险箱钻石不足，取出失败 playerId={},safeBoxDiamond={},outFromSafeBoxDiamond = {}", playerId,
-                        dataEntity.getSafeBoxDiamond(), diamond);
+                            dataEntity.getSafeBoxDiamond(), diamond);
                     return false;
                 }
 
@@ -1150,7 +1155,7 @@ public class AbstractPlayerService {
         // 升级需要抛升级事件
         if (player.getLevel() != oldLevel) {
             eventManager.triggerEvent(
-                new PlayerEvent(player, EGameEventType.PLAYER_LEVEL, oldLevel, player.getLevel()));
+                    new PlayerEvent(player, EGameEventType.PLAYER_LEVEL, oldLevel, player.getLevel()));
         }
         return player;
     }
