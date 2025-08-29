@@ -2,6 +2,9 @@ package com.jjg.game.core.service;
 
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEventManager;
+import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerDao;
@@ -50,6 +53,8 @@ public class AbstractPlayerService {
     protected PlayerBuffService playerBuffService;
     @Autowired
     protected CoreSendMessageManager sendMessageManager;
+    @Autowired
+    protected GameEventManager eventManager;
 
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
@@ -1128,20 +1133,28 @@ public class AbstractPlayerService {
         if (cfg.getLevelUpExp() < 1) {
             return player;
         }
+        long oldLevel = player.getLevel();
+        int maxLevel = GameDataManager.getPlayerLevelConfigCfgList().size();
+        for (int i = 0; i < maxLevel; i++) {
+            //判断经验是否足够升级
+            long diffExp = player.getExp() - cfg.getLevelUpExp();
+            if (diffExp < 0) {
+                break;
+            }
+            player.setExp(diffExp);
+            player.setLevel(player.getLevel() + 1);
 
-        //判断经验是否足够升级
-        long diffExp = player.getExp() - cfg.getLevelUpExp();
-        if (diffExp < 0) {
-            return player;
+            cfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
+            if (cfg == null || cfg.getLevelUpExp() < 1) {
+                break;
+            }
         }
-        player.setExp(diffExp);
-        player.setLevel(player.getLevel() + 1);
-
-        cfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
-        if (cfg == null) {
-            return player;
+        // 升级需要抛升级事件
+        if (player.getLevel() != oldLevel) {
+            eventManager.triggerEvent(
+                new PlayerEvent(player, EGameEventType.PLAYER_LEVEL, oldLevel, player.getLevel()));
         }
-        return levelUp(player, cfg);
+        return player;
     }
 
     /**

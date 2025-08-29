@@ -58,7 +58,7 @@ public class GameEventManager {
     public void triggerEvent(GameEvent gameEvent) {
         EGameEventType gameEventType = gameEvent.getGameEventType();
         List<GameEventListener> eventListeners = eventListMap.get(gameEventType);
-        if (eventListeners.isEmpty()) {
+        if (eventListeners == null || eventListeners.isEmpty()) {
             return;
         }
         // 处理事件

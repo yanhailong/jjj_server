@@ -28,4 +28,13 @@ public enum EGameEventType {
     public String getBindProperties() {
         return bindProperties;
     }
+
+    public static EGameEventType gameEventType(String name) {
+        for (EGameEventType value : values()) {
+            if (value.name().equalsIgnoreCase(name)) {
+                return value;
+            }
+        }
+        return null;
+    }
 }
