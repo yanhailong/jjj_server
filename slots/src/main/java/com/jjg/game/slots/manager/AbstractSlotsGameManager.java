@@ -14,6 +14,7 @@ import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.data.AbstractGameRunInfo;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
@@ -115,7 +116,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     }
 
     //总押分
-    protected Map<Integer,List<Long>> allStakeMap;
+    protected Map<Integer, List<Long>> allStakeMap;
 
     //检查离线玩家事件
     private TimerEvent<String> checkOffLineEvent;
@@ -123,7 +124,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     /**
      * 初始化
      */
-    public void init(){
+    public void init() {
         this.gameType = getGameType();
 
         getResultLibDao().init(this.gameType);
@@ -133,7 +134,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         addCheckOffLineEvent();
     }
 
-    protected void addCheckOffLineEvent(){
+    public <G extends AbstractGameRunInfo> G enterGame(long playerId) {
+        return null;
+    }
+
+    protected void addCheckOffLineEvent() {
         this.checkOffLineEvent = new TimerEvent<>(this, "offLineEvent", 1).withTimeUnit(TimeUnit.MINUTES);
         timerCenter.add(this.checkOffLineEvent);
     }
@@ -141,6 +146,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     /**
      * 对外调用
      * 生成结果库
+     *
      * @param count
      */
     public void generateLib(int count) {
@@ -202,7 +208,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     /**
      * 关闭
      */
-    public void shutdown(){
+    public void shutdown() {
         this.gameDataMap.entrySet().forEach(en -> {
             T gameData = en.getValue();
             offlineSaveGameDataDto(gameData);
@@ -233,14 +239,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      * @return
      */
     protected SpecialResultLibCfg getLibCfgByPoolDiff(long diff) {
-        for(Map.Entry<Integer,SpecialResultLibCfg> en : this.resultLibMap.entrySet()){
+        for (Map.Entry<Integer, SpecialResultLibCfg> en : this.resultLibMap.entrySet()) {
             SpecialResultLibCfg cfg = en.getValue();
             if ((diff >= cfg.getEnterLimitMin() || cfg.getEnterLimitMin() <= -999999) && (diff < cfg.getEnterLimitMax() || cfg.getEnterLimitMax() >= 999999)) {
                 return cfg;
             }
         }
-
-
         return null;
     }
 
@@ -321,15 +325,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      * @param playerController
      * @return
      */
-    public <DT extends SlotsPlayerGameDataDTO> T createPlayerGameData(PlayerController playerController) throws Exception{
+    public <DT extends SlotsPlayerGameDataDTO> T createPlayerGameData(PlayerController playerController) throws Exception {
         T playerGameData = gameDataMap.get(playerController.playerId());
-        if(playerGameData != null){
+        if (playerGameData != null) {
             return playerGameData;
         }
 
-
-        DT playerGameDataDTO = (DT)getGameDataDao().getGameDataByPlayerId(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
-        if(playerGameDataDTO == null) {
+        DT playerGameDataDTO = (DT) getGameDataDao().getGameDataByPlayerId(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+        if (playerGameDataDTO == null) {
             Constructor<T> constructor = this.playerGameDataClass.getConstructor();
             playerGameData = constructor.newInstance();
 
@@ -343,15 +346,17 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             //设置默认押注
             BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(playerGameData.getRoomCfgId());
             playerGameData.setLastStake(baseRoomCfg.getDefaultBet().get(0));
-        }else {
+        } else {
             Constructor<T> constructor = this.playerGameDataClass.getConstructor();
             playerGameData = constructor.newInstance();
 
-            BeanUtils.copyProperties(playerGameDataDTO,playerGameData);
+            BeanUtils.copyProperties(playerGameDataDTO, playerGameData);
 
-            playerGameData = setGameDataValues(playerGameData,playerGameDataDTO);
+            playerGameData = setGameDataValues(playerGameData, playerGameDataDTO);
 
             playerGameData.getHasPlaySlots().set(true);
+
+            log.debug("从db中获取的playerGameData = {}", JSON.toJSONString(playerGameData));
         }
         playerGameData.setOnline(true);
         playerGameData.setPlayerController(playerController);
@@ -417,7 +422,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     }
 
     public boolean addGenerateLibEvent(int count) {
-        if(this.generateLibEvent != null){
+        if (this.generateLibEvent != null) {
             log.debug("当前有未执行的生成结果库任务，所以添加失败 count = {}", count);
             return false;
         }
@@ -434,9 +439,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
     @Override
     public void onTimer(TimerEvent e) {
-        if(this.checkOffLineEvent == e){
+        if (this.checkOffLineEvent == e) {
             checkOffLine();
-        }else if (this.clearAllLibEvent == e) {
+        } else if (this.clearAllLibEvent == e) {
             getResultLibDao().clearMongoLib();
             getResultLibDao().clearRedisLib();
             this.clearAllLibEvent = null;
@@ -471,17 +476,17 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     /**
      * 检查已离线的玩家，并且要保存数据
      */
-    protected void checkOffLine(){
+    protected void checkOffLine() {
         int now = TimeHelper.nowInt();
         this.gameDataMap.entrySet().removeIf(en -> {
             T gameData = en.getValue();
-            if(gameData.isOnline()){
+            if (gameData.isOnline()) {
                 return false;
             }
 
             int diff = now - gameData.getLastActiveTime();
             //60s = 1分钟
-            if(diff < 60){
+            if (diff < 60) {
                 return false;
             }
             offlineSaveGameDataDto(gameData);
@@ -572,7 +577,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
         updateSpecialResultLibCacheData(data);
 
-        log.info("计算分析缓存 specialResultLib 配置成功 gameType = {}",gameType);
+        log.info("计算分析缓存 specialResultLib 配置成功 gameType = {}", gameType);
     }
 
     public void updateSpecialResultLibCacheData(SpecialResultLibCacheData data) {
@@ -886,13 +891,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     /**
      * 将单线押分转化为总押分
      */
-    public void calAllLineStake(){
-        Map<Integer,List<Long>> tmpAllStakeMap = new HashMap<>();
+    public void calAllLineStake() {
+        Map<Integer, List<Long>> tmpAllStakeMap = new HashMap<>();
 
         int lineCount = getGenerateManager().getBaseInitCfg().getMaxLine();
-        for(Map.Entry<Integer, BaseRoomCfg> en : this.roomCfgMap.entrySet()){
+        for (Map.Entry<Integer, BaseRoomCfg> en : this.roomCfgMap.entrySet()) {
             BaseRoomCfg cfg = en.getValue();
-            for(long stake : cfg.getLineBetScore()){
+            for (long stake : cfg.getLineBetScore()) {
                 long allStake = lineCount * stake * cfg.getBetMultiple().get(0) * cfg.getLineMultiple().get(0);
                 tmpAllStakeMap.computeIfAbsent(cfg.getId(), k -> new ArrayList<>()).add(allStake);
             }
@@ -907,28 +912,31 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
     /**
      * 单线押分转化为总押分
+     *
      * @param stake
      * @param roonCfgId
      * @return
      */
-    public long oneLineToAllStake(int stake,int roonCfgId){
-        int lineCount = getGenerateManager().getBaseInitCfg().getMaxLine();;
+    public long oneLineToAllStake(int stake, int roonCfgId) {
+        int lineCount = getGenerateManager().getBaseInitCfg().getMaxLine();
+
         BaseRoomCfg cfg = GameDataManager.getBaseRoomCfg(roonCfgId);
         return lineCount * stake * cfg.getBetMultiple().get(0) * cfg.getLineMultiple().get(0);
     }
 
     /**
      * 检查中奖金额是否要发送跑马灯
+     *
      * @param data
      * @param win
      */
-    protected void checkMarquee(T data, long win){
+    protected void checkMarquee(T data, long win) {
         BaseRoomCfg baseRoomCfg = this.roomCfgMap.get(data.getRoomCfgId());
-        if(baseRoomCfg == null || win < baseRoomCfg.getMarqueeTrigger().get(0)){
+        if (baseRoomCfg == null || win < baseRoomCfg.getMarqueeTrigger().get(0)) {
             return;
         }
 
         marqueeManager.playerWinMarquee(data.getPlayerController().getPlayer().getNickName(),
-                baseRoomCfg.getMarqueeTrigger().get(1).intValue(),baseRoomCfg.getNameid(),win);
+                baseRoomCfg.getMarqueeTrigger().get(1).intValue(), baseRoomCfg.getNameid(), win);
     }
 }

@@ -180,8 +180,8 @@ public class CoreMarqueeManager implements TimerListener {
      * @param id
      */
     private void removeFromeRedis(int id) {
-        //必须是大厅主节点，才能从redis删除
-        if (marsCurator.isMaster() && clusterSystem.nodeConfig.getType().equalsIgnoreCase(NodeType.HALL.name())) {
+        //防止在节点变更时，遗漏删除中奖的跑马灯，所以只要是主节点都可以进行删除
+        if (marsCurator.isMaster()) {
             marqueeDao.removeMarquee(id);
             log.debug("从redis删除跑马灯 id = {}", id);
         }

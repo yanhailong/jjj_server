@@ -1,10 +1,10 @@
-package com.jjg.game.gm.dto;
+package com.jjg.game.gm.vo;
 
 /**
  * @author 11
  * @date 2025/8/25 16:41
  */
-public class SafeInfo {
+public class SafeVo {
     private long safeGold;
     private long safeDiamond;
 

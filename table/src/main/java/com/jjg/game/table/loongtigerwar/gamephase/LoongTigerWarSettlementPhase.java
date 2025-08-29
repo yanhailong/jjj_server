@@ -133,7 +133,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
     }
 
     @Override
-    public void phaseFinish() {
+    public void phaseFinishAction() {
         gameDataVo.setCurrentSettleInfo(null);
     }
 

@@ -46,7 +46,8 @@ public class DollarExpressMessageHandler implements GmListener {
     public void reqConfigInfo(PlayerController playerController, ReqConfigInfo req) {
         try {
             log.info("收到玩家请求配置 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            sendMessageManager.sendConfigMessage(playerController);
+            DollarExpressGameRunInfo gameRunInfo = gameManager.enterGame(playerController.playerId());
+            sendMessageManager.sendConfigMessage(playerController,gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -115,22 +116,6 @@ public class DollarExpressMessageHandler implements GmListener {
             log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             DollarExpressGameRunInfo gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
             sendMessageManager.sendPoolValue(playerController,gameRunInfo);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    /**
-     * 重连
-     *
-     * @param playerController
-     * @param req
-     */
-    @Command(DollarExpressConstant.MsgBean.REQ_DOLLAR_EXPRESS_RECONNECT)
-    public void reqDollarExpressReconnect(PlayerController playerController, ReqDollarExpressReconnect req) {
-        try {
-            log.info("收到重连请求 playerId={}", playerController.playerId());
-            sendMessageManager.sendDollarExpressReconnect(playerController);
         } catch (Exception e) {
             log.error("", e);
         }

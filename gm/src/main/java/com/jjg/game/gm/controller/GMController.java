@@ -17,6 +17,7 @@ import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.MarqueeDao;
+import com.jjg.game.core.dao.OnlinePlayerDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
@@ -29,6 +30,9 @@ import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.gm.dto.*;
+import com.jjg.game.gm.vo.OnlinePlayerVo;
+import com.jjg.game.gm.vo.PlayerVo;
+import com.jjg.game.gm.vo.SafeVo;
 import com.jjg.game.gm.vo.WebResult;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
@@ -41,6 +45,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -68,6 +73,8 @@ public class GMController extends AbstractController {
     private PlayerSessionService playerSessionService;
     @Autowired
     private ClusterSystem clusterSystem;
+    @Autowired
+    private OnlinePlayerDao onlinePlayerDao;
 
     //邮件中的道具string，需要用正则匹配
     private Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)\\]");
@@ -80,30 +87,30 @@ public class GMController extends AbstractController {
      */
     @RequestMapping(BackendGMCmd.CHANGE_GAME_STATUS)
     public WebResult<String> changeGameStatus(@RequestBody GameStatusDto dto) {
-        try{
+        try {
             log.info("收到修改游戏状态请求 dto = {}", dto);
-            if(dto.number() < 1){
+            if (dto.number() < 1) {
                 log.debug("游戏id不能为负，修改游戏状态失败 dto = {}", dto);
                 return fail("common.paramerror");
             }
 
-            if(dto.open() != 1 && dto.open() != 2){
+            if (dto.open() != 1 && dto.open() != 2) {
                 log.debug("开放状态错误，只能为1(开放)或2(不开放)  dto = {}", dto);
                 return fail("common.paramerror");
             }
 
-            if(dto.status() != 1 && dto.status() != 2){
+            if (dto.status() != 1 && dto.status() != 2) {
                 log.debug("上下架状态错误，只能为1(上架)或2(下架)  dto = {}", dto);
                 return fail("common.paramerror");
             }
 
-            if(dto.icon_category() != 0 && dto.icon_category() != 1){
+            if (dto.icon_category() != 0 && dto.icon_category() != 1) {
                 log.debug("图标大小错误，只能为0(大)或1(小)  dto = {}", dto);
                 return fail("common.paramerror");
             }
 
             boolean saved = gameStatusService.saveOrUpdateGameStatus(new GameStatus(dto.number(),
-                    dto.open(), dto.status(), dto.right_top_icon(),dto.icon_category(),dto.sort()));
+                    dto.open(), dto.status(), dto.right_top_icon(), dto.icon_category(), dto.sort()));
 
             if (!saved) {
                 log.info("修改游戏状态失败,无法保存到Redis , dto = {}", dto);
@@ -129,28 +136,29 @@ public class GMController extends AbstractController {
             }
             //返回修改结果
             return success("common.success");
-        }catch (Exception e) {
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
             return fail("common.exception");
         }
     }
 
     /**
      * 添加跑马灯
+     *
      * @param dto
      * @return
      */
     @RequestMapping(BackendGMCmd.SNED_MARQUEE)
     public WebResult<String> sendMarquee(@RequestBody MarqueeDto dto) {
-        try{
+        try {
             log.info("收到后台的跑马灯信息请求 {}", dto);
-            if(dto.id() < 1){
+            if (dto.id() < 1) {
                 log.debug("开启跑马灯时，从后台收到的跑马灯id不能小于1 id = {}", dto.id());
                 return fail("common.paramerror");
             }
 
-            if(StringUtils.isEmpty(dto.content()) || dto.showTime() < 0 || dto.interval_time() < 0 || dto.priority() < 0 ||
-                    StringUtils.isEmpty(dto.start_time()) || StringUtils.isEmpty(dto.end_time())){
+            if (StringUtils.isEmpty(dto.content()) || dto.showTime() < 0 || dto.interval_time() < 0 || dto.priority() < 0 ||
+                    StringUtils.isEmpty(dto.start_time()) || StringUtils.isEmpty(dto.end_time())) {
                 log.debug("从后台收到的跑马灯参数错误");
                 return fail("common.paramerror");
             }
@@ -180,7 +188,7 @@ public class GMController extends AbstractController {
             marqueeManager.notifyHallAndGameNodeStartMarquee(notify);
             //返回修改结果
             return success("common.success");
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
         }
@@ -188,14 +196,15 @@ public class GMController extends AbstractController {
 
     /**
      * 停止跑马灯
+     *
      * @param dto
      * @return
      */
     @RequestMapping(BackendGMCmd.STOP_MARQUEE)
     public WebResult<String> stopMarquee(@RequestBody StopMarqueeDto dto) {
-        try{
+        try {
             log.info("收到后台的停止跑马灯信息请求 id = {}", dto.id());
-            if(dto.id() < 1){
+            if (dto.id() < 1) {
                 log.debug("停止跑马灯时，从后台收到的跑马灯id不能小于1 id = {}", dto.id());
                 return fail("common.paramerror");
             }
@@ -212,7 +221,7 @@ public class GMController extends AbstractController {
 
             //返回修改结果
             return success("common.success");
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
         }
@@ -220,85 +229,86 @@ public class GMController extends AbstractController {
 
     /**
      * 查询玩家信息
+     *
      * @param dto
      * @return
      */
     @RequestMapping(BackendGMCmd.QUERY_ACCOUNT)
-    public WebResult<PlayerInfo> queryAccount(@RequestBody QueryAccountDto dto) {
-        try{
+    public WebResult<PlayerVo> queryAccount(@RequestBody QueryAccountDto dto) {
+        try {
             log.info("收到后台查询玩家信息请求 dto = {}", dto);
 
             Player p = null;
             Account account = null;
-            if(dto.playerId() > 0){  //根据玩家id查询
+            if (dto.playerId() > 0) {  //根据玩家id查询
                 p = playerService.getFromAllDB(dto.playerId());
                 account = accountDao.queryAccountByPlayerId(dto.playerId());
-            }else if(StringUtils.isNotEmpty(dto.registerMac())){  //根据注册mac
+            } else if (StringUtils.isNotEmpty(dto.registerMac())) {  //根据注册mac
                 account = accountDao.queryByRegisterMac(dto.registerMac());
-                if(account == null){
+                if (account == null) {
                     log.debug("未找到该玩家账号信息 registerMac = {}", dto.registerMac());
                     return fail("common.fail");
                 }
                 p = playerService.getFromAllDB(account.getPlayerId());
-            }else if(StringUtils.isNotEmpty(dto.loginMac())){  //根据登录mac
+            } else if (StringUtils.isNotEmpty(dto.loginMac())) {  //根据登录mac
                 account = accountDao.queryByLoginMac(dto.loginMac());
-                if(account == null){
+                if (account == null) {
                     log.debug("未找到该玩家账号信息 loginMac = {}", dto.loginMac());
                     return fail("common.fail");
                 }
                 p = playerService.getFromAllDB(account.getPlayerId());
-            }else if(StringUtils.isNotEmpty(dto.nickName())){   //根据昵称
+            } else if (StringUtils.isNotEmpty(dto.nickName())) {   //根据昵称
                 long playerId = playerService.queryPlayerIdByNick(dto.nickName());
-                if(playerId < 1){
+                if (playerId < 1) {
                     log.debug("未找到该玩家账号信息 nick = {}", dto.nickName());
                     return fail("common.fail");
                 }
                 p = playerService.getFromAllDB(playerId);
                 account = accountDao.queryAccountByPlayerId(playerId);
-            }else if(StringUtils.isNotEmpty(dto.mobile())){  //根据手机号
+            } else if (StringUtils.isNotEmpty(dto.mobile())) {  //根据手机号
                 account = accountDao.queryByPhone(dto.mobile());
-                if(account == null){
+                if (account == null) {
                     log.debug("未找到该玩家账号信息 mobile = {}", dto.mobile());
                     return fail("common.fail");
                 }
                 p = playerService.getFromAllDB(account.getPlayerId());
             }
 
-            if(account == null || p == null){
-                if(account == null){
+            if (account == null || p == null) {
+                if (account == null) {
                     log.debug("未找到该玩家账号信息 dto = {}", dto);
                     return fail("common.fail");
                 }
             }
 
-            boolean check = checkPlayerInfo(dto,p,account);
-            if(!check){
-                log.debug("获取后检验信息失败 dto = {},playerId = {}", dto,p.getId());
+            boolean check = checkPlayerInfo(dto, p, account);
+            if (!check) {
+                log.debug("获取后检验信息失败 dto = {},playerId = {}", dto, p.getId());
                 return fail("common.fail");
             }
 
             //返回修改结果
-            PlayerInfo info = new PlayerInfo();
-            info.setPlayerId(p.getId());
-            info.setNickName(p.getNickName());
-            info.setGold(p.getGold());
-            info.setDiamond(p.getDiamond());
-            info.setVipLevel(p.getVipLevel());
-            info.setIp(p.getIp());
-            info.setCreateTime(p.getCreateTime());
-            info.setRegisterMac(account.getRegisterMac());
-            info.setIsBan(account.getStatus());
-            info.setIsOffline(playerSessionService.hasSession(p.getId()) ? 0 : 1);
-            info.setMobile(account.getPhoneNumber());
+            PlayerVo vo = new PlayerVo();
+            vo.setPlayerId(p.getId());
+            vo.setNickName(p.getNickName());
+            vo.setGold(p.getGold());
+            vo.setDiamond(p.getDiamond());
+            vo.setVipLevel(p.getVipLevel());
+            vo.setIp(p.getIp());
+            vo.setCreateTime(p.getCreateTime());
+            vo.setRegisterMac(account.getRegisterMac());
+            vo.setIsBan(account.getStatus());
+            vo.setIsOffline(playerSessionService.hasSession(p.getId()) ? 0 : 1);
+            vo.setMobile(account.getPhoneNumber());
 
-            SafeInfo safeInfo = new SafeInfo();
-            safeInfo.setSafeGold(p.getSafeBoxGold());
-            safeInfo.setSafeDiamond(p.getSafeBoxDiamond());
-            info.setSafeInfo(safeInfo);
+            SafeVo safeVo = new SafeVo();
+            safeVo.setSafeGold(p.getSafeBoxGold());
+            safeVo.setSafeDiamond(p.getSafeBoxDiamond());
+            vo.setSafeInfo(safeVo);
 
-            log.info("返回玩家信息 info = {}", JSON.toJSONString(info));
-            return success(info);
-        }catch (Exception e){
+            log.info("返回玩家信息 info = {}", JSON.toJSONString(vo));
+            return success(vo);
+        } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
         }
@@ -306,27 +316,28 @@ public class GMController extends AbstractController {
 
     /**
      * 邮件
+     *
      * @param dto
      * @return
      */
     @RequestMapping(BackendGMCmd.SEND_EMAIL)
     public WebResult<String> sendEmail(@RequestBody MailDto dto) {
-        try{
+        try {
             log.debug("收到后台的邮件请求 dto = {}", dto);
-            if(StringUtils.isEmpty(dto.title())){
+            if (StringUtils.isEmpty(dto.title())) {
                 log.debug("发送邮件时，标题不能为空");
                 return fail("mail.titlenull");
             }
 
-            if(StringUtils.isEmpty(dto.content())){
-                log.debug("发送邮件时，内容不能为空 title = {}",dto.content());
+            if (StringUtils.isEmpty(dto.content())) {
+                log.debug("发送邮件时，内容不能为空 title = {}", dto.content());
                 return fail("mail.contentnull");
             }
 
             List<Item> mailItems = null;
             //解析邮件中的道具
-            if(StringUtils.isNotEmpty(dto.items())){
-                mailItems =  mailItemsPattern.matcher(dto.items())
+            if (StringUtils.isNotEmpty(dto.items())) {
+                mailItems = mailItemsPattern.matcher(dto.items())
                         .results()
                         .map(match -> new Item(
                                 Integer.parseInt(match.group(1)),
@@ -334,21 +345,21 @@ public class GMController extends AbstractController {
                         ))
                         .collect(Collectors.toList());
 
-                for(Item item : mailItems){
+                for (Item item : mailItems) {
                     ItemCfg itemCfg = GameDataManager.getItemCfg(item.getId());
-                    if(itemCfg == null){
-                        log.warn("邮件中的道具，未在配置表中找到 id = {},count = {}", item.getId(),item.getCount());
+                    if (itemCfg == null) {
+                        log.warn("邮件中的道具，未在配置表中找到 id = {},count = {}", item.getId(), item.getCount());
                         return fail("mail.itemerror");
                     }
                 }
             }
 
-            if(StringUtils.isEmpty(dto.designated())){  //为空表示全服邮件
+            if (StringUtils.isEmpty(dto.designated())) {  //为空表示全服邮件
                 mailService.addAllServerMail(dto.title(), dto.content(), mailItems);
-            }else {
+            } else {
                 List<Long> playerIds = new ArrayList<>();
                 String[] arr = dto.designated().split(",");
-                for(String str : arr) {
+                for (String str : arr) {
                     playerIds.add(Long.parseLong(str));
                 }
                 mailService.addMails(playerIds, dto.title(), dto.content(), mailItems);
@@ -356,7 +367,7 @@ public class GMController extends AbstractController {
 
             //返回修改结果
             return success("common.success");
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
         }
@@ -364,93 +375,94 @@ public class GMController extends AbstractController {
 
     /**
      * 货币操作
+     *
      * @param dto
      * @return
      */
     @RequestMapping(BackendGMCmd.GOLD_OPERATOR)
     public WebResult<String> goldOperator(@RequestBody GoldOperatorDto dto) {
-        try{
+        try {
             log.debug("收到后台的修改玩家货币的请求 dto = {}", dto);
-            if(dto.playerId() < 1){
+            if (dto.playerId() < 1) {
                 log.debug("修改货币时，玩家id不能小于 1,playerId = {}", dto.playerId());
                 return fail("common.paramerror");
             }
 
-            if(dto.currency_id() != GameConstant.Item.TYPE_DIAMOND && dto.currency_id() != GameConstant.Item.TYPE_GOLD){
-                log.debug("修改货币时，货币类型错误 currency_type = {}",dto.currency_id());
+            if (dto.currency_id() != GameConstant.Item.TYPE_DIAMOND && dto.currency_id() != GameConstant.Item.TYPE_GOLD) {
+                log.debug("修改货币时，货币类型错误 currency_type = {}", dto.currency_id());
                 return fail("common.paramerror");
             }
 
-            if(dto.type() != 1 && dto.type() != 2){
-                log.debug("修改货币时，操作类型错误 type = {}",dto.type());
+            if (dto.type() != 1 && dto.type() != 2) {
+                log.debug("修改货币时，操作类型错误 type = {}", dto.type());
                 return fail("common.paramerror");
             }
 
-            if(dto.operator_type() != 1 && dto.operator_type() != 2){
-                log.debug("修改货币时，增减资金流向错误 operator_type = {}",dto.operator_type());
+            if (dto.operator_type() != 1 && dto.operator_type() != 2) {
+                log.debug("修改货币时，增减资金流向错误 operator_type = {}", dto.operator_type());
                 return fail("common.paramerror");
             }
 
-            if(dto.quantity() < 1){
-                log.debug("修改货币时，增减数量错误 quantity = {}",dto.quantity());
+            if (dto.quantity() < 1) {
+                log.debug("修改货币时，增减数量错误 quantity = {}", dto.quantity());
                 return fail("common.paramerror");
             }
 
-            if(StringUtils.isEmpty(dto.playerName())){
+            if (StringUtils.isEmpty(dto.playerName())) {
                 log.debug("修改货币时，用户名不能为空");
                 return fail("common.paramerror");
             }
 
             Player player = playerService.get(dto.playerId());
-            if(player == null){
+            if (player == null) {
                 log.debug("修改货币时，未找到该用户 playerId = {}", dto.playerId());
                 return fail("common.paramerror");
             }
 
-            if(!dto.playerName().equals(player.getNickName())){
-                log.debug("修改货币时，用户名校验错误 playerId = {},paramNick = {},dbNick = {}", dto.playerId(),dto.playerName(),player.getNickName());
+            if (!dto.playerName().equals(player.getNickName())) {
+                log.debug("修改货币时，用户名校验错误 playerId = {},paramNick = {},dbNick = {}", dto.playerId(), dto.playerName(), player.getNickName());
                 return fail("common.paramerror");
             }
 
             CommonResult<Player> result;
-            if(dto.type() == 1){  //增加
-                if(dto.operator_type() == 1){ //账户
-                    if(dto.currency_id() == GameConstant.Item.TYPE_GOLD){ //金币
-                        result = playerService.addGold(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
-                    }else {  //钻石
-                        result = playerService.addDiamond(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
+            if (dto.type() == 1) {  //增加
+                if (dto.operator_type() == 1) { //账户
+                    if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
+                        result = playerService.addGold(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
+                    } else {  //钻石
+                        result = playerService.addDiamond(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
                     }
-                }else { //保险箱
-                    if(dto.currency_id() == GameConstant.Item.TYPE_GOLD){ //金币
-                        result = playerService.addSafeBoxGold(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
-                    }else {  //钻石
-                        result = playerService.addSafeBoxDiamond(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
+                } else { //保险箱
+                    if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
+                        result = playerService.addSafeBoxGold(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
+                    } else {  //钻石
+                        result = playerService.addSafeBoxDiamond(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
                     }
                 }
-            }else {  //减少
-                if(dto.operator_type() == 1){ //账户
-                    if(dto.currency_id() == GameConstant.Item.TYPE_GOLD){ //金币
-                        result = playerService.deductGold(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
-                    }else {  //钻石
-                        result = playerService.deductDiamond(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
+            } else {  //减少
+                if (dto.operator_type() == 1) { //账户
+                    if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
+                        result = playerService.deductGold(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
+                    } else {  //钻石
+                        result = playerService.deductDiamond(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
                     }
-                }else { //保险箱
-                    if(dto.currency_id() == GameConstant.Item.TYPE_GOLD){ //金币
-                        result = playerService.deductSafeBoxGold(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
-                    }else {  //钻石
-                        result = playerService.deductSafeBoxDiamond(dto.playerId(),dto.quantity(),"GM_GOLD_OPERATOR",dto.remark());
+                } else { //保险箱
+                    if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
+                        result = playerService.deductSafeBoxGold(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
+                    } else {  //钻石
+                        result = playerService.deductSafeBoxDiamond(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
                     }
                 }
             }
 
-            if(!result.success()){
-                log.debug("修改货币时错误 ,playerId = {},code = {}", dto.playerId(),result.code);
+            if (!result.success()) {
+                log.debug("修改货币时错误 ,playerId = {},code = {}", dto.playerId(), result.code);
                 return fail("common.fail");
             }
 
-            if(dto.operator_type() == 1){  //如果是账户修改，则要进行通知
+            if (dto.operator_type() == 1) {  //如果是账户修改，则要进行通知
                 PFSession session = playerSessionService.getSession(dto.playerId());
-                if(session != null){
+                if (session != null) {
                     NoticeBaseInfoChange notice = new NoticeBaseInfoChange();
                     notice.gold = result.data.getGold();
                     notice.diamond = result.data.getDiamond();
@@ -461,7 +473,7 @@ public class GMController extends AbstractController {
 
             //返回修改结果
             return success("common.success");
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
         }
@@ -469,46 +481,47 @@ public class GMController extends AbstractController {
 
     /**
      * 踢出玩家
+     *
      * @param dto
      * @return
      */
     @RequestMapping(BackendGMCmd.KICK_ACCOUNT)
     public WebResult<String> kickAccount(@RequestBody KickAccountDto dto) {
-        try{
+        try {
             log.info("收到后台踢人的请求 dto = {}", dto);
-            if(dto.type() == 1){  //指定id
-                if(StringUtils.isEmpty(dto.ids())){
-                    log.debug("指定id踢人时，ids不能为空 dto = {}",dto);
+            if (dto.type() == 1) {  //指定id
+                if (StringUtils.isEmpty(dto.ids())) {
+                    log.debug("指定id踢人时，ids不能为空 dto = {}", dto);
                     return fail("common.paramerror");
                 }
                 String[] arr = dto.ids().trim().split(",");
-                if(arr.length < 1){
-                    log.debug("踢人的玩家id不能为空 type = {}",dto.type());
+                if (arr.length < 1) {
+                    log.debug("踢人的玩家id不能为空 type = {}", dto.type());
                     return fail("common.paramerror");
                 }
 
                 NotifyKickout notifyKickout = new NotifyKickout();
                 notifyKickout.langId = dto.tips();
-                for(String str : arr) {
+                for (String str : arr) {
                     long playerId = Long.parseLong(str);
                     PFSession session = playerSessionService.getSession(playerId);
-                    if(session == null){
+                    if (session == null) {
                         continue;
                     }
                     session.send(notifyKickout);
                 }
-            }else if(dto.type() == 2){  //全服
+            } else if (dto.type() == 2) {  //全服
                 ReqAllKickout req = new ReqAllKickout();
                 req.langId = dto.tips();
                 PFMessage pfMessage = MessageUtil.getPFMessage(req);
                 clusterSystem.notifyHallAndGameNode(pfMessage);
-            }else {
-                log.debug("踢人类型错误 type = {}",dto.type());
+            } else {
+                log.debug("踢人类型错误 type = {}", dto.type());
                 return fail("common.paramerror");
             }
             //返回修改结果
             return success("common.success");
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
         }
@@ -516,43 +529,95 @@ public class GMController extends AbstractController {
 
     /**
      * 封禁
+     *
      * @param dto
      * @return
      */
     @RequestMapping(BackendGMCmd.BAN_ACCOUNT)
     public WebResult<String> banAccount(@RequestBody BanAccountDto dto) {
-        try{
+        try {
             log.info("收到后台封禁账号的请求 dto = {}", dto);
-            if(dto.type() != 1 && dto.type() != 2){
-                log.debug("封禁类型错误 type = {}",dto.type());
+            if (dto.type() != 1 && dto.type() != 2) {
+                log.debug("封禁类型错误 type = {}", dto.type());
                 return fail("common.paramerror");
             }
 
             String[] arr = dto.playerIds().trim().split(",");
-            if(arr.length < 1){
-                log.debug("封禁的玩家id不能为空 type = {}",dto.type());
+            if (arr.length < 1) {
+                log.debug("封禁的玩家id不能为空 type = {}", dto.type());
                 return fail("common.paramerror");
             }
 
             //先踢人
             NotifyKickout notifyKickout = new NotifyKickout();
-            for(String str : arr){
+            for (String str : arr) {
                 long playerId = Long.parseLong(str);
 
-                if(dto.type() == 1){  //封
-                    accountDao.updateAccountStatus(playerId,GameConstant.AccountStatus.BAN);
+                if (dto.type() == 1) {  //封
+                    accountDao.updateAccountStatus(playerId, GameConstant.AccountStatus.BAN);
                     PFSession session = playerSessionService.getSession(playerId);
-                    if(session == null){
+                    if (session == null) {
                         continue;
                     }
                     session.send(notifyKickout);
-                }else {  //解
-                    accountDao.updateAccountStatus(playerId,GameConstant.AccountStatus.NORMAL);
+                } else {  //解
+                    accountDao.updateAccountStatus(playerId, GameConstant.AccountStatus.NORMAL);
                 }
             }
             //返回修改结果
             return success("common.success");
-        }catch (Exception e){
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 在线玩家
+     *
+     * @param dto
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.PLAYING_INFO)
+    public WebResult<List<OnlinePlayerVo>> onlinePlayer(@RequestBody OnlinePlayerDto dto) {
+        try {
+            log.info("收到后台查询在线玩家的请求 dto = {}", dto);
+            if (dto.gameId() < 1 || dto.registerChannel() < 0 || dto.pageSize() < 1 || dto.page() < 1) {
+                log.debug("参数错误 dto = {}", dto);
+                return fail("common.paramerror");
+            }
+
+            List<OnlinePlayer> list = onlinePlayerDao.query(dto.gameId(), dto.registerChannel(), dto.pageSize(), dto.page());
+            if (list == null || list.isEmpty()) {
+                return success("common.success");
+            }
+
+            List<Long> playerIds = new ArrayList<>();
+            list.forEach(onlinePlayer -> {
+                playerIds.add(onlinePlayer.getPlayerId());
+            });
+
+            //从redis获取玩家最新信息
+            Map<Long, Player> playerMap = playerService.multiGetPlayerMap(playerIds);
+
+            List<OnlinePlayerVo> resultList = new ArrayList<>();
+            for (OnlinePlayer olp : list) {
+                OnlinePlayerVo vo = new OnlinePlayerVo();
+                vo.setPlayerId(olp.getPlayerId());
+
+                Player player = playerMap.get(vo.getPlayerId());
+                if (player != null) {
+                    vo.setPlayerName(player.getNickName());
+                    vo.setCreateTime(player.getCreateTime());
+                    vo.setGold(player.getGold());
+                    vo.setDiamond(player.getDiamond());
+                }
+                resultList.add(vo);
+            }
+
+            //返回修改结果
+            return success("common.success", resultList);
+        } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
         }
@@ -563,43 +628,44 @@ public class GMController extends AbstractController {
 
     /**
      * 检验玩家信息
+     *
      * @param dto
      * @param player
      * @param account
      * @return
      */
-    private boolean checkPlayerInfo(QueryAccountDto dto,Player player,Account account){
+    private boolean checkPlayerInfo(QueryAccountDto dto, Player player, Account account) {
         //检查玩家id
-        if(dto.playerId() > 0){
-            if(dto.playerId() != player.getId() || dto.playerId() != account.getPlayerId()){
+        if (dto.playerId() > 0) {
+            if (dto.playerId() != player.getId() || dto.playerId() != account.getPlayerId()) {
                 return false;
             }
         }
 
         //检查注册的mac
-        if(StringUtils.isNotEmpty(dto.registerMac())){
-            if(!dto.registerMac().equals(account.getRegisterMac())){
+        if (StringUtils.isNotEmpty(dto.registerMac())) {
+            if (!dto.registerMac().equals(account.getRegisterMac())) {
                 return false;
             }
         }
 
         //检查登录的mac
-        if(StringUtils.isNotEmpty(dto.loginMac())){
-            if(!dto.loginMac().equals(account.getLastLoginMac())){
+        if (StringUtils.isNotEmpty(dto.loginMac())) {
+            if (!dto.loginMac().equals(account.getLastLoginMac())) {
                 return false;
             }
         }
 
         //检查昵称
-        if(StringUtils.isNotEmpty(dto.nickName())){
-            if(!dto.nickName().equals(player.getNickName())){
+        if (StringUtils.isNotEmpty(dto.nickName())) {
+            if (!dto.nickName().equals(player.getNickName())) {
                 return false;
             }
         }
 
         //检查手机号
-        if(StringUtils.isNotEmpty(dto.mobile())){
-            if(!dto.mobile().equals(account.getPhoneNumber())){
+        if (StringUtils.isNotEmpty(dto.mobile())) {
+            if (!dto.mobile().equals(account.getPhoneNumber())) {
                 return false;
             }
         }

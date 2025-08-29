@@ -56,13 +56,13 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     public <M extends AbstractMessage> void broadcastToPlayers(RoomMessageBuilder<M> message) {
         if (message.isToAll()) {
             Set<Long> playerIds = gameDataVo.getSeatInfo().values()
-                .stream()
-                .map(SeatInfo::getPlayerId)
-                .filter(playerId -> {
-                    GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-                    return Objects.nonNull(gamePlayer) && gamePlayer.getPokerPlayerGameData().isInit();
-                })
-                .collect(Collectors.toSet());
+                    .stream()
+                    .map(SeatInfo::getPlayerId)
+                    .filter(playerId -> {
+                        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+                        return Objects.nonNull(gamePlayer) && gamePlayer.getPokerPlayerGameData().isInit();
+                    })
+                    .collect(Collectors.toSet());
             message.setPlayerIds(playerIds);
             message.setToAll(false);
             roomController.broadcastToPlayers(message);
@@ -140,7 +140,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     @Override
     public void addGameTimeEvent(TimerEvent<IProcessorHandler> roomUpdateTimer, RoomEventType roomEventType) {
         RoomTimerEvent<IProcessorHandler, Room> timerEvent = new RoomTimerEvent<>(roomUpdateTimer,
-            roomController.getRoom(), roomEventType);
+                roomController.getRoom(), roomEventType);
         timerCenter.add(timerEvent);
         if (POKER_PLAYER_EVENT == roomEventType) {
             gameDataVo.setPlayerTimerEvent(timerEvent);
@@ -193,7 +193,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         //通知其他玩家 玩家加入
         NotifyPokerPlayerChange playerChange = new NotifyPokerPlayerChange();
         playerChange.pokerPlayerInfo =
-            PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(playerController.playerId()), null, gameDataVo);
+                PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(playerController.playerId()), null, gameDataVo);
         playerChange.totalNum = gameDataVo.getGamePlayerMap().size();
         roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(playerChange).exceptPlayer(playerController.playerId()));
         //尝试开启游戏
@@ -364,12 +364,17 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                 } catch (Exception e) {
                     log.error("onPlayerLeaveRoomAction() failed", e);
                 }
+                if (gameDataVo.getSeatInfo().isEmpty()) {
+                    setCurrentGamePhase(new BaseWaitReadyPhase<>(this));
+                    removePokerPhaseTimer();
+                    gameDataVo.resetData(this);
+                }
             }
             NotifyPokerPlayerChange playerChange = new NotifyPokerPlayerChange();
             playerChange.pokerPlayerInfo = PokerBuilder.buildPlayerInfo(gamePlayer, remove, gameDataVo);
             roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder()
-                .toAllPlayer().exceptPlayer(playerController.playerId())
-                .setData(playerChange));
+                    .toAllPlayer().exceptPlayer(playerController.playerId())
+                    .setData(playerChange));
         }
         return super.onPlayerLeaveRoom(playerController);
     }

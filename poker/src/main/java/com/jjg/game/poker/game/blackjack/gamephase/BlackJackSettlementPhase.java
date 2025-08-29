@@ -24,8 +24,8 @@ import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import java.util.*;
 
 /**
- * @AUTHOR LM
- * @DATE 2025/7/29 09:31
+ * @author LM
+ * @date 2025/7/29 09:31
  */
 public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameDataVo> {
 
@@ -171,11 +171,6 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             settlementInfo.cardGroupState = new ArrayList<>(size);
             for (int i = 0; i < size; i++) {
                 List<Integer> card = info.getCards().get(i);
-                int point = BlackJackDataHelper.getTotalPoint(card);
-                if (point > BlackJackConstant.Common.PERFECT_POINT) {
-                    settlementInfo.cardGroupState.add(0);
-                    continue;
-                }
                 Map<Integer, Long> betInfo = allBetInfo.get(playerId);
                 if (Objects.isNull(betInfo)) {
                     continue;
@@ -183,6 +178,16 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                 Long betValue = betInfo.getOrDefault(i, 0L);
                 if (betValue == 0) {
                     settlementInfo.cardGroupState.add(2);
+                    continue;
+                }
+                int point = BlackJackDataHelper.getTotalPoint(card);
+                if (point > BlackJackConstant.Common.PERFECT_POINT) {
+                    if (boom) {
+                        playerGet.merge(playerId, BlackJackDataHelper.getGetWinValue(betValue, blackjackCfg.getDraw()), Long::sum);
+                        settlementInfo.cardGroupState.add(2);
+                        continue;
+                    }
+                    settlementInfo.cardGroupState.add(0);
                     continue;
                 }
                 //初始为21点 直接发奖
@@ -259,7 +264,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
      */
     public static MaxPointGetInfo getMaxPointInfo(List<Integer> maxGetCard) {
         List<MaxPointGetInfo> totalPointList = new ArrayList<>();
-        MaxPointGetInfo base = new MaxPointGetInfo(0, 0, false);
+        MaxPointGetInfo base = new MaxPointGetInfo(0, 0, false, false);
         totalPointList.add(base);
         boolean isMax = false;
         for (int i = 0; i < maxGetCard.size(); i++) {
@@ -267,12 +272,17 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             int point = BlackJackDataHelper.getCfgPoint(card);
             int endNum = 0;
             for (MaxPointGetInfo value : totalPointList) {
+                if (value.isEnd()) {
+                    endNum++;
+                    continue;
+                }
                 if (value.getMaxPoint() + point <= BlackJackConstant.Common.PERFECT_POINT) {
                     value.setMaxPoint(value.getMaxPoint() + point);
                     value.setIndex(i);
-                } else {
-                    endNum++;
+                    continue;
                 }
+                endNum++;
+                value.setEnd(true);
             }
             if (endNum >= totalPointList.size()) {
                 break;
@@ -281,7 +291,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             if (!isMax && point == 1) {
                 isMax = base.getMaxPoint() + 10 > BlackJackConstant.Common.PERFECT_POINT;
                 if (!isMax) {
-                    totalPointList.add(new MaxPointGetInfo(base.getMaxPoint() + 10, i, true));
+                    totalPointList.add(new MaxPointGetInfo(base.getMaxPoint() + 10, i, true, false));
                 }
             }
         }
@@ -310,6 +320,5 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         }
         return totalPointList.getFirst();
     }
-
 
 }

@@ -47,7 +47,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
     public void init() {
         Map<String, IPlayerRoomEventListener> listenerMap =
-            CommonUtil.getContext().getBeansOfType(IPlayerRoomEventListener.class);
+                CommonUtil.getContext().getBeansOfType(IPlayerRoomEventListener.class);
         for (Map.Entry<String, IPlayerRoomEventListener> en : listenerMap.entrySet()) {
             int[] arr = en.getValue().getGameTypes();
             if (arr != null && arr.length > 0) {
@@ -58,7 +58,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
         }
 
         Map<String, AbstractRoomManager> roomManagerMap =
-            CommonUtil.getContext().getBeansOfType(AbstractRoomManager.class);
+                CommonUtil.getContext().getBeansOfType(AbstractRoomManager.class);
         for (Map.Entry<String, AbstractRoomManager> en : roomManagerMap.entrySet()) {
             this.roomManager = en.getValue();
             break;
@@ -67,10 +67,14 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
     @Override
     public void sessionClose(PFSession session) {
+        exitRoomAction(session, false);
+    }
+
+    public void exitRoomAction(PFSession session, boolean exit) {
         PlayerController playerController = (PlayerController) session.getReference();
         if (playerController == null || playerController.getPlayer() == null) {
             log.warn("玩家退出游戏服务器时 playerController 为空,playerId={},sessionId={}", session.getPlayerId(),
-                session.sessionId());
+                    session.sessionId());
             return;
         }
         log.info("玩家：{} 房间开始进入session关闭流程", playerController.playerId());
@@ -97,7 +101,12 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             //  如果没有需要判断玩家当前处于具体游戏的哪个阶段，是否在需要完成整局再退出房间
             // abstractRoomController.playerOffline(playerController);
             // TODO 先让玩家直接退出，后续添加断线重连逻辑
-            roomManager.exitRoom(playerController);
+            if (exit) {
+                roomManager.exitRoom(playerController);
+            } else {
+                log.info("玩家掉线 player: {}", playerController.playerId());
+                roomManager.disconnectedExitRoom(playerController);
+            }
         }
 
         IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(gameType);
@@ -105,7 +114,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             playerRoomEventListener.exit(session, playerController);
         } else {
             log.warn("玩家退出游戏服务器时未找到 playerRoomEventListener, playerId = {},gameType = {}",
-                playerController.playerId(), gameType);
+                    playerController.playerId(), gameType);
         }
 
         logger.exitGame(playerController.getPlayer());
@@ -147,7 +156,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 // 设置workId
                 session.setWorkId(player.getRoomId());
                 int code = roomManager.joinRoom(
-                    playerController, info.getGameType(), info.getRoomCfgId(), player.getRoomId());
+                        playerController, info.getGameType(), info.getRoomCfgId(), player.getRoomId());
                 if (code == Code.SUCCESS) {
                     return;
                 }
@@ -155,7 +164,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());
             if (playerRoomEventListener == null) {
                 log.warn("sessionEnter时 未找到 playerRoomEventListener, playerId = {},gameType = {}", playerId,
-                    info.getGameType());
+                        info.getGameType());
                 return;
             }
             playerRoomEventListener.enter(session, playerController, info);
@@ -166,7 +175,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
     public int exitGame(PlayerController playerController) {
         try {
-            sessionClose(playerController.getSession());
+            exitRoomAction(playerController.getSession(), true);
             clusterSystem.switchNode(playerController.getSession(), NodeType.HALL);
             return Code.SUCCESS;
         } catch (Exception e) {

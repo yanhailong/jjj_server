@@ -101,9 +101,5 @@ public interface DollarExpressConstant {
         //请求奖池
         int REQ_POOL_VALUE = BASE_MSG_PREFIX | 0x9;
         int RES_POOL_VALUE = BASE_MSG_PREFIX | 0xA;
-
-        //请求重连信息
-        int REQ_DOLLAR_EXPRESS_RECONNECT = BASE_MSG_PREFIX | 0xB;
-        int RES_DOLLAR_EXPRESS_RECONNECT = BASE_MSG_PREFIX | 0xC;
     }
 }

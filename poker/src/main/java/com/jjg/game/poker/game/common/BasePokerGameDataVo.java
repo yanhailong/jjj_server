@@ -71,6 +71,7 @@ public abstract class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
      */
     private RoomTimerEvent<IProcessorHandler, Room> playerTimerEvent;
 
+
     public RoomTimerEvent<IProcessorHandler, Room> getPlayerTimerEvent() {
         return playerTimerEvent;
     }
@@ -163,6 +164,10 @@ public abstract class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
 
     public Map<Long, PlayerSeatInfo> getPlayerSeatInfoMap() {
         return playerSeatInfoList.stream().collect(Collectors.toMap(PlayerSeatInfo::getPlayerId, info -> info));
+    }
+
+    public long getPlayerGameNnm() {
+        return playerSeatInfoList.stream().filter(info->!info.isDelState()).count();
     }
 
     public abstract int getPoolId();

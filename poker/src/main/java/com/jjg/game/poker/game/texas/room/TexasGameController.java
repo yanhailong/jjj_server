@@ -37,6 +37,7 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import com.jjg.game.sampledata.bean.TexasCfg;
@@ -71,14 +72,12 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     @Override
     public void respRoomInitInfoAction(PlayerController playerController) {
         RepsTexasRoomBaseInfo repsTexasRoomBaseInfo = new RepsTexasRoomBaseInfo(Code.SUCCESS);
-        if (getCurrentGamePhase() == EGamePhase.PLAY_CART) {
+        if (getCurrentGamePhase() != EGamePhase.WAIT_READY) {
             if (Objects.nonNull(gameDataVo.getPublicCards())) {
                 repsTexasRoomBaseInfo.publicCards = TexasDataHelper.getClientId(gameDataVo, gameDataVo.getPublicCards());
             }
             repsTexasRoomBaseInfo.waitPlayerId = gameDataVo.getCurrentPlayerSeatInfo().getPlayerId();
             repsTexasRoomBaseInfo.waitEndTime = gameDataVo.getPlayerTimerEvent().getNextTime();
-        }
-        if (getCurrentGamePhase() != EGamePhase.WAIT_READY) {
             List<Pot> pool = gameDataVo.getPool();
             repsTexasRoomBaseInfo.bottomPool = pool.getFirst().getAmount();
             repsTexasRoomBaseInfo.seatId = gameDataVo.getDealerSeatId();
@@ -194,8 +193,13 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             addNextTimer(nextExePlayer, 0);
             notifyTexasBet.nextPlayerId = nextExePlayer.getPlayerId();
             notifyTexasBet.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
+            RoomDataHelper.checkPlayerVipLevel(gamePlayer, betValue);
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasBet));
         } else {
+            //结算的时候加注，all不算有效押注
+            if (!isNextRoundOrSettlement() || isNextRoundOrSettlement() && reqPokerBet.betType == PokerConstant.PlayerOperation.FOLLOW_CARD) {
+                RoomDataHelper.checkPlayerVipLevel(gamePlayer, betValue);
+            }
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasBet));
             startNextRoundOrSettlement();
         }
@@ -283,7 +287,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
      * 开启下一轮还是进行结算
      */
     public void startNextRoundOrSettlement() {
-        if (gameDataVo.getPlayerSeatInfoList().isEmpty()) {
+        if (gameDataVo.getPlayerGameNnm() == 0) {
             setCurrentGamePhase(new BaseWaitReadyPhase<>(this));
             gameDataVo.resetData(this);
             return;

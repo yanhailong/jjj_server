@@ -23,14 +23,12 @@ import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.datatrack.RoomDataTrackLogger;
 import com.jjg.game.room.services.RobotService;
 import com.jjg.game.room.timer.RoomTimerCenter;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.RoomCfg;
-import com.jjg.game.sampledata.bean.Room_BetCfg;
-import com.jjg.game.sampledata.bean.Room_ChessCfg;
-import com.jjg.game.sampledata.bean.WarehouseCfg;
+import com.jjg.game.sampledata.bean.*;
 import jakarta.annotation.PostConstruct;
 import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
@@ -83,10 +81,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     protected RoomTimerCenter roomTimerCenter;
     // 不同类型的房间roomDao
     protected Map<Class<? extends Room>, AbstractRoomDao<? extends Room, ? extends RoomPlayer>> roomDaoMap
-        = new HashMap<>();
+            = new HashMap<>();
     //所有的房间控制器  gameType -> roomId - > RoomController
     protected Map<Integer, Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomControllerMap =
-        new ConcurrentHashMap<>();
+            new ConcurrentHashMap<>();
     // 房间控制器class类集合
     protected Set<Class<? extends AbstractRoomController>> roomControllerClazz;
     // 游戏控制器class类集合
@@ -108,11 +106,11 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             Reflections reflections = new Reflections(CoreConst.Common.BASE_PROJECT_PACKAGE_PATH);
             // 房间控制器初始化
             Set<Class<? extends AbstractRoomController>> allRoomController =
-                reflections.getSubTypesOf(AbstractRoomController.class).stream()
-                    .filter(c -> !Modifier.isAbstract(c.getModifiers()))
-                    .collect(Collectors.toSet());
+                    reflections.getSubTypesOf(AbstractRoomController.class).stream()
+                            .filter(c -> !Modifier.isAbstract(c.getModifiers()))
+                            .collect(Collectors.toSet());
             log.info("获取到房间控制器: {}", allRoomController.stream().map(Class::getSimpleName).collect(Collectors.joining(
-                ",")));
+                    ",")));
             roomControllerClazz = allRoomController;
             // 房间数据Dao初始化
             Set<Class<? extends AbstractRoomDao>> allRoomDao = reflections.getSubTypesOf(AbstractRoomDao.class);
@@ -138,14 +136,14 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             }
             // 所有的游戏控制器
             Set<Class<?>> annotatedClasses =
-                reflections.get(Scanners.TypesAnnotated.with(GameController.class).asClass());
+                    reflections.get(Scanners.TypesAnnotated.with(GameController.class).asClass());
             gameControllerClazz =
-                annotatedClasses
-                    .stream()
-                    .map(aClass -> (Class<AbstractGameController<RC, ? extends GameDataVo<RC>>>) aClass)
-                    .filter(aClass ->
-                        !aClass.isInterface() && !Modifier.isAbstract(aClass.getModifiers()))
-                    .collect(Collectors.toSet());
+                    annotatedClasses
+                            .stream()
+                            .map(aClass -> (Class<AbstractGameController<RC, ? extends GameDataVo<RC>>>) aClass)
+                            .filter(aClass ->
+                                    !aClass.isInterface() && !Modifier.isAbstract(aClass.getModifiers()))
+                            .collect(Collectors.toSet());
         } catch (Exception exception) {
             log.error("获取房间控制器失败", exception);
             throw exception;
@@ -174,7 +172,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 初始化当前节点已经存在的房间，此为兼容逻辑，按道理在服务器关闭时会清除当前节点所有的房间数据
      */
     public <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> initNodeExistRoom(
-        int gameType, int roomCfgId, int maxLimit) throws Exception {
+            int gameType, int roomCfgId, int maxLimit) throws Exception {
         RoomType roomType = RoomType.getRoomType(roomCfgId);
         // 获取roomDao
         AbstractRoomDao<R, ? extends RoomPlayer> roomDao = getRoomDao(roomCfgId);
@@ -236,7 +234,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         // 按道理房间不会有玩家
         if (existedRoom.getRoomPlayers() != null && !existedRoom.getRoomPlayers().isEmpty()) {
             log.error("初始化新房间中,有玩家：{}",
-                existedRoom.getRoomPlayers().keySet().stream().map(String::valueOf).collect(Collectors.joining(",")));
+                    existedRoom.getRoomPlayers().keySet().stream().map(String::valueOf).collect(Collectors.joining(",")));
             // 加载时需要移除所有房间中的机器人
             roomDao.doSave(gameType, existedRoom.getId(), new DataSaveCallback<>() {
                 @Override
@@ -257,7 +255,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 创建初始的系统房间,有些游戏开服就会有默认的房间
      */
     public <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> createGameDefaultRoom(
-        int gameType, int roomCfgId, int maxLimit) throws Exception {
+            int gameType, int roomCfgId, int maxLimit) throws Exception {
         RoomType roomType = RoomType.getRoomType(roomCfgId);
         // 获取roomDao
         AbstractRoomDao<R, ? extends RoomPlayer> roomDao = getRoomDao(roomCfgId);
@@ -277,7 +275,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 通过房间数据初始房间
      */
     private <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> initWithRoom(
-        int gameType, int roomCfgId, int maxLimit, RoomType roomType, R room) throws Exception {
+            int gameType, int roomCfgId, int maxLimit, RoomType roomType, R room) throws Exception {
         // 房间配置
         RC roomCfg = getRoomActualCfg(roomCfgId);
         if (roomCfg == null) {
@@ -290,7 +288,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         registerRoomController(gameType, room.getId(), roomController);
 
         log.debug("系统创建房间成功 gameType = {},roomCfgId = {},roomType = {},maxLimit = {}",
-            gameType, roomCfgId, roomType, maxLimit);
+                gameType, roomCfgId, roomType, maxLimit);
         return roomController;
     }
 
@@ -301,21 +299,21 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * player加入房间
      */
     public <RC extends RoomCfg, R extends Room> int joinRoom(
-        PlayerController playerController, int gameType, int roomCfgId, long roomId) {
+            PlayerController playerController, int gameType, int roomCfgId, long roomId) {
         try {
             if (isRoomStopping) {
                 return Code.ROOM_STOPPING;
             }
             if (roomId < 1) {
                 log.debug("roomId不能小于,加入房间失败 gameType = {},roomId = {} ,playerId = {}", gameType, roomId,
-                    playerController.playerId());
+                        playerController.playerId());
                 return Code.FAIL;
             }
             // 检查玩家重复加入房间的情况,如果是机器人重复加入直接退出,真人玩家进行兼容处理
             // TODO 断线重连后修改此段逻辑，需要阻止玩家重复加入
-            /*if (!checkCanRepeatJoinRoom(playerController)) {
+            if (!checkCanRepeatJoinRoom(playerController)) {
                 return Code.REPEAT_JOIN_ROOM;
-            }*/
+            }
             AbstractRoomController<RC, R> roomController = getRoomController(gameType, roomId);
             if (roomController == null) {
                 AbstractRoomDao<R, ? extends RoomPlayer> roomDao = getRoomDao(roomCfgId);
@@ -323,7 +321,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 R room = roomDao.getRoom(gameType, roomId);
                 if (room == null) {
                     log.warn("加入房间失败，该房间不存在 gameType = {},roomId = {},playerId = {}", gameType, roomId,
-                        playerController.playerId());
+                            playerController.playerId());
                     return Code.FAIL;
                 }
 
@@ -332,7 +330,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                     MarsNode node = clusterSystem.getNode(room.getPath());
                     if (node == null) {
                         log.warn("加入房间成功，开始切换节点 gameType = {},roomId = {},playerId = {},toRoomPath = {}", gameType,
-                            roomId, playerController.playerId(), room.getPath());
+                                roomId, playerController.playerId(), room.getPath());
                         return Code.FAIL;
                     }
                     clusterSystem.switchNode(playerController.getSession(), node);
@@ -364,11 +362,11 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 gamePlayer.setUpdateTime(playerController.getPlayer().getUpdateTime());
                 gamePlayer.setRoomId(roomId);
                 log.debug("玩家加入房间成功 gameType = {},roomId = {}, playerId = {} 当前金币：{} 房间人数：{}",
-                    roomController.getRoom().getRoomCfgId(),
-                    roomId,
-                    playerController.playerId(),
-                    playerController.getPlayer().getGold(),
-                    room.getRoomPlayers().size());
+                        roomController.getRoom().getRoomCfgId(),
+                        roomId,
+                        playerController.playerId(),
+                        playerController.getPlayer().getGold(),
+                        room.getRoomPlayers().size());
             }
             return Code.SUCCESS;
         } catch (Exception e) {
@@ -384,43 +382,69 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      */
     private boolean checkCanRepeatJoinRoom(PlayerController playerController) {
         List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =
-            new ArrayList<>(roomControllerMap.values());
+                new ArrayList<>(roomControllerMap.values());
         long playerId = playerController.playerId();
         List<AbstractRoomController<? extends RoomCfg, ? extends Room>> playerRoomControllers = new ArrayList<>();
         for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
-            roomMapControllers) {
+                roomMapControllers) {
             List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
-                new ArrayList<>(roomControllerMap.values());
+                    new ArrayList<>(roomControllerMap.values());
             for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : roomControllers) {
-                if (roomController.getPlayerControllers().containsKey(playerId)) {
-                    playerRoomControllers.add(roomController);
-                }
+                RoomPlayer roomPlayer = roomController.getRoom().getRoomPlayers().get(playerId);
+                return Objects.isNull(roomPlayer) || !roomPlayer.isOnline();
             }
         }
         // 如果是机器人重复加入的情况直接返回，机器人不能重复加入房间，按理不应出现此情况，除非机器人退出失败
-        if (!playerRoomControllers.isEmpty() && playerController.isRobotPlayer()) {
-            return false;
-        }
+        return true;
         // 如果玩家还存在房间中，先执行退出逻辑再进入，TODO 如果后续是断线重连进入则需要进入断线重连逻辑
         // 需要保证一个玩家同时只能在一个房间中
-        if (!playerRoomControllers.isEmpty()) {
-            List<Room> leaveFailedRoom = new ArrayList<>();
-            for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : playerRoomControllers) {
-                CommonResult<? extends Room> leaveRes = roomController.onPlayerLeaveRoom(playerController);
-                if (!leaveRes.success()) {
-                    if (leaveRes.data != null) {
-                        leaveFailedRoom.add(leaveRes.data);
-                    }
-                } else {
-                    log.info("处理玩家重复加入房间，玩家: {} 离开房间: {} 成功", playerId, leaveRes.data.logStr());
-                }
+//        if (!playerRoomControllers.isEmpty()) {
+//            List<Room> leaveFailedRoom = new ArrayList<>();
+//            for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : playerRoomControllers) {
+//                CommonResult<? extends Room> leaveRes = roomController.onPlayerLeaveRoom(playerController);
+//                if (!leaveRes.success()) {
+//                    if (leaveRes.data != null) {
+//                        leaveFailedRoom.add(leaveRes.data);
+//                    }
+//                } else {
+//                    log.info("处理玩家重复加入房间，玩家: {} 离开房间: {} 成功", playerId, leaveRes.data.logStr());
+//                }
+//            }
+//            if (!leaveFailedRoom.isEmpty()) {
+//                log.error("处理玩家重复加入房间时，玩家：{} 离开房间时失败：{}",
+//                        playerId, leaveFailedRoom.stream().map(Room::logStr).collect(Collectors.joining(",")));
+//            }
+//        }
+    }
+
+    /**
+     * 玩家断线退出房间
+     */
+    public <RC extends RoomCfg, R extends Room> void disconnectedExitRoom(PlayerController playerController) {
+        try {
+            if (playerController.roomId() < 1) {
+                log.debug("roomId不能小于,掉线退出房间失败 gameType = {},playerId = {}", playerController.getPlayer().getGameType(),
+                        playerController.playerId());
+                return;
             }
-            if (!leaveFailedRoom.isEmpty()) {
-                log.error("处理玩家重复加入房间时，玩家：{} 离开房间时失败：{}",
-                    playerId, leaveFailedRoom.stream().map(Room::logStr).collect(Collectors.joining(",")));
+            AbstractRoomController<RC, R> roomController =
+                    getRoomController(playerController.getPlayer().getGameType(), playerController.roomId());
+            if (roomController == null) {
+                log.warn("掉线退出房间失败，该房间不存在 gameType = {},roomId = {},playerId = {}",
+                        playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
+                return;
             }
+            Map<Long, RoomPlayer> roomPlayers = roomController.getRoom().getRoomPlayers();
+            RoomPlayer roomPlayer = roomPlayers.get(playerController.playerId());
+            if (Objects.isNull(roomPlayer)) {
+                log.warn("掉线退出房间失败，该用户数据不存在 gameType = {},roomId = {},playerId = {}",
+                        playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
+                return;
+            }
+            roomPlayer.setOnline(false);
+        } catch (Exception e) {
+            log.error("掉线退出时异常：{}", e.getMessage(), e);
         }
-        return true;
     }
 
     /**
@@ -430,15 +454,15 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         try {
             if (playerController.roomId() < 1) {
                 log.debug("roomId不能小于,退出房间失败 gameType = {},playerId = {}", playerController.getPlayer().getGameType(),
-                    playerController.playerId());
+                        playerController.playerId());
                 return Code.FAIL;
             }
 
             AbstractRoomController<RC, R> roomController =
-                getRoomController(playerController.getPlayer().getGameType(), playerController.roomId());
+                    getRoomController(playerController.getPlayer().getGameType(), playerController.roomId());
             if (roomController == null) {
                 log.warn("退出房间失败，该房间不存在 gameType = {},roomId = {},playerId = {}",
-                    playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
+                        playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
                 return Code.FAIL;
             }
             // 房间控制器退出房间逻辑
@@ -459,10 +483,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             boolean isRobot = playerController.getPlayer() instanceof RobotPlayer;
             if (!isRobot) {
                 log.debug("玩家退出房间成功 gameCfgId = {},roomId = {},playerId = {},房间人数：{}",
-                    room.getRoomCfgId(),
-                    room.getId(),
-                    playerController.playerId(),
-                    room.getRoomPlayers() != null ? room.getRoomPlayers().size() : 0);
+                        room.getRoomCfgId(),
+                        room.getId(),
+                        playerController.playerId(),
+                        room.getRoomPlayers() != null ? room.getRoomPlayers().size() : 0);
             }
             return Code.SUCCESS;
         } catch (Exception e) {
@@ -495,7 +519,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     public <RC extends RoomCfg, R extends Room> int robotPlayerExitRoom(List<PlayerController> playerControllers) {
         try {
             Map<AbstractRoomController<RC, R>, List<PlayerController>> needRemovePlayerControllers =
-                new HashMap<>();
+                    new HashMap<>();
             for (PlayerController playerController : playerControllers) {
                 if (playerController.roomId() < 1) {
                     continue;
@@ -504,11 +528,11 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                     continue;
                 }
                 AbstractRoomController<RC, R> roomController =
-                    getRoomController(playerController.getPlayer().getGameType(), playerController.roomId());
+                        getRoomController(playerController.getPlayer().getGameType(), playerController.roomId());
                 if (roomController == null) {
                     log.warn("机器人退出房间失败，该房间不存在 gameType = {},roomId = {},playerId = {}",
-                        playerController.getPlayer().getGameType(), playerController.roomId(),
-                        playerController.playerId());
+                            playerController.getPlayer().getGameType(), playerController.roomId(),
+                            playerController.playerId());
                     continue;
                 }
                 // 添加需要处理的机器人
@@ -518,7 +542,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 return Code.SUCCESS;
             }
             for (Map.Entry<AbstractRoomController<RC, R>, List<PlayerController>> entry :
-                needRemovePlayerControllers.entrySet()) {
+                    needRemovePlayerControllers.entrySet()) {
                 AbstractRoomController<RC, R> roomController = entry.getKey();
                 CommonResult<R> leaveRes = roomController.onRobotPlayersLeaveRoom(entry.getValue());
                 if (!leaveRes.success()) {
@@ -553,7 +577,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             return;
         }
         Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
-            roomControllerMap.get(gameType);
+                roomControllerMap.get(gameType);
         AbstractRoomController<? extends RoomCfg, ? extends Room> roomController = roomControllers.get(roomId);
         if (roomController == null) {
             log.error("解散放假时，通过房间ID: {} 查找房间管理器不存在", roomId);
@@ -577,7 +601,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     private <R extends Room> void deleteRoomFromRedis(R room) {
         // 从redis中删除房间信息
         AbstractRoomDao<R, ? extends RoomPlayer> roomDao =
-            (AbstractRoomDao<R, ? extends RoomPlayer>) getRoomDao(room.getClass());
+                (AbstractRoomDao<R, ? extends RoomPlayer>) getRoomDao(room.getClass());
         Long removedRes = roomDao.removeRoom(room.getGameType(), room.getId(), room.getRoomCfgId());
         if (removedRes != null) {
             log.info("删除房间：{}, 删除：{} ", room.logStr(), removedRes > 0 ? "成功" : "失败");
@@ -612,9 +636,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 获取 RoomController
      */
     protected <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> getRoomController(
-        int gameType, long roomId) {
+            int gameType, long roomId) {
         Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> tempMap =
-            this.roomControllerMap.get(gameType);
+                this.roomControllerMap.get(gameType);
         if (tempMap == null || tempMap.isEmpty()) {
             return null;
         }
@@ -626,7 +650,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 注册房间控制器
      */
     protected <RC extends RoomCfg, R extends Room> void registerRoomController(
-        int gameType, long roomId, AbstractRoomController<RC, R> roomController) {
+            int gameType, long roomId, AbstractRoomController<RC, R> roomController) {
         this.roomControllerMap
             .computeIfAbsent(gameType, k -> new ConcurrentHashMap<>())
             .computeIfAbsent(roomId, k -> roomController);
@@ -636,7 +660,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 通过房间类型创建房间控制器
      */
     protected <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> createRoomController(
-        Room room, RC roomCfg) throws Exception {
+            Room room, RC roomCfg) throws Exception {
         Class<? extends RoomPlayer> roomPlayerClass = RoomPlayer.class;
         // 通过游戏类型找到对应的房间控制器
         RoomType roomType = RoomType.getRoomType(roomCfg.getId());
@@ -659,7 +683,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         // 按道理如果是从EGames中获取的，并且是从RoomType中链接过来的Controller不应该找不到
         assert targetRoomControllerClass != null;
         Constructor<AbstractRoomController<RC, R>> controllerConstructor =
-            targetRoomControllerClass.getDeclaredConstructor(Class.class, roomDataTypeClass);
+                targetRoomControllerClass.getDeclaredConstructor(Class.class, roomDataTypeClass);
         AbstractRoomController<RC, R> roomController = controllerConstructor.newInstance(roomPlayerClass, room);
         AbstractRoomDao<R, ? extends RoomPlayer> roomDao = getRoomDao(room.getRoomCfgId());
         if (roomDao != null) {
@@ -742,11 +766,11 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      */
     public AbstractRoomController<? extends RoomCfg, ? extends Room> getRoomControllerByPlayer(long playerId) {
         List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =
-            new ArrayList<>(roomControllerMap.values());
-        for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
-            roomMapControllers) {
-            List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
                 new ArrayList<>(roomControllerMap.values());
+        for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
+                roomMapControllers) {
+            List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
+                    new ArrayList<>(roomControllerMap.values());
             for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : roomControllers) {
                 if (roomController.getPlayerControllers().containsKey(playerId)) {
                     return roomController;
@@ -776,11 +800,11 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      */
     public AbstractRoomController<? extends RoomCfg, ? extends Room> getRoomControllerByRoomId(long roomId) {
         List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =
-            new ArrayList<>(roomControllerMap.values());
-        for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
-            roomMapControllers) {
-            List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
                 new ArrayList<>(roomControllerMap.values());
+        for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
+                roomMapControllers) {
+            List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
+                    new ArrayList<>(roomControllerMap.values());
             for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : roomControllers) {
                 if (roomController.getRoom().getId() == roomId) {
                     return roomController;
@@ -805,18 +829,18 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 通过游戏类型获取所有的该类型的游戏控制器
      */
     public List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> getGameControllersByGameType(
-        EGameType gameType, RoomType roomType) {
+            EGameType gameType, RoomType roomType) {
         List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameControllers =
-            new ArrayList<>();
+                new ArrayList<>();
         List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =
-            new ArrayList<>(roomControllerMap.values());
-        for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
-            roomMapControllers) {
-            List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
                 new ArrayList<>(roomControllerMap.values());
+        for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
+                roomMapControllers) {
+            List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
+                    new ArrayList<>(roomControllerMap.values());
             for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : roomControllers) {
                 AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-                    roomController.getGameController();
+                        roomController.getGameController();
                 GameController annotation = gameController.getClass().getAnnotation(GameController.class);
                 if (gameController.gameControlType().equals(gameType) && annotation.roomType().equals(roomType)) {
                     gameControllers.add(roomController.getGameController());
@@ -836,8 +860,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
     @Override
     public void changeSampleCallbackCollector() {
-        addChangeSampleFileObserveWithCallBack(Room_BetCfg.EXCEL_NAME, this::reloadRoomCfgRef)
-            .addChangeSampleFileObserveWithCallBack(Room_ChessCfg.EXCEL_NAME, this::reloadRoomCfgRef);
+        addInitSampleFileObserveWithCallBack(ViplevelCfg.EXCEL_NAME, RoomDataHelper::initVipLevelCfg)
+                .addChangeSampleFileObserveWithCallBack(ViplevelCfg.EXCEL_NAME, RoomDataHelper::initVipLevelCfg)
+                .addChangeSampleFileObserveWithCallBack(Room_BetCfg.EXCEL_NAME, this::reloadRoomCfgRef)
+                .addChangeSampleFileObserveWithCallBack(Room_ChessCfg.EXCEL_NAME, this::reloadRoomCfgRef);
     }
 
     /**
@@ -845,8 +871,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      */
     private void reloadRoomCfgRef() {
         List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
-            roomControllerMap.values().stream().map(Map::values)
-                .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll);
+                roomControllerMap.values().stream().map(Map::values)
+                        .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll);
         for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : roomControllers) {
             roomController.reloadRoomCfg();
         }

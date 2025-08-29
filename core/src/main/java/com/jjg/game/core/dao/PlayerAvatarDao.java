@@ -2,6 +2,7 @@ package com.jjg.game.core.dao;
 
 import com.jjg.game.core.data.AvatarType;
 import com.jjg.game.core.data.PlayerAvatar;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -38,6 +39,9 @@ public class PlayerAvatarDao extends MongoBaseDao<PlayerAvatar, Long> {
      * @return 是否添加成功
      */
     public boolean addByType(long playerId, AvatarType type, int id) {
+        if (StringUtils.isEmpty(type.getField())) {
+            return false;
+        }
         Query query = new Query(Criteria.where("playerId").is(playerId));
         Update update = new Update().addToSet(type.getField(), id);
         return mongoTemplate.upsert(query, update, PlayerAvatar.class).wasAcknowledged();
@@ -51,6 +55,9 @@ public class PlayerAvatarDao extends MongoBaseDao<PlayerAvatar, Long> {
      * @return 是否拥有
      */
     public boolean hasByType(long playerId, AvatarType type, int id) {
+        if (StringUtils.isEmpty(type.getField())) {
+            return false;
+        }
         Query query = new Query(Criteria.where("playerId").is(playerId).and(type.getField()).in(id));
         return mongoTemplate.exists(query, PlayerAvatar.class);
     }

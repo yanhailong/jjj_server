@@ -19,7 +19,6 @@ public class RoomPlayer {
     protected PlayerRoomData playerRoomData;
     // 玩家是否机器人
     protected boolean isRobot;
-
     public RoomPlayer() {
     }
 

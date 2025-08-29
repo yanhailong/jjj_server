@@ -2,6 +2,7 @@ package com.jjg.game.room.datatrack;
 
 
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BetAreaCfg;
 import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
@@ -54,9 +55,14 @@ public class SaveLogUtil {
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET, totalBet);
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, keyValue.getValue());
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, keyValue.getValue() - totalBet);
-            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, effectiveWaterFlow.values().stream().mapToLong(Math::abs).sum());
+            long sum = effectiveWaterFlow.values().stream().mapToLong(Math::abs).sum();
+            if (sum > 0) {
+                RoomDataHelper.checkPlayerVipLevel(gamePlayer, sum);
+            }
+            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, sum);
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_DATA, areaMap);
         }
         gameDataTracker.addGameLogData(DataTrackNameConstant.AREA_DATA, areaTotalBet);
     }
+
 }

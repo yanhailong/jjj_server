@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.dollarexpress.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
+import com.jjg.game.slots.game.dollarexpress.pb.ResStartGame;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Map;
@@ -21,9 +22,9 @@ public class DollarExpressPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
     //玩家累计押注金额
     private long allBet;
     //玩家累计获得奖池(倍场)金额
-    private Map<Integer,Long> rewardPoolGoldMap;
+    private long rewardPoolGold;
     //玩家奖池(倍场)累计贡献金额金额(没有减去已获得金额)
-    private Map<Integer,Long> contribtPoolGoldMap;
+    private long contribtPoolGold;
     //累计的美钞数量
     private int totalDollars;
     //记录出现可收集美元的局数
@@ -72,20 +73,20 @@ public class DollarExpressPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
         this.allBet = allBet;
     }
 
-    public Map<Integer, Long> getRewardPoolGoldMap() {
-        return rewardPoolGoldMap;
+    public long getRewardPoolGold() {
+        return rewardPoolGold;
     }
 
-    public void setRewardPoolGoldMap(Map<Integer, Long> rewardPoolGoldMap) {
-        this.rewardPoolGoldMap = rewardPoolGoldMap;
+    public void setRewardPoolGold(long rewardPoolGold) {
+        this.rewardPoolGold = rewardPoolGold;
     }
 
-    public Map<Integer, Long> getContribtPoolGoldMap() {
-        return contribtPoolGoldMap;
+    public long getContribtPoolGold() {
+        return contribtPoolGold;
     }
 
-    public void setContribtPoolGoldMap(Map<Integer, Long> contribtPoolGoldMap) {
-        this.contribtPoolGoldMap = contribtPoolGoldMap;
+    public void setContribtPoolGold(long contribtPoolGold) {
+        this.contribtPoolGold = contribtPoolGold;
     }
 
     public int getTotalDollars() {

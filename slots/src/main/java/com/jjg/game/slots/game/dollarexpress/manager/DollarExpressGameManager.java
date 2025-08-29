@@ -6,6 +6,7 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.AbstractGameRunInfo;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -77,6 +78,44 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         super.init();
     }
 
+    @Override
+    public DollarExpressGameRunInfo enterGame(long playerId) {
+        DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerId);
+        try {
+            DollarExpressPlayerGameData playerGameData = this.gameDataMap.get(playerId);
+            if (playerGameData == null) {
+                log.debug("进入游戏时，playerGameData为空 playerId = {}", playerId);
+                gameRunInfo.setCode(Code.FAIL);
+                return gameRunInfo;
+            }
+
+            //执行自动二选一
+            if(playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD){
+                autoChooseFreeModelType(playerGameData);
+            }
+
+            //自动投资游戏
+            if(playerGameData.getInvers().get()){
+                autoInvest(playerGameData);
+            }
+
+            //检查当前是否处于特殊模式
+            if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_FREE) {
+                int forCount = playerGameData.getRemainFreeCount().get();
+                for (int i = 0; i < forCount; i++) {
+                    autoStartGame(playerGameData, playerGameData.getLastBet());
+                }
+            } else if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN) {
+                autoStartGame(playerGameData, playerGameData.getLastBet());
+            }
+
+            gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
+        } catch (Exception e) {
+            log.error("", e);
+        }
+        return gameRunInfo;
+    }
+
     /**
      * 开始游戏
      *
@@ -93,7 +132,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         playerGameData.setLastActiveTime(TimeHelper.nowInt());
-        return startGame(playerController, playerGameData, betValue, true);
+        return startGame(playerController, playerGameData, betValue, true, false);
     }
 
     /**
@@ -124,7 +163,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     public DollarExpressGameRunInfo autoStartGame(DollarExpressPlayerGameData playerGameData, long betValue) {
         log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
 
-        return startGame(null, playerGameData, betValue, true);
+        return startGame(null, playerGameData, betValue, true, true);
     }
 
     /**
@@ -133,9 +172,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @param betValue
      * @return
      */
-    public DollarExpressGameRunInfo startGame(PlayerController playerController, DollarExpressPlayerGameData playerGameData, long betValue, boolean updateGird) {
+    public DollarExpressGameRunInfo startGame(PlayerController playerController, DollarExpressPlayerGameData playerGameData, long betValue, boolean updateGird, boolean auto) {
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
+            gameRunInfo.setAuto(auto);
             boolean allAreaUnlock = playerGameData.getAllUnLock().compareAndSet(true, false);
             if (allAreaUnlock) {
                 gameRunInfo = areaAllUnlockGoldTrain(gameRunInfo, playerGameData, updateGird);
@@ -188,15 +228,19 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             gameRunInfo.setAfterGold(player.getGold());
-            playerController.setPlayer(player);
+            if (playerController != null) {
+                playerController.setPlayer(player);
+            }
 
             //添加大奖展示id
             int times = (int) (gameRunInfo.getAllWinGold() / betValue);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
 
-            //跑马灯
-            checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
+            //系统自动玩的游戏，不会走跑马灯
+            if(!auto){
+                checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
+            }
             //发送日志
             logger.gameResult(player, gameRunInfo);
             return gameRunInfo;
@@ -946,7 +990,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                     if (randCount > 0) {
                         cloumnPropInfo.removeKeyAndRecalculate(columnId);
                     } else {
-                        break outWhile;
+                        break;
                     }
                 }
             }
@@ -1394,15 +1438,17 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD) {
-            TimerEvent<String> autoChooseEvent = new TimerEvent<>(this, 40,DollarExpressConstant.EventName.AUTO_CHOOSE_FREEMODEL_TYPE + "_" + playerController.playerId()).withTimeUnit(TimeUnit.SECONDS);
+            TimerEvent<String> autoChooseEvent = new TimerEvent<>(this, 60, DollarExpressConstant.EventName.AUTO_CHOOSE_FREEMODEL_TYPE + "_" + playerController.playerId()).withTimeUnit(TimeUnit.SECONDS);
             this.timerCenter.add(autoChooseEvent);
             this.autoChooseFreeModeEventMap.put(playerController.playerId(), autoChooseEvent);
+            log.debug("添加自动二选一事件 playerId = {}", playerController.playerId());
         }
 
         if (playerGameData.getInvers().get()) {
-            TimerEvent<String> autoInversEvent = new TimerEvent<>(this, 40,DollarExpressConstant.EventName.AUTO_INVERS + "_" + playerController.playerId()).withTimeUnit(TimeUnit.SECONDS);
+            TimerEvent<String> autoInversEvent = new TimerEvent<>(this, 60, DollarExpressConstant.EventName.AUTO_INVERS + "_" + playerController.playerId()).withTimeUnit(TimeUnit.SECONDS);
             this.timerCenter.add(autoInversEvent);
             this.autoInversEventMap.put(playerController.playerId(), autoInversEvent);
+            log.debug("添加自动投资游戏事件 playerId = {}", playerController.playerId());
         }
 
         playerGameData.setOnline(false);
@@ -1418,16 +1464,25 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             long playerId = Long.parseLong(arr[1]);
             this.autoChooseFreeModeEventMap.remove(playerId);
             DollarExpressPlayerGameData playerGameData = this.gameDataMap.get(playerId);
-            if(playerGameData == null) {
+            if (playerGameData == null) {
                 log.debug("自动二选一事件，获取 playerGameData 为空 playerId = {}", playerId);
                 return;
             }
             autoChooseFreeModelType(playerGameData);
-        }else if(DollarExpressConstant.EventName.AUTO_INVERS.equals(arr[0])){
+            //检查当前是否处于特殊模式
+            if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_FREE) {
+                int forCount = playerGameData.getRemainFreeCount().get();
+                for (int i = 0; i < forCount; i++) {
+                    autoStartGame(playerGameData, playerGameData.getLastBet());
+                }
+            } else if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN) {
+                autoStartGame(playerGameData, playerGameData.getLastBet());
+            }
+        } else if (DollarExpressConstant.EventName.AUTO_INVERS.equals(arr[0])) {
             long playerId = Long.parseLong(arr[1]);
             this.autoInversEventMap.remove(playerId);
             DollarExpressPlayerGameData playerGameData = this.gameDataMap.get(playerId);
-            if(playerGameData == null) {
+            if (playerGameData == null) {
                 log.debug("自动投资事件，获取 playerGameData 为空 playerId = {}", playerId);
                 return;
             }
@@ -1599,6 +1654,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     @Override
     public void shutdown() {
         try {
+            this.autoChooseFreeModeEventMap.forEach((k,v) -> v.run());
+            this.autoInversEventMap.forEach((k,v) -> v.run());
             super.shutdown();
             log.info("已关闭美元快递游戏管理器");
         } catch (Exception e) {
@@ -1611,36 +1668,22 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         return BigDecimal.valueOf(bet).multiply(timesBigDecimal).longValue();
     }
 
-    public void saveResGame(PlayerController playerController, ResStartGame res) {
-        DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            return;
-        }
-        playerGameData.setResStartGame(res);
-    }
-
-    public ResStartGame getResStartGame(PlayerController playerController) {
-        DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            return null;
-        }
-        return playerGameData.getResStartGame();
-    }
-
     /**
      * 清除和玩家绑定的定时任务
+     *
      * @param playerId
      */
     @Override
     public void clearPlayerEvent(long playerId) {
         TimerEvent<String> chooseEvent = this.autoChooseFreeModeEventMap.remove(playerId);
-        if(chooseEvent != null){
+        if (chooseEvent != null) {
             this.timerCenter.remove(chooseEvent);
-
+            log.debug("清除自动二选一事件 playerId = {}", playerId);
         }
         TimerEvent<String> inversEvent = this.autoInversEventMap.remove(playerId);
-        if(chooseEvent != null){
+        if (chooseEvent != null) {
             this.timerCenter.remove(inversEvent);
+            log.debug("清除自动投资游戏事件 playerId = {}", playerId);
         }
     }
 }

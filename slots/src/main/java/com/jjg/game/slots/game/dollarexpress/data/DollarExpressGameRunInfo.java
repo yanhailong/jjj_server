@@ -63,6 +63,8 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
     private long major;
     private long grand;
 
+    private boolean auto;
+
     public DollarExpressGameRunInfo(int code, long playerId) {
         super(code, playerId);
     }
@@ -292,5 +294,13 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
 
     public void addSmallPoolGold(long smallPoolGold) {
         this.smallPoolGold += smallPoolGold;
+    }
+
+    public boolean isAuto() {
+        return auto;
+    }
+
+    public void setAuto(boolean auto) {
+        this.auto = auto;
     }
 }

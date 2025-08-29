@@ -3,6 +3,7 @@ package com.jjg.game.hall.vip.data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -43,4 +44,11 @@ public class Vip {
         this.lvGiftGetTime = lvGiftGetTime;
     }
 
+    public static Vip buildVip(long playerId) {
+        Vip vip = new Vip();
+        vip.giftGetTime = new HashMap<>();
+        vip.lvGiftGetTime = new HashMap<>();
+        vip.playerId = playerId;
+        return vip;
+    }
 }

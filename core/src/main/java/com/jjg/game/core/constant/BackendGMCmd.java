@@ -20,6 +20,8 @@ public interface BackendGMCmd {
     String KICK_ACCOUNT = "kickAccount";
     //封禁账号
     String BAN_ACCOUNT = "banAccount";
+    //在线玩家信息
+    String PLAYING_INFO = "playingInfo";
 
     interface Result {
         String SUCCESS = "success";

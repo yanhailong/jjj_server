@@ -1,10 +1,10 @@
-package com.jjg.game.gm.dto;
+package com.jjg.game.gm.vo;
 
 /**
  * @author 11
  * @date 2025/8/25 16:38
  */
-public class PlayerInfo {
+public class PlayerVo {
     private long playerId;
     private String nickName;
     private long gold;
@@ -16,7 +16,7 @@ public class PlayerInfo {
     private int isBan;
     private int isOffline;
     private String mobile;
-    private SafeInfo safeInfo;
+    private SafeVo safeVo;
 
     public long getPlayerId() {
         return playerId;
@@ -106,11 +106,11 @@ public class PlayerInfo {
         this.mobile = mobile;
     }
 
-    public SafeInfo getSafeInfo() {
-        return safeInfo;
+    public SafeVo getSafeInfo() {
+        return safeVo;
     }
 
-    public void setSafeInfo(SafeInfo safeInfo) {
-        this.safeInfo = safeInfo;
+    public void setSafeInfo(SafeVo safeVo) {
+        this.safeVo = safeVo;
     }
 }
