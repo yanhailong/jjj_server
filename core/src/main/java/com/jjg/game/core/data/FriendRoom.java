@@ -1,5 +1,7 @@
 package com.jjg.game.core.data;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -14,6 +16,8 @@ import java.util.Map;
  * @author 2CL
  */
 public class FriendRoom extends Room {
+
+    private static final Logger log = LoggerFactory.getLogger(FriendRoom.class);
     @Id
     protected long id;
     // 房间过期时间
@@ -22,24 +26,30 @@ public class FriendRoom extends Room {
     protected String aliasName;
     // 是否开启自动续费
     protected boolean autoRenewal;
-    // 庄家的预付金
+    // 开启自动续费时
+    protected int roomExpendId;
+    // 庄家的预付金币
     protected long predictCostGoldNum;
     // 房间状态 1. 运行中 2. 暂停中 3. 解散中
     protected int status;
     // 房间暂停时间，开启时需要置为0
     protected long pauseTime;
-    // 总流水
-    protected long totalFlowing;
-    // 申请庄家的预付金
+    // 申请庄家的预付金币
     protected LinkedHashMap<Long, Long> bankerPredicateMap = new LinkedHashMap<>();
-    // 每个玩家的收益流水
-    protected Map<Long, Long> playerIncomeRec = new HashMap<>();
     // 房间创建者收益
     protected long creatorIncome;
 
     /**
+     * 场上是否有庄家
+     */
+    public boolean hasBanker() {
+        return !bankerPredicateMap.isEmpty();
+    }
+
+    /**
      * 房间庄家ID
      */
+    @Override
     public long roomBankerId() {
         if (bankerPredicateMap.isEmpty()) {
             return 0L;
@@ -48,7 +58,41 @@ public class FriendRoom extends Room {
     }
 
     /**
-     * 添加预付金
+     * 房间庄家剩余金币
+     */
+    public long roomBankerResetGold() {
+        if (bankerPredicateMap.isEmpty()) {
+            return 0L;
+        }
+        return bankerPredicateMap.firstEntry().getValue();
+    }
+
+    /**
+     * 移除庄家
+     *
+     * @return 剩余的准备金
+     */
+    public Map.Entry<Long, Long> removeBanker() {
+        return bankerPredicateMap.pollFirstEntry();
+    }
+
+    /**
+     * 获取申请庄家玩家的金币
+     */
+    public long getApplyBankerPlayerGold(long playerId) {
+        return bankerPredicateMap.get(playerId);
+    }
+
+
+    /**
+     * 取消申请成为庄家
+     */
+    public long cancelApplyBanker(long playerId) {
+        return bankerPredicateMap.remove(playerId);
+    }
+
+    /**
+     * 添加预付金币
      */
     public void addBankerSupply(long bankerId, long predictCostGoldNum) {
         bankerPredicateMap.put(bankerId,
@@ -103,35 +147,60 @@ public class FriendRoom extends Room {
         this.pauseTime = pauseTime;
     }
 
-    public Map<Long, Long> getPlayerIncomeRec() {
-        return playerIncomeRec;
-    }
-
-    public void setPlayerIncomeRec(Map<Long, Long> playerIncomeRec) {
-        this.playerIncomeRec = playerIncomeRec;
-    }
-
-    public long getTotalFlowing() {
-        return totalFlowing;
-    }
-
-    public void setTotalFlowing(long totalFlowing) {
-        this.totalFlowing = totalFlowing;
-    }
-
     public long getCreatorIncome() {
         return creatorIncome;
     }
 
-    public void setCreatorIncome(long creatorIncome) {
-        this.creatorIncome = creatorIncome;
+    public void addCreatorIncome(long creatorIncome) {
+        this.creatorIncome += creatorIncome;
     }
 
     public LinkedHashMap<Long, Long> getBankerPredicateMap() {
         return bankerPredicateMap;
     }
 
-    public void setBankerPredicateMap(LinkedHashMap<Long, Long> bankerPredicateMap) {
-        this.bankerPredicateMap = bankerPredicateMap;
+    /**
+     * 减少准备金
+     */
+    @Override
+    public void deductBankerGold(long deductGold) {
+        // 优先扣除庄家的
+        if (deductGold < 0) {
+            return;
+        }
+        Map.Entry<Long, Long> bankerInf = bankerPredicateMap.firstEntry();
+        long deductRes = bankerInf.getValue() - deductGold;
+        // 需要继续扣除底庄的金币
+        if (deductRes < 0) {
+            long predicateCostRes = predictCostGoldNum - deductRes;
+            if (predicateCostRes < 0) {
+                predictCostGoldNum = 0;
+                log.error("扣除准备金币失败，扣除值：{}，庄家值：{} 底庄值：{}", deductGold, bankerInf.getValue(), predictCostGoldNum);
+                return;
+            } else {
+                predictCostGoldNum = predicateCostRes;
+            }
+            // 设置扣除后的值
+            bankerPredicateMap.put(bankerInf.getKey(), 0L);
+        } else {
+            // 设置扣除后的值
+            bankerPredicateMap.put(bankerInf.getKey(), deductRes);
+        }
+    }
+
+    /**
+     * 房间所有的预付金币
+     */
+    @Override
+    public long bankerTotalGold() {
+        return this.bankerPredicateMap.values().stream().mapToLong(a -> a).sum() + predictCostGoldNum;
+    }
+
+    public int getRoomExpendId() {
+        return roomExpendId;
+    }
+
+    public void setRoomExpendId(int roomExpendId) {
+        this.roomExpendId = roomExpendId;
     }
 }

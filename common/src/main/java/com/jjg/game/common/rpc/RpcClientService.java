@@ -22,6 +22,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
+ * rpc客户端服务
  *
  * @author 2CL
  */
@@ -68,10 +69,10 @@ public class RpcClientService {
         message.serviceMethodName = methodName;
         message.parameterTypeWithData = JSON.toJSONString(parameterArgsMap);
 
-        int waitTime = rpcReqParameter != null && rpcReqParameter.getTryMillisPerClient() != 0
+        int waitTime = rpcReqParameter != null && rpcReqParameter.getTryMillisPerClient() > 0
             ? rpcReqParameter.getTryMillisPerClient() : reference.timeoutMillis();
 
-        int retryTimes = rpcReqParameter != null && rpcReqParameter.getRetryTimesPerClient() != 0
+        int retryTimes = rpcReqParameter != null && rpcReqParameter.getRetryTimesPerClient() > 0
             ? rpcReqParameter.getRetryTimesPerClient() : reference.tryTimes();
 
         // 发送消息并等待

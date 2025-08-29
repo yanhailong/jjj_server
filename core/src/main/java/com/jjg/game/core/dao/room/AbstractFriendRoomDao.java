@@ -10,10 +10,8 @@ import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.stereotype.Repository;
 import reactor.util.function.Tuple2;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 好友房Dao
@@ -48,15 +46,18 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
         public long predictCostGoldNum;
         // 房间名
         public String roomAliasName;
+        // 房间ID
+        public int roomExpandId;
 
         public CreateFriendsRoom(int itemId, int roomCfgId, int timeOfOpenRoom, boolean autoRenewal,
-                                 long predictCostGoldNum, String roomAliasName) {
+                                 long predictCostGoldNum, String roomAliasName, int roomExpandId) {
             this.itemId = itemId;
             this.roomCfgId = roomCfgId;
             this.timeOfOpenRoom = timeOfOpenRoom;
             this.autoRenewal = autoRenewal;
             this.predictCostGoldNum = predictCostGoldNum;
             this.roomAliasName = roomAliasName;
+            this.roomExpandId = roomExpandId;
         }
     }
 
@@ -79,6 +80,7 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
             friendRoom.setAutoRenewal(req.autoRenewal);
             friendRoom.setPredictCostGoldNum(req.predictCostGoldNum);
             friendRoom.setCreator(playerId);
+            friendRoom.setRoomExpendId(req.roomExpandId);
             String tableName = getPlayerFriendRoomTableName(playerId);
             redisTemplate.opsForHash().put(tableName, friendRoom.getId(), gameType);
             return createRoom(friendRoom);
@@ -86,6 +88,27 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
             log.error("创建好友房出现异常, {}", e.getMessage(), e);
         }
         return null;
+    }
+
+    /**
+     * 获取玩家好友房数量
+     */
+    public Map<Long, Integer> getPlayerFriendRoomNum(List<Long> playerIds) {
+        List<Integer> playerRoomNumList = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+                for (long playerId : playerIds) {
+                    String tableName = getPlayerFriendRoomTableName(playerId);
+                    connection.hashCommands().hLen(tableName.getBytes());
+                }
+                return null;
+            }).stream()
+            .map(a -> (Set<String>) a)
+            .map(a -> a.stream().map(Integer::parseInt).toList())
+            .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll);
+        Map<Long, Integer> playerRoomNumMap = new HashMap<>();
+        for (int i = 0; i < playerIds.size(); i++) {
+            playerRoomNumMap.put(playerIds.get(i), playerRoomNumList.get(i));
+        }
+        return playerRoomNumMap;
     }
 
     /**

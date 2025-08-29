@@ -32,6 +32,10 @@ public class GameDataVo<RC extends RoomCfg> {
     protected long phaseEndTime;
     // 每个阶段需要运行的时间
     protected long phaseRunTime;
+    // 当前庄家连续坐庄次数
+    protected int beBankerTimes;
+    // 当前申请下庄的玩家ID
+    protected long applyCancelBeBankerPlayer;
 
 
     /**
@@ -116,5 +120,25 @@ public class GameDataVo<RC extends RoomCfg> {
     public String roomLogInfo() {
         EGameType eGameType = EGameType.getGameByTypeId(roomCfg.getGameID());
         return "游戏类型：" + eGameType.getGameDesc() + " 房间配置ID: " + roomCfg.getId() + " 房间ID: " + roomId;
+    }
+
+    public void addBeBankerTimes() {
+        beBankerTimes += 1;
+    }
+
+    public void setBeBankerTimes(int beBankerTimes) {
+        this.beBankerTimes = beBankerTimes;
+    }
+
+    public int getBeBankerTimes() {
+        return beBankerTimes;
+    }
+
+    public long getApplyCancelBeBankerPlayer() {
+        return applyCancelBeBankerPlayer;
+    }
+
+    public void setApplyCancelBeBankerPlayer(long applyCancelBeBankerPlayer) {
+        this.applyCancelBeBankerPlayer = applyCancelBeBankerPlayer;
     }
 }

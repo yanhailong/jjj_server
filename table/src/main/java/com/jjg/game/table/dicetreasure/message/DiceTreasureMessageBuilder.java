@@ -1,7 +1,8 @@
 package com.jjg.game.table.dicetreasure.message;
 
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
-import com.jjg.game.table.dicetreasure.DiceTreasureDiceGameController;
+import com.jjg.game.table.dicetreasure.DiceTreasureGameController;
 import com.jjg.game.table.dicetreasure.data.DiceTreasureGameDataVo;
 
 /**
@@ -36,7 +37,7 @@ public class DiceTreasureMessageBuilder {
      * 桌面信息
      */
     public static NotifyDiceTreasureTableInfo notifyDiceTreasureTableInfo(
-        long playerId, DiceTreasureDiceGameController gameController, boolean isInitial) {
+        long playerId, BaseTableGameController<DiceTreasureGameDataVo> gameController, boolean isInitial) {
         NotifyDiceTreasureTableInfo tableInfo = new NotifyDiceTreasureTableInfo();
         DiceTreasureGameDataVo gameDataVo = gameController.getGameDataVo();
         tableInfo.baseDiceTableInfo =

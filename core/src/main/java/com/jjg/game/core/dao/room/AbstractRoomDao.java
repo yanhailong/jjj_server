@@ -172,6 +172,16 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         redisTemplate.opsForHash().put(getTableName(room.getGameType()), room.getId(), room);
     }
 
+    /**
+     * 保存方法
+     */
+    public CommonResult<T> doSave(T room, DataSaveCallback<T> roomCallback) {
+        return (CommonResult<T>) doSave(room.getGameType(), room.getId(), roomCallback);
+    }
+
+    /**
+     * 保存方法
+     */
     public CommonResult<? extends Room> doSave(int gameType, long roomId, DataSaveCallback<T> roomCallback) {
         CommonResult<Room> result = new CommonResult<>(Code.SUCCESS);
         String key = getLockName(gameType, roomId);

@@ -1,5 +1,6 @@
 package com.jjg.game.table.sizedicetreasure.message;
 
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
 import com.jjg.game.table.sizedicetreasure.SizeDiceTreasureGameController;
 import com.jjg.game.table.sizedicetreasure.data.SizeDiceTreasureGameDataVo;
@@ -36,7 +37,7 @@ public class SizeDiceTreasureMessageBuilder {
      * 桌面信息
      */
     public static NotifySizeDiceTreasureTableInfo notifyAnimalsTableInfo(
-        long playerId, SizeDiceTreasureGameController gameController, boolean isInitial) {
+        long playerId, BaseTableGameController<SizeDiceTreasureGameDataVo> gameController, boolean isInitial) {
         NotifySizeDiceTreasureTableInfo tableInfo = new NotifySizeDiceTreasureTableInfo();
         SizeDiceTreasureGameDataVo gameDataVo = gameController.getGameDataVo();
         tableInfo.baseDiceTableInfo =

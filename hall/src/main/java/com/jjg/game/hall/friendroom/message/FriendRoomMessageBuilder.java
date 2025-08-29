@@ -46,7 +46,7 @@ public class FriendRoomMessageBuilder {
         friendRoomBaseData.roomStatus = friendRoom.getStatus();
         friendRoomBaseData.onlinePlayerNum = friendRoom.getRoomPlayers().size();
         friendRoomBaseData.gameId = friendRoom.getGameType();
-        friendRoomBaseData.overdueTime = friendRoom.getOverdueTime();
+        friendRoomBaseData.overdueTime = getRoomResetTime(friendRoom);
         friendRoomBaseData.predictCostGoldNum = friendRoom.getPredictCostGoldNum();
         GlobalConfigCfg globalConfigCfg =
             GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_REFRESH_INTERVAL);
@@ -56,6 +56,18 @@ public class FriendRoomMessageBuilder {
             friendRoom.getPauseTime() + intervalTime > curTime ? friendRoom.getPauseTime() + intervalTime : 0;
         Tuple2<Integer, Integer> roomMaxLimitCfg = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
         friendRoomBaseData.maxPlayerNum = roomMaxLimitCfg.getT2();
+        friendRoomBaseData.limitGoldMin = warehouseCfg.getEnterLimit();
         return friendRoomBaseData;
+    }
+
+
+    /**
+     * 获取房间剩余时间
+     */
+    private static long getRoomResetTime(FriendRoom friendRoom) {
+        if (friendRoom.getPauseTime() == 0) {
+            return friendRoom.getOverdueTime() - System.currentTimeMillis();
+        }
+        return friendRoom.getOverdueTime() - friendRoom.getPauseTime();
     }
 }

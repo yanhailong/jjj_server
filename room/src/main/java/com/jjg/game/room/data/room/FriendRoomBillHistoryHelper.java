@@ -20,9 +20,8 @@ public class FriendRoomBillHistoryHelper {
         historyBean.setCreatedAt(System.currentTimeMillis());
         historyBean.setGameType(friendRoom.getGameType());
         historyBean.setGameCfgId(friendRoom.getRoomCfgId());
-        historyBean.setPartInPlayerIncome(friendRoom.getPlayerIncomeRec());
+        historyBean.setRoomCreator(friendRoom.getCreator());
         historyBean.setTotalIncome(friendRoom.getCreatorIncome());
-        historyBean.setTotalFlowing(friendRoom.getTotalFlowing());
         return historyBean;
     }
 }

@@ -43,8 +43,6 @@ public class GameConstant {
         int TYPE_CAN_USE = 1;
         //可合成道具
         int TYPE_CAN_COMPOUND = 2;
-        //货币类道具
-        int TYPE_MONEY = 3;
 
         int TYPE_GOLD = 99;
         int TYPE_DIAMOND = 98;

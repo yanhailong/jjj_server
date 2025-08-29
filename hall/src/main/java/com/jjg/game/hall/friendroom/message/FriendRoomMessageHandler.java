@@ -7,6 +7,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
 import com.jjg.game.hall.friendroom.message.req.*;
+import com.jjg.game.hall.friendroom.message.res.ResManageFriendRoom;
 import com.jjg.game.hall.friendroom.message.res.RespCreateFriendsRoom;
 import com.jjg.game.hall.friendroom.services.FriendRoomServices;
 import org.slf4j.Logger;
@@ -105,9 +106,13 @@ public class FriendRoomMessageHandler {
     }
 
     @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_CHANGE_FRIEND_ROOM_NAME)
-    public void reqUpdateFriendRoomName(PlayerController playerController, ReqUpdateFriendRoomName req) {
+    public void reqUpdateFriendRoomName(PlayerController playerController, ReqUpdateFriendRoom req) {
         try {
-            friendRoomServices.reqUpdateFriendRoomName(playerController, req);
+            int updateCode = friendRoomServices.reqUpdateFriendRoomName(playerController, req);
+            if (updateCode != Code.SUCCESS) {
+                ResManageFriendRoom res = new ResManageFriendRoom(updateCode);
+                playerController.send(res);
+            }
         } catch (Exception e) {
             log.error("请求更新房间名异常，{}", e.getMessage(), e);
         }

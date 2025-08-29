@@ -3,8 +3,6 @@ package com.jjg.game.core.constant;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.data.RoomType;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -51,16 +49,16 @@ public enum EGameType {
     final int gameTypeId;
     // 游戏描述
     final String gameDesc;
-    // 游戏对应的房间类型
-    final RoomType roomType;
+    // 游戏对应的默认房间类型
+    final RoomType defualtRoomType;
     // 房间游戏类型ID Set
     static final ConcurrentHashMap<Integer, EGameType> GAME_TYPE_ID_SET = new ConcurrentHashMap<>();
 
 
-    EGameType(int gameTypeId, RoomType roomType, String gameDesc) {
+    EGameType(int gameTypeId, RoomType defualtRoomType, String gameDesc) {
         this.gameTypeId = gameTypeId;
         this.gameDesc = gameDesc;
-        this.roomType = roomType;
+        this.defualtRoomType = defualtRoomType;
     }
 
     public int getGameTypeId() {
@@ -72,10 +70,10 @@ public enum EGameType {
     }
 
     /**
-     * 不要通过游戏类型获取房间类型，需要通过{@link RoomType#getRoomType(int)}获取
+     * 此为方法为获取默认房间类型，不要通过游戏类型获取房间类型，需要通过{@link RoomType#getRoomType(int)}获取
      */
-    public RoomType getRoomType() {
-        return roomType;
+    public RoomType getDefualtRoomType() {
+        return defualtRoomType;
     }
 
     /**

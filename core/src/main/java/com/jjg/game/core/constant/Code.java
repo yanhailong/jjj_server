@@ -73,6 +73,8 @@ public interface Code {
     int FRIEND_NOT_FOLLOWED = 427;
     // 房主不能上庄
     int ROOM_CREATOR_CANT_BE_BANKER = 428;
+    // 庄家金币不足以赔付
+    int BANKER_GOLD_NOT_ENOUGH_TO_PAY = 429;
     // 服务器错误
     int EXCEPTION = 500;
 }

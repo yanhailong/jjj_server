@@ -8,6 +8,7 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.manager.AbstractRoomManager;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
@@ -126,59 +127,5 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
 
     public void phaseFinishAction() {
 
-    }
-
-    /**
-     * 结算数据
-     */
-    public static class SettlementData {
-        // 玩家压分的净赢值
-        private long betWin;
-        // 返还压分
-        private long betReturn;
-        // 赢的总值
-        private long totalWin;
-        // 压的总值
-        private long betTotal;
-
-        public SettlementData() {
-        }
-
-        public SettlementData(long betWin, long betReturn, long totalWin, long betTotal) {
-            this.betWin = betWin;
-            this.betReturn = betReturn;
-            this.totalWin = totalWin;
-            this.betTotal = betTotal;
-        }
-
-        public long getBetWin() {
-            return betWin;
-        }
-
-        public long getBetReturn() {
-            return betReturn;
-        }
-
-        public long getTotalWin() {
-            return totalWin;
-        }
-
-        public long getBetTotal() {
-            return betTotal;
-        }
-
-        public void setBetTotal(long betTotal) {
-            this.betTotal = betTotal;
-        }
-
-        /**
-         * 增加结算值
-         */
-        public void increaseBySettlementData(SettlementData settlementData) {
-            this.betWin += settlementData.betWin;
-            this.betReturn += settlementData.betReturn;
-            this.totalWin += settlementData.totalWin;
-            this.betTotal += settlementData.betTotal;
-        }
     }
 }

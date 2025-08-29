@@ -9,6 +9,7 @@ import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
 import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratBetStart;
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.gamephase.BaseTableBetPhase;
 
 import java.util.HashMap;
@@ -33,7 +34,7 @@ public class BaccaratTableBetPhase extends BaseTableBetPhase<BaccaratGameDataVo>
             BaccaratMessageBuilder.buildNotifyBaccaratBetStart(gameDataVo);
         broadcastMsgToRoom(baccaratTableInfo);
         // 通知所有观察者
-        BaccaratMessageBuilder.notifyObserversOnPhaseChange((BaccaratGameController) gameController);
+        BaccaratMessageBuilder.notifyObserversOnPhaseChange((BaseTableGameController<BaccaratGameDataVo>) gameController);
     }
 
     @Override

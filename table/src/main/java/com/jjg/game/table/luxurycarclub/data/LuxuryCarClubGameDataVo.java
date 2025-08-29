@@ -23,6 +23,12 @@ public class LuxuryCarClubGameDataVo extends TableGameDataVo {
         super(roomCfg);
     }
 
+    @Override
+    public void clearRoundData() {
+        super.clearRoundData();
+        luxuryCarClubSettlementInfo = null;
+    }
+
     public List<Integer> getWinAreaCfgIdHistory() {
         return winAreaCfgIdHistory;
     }

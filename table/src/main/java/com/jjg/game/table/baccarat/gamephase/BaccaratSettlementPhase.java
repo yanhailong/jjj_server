@@ -3,7 +3,9 @@ package com.jjg.game.table.baccarat.gamephase;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.utils.PokerCardUtils;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
@@ -15,6 +17,7 @@ import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
 import com.jjg.game.table.baccarat.message.resp.BaccaratCardState;
 import com.jjg.game.table.baccarat.message.resp.BaccaratSettlementInfo;
 import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratSettlementInfo;
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
@@ -32,7 +35,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
 
     private static final Logger log = LoggerFactory.getLogger(BaccaratSettlementPhase.class);
 
-    public BaccaratSettlementPhase(BaccaratGameController gameController) {
+    public BaccaratSettlementPhase(BaseTableGameController<BaccaratGameDataVo> gameController) {
         super(gameController);
     }
 
@@ -110,7 +113,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             }
         }
         // 通知所有观察者
-        BaccaratMessageBuilder.notifyObserversOnPhaseChange((BaccaratGameController) gameController);
+        BaccaratMessageBuilder.notifyObserversOnPhaseChange((BaseTableGameController<BaccaratGameDataVo>) gameController);
         // 发送打点日志
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }
@@ -136,7 +139,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     }
 
     private byte removeFirst(ArrayList<Byte> cardList) {
-        return cardList.remove(0);
+        return cardList.removeFirst();
     }
 
     /**
@@ -183,6 +186,9 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
      */
     private Map<Long, PlayerChangedGold> playerGameSettlement(BaccaratSettlementInfo baccaratSettlementInfo) {
         Map<Long, PlayerChangedGold> playerChangedGolds = new HashMap<>();
+        // 庄家变化的钱
+        long bankerChangeGold = 0;
+        Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         // 获取玩家的押注信息，让后结算
         for (Map.Entry<Long, GamePlayer> playerEntry : gameDataVo.getGamePlayerMap().entrySet()) {
             GamePlayer gamePlayer = playerEntry.getValue();
@@ -205,14 +211,24 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 playerGoldChange.playerId = playerEntry.getKey();
                 playerGoldChange.playerWinGold = settlementData.getBetWin();
                 playerGoldChange.playerBetGold = playerTotalBetGold;
-                // TODO 给玩家添加金币
-                gamePlayer.setGold(gamePlayer.getGold() + settlementData.getTotalWin());
+                // 给玩家添加金币
+                gameController.addGold(
+                    gamePlayer.getId(), settlementData.getTotalWin(),
+                    ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
+                // 需要扣除庄家的钱
+                bankerChangeGold -= settlementData.getBetWin();
                 playerGoldChange.playerCurGold = gamePlayer.getGold();
                 playerChangedGolds.put(playerEntry.getKey(), playerGoldChange);
+            } else {
+                // 需要给庄家加钱
+                bankerChangeGold += settlementData.getBetTotal();
             }
+            settlementDataMap.put(gamePlayer.getId(), settlementData);
             // 记录押注日志
             BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameDataTracker, playerBetInfo);
         }
+        // 处理庄家输赢金币
+        gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
         return playerChangedGolds;
     }
 

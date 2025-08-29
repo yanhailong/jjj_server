@@ -44,7 +44,7 @@ public enum RoomType {
         RoomType roomType = null;
         // 普通房间
         if (warehouseCfg.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
-            roomType = eGameType.getRoomType();
+            roomType = eGameType.getDefualtRoomType();
         } else {
             // 好友房 2: 百人 3 poker
             int gameType = warehouseCfg.getGameType();

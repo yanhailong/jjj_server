@@ -1,9 +1,10 @@
 package com.jjg.game.room.manager;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.processor.GameProcessor;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.dao.room.AbstractFriendRoomDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.PlayerController;
@@ -16,14 +17,9 @@ import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
-import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.friendroom.AbstractFriendRoomController;
-import com.jjg.game.room.message.req.ReqApplyBankerInFriendRoom;
-import com.jjg.game.room.message.resp.ResApplyBankerInFriendRoom;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.RoomCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.util.function.Tuple2;
 
@@ -147,51 +143,36 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
     }
 
     /**
-     * 申请成为庄家
-     */
-    public void supplyBeBanker(PlayerController playerController, ReqApplyBankerInFriendRoom req) {
-        ResApplyBankerInFriendRoom res = new ResApplyBankerInFriendRoom(Code.PARAM_ERROR);
-        long playerId = playerController.playerId();
-        if (req.predictCostGold <= 0) {
-            playerController.send(res);
-            return;
-        }
-        AbstractRoomController<? extends RoomCfg, ? extends Room> roomController = getRoomControllerByPlayer(playerId);
-        // 如果玩家不在房间中，或者不在好友房中
-        if (!(roomController instanceof AbstractFriendRoomController<?> friendRoomController)) {
-            res.code = Code.ROOM_NOT_FOUND;
-            playerController.send(res);
-            return;
-        }
-        // 申请成为庄家
-        res.code = friendRoomController.supplyBeBanker(playerController, req.predictCostGold);
-        playerController.send(res);
-    }
-
-    /**
      * 先创建好空的好友房
      *
      * @param roomId 房间ID
      */
     @Override
     public void createFriendRoom(int roomCfgId, long roomId) {
-        // 获取配置
-        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
-        if (warehouseCfg == null) {
-            // 配置异常
-            log.error("通过rpc调用好友房创建时异常，找不到WarehouseCfg配置， {}", roomCfgId);
-            return;
-        }
-        Tuple2<Integer, Integer> tuples = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
-        try {
-            AbstractRoomController<?, ?> roomController =
-                initExistEmptyRoomByRoomId(warehouseCfg.getGameID(), roomCfgId, tuples.getT2(), roomId);
-            if (roomController == null) {
-                log.warn("通过cfgId: {} roomId: {} 初始化房间失败", roomCfgId, roomId);
+        // 需要放到对应的房间线程中处理，如果有非法请求也能保证在同一队列中处理
+        GameProcessor gameProcessor = processorExecutors.getProcessorById(roomId);
+        gameProcessor.executeHandler(new BaseHandler<>() {
+            @Override
+            public void action() {
+                // 获取配置
+                WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
+                if (warehouseCfg == null) {
+                    // 配置异常
+                    log.error("通过rpc调用好友房创建时异常，找不到WarehouseCfg配置， {}", roomCfgId);
+                    return;
+                }
+                Tuple2<Integer, Integer> tuples = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
+                try {
+                    AbstractRoomController<?, ?> roomController =
+                        initExistEmptyRoomByRoomId(warehouseCfg.getGameID(), roomCfgId, tuples.getT2(), roomId);
+                    if (roomController == null) {
+                        log.warn("通过cfgId: {} roomId: {} 初始化房间失败", roomCfgId, roomId);
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        });
     }
 
     /**
@@ -211,29 +192,36 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
             // TODO 如果是继续房间还需要查库和恢复房间的操作
             return;
         }
-        // 房主
-        long roomCreator = roomController.getRoom().getCreator();
-        if (roomCreator != playerId) {
-            log.error("操作异常，玩家：{} 请求操作房间，但房间房主ID为：{}", playerId, roomCreator);
-            return;
-        }
-        switch (operateCode) {
-            case 1:
-                log.info("收到请求暂停房间：{} 的请求", roomId);
-                // 暂停房间
-                roomController.pauseGame();
-                break;
-            case 2:
-                log.info("收到请求继续房间：{} 的请求", roomId);
-                // 继续游戏
-                roomController.continueGame();
-                break;
-            case 3:
-                log.info("收到请求结算房间：{} 的请求", roomId);
-                // 解散房间
-                roomController.gameOver();
-                break;
-        }
+        GameProcessor gameProcessor = processorExecutors.getProcessorById(roomId);
+        // 必须抛到对应的线程中处理
+        gameProcessor.executeHandler(new BaseHandler<>() {
+            @Override
+            public void action() {
+                // 房主
+                long roomCreator = roomController.getRoom().getCreator();
+                if (roomCreator != playerId) {
+                    log.error("操作异常，玩家：{} 请求操作房间，但房间房主ID为：{}", playerId, roomCreator);
+                    return;
+                }
+                switch (operateCode) {
+                    case 1:
+                        log.info("收到请求暂停房间：{} 的请求", roomId);
+                        // 暂停房间
+                        roomController.pauseGame();
+                        break;
+                    case 2:
+                        log.info("收到请求继续房间：{} 的请求", roomId);
+                        // 继续游戏
+                        roomController.continueGame();
+                        break;
+                    case 3:
+                        log.info("收到请求结算房间：{} 的请求", roomId);
+                        // 解散房间
+                        roomController.gameOver();
+                        break;
+                }
+            }
+        });
     }
 
     @Override

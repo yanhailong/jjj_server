@@ -24,6 +24,12 @@ public class AnimalsGameDataVo extends TableGameDataVo {
         super(roomCfg);
     }
 
+    @Override
+    public void clearRoundData() {
+        super.clearRoundData();
+        animalsSettlementInfo = null;
+    }
+
     public List<AnimalsHistoryBean> getWinAreaCfgIdHistory() {
         return winAreaCfgIdHistory;
     }

@@ -1,5 +1,6 @@
 package com.jjg.game.table.vietnamdice.message;
 
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
 import com.jjg.game.table.vietnamdice.VietnamDiceGameController;
 import com.jjg.game.table.vietnamdice.data.VietnamDiceGameDataVo;
@@ -35,7 +36,7 @@ public class VietnamDiceMessageBuilder {
      * 桌面信息
      */
     public static NotifyVietnamDiceTableInfo notifyVietnamDiceTableInfo(
-        long playerId, VietnamDiceGameController gameController, boolean isInitial) {
+        long playerId, BaseTableGameController<VietnamDiceGameDataVo> gameController, boolean isInitial) {
         NotifyVietnamDiceTableInfo tableInfo = new NotifyVietnamDiceTableInfo();
         VietnamDiceGameDataVo gameDataVo = gameController.getGameDataVo();
         tableInfo.baseDiceTableInfo =

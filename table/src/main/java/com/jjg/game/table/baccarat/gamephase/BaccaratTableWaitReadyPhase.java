@@ -2,8 +2,8 @@ package com.jjg.game.table.baccarat.gamephase;
 
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.utils.PokerCardUtils;
-import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.gamephase.TableWaitReadyPhase;
 
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ import java.util.Set;
  */
 public class BaccaratTableWaitReadyPhase extends TableWaitReadyPhase<BaccaratGameDataVo> {
 
-    public BaccaratTableWaitReadyPhase(BaccaratGameController gameController) {
+    public BaccaratTableWaitReadyPhase(BaseTableGameController<BaccaratGameDataVo> gameController) {
         super(gameController);
     }
 

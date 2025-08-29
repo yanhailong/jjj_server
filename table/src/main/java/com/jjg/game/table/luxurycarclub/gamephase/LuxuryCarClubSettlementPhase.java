@@ -3,14 +3,17 @@ package com.jjg.game.table.luxurycarclub.gamephase;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
@@ -46,8 +49,11 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
         gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, clientShowPosId);
         NotifyLuxuryCarClubSettlement settlement =
             LuxuryCarClubMessageBuilder.notifyLuxuryCarClubSettlement(
-                (LuxuryCarClubGameController) gameController, clientShowPosId);
+                (BaseTableGameController<LuxuryCarClubGameDataVo>) gameController, clientShowPosId);
         List<PlayerChangedGold> playerChangedGolds = new ArrayList<>();
+        // 庄家变化的钱
+        long bankerChangeGold = 0;
+        Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
             GamePlayer gamePlayer = entry.getValue();
@@ -72,11 +78,16 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
             // 添加日志埋点数据
             BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameDataTracker, playerBetInfo);
-            // TODO 给玩家加金币
-            gamePlayer.setGold(gamePlayer.getGold() + playerSettlementData.getTotalWin());
+            // 给玩家添加金币
+            gameController.addGold(
+                gamePlayer.getId(), playerSettlementData.getTotalWin(),
+                ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
             playerChangedGold.playerCurGold = gamePlayer.getGold();
             playerChangedGolds.add(playerChangedGold);
+            bankerChangeGold += playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal();
+            settlementDataMap.put(playerId, playerSettlementData);
         }
+        gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
         // 场上玩家金币变化
         settlement.settlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {

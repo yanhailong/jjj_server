@@ -3,8 +3,10 @@ package com.jjg.game.table.birdsanimals.gamephase;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
@@ -17,6 +19,7 @@ import com.jjg.game.table.birdsanimals.data.AnimalsGameDataVo;
 import com.jjg.game.table.birdsanimals.message.AnimalsHistoryBean;
 import com.jjg.game.table.birdsanimals.message.AnimalsMessageBuilder;
 import com.jjg.game.table.birdsanimals.message.NotifyAnimalsSettlement;
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
@@ -60,9 +63,13 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
         // 添加中奖记录
         AnimalsHistoryBean historyBean = addAnimalsHistory(randomRewardPosId, winPosWeightCfgs);
         NotifyAnimalsSettlement settlement =
-            AnimalsMessageBuilder.notifyAnimalsSettlement((AnimalsGameController) gameController, historyBean);
+            AnimalsMessageBuilder.notifyAnimalsSettlement(
+                (BaseTableGameController<AnimalsGameDataVo>) gameController, historyBean);
         gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, historyBean);
         List<PlayerChangedGold> playerChangedGolds = new ArrayList<>();
+        // 庄家变化的钱
+        long bankerChangeGold = 0;
+        Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
             GamePlayer gamePlayer = entry.getValue();
@@ -79,11 +86,16 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
             playerChangedGold.playerWinGold = settlementData.getBetWin();
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(settlementData.getTotalWin());
-            // TODO 给玩家加金币
-            gamePlayer.setGold(gamePlayer.getGold() + settlementData.getTotalWin());
+            // 给玩家添加金币
+            gameController.addGold(
+                gamePlayer.getId(), settlementData.getTotalWin(),
+                ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
             playerChangedGold.playerCurGold = gamePlayer.getGold();
             playerChangedGolds.add(playerChangedGold);
+            bankerChangeGold += settlementData.getTotalWin() - settlementData.getBetTotal();
+            settlementDataMap.put(playerId, settlementData);
         }
+        gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
         // 场上玩家金币变化
         settlement.settlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {

@@ -16,7 +16,7 @@ import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
     cmd = FriendRoomMessageConstant.ResMsgCons.RES_TAKE_FRIEND_ROOM_BILL_INCOME,
     resp = true
 )
-@ProtoDesc("返回好友房详细账单历史")
+@ProtoDesc("返回好友房收益领取结果")
 public class ResTakeFriendRoomBillIncome extends AbstractResponse {
 
     public ResTakeFriendRoomBillIncome(int code) {

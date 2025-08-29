@@ -2,8 +2,10 @@ package com.jjg.game.table.dicecommon.phase;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.pb.AbstractMessage;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
@@ -16,6 +18,7 @@ import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
 import com.jjg.game.table.dicecommon.message.BaseDiceSettlementInfo;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +39,9 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
     protected <S extends AbstractMessage> void settlementDice(
         BaseDiceSettlementInfo diceSettlementInfo, List<WinPosWeightCfg> winPosWeightCfgs, S settlement) {
         List<PlayerChangedGold> playerChangedGolds = new ArrayList<>();
+        // 庄家变化的钱
+        long bankerChangeGold = 0;
+        Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
             GamePlayer gamePlayer = entry.getValue();
@@ -50,12 +56,17 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             playerChangedGold.playerId = playerId;
             playerChangedGold.playerWinGold = playerSettlementData.getBetWin();
             playerChangedGolds.add(playerChangedGold);
-            // TODO 给玩家加金币
-            gamePlayer.setGold(gamePlayer.getGold() + playerSettlementData.getTotalWin());
+            // 给玩家添加金币
+            gameController.addGold(
+                gamePlayer.getId(), playerSettlementData.getTotalWin(),
+                ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
             playerChangedGold.playerCurGold = gamePlayer.getGold();
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
+            bankerChangeGold += playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal();
+            settlementDataMap.put(playerId, playerSettlementData);
         }
+        gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
         // 场上玩家金币变化
         diceSettlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {

@@ -10,11 +10,13 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
+import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.dao.room.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ReflectionTool;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
@@ -69,6 +71,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     private PlayerRoomDataDao playerRoomDataDao;
     @Autowired
     private RoomDataTrackLogger roomDataTrackLogger;
+    @Autowired
+    private PlayerPackService playerPackService;
+    @Autowired
+    protected FriendRoomBillHistoryDao friendRoomBillHistoryDao;
     // context
     protected ApplicationContext applicationContext;
     // 房间计时器(线程池)
@@ -205,7 +211,13 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 通过房间ID初始化存在的空房间
      */
     public <RC extends RoomCfg, R extends Room> AbstractRoomController<RC, R> initExistEmptyRoomByRoomId(
-            int gameType, int roomCfgId, int maxLimit, long roomId) throws Exception {
+        int gameType, int roomCfgId, int maxLimit, long roomId) throws Exception {
+        AbstractRoomController<?, ?> roomController = getRoomControllerByRoomId(roomId);
+        if (roomController != null) {
+            log.error("通过房间ID：{} 重复创建，已存在的房间信息: {}", roomId, roomController.getRoom().logStr());
+            // 重复创建
+            return null;
+        }
         RoomType roomType = RoomType.getRoomType(roomCfgId);
         // 获取roomDao
         AbstractRoomDao<R, ? extends RoomPlayer> roomDao = getRoomDao(roomType);
@@ -215,7 +227,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         // 获取当前节点的所有房间
         R existedRoom = roomDao.getRoom(gameType, roomCfgId);
         if (existedRoom == null) {
-            log.info("通过房间ID：{} 获取房间为空", roomId);
+            log.error("通过房间ID：{} 获取房间为空", roomId);
             return null;
         }
 
@@ -640,9 +652,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     protected <RC extends RoomCfg, R extends Room> void registerRoomController(
             int gameType, long roomId, AbstractRoomController<RC, R> roomController) {
         this.roomControllerMap
-                .computeIfAbsent(gameType, k -> new ConcurrentHashMap<>())
-                .computeIfAbsent(roomId,
-                        k -> roomController);
+            .computeIfAbsent(gameType, k -> new ConcurrentHashMap<>())
+            .computeIfAbsent(roomId, k -> roomController);
     }
 
     /**
@@ -880,5 +891,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      */
     public RoomDataTrackLogger getGameDataTrackLogger() {
         return roomDataTrackLogger;
+    }
+
+    public FriendRoomBillHistoryDao getFriendRoomBillHistoryDao() {
+        return friendRoomBillHistoryDao;
     }
 }

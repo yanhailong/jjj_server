@@ -4,17 +4,19 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.utils.PokerCardUtils;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.data.room.TablePlayerGameData;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.datatrack.SaveLogUtil;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.loongtigerwar.manager.LoongTigerWarSampleManager;
 import com.jjg.game.table.loongtigerwar.message.resp.NotifyLoongTigerWarSettleInfo;
 import com.jjg.game.table.loongtigerwar.room.data.LoongTigerWarGameDataVo;
-import com.jjg.game.table.loongtigerwar.room.manager.LoongTigerWarRoomGameController;
 import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +36,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
     private final LoongTigerWarSampleManager loongTigerWarSampleManager;
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    public LoongTigerWarSettlementPhase(LoongTigerWarRoomGameController gameController) {
+    public LoongTigerWarSettlementPhase(BaseTableGameController<LoongTigerWarGameDataVo> gameController) {
         super(gameController);
         loongTigerWarSampleManager = CommonUtil.getContext().getBean(LoongTigerWarSampleManager.class);
     }
@@ -60,6 +62,9 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         //获取押注区域
         List<WinPosWeightCfg> weightCfgs = cfgMap.get(next);
         Map<Integer, Map<Long, List<Integer>>> betInfo = gameDataVo.getBetInfo();
+        // 庄家变化的钱
+        long bankerChangeGold = 0;
+        Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         for (WinPosWeightCfg weightCfg : weightCfgs) {
             for (Integer areaId : weightCfg.getBetArea()) {
                 Map<Long, List<Integer>> playerBetInfo = betInfo.get(areaId);
@@ -82,13 +87,26 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
                         canGet = canGet * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
                     }
                     canGet += backBet;
-                    gamePlayer.setGold(canGet + gamePlayer.getGold());
-                    DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId, key -> new DefaultKeyValue<>(0L, 0L));
+                    SettlementData settlementData = new SettlementData(canGet - backBet, backBet, canGet, totalBet);
+                    if (!settlementDataMap.containsKey(playerId)) {
+                        settlementDataMap.put(playerId, settlementData);
+                    } else {
+                        settlementDataMap.get(playerId).increaseBySettlementData(settlementData);
+                    }
+                    bankerChangeGold +=
+                        settlementDataMap.get(playerId).getTotalWin() - settlementDataMap.get(playerId).getBetTotal();
+                    // 给玩家添加金币
+                    gameController.addGold(
+                        gamePlayer.getId(), canGet,
+                        ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
+                    DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId,
+                        key -> new DefaultKeyValue<>(0L, 0L));
                     keyValue.setKey(keyValue.getKey() + totalBet);
                     keyValue.setValue(keyValue.getValue() + canGet);
                 }
             }
         }
+        gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
         Pair<Integer, Integer> twoSpecificCard = PokerCardUtils.getTwoSpecificCard(next);
         NotifyLoongTigerWarSettleInfo warSettleInfo = new NotifyLoongTigerWarSettleInfo();
         warSettleInfo.loongCard = twoSpecificCard.getFirst();
@@ -124,8 +142,10 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         gameDataVo.addHistory(result);
     }
 
-    private void addLog(LoongTigerWarGameDataVo gameDataVo, Map<Long, DefaultKeyValue<Long, Long>> playerGetInfo, int loongCard, int tigerCard) {
-        SaveLogUtil.generalLog(gameDataVo.getPlayerBetInfo(), playerGetInfo, gameDataVo.getGamePlayerMap(), gameDataTracker);
+    private void addLog(LoongTigerWarGameDataVo gameDataVo, Map<Long, DefaultKeyValue<Long, Long>> playerGetInfo,
+                        int loongCard, int tigerCard) {
+        SaveLogUtil.generalLog(gameDataVo.getPlayerBetInfo(), playerGetInfo, gameDataVo.getGamePlayerMap(),
+            gameDataTracker);
         gameDataTracker.addGameLogData("loongCard", loongCard);
         gameDataTracker.addGameLogData("tigerCard", tigerCard);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);

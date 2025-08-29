@@ -127,9 +127,13 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     }
 
     @Override
-    public void continueGame() {
-        autoRunGamePhase();
-        gameState = EGameState.GAMING;
+    public boolean continueGame() {
+        if (gameState == EGameState.PAUSED) {
+            autoRunGamePhase();
+            gameState = EGameState.GAMING;
+            return true;
+        }
+        return false;
     }
 
     /**

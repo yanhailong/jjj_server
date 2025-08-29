@@ -2,10 +2,12 @@ package com.jjg.game.core.utils;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ViplevelCfg;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * vip工具类
@@ -35,5 +37,11 @@ public class VipUtil {
             player.setVipExp(newExp);
             player.setVipLevel(newLv);
         }
+    }
+    public static void checkVipLevel(Player player) {
+        Map<Integer, ViplevelCfg> viplevelCfgMap = GameDataManager.getViplevelCfgList()
+                .stream()
+                .collect(Collectors.toMap(ViplevelCfg::getViplevel, cfg -> cfg));
+        checkVipLevel(player,viplevelCfgMap);
     }
 }

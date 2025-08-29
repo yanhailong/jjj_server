@@ -28,6 +28,12 @@ public class VietnamDiceGameDataVo extends TableGameDataVo {
         return winAreaCfgIdHistory;
     }
 
+    @Override
+    public void clearRoundData() {
+        super.clearRoundData();
+        vietnamDiceSettlementInfo = null;
+    }
+
     public void addWinAreaCfgIdHistory(VietnamDiceHistoryBean vietnamDiceHistoryBean) {
         int recordsNum = roomCfg.getRecords_num();
         if (winAreaCfgIdHistory.size() >= recordsNum) {

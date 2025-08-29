@@ -2,8 +2,8 @@ package com.jjg.game.table.baccarat;
 
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.data.BetTableRoom;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
@@ -15,7 +15,6 @@ import com.jjg.game.table.baccarat.gamephase.BaccaratSettlementPhase;
 import com.jjg.game.table.baccarat.gamephase.BaccaratTableBetPhase;
 import com.jjg.game.table.baccarat.gamephase.BaccaratTableWaitReadyPhase;
 import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
-import com.jjg.game.table.baccarat.message.resp.NotifyBaccaratSettlementInfo;
 import com.jjg.game.table.baccarat.message.resp.RespBaccaratTableInfo;
 import com.jjg.game.table.common.BaseTableGameController;
 
@@ -30,7 +29,7 @@ import java.util.Objects;
 @GameController(gameType = EGameType.BACCARAT, roomType = RoomType.BET_ROOM)
 public class BaccaratGameController extends BaseTableGameController<BaccaratGameDataVo> {
 
-    public BaccaratGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {
+    public BaccaratGameController(AbstractRoomController<Room_BetCfg, ? extends Room> roomController) {
         super(roomController);
     }
 
@@ -47,14 +46,9 @@ public class BaccaratGameController extends BaseTableGameController<BaccaratGame
     @Override
     public void respRoomInitInfo(PlayerController playerController) {
         EGamePhase eGamePhase = getCurrentGamePhase();
-        // 如果刚好处于等待阶段则直接设置为下注阶段
-        if (eGamePhase == EGamePhase.WAIT_READY) {
-            eGamePhase = EGamePhase.BET;
-        }
         // 如果在结算阶段需要从缓存中读取数据
-        NotifyBaccaratSettlementInfo settlementInfo = gameDataVo.getBaccaratSettlementInfo();
         RespBaccaratTableInfo baccaratTableInfo =
-            BaccaratMessageBuilder.buildRespBaccaratTableInfo(gameDataVo, eGamePhase, settlementInfo);
+            BaccaratMessageBuilder.buildRespBaccaratTableInfo(gameDataVo, eGamePhase);
         // send
         playerController.send(Objects.requireNonNullElseGet(baccaratTableInfo,
             () -> new RespBaccaratTableInfo(Code.FAIL)));

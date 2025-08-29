@@ -1,5 +1,6 @@
 package com.jjg.game.table.riveranimals.message;
 
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.dicecommon.message.BaseDiceMessageBuilder;
 import com.jjg.game.table.riveranimals.RiverAnimalsGameController;
 import com.jjg.game.table.riveranimals.data.RiverAnimalsGameDataVo;
@@ -36,7 +37,7 @@ public class RiverAnimalsMessageBuilder {
      * 桌面信息
      */
     public static NotifyRiverAnimalsTableInfo notifyAnimalsTableInfo(
-        long playerId, RiverAnimalsGameController gameController, boolean isInitial) {
+        long playerId, BaseTableGameController<RiverAnimalsGameDataVo> gameController, boolean isInitial) {
         NotifyRiverAnimalsTableInfo tableInfo = new NotifyRiverAnimalsTableInfo();
         RiverAnimalsGameDataVo gameDataVo = gameController.getGameDataVo();
         tableInfo.baseDiceTableInfo =

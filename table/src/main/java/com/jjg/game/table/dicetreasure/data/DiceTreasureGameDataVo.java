@@ -24,6 +24,12 @@ public class DiceTreasureGameDataVo extends TableGameDataVo {
         super(roomCfg);
     }
 
+    @Override
+    public void clearRoundData() {
+        super.clearRoundData();
+        diceTreasureSettlementInfo = null;
+    }
+
     public List<DiceTreasureHistoryBean> getWinAreaCfgIdHistory() {
         return winAreaCfgIdHistory;
     }

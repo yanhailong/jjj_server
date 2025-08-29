@@ -285,8 +285,12 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
     @Override
-    public void continueGame() {
-        gameController.continueGame();
+    public boolean continueGame() {
+        if (gameController.continueGame()) {
+            roomState = ERoomState.GAMING;
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -424,7 +428,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         if (room.getRoomPlayers() != null && room.getRoomPlayers().size() >= room.getMaxLimit()) {
             return;
         }
-        if (robotLastCreatedTime != 0 && robotLastCreatedTime > System.currentTimeMillis()) {
+        if (robotLastCreatedTime > System.currentTimeMillis()) {
             return;
         }
         List<Integer> robotIntervalTime = roomCfg.getIntervalTime();

@@ -33,6 +33,7 @@ import com.jjg.game.poker.game.texas.message.reps.*;
 import com.jjg.game.poker.game.texas.message.req.ReqTexasHistory;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.poker.game.texas.util.HandResult;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
@@ -517,10 +518,11 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
      */
     public void changePlayerGold(GamePlayer gamePlayer, long change) {
         if (change > 0) {
+            addGold(gamePlayer.getId(), change, ERoomItemReason.GAME_SETTLEMENT);
             gamePlayer.setGold(gamePlayer.getGold() + change);
             gameDataVo.getTempGold().merge(gamePlayer.getId(), change, Long::sum);
         } else {
-            gamePlayer.setGold(gamePlayer.getGold() - change);
+            deductGold(gamePlayer.getId(), change, ERoomItemReason.GAME_BET);
             gameDataVo.getTempGold().merge(gamePlayer.getId(), change, Long::sum);
         }
     }
