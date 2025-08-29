@@ -18,7 +18,7 @@ public class RoomCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "Room";
 
-  /** 系统抽水万分比 */
+  /** 系统抽水 */
   protected int EffectiveRatio;
   /** 不操作退出倒计时秒 */
   protected int EscTime;
@@ -64,10 +64,10 @@ public class RoomCfg extends BaseCfgBean {
   protected int resultType;
   /** 机器人人数（时间段:机器人人数|……） */
   protected List<List<Integer>> robot_num;
-  /** 倍场ID */
+  /** 房间类型 */
   protected int roomID;
 
-  /** 返回系统抽水万分比 */
+  /** 返回系统抽水 */
   public int getEffectiveRatio() {
     return EffectiveRatio;
   }
@@ -182,7 +182,7 @@ public class RoomCfg extends BaseCfgBean {
     return robot_num;
   }
 
-  /** 返回倍场ID */
+  /** 返回房间类型 */
   public int getRoomID() {
     return roomID;
   }

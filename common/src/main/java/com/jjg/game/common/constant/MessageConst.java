@@ -164,6 +164,8 @@ public interface MessageConst {
         int NOTICE_STOP_MARQUEE = BASE_MSG_PREFIX | 0x9B;
         //通知踢人
         int NOTIFY_EXIT = BASE_MSG_PREFIX | 0x9C;
+        //通知功能开放
+        int NOTIFY_FUNC_OPEN = BASE_MSG_PREFIX | 0x9D;
     }
 
     interface RoomMessage {

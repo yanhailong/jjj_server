@@ -20,5 +20,26 @@ public enum EConditionComparator {
     // 在范围内
     IN,
     // 不在范围中
-    NOT_IN
+    NOT_IN,
+    ;
+
+    public boolean intComparate(int source, int target) {
+        return numberComparate(source, target);
+    }
+
+
+    public boolean longComparate(long source, long target) {
+        return numberComparate(source, target);
+    }
+
+    private boolean numberComparate(long source, long target) {
+        return switch (this) {
+            case GT -> source < target;
+            case LT -> source > target;
+            case EQ -> source == target;
+            case GTE -> source <= target;
+            case LTE -> source >= target;
+            default -> false;
+        };
+    }
 }
