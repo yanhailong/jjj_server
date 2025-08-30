@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 游戏事件管理器
@@ -22,7 +23,7 @@ public class GameEventManager {
     /**
      * 事件类型map
      */
-    private final Map<EGameEventType, List<GameEventListener>> eventListMap = new HashMap<>();
+    private final Map<EGameEventType, List<GameEventListener>> eventListMap = new ConcurrentHashMap<>();
 
     /**
      * 初始化事件监听器
