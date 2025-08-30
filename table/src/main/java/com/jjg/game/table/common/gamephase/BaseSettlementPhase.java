@@ -1,23 +1,16 @@
 package com.jjg.game.table.common.gamephase;
 
-import cn.hutool.core.collection.CollectionUtil;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.base.AbstractRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.SettlementData;
-import com.jjg.game.room.manager.AbstractRoomManager;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
-import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.data.TableGameDataVo;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * 结算阶段
@@ -99,25 +92,6 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
     @Override
     public void phaseFinish() {
         // 检查机器人的退出概率
-        if (gameController instanceof BaseTableGameController<D> controller)
-            try {
-                //踢未在线的玩家
-                Map<Long, RoomPlayer> roomPlayers = controller.getRoom().getRoomPlayers();
-                if (CollectionUtil.isNotEmpty(roomPlayers)) {
-                    AbstractRoomManager roomManager = controller.getRoomController().getRoomManager();
-                    Map<Long, PlayerController> playerControllers = controller.getRoomController().getPlayerControllers();
-                    for (RoomPlayer roomPlayer : roomPlayers.values()) {
-                        if (!roomPlayer.isOnline()) {
-                            PlayerController playerController = playerControllers.get(roomPlayer.getPlayerId());
-                            if (Objects.nonNull(playerController)) {
-                                roomManager.exitRoom(playerController);
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.error("结算踢不在线人异常", e);
-            }
         try {
             phaseFinishAction();
         } catch (Exception e) {

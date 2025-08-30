@@ -95,6 +95,12 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         //构建玩家信息
         for (Map.Entry<Integer, SeatInfo> entry : gameDataVo.getSeatInfo().entrySet()) {
             SeatInfo seatInfo = entry.getValue();
+            if (seatInfo.getPlayerId() == playerController.playerId()) {
+                if (!gameDataVo.getTempGold().containsKey(playerController.playerId())) {
+                    GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
+                    addTempGoldOrOutTable(seatInfo, gamePlayer);
+                }
+            }
             playerInfos.add(TexasBuilder.getTexasPlayerInfo(playerSeatInfoMap.get(seatInfo.getPlayerId()), seatInfo, gameDataVo));
         }
         repsTexasRoomBaseInfo.playerInfos = playerInfos;
@@ -366,12 +372,6 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     }
 
     @Override
-    public void onPlayerJoinRoomAction(GamePlayer gamePlayer) {
-        //增加临时货币
-        gameDataVo.getTempGold().put(gamePlayer.getId(), TexasDataHelper.getDefaultCoinsNum(gameDataVo));
-    }
-
-    @Override
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
         //如果在游戏中删除数据
         gameDataVo.getTempGold().remove(remove.getPlayerId());
@@ -538,6 +538,9 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             if (gamePlayer.getGold() >= defaultCoinsNum) {
                 //增加零时货币
                 gameDataVo.getTempGold().put(seatInfo.getPlayerId(), defaultCoinsNum);
+                NotifyTexasTempGoldReflush reflush = new NotifyTexasTempGoldReflush();
+                reflush.addValue = defaultCoinsNum;
+                broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(gamePlayer.getId(), reflush));
                 return true;
             } else {
                 seatInfo.setSeatDown(false);

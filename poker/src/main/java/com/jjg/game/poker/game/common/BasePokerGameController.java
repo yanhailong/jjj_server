@@ -256,17 +256,17 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         PokerPlayerGameData pokerPlayerGameData = new PokerPlayerGameData();
         pokerPlayerGameData.setJoinTime(System.currentTimeMillis());
         gamePlayer.setPokerPlayerGameData(pokerPlayerGameData);
-        try {
-            onPlayerJoinRoomAction(gamePlayer);
-        } catch (Exception e) {
-            log.error("onPlayerJoinRoomAction() failed", e);
-        }
         //存放座位信息 如果座位有人了随便找一个 找不到
         Map<Integer, SeatInfo> seatInfoList = gameDataVo.getSeatInfo();
         int seatDown = isSeatDown(seatInfoList, playerController.playerId());
         if (seatDown != -1) {
             roomPlayer.setSit(seatDown);
             return gamePlayer;
+        }
+        try {
+            onPlayerJoinRoomAction(gamePlayer);
+        } catch (Exception e) {
+            log.error("onPlayerJoinRoomAction() failed", e);
         }
         SeatInfo seatInfo = seatInfoList.get(roomPlayer.getSit());
         if (Objects.isNull(seatInfo)) {
