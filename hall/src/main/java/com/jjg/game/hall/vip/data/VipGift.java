@@ -3,7 +3,6 @@ package com.jjg.game.hall.vip.data;
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.data.Player;
-import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ViplevelCfg;
 
 import java.time.DayOfWeek;
@@ -58,7 +57,7 @@ public enum VipGift {
                     yield true;
                 }
                 int maxLv = Collections.max(vip.getLvGiftGetTime().keySet());
-                yield maxLv < player.getLevel();
+                yield maxLv < player.getVipLevel();
             }
         };
     }
@@ -81,7 +80,7 @@ public enum VipGift {
                 if (!time) {
                     yield 0;
                 }
-                yield LocalDateTime.ofInstant(Instant.ofEpochMilli(player.getCreateTime()), ZoneId.systemDefault())
+                yield LocalDateTime.ofInstant(Instant.ofEpochSecond(player.getCreateTime()), ZoneId.systemDefault())
                         .plusYears(1).toLocalDate().atStartOfDay()
                         .atZone(ZoneId.systemDefault())
                         .toInstant().toEpochMilli();
@@ -90,7 +89,7 @@ public enum VipGift {
                 if (time) {
                     yield 0;
                 }
-                ViplevelCfg viplevelCfg = GameDataManager.getViplevelCfg(player.getVipLevel());
+                ViplevelCfg viplevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
                 yield (viplevelCfg.getViplevelUpExp() - player.getVipExp()) * viplevelCfg.getRecharge() / 10000;
             }
         };

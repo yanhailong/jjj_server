@@ -1,10 +1,8 @@
 package com.jjg.game.hall.vip.data;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ViplevelCfg;
-import org.springframework.stereotype.Component;
 
 import java.util.*;
 
@@ -12,13 +10,15 @@ import java.util.*;
  * @author lm
  * @date 2025/8/28 09:55
  */
-@Component
 public class VipCfgCache {
+    //vip等级->皮肤类型->皮肤id
     private static Map<Integer, Map<Integer, Set<Integer>>> vipSkin;
-
+    //vip等级->vip配置
+    private static Map<Integer, ViplevelCfg> viplevelCfgMap;
 
     public static void initData() {
-        Map<Integer, Map<Integer, Set<Integer>>> tempMap = new HashMap<>();
+        Map<Integer, Map<Integer, Set<Integer>>> tempvipSkinMap = new HashMap<>();
+        Map<Integer, ViplevelCfg> tempViplevelCfgMap = new HashMap<>();
         Map<Integer, Set<Integer>> beforeHas = new HashMap<>();
         for (ViplevelCfg viplevelCfg : GameDataManager.getViplevelCfgList()) {
             Map<Integer, Integer> avatarType = viplevelCfg.getAvatarType();
@@ -28,9 +28,15 @@ public class VipCfgCache {
                     before.add(entry.getValue());
                 }
             }
-            tempMap.put(viplevelCfg.getViplevel(), new HashMap<>(beforeHas));
+            tempViplevelCfgMap.put(viplevelCfg.getViplevel(), viplevelCfg);
+            tempvipSkinMap.put(viplevelCfg.getViplevel(), new HashMap<>(beforeHas));
         }
-        vipSkin = tempMap;
+        vipSkin = tempvipSkinMap;
+        viplevelCfgMap = tempViplevelCfgMap;
+    }
+
+    public static ViplevelCfg getVipLevelCfg(int vipLevel) {
+        return viplevelCfgMap.get(vipLevel);
     }
 
     /**

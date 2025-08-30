@@ -18,6 +18,8 @@ public class ConditionCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "condition";
 
+  /** 事件触发类型 */
+  protected String TriggerEventType;
   /** 条件参数数量 */
   protected int conditionParameter;
   /** 关键参数 */
@@ -26,6 +28,11 @@ public class ConditionCfg extends BaseCfgBean {
   protected int languageID;
   /** 关键参数格式 */
   protected String text;
+
+  /** 返回事件触发类型 */
+  public String getTriggerEventType() {
+    return TriggerEventType;
+  }
 
   /** 返回条件参数数量 */
   public int getConditionParameter() {

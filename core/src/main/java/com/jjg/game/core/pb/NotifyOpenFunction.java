@@ -1,10 +1,9 @@
-package com.jjg.game.hall.pb.res;
+package com.jjg.game.core.pb;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.common.pb.AbstractNotice;
-import com.jjg.game.hall.constant.HallConstant;
 
 import java.util.List;
 
@@ -14,8 +13,8 @@ import java.util.List;
  * @author 2CL
  */
 @ProtobufMessage(
-    messageType = MessageConst.MessageTypeDef.HALL_TYPE,
-    cmd = HallConstant.MsgBean.NOTIFY_FUNCTION_OPEN_LIST,
+    messageType = MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE,
+    cmd = MessageConst.CoreMessage.NOTIFY_FUNC_OPEN,
     resp = true
 )
 @ProtoDesc("通知功能开放，通过游戏中的某些操作触发了功能的开放")
