@@ -219,6 +219,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                 .anyMatch(info -> info.getOperationType() == PokerConstant.PlayerOperation.ALL_IN);
     }
 
+
     public boolean isAllAllIn(long playerId) {
         for (PlayerSeatInfo seatInfo : gameDataVo.getPlayerSeatInfoList()) {
             if (seatInfo.isDelState()) {
@@ -313,8 +314,8 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                 info.setOperationType(PokerConstant.PlayerOperation.NONE);
             }
             PlayerSeatInfo nextExePlayer = getNextExePlayer();
-            //如果找不到下一轮说明全all
-            if (Objects.isNull(nextExePlayer)) {
+            //如果找不到下一轮说明全all 如果只剩一个没allin的也直接结算
+            if (Objects.isNull(nextExePlayer) || isAllAllIn(nextExePlayer.getPlayerId())) {
                 gameDataVo.setSettlement(ALL_SETTLEMENT);
                 //设置阶段结束事件
                 addPokerPhaseTimer(new TexasSettlementPhase(this));
