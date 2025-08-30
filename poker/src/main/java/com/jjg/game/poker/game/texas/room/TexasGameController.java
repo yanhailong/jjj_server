@@ -469,12 +469,6 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         notifyPokerSampleCardOperation.playerId = playerId;
         PlayerSeatInfo nextExePlayer = getNextExePlayer();
         if (Objects.nonNull(nextExePlayer)) {
-            if (isAllAllIn(nextExePlayer.getPlayerId())) {
-                gameDataVo.setSettlement(ALL_SETTLEMENT);
-                //设置阶段结束事件
-                addPokerPhaseTimer(new TexasSettlementPhase(this));
-                return;
-            }
             addNextPlayerAndBroadcast(nextExePlayer, notifyPokerSampleCardOperation);
         } else {
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyPokerSampleCardOperation));
