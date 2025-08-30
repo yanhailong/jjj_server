@@ -26,10 +26,7 @@ import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.PropInfo;
-import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.data.SpecialResultLibCacheData;
+import com.jjg.game.slots.data.*;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
@@ -108,8 +105,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     //大奖展示倍数区间
     protected Map<Integer, int[]> bigWinShowMap = null;
 
-    private List<ClientRollerCfg> clientRollerCfgList;
-    private List<ClientFreeRollerCfg> clientFreeRollerCfgList;
 
     public AbstractSlotsGameManager(Class<T> playerGameDataClass) {
         this.playerGameDataClass = playerGameDataClass;
@@ -162,7 +157,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         int expectGenerateCount = count;
         int restCount = Math.min(count, 100);
 
-        List<DollarExpressResultLib> libList = new ArrayList<>();
+        List<SlotsResultLib> libList = new ArrayList<>();
         int saveCount = 0;
         int i = 0;
 
@@ -171,10 +166,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             int reduceCount = 0;
             i++;
             try {
-                List<DollarExpressResultLib> tempList = getGenerateManager().generateOne();
-                reduceCount = tempList.size();
+                SlotsResultLib lib = getGenerateManager().generateOne(1);
 
-                libList.addAll(tempList);
+                libList.add(lib);
 
                 if (libList.size() >= restCount) {
                     saveCount += getResultLibDao().batchSave(libList, newDocName);
@@ -223,10 +217,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         baseRoomConfig(this.gameType);
         baseLineConfig(this.gameType);
         specialResultLibConfig(this.gameType, true);
-        specialGirdConfig(this.gameType);
         globalConfig(this.gameType);
-        clientRollerConfig(this.gameType);
-        clientFreeRollerConfig(this.gameType);
         calAllLineStake();
         log.info("配置重新计算结束 gameType = {}", this.gameType);
     }
@@ -676,24 +667,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         return data;
     }
 
-    protected void specialGirdConfig(int gameType) {
-        Map<Integer, SpecialGirdCfg> tempSpecialGirdCfgMap = new HashMap<>();
-
-        for (Map.Entry<Integer, SpecialGirdCfg> en : GameDataManager.getSpecialGirdCfgMap().entrySet()) {
-            SpecialGirdCfg cfg = en.getValue();
-            if (cfg.getGameType() != gameType) {
-                continue;
-            }
-            if (cfg.getGirdUpdateType() != SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT) {
-                continue;
-            }
-            tempSpecialGirdCfgMap.put(cfg.getId(), cfg);
-        }
-
-        if (!tempSpecialGirdCfgMap.isEmpty()) {
-            this.specialGirdCfgMap = tempSpecialGirdCfgMap;
-        }
-    }
 
     protected void globalConfig(int gameType) {
         Map<Integer, int[]> tmpBigWinShowMap = new HashMap<>();
@@ -706,29 +679,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         this.bigWinShowMap = tmpBigWinShowMap;
     }
 
-    protected void clientRollerConfig(int gameType) {
-        List<ClientRollerCfg> tmpClientRollerCfgList = new ArrayList<>();
-        for (Map.Entry<Integer, ClientRollerCfg> en : GameDataManager.getClientRollerCfgMap().entrySet()) {
-            ClientRollerCfg cfg = en.getValue();
-            if (cfg.getGameType() != gameType) {
-                continue;
-            }
-            tmpClientRollerCfgList.add(cfg);
-        }
-        this.clientRollerCfgList = tmpClientRollerCfgList;
-    }
-
-    protected void clientFreeRollerConfig(int gameType) {
-        List<ClientFreeRollerCfg> tmpClientFreeRollerCfgList = new ArrayList<>();
-        for (Map.Entry<Integer, ClientFreeRollerCfg> en : GameDataManager.getClientFreeRollerCfgMap().entrySet()) {
-            ClientFreeRollerCfg cfg = en.getValue();
-            if (cfg.getGameType() != gameType) {
-                continue;
-            }
-            tmpClientFreeRollerCfgList.add(cfg);
-        }
-        this.clientFreeRollerCfgList = tmpClientFreeRollerCfgList;
-    }
 
     protected void calGlobalBigWinShow(int id, int pbShowId, Map<Integer, int[]> map) {
         GlobalConfigCfg cfg = GameDataManager.getGlobalConfigCfg(id);
@@ -754,10 +704,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         if (baseLineCfg == null) {
             return null;
         }
-        for (Map.Entry<Integer, List<Integer>> en : baseLineCfg.getPosLocation().entrySet()) {
-            return en.getValue();
-        }
-        return null;
+        return baseLineCfg.getPosLocation();
     }
 
     /**
@@ -824,10 +771,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         addChangeSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> baseRoomConfig(this.gameType))
                 .addChangeSampleFileObserveWithCallBack(SpecialResultLibCfg.EXCEL_NAME, () -> specialResultLibConfig(this.gameType, false))
                 .addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig(this.gameType))
-                .addChangeSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, () -> specialGirdConfig(this.gameType))
                 .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig(this.gameType))
-                .addChangeSampleFileObserveWithCallBack(ClientRollerCfg.EXCEL_NAME, () -> clientRollerConfig(this.gameType))
-                .addChangeSampleFileObserveWithCallBack(ClientFreeRollerCfg.EXCEL_NAME, () -> clientFreeRollerConfig(this.gameType))
         ;
     }
 
@@ -880,25 +824,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         return e == null ? 0 : e.getKey();
     }
 
-    public List<ClientRollerCfg> getClientRollerCfgList() {
-        return clientRollerCfgList;
-    }
-
-    public List<ClientFreeRollerCfg> getClientFreeRollerCfgList() {
-        return clientFreeRollerCfgList;
-    }
-
     /**
      * 将单线押分转化为总押分
      */
     public void calAllLineStake() {
         Map<Integer, List<Long>> tmpAllStakeMap = new HashMap<>();
 
-        int lineCount = getGenerateManager().getBaseInitCfg().getMaxLine();
+        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+        int lineCount = baseInitCfg.getMaxLine();
         for (Map.Entry<Integer, BaseRoomCfg> en : this.roomCfgMap.entrySet()) {
             BaseRoomCfg cfg = en.getValue();
             for (long stake : cfg.getLineBetScore()) {
-                long allStake = lineCount * stake * cfg.getBetMultiple().get(0) * cfg.getLineMultiple().get(0);
+                long allStake = lineCount * stake * baseInitCfg.getBetMultiple().get(0) * baseInitCfg.getLineMultiple().get(0);
                 tmpAllStakeMap.computeIfAbsent(cfg.getId(), k -> new ArrayList<>()).add(allStake);
             }
         }
@@ -918,10 +855,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      * @return
      */
     public long oneLineToAllStake(int stake, int roonCfgId) {
-        int lineCount = getGenerateManager().getBaseInitCfg().getMaxLine();
+        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+        int lineCount = baseInitCfg.getMaxLine();
 
         BaseRoomCfg cfg = GameDataManager.getBaseRoomCfg(roonCfgId);
-        return lineCount * stake * cfg.getBetMultiple().get(0) * cfg.getLineMultiple().get(0);
+        return lineCount * stake * baseInitCfg.getBetMultiple().get(0) * baseInitCfg.getLineMultiple().get(0);
     }
 
     /**

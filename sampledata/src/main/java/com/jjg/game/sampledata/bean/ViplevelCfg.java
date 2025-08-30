@@ -21,7 +21,7 @@ public class ViplevelCfg extends BaseCfgBean {
   /** 年奖励 */
   protected Map<Integer,Long> annualRewards;
   /** 新解锁装扮 */
-  protected Map<Integer,Integer> avatarType;
+  protected Map<Integer,Long> avatarType;
   /** 生日奖励 */
   protected Map<Integer,Long> birthdayReward;
   /** 等级说明多语言ID */
@@ -49,7 +49,7 @@ public class ViplevelCfg extends BaseCfgBean {
   }
 
   /** 返回新解锁装扮 */
-  public Map<Integer,Integer> getAvatarType() {
+  public Map<Integer,Long> getAvatarType() {
     return avatarType;
   }
 

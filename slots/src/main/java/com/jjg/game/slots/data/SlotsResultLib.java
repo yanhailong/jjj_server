@@ -2,10 +2,7 @@ package com.jjg.game.slots.data;
 
 import org.springframework.data.annotation.Id;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * slots 结果库
@@ -29,6 +26,9 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
     protected long times;
     //中奖线信息
     protected List<T> awardLineInfoList;
+    //修改格子后存储的信息
+    protected List<SpecialGirdInfo> specialGirdInfoList;
+
 
     public String getId() {
         return id;
@@ -103,6 +103,21 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
             this.libTypeSet = new HashSet<>();
         }
         this.libTypeSet.add(libType);
+    }
+
+    public List<SpecialGirdInfo> getSpecialGirdInfoList() {
+        return specialGirdInfoList;
+    }
+
+    public void setSpecialGirdInfoList(List<SpecialGirdInfo> specialGirdInfoList) {
+        this.specialGirdInfoList = specialGirdInfoList;
+    }
+
+    public void addSpecialGirdInfo(SpecialGirdInfo specialGirdInfo) {
+        if(this.specialGirdInfoList == null) {
+            this.specialGirdInfoList = new ArrayList<>();
+        }
+        this.specialGirdInfoList.add(specialGirdInfo);
     }
 
     @Override

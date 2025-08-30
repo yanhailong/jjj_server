@@ -11,20 +11,11 @@ import java.util.Map;
  * @date 2025/7/8 9:41
  */
 public class DollarExpressAwardLineInfo extends AwardLineInfo {
-    //图标id
-    protected int iconId;
+
     //这条线上相同的个数
     protected int sameCount;
     //其他图标加成倍数
     protected Map<Integer, Integer> otherIconAwardInfoMap;
-
-    public int getIconId() {
-        return iconId;
-    }
-
-    public void setIconId(int iconId) {
-        this.iconId = iconId;
-    }
 
     public int getSameCount() {
         return sameCount;

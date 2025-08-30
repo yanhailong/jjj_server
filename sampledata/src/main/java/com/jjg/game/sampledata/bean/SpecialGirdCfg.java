@@ -18,56 +18,31 @@ public class SpecialGirdCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "SpecialGird";
 
-  /** 影响格子 */
+  /** 格子ID_格子权重_格子次数 */
   protected List<List<Integer>> affectGird;
-  /** 是否在别的格子修改后才生效 */
-  protected boolean afterUpdateValid;
-  /** 巨型块大小 */
-  protected List<List<String>> bigBlockSize;
-  /** 元素 */
+  /** 需要出现的元素图案：权重 */
   protected Map<Integer,Integer> element;
-  /** 是否额外投注 */
-  protected boolean extraBet;
   /** 游戏ID */
   protected int gameType;
-  /** 格式修改算法 */
-  protected int girdUpdateType;
-  /** 模式ID */
-  protected int modelId;
-  /** 不替换元素列表 */
+  /** 不可替换元素列表 */
   protected List<Integer> notReplaceEle;
+  /** 不可替换X状态下得元素 */
+  protected int notReplaceState;
   /** 随机次数 */
   protected Map<Integer,Integer> randCount;
-  /** 旋转状态 */
-  protected int spinStatus;
-  /** 旋转标识 */
-  protected int spinType;
-  /** 是否同步格子 */
-  protected boolean syncGird;
+  /** 每次修改成功后赋予值 */
+  protected Map<Integer,Integer> value;
+  /** 每次修改成功后赋予值类型 */
+  protected List<Integer> valueType;
 
-  /** 返回影响格子 */
+  /** 返回格子ID_格子权重_格子次数 */
   public List<List<Integer>> getAffectGird() {
     return affectGird;
   }
 
-  /** 返回是否在别的格子修改后才生效 */
-  public boolean getAfterUpdateValid() {
-    return afterUpdateValid;
-  }
-
-  /** 返回巨型块大小 */
-  public List<List<String>> getBigBlockSize() {
-    return bigBlockSize;
-  }
-
-  /** 返回元素 */
+  /** 返回需要出现的元素图案：权重 */
   public Map<Integer,Integer> getElement() {
     return element;
-  }
-
-  /** 返回是否额外投注 */
-  public boolean getExtraBet() {
-    return extraBet;
   }
 
   /** 返回游戏ID */
@@ -75,19 +50,14 @@ public class SpecialGirdCfg extends BaseCfgBean {
     return gameType;
   }
 
-  /** 返回格式修改算法 */
-  public int getGirdUpdateType() {
-    return girdUpdateType;
-  }
-
-  /** 返回模式ID */
-  public int getModelId() {
-    return modelId;
-  }
-
-  /** 返回不替换元素列表 */
+  /** 返回不可替换元素列表 */
   public List<Integer> getNotReplaceEle() {
     return notReplaceEle;
+  }
+
+  /** 返回不可替换X状态下得元素 */
+  public int getNotReplaceState() {
+    return notReplaceState;
   }
 
   /** 返回随机次数 */
@@ -95,19 +65,14 @@ public class SpecialGirdCfg extends BaseCfgBean {
     return randCount;
   }
 
-  /** 返回旋转状态 */
-  public int getSpinStatus() {
-    return spinStatus;
+  /** 返回每次修改成功后赋予值 */
+  public Map<Integer,Integer> getValue() {
+    return value;
   }
 
-  /** 返回旋转标识 */
-  public int getSpinType() {
-    return spinType;
-  }
-
-  /** 返回是否同步格子 */
-  public boolean getSyncGird() {
-    return syncGird;
+  /** 返回每次修改成功后赋予值类型 */
+  public List<Integer> getValueType() {
+    return valueType;
   }
 
   @Override

@@ -19,17 +19,35 @@ public class BaseRollerCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "BaseRoller";
 
   /** 滚轴数量和范围 */
-  protected Map<Integer,List<Integer>> axleCountScope;
+  protected List<Integer> axleCountScope;
+  /** 客户端展示用的普通模式滚轴 */
+  protected List<Integer> clientRollerAxleCountScope;
+  /** 元素列表 */
+  protected List<Integer> clientRollerElements;
   /** 列数 */
   protected int column;
-  /** 元素列表 */
+  /** 滚轴图案 */
   protected List<Integer> elements;
   /** 游戏ID */
   protected int gameType;
+  /** 初始化格子 */
+  protected List<Integer> initGrid;
+  /** 滚轴组ID */
+  protected int rollerGroup;
 
   /** 返回滚轴数量和范围 */
-  public Map<Integer,List<Integer>> getAxleCountScope() {
+  public List<Integer> getAxleCountScope() {
     return axleCountScope;
+  }
+
+  /** 返回客户端展示用的普通模式滚轴 */
+  public List<Integer> getClientRollerAxleCountScope() {
+    return clientRollerAxleCountScope;
+  }
+
+  /** 返回元素列表 */
+  public List<Integer> getClientRollerElements() {
+    return clientRollerElements;
   }
 
   /** 返回列数 */
@@ -37,7 +55,7 @@ public class BaseRollerCfg extends BaseCfgBean {
     return column;
   }
 
-  /** 返回元素列表 */
+  /** 返回滚轴图案 */
   public List<Integer> getElements() {
     return elements;
   }
@@ -45,6 +63,16 @@ public class BaseRollerCfg extends BaseCfgBean {
   /** 返回游戏ID */
   public int getGameType() {
     return gameType;
+  }
+
+  /** 返回初始化格子 */
+  public List<Integer> getInitGrid() {
+    return initGrid;
+  }
+
+  /** 返回滚轴组ID */
+  public int getRollerGroup() {
+    return rollerGroup;
   }
 
   @Override

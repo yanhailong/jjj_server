@@ -34,6 +34,21 @@ public interface DollarExpressConstant {
         int ALL_BOARD_FREE = 5;
     }
 
+    interface SpecialMode{
+        //普通旋转
+        int TYPE_NORMAL = 1;
+        //拉火车触发局
+        int TYPE_TRIGGER_NORMAL_TRAIN = 2;
+        //黄金火车触发局
+        int TYPE_TRIGGER_GOLD_TRAIN = 3;
+        //二选一触发局
+        int TYPE_TRIGGER_ALL_BOARD = 4;
+        //保险箱触发局
+        int TYPE_TRIGGER_SAFE_BOX = 5;
+        //免费游戏
+        int TYPE_TRIGGER_FREE = 6;
+    }
+
     interface EventName{
         //自动二选一
         String AUTO_CHOOSE_FREEMODEL_TYPE = "autoChooseFreeModelTypeEvent";

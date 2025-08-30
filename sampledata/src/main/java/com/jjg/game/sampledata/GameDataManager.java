@@ -125,9 +125,7 @@ public class GameDataManager {
     containerMap.put(BaseElementRewardCfg.class, new BaseElementRewardCfgContainer());
     containerMap.put(BaseInitCfg.class, new BaseInitCfgContainer());
     containerMap.put(BaseLineCfg.class, new BaseLineCfgContainer());
-    containerMap.put(BaseLineFreeCfg.class, new BaseLineFreeCfgContainer());
     containerMap.put(BaseRollerCfg.class, new BaseRollerCfgContainer());
-    containerMap.put(BaseRollerModeCfg.class, new BaseRollerModeCfgContainer());
     containerMap.put(BaseRoomCfg.class, new BaseRoomCfgContainer());
     containerMap.put(BetAreaCfg.class, new BetAreaCfgContainer());
     containerMap.put(BetRobotCfg.class, new BetRobotCfgContainer());
@@ -136,8 +134,6 @@ public class GameDataManager {
     containerMap.put(BuildingFunctionCfg.class, new BuildingFunctionCfgContainer());
     containerMap.put(BuildingGainCfg.class, new BuildingGainCfgContainer());
     containerMap.put(ChessRobotCfg.class, new ChessRobotCfgContainer());
-    containerMap.put(ClientFreeRollerCfg.class, new ClientFreeRollerCfgContainer());
-    containerMap.put(ClientRollerCfg.class, new ClientRollerCfgContainer());
     containerMap.put(ConditionCfg.class, new ConditionCfgContainer());
     containerMap.put(DailyRewardsCfg.class, new DailyRewardsCfgContainer());
     containerMap.put(DealerFunctionCfg.class, new DealerFunctionCfgContainer());
@@ -159,12 +155,11 @@ public class GameDataManager {
     containerMap.put(Room_ChessCfg.class, new Room_ChessCfgContainer());
     containerMap.put(ShopConfigCfg.class, new ShopConfigCfgContainer());
     containerMap.put(SouthernMoneyCfg.class, new SouthernMoneyCfgContainer());
-    containerMap.put(SpecialAuxiliaryAwardCfg.class, new SpecialAuxiliaryAwardCfgContainer());
     containerMap.put(SpecialAuxiliaryCfg.class, new SpecialAuxiliaryCfgContainer());
     containerMap.put(SpecialGirdCfg.class, new SpecialGirdCfgContainer());
+    containerMap.put(SpecialModeCfg.class, new SpecialModeCfgContainer());
     containerMap.put(SpecialPlayCfg.class, new SpecialPlayCfgContainer());
     containerMap.put(SpecialResultLibCfg.class, new SpecialResultLibCfgContainer());
-    containerMap.put(StatusCfg.class, new StatusCfgContainer());
     containerMap.put(TexasCfg.class, new TexasCfgContainer());
     containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
@@ -666,18 +661,6 @@ public class GameDataManager {
     return getInstance().getCfgContainer(BaseLineCfg.class).getCfgBeanList();
   }
 
-  public static BaseLineFreeCfg getBaseLineFreeCfg(int key) {
-    return getInstance().getCfgContainer(BaseLineFreeCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, BaseLineFreeCfg> getBaseLineFreeCfgMap() {
-    return getInstance().getCfgContainer(BaseLineFreeCfg.class).getCfgBeanMap();
-  }
-
-  public static List<BaseLineFreeCfg> getBaseLineFreeCfgList() {
-    return getInstance().getCfgContainer(BaseLineFreeCfg.class).getCfgBeanList();
-  }
-
   public static BaseRollerCfg getBaseRollerCfg(int key) {
     return getInstance().getCfgContainer(BaseRollerCfg.class).getCfgBeanMap().get(key);
   }
@@ -688,18 +671,6 @@ public class GameDataManager {
 
   public static List<BaseRollerCfg> getBaseRollerCfgList() {
     return getInstance().getCfgContainer(BaseRollerCfg.class).getCfgBeanList();
-  }
-
-  public static BaseRollerModeCfg getBaseRollerModeCfg(int key) {
-    return getInstance().getCfgContainer(BaseRollerModeCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, BaseRollerModeCfg> getBaseRollerModeCfgMap() {
-    return getInstance().getCfgContainer(BaseRollerModeCfg.class).getCfgBeanMap();
-  }
-
-  public static List<BaseRollerModeCfg> getBaseRollerModeCfgList() {
-    return getInstance().getCfgContainer(BaseRollerModeCfg.class).getCfgBeanList();
   }
 
   public static BaseRoomCfg getBaseRoomCfg(int key) {
@@ -796,30 +767,6 @@ public class GameDataManager {
 
   public static List<ChessRobotCfg> getChessRobotCfgList() {
     return getInstance().getCfgContainer(ChessRobotCfg.class).getCfgBeanList();
-  }
-
-  public static ClientFreeRollerCfg getClientFreeRollerCfg(int key) {
-    return getInstance().getCfgContainer(ClientFreeRollerCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, ClientFreeRollerCfg> getClientFreeRollerCfgMap() {
-    return getInstance().getCfgContainer(ClientFreeRollerCfg.class).getCfgBeanMap();
-  }
-
-  public static List<ClientFreeRollerCfg> getClientFreeRollerCfgList() {
-    return getInstance().getCfgContainer(ClientFreeRollerCfg.class).getCfgBeanList();
-  }
-
-  public static ClientRollerCfg getClientRollerCfg(int key) {
-    return getInstance().getCfgContainer(ClientRollerCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, ClientRollerCfg> getClientRollerCfgMap() {
-    return getInstance().getCfgContainer(ClientRollerCfg.class).getCfgBeanMap();
-  }
-
-  public static List<ClientRollerCfg> getClientRollerCfgList() {
-    return getInstance().getCfgContainer(ClientRollerCfg.class).getCfgBeanList();
   }
 
   public static ConditionCfg getConditionCfg(int key) {
@@ -1074,18 +1021,6 @@ public class GameDataManager {
     return getInstance().getCfgContainer(SouthernMoneyCfg.class).getCfgBeanList();
   }
 
-  public static SpecialAuxiliaryAwardCfg getSpecialAuxiliaryAwardCfg(int key) {
-    return getInstance().getCfgContainer(SpecialAuxiliaryAwardCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, SpecialAuxiliaryAwardCfg> getSpecialAuxiliaryAwardCfgMap() {
-    return getInstance().getCfgContainer(SpecialAuxiliaryAwardCfg.class).getCfgBeanMap();
-  }
-
-  public static List<SpecialAuxiliaryAwardCfg> getSpecialAuxiliaryAwardCfgList() {
-    return getInstance().getCfgContainer(SpecialAuxiliaryAwardCfg.class).getCfgBeanList();
-  }
-
   public static SpecialAuxiliaryCfg getSpecialAuxiliaryCfg(int key) {
     return getInstance().getCfgContainer(SpecialAuxiliaryCfg.class).getCfgBeanMap().get(key);
   }
@@ -1110,6 +1045,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(SpecialGirdCfg.class).getCfgBeanList();
   }
 
+  public static SpecialModeCfg getSpecialModeCfg(int key) {
+    return getInstance().getCfgContainer(SpecialModeCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, SpecialModeCfg> getSpecialModeCfgMap() {
+    return getInstance().getCfgContainer(SpecialModeCfg.class).getCfgBeanMap();
+  }
+
+  public static List<SpecialModeCfg> getSpecialModeCfgList() {
+    return getInstance().getCfgContainer(SpecialModeCfg.class).getCfgBeanList();
+  }
+
   public static SpecialPlayCfg getSpecialPlayCfg(int key) {
     return getInstance().getCfgContainer(SpecialPlayCfg.class).getCfgBeanMap().get(key);
   }
@@ -1132,18 +1079,6 @@ public class GameDataManager {
 
   public static List<SpecialResultLibCfg> getSpecialResultLibCfgList() {
     return getInstance().getCfgContainer(SpecialResultLibCfg.class).getCfgBeanList();
-  }
-
-  public static StatusCfg getStatusCfg(int key) {
-    return getInstance().getCfgContainer(StatusCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, StatusCfg> getStatusCfgMap() {
-    return getInstance().getCfgContainer(StatusCfg.class).getCfgBeanMap();
-  }
-
-  public static List<StatusCfg> getStatusCfgList() {
-    return getInstance().getCfgContainer(StatusCfg.class).getCfgBeanList();
   }
 
   public static TexasCfg getTexasCfg(int key) {
@@ -1222,6 +1157,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("E:\\java\\gamedoc\\游戏配置表");
+    loadAllData("D:\\workspace\\excelConfigs");
   }
 }

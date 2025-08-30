@@ -18,43 +18,20 @@ public class BaseLineCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "BaseLine";
 
-  /** 双向 */
-  protected Map<Integer,Boolean> Multiple;
-  /** 指定元素列表 */
-  protected Map<Integer,List<Integer>> appointElementList;
-  /** 额外投注双向 */
-  protected Map<Integer,List<Integer>> extraBetMultiple;
-  /** 玩法 */
-  protected List<List<Integer>> gamePlay;
+  /** 方向算法 */
+  protected List<Integer> direction;
   /** 玩法算法 */
   protected int gamePlayCalc;
   /** 游戏ID */
   protected int gameType;
-  /** 最少元素种类 */
-  protected List<List<Integer>> leastElementKind;
   /** 线路ID */
   protected int lineId;
   /** 位置坐标 */
-  protected Map<Integer,List<Integer>> posLocation;
+  protected List<Integer> posLocation;
 
-  /** 返回双向 */
-  public Map<Integer,Boolean> getMultiple() {
-    return Multiple;
-  }
-
-  /** 返回指定元素列表 */
-  public Map<Integer,List<Integer>> getAppointElementList() {
-    return appointElementList;
-  }
-
-  /** 返回额外投注双向 */
-  public Map<Integer,List<Integer>> getExtraBetMultiple() {
-    return extraBetMultiple;
-  }
-
-  /** 返回玩法 */
-  public List<List<Integer>> getGamePlay() {
-    return gamePlay;
+  /** 返回方向算法 */
+  public List<Integer> getDirection() {
+    return direction;
   }
 
   /** 返回玩法算法 */
@@ -67,18 +44,13 @@ public class BaseLineCfg extends BaseCfgBean {
     return gameType;
   }
 
-  /** 返回最少元素种类 */
-  public List<List<Integer>> getLeastElementKind() {
-    return leastElementKind;
-  }
-
   /** 返回线路ID */
   public int getLineId() {
     return lineId;
   }
 
   /** 返回位置坐标 */
-  public Map<Integer,List<Integer>> getPosLocation() {
+  public List<Integer> getPosLocation() {
     return posLocation;
   }
 

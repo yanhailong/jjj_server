@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.ClientRollerCfg;
+import com.jjg.game.sampledata.bean.SpecialModeCfg;
 
 /**
- * ClientRoller.xlsx配置管理容器
+ * SpecialMode.xlsx配置管理容器
  *
- * @excelName ClientRoller.xlsx
- * @sheetName ClientRoller
+ * @excelName SpecialMode.xlsx
+ * @sheetName SpecialMode
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class ClientRollerCfgContainer extends BaseCfgContainer<ClientRollerCfg> {
+public class SpecialModeCfgContainer extends BaseCfgContainer<SpecialModeCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -27,23 +27,23 @@ public class ClientRollerCfgContainer extends BaseCfgContainer<ClientRollerCfg> 
   }
 
   @Override
-  public ClientRollerCfgContainer getNewContainer(){
-    return new ClientRollerCfgContainer();
+  public SpecialModeCfgContainer getNewContainer(){
+    return new SpecialModeCfgContainer();
   }
 
-  public ClientRollerCfgContainer() {
+  public SpecialModeCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("ClientRoller.xlsx");
+    excelNameList.add("SpecialMode.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected ClientRollerCfg createNewBean() {
-    return new ClientRollerCfg();
+  protected SpecialModeCfg createNewBean() {
+    return new SpecialModeCfg();
   }
 }

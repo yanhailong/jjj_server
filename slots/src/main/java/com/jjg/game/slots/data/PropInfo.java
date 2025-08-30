@@ -53,6 +53,9 @@ public class PropInfo implements Cloneable{
      * @return
      */
     public Integer getRandKey() {
+        if(this.sum < 1){
+            return null;
+        }
         int rand = RandomUtils.randomInt(this.sum);
 //        System.out.println("rand : " + rand + ", sum = " + this.sum + ", propMap = " + JSON.toJSONString(this.propMap));
         for(Map.Entry<Integer,int[]> en: this.propMap.entrySet()){
