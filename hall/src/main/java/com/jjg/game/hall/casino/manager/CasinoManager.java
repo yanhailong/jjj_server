@@ -1,6 +1,8 @@
 package com.jjg.game.hall.casino.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.PFSession;
@@ -48,7 +50,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     private final PlayerPackService playerPackService;
 
     private final TimerCenter timerCenter;
-
+    private final NodeManager nodeManager;
     private final Map<Long, Map<Integer, PlayerBuilding>> dataMap = new ConcurrentHashMap<>();
     private final Map<Long, PlayerController> playerControllerMap = new ConcurrentHashMap<>();
     private TimerEvent<String> casinoSave;
@@ -56,10 +58,12 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
 
     public CasinoManager(@Autowired PlayerBuildingService playerBuildingService,
                          @Autowired PlayerPackService playerPackService,
-                         @Autowired TimerCenter timerCenter) {
+                         @Autowired TimerCenter timerCenter,
+                         @Autowired NodeManager nodeManager) {
         this.playerBuildingService = playerBuildingService;
         this.playerPackService = playerPackService;
         this.timerCenter = timerCenter;
+        this.nodeManager = nodeManager;
     }
 
     @PostConstruct
@@ -92,7 +96,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
      * 请求购买一键领取
      *
      * @param playerController 玩家
-     * @param req    请求
+     * @param req              请求
      * @return 响应
      */
     public ResCasinoBuyClaimAllRewards reqCasinoBuyClaimAllRewards(PlayerController playerController, ReqCasinoBuyClaimAllRewards req) {
@@ -158,6 +162,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             }
             playerBuildingMap.put(req.casinoId, playerBuilding);
             playerControllerMap.put(playerId, playerController);
+            playerBuildingService.setLastNode(playerId, nodeManager.getNodePath());
         }
         CasinoInfo casinoInfo = playerBuilding.getCasinoInfo();
         long timeMillis = System.currentTimeMillis();
@@ -238,7 +243,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
      * 请求一键领取
      *
      * @param playerController 玩家控制器
-     * @param req      请求
+     * @param req              请求
      * @return 一键领取结果
      */
     public ResCasinoClaimRewards reqCasinoClaimAllRewards(PlayerController playerController, ReqCasinoClaimAllRewards req) {
@@ -301,7 +306,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
      * 领取机台收益
      *
      * @param playerController 玩家控制器
-     * @param req      请求
+     * @param req              请求
      * @return 领取机台收益结果
      */
     public ResCasinoClaimRewards reqCasinoClaimRewards(PlayerController playerController, ReqCasinoClaimRewards req) {
@@ -353,7 +358,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
      * 请求雇员职员
      *
      * @param playerController 玩家控制器
-     * @param req      请求
+     * @param req              请求
      * @return 响应
      */
     public ResCasinoEmployStaff reqCasinoEmployStaff(PlayerController playerController, ReqCasinoEmployStaff req) {
@@ -424,7 +429,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
      * 请求楼层操作
      *
      * @param playerController 玩家控制器
-     * @param req    请求
+     * @param req              请求
      * @return 响应
      */
     public ResCasinoFloorOperation reqCasinoFloorOperation(PlayerController playerController, ReqCasinoFloorOperation req) {
@@ -510,9 +515,8 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     }
 
     /**
-     *
      * @param playerController 玩家控制器
-     * @param req 请求
+     * @param req              请求
      */
     public ResCasinoUpgradeMachine reqCasinoUpgradeMachine(PlayerController playerController, ReqCasinoUpgradeMachine req) {
         ResCasinoUpgradeMachine res = new ResCasinoUpgradeMachine();
@@ -792,6 +796,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
         }
         dataMap.remove(playerId);
         playerControllerMap.remove(playerId);
+        playerBuildingService.delLastNode(playerId);
     }
 
     public ResCasinoExit reqCasinoExit(Player player, ReqCasinoExit req) {

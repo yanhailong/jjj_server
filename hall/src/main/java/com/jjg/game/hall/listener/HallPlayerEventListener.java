@@ -20,6 +20,7 @@ import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.MarqueeInfo;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.hall.casino.service.PlayerBuildingService;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.logger.HallLogger;
@@ -69,6 +70,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private LikeGameDao likeGameDao;
     @Autowired
     private HallRoomDao hallRoomDao;
+    @Autowired
+    private PlayerBuildingService playerBuildingService;
 
     @Override
     public void login(PFSession session, byte[] data) {
@@ -211,6 +214,18 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 hallPlayerService.savePlayerNick(req.playerId, player.getNickName());
             }
             log.info("玩家登录成功 playerId = {},res = {}", player.getId(), JSON.toJSONString(res));
+
+            //我的赌场未保存完成进入新节点 切换到上个节点
+            String lastNode = playerBuildingService.getLastNode(player.getId());
+            if (StringUtils.isNotEmpty(lastNode)) {
+                MarsNode node = clusterSystem.getNode(lastNode);
+                if (Objects.nonNull(node)) {
+                    clusterSystem.switchNode(playerController.getSession(), node);
+                    log.info("我的赌场 切换到上次未保存完的节点");
+                } else {
+                    log.error("我的赌场信息存在进入未保存完信息的节点");
+                }
+            }
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             session.send(res);
