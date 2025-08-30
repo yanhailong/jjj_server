@@ -19,17 +19,21 @@ import java.util.List;
  */
 @Service
 public class PlayerBuildingService {
-    private Logger log = LoggerFactory.getLogger(this.getClass());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     private final String tableName = "playerBuilding:";
+    private final String tableNodeName = "playerBuilding:node:";
 
     private final RedisTemplate<String, PlayerBuilding> redisTemplate;
+    private final RedisTemplate<String, String> redisTemplateString;
 
     private final PlayerBuildingDao playerBuildingDao;
 
     public PlayerBuildingService(@Autowired RedisTemplate<String, PlayerBuilding> redisTemplate,
+                                 @Autowired RedisTemplate<String, String> redisTemplateString,
                                  @Autowired PlayerBuildingDao playerBuildingDao) {
         this.redisTemplate = redisTemplate;
+        this.redisTemplateString = redisTemplateString;
         this.playerBuildingDao = playerBuildingDao;
     }
 
@@ -48,6 +52,19 @@ public class PlayerBuildingService {
         }
         return playerBuildingDao.findByPlayerId(playerId);
     }
+
+    public String getLastNode(long playerId) {
+        return redisTemplateString.opsForValue().get(getNodeKey(playerId));
+    }
+
+    public void setLastNode(long playerId, String nodePath) {
+        redisTemplateString.opsForValue().set(getNodeKey(playerId), nodePath);
+    }
+
+    public void delLastNode(long playerId) {
+        redisTemplateString.delete(getNodeKey(playerId));
+    }
+
 
     /**
      * 查询 PlayerBuilding 对象
@@ -85,6 +102,10 @@ public class PlayerBuildingService {
 
     private String getKey(long playerId) {
         return tableName + playerId;
+    }
+
+    private String getNodeKey(long playerId) {
+        return tableNodeName + playerId;
     }
 
 
