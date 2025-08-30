@@ -26,7 +26,6 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
     }
 
 
-
     /**
      * 结算类型 0默认 1弃牌只剩1人 2全all
      */
@@ -50,6 +49,11 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
      * 本轮最大下注金额
      */
     private long maxBetValue;
+
+    /**
+     * 本轮下注
+     */
+    private Map<Long, Long> roundBet = new HashMap<>();
 
     /**
      * 本局游戏定时器的id
@@ -78,9 +82,18 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
     /**
      * 获取当前的历史记录轮信息
      */
-    public  TexasHistoryRoundInfo getHistoryRoundInfo() {
+    public TexasHistoryRoundInfo getHistoryRoundInfo() {
         return texasHistory.getTexasHistoryRoundInfos().get(getRound() - 1);
     }
+
+    public Map<Long, Long> getRoundBet() {
+        return roundBet;
+    }
+
+    public void setRoundBet(Map<Long, Long> roundBet) {
+        this.roundBet = roundBet;
+    }
+
     public List<TexasSaveHistory> getTexasHistoryList() {
         return texasHistoryList;
     }
@@ -156,10 +169,12 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
     public void setSettlement(int settlement) {
         this.settlement = settlement;
     }
+
     @Override
     public int getPoolId() {
         return TexasDataHelper.getPoolId(this);
     }
+
     @Override
     public void resetData(BasePokerGameController<? extends BasePokerGameDataVo> controller) {
         super.resetData(controller);
@@ -167,6 +182,7 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
         this.pool.clear();
         this.texasHistory = null;
         this.maxBetValue = 0;
+        this.roundBet.clear();
         this.settlement = 0;
     }
 }

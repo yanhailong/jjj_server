@@ -300,7 +300,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         PokerPlayerSettlementInfo pokerPlayerSettlementInfo = new PokerPlayerSettlementInfo();
         pokerPlayerSettlementInfo.playerId = playerId;
         //增加金币
-        long get = total - baseBetInfo.getOrDefault(playerId, 0L);
+        Long allBet = baseBetInfo.getOrDefault(playerId, 0L);
+        long get = total - allBet;
         //添加记录
         TexasSaveHistory texasHistory = gameDataVo.getTexasHistory();
         for (TexasHistoryPlayerInfo info : texasHistory.getTotalPlayerBetInfo()) {
@@ -311,9 +312,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             info.betValue = -info.betValue;
         }
         get = get * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000;
-        controller.changePlayerGold(gamePlayer, total);
+        controller.changePlayerGold(gamePlayer, allBet + get);
         pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().getOrDefault(playerId, 0L);
-        pokerPlayerSettlementInfo.getGold = get;
+        pokerPlayerSettlementInfo.getGold = allBet + get;
         pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;
         TexasSettlementPlayerInfo settlementPlayerInfo = new TexasSettlementPlayerInfo();
         settlementPlayerInfo.pokerPlayerSettlementInfo = pokerPlayerSettlementInfo;
@@ -355,6 +356,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                             PlayerController playerController = playerControllers.get(roomPlayer.getPlayerId());
                             if (Objects.nonNull(playerController)) {
                                 roomManager.exitRoom(playerController);
+                                log.info("德州掉线玩家直接踢掉 玩家id:{}", roomPlayer.getPlayerId());
                             }
                         }
                     }

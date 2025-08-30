@@ -89,6 +89,7 @@ public class TexasBuilder {
     }
 
     public static TexasHistoryPlayerInfo getTexasHistoryPlayerInfo(PlayerSeatInfo info, TexasGameDataVo texasGameDataVo, boolean init, long betValue) {
+        texasGameDataVo.getRoundBet().merge(info.getPlayerId(), betValue, Long::sum);
         TexasHistoryPlayerInfo texasHistoryPlayerInfo = new TexasHistoryPlayerInfo();
         texasHistoryPlayerInfo.betValue = betValue;
         texasHistoryPlayerInfo.playerId = info.getPlayerId();
@@ -134,7 +135,7 @@ public class TexasBuilder {
 
     public static TexasPlayerInfo getTexasPlayerInfo(PlayerSeatInfo playerSeatInfo, SeatInfo seatInfo, TexasGameDataVo gameDataVo) {
         TexasPlayerInfo texasPlayerInfo = new TexasPlayerInfo();
-        texasPlayerInfo.totalBet = gameDataVo.getBaseBetInfo().getOrDefault(seatInfo.getPlayerId(), 0L);
+        texasPlayerInfo.totalBet = gameDataVo.getRoundBet().getOrDefault(seatInfo.getPlayerId(), 0L);
         PokerPlayerInfo playerInfo = PokerBuilder.getPokerPlayerInfo(seatInfo, gameDataVo);
         if (Objects.nonNull(playerSeatInfo)) {
             texasPlayerInfo.handCards = TexasDataHelper.getClientId(gameDataVo, playerSeatInfo.getCurrentCards());

@@ -315,7 +315,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             }
             PlayerSeatInfo nextExePlayer = getNextExePlayer();
             //如果找不到下一轮说明全all 如果只剩一个没allin的也直接结算
-            if (Objects.isNull(nextExePlayer) || isAllAllIn(nextExePlayer.getPlayerId())) {
+            if (Objects.isNull(nextExePlayer) || !isAllAllIn(nextExePlayer.getPlayerId())) {
                 gameDataVo.setSettlement(ALL_SETTLEMENT);
                 //设置阶段结束事件
                 addPokerPhaseTimer(new TexasSettlementPhase(this));
@@ -329,6 +329,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             texasHistoryRoundInfo.roundInfo = new ArrayList<>();
             texasHistory.getTexasHistoryRoundInfos().add(texasHistoryRoundInfo);
             gameDataVo.setMaxBetValue(0);
+            gameDataVo.getRoundBet().clear();
             //设置本轮当前底池押注
             if (gameDataVo.getRound() > INIT_ROUND) {
                 TexasHistoryRoundInfo historyRoundInfo = gameDataVo.getHistoryRoundInfo();
@@ -468,6 +469,12 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         notifyPokerSampleCardOperation.playerId = playerId;
         PlayerSeatInfo nextExePlayer = getNextExePlayer();
         if (Objects.nonNull(nextExePlayer)) {
+            if (isAllAllIn(nextExePlayer.getPlayerId())) {
+                gameDataVo.setSettlement(ALL_SETTLEMENT);
+                //设置阶段结束事件
+                addPokerPhaseTimer(new TexasSettlementPhase(this));
+                return;
+            }
             addNextPlayerAndBroadcast(nextExePlayer, notifyPokerSampleCardOperation);
         } else {
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyPokerSampleCardOperation));
