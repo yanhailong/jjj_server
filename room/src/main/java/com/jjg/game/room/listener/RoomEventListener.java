@@ -152,17 +152,13 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             session.setReference(playerController);
 
             logger.enterGame(player, info.getGameType(), info.getRoomCfgId());
-            // 是否是断线重连进入的百家乐房间
-            boolean isReconnectEnterBaccaratRoom =
-                info.getGameType() == EGameType.BACCARAT.getGameTypeId() && info.isReconnect();
             // 玩家房间ID不为0 且 不能是百家乐重连进入的房间
-            if (player.getRoomId() > 0 && !isReconnectEnterBaccaratRoom) {
+            if (player.getRoomId() > 0) {
                 // 设置workId
                 session.setWorkId(player.getRoomId());
                 int code = roomManager.joinRoom(
                     playerController, info.getGameType(), info.getRoomCfgId(), player.getRoomId());
                 if (code == Code.SUCCESS) {
-                    playerSessionService.updateReconnectStatus(false, info);
                     return;
                 }
             }
@@ -173,7 +169,6 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 return;
             }
             playerRoomEventListener.enter(session, playerController, info);
-            playerSessionService.updateReconnectStatus(false, info);
         } catch (Exception e) {
             log.error("player: {} 进入session时发生异常: {}", playerId, e.getMessage(), e);
         }

@@ -86,16 +86,6 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
     public void reqBaccaratSummaryList(PlayerController playerController) {
         // 获取进入房间时的配置ID
         int roomCfgId = playerController.getPlayer().getRoomCfgId();
-        // 如果玩家是通过断线重连进入的房间
-        boolean isReconnectEnterRoom = baccaratTempRoom.isReconnectEnterRoom(roomCfgId, playerController.playerId());
-        if (isReconnectEnterRoom) {
-            RespBaccaratTableSummaryList res = new RespBaccaratTableSummaryList(Code.SUCCESS);
-            res.gameType = playerController.getPlayer().getGameType();
-            res.roomId = playerController.getPlayer().getRoomId();
-            res.isReconnect = true;
-            playerController.send(res);
-            return;
-        }
         CommonResult<List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> result =
             getBaccaratGameController(roomCfgId);
         if (result.code != Code.SUCCESS) {

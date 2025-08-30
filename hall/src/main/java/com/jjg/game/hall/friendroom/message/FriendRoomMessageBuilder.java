@@ -45,7 +45,7 @@ public class FriendRoomMessageBuilder {
         friendRoomBaseData.roomAliasName = friendRoom.getAliasName();
         friendRoomBaseData.roomStatus = friendRoom.getStatus();
         friendRoomBaseData.onlinePlayerNum = friendRoom.getRoomPlayers().size();
-        friendRoomBaseData.gameId = friendRoom.getGameType();
+        friendRoomBaseData.gameId = friendRoom.getRoomCfgId();
         friendRoomBaseData.overdueTime = getRoomResetTime(friendRoom);
         friendRoomBaseData.predictCostGoldNum = friendRoom.getPredictCostGoldNum();
         GlobalConfigCfg globalConfigCfg =
