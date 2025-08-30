@@ -1,7 +1,10 @@
 package com.jjg.game.poker.game.texas.gamephase;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.data.Card;
+import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
@@ -28,10 +31,10 @@ import com.jjg.game.poker.game.texas.util.PlayerHand;
 import com.jjg.game.poker.game.texas.util.PokerHandEvaluator;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.data.room.SimplePlayerInfo;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
+import com.jjg.game.room.manager.AbstractRoomManager;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
@@ -179,15 +182,16 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                     .map(card -> ((PokerCard) card).getClientId()).collect(Collectors.toList());
             //添加记录
             settlementAllCards.put(playerId, settlementPlayerInfo.cards);
-            long get = playerGet.getOrDefault(playerId, 0L) - baseBetInfo.getOrDefault(playerId, 0L);
-            if (get > 0) {
+            long totalGet = playerGet.getOrDefault(playerId, 0L);
+            if (totalGet > 0) {
                 //扣税
-                get = get * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000;
+                Long bet = baseBetInfo.getOrDefault(playerId, 0L);
+                totalGet = bet + (totalGet - bet) * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000;
                 //增加金币
-                controller.changePlayerGold(gamePlayer, get);
+                controller.changePlayerGold(gamePlayer, totalGet);
             }
             pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().getOrDefault(playerId, 0L);
-            pokerPlayerSettlementInfo.getGold = get;
+            pokerPlayerSettlementInfo.getGold = totalGet;
             pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;
             settlementPlayerInfo.cardType = handResult.getHandRank().rank;
             settlementPlayerInfo.handCards = TexasDataHelper.getClientId(gameDataVo, pair.getFirst().getCurrentCards());
@@ -339,7 +343,25 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
 
     @Override
     public void phaseFinishDoAction() {
-        if (gameController instanceof BasePokerGameController<TexasGameDataVo>) {
+        if (gameController instanceof BasePokerGameController<TexasGameDataVo> controller) {
+            try {
+                //踢未在线的玩家
+                Map<Long, RoomPlayer> roomPlayers = controller.getRoom().getRoomPlayers();
+                if (CollectionUtil.isNotEmpty(roomPlayers)) {
+                    AbstractRoomManager roomManager = controller.getRoomController().getRoomManager();
+                    Map<Long, PlayerController> playerControllers = controller.getRoomController().getPlayerControllers();
+                    for (RoomPlayer roomPlayer : roomPlayers.values()) {
+                        if (!roomPlayer.isOnline()) {
+                            PlayerController playerController = playerControllers.get(roomPlayer.getPlayerId());
+                            if (Objects.nonNull(playerController)) {
+                                roomManager.exitRoom(playerController);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.error("德州结算踢不在线人异常", e);
+            }
             //设置为等待阶段
             gameDataVo.getTexasHistoryList().add(gameDataVo.getTexasHistory());
             //金币不够底注的尝试重新拿金币

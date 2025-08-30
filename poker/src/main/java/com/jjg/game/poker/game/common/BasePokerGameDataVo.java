@@ -71,6 +71,18 @@ public abstract class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
      */
     private RoomTimerEvent<IProcessorHandler, Room> playerTimerEvent;
 
+    /**
+     * gm临时牌组
+     */
+    public List<Integer> tempCard;
+
+    public List<Integer> getTempCard() {
+        return tempCard;
+    }
+
+    public void setTempCard(List<Integer> tempCard) {
+        this.tempCard = tempCard;
+    }
 
     public RoomTimerEvent<IProcessorHandler, Room> getPlayerTimerEvent() {
         return playerTimerEvent;

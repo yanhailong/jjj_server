@@ -53,24 +53,10 @@ public class BlackJackGameDataVo extends BasePokerGameDataVo {
      * 结算类型(0普通结算 1特殊结算 2.正常延期结算)
      */
     private int settlementType;
-
     /**
      * 显示庄家的牌 (true 显示 false 不显示)
      */
     private boolean showDealer = true;
-
-    /**
-     * gm临时牌组
-     */
-    public List<Integer> tempCard;
-
-    public List<Integer> getTempCard() {
-        return tempCard;
-    }
-
-    public void setTempCard(List<Integer> tempCard) {
-        this.tempCard = tempCard;
-    }
 
     public boolean isShowDealer() {
         return showDealer;

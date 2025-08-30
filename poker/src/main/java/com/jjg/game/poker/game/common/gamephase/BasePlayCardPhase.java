@@ -9,10 +9,7 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author lm
@@ -51,6 +48,9 @@ public abstract class BasePlayCardPhase<T extends BasePokerGameDataVo> extends B
     }
 
     public List<Integer> getCards(Map<Integer, PokerCard> cardListMap) {
+        if (Objects.nonNull(gameDataVo.getTempCard())) {
+            return new ArrayList<>(gameDataVo.getTempCard());
+        }
         List<Integer> list = new ArrayList<>(cardListMap.keySet());
         Collections.shuffle(list);
         return list;
@@ -60,7 +60,6 @@ public abstract class BasePlayCardPhase<T extends BasePokerGameDataVo> extends B
      * 发牌
      */
     public int sendCards(Map<Integer, PokerCard> cardListMap, BasePokerGameDataVo gameDataVo) {
-
         gameDataVo.setCards(getCards(cardListMap));
         List<Integer> cards = gameDataVo.getCards();
         int sendNum = 0;

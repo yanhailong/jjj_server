@@ -721,7 +721,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         baseInfo.phase = getCurrentGamePhase();
         for (Map.Entry<Integer, SeatInfo> entry : gameDataVo.getSeatInfo().entrySet()) {
             SeatInfo seatInfo = entry.getValue();
-            if (playerNotInit(seatInfo.getPlayerId())) {
+            if (playerNotInit(seatInfo.getPlayerId()) || !seatInfo.isSeatDown()) {
                 continue;
             }
             baseInfo.playerInfos.add(BlackJackBuilder.getBlackJackPlayerInfo(playerSeatInfoMap.get(seatInfo.getPlayerId()), seatInfo, this));
