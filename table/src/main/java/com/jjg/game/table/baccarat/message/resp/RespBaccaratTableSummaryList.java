@@ -22,6 +22,15 @@ public class RespBaccaratTableSummaryList extends AbstractResponse {
     @ProtoDesc("房间摘要列表")
     public List<BaccaratTableSummary> tableSummaryList;
 
+    @ProtoDesc("是否是断线重连")
+    public boolean isReconnect;
+
+    @ProtoDesc("房间ID，断线重连使用")
+    public long roomId;
+
+    @ProtoDesc("游戏类型，断线重连使用")
+    public long gameType;
+
     public RespBaccaratTableSummaryList(int code) {
         super(code);
     }

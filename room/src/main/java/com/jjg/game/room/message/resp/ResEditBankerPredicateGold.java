@@ -19,7 +19,7 @@ import com.jjg.game.room.message.RoomMessageConstant;
 @ProtoDesc("返回修改庄家预付金币")
 public class ResEditBankerPredicateGold extends AbstractResponse {
 
-    @ProtoDesc("最新的预付金币币")
+    @ProtoDesc("最新的预付金币")
     public long newlyPredicateGold;
 
     @ProtoDesc("庄家剩余金币")
