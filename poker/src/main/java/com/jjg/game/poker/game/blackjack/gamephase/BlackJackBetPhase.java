@@ -2,6 +2,7 @@ package com.jjg.game.poker.game.blackjack.gamephase;
 
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.pb.NotifyTableExitRoom;
 import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
@@ -90,10 +91,16 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
                         notifyPokerPlayerChange.pokerPlayerInfo = PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(seatInfo.getPlayerId()), seatInfo, gameDataVo);
                         broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyPokerPlayerChange).exceptPlayer(seatInfo.getPlayerId()));
                     }
-                    log.info("玩家：{}  未押注直接踢掉", info.getPlayerId());
-                    NotifyTableExitRoom timeNoOperate = new NotifyTableExitRoom();
-                    timeNoOperate.langId = 16008;
-                    broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), timeNoOperate));
+                    RoomPlayer roomPlayer = gameController.getRoom().getRoomPlayers().get(info.getPlayerId());
+                    if (Objects.nonNull(roomPlayer) && roomPlayer.isOnline()) {
+                        log.info("玩家：{}  未押注直接踢掉", info.getPlayerId());
+                        NotifyTableExitRoom timeNoOperate = new NotifyTableExitRoom();
+                        timeNoOperate.langId = 16008;
+                        broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), timeNoOperate));
+                    } else {
+                        log.info("玩家：{}  未押注离线直接踢掉退出房间", info.getPlayerId());
+                        gameController.getRoomController().getRoomManager().exitRoom(playerController);
+                    }
                 }
                 playerSeatInfo.remove(info);
             }
