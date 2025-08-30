@@ -162,6 +162,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 int code = roomManager.joinRoom(
                     playerController, info.getGameType(), info.getRoomCfgId(), player.getRoomId());
                 if (code == Code.SUCCESS) {
+                    playerSessionService.updateReconnectStatus(false, info);
                     return;
                 }
             }

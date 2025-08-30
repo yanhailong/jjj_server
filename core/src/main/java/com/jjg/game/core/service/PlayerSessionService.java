@@ -310,8 +310,10 @@ public class PlayerSessionService implements TimerListener<String> {
      * 更新断线重连状态
      */
     public void updateReconnectStatus(boolean reconnectStatus, PlayerSessionInfo playerSessionInfo) {
-        playerSessionInfo.setReconnect(reconnectStatus);
-        save(playerSessionInfo);
+        if (reconnectStatus != playerSessionInfo.isReconnect()) {
+            playerSessionInfo.setReconnect(reconnectStatus);
+            save(playerSessionInfo);
+        }
     }
 
     public PlayerSessionInfo online(PFSession pfSession, Player player) {
