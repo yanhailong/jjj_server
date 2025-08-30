@@ -38,7 +38,7 @@ public interface TexasConstant {
         int NOTIFY_PUBLIC_CARD_CHANGE = BASE_MSG_PREFIX | 0x4;
 
         //请求下注
-        int REQ_BET = BASE_MSG_PREFIX | 0x5;
+        int NOTIFY_TEXAS_TEMP_GOLD_REFLUSH = BASE_MSG_PREFIX | 0x5;
         //通知下注信息
         int NOTIFY_BET = BASE_MSG_PREFIX | 0x6;
         //请求亮牌
