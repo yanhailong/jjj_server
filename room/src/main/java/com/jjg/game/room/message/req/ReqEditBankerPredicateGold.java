@@ -17,6 +17,6 @@ import com.jjg.game.room.message.RoomMessageConstant;
 @ProtoDesc("请求编辑庄家预付金币，只能当前庄家操作")
 public class ReqEditBankerPredicateGold {
 
-    @ProtoDesc("预付金币币，增加值")
+    @ProtoDesc("预付金币，增加值")
     public long predicateGold;
 }

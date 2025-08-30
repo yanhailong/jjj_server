@@ -17,7 +17,7 @@ import com.jjg.game.room.message.RoomMessageConstant;
 @ProtoDesc("请求申请上庄")
 public class ReqApplyBankerInFriendRoom {
 
-    @ProtoDesc("准备金数量")
+    @ProtoDesc("准备金币数量")
     public long predictCostGold;
 
     @ProtoDesc("操作")

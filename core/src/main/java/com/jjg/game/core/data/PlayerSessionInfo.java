@@ -19,6 +19,8 @@ public class PlayerSessionInfo {
     private String currentNode;
     //最近活跃时间（指最近切换节点）
     private long lastActiveTime;
+    //是否是断线重连
+    private boolean isReconnect;
 
     public long getPlayerId() {
         return playerId;
@@ -74,5 +76,13 @@ public class PlayerSessionInfo {
 
     public void setLastActiveTime(long lastActiveTime) {
         this.lastActiveTime = lastActiveTime;
+    }
+
+    public boolean isReconnect() {
+        return isReconnect;
+    }
+
+    public void setReconnect(boolean reconnect) {
+        isReconnect = reconnect;
     }
 }

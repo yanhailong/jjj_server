@@ -120,12 +120,12 @@ public class HallRoomService implements IConsoleReceiver {
      */
     private void handleBaccaratJoinGame(PlayerController playerController, int roomCfgId) {
         // 获取所有的游戏
-        MarsNode marsNode = nodeManager.getGameNodeByWeight(EGameType.BACCARAT.getGameTypeId(),
-            playerController.playerId(),
-            playerController.getPlayer().getIp());
+        MarsNode marsNode =
+            nodeManager.getGameNodeByWeight(
+                EGameType.BACCARAT.getGameTypeId(), playerController.playerId(), playerController.getPlayer().getIp());
         //更新session中的gametype
-        playerSessionService.
-            changeGameType(playerController.playerId(), EGameType.BACCARAT.getGameTypeId(), roomCfgId);
+        playerSessionService.changeGameType(
+            playerController.playerId(), EGameType.BACCARAT.getGameTypeId(), roomCfgId);
         //切换节点
         clusterSystem.switchNode(playerController.getSession(), marsNode);
     }

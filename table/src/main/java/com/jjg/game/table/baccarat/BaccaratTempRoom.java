@@ -7,6 +7,7 @@ import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.room.listener.IPlayerRoomEventListener;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -18,7 +19,23 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class BaccaratTempRoom implements IPlayerRoomEventListener {
     // 观察百家乐路单的玩家集合
-    private final Map<Integer, Map<Long, PlayerController>> baccaratObserverPlayers = new ConcurrentHashMap<>();
+    private final Map<Integer, Map<Long, BaccaratTempRoomPlayerInfo>> baccaratObserverPlayers =
+        new ConcurrentHashMap<>();
+
+    private static class BaccaratTempRoomPlayerInfo {
+        // playerController
+        public PlayerController playerController;
+        // 是否是通过断线重连进入的房间
+        public boolean enterRoomByReconnect = false;
+
+        public BaccaratTempRoomPlayerInfo() {
+        }
+
+        public BaccaratTempRoomPlayerInfo(boolean enterRoomByReconnect, PlayerController playerController) {
+            this.enterRoomByReconnect = enterRoomByReconnect;
+            this.playerController = playerController;
+        }
+    }
 
     @Override
     public int[] getGameTypes() {
@@ -27,8 +44,10 @@ public class BaccaratTempRoom implements IPlayerRoomEventListener {
 
     @Override
     public void enter(PFSession session, PlayerController playerController, PlayerSessionInfo playerSessionInfo) {
-        baccaratObserverPlayers.computeIfAbsent(playerSessionInfo.getRoomCfgId(), k -> new ConcurrentHashMap<>()).
-            put(playerController.playerId(), playerController);
+        baccaratObserverPlayers
+            .computeIfAbsent(playerSessionInfo.getRoomCfgId(), k -> new ConcurrentHashMap<>())
+            .put(playerController.playerId(),
+                new BaccaratTempRoomPlayerInfo(playerSessionInfo.isReconnect(), playerController));
     }
 
     @Override
@@ -39,7 +58,23 @@ public class BaccaratTempRoom implements IPlayerRoomEventListener {
         }
     }
 
+    /**
+     * 是否通过断线重连进入房间
+     */
+    public boolean isReconnectEnterRoom(int roomCfgId, long playerId) {
+        return baccaratObserverPlayers
+            .getOrDefault(roomCfgId, new ConcurrentHashMap<>())
+            .getOrDefault(playerId, new BaccaratTempRoomPlayerInfo())
+            .enterRoomByReconnect;
+    }
+
     public Map<Long, PlayerController> getBaccaratObserverPlayers(int roomCfgId) {
-        return baccaratObserverPlayers.getOrDefault(roomCfgId, new ConcurrentHashMap<>());
+        return baccaratObserverPlayers
+            .getOrDefault(roomCfgId, new ConcurrentHashMap<>())
+            .entrySet()
+            .stream()
+            .collect(HashMap::new, (map, e) -> {
+                map.put(e.getKey(), e.getValue().playerController);
+            }, HashMap::putAll);
     }
 }
