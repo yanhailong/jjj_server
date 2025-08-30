@@ -7,6 +7,7 @@ import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionInfo;
@@ -47,7 +48,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
     public void init() {
         Map<String, IPlayerRoomEventListener> listenerMap =
-                CommonUtil.getContext().getBeansOfType(IPlayerRoomEventListener.class);
+            CommonUtil.getContext().getBeansOfType(IPlayerRoomEventListener.class);
         for (Map.Entry<String, IPlayerRoomEventListener> en : listenerMap.entrySet()) {
             int[] arr = en.getValue().getGameTypes();
             if (arr != null && arr.length > 0) {
@@ -58,7 +59,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
         }
 
         Map<String, AbstractRoomManager> roomManagerMap =
-                CommonUtil.getContext().getBeansOfType(AbstractRoomManager.class);
+            CommonUtil.getContext().getBeansOfType(AbstractRoomManager.class);
         for (Map.Entry<String, AbstractRoomManager> en : roomManagerMap.entrySet()) {
             this.roomManager = en.getValue();
             break;
@@ -74,7 +75,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
         PlayerController playerController = (PlayerController) session.getReference();
         if (playerController == null || playerController.getPlayer() == null) {
             log.warn("玩家退出游戏服务器时 playerController 为空,playerId={},sessionId={}", session.getPlayerId(),
-                    session.sessionId());
+                session.sessionId());
             return;
         }
         log.info("玩家：{} 房间开始进入session关闭流程", playerController.playerId());
@@ -114,7 +115,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             playerRoomEventListener.exit(session, playerController);
         } else {
             log.warn("玩家退出游戏服务器时未找到 playerRoomEventListener, playerId = {},gameType = {}",
-                    playerController.playerId(), gameType);
+                playerController.playerId(), gameType);
         }
 
         logger.exitGame(playerController.getPlayer());
@@ -151,23 +152,27 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             session.setReference(playerController);
 
             logger.enterGame(player, info.getGameType(), info.getRoomCfgId());
-
-            if (player.getRoomId() > 0) {
+            // 是否是断线重连进入的百家乐房间
+            boolean isReconnectEnterBaccaratRoom =
+                info.getGameType() == EGameType.BACCARAT.getGameTypeId() && info.isReconnect();
+            // 玩家房间ID不为0 且 不能是百家乐重连进入的房间
+            if (player.getRoomId() > 0 && !isReconnectEnterBaccaratRoom) {
                 // 设置workId
                 session.setWorkId(player.getRoomId());
                 int code = roomManager.joinRoom(
-                        playerController, info.getGameType(), info.getRoomCfgId(), player.getRoomId());
+                    playerController, info.getGameType(), info.getRoomCfgId(), player.getRoomId());
                 if (code == Code.SUCCESS) {
                     return;
                 }
             }
             IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());
             if (playerRoomEventListener == null) {
-                log.warn("sessionEnter时 未找到 playerRoomEventListener, playerId = {},gameType = {}", playerId,
-                        info.getGameType());
+                log.warn("sessionEnter时 未找到 playerRoomEventListener, playerId = {},gameType = {}",
+                    playerId, info.getGameType());
                 return;
             }
             playerRoomEventListener.enter(session, playerController, info);
+            playerSessionService.updateReconnectStatus(false, info);
         } catch (Exception e) {
             log.error("player: {} 进入session时发生异常: {}", playerId, e.getMessage(), e);
         }

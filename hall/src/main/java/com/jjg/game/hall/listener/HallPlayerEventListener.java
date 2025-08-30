@@ -42,7 +42,7 @@ import java.util.*;
  */
 @Component
 public class HallPlayerEventListener implements SessionCloseListener, SessionEnterListener, SessionLoginListener,
-        SessionLogoutListener {
+    SessionLogoutListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -108,7 +108,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 res.code = Code.EXPIRE;
                 session.send(res);
                 log.debug("token校验失败,登录失败, playerId = {},dbToken = {},reqToken = {}", req.playerId,
-                        playerSessionToken.getToken(), req.token);
+                    playerSessionToken.getToken(), req.token);
                 session.verifyPassFail();
                 return;
             }
@@ -126,23 +126,23 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //标记是否为注册的账号
             boolean[] register = new boolean[1];
             CommonResult<Player> playerResult = hallPlayerService.loginAndNewOrSave(req.playerId,
-                    player -> {
-                        if (player.getCreateTime() == 0) {
-                            player.setNickName("player" + req.playerId);
-                            player.setCreateTime(TimeHelper.nowInt());
-                            player.setIp(session.getAddress().getHost());
-                            player.setLevel(1);
+                player -> {
+                    if (player.getCreateTime() == 0) {
+                        player.setNickName("player" + req.playerId);
+                        player.setCreateTime(TimeHelper.nowInt());
+                        player.setIp(session.getAddress().getHost());
+                        player.setLevel(1);
 
-                            //设置默认装扮
-                            player.setHeadImgId(hallService.getDefaultHeadImgId());
-                            player.setHeadFrameId(hallService.getDefaultHeadFrameId());
-                            player.setNationalId(hallService.getDefaultNationalId());
-                            player.setTitleId(hallService.getDefaultTitleId());
-                            register[0] = true;
-                        } else {
-                            player.setIp(session.getAddress().getHost());
-                        }
-                    });
+                        //设置默认装扮
+                        player.setHeadImgId(hallService.getDefaultHeadImgId());
+                        player.setHeadFrameId(hallService.getDefaultHeadFrameId());
+                        player.setNationalId(hallService.getDefaultNationalId());
+                        player.setTitleId(hallService.getDefaultTitleId());
+                        register[0] = true;
+                    } else {
+                        player.setIp(session.getAddress().getHost());
+                    }
+                });
 
             if (playerResult.code != Code.SUCCESS) {
                 res.code = Code.ERROR_REQ;
@@ -181,10 +181,10 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.gameTypeList = likeGameDao.getLikeGames(player.getId());
 
             //更新session
-            playerSessionService.online(session, player);
+            PlayerSessionInfo playerSessionInfo = playerSessionService.online(session, player);
 
             //检查重连
-            if (reconnect(session, player)) {
+            if (reconnect(session, player, playerSessionInfo)) {
                 res.gameWareInfo = new GameWareInfo();
                 res.gameWareInfo.gameType = player.getGameType();
                 res.gameWareInfo.roomCfgId = player.getRoomCfgId();
@@ -250,7 +250,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
      * @param player
      * @return
      */
-    private boolean reconnect(PFSession session, Player player) {
+    private boolean reconnect(PFSession session, Player player, PlayerSessionInfo playerSessionInfo) {
         MarsNode node = null;
         //先判断有房间类的游戏重连
         if (player.getRoomId() > 0) {
@@ -269,7 +269,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //获取房间所在的节点
             node = clusterSystem.getNode(path);
             if (node == null) {
-                log.warn("断线重连时，房间所在的节点为空 playerId = {},roomId = {},path = {}", player.getId(), player.getRoomId(), node.getNodePath());
+                log.warn("断线重连时，房间所在的节点为空 playerId = {},roomId = {},path = {}",
+                    player.getId(), player.getRoomId(), node.getNodePath());
                 hallPlayerService.doSave(player.getId(), (p) -> {
                     p.setRoomId(0);
                     p.setGameType(0);
@@ -292,7 +293,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //获取节点
             node = clusterSystem.getNode(playerLastGameInfo.getNodePath());
             if (node == null) {
-                node = nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
+                node =
+                    nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
                 if (node == null) {
                     playerLastGameInfo.setHalfwayOffline(false);
                     playerLastGameInfo.setNodePath(null);
@@ -301,7 +303,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 }
             }
         }
-        log.info("玩家重连开始切换节点 playerId={},gameType={},toNode = {}", player.getId(), player.getGameType(), node.getNodePath());
+        log.info("玩家重连开始切换节点 playerId={},gameType={},toNode = {}",
+            player.getId(), player.getGameType(), node.getNodePath());
+        playerSessionService.updateReconnectStatus(true, playerSessionInfo);
         clusterSystem.switchNode(session, node);
         return true;
     }
