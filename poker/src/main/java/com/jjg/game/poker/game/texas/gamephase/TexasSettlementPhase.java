@@ -28,7 +28,6 @@ import com.jjg.game.poker.game.texas.util.PlayerHand;
 import com.jjg.game.poker.game.texas.util.PokerHandEvaluator;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.data.room.SimplePlayerInfo;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
@@ -179,15 +178,16 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                     .map(card -> ((PokerCard) card).getClientId()).collect(Collectors.toList());
             //添加记录
             settlementAllCards.put(playerId, settlementPlayerInfo.cards);
-            long get = playerGet.getOrDefault(playerId, 0L) - baseBetInfo.getOrDefault(playerId, 0L);
-            if (get > 0) {
+            long totalGet = playerGet.getOrDefault(playerId, 0L);
+            if (totalGet > 0) {
                 //扣税
-                get = get * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000;
+                Long bet = baseBetInfo.getOrDefault(playerId, 0L);
+                totalGet = bet + (totalGet - bet) * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000;
                 //增加金币
-                controller.changePlayerGold(gamePlayer, get);
+                controller.changePlayerGold(gamePlayer, totalGet);
             }
             pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().getOrDefault(playerId, 0L);
-            pokerPlayerSettlementInfo.getGold = get;
+            pokerPlayerSettlementInfo.getGold = totalGet;
             pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;
             settlementPlayerInfo.cardType = handResult.getHandRank().rank;
             settlementPlayerInfo.handCards = TexasDataHelper.getClientId(gameDataVo, pair.getFirst().getCurrentCards());

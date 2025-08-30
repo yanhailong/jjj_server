@@ -522,7 +522,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             gamePlayer.setGold(gamePlayer.getGold() + change);
             gameDataVo.getTempGold().merge(gamePlayer.getId(), change, Long::sum);
         } else {
-            deductGold(gamePlayer.getId(), change, ERoomItemReason.GAME_BET);
+            deductGold(gamePlayer.getId(), Math.abs(change), ERoomItemReason.GAME_BET);
             gameDataVo.getTempGold().merge(gamePlayer.getId(), change, Long::sum);
         }
     }

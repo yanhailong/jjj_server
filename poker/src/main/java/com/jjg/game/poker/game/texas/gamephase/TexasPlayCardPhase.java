@@ -34,7 +34,6 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
     public TexasPlayCardPhase(AbstractPhaseGameController<Room_ChessCfg, TexasGameDataVo> gameController) {
         super(gameController);
     }
-
     @Override
     public void playCardPhaseDoAction() {
         if (gameController instanceof TexasGameController controller) {

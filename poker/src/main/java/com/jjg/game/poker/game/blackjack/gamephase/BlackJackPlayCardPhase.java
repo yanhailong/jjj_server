@@ -31,13 +31,6 @@ public class BlackJackPlayCardPhase extends BasePlayCardPhase<BlackJackGameDataV
         super(gameController);
     }
 
-    @Override
-    public List<Integer> getCards(Map<Integer, PokerCard> cardListMap) {
-        if (Objects.nonNull(gameDataVo.getTempCard())) {
-            return new ArrayList<>(gameDataVo.getTempCard());
-        }
-        return super.getCards(cardListMap);
-    }
 
     @Override
     public void playCardPhaseDoAction() {

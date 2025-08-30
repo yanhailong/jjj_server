@@ -9,6 +9,7 @@ import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BaseBetPhase;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerPlayerChange;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
@@ -82,8 +83,16 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
                 Map<Long, PlayerController> playerControllers = gameController.getRoomController().getPlayerControllers();
                 PlayerController playerController = playerControllers.get(info.getPlayerId());
                 if (Objects.nonNull(playerController)) {
+                    SeatInfo seatInfo = gameDataVo.getSeatInfo().get(info.getSeatId());
+                    if (Objects.nonNull(seatInfo)) {
+                        seatInfo.setSeatDown(false);
+                        NotifyPokerPlayerChange notifyPokerPlayerChange = new NotifyPokerPlayerChange();
+                        notifyPokerPlayerChange.pokerPlayerInfo = PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(seatInfo.getPlayerId()), seatInfo, gameDataVo);
+                        broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyPokerPlayerChange).exceptPlayer(seatInfo.getPlayerId()));
+                    }
                     log.info("玩家：{}  未押注直接踢掉", info.getPlayerId());
                     NotifyTableExitRoom timeNoOperate = new NotifyTableExitRoom();
+                    timeNoOperate.langId = 16008;
                     broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), timeNoOperate));
                 }
                 playerSeatInfo.remove(info);
