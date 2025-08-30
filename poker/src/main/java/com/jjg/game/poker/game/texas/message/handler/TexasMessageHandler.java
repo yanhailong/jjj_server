@@ -26,6 +26,7 @@ import com.jjg.game.sampledata.bean.RoomCfg;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -85,7 +86,7 @@ public class TexasMessageHandler {
                         }
                         boolean added = controller.addTempGoldOrOutTable(seatInfo, gamePlayer);
                         if (!added) {
-                            change.code = Code.FORBID;
+                            change.code = Code.NOT_ENOUGH;
                             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
                             return;
                         }
@@ -144,13 +145,29 @@ public class TexasMessageHandler {
     public NotifyTexasSeatStateChange swapSeat(TexasGameController controller, SeatInfo seatInfo, GamePlayer gamePlayer, int srcSeatId) {
         TexasGameDataVo gameDataVo = controller.getGameDataVo();
         NotifyTexasSeatStateChange change = new NotifyTexasSeatStateChange();
+        Map<Long, RoomPlayer> roomPlayers = controller.getRoom().getRoomPlayers();
+        //如果有人交换位置
         //判断目标座位是否有人
-        if (gameDataVo.getSeatInfo().containsKey(srcSeatId)) {
-            change.code = Code.PARAM_ERROR;
-            return change;
+        SeatInfo srcSeatInfo = gameDataVo.getSeatInfo().get(srcSeatId);
+        if (Objects.nonNull(srcSeatInfo)) {
+            if (srcSeatInfo.isSeatDown()) {
+                change.code = Code.FORBID;
+                return change;
+            }
+            RoomPlayer roomPlayer = roomPlayers.get(srcSeatInfo.getPlayerId());
+            addNewSeatInfo(roomPlayer, srcSeatInfo, seatInfo.getSeatId(), gameDataVo);
         }
         //换座位
-        RoomPlayer roomPlayer = controller.getRoom().getRoomPlayers().get(seatInfo.getPlayerId());
+        RoomPlayer roomPlayer = roomPlayers.get(seatInfo.getPlayerId());
+        SeatInfo newSeatInfo = addNewSeatInfo(roomPlayer, seatInfo, srcSeatId, gameDataVo);
+        if (newSeatInfo.isSeatDown()) {
+            controller.addTempGoldOrOutTable(newSeatInfo, gamePlayer);
+        }
+        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, newSeatInfo, gameDataVo);
+        return change;
+    }
+
+    private static SeatInfo addNewSeatInfo(RoomPlayer roomPlayer, SeatInfo seatInfo, int srcSeatId, TexasGameDataVo gameDataVo) {
         roomPlayer.setSit(srcSeatId);
         gameDataVo.getSeatInfo().remove(seatInfo.getSeatId());
         SeatInfo newSeatInfo = new SeatInfo();
@@ -159,11 +176,7 @@ public class TexasMessageHandler {
         newSeatInfo.setSeatId(srcSeatId);
         newSeatInfo.setSeatDown(true);
         gameDataVo.getSeatInfo().put(srcSeatId, newSeatInfo);
-        if (newSeatInfo.isSeatDown()) {
-            controller.addTempGoldOrOutTable(newSeatInfo, gamePlayer);
-        }
-        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, newSeatInfo, gameDataVo);
-        return change;
+        return newSeatInfo;
     }
 
     @Command(value = TexasConstant.MsgBean.REQ_CHANGE_TABLE)
