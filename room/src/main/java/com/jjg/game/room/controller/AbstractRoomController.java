@@ -708,4 +708,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     public ERoomState getRoomState() {
         return roomState;
     }
+
+    public RoomPlayer getRoomPlayer(long playerId){
+        return room.getRoomPlayers().get(playerId);
+    }
 }

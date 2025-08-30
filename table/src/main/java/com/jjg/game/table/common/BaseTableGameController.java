@@ -6,6 +6,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
+import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.pb.NotifyTableExitRoom;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
@@ -181,10 +182,15 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
             }
             // 如果超过最大退出时间
             if (playerLatestOperateTime + exitTime < currentTime) {
-                NotifyTableExitRoom notifyTableExitRoom =
-                    TableMessageBuilder.buildNotifyTableExitRoom(exitTipLangId);
-                broadcastToPlayers(RoomMessageBuilder.newBuilder()
-                    .addPlayerId(entry.getKey()).setData(notifyTableExitRoom));
+                RoomPlayer roomPlayer = roomController.getRoomPlayer(gamePlayer.getId());
+                if (roomPlayer == null || roomPlayer.isOnline()) {
+                    NotifyTableExitRoom notifyTableExitRoom =
+                        TableMessageBuilder.buildNotifyTableExitRoom(exitTipLangId);
+                    broadcastToPlayers(RoomMessageBuilder.newBuilder()
+                        .addPlayerId(entry.getKey()).setData(notifyTableExitRoom));
+                } else {
+                    roomController.getRoomManager().exitRoom(gamePlayer.getId());
+                }
                 continue;
             }
             // 如果超过最大操作等待时间

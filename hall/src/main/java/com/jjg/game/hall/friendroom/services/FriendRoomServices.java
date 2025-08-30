@@ -616,6 +616,7 @@ public class FriendRoomServices implements IConsoleReceiver {
             }
         });
         res.code = Code.SUCCESS;
+        res.roomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
         playerController.send(res);
         return Code.SUCCESS;
     }
