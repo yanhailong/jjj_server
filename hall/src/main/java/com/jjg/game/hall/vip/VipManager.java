@@ -75,6 +75,7 @@ public class VipManager implements ConfigExcelChangeListener {
             long timeMillis = System.currentTimeMillis();
             res.vipGiftInfo = new ArrayList<>(VipGift.values().length);
             res.nowExp = player.getVipExp();
+            res.vipLevel = player.getVipLevel();
             res.claimMaxLv = getMaxClaimLv(vip, player);
             for (VipGift gift : VipGift.values()) {
                 VipGiftInfo vipGiftInfo = new VipGiftInfo();
