@@ -114,7 +114,7 @@ public class FriendRoomServices implements IConsoleReceiver {
             itemMap.put(req.itemId, roomExpendCfg.getRequiredMoney().get(1) + req.predictCostGoldNum);
         }
         // 扣除道具
-        CommonResult<Player> removeItem =
+        CommonResult<Void> removeItem =
             playerPackService.removeItems(player.getId(), itemMap, "create_friend_room");
         // 移除道具失败
         if (!removeItem.success()) {
@@ -589,7 +589,7 @@ public class FriendRoomServices implements IConsoleReceiver {
             RoomExpendCfg roomExpendCfg = GameDataManager.getRoomExpendCfg(updateFriendRoom.timeOfOpenRoom);
             List<Integer> requiredMoney = roomExpendCfg.getRequiredMoney();
             // 扣除道具
-            CommonResult<Player> removeItem =
+            CommonResult<Void> removeItem =
                 playerPackService.removeItem(
                     player.getId(),
                     new Item(requiredMoney.getFirst(), requiredMoney.get(1)), "manage_friend_room"

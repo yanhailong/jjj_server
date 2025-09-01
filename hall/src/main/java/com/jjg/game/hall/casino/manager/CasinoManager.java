@@ -127,8 +127,8 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 return res;
             }
             //扣除道具
-            int result = playerPackService.removeItem(playerController, buyClaimAllRewardsConsumer.getFirst(), "一键升级购买");
-            if (result != Code.SUCCESS) {
+            CommonResult<Void> result = playerPackService.removeItem(playerController.playerId(), buyClaimAllRewardsConsumer.getFirst(), "一键升级购买");
+            if (!result.success()) {
                 res.code = Code.NOT_ENOUGH_ITEM;
                 return res;
             }
@@ -286,9 +286,9 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                     casinoInfo.setChange(true);
                 }
                 //发奖
-                int result = playerPackService.addItems(playerController, getReward, "一键领取赌场收益");
-                if (result != Code.SUCCESS) {
-                    res.code = Code.UNKNOWN_ERROR;
+                CommonResult<Void> result = playerPackService.addItems(playerController.playerId(), getReward, "一键领取赌场收益");
+                if (!result.success()) {
+                    res.code = result.code;
                     return res;
                 }
             }
@@ -342,8 +342,8 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             casinoInfo.setChange(true);
             //发奖
             Item item = new Item(cfg.getOutput().get(1), totalNum);
-            int result = playerPackService.addItem(playerController, item, "一键领取机台收益");
-            if (result != Code.SUCCESS) {
+            CommonResult<Void> result = playerPackService.addItem(playerController.playerId(), item.getId(), item.getCount(), "一键领取机台收益");
+            if (!result.success()) {
                 res.code = Code.UNKNOWN_ERROR;
                 return res;
             }
@@ -399,8 +399,8 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             CasinoEmployment casinoEmployment = employmentMap.getOrDefault(req.index, new CasinoEmployment());
             List<Integer> cost = dealerFunctionCfg.getHiringExpenses();
             Item costItem = new Item(cost.getFirst(), cost.getLast());
-            int result = playerPackService.removeItem(playerController, costItem, "请求雇员职员");
-            if (result != Code.SUCCESS) {
+            CommonResult<Void> result = playerPackService.removeItem(playerController.playerId(), costItem, "请求雇员职员");
+            if (!result.success()) {
                 res.code = Code.NOT_ENOUGH_ITEM;
                 return res;
             }
@@ -485,9 +485,9 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             return res;
         }
         //扣除消耗
-        int result = playerPackService.removeItem(playerController, item, "加速清理");
-        if (result != Code.SUCCESS) {
-            res.code = result;
+        CommonResult<Void> result = playerPackService.removeItem(playerController.playerId(), item, "加速清理");
+        if (!result.success()) {
+            res.code = Code.NOT_ENOUGH_ITEM;
             return res;
         }
         casinoInfo.getBuildingCleaningEndTime().put(req.floorId, timeMillis);
@@ -610,7 +610,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             return res;
         }
         //扣除消耗
-        CommonResult<Player> removed = playerPackService.removeItems(playerId, functionCfg.getUplevel_itemid(), "升级建筑");
+        CommonResult<Void> removed = playerPackService.removeItems(playerId, functionCfg.getUplevel_itemid(), "升级建筑");
         if (!removed.success()) {
             res.code = Code.NOT_ENOUGH_ITEM;
             return res;
@@ -655,8 +655,8 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             return res;
         }
         //扣除消耗
-        int result = playerPackService.removeItem(playerController, item, "加速升级");
-        if (result != Code.SUCCESS) {
+        CommonResult<Void> result = playerPackService.removeItem(playerController.playerId(), item, "加速升级");
+        if (!result.success()) {
             res.code = Code.NOT_ENOUGH_ITEM;
             return res;
         }
