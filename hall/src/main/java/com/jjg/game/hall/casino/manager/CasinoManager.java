@@ -610,7 +610,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             return res;
         }
         //扣除消耗
-        CommonResult<PackChangeResult> removed = playerPackService.removeItems(playerId, functionCfg.getUplevel_itemid(), "升级建筑");
+        CommonResult<Player> removed = playerPackService.removeItems(playerId, functionCfg.getUplevel_itemid(), "升级建筑");
         if (!removed.success()) {
             res.code = Code.NOT_ENOUGH_ITEM;
             return res;

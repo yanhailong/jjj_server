@@ -176,7 +176,7 @@ public class MailService {
         }
 
         long count = mailDao.batchUpdateMailStatus(mailIds, GameConstant.Mail.STAUTS_GET_ITEMS);
-        CommonResult<PackChangeResult> addItemsResult = playerPackService.addItems(playerId, map, "getAllMailsItems");
+        CommonResult<Player> addItemsResult = playerPackService.addItems(playerId, map, "getAllMailsItems");
         if (!addItemsResult.success()) {
             log.debug("一键领取失败 playerId = {},code = {}", playerId, addItemsResult.code);
             result.code = addItemsResult.code;

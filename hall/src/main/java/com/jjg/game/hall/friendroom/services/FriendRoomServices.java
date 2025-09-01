@@ -14,7 +14,6 @@ import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.dao.room.AbstractFriendRoomDao.CreateFriendsRoom;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
@@ -115,7 +114,7 @@ public class FriendRoomServices implements IConsoleReceiver {
             itemMap.put(req.itemId, roomExpendCfg.getRequiredMoney().get(1) + req.predictCostGoldNum);
         }
         // 扣除道具
-        CommonResult<PackChangeResult> removeItem =
+        CommonResult<Player> removeItem =
             playerPackService.removeItems(player.getId(), itemMap, "create_friend_room");
         // 移除道具失败
         if (!removeItem.success()) {
@@ -590,7 +589,7 @@ public class FriendRoomServices implements IConsoleReceiver {
             RoomExpendCfg roomExpendCfg = GameDataManager.getRoomExpendCfg(updateFriendRoom.timeOfOpenRoom);
             List<Integer> requiredMoney = roomExpendCfg.getRequiredMoney();
             // 扣除道具
-            CommonResult<PackChangeResult> removeItem =
+            CommonResult<Player> removeItem =
                 playerPackService.removeItem(
                     player.getId(),
                     new Item(requiredMoney.getFirst(), requiredMoney.get(1)), "manage_friend_room"

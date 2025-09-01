@@ -7,7 +7,6 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.PackChangeResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
@@ -287,7 +286,7 @@ public class CoreMessageHandler {
             return;
         }
 
-        Integer num = Integer.parseInt(params);
+        int num = Integer.parseInt(params);
         CommonResult<Player> result = playerService.setVip(playerController.playerId(), num, "gmSetVip", null);
         if (!result.success()) {
             res.code = result.code;
@@ -308,7 +307,7 @@ public class CoreMessageHandler {
         int itemId = Integer.parseInt(orders[1]);
         int count = Integer.parseInt(orders[2]);
 
-        CommonResult<PackChangeResult> result = playerPackService.addItem(playerController.playerId(), itemId, count, "gmAdd");
+        CommonResult<Player> result = playerPackService.addItem(playerController.playerId(), itemId, count, "gmAdd");
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},orders = {}", playerController.playerId(), orders);

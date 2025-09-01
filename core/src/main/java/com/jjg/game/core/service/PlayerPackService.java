@@ -1,5 +1,6 @@
 package com.jjg.game.core.service;
 
+import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.Code;
@@ -7,7 +8,6 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerPackDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
-import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import org.slf4j.Logger;
@@ -42,6 +42,8 @@ public class PlayerPackService {
     private CorePlayerService corePlayerService;
     @Autowired
     private CoreLogger coreLogger;
+    @Autowired
+    private ClusterSystem clusterSystem;
 
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
@@ -55,8 +57,8 @@ public class PlayerPackService {
      * @param addItemMap itemId -> count
      * @return
      */
-    public CommonResult<PackChangeResult> addItems(long playerId, Map<Integer, Long> addItemMap, String addType) {
-        CommonResult<PackChangeResult> result = new CommonResult<>(Code.FAIL);
+    public CommonResult<Player> addItems(long playerId, Map<Integer, Long> addItemMap, String addType) {
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         long addGold = 0;
         long addDiamond = 0;
         Map<Integer, Long> addTempItemMap = new HashMap<>(addItemMap);
@@ -87,7 +89,7 @@ public class PlayerPackService {
                 result.code = goldAndDiamond.code;
                 return result;
             }
-            result.data = new PackChangeResult(goldAndDiamond.data, addGold, addDiamond);
+            result.data = goldAndDiamond.data;
         }
 
         if (addTempItemMap.isEmpty()) {
@@ -134,18 +136,18 @@ public class PlayerPackService {
      * @param count
      * @return
      */
-    public CommonResult<PackChangeResult> addItem(long playerId, int id, long count, String addType) {
-        CommonResult<PackChangeResult> result = new CommonResult<>(Code.FAIL);
+    public CommonResult<Player> addItem(long playerId, int id, long count, String addType) {
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         ItemCfg addItemCfg = GameDataManager.getItemCfg(id);
         //根据不同道具做不同处理
         if (addItemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
             CommonResult<Player> addResult = corePlayerService.addGold(playerId, count, addType);
-            result.data = new PackChangeResult(addResult.data, count, 0);
+            result.data = addResult.data;
             result.code = addResult.code;
             return result;
         } else if (addItemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
             CommonResult<Player> addResult = corePlayerService.addDiamond(playerId, count, addType);
-            result.data = new PackChangeResult(addResult.data, 0, count);
+            result.data = addResult.data;
             result.code = addResult.code;
             return result;
         }
@@ -182,7 +184,7 @@ public class PlayerPackService {
      * @param remove   移除的道具
      * @return 最新的背包结果
      */
-    public CommonResult<PackChangeResult> removeItem(long playerId, Item remove, String addType) {
+    public CommonResult<Player> removeItem(long playerId, Item remove, String addType) {
         return removeItem(playerId, remove.getId(), remove.getCount(), null);
     }
 
@@ -194,8 +196,8 @@ public class PlayerPackService {
      * @param count
      * @return
      */
-    public CommonResult<PackChangeResult> removeItem(long playerId, int id, long count, String addType) {
-        CommonResult<PackChangeResult> result = new CommonResult<>(Code.FAIL);
+    public CommonResult<Player> removeItem(long playerId, int id, long count, String addType) {
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
 
         ItemCfg itemCfg = GameDataManager.getItemCfg(id);
         if (itemCfg == null) {
@@ -206,12 +208,13 @@ public class PlayerPackService {
         if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {  //消耗金币
             CommonResult<Player> removeResult = corePlayerService.deductGold(playerId, count, addType);
             result.code = removeResult.code;
-            result.data = new PackChangeResult(removeResult.data, -count, 0);
+            result.data = removeResult.data;
+
             return result;
         } else if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {  //消耗钻石
             CommonResult<Player> removeResult = corePlayerService.deductDiamond(playerId, count, addType);
             result.code = removeResult.code;
-            result.data = new PackChangeResult(removeResult.data, 0, -count);
+            result.data = removeResult.data;
             return result;
         }
 
@@ -250,8 +253,8 @@ public class PlayerPackService {
      * @param count
      * @return
      */
-    public CommonResult<PackChangeResult> removeItem(long playerId, int girdId, int id, long count, String addType) {
-        CommonResult<PackChangeResult> result = new CommonResult<>(Code.FAIL);
+    public CommonResult<Player> removeItem(long playerId, int girdId, int id, long count, String addType) {
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
 
         ItemCfg itemCfg = GameDataManager.getItemCfg(id);
         if (itemCfg == null) {
@@ -262,11 +265,11 @@ public class PlayerPackService {
         if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {  //消耗金币
             CommonResult<Player> removeResult = corePlayerService.deductGold(playerId, count, addType);
             result.code = removeResult.code;
-            result.data = new PackChangeResult(removeResult.data, -count, 0);
+            result.data = removeResult.data;
             return result;
         } else if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {  //消耗钻石
             CommonResult<Player> removeResult = corePlayerService.deductDiamond(playerId, count, addType);
-            result.data = new PackChangeResult(removeResult.data, 0, -count);
+            result.data = removeResult.data;
             result.code = removeResult.code;
             return result;
         }
@@ -306,8 +309,8 @@ public class PlayerPackService {
      * @return
      */
     public int removeItem(PlayerController playerController, Item item, String addType) {
-        CommonResult<PackChangeResult> removed = removeItem(playerController.playerId(), item, addType);
-        notifyDataChange(playerController, removed);
+        CommonResult<Player> removed = removeItem(playerController.playerId(), item, addType);
+        changeCurrencyAction(playerController, removed);
         return removed.code;
     }
 
@@ -320,8 +323,8 @@ public class PlayerPackService {
      * @return
      */
     public int removeItems(PlayerController playerController, Map<Integer, Long> removeItemMap, String addType) {
-        CommonResult<PackChangeResult> removed = removeItems(playerController.playerId(), removeItemMap, addType);
-        notifyDataChange(playerController, removed);
+        CommonResult<Player> removed = removeItems(playerController.playerId(), removeItemMap, addType);
+        changeCurrencyAction(playerController, removed);
         return removed.code;
     }
 
@@ -334,21 +337,15 @@ public class PlayerPackService {
      * @return
      */
     public int addItems(PlayerController playerController, Map<Integer, Long> addItemMap, String addType) {
-        CommonResult<PackChangeResult> addItems = addItems(playerController.playerId(), addItemMap, addType);
-        notifyDataChange(playerController, addItems);
+        CommonResult<Player> addItems = addItems(playerController.playerId(), addItemMap, addType);
+        changeCurrencyAction(playerController, addItems);
         return addItems.code;
     }
 
-    private void notifyDataChange(PlayerController playerController, CommonResult<PackChangeResult> result) {
+    private void changeCurrencyAction(PlayerController playerController, CommonResult<Player> result) {
         if (result.success()) {
-            PackChangeResult data = result.data;
-            if (Objects.nonNull(data) && Objects.nonNull(data.player())) {
-                playerController.setPlayer(data.player());
-                //通知
-                NoticeBaseInfoChange change = new NoticeBaseInfoChange();
-                change.diamond = data.changeDiamond();
-                change.gold = data.changGold();
-                playerController.send(change);
+            if (Objects.nonNull(result.data)) {
+                playerController.setPlayer(result.data);
             }
         }
     }
@@ -362,8 +359,8 @@ public class PlayerPackService {
      * @return
      */
     public int addItem(PlayerController playerController, Item addItem, String addType) {
-        CommonResult<PackChangeResult> added = addItem(playerController.playerId(), addItem.getId(), addItem.getCount(), addType);
-        notifyDataChange(playerController, added);
+        CommonResult<Player> added = addItem(playerController.playerId(), addItem.getId(), addItem.getCount(), addType);
+        changeCurrencyAction(playerController, added);
         return added.code;
     }
 
@@ -373,8 +370,8 @@ public class PlayerPackService {
      * @param playerId
      * @return
      */
-    public CommonResult<PackChangeResult> removeItems(long playerId, Map<Integer, Long> removeItemMap, String addType) {
-        CommonResult<PackChangeResult> result = new CommonResult<>(Code.FAIL);
+    public CommonResult<Player> removeItems(long playerId, Map<Integer, Long> removeItemMap, String addType) {
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         HashMap<Integer, Long> removeTempItemMap = new HashMap<>(removeItemMap);
         Iterator<Map.Entry<Integer, Long>> it = removeTempItemMap.entrySet().iterator();
         long deductGoldV = 0;
@@ -410,8 +407,7 @@ public class PlayerPackService {
                 result.code = removeResult.code;
                 return result;
             }
-            result.data = new PackChangeResult(removeResult.data, -deductGoldV, -deductDiamondV);
-
+            result.data = removeResult.data;
         }
 
         if (removeTempItemMap.isEmpty()) {
@@ -523,17 +519,17 @@ public class PlayerPackService {
      * @param useItemId
      * @return
      */
-    public CommonResult<PackChangeResult> useItem(long playerId, int girdId, int useItemId, long useItemCount, Map<Integer, Long> addItemsMap,
-                                                  String addType) {
-        CommonResult<PackChangeResult> result = new CommonResult<>(Code.FAIL);
+    public CommonResult<Player> useItem(long playerId, int girdId, int useItemId, long useItemCount, Map<Integer, Long> addItemsMap,
+                                        String addType) {
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
 
-        CommonResult<PackChangeResult> removeResult = removeItem(playerId, girdId, useItemId, useItemCount, addType);
+        CommonResult<Player> removeResult = removeItem(playerId, girdId, useItemId, useItemCount, addType);
         if (!removeResult.success()) {
             result.code = removeResult.code;
             return result;
         }
 
-        CommonResult<PackChangeResult> addResult = addItems(playerId, addItemsMap, addType);
+        CommonResult<Player> addResult = addItems(playerId, addItemsMap, addType);
         if (!addResult.success()) {
             //添加失败，要将之前扣除的道具加回去
             addItem(playerId, useItemId, useItemCount, "fail.rollback");
