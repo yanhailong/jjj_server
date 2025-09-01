@@ -315,10 +315,24 @@ public class PlayerPackService {
     /**
      * 移除道具
      *
+     * @param player 玩家
+     * @return
+     */
+    public CommonResult<Void> removeItems(Player player, Map<Integer, Long> removeItemMap, String addType) {
+        boolean checked = checkHasItems(player, removeItemMap);
+        if (!checked) {
+            return new CommonResult<>(Code.NOT_ENOUGH_ITEM);
+        }
+        return removeItems(player.getId(), removeItemMap, addType);
+    }
+
+    /**
+     * 移除道具
+     *
      * @param playerId
      * @return
      */
-    public CommonResult<Void> removeItems(long playerId, Map<Integer, Long> removeItemMap, String addType) {
+    private CommonResult<Void> removeItems(long playerId, Map<Integer, Long> removeItemMap, String addType) {
         CommonResult<Void> result = new CommonResult<>(Code.FAIL);
         HashMap<Integer, Long> removeTempItemMap = new HashMap<>(removeItemMap);
         Iterator<Map.Entry<Integer, Long>> it = removeTempItemMap.entrySet().iterator();
@@ -468,7 +482,7 @@ public class PlayerPackService {
      * @return
      */
     public CommonResult<Void> useItem(long playerId, int girdId, int useItemId, long useItemCount, Map<Integer, Long> addItemsMap,
-                                        String addType) {
+                                      String addType) {
         CommonResult<Void> result = new CommonResult<>(Code.FAIL);
 
         CommonResult<Void> removeResult = removeItem(playerId, girdId, useItemId, useItemCount, addType);

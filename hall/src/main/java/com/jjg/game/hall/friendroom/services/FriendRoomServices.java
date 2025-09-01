@@ -115,7 +115,7 @@ public class FriendRoomServices implements IConsoleReceiver {
         }
         // 扣除道具
         CommonResult<Void> removeItem =
-            playerPackService.removeItems(player.getId(), itemMap, "create_friend_room");
+            playerPackService.removeItems(player, itemMap, "create_friend_room");
         // 移除道具失败
         if (!removeItem.success()) {
             return removeItem.code;
