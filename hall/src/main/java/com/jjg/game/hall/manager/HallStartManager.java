@@ -4,8 +4,8 @@ import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.hall.casino.manager.CasinoManager;
+import com.jjg.game.hall.listener.HallPlayerEventListener;
 import com.jjg.game.hall.service.HallService;
-import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -38,6 +38,8 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private CoreMarqueeManager marqueeManager;
     @Autowired
     private CasinoManager casinoManager;
+    @Autowired
+    private HallPlayerEventListener hallPlayerEventListener;
 
     private ApplicationContext context;
 
@@ -48,6 +50,7 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         marsCoreStartService.init(this.context, Collections.emptySet());
         coreStartService.init(this.context);
         hallService.init();
+        hallPlayerEventListener.init();
         marqueeManager.init();
 
         running = true;

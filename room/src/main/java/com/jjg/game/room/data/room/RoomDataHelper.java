@@ -32,9 +32,7 @@ public class RoomDataHelper {
         Map<Integer, ViplevelCfg> viplevelCfgMap = RoomDataHelper.getVipLevelCfgMap();
         ViplevelCfg cfg = viplevelCfgMap.get(player.getVipLevel());
         if (Objects.nonNull(cfg) && cfg.getEffectiveBetting() > 0) {
-            long addExp = effectiveWaterFlow * cfg.getEffectiveBetting() / 10000;
-            player.setVipExp(player.getVipExp() + addExp);
-            VipUtil.checkVipLevel(player, viplevelCfgMap);
+            VipUtil.bettingCheckVipLevel(player, viplevelCfgMap, effectiveWaterFlow);
         }
     }
 }

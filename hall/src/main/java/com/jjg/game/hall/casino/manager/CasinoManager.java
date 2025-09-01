@@ -2,6 +2,7 @@ package com.jjg.game.hall.casino.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.proto.Pair;
@@ -19,6 +20,7 @@ import com.jjg.game.hall.casino.pb.bean.CasinoSimpleInfo;
 import com.jjg.game.hall.casino.pb.req.*;
 import com.jjg.game.hall.casino.pb.res.*;
 import com.jjg.game.hall.casino.service.PlayerBuildingService;
+import com.jjg.game.hall.listener.PlayerLoginSuccessListener;
 import com.jjg.game.hall.pb.struct.ItemInfo;
 import com.jjg.game.hall.utils.ConditionUtil;
 import com.jjg.game.hall.utils.GlobalDataCache;
@@ -27,9 +29,9 @@ import com.jjg.game.sampledata.bean.BuildingFloorCfg;
 import com.jjg.game.sampledata.bean.BuildingFunctionCfg;
 import com.jjg.game.sampledata.bean.DealerFunctionCfg;
 import jakarta.annotation.PostConstruct;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -43,7 +45,7 @@ import static com.jjg.game.common.utils.TimeHelper.ONE_MINUTE_OF_MILLIS;
  * @date 2025/8/18 16:24
  */
 @Component
-public class CasinoManager implements TimerListener<String>, SessionCloseListener {
+public class CasinoManager implements TimerListener<String>, SessionCloseListener, PlayerLoginSuccessListener {
     private final Logger log = LoggerFactory.getLogger(CasinoManager.class);
     private final PlayerBuildingService playerBuildingService;
 
@@ -53,17 +55,20 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     private final NodeManager nodeManager;
     private final Map<Long, Map<Integer, PlayerBuilding>> dataMap = new ConcurrentHashMap<>();
     private final Map<Long, PlayerController> playerControllerMap = new ConcurrentHashMap<>();
+    private final ClusterSystem clusterSystem;
     private TimerEvent<String> casinoSave;
     private TimerEvent<String> casinoCheck;
 
-    public CasinoManager(@Autowired PlayerBuildingService playerBuildingService,
-                         @Autowired PlayerPackService playerPackService,
-                         @Autowired TimerCenter timerCenter,
-                         @Autowired NodeManager nodeManager) {
+    public CasinoManager(PlayerBuildingService playerBuildingService,
+                         PlayerPackService playerPackService,
+                         TimerCenter timerCenter,
+                         NodeManager nodeManager,
+                         ClusterSystem clusterSystem) {
         this.playerBuildingService = playerBuildingService;
         this.playerPackService = playerPackService;
         this.timerCenter = timerCenter;
         this.nodeManager = nodeManager;
+        this.clusterSystem = clusterSystem;
     }
 
     @PostConstruct
@@ -804,4 +809,25 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
         return new ResCasinoExit(Code.SUCCESS);
     }
 
+    @Override
+    public boolean onPlayerLoginSuccess(PlayerController playerController) {
+        //我的赌场未保存完成进入新节点 切换到上个节点
+        String lastNode = playerBuildingService.getLastNode(playerController.playerId());
+        if (StringUtils.isNotEmpty(lastNode)) {
+            MarsNode node = clusterSystem.getNode(lastNode);
+            if (Objects.nonNull(node)) {
+                clusterSystem.switchNode(playerController.getSession(), node);
+                log.info("我的赌场 切换到上次未保存完的节点");
+                return false;
+            } else {
+                log.error("我的赌场信息存在进入未保存完信息的节点");
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public int getOrder() {
+        return 99;
+    }
 }

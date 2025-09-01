@@ -75,6 +75,7 @@ public class AccountController extends AbstractController {
                 account.setAccountType(AccountConstant.AccountType.GUEST);
                 account.setRegisterMac(dto.mac);
                 account.setLastLoginMac(dto.mac);
+                account.setLastLoginTime(System.currentTimeMillis());
                 account = accountDao.insert(account);
 
                 accountLogger.register(dto.guest, GameConstant.LoginType.GUEST, playerId);
@@ -86,12 +87,12 @@ public class AccountController extends AbstractController {
                     return fail(Code.PARAM_ERROR);
                 }
 
-                if(account.getStatus() == GameConstant.AccountStatus.BAN){
+                if (account.getStatus() == GameConstant.AccountStatus.BAN) {
                     log.debug("该用户已被封号，无法登录 guest = {},playerId = {}", dto.guest, account.getPlayerId());
                     return fail(Code.BAN_ACCOUNT);
                 }
 
-                if(!Objects.equals(dto.mac,account.getLastLoginMac())){
+                if (!Objects.equals(dto.mac, account.getLastLoginMac())) {
                     accountDao.save(account);
                 }
             }

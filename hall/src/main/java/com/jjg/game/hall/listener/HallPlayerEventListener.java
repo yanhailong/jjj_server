@@ -1,5 +1,6 @@
 package com.jjg.game.hall.listener;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsNode;
@@ -10,6 +11,7 @@ import com.jjg.game.common.listener.SessionLoginListener;
 import com.jjg.game.common.listener.SessionLogoutListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -20,7 +22,6 @@ import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.MarqueeInfo;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerSessionService;
-import com.jjg.game.hall.casino.service.PlayerBuildingService;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.logger.HallLogger;
@@ -35,7 +36,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author 11
@@ -43,7 +47,7 @@ import java.util.*;
  */
 @Component
 public class HallPlayerEventListener implements SessionCloseListener, SessionEnterListener, SessionLoginListener,
-    SessionLogoutListener {
+        SessionLogoutListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -70,8 +74,15 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private LikeGameDao likeGameDao;
     @Autowired
     private HallRoomDao hallRoomDao;
-    @Autowired
-    private PlayerBuildingService playerBuildingService;
+    private List<PlayerLoginSuccessListener> playerLoginSuccessListenerList;
+    public void init() {
+        Map<String, PlayerLoginSuccessListener> playerLoginSuccessListenerMap = CommonUtil.getContext().getBeansOfType(PlayerLoginSuccessListener.class);
+        playerLoginSuccessListenerList = playerLoginSuccessListenerMap.values()
+                .stream()
+                .sorted(Comparator.comparing(PlayerLoginSuccessListener::getOrder).reversed())
+                .toList();
+
+    }
 
     @Override
     public void login(PFSession session, byte[] data) {
@@ -111,7 +122,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 res.code = Code.EXPIRE;
                 session.send(res);
                 log.debug("token校验失败,登录失败, playerId = {},dbToken = {},reqToken = {}", req.playerId,
-                    playerSessionToken.getToken(), req.token);
+                        playerSessionToken.getToken(), req.token);
                 session.verifyPassFail();
                 return;
             }
@@ -129,23 +140,23 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //标记是否为注册的账号
             boolean[] register = new boolean[1];
             CommonResult<Player> playerResult = hallPlayerService.loginAndNewOrSave(req.playerId,
-                player -> {
-                    if (player.getCreateTime() == 0) {
-                        player.setNickName("player" + req.playerId);
-                        player.setCreateTime(TimeHelper.nowInt());
-                        player.setIp(session.getAddress().getHost());
-                        player.setLevel(1);
+                    player -> {
+                        if (player.getCreateTime() == 0) {
+                            player.setNickName("player" + req.playerId);
+                            player.setCreateTime(TimeHelper.nowInt());
+                            player.setIp(session.getAddress().getHost());
+                            player.setLevel(1);
 
-                        //设置默认装扮
-                        player.setHeadImgId(hallService.getDefaultHeadImgId());
-                        player.setHeadFrameId(hallService.getDefaultHeadFrameId());
-                        player.setNationalId(hallService.getDefaultNationalId());
-                        player.setTitleId(hallService.getDefaultTitleId());
-                        register[0] = true;
-                    } else {
-                        player.setIp(session.getAddress().getHost());
-                    }
-                });
+                            //设置默认装扮
+                            player.setHeadImgId(hallService.getDefaultHeadImgId());
+                            player.setHeadFrameId(hallService.getDefaultHeadFrameId());
+                            player.setNationalId(hallService.getDefaultNationalId());
+                            player.setTitleId(hallService.getDefaultTitleId());
+                            register[0] = true;
+                        } else {
+                            player.setIp(session.getAddress().getHost());
+                        }
+                    });
 
             if (playerResult.code != Code.SUCCESS) {
                 res.code = Code.ERROR_REQ;
@@ -215,17 +226,19 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             }
             log.info("玩家登录成功 playerId = {},res = {}", player.getId(), JSON.toJSONString(res));
 
-            //我的赌场未保存完成进入新节点 切换到上个节点
-            String lastNode = playerBuildingService.getLastNode(player.getId());
-            if (StringUtils.isNotEmpty(lastNode)) {
-                MarsNode node = clusterSystem.getNode(lastNode);
-                if (Objects.nonNull(node)) {
-                    clusterSystem.switchNode(playerController.getSession(), node);
-                    log.info("我的赌场 切换到上次未保存完的节点");
-                } else {
-                    log.error("我的赌场信息存在进入未保存完信息的节点");
+            //调用监听器
+            if (CollectionUtil.isNotEmpty(playerLoginSuccessListenerList)) {
+                for (PlayerLoginSuccessListener loginSuccessListener : playerLoginSuccessListenerList) {
+                    try {
+                        if (!loginSuccessListener.onPlayerLoginSuccess(playerController)) {
+                            break;
+                        }
+                    } catch (Exception e) {
+                        log.error("玩家登录成功调用 登录成功事件失败 playerId:{}", player.getId(), e);
+                    }
                 }
             }
+
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             session.send(res);
@@ -285,7 +298,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             node = clusterSystem.getNode(path);
             if (node == null) {
                 log.warn("断线重连时，房间所在的节点为空 playerId = {},roomId = {},path = {}",
-                    player.getId(), player.getRoomId(), node.getNodePath());
+                        player.getId(), player.getRoomId(), node.getNodePath());
                 hallPlayerService.doSave(player.getId(), (p) -> {
                     p.setRoomId(0);
                     p.setGameType(0);
@@ -309,7 +322,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             node = clusterSystem.getNode(playerLastGameInfo.getNodePath());
             if (node == null) {
                 node =
-                    nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
+                        nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
                 if (node == null) {
                     playerLastGameInfo.setHalfwayOffline(false);
                     playerLastGameInfo.setNodePath(null);
@@ -319,7 +332,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             }
         }
         log.info("玩家重连开始切换节点 playerId={},gameType={},toNode = {}",
-            player.getId(), player.getGameType(), node.getNodePath());
+                player.getId(), player.getGameType(), node.getNodePath());
         playerSessionService.updateReconnectStatus(true, playerSessionInfo);
         clusterSystem.switchNode(session, node);
         return true;

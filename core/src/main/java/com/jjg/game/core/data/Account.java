@@ -5,6 +5,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * 玩家的账号信息
+ *
  * @author 11
  * @date 2025/5/24 17:54
  */
@@ -26,8 +27,13 @@ public class Account {
     private String registerMac;
     //最近一次登录的mac
     private String lastLoginMac;
+    //最近一次登录时间
+    private long lastLoginTime;
+    //最近一次登录时间
+    private long lastOfflineTime;
     //当前状态
     private int status;
+
 
     public long getPlayerId() {
         return playerId;
@@ -35,6 +41,22 @@ public class Account {
 
     public void setPlayerId(long playerId) {
         this.playerId = playerId;
+    }
+
+    public long getLastLoginTime() {
+        return lastLoginTime;
+    }
+
+    public void setLastLoginTime(long lastLoginTime) {
+        this.lastLoginTime = lastLoginTime;
+    }
+
+    public long getLastOfflineTime() {
+        return lastOfflineTime;
+    }
+
+    public void setLastOfflineTime(long lastOfflineTime) {
+        this.lastOfflineTime = lastOfflineTime;
     }
 
     public String getGuest() {

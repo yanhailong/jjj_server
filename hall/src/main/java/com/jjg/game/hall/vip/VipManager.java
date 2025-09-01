@@ -2,11 +2,16 @@ package com.jjg.game.hall.vip;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.EnumUtil;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.dao.AccountDao;
+import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.hall.listener.PlayerLoginSuccessListener;
 import com.jjg.game.hall.pb.struct.ItemInfo;
 import com.jjg.game.hall.vip.data.Vip;
 import com.jjg.game.hall.vip.data.VipCfgCache;
@@ -20,9 +25,9 @@ import com.jjg.game.hall.vip.service.VipService;
 import com.jjg.game.sampledata.bean.ViplevelCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
@@ -32,15 +37,21 @@ import java.util.*;
  * @date 2025/8/27 10:01
  */
 @Component
-public class VipManager implements ConfigExcelChangeListener {
+public class VipManager implements ConfigExcelChangeListener, PlayerLoginSuccessListener {
     private final Logger log = LoggerFactory.getLogger(VipManager.class);
     private final VipService vipService;
     private final PlayerPackService playerPackService;
+    private final AccountDao accountDao;
+    private final CorePlayerService playerService;
 
-    public VipManager(@Autowired VipService vipService,
-                      @Autowired PlayerPackService playerPackService) {
+    public VipManager(VipService vipService,
+                      PlayerPackService playerPackService,
+                      AccountDao accountDao,
+                      CorePlayerService playerService) {
         this.vipService = vipService;
         this.playerPackService = playerPackService;
+        this.accountDao = accountDao;
+        this.playerService = playerService;
     }
 
     @Override
@@ -191,5 +202,33 @@ public class VipManager implements ConfigExcelChangeListener {
             return 0;
         }
         return Math.min(player.getVipLevel(), Collections.max(lvGiftGetTime.keySet()) + 1);
+    }
+
+    @Override
+    public boolean onPlayerLoginSuccess(PlayerController playerController) {
+        Player player = playerController.getPlayer();
+        //vip经验衰减
+        ViplevelCfg vipLevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
+        if (Objects.nonNull(vipLevelCfg)) {
+            Integer interval = vipLevelCfg.getRollback().getFirst();
+            if (!interval.equals(-1)) {
+                Account account = accountDao.queryAccountByPlayerId(player.getId());
+                if (Objects.nonNull(account)) {
+                    long lastOfflineTime = account.getLastOfflineTime();
+                    long timeMillis = System.currentTimeMillis();
+                    //计算差值
+                    long difference = TimeHelper.calculateDifference(ChronoUnit.MINUTES, lastOfflineTime, timeMillis);
+                    if (difference >= interval) {
+                        //经验衰减
+                        Player doneSave = playerService.doSave(player.getId(), vipLevelCfg.getRollback().getLast(), (savePlayer, value) -> {
+                            savePlayer.setVipExp(Math.max(player.getVipExp() - value, 0));
+                        });
+                        playerController.setPlayer(doneSave);
+                    }
+                }
+            }
+        }
+        //获取上次退出时间
+        return true;
     }
 }

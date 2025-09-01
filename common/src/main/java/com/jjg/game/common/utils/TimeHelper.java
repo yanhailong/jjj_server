@@ -5,11 +5,9 @@ import java.text.DateFormatSymbols;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.*;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
-import java.time.temporal.TemporalField;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -685,5 +683,15 @@ public final class TimeHelper {
         return endOfDay.atZone(DEFAULT_ZONE).toInstant().toEpochMilli();
     }
 
-
+    /**
+     * 计算两个时间戳之间的差值
+     *
+     * @param chronoUnit 计算类型
+     * @param startTime  开始时间
+     * @param endTime    结束时间
+     * @return 差值
+     */
+    public static long calculateDifference(ChronoUnit chronoUnit, long startTime, long endTime) {
+        return chronoUnit.between(LocalDateTime.ofInstant(Instant.ofEpochMilli(startTime), DEFAULT_ZONE), LocalDateTime.ofInstant(Instant.ofEpochMilli(endTime), DEFAULT_ZONE));
+    }
 }

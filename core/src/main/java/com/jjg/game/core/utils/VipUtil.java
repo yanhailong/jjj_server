@@ -16,7 +16,16 @@ import java.util.stream.Collectors;
  * @date 2025/8/29 10:52
  */
 public class VipUtil {
-    public static void checkVipLevel(Player player, Map<Integer, ViplevelCfg> viplevelCfgMap) {
+
+    public static void rechargeCheckVipLevel(Player player, Map<Integer, ViplevelCfg> viplevelCfgMap, long addValue) {
+        checkVipLevel(player, viplevelCfgMap, addValue, true);
+    }
+
+    public static void bettingCheckVipLevel(Player player, Map<Integer, ViplevelCfg> viplevelCfgMap, long addValue) {
+        checkVipLevel(player, viplevelCfgMap, addValue, false);
+    }
+
+    public static void checkVipLevel(Player player, Map<Integer, ViplevelCfg> viplevelCfgMap, long addValue, boolean recharge) {
         if (CollectionUtil.isEmpty(viplevelCfgMap)) {
             return;
         }
@@ -26,26 +35,35 @@ public class VipUtil {
         for (int i = 0; i < viplevelCfgMap.size(); i++) {
             ViplevelCfg viplevelCfg = viplevelCfgMap.get(newLv);
             if (Objects.isNull(viplevelCfg)) {
-                return;
+                break;
             }
-            if (newExp >= viplevelCfg.getViplevelUpExp()) {
-                newExp -= viplevelCfg.getViplevelUpExp();
+            int coefficient = recharge ? viplevelCfg.getRecharge() : viplevelCfg.getEffectiveBetting();
+            if (coefficient == 0) {
+                break;
+            }
+            long needEffectiveWaterFlow = (viplevelCfg.getViplevelUpExp() - newExp) * 10000 / coefficient;
+            if (addValue >= needEffectiveWaterFlow) {
+                addValue -= needEffectiveWaterFlow;
+                newExp = 0;
                 newLv++;
+            } else {
+                newExp += addValue * coefficient / 10000;
+                addValue = 0;
             }
-            if (newExp == 0) {
+            if (addValue == 0) {
                 break;
             }
         }
-        if (newLv != player.getVipLevel() && newExp != player.getVipExp()) {
+        if (newLv != player.getVipLevel() || newExp != player.getVipExp()) {
             player.setVipExp(newExp);
             player.setVipLevel(newLv);
         }
     }
 
-    public static void checkVipLevel(Player player) {
+    public static void checkVipLevel(Player player, long num) {
         Map<Integer, ViplevelCfg> viplevelCfgMap = GameDataManager.getViplevelCfgList()
                 .stream()
                 .collect(Collectors.toMap(ViplevelCfg::getViplevel, cfg -> cfg));
-        checkVipLevel(player, viplevelCfgMap);
+        bettingCheckVipLevel(player, viplevelCfgMap, num);
     }
 }
