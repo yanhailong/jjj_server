@@ -17,6 +17,8 @@ import java.util.List;
         cmd = HallConstant.MsgBean.RES_VIP_INFO, resp = true)
 @ProtoDesc("响应vip信息")
 public class ResVipInfo extends AbstractResponse {
+    @ProtoDesc("当前vip等级")
+    public int vipLevel;
     @ProtoDesc("当前经验")
     public long nowExp;
     @ProtoDesc("当前充值金额")
