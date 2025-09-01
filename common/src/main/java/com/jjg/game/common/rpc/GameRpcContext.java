@@ -76,7 +76,7 @@ public class GameRpcContext {
     }
 
     /**
-     * 异步请求
+     * 异步请求 TODO.2CL RPC异步回调时有线程安全问题，需要处理
      */
     public <T> CompletableFuture<T> asyncCall(Callable<T> callable) {
         // 需要将外部参数进行传递

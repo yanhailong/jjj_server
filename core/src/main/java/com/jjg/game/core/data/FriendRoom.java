@@ -203,4 +203,22 @@ public class FriendRoom extends Room {
     public void setRoomExpendId(int roomExpendId) {
         this.roomExpendId = roomExpendId;
     }
+
+    @Override
+    public String toString() {
+        return "FriendRoom{" +
+            "id=" + id +
+            ", overdueTime=" + overdueTime +
+            ", aliasName='" + aliasName + '\'' +
+            ", autoRenewal=" + autoRenewal +
+            ", roomExpendId=" + roomExpendId +
+            ", predictCostGoldNum=" + predictCostGoldNum +
+            ", type=" + type +
+            ", gameType=" + gameType +
+            ", roomCfgId=" + roomCfgId +
+            ", path='" + path + '\'' +
+            ", createTime=" + createTime +
+            ", creator=" + creator +
+            '}';
+    }
 }
