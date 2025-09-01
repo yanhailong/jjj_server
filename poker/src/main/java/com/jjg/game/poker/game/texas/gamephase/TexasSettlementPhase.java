@@ -54,6 +54,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
 
     @Override
     public int getPhaseRunTime() {
+        //是否需要手筹码的时间
+        int fixChips = gameDataVo.getMaxBetValue() > 0 ? FIX_CHIPS : 0;
         //全all 计算需要增加的时间
         if (gameDataVo.getSettlement() == FLIP_CARDS_ROUND) {
             int remainRound = MAX_ROUND - gameDataVo.getRound();
@@ -65,9 +67,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                     addTimes += ADD_CARDS;
                 }
             }
-            return super.getPhaseRunTime() + TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) * addTimes;
+            return super.getPhaseRunTime() + fixChips + TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) * addTimes;
         }
-        return super.getPhaseRunTime();
+        return super.getPhaseRunTime() + fixChips;
     }
 
     @Override
@@ -75,6 +77,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         super.phaseDoAction();
         try {
             if (gameController instanceof TexasGameController controller) {
+                gameDataVo.setPool(TexasGameController.buildPots(gameDataVo));
                 switch (gameDataVo.getSettlement()) {
                     case DISCARD_SETTLEMENT -> settlementByOnePlayer(controller);
                     case ALL_SETTLEMENT -> settlementByAllIn(controller);

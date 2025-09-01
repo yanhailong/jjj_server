@@ -187,14 +187,6 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         notifyTexasBet.betType = info.getOperationType();
         notifyTexasBet.betValue = betValue;
         notifyTexasBet.playerId = playerId;
-        if (hasAllIn()) {
-            gameDataVo.setPool(buildPots(gameDataVo));
-        } else {
-            Pot pot = gameDataVo.getPool().getFirst();
-            pot.addChips(betValue);
-            pot.addEligiblePlayer(playerId);
-        }
-        notifyTexasBet.poolList = gameDataVo.getPool().stream().map(Pot::getAmount).collect(Collectors.toList());
         PlayerSeatInfo nextExePlayer = getNextExePlayer();
         if (Objects.nonNull(nextExePlayer)) {
             addNextTimer(nextExePlayer, 0);
@@ -291,6 +283,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         return info.getPlayerId() != playerId || info.isOver() || info.getOperationType() != PokerConstant.PlayerOperation.NONE;
     }
 
+
     /**
      * 开启下一轮还是进行结算
      */
@@ -321,6 +314,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                 addPokerPhaseTimer(new TexasSettlementPhase(this));
                 return;
             }
+            gameDataVo.setPool(buildPots(gameDataVo));
             //下一轮
             gameDataVo.nextRound();
             //添加记录
@@ -328,6 +322,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             TexasHistoryRoundInfo texasHistoryRoundInfo = new TexasHistoryRoundInfo(gameDataVo.getRound());
             texasHistoryRoundInfo.roundInfo = new ArrayList<>();
             texasHistory.getTexasHistoryRoundInfos().add(texasHistoryRoundInfo);
+            int fixChips = gameDataVo.getMaxBetValue() > 0 ? FIX_CHIPS : 0;
             gameDataVo.setMaxBetValue(0);
             gameDataVo.getRoundBet().clear();
             //设置本轮当前底池押注
@@ -357,7 +352,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                     texasHistory.setFourthCardId(cardMap.get(cfgCardId).getClientId());
                 }
             }
-            addNextTimer(nextExePlayer, sendCardNum);
+            addNextTimer(nextExePlayer, sendCardNum, fixChips);
             //下发本轮数据
             Map<Long, PlayerSeatInfo> collect = gameDataVo.getPlayerSeatInfoList().stream()
                     .filter(info -> !info.isDelState())
@@ -402,11 +397,18 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
      * 添加下一个玩家的执行timer
      */
     public void addNextTimer(PlayerSeatInfo nextExePlayer, int sendCardNum) {
+        addNextTimer(nextExePlayer, sendCardNum, 0);
+    }
+
+    /**
+     * 添加下一个玩家的执行timer
+     */
+    public void addNextTimer(PlayerSeatInfo nextExePlayer, int sendCardNum, int fixTime) {
         int time = TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.PLAY_CARDS);
         int sendTime = TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS);
         gameDataVo.addTimerId();
         addPlayerTimer(new TexasProcessorHandler(nextExePlayer.getPlayerId(), gameDataVo.getId(), this, gameDataVo.getTimerId()),
-                time + sendTime * sendCardNum);
+                time + sendTime * sendCardNum + fixTime);
     }
 
     /**

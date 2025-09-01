@@ -23,6 +23,8 @@ public interface TexasConstant {
         int DISCARD_SETTLEMENT = 1;
         //全all结算
         int ALL_SETTLEMENT = 2;
+        //收筹码的时间
+        int FIX_CHIPS = 600;
     }
 
 
