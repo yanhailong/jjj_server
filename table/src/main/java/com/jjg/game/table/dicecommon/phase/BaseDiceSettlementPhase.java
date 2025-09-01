@@ -105,7 +105,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             }
         }
         // 记录日志
-        BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameDataTracker, playerBetInfo);
+        BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
         return playerSettlementData;
     }
 }

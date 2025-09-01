@@ -1,10 +1,12 @@
 package com.jjg.game.room.datatrack;
 
 
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BetAreaCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
 
 import java.util.HashMap;
@@ -17,8 +19,9 @@ import java.util.Objects;
  * @date 2025/8/13 16:04
  */
 public class SaveLogUtil {
-    public static void generalLog(Map<Long, Map<Integer, List<Integer>>> betData, Map<Long, DefaultKeyValue<Long, Long>> playerGet, Map<Long, GamePlayer> gamePlayerMap, GameDataTracker gameDataTracker) {
+    public static void generalLog(Map<Long, Map<Integer, List<Integer>>> betData, Map<Long, DefaultKeyValue<Long, Long>> playerGet, Map<Long, GamePlayer> gamePlayerMap, AbstractPhaseGameController<Room_BetCfg, ?> gameController) {
         Map<Integer, Long> areaTotalBet = new HashMap<>();
+        GameDataTracker gameDataTracker = gameController.getGameDataTracker();
         for (Map.Entry<Long, Map<Integer, List<Integer>>> entry : betData.entrySet()) {
             GamePlayer gamePlayer = gamePlayerMap.get(entry.getKey());
             if (Objects.isNull(gamePlayer)) {
@@ -57,7 +60,7 @@ public class SaveLogUtil {
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, keyValue.getValue() - totalBet);
             long sum = effectiveWaterFlow.values().stream().mapToLong(Math::abs).sum();
             if (sum > 0) {
-                RoomDataHelper.checkPlayerVipLevel(gamePlayer, sum);
+                RoomDataHelper.checkPlayerVipLevel(gamePlayer, gameController, sum);
             }
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, sum);
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_DATA, areaMap);

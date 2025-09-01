@@ -11,7 +11,6 @@ import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
-import com.jjg.game.table.baccarat.BaccaratGameController;
 import com.jjg.game.table.baccarat.data.BaccaratGameDataVo;
 import com.jjg.game.table.baccarat.message.BaccaratMessageBuilder;
 import com.jjg.game.table.baccarat.message.resp.BaccaratCardState;
@@ -225,7 +224,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             }
             settlementDataMap.put(gamePlayer.getId(), settlementData);
             // 记录押注日志
-            BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameDataTracker, playerBetInfo);
+            BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameController, playerBetInfo);
         }
         // 处理庄家输赢金币
         gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);

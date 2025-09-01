@@ -145,7 +145,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
     private void addLog(LoongTigerWarGameDataVo gameDataVo, Map<Long, DefaultKeyValue<Long, Long>> playerGetInfo,
                         int loongCard, int tigerCard) {
         SaveLogUtil.generalLog(gameDataVo.getPlayerBetInfo(), playerGetInfo, gameDataVo.getGamePlayerMap(),
-            gameDataTracker);
+            gameController);
         gameDataTracker.addGameLogData("loongCard", loongCard);
         gameDataTracker.addGameLogData("tigerCard", tigerCard);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);

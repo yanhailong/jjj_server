@@ -18,7 +18,6 @@ import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.bean.PlayerChangedGold;
 import com.jjg.game.table.common.utils.BetDataTrackLogUtils;
-import com.jjg.game.table.luxurycarclub.LuxuryCarClubGameController;
 import com.jjg.game.table.luxurycarclub.data.LuxuryCarClubGameDataVo;
 import com.jjg.game.table.luxurycarclub.message.LuxuryCarClubMessageBuilder;
 import com.jjg.game.table.luxurycarclub.message.NotifyLuxuryCarClubSettlement;
@@ -63,7 +62,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
                 continue;
             }
             if (!playerBetInfo.containsKey(betAreaId)) {
-                BetDataTrackLogUtils.recordBetLog(new SettlementData(), gamePlayer, gameDataTracker, playerBetInfo);
+                BetDataTrackLogUtils.recordBetLog(new SettlementData(), gamePlayer, gameController, playerBetInfo);
                 continue;
             }
             List<Integer> playerBetArea = playerBetInfo.get(betAreaId);
@@ -77,7 +76,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
             // 添加日志埋点数据
-            BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameDataTracker, playerBetInfo);
+            BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
             // 给玩家添加金币
             gameController.addGold(
                 gamePlayer.getId(), playerSettlementData.getTotalWin(),

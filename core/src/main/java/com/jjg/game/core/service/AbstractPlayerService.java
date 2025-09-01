@@ -847,7 +847,9 @@ public class AbstractPlayerService {
 
                 player = levelUp(player, cfg);
                 if (effective) {
-                    VipUtil.checkVipLevel(player, num);
+                    if (VipUtil.checkVipLevel(player, num)) {
+                        sendMessageManager.buildPlayerMoneyInfo(player);
+                    }
                 }
                 log.info("玩家押注获取经验 playerId = {},addExp = {},level = {}", playerId, tmpAddExp, player.getLevel());
                 return true;

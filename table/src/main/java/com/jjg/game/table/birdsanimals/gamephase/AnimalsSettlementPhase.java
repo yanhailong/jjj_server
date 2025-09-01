@@ -14,7 +14,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BetAreaCfg;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
-import com.jjg.game.table.birdsanimals.AnimalsGameController;
 import com.jjg.game.table.birdsanimals.data.AnimalsGameDataVo;
 import com.jjg.game.table.birdsanimals.message.AnimalsHistoryBean;
 import com.jjg.game.table.birdsanimals.message.AnimalsMessageBuilder;
@@ -180,7 +179,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
             }
         }
         // 总押注
-        BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameDataTracker, playerBetInfo);
+        BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameController, playerBetInfo);
         return settlementData;
     }
 

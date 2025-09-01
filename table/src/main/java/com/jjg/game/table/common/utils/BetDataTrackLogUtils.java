@@ -1,12 +1,14 @@
 package com.jjg.game.table.common.utils;
 
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.data.room.RoomDataHelper;
+import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.GameDataTracker;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BetAreaCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,15 +27,16 @@ public class BetDataTrackLogUtils {
      * 记录押注日志
      */
     public static void recordBetLog(
-            SettlementData settlementData, GamePlayer gamePlayer, GameDataTracker gameDataTracker,
+            SettlementData settlementData, GamePlayer gamePlayer, AbstractPhaseGameController<Room_BetCfg, ?> controller,
             Map<Integer, List<Integer>> playerBetInfo) {
+        GameDataTracker gameDataTracker = controller.getGameDataTracker();
         if (settlementData.getBetTotal() <= 0 && playerBetInfo != null) {
             // 统计总押注
             settlementData.setBetTotal(
                     playerBetInfo.values().stream().mapToLong(a -> a.stream().mapToInt(b -> b).sum()).sum());
             long effectiveWaterFlow = calculationEffectiveWaterFlow(playerBetInfo);
             if (effectiveWaterFlow > 0) {
-                RoomDataHelper.checkPlayerVipLevel(gamePlayer, effectiveWaterFlow);
+                RoomDataHelper.checkPlayerVipLevel(gamePlayer, controller, effectiveWaterFlow);
             }
             gameDataTracker.addPlayerLogData(
                     gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, effectiveWaterFlow);

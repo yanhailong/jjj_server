@@ -1,9 +1,15 @@
 package com.jjg.game.room.data.room;
 
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.utils.VipUtil;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.RoomCfg;
 import com.jjg.game.sampledata.bean.ViplevelCfg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,6 +21,7 @@ import java.util.stream.Collectors;
  * @date 2025/8/29 11:32
  */
 public class RoomDataHelper {
+    private static final Logger log = LoggerFactory.getLogger(RoomDataHelper.class);
     // vip配置缓存
     private static Map<Integer, ViplevelCfg> VIP_LEVEL_CFG_MAP = new HashMap<>();
 
@@ -28,11 +35,21 @@ public class RoomDataHelper {
         return VIP_LEVEL_CFG_MAP;
     }
 
-    public static void checkPlayerVipLevel(Player player, long effectiveWaterFlow) {
-        Map<Integer, ViplevelCfg> viplevelCfgMap = RoomDataHelper.getVipLevelCfgMap();
-        ViplevelCfg cfg = viplevelCfgMap.get(player.getVipLevel());
-        if (Objects.nonNull(cfg) && cfg.getEffectiveBetting() > 0) {
-            VipUtil.bettingCheckVipLevel(player, viplevelCfgMap, effectiveWaterFlow);
+    public static void checkPlayerVipLevel(Player player, AbstractPhaseGameController<? extends RoomCfg, ? extends GameDataVo<?>> controller, long effectiveWaterFlow) {
+        try {
+            Map<Integer, ViplevelCfg> viplevelCfgMap = RoomDataHelper.getVipLevelCfgMap();
+            ViplevelCfg cfg = viplevelCfgMap.get(player.getVipLevel());
+            if (Objects.nonNull(cfg) && cfg.getEffectiveBetting() > 0) {
+                if (VipUtil.bettingCheckVipLevel(player, viplevelCfgMap, effectiveWaterFlow)) {
+                    NoticeBaseInfoChange noticeBaseInfoChange = new NoticeBaseInfoChange();
+                    noticeBaseInfoChange.gold = player.getGold();
+                    noticeBaseInfoChange.vipLevel = player.getVipLevel();
+                    noticeBaseInfoChange.diamond = player.getDiamond();
+                    controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(player.getId(), noticeBaseInfoChange));
+                }
+            }
+        } catch (Exception e) {
+            log.error("检查vip等级异常 playerId:{}", player.getId(), e);
         }
     }
 }

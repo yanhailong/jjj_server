@@ -17,21 +17,22 @@ import java.util.stream.Collectors;
  */
 public class VipUtil {
 
-    public static void rechargeCheckVipLevel(Player player, Map<Integer, ViplevelCfg> viplevelCfgMap, long addValue) {
-        checkVipLevel(player, viplevelCfgMap, addValue, true);
+    public static boolean rechargeCheckVipLevel(Player player, Map<Integer, ViplevelCfg> viplevelCfgMap, long addValue) {
+        return checkVipLevel(player, viplevelCfgMap, addValue, true);
     }
 
-    public static void bettingCheckVipLevel(Player player, Map<Integer, ViplevelCfg> viplevelCfgMap, long addValue) {
-        checkVipLevel(player, viplevelCfgMap, addValue, false);
+    public static boolean bettingCheckVipLevel(Player player, Map<Integer, ViplevelCfg> viplevelCfgMap, long addValue) {
+        return checkVipLevel(player, viplevelCfgMap, addValue, false);
     }
 
-    public static void checkVipLevel(Player player, Map<Integer, ViplevelCfg> viplevelCfgMap, long addValue, boolean recharge) {
+    public static boolean checkVipLevel(Player player, Map<Integer, ViplevelCfg> viplevelCfgMap, long addValue, boolean recharge) {
         if (CollectionUtil.isEmpty(viplevelCfgMap)) {
-            return;
+            return false;
         }
         //进行经验升级
         int newLv = player.getVipLevel();
         long newExp = player.getVipExp();
+        boolean chenge = false;
         for (int i = 0; i < viplevelCfgMap.size(); i++) {
             ViplevelCfg viplevelCfg = viplevelCfgMap.get(newLv);
             if (Objects.isNull(viplevelCfg)) {
@@ -46,6 +47,7 @@ public class VipUtil {
                 addValue -= needEffectiveWaterFlow;
                 newExp = 0;
                 newLv++;
+                chenge = true;
             } else {
                 newExp += addValue * coefficient / 10000;
                 addValue = 0;
@@ -54,16 +56,24 @@ public class VipUtil {
                 break;
             }
         }
-        if (newLv != player.getVipLevel() || newExp != player.getVipExp()) {
+        if (chenge || newExp != player.getVipExp()) {
             player.setVipExp(newExp);
             player.setVipLevel(newLv);
         }
+        return chenge;
     }
 
-    public static void checkVipLevel(Player player, long num) {
+    /**
+     * 检查vip等级
+     *
+     * @param player 玩家信息
+     * @param num    数量
+     * @return ture 等级变化 false 等级没变化
+     */
+    public static boolean checkVipLevel(Player player, long num) {
         Map<Integer, ViplevelCfg> viplevelCfgMap = GameDataManager.getViplevelCfgList()
                 .stream()
                 .collect(Collectors.toMap(ViplevelCfg::getViplevel, cfg -> cfg));
-        bettingCheckVipLevel(player, viplevelCfgMap, num);
+        return bettingCheckVipLevel(player, viplevelCfgMap, num);
     }
 }

@@ -34,6 +34,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
     public TexasPlayCardPhase(AbstractPhaseGameController<Room_ChessCfg, TexasGameDataVo> gameController) {
         super(gameController);
     }
+
     @Override
     public void playCardPhaseDoAction() {
         if (gameController instanceof TexasGameController controller) {
@@ -132,7 +133,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         gameDataVo.getBaseBetInfo().put(info.getPlayerId(), sBBetValue);
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
         controller.changePlayerGold(gamePlayer, -sBBetValue);
-        RoomDataHelper.checkPlayerVipLevel(gamePlayer,sBBetValue);
+        RoomDataHelper.checkPlayerVipLevel(gamePlayer, controller, sBBetValue);
         gameDataVo.getPool().getFirst().addChips(sBBetValue);
         gameDataVo.getPool().getFirst().addEligiblePlayer(info.getPlayerId());
         //添加记录
@@ -144,7 +145,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         gameDataVo.getBaseBetInfo().put(info.getPlayerId(), BBBetValue);
         gamePlayer = gameDataVo.getGamePlayer(info.getPlayerId());
         controller.changePlayerGold(gamePlayer, -BBBetValue);
-        RoomDataHelper.checkPlayerVipLevel(gamePlayer,BBBetValue);
+        RoomDataHelper.checkPlayerVipLevel(gamePlayer, controller, BBBetValue);
         gameDataVo.getPool().getFirst().addChips(BBBetValue);
         gameDataVo.getPool().getFirst().addEligiblePlayer(info.getPlayerId());
         gameDataVo.setMaxBetValue(BBBetValue);
