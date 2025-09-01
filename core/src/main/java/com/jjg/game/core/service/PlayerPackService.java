@@ -2,6 +2,7 @@ package com.jjg.game.core.service;
 
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.data.DataSaveCallback;
+import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -57,8 +58,8 @@ public class PlayerPackService {
      * @param addItemMap itemId -> count
      * @return
      */
-    public CommonResult<Player> addItems(long playerId, Map<Integer, Long> addItemMap, String addType) {
-        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
+    public CommonResult<Void> addItems(long playerId, Map<Integer, Long> addItemMap, String addType) {
+        CommonResult<Void> result = new CommonResult<>(Code.FAIL);
         long addGold = 0;
         long addDiamond = 0;
         Map<Integer, Long> addTempItemMap = new HashMap<>(addItemMap);
@@ -89,7 +90,7 @@ public class PlayerPackService {
                 result.code = goldAndDiamond.code;
                 return result;
             }
-            result.data = goldAndDiamond.data;
+            changeCurrencyAction(playerId, goldAndDiamond);
         }
 
         if (addTempItemMap.isEmpty()) {
@@ -136,19 +137,19 @@ public class PlayerPackService {
      * @param count
      * @return
      */
-    public CommonResult<Player> addItem(long playerId, int id, long count, String addType) {
-        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
+    public CommonResult<Void> addItem(long playerId, int id, long count, String addType) {
+        CommonResult<Void> result = new CommonResult<>(Code.FAIL);
         ItemCfg addItemCfg = GameDataManager.getItemCfg(id);
         //根据不同道具做不同处理
         if (addItemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
             CommonResult<Player> addResult = corePlayerService.addGold(playerId, count, addType);
-            result.data = addResult.data;
             result.code = addResult.code;
+            changeCurrencyAction(playerId, addResult);
             return result;
         } else if (addItemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
             CommonResult<Player> addResult = corePlayerService.addDiamond(playerId, count, addType);
-            result.data = addResult.data;
             result.code = addResult.code;
+            changeCurrencyAction(playerId, addResult);
             return result;
         }
 
@@ -184,7 +185,7 @@ public class PlayerPackService {
      * @param remove   移除的道具
      * @return 最新的背包结果
      */
-    public CommonResult<Player> removeItem(long playerId, Item remove, String addType) {
+    public CommonResult<Void> removeItem(long playerId, Item remove, String addType) {
         return removeItem(playerId, remove.getId(), remove.getCount(), null);
     }
 
@@ -196,8 +197,8 @@ public class PlayerPackService {
      * @param count
      * @return
      */
-    public CommonResult<Player> removeItem(long playerId, int id, long count, String addType) {
-        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
+    public CommonResult<Void> removeItem(long playerId, int id, long count, String addType) {
+        CommonResult<Void> result = new CommonResult<>(Code.FAIL);
 
         ItemCfg itemCfg = GameDataManager.getItemCfg(id);
         if (itemCfg == null) {
@@ -208,13 +209,12 @@ public class PlayerPackService {
         if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {  //消耗金币
             CommonResult<Player> removeResult = corePlayerService.deductGold(playerId, count, addType);
             result.code = removeResult.code;
-            result.data = removeResult.data;
-
+            changeCurrencyAction(playerId, removeResult);
             return result;
         } else if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {  //消耗钻石
             CommonResult<Player> removeResult = corePlayerService.deductDiamond(playerId, count, addType);
             result.code = removeResult.code;
-            result.data = removeResult.data;
+            changeCurrencyAction(playerId, removeResult);
             return result;
         }
 
@@ -253,8 +253,8 @@ public class PlayerPackService {
      * @param count
      * @return
      */
-    public CommonResult<Player> removeItem(long playerId, int girdId, int id, long count, String addType) {
-        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
+    public CommonResult<Void> removeItem(long playerId, int girdId, int id, long count, String addType) {
+        CommonResult<Void> result = new CommonResult<>(Code.FAIL);
 
         ItemCfg itemCfg = GameDataManager.getItemCfg(id);
         if (itemCfg == null) {
@@ -265,12 +265,12 @@ public class PlayerPackService {
         if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {  //消耗金币
             CommonResult<Player> removeResult = corePlayerService.deductGold(playerId, count, addType);
             result.code = removeResult.code;
-            result.data = removeResult.data;
+            changeCurrencyAction(playerId, removeResult);
             return result;
         } else if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {  //消耗钻石
             CommonResult<Player> removeResult = corePlayerService.deductDiamond(playerId, count, addType);
-            result.data = removeResult.data;
             result.code = removeResult.code;
+            changeCurrencyAction(playerId, removeResult);
             return result;
         }
 
@@ -300,68 +300,16 @@ public class PlayerPackService {
         return result;
     }
 
-    /**
-     * 移除道具
-     *
-     * @param playerController 玩家控制器
-     * @param item             道具
-     * @param addType          添移除类型
-     * @return
-     */
-    public int removeItem(PlayerController playerController, Item item, String addType) {
-        CommonResult<Player> removed = removeItem(playerController.playerId(), item, addType);
-        changeCurrencyAction(playerController, removed);
-        return removed.code;
-    }
 
-    /**
-     * 移除道具
-     *
-     * @param playerController 玩家控制器
-     * @param removeItemMap    要移除的道具
-     * @param addType          移除的道具类型
-     * @return
-     */
-    public int removeItems(PlayerController playerController, Map<Integer, Long> removeItemMap, String addType) {
-        CommonResult<Player> removed = removeItems(playerController.playerId(), removeItemMap, addType);
-        changeCurrencyAction(playerController, removed);
-        return removed.code;
-    }
-
-    /**
-     * 添加道具
-     *
-     * @param playerController 玩家控制器
-     * @param addItemMap       要添加的道具
-     * @param addType          添加类型
-     * @return
-     */
-    public int addItems(PlayerController playerController, Map<Integer, Long> addItemMap, String addType) {
-        CommonResult<Player> addItems = addItems(playerController.playerId(), addItemMap, addType);
-        changeCurrencyAction(playerController, addItems);
-        return addItems.code;
-    }
-
-    private void changeCurrencyAction(PlayerController playerController, CommonResult<Player> result) {
+    private void changeCurrencyAction(long playerId, CommonResult<Player> result) {
         if (result.success()) {
             if (Objects.nonNull(result.data)) {
-                playerController.setPlayer(result.data);
+                PFSession session = clusterSystem.getSession(playerId);
+                if (Objects.nonNull(session) && session.getReference() instanceof PlayerController playerController) {
+                    playerController.setPlayer(result.data);
+                }
             }
         }
-    }
-
-    /**
-     * 添加道具
-     *
-     * @param playerController 玩家控制器
-     * @param addItem          要添加的道具
-     * @param addType          添加类型
-     * @return
-     */
-    public int addItem(PlayerController playerController, Item addItem, String addType) {
-        CommonResult<Player> added = addItem(playerController.playerId(), addItem.getId(), addItem.getCount(), addType);
-        changeCurrencyAction(playerController, added);
-        return added.code;
     }
 
     /**
@@ -370,8 +318,8 @@ public class PlayerPackService {
      * @param playerId
      * @return
      */
-    public CommonResult<Player> removeItems(long playerId, Map<Integer, Long> removeItemMap, String addType) {
-        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
+    public CommonResult<Void> removeItems(long playerId, Map<Integer, Long> removeItemMap, String addType) {
+        CommonResult<Void> result = new CommonResult<>(Code.FAIL);
         HashMap<Integer, Long> removeTempItemMap = new HashMap<>(removeItemMap);
         Iterator<Map.Entry<Integer, Long>> it = removeTempItemMap.entrySet().iterator();
         long deductGoldV = 0;
@@ -407,7 +355,7 @@ public class PlayerPackService {
                 result.code = removeResult.code;
                 return result;
             }
-            result.data = removeResult.data;
+            changeCurrencyAction(playerId, removeResult);
         }
 
         if (removeTempItemMap.isEmpty()) {
@@ -519,17 +467,17 @@ public class PlayerPackService {
      * @param useItemId
      * @return
      */
-    public CommonResult<Player> useItem(long playerId, int girdId, int useItemId, long useItemCount, Map<Integer, Long> addItemsMap,
+    public CommonResult<Void> useItem(long playerId, int girdId, int useItemId, long useItemCount, Map<Integer, Long> addItemsMap,
                                         String addType) {
-        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
+        CommonResult<Void> result = new CommonResult<>(Code.FAIL);
 
-        CommonResult<Player> removeResult = removeItem(playerId, girdId, useItemId, useItemCount, addType);
+        CommonResult<Void> removeResult = removeItem(playerId, girdId, useItemId, useItemCount, addType);
         if (!removeResult.success()) {
             result.code = removeResult.code;
             return result;
         }
 
-        CommonResult<Player> addResult = addItems(playerId, addItemsMap, addType);
+        CommonResult<Void> addResult = addItems(playerId, addItemsMap, addType);
         if (!addResult.success()) {
             //添加失败，要将之前扣除的道具加回去
             addItem(playerId, useItemId, useItemCount, "fail.rollback");
@@ -542,7 +490,6 @@ public class PlayerPackService {
             coreLogger.useItem(playerId, useItemId, 1, addType);
         }
         result.code = Code.SUCCESS;
-        result.data = addResult.data;
         return result;
     }
 
