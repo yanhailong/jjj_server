@@ -177,7 +177,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
     private void addLog(RedBlackWarGameDataVo gameDataVo, Map<Long, DefaultKeyValue<Long, Long>> playerGet,
                         List<Integer> redCard, List<Integer> blackCard) {
         SaveLogUtil.generalLog(gameDataVo.getPlayerBetInfo(), playerGet, gameDataVo.getGamePlayerMap(),
-            gameDataTracker);
+            gameController);
         gameDataTracker.addGameLogData("redCard", redCard);
         gameDataTracker.addGameLogData("blackCard", blackCard);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
