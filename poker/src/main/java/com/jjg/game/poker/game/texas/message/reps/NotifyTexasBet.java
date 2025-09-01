@@ -24,8 +24,6 @@ public class NotifyTexasBet extends AbstractNotice {
     public long overTime;
     @ProtoDesc("下注金额")
     public long betValue;
-    @ProtoDesc("奖池金额 第一个是底池 其余是边池")
-    public List<Long> poolList;
     @ProtoDesc("下注类型 5.正常下注 5.ALL_IN")
     public int betType;
 }
