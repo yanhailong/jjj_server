@@ -39,8 +39,8 @@ public class RpcServerService {
     private ClusterRpcService clusterRpcService;
     @Autowired
     private RpcClientService rpcClientService;
-    @Autowired
-    private ClusterProcessorExecutors processorExecutors;
+    // Executors
+    private final ClusterProcessorExecutors processorExecutors = ClusterProcessorExecutors.getInstance();
     // spel
     private final ExpressionParser parser = new SpelExpressionParser();
 
