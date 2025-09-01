@@ -75,11 +75,8 @@ public class VipManager implements ConfigExcelChangeListener {
             long timeMillis = System.currentTimeMillis();
             res.vipGiftInfo = new ArrayList<>(VipGift.values().length);
             res.nowExp = player.getVipExp();
-            if (CollectionUtil.isEmpty(vip.getLvGiftGetTime())) {
-                res.claimMaxLv = 0;
-            } else {
-                res.claimMaxLv = Math.min(Collections.max(vip.getLvGiftGetTime().keySet()) + 1, player.getVipLevel());
-            }
+            res.vipLevel = player.getVipLevel();
+            res.claimMaxLv = getMaxClaimLv(vip, player);
             for (VipGift gift : VipGift.values()) {
                 VipGiftInfo vipGiftInfo = new VipGiftInfo();
                 vipGiftInfo.type = gift.getType();
@@ -134,8 +131,7 @@ public class VipManager implements ConfigExcelChangeListener {
                 res.code = Code.PARAM_ERROR;
                 return res;
             }
-            int max = Math.min(Collections.max(vip.getLvGiftGetTime().keySet()) + 1, player.getVipLevel());
-            int nowMax = CollectionUtil.isEmpty(vip.getLvGiftGetTime()) ? 0 : max;
+            int nowMax = getMaxClaimLv(vip, player);
             if (nowMax != req.vipLevel) {
                 res.code = Code.PARAM_ERROR;
                 return res;
@@ -168,7 +164,11 @@ public class VipManager implements ConfigExcelChangeListener {
             vipGiftInfo.type = gift.getType();
             vipGiftInfo.camClaim = gift.isCanClaim(player, vip, timeMillis);
             vipGiftInfo.needRecharge = gift.getNextClaimNeed(player, false);
-            vipGiftInfo.nextTime = gift.getNextClaimNeed(player, true);
+
+            long nextClaimNeed = gift.getNextClaimNeed(player, true);
+            if (nextClaimNeed > 0) {
+                vipGiftInfo.nextTime = nextClaimNeed - timeMillis;
+            }
             res.vipGiftInfo = vipGiftInfo;
             res.items = new ArrayList<>(rewards.size());
             for (Map.Entry<Integer, Long> entry : rewards.entrySet()) {
@@ -177,11 +177,19 @@ public class VipManager implements ConfigExcelChangeListener {
                 info.count = entry.getValue();
                 res.items.add(info);
             }
-            res.claimMaxLv = CollectionUtil.isEmpty(vip.getLvGiftGetTime()) ? 0 : Math.min(max + 1, player.getVipLevel());
+            res.claimMaxLv = getMaxClaimLv(vip, player);
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             log.error("请求领取VIP信息异常 playerId:{}", playerController.playerId(), e);
         }
         return res;
+    }
+
+    public int getMaxClaimLv(Vip vip, Player player) {
+        Map<Integer, Long> lvGiftGetTime = vip.getLvGiftGetTime();
+        if (CollectionUtil.isEmpty(lvGiftGetTime)) {
+            return 0;
+        }
+        return Math.min(player.getVipLevel(), Collections.max(lvGiftGetTime.keySet()) + 1);
     }
 }

@@ -28,9 +28,12 @@ public class VipUtil {
             if (Objects.isNull(viplevelCfg)) {
                 return;
             }
-            if (player.getVipExp() > viplevelCfg.getViplevelUpExp()) {
+            if (newExp >= viplevelCfg.getViplevelUpExp()) {
                 newExp -= viplevelCfg.getViplevelUpExp();
                 newLv++;
+            }
+            if (newExp == 0) {
+                break;
             }
         }
         if (newLv != player.getVipLevel() && newExp != player.getVipExp()) {
@@ -38,10 +41,11 @@ public class VipUtil {
             player.setVipLevel(newLv);
         }
     }
+
     public static void checkVipLevel(Player player) {
         Map<Integer, ViplevelCfg> viplevelCfgMap = GameDataManager.getViplevelCfgList()
                 .stream()
                 .collect(Collectors.toMap(ViplevelCfg::getViplevel, cfg -> cfg));
-        checkVipLevel(player,viplevelCfgMap);
+        checkVipLevel(player, viplevelCfgMap);
     }
 }
