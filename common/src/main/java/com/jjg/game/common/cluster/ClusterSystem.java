@@ -1,5 +1,6 @@
 package com.jjg.game.common.cluster;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.*;
@@ -123,7 +124,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
             try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
                 List<PFSession> sessionList = new ArrayList<>(sessionMap.values());
                 int sessionSize = sessionList.size(), batchSize =
-                    (int) Math.ceil(sessionList.size() / (batchBlock * 1.0));
+                        (int) Math.ceil(sessionList.size() / (batchBlock * 1.0));
                 for (int i = 0; i < batchSize; i++) {
                     int startP = i * batchBlock;
                     int endP = Math.min((i + 1) * batchBlock, sessionSize);
@@ -170,6 +171,22 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     }
 
     /**
+     * 通过玩家id获取session
+     */
+    public PFSession getSession(long playerId) {
+        if (playerId <= 0 || CollectionUtil.isEmpty(sessionMap)) {
+            return null;
+        }
+        //TODO 性能
+        for (PFSession session : sessionMap.values()) {
+            if (session.getPlayerId() == playerId) {
+                return session;
+            }
+        }
+        return null;
+    }
+
+    /**
      * 添加session
      */
     public void putSession(String sessionId, PFSession pfSession) {
@@ -198,7 +215,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
         log.info("切换节点，sessionId={},toNode={}", pfSession.sessionId(), marsNode.getNodePath());
         try {
             SwitchNodeMessage switchNodeMessage = new SwitchNodeMessage(pfSession.sessionId(), marsNode.getNodePath()
-                , pfSession.playerId);
+                    , pfSession.playerId);
             pfSession.send2Gate(switchNodeMessage);
             sessionMap.remove(pfSession.sessionId());
         } catch (Exception e) {
@@ -289,7 +306,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     public ClusterClient randClientByType(NodeType nodeType) {
         String nodeTypeStr = nodeType.toString();
         Map.Entry<MarsNode, ClusterClient> en =
-            clusterClientMap.entrySet().stream().filter(e -> nodeTypeStr.equals(e.getValue().getType())).findAny().orElse(null);
+                clusterClientMap.entrySet().stream().filter(e -> nodeTypeStr.equals(e.getValue().getType())).findAny().orElse(null);
         if (en == null) {
             return null;
         }
@@ -332,7 +349,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     public ClusterClient randClientByTypeExcept(NodeType nodeType, String name) {
         String nodeTypeStr = nodeType.toString();
         Map.Entry<MarsNode, ClusterClient> en =
-            clusterClientMap.entrySet().stream().filter(e -> nodeTypeStr.equals(e.getValue().getType()) && !e.getValue().nodeConfig.getName().equals(name)).findAny().orElse(null);
+                clusterClientMap.entrySet().stream().filter(e -> nodeTypeStr.equals(e.getValue().getType()) && !e.getValue().nodeConfig.getName().equals(name)).findAny().orElse(null);
         if (en == null) {
             return null;
         }
@@ -537,7 +554,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
 
     public ConnectPool<NettyConnect<Object>> getMarsConnectPool(NetAddress netAddress) {
         return new ConnectPool(netAddress, nodeConfig.getTcpAddress(), marsCurator.getStartClientNetAddress(),
-            initializer).init().start(timerCenter);
+                initializer).init().start(timerCenter);
     }
 
     public void startClusterServer() {
@@ -595,7 +612,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
         startClusterServer();
         if (onTimer && timerCenter != null) {
             clusterSystemEvent =
-                new TimerEvent<>(this, "ClusterSystem", 1).setInitTime(10).withTimeUnit(TimeUnit.MINUTES);
+                    new TimerEvent<>(this, "ClusterSystem", 1).setInitTime(10).withTimeUnit(TimeUnit.MINUTES);
             timerCenter.add(clusterSystemEvent);
         }
     }
@@ -624,7 +641,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
                 pidFile.deleteOnExit();
             } catch (Exception ex) {
                 String message = String.format("Cannot create pid file %s",
-                    "PID");
+                        "PID");
                 log.warn(message, ex);
             }
         }
