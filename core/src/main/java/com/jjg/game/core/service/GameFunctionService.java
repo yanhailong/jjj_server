@@ -88,7 +88,7 @@ public class GameFunctionService implements GameEventListener {
             return false;
         }
         List<Object> params =
-            conditionTypes.subList(0, conditionTypes.size()).stream().map(a -> (Object) a).toList();
+            conditionTypes.subList(1, conditionTypes.size()).stream().map(a -> (Object) a).toList();
         List<CheckerParam> checkerParams =
             Collections.singletonList(new CheckerParam(conditionCfg.getConditionType(), params));
         // 检查是否触发成功

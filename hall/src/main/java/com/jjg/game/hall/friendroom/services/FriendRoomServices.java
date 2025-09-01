@@ -39,6 +39,7 @@ import com.jjg.game.hall.friendroom.message.struct.RoomFriendEnum.ERoomFriendLis
 import com.jjg.game.hall.room.HallRoomService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,25 +102,30 @@ public class FriendRoomServices implements IConsoleReceiver {
                 return Code.FAIL;
             }
         }
-        int roomCfgId = req.roomCfgId;
-        // 扣除道具
-        CommonResult<PackChangeResult> removeItem =
-            playerPackService.removeItem(
-                player.getId(),
-                new Item(req.itemId, req.itemNum), "create_friend_room"
-            );
-        // 移除道具失败
-        if (!removeItem.success()) {
-            return removeItem.code;
-        }
-        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
-        // 获取一个游戏类型的随机节点
-        MarsNode targetNode =
-            nodeManager.getGameNodeByWeight(warehouseCfg.getGameType(), player.getId(), player.getIp());
         RoomExpendCfg roomExpendCfg = GameDataManager.getRoomExpendCfg(req.timeOfOpenRoom);
         if (roomExpendCfg == null) {
             return Code.PARAM_ERROR;
         }
+        // 金币道具ID
+        int goldItemId = ItemUtils.getGoldItemId();
+        Map<Integer, Long> itemMap = new HashMap<>();
+        if (req.itemId != 0 && req.itemId != goldItemId) {
+            itemMap.put(req.itemId, Long.valueOf(roomExpendCfg.getRequiredItem().get(1)));
+        } else {
+            itemMap.put(req.itemId, roomExpendCfg.getRequiredMoney().get(1) + req.predictCostGoldNum);
+        }
+        // 扣除道具
+        CommonResult<PackChangeResult> removeItem =
+            playerPackService.removeItems(player.getId(), itemMap, "create_friend_room");
+        // 移除道具失败
+        if (!removeItem.success()) {
+            return removeItem.code;
+        }
+        int roomCfgId = req.roomCfgId;
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
+        // 获取一个游戏类型的随机节点
+        MarsNode targetNode =
+            nodeManager.getGameNodeByWeight(warehouseCfg.getGameType(), player.getId(), player.getIp());
         // 开启时长，毫秒
         int openTime = roomExpendCfg.getDurationTime() * TimeHelper.ONE_MINUTE_OF_MILLIS;
         // 创建房间
@@ -146,6 +152,7 @@ public class FriendRoomServices implements IConsoleReceiver {
         // 构建好友房基础数据
         res.roomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
         playerController.send(res);
+        log.info("玩家：{} 创建好友房成功：{}", player.getId(), friendRoom);
         // 通知前端房间创建
         return Code.SUCCESS;
     }
@@ -175,8 +182,10 @@ public class FriendRoomServices implements IConsoleReceiver {
         if (reqCreateFriendsRoom.predictCostGoldNum < 0) {
             return Code.PARAM_ERROR;
         }
+        String aliasName = reqCreateFriendsRoom.roomAliasName;
+        boolean baseNameCheck = StringUtils.isEmpty(aliasName) || aliasName.length() > 16;
         // 房间名检查
-        if (!illegalNameCheckService.illegalNameCheck(reqCreateFriendsRoom.roomAliasName)) {
+        if (baseNameCheck || !illegalNameCheckService.illegalNameCheck(aliasName)) {
             return Code.ILLEGAL_NAME;
         }
         // 检查场次是否存在
@@ -185,11 +194,7 @@ public class FriendRoomServices implements IConsoleReceiver {
             return Code.PARAM_ERROR;
         }
         // 牌局时长合法性检查
-        List<RoomExpendCfg> roomExpendCfgs = GameDataManager.getRoomExpendCfgList();
-        RoomExpendCfg roomExpendCfg = roomExpendCfgs.stream()
-            .filter(cfg -> cfg.getDurationtype() == 1 && cfg.getId() == reqCreateFriendsRoom.timeOfOpenRoom)
-            .findAny()
-            .orElse(null);
+        RoomExpendCfg roomExpendCfg = GameDataManager.getRoomExpendCfg(reqCreateFriendsRoom.timeOfOpenRoom);
         if (roomExpendCfg == null) {
             return Code.PARAM_ERROR;
         }
@@ -207,21 +212,19 @@ public class FriendRoomServices implements IConsoleReceiver {
         }
         // 准备金扣费检查
         PlayerPack playerPack = playerPackService.redisGet(player.getId());
-        ItemCfg goldItemCfg =
-            GameDataManager.getItemCfgList().stream().filter(cfg -> cfg.getType() == GameConstant.Item.TYPE_DIAMOND).findFirst().get();
-        boolean useGold = itemId == goldItemCfg.getId();
+        boolean useGold = itemId == ItemUtils.getGoldItemId();
         if (playerPack == null && !useGold) {
             return Code.NOT_ENOUGH;
         } else if (playerPack != null) {
-            CommonResult<Long> removeRes = playerPack.removeItem(itemId, reqCreateFriendsRoom.itemNum);
-            if (!removeRes.success()) {
-                return removeRes.code;
+            Item item = new Item(itemId, roomExpendCfg.getRequiredItem().get(1));
+            if (!playerPack.checkHasItems(Collections.singletonList(item))) {
+                return Code.NOT_ENOUGH;
             }
         }
         // 需要扣除的金币数量
         long needDeductGold = reqCreateFriendsRoom.predictCostGoldNum;
         if (useGold) {
-            needDeductGold += reqCreateFriendsRoom.itemNum;
+            needDeductGold += roomExpendCfg.getRequiredMoney().get(1);
         }
         // 金币扣除检查
         if (player.getGold() < needDeductGold) {

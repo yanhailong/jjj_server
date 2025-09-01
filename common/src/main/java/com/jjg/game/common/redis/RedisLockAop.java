@@ -82,6 +82,9 @@ public class RedisLockAop {
                 // 处理获取锁失败的情况
                 return handleFailed(redissonLock, joinPoint, method, startTime, args);
             }
+        } catch (Exception exception) {
+            log.error("尝试加锁: {} 失败：{}", String.join(",", paramsName), exception.getMessage(), exception);
+            throw exception;
         } finally {
             if (locked && lock.isHeldByCurrentThread()) {
                 lock.unlock();

@@ -22,7 +22,12 @@ public class PlayerCheckerCategory {
         @Override
         public boolean check(Player player, List<CheckerParam> comparatorTaget) {
             CheckerParam checkerParam = filterBindParamCheckParam(comparatorTaget);
-            int targetLevel = (int) checkerParam.getTargetParam();
+            int targetLevel;
+            if (checkerParam.getTargetParam() instanceof List<?> list) {
+                targetLevel = (int) list.getFirst();
+            } else {
+                targetLevel = (int) checkerParam.getTargetParam();
+            }
             return checkerParam.getComparator().intComparate(player.getLevel(), targetLevel);
         }
 
