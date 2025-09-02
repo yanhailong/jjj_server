@@ -322,7 +322,8 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             TexasHistoryRoundInfo texasHistoryRoundInfo = new TexasHistoryRoundInfo(gameDataVo.getRound());
             texasHistoryRoundInfo.roundInfo = new ArrayList<>();
             texasHistory.getTexasHistoryRoundInfos().add(texasHistoryRoundInfo);
-            int fixChips = gameDataVo.getMaxBetValue() > 0 ? FIX_CHIPS : 0;
+            boolean isFlipRound = gameDataVo.getRound() == FLIP_CARDS_ROUND;
+            int fixChips = gameDataVo.getMaxBetValue() > 0 || isFlipRound ? FIX_CHIPS : 0;
             gameDataVo.setMaxBetValue(0);
             gameDataVo.getRoundBet().clear();
             //设置本轮当前底池押注
@@ -331,7 +332,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                 historyRoundInfo.potAllBet = gameDataVo.getPool().stream().map(Pot::getAmount).collect(Collectors.toList());
             }
             //发牌
-            int sendCardNum = gameDataVo.getRound() == FLIP_CARDS_ROUND ? SEND_CARD_NUM : ADD_CARDS;
+            int sendCardNum = isFlipRound ? SEND_CARD_NUM : ADD_CARDS;
             List<Integer> addCards = new ArrayList<>(sendCardNum);
             for (int i = 0; i < sendCardNum; i++) {
                 Integer card = gameDataVo.getCards().removeFirst();
@@ -352,7 +353,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                     texasHistory.setFourthCardId(cardMap.get(cfgCardId).getClientId());
                 }
             }
-            addNextTimer(nextExePlayer, sendCardNum, fixChips);
+            addNextTimer(nextExePlayer, sendCardNum, fixChips + FLIP_CARDS);
             //下发本轮数据
             Map<Long, PlayerSeatInfo> collect = gameDataVo.getPlayerSeatInfoList().stream()
                     .filter(info -> !info.isDelState())

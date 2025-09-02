@@ -58,10 +58,10 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         if (gameController instanceof TexasGameController controller && controller.hasAllIn()) {
             gameDataVo.setPool(TexasGameController.buildPots(gameDataVo));
         }
-        //是否需要手筹码的时间
+        //是否需要收筹码的时间
         int fixChips = gameDataVo.getMaxBetValue() > 0 ? FIX_CHIPS : 0;
         //全all 计算需要增加的时间
-        if (gameDataVo.getSettlement() == FLIP_CARDS_ROUND) {
+        if (gameDataVo.getSettlement() == ALL_SETTLEMENT) {
             int remainRound = MAX_ROUND - gameDataVo.getRound();
             int addTimes = 0;
             for (int i = 0; i < remainRound; i++) {
@@ -71,11 +71,11 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                     addTimes += ADD_CARDS;
                 }
             }
-            return super.getPhaseRunTime() + fixChips +
+            return super.getPhaseRunTime() + FIX_CHIPS + FLIP_CARDS +
                     TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) * addTimes
                     + TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SIDE_POOL) * gameDataVo.getPool().size();
         }
-        return super.getPhaseRunTime() + fixChips + TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SIDE_POOL) * gameDataVo.getPool().size();
+        return super.getPhaseRunTime() + fixChips + FLIP_CARDS + TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SIDE_POOL) * gameDataVo.getPool().size();
     }
 
     @Override
@@ -170,6 +170,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         //通知结算
         NotifyTexasSettlementInfo notifyTexasSettlementInfo = new NotifyTexasSettlementInfo();
         notifyTexasSettlementInfo.potInfos = texasPotInfos;
+        notifyTexasSettlementInfo.potList = gameDataVo.getPotValueList();
         notifyTexasSettlementInfo.endTime = gameDataVo.getPhaseEndTime();
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         List<TexasSettlementPlayerInfo> settlementInfoArrayList = new ArrayList<>();

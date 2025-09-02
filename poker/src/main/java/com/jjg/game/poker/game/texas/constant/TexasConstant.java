@@ -25,6 +25,8 @@ public interface TexasConstant {
         int ALL_SETTLEMENT = 2;
         //收筹码的时间
         int FIX_CHIPS = 600;
+        //翻牌时间
+        int FLIP_CARDS = 400;
     }
 
 

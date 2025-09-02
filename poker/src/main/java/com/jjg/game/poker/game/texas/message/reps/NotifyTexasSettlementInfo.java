@@ -22,6 +22,8 @@ public class NotifyTexasSettlementInfo extends AbstractNotice {
     public List<TexasSettlementPlayerInfo> playerSettlementInfos;
     @ProtoDesc("各个池玩家获得奖励信息")
     public List<TexasPotInfo> potInfos;
+    @ProtoDesc("边池信息")
+    public List<Long> potList;
     @ProtoDesc("结算结束时间")
     public long endTime;
 }

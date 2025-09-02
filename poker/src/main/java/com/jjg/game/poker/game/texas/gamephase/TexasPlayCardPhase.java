@@ -4,6 +4,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.gamephase.BasePlayCardPhase;
+import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.Pot;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
@@ -88,7 +89,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
             //设置第一个开始的玩家 并添加定时
             PlayerSeatInfo first = playerSeatInfo.get(gameDataVo.getIndex());
             //通知发牌信息 并带第一个操作人的玩家id
-            controller.addNextTimer(first, sendNum);
+            controller.addNextTimer(first, sendNum, TexasConstant.Common.FLIP_CARDS);
             NotifyTexasPreFlopRoundInfo.Builder builder = NotifyTexasPreFlopRoundInfo.builder();
             builder.sbBet(bedAndSBBet.getFirst())
                     .bbBet(bedAndSBBet.getSecond())
