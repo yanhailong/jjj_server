@@ -2,6 +2,7 @@ package com.jjg.game.core.data;
 
 /**
  * 道具
+ *
  * @author 11
  * @date 2025/8/7 15:10
  */
@@ -10,6 +11,8 @@ public class Item {
     private int id;
     //道具数量
     private long count;
+    //格子ID
+    private Integer gridId = null;
 
     public Item() {
     }
@@ -17,6 +20,12 @@ public class Item {
     public Item(int id, long count) {
         this.id = id;
         this.count = count;
+    }
+
+    public Item(int gridId, int id, long count) {
+        this.id = id;
+        this.count = count;
+        this.gridId = gridId;
     }
 
     public int getId() {
@@ -37,5 +46,13 @@ public class Item {
 
     public void addCount(long count) {
         this.count += count;
+    }
+
+    public Integer getGridId() {
+        return gridId;
+    }
+
+    public void setGridId(int gridId) {
+        this.gridId = gridId;
     }
 }

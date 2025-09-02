@@ -712,8 +712,8 @@ public class AbstractPlayerService {
      * @param desc
      * @return
      */
-    public CommonResult<Player> deductGoldAndDiamond(long playerId, long goldNum, long diamondNum, String addType,
-                                                     String desc) {
+    public CommonResult<Player> deductGoldAndDiamond(
+        long playerId, long goldNum, long diamondNum, String addType, String desc) {
         // TODO 添加金币时只能保证分布式服务状态下的更新同步，不能保证当前服的线程安全引起的数据同步问题
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (goldNum < 0 || diamondNum < 0 || (goldNum + diamondNum) < 1) {

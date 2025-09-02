@@ -128,7 +128,7 @@ public class PlayerPack {
      * @param num
      * @return
      */
-    public CommonResult<Long> removeItem(int girdId,int id, long num) {
+    public CommonResult<Long> removeItem(int girdId, int id, long num) {
         CommonResult<Long> result = new CommonResult<>(Code.SUCCESS);
         if (num < 1) {
             result.code = Code.PARAM_ERROR;
@@ -143,24 +143,24 @@ public class PlayerPack {
         }
 
         //校验道具id
-        if(id != item.getId()) {
+        if (id != item.getId()) {
             result.code = Code.PARAM_ERROR;
             return result;
         }
 
         //检查剩余数量
         long diff = item.getCount() - num;
-        if(diff > 0){
+        if (diff > 0) {
             item.setCount(diff);
-        }else if(diff == 0){  //如果道具消耗完毕，则移除格子
+        } else if (diff == 0) {  //如果道具消耗完毕，则移除格子
             items.remove(girdId);
             usedGird.remove(girdId);
 
             List<Integer> list = itemIndexMap.get(item.getId());
-            if(list != null && !list.isEmpty()){
+            if (list != null && !list.isEmpty()) {
                 list.removeIf(i -> i == girdId);
             }
-        }else {
+        } else {
             result.code = Code.NOT_ENOUGH;
             return result;
         }
@@ -217,6 +217,7 @@ public class PlayerPack {
         result.data = itemCount - num;
         return result;
     }
+
     /**
      * 获取指定道具的总数量
      */

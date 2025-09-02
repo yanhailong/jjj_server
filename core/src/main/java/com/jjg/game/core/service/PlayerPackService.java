@@ -18,7 +18,9 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Nullable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author 11
@@ -50,49 +52,63 @@ public class PlayerPackService {
         return lockTableName + playerId;
     }
 
+
+    /**
+     * 添加道具
+     */
+    public CommonResult<Void> addItem(long playerId, int id, long count, String addType) {
+        return addItems(playerId, Collections.singletonList(new Item(id, count)), addType);
+    }
+
     /**
      * 添加多个道具
-     *
-     * @param playerId
-     * @param playerId
-     * @param addItemMap itemId -> count
-     * @return
      */
     public CommonResult<Void> addItems(long playerId, Map<Integer, Long> addItemMap, String addType) {
+        List<Item> itemList = new ArrayList<>();
+        for (Map.Entry<Integer, Long> entry : addItemMap.entrySet()) {
+            itemList.add(new Item(entry.getKey(), entry.getValue()));
+        }
+        return addItems(playerId, itemList, addType);
+    }
+
+    /**
+     * 添加多个道具
+     */
+    public CommonResult<Void> addItems(long playerId, List<Item> addItemList, String addType) {
         CommonResult<Void> result = new CommonResult<>(Code.FAIL);
         long addGold = 0;
         long addDiamond = 0;
-        Map<Integer, Long> addTempItemMap = new HashMap<>(addItemMap);
-        Iterator<Map.Entry<Integer, Long>> it = addTempItemMap.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Integer, Long> next = it.next();
-            int itemId = next.getKey();
+        List<Item> itemList = new ArrayList<>();
+        for (Item item : addItemList) {
+            int itemId = item.getId();
             ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
             if (itemCfg == null) {
-                it.remove();
                 continue;
             }
             if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
-                addGold += Math.abs(next.getValue());
-                it.remove();
+                addGold += Math.abs(item.getCount());
                 continue;
             }
             if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
-                addDiamond += Math.abs(next.getValue());
-                it.remove();
+                addDiamond += Math.abs(item.getCount());
+                continue;
             }
+            itemList.add(item);
         }
 
         if (addGold > 0 || addDiamond > 0) {
-            CommonResult<Player> goldAndDiamond = corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, null);
+            CommonResult<Player> goldAndDiamond = corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond,
+                addType, true, null);
             if (!goldAndDiamond.success()) {
                 result.code = goldAndDiamond.code;
                 return result;
             }
-            changeCurrencyAction(playerId, goldAndDiamond);
+            if (goldAndDiamond.success()) {
+                updateSessionPlayer(goldAndDiamond.data);
+            }
         }
 
-        if (addTempItemMap.isEmpty()) {
+        if (itemList.isEmpty()) {
             result.code = Code.SUCCESS;
             return result;
         }
@@ -105,14 +121,14 @@ public class PlayerPackService {
                 playerPack = new PlayerPack();
             }
 
-            for (Map.Entry<Integer, Long> en : addTempItemMap.entrySet()) {
-                int itemId = en.getKey();
+            for (Item item : itemList) {
+                int itemId = item.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
                 if (itemCfg == null) {
                     continue;
                 }
 
-                playerPack.addItem(itemId, en.getValue(), itemCfg.getProp());
+                playerPack.addItem(itemId, item.getCount(), itemCfg.getProp());
             }
 
             redisTemplate.opsForHash().put(tableName, playerId, playerPack);
@@ -123,58 +139,21 @@ public class PlayerPackService {
             redisLock.unlock(key);
         }
         if (result.success()) {
+            Map<Integer, Long> addTempItemMap =
+                itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getCount()), HashMap::putAll);
             coreLogger.addItems(playerId, addTempItemMap, addType);
         }
         return result;
     }
 
-    /**
-     * 添加道具
-     *
-     * @param playerId
-     * @param id
-     * @param count
-     * @return
-     */
-    public CommonResult<Void> addItem(long playerId, int id, long count, String addType) {
-        CommonResult<Void> result = new CommonResult<>(Code.FAIL);
-        ItemCfg addItemCfg = GameDataManager.getItemCfg(id);
-        //根据不同道具做不同处理
-        if (addItemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
-            CommonResult<Player> addResult = corePlayerService.addGold(playerId, count, addType);
-            result.code = addResult.code;
-            changeCurrencyAction(playerId, addResult);
-            return result;
-        } else if (addItemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
-            CommonResult<Player> addResult = corePlayerService.addDiamond(playerId, count, addType);
-            result.code = addResult.code;
-            changeCurrencyAction(playerId, addResult);
-            return result;
+    private void updateSessionPlayer(@Nullable Player newlyPlayer) {
+        if (newlyPlayer == null) {
+            return;
         }
-
-        String key = getLockKey(playerId);
-        int max = addItemCfg.getProp();
-
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-        try {
-            PlayerPack playerPack = getFromAllDB(playerId);
-            if (playerPack == null) {
-                playerPack = new PlayerPack();
-            }
-
-            playerPack.addItem(id, count, max);
-
-            redisTemplate.opsForHash().put(tableName, playerId, playerPack);
-            result.code = Code.SUCCESS;
-        } catch (Exception e) {
-            log.error("添加道具，保存 playerPack 失败 playerId={}", playerId, e);
-        } finally {
-            redisLock.unlock(key);
+        PFSession session = clusterSystem.getSession(newlyPlayer.getId());
+        if (Objects.nonNull(session) && session.getReference() instanceof PlayerController playerController) {
+            playerController.setPlayer(newlyPlayer);
         }
-        if (result.success()) {
-            coreLogger.addItem(playerId, id, count, addType);
-        }
-        return result;
     }
 
     /**
@@ -185,157 +164,48 @@ public class PlayerPackService {
      * @return 最新的背包结果
      */
     public CommonResult<Void> removeItem(long playerId, Item remove, String addType) {
-        return removeItem(playerId, remove.getId(), remove.getCount(), null);
+        return removeItem(playerId, remove.getId(), remove.getCount(), addType);
     }
 
     /**
      * 移除道具
-     *
-     * @param playerId
-     * @param id
-     * @param count
-     * @return
      */
     public CommonResult<Void> removeItem(long playerId, int id, long count, String addType) {
-        CommonResult<Void> result = new CommonResult<>(Code.FAIL);
-
-        ItemCfg itemCfg = GameDataManager.getItemCfg(id);
-        if (itemCfg == null) {
-            result.code = Code.NOT_FOUND;
-            return result;
-        }
-
-        if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {  //消耗金币
-            CommonResult<Player> removeResult = corePlayerService.deductGold(playerId, count, addType);
-            result.code = removeResult.code;
-            changeCurrencyAction(playerId, removeResult);
-            return result;
-        } else if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {  //消耗钻石
-            CommonResult<Player> removeResult = corePlayerService.deductDiamond(playerId, count, addType);
-            result.code = removeResult.code;
-            changeCurrencyAction(playerId, removeResult);
-            return result;
-        }
-
-        String key = getLockKey(playerId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-        try {
-            PlayerPack playerPack = getFromAllDB(playerId);
-            if (playerPack == null) {
-                result.code = Code.NOT_FOUND;
-                return result;
-            }
-
-            CommonResult<Long> removeResult = playerPack.removeItem(id, count);
-            if (!removeResult.success()) {
-                result.code = removeResult.code;
-                return result;
-            }
-
-            redisTemplate.opsForHash().put(tableName, playerId, playerPack);
-            result.code = Code.SUCCESS;
-            return result;
-        } catch (Exception e) {
-            log.error("移除道具，保存 playerPack 失败 playerId={}", playerId, e);
-        } finally {
-            redisLock.unlock(key);
-        }
-        return result;
+        return removeItem(playerId, 0, id, count, addType);
     }
-
 
     /**
      * 移除道具
-     *
-     * @param playerId
-     * @param id
-     * @param count
-     * @return
      */
     public CommonResult<Void> removeItem(long playerId, int girdId, int id, long count, String addType) {
-        CommonResult<Void> result = new CommonResult<>(Code.FAIL);
-
-        ItemCfg itemCfg = GameDataManager.getItemCfg(id);
-        if (itemCfg == null) {
-            result.code = Code.NOT_FOUND;
-            return result;
-        }
-
-        if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {  //消耗金币
-            CommonResult<Player> removeResult = corePlayerService.deductGold(playerId, count, addType);
-            result.code = removeResult.code;
-            changeCurrencyAction(playerId, removeResult);
-            return result;
-        } else if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {  //消耗钻石
-            CommonResult<Player> removeResult = corePlayerService.deductDiamond(playerId, count, addType);
-            result.code = removeResult.code;
-            changeCurrencyAction(playerId, removeResult);
-            return result;
-        }
-
-        String key = getLockKey(playerId);
-        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-        try {
-            PlayerPack playerPack = getFromAllDB(playerId);
-            if (playerPack == null) {
-                result.code = Code.NOT_FOUND;
-                return result;
-            }
-
-            CommonResult<Long> removeResult = playerPack.removeItem(girdId, id, count);
-            if (!removeResult.success()) {
-                result.code = removeResult.code;
-                return result;
-            }
-
-            redisTemplate.opsForHash().put(tableName, playerId, playerPack);
-            result.code = Code.SUCCESS;
-            return result;
-        } catch (Exception e) {
-            log.error("移除格子道具，保存 playerPack 失败 playerId={}", playerId, e);
-        } finally {
-            redisLock.unlock(key);
-        }
-        return result;
-    }
-
-
-    private void changeCurrencyAction(long playerId, CommonResult<Player> result) {
-        if (result.success()) {
-            if (Objects.nonNull(result.data)) {
-                PFSession session = clusterSystem.getSession(playerId);
-                if (Objects.nonNull(session) && session.getReference() instanceof PlayerController playerController) {
-                    playerController.setPlayer(result.data);
-                }
-            }
-        }
+        Player player = corePlayerService.get(playerId);
+        return removeItem(player, Collections.singletonList(new Item(girdId, id, count)), addType);
     }
 
     /**
      * 移除道具
      *
      * @param player 玩家信息
-     * @return
      */
     public CommonResult<Void> removeItems(Player player, Map<Integer, Long> removeItemMap, String addType) {
-        CommonResult<Player> result = removeItemsAction(player, removeItemMap, addType);
-        changeCurrencyAction(player.getId(), result);
-        return result.getVoid();
+        List<Item> itemList = new ArrayList<>();
+        for (Map.Entry<Integer, Long> entry : removeItemMap.entrySet()) {
+            itemList.add(new Item(entry.getKey(), entry.getValue()));
+        }
+        return removeItem(player, itemList, addType);
     }
 
     /**
      * 移除道具
      *
      * @param player 玩家信息
-     * @return
      */
-    public CommonResult<Player> removeItemsAction(Player player, Map<Integer, Long> removeItemMap, String addType) {
-        CommonResult<Player> result = new CommonResult<>(Code.NOT_ENOUGH_ITEM);
-        boolean checked = checkHasItems(player, removeItemMap);
+    public CommonResult<Void> removeItem(Player player, List<Item> removeItemList, String addType) {
+        CommonResult<Void> result = new CommonResult<>(Code.NOT_ENOUGH_ITEM);
+        boolean checked = checkHasItems(player, removeItemList);
         if (!checked) {
             return result;
         }
-        HashMap<Integer, Long> removeTempItemMap = new HashMap<>(removeItemMap);
         long deductGoldV = 0;
         long deductDiamondV = 0;
         long playerId = player.getId();
@@ -348,64 +218,70 @@ public class PlayerPackService {
                 return result;
             }
             //检查道具
-            if (!playerPack.checkHasItems(removeItemMap)) {
+            if (!playerPack.checkHasItems(removeItemList)) {
                 result.code = Code.NOT_ENOUGH_ITEM;
                 return result;
             }
-            Iterator<Map.Entry<Integer, Long>> it = removeTempItemMap.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<Integer, Long> next = it.next();
-                int itemId = next.getKey();
+            List<Item> packItemList = new ArrayList<>();
+            for (Item item : removeItemList) {
+                int itemId = item.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
                 if (itemCfg == null) {
-                    it.remove();
                     log.debug("移除道具失败，未找到配置 playerId = {},itemId = {}", playerId, itemId);
-                    continue;
-                }
-                //累加扣除金币
-                if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
-                    deductGoldV += Math.abs(next.getValue());
-                    it.remove();
                     continue;
                 }
                 //扣除钻石
                 if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
-                    deductDiamondV += Math.abs(next.getValue());
-                    it.remove();
+                    deductDiamondV += Math.abs(item.getCount());
+                    continue;
                 }
-            }
-            //扣除金币和钻石
-            if (deductGoldV > 0 || deductDiamondV > 0) {
-                CommonResult<Player> removeResult = corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
-                if (!removeResult.success()) {
-                    result.code = removeResult.code;
-                    return result;
+                //累加扣除金币
+                if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
+                    deductGoldV += Math.abs(item.getCount());
+                    continue;
                 }
-                result.data = removeResult.data;
+                packItemList.add(item);
             }
 
-            if (removeTempItemMap.isEmpty()) {
-                result.code = Code.SUCCESS;
-                return result;
-            }
-
-            for (Map.Entry<Integer, Long> entry : removeTempItemMap.entrySet()) {
-                Integer id = entry.getKey();
-                Long count = entry.getValue();
+            for (Item item : packItemList) {
+                int id = item.getId();
+                long count = item.getCount();
+                Integer gridId = item.getGridId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(id);
                 if (itemCfg == null) {
                     result.code = Code.NOT_FOUND;
                     return result;
                 }
-                CommonResult<Long> removeResult = playerPack.removeItem(id, count);
+                CommonResult<Long> removeResult;
+                if (gridId == null) {
+                    removeResult = playerPack.removeItem(id, count);
+                } else {
+                    removeResult = playerPack.removeItem(gridId, id, count);
+                }
                 if (!removeResult.success()) {
                     result.code = removeResult.code;
                     return result;
                 }
             }
-
+            Player newlyPlayer = null;
+            //扣除金币和钻石
+            if (deductGoldV > 0 || deductDiamondV > 0) {
+                CommonResult<Player> removeResult =
+                    corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
+                if (!removeResult.success()) {
+                    result.code = removeResult.code;
+                    return result;
+                }
+                newlyPlayer = removeResult.data;
+            }
+            if (packItemList.isEmpty()) {
+                result.code = Code.SUCCESS;
+                return result;
+            }
             redisTemplate.opsForHash().put(tableName, playerId, playerPack);
             result.code = Code.SUCCESS;
+            // 更新playerController中的player
+            updateSessionPlayer(newlyPlayer);
             return result;
         } catch (Exception e) {
             log.error("移除道具，保存 playerPack 失败 playerId={}", playerId, e);
@@ -414,7 +290,6 @@ public class PlayerPackService {
         }
         return result;
     }
-
 
     /**
      * 检查是否拥有道具
@@ -485,7 +360,8 @@ public class PlayerPackService {
      * @param useItemId
      * @return
      */
-    public CommonResult<Void> useItem(long playerId, int girdId, int useItemId, long useItemCount, Map<Integer, Long> addItemsMap,
+    public CommonResult<Void> useItem(long playerId, int girdId, int useItemId, long useItemCount,
+                                      Map<Integer, Long> addItemsMap,
                                       String addType) {
         CommonResult<Void> result = new CommonResult<>(Code.FAIL);
 
