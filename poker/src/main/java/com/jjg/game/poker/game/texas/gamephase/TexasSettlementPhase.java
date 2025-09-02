@@ -54,6 +54,10 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
 
     @Override
     public int getPhaseRunTime() {
+        //计算边池
+        if (gameController instanceof TexasGameController controller && controller.hasAllIn()) {
+            gameDataVo.setPool(TexasGameController.buildPots(gameDataVo));
+        }
         //是否需要手筹码的时间
         int fixChips = gameDataVo.getMaxBetValue() > 0 ? FIX_CHIPS : 0;
         //全all 计算需要增加的时间
@@ -67,9 +71,11 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                     addTimes += ADD_CARDS;
                 }
             }
-            return super.getPhaseRunTime() + fixChips + TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) * addTimes;
+            return super.getPhaseRunTime() + fixChips +
+                    TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) * addTimes
+                    + TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SIDE_POOL) * gameDataVo.getPool().size();
         }
-        return super.getPhaseRunTime() + fixChips;
+        return super.getPhaseRunTime() + fixChips + TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SIDE_POOL) * gameDataVo.getPool().size();
     }
 
     @Override
@@ -77,7 +83,6 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         super.phaseDoAction();
         try {
             if (gameController instanceof TexasGameController controller) {
-                gameDataVo.setPool(TexasGameController.buildPots(gameDataVo));
                 switch (gameDataVo.getSettlement()) {
                     case DISCARD_SETTLEMENT -> settlementByOnePlayer(controller);
                     case ALL_SETTLEMENT -> settlementByAllIn(controller);
