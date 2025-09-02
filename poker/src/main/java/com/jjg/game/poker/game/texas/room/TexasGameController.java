@@ -275,6 +275,12 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         return info.getPlayerId() != playerId || info.isOver() || info.getOperationType() != PokerConstant.PlayerOperation.NONE;
     }
 
+    public boolean hasAllIn() {
+        return gameDataVo.getPlayerSeatInfoList()
+                .stream()
+                .filter(playerSeatInfo -> !playerSeatInfo.isDelState())
+                .anyMatch(info -> info.getOperationType() == PokerConstant.PlayerOperation.ALL_IN);
+    }
 
     /**
      * 开启下一轮还是进行结算
@@ -306,7 +312,9 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                 addPokerPhaseTimer(new TexasSettlementPhase(this));
                 return;
             }
-            gameDataVo.setPool(buildPots(gameDataVo));
+            if (hasAllIn()) {
+                gameDataVo.setPool(buildPots(gameDataVo));
+            }
             //下一轮
             gameDataVo.nextRound();
             //添加记录

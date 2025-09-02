@@ -60,6 +60,10 @@ public enum PokerPhase {
      * 接牌
      */
     PICK_UP_CARDS(12),
+    /**
+     * 边池结算
+     */
+    SIDE_POOL(13),
     ;
     private final int value;
 
