@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author 11
@@ -98,7 +97,7 @@ public class PlayerPackService {
 
         if (addGold > 0 || addDiamond > 0) {
             CommonResult<Player> goldAndDiamond = corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond,
-                addType, true, null);
+                    addType, true, null);
             if (!goldAndDiamond.success()) {
                 result.code = goldAndDiamond.code;
                 return result;
@@ -140,7 +139,7 @@ public class PlayerPackService {
         }
         if (result.success()) {
             Map<Integer, Long> addTempItemMap =
-                itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getCount()), HashMap::putAll);
+                    itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getCount()), HashMap::putAll);
             coreLogger.addItems(playerId, addTempItemMap, addType);
         }
         return result;
@@ -212,11 +211,6 @@ public class PlayerPackService {
         String key = getLockKey(playerId);
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         try {
-            PlayerPack playerPack = getFromAllDB(playerId);
-            if (playerPack == null) {
-                result.code = Code.NOT_FOUND;
-                return result;
-            }
             List<Item> packItemList = new ArrayList<>();
             for (Item item : removeItemList) {
                 int itemId = item.getId();
@@ -237,7 +231,15 @@ public class PlayerPackService {
                 }
                 packItemList.add(item);
             }
-
+            if (packItemList.isEmpty()) {
+                result.code = Code.SUCCESS;
+                return result;
+            }
+            PlayerPack playerPack = getFromAllDB(playerId);
+            if (playerPack == null) {
+                result.code = Code.NOT_FOUND;
+                return result;
+            }
             //检查道具
             if (!playerPack.checkHasItems(packItemList)) {
                 result.code = Code.NOT_ENOUGH_ITEM;
@@ -268,7 +270,7 @@ public class PlayerPackService {
             //扣除金币和钻石
             if (deductGoldV > 0 || deductDiamondV > 0) {
                 CommonResult<Player> removeResult =
-                    corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
+                        corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
                 if (!removeResult.success()) {
                     result.code = removeResult.code;
                     return result;
