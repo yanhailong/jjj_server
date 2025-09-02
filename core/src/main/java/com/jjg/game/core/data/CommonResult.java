@@ -25,4 +25,8 @@ public class CommonResult<T>{
     public boolean success(){
         return this.code == Code.SUCCESS;
     }
+
+    public CommonResult<Void> getVoid(){
+        return new CommonResult<>(this.code);
+    }
 }

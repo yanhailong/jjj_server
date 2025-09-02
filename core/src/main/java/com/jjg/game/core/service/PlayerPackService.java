@@ -72,7 +72,6 @@ public class PlayerPackService {
                 it.remove();
                 continue;
             }
-
             if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
                 addGold += Math.abs(next.getValue());
                 it.remove();
@@ -315,68 +314,31 @@ public class PlayerPackService {
     /**
      * 移除道具
      *
-     * @param player 玩家
+     * @param player 玩家信息
      * @return
      */
     public CommonResult<Void> removeItems(Player player, Map<Integer, Long> removeItemMap, String addType) {
-        boolean checked = checkHasItems(player, removeItemMap);
-        if (!checked) {
-            return new CommonResult<>(Code.NOT_ENOUGH_ITEM);
-        }
-        return removeItems(player.getId(), removeItemMap, addType);
+        CommonResult<Player> result = removeItemsAction(player, removeItemMap, addType);
+        changeCurrencyAction(player.getId(), result);
+        return result.getVoid();
     }
 
     /**
      * 移除道具
      *
-     * @param playerId
+     * @param player 玩家信息
      * @return
      */
-    private CommonResult<Void> removeItems(long playerId, Map<Integer, Long> removeItemMap, String addType) {
-        CommonResult<Void> result = new CommonResult<>(Code.FAIL);
-        HashMap<Integer, Long> removeTempItemMap = new HashMap<>(removeItemMap);
-        Iterator<Map.Entry<Integer, Long>> it = removeTempItemMap.entrySet().iterator();
-        long deductGoldV = 0;
-        long deductDiamondV = 0;
-        while (it.hasNext()) {
-            Map.Entry<Integer, Long> next = it.next();
-            int itemId = next.getKey();
-            ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
-            if (itemCfg == null) {
-                it.remove();
-                log.debug("移除道具失败，未找到配置 playerId = {},itemId = {}", playerId, itemId);
-                continue;
-            }
-
-            //累加扣除金币
-            if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
-                deductGoldV += Math.abs(next.getValue());
-                it.remove();
-                continue;
-            }
-
-            //扣除钻石
-            if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
-                deductDiamondV += Math.abs(next.getValue());
-                it.remove();
-            }
-        }
-
-        //扣除金币和钻石
-        if (deductGoldV > 0 || deductDiamondV > 0) {
-            CommonResult<Player> removeResult = corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
-            if (!removeResult.success()) {
-                result.code = removeResult.code;
-                return result;
-            }
-            changeCurrencyAction(playerId, removeResult);
-        }
-
-        if (removeTempItemMap.isEmpty()) {
-            result.code = Code.SUCCESS;
+    public CommonResult<Player> removeItemsAction(Player player, Map<Integer, Long> removeItemMap, String addType) {
+        CommonResult<Player> result = new CommonResult<>(Code.NOT_ENOUGH_ITEM);
+        boolean checked = checkHasItems(player, removeItemMap);
+        if (!checked) {
             return result;
         }
-
+        HashMap<Integer, Long> removeTempItemMap = new HashMap<>(removeItemMap);
+        long deductGoldV = 0;
+        long deductDiamondV = 0;
+        long playerId = player.getId();
         String key = getLockKey(playerId);
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         try {
@@ -385,6 +347,48 @@ public class PlayerPackService {
                 result.code = Code.NOT_FOUND;
                 return result;
             }
+            //检查道具
+            if (!playerPack.checkHasItems(removeItemMap)) {
+                result.code = Code.NOT_ENOUGH_ITEM;
+                return result;
+            }
+            Iterator<Map.Entry<Integer, Long>> it = removeTempItemMap.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<Integer, Long> next = it.next();
+                int itemId = next.getKey();
+                ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
+                if (itemCfg == null) {
+                    it.remove();
+                    log.debug("移除道具失败，未找到配置 playerId = {},itemId = {}", playerId, itemId);
+                    continue;
+                }
+                //累加扣除金币
+                if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
+                    deductGoldV += Math.abs(next.getValue());
+                    it.remove();
+                    continue;
+                }
+                //扣除钻石
+                if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
+                    deductDiamondV += Math.abs(next.getValue());
+                    it.remove();
+                }
+            }
+            //扣除金币和钻石
+            if (deductGoldV > 0 || deductDiamondV > 0) {
+                CommonResult<Player> removeResult = corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
+                if (!removeResult.success()) {
+                    result.code = removeResult.code;
+                    return result;
+                }
+                result.data = removeResult.data;
+            }
+
+            if (removeTempItemMap.isEmpty()) {
+                result.code = Code.SUCCESS;
+                return result;
+            }
+
             for (Map.Entry<Integer, Long> entry : removeTempItemMap.entrySet()) {
                 Integer id = entry.getKey();
                 Long count = entry.getValue();

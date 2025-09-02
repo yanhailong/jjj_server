@@ -274,4 +274,20 @@ public class PlayerPack {
         }
         return true;
     }
+
+    public boolean checkHasItems(Map<Integer, Long> itemMap) {
+        if (Objects.isNull(itemMap) || itemMap.isEmpty()) {
+            return true;
+        }
+        if (itemIndexMap == null || itemIndexMap.isEmpty()) {
+            return false;
+        }
+        for (Map.Entry<Integer, Long> item : itemMap.entrySet()) {
+            long count = getItemCount(item.getKey());
+            if (count < item.getValue()) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
