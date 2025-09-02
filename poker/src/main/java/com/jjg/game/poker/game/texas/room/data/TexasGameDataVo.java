@@ -165,7 +165,7 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
     }
 
     public List<Long> getPotValueList() {
-        if (CollectionUtil.isNotEmpty(pool)) {
+        if (CollectionUtil.isEmpty(pool)) {
             return null;
         }
         return pool.stream().map(Pot::getAmount)
