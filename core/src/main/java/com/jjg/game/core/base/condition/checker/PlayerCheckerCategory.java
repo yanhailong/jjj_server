@@ -1,6 +1,7 @@
 package com.jjg.game.core.base.condition.checker;
 
 import com.jjg.game.core.base.condition.CheckerParam;
+import com.jjg.game.core.base.condition.EConditionComparator;
 import com.jjg.game.core.base.condition.IPlayerConditionChecker;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.data.Player;
@@ -28,7 +29,7 @@ public class PlayerCheckerCategory {
             } else {
                 targetLevel = (int) checkerParam.getTargetParam();
             }
-            return checkerParam.getComparator().intComparate(player.getLevel(), targetLevel);
+            return getConditionComparator(checkerParam).intComparate(player.getLevel(), targetLevel);
         }
 
         @Override
@@ -39,6 +40,11 @@ public class PlayerCheckerCategory {
         @Override
         public String bindConditionCheckParam() {
             return EGameEventType.PLAYER_LEVEL.getBindProperties();
+        }
+
+        @Override
+        public EConditionComparator defaultConditionComparator() {
+            return EConditionComparator.GTE;
         }
     }
 }

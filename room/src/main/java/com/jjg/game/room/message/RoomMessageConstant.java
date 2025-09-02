@@ -47,5 +47,7 @@ public interface RoomMessageConstant {
         int NOTIFY_GAME_PAUSE_ON_NEW_ROUND = BASE_ROOM_MSG_PREFIX | 0x86;
         // 返回庄家预付金币修改结果
         int RES_EDIT_BANKER_PREDICATE_GOLD = BASE_ROOM_MSG_PREFIX | 0x87;
+        // 通知房间庄家变化
+        int NOTIFY_ROOM_BANKER_CHANGE = BASE_ROOM_MSG_PREFIX | 0x88;
     }
 }

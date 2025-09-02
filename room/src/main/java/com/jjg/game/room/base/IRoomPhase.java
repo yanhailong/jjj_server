@@ -37,13 +37,6 @@ public interface IRoomPhase {
     void phaseFinish();
 
     /**
-     * 获取当前阶段的最大执行时间, 默认30秒，超出时间则报逻辑卡死异常
-     */
-    default int getMaxExecuteTime() {
-        return 30_000;
-    }
-
-    /**
      * 每个阶段运行的时间，从配置读取或者立即执行(<=0时立即执行)
      */
     int getPhaseRunTime();

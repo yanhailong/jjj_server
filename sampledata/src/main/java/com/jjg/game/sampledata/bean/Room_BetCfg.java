@@ -54,6 +54,8 @@ public class Room_BetCfg extends RoomCfg {
   protected List<List<Integer>> robot_num;
   /** 倍场ID */
   protected int roomID;
+  /** 交易项目ID */
+  protected int transactionItemId;
 
   /** 返回系统抽水万分比 */
   public int getEffectiveRatio() {
@@ -143,6 +145,11 @@ public class Room_BetCfg extends RoomCfg {
   /** 返回倍场ID */
   public int getRoomID() {
     return roomID;
+  }
+
+  /** 返回交易项目ID */
+  public int getTransactionItemId() {
+    return transactionItemId;
   }
 
   @Override

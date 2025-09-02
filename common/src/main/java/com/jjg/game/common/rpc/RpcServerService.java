@@ -90,21 +90,21 @@ public class RpcServerService {
                     Param param = parameterTypes[i].getAnnotation(Param.class);
                     paramsName[i] = param.value();
                 } else {
-                    paramsName[i] = "arg[" + i + "]";
+                    paramsName[i] = "arg" + i;
                 }
                 context.setVariable(paramsName[i], args[i]);
                 i++;
             }
             Method method = provider.getClass().getMethod(req.serviceMethodName, parameterTypes);
             RpcCallSetting rpcCallSettingAnno = method.getAnnotation(RpcCallSetting.class);
-            Integer processorId = Integer.MIN_VALUE;
+            Number processorId = Long.MIN_VALUE;
             if (rpcCallSettingAnno != null) {
                 processorId =
-                    parser.parseExpression(rpcCallSettingAnno.processorModKey()).getValue(context, Integer.class);
+                    parser.parseExpression(rpcCallSettingAnno.processorModKey()).getValue(context, Number.class);
             }
             // 如果需要服务端使用指定的线程执行方法
-            if (processorId != null && processorId > 0) {
-                BaseFuncProcessor processor = processorExecutors.getProcessorById(processorId);
+            if (processorId != null && processorId.longValue() > 0) {
+                BaseFuncProcessor processor = processorExecutors.getProcessorById(processorId.longValue());
                 processor.executeHandler(new BaseHandler<>() {
                     @Override
                     public void action() throws Exception {
