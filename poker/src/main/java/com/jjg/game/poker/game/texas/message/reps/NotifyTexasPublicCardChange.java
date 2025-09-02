@@ -5,7 +5,10 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
+import com.jjg.game.poker.game.texas.data.Pot;
 import com.jjg.game.poker.game.texas.message.bean.TexasRoundInfo;
+
+import java.util.List;
 
 /**
  * @author lm
@@ -19,6 +22,8 @@ public class NotifyTexasPublicCardChange extends AbstractNotice {
     public long playerId;
     @ProtoDesc("超时时间")
     public long overTime;
+    @ProtoDesc("边池信息")
+    public List<Long> potList;
     @ProtoDesc("轮次信息")
     public TexasRoundInfo roundInfo;
 

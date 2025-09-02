@@ -21,4 +21,5 @@ public class TexasSettlementPlayerInfo {
     public int cardType;
     @ProtoDesc("手牌")
     public List<Integer> handCards;
+
 }

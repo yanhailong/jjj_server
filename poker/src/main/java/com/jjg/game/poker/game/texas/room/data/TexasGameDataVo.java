@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.texas.room.data;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.texas.data.Pot;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 德州扑克
@@ -160,6 +162,14 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
 
     public void setPool(List<Pot> pool) {
         this.pool = pool;
+    }
+
+    public List<Long> getPotValueList() {
+        if (CollectionUtil.isNotEmpty(pool)) {
+            return null;
+        }
+        return pool.stream().map(Pot::getAmount)
+                .collect(Collectors.toList());
     }
 
     public int getSettlement() {
