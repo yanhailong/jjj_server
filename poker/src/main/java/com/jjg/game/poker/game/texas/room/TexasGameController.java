@@ -204,14 +204,6 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         }
     }
 
-    public boolean hasAllIn() {
-        return gameDataVo.getPlayerSeatInfoList()
-                .stream()
-                .filter(playerSeatInfo -> !playerSeatInfo.isDelState())
-                .anyMatch(info -> info.getOperationType() == PokerConstant.PlayerOperation.ALL_IN);
-    }
-
-
     public boolean isAllAllIn(long playerId) {
         for (PlayerSeatInfo seatInfo : gameDataVo.getPlayerSeatInfoList()) {
             if (seatInfo.isDelState()) {

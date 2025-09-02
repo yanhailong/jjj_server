@@ -58,18 +58,19 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
             Set<Long> playerIds = gameDataVo.getSeatInfo().values()
                     .stream()
                     .map(SeatInfo::getPlayerId)
-                    .filter(playerId -> {
-                        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-                        return Objects.nonNull(gamePlayer) && gamePlayer.getPokerPlayerGameData().isInit();
-                    })
+                    .filter(playerId -> !playerNotInit(playerId))
                     .collect(Collectors.toSet());
             message.setPlayerIds(playerIds);
             message.setToAll(false);
             roomController.broadcastToPlayers(message);
             return;
         }
-        roomController.broadcastToPlayers(message);
-
+        Set<Long> newSet = message.getPlayerIds().stream()
+                .filter(playerId -> !playerNotInit(playerId))
+                .collect(Collectors.toSet());
+        if (!newSet.isEmpty()) {
+            roomController.broadcastToPlayers(message);
+        }
     }
 
     public void genPlayerSeatInfoList(Map<Integer, SeatInfo> seatInfoMap, List<PlayerSeatInfo> playerSeatInfoList) {

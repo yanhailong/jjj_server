@@ -267,9 +267,6 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         gameDataVo.setNotifyTexasSettlementInfo(normalSettlementInfo);
         //通知
         for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
-            if (controller.playerNotInit(seatInfo.getPlayerId())) {
-                continue;
-            }
             List<TexasRoundInfo> orDefault = playerRoundInfos.getOrDefault(seatInfo.getPlayerId(), defaultInfo);
             NotifyTexasAllInSettlementInfo inSettlementInfo = TexasBuilder.getNotifyAllInSettlementInfo(normalSettlementInfo, orDefault);
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(seatInfo.getPlayerId(), inSettlementInfo));
