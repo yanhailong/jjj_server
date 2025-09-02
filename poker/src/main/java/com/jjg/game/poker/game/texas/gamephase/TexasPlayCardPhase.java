@@ -51,7 +51,7 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
             //位置信息
             TreeMap<Integer, SeatInfo> seatInfo = gameDataVo.getSeatInfo();
             //定庄 取比他小的位置 和比他大的位置各一个
-            int buttonSeatId = getButtonSeatId(seatInfo);
+            int buttonSeatId = getButtonSeatId(seatInfo, controller);
             gameDataVo.setDealerSeatId(buttonSeatId);
             // 确定执行顺序
             List<PlayerSeatInfo> playerSeatInfo = gameDataVo.getPlayerSeatInfoList();
@@ -162,11 +162,15 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
     /**
      * 获取庄家的位置
      */
-    private int getButtonSeatId(TreeMap<Integer, SeatInfo> seatInfo) {
+    private int getButtonSeatId(TreeMap<Integer, SeatInfo> seatInfo, TexasGameController controller) {
         int less = -1;
         int more = -1;
         for (Map.Entry<Integer, SeatInfo> entry : seatInfo.entrySet()) {
-            if (entry.getKey() > gameDataVo.getDealerSeatId() && entry.getValue().isSeatDown()) {
+            SeatInfo info = entry.getValue();
+            if (controller.playerNotInit(info.getPlayerId())) {
+                continue;
+            }
+            if (entry.getKey() > gameDataVo.getDealerSeatId() && info.isSeatDown()) {
                 more = entry.getKey();
                 break;
             } else if (less == -1) {
@@ -176,4 +180,5 @@ public class TexasPlayCardPhase extends BasePlayCardPhase<TexasGameDataVo> {
         //确定新的庄家位置
         return more == -1 ? less : more;
     }
+
 }

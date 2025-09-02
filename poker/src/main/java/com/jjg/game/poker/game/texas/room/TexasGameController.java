@@ -236,7 +236,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         int size = playerSeatInfoList.size();
         int dealerIndex = gameDataVo.getDealerIndex();
         if (size <= 3) {
-            return dealerIndex;
+            return Math.min(dealerIndex, playerSeatInfoList.size() - 1);
         }
         //庄家左侧第三个执行
         return (gameDataVo.getDealerIndex() + 3) % size;
