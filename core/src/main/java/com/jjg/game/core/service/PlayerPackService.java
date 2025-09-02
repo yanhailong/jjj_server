@@ -217,11 +217,6 @@ public class PlayerPackService {
                 result.code = Code.NOT_FOUND;
                 return result;
             }
-            //检查道具
-            if (!playerPack.checkHasItems(removeItemList)) {
-                result.code = Code.NOT_ENOUGH_ITEM;
-                return result;
-            }
             List<Item> packItemList = new ArrayList<>();
             for (Item item : removeItemList) {
                 int itemId = item.getId();
@@ -241,6 +236,12 @@ public class PlayerPackService {
                     continue;
                 }
                 packItemList.add(item);
+            }
+
+            //检查道具
+            if (!playerPack.checkHasItems(packItemList)) {
+                result.code = Code.NOT_ENOUGH_ITEM;
+                return result;
             }
 
             for (Item item : packItemList) {
