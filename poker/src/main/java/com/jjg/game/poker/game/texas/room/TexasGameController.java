@@ -182,6 +182,8 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         if (Objects.nonNull(totalPlayerBetInfo)) {
             totalPlayerBetInfo.betValue += betValue;
         }
+        gameDataVo.getPool().getFirst().addChips(betValue);
+        gameDataVo.getPool().getFirst().addEligiblePlayer(playerId);
         //通知
         NotifyTexasBet notifyTexasBet = new NotifyTexasBet();
         notifyTexasBet.betType = info.getOperationType();
