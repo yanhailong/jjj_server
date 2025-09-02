@@ -95,7 +95,7 @@ public class RpcClientService {
         }
         // 使用RpcContext中的请求参数
         if (rpcReqParameter != null) {
-            if (rpcReqParameter.getClusterClients().isEmpty()) {
+            if (!rpcReqParameter.getClusterClients().isEmpty()) {
                 clusterClients = rpcReqParameter.getClusterClients();
             }
             // 如果没有传节点，则向默认节点类型中的所有节点发送

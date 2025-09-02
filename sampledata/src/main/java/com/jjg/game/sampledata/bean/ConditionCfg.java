@@ -18,18 +18,18 @@ public class ConditionCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "condition";
 
-  /** 事件触发类型 */
+  /** 类型 */
   protected String TriggerEventType;
   /** 条件参数数量 */
   protected int conditionParameter;
   /** 关键参数 */
-  protected String conditionType;
+  protected List<String> conditionType;
   /** 条件不满足时多语言ID */
   protected int languageID;
   /** 关键参数格式 */
   protected String text;
 
-  /** 返回事件触发类型 */
+  /** 返回类型 */
   public String getTriggerEventType() {
     return TriggerEventType;
   }
@@ -40,7 +40,7 @@ public class ConditionCfg extends BaseCfgBean {
   }
 
   /** 返回关键参数 */
-  public String getConditionType() {
+  public List<String> getConditionType() {
     return conditionType;
   }
 

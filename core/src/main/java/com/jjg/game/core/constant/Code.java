@@ -75,6 +75,12 @@ public interface Code {
     int ROOM_CREATOR_CANT_BE_BANKER = 428;
     // 庄家金币不足以赔付
     int BANKER_GOLD_NOT_ENOUGH_TO_PAY = 429;
+    // 房间不能加入
+    int ROOM_CANT_JOIN = 430;
+    // 房间已满
+    int ROOM_FULL = 431;
+    // 黑名单
+    int BAN_CAUSE_BLACK_LIST = 432;
     // 服务器错误
     int EXCEPTION = 500;
 }

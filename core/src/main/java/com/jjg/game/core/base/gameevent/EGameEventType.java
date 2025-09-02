@@ -7,7 +7,7 @@ package com.jjg.game.core.base.gameevent;
  */
 public enum EGameEventType {
     // 玩家升级
-    PLAYER_LEVEL(true, "LevelId"),
+    PLAYER_LEVEL(true, "levelID"),
     ;
 
     // 事件是否由玩家产生

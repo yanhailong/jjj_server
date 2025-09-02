@@ -66,6 +66,8 @@ public class RoomCfg extends BaseCfgBean {
   protected List<List<Integer>> robot_num;
   /** 房间类型 */
   protected int roomID;
+  /** 交易项目ID */
+  protected int transactionItemId;
 
   /** 返回系统抽水 */
   public int getEffectiveRatio() {
@@ -185,6 +187,11 @@ public class RoomCfg extends BaseCfgBean {
   /** 返回房间类型 */
   public int getRoomID() {
     return roomID;
+  }
+
+  /** 返回交易项目ID */
+  public int getTransactionItemId() {
+    return transactionItemId;
   }
 
   @Override

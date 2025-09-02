@@ -20,6 +20,10 @@ public class ItemCfg extends BaseCfgBean {
 
   /** 自动激活的图鉴ID */
   protected int album;
+  /** 获得后是否使用并激活装扮和图鉴 */
+  protected int autoActivate;
+  /** 激活的装扮 */
+  protected int avatarID;
   /** 使用道具后获得道具 */
   protected Map<Integer,Long> getItem;
   /** 图标资源名 */
@@ -38,6 +42,16 @@ public class ItemCfg extends BaseCfgBean {
   /** 返回自动激活的图鉴ID */
   public int getAlbum() {
     return album;
+  }
+
+  /** 返回获得后是否使用并激活装扮和图鉴 */
+  public int getAutoActivate() {
+    return autoActivate;
+  }
+
+  /** 返回激活的装扮 */
+  public int getAvatarID() {
+    return avatarID;
   }
 
   /** 返回使用道具后获得道具 */

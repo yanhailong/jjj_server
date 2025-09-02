@@ -18,7 +18,7 @@ public interface GameEventListener {
     <T extends GameEvent> void handleEvent(T gameEvent);
 
     /**
-     * 需要监听的事件类型, 根据实际需要监听的类型写入，通过配置表配置或者手动配置，但需尽量避免写入无关事件类型
+     * 需要监听的事件类型, 根据实际需要监听的类型写入，通过配置表配置或者手动配置，需尽量避免写入无关事件类型
      *
      * @return 事件类型列表
      */

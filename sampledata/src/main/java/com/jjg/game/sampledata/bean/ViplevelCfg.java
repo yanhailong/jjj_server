@@ -31,7 +31,9 @@ public class ViplevelCfg extends BaseCfgBean {
   /** 等级奖励 */
   protected Map<Integer,Long> levelRewards;
   /** 特权功能 */
-  protected Map<Integer,Long> privilegedFunctions;
+  protected Map<Integer,Integer> privilegedFunctions;
+  /** 充值金额 */
+  protected long rechage;
   /** 充值金额转为经验万分比 */
   protected int recharge;
   /** 回退间隔_回退经验 */
@@ -74,8 +76,13 @@ public class ViplevelCfg extends BaseCfgBean {
   }
 
   /** 返回特权功能 */
-  public Map<Integer,Long> getPrivilegedFunctions() {
+  public Map<Integer,Integer> getPrivilegedFunctions() {
     return privilegedFunctions;
+  }
+
+  /** 返回充值金额 */
+  public long getRechage() {
+    return rechage;
   }
 
   /** 返回充值金额转为经验万分比 */
