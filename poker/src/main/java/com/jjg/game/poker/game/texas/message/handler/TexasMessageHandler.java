@@ -86,7 +86,7 @@ public class TexasMessageHandler {
                         }
                         boolean added = controller.addTempGoldOrOutTable(seatInfo, gamePlayer);
                         if (!added) {
-                            change.code = Code.NOT_ENOUGH;
+                            change.code = Code.TEXAS_NOT_ENOUGH;
                             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
                             return;
                         }
@@ -126,7 +126,7 @@ public class TexasMessageHandler {
                         return;
                     }
                     if (!controller.addTempGoldOrOutTable(seatInfo, gamePlayer)) {
-                        change.code = Code.NOT_ENOUGH;
+                        change.code = Code.TEXAS_NOT_ENOUGH;
                         controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
                         return;
                     }
