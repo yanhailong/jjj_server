@@ -358,7 +358,7 @@ public class HallService implements ConfigExcelChangeListener {
         }
         boolean has;
         if (StringUtils.isEmpty(type.getField())) {
-            has = VipCfgCache.hasSkin(player.getVipLevel(), type.getType(), id);
+            has = true;
         } else {
             has = playerAvatarDao.hasByType(playerId, type, id);
         }
