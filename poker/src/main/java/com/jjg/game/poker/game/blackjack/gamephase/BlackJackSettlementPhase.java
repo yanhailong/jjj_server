@@ -15,6 +15,7 @@ import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerSettlementInfo;
+import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
@@ -239,7 +240,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                 log.error("21点发奖找不到GamePlayer playerId:{} get:{} id:{}", playerId, get, gameDataVo.getId());
             }
             if (totalGet > 0 && Objects.nonNull(gamePlayer)) {
-                gamePlayer.setGold(gamePlayer.getGold() + totalGet);
+                gameController.addGold(playerId, totalGet, ERoomItemReason.GAME_SETTLEMENT);
             }
             blackJackSettlementInfo.getGold = get;
             blackJackSettlementInfo.win = get >= 0;

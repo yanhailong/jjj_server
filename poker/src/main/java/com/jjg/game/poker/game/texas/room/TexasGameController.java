@@ -526,7 +526,6 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     public void changePlayerGold(GamePlayer gamePlayer, long change) {
         if (change > 0) {
             addGold(gamePlayer.getId(), change, ERoomItemReason.GAME_SETTLEMENT);
-            gamePlayer.setGold(gamePlayer.getGold() + change);
             gameDataVo.getTempGold().merge(gamePlayer.getId(), change, Long::sum);
         } else {
             deductGold(gamePlayer.getId(), Math.abs(change), ERoomItemReason.GAME_BET);
