@@ -554,7 +554,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                 return false;
             }
         }
-        return false;
+        return true;
     }
 
     /**

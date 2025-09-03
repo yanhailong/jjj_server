@@ -631,7 +631,6 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
 
 
     private ResCasinoUpgradeMachine quickUpgrade(PlayerController playerController, ReqCasinoUpgradeMachine req, ResCasinoUpgradeMachine res, CasinoInfo casinoInfo) {
-        long playerId = playerController.playerId();
         long timeMillis = System.currentTimeMillis();
         Map<Long, CasinoMachineInfo> machineInfoData = casinoInfo.getMachineInfoData();
         if (Objects.isNull(machineInfoData)) {
@@ -830,4 +829,5 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     public int getOrder() {
         return 99;
     }
+
 }

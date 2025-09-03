@@ -132,7 +132,7 @@ public class CasinoBuilder {
         //需要的秒数
         long needS = needTime / 1000;
         long num = needS / reduceTimeConfig.getSecond() + (needS % reduceTimeConfig.getSecond() == 0 ? 0 : 1);
-        return new Item(reduceTimeConfig.getFirst().getId(),reduceTimeConfig.getFirst().getCount() * num);
+        return new Item(reduceTimeConfig.getFirst().getId(), reduceTimeConfig.getFirst().getCount() * num);
     }
 
     public static int getMachineState(CasinoMachineInfo casinoMachineInfo, long timeMillis) {
@@ -145,17 +145,17 @@ public class CasinoBuilder {
     }
 
     public static int getTotalNum(Map<Integer, Integer> casinoMaxProfitBonus, int base) {
-        Integer add = casinoMaxProfitBonus.getOrDefault(2, 0);
+        Integer add = casinoMaxProfitBonus.getOrDefault(12, 0);
         base += add;
-        Integer addRatio = casinoMaxProfitBonus.getOrDefault(12, 0);
+        Integer addRatio = casinoMaxProfitBonus.getOrDefault(2, 0);
         base = base * (10000 + addRatio) / 10000;
         return base;
     }
 
     public static int getInstantaneousNum(Map<Integer, Integer> casinoMaxProfitBonus, int base) {
-        Integer add = casinoMaxProfitBonus.getOrDefault(1, 0);
+        Integer add = casinoMaxProfitBonus.getOrDefault(11, 0);
         base += add;
-        Integer addRatio = casinoMaxProfitBonus.getOrDefault(11, 0);
+        Integer addRatio = casinoMaxProfitBonus.getOrDefault(1, 0);
         base = base * (10000 + addRatio) / 10000;
         return base;
     }
@@ -239,7 +239,7 @@ public class CasinoBuilder {
         Iterator<TimeNodeData> iterator = tempAreaAdd.iterator();
         while (iterator.hasNext()) {
             TimeNodeData next = iterator.next();
-            if (next.getEndTime() > 0 && next.getStartTime() < startTime && next.getEndTime() < startTime) {
+            if (next.getEndTime() > timeMillis) {
                 allInTime.add(next);
                 iterator.remove();
                 continue;
@@ -248,15 +248,21 @@ public class CasinoBuilder {
             timePeriod.add(Math.min(timeMillis, next.getEndTime()));
         }
         Map<Integer, Integer> base = new HashMap<>();
+        int baseEmployeesNum = 0;
         if (!allInTime.isEmpty()) {
             for (TimeNodeData timeNodeData : allInTime) {
+                int cfgId = timeNodeData.getConfigId();
+                if (timeNodeData.getStartTime() > startTime) {
+                    cfgId = timeNodeData.getLastLevelConfigId();
+                }
                 //机台
                 if (timeNodeData.getType() == 1) {
-                    BuildingFunctionCfg buildingFunctionCfg = GameDataManager.getBuildingFunctionCfg(timeNodeData.getConfigId());
+                    BuildingFunctionCfg buildingFunctionCfg = GameDataManager.getBuildingFunctionCfg(cfgId);
                     addBuffValue(buildingFunctionCfg.getBuffid(), base);
                 } else {
-                    DealerFunctionCfg dealerFunctionCfg = GameDataManager.getDealerFunctionCfg(timeNodeData.getConfigId());
+                    DealerFunctionCfg dealerFunctionCfg = GameDataManager.getDealerFunctionCfg(cfgId);
                     addBuffValue(dealerFunctionCfg.getBuffid(), base);
+                    baseEmployeesNum++;
                 }
             }
         }
@@ -276,15 +282,19 @@ public class CasinoBuilder {
                     break;
                 }
             }
-            casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, startPeriod, endPeriod);
+            BuildingFunctionCfg functionCfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(startPeriod));
+            casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, baseEmployeesNum, functionCfg.getNumEmployees(), startPeriod, endPeriod);
+            if (Objects.isNull(casinoMaxProfitBonus)) {
+                return totalNum;
+            }
             //总数量
-            int totalMaxNum = getTotalNum(casinoMaxProfitBonus, cfg.getSavenum());
+            int totalMaxNum = getTotalNum(casinoMaxProfitBonus, functionCfg.getSavenum());
             if (totalNum >= totalMaxNum) {
                 continue;
             }
             //时间
-            int intervalTime = cfg.getOutput().getFirst() * ONE_MINUTE_OF_MILLIS;
-            long period = endPeriod - startTime;
+            int intervalTime = functionCfg.getOutput().getFirst() * ONE_MINUTE_OF_MILLIS;
+            long period = endPeriod - startPeriod;
             long times = period / intervalTime;
             if (times == 0) {
                 continue;
@@ -313,8 +323,9 @@ public class CasinoBuilder {
         }
     }
 
-    public static Map<Integer, Integer> getCasinoMaxProfitBonus(List<TimeNodeData> data, Map<Integer, Integer> base, long startTime, long endTime) {
+    public static Map<Integer, Integer> getCasinoMaxProfitBonus(List<TimeNodeData> data, Map<Integer, Integer> base, int baseEmployment, int needEmployment, long startTime, long endTime) {
         Map<Integer, Integer> addMap = new HashMap<>(base);
+        int nowEmployment = baseEmployment;
         for (TimeNodeData nodeData : data) {
             if (nodeData.getType() == 2) {
                 //雇员
@@ -322,6 +333,7 @@ public class CasinoBuilder {
                     //包含
                     DealerFunctionCfg cfg = GameDataManager.getDealerFunctionCfg(nodeData.getConfigId());
                     addBuffValue(cfg.getBuffid(), addMap);
+                    nowEmployment++;
                 }
             } else {
                 //机台
@@ -332,6 +344,9 @@ public class CasinoBuilder {
                 BuildingFunctionCfg buildingFunctionCfg = GameDataManager.getBuildingFunctionCfg(id);
                 addBuffValue(buildingFunctionCfg.getBuffid(), addMap);
             }
+        }
+        if (nowEmployment < needEmployment) {
+            return null;
         }
         return addMap;
     }
