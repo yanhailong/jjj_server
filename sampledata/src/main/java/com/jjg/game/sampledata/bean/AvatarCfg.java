@@ -20,7 +20,7 @@ public class AvatarCfg extends BaseCfgBean {
 
   /** 资源描述 */
   protected int Dec;
-  /** 获得条件 */
+  /** 客户端展示获得VIP条件 */
   protected int VIPLevel;
   /** 资源名称 */
   protected int name;
@@ -34,7 +34,7 @@ public class AvatarCfg extends BaseCfgBean {
     return Dec;
   }
 
-  /** 返回获得条件 */
+  /** 返回客户端展示获得VIP条件 */
   public int getVIPLevel() {
     return VIPLevel;
   }

@@ -20,8 +20,6 @@ public class ViplevelCfg extends BaseCfgBean {
 
   /** 年奖励 */
   protected Map<Integer,Long> annualRewards;
-  /** 新解锁装扮 */
-  protected Map<Integer,Integer> avatarType;
   /** 生日奖励 */
   protected Map<Integer,Long> birthdayReward;
   /** 等级说明多语言ID */
@@ -38,6 +36,8 @@ public class ViplevelCfg extends BaseCfgBean {
   protected int recharge;
   /** 回退间隔_回退经验 */
   protected List<Integer> rollback;
+  /** 服务器解锁装扮 */
+  protected List<Integer> serverAvatarType;
   /** VIP等级 */
   protected int viplevel;
   /** 升级所需经验 */
@@ -48,11 +48,6 @@ public class ViplevelCfg extends BaseCfgBean {
   /** 返回年奖励 */
   public Map<Integer,Long> getAnnualRewards() {
     return annualRewards;
-  }
-
-  /** 返回新解锁装扮 */
-  public Map<Integer,Integer> getAvatarType() {
-    return avatarType;
   }
 
   /** 返回生日奖励 */
@@ -93,6 +88,11 @@ public class ViplevelCfg extends BaseCfgBean {
   /** 返回回退间隔_回退经验 */
   public List<Integer> getRollback() {
     return rollback;
+  }
+
+  /** 返回服务器解锁装扮 */
+  public List<Integer> getServerAvatarType() {
+    return serverAvatarType;
   }
 
   /** 返回VIP等级 */

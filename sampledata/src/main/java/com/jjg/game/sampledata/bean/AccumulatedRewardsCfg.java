@@ -6,30 +6,30 @@ import javax.annotation.processing.Generated;
 /**
  * 配置bean
  *
- * @excelName LoginRewards.xlsx
- * @sheetName DailyRewards
+ * @excelName AccumulatedRewards.xlsx
+ * @sheetName AccumulatedRewards
  * @author Auto.Generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class DailyRewardsCfg extends BaseCfgBean {
+public class AccumulatedRewardsCfg extends BaseCfgBean {
 
   /** 配置表名 */
-  public static final String EXCEL_NAME = "LoginRewards.xlsx";
+  public static final String EXCEL_NAME = "AccumulatedRewards.xlsx";
   /** 配置表工作薄名 */
-  public static final String SHEET_NAME = "DailyRewards";
+  public static final String SHEET_NAME = "AccumulatedRewards";
 
-  /** 签到天数 */
+  /** 累积天数 */
   protected int days;
   /** 签到奖励 */
-  protected Map<Integer,Integer> getItem;
+  protected Map<Integer,Long> getItem;
 
-  /** 返回签到天数 */
+  /** 返回累积天数 */
   public int getDays() {
     return days;
   }
 
   /** 返回签到奖励 */
-  public Map<Integer,Integer> getGetItem() {
+  public Map<Integer,Long> getGetItem() {
     return getItem;
   }
 

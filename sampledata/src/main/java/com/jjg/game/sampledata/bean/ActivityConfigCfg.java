@@ -18,20 +18,18 @@ public class ActivityConfigCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "ActivityConfig";
 
+  /** 解锁条件 */
+  protected Map<Integer,Integer> condition;
+  /** 活动持续时间(天) */
+  protected int duration;
   /** 跑马灯通知 */
-  protected boolean marquee;
+  protected int marquee;
   /** 活动名称 */
   protected int name;
-  /** 解锁条件 */
-  protected int needlevel;
   /** 是否开启 */
   protected boolean open;
-  /** 活动开启方式 */
+  /** 活动开启方式(1开服、2限时) */
   protected int open_type;
-  /** 活动底图名称 */
-  protected String picname;
-  /** 子类型 */
-  protected String sub_type;
   /** 结束时间 */
   protected String time_end;
   /** 开始时间 */
@@ -39,8 +37,18 @@ public class ActivityConfigCfg extends BaseCfgBean {
   /** 类型ID */
   protected int type;
 
+  /** 返回解锁条件 */
+  public Map<Integer,Integer> getCondition() {
+    return condition;
+  }
+
+  /** 返回活动持续时间(天) */
+  public int getDuration() {
+    return duration;
+  }
+
   /** 返回跑马灯通知 */
-  public boolean getMarquee() {
+  public int getMarquee() {
     return marquee;
   }
 
@@ -49,29 +57,14 @@ public class ActivityConfigCfg extends BaseCfgBean {
     return name;
   }
 
-  /** 返回解锁条件 */
-  public int getNeedlevel() {
-    return needlevel;
-  }
-
   /** 返回是否开启 */
   public boolean getOpen() {
     return open;
   }
 
-  /** 返回活动开启方式 */
+  /** 返回活动开启方式(1开服、2限时) */
   public int getOpen_type() {
     return open_type;
-  }
-
-  /** 返回活动底图名称 */
-  public String getPicname() {
-    return picname;
-  }
-
-  /** 返回子类型 */
-  public String getSub_type() {
-    return sub_type;
   }
 
   /** 返回结束时间 */

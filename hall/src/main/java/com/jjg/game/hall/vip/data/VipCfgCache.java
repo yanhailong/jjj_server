@@ -2,6 +2,7 @@ package com.jjg.game.hall.vip.data;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.AvatarCfg;
 import com.jjg.game.sampledata.bean.ViplevelCfg;
 
 import java.util.*;
@@ -21,17 +22,20 @@ public class VipCfgCache {
         Map<Integer, ViplevelCfg> tempViplevelCfgMap = new HashMap<>();
         Map<Integer, Set<Integer>> beforeHas = new HashMap<>();
         for (ViplevelCfg viplevelCfg : GameDataManager.getViplevelCfgList()) {
-            Map<Integer, Integer> avatarType = viplevelCfg.getAvatarType();
-            Map<Integer, Set<Integer>> temp = new HashMap<>(avatarType.size());
+            Map<Integer, Set<Integer>> temp = new HashMap<>();
             for (Map.Entry<Integer, Set<Integer>> entry : beforeHas.entrySet()) {
                 temp.put(entry.getKey(), new HashSet<>(entry.getValue()));
             }
-            if (CollectionUtil.isNotEmpty(avatarType)) {
-                for (Map.Entry<Integer, Integer> entry : avatarType.entrySet()) {
-                    Set<Integer> before = temp.computeIfAbsent(entry.getKey(), k -> new HashSet<>());
-                    before.add(entry.getValue());
-                    Set<Integer> beforeHasSet = beforeHas.computeIfAbsent(entry.getKey(), k -> new HashSet<>());
-                    beforeHasSet.add(entry.getValue());
+            List<Integer> serverAvatarType = viplevelCfg.getServerAvatarType();
+            if (CollectionUtil.isNotEmpty(serverAvatarType)) {
+                for (Integer id : serverAvatarType) {
+                    AvatarCfg avatarCfg = GameDataManager.getAvatarCfg(id);
+                    if (Objects.nonNull(avatarCfg)) {
+                        Set<Integer> before = temp.computeIfAbsent(avatarCfg.getResourceType(), k -> new HashSet<>());
+                        before.add(avatarCfg.getId());
+                        Set<Integer> beforeHasSet = beforeHas.computeIfAbsent(avatarCfg.getResourceType(), k -> new HashSet<>());
+                        beforeHasSet.add(avatarCfg.getId());
+                    }
                 }
             }
             tempViplevelCfgMap.put(viplevelCfg.getViplevel(), viplevelCfg);
@@ -40,6 +44,7 @@ public class VipCfgCache {
         vipSkin = tempvipSkinMap;
         viplevelCfgMap = tempViplevelCfgMap;
     }
+
 
     public static ViplevelCfg getVipLevelCfg(int vipLevel) {
         return viplevelCfgMap.get(vipLevel);

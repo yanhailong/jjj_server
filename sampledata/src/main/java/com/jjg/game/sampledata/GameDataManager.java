@@ -117,6 +117,7 @@ public class GameDataManager {
   public Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> initAllContainer() {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
+    containerMap.put(AccumulatedRewardsCfg.class, new AccumulatedRewardsCfgContainer());
     containerMap.put(ActivityConfigCfg.class, new ActivityConfigCfgContainer());
     containerMap.put(AlbumCfg.class, new AlbumCfgContainer());
     containerMap.put(AuxiliaryAwardCfg.class, new AuxiliaryAwardCfgContainer());
@@ -145,18 +146,21 @@ public class GameDataManager {
     containerMap.put(DropGroupCfg.class, new DropGroupCfgContainer());
     containerMap.put(GameFunctionCfg.class, new GameFunctionCfgContainer());
     containerMap.put(GameListCfg.class, new GameListCfgContainer());
+    containerMap.put(GiftPackCfg.class, new GiftPackCfgContainer());
     containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
     containerMap.put(ItemCfg.class, new ItemCfgContainer());
     containerMap.put(MailCfg.class, new MailCfgContainer());
     containerMap.put(PlayerLevelConfigCfg.class, new PlayerLevelConfigCfgContainer());
     containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
     containerMap.put(PoolCfg.class, new PoolCfgContainer());
+    containerMap.put(PrivilegeCardCfg.class, new PrivilegeCardCfgContainer());
     containerMap.put(RobotActionCfg.class, new RobotActionCfgContainer());
     containerMap.put(RobotCfg.class, new RobotCfgContainer());
     containerMap.put(RoomCfg.class, new RoomCfgContainer());
     containerMap.put(RoomExpendCfg.class, new RoomExpendCfgContainer());
     containerMap.put(Room_BetCfg.class, new Room_BetCfgContainer());
     containerMap.put(Room_ChessCfg.class, new Room_ChessCfgContainer());
+    containerMap.put(ScratchCardsCfg.class, new ScratchCardsCfgContainer());
     containerMap.put(ShopConfigCfg.class, new ShopConfigCfgContainer());
     containerMap.put(SouthernMoneyCfg.class, new SouthernMoneyCfgContainer());
     containerMap.put(SpecialAuxiliaryAwardCfg.class, new SpecialAuxiliaryAwardCfgContainer());
@@ -570,6 +574,18 @@ public class GameDataManager {
 
   // region===============cfg获取方法模板开始===================
 
+  public static AccumulatedRewardsCfg getAccumulatedRewardsCfg(int key) {
+    return getInstance().getCfgContainer(AccumulatedRewardsCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, AccumulatedRewardsCfg> getAccumulatedRewardsCfgMap() {
+    return getInstance().getCfgContainer(AccumulatedRewardsCfg.class).getCfgBeanMap();
+  }
+
+  public static List<AccumulatedRewardsCfg> getAccumulatedRewardsCfgList() {
+    return getInstance().getCfgContainer(AccumulatedRewardsCfg.class).getCfgBeanList();
+  }
+
   public static ActivityConfigCfg getActivityConfigCfg(int key) {
     return getInstance().getCfgContainer(ActivityConfigCfg.class).getCfgBeanMap().get(key);
   }
@@ -906,6 +922,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(GameListCfg.class).getCfgBeanList();
   }
 
+  public static GiftPackCfg getGiftPackCfg(int key) {
+    return getInstance().getCfgContainer(GiftPackCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, GiftPackCfg> getGiftPackCfgMap() {
+    return getInstance().getCfgContainer(GiftPackCfg.class).getCfgBeanMap();
+  }
+
+  public static List<GiftPackCfg> getGiftPackCfgList() {
+    return getInstance().getCfgContainer(GiftPackCfg.class).getCfgBeanList();
+  }
+
   public static GlobalConfigCfg getGlobalConfigCfg(int key) {
     return getInstance().getCfgContainer(GlobalConfigCfg.class).getCfgBeanMap().get(key);
   }
@@ -978,6 +1006,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(PoolCfg.class).getCfgBeanList();
   }
 
+  public static PrivilegeCardCfg getPrivilegeCardCfg(int key) {
+    return getInstance().getCfgContainer(PrivilegeCardCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PrivilegeCardCfg> getPrivilegeCardCfgMap() {
+    return getInstance().getCfgContainer(PrivilegeCardCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PrivilegeCardCfg> getPrivilegeCardCfgList() {
+    return getInstance().getCfgContainer(PrivilegeCardCfg.class).getCfgBeanList();
+  }
+
   public static RobotActionCfg getRobotActionCfg(int key) {
     return getInstance().getCfgContainer(RobotActionCfg.class).getCfgBeanMap().get(key);
   }
@@ -1048,6 +1088,18 @@ public class GameDataManager {
 
   public static List<Room_ChessCfg> getRoom_ChessCfgList() {
     return getInstance().getCfgContainer(Room_ChessCfg.class).getCfgBeanList();
+  }
+
+  public static ScratchCardsCfg getScratchCardsCfg(int key) {
+    return getInstance().getCfgContainer(ScratchCardsCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ScratchCardsCfg> getScratchCardsCfgMap() {
+    return getInstance().getCfgContainer(ScratchCardsCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ScratchCardsCfg> getScratchCardsCfgList() {
+    return getInstance().getCfgContainer(ScratchCardsCfg.class).getCfgBeanList();
   }
 
   public static ShopConfigCfg getShopConfigCfg(int key) {
@@ -1222,6 +1274,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\project\\gamedoc\\游戏配置表");
+    loadAllData("E:\\java\\gamedoc\\游戏配置表");
   }
 }
