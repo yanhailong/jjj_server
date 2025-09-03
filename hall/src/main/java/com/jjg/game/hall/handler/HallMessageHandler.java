@@ -1004,7 +1004,7 @@ public class HallMessageHandler implements GmListener {
      * 游戏功能开放列表
      */
     @Command(HallConstant.MsgBean.REQ_FUNCTION_OPEN_LIST)
-    private void reqGameFunctionOpenList(PlayerController playerController) {
+    public void reqGameFunctionOpenList(PlayerController playerController) {
         Player player = corePlayerService.get(playerController.playerId());
         List<Integer> openedFuncIdList = gameFunctionService.getOpenedFuncIdList(player);
         ResFunctionOpenList res = new ResFunctionOpenList(Code.SUCCESS);

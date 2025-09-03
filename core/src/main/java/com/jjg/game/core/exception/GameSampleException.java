@@ -1,5 +1,7 @@
 package com.jjg.game.core.exception;
 
+import com.jjg.game.sampledata.bean.BaseCfgBean;
+
 /**
  * 游戏配置表相关异常
  *
@@ -8,6 +10,11 @@ package com.jjg.game.core.exception;
 public class GameSampleException extends RuntimeException {
 
     public GameSampleException(String message) {
+        super(message);
+    }
+
+
+    public GameSampleException(BaseCfgBean cfgBean, String message) {
         super(message);
     }
 

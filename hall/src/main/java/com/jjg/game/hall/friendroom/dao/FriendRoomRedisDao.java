@@ -32,14 +32,12 @@ public class FriendRoomRedisDao {
     private static final int MAX_CODE = 9999_9999;
     // code掩码
     private static final int CODE_MASK = MAX_CODE - TimeHelper.ONE_DAY_OF_MILLIS;
-    // table_name TableName + "按天的时间" 玩家ID + 邀请码重置次数
-    private static final String INVITATION_RESET_TABLE_NAME = "FriendRoomInvitationCode";
+    // 邀请码重置记录 TableName + "按天的时间" 玩家ID + 邀请码重置次数
+    private static final String INVITATION_RESET_TABLE_NAME = "InvitationCodeResetRec";
     // 邀请码对应的玩家ID 邀请码 <=> 玩家ID
     private static final String INVITATION_CODE_OF_PLAYER = "InvitationCodeOfPlayer";
     // 玩家好友房屏蔽玩家ID列表 玩家ID <=> 屏蔽的玩家ID列表
     private static final String PLAYER_BLACK_LIST = "PlayerBlackList";
-    // 邀请码和玩家的映射
-    private final Map<Integer, Long> invitationCodeRefCache = new HashMap<>();
 
     @Autowired
     private RedisTemplate<String, Integer> redisTemplate;
@@ -106,14 +104,6 @@ public class FriendRoomRedisDao {
     }
 
     /**
-     * 改变重置次数
-     */
-    public long addInvitationCodeResetUseTimes(long playerId) {
-        String tableName = getInvitationResetTableName();
-        return redisTemplate.opsForHash().increment(tableName, playerId, 1);
-    }
-
-    /**
      * 获取玩家重置次数
      */
     public Integer getInvitationCodeResetUseTimes(long playerId) {
@@ -126,19 +116,15 @@ public class FriendRoomRedisDao {
      */
     public void addInvitationCode(int invitationCode, Long playerId) {
         String invitationPlayerTableName = getInvitationPlayerTableName();
-        invitationCodeRefCache.put(invitationCode, playerId);
         redisTemplate.opsForHash().put(invitationPlayerTableName, invitationCode, playerId);
     }
 
     /**
      * 通过邀请码获取玩家ID
      */
-    public Long getPlayerIdByInvitationCode(int invitationCode) {
+    public Number getPlayerIdByInvitationCode(int invitationCode) {
         String invitationPlayerTableName = getInvitationPlayerTableName();
-        if (invitationCodeRefCache.containsKey(invitationCode)) {
-            return invitationCodeRefCache.get(invitationCode);
-        }
-        return (Long) redisTemplate.opsForHash().get(invitationPlayerTableName, invitationCode);
+        return (Number) redisTemplate.opsForHash().get(invitationPlayerTableName, invitationCode);
     }
 
     /**
@@ -148,9 +134,6 @@ public class FriendRoomRedisDao {
      */
     public boolean existInvitationCode(int invitationCode) {
         String invitationPlayerTableName = getInvitationPlayerTableName();
-        if (invitationCodeRefCache.containsKey(invitationCode)) {
-            return true;
-        }
         return redisTemplate.opsForHash().hasKey(invitationPlayerTableName, invitationCode);
     }
 
@@ -169,13 +152,9 @@ public class FriendRoomRedisDao {
             connection.hashCommands().hIncrBy(tableName.getBytes(), (playerId + "").getBytes(), 1);
             // 删除旧的邀请码
             connection.hashCommands().hDel(invitationPlayerTableName.getBytes(), (oldInvitationCode + "").getBytes());
-            // 移除旧的邀请码缓存
-            invitationCodeRefCache.remove(oldInvitationCode);
             // 添加新的邀请码
             connection.hashCommands().hSet(
                 invitationPlayerTableName.getBytes(), (newInvitationCode + "").getBytes(), (playerId + "").getBytes());
-            // 添加新的邀请码缓存
-            invitationCodeRefCache.put(newInvitationCode, playerId);
             return null;
         });
     }
@@ -184,7 +163,7 @@ public class FriendRoomRedisDao {
      * 获取玩家黑名单列表
      */
     public List<Long> getPlayerBlackList(long playerId) {
-        return (List<Long>) stringRedisTemplate.opsForHash().get(PLAYER_BLACK_LIST, playerId);
+        return (List<Long>) stringRedisTemplate.opsForHash().get(PLAYER_BLACK_LIST, playerId + "");
     }
 
     /**

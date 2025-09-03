@@ -120,7 +120,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                     }
                     canGet += backBet;
                     // 给玩家添加金币
-                    gameController.addGold(
+                    gameController.addItem(
                         gamePlayer.getId(), canGet,
                         ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
                     DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId,

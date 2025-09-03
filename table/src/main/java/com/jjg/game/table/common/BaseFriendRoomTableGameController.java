@@ -34,7 +34,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
         boolean checkRes = super.checkRoomCanNextRound();
         if (checkRes) {
             // 进入下一个回合之前需要判断，庄家是否连续坐庄N次
-            if (roomController instanceof AbstractFriendRoomController<?> friendRoomController) {
+            if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
                 // 获取当前庄家ID
                 long roomBankerId = friendRoomController.getRoom().roomBankerId();
                 // 如果走到此处，庄家应该不会出现为0的情况
@@ -105,7 +105,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
 
     @Override
     public void dealBankerFlowing(long bankerFlowing, Map<Long, SettlementData> settlementDataMap) {
-        if (roomController instanceof AbstractFriendRoomController<?> friendRoomController) {
+        if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
             if (bankerFlowing < 0) {
                 // 扣除庄家的金币
                 friendRoomController.deductBankerGold(bankerFlowing);
@@ -113,7 +113,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                 // 给庄家添加金币
                 long roomBankerId = friendRoomController.getRoom().roomBankerId();
                 // 给庄家添加金币
-                addGold(roomBankerId, bankerFlowing,
+                addItem(roomBankerId, bankerFlowing,
                     ERoomItemReason.GAME_SETTLEMENT_BANKER_ADD.withCfgId(getRoom().getRoomCfgId()));
             }
         }

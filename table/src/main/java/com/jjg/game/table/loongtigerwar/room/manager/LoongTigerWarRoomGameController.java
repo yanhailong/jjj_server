@@ -1,20 +1,15 @@
 package com.jjg.game.table.loongtigerwar.room.manager;
 
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.BetTableRoom;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.room.base.IRoomPhase;
-import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.BaseTableGameController;
-import com.jjg.game.table.common.message.TableMessageBuilder;
-import com.jjg.game.table.common.message.bean.BetTableInfo;
 import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarBetPhase;
 import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarReadyPhaseTable;
 import com.jjg.game.table.loongtigerwar.gamephase.LoongTigerWarSettlementPhase;
@@ -22,10 +17,7 @@ import com.jjg.game.table.loongtigerwar.message.LoongTigerWarMessageBuilder;
 import com.jjg.game.table.loongtigerwar.message.resp.NotifyLoongTigerWarInfo;
 import com.jjg.game.table.loongtigerwar.room.data.LoongTigerWarGameDataVo;
 
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 龙虎斗游戏控制器

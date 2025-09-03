@@ -3,7 +3,6 @@ package com.jjg.game.room.services;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.protostuff.PFSession;
-import com.jjg.game.common.redis.RedissonLock;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.GameConstant;

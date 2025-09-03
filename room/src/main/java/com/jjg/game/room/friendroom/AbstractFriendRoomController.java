@@ -5,12 +5,15 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.FriendRoom;
+import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.utils.SampleDataUtils;
-import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.FriendRoomMessageBuilder;
+import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.message.resp.NotifyRoomBankerChange;
 import com.jjg.game.room.message.resp.ResBankerApplyListInFriendRoom;
 import com.jjg.game.room.message.resp.ResEditBankerPredicateGold;
 import com.jjg.game.room.message.struct.ApplyBankPlayerInfo;
@@ -26,27 +29,36 @@ import java.util.Map;
 /**
  * @author 2CL
  */
-public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends AbstractRoomController<RC, FriendRoom> {
+public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends FriendRoom>
+    extends AbstractRoomController<RC, R> {
 
-    public AbstractFriendRoomController(Class<? extends RoomPlayer> roomPlayerClazz, FriendRoom room) {
+    public AbstractFriendRoomController(Class<? extends RoomPlayer> roomPlayerClazz, R room) {
         super(roomPlayerClazz, room);
     }
 
     @Override
-    public boolean continueGame() {
-        boolean continueGameRes = super.continueGame();
-        roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<>() {
-            @Override
-            public void updateData(FriendRoom dataEntity) {
-            }
+    public boolean tryContinueGame() {
+        boolean continueGameRes = super.tryContinueGame();
+        if (continueGameRes) {
+            roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<>() {
+                @Override
+                public void updateData(R dataEntity) {
+                }
 
-            @Override
-            public Boolean updateDataWithRes(FriendRoom dataEntity) {
-                dataEntity.setStatus(0);
-                dataEntity.setPauseTime(0);
-                return true;
+                @Override
+                public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                    dataEntity.setStatus(0);
+                    dataEntity.setPauseTime(0);
+                    return true;
+                }
+            });
+        } else {
+            // 如果房间刚开始，则需要尝试启动游戏
+            if (checkRoomCanContinue() && gameController.checkRoomCanStart()) {
+                log.debug("尝试继续游戏，处于游戏开始阶段，准备开始游戏");
+                startGame();
             }
-        });
+        }
         return continueGameRes;
     }
 
@@ -55,7 +67,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
         super.pauseGame();
         roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<>() {
             @Override
-            public void updateData(FriendRoom dataEntity) {
+            public void updateData(R dataEntity) {
             }
 
             @Override
@@ -74,7 +86,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
         // 保存房间为解散中
         roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<>() {
             @Override
-            public void updateData(FriendRoom dataEntity) {
+            public void updateData(R dataEntity) {
             }
 
             @Override
@@ -89,7 +101,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
             LinkedHashMap<Long, Long> applyBankersCopy = new LinkedHashMap<>(applyBankers);
             for (Map.Entry<Long, Long> entry : applyBankersCopy.entrySet()) {
                 // 添加未使用完的准备金
-                gameController.addGold(entry.getKey(), entry.getValue(),
+                gameController.addItem(entry.getKey(), entry.getValue(),
                     ERoomItemReason.FRIEND_ROOM_CANCEL_BANKER_ADD_GOLD.withCfgId(getRoom().getRoomCfgId()));
             }
         }
@@ -113,6 +125,9 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
             }
             // 自动续费，检查玩家金币是否足够
             RoomExpendCfg roomExpendCfg = GameDataManager.getRoomExpendCfg(room.getRoomExpendId());
+            if (roomExpendCfg == null) {
+                return false;
+            }
             List<Integer> requiredMoney = roomExpendCfg.getRequiredMoney();
             int gold = requiredMoney.get(1);
             long roomCreator = room.getCreator();
@@ -122,7 +137,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
             // TODO 需要整合扣除道具方法
             if (gameController.getGameDataVo().getGamePlayer(roomCreator) != null) {
                 deductCode =
-                    gameController.deductGold(
+                    gameController.deductItem(
                         roomCreator, gold, ERoomItemReason.FRIEND_ROOM_AUTO_RENEW_TIME.withCfgId(room.getRoomCfgId()));
             } else {
                 CommonResult<?> commonResult = roomManager.getPlayerService().deductGold(roomCreator, gold,
@@ -133,9 +148,9 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
                 return false;
             }
             // 续费时长
-            roomDao.doSave(room, new DataSaveCallback<FriendRoom>() {
+            roomDao.doSave(room, new DataSaveCallback<R>() {
                 @Override
-                public void updateData(FriendRoom dataEntity) {
+                public void updateData(R dataEntity) {
                 }
 
                 @Override
@@ -163,18 +178,31 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
             // 重复上庄
             return Code.REPEAT_OP;
         }
-        // 房间创建者
+        // 房主不能成为庄家
         long roomCreator = room.getCreator();
         if (roomCreator == playerId) {
-            return Code.FAIL;
+            return Code.ROOM_CREATOR_CANT_BE_BANKER;
         }
         int addRes = addBankerPredicateGold(playerId, predictCostGold);
         // 如果申请成功，且当前游戏处于暂停状态，需要继续游戏
-        if (addRes == Code.SUCCESS && gameController.getGameState() == EGameState.PAUSED) {
+        if (addRes == Code.SUCCESS) {
             // 尝试继续游戏
-            continueGame();
+            tryContinueGame();
         }
         return addRes;
+    }
+
+    /**
+     * 广播庄家改变，直接广播庄家上庄
+     */
+    public void broadBankerChange(long bankerPlayerId) {
+        NotifyRoomBankerChange notify = new NotifyRoomBankerChange();
+        notify.playerId = bankerPlayerId;
+        notify.operate = 1;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder()
+            .setData(notify)
+            .toAllPlayer()
+            .exceptPlayer(bankerPlayerId));
     }
 
     /**
@@ -191,7 +219,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
         if (playerGold <= 0) {
             return Code.PARAM_ERROR;
         }
-        int code = gameController.addGold(
+        int code = gameController.addItem(
             playerId, playerGold, ERoomItemReason.FRIEND_ROOM_CANCEL_BANKER_ADD_GOLD.withCfgId(room.getRoomCfgId()));
         log.info("玩家：{} 申请取消成为庄家，添加金币：{}", playerId, playerGold);
         return code;
@@ -211,10 +239,10 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
         // 查询玩家当前的金币
         long bankerResetGold = room.roomBankerResetGold();
         // 将玩家移除
-        CommonResult<? extends Room> result = roomDao.doSave(room.getGameType(), room.getId(),
-            new DataSaveCallback<>() {
+        CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(),
+            new DataSaveCallback<R>() {
                 @Override
-                public void updateData(FriendRoom dataEntity) {
+                public void updateData(R dataEntity) {
                 }
 
                 @Override
@@ -222,15 +250,16 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
                     return dataEntity.removeBanker() != null;
                 }
             });
-        // 如果添加不成功
+        // 如果下庄不成功
         if (!result.success()) {
             log.error("下庄失败，res：更新房间，code：{} {}", result.code, getRoom().logStr());
             return result.code;
         }
-        this.room = (FriendRoom) result.data;
+        this.room = result.data;
+        broadBankerChange(room.roomBankerId());
         // 添加未使用完的准备金
         int codeRes =
-            gameController.addGold(playerId, bankerResetGold, eRoomItemReason.withCfgId(room.getRoomCfgId()));
+            gameController.addItem(playerId, bankerResetGold, eRoomItemReason.withCfgId(room.getRoomCfgId()));
         log.info("玩家：{} 下庄成功, 添加剩余准备金：{}", playerId, bankerResetGold);
         // 取消上庄后，需要重置上庄次数
         gameController.getGameDataVo().setBeBankerTimes(0);
@@ -238,7 +267,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
     }
 
     @Override
-    public CommonResult<FriendRoom> onPlayerLeaveRoom(PlayerController playerController) {
+    public CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
         long roomBankerId = getRoom().roomBankerId();
         // 如果庄家离开房间，需要下庄
         if (playerController.playerId() == roomBankerId) {
@@ -308,38 +337,43 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg> extends A
             if (predictCostGold < minBankerAmount) {
                 return Code.PARAM_ERROR;
             }
-        }
-        // 扣除金币
-        int deductedRes = gameController.deductGold(playerId, predictCostGold,
-            ERoomItemReason.FRIEND_ROOM_APPLY_BANKER_DEDUCT_PREDICATE.withCfgId(roomCfg.getId()));
-        if (deductedRes != Code.SUCCESS) {
-            return deductedRes;
-        }
-        // 保存房间数据
-        CommonResult<? extends Room> result = roomDao.doSave(room.getGameType(), room.getId(),
-            new DataSaveCallback<>() {
-                @Override
-                public void updateData(FriendRoom dataEntity) {
-                }
+            // 扣除道具
+            CommonResult<Void> removeItemResult =
+                roomManager.getPlayerPackService().removeItem(
+                    playerId,
+                    roomCfg.getMinBankerAmount().get(0),
+                    predictCostGold,
+                    ERoomItemReason.FRIEND_ROOM_APPLY_BANKER_DEDUCT_PREDICATE.name());
+            log.debug("扣除道具：{} {}", roomCfg.getMinBankerAmount().get(0), predictCostGold);
+            if (!removeItemResult.success()) {
+                return removeItemResult.code;
+            }
+            // 保存房间数据
+            CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(),
+                new DataSaveCallback<>() {
+                    @Override
+                    public void updateData(R dataEntity) {
+                    }
 
-                @Override
-                public Boolean updateDataWithRes(FriendRoom dataEntity) {
-                    dataEntity.addBankerSupply(playerId, predictCostGold);
-                    return true;
-                }
-            });
-        if (result.code != Code.SUCCESS) {
-            return result.code;
+                    @Override
+                    public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                        dataEntity.addBankerSupply(playerId, predictCostGold);
+                        return true;
+                    }
+                });
+            if (result.code != Code.SUCCESS) {
+                return result.code;
+            }
+            this.room = result.data;
         }
         log.info("玩家：{} 添加准备金：{}", playerId, predictCostGold);
-        this.room = (FriendRoom) result.data;
         return Code.SUCCESS;
     }
 
     public void deductBankerGold(long bankerFlowing) {
-        roomDao.doSave(room, new DataSaveCallback<FriendRoom>() {
+        roomDao.doSave(room, new DataSaveCallback<>() {
             @Override
-            public void updateData(FriendRoom dataEntity) {
+            public void updateData(R dataEntity) {
 
             }
 

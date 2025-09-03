@@ -10,7 +10,9 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.common.pb.AbstractMessage;
+import com.jjg.game.core.data.Room;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
 import com.jjg.game.room.base.EGameState;
@@ -111,7 +113,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 检查房间开局逻辑,默认房间进入玩家并且房间未开始，则开启房间逻辑，实际的房间开启逻辑需要自行判断
      */
-    protected boolean checkRoomCanStart() {
+    public boolean checkRoomCanStart() {
         // 房间玩家不为空
         return !roomController.getRoom().getRoomPlayers().isEmpty() && gameState == EGameState.INIT_DONE;
     }
@@ -273,8 +275,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     public void disbandRoom() {
         // 先暂停房间类的阶段执行逻辑
         gameState = EGameState.DESTROYING;
-        // 关闭数据收集
-        gameDataTracker.shutdownDataTracker();
+        if (gameDataTracker != null) {
+            // 关闭数据收集
+            gameDataTracker.shutdownDataTracker();
+        }
     }
 
     /**
@@ -303,7 +307,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     @Override
-    public boolean continueGame() {
+    public boolean tryContinueGame() {
         return true;
     }
 
@@ -394,37 +398,61 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     /**
-     * 扣除金币
+     * 获取游戏牌桌使用什么道具ID进行交易
      */
-    public int deductGold(long playerId, long num, ERoomItemReason deductType) {
-        return deductGold(playerId, num, deductType.name(), deductType.getGameCfgId() + "", false);
+    public int getGameTransactionItemId() {
+        return gameDataVo.getRoomCfg().getTransactionItemId();
     }
 
     /**
      * 扣除金币
      */
-    public int deductGold(long playerId, long num, String deductType) {
-        return deductGold(playerId, num, deductType, "", false);
+    public int deductItem(long playerId, long num, ERoomItemReason deductType) {
+        return deductItem(playerId, num, deductType.name(), deductType.getGameCfgId() + "", true);
     }
 
     /**
      * 扣除金币
      */
-    public int deductGold(long playerId, long num, String deductType, String desc) {
-        return deductGold(playerId, num, deductType, desc, false);
+    public int deductItem(long playerId, long num, String deductType) {
+        return deductItem(playerId, num, deductType, "", true);
+    }
+
+    /**
+     * 扣除金币
+     */
+    public int deductItem(long playerId, long num, String deductType, String desc) {
+        return deductItem(playerId, num, deductType, desc, true);
     }
 
     /**
      * 扣除金币
      *
      * @param playerId   玩家ID
-     * @param num        金币数量
+     * @param num        道具数量
      * @param deductType 扣除类型
      * @param desc       描述
      * @param isNotify   是否通知
      * @return 扣除结果
      */
-    public int deductGold(long playerId, long num, String deductType, String desc, boolean isNotify) {
+    public int deductItem(long playerId, long num, String deductType, String desc, boolean isNotify) {
+        int transactionItemId = getGameTransactionItemId();
+        int goldCfgId = ItemUtils.getGoldItemId();
+        int diamondCfgId = ItemUtils.getDiamondItemId();
+        if (transactionItemId == goldCfgId) {
+            return deductGold(playerId, num, deductType, desc, isNotify);
+        } else if (transactionItemId == diamondCfgId) {
+            return deductDiamond(playerId, num, deductType, desc, isNotify);
+        } else {
+            log.error("游戏：{} 扣除道具 暂不支持其他道具ID：{} 进行交易", getRoom().logStr(), transactionItemId);
+            return Code.FAIL;
+        }
+    }
+
+    /**
+     * 扣除金币，不要将此方法设置为public，游戏的交易道具是配置的道具ID写入
+     */
+    private int deductGold(long playerId, long num, String deductType, String desc, boolean isNotify) {
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
@@ -450,26 +478,54 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         return result.code;
     }
 
-
     /**
-     * 添加金币
+     * 扣除金币，不要将此方法设置为public，游戏的交易道具是配置的道具ID写入
      */
-    public int addGold(long playerId, long num, ERoomItemReason addType) {
-        return addGold(playerId, num, addType.name(), addType.getGameCfgId() + "", false);
+    private int deductDiamond(long playerId, long num, String deductType, String desc, boolean isNotify) {
+        CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
+        LongRef beforeUpdateDiamond = PrimitiveRef.ofLong(0);
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        Supplier<GamePlayer> supplier = () -> {
+            beforeUpdateDiamond.value = gamePlayer.getDiamond();
+            long afterDiamond = gamePlayer.getDiamond() - num;
+            if (afterDiamond < 0) {
+                return null;
+            }
+            gamePlayer.setDiamond(afterDiamond);
+            return gamePlayer;
+        };
+        // 机器人直接扣除
+        if (gamePlayer instanceof GameRobotPlayer) {
+            supplier.get();
+            return Code.SUCCESS;
+        }
+        CommonResult<GamePlayer> result =
+            playerService.deductDiamond(playerId, num, deductType, desc, isNotify, supplier, beforeUpdateDiamond);
+        if (result.data == null) {
+            return Code.NOT_ENOUGH;
+        }
+        return result.code;
     }
 
     /**
      * 添加金币
      */
-    public int addGold(long playerId, long num, String addType) {
-        return addGold(playerId, num, addType, "", false);
+    public int addItem(long playerId, long num, ERoomItemReason addType) {
+        return addItem(playerId, num, addType.name(), addType.getGameCfgId() + "", false);
     }
 
     /**
      * 添加金币
      */
-    public int addGold(long playerId, long num, String addType, String desc) {
-        return addGold(playerId, num, addType, desc, false);
+    public int addItem(long playerId, long num, String addType) {
+        return addItem(playerId, num, addType, "", false);
+    }
+
+    /**
+     * 添加金币
+     */
+    public int addItem(long playerId, long num, String addType, String desc) {
+        return addItem(playerId, num, addType, desc, false);
     }
 
     /**
@@ -482,7 +538,31 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param isNotify 是否通知
      * @return 扣除结果
      */
-    public int addGold(long playerId, long num, String addType, String desc, boolean isNotify) {
+    public int addItem(long playerId, long num, String addType, String desc, boolean isNotify) {
+        int transactionItemId = getGameTransactionItemId();
+        int goldCfgId = ItemUtils.getGoldItemId();
+        int diamondCfgId = ItemUtils.getDiamondItemId();
+        if (transactionItemId == goldCfgId) {
+            return addGold(playerId, num, addType, desc, isNotify);
+        } else if (transactionItemId == diamondCfgId) {
+            return addDiamond(playerId, num, addType, desc, isNotify);
+        } else {
+            log.error("游戏：{} 添加道具 暂不支持其他道具ID：{} 进行交易", getRoom().logStr(), transactionItemId);
+            return Code.FAIL;
+        }
+    }
+
+    /**
+     * 添加金币，不要将此方法设置为public，游戏的交易道具是配置的道具ID写入
+     *
+     * @param playerId 玩家ID
+     * @param num      金币数量
+     * @param addType  添加类型
+     * @param desc     描述
+     * @param isNotify 是否通知
+     * @return 扣除结果
+     */
+    private int addGold(long playerId, long num, String addType, String desc, boolean isNotify) {
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
@@ -498,6 +578,38 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         }
         CommonResult<GamePlayer> result =
             playerService.addGold(playerId, num, addType, desc, isNotify, supplier, beforeUpdateGold);
+        if (result.data == null) {
+            return Code.FAIL;
+        }
+        return result.code;
+    }
+
+    /**
+     * 添加钻石，不要将此方法设置为public，游戏的交易道具是配置的道具ID写入
+     *
+     * @param playerId 玩家ID
+     * @param num      钻石数量
+     * @param addType  添加类型
+     * @param desc     描述
+     * @param isNotify 是否通知
+     * @return 扣除结果
+     */
+    private int addDiamond(long playerId, long num, String addType, String desc, boolean isNotify) {
+        CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
+        LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        Supplier<GamePlayer> supplier = () -> {
+            beforeUpdateGold.value = gamePlayer.getDiamond();
+            gamePlayer.setDiamond(Math.min(Long.MAX_VALUE, gamePlayer.getDiamond() + num));
+            return gamePlayer;
+        };
+        // 机器人直接扣除
+        if (gamePlayer instanceof GameRobotPlayer) {
+            supplier.get();
+            return Code.SUCCESS;
+        }
+        CommonResult<GamePlayer> result =
+            playerService.addDiamond(playerId, num, addType, desc, isNotify, supplier, beforeUpdateGold);
         if (result.data == null) {
             return Code.FAIL;
         }

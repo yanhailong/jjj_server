@@ -12,7 +12,7 @@ import com.jjg.game.sampledata.bean.Room_BetCfg;
  *
  * @author 2CL
  */
-public class TableFriendRoomController extends AbstractFriendRoomController<Room_BetCfg> {
+public class TableFriendRoomController extends AbstractFriendRoomController<Room_BetCfg, BetFriendRoom> {
 
     public TableFriendRoomController(Class<? extends RoomPlayer> roomPlayerClazz, BetFriendRoom room) {
         super(roomPlayerClazz, room);

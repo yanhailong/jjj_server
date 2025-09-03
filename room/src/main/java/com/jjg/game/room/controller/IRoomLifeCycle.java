@@ -72,7 +72,7 @@ public interface IRoomLifeCycle {
      *
      * @return 是否继续成功
      */
-    boolean continueGame();
+    boolean tryContinueGame();
 
     /**
      * 销毁房间前

@@ -1,6 +1,6 @@
 package com.jjg.game.poker.game.common;
 
-import com.jjg.game.core.data.FriendRoom;
+import com.jjg.game.core.data.PokerFriendRoom;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.friendroom.AbstractFriendRoomController;
 import com.jjg.game.sampledata.GameDataManager;
@@ -11,9 +11,9 @@ import com.jjg.game.sampledata.bean.Room_ChessCfg;
  *
  * @author 2CL
  */
-public class PokerFriendRoomController extends AbstractFriendRoomController<Room_ChessCfg> {
+public class PokerFriendRoomController extends AbstractFriendRoomController<Room_ChessCfg, PokerFriendRoom> {
 
-    public PokerFriendRoomController(Class<? extends RoomPlayer> roomPlayerClazz, FriendRoom room) {
+    public PokerFriendRoomController(Class<? extends RoomPlayer> roomPlayerClazz, PokerFriendRoom room) {
         super(roomPlayerClazz, room);
     }
 

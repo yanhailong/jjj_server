@@ -15,6 +15,8 @@ public interface Code {
     int ROOM_NOT_FOUND = 203;
     // 房间处于关闭流程中
     int ROOM_STOPPING = 204;
+    // 数据查询异常
+    int QUERY_EXCEPTION = 205;
     // 失败
     int FAIL = 400;
     // 错误的请求
@@ -85,6 +87,8 @@ public interface Code {
     int TEXAS_NOT_ENOUGH = 433;
     // 使用未拥有的皮肤
     int NOT_UNLOCKED = 434;
+    // 庄家不能押注
+    int BANKER_CANT_BET = 435;
     // 服务器错误
     int EXCEPTION = 500;
 }

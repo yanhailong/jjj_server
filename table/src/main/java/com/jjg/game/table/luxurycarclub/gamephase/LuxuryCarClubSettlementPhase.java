@@ -78,7 +78,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             // 添加日志埋点数据
             BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
             // 给玩家添加金币
-            gameController.addGold(
+            gameController.addItem(
                 gamePlayer.getId(), playerSettlementData.getTotalWin(),
                 ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
             playerChangedGold.playerCurGold = gamePlayer.getGold();

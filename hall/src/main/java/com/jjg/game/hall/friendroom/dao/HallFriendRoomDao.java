@@ -1,6 +1,5 @@
 package com.jjg.game.hall.friendroom.dao;
 
-import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.room.AbstractFriendRoomDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.sampledata.bean.WarehouseCfg;

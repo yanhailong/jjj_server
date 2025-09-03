@@ -125,7 +125,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             notifyPlayerBet.betTableInfoList.add(betTableInfo);
         }
         // 扣除玩家金币
-        gameController.deductGold(
+        gameController.deductItem(
             gamePlayer.getId(), playerTotalBetGold,
             ERoomItemReason.GAME_BET.withCfgId(gameDataVo.getRoomCfg().getId()));
         gamePlayer.getTableGameData().addTotalBet(playerTotalBetGold);
@@ -256,7 +256,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         // 给机器人直接扣金币
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(robotPlayer.getId());
         // 给玩家添加金币
-        gameController.deductGold(
+        gameController.deductItem(
             gamePlayer.getId(), randomGold,
             ERoomItemReason.GAME_BET.withCfgId(gameDataVo.getRoomCfg().getId()));
         gamePlayer.getTableGameData().addTotalBet(randomGold);
@@ -363,6 +363,11 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
                 return Code.BET_TO_LIMIT;
             }
             totalBetValue += betValue;
+        }
+        // 庄家不能押注
+        long roomBankerId = gameController.getRoom().roomBankerId();
+        if (roomBankerId != 0 && roomBankerId == gamePlayer.getId()) {
+            return Code.BANKER_CANT_BET;
         }
         // 检查玩家的钱是否带够
         long needTake = totalBetValue;

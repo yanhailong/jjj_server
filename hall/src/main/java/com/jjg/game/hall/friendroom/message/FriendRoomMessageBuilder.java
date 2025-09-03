@@ -32,6 +32,7 @@ public class FriendRoomMessageBuilder {
         baseFriendRoomPlayerInfo.nationalId = player.getNationalId();
         baseFriendRoomPlayerInfo.playerVipLevel = player.getVipLevel();
         baseFriendRoomPlayerInfo.gender = player.getGender();
+        baseFriendRoomPlayerInfo.invitationCode = player.getFriendRoomInvitationCode();
         return baseFriendRoomPlayerInfo;
     }
 
@@ -64,10 +65,10 @@ public class FriendRoomMessageBuilder {
     /**
      * 获取房间剩余时间
      */
-    private static long getRoomResetTime(FriendRoom friendRoom) {
+    public static long getRoomResetTime(FriendRoom friendRoom) {
         if (friendRoom.getPauseTime() == 0) {
-            return friendRoom.getOverdueTime() - System.currentTimeMillis();
+            return Math.max(0, friendRoom.getOverdueTime() - System.currentTimeMillis());
         }
-        return friendRoom.getOverdueTime() - friendRoom.getPauseTime();
+        return Math.max(0, friendRoom.getOverdueTime() - friendRoom.getPauseTime());
     }
 }

@@ -44,8 +44,6 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     protected AtomicInteger roundCounter = new AtomicInteger(0);
     // 游戏阶段的迭代器,在每个游戏结束时进行重置
     private Iterator<IRoomPhase> gamePhaseIterator;
-    // 房间
-    private boolean paused;
 
     public AbstractPhaseGameController(AbstractRoomController<RC, ? extends Room> roomController) {
         super(roomController);
@@ -127,10 +125,10 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     }
 
     @Override
-    public boolean continueGame() {
+    public boolean tryContinueGame() {
         if (gameState == EGameState.PAUSED) {
-            autoRunGamePhase();
             gameState = EGameState.GAMING;
+            autoRunGamePhase();
             return true;
         }
         return false;
@@ -238,8 +236,11 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     @Override
     public <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
         GamePlayer gamePlayer = gameDataVo.getGamePlayerMap().get(playerController.playerId());
-        // 玩家中途离开阶段时调用
-        currentGamePhase.onPlayerHalfwayExitPhase(gamePlayer);
+        // 好友房，退出房间时可能出现currentGamePhase为空的情况
+        if (currentGamePhase != null) {
+            // 玩家中途离开阶段时调用
+            currentGamePhase.onPlayerHalfwayExitPhase(gamePlayer);
+        }
         // 从玩家列表中移除玩家数据，子类的gameDataVo有和玩家相关的临时数据需要自行删除
         gameDataVo.getGamePlayerMap().remove(playerController.playerId());
         // 玩家退出时直接回存玩家数据，需要放在游戏离开逻辑最后

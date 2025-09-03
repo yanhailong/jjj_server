@@ -44,6 +44,5 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
         notice.diamond = player.getDiamond();
         notice.vipLevel = player.getVipLevel();
         session.send(notice);
-        log.debug("推送玩家货币变化信息 playerId = {},notice = {}", player.getId(), notice);
     }
 }

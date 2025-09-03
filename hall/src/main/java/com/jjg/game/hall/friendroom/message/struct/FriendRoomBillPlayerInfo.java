@@ -15,4 +15,7 @@ public class FriendRoomBillPlayerInfo {
 
     @ProtoDesc("账单流水")
     public long billFlow;
+
+    @ProtoDesc("玩家状态，1.为正常 2.被屏蔽")
+    public int status;
 }

@@ -2,12 +2,12 @@ package com.jjg.game.core.dao.room;
 
 import com.jjg.game.common.constant.StrConstant;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.FriendRoom;
+import com.jjg.game.core.data.RoomPlayer;
+import com.jjg.game.core.data.RoomType;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.springframework.data.redis.core.RedisCallback;
-import org.springframework.stereotype.Repository;
 import reactor.util.function.Tuple2;
 
 import java.util.*;
@@ -75,15 +75,15 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
             T friendRoom = fillFriendRoomData(gameType, warehouseCfg, nodePath, maxLimit);
             friendRoom.setRoomCfgId(roomCfgId);
             friendRoom.setAliasName(req.roomAliasName);
-            long timeOfOpenRoom = (long) req.timeOfOpenRoom * TimeHelper.ONE_MINUTE_OF_MILLIS;
-            friendRoom.setOverdueTime(timeOfOpenRoom + curTime);
+            friendRoom.setOverdueTime(req.timeOfOpenRoom + curTime);
             friendRoom.setAutoRenewal(req.autoRenewal);
             friendRoom.setPredictCostGoldNum(req.predictCostGoldNum);
             friendRoom.setCreator(playerId);
             friendRoom.setRoomExpendId(req.roomExpandId);
             String tableName = getPlayerFriendRoomTableName(playerId);
-            redisTemplate.opsForHash().put(tableName, friendRoom.getId(), gameType);
-            return createRoom(friendRoom);
+            FriendRoom savedRoom = createRoom(friendRoom);
+            redisTemplate.opsForHash().put(tableName, savedRoom.getId(), gameType);
+            return savedRoom;
         } catch (Exception e) {
             log.error("创建好友房出现异常, {}", e.getMessage(), e);
         }
@@ -101,9 +101,8 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
                 }
                 return null;
             }).stream()
-            .map(a -> (Set<String>) a)
-            .map(a -> a.stream().map(Integer::parseInt).toList())
-            .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll);
+            .map(a -> ((Long) a).intValue())
+            .toList();
         Map<Long, Integer> playerRoomNumMap = new HashMap<>();
         for (int i = 0; i < playerIds.size(); i++) {
             playerRoomNumMap.put(playerIds.get(i), playerRoomNumList.get(i));
@@ -166,7 +165,7 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
         List<Object> roomObjectList = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             for (Map.Entry<Object, List<Object>> entry : gameOfIdList.entrySet()) {
                 byte[][] roomIdByteArr = new byte[entry.getValue().size()][];
-                Long[] roomIdArr = entry.getValue().toArray(new Long[0]);
+                Object[] roomIdArr = entry.getValue().toArray(new Object[0]);
                 for (int i = 0; i < roomIdArr.length; i++) {
                     roomIdByteArr[i] = (roomIdArr[i] + "").getBytes();
                 }
@@ -175,6 +174,14 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
             }
             return null;
         });
-        return roomObjectList.stream().map(a -> (FriendRoom) a).toList();
+        if (roomObjectList.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return roomObjectList.stream()
+            .map(a -> a == null ? null : (List) a)
+            .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll)
+            .stream().filter(Objects::nonNull)
+            .map((a) -> (FriendRoom) a)
+            .collect(Collectors.toList());
     }
 }

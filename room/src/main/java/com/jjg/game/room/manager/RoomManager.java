@@ -1,8 +1,6 @@
 package com.jjg.game.room.manager;
 
 import com.alibaba.fastjson.JSON;
-import com.jjg.game.common.concurrent.BaseHandler;
-import com.jjg.game.common.concurrent.processor.GameProcessor;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
@@ -149,7 +147,7 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
      * @param roomId 房间ID
      */
     @Override
-    @RpcCallSetting(processorModKey = "#arg[1]")
+    @RpcCallSetting(processorModKey = "#arg1")
     public void createFriendRoom(int roomCfgId, long roomId) {
         // 获取配置
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
@@ -164,6 +162,8 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
                 initExistEmptyRoomByRoomId(warehouseCfg.getGameID(), roomCfgId, tuples.getT2(), roomId);
             if (roomController == null) {
                 log.warn("通过cfgId: {} roomId: {} 初始化房间失败", roomCfgId, roomId);
+            } else {
+                log.warn("通过cfgId: {} roomId: {} 初始化房间成功", roomCfgId, roomId);
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -177,7 +177,7 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
      * @param operateCode 操作码 1. 暂停 2. 重新开启 3. 解散
      */
     @Override
-    @RpcCallSetting(processorModKey = "#arg[1]")
+    @RpcCallSetting(processorModKey = "#arg1")
     public void operateFriendRoom(long playerId, long roomId, int operateCode) {
         if (operateCode < 1 || operateCode > 3) {
             return;
@@ -203,7 +203,7 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
             case 2:
                 log.info("收到请求继续房间：{} 的请求", roomId);
                 // 继续游戏
-                roomController.continueGame();
+                roomController.tryContinueGame();
                 break;
             case 3:
                 log.info("收到请求结算房间：{} 的请求", roomId);

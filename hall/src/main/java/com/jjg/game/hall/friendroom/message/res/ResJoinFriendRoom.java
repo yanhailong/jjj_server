@@ -20,6 +20,9 @@ import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
 @ProtoDesc("返回加入好友房")
 public class ResJoinFriendRoom extends AbstractResponse {
 
+    @ProtoDesc("房间配置ID")
+    public int roomCfgId;
+
     public ResJoinFriendRoom(int code) {
         super(code);
     }

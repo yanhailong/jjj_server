@@ -1,7 +1,8 @@
 package com.jjg.game.hall.dao;
 
 import com.jjg.game.core.dao.room.AbstractRoomDao;
-import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.Room;
+import com.jjg.game.core.data.RoomPlayer;
 import org.springframework.stereotype.Repository;
 
 /**

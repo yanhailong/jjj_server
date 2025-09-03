@@ -5,6 +5,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
+import com.jjg.game.hall.friendroom.message.struct.RoomFriendEnum.ERoomFriendListOperate;
 
 /**
  * 返回操作房间好友列表
@@ -18,6 +19,12 @@ import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
 )
 @ProtoDesc("返回操作房间好友列表")
 public class ResOperateFollowedFriendsList extends AbstractResponse {
+
+    @ProtoDesc("操作玩家ID")
+    public long operatedPlayerId;
+
+    @ProtoDesc("操作码")
+    public String operateCode;
 
     public ResOperateFollowedFriendsList(int code) {
         super(code);

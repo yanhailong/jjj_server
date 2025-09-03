@@ -20,7 +20,7 @@ import com.jjg.game.hall.friendroom.message.struct.RoomFriendEnum.ERoomFriendLis
 public class ReqOperateFollowedFriendsList extends AbstractMessage {
 
     @ProtoDesc("操作类型")
-    public ERoomFriendListOperate operate;
+    public String operate;
 
     @ProtoDesc("操作的玩家ID")
     public long playerId;

@@ -211,7 +211,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 playerGoldChange.playerWinGold = settlementData.getBetWin();
                 playerGoldChange.playerBetGold = playerTotalBetGold;
                 // 给玩家添加金币
-                gameController.addGold(
+                gameController.addItem(
                     gamePlayer.getId(), settlementData.getTotalWin(),
                     ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
                 // 需要扣除庄家的钱

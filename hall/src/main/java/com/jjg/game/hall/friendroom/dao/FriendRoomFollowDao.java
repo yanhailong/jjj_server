@@ -1,5 +1,8 @@
 package com.jjg.game.hall.friendroom.dao;
 
+import cn.hutool.core.lang.Snowflake;
+import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.hall.friendroom.constant.FriendRoomConstant;
 import com.jjg.game.hall.friendroom.data.FriendRoomFollowBean;
@@ -7,6 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.AddFieldsOperation;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.aggregation.ConditionalOperators;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -23,6 +30,8 @@ import java.util.List;
 @Repository
 public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long> {
 
+    private static final Snowflake snowflake = new Snowflake(NodeType.HALL.getValue(), NodeType.HALL.getValue());
+
     public FriendRoomFollowDao(@Autowired MongoTemplate mongoTemplate) {
         super(FriendRoomFollowBean.class, mongoTemplate);
     }
@@ -30,28 +39,30 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
     /**
      * 获取默认的好友列表，默认第一页
      */
-    public List<FriendRoomFollowBean> getDefualtRoomFriendList(long playerId, int invitationCode) {
-        return getRoomFriendList(playerId, invitationCode, 0, FriendRoomConstant.PAGE_SIZE);
+    public List<FriendRoomFollowBean> getDefualtRoomFriendList(long playerId) {
+        return getRoomFriendList(playerId, 0, FriendRoomConstant.PAGE_SIZE);
     }
 
     /**
      * 获取房间好友列表
      */
-    public List<FriendRoomFollowBean> getRoomFriendList(long playerId, int invitationCode, int pageNum, int pageSize) {
-        return mongoTemplate.find(
-            Query.query(
-                    Criteria.where("playerId").is(playerId)
-                        .and("invitationCode").is(invitationCode)
-                )
-                .with(Pageable.ofSize(pageSize).withPage(pageNum))
-                .with(
-                    Sort.by(
-                        Sort.Order.desc("topUpTimeStamp"),
-                        Sort.Order.asc("followedTimeStamp")
-                    ))
-            ,
-            FriendRoomFollowBean.class
+    public List<FriendRoomFollowBean> getRoomFriendList(long playerId, int pageNum, int pageSize) {
+        Aggregation aggregation = Aggregation.newAggregation(
+            Aggregation.match(Criteria.where("playerId").is(playerId)),
+            AddFieldsOperation.builder().addField("priority").withValue(
+                ConditionalOperators.when(Criteria.where("removeTime").lte(0))
+                    .then(1)
+                    .otherwise(0)
+            ).build(),
+            Aggregation.sort(Sort.by(
+                Sort.Order.desc("priority")
+            )),
+            Aggregation.group("followedPlayerId").first(Aggregation.ROOT).as("doc"),
+            Aggregation.replaceRoot("doc"),
+            Aggregation.skip((long) pageNum * pageSize),
+            Aggregation.limit(pageSize)
         );
+        return mongoTemplate.aggregate(aggregation, "friendRoomFollowBean", FriendRoomFollowBean.class).getMappedResults();
     }
 
     /**
@@ -82,9 +93,12 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
     /**
      * 通过邀请码软删除所有映射关系
      */
-    public void deleteMappingRelateByInvitationCode(int invitationCode) {
+    public void deleteMappingRelateByInvitationCode(long targetPlayerId, int invitationCode) {
         mongoTemplate.updateMulti(
-            Query.query(Criteria.where("invitationCode").is(invitationCode)),
+            Query.query(
+                Criteria.where("invitationCode").is(invitationCode)
+                    .and("followedPlayerId").is(targetPlayerId)
+            ),
             Update.update("removeTime", System.currentTimeMillis()),
             FriendRoomFollowBean.class
         );
@@ -110,6 +124,7 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
      */
     public FriendRoomFollowBean addFriendByInvitationCode(long playerId, long followedPlayerId, int invitationCode) {
         FriendRoomFollowBean friendRoomFollowBean = new FriendRoomFollowBean();
+        friendRoomFollowBean.setId(snowflake.nextId());
         friendRoomFollowBean.setFollowedPlayerId(followedPlayerId);
         friendRoomFollowBean.setPlayerId(playerId);
         friendRoomFollowBean.setInvitationCode(invitationCode);

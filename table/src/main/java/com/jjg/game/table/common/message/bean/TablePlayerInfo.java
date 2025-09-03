@@ -45,4 +45,7 @@ public class TablePlayerInfo {
 
     @ProtoDesc("称号id")
     public int titleId;
+
+    @ProtoDesc("是否是庄家")
+    public boolean isBanker;
 }

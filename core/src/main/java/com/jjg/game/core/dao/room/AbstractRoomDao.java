@@ -7,9 +7,12 @@ import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.PlayerRoomData;
+import com.jjg.game.core.data.Room;
+import com.jjg.game.core.data.RoomPlayer;
+import com.jjg.game.core.data.RoomType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -182,8 +185,8 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     /**
      * 保存方法
      */
-    public CommonResult<? extends Room> doSave(int gameType, long roomId, DataSaveCallback<T> roomCallback) {
-        CommonResult<Room> result = new CommonResult<>(Code.SUCCESS);
+    public CommonResult<T> doSave(int gameType, long roomId, DataSaveCallback<T> roomCallback) {
+        CommonResult<T> result = new CommonResult<>(Code.SUCCESS);
         String key = getLockName(gameType, roomId);
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         try {

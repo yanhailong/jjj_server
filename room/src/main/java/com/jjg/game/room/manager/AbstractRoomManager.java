@@ -13,6 +13,10 @@ import com.jjg.game.core.dao.room.AbstractRoomDao;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.dao.room.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.BetFriendRoom;
+import com.jjg.game.core.data.Room;
+import com.jjg.game.core.data.RoomPlayer;
+import com.jjg.game.core.data.RoomType;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.service.CorePlayerService;
@@ -34,10 +38,12 @@ import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.annotation.Bean;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
@@ -186,7 +192,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             log.info("当前节点：{} 游戏类型：{} 的房间为空", nodeManager.getNodePath(), roomCfgId);
             return null;
         }
-        R randomRoom = RandomUtils.randCollection(nodeRoom);
+        R randomRoom = RandomUtils.randCollection(
+            nodeRoom.stream().filter(r -> !(r instanceof BetFriendRoom)).collect(Collectors.toList()));
         if (randomRoom == null) {
             return null;
         }
@@ -227,7 +234,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         // 获取当前节点的所有房间
         R existedRoom = roomDao.getRoom(gameType, roomCfgId);
         if (existedRoom == null) {
-            log.error("通过房间ID：{} 获取房间为空", roomId);
+            log.error("通过房间ID：{} 获取房间为空, 房间类型：{} 房间配置ID：{}", roomId, roomType, roomCfgId);
             return null;
         }
 
@@ -384,37 +391,22 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =
             new ArrayList<>(roomControllerMap.values());
         long playerId = playerController.playerId();
-        List<AbstractRoomController<? extends RoomCfg, ? extends Room>> playerRoomControllers = new ArrayList<>();
         for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
             roomMapControllers) {
             List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
                 new ArrayList<>(roomControllerMap.values());
             for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : roomControllers) {
                 RoomPlayer roomPlayer = roomController.getRoom().getRoomPlayers().get(playerId);
-                return Objects.isNull(roomPlayer) || !roomPlayer.isOnline();
+                if (Objects.isNull(roomPlayer)) {
+                    return true;
+                }
+                if (roomPlayer.isRobot()) {
+                    return false;
+                }
+                return !roomPlayer.isOnline();
             }
         }
-        // 如果是机器人重复加入的情况直接返回，机器人不能重复加入房间，按理不应出现此情况，除非机器人退出失败
         return true;
-        // 如果玩家还存在房间中，先执行退出逻辑再进入，TODO 如果后续是断线重连进入则需要进入断线重连逻辑
-        // 需要保证一个玩家同时只能在一个房间中
-//        if (!playerRoomControllers.isEmpty()) {
-//            List<Room> leaveFailedRoom = new ArrayList<>();
-//            for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : playerRoomControllers) {
-//                CommonResult<? extends Room> leaveRes = roomController.onPlayerLeaveRoom(playerController);
-//                if (!leaveRes.success()) {
-//                    if (leaveRes.data != null) {
-//                        leaveFailedRoom.add(leaveRes.data);
-//                    }
-//                } else {
-//                    log.info("处理玩家重复加入房间，玩家: {} 离开房间: {} 成功", playerId, leaveRes.data.logStr());
-//                }
-//            }
-//            if (!leaveFailedRoom.isEmpty()) {
-//                log.error("处理玩家重复加入房间时，玩家：{} 离开房间时失败：{}",
-//                        playerId, leaveFailedRoom.stream().map(Room::logStr).collect(Collectors.joining(",")));
-//            }
-//        }
     }
 
     /**
@@ -608,8 +600,33 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
         // 移除房间map中的数据
         roomControllers.remove(roomId);
-        // 刪除房间
-        deleteRoomFromRedis(room);
+        // 好友房不能删除
+        if (room instanceof FriendRoom friendRoom) {
+            saveFriendRoomToRedis(friendRoom);
+        } else {
+            // 刪除房间
+            deleteRoomFromRedis(room);
+        }
+    }
+
+    /**
+     * 回存好友房数据
+     */
+    private <R extends FriendRoom> void saveFriendRoomToRedis(R room) {
+        AbstractRoomDao<R, ? extends RoomPlayer> roomDao =
+            (AbstractRoomDao<R, ? extends RoomPlayer>) getRoomDao(room.getClass());
+        roomDao.doSave(room, new DataSaveCallback<>() {
+            @Override
+            public void updateData(R dataEntity) {
+            }
+
+            @Override
+            public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                // 全量回存房间数据
+                BeanUtils.copyProperties(room, dataEntity);
+                return true;
+            }
+        });
     }
 
     /**
@@ -912,5 +929,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
     public FriendRoomBillHistoryDao getFriendRoomBillHistoryDao() {
         return friendRoomBillHistoryDao;
+    }
+
+    public PlayerPackService getPlayerPackService() {
+        return playerPackService;
     }
 }

@@ -13,7 +13,6 @@ import com.jjg.game.room.controller.GameController;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.BaseFriendRoomTableGameController;
-import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.luxurycarclub.data.LuxuryCarClubGameDataVo;
 import com.jjg.game.table.luxurycarclub.gamephase.LuxuryCarClubPhase;
 import com.jjg.game.table.luxurycarclub.gamephase.LuxuryCarClubReadyPhaseTable;

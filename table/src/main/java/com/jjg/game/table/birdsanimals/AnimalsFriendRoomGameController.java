@@ -15,7 +15,6 @@ import com.jjg.game.table.birdsanimals.gamephase.AnimalsTableWaitReadyPhase;
 import com.jjg.game.table.birdsanimals.message.AnimalsMessageBuilder;
 import com.jjg.game.table.birdsanimals.message.NotifyAnimalsTableInfo;
 import com.jjg.game.table.common.BaseFriendRoomTableGameController;
-import com.jjg.game.table.common.BaseTableGameController;
 
 import java.util.LinkedHashSet;
 

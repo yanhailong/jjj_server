@@ -207,10 +207,10 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     public abstract void respRoomInitInfoAction(PlayerController playerController);
 
     @Override
-    public boolean continueGame() {
+    public boolean tryContinueGame() {
         if (gameState == EGameState.PAUSED) {
-            tryStartNextGame();
             gameState = EGameState.GAMING;
+            tryStartNextGame();
             return true;
         }
         return false;

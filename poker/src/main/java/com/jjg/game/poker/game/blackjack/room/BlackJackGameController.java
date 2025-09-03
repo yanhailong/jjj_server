@@ -132,7 +132,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         //所有下注信息
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
         betInfo.merge(seatInfo.getCardIndex(), betValue, Long::sum);
-        deductGold(gamePlayer.getId(), betValue, ERoomItemReason.GAME_BET);
+        deductItem(gamePlayer.getId(), betValue, ERoomItemReason.GAME_BET);
         RoomDataHelper.checkPlayerVipLevel(gamePlayer, this, betValue);
         int card = getCard(gameDataVo);
         seatInfo.getCurrentCards().add(card);
@@ -250,7 +250,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, msg));
             return;
         }
-        deductGold(gamePlayer.getId(), betValue, ERoomItemReason.GAME_BET);
+        deductItem(gamePlayer.getId(), betValue, ERoomItemReason.GAME_BET);
         RoomDataHelper.checkPlayerVipLevel(gamePlayer, this, betValue);
         gameDataVo.getAceBuyPlayerIds().add(playerId);
         //计算购买ace总金额
@@ -409,7 +409,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, jackBetResult));
             return;
         }
-        deductGold(gamePlayer.getId(), betValue, ERoomItemReason.GAME_BET);
+        deductItem(gamePlayer.getId(), betValue, ERoomItemReason.GAME_BET);
         RoomDataHelper.checkPlayerVipLevel(gamePlayer, this, betValue);
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         baseBetInfo.merge(playerId, betValue, Long::sum);
@@ -495,7 +495,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         int autoCard = getCard(gameDataVo);
         totalCards.getFirst().add(autoCard);
         //下注
-        deductGold(gamePlayer.getId(), betValue, ERoomItemReason.GAME_BET);
+        deductItem(gamePlayer.getId(), betValue, ERoomItemReason.GAME_BET);
         RoomDataHelper.checkPlayerVipLevel(gamePlayer, this, betValue);
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
         betInfo.merge(seatInfo.getCardIndex() + 1, betValue, Long::sum);

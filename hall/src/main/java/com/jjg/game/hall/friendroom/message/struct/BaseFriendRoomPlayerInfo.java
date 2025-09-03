@@ -53,4 +53,7 @@ public class BaseFriendRoomPlayerInfo {
 
     @ProtoDesc("添加此好友的时间")
     public long addTime;
+
+    @ProtoDesc("好友邀请码")
+    public int invitationCode;
 }

@@ -13,12 +13,14 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.common.baselogic.ConsoleDebugger;
+import com.jjg.game.core.exception.GameSampleException;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.room.manager.RoomManager;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.RoomCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +60,8 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         if (isInitialed) {
             return;
         }
+        // 检查房间配置是否有错误
+        checkRoomSampleData();
         timerCenter = new TimerCenter("room-start-timer");
         timerCenter.start();
         // 先删除服务器所有的机器人，如果服务器异常关闭，可以保证机器人不会被异常占用，能正常进入机器人池
@@ -278,6 +282,15 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
             event.getParameter().action();
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public void checkRoomSampleData() {
+        List<Room_BetCfg> roomBetCfgs = GameDataManager.getRoom_BetCfgList();
+        for (Room_BetCfg roomBetCfg : roomBetCfgs) {
+            if (roomBetCfg.getTransactionItemId() == 0) {
+                throw new GameSampleException(Room_BetCfg.EXCEL_NAME + " ID：" + roomBetCfg.getId() + " 货币ID为0");
+            }
         }
     }
 }

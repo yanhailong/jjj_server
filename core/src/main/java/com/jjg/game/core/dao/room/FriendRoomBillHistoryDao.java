@@ -98,7 +98,8 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
                 Aggregation.group("roomCreator").sum("totalIncome").as("total")
             );
         AggregationResults<Long> results = mongoTemplate.aggregate(aggregation, "FriendBillHistoryBean", Long.class);
-        return results.getMappedResults().getFirst();
+        List<Long> mappedResults = results.getMappedResults();
+        return !mappedResults.isEmpty() ? mappedResults.getFirst() : 0;
     }
 
     /**
@@ -116,7 +117,7 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
     /**
      * 账单锁key，防止玩家一键领取时，有其他节点写入账单数据
      */
-    private String getPlayerBillLockKey(long playerId) {
+    public String getPlayerBillLockKey(long playerId) {
         return "FriendRoomBillUpdate:" + playerId;
     }
 
