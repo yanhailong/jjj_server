@@ -81,6 +81,8 @@ public interface Code {
     int ROOM_FULL = 431;
     // 黑名单
     int BAN_CAUSE_BLACK_LIST = 432;
+    // 德州坐下余额不足
+    int TEXAS_NOT_ENOUGH = 433;
     // 服务器错误
     int EXCEPTION = 500;
 }
