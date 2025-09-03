@@ -1,14 +1,14 @@
 package com.jjg.game.hall.casino.data;
 
 import org.springframework.data.mongodb.core.index.CompoundIndex;
-import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * @author lm
  * @date 2025/8/16 16:06
  */
-@Document(collection = "player_building")
+@Document
+@CompoundIndex(name = "playerId_casinoId_unique_idx", def = "{'playerId': 1, 'casinoId': 1}", unique = true)
 public class PlayerBuilding {
     //玩家id
     private long playerId;
