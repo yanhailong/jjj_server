@@ -125,6 +125,11 @@ public class TexasMessageHandler {
                         gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
                         return;
                     }
+                    if (!controller.addTempGoldOrOutTable(seatInfo, gamePlayer)) {
+                        change.code = Code.NOT_ENOUGH;
+                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
+                        return;
+                    }
                     NotifyTexasSeatStateChange notifyTexasSeatStateChange = swapSeat(controller, seatInfo, gamePlayer, reqTexasChangeSeatState.param);
                     controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSeatStateChange));
                     // 通知场上玩家加入 准备进入开始阶段
@@ -160,9 +165,6 @@ public class TexasMessageHandler {
         //换座位
         RoomPlayer roomPlayer = roomPlayers.get(seatInfo.getPlayerId());
         SeatInfo newSeatInfo = addNewSeatInfo(roomPlayer, seatInfo, srcSeatId, gameDataVo);
-        if (newSeatInfo.isSeatDown()) {
-            controller.addTempGoldOrOutTable(newSeatInfo, gamePlayer);
-        }
         change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, newSeatInfo, gameDataVo);
         return change;
     }
