@@ -70,9 +70,9 @@ public class VipManager implements ConfigExcelChangeListener, PlayerLoginSuccess
      */
     public ResVipInfo reqVipInfo(PlayerController playerController, ReqVipInfo req) {
         ResVipInfo res = new ResVipInfo(Code.SUCCESS);
-        Player player = playerController.getPlayer();
-        long playerId = player.getId();
         try {
+            Player player = playerService.getFromAllDB(playerController.playerId());
+            long playerId = player.getId();
             ViplevelCfg viplevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
             if (Objects.isNull(viplevelCfg)) {
                 res.code = Code.SAMPLE_ERROR;
@@ -113,15 +113,15 @@ public class VipManager implements ConfigExcelChangeListener, PlayerLoginSuccess
 
     public ResVipClaimGiftReward reqVipClaimGiftReward(PlayerController playerController, ReqVipClaimGiftReward req) {
         ResVipClaimGiftReward res = new ResVipClaimGiftReward(Code.SUCCESS);
-        Player player = playerController.getPlayer();
-        long playerId = player.getId();
         try {
-            //当前vip配置
+            Player player = playerService.getFromAllDB(playerController.playerId());
+            long playerId = player.getId();
             ViplevelCfg viplevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
             if (Objects.isNull(viplevelCfg)) {
                 res.code = Code.SAMPLE_ERROR;
                 return res;
             }
+            //当前vip配置
             Optional<Vip> vipOptional = vipService.getFromAllDB(playerId);
             if (vipOptional.isEmpty()) {
                 res.code = Code.PARAM_ERROR;
