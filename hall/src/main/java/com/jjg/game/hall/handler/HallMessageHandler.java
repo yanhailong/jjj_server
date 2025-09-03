@@ -12,6 +12,7 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
+import com.jjg.game.core.dao.PlayerAvatarDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.CorePlayerService;
@@ -79,6 +80,8 @@ public class HallMessageHandler implements GmListener {
     private GameFunctionService gameFunctionService;
     @Autowired
     private CorePlayerService corePlayerService;
+    @Autowired
+    private PlayerAvatarDao playerAvatarDao;
 
     /**
      * 进入游戏
@@ -128,7 +131,7 @@ public class HallMessageHandler implements GmListener {
         try {
             log.info("收到玩家选择游戏场次 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             CommonResult<WareHouseConfigInfo> checkRes =
-                checkBeforeJoinRoom(playerController, req.gameType, req.wareId);
+                    checkBeforeJoinRoom(playerController, req.gameType, req.wareId);
             if (checkRes.code != Code.SUCCESS) {
                 res.code = checkRes.code;
                 playerController.send(res);
@@ -295,7 +298,7 @@ public class HallMessageHandler implements GmListener {
                 result = hallService.bindEmail(playerController.playerId(), req.data);
             } else {
                 log.debug("没有该类型的验证码 playerId = {},verCodeType = {},data = {}", playerController.playerId(), req.type
-                    , req.data);
+                        , req.data);
                 result = new CommonResult<>(Code.PARAM_ERROR);
             }
 
@@ -306,7 +309,7 @@ public class HallMessageHandler implements GmListener {
             }
             res.verCode = result.data;
             log.info("获取验证码成功，playerId = {},verCodeType = {},data = {},verCode = {}", playerController.playerId(),
-                req.type, req.data, result.data);
+                    req.type, req.data, result.data);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -326,14 +329,14 @@ public class HallMessageHandler implements GmListener {
         try {
             log.debug("确认验证码 req = {}", JSON.toJSONString(req));
             CommonResult<String> result = hallService.comfirmVerCode(playerController.playerId(), req.verCodeType,
-                req.verCode);
+                    req.verCode);
             if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);
                 return;
             }
             log.info("确认验证码成功 playerId = {},verCodeType = {},verCode = {},data = {}", playerController.playerId(),
-                req.verCodeType, req.verCode, result.data);
+                    req.verCodeType, req.verCode, result.data);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -349,8 +352,8 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_ALL_AVATAR)
     public void reqAllAvatar(PlayerController playerController, ReqAllAvatar req) {
-        ResAllAvatar res = new ResAllAvatar(HallCode.SUCCESS);
         Player player = playerController.getPlayer();
+        ResAllAvatar res = new ResAllAvatar(HallCode.SUCCESS);
         try {
             PlayerAvatar playerAvatar = hallService.allAvatar(playerController.playerId());
             if (playerAvatar == null) {
@@ -359,23 +362,31 @@ public class HallMessageHandler implements GmListener {
                 log.debug("未找到该玩家的头像信息 playerId = {}", playerController.playerId());
                 return;
             }
-
-            if (playerAvatar.getUnlockAvatarSet() != null && !playerAvatar.getUnlockAvatarSet().isEmpty()) {
-                res.avatars = new ArrayList<>(playerAvatar.getUnlockAvatarSet().size());
-                res.avatars.addAll(playerAvatar.getUnlockAvatarSet());
+            //根据vip等级解锁头像
+            playerAvatar.setUnlockAvatarSet(unlockSkin(player.getId(), playerAvatar.getUnlockAvatarSet(), player.getVipLevel(), AvatarType.AVATAR));
+            playerAvatar.setUnlockFrameSet(unlockSkin(player.getId(), playerAvatar.getUnlockFrameSet(), player.getVipLevel(), AvatarType.FRAME));
+            playerAvatar.setUnlockTitleSet(unlockSkin(player.getId(), playerAvatar.getUnlockTitleSet(), player.getVipLevel(), AvatarType.TITLE));
+            playerAvatar.setUnlockChipsSet(unlockSkin(player.getId(), playerAvatar.getUnlockChipsSet(), player.getVipLevel(), AvatarType.CHIP));
+            playerAvatar.setUnlockBackgroundSet(unlockSkin(player.getId(), playerAvatar.getUnlockBackgroundSet(), player.getVipLevel(), AvatarType.BACKGROUND));
+            playerAvatar.setUnlockCardBackgroundSet(unlockSkin(player.getId(), playerAvatar.getUnlockCardBackgroundSet(), player.getVipLevel(), AvatarType.CARD_BACKGROUND));
+            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockAvatarSet())) {
+                res.avatars = new ArrayList<>(playerAvatar.getUnlockAvatarSet());
             }
-            if (playerAvatar.getUnlockFrameSet() != null && !playerAvatar.getUnlockFrameSet().isEmpty()) {
-                res.frames = new ArrayList<>(playerAvatar.getUnlockFrameSet().size());
-                res.frames.addAll(playerAvatar.getUnlockFrameSet());
+            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockFrameSet())) {
+                res.frames = new ArrayList<>(playerAvatar.getUnlockFrameSet());
             }
-            if (playerAvatar.getUnlockTitleSet() != null && !playerAvatar.getUnlockTitleSet().isEmpty()) {
-                res.titles = new ArrayList<>(playerAvatar.getUnlockTitleSet().size());
-                res.titles.addAll(playerAvatar.getUnlockTitleSet());
+            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockTitleSet())) {
+                res.titles = new ArrayList<>(playerAvatar.getUnlockTitleSet());
             }
-            res.unlockChipsId = VipCfgCache.getSkinsByType(player.getVipLevel(), AvatarType.CHIP.getType());
-            res.unlockBackgroundId = VipCfgCache.getSkinsByType(player.getVipLevel(), AvatarType.BACKGROUND.getType());
-            res.unlockCardBackgroundId = VipCfgCache.getSkinsByType(player.getVipLevel(),
-                AvatarType.CARD_BACKGROUND.getType());
+            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockChipsSet())) {
+                res.unlockChipsId = new ArrayList<>(playerAvatar.getUnlockChipsSet());
+            }
+            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockBackgroundSet())) {
+                res.unlockBackgroundId = new ArrayList<>(playerAvatar.getUnlockBackgroundSet());
+            }
+            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockCardBackgroundSet())) {
+                res.unlockCardBackgroundId = new ArrayList<>(playerAvatar.getUnlockCardBackgroundSet());
+            }
 
             log.debug("玩家获取所有头像信息 playerId = {}", playerController.playerId());
         } catch (Exception e) {
@@ -383,6 +394,24 @@ public class HallMessageHandler implements GmListener {
             res.code = Code.EXCEPTION;
         }
         playerController.send(res);
+    }
+
+    private Set<Integer> unlockSkin(long playerId, Set<Integer> originally, int vipLevel, AvatarType type) {
+        List<Integer> skinIds = VipCfgCache.getSkinsByType(vipLevel, type.getType());
+        boolean addAll = false;
+        if (Objects.isNull(originally)) {
+            addAll = true;
+            originally = new HashSet<>();
+        }
+        if (CollectionUtil.isNotEmpty(skinIds)) {
+            for (Integer chip : skinIds) {
+                if (addAll || !originally.contains(chip)) {
+                    playerAvatarDao.addByType(playerId, type, chip);
+                    originally.add(chip);
+                }
+            }
+        }
+        return originally;
     }
 
     /**
@@ -439,7 +468,7 @@ public class HallMessageHandler implements GmListener {
         ResUseItem res = new ResUseItem(HallCode.SUCCESS);
         try {
             CommonResult<Map<Integer, Long>> useResult = hallService.useItem(playerController.playerId(), req.girdId,
-                req.itemId, req.useItemCount);
+                    req.itemId, req.useItemCount);
             if (!useResult.success()) {
                 res.code = useResult.code;
                 playerController.send(res);
@@ -508,7 +537,7 @@ public class HallMessageHandler implements GmListener {
             }
 
             log.debug("玩家获取邮件列表 playerId = {},page = {},size = {}", playerController.playerId(), req.page,
-                res.mails == null ? 0 : res.mails.size());
+                    res.mails == null ? 0 : res.mails.size());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -558,7 +587,7 @@ public class HallMessageHandler implements GmListener {
                 return;
             }
             CommonResult<Integer> result = mailService.getMailItems(playerController.playerId(), req.id,
-                "playerGetMailItems");
+                    "playerGetMailItems");
             if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);
@@ -676,8 +705,8 @@ public class HallMessageHandler implements GmListener {
             res.gold = result.data.getGold();
             res.safeBoxGold = result.data.getSafeBoxGold();
             log.debug("玩家转移保险箱金币成功 playerId = {},deposit = {},gold = {},changeGold = {},safeBoxGold = {}",
-                playerController.playerId(), req.deposit, result.data.getGold(), req.value,
-                result.data.getSafeBoxGold());
+                    playerController.playerId(), req.deposit, result.data.getGold(), req.value,
+                    result.data.getSafeBoxGold());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -700,7 +729,7 @@ public class HallMessageHandler implements GmListener {
                 result = hallPlayerService.diamondInSafeBox(playerController.playerId(), req.value, "playerDeposit");
             } else {
                 result = hallPlayerService.diamondOutFromSafeBox(playerController.playerId(), req.value,
-                    "playerWithdraw");
+                        "playerWithdraw");
             }
             if (!result.success()) {
                 res.code = result.code;
@@ -711,8 +740,8 @@ public class HallMessageHandler implements GmListener {
             res.diamond = result.data.getDiamond();
             res.safeBoxDiamond = result.data.getSafeBoxDiamond();
             log.debug("玩家转移保险箱钻石成功 playerId = {},deposit = {},diamond = {},changeDiamond = {},safeBoxDiamond = {}",
-                playerController.playerId(), req.deposit, result.data.getGold(), req.value,
-                result.data.getSafeBoxGold());
+                    playerController.playerId(), req.deposit, result.data.getGold(), req.value,
+                    result.data.getSafeBoxGold());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -746,29 +775,29 @@ public class HallMessageHandler implements GmListener {
         }
 
         WareHouseConfigInfo info =
-            wareHouseConfigList.stream().filter(c -> c.wareId == roomCfgId).findFirst().orElse(null);
+                wareHouseConfigList.stream().filter(c -> c.wareId == roomCfgId).findFirst().orElse(null);
         if (info == null) {
             log.debug("未找到对应的游戏场次配置2，选择场次失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId()
-                , gameType, roomCfgId);
+                    , gameType, roomCfgId);
             return new CommonResult<>(Code.NOT_FOUND);
         }
 
         // TODO 临时代码 info.limitGoldMin != -1
         if (info.limitGoldMin != -1 && info.limitGoldMin > playerController.getPlayer().getGold()) {
             log.debug("玩家金币不足 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), gameType
-                , roomCfgId);
+                    , roomCfgId);
             return new CommonResult<>(Code.NOT_ENOUGH);
         }
 
         if (info.limitVipMin > playerController.getPlayer().getVipLevel()) {
             log.debug("玩家vip等级不足 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(),
-                gameType, roomCfgId);
+                    gameType, roomCfgId);
             return new CommonResult<>(Code.VIP_NOT_ENOUGH);
         }
 
 
         MarsNode node = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(),
-            playerController.getPlayer().getIp());
+                playerController.getPlayer().getIp());
         if (node == null) {
             log.debug("获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
             return new CommonResult<>(Code.NOT_FOUND);

@@ -22,14 +22,20 @@ public class VipCfgCache {
         Map<Integer, Set<Integer>> beforeHas = new HashMap<>();
         for (ViplevelCfg viplevelCfg : GameDataManager.getViplevelCfgList()) {
             Map<Integer, Integer> avatarType = viplevelCfg.getAvatarType();
+            Map<Integer, Set<Integer>> temp = new HashMap<>(avatarType.size());
+            for (Map.Entry<Integer, Set<Integer>> entry : beforeHas.entrySet()) {
+                temp.put(entry.getKey(), new HashSet<>(entry.getValue()));
+            }
             if (CollectionUtil.isNotEmpty(avatarType)) {
                 for (Map.Entry<Integer, Integer> entry : avatarType.entrySet()) {
-                    Set<Integer> before = beforeHas.computeIfAbsent(entry.getKey(), k -> new HashSet<>());
+                    Set<Integer> before = temp.computeIfAbsent(entry.getKey(), k -> new HashSet<>());
                     before.add(entry.getValue());
+                    Set<Integer> beforeHasSet = beforeHas.computeIfAbsent(entry.getKey(), k -> new HashSet<>());
+                    beforeHasSet.add(entry.getValue());
                 }
             }
             tempViplevelCfgMap.put(viplevelCfg.getViplevel(), viplevelCfg);
-            tempvipSkinMap.put(viplevelCfg.getViplevel(), new HashMap<>(beforeHas));
+            tempvipSkinMap.put(viplevelCfg.getViplevel(), temp);
         }
         vipSkin = tempvipSkinMap;
         viplevelCfgMap = tempViplevelCfgMap;

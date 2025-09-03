@@ -12,9 +12,9 @@ public enum AvatarType {
     FRAME("unlockFrameSet", 1, Player::setHeadFrameId, Player::getHeadFrameId),
     NATIONAL("", 2, (player, integer) -> {}, Player::getNationalId),
     TITLE("unlockTitleSet", 3, Player::setTitleId, Player::getTitleId),
-    CHIP("", 4, Player::setChipsId, Player::getChipsId),
-    CARD_BACKGROUND("", 5, Player::setBackgroundId, Player::getCardBackgroundId),
-    BACKGROUND("", 6, Player::setCardBackgroundId, Player::getBackgroundId),
+    CHIP("unlockChipsSet", 4, Player::setChipsId, Player::getChipsId),
+    CARD_BACKGROUND("unlockCardBackgroundSet", 5, Player::setBackgroundId, Player::getCardBackgroundId),
+    BACKGROUND("unlockBackgroundSet", 6, Player::setCardBackgroundId, Player::getBackgroundId),
     ;
     private final String field;
     private final int type;
