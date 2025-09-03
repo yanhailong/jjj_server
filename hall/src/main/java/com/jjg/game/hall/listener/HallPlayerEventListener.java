@@ -159,7 +159,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                         player.setNationalId(hallService.getDefaultNationalId());
                         player.setTitleId(hallService.getDefaultTitleId());
                         // TODO.2CL 注册初始化接口
-                        playerPackService.redisSave(new PlayerPack());
+                        PlayerPack pack = new PlayerPack();
+                        pack.setPlayerId(req.playerId);
+                        playerPackService.redisSave(pack);
                         register[0] = true;
                     } else {
                         player.setIp(session.getAddress().getHost());
