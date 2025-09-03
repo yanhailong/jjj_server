@@ -16,11 +16,11 @@ public class PlayerPack {
     //玩家id
     private long playerId;
     //道具  格子id ->道具
-    private Map<Integer, Item> items;
+    private Map<Integer, Item> items = new HashMap<>();
     //道具  道具id -> 格子id
-    private Map<Integer, List<Integer>> itemIndexMap;
+    private Map<Integer, List<Integer>> itemIndexMap = new HashMap<>();
     // 已经被占用的格子id
-    private Set<Integer> usedGird;
+    private Set<Integer> usedGird = new HashSet<>();
 
     public PlayerPack() {
     }

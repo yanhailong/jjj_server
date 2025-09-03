@@ -97,13 +97,10 @@ public class PlayerPackService {
 
         if (addGold > 0 || addDiamond > 0) {
             CommonResult<Player> goldAndDiamond = corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond,
-                    addType, true, null);
+                addType, true, null);
             if (!goldAndDiamond.success()) {
                 result.code = goldAndDiamond.code;
                 return result;
-            }
-            if (goldAndDiamond.success()) {
-                updateSessionPlayer(goldAndDiamond.data);
             }
         }
 
@@ -139,20 +136,10 @@ public class PlayerPackService {
         }
         if (result.success()) {
             Map<Integer, Long> addTempItemMap =
-                    itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getCount()), HashMap::putAll);
+                itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getCount()), HashMap::putAll);
             coreLogger.addItems(playerId, addTempItemMap, addType);
         }
         return result;
-    }
-
-    private void updateSessionPlayer(@Nullable Player newlyPlayer) {
-        if (newlyPlayer == null) {
-            return;
-        }
-        PFSession session = clusterSystem.getSession(newlyPlayer.getId());
-        if (Objects.nonNull(session) && session.getReference() instanceof PlayerController playerController) {
-            playerController.setPlayer(newlyPlayer);
-        }
     }
 
     /**
@@ -231,15 +218,19 @@ public class PlayerPackService {
                 }
                 packItemList.add(item);
             }
-            if (packItemList.isEmpty()) {
+            boolean hasGoldAndDiamond = deductDiamondV > 0 || deductGoldV > 0;
+            // 如果道具列表为空，但是还需要处理金币钻石，继续处理
+            if (packItemList.isEmpty() && !hasGoldAndDiamond) {
                 result.code = Code.SUCCESS;
                 return result;
             }
+
             PlayerPack playerPack = getFromAllDB(playerId);
             if (playerPack == null) {
                 result.code = Code.NOT_FOUND;
                 return result;
             }
+
             //检查道具
             if (!playerPack.checkHasItems(packItemList)) {
                 result.code = Code.NOT_ENOUGH_ITEM;
@@ -266,16 +257,14 @@ public class PlayerPackService {
                     return result;
                 }
             }
-            Player newlyPlayer = null;
             //扣除金币和钻石
             if (deductGoldV > 0 || deductDiamondV > 0) {
                 CommonResult<Player> removeResult =
-                        corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
+                    corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
                 if (!removeResult.success()) {
                     result.code = removeResult.code;
                     return result;
                 }
-                newlyPlayer = removeResult.data;
             }
             if (packItemList.isEmpty()) {
                 result.code = Code.SUCCESS;
@@ -283,8 +272,6 @@ public class PlayerPackService {
             }
             redisTemplate.opsForHash().put(tableName, playerId, playerPack);
             result.code = Code.SUCCESS;
-            // 更新playerController中的player
-            updateSessionPlayer(newlyPlayer);
             return result;
         } catch (Exception e) {
             log.error("移除道具，保存 playerPack 失败 playerId={}", playerId, e);
