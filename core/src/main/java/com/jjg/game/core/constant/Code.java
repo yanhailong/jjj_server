@@ -83,6 +83,8 @@ public interface Code {
     int BAN_CAUSE_BLACK_LIST = 432;
     // 德州坐下余额不足
     int TEXAS_NOT_ENOUGH = 433;
+    // 使用未拥有的皮肤
+    int NOT_UNLOCKED = 434;
     // 服务器错误
     int EXCEPTION = 500;
 }

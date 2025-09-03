@@ -365,7 +365,7 @@ public class HallService implements ConfigExcelChangeListener {
         //检查玩家是否拥有该id
         if (!has) {
             log.debug("玩家没有该头像id = {},type = {}", id, avatarCfg.getResourceType());
-            result.code = Code.NOT_FOUND;
+            result.code = Code.NOT_UNLOCKED;
             return result;
         }
         // 或者根据需求抛出异常
