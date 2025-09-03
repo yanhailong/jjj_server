@@ -702,26 +702,28 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                         }
                         if (changeMachineIds.isEmpty()) {
                             List<Long> ids = casinoInfo.getBuildingData().get(entry.getKey());
-                            for (Long id : ids) {
-                                boolean chenge = false;
-                                CasinoMachineInfo casinoMachineInfo = machineInfoData.get(id);
-                                remainTime = timeMillis - casinoMachineInfo.getBuildLvUpEndTime();
-                                //升级结束 相差1000毫秒时推送一次
-                                if (remainTime > 0 && remainTime <= 1000) {
-                                    changeMachineIds.add(casinoMachineInfo.getId());
-                                }
-                                //雇佣结束
-                                Map<Integer, CasinoEmployment> employmentMap = casinoMachineInfo.getEmploymentMap();
-                                if (CollectionUtil.isNotEmpty(employmentMap)) {
-                                    for (CasinoEmployment employment : employmentMap.values()) {
-                                        remainTime = timeMillis - employment.getEmploymentEndTime();
-                                        if (remainTime > 0 && remainTime <= 1000) {
-                                            chenge = true;
+                            if (CollectionUtil.isNotEmpty(ids)) {
+                                for (Long id : ids) {
+                                    boolean chenge = false;
+                                    CasinoMachineInfo casinoMachineInfo = machineInfoData.get(id);
+                                    remainTime = timeMillis - casinoMachineInfo.getBuildLvUpEndTime();
+                                    //升级结束 相差1000毫秒时推送一次
+                                    if (remainTime > 0 && remainTime <= 1000) {
+                                        changeMachineIds.add(casinoMachineInfo.getId());
+                                    }
+                                    //雇佣结束
+                                    Map<Integer, CasinoEmployment> employmentMap = casinoMachineInfo.getEmploymentMap();
+                                    if (CollectionUtil.isNotEmpty(employmentMap)) {
+                                        for (CasinoEmployment employment : employmentMap.values()) {
+                                            remainTime = timeMillis - employment.getEmploymentEndTime();
+                                            if (remainTime > 0 && remainTime <= 1000) {
+                                                chenge = true;
+                                            }
                                         }
                                     }
-                                }
-                                if (chenge) {
-                                    changeMachineIds.add(casinoMachineInfo.getId());
+                                    if (chenge) {
+                                        changeMachineIds.add(casinoMachineInfo.getId());
+                                    }
                                 }
                             }
                         }
