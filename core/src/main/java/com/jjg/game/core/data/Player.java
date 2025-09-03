@@ -152,6 +152,9 @@ public class Player {
     }
 
     public void setGold(long gold) {
+        if (gold < 0) {
+            throw new IllegalArgumentException("设置玩家：" + id + " 金币为负数：" + gold);
+        }
         this.gold = gold;
     }
 
