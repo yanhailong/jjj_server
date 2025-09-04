@@ -30,12 +30,22 @@ public class RobotCfg extends BaseCfgBean {
   protected int exit;
   /** 退出房间时倍数 */
   protected int exitMultiplier;
+  /** 国旗 */
+  protected int flag;
+  /** 头像框 */
+  protected int frame;
+  /** 性别 */
+  protected int gender;
   /** 携带基础金币 */
   protected long money;
   /** 机器人名字 */
   protected String name;
   /** 头像资源名 */
   protected String nameIcon;
+  /** 头像 */
+  protected int picture;
+  /** 玩家等级 */
+  protected int playerLevel;
   /** VIP等级 */
   protected int vipLevel;
 
@@ -69,6 +79,21 @@ public class RobotCfg extends BaseCfgBean {
     return exitMultiplier;
   }
 
+  /** 返回国旗 */
+  public int getFlag() {
+    return flag;
+  }
+
+  /** 返回头像框 */
+  public int getFrame() {
+    return frame;
+  }
+
+  /** 返回性别 */
+  public int getGender() {
+    return gender;
+  }
+
   /** 返回携带基础金币 */
   public long getMoney() {
     return money;
@@ -82,6 +107,16 @@ public class RobotCfg extends BaseCfgBean {
   /** 返回头像资源名 */
   public String getNameIcon() {
     return nameIcon;
+  }
+
+  /** 返回头像 */
+  public int getPicture() {
+    return picture;
+  }
+
+  /** 返回玩家等级 */
+  public int getPlayerLevel() {
+    return playerLevel;
   }
 
   /** 返回VIP等级 */
