@@ -342,7 +342,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             casinoInfo.setChange(true);
             //发奖
             Item item = new Item(cfg.getOutput().get(1), totalNum);
-            CommonResult<Void> result = playerPackService.addItem(playerController.playerId(), item.getId(), item.getCount(), "一键领取机台收益");
+            CommonResult<Void> result = playerPackService.addItem(playerController.playerId(), item.getItemId(), item.getItemCount(), "一键领取机台收益");
             if (!result.success()) {
                 res.code = Code.UNKNOWN_ERROR;
                 return res;

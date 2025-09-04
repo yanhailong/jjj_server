@@ -83,12 +83,12 @@ public class PlayerPack {
             for (int index : indexes) {
                 Item item = items.get(index);
 
-                if (item.getCount() >= maxNum) { // 该格子道具已满
+                if (item.getItemCount() >= maxNum) { // 该格子道具已满
                     continue;
                 }
 
                 //未到最大堆叠数量，计算出还可以添加的数量
-                long canAdd = maxNum - item.getCount();
+                long canAdd = maxNum - item.getItemCount();
                 if (num <= canAdd) { // 全部可以添加
                     item.addCount(num);
                     return;
@@ -143,20 +143,20 @@ public class PlayerPack {
         }
 
         //校验道具id
-        if (id != item.getId()) {
+        if (id != item.getItemId()) {
             result.code = Code.PARAM_ERROR;
             return result;
         }
 
         //检查剩余数量
-        long diff = item.getCount() - num;
+        long diff = item.getItemCount() - num;
         if (diff > 0) {
-            item.setCount(diff);
+            item.setItemCount(diff);
         } else if (diff == 0) {  //如果道具消耗完毕，则移除格子
             items.remove(girdId);
             usedGird.remove(girdId);
 
-            List<Integer> list = itemIndexMap.get(item.getId());
+            List<Integer> list = itemIndexMap.get(item.getItemId());
             if (list != null && !list.isEmpty()) {
                 list.removeIf(i -> i == girdId);
             }
@@ -196,9 +196,9 @@ public class PlayerPack {
             int gird = iterator.previous();
             Item item = items.get(gird);
 
-            if (item.getCount() <= remaining) {
+            if (item.getItemCount() <= remaining) {
                 // 移除整个道具
-                remaining -= item.getCount();
+                remaining -= item.getItemCount();
                 items.remove(gird);
                 usedGird.remove(gird);
                 iterator.remove(); // 从索引列表中移除
@@ -230,7 +230,7 @@ public class PlayerPack {
         }
         long total = 0;
         for (int gird : itemIndexMap.get(id)) {
-            total += items.get(gird).getCount();
+            total += items.get(gird).getItemCount();
         }
         return total;
     }
@@ -268,8 +268,8 @@ public class PlayerPack {
             return false;
         }
         for (Item checkItem : checkItems) {
-            long count = getItemCount(checkItem.getId());
-            if (count < checkItem.getCount()) {
+            long count = getItemCount(checkItem.getItemId());
+            if (count < checkItem.getItemCount()) {
                 return false;
             }
         }

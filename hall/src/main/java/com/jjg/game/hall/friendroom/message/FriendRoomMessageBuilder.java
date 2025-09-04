@@ -9,6 +9,7 @@ import com.jjg.game.hall.friendroom.message.struct.FriendRoomBaseData;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
+import com.jjg.game.sampledata.bean.RobotCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import reactor.util.function.Tuple2;
 
@@ -33,6 +34,27 @@ public class FriendRoomMessageBuilder {
         baseFriendRoomPlayerInfo.playerVipLevel = player.getVipLevel();
         baseFriendRoomPlayerInfo.gender = player.getGender();
         baseFriendRoomPlayerInfo.invitationCode = player.getFriendRoomInvitationCode();
+        return baseFriendRoomPlayerInfo;
+    }
+
+
+    /**
+     * 构建房间中机器人数据
+     */
+    public static BaseFriendRoomPlayerInfo buildFriendRoomRobotPlayerInfo(long playerId) {
+        RobotCfg robotCfg = GameDataManager.getRobotCfg((int) playerId);
+        BaseFriendRoomPlayerInfo baseFriendRoomPlayerInfo = new BaseFriendRoomPlayerInfo();
+        if (robotCfg == null) {
+            return baseFriendRoomPlayerInfo;
+        }
+        baseFriendRoomPlayerInfo.playerId = playerId;
+        baseFriendRoomPlayerInfo.playerName = robotCfg.getName();
+        baseFriendRoomPlayerInfo.playerVipLevel = robotCfg.getVipLevel();
+        baseFriendRoomPlayerInfo.invitationCode = 0;
+        baseFriendRoomPlayerInfo.playerHeadIcon = robotCfg.getFrame();
+        baseFriendRoomPlayerInfo.level = robotCfg.getPlayerLevel();
+        baseFriendRoomPlayerInfo.nationalId = robotCfg.getFlag();
+        baseFriendRoomPlayerInfo.gender = (byte) robotCfg.getGender();
         return baseFriendRoomPlayerInfo;
     }
 

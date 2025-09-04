@@ -118,7 +118,7 @@ public class FriendRoomMessageHandler {
         }
     }
 
-    @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_CHANGE_FRIEND_ROOM_NAME)
+    @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_FRIEND_ROOM_BILL_HISTORY)
     public void reqFriendRoomBillHistory(PlayerController playerController, ReqFriendRoomBillHistory req) {
         try {
             friendRoomServices.reqFriendRoomBillHistory(playerController, req);

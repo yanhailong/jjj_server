@@ -17,7 +17,6 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
-import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.hall.casino.manager.CasinoManager;
 import com.jjg.game.hall.casino.pb.req.*;
@@ -39,10 +38,8 @@ import com.jjg.game.hall.vip.VipManager;
 import com.jjg.game.hall.vip.data.VipCfgCache;
 import com.jjg.game.hall.vip.pb.req.ReqVipClaimGiftReward;
 import com.jjg.game.hall.vip.pb.req.ReqVipInfo;
-import com.jjg.game.hall.vip.service.VipService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -527,8 +524,8 @@ public class HallMessageHandler implements GmListener {
                         info.items = new ArrayList<>(mail.getItems().size());
                         mail.getItems().forEach(mailItem -> {
                             ItemInfo infoItem = new ItemInfo();
-                            infoItem.itemId = mailItem.getId();
-                            infoItem.count = mailItem.getCount();
+                            infoItem.itemId = mailItem.getItemId();
+                            infoItem.count = mailItem.getItemCount();
                             info.items.add(infoItem);
                         });
                     }
@@ -993,8 +990,8 @@ public class HallMessageHandler implements GmListener {
             PackItemInfo info = new PackItemInfo();
             info.girdId = key;
             info.item = new ItemInfo();
-            info.item.itemId = value.getId();
-            info.item.count = value.getCount();
+            info.item.itemId = value.getItemId();
+            info.item.count = value.getItemCount();
             packItemInfos.add(info);
         });
         return packItemInfos;

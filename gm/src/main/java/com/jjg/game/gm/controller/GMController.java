@@ -346,9 +346,9 @@ public class GMController extends AbstractController {
                         .collect(Collectors.toList());
 
                 for (Item item : mailItems) {
-                    ItemCfg itemCfg = GameDataManager.getItemCfg(item.getId());
+                    ItemCfg itemCfg = GameDataManager.getItemCfg(item.getItemId());
                     if (itemCfg == null) {
-                        log.warn("邮件中的道具，未在配置表中找到 id = {},count = {}", item.getId(), item.getCount());
+                        log.warn("邮件中的道具，未在配置表中找到 id = {},count = {}", item.getItemId(), item.getItemCount());
                         return fail("mail.itemerror");
                     }
                 }

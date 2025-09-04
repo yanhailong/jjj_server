@@ -56,11 +56,15 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                     return true;
                 }
             });
+            // 如果能开始需要更新房间最新消息
+            broadFriendRoomChange();
         } else {
             // 如果房间刚开始，则需要尝试启动游戏
             if (checkRoomCanContinue() && gameController.checkRoomCanStart()) {
                 log.debug("尝试继续游戏，处于游戏开始阶段，准备开始游戏");
                 startGame();
+                // 房间刚开始，启动成功后需要广播房间数据
+                broadFriendRoomChange();
             }
         }
         return continueGameRes;
@@ -202,10 +206,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         notify.bankerPlayerId = room.roomBankerId();
         notify.bankerPredicateCostGold = room.getPredictCostGoldNum();
         notify.roomCreatorPredicateCostGold = room.getPredictCostGoldNum();
-        broadcastToPlayers(RoomMessageBuilder.newBuilder()
-            .setData(notify)
-            .toAllPlayer()
-            .exceptPlayer(room.roomBankerId()));
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().setData(notify).toAllPlayer());
     }
 
     /**
@@ -220,7 +221,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         // 如果当前玩家不是庄家，直接从申请列表中删除，然后再返还金币
         long playerGold = room.getApplyBankerPlayerGold(playerId);
         if (playerGold <= 0) {
-            return Code.PARAM_ERROR;
+            return Code.SUCCESS;
         }
         int code = gameController.addItem(
             playerId, playerGold, ERoomItemReason.FRIEND_ROOM_CANCEL_BANKER_ADD_GOLD.withCfgId(room.getRoomCfgId()));
@@ -342,15 +343,14 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                 return Code.PARAM_ERROR;
             }
             // 扣除道具
-            CommonResult<Void> removeItemResult =
-                roomManager.getPlayerPackService().removeItem(
+            int removeItemResult =
+                gameController.deductItem(
                     playerId,
-                    roomCfg.getMinBankerAmount().get(0),
                     predictCostGold,
                     ERoomItemReason.FRIEND_ROOM_APPLY_BANKER_DEDUCT_PREDICATE.name());
             log.debug("扣除道具：{} {}", roomCfg.getMinBankerAmount().get(0), predictCostGold);
-            if (!removeItemResult.success()) {
-                return removeItemResult.code;
+            if (removeItemResult != Code.SUCCESS) {
+                return removeItemResult;
             }
             // 保存房间数据
             CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(),

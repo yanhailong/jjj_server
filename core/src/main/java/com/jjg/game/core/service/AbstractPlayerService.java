@@ -2,6 +2,7 @@ package com.jjg.game.core.service;
 
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.utils.ExceptionUtils;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
@@ -922,7 +923,9 @@ public class AbstractPlayerService {
      */
     public Map<Long, Player> multiGetPlayerMap(Collection<Long> playerId) {
         List<Player> players = multiGetPlayer(playerId);
-        return players.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e), HashMap::putAll);
+        return players.stream()
+            .filter(Objects::nonNull)
+            .collect(HashMap::new, (map, e) -> map.put(e.getId(), e), HashMap::putAll);
     }
 
     /**

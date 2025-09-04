@@ -1,5 +1,6 @@
 package com.jjg.game.room.manager;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterProcessorExecutors;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
@@ -572,11 +573,12 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
     /**
      * 解散房间，解散时会:
-     * 1. 调用房间控制器的解散房间逻辑，通知房间内玩家退出房间
-     * 2. 房间控制器会调用游戏控制器内的解散房间逻辑
-     * 3. 回存房间数据
-     * 4. 移除房间控制器
-     * 5. 删除房间数据
+     * 1. 将玩家踢出房间
+     * 2. 调用房间控制器的解散房间逻辑
+     * 3. 房间控制器会调用游戏控制器内的解散房间逻辑
+     * 4. 回存房间数据
+     * 5. 移除房间控制器
+     * 6. 删除房间数据
      */
     public <R extends Room> void disbandRoom(R room) {
         int gameType = room.getGameType();
@@ -594,15 +596,26 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         }
         EGameType eGameType = EGameType.getGameByTypeId(gameType);
         log.info("开始解散房间：{} 房间类型：{} cfgId: {}", roomId, eGameType.getGameDesc(), room.getRoomCfgId());
+        List<PlayerController> robotPlayers = new ArrayList<>();
+        for (Map.Entry<Long, RoomPlayer> entry : room.getRoomPlayers().entrySet()) {
+            if (!entry.getValue().isRobot()) {
+                // 将玩家踢出房间
+                exitRoom(entry.getKey());
+            } else {
+                // 将机器人踢出房间
+                robotPlayers.add(roomController.getPlayerController(entry.getKey()));
+            }
+        }
+        // 将机器人回收
+        robotPlayerExitRoom(robotPlayers);
         // 调用解散房间控制器中的逻辑
         roomController.disbandRoom();
-        // TODO 回存房间相关数据
-
         // 移除房间map中的数据
         roomControllers.remove(roomId);
         // 好友房不能删除
         if (room instanceof FriendRoom friendRoom) {
             saveFriendRoomToRedis(friendRoom);
+            log.info("关服回存好友房数据：{}", JSON.toJSONString(friendRoom));
         } else {
             // 刪除房间
             deleteRoomFromRedis(room);

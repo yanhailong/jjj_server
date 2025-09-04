@@ -2,7 +2,6 @@ package com.jjg.game.core.service;
 
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.data.DataSaveCallback;
-import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -18,7 +17,6 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 /**
@@ -79,25 +77,25 @@ public class PlayerPackService {
         long addDiamond = 0;
         List<Item> itemList = new ArrayList<>();
         for (Item item : addItemList) {
-            int itemId = item.getId();
+            int itemId = item.getItemId();
             ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
             if (itemCfg == null) {
                 continue;
             }
             if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
-                addGold += Math.abs(item.getCount());
+                addGold += Math.abs(item.getItemCount());
                 continue;
             }
             if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
-                addDiamond += Math.abs(item.getCount());
+                addDiamond += Math.abs(item.getItemCount());
                 continue;
             }
             itemList.add(item);
         }
 
         if (addGold > 0 || addDiamond > 0) {
-            CommonResult<Player> goldAndDiamond = corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond,
-                addType, true, null);
+            CommonResult<Player> goldAndDiamond =
+                corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, null);
             if (!goldAndDiamond.success()) {
                 result.code = goldAndDiamond.code;
                 return result;
@@ -118,13 +116,13 @@ public class PlayerPackService {
             }
 
             for (Item item : itemList) {
-                int itemId = item.getId();
+                int itemId = item.getItemId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
                 if (itemCfg == null) {
                     continue;
                 }
 
-                playerPack.addItem(itemId, item.getCount(), itemCfg.getProp());
+                playerPack.addItem(itemId, item.getItemCount(), itemCfg.getProp());
             }
 
             redisTemplate.opsForHash().put(tableName, playerId, playerPack);
@@ -136,7 +134,8 @@ public class PlayerPackService {
         }
         if (result.success()) {
             Map<Integer, Long> addTempItemMap =
-                itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getCount()), HashMap::putAll);
+                itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getItemId(), e.getItemCount()),
+                    HashMap::putAll);
             coreLogger.addItems(playerId, addTempItemMap, addType);
         }
         return result;
@@ -150,7 +149,7 @@ public class PlayerPackService {
      * @return 最新的背包结果
      */
     public CommonResult<Void> removeItem(long playerId, Item remove, String addType) {
-        return removeItem(playerId, remove.getId(), remove.getCount(), addType);
+        return removeItem(playerId, remove.getItemId(), remove.getItemCount(), addType);
     }
 
     /**
@@ -200,7 +199,7 @@ public class PlayerPackService {
         try {
             List<Item> packItemList = new ArrayList<>();
             for (Item item : removeItemList) {
-                int itemId = item.getId();
+                int itemId = item.getItemId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
                 if (itemCfg == null) {
                     log.debug("移除道具失败，未找到配置 playerId = {},itemId = {}", playerId, itemId);
@@ -208,12 +207,12 @@ public class PlayerPackService {
                 }
                 //扣除钻石
                 if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
-                    deductDiamondV += Math.abs(item.getCount());
+                    deductDiamondV += Math.abs(item.getItemCount());
                     continue;
                 }
                 //累加扣除金币
                 if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
-                    deductGoldV += Math.abs(item.getCount());
+                    deductGoldV += Math.abs(item.getItemCount());
                     continue;
                 }
                 packItemList.add(item);
@@ -238,8 +237,8 @@ public class PlayerPackService {
             }
 
             for (Item item : packItemList) {
-                int id = item.getId();
-                long count = item.getCount();
+                int id = item.getItemId();
+                long count = item.getItemCount();
                 Integer gridId = item.getGridId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(id);
                 if (itemCfg == null) {
@@ -315,18 +314,18 @@ public class PlayerPackService {
         try {
             PlayerPack playerPack = getFromAllDB(playerId);
             for (Item item : itemList) {
-                ItemCfg itemCfg = GameDataManager.getItemCfg(item.getId());
+                ItemCfg itemCfg = GameDataManager.getItemCfg(item.getItemId());
                 if (Objects.isNull(itemCfg)) {
                     return false;
                 }
                 if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
-                    if (player.getGold() < item.getCount()) {
+                    if (player.getGold() < item.getItemCount()) {
                         return false;
                     }
                     continue;
                 }
                 if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
-                    if (player.getDiamond() < item.getCount()) {
+                    if (player.getDiamond() < item.getItemCount()) {
                         return false;
                     }
                     continue;

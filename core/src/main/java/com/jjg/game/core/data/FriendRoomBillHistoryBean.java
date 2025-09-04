@@ -32,6 +32,8 @@ public class FriendRoomBillHistoryBean {
     private long createdAt;
     // 参与玩家收益 玩家ID + 收益数量
     private Map<Long, Long> partInPlayerIncome;
+    // 道具ID
+    private int itemId;
 
     public long getId() {
         return id;
@@ -111,5 +113,13 @@ public class FriendRoomBillHistoryBean {
 
     public void setPartInPlayerIncome(Map<Long, Long> partInPlayerIncome) {
         this.partInPlayerIncome = partInPlayerIncome;
+    }
+
+    public int getItemId() {
+        return itemId;
+    }
+
+    public void setItemId(int itemId) {
+        this.itemId = itemId;
     }
 }

@@ -84,12 +84,12 @@ public class MailService {
 
             Map<Integer, Long> map = new HashMap<>();
             mail.getItems().forEach(mailItem -> {
-                int id = mailItem.getId();
+                int id = mailItem.getItemId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(id);
                 if (itemCfg == null) {
                     log.debug("未找到该道具，领取邮件内道具失败， playerId = {},itemId = {},desc = {}", playerId, id, desc);
                 } else {
-                    map.merge(id, mailItem.getCount(), Long::sum);
+                    map.merge(id, mailItem.getItemCount(), Long::sum);
                 }
             });
 
@@ -158,12 +158,12 @@ public class MailService {
                 continue;
             }
             mail.getItems().forEach(mailItem -> {
-                int id = mailItem.getId();
+                int id = mailItem.getItemId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(id);
                 if (itemCfg == null) {
                     log.debug("未找到该道具，领取邮件内道具失败， playerId = {},itemId = {}", playerId, id);
                 } else {
-                    map.merge(id, mailItem.getCount(), Long::sum);
+                    map.merge(id, mailItem.getItemCount(), Long::sum);
                 }
             });
 

@@ -8,44 +8,44 @@ package com.jjg.game.core.data;
  */
 public class Item {
     //道具id
-    private int id;
+    private int itemId;
     //道具数量
-    private long count;
+    private long itemCount;
     //格子ID
     private Integer gridId = null;
 
     public Item() {
     }
 
-    public Item(int id, long count) {
-        this.id = id;
-        this.count = count;
+    public Item(int itemId, long itemCount) {
+        this.itemId = itemId;
+        this.itemCount = itemCount;
     }
 
-    public Item(int gridId, int id, long count) {
-        this.id = id;
-        this.count = count;
+    public Item(int gridId, int itemId, long itemCount) {
+        this.itemId = itemId;
+        this.itemCount = itemCount;
         this.gridId = gridId;
     }
 
-    public int getId() {
-        return id;
+    public int getItemId() {
+        return itemId;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public void setItemId(int itemId) {
+        this.itemId = itemId;
     }
 
-    public long getCount() {
-        return count;
+    public long getItemCount() {
+        return itemCount;
     }
 
-    public void setCount(long count) {
-        this.count = count;
+    public void setItemCount(long itemCount) {
+        this.itemCount = itemCount;
     }
 
     public void addCount(long count) {
-        this.count += count;
+        this.itemCount += count;
     }
 
     public Integer getGridId() {

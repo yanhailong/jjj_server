@@ -134,6 +134,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                     SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.CREATE_ROOM_FUNC_INCOME_RATIO);
                 long roomCreatorTotalIncome = roomTotalIncome * (incomeRatio / 10000);
                 historyBean.setTotalFlowing(roomCreatorTotalIncome);
+                historyBean.setItemId(getGameTransactionItemId());
                 historyBean.setPartInPlayerIncome(
                     settlementDataMap.entrySet().stream()
                         .collect(HashMap::new,

@@ -168,7 +168,13 @@ public class Room {
         if (this.roomPlayers == null || this.roomPlayers.isEmpty()) {
             return;
         }
-        this.roomPlayers.entrySet().removeIf(entry -> entry.getValue().isRobot());
+        this.roomPlayers.entrySet().removeIf(entry -> {
+            boolean isRobot = entry.getValue().isRobot();
+            if (isRobot && playerSits != null) {
+                playerSits.remove(entry.getValue().getSit());
+            }
+            return isRobot;
+        });
     }
 
     public RoomPlayer getPlayer(long playerId) {
