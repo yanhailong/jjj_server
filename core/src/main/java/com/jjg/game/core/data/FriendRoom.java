@@ -18,7 +18,7 @@ public class FriendRoom extends Room {
     private static final Logger log = LoggerFactory.getLogger(FriendRoom.class);
     @Id
     protected long id;
-    // 房间过期时间
+    // 房间过期时间 毫秒
     protected long overdueTime;
     // 房间名
     protected String aliasName;

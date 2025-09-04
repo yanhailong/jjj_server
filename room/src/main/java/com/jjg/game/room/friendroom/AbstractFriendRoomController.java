@@ -13,7 +13,7 @@ import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.FriendRoomMessageBuilder;
 import com.jjg.game.room.message.RoomMessageBuilder;
-import com.jjg.game.room.message.resp.NotifyRoomBankerChange;
+import com.jjg.game.room.message.resp.NotifyFriendRoomDataChange;
 import com.jjg.game.room.message.resp.ResBankerApplyListInFriendRoom;
 import com.jjg.game.room.message.resp.ResEditBankerPredicateGold;
 import com.jjg.game.room.message.struct.ApplyBankPlayerInfo;
@@ -47,6 +47,10 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
                 @Override
                 public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                    // 动态加上时间
+                    long resetTime = dataEntity.getOverdueTime() - dataEntity.getPauseTime();
+                    long curTime = System.currentTimeMillis();
+                    dataEntity.setOverdueTime(curTime + resetTime);
                     dataEntity.setStatus(0);
                     dataEntity.setPauseTime(0);
                     return true;
@@ -74,8 +78,6 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             public Boolean updateDataWithRes(FriendRoom dataEntity) {
                 dataEntity.setStatus(1);
                 dataEntity.setPauseTime(System.currentTimeMillis());
-                long resetTime = dataEntity.getOverdueTime() - dataEntity.getPauseTime();
-                dataEntity.setOverdueTime(dataEntity.getPauseTime() + resetTime);
                 return true;
             }
         });
@@ -195,14 +197,15 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     /**
      * 广播庄家改变，直接广播庄家上庄
      */
-    public void broadBankerChange(long bankerPlayerId) {
-        NotifyRoomBankerChange notify = new NotifyRoomBankerChange();
-        notify.playerId = bankerPlayerId;
-        notify.operate = 1;
+    public void broadFriendRoomChange() {
+        NotifyFriendRoomDataChange notify = new NotifyFriendRoomDataChange();
+        notify.bankerPlayerId = room.roomBankerId();
+        notify.bankerPredicateCostGold = room.getPredictCostGoldNum();
+        notify.roomCreatorPredicateCostGold = room.getPredictCostGoldNum();
         broadcastToPlayers(RoomMessageBuilder.newBuilder()
             .setData(notify)
             .toAllPlayer()
-            .exceptPlayer(bankerPlayerId));
+            .exceptPlayer(room.roomBankerId()));
     }
 
     /**
@@ -256,7 +259,8 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             return result.code;
         }
         this.room = result.data;
-        broadBankerChange(room.roomBankerId());
+        // 通知房间改变
+        broadFriendRoomChange();
         // 添加未使用完的准备金
         int codeRes =
             gameController.addItem(playerId, bankerResetGold, eRoomItemReason.withCfgId(room.getRoomCfgId()));

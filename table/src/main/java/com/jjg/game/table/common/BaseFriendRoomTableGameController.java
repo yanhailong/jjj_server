@@ -4,6 +4,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.data.FriendRoomBillHistoryBean;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.base.ERoomItemReason;
@@ -116,29 +117,39 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                 addItem(roomBankerId, bankerFlowing,
                     ERoomItemReason.GAME_SETTLEMENT_BANKER_ADD.withCfgId(getRoom().getRoomCfgId()));
             }
-        }
-        // 需要记录
-        FriendRoomBillHistoryDao dao = roomController.getRoomManager().getFriendRoomBillHistoryDao();
-        if (!settlementDataMap.isEmpty()) {
-            long roomTotalIncome =
-                settlementDataMap.values().stream()
-                    .filter(s -> s.getBetWin() > 0)
-                    .mapToLong(SettlementData::getBetWin)
-                    .sum();
-            if (roomTotalIncome <= 0) {
-                return;
+            // 需要记录
+            FriendRoomBillHistoryDao dao = roomController.getRoomManager().getFriendRoomBillHistoryDao();
+            if (!settlementDataMap.isEmpty()) {
+                long roomTotalIncome =
+                    settlementDataMap.values().stream()
+                        .filter(s -> s.getBetWin() > 0)
+                        .mapToLong(SettlementData::getBetWin)
+                        .sum();
+                if (roomTotalIncome <= 0) {
+                    return;
+                }
+                // 构建基础历史数据bean
+                FriendRoomBillHistoryBean historyBean = FriendRoomBillHistoryHelper.buildFriendRoom(getRoom());
+                int incomeRatio =
+                    SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.CREATE_ROOM_FUNC_INCOME_RATIO);
+                long roomCreatorTotalIncome = roomTotalIncome * (incomeRatio / 10000);
+                historyBean.setTotalFlowing(roomCreatorTotalIncome);
+                historyBean.setPartInPlayerIncome(
+                    settlementDataMap.entrySet().stream()
+                        .collect(HashMap::new,
+                            (map, e)
+                                -> map.put(e.getKey(), e.getValue().getTotalWin()),
+                            HashMap::putAll));
+                // 添加历史
+                dao.addFriendRoomBillHistory(historyBean);
             }
-            // 构建基础历史数据bean
-            FriendRoomBillHistoryBean historyBean = FriendRoomBillHistoryHelper.buildFriendRoom(getRoom());
-            int incomeRatio = SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.CREATE_ROOM_FUNC_INCOME_RATIO);
-            long roomCreatorTotalIncome = roomTotalIncome * (incomeRatio / 10000);
-            historyBean.setTotalFlowing(roomCreatorTotalIncome);
-            historyBean.setPartInPlayerIncome(
-                settlementDataMap.entrySet().stream()
-                    .collect(HashMap::new, (map, e) -> map.put(e.getKey(), e.getValue().getTotalWin()), HashMap::putAll)
-            );
-            // 添加历史
-            dao.addFriendRoomBillHistory(historyBean);
+        }
+    }
+
+    @Override
+    public void respRoomInitInfo(PlayerController playerController) {
+        if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
+            friendRoomController.broadFriendRoomChange();
         }
     }
 

@@ -17,11 +17,14 @@ import com.jjg.game.room.message.RoomMessageConstant;
     resp = true
 )
 @ProtoDesc("通知房间庄家变化")
-public class NotifyRoomBankerChange extends AbstractNotice {
+public class NotifyFriendRoomDataChange extends AbstractNotice {
 
-    @ProtoDesc("玩家")
-    public long playerId;
+    @ProtoDesc("场上的最新的庄家ID，如果场上没有庄家此值为0")
+    public long bankerPlayerId;
 
-    @ProtoDesc("操作 1，上庄 2 下庄")
-    public int operate;
+    @ProtoDesc("房主准备金")
+    public long roomCreatorPredicateCostGold;
+
+    @ProtoDesc("庄家准备金")
+    public long bankerPredicateCostGold;
 }

@@ -8,6 +8,7 @@ import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
+import com.jjg.game.table.common.BaseFriendRoomTableGameController;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.sizedicetreasure.data.SizeDiceTreasureGameDataVo;
 import com.jjg.game.table.sizedicetreasure.gamephase.SizeDiceTreasureBetPhase;
@@ -24,7 +25,7 @@ import java.util.LinkedHashSet;
  * @author 2CL
  */
 @GameController(gameType = EGameType.SIZE_DICE_TREASURE, roomType = RoomType.BET_TEAM_UP_ROOM)
-public class SizeDiceTreasureFriendRoomGameController extends BaseTableGameController<SizeDiceTreasureGameDataVo> {
+public class SizeDiceTreasureFriendRoomGameController extends BaseFriendRoomTableGameController<SizeDiceTreasureGameDataVo> {
 
     public SizeDiceTreasureFriendRoomGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {
         super(roomController);
@@ -32,6 +33,7 @@ public class SizeDiceTreasureFriendRoomGameController extends BaseTableGameContr
 
     @Override
     public void respRoomInitInfo(PlayerController playerController) {
+        super.respRoomInitInfo(playerController);
         // 发送初始化数据
         NotifySizeDiceTreasureTableInfo animalsTableInfo =
             SizeDiceTreasureMessageBuilder.notifyAnimalsTableInfo(playerController.playerId(), this, true);

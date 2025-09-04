@@ -32,6 +32,7 @@ public class DiceTreasureFriendRoomGameController extends BaseFriendRoomTableGam
 
     @Override
     public void respRoomInitInfo(PlayerController playerController) {
+        super.respRoomInitInfo(playerController);
         // 发送初始化数据
         NotifyDiceTreasureTableInfo animalsTableInfo =
             DiceTreasureMessageBuilder.notifyDiceTreasureTableInfo(playerController.playerId(), this, true);
