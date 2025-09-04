@@ -1,6 +1,8 @@
 package com.jjg.game.core.base.condition;
 
 
+import java.util.Collection;
+
 /**
  * 条件比较枚举
  *
@@ -27,12 +29,52 @@ public enum EConditionComparator {
         return numberComparate(source, target);
     }
 
-
     public boolean longComparate(long source, long target) {
         return numberComparate(source, target);
     }
 
+    public boolean byteComparate(byte source, byte target) {
+        return numberComparate(source, target);
+    }
+
+    public boolean shortComparate(short source, short target) {
+        return numberComparate(source, target);
+    }
+
+    public boolean floatComparate(float source, float target) {
+        return numberComparate(source, target);
+    }
+
+    public boolean doubleComparate(double source, double target) {
+        return numberComparate(source, target);
+    }
+
+    public <T> boolean inRange(Collection<T> source, T target) {
+        return switch (this) {
+            case IN -> source.contains(target);
+            default -> false;
+        };
+    }
+
+    public <T> boolean notinRange(Collection<T> source, T target) {
+        return switch (this) {
+            case NOT_IN -> !source.contains(target);
+            default -> false;
+        };
+    }
+
     private boolean numberComparate(long source, long target) {
+        return switch (this) {
+            case GT -> source < target;
+            case LT -> source > target;
+            case EQ -> source == target;
+            case GTE -> source <= target;
+            case LTE -> source >= target;
+            default -> false;
+        };
+    }
+
+    private boolean numberComparate(double source, double target) {
         return switch (this) {
             case GT -> source < target;
             case LT -> source > target;
