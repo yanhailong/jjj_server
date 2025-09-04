@@ -133,6 +133,8 @@ public class SampleDataManager implements FileLoader {
         String fileName = file.getName();
         if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
             try {
+                // 加载配置文件成功后对应变化的CfgBean类
+                Set<Class<?>> changedSampleSet = reloadSampleOnExcelChange(file);
                 Map<String, List<DefaultCallback>> callbackCollector = Collections.EMPTY_MAP;
                 if (change) {
                     callbackCollector = ConfigExcelChangeListener.getChangeCallbackCollector();
@@ -147,8 +149,6 @@ public class SampleDataManager implements FileLoader {
                         defaultCallback.run();
                     });
                 }
-                // 加载配置文件成功后对应变化的CfgBean类
-                Set<Class<?>> changedSampleSet = reloadSampleOnExcelChange(file);
                 Map<String, ConfigExcelChangeListener> configExcelChangeListeners =
                     CommonUtil.getContext().getBeansOfType(ConfigExcelChangeListener.class);
                 List<Class<?>> changedSampleList = changedSampleSet.stream().toList();
