@@ -18,9 +18,6 @@ import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
 @ProtoDesc("请求好友房账单历史")
 public class ReqFriendRoomBillHistory extends AbstractMessage {
 
-    @ProtoDesc("房间ID")
-    public long roomId;
-
     @ProtoDesc("分页下标，从0开始")
     public int pageIdx;
 

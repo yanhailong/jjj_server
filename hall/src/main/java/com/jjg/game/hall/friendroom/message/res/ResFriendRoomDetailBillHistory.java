@@ -31,6 +31,9 @@ public class ResFriendRoomDetailBillHistory extends AbstractResponse {
     @ProtoDesc("分页大小")
     public int pageSize;
 
+    @ProtoDesc("游戏类型")
+    public int gameType;
+
     public ResFriendRoomDetailBillHistory(int code) {
         super(code);
     }
