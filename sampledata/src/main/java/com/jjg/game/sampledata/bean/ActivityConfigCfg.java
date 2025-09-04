@@ -36,6 +36,8 @@ public class ActivityConfigCfg extends BaseCfgBean {
   protected String time_start;
   /** 类型ID */
   protected int type;
+  /** 值1 */
+  protected List<Integer> value;
 
   /** 返回解锁条件 */
   public Map<Integer,Integer> getCondition() {
@@ -80,6 +82,11 @@ public class ActivityConfigCfg extends BaseCfgBean {
   /** 返回类型ID */
   public int getType() {
     return type;
+  }
+
+  /** 返回值1 */
+  public List<Integer> getValue() {
+    return value;
   }
 
   @Override
