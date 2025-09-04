@@ -32,6 +32,7 @@ public class VietnamDiceFriendRoomGameController extends BaseFriendRoomTableGame
 
     @Override
     public void respRoomInitInfo(PlayerController playerController) {
+        super.respRoomInitInfo(playerController);
         // 发送初始化数据
         NotifyVietnamDiceTableInfo animalsTableInfo =
             VietnamDiceMessageBuilder.notifyVietnamDiceTableInfo(playerController.playerId(), this, true);

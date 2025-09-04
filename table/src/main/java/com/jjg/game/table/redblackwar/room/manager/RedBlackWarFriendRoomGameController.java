@@ -66,6 +66,7 @@ public class RedBlackWarFriendRoomGameController extends BaseFriendRoomTableGame
 
     @Override
     public void respRoomInitInfo(PlayerController playerController) {
+        super.respRoomInitInfo(playerController);
         //发送房间信息
         RedBlackWarGameDataVo dataVo = getGameDataVo();
         NotifyRedBlackWarInfo notifyRedBlackWarInfo =

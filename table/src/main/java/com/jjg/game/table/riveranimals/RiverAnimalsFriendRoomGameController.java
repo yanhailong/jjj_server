@@ -8,6 +8,7 @@ import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
+import com.jjg.game.table.common.BaseFriendRoomTableGameController;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.riveranimals.data.RiverAnimalsGameDataVo;
 import com.jjg.game.table.riveranimals.gamephase.RiverAnimalsBetPhase;
@@ -24,7 +25,7 @@ import java.util.LinkedHashSet;
  * @author 2CL
  */
 @GameController(gameType = EGameType.RIVER_ANIMALS, roomType = RoomType.BET_TEAM_UP_ROOM)
-public class RiverAnimalsFriendRoomGameController extends BaseTableGameController<RiverAnimalsGameDataVo> {
+public class RiverAnimalsFriendRoomGameController extends BaseFriendRoomTableGameController<RiverAnimalsGameDataVo> {
 
     public RiverAnimalsFriendRoomGameController(AbstractRoomController<Room_BetCfg, BetTableRoom> roomController) {
         super(roomController);
@@ -32,6 +33,7 @@ public class RiverAnimalsFriendRoomGameController extends BaseTableGameControlle
 
     @Override
     public void respRoomInitInfo(PlayerController playerController) {
+        super.respRoomInitInfo(playerController);
         // 发送初始化数据
         NotifyRiverAnimalsTableInfo animalsTableInfo =
             RiverAnimalsMessageBuilder.notifyAnimalsTableInfo(playerController.playerId(),this, true);

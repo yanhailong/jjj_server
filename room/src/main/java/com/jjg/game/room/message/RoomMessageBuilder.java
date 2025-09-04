@@ -53,11 +53,11 @@ public class RoomMessageBuilder<T extends AbstractMessage> {
         return toAll;
     }
 
-    public RoomMessageBuilder<T> sendPlayer(Long playerId,T data){
+    public RoomMessageBuilder<T> sendPlayer(Long playerId, T data) {
         return setPlayerIds(Set.of(playerId)).setData(data);
     }
 
-    public RoomMessageBuilder<T> sendAllPlayer(T data){
+    public RoomMessageBuilder<T> sendAllPlayer(T data) {
         return toAllPlayer().setData(data);
     }
 
@@ -70,7 +70,9 @@ public class RoomMessageBuilder<T extends AbstractMessage> {
     }
 
     public RoomMessageBuilder<T> exceptPlayer(Long playerId) {
-        this.exceptPlayers.add(playerId);
+        if (playerId > 0) {
+            this.exceptPlayers.add(playerId);
+        }
         return this;
     }
 

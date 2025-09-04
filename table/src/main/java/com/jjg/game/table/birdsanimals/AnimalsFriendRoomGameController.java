@@ -32,6 +32,7 @@ public class AnimalsFriendRoomGameController extends BaseFriendRoomTableGameCont
 
     @Override
     public void respRoomInitInfo(PlayerController playerController) {
+        super.respRoomInitInfo(playerController);
         // 发送初始化数据
         NotifyAnimalsTableInfo animalsTableInfo =
             AnimalsMessageBuilder.notifyAnimalsTableInfo(this, true, playerController.playerId());

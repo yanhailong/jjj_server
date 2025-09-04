@@ -57,6 +57,7 @@ public class BaccaratFriendGameController extends BaseFriendRoomTableGameControl
 
     @Override
     public void respRoomInitInfo(PlayerController playerController) {
+        super.respRoomInitInfo(playerController);
         EGamePhase eGamePhase = getCurrentGamePhase();
         // 如果在结算阶段需要从缓存中读取数据
         RespBaccaratTableInfo baccaratTableInfo =

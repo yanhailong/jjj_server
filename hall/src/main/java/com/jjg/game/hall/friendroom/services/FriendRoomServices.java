@@ -699,9 +699,12 @@ public class FriendRoomServices implements IConsoleReceiver {
 
             @Override
             public Boolean updateDataWithRes(FriendRoom dataEntity) {
-                dataEntity.setAliasName(updateFriendRoom.roomAliasName);
+                if (!StringUtils.isEmpty(updateFriendRoom.roomAliasName)) {
+                    dataEntity.setAliasName(updateFriendRoom.roomAliasName);
+                }
                 dataEntity.setPredictCostGoldNum(dataEntity.getPredictCostGoldNum() + updateFriendRoom.predictCostGoldNum);
                 dataEntity.setAutoRenewal(updateFriendRoom.autoRenewal);
+                // 如果游戏暂停了,需要动态计算,不管时间是否暂停，都只需要给原有的过期时间加上增量时间
                 dataEntity.setOverdueTime(dataEntity.getOverdueTime() + addTime);
                 return true;
             }
@@ -717,7 +720,7 @@ public class FriendRoomServices implements IConsoleReceiver {
      */
     private int checkUpdateRoom(Player player, ReqUpdateFriendRoom updateFriendRoom) {
         // 屏蔽字检查
-        if (illegalNameCheckService.illegalNameCheck(updateFriendRoom.roomAliasName)) {
+        if (!illegalNameCheckService.illegalNameCheck(updateFriendRoom.roomAliasName)) {
             return Code.ILLEGAL_NAME;
         }
         if (updateFriendRoom.timeOfOpenRoom != 0) {
@@ -729,6 +732,9 @@ public class FriendRoomServices implements IConsoleReceiver {
         }
         // 准备金扣费检查 需要扣除的金币数量
         long needDeductGold = updateFriendRoom.predictCostGoldNum;
+        if (needDeductGold < 0 || updateFriendRoom.roomId <= 0) {
+            return Code.PARAM_ERROR;
+        }
         if (needDeductGold > 0 && player.getGold() < needDeductGold) {
             return Code.NOT_ENOUGH;
         }

@@ -44,11 +44,13 @@ public class FriendRoomMessageBuilder {
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(friendRoom.getRoomCfgId());
         friendRoomBaseData.roomId = friendRoom.getId();
         friendRoomBaseData.roomAliasName = friendRoom.getAliasName();
-        friendRoomBaseData.roomStatus = friendRoom.getStatus();
+        // 默认是暂停状态
+        friendRoomBaseData.roomStatus = friendRoom.getStatus() == 0 ? 1 : friendRoom.getStatus();
         friendRoomBaseData.onlinePlayerNum = friendRoom.getRoomPlayers().size();
         friendRoomBaseData.gameId = friendRoom.getRoomCfgId();
         friendRoomBaseData.overdueTime = getRoomResetTime(friendRoom);
         friendRoomBaseData.predictCostGoldNum = friendRoom.getPredictCostGoldNum();
+        friendRoomBaseData.autoRenewal = friendRoom.isAutoRenewal();
         GlobalConfigCfg globalConfigCfg =
             GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.INVITATION_REFRESH_INTERVAL);
         int intervalTime = globalConfigCfg.getIntValue() * TimeHelper.ONE_MINUTE_OF_MILLIS;

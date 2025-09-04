@@ -41,4 +41,7 @@ public class FriendRoomBaseData {
 
     @ProtoDesc("进入最低金币数量")
     public long limitGoldMin;
+
+    @ProtoDesc("是否自动续费")
+    public boolean autoRenewal;
 }

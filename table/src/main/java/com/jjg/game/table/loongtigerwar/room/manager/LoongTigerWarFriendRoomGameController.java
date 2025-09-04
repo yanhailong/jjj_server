@@ -66,6 +66,7 @@ public class LoongTigerWarFriendRoomGameController extends BaseFriendRoomTableGa
 
     @Override
     public void respRoomInitInfo(PlayerController playerController) {
+        super.respRoomInitInfo(playerController);
         //发送房间信息
         LoongTigerWarGameDataVo dataVo = getGameDataVo();
         NotifyLoongTigerWarInfo notifyLoongTigerWarInfo =
