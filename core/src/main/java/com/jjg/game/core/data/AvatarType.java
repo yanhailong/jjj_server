@@ -10,11 +10,11 @@ import java.util.function.Function;
 public enum AvatarType {
     AVATAR("unlockAvatarSet", 0, Player::setHeadImgId, Player::getHeadImgId),
     FRAME("unlockFrameSet", 1, Player::setHeadFrameId, Player::getHeadFrameId),
-    NATIONAL("", 2, (player, integer) -> {}, Player::getNationalId),
+    NATIONAL("", 2,  Player::setNationalId, Player::getNationalId),
     TITLE("unlockTitleSet", 3, Player::setTitleId, Player::getTitleId),
     CHIP("unlockChipsSet", 4, Player::setChipsId, Player::getChipsId),
-    CARD_BACKGROUND("unlockCardBackgroundSet", 5, Player::setBackgroundId, Player::getCardBackgroundId),
-    BACKGROUND("unlockBackgroundSet", 6, Player::setCardBackgroundId, Player::getBackgroundId),
+    CARD_BACKGROUND("unlockCardBackgroundSet", 5, Player::setCardBackgroundId, Player::getCardBackgroundId),
+    BACKGROUND("unlockBackgroundSet", 6, Player::setBackgroundId, Player::getBackgroundId),
     ;
     private final String field;
     private final int type;
