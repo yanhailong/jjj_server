@@ -240,7 +240,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                 log.error("21点发奖找不到GamePlayer playerId:{} get:{} id:{}", playerId, get, gameDataVo.getId());
             }
             if (totalGet > 0 && Objects.nonNull(gamePlayer)) {
-                gameController.addGold(playerId, totalGet, ERoomItemReason.GAME_SETTLEMENT);
+                gameController.addItem(playerId, totalGet, ERoomItemReason.GAME_SETTLEMENT);
             }
             blackJackSettlementInfo.getGold = get;
             blackJackSettlementInfo.win = get >= 0;
