@@ -30,10 +30,7 @@ import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.gm.dto.*;
-import com.jjg.game.gm.vo.OnlinePlayerVo;
-import com.jjg.game.gm.vo.PlayerVo;
-import com.jjg.game.gm.vo.SafeVo;
-import com.jjg.game.gm.vo.WebResult;
+import com.jjg.game.gm.vo.*;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import org.apache.commons.lang3.StringUtils;
@@ -579,7 +576,7 @@ public class GMController extends AbstractController {
      * @return
      */
     @RequestMapping(BackendGMCmd.PLAYING_INFO)
-    public WebResult<List<OnlinePlayerVo>> onlinePlayer(@RequestBody OnlinePlayerDto dto) {
+    public WebResult<PageVo<List<OnlinePlayerVo>>> onlinePlayer(@RequestBody OnlinePlayerDto dto) {
         try {
             log.info("收到后台查询在线玩家的请求 dto = {}", dto);
             if (dto.gameId() < 1 || dto.registerChannel() < 0 || dto.pageSize() < 1 || dto.page() < 1) {
@@ -600,6 +597,7 @@ public class GMController extends AbstractController {
             //从redis获取玩家最新信息
             Map<Long, Player> playerMap = playerService.multiGetPlayerMap(playerIds);
 
+            PageVo<List<OnlinePlayerVo>> pageVo = new PageVo<>();
             List<OnlinePlayerVo> resultList = new ArrayList<>();
             for (OnlinePlayer olp : list) {
                 OnlinePlayerVo vo = new OnlinePlayerVo();
@@ -612,11 +610,14 @@ public class GMController extends AbstractController {
                     vo.setGold(player.getGold());
                     vo.setDiamond(player.getDiamond());
                 }
+                vo.setRegisterChannel(dto.registerChannel());
                 resultList.add(vo);
             }
+            pageVo.setCount(onlinePlayerDao.countBy(dto.registerChannel(), dto.gameId()));
+            pageVo.setData(resultList);
 
             //返回修改结果
-            return success("common.success", resultList);
+            return success("common.success", pageVo);
         } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");

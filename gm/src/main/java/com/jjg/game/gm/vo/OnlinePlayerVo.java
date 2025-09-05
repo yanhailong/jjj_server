@@ -10,6 +10,7 @@ public class OnlinePlayerVo {
     private int createTime;
     private long gold;
     private long diamond;
+    private int registerChannel;
 
     public long getPlayerId() {
         return playerId;
@@ -49,5 +50,13 @@ public class OnlinePlayerVo {
 
     public void setDiamond(long diamond) {
         this.diamond = diamond;
+    }
+
+    public int getRegisterChannel() {
+        return registerChannel;
+    }
+
+    public void setRegisterChannel(int registerChannel) {
+        this.registerChannel = registerChannel;
     }
 }

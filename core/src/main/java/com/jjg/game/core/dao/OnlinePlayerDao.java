@@ -64,4 +64,9 @@ public class OnlinePlayerDao extends MongoBaseDao<OnlinePlayer, Long> {
 
         return mongoTemplate.find(query, OnlinePlayer.class);
     }
+
+    public long countBy(int channel, int gameType) {
+        Query query = new Query(Criteria.where("channel").is(channel).and("gameType").is(gameType));
+        return mongoTemplate.count(query, OnlinePlayer.class);
+    }
 }
