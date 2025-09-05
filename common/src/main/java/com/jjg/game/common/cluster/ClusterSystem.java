@@ -221,7 +221,8 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
             SwitchNodeMessage switchNodeMessage = new SwitchNodeMessage(pfSession.sessionId(), marsNode.getNodePath()
                     , pfSession.playerId);
             pfSession.send2Gate(switchNodeMessage);
-            sessionMap.remove(pfSession.sessionId());
+            removeSession(pfSession.sessionId());
+//            sessionMap.remove(pfSession.sessionId());
         } catch (Exception e) {
             log.warn("节点切换异常", e);
 //            e.printStackTrace();
