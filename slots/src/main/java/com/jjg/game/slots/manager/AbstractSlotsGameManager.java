@@ -77,8 +77,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     //在specualResultLib
     protected int defaultRewardSectionIndex = -1;
 
-
-    protected Map<Long, T> gameDataMap = new ConcurrentHashMap<>();
+    //roomCfgId -> playerId ->gameData
+    protected Map<Integer,Map<Long, T>> gameDataMap = new ConcurrentHashMap<>();
 
 
     protected BigDecimal tenThousandBigDecimal = BigDecimal.valueOf(10000);
@@ -229,6 +229,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
                             return false;
                         }).findFirst().orElse(null);
 
+                        if(resEn == null){
+                            log.warn("未找到对应的倍数区间 libType = {}, times = {}", tmpLibType, times);
+                            continue;
+                        }
                         int index = resEn.getKey();
 
                         Integer exceptCount = exceptGenSectionCountMap.get(index);
@@ -265,7 +269,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
                 saveCount += getResultLibDao().batchSave(libList, newDocName);
             }
 
-            log.debug("生成结束，开始转移到redis newDocName = {}", newDocName);
+            log.debug("生成结束，开始转移到redis, newDocName = {}", newDocName);
             //加载到redis
             redisTableName = getResultLibDao().moveToRedis(newDocName, getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionMap());
 
@@ -277,18 +281,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             //通知其他节点，结果库变更
             noticeNodeLibChange(SlotsConst.LibChangeType.LIB_CHANGE, Collections.EMPTY_LIST);
         } catch (Exception e) {
-//            if(StringUtils.isNotEmpty(newDocName)) {
-//                getResultLibDao().clearMongoLib(newDocName);
-//            }
-//            if(StringUtils.isNotEmpty(redisTableName)) {
-//                getResultLibDao().clearRedisLib(redisTableName);
-//            }
+            if(StringUtils.isNotEmpty(newDocName)) {
+                getResultLibDao().clearMongoLib(newDocName);
+            }
+            if(StringUtils.isNotEmpty(redisTableName)) {
+                getResultLibDao().clearRedisLib(redisTableName);
+            }
             getResultLibDao().removeGenerateLock(this.gameType);
             log.error("", e);
         }
     }
 
-    public <G extends AbstractGameRunInfo> G enterGame(long playerId) {
+    public <G extends AbstractGameRunInfo> G enterGame(PlayerController playerController) {
         return null;
     }
 
@@ -301,9 +305,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      * 关闭
      */
     public void shutdown() {
-        this.gameDataMap.entrySet().forEach(en -> {
-            T gameData = en.getValue();
-            offlineSaveGameDataDto(gameData);
+        this.gameDataMap.forEach((k,v) -> {
+            v.forEach((k1,v1) -> {
+                offlineSaveGameDataDto(v1);
+            });
         });
     }
 
@@ -406,8 +411,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      * @return
      */
     public T getPlayerGameData(PlayerController playerController) {
-        return this.gameDataMap.get(playerController.playerId());
+        return getPlayerGameData(playerController.playerId(),playerController.getPlayer().getRoomCfgId());
     }
+
+    public T getPlayerGameData(long playerId,int roomCfgId) {
+        Map<Long, T> temMap = this.gameDataMap.get(roomCfgId);
+        if (temMap == null || temMap.isEmpty()) {
+            return null;
+        }
+
+        return temMap.get(playerId);
+    }
+
 
     /**
      * 创建玩家玩游戏的数据存储对象
@@ -416,7 +431,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      * @return
      */
     public <DT extends SlotsPlayerGameDataDTO> T createPlayerGameData(PlayerController playerController) throws Exception {
-        T playerGameData = gameDataMap.get(playerController.playerId());
+        T playerGameData = getPlayerGameData(playerController);
         if (playerGameData != null) {
             return playerGameData;
         }
@@ -451,7 +466,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         }
         playerGameData.setOnline(true);
         playerGameData.setPlayerController(playerController);
-        return gameDataMap.put(playerController.playerId(), playerGameData);
+        return putGameData(playerController, playerGameData);
+    }
+
+    protected T putGameData(PlayerController playerController, T gameData) {
+        return this.gameDataMap.computeIfAbsent(playerController.getPlayer().getRoomCfgId(), k -> new HashMap<>()).put(playerController.playerId(), gameData);
     }
 
     /**
@@ -553,8 +572,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      */
     protected void checkOffLine() {
         int now = TimeHelper.nowInt();
-        this.gameDataMap.entrySet().removeIf(en -> {
-            T gameData = en.getValue();
+
+        this.gameDataMap.forEach((key, value) -> value.entrySet().removeIf(en2 -> {
+            T gameData = en2.getValue();
             if (gameData.isOnline()) {
                 return false;
             }
@@ -566,7 +586,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             }
             offlineSaveGameDataDto(gameData);
             return true;
-        });
+        }));
     }
 
     /**

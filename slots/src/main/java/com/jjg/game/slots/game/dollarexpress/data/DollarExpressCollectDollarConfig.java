@@ -10,6 +10,8 @@ import java.util.Map;
 public class DollarExpressCollectDollarConfig {
     //单线押分(低于此值不开启收集功能)
     private long stakeMin;
+    //总押分(低于此值不开启收集功能)
+    private long stakeAllBetScoreMin;
     //起始值
     private int begin;
     //收集概率
@@ -41,6 +43,14 @@ public class DollarExpressCollectDollarConfig {
 
     public int getBegin() {
         return begin;
+    }
+
+    public long getStakeAllBetScoreMin() {
+        return stakeAllBetScoreMin;
+    }
+
+    public void setStakeAllBetScoreMin(long stakeAllBetScoreMin) {
+        this.stakeAllBetScoreMin = stakeAllBetScoreMin;
     }
 
     public void setBegin(int begin) {

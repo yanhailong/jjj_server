@@ -50,7 +50,7 @@ public class DollarExpressMessageHandler implements GmListener {
     public void reqConfigInfo(PlayerController playerController, ReqConfigInfo req) {
         try {
             log.info("收到玩家请求配置 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            DollarExpressGameRunInfo gameRunInfo = gameManager.enterGame(playerController.playerId());
+            DollarExpressGameRunInfo gameRunInfo = gameManager.enterGame(playerController);
             sendMessageManager.sendConfigMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
@@ -143,21 +143,12 @@ public class DollarExpressMessageHandler implements GmListener {
                 if (gmOrders.length > 2) {
                     testLibData.setUpdateGird(Boolean.parseBoolean(gmOrders[2]));
                 }
-                gameManager.addTestIconData(playerController, testLibData, true);
-            } else if ("setRoller".equalsIgnoreCase(gmOrders[0])) {
-                log.debug("收到设置滚轴的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+                gameManager.addTestIconData(playerController, testLibData);
+            } else if ("libType".equalsIgnoreCase(gmOrders[0])) {
+                log.debug("收到选择libtype 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 TestLibData testLibData = new TestLibData();
 
-                String[] arr2 = gmOrders[1].split(",");
-                int[] iconArr = new int[20];
-                for (int i = 0; i < iconArr.length; i++) {
-                    iconArr[i] = Integer.parseInt(arr2[i]);
-                }
-                testLibData.setIcons(iconArr);
-                if (gmOrders.length > 2) {
-                    testLibData.setUpdateGird(Boolean.parseBoolean(gmOrders[2]));
-                }
-                gameManager.addTestIconData(playerController, testLibData, false);
+                int libType = Integer.parseInt(gmOrders[1]);
             } else if ("chooseFreeModel".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到选择免费模式的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 ReqChooseFreeModel req = new ReqChooseFreeModel();
