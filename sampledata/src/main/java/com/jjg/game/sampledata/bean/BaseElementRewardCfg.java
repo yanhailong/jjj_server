@@ -20,50 +20,40 @@ public class BaseElementRewardCfg extends BaseCfgBean {
 
   /** 倍率 */
   protected int bet;
-  /** 元素倍率加成 */
+  /** 额外出现元素导致倍率加成 */
   protected List<List<Integer>> betTimes;
-  /** 元素ID */
-  protected int elementId;
+  /** 元素ID_相同元素_相同元素 */
+  protected List<Integer> elementId;
   /** 触发小游戏ID */
-  protected Map<Integer,Integer> featureTriggerId;
+  protected List<Integer> featureTriggerId;
   /** 游戏ID */
   protected int gameType;
   /** jackpotID */
   protected int jackpotID;
-  /** 线ID加成 */
-  protected List<List<Integer>> lineIdReward;
-  /** 线类型 */
+  /** 中奖条件 */
   protected int lineType;
-  /** 是否额外投注 */
-  protected boolean needExtraBet;
-  /** 数量 */
+  /** 条件参数 */
   protected int rewardNum;
-  /** 中奖基数 */
-  protected int rewardType;
   /** 旋转状态 */
   protected int rotateState;
-  /** 单线押分倍数加成 */
-  protected List<List<Integer>> scoreBetTimes;
-  /** 旋转状态标识 */
-  protected int spinType;
 
   /** 返回倍率 */
   public int getBet() {
     return bet;
   }
 
-  /** 返回元素倍率加成 */
+  /** 返回额外出现元素导致倍率加成 */
   public List<List<Integer>> getBetTimes() {
     return betTimes;
   }
 
-  /** 返回元素ID */
-  public int getElementId() {
+  /** 返回元素ID_相同元素_相同元素 */
+  public List<Integer> getElementId() {
     return elementId;
   }
 
   /** 返回触发小游戏ID */
-  public Map<Integer,Integer> getFeatureTriggerId() {
+  public List<Integer> getFeatureTriggerId() {
     return featureTriggerId;
   }
 
@@ -77,44 +67,19 @@ public class BaseElementRewardCfg extends BaseCfgBean {
     return jackpotID;
   }
 
-  /** 返回线ID加成 */
-  public List<List<Integer>> getLineIdReward() {
-    return lineIdReward;
-  }
-
-  /** 返回线类型 */
+  /** 返回中奖条件 */
   public int getLineType() {
     return lineType;
   }
 
-  /** 返回是否额外投注 */
-  public boolean getNeedExtraBet() {
-    return needExtraBet;
-  }
-
-  /** 返回数量 */
+  /** 返回条件参数 */
   public int getRewardNum() {
     return rewardNum;
-  }
-
-  /** 返回中奖基数 */
-  public int getRewardType() {
-    return rewardType;
   }
 
   /** 返回旋转状态 */
   public int getRotateState() {
     return rotateState;
-  }
-
-  /** 返回单线押分倍数加成 */
-  public List<List<Integer>> getScoreBetTimes() {
-    return scoreBetTimes;
-  }
-
-  /** 返回旋转状态标识 */
-  public int getSpinType() {
-    return spinType;
   }
 
   @Override

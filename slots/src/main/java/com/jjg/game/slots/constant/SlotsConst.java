@@ -50,6 +50,13 @@ public interface SlotsConst {
         int CONFIG_CHANGE = 1;
     }
 
+    interface BaseLine{
+        //从左至右
+        int DIRECTION_LEFT = 1;
+        //从右至左
+        int DIRECTION_RIGHT = 2;
+    }
+
     interface BaseElement{
         //普通图标类型
         int TYPE_NORMAL = 0;
@@ -90,6 +97,8 @@ public interface SlotsConst {
     }
 
     interface BaseElementReward{
+        //所有
+        int LINE_TYPE_ALL = 0;
         //连线类型
         int LINE_TYPE_NORMAL = 1;
         //指定线类型
@@ -109,34 +118,5 @@ public interface SlotsConst {
         int REWARD_TYPE_A = 0;
         int REWARD_TYPE_B = 1;
         int REWARD_TYPE_C = 2;
-    }
-
-    interface SpecialResultLib{
-        //正常
-        int TYPE_NORMAL = 1;
-        //拉火车
-        int TYPE_TRAIN = 2;
-        //黄金列车
-        int TYPE_GOLD_TRAIN = 3;
-        //二选一触发局
-        int TYPE_ALL_BOARD = 4;
-        //二选一之免费
-        int TYPE_ALL_BOARD_FREE = 5;
-        //重转之拉火车
-        int TYPE_AGAIN_TRAIN = 6;
-        //重转之黄金列车
-        int TYPE_AGAIN_GOLD_TRAIN = 7;
-    }
-
-    interface SpecialGird{
-        //随机多种组合元素不同位置
-        int GIRD_UPDATE_TYPE_RAND = 0;
-        //指定元素替换随机元素位置
-        int GIRD_UPDATE_TYPE_APPOINT = 1;
-        //指定元素替换随机元素位置
-        int GIRD_UPDATE_TYPE_APPOINT_2 = 2;
-
-        //针对普通火车修改格子特殊处理
-        int ID_TRAIN_UPDATE = 2;
     }
 }

@@ -18,7 +18,7 @@ public class SpecialResultLibCacheData {
     //specialResultLib表中section字段的每个倍数的随机权重信息  modelId -> tpyeId -> PropInfo
     private Map<Integer, Map<Integer,PropInfo>> resultLibSectionPropMap;
     //specialResultLib表中section字段的倍数区间  modelId -> tpyeId -> 下标id -> 倍数区间
-    private Map<Integer, Map<Integer,Map<Integer,int[]>>> resultLibSectionMap;
+    private Map<Integer,Map<Integer,int[]>> resultLibSectionMap;
 
     public int getDefaultRewardSectionIndex() {
         return defaultRewardSectionIndex;
@@ -52,11 +52,11 @@ public class SpecialResultLibCacheData {
         this.resultLibSectionPropMap = resultLibSectionPropMap;
     }
 
-    public Map<Integer, Map<Integer, Map<Integer, int[]>>> getResultLibSectionMap() {
+    public Map<Integer, Map<Integer, int[]>> getResultLibSectionMap() {
         return resultLibSectionMap;
     }
 
-    public void setResultLibSectionMap(Map<Integer, Map<Integer, Map<Integer, int[]>>> resultLibSectionMap) {
+    public void setResultLibSectionMap(Map<Integer, Map<Integer, int[]>> resultLibSectionMap) {
         this.resultLibSectionMap = resultLibSectionMap;
     }
 }

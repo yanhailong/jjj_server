@@ -1,9 +1,8 @@
 package com.jjg.game.slots.game.cleopatra.manager;
 
+import com.jjg.game.slots.game.cleopatra.dao.CleopatraResultLibDao;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraAwardLineInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAwardLineInfo;
-import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import org.springframework.stereotype.Component;
 
@@ -16,4 +15,5 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
     public CleopatraGenerateManager() {
         super(CleopatraResultLib.class);
     }
+
 }

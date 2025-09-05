@@ -1,5 +1,7 @@
 package com.jjg.game.slots.game.dollarexpress.data;
 
+import java.util.Map;
+
 /**
  * 收集美元的一些配置
  * @author 11
@@ -16,6 +18,18 @@ public class DollarExpressCollectDollarConfig {
     private int max;
     //游戏id
     private int auxiliaryId;
+    //触发标记
+    private Map<Integer,Integer> triggerTarMap;
+    //触发的类型
+    private int triggerType;
+    //全解锁奖励的游戏id
+    private int triggerAuxiliaryId;
+    //3次权中奖次数
+    private int allWinCount;
+    //3次全中奖后触发小游戏的概率
+    private int allWinCountProp;
+    //3次全中奖后触发的小游戏
+    private int allWinCountAuxiliaryId;
 
     public long getStakeMin() {
         return stakeMin;
@@ -55,5 +69,53 @@ public class DollarExpressCollectDollarConfig {
 
     public void setAuxiliaryId(int auxiliaryId) {
         this.auxiliaryId = auxiliaryId;
+    }
+
+    public Map<Integer, Integer> getTriggerTarMap() {
+        return triggerTarMap;
+    }
+
+    public void setTriggerTarMap(Map<Integer, Integer> triggerTarMap) {
+        this.triggerTarMap = triggerTarMap;
+    }
+
+    public int getTriggerType() {
+        return triggerType;
+    }
+
+    public void setTriggerType(int triggerType) {
+        this.triggerType = triggerType;
+    }
+
+    public int getTriggerAuxiliaryId() {
+        return triggerAuxiliaryId;
+    }
+
+    public void setTriggerAuxiliaryId(int triggerAuxiliaryId) {
+        this.triggerAuxiliaryId = triggerAuxiliaryId;
+    }
+
+    public int getAllWinCount() {
+        return allWinCount;
+    }
+
+    public void setAllWinCount(int allWinCount) {
+        this.allWinCount = allWinCount;
+    }
+
+    public int getAllWinCountProp() {
+        return allWinCountProp;
+    }
+
+    public void setAllWinCountProp(int allWinCountProp) {
+        this.allWinCountProp = allWinCountProp;
+    }
+
+    public int getAllWinCountAuxiliaryId() {
+        return allWinCountAuxiliaryId;
+    }
+
+    public void setAllWinCountAuxiliaryId(int allWinCountAuxiliaryId) {
+        this.allWinCountAuxiliaryId = allWinCountAuxiliaryId;
     }
 }

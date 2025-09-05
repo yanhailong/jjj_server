@@ -9,6 +9,7 @@ import com.jjg.game.sampledata.bean.SpecialResultLibCfg;
 import com.jjg.game.slots.data.SpecialResultLibCacheData;
 import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressResultLibDao;
 import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGameManager;
+import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGenerateManager;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +32,8 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
     private DollarExpressResultLibDao libDao;
     @Autowired
     private DollarExpressGameManager gameManager;
+    @Autowired
+    private DollarExpressGenerateManager generateManager;
 
     /**
      * 结果库变更
@@ -44,8 +47,8 @@ public class SlotsToServerMessageHandler extends CoreToServerMessageHandler {
             if(req.changeType == 1){
                 List<SpecialResultLibCfg> cfgList = new ArrayList<>();
                 req.libCfgList.forEach(str -> cfgList.add(JSON.parseObject(str, SpecialResultLibCfg.class)));
-                SpecialResultLibCacheData data = gameManager.calSpecialResultLibCacheData(cfgList);
-                gameManager.updateSpecialResultLibCacheData(data);
+                SpecialResultLibCacheData data = generateManager.calSpecialResultLibCacheData(cfgList);
+                generateManager.setSpecialResultLibCacheData(data);
             }
             libDao.reloadLib();
 

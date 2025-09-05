@@ -22,6 +22,8 @@ public class BaseElementCfg extends BaseCfgBean {
   protected int elementId;
   /** 游戏ID */
   protected int gameId;
+  /** 消除后变化元素ID */
+  protected int postChangeElementId;
   /** 类型 */
   protected int type;
 
@@ -33,6 +35,11 @@ public class BaseElementCfg extends BaseCfgBean {
   /** 返回游戏ID */
   public int getGameId() {
     return gameId;
+  }
+
+  /** 返回消除后变化元素ID */
+  public int getPostChangeElementId() {
+    return postChangeElementId;
   }
 
   /** 返回类型 */

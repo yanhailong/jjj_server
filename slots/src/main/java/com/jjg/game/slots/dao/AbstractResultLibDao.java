@@ -2,18 +2,24 @@ package com.jjg.game.slots.dao;
 
 import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.slots.data.SlotsResultLib;
+import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
+import org.bson.Document;
 import org.redisson.api.RKeys;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 
+import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -32,7 +38,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
     protected final String slotsResultLib1 = "slotsResultLib1:";
     protected final String slotsResultLib2 = "slotsResultLib2:";
 
-    private int batchSize = 1000;
+    private int batchSize = 500;
 
     //当前正在使用的结果库
     protected String currentMongoLibName;
@@ -144,7 +150,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
      * 加载到redis
      *
      */
-    public String moveToRedis(String docName, Map<Integer, Map<Integer, Map<Integer, int[]>>> resultLibSectionMap) {
+    public String moveToRedis(String docName, Map<Integer, Map<Integer, int[]>> resultLibSectionMap) {
         Query query = new Query();
 
         query.cursorBatchSize(batchSize);
@@ -154,20 +160,25 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         //获取一个新的库名
         String redisTableNameIndex = getRedisTableNameIndex(redisTableName);
 
-        //使用游标处理数据
+        int pipelineBatchSize = 300; // 每300条执行一次Pipeline
+        List<Object> libBatch = new ArrayList<>(pipelineBatchSize);
+
         try (Stream<T> stream = mongoTemplate.stream(query, this.clazz, docName)) {
-            stream.forEach(lib -> {
-                Set<Integer> libTypeSet = lib.getLibTypeSet();
-                for(int type : libTypeSet){
-                    int sectionIndex = getSectionIndex(resultLibSectionMap, lib.getRollerMode(), type, lib.getTimes());
-                    if (sectionIndex < 0) {
-                        log.warn("将结果库转移到redis时失败，获取区间失败 gameType = {},modelId = {},libType = {},times = {},libId = {}", this.gameType, lib.getRollerMode(), type, lib.getTimes(),lib.getId());
-                        return;
-                    }
-                    this.redisTemplate.opsForSet().add(tabelName(redisTableNameIndex, this.gameType, type, sectionIndex), lib);
-//                    this.redisTemplate.opsForSet().add(allSectionTabelName(redisTableNameIndex, this.gameType, lib.getRollerMode(), lib.getLibType()), sectionIndex);
+            Iterator<T> iterator = stream.iterator();
+            while (iterator.hasNext()) {
+                T lib = iterator.next();
+                libBatch.add(lib);
+
+                if (libBatch.size() >= pipelineBatchSize) {
+                    executePipelineBatch(redisTableNameIndex, libBatch, resultLibSectionMap);
+                    libBatch.clear();
                 }
-            });
+            }
+
+            // 处理剩余记录
+            if (!libBatch.isEmpty()) {
+                executePipelineBatch(redisTableNameIndex, libBatch, resultLibSectionMap);
+            }
         }
 
         //保存新的库名
@@ -179,12 +190,8 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         return redisTableNameIndex;
     }
 
-    protected int getSectionIndex(Map<Integer, Map<Integer, Map<Integer, int[]>>> resultLibSectionMap, int modelId, int libType, long times) {
-        Map<Integer, Map<Integer, int[]>> modelMap = resultLibSectionMap.get(modelId);
-        if (modelMap == null) {
-            return -1;
-        }
-        Map<Integer, int[]> libTypeMap = modelMap.get(libType);
+    protected int getSectionIndex(Map<Integer, Map<Integer, int[]>> resultLibSectionMap, int libType, long times) {
+        Map<Integer, int[]> libTypeMap = resultLibSectionMap.get(libType);
         if (libTypeMap == null) {
             return -1;
         }
@@ -201,32 +208,47 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
      * 清除mongo结果库
      */
     public void clearMongoLib() {
-        if(this.currentMongoLibName != null && !this.currentMongoLibName.isEmpty()){
-            String[] arr = this.currentMongoLibName.split("_");
-            int index = Integer.parseInt(arr[1]);
-            String removeName;
-            if(index == 1){
-                removeName = arr[0] + "_2";
-            }else {
-                removeName = arr[0] + "_1";
-            }
-            this.mongoTemplate.dropCollection(removeName);
-            log.debug("从mongodb移除结果库 removeName = {}", removeName);
-        }else {
-            log.debug("从mongo删除结果库失败，currentMongoLibName 为空");
+        clearMongoLib(this.currentMongoLibName);
+    }
+
+    /**
+     * 清除mongo结果库
+     */
+    public void clearMongoLib(String docName) {
+        if(docName == null || docName.isEmpty()){
+            log.debug("从mongo删除结果库失败，docName 为空");
+            return;
         }
+
+        String[] arr = docName.split("_");
+        int index = Integer.parseInt(arr[1]);
+        String removeName;
+        if(index == 1){
+            removeName = arr[0] + "_2";
+        }else {
+            removeName = arr[0] + "_1";
+        }
+        this.mongoTemplate.dropCollection(removeName);
+        log.debug("从mongodb移除结果库 removeName = {}", removeName);
     }
 
     /**
      * 清除redis结果库
      */
     public void clearRedisLib(){
-        if (this.currentRedisLibName == null || this.currentRedisLibName.isEmpty()) {
-            log.debug("从redis删除结果库失败，currentRedisLibName 为空");
+        clearRedisLib(this.currentRedisLibName);
+    }
+
+    /**
+     * 清除redis结果库
+     */
+    public void clearRedisLib(String redisLibName){
+        if (redisLibName == null || redisLibName.isEmpty()) {
+            log.debug("从redis删除结果库失败，redisLibName 为空");
             return;
         }
 
-        String removeName = this.slotsResultLib1.equals(this.currentRedisLibName)
+        String removeName = this.slotsResultLib1.equals(redisLibName)
                 ? this.slotsResultLib2
                 : this.slotsResultLib1;
 
@@ -278,5 +300,24 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
             bulkOps.insert(lib);
         }
         return bulkOps.execute().getInsertedCount();
+    }
+
+    private void executePipelineBatch(String redisTableNameIndex,
+                                      List<Object> batch,
+                                      Map<Integer, Map<Integer, int[]>> resultLibSectionMap) {
+        redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            for (Object lib : batch) {
+                Set<Integer> libTypeSet = ((T)lib).getLibTypeSet();
+                for (int type : libTypeSet) {
+                    int sectionIndex = getSectionIndex(resultLibSectionMap, type, ((T)lib).getTimes());
+                    if (sectionIndex < 0) continue;
+                    connection.sAdd(
+                            tabelName(redisTableNameIndex, gameType, type, sectionIndex).getBytes(),
+                            redisTemplate.getValueSerializer().serialize(lib)
+                    );
+                }
+            }
+            return null;
+        });
     }
 }

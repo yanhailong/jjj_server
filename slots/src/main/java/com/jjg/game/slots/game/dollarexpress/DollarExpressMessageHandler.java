@@ -11,6 +11,7 @@ import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGameManager;
+import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGenerateManager;
 import com.jjg.game.slots.game.dollarexpress.manager.DollarExpressSendMessageManager;
 import com.jjg.game.slots.game.dollarexpress.pb.*;
 import com.jjg.game.slots.service.SlotsPlayerService;
@@ -18,6 +19,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author 11
@@ -33,7 +37,7 @@ public class DollarExpressMessageHandler implements GmListener {
     @Autowired
     private DollarExpressSendMessageManager sendMessageManager;
     @Autowired
-    private SlotsPlayerService slotsPlayerService;
+    private DollarExpressGenerateManager generateManager;
 
 
     /**
@@ -47,7 +51,7 @@ public class DollarExpressMessageHandler implements GmListener {
         try {
             log.info("收到玩家请求配置 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             DollarExpressGameRunInfo gameRunInfo = gameManager.enterGame(playerController.playerId());
-            sendMessageManager.sendConfigMessage(playerController,gameRunInfo);
+            sendMessageManager.sendConfigMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -98,7 +102,7 @@ public class DollarExpressMessageHandler implements GmListener {
         try {
             log.info("收到选择投资游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             DollarExpressGameRunInfo gameRunInfo = gameManager.playerInvest(playerController, req.areaId);
-            sendMessageManager.sendInvers(playerController,gameRunInfo);
+            sendMessageManager.sendInvers(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -115,7 +119,7 @@ public class DollarExpressMessageHandler implements GmListener {
         try {
             log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             DollarExpressGameRunInfo gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
-            sendMessageManager.sendPoolValue(playerController,gameRunInfo);
+            sendMessageManager.sendPoolValue(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -139,8 +143,8 @@ public class DollarExpressMessageHandler implements GmListener {
                 if (gmOrders.length > 2) {
                     testLibData.setUpdateGird(Boolean.parseBoolean(gmOrders[2]));
                 }
-                gameManager.addTestIconData(playerController, testLibData,true);
-            }else if("setRoller".equalsIgnoreCase(gmOrders[0])) {
+                gameManager.addTestIconData(playerController, testLibData, true);
+            } else if ("setRoller".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到设置滚轴的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 TestLibData testLibData = new TestLibData();
 
@@ -153,48 +157,54 @@ public class DollarExpressMessageHandler implements GmListener {
                 if (gmOrders.length > 2) {
                     testLibData.setUpdateGird(Boolean.parseBoolean(gmOrders[2]));
                 }
-                gameManager.addTestIconData(playerController, testLibData,false);
-            }else if("chooseFreeModel".equalsIgnoreCase(gmOrders[0])) {
+                gameManager.addTestIconData(playerController, testLibData, false);
+            } else if ("chooseFreeModel".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到选择免费模式的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 ReqChooseFreeModel req = new ReqChooseFreeModel();
                 req.status = Integer.parseInt(gmOrders[1]);
                 reqChooseFreeModel(playerController, req);
-            }else if("startGame".equalsIgnoreCase(gmOrders[0])) {
+            } else if ("startGame".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到开始游戏的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 ReqStartGame req = new ReqStartGame();
                 req.stakeVlue = Long.parseLong(gmOrders[1]);
                 reqStartGame(playerController, req);
-            }else if("invest".equalsIgnoreCase(gmOrders[0])) {
+            } else if ("invest".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到投资游戏的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 ReqInvestArea req = new ReqInvestArea();
                 req.areaId = Integer.parseInt(gmOrders[1]);
                 reqInvestArea(playerController, req);
-            }else if("selectAllArea".equalsIgnoreCase(gmOrders[0])) {
+            } else if ("selectAllArea".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到选择所有地区的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 gameManager.selectAllArea(playerController);
-            }else if("adminGenerateLib".equals(gmOrders[0])) {
+            } else if ("adminGenerateLib".equals(gmOrders[0])) {
                 log.debug("收到生成结果库的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 int count = Integer.parseInt(gmOrders[1]);
-                if(count > 100000){
+                if (count > 100000) {
                     log.debug("数字太大，请重新输入 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                     res.code = Code.FAIL;
                     return res;
                 }
-                boolean success = gameManager.addGenerateLibEvent(count);
-                if(!success){
+
+                Map<Integer, Integer> countMap = new HashMap<>();
+                for (int i = 1; i <= 6; i++) {
+                    countMap.put(i, Integer.parseInt(gmOrders[1]));
+                }
+
+                boolean success = gameManager.addGenerateLibEvent(countMap);
+                if (!success) {
                     res.code = Code.FAIL;
                 }
-            }else if("selectLib".equals(gmOrders[0])) {
+            } else if ("selectLib".equals(gmOrders[0])) {
                 log.debug("收到选取结果库的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 int libType = Integer.parseInt(gmOrders[1]);
-                if(libType < 1 || libType > 7){
+                if (libType < 1 || libType > 7) {
                     log.debug("结果库不符合规范，请重新输入 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                     res.code = Code.FAIL;
                     return res;
                 }
                 TestLibData testLibData = new TestLibData();
                 testLibData.setLibType(libType);
-            }else {
+            } else {
                 res.code = Code.NOT_FOUND;
             }
         } catch (Exception e) {

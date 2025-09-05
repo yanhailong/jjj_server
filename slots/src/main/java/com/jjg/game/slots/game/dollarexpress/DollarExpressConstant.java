@@ -34,6 +34,21 @@ public interface DollarExpressConstant {
         int ALL_BOARD_FREE = 5;
     }
 
+    interface SpecialMode{
+        //普通旋转
+        int TYPE_NORMAL = 1;
+        //拉火车触发局
+        int TYPE_TRIGGER_NORMAL_TRAIN = 2;
+        //黄金火车触发局
+        int TYPE_TRIGGER_GOLD_TRAIN = 3;
+        //二选一触发局
+        int TYPE_TRIGGER_ALL_BOARD = 4;
+        //保险箱触发局
+        int TYPE_TRIGGER_SAFE_BOX = 5;
+        //免费游戏
+        int TYPE_TRIGGER_FREE = 6;
+    }
+
     interface EventName{
         //自动二选一
         String AUTO_CHOOSE_FREEMODEL_TYPE = "autoChooseFreeModelTypeEvent";
@@ -61,23 +76,57 @@ public interface DollarExpressConstant {
         int ID_PURPLE_TRAIN = 21;
         //红火车
         int ID_RED_TRAIN = 22;
+        //美金2
+        int ID_DOLLAR_2 = 28;
+        //触发免费
+        int ID_FREE = 30;
     }
 
     interface SpecialPlay{
-        //随机倍数
-        int TYPE_RAND_TIMES = 0;
-        //美元现金
-        int TYPE_DOLLAR_CASH = 1;
-        //投资游戏
-        int TYPE_INVERS = 2;
-        //黄金列车触发局结果生成倍数
-        int TYPE_GOLD_TRAIN = 5;
+        //美元收集
+        int TYPE_COLLECT_DOLLAR = 1;
+        //投资3次中奖
+        int TYPE_INVERS_ALL_WIN = 2;
+        //平均押分
+        int TYPE_BET_AVG = 3;
+        //二选一
+        int TYPE_ALL_BOARD = 7;
     }
 
     interface SpecialGird{
         int ID_COLLECT_DOLLAR = 3;
         int ID_AGAIN_GOLD_TRAIN = 4;
         int ID_NORMAL_GOLD_TRAIN = 5;
+    }
+
+    interface SpecialAuxiliary{
+        //绿火车
+        int TYPE_GREEN_TRAIN = 31001;
+        //蓝火车
+        int TYPE_BLUE_TRAIN = 31002;
+        //紫火车
+        int TYPE_PUEPLE_TRAIN = 31003;
+        //红火车
+        int TYPE_RED_TRAIN = 31004;
+
+        //保险箱
+        int TYPE_SAFE_BOX = 31101;
+        //黄金列车
+        int TYPE_GOLD_TRAIN = 31102;
+
+        //免费模式-免费旋转
+        int TYPE_ALL_BOARD_FREE = 31201;
+        //免费模式-普通火车
+        int TYPE_ALL_BOARD_NORMAL_TRAIN = 31202;
+        //免费模式-黄金列车
+        int TYPE_ALL_BOARD_GOLD_TRAIN = 31203;
+
+        //投资地图-抽奖
+        int TYPE_INVERS_DRAW = 31301;
+        //投资地图-连续3次
+        int TYPE_INVERS_WIN = 31302;
+        //投资地图-地图全解锁
+        int TYPE_INVERS_ALL_UNLOCK = 31303;
     }
 
     interface MsgBean {

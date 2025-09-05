@@ -227,6 +227,15 @@ public class DollarExpressGameRunInfo extends AbstractGameRunInfo {
         }
         this.trainList.add(trainInfo);
     }
+    public void addTrainInfo(List<TrainInfo> list) {
+        if(list == null || list.isEmpty()) {
+            return;
+        }
+        if(this.trainList == null) {
+            this.trainList = new ArrayList<>();
+        }
+        this.trainList.addAll(list);
+    }
 
     public List<Integer> getChoosableAreas() {
         return choosableAreas;

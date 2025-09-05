@@ -11,6 +11,7 @@ import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -26,15 +27,18 @@ import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.PropInfo;
-import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.data.SpecialResultLibCacheData;
+import com.jjg.game.slots.data.*;
+import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
+import com.jjg.game.slots.game.dollarexpress.pb.DollarsInfo;
+import com.jjg.game.slots.game.dollarexpress.pb.TrainInfo;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 
 import com.jjg.game.slots.service.SlotsPlayerService;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -46,6 +50,7 @@ import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @author 11
@@ -63,18 +68,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     @Autowired
     protected TimerCenter timerCenter;
     @Autowired
-    protected MarsCurator marsCurator;
-    @Autowired
     protected CoreMarqueeManager marqueeManager;
     @Autowired
     protected SlotsLogger logger;
 
-    //在更新结果库后，要开启清除旧结果库的定时事件
-    protected TimerEvent<String> clearAllLibEvent;
-    //生成结果库事件
-    protected TimerEvent<String> generateLibEvent;
-    //在更新结果库后，要开启清除旧结果库的定时事件
-    protected TimerEvent<String> clearRedisLibEvent;
     //游戏类型
     protected int gameType;
     //在specualResultLib
@@ -94,32 +91,33 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     protected Map<Integer, BaseRoomCfg> roomCfgMap;
     //lineId -> cfg
     Map<Integer, BaseLineCfg> lineCfgMap;
-    //modelId -> cfg
-    protected Map<Integer, SpecialResultLibCfg> resultLibMap;
-    //specialResultLib表中typeProp字段的随机权重信息 specialResultLib.modelId -> propInfo
-    protected Map<Integer, PropInfo> resultLibTypePropInfoMap;
-    //specialResultLib表中section字段的每个倍数的随机权重信息  modelId -> tpyeId -> PropInfo
-    protected Map<Integer, Map<Integer, PropInfo>> resultLibSectionPropMap;
-    //specialResultLib表中section字段的倍数区间  modelId -> tpyeId -> 下标id -> 倍数区间
-    protected Map<Integer, Map<Integer, Map<Integer, int[]>>> resultLibSectionMap;
-    //只会记录在玩游戏时需要修改格子的配置，生成结果库的修改格子配置不会缓存
-    protected Map<Integer, SpecialGirdCfg> specialGirdCfgMap;
+
 
     //大奖展示倍数区间
     protected Map<Integer, int[]> bigWinShowMap = null;
 
-    private List<ClientRollerCfg> clientRollerCfgList;
-    private List<ClientFreeRollerCfg> clientFreeRollerCfgList;
 
     public AbstractSlotsGameManager(Class<T> playerGameDataClass) {
         this.playerGameDataClass = playerGameDataClass;
     }
 
-    //总押分
-    protected Map<Integer, List<Long>> allStakeMap;
-
     //检查离线玩家事件
     private TimerEvent<String> checkOffLineEvent;
+    //总押分 roomCfgId -> [0] = 单线押分  [1] = 总押分
+    protected Map<Integer, List<long[]>> allStakeMap;
+
+
+    //单个类型批量生成条数
+    protected int batchGenCount = 200000;
+    //批量保存到mongo的条数
+    protected int batchSaveCount = 100;
+
+    //在更新结果库后，要开启清除旧结果库的定时事件
+    protected TimerEvent<String> clearAllLibEvent;
+    //生成结果库事件
+    protected TimerEvent<Map<Integer,Integer>> generateLibEvent;
+    //在更新结果库后，要开启清除旧结果库的定时事件
+    protected TimerEvent<String> clearRedisLibEvent;
 
     /**
      * 初始化
@@ -134,6 +132,162 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         addCheckOffLineEvent();
     }
 
+    /**
+     * 添加生成结果库事件
+     * @param libTypeCountMap
+     * @return
+     */
+    public boolean addGenerateLibEvent(Map<Integer,Integer> libTypeCountMap) {
+        if (this.generateLibEvent != null) {
+            log.debug("当前有未执行的生成结果库任务，所以添加失败");
+            return false;
+        }
+
+        if(libTypeCountMap == null || libTypeCountMap.isEmpty()) {
+            log.debug("libTypeCountMap 为空，生成失败");
+            return false;
+        }
+
+        boolean lock = getResultLibDao().getGenerateLock(this.gameType);
+        if (lock) {
+            log.debug("当前正在执行生成结果库任务，请勿打扰.... ");
+            return false;
+        }
+        this.generateLibEvent = new TimerEvent<>(this, 10, libTypeCountMap).withTimeUnit(TimeUnit.SECONDS);
+        this.timerCenter.add(this.generateLibEvent);
+        return true;
+    }
+
+    /**
+     * 生成结果集
+     *
+     * @param libTypeCountMap 生成条数
+     */
+    protected void generate(Map<Integer,Integer> libTypeCountMap) {
+        String newDocName = null;
+        String redisTableName = null;
+        try {
+            log.info("开始生成结果库，libTypeCountMap = {}", libTypeCountMap);
+
+            //计算出每个区间需要的条数
+            Map<Integer, Map<Integer, Integer>> exceptGenCountMap = getGenerateManager().splitLibBySection(libTypeCountMap);
+            //拷贝一份
+            Map<Integer, Map<Integer, Integer>> tmpExceptGenCountMap = exceptGenCountMap.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            e -> new HashMap<>(e.getValue())
+                    ));
+
+            //记录当前生成的条数
+            Map<Integer, Map<Integer, Integer>> currentGenCountMap = new HashMap<>();
+
+            //移除条数为0的
+            getGenerateManager().removeCount0(tmpExceptGenCountMap);
+
+            Map<Integer, Map<Integer, int[]>> sectionMap = getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionMap();
+
+            newDocName = getResultLibDao().getNewMongoLibName();
+            //实际循环次数
+            int currentForCount = 0;
+            //累计保存到数据库的条数
+            int saveCount = 0;
+
+            List<SlotsResultLib> libList = new ArrayList<>();
+
+            for (Map.Entry<Integer, Integer> countEn : libTypeCountMap.entrySet()) {
+                int libType = countEn.getKey();
+
+                for (int i = 0; i < this.batchGenCount; i++) {
+                    Map<Integer, Integer> exceptGenSectionCountMap = tmpExceptGenCountMap.get(libType);
+                    if (exceptGenSectionCountMap == null) {
+                        break;
+                    }
+                    if (exceptGenSectionCountMap.isEmpty()) {
+                        tmpExceptGenCountMap.remove(libType);
+                        break;
+                    }
+
+                    currentForCount++;
+
+                    SlotsResultLib lib = getGenerateManager().generateOne(libType);
+
+//                    log.debug("打印lib = {}",JSON.toJSONString(lib));
+
+                    for (Object o : lib.getLibTypeSet()) {
+                        int tmpLibType = (int) o;
+                        int times = (int) lib.getTimes();
+                        Map<Integer, int[]> tmpSectionMap = sectionMap.get(tmpLibType);
+                        Map<Integer, Integer> temMap = currentGenCountMap.computeIfAbsent(tmpLibType, k -> new HashMap<>());
+
+                        //获取生成结果倍数所在的区间
+                        Map.Entry<Integer, int[]> resEn = tmpSectionMap.entrySet().stream().filter(en -> {
+                            int[] arr = en.getValue();
+
+                            if (times >= arr[0] && times < arr[1]) {
+                                return true;
+                            }
+                            return false;
+                        }).findFirst().orElse(null);
+
+                        int index = resEn.getKey();
+
+                        Integer exceptCount = exceptGenSectionCountMap.get(index);
+                        if (exceptCount == null || exceptCount < 1) {
+                            continue;
+                        }
+
+                        //获取在该区间已经生成的条数
+                        Integer currentCount = temMap.get(index);
+                        if (currentCount == null) {
+                            temMap.merge(index, 1, Integer::sum);
+                            libList.add(lib);
+                            continue;
+                        }
+
+                        if (currentCount < exceptCount) {
+                            temMap.merge(index, 1, Integer::sum);
+                            libList.add(lib);
+                        } else {
+                            exceptGenSectionCountMap.remove(index);
+                        }
+                    }
+
+                    if (libList.size() >= this.batchSaveCount) {
+//                        System.out.println("保存这里的111");
+                        saveCount += getResultLibDao().batchSave(libList, newDocName);
+                        libList = new ArrayList<>();
+                    }
+                }
+            }
+
+            if(libList.size() > 0) {
+//                System.out.println("保存这里的222 size = " + libList.size());
+                saveCount += getResultLibDao().batchSave(libList, newDocName);
+            }
+
+            log.debug("生成结束，开始转移到redis newDocName = {}", newDocName);
+            //加载到redis
+            redisTableName = getResultLibDao().moveToRedis(newDocName, getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionMap());
+
+            log.info("生成结果库结束，实际循环次数 = {},成功保存到数据库 {} 条,mongoName = {},redisName = {}", currentForCount,saveCount, newDocName, redisTableName);
+
+            this.clearAllLibEvent = new TimerEvent<>(this, 1, "clearLibEvent").withTimeUnit(TimeUnit.MINUTES);
+            this.timerCenter.add(this.clearAllLibEvent);
+
+            //通知其他节点，结果库变更
+            noticeNodeLibChange(SlotsConst.LibChangeType.LIB_CHANGE, Collections.EMPTY_LIST);
+        } catch (Exception e) {
+//            if(StringUtils.isNotEmpty(newDocName)) {
+//                getResultLibDao().clearMongoLib(newDocName);
+//            }
+//            if(StringUtils.isNotEmpty(redisTableName)) {
+//                getResultLibDao().clearRedisLib(redisTableName);
+//            }
+            getResultLibDao().removeGenerateLock(this.gameType);
+            log.error("", e);
+        }
+    }
+
     public <G extends AbstractGameRunInfo> G enterGame(long playerId) {
         return null;
     }
@@ -142,68 +296,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         this.checkOffLineEvent = new TimerEvent<>(this, "offLineEvent", 1).withTimeUnit(TimeUnit.MINUTES);
         timerCenter.add(this.checkOffLineEvent);
     }
-
-    /**
-     * 对外调用
-     * 生成结果库
-     *
-     * @param count
-     */
-    public void generateLib(int count) {
-        boolean lock = getResultLibDao().addGenerateLock(this.gameType);
-        if (!lock) {
-            log.debug("当前正在生成结果库，请勿打扰....");
-            return;
-        }
-
-        log.info("开始生成结果库，预期生成 {} 条", count);
-
-        String newDocName = getResultLibDao().getNewMongoLibName();
-        int expectGenerateCount = count;
-        int restCount = Math.min(count, 100);
-
-        List<DollarExpressResultLib> libList = new ArrayList<>();
-        int saveCount = 0;
-        int i = 0;
-
-
-        while (count > 0) {
-            int reduceCount = 0;
-            i++;
-            try {
-                List<DollarExpressResultLib> tempList = getGenerateManager().generateOne();
-                reduceCount = tempList.size();
-
-                libList.addAll(tempList);
-
-                if (libList.size() >= restCount) {
-                    saveCount += getResultLibDao().batchSave(libList, newDocName);
-                    libList = new ArrayList<>();
-                }
-
-                if ((i % 2000) == 0) {
-                    Thread.sleep(500);
-                }
-            } catch (Exception e) {
-                log.error("", e);
-            } finally {
-                count -= reduceCount;
-            }
-        }
-
-        //加载到redis
-        String redisTableName = getResultLibDao().moveToRedis(newDocName, this.resultLibSectionMap);
-        specialResultLibConfig(this.gameType, false);
-
-        log.info("生成结果库结束，预期 {} 条，成功保存到数据库 {} 条,mongoName = {},redisName = {}", expectGenerateCount, saveCount, newDocName, redisTableName);
-
-        this.clearAllLibEvent = new TimerEvent<>(this, 1, "clearLibEvent").withTimeUnit(TimeUnit.MINUTES);
-        this.timerCenter.add(this.clearAllLibEvent);
-
-        //通知其他节点，结果库变更
-        noticeNodeLibChange(SlotsConst.LibChangeType.LIB_CHANGE, Collections.EMPTY_LIST);
-    }
-
 
     /**
      * 关闭
@@ -220,13 +312,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
     }
 
     protected void initConfig() {
-        baseRoomConfig(this.gameType);
-        baseLineConfig(this.gameType);
-        specialResultLibConfig(this.gameType, true);
-        specialGirdConfig(this.gameType);
-        globalConfig(this.gameType);
-        clientRollerConfig(this.gameType);
-        clientFreeRollerConfig(this.gameType);
+        baseRoomConfig();
+        baseLineConfig();
+        specialPlayConfig();
+
+        globalConfig();
         calAllLineStake();
         log.info("配置重新计算结束 gameType = {}", this.gameType);
     }
@@ -239,7 +329,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      * @return
      */
     protected SpecialResultLibCfg getLibCfgByPoolDiff(long diff) {
-        for (Map.Entry<Integer, SpecialResultLibCfg> en : this.resultLibMap.entrySet()) {
+        for (Map.Entry<Integer, SpecialResultLibCfg> en : getGenerateManager().getSpecialResultLibCacheData().getResultLibMap().entrySet()) {
             SpecialResultLibCfg cfg = en.getValue();
             if ((diff >= cfg.getEnterLimitMin() || cfg.getEnterLimitMin() <= -999999) && (diff < cfg.getEnterLimitMax() || cfg.getEnterLimitMax() >= 999999)) {
                 return cfg;
@@ -345,7 +435,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
             //设置默认押注
             BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(playerGameData.getRoomCfgId());
-            playerGameData.setLastStake(baseRoomCfg.getDefaultBet().get(0));
+            playerGameData.setOneBetScore(baseRoomCfg.getDefaultBet().get(0));
+            playerGameData.setAllBetScore(oneLineToAllStake(playerGameData.getOneBetScore()));
         } else {
             Constructor<T> constructor = this.playerGameDataClass.getConstructor();
             playerGameData = constructor.newInstance();
@@ -372,7 +463,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      */
     protected CommonResult<Integer> getResultLibType(int gameType, int modelId) {
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
-        PropInfo propInfo = this.resultLibTypePropInfoMap.get(modelId);
+        PropInfo propInfo = getGenerateManager().getSpecialResultLibCacheData().getResultLibTypePropInfoMap().get(modelId);
         if (propInfo == null) {
             log.debug("未找到 specialResultLib 中 typeProp相关的权重信息 modelId = {},gameType = {}", modelId, gameType);
             result.code = Code.NOT_FOUND;
@@ -397,7 +488,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
      */
     protected CommonResult<Integer> getResultLibSection(int modelId, int libType) {
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
-        Map<Integer, PropInfo> tempPropMap = this.resultLibSectionPropMap.get(modelId);
+        Map<Integer, PropInfo> tempPropMap = getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionPropMap().get(modelId);
         if (tempPropMap == null) {
             log.debug("未找到 specialResultLib 中 section 相关的权重信息1 modelId = {},gameType = {},libType = {}", modelId, this.gameType, libType);
             result.code = Code.NOT_FOUND;
@@ -416,32 +507,17 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             return result;
         }
         result.data = index;
-        int[] section = this.resultLibSectionMap.get(modelId).get(libType).get(index);
+        int[] section = getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionMap().get(libType).get(index);
         log.debug("成功获取区间 modelId = {},gameType = {},libType = {},intdex = {},sectionBegin = {},sectionEnd = {}", modelId, this.gameType, libType, index, section[0], section[1]);
         return result;
     }
 
-    public boolean addGenerateLibEvent(int count) {
-        if (this.generateLibEvent != null) {
-            log.debug("当前有未执行的生成结果库任务，所以添加失败 count = {}", count);
-            return false;
-        }
-
-        boolean lock = getResultLibDao().getGenerateLock(this.gameType);
-        if (lock) {
-            log.debug("当前正在执行生成结果库任务，请勿打扰.... count = {}", count);
-            return false;
-        }
-        this.generateLibEvent = new TimerEvent<>(this, 10, "generateLibEvent_" + count).withTimeUnit(TimeUnit.SECONDS);
-        this.timerCenter.add(this.generateLibEvent);
-        return true;
-    }
 
     @Override
     public void onTimer(TimerEvent e) {
         if (this.checkOffLineEvent == e) {
             checkOffLine();
-        } else if (this.clearAllLibEvent == e) {
+        }else if (this.clearAllLibEvent == e) {
             getResultLibDao().clearMongoLib();
             getResultLibDao().clearRedisLib();
             this.clearAllLibEvent = null;
@@ -451,8 +527,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
             this.clearRedisLibEvent = null;
             getResultLibDao().removeGenerateLock(this.gameType);
         } else if (this.generateLibEvent == e) {
-            Integer count = Integer.parseInt(e.getParameter().toString().split("_")[1]);
-            generateLib(count);
+            generate(this.generateLibEvent.getParameter());
             this.generateLibEvent = null;
         }
     }
@@ -503,14 +578,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
     /**
      * room配置
-     *
-     * @param gameType
      */
-    protected void baseRoomConfig(int gameType) {
+    protected void baseRoomConfig() {
         Map<Integer, BaseRoomCfg> tempRoomCfgMap = new HashMap<>();
         for (Map.Entry<Integer, BaseRoomCfg> en : GameDataManager.getBaseRoomCfgMap().entrySet()) {
             BaseRoomCfg cfg = en.getValue();
-            if (cfg.getGameType() == gameType) {
+            if (cfg.getGameType() == this.gameType) {
                 tempRoomCfgMap.put(cfg.getId(), cfg);
             }
         }
@@ -523,179 +596,31 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
     /**
      * baseline配置
-     *
-     * @param gameType
      */
-    protected void baseLineConfig(int gameType) {
+    protected void baseLineConfig() {
         Map<Integer, BaseLineCfg> tempLineCfgMap = new HashMap<>();
         for (Map.Entry<Integer, BaseLineCfg> en : GameDataManager.getBaseLineCfgMap().entrySet()) {
             BaseLineCfg cfg = en.getValue();
-            if (cfg.getGameType() == gameType) {
+            if (cfg.getGameType() == this.gameType) {
                 tempLineCfgMap.put(cfg.getLineId(), cfg);
             }
         }
 
         if (tempLineCfgMap.isEmpty()) {
-            throw new IllegalArgumentException("该游戏 BaseLineCfg 为空,初始化失败 gameType = " + gameType);
+            throw new IllegalArgumentException("该游戏 BaseLineCfg 为空,初始化失败 gameType = " + this.gameType);
         }
         this.lineCfgMap = tempLineCfgMap;
     }
 
-    /**
-     * resultLib配置
-     *
-     * @param gameType
-     * @param init     是否为初始化时调用
-     */
-    protected void specialResultLibConfig(int gameType, boolean init) {
-        List<SpecialResultLibCfg> cfgList = new ArrayList<>();
-        for (Map.Entry<Integer, SpecialResultLibCfg> en : GameDataManager.getSpecialResultLibCfgMap().entrySet()) {
-            SpecialResultLibCfg cfg = en.getValue();
-            if (cfg.getGameType() != gameType) {
-                continue;
-            }
-            cfgList.add(cfg);
-        }
-
-        SpecialResultLibCacheData data = calSpecialResultLibCacheData(cfgList);
-        if (data == null) {
-            log.debug("计算分析缓存 specialResultLib 配置失败 gameType = {},init = {}", gameType, init);
-            return;
-        }
-
-        //如果不是初始化，并且配置是区间变化
-        //就要重新将mongodb的结果集加载到redis，并且通知其他节点
-        if (!init && !compareSectionMap(data.getResultLibSectionMap(), this.resultLibSectionMap)) {
-            String docName = getResultLibDao().getCurrentMongoLibNameFromRedis();
-            //加锁
-            getResultLibDao().addGenerateLock(this.gameType);
-            //将结果集重新分类，转移到redis
-            getResultLibDao().moveToRedis(docName, data.getResultLibSectionMap());
-            //通知其他节点，结果库变更
-            noticeNodeLibChange(SlotsConst.LibChangeType.CONFIG_CHANGE, cfgList);
-        }
-
-        updateSpecialResultLibCacheData(data);
-
-        log.info("计算分析缓存 specialResultLib 配置成功 gameType = {}", gameType);
-    }
-
-    public void updateSpecialResultLibCacheData(SpecialResultLibCacheData data) {
-        this.defaultRewardSectionIndex = data.getDefaultRewardSectionIndex();
-        this.resultLibMap = data.getResultLibMap();
-        this.resultLibTypePropInfoMap = data.getResultLibTypePropInfoMap();
-        this.resultLibSectionPropMap = data.getResultLibSectionPropMap();
-        this.resultLibSectionMap = data.getResultLibSectionMap();
-    }
 
     /**
-     * 计算分析specialResultLib表
+     * 特殊玩法
      */
-    public SpecialResultLibCacheData calSpecialResultLibCacheData(List<SpecialResultLibCfg> cfgList) {
-        if (cfgList == null || cfgList.isEmpty()) {
-            return null;
-        }
-        Map<Integer, SpecialResultLibCfg> tempLibCfgMap = new HashMap<>();
-        Map<Integer, PropInfo> tempResultLibTypePropInfoMap = new HashMap<>();
+    protected void specialPlayConfig() {
 
-        Map<Integer, Map<Integer, PropInfo>> tempResultLibSectionPropMap = new HashMap<>();
-        Map<Integer, Map<Integer, Map<Integer, int[]>>> tempResultLibSectionMap = new HashMap<>();
-
-        int tmpDefaultRewardSectionIndex = -1;
-
-        for (SpecialResultLibCfg cfg : cfgList) {
-            tempLibCfgMap.put(cfg.getModelId(), cfg);
-
-            //计算typeProp
-            if (cfg.getTypeProp() != null && !cfg.getTypeProp().isEmpty()) {
-                PropInfo propInfo = new PropInfo();
-
-                int begin = 0;
-                int end = 0;
-                for (Map.Entry<Integer, Integer> en2 : cfg.getTypeProp().entrySet()) {
-                    begin = end;
-                    end += en2.getValue();
-                    propInfo.addProp(en2.getKey(), begin, end);
-                }
-                propInfo.setSum(end);
-                tempResultLibTypePropInfoMap.put(cfg.getModelId(), propInfo);
-            }
-
-            //计算sectionProp
-            if (cfg.getSectionProp() != null && !cfg.getSectionProp().isEmpty()) {
-                Map<Integer, PropInfo> typeSectionPropMap = tempResultLibSectionPropMap.computeIfAbsent(cfg.getModelId(), k -> new HashMap<>());
-                Map<Integer, Map<Integer, int[]>> typeSectionMap = tempResultLibSectionMap.computeIfAbsent(cfg.getModelId(), k -> new HashMap<>());
-
-                for (Map.Entry<Integer, List<String>> en2 : cfg.getSectionProp().entrySet()) {
-                    PropInfo propInfo = new PropInfo();
-
-                    int type = en2.getKey();
-                    Map<Integer, int[]> sectionMap = typeSectionMap.computeIfAbsent(type, k -> new HashMap<>());
-
-                    List<String> propList = en2.getValue();
-
-                    int begin = 0;
-                    int end = 0;
-                    for (int i = 0; i < propList.size(); i++) {
-
-                        String prop = propList.get(i);
-                        String[] arr = prop.split("-");
-                        String[] arr2 = arr[0].split("&");
-
-                        begin = end;
-                        end += Integer.parseInt(arr[1]);
-                        propInfo.addProp(i, begin, end);
-
-                        //倍数区间
-                        int[] tmpArr = new int[]{Integer.parseInt(arr2[0]), Integer.parseInt(arr2[1])};
-                        sectionMap.put(i, tmpArr);
-                        if (tmpArr[0] == 0) {
-                            tmpDefaultRewardSectionIndex = i;
-                        }
-                    }
-                    propInfo.setSum(end);
-                    typeSectionPropMap.put(type, propInfo);
-                }
-            }
-        }
-
-        if (tempLibCfgMap.isEmpty() || tempResultLibTypePropInfoMap.isEmpty() || tempResultLibSectionPropMap.isEmpty() || tempResultLibSectionMap.isEmpty()) {
-            throw new IllegalArgumentException("该游戏specialResultLib 为空,初始化失败 gameType = " + gameType);
-        }
-
-        if (tmpDefaultRewardSectionIndex < 0) {
-            throw new IllegalArgumentException("该游戏specialResultLib 中没有配置0倍区间 gameType = " + gameType);
-        }
-
-        SpecialResultLibCacheData data = new SpecialResultLibCacheData();
-        data.setDefaultRewardSectionIndex(tmpDefaultRewardSectionIndex);
-        data.setResultLibMap(tempLibCfgMap);
-        data.setResultLibTypePropInfoMap(tempResultLibTypePropInfoMap);
-        data.setResultLibSectionPropMap(tempResultLibSectionPropMap);
-        data.setResultLibSectionMap(tempResultLibSectionMap);
-        return data;
     }
 
-    protected void specialGirdConfig(int gameType) {
-        Map<Integer, SpecialGirdCfg> tempSpecialGirdCfgMap = new HashMap<>();
-
-        for (Map.Entry<Integer, SpecialGirdCfg> en : GameDataManager.getSpecialGirdCfgMap().entrySet()) {
-            SpecialGirdCfg cfg = en.getValue();
-            if (cfg.getGameType() != gameType) {
-                continue;
-            }
-            if (cfg.getGirdUpdateType() != SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT) {
-                continue;
-            }
-            tempSpecialGirdCfgMap.put(cfg.getId(), cfg);
-        }
-
-        if (!tempSpecialGirdCfgMap.isEmpty()) {
-            this.specialGirdCfgMap = tempSpecialGirdCfgMap;
-        }
-    }
-
-    protected void globalConfig(int gameType) {
+    protected void globalConfig() {
         Map<Integer, int[]> tmpBigWinShowMap = new HashMap<>();
 
         calGlobalBigWinShow(GameConstant.GlobalConfig.ID_SWEET, SlotsConst.BigWinShow.SWEET, tmpBigWinShowMap);
@@ -706,29 +631,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         this.bigWinShowMap = tmpBigWinShowMap;
     }
 
-    protected void clientRollerConfig(int gameType) {
-        List<ClientRollerCfg> tmpClientRollerCfgList = new ArrayList<>();
-        for (Map.Entry<Integer, ClientRollerCfg> en : GameDataManager.getClientRollerCfgMap().entrySet()) {
-            ClientRollerCfg cfg = en.getValue();
-            if (cfg.getGameType() != gameType) {
-                continue;
-            }
-            tmpClientRollerCfgList.add(cfg);
-        }
-        this.clientRollerCfgList = tmpClientRollerCfgList;
-    }
-
-    protected void clientFreeRollerConfig(int gameType) {
-        List<ClientFreeRollerCfg> tmpClientFreeRollerCfgList = new ArrayList<>();
-        for (Map.Entry<Integer, ClientFreeRollerCfg> en : GameDataManager.getClientFreeRollerCfgMap().entrySet()) {
-            ClientFreeRollerCfg cfg = en.getValue();
-            if (cfg.getGameType() != gameType) {
-                continue;
-            }
-            tmpClientFreeRollerCfgList.add(cfg);
-        }
-        this.clientFreeRollerCfgList = tmpClientFreeRollerCfgList;
-    }
 
     protected void calGlobalBigWinShow(int id, int pbShowId, Map<Integer, int[]> map) {
         GlobalConfigCfg cfg = GameDataManager.getGlobalConfigCfg(id);
@@ -754,10 +656,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         if (baseLineCfg == null) {
             return null;
         }
-        for (Map.Entry<Integer, List<Integer>> en : baseLineCfg.getPosLocation().entrySet()) {
-            return en.getValue();
-        }
-        return null;
+        return baseLineCfg.getPosLocation();
     }
 
     /**
@@ -821,14 +720,75 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
 
     @Override
     public void changeSampleCallbackCollector() {
-        addChangeSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> baseRoomConfig(this.gameType))
-                .addChangeSampleFileObserveWithCallBack(SpecialResultLibCfg.EXCEL_NAME, () -> specialResultLibConfig(this.gameType, false))
-                .addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig(this.gameType))
-                .addChangeSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, () -> specialGirdConfig(this.gameType))
-                .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig(this.gameType))
-                .addChangeSampleFileObserveWithCallBack(ClientRollerCfg.EXCEL_NAME, () -> clientRollerConfig(this.gameType))
-                .addChangeSampleFileObserveWithCallBack(ClientFreeRollerCfg.EXCEL_NAME, () -> clientFreeRollerConfig(this.gameType))
+        addChangeSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> baseRoomConfig())
+                .addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig())
+                .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig())
         ;
+    }
+
+
+
+    public boolean exit(PlayerController playerController) {
+        return true;
+    }
+
+    protected int getBigShowIdByTimes(int times) {
+        if (times < 1) {
+            return 0;
+        }
+        Map.Entry<Integer, int[]> e = this.bigWinShowMap.entrySet().stream().filter(en -> times >= en.getValue()[0] && times < en.getValue()[1]).findFirst().orElse(null);
+        return e == null ? 0 : e.getKey();
+    }
+
+    /**
+     * 将单线押分转化为总押分
+     */
+    public void calAllLineStake() {
+        Map<Integer, List<long[]>> tmpAllStakeMap = new HashMap<>();
+
+        for (Map.Entry<Integer, BaseRoomCfg> en : this.roomCfgMap.entrySet()) {
+            BaseRoomCfg cfg = en.getValue();
+            for (long stake : cfg.getLineBetScore()) {
+                long allStake = oneLineToAllStake(stake);
+                long[] arr = {stake, allStake};
+                tmpAllStakeMap.computeIfAbsent(cfg.getId(), k -> new ArrayList<>()).add(arr);
+            }
+        }
+
+        this.allStakeMap = tmpAllStakeMap;
+    }
+
+    public Map<Integer, List<long[]>> getAllStakeMap() {
+        return allStakeMap;
+    }
+
+    /**
+     * 单线押分转化为总押分
+     *
+     * @param stake
+     * @return
+     */
+    public long oneLineToAllStake(long stake) {
+        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+        int lineCount = baseInitCfg.getMaxLine();
+
+        return lineCount * stake * baseInitCfg.getBetMultiple().get(0) * baseInitCfg.getLineMultiple().get(0);
+    }
+
+    /**
+     * 检查中奖金额是否要发送跑马灯
+     *
+     * @param data
+     * @param win
+     */
+    protected void checkMarquee(T data, long win) {
+        BaseRoomCfg baseRoomCfg = this.roomCfgMap.get(data.getRoomCfgId());
+        if (baseRoomCfg == null || win < baseRoomCfg.getMarqueeTrigger().get(0)) {
+            return;
+        }
+
+        marqueeManager.playerWinMarquee(data.getPlayerController().getPlayer().getNickName(),
+                baseRoomCfg.getMarqueeTrigger().get(1).intValue(), baseRoomCfg.getNameid(), win);
     }
 
     /**
@@ -868,75 +828,4 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData> im
         }
     }
 
-    public boolean exit(PlayerController playerController) {
-        return true;
-    }
-
-    protected int getBigShowIdByTimes(int times) {
-        if (times < 1) {
-            return 0;
-        }
-        Map.Entry<Integer, int[]> e = this.bigWinShowMap.entrySet().stream().filter(en -> times >= en.getValue()[0] && times < en.getValue()[1]).findFirst().orElse(null);
-        return e == null ? 0 : e.getKey();
-    }
-
-    public List<ClientRollerCfg> getClientRollerCfgList() {
-        return clientRollerCfgList;
-    }
-
-    public List<ClientFreeRollerCfg> getClientFreeRollerCfgList() {
-        return clientFreeRollerCfgList;
-    }
-
-    /**
-     * 将单线押分转化为总押分
-     */
-    public void calAllLineStake() {
-        Map<Integer, List<Long>> tmpAllStakeMap = new HashMap<>();
-
-        int lineCount = getGenerateManager().getBaseInitCfg().getMaxLine();
-        for (Map.Entry<Integer, BaseRoomCfg> en : this.roomCfgMap.entrySet()) {
-            BaseRoomCfg cfg = en.getValue();
-            for (long stake : cfg.getLineBetScore()) {
-                long allStake = lineCount * stake * cfg.getBetMultiple().get(0) * cfg.getLineMultiple().get(0);
-                tmpAllStakeMap.computeIfAbsent(cfg.getId(), k -> new ArrayList<>()).add(allStake);
-            }
-        }
-
-        this.allStakeMap = tmpAllStakeMap;
-    }
-
-    public Map<Integer, List<Long>> getAllStakeMap() {
-        return allStakeMap;
-    }
-
-    /**
-     * 单线押分转化为总押分
-     *
-     * @param stake
-     * @param roonCfgId
-     * @return
-     */
-    public long oneLineToAllStake(int stake, int roonCfgId) {
-        int lineCount = getGenerateManager().getBaseInitCfg().getMaxLine();
-
-        BaseRoomCfg cfg = GameDataManager.getBaseRoomCfg(roonCfgId);
-        return lineCount * stake * cfg.getBetMultiple().get(0) * cfg.getLineMultiple().get(0);
-    }
-
-    /**
-     * 检查中奖金额是否要发送跑马灯
-     *
-     * @param data
-     * @param win
-     */
-    protected void checkMarquee(T data, long win) {
-        BaseRoomCfg baseRoomCfg = this.roomCfgMap.get(data.getRoomCfgId());
-        if (baseRoomCfg == null || win < baseRoomCfg.getMarqueeTrigger().get(0)) {
-            return;
-        }
-
-        marqueeManager.playerWinMarquee(data.getPlayerController().getPlayer().getNickName(),
-                baseRoomCfg.getMarqueeTrigger().get(1).intValue(), baseRoomCfg.getNameid(), win);
-    }
 }

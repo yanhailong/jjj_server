@@ -18,39 +18,20 @@ public class SpecialPlayCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "SpecialPlay";
 
-  /** 是否额外投注 */
-  protected boolean extraBet;
-  /** 游戏状态 */
-  protected int gameStauts;
   /** 游戏ID */
   protected int gameType;
-  /** 模式ID */
-  protected int modelId;
   /** 玩法关键字 */
   protected int playType;
-  /** 旋转标识 */
-  protected int spinType;
+  /** 标记全部触发后给与奖励 */
+  protected List<Integer> triggerRewards;
+  /** 触发标记_可触发次数 */
+  protected Map<Integer,Integer> triggerTag;
   /** 值 */
   protected String value;
-
-  /** 返回是否额外投注 */
-  public boolean getExtraBet() {
-    return extraBet;
-  }
-
-  /** 返回游戏状态 */
-  public int getGameStauts() {
-    return gameStauts;
-  }
 
   /** 返回游戏ID */
   public int getGameType() {
     return gameType;
-  }
-
-  /** 返回模式ID */
-  public int getModelId() {
-    return modelId;
   }
 
   /** 返回玩法关键字 */
@@ -58,9 +39,14 @@ public class SpecialPlayCfg extends BaseCfgBean {
     return playType;
   }
 
-  /** 返回旋转标识 */
-  public int getSpinType() {
-    return spinType;
+  /** 返回标记全部触发后给与奖励 */
+  public List<Integer> getTriggerRewards() {
+    return triggerRewards;
+  }
+
+  /** 返回触发标记_可触发次数 */
+  public Map<Integer,Integer> getTriggerTag() {
+    return triggerTag;
   }
 
   /** 返回值 */

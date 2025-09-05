@@ -18,59 +18,50 @@ public class BaseInitCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "BaseInit";
 
-  /** 额外投注倍率 */
-  protected int additionalBetRatio;
   /** 是否自动完成 */
   protected int autoCompletion;
-  /** 列数 */
+  /** 押分倍数 */
+  protected List<Integer> betMultiple;
+  /** 初始列数 */
   protected int cols;
-  /** 分散使用格子 */
-  protected List<Integer> distributeGrid;
-  /** ENGNAME */
-  protected String engName;
-  /** 图标 */
-  protected String icon;
+  /** 线注倍数 */
+  protected List<Integer> lineMultiple;
+  /** 中奖线类型 */
+  protected int lineType;
   /** 最大线数 */
   protected int maxLine;
-  /** 最小线数 */
-  protected int minLine;
-  /** 名字 */
-  protected String name;
-  /** 奖池ID */
+  /** 名字多语言ID */
+  protected int name;
+  /** 奖池规则ID */
   protected List<Integer> prizePoolIdList;
-  /** 行数 */
+  /** 初始行数 */
   protected int rows;
-  /** 类型 */
+  /** 消除类型 */
   protected int type;
-
-  /** 返回额外投注倍率 */
-  public int getAdditionalBetRatio() {
-    return additionalBetRatio;
-  }
 
   /** 返回是否自动完成 */
   public int getAutoCompletion() {
     return autoCompletion;
   }
 
-  /** 返回列数 */
+  /** 返回押分倍数 */
+  public List<Integer> getBetMultiple() {
+    return betMultiple;
+  }
+
+  /** 返回初始列数 */
   public int getCols() {
     return cols;
   }
 
-  /** 返回分散使用格子 */
-  public List<Integer> getDistributeGrid() {
-    return distributeGrid;
+  /** 返回线注倍数 */
+  public List<Integer> getLineMultiple() {
+    return lineMultiple;
   }
 
-  /** 返回ENGNAME */
-  public String getEngName() {
-    return engName;
-  }
-
-  /** 返回图标 */
-  public String getIcon() {
-    return icon;
+  /** 返回中奖线类型 */
+  public int getLineType() {
+    return lineType;
   }
 
   /** 返回最大线数 */
@@ -78,27 +69,22 @@ public class BaseInitCfg extends BaseCfgBean {
     return maxLine;
   }
 
-  /** 返回最小线数 */
-  public int getMinLine() {
-    return minLine;
-  }
-
-  /** 返回名字 */
-  public String getName() {
+  /** 返回名字多语言ID */
+  public int getName() {
     return name;
   }
 
-  /** 返回奖池ID */
+  /** 返回奖池规则ID */
   public List<Integer> getPrizePoolIdList() {
     return prizePoolIdList;
   }
 
-  /** 返回行数 */
+  /** 返回初始行数 */
   public int getRows() {
     return rows;
   }
 
-  /** 返回类型 */
+  /** 返回消除类型 */
   public int getType() {
     return type;
   }

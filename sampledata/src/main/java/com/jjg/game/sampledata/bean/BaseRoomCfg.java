@@ -18,8 +18,8 @@ public class BaseRoomCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "BaseRoom";
 
-  /** 押分倍数 */
-  protected List<Integer> betMultiple;
+  /** 被动小游戏 */
+  protected List<Integer> AutomaticallyGames;
   /** 实际押注抽水入奖池万分比 */
   protected int commissionProp;
   /** 默认押分 */
@@ -38,8 +38,6 @@ public class BaseRoomCfg extends BaseCfgBean {
   protected int initBasePoolProportion;
   /** 单线押分值 */
   protected List<Integer> lineBetScore;
-  /** 线注倍数 */
-  protected List<Integer> lineMultiple;
   /** 跑马触发金额 */
   protected List<Long> marqueeTrigger;
   /** 上庄最低金额 */
@@ -53,9 +51,9 @@ public class BaseRoomCfg extends BaseCfgBean {
   /** VIP等级限制 */
   protected int vipLvLimit;
 
-  /** 返回押分倍数 */
-  public List<Integer> getBetMultiple() {
-    return betMultiple;
+  /** 返回被动小游戏 */
+  public List<Integer> getAutomaticallyGames() {
+    return AutomaticallyGames;
   }
 
   /** 返回实际押注抽水入奖池万分比 */
@@ -101,11 +99,6 @@ public class BaseRoomCfg extends BaseCfgBean {
   /** 返回单线押分值 */
   public List<Integer> getLineBetScore() {
     return lineBetScore;
-  }
-
-  /** 返回线注倍数 */
-  public List<Integer> getLineMultiple() {
-    return lineMultiple;
   }
 
   /** 返回跑马触发金额 */

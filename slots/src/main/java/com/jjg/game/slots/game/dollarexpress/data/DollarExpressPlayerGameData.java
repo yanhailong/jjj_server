@@ -13,8 +13,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2025/6/10 18:07
  */
 public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
-    //最近一次的押注(总押分)
-    private long lastBet;
     //最近一次的模式id
     private int lastModelId;
     //最近一次所在的区间
@@ -43,14 +41,6 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
     private Set<Integer> selectedAreaSet;
     //全地图解锁
     private AtomicBoolean allUnLock = new AtomicBoolean(false);
-
-    public long getLastBet() {
-        return lastBet;
-    }
-
-    public void setLastBet(long lastBet) {
-        this.lastBet = lastBet;
-    }
 
     public int getTotalDollars() {
         return totalDollars;

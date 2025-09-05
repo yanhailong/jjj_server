@@ -1,5 +1,7 @@
 package com.jjg.game.slots.game.mahjiongwin.manager;
 
+import com.jjg.game.slots.dao.AbstractResultLibDao;
+import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinResultLibDao;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAwardLineInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
@@ -14,4 +16,5 @@ public class MajiongWinGenerateManager extends AbstractSlotsGenerateManager<Mahj
     public MajiongWinGenerateManager() {
         super(MahjiongWinResultLib.class);
     }
+
 }

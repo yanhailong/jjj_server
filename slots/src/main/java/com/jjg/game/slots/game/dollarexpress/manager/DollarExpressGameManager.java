@@ -1,6 +1,7 @@
 package com.jjg.game.slots.game.dollarexpress.manager;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.utils.RandomUtils;
@@ -10,18 +11,13 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseRoomCfg;
-import com.jjg.game.sampledata.bean.PoolCfg;
-import com.jjg.game.sampledata.bean.SpecialGirdCfg;
-import com.jjg.game.sampledata.bean.SpecialResultLibCfg;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.data.GirdUpdateConfig;
-import com.jjg.game.slots.data.PropInfo;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
+import com.jjg.game.slots.data.*;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressGameDataDao;
-import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressResultLibDao;
 import com.jjg.game.slots.game.dollarexpress.data.*;
+import com.jjg.game.slots.game.dollarexpress.dao.DollarExpressResultLibDao;
 import com.jjg.game.slots.game.dollarexpress.pb.DollarsInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ResultLineInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.TrainInfo;
@@ -52,18 +48,12 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     @Autowired
     private DollarExpressGameDataDao gameDataDao;
 
+    private DollarExpressCollectDollarConfig dollarExpressCollectDollarConfig;
+
     //玩家自动二选一定时任务
     private Map<Long, TimerEvent<String>> autoChooseFreeModeEventMap = new HashMap<>();
     //玩家投资游戏定时任务
     private Map<Long, TimerEvent<String>> autoInversEventMap = new HashMap<>();
-
-    private Map<Integer, GirdUpdateConfig> girdUpdateConfigMap;
-    //在替换格子时限制while最大循环次数
-    private final int updateGirdWhildMaxCount = 30;
-
-    //倍率放大倍数
-    private int timesScale = 100;
-    private BigDecimal timesScaleBigDecimal = BigDecimal.valueOf(timesScale);
 
 
     public DollarExpressGameManager() {
@@ -101,10 +91,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_FREE) {
                 int forCount = playerGameData.getRemainFreeCount().get();
                 for (int i = 0; i < forCount; i++) {
-                    autoStartGame(playerGameData, playerGameData.getLastBet());
+                    autoStartGame(playerGameData, playerGameData.getAllBetScore());
                 }
             } else if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN) {
-                autoStartGame(playerGameData, playerGameData.getLastBet());
+                autoStartGame(playerGameData, playerGameData.getAllBetScore());
             }
 
             gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
@@ -131,122 +121,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
         playerGameData.setLastActiveTime(TimeHelper.nowInt());
         return startGame(playerController, playerGameData, betValue, true, false);
-    }
-
-    /**
-     * 玩家投资游戏选择地区
-     *
-     * @param playerController
-     * @param areaId
-     * @return
-     */
-    public DollarExpressGameRunInfo playerInvest(PlayerController playerController, int areaId) {
-        //获取玩家游戏数据
-        DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            log.debug("获取玩家游戏数据失败，投资游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new DollarExpressGameRunInfo(Code.NOT_FOUND, playerController.playerId());
-        }
-        playerGameData.setLastActiveTime(TimeHelper.nowInt());
-
-        return invest(playerController, playerGameData, areaId);
-    }
-
-    /**
-     * 自动玩游戏
-     *
-     * @param betValue
-     * @return
-     */
-    public DollarExpressGameRunInfo autoStartGame(DollarExpressPlayerGameData playerGameData, long betValue) {
-        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
-
-        return startGame(null, playerGameData, betValue, true, true);
-    }
-
-    /**
-     * 开始游戏
-     *
-     * @param betValue
-     * @return
-     */
-    public DollarExpressGameRunInfo startGame(PlayerController playerController, DollarExpressPlayerGameData playerGameData, long betValue, boolean updateGird, boolean auto) {
-        DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.playerId());
-        try {
-            gameRunInfo.setAuto(auto);
-            boolean allAreaUnlock = playerGameData.getAllUnLock().compareAndSet(true, false);
-            if (allAreaUnlock) {
-                gameRunInfo = areaAllUnlockGoldTrain(gameRunInfo, playerGameData, updateGird);
-            } else {
-                //获取当前处于哪种状态
-                int status = playerGameData.getStatus();
-                if (status == DollarExpressConstant.Status.NORMAL) {  //正常
-                    gameRunInfo = normal(gameRunInfo, playerGameData, betValue, updateGird);
-                } else if (status == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || status == DollarExpressConstant.Status.GOLD_ALL_BOARD) {  //二选一
-                    gameRunInfo.setCode(Code.FORBID);
-                    log.debug("当前正处于二选一状态，禁止开始游戏操作 playerId = {},gameType = {},roomCfgId = {}, status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
-                    return gameRunInfo;
-                } else if (status == DollarExpressConstant.Status.ALL_BOARD_TRAIN) {  //二选一之拉火车
-                    gameRunInfo = allBoardTrain(gameRunInfo, playerGameData);
-                } else if (status == DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN) {  //二选一之拉黄金火车
-                    gameRunInfo = allBoardGoldTrain(gameRunInfo, playerGameData, updateGird);
-                } else if (status == DollarExpressConstant.Status.ALL_BOARD_FREE) {  //二选一之免费模式
-                    gameRunInfo = allBoardFree(gameRunInfo, playerGameData);
-                } else {
-                    gameRunInfo.setCode(Code.FAIL);
-                    log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
-                    return gameRunInfo;
-                }
-            }
-
-            //检查是否触发投资游戏
-            gameRunInfo = checkInvers(playerGameData, gameRunInfo);
-
-            //标准池
-            if (gameRunInfo.getBigPoolTimes() > 0) {
-                long addGold = calWinGold(playerGameData.getLastBet(), gameRunInfo.getBigPoolTimes());
-                if (addGold > 0) {
-                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_BET_REWARD");
-                    if (!result.success()) {
-                        log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                        gameRunInfo.setCode(result.code);
-                        return gameRunInfo;
-                    }
-                    gameRunInfo.setAllWinGold(addGold);
-                }
-            }
-
-            gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
-
-            //添加美元收集进度
-            if (gameRunInfo.getTotalDollars() < 1) {
-                gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
-            }
-
-            //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
-            gameRunInfo.setAfterGold(player.getGold());
-            if (playerController != null) {
-                playerController.setPlayer(player);
-            }
-
-            //添加大奖展示id
-            int times = (int) (gameRunInfo.getAllWinGold() / betValue);
-            log.debug("计算出获奖倍数 times = {}", times);
-            gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
-
-            //系统自动玩的游戏，不会走跑马灯
-            if (!auto) {
-                checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
-            }
-            //发送日志
-            logger.gameResult(player, gameRunInfo);
-            return gameRunInfo;
-        } catch (Exception e) {
-            log.error("", e);
-            gameRunInfo.setCode(Code.EXCEPTION);
-        }
-        return gameRunInfo;
     }
 
     /**
@@ -290,7 +164,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     public DollarExpressGameRunInfo invest(PlayerController playerController, DollarExpressPlayerGameData playerGameData, int areaId) {
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
-            if (areaId < 1 || areaId > 8) {
+            if (!this.dollarExpressCollectDollarConfig.getTriggerTarMap().containsKey(areaId)) {
                 log.debug("区域id参数错误，投资游戏失败 playerId = {},gameType = {},roomCfgId = {},areaId = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), areaId);
                 gameRunInfo.setCode(Code.PARAM_ERROR);
                 return gameRunInfo;
@@ -313,24 +187,30 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 gameRunInfo.setCode(Code.NOT_FOUND);
                 return gameRunInfo;
             }
+
+            //获取触发的小游戏id
+            SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(this.dollarExpressCollectDollarConfig.getAuxiliaryId());
+            List<Integer> timesList = generateManager.inversTimes(specialAuxiliaryCfg);
+            if (timesList == null || timesList.isEmpty()) {
+                log.debug("获取投资游戏奖励倍数失败 playerId = {},gameType = {},roomCfgId = {},areaId = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), areaId);
+                gameRunInfo.setCode(Code.FAIL);
+                return gameRunInfo;
+            }
+
             playerGameData.addSelectedArea(areaId);
 
-            List<Integer> rewardIdList = generateManager.getRewardList(generateManager.getPropAndAwardInfo(generateManager.getDollarExpressCollectDollarConfig().getAuxiliaryId()), playerGameData.getLastModelId());
-            //处理奖励逻辑
-            InversGoldTrainRewardData data = generateManager.handInversGoldTrainReward(rewardIdList);
-
-            //3个小地图奖励的金币
-            boolean goldTrain = true;
+            //中奖的次数
+            int winCount = 0;
             List<Long> rewardGoldList = new ArrayList<>();
             long allAddGold = 0;
 
             long avg = playerGameData.getAddDollarsTotalStake() / playerGameData.getAddDollarsCount();
-            for (int times : data.getRewardsTimes()) {
+            for (int times : timesList) {
                 long gold = avg * times;
                 rewardGoldList.add(gold);
                 allAddGold += gold;
-                if (goldTrain && times < 1) {
-                    goldTrain = false;
+                if (times > 0) {
+                    winCount++;
                 }
             }
 
@@ -349,20 +229,27 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
 
             //3次全部中奖的金火车
-            if (goldTrain && data.getGoldTrain() > 0) {
-                long addGold = allAddGold * data.getGoldTrain();
-                CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), addGold, "SLOTS_INVEST_REWARD");
-                if (!result.success()) {
-                    log.warn("投资游戏金火车给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
-                    gameRunInfo.setCode(result.code);
-                    return gameRunInfo;
-                }
-                gameRunInfo.addAllWinGold(addGold);
+            if (winCount >= this.dollarExpressCollectDollarConfig.getAllWinCount()) {
+                int rand = RandomUtils.randomMinMax(0, 10000);
+                if (rand < this.dollarExpressCollectDollarConfig.getAllWinCountProp()) {
+                    SpecialAuxiliaryCfg allWinSpecialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(this.dollarExpressCollectDollarConfig.getAllWinCountAuxiliaryId());
+                    int goldTrainCount = generateManager.inversAllWinGoldTrainCount(allWinSpecialAuxiliaryCfg);
+                    if (goldTrainCount > 0) {
+                        long addGold = allAddGold * goldTrainCount;
+                        CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), addGold, "SLOTS_INVEST_REWARD");
+                        if (!result.success()) {
+                            log.warn("投资游戏金火车给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
+                            gameRunInfo.setCode(result.code);
+                            return gameRunInfo;
+                        }
+                        gameRunInfo.addAllWinGold(addGold);
 
-                gameRunInfo.setInvestRewardGoldTrainCount(data.getGoldTrain());
-                gameRunInfo.setInvestRewardGold(allAddGold);
-                player = result.data;
-                log.debug("小地图3次都中奖，添加金火车的金币 gameType = {},roomCfgId = {},addGold = {}", this.gameType, playerGameData.getRoomCfgId(), addGold);
+                        gameRunInfo.setInvestRewardGoldTrainCount(goldTrainCount);
+                        gameRunInfo.setInvestRewardGold(allAddGold);
+                        player = result.data;
+                        log.debug("小地图3次都中奖，添加金火车的金币 gameType = {},roomCfgId = {},addGold = {}", this.gameType, playerGameData.getRoomCfgId(), addGold);
+                    }
+                }
             }
 
             //检查地图是否全部解锁
@@ -380,6 +267,25 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             gameRunInfo.setCode(Code.EXCEPTION);
         }
         return gameRunInfo;
+    }
+
+    /**
+     * 玩家投资游戏选择地区
+     *
+     * @param playerController
+     * @param areaId
+     * @return
+     */
+    public DollarExpressGameRunInfo playerInvest(PlayerController playerController, int areaId) {
+        //获取玩家游戏数据
+        DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            log.debug("获取玩家游戏数据失败，投资游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+            return new DollarExpressGameRunInfo(Code.NOT_FOUND, playerController.playerId());
+        }
+        playerGameData.setLastActiveTime(TimeHelper.nowInt());
+
+        return invest(playerController, playerGameData, areaId);
     }
 
     /**
@@ -486,6 +392,104 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     }
 
     /**
+     * 自动玩游戏
+     *
+     * @param betValue
+     * @return
+     */
+    public DollarExpressGameRunInfo autoStartGame(DollarExpressPlayerGameData playerGameData, long betValue) {
+        log.debug("系统开始自动玩游戏 playerId = {}", playerGameData.playerId());
+
+        return startGame(null, playerGameData, betValue, true, true);
+    }
+
+    /**
+     * 开始游戏
+     *
+     * @param betValue
+     * @return
+     */
+    public DollarExpressGameRunInfo startGame(PlayerController playerController, DollarExpressPlayerGameData playerGameData, long betValue, boolean updateGird, boolean auto) {
+        DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        try {
+            gameRunInfo.setAuto(auto);
+            boolean allAreaUnlock = playerGameData.getAllUnLock().compareAndSet(true, false);
+            if (allAreaUnlock) {
+                gameRunInfo = areaAllUnlockGoldTrain(gameRunInfo, playerGameData);
+            } else {
+                //获取当前处于哪种状态
+                int status = playerGameData.getStatus();
+                if (status == DollarExpressConstant.Status.NORMAL) {  //正常
+                    gameRunInfo = normal(gameRunInfo, playerGameData, betValue, updateGird);
+                } else if (status == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || status == DollarExpressConstant.Status.GOLD_ALL_BOARD) {  //二选一
+                    gameRunInfo.setCode(Code.FORBID);
+                    log.debug("当前正处于二选一状态，禁止开始游戏操作 playerId = {},gameType = {},roomCfgId = {}, status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
+                    return gameRunInfo;
+                } else if (status == DollarExpressConstant.Status.ALL_BOARD_TRAIN) {  //二选一之拉火车
+                    gameRunInfo = allBoardTrain(gameRunInfo, playerGameData);
+                } else if (status == DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN) {  //二选一之拉黄金火车
+                    gameRunInfo = allBoardGoldTrain(gameRunInfo, playerGameData, updateGird);
+                } else if (status == DollarExpressConstant.Status.ALL_BOARD_FREE) {  //二选一之免费模式
+                    gameRunInfo = allBoardFree(gameRunInfo, playerGameData);
+                } else {
+                    gameRunInfo.setCode(Code.FAIL);
+                    log.debug("开始游戏失败，检测到错误状态 playerId = {},gameType = {},roomCfgId = {},status = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), status);
+                    return gameRunInfo;
+                }
+            }
+
+            //检查是否触发投资游戏
+            gameRunInfo = checkInvers(playerGameData, gameRunInfo);
+
+            //标准池
+            if (gameRunInfo.getBigPoolTimes() > 0) {
+                long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
+                if (addGold > 0) {
+                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_BET_REWARD");
+                    if (!result.success()) {
+                        log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
+                        gameRunInfo.setCode(result.code);
+                        return gameRunInfo;
+                    }
+                    gameRunInfo.setAllWinGold(addGold);
+                }
+            }
+
+            gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
+
+            //添加美元收集进度
+            if (gameRunInfo.getTotalDollars() < 1) {
+                gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
+            }
+
+            //玩家当前金币
+            Player player = slotsPlayerService.get(playerGameData.playerId());
+            gameRunInfo.setAfterGold(player.getGold());
+            if (playerController != null) {
+                playerController.setPlayer(player);
+            }
+
+            //添加大奖展示id
+            int times = (int) (gameRunInfo.getAllWinGold() / betValue);
+            log.debug("计算出获奖倍数 times = {}", times);
+            gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
+
+            //系统自动玩的游戏，不会走跑马灯
+            if (!auto) {
+                checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
+            }
+            //发送日志
+            logger.gameResult(player, gameRunInfo);
+            return gameRunInfo;
+        } catch (Exception e) {
+            log.error("", e);
+            gameRunInfo.setCode(Code.EXCEPTION);
+        }
+        return gameRunInfo;
+    }
+
+
+    /**
      * 普通正常流程
      *
      * @param gameRunInfo
@@ -504,8 +508,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         //检查押分是否合法
-        boolean match = this.allStakeMap.get(playerGameData.getRoomCfgId()).stream().anyMatch(bet -> bet == betValue);
-        if (!match) {
+        long[] betScoreArr = this.allStakeMap.get(playerGameData.getRoomCfgId()).stream().filter(arr -> arr[1] == betValue).findFirst().orElse(null);
+        if (betScoreArr == null) {
             log.warn("押分值不合法 playerId = {},gameType = {},roomCfgId = {},betValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), betValue);
             gameRunInfo.setCode(Code.PARAM_ERROR);
             return gameRunInfo;
@@ -566,7 +570,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //如果前面没有获取到lib，则获取一个无奖励的结果
         if (resultLib == null) {
             sectionIndex = this.defaultRewardSectionIndex;
-            resultLib = libDao.getLibBySectionIndex(SlotsConst.SpecialResultLib.TYPE_NORMAL, this.defaultRewardSectionIndex);
+            resultLib = libDao.getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_NORMAL, this.defaultRewardSectionIndex);
             log.debug("前面获取结果库失败，所以找一个不中奖的结果返回 gameType = {},libType = {}", this.gameType, resultLibTypeResult.data);
         }
 
@@ -583,17 +587,17 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             return gameRunInfo;
         }
 
-//        long bet = BigDecimal.valueOf(betValue).divide(hundred, 0, BigDecimal.ROUND_HALF_UP).longValue();
-        playerGameData.setLastStake(betValue);
-        playerGameData.setLastBet(betValue);
-        gameRunInfo.setBet(betValue);
+        //记录押分值
+        playerGameData.setOneBetScore(betScoreArr[0]);
+        playerGameData.setAllBetScore(betScoreArr[1]);
 
+        gameRunInfo.setBet(betValue);
         gameRunInfo.setIconArr(resultLib.getIconArr());
 
         //根据结果库类型不同，从不同地方获取icon
-        if (resultLib.getLibTypeSet().contains(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD)) {  //是否会触发二选一
-            int count = generateManager.checkAllBoadrd(resultLib.getIconArr());
-            if (count > 3) {
+        if (resultLib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_ALL_BOARD)) {  //是否会触发二选一
+            int count = generateManager.allBoadrCount(resultLib.getIconArr());
+            if (count > generateManager.getAllBoardMinCount()) {
                 playerGameData.setStatus(DollarExpressConstant.Status.GOLD_ALL_BOARD);
             } else {
                 playerGameData.setStatus(DollarExpressConstant.Status.NOTMAL_ALL_BOARD);
@@ -608,18 +612,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
 
-        //格子修改
-        CommonResult<int[]> updateResult = updateGird(libCfgResult.data.getModelId(), SlotsConst.BaseElementReward.ROTATESTATE_NORMAL, resultLibTypeResult.data, gameRunInfo.getIconArr(), resultLib.getAwardLineInfoList(), updateGird);
-        if (updateResult.success()) {
-            gameRunInfo.setIconArr(updateResult.data);
-        }
         //检查与美元相关的逻辑
-        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, resultLib.getGoldTrainCount(), resultLib.getGoldTrainAllTimes(), true);
-
-        //计算火车奖励
-        gameRunInfo = calTrainReward(playerGameData, resultLib.getTrainList(), gameRunInfo);
-        //添加火车信息
-//        gameRunInfo = transTrainPbInfo(gameRunInfo, resultLib.getTrainList(), gameRunInfo.getBet());
+        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, resultLib);
+//        //计算火车奖励
+        gameRunInfo = calTrainReward(playerGameData, resultLib, gameRunInfo);
 
         //添加中奖线信息
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), gameRunInfo.getBet()));
@@ -642,12 +638,12 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         DollarExpressResultLib trainLib = null;
         for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
             //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_AGAIN_TRAIN);
+            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN);
             if (!result.success()) {
                 continue;
             }
             //获取结果库
-            trainLib = libDao.getLibBySectionIndex(SlotsConst.SpecialResultLib.TYPE_AGAIN_TRAIN, result.data);
+            trainLib = libDao.getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN, result.data);
             if (trainLib == null) {
                 continue;
             }
@@ -662,7 +658,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
         log.debug("获取到拉火车的结果库 playerId = {},libId = {}", playerGameData.playerId(), trainLib.getId());
 
-        gameRunInfo.setBet(playerGameData.getLastBet());
+        gameRunInfo.setBet(playerGameData.getAllBetScore());
         gameRunInfo.setStatus(playerGameData.getStatus());
 
         playerGameData.setStatus(DollarExpressConstant.Status.NORMAL);
@@ -670,9 +666,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         gameRunInfo.setIconArr(trainLib.getIconArr());
 
         //计算火车奖励
-        gameRunInfo = calTrainReward(playerGameData, trainLib.getTrainList(), gameRunInfo);
-        //添加火车信息
-//        gameRunInfo = transTrainPbInfo(gameRunInfo, trainLib.getTrainList(), gameRunInfo.getBet());
+        gameRunInfo = calTrainReward(playerGameData, trainLib, gameRunInfo);
 
         gameRunInfo.setBigPoolTimes(trainLib.getTimes());
 
@@ -693,12 +687,12 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         DollarExpressResultLib goldTrainLib = null;
         for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
             //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN);
+            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
             if (!result.success()) {
                 continue;
             }
             //获取结果库
-            goldTrainLib = libDao.getLibBySectionIndex(SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN, result.data);
+            goldTrainLib = libDao.getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN, result.data);
             if (goldTrainLib == null) {
                 continue;
             }
@@ -718,12 +712,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         playerGameData.setStatus(DollarExpressConstant.Status.NORMAL);
         gameRunInfo.setIconArr(goldTrainLib.getIconArr());
 
-        //格子修改
-        CommonResult<int[]> updateResult = updateGird(playerGameData.getLastModelId(), SlotsConst.BaseElementReward.ROTATESTATE_AGAIN, SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN, goldTrainLib.getIconArr(), goldTrainLib.getAwardLineInfoList(), updateGird);
-        if (updateResult.success()) {
-            gameRunInfo.setIconArr(updateResult.data);
-        }
-        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, goldTrainLib.getGoldTrainCount(), goldTrainLib.getGoldTrainAllTimes(), false);
+        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, goldTrainLib);
 
         gameRunInfo.addBigPoolTimes(goldTrainLib.getTimes());
 
@@ -741,12 +730,12 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         DollarExpressResultLib freeLib = null;
         for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
             //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE);
+            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE);
             if (!result.success()) {
                 continue;
             }
             //获取结果库
-            freeLib = libDao.getLibBySectionIndex(SlotsConst.SpecialResultLib.TYPE_ALL_BOARD_FREE, result.data);
+            freeLib = libDao.getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE, result.data);
             if (freeLib == null) {
                 continue;
             }
@@ -758,17 +747,42 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             log.debug("未在该条结果库中找到免费转信息 gameType = {},modelId = {}", this.gameType, playerGameData.getLastModelId());
             return gameRunInfo;
         }
-        Map<Integer, DollarExpressFreeGame> freeGameMap = freeLib.getFreeGameMap();
-        if (freeGameMap == null) {
+
+        if (freeLib.getSpecialAuxiliaryInfoList() == null || freeLib.getSpecialAuxiliaryInfoList().isEmpty()) {
             gameRunInfo.setCode(Code.FAIL);
             log.debug("未在该条结果库中找到免费转信息1 gameType = {},libId = {}", this.gameType, freeLib.getId());
             return gameRunInfo;
         }
-//        System.out.println(playerGameData.getLastAgainGameIndex());
-        DollarExpressFreeGame freeGame = freeGameMap.get(8 - playerGameData.getRemainFreeCount().get());
-        if (freeGame == null) {
+
+        //找到结果库中免费游戏的结果
+        SpecialAuxiliaryInfo specialAuxiliaryInfo = null;
+        for (SpecialAuxiliaryInfo tmpInfo : freeLib.getSpecialAuxiliaryInfoList()) {
+            SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(tmpInfo.getCfgId());
+            if (specialAuxiliaryCfg.getType() != DollarExpressConstant.SpecialAuxiliary.TYPE_ALL_BOARD_FREE) {
+                continue;
+            }
+            if (tmpInfo.getFreeGames() == null || tmpInfo.getFreeGames().isEmpty()) {
+                continue;
+            }
+            specialAuxiliaryInfo = tmpInfo;
+            break;
+        }
+
+        if (specialAuxiliaryInfo == null) {
             gameRunInfo.setCode(Code.FAIL);
             log.debug("未在该条结果库中找到免费转信息2 gameType = {},libId = {}", this.gameType, freeLib.getId());
+            return gameRunInfo;
+        }
+
+        int size = specialAuxiliaryInfo.getAwardInfos().size();
+
+        JSONObject jsonObject = specialAuxiliaryInfo.getFreeGames().get(size - playerGameData.getRemainFreeCount().get());
+        DollarExpressResultLib freeGame = JSON.parseObject(jsonObject.toJSONString(),DollarExpressResultLib.class);
+//        DollarExpressResultLib freeGame = (DollarExpressResultLib) specialAuxiliaryInfo.getAwardInfos().get(size - playerGameData.getRemainFreeCount().get());
+
+        if (freeGame == null) {
+            gameRunInfo.setCode(Code.FAIL);
+            log.debug("未在该条结果库中找到免费转信息3 gameType = {},libId = {}", this.gameType, freeLib.getId());
             return gameRunInfo;
         }
         gameRunInfo.setStatus(playerGameData.getStatus());
@@ -779,12 +793,11 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         gameRunInfo.setIconArr(freeGame.getIconArr());
-        gameRunInfo.setBet(playerGameData.getLastBet());
+        gameRunInfo.setBet(playerGameData.getAllBetScore());
 
         //计算火车奖励
-        gameRunInfo = calTrainReward(playerGameData, freeGame.getTrainList(), gameRunInfo);
-        //添加火车信息
-//        gameRunInfo = transTrainPbInfo(gameRunInfo, freeGame.getTrainList(), gameRunInfo.getBet());
+        gameRunInfo = calTrainReward(playerGameData, freeGame, gameRunInfo);
+
         //添加中奖线信息
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), gameRunInfo.getBet()));
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
@@ -799,17 +812,17 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @param playerGameData
      * @return
      */
-    private DollarExpressGameRunInfo areaAllUnlockGoldTrain(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData, boolean updateGird) {
+    private DollarExpressGameRunInfo areaAllUnlockGoldTrain(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData) {
         log.debug("进入地图全部解锁，奖励黄金火车流程 playerId = {}", playerGameData.playerId());
         DollarExpressResultLib goldTrainLib = null;
         for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
             //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN);
+            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
             if (!result.success()) {
                 continue;
             }
             //获取结果库
-            goldTrainLib = libDao.getLibBySectionIndex(SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN, result.data);
+            goldTrainLib = libDao.getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN, result.data);
             if (goldTrainLib == null) {
                 continue;
             }
@@ -825,18 +838,12 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         playerGameData.setStatus(DollarExpressConstant.Status.NORMAL);
         gameRunInfo.setIconArr(goldTrainLib.getIconArr());
 
-        //格子修改
-        CommonResult<int[]> updateResult = updateGird(playerGameData.getLastModelId(), SlotsConst.BaseElementReward.ROTATESTATE_AGAIN, SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN, goldTrainLib.getIconArr(), goldTrainLib.getAwardLineInfoList(), updateGird);
-        if (updateResult.success()) {
-            gameRunInfo.setIconArr(updateResult.data);
-        }
-        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, goldTrainLib.getGoldTrainCount(), goldTrainLib.getGoldTrainAllTimes(), false);
+        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, goldTrainLib);
 
         gameRunInfo.setBigPoolTimes(goldTrainLib.getTimes());
         playerGameData.setSelectedAreaSet(null);
         return gameRunInfo;
     }
-
 
     /**
      * 给池子加钱
@@ -846,7 +853,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @return
      */
     private CommonResult<Player> goldToPool(DollarExpressPlayerGameData gameData, long betValue, BaseRoomCfg baseRoomCfg) {
-        CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, true, "SLOTS_BET");
+        CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue,true, "SLOTS_BET");
         if (!result.success()) {
             log.debug("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.playerId(), betValue, result.code);
             return result;
@@ -875,133 +882,42 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         return result;
     }
 
-
     /**
-     * 修改格子
+     * 地图全部解锁，奖励黄金火车
      *
-     * @param modelId
-     * @param spinStatus
-     * @param arr
-     * @param update     在测试时从正向执行有时候不需要修改格子，但是从结果库取出的结果必须按照要求修改格子(总之，是为了测试方便)
+     * @param gameRunInfo
+     * @param playerGameData
+     * @return
      */
-    public CommonResult<int[]> updateGird(int modelId, int spinStatus, int libType, int[] arr, List<DollarExpressAwardLineInfo> awardLineInfoList, boolean update) {
-        CommonResult<int[]> result = new CommonResult<>(Code.FAIL);
-        if (this.specialGirdCfgMap == null || this.specialGirdCfgMap.isEmpty()) {
-            return result;
-        }
-
-        log.debug("开始修改格子 modelId = {},spinStaus = {},libType = {},update = {}", modelId, spinStatus, libType, update);
-        int[] newArr = null;
-        if (update) {
-            //中奖线里面的图标id
-            Set<Integer> lineInfoIconSet = null;
-
-            for (Map.Entry<Integer, SpecialGirdCfg> en : this.specialGirdCfgMap.entrySet()) {
-                SpecialGirdCfg cfg = en.getValue();
-                //模式id
-                if (cfg.getModelId() != 0 && cfg.getModelId() != modelId) {
-                    continue;
-                }
-                //旋转状态
-                if (cfg.getSpinStatus() != spinStatus) {
-                    continue;
-                }
-                //格式修改算法
-                if (!checkUpdateType(cfg.getGirdUpdateType(), libType)) {
-                    continue;
-                }
-                GirdUpdateConfig config = this.girdUpdateConfigMap.get(cfg.getId());
-                //随机次数
-                int randCount = config.getRandCountPropInfo().getRandKey();
-                if (randCount < 1) {
-                    continue;
-                }
-
-                //添加中奖线里面的图标id
-                if (lineInfoIconSet == null) {
-                    lineInfoIconSet = new HashSet<>();
-                    if (awardLineInfoList != null && !awardLineInfoList.isEmpty()) {
-                        for (DollarExpressAwardLineInfo info : awardLineInfoList) {
-                            lineInfoIconSet.add(info.getIconId());
-                        }
-                    }
-                }
-
-                //原盘面中剩余的可被替换的图标
-                Map<Integer, Integer> canReplaceMap = new HashMap<>();
-
-                //去掉不替换的元素
-                for (int i = 1; i < arr.length; i++) {
-                    int icon = arr[i];
-                    //如果该图标时中奖图标，也不能被替换
-                    if (lineInfoIconSet.contains(icon)) {
-                        continue;
-                    }
-
-                    boolean match = cfg.getNotReplaceEle().stream().anyMatch(e -> icon == e);
-                    if (!match) {
-                        canReplaceMap.put(i, icon);
-                    }
-                }
-
-                if (canReplaceMap.isEmpty()) {
-                    continue;
-                }
-
-                if (newArr == null) {
-                    newArr = Arrays.copyOf(arr, arr.length);
-                }
-
-                PropInfo cloumnPropInfo = config.getSpecialIconPropInfo().clone();
-                int whileCount = 0;
-
-                outWhile:
-                while (randCount > 0) {
-                    whileCount++;
-                    if (whileCount >= this.updateGirdWhildMaxCount) {
-                        break;
-                    }
-
-                    if (cloumnPropInfo.getSum() < 1) {
-                        break;
-                    }
-                    //先随机一列
-                    int columnId = cloumnPropInfo.getRandKey();
-                    int index = (columnId - 1) * generateManager.getBaseInitCfg().getRows() + 1;
-                    //计算这一列的坐标
-                    for (int j = 0; j < generateManager.getBaseInitCfg().getRows(); j++) {
-                        if (randCount < 1) {
-                            break outWhile;
-                        }
-                        int tempIndex = index + j;
-                        //检查该坐标是否在可被替换中
-                        Integer canReplaceIcon = canReplaceMap.get(tempIndex);
-                        if (canReplaceIcon == null) {
-                            continue;
-                        }
-
-                        //可替换
-                        newArr[tempIndex] = config.getSpecialIconId();
-                        randCount--;
-                    }
-
-                    if (randCount > 0) {
-                        cloumnPropInfo.removeKeyAndRecalculate(columnId);
-                    } else {
-                        break;
-                    }
-                }
+    private DollarExpressGameRunInfo areaAllUnlockGoldTrain(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData, boolean updateGird) {
+        log.debug("进入地图全部解锁，奖励黄金火车流程 playerId = {}", playerGameData.playerId());
+        DollarExpressResultLib goldTrainLib = null;
+        for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
+            //获取一个倍数区间
+            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
+            if (!result.success()) {
+                continue;
             }
-        } else {
-            newArr = arr;
+            //获取结果库
+            goldTrainLib = libDao.getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN, result.data);
+            if (goldTrainLib == null) {
+                continue;
+            }
+            break;
         }
 
-        if (newArr != null) {
-            result.code = Code.SUCCESS;
-            result.data = newArr;
-            log.debug("修改格子 modelId = {},spinStatus = {},updateGird = {}", modelId, spinStatus, update);
+        if (goldTrainLib == null) {
+            gameRunInfo.setCode(Code.FAIL);
+            log.debug("地图全部解锁,未在该条结果库中找到重转信息 gameType = {},modelId = {}", this.gameType, playerGameData.getLastModelId());
+            return gameRunInfo;
         }
-        return result;
+
+        playerGameData.setStatus(DollarExpressConstant.Status.NORMAL);
+        gameRunInfo.setIconArr(goldTrainLib.getIconArr());
+
+        gameRunInfo.setBigPoolTimes(goldTrainLib.getTimes());
+        playerGameData.setSelectedAreaSet(null);
+        return gameRunInfo;
     }
 
     /**
@@ -1010,104 +926,129 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @param gameRunInfo
      * @return
      */
-    public DollarExpressGameRunInfo checkDorllar(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData gameData, int goldTrainCount, int dollarAllTimes, boolean collectDollar) {
-        DollarsInfo dollarsInfo = new DollarsInfo();
-        dollarsInfo.dollarIndexIds = null;
-        dollarsInfo.dollarValueList = null;
+    public DollarExpressGameRunInfo checkDorllar(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData gameData, DollarExpressResultLib lib) {
+        if (lib.getSpecialGirdInfoList() == null || lib.getSpecialGirdInfoList().isEmpty()) {
+            return gameRunInfo;
+        }
 
-        log.debug("设置美元倍数信息 playerId = {},goldTrainCount = {},dollarAllTimes = {},bet = {}", gameData.playerId(), goldTrainCount, dollarAllTimes, gameData.getLastBet());
-        //检查美金和保险箱
+        log.debug("设置美元倍数信息 playerId = {},oneBetScore = {},allBetScore = {}", gameData.playerId(), gameData.getOneBetScore(), gameData.getAllBetScore());
+
+        //美元坐标
+        List<Integer> dollarIndexIds = null;
+        //美元值
+        List<Long> dollarValueList = null;
+
+        for (SpecialGirdInfo specialGirdInfo : lib.getSpecialGirdInfoList()) {
+            if (specialGirdInfo.getValueMap() == null || specialGirdInfo.getValueMap().isEmpty()) {
+                continue;
+            }
+            //检查修改的图标是否有美元图标
+            SpecialGirdCfg specialGirdCfg = GameDataManager.getSpecialGirdCfg(specialGirdInfo.getCfgId());
+            if (!specialGirdCfg.getElement().containsKey(DollarExpressConstant.BaseElement.ID_DOLLAR) && !specialGirdCfg.getElement().containsKey(DollarExpressConstant.BaseElement.ID_DOLLAR_2)) {
+                continue;
+            }
+
+            for (Map.Entry<Integer, Integer> en : specialGirdInfo.getValueMap().entrySet()) {
+                if (dollarIndexIds == null) {
+                    dollarIndexIds = new ArrayList<>();
+                }
+                if (dollarValueList == null) {
+                    dollarValueList = new ArrayList<>();
+                }
+                dollarIndexIds.add(en.getKey());
+
+
+                gameRunInfo.addDollarsGoldTimes(en.getValue());
+                long value = gameData.getOneBetScore() * en.getValue();
+                dollarValueList.add(value);
+                log.debug("添加美元信息 girdId = {},value = {}", en.getKey(), value);
+            }
+        }
+
+        if (dollarIndexIds == null || dollarIndexIds.isEmpty() || dollarValueList == null || dollarValueList.isEmpty()) {
+            return gameRunInfo;
+        }
+
+        DollarsInfo dollarsInfo = new DollarsInfo();
+        dollarsInfo.dollarIndexIds = dollarIndexIds;
+        dollarsInfo.dollarValueList = dollarValueList;
+
+        //保险箱坐标
         int safeBoxIndex = 0;
+        //黄金列车坐标
         int goldTrainIndex = 0;
         for (int i = 1; i < gameRunInfo.getIconArr().length; i++) {
             int icon = gameRunInfo.getIconArr()[i];
-            if (icon == DollarExpressConstant.BaseElement.ID_DOLLAR) {
-                if (dollarsInfo.dollarIndexIds == null) {
-                    dollarsInfo.dollarIndexIds = new ArrayList<>();
-                }
-                dollarsInfo.dollarIndexIds.add(i);
-
-                if (dollarAllTimes < 1) {
-                    int times = generateManager.randDollarTimes();
-                    if (dollarsInfo.dollarValueList == null) {
-                        dollarsInfo.dollarValueList = new ArrayList<>();
-                    }
-                    //这里的倍数是总押分的正常倍数，不用放大缩小100倍
-                    dollarsInfo.dollarValueList.add(times * gameData.getLastBet());
-                    gameRunInfo.addDollarsGoldTimes(times);
-                }
-            } else if (icon == DollarExpressConstant.BaseElement.ID_SAFE_BOX) {
+            if (icon == DollarExpressConstant.BaseElement.ID_SAFE_BOX) {
                 safeBoxIndex = i;
             } else if (icon == DollarExpressConstant.BaseElement.ID_GOLD_TRAIN) {
                 goldTrainIndex = i;
             }
         }
 
-        //给美钞设值
-        if (dollarAllTimes > 0 && dollarsInfo.dollarIndexIds != null) {
-            int times = dollarAllTimes / dollarsInfo.dollarIndexIds.size();
-            long value = calWinGold(gameData.getLastBet(), times);
-            if (dollarsInfo.dollarValueList == null) {
-                dollarsInfo.dollarValueList = new ArrayList<>();
-            }
-            for (int i = 0; i < dollarsInfo.dollarIndexIds.size(); i++) {
-                dollarsInfo.dollarValueList.add(value);
-                gameRunInfo.addDollarsGoldTimes(times);
-            }
-        }
-
-        log.debug("本局出现美金数量 count = {},values = {},allDollarTimes = {}", dollarsInfo.dollarIndexIds == null ? 0 : dollarsInfo.dollarIndexIds.size(), dollarsInfo.dollarValueList, gameRunInfo.getDollarsGoldTimes());
+        log.debug("本局美金信息 dollarCount = {},values = {},safeBoxIndex = {},goldTrainIndex = {}", dollarsInfo.dollarIndexIds == null ? 0 : dollarsInfo.dollarIndexIds.size(), dollarsInfo.dollarValueList, safeBoxIndex, goldTrainIndex);
 
         //如果盘面中出现美金,且有保险箱，则会触发现金奖励
-        if (dollarsInfo.dollarIndexIds != null && !dollarsInfo.dollarIndexIds.isEmpty()) {
-            dollarsInfo.coinIndexId = safeBoxIndex;
-        }
+        dollarsInfo.coinIndexId = safeBoxIndex;
 
         //检查是否收集美元
-        if (collectDollar && gameData.getLastBet() >= generateManager.getDollarExpressCollectDollarConfig().getStakeMin() && dollarsInfo.dollarIndexIds != null && dollarsInfo.dollarValueList != null) {
+        if (gameData.getOneBetScore() >= this.dollarExpressCollectDollarConfig.getStakeMin()) {
             dollarsInfo.collectDollarIndexIds = new ArrayList<>();
             boolean collect = false;
             for (int i = 0; i < dollarsInfo.dollarIndexIds.size(); i++) {
                 int index = dollarsInfo.dollarIndexIds.get(i);
+                int icon = lib.getIconArr()[index];
+                if (icon != DollarExpressConstant.BaseElement.ID_DOLLAR) {
+                    continue;
+                }
+
                 int rand = RandomUtils.randomMinMax(0, 10000);
-                if (rand < generateManager.getDollarExpressCollectDollarConfig().getProp()) {
+                if (rand < this.dollarExpressCollectDollarConfig.getProp()) {
                     collect = true;
                     dollarsInfo.collectDollarIndexIds.add(index);
 
                     gameData.addDollasCount(1);
-//                    gameRunInfo.addTotalDollars(1);
-                    log.debug("收集美元 playerId = {},currentCollectCount = {},totalCount = {}", gameData.playerId(), dollarsInfo.dollarValueList.size(), gameData.getTotalDollars());
+                    log.debug("收集美元 playerId = {},girdId = {},currentCollectCount = {},totalCount = {}", gameData.playerId(), index, dollarsInfo.dollarValueList.size(), gameData.getTotalDollars());
                 }
             }
 
             if (collect) {
-                gameData.addDollarsTotalStake(gameData.getLastBet());
+                gameData.addDollarsTotalStake(gameData.getAllBetScore());
                 log.debug("count = {},avg = {}", gameData.getAddDollarsCount(), gameData.getAddDollarsTotalStake() / gameData.getAddDollarsCount());
             }
         }
 
         //设置黄金列车倍数
-        if (goldTrainIndex > 0 && dollarsInfo.dollarIndexIds != null && !dollarsInfo.dollarIndexIds.isEmpty()) {
-            if (goldTrainCount < 1) {
-                goldTrainCount = generateManager.getGoldTrainCount();
-                if (goldTrainCount < 1) {
-                    log.warn("获取的 goldTrainCount 小于1");
+        if (lib.getSpecialAuxiliaryInfoList() != null && !lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            for (SpecialAuxiliaryInfo info : lib.getSpecialAuxiliaryInfoList()) {
+                SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(info.getCfgId());
+
+                //拉火车场景
+                if (generateManager.auxiliaryNormalTrainType(specialAuxiliaryCfg.getType()) && info.getAwardInfos() != null && !info.getAwardInfos().isEmpty()) {
+                    for (Object object : info.getAwardInfos()) {
+                        SpecialAuxiliaryAwardInfo awardInfo = (SpecialAuxiliaryAwardInfo) object;
+
+                        //如果奖励C不为空，说明不是黄金列车
+                        if (awardInfo.getAwardCList() != null && awardInfo.getAwardCList().isEmpty()) {
+                            continue;
+                        }
+
+                        long times = awardInfo.getRandCount() * gameRunInfo.getDollarsGoldTimes();
+
+                        gameRunInfo.addBigPoolTimes(times);
+
+                        TrainInfo goldTrainInfo = goldTrainPbInfo(awardInfo.getRandCount(), gameRunInfo.getDollarsGoldTimes() * gameData.getOneBetScore());
+                        gameRunInfo.addTrainInfo(goldTrainInfo);
+                        log.debug("添加黄金列车倍数 playerId = {},times = {},oneBetScore = {},train = {}", gameData.playerId(), times, gameData.getOneBetScore(), JSON.toJSONString(goldTrainInfo));
+                    }
                 }
             }
-
-            int times = goldTrainCount * gameRunInfo.getDollarsGoldTimes() * timesScale;
-            gameRunInfo.addBigPoolTimes(times);
-
-            TrainInfo goldTrainInfo = goldTrainPbInfo(goldTrainCount, gameRunInfo.getDollarsGoldTimes() * gameData.getLastBet());
-            gameRunInfo.addTrainInfo(goldTrainInfo);
-            log.debug("添加黄金列车倍数 playerId = {},times = {},lastBet = {},train = {}", gameData.playerId(), times, gameData.getLastBet(), JSON.toJSONString(goldTrainInfo));
         }
 
         //设置保险箱倍数
-        if (dollarsInfo.coinIndexId > 0 && gameRunInfo.getDollarsGoldTimes() > 0) {
-            int addTimes = gameRunInfo.getDollarsGoldTimes() * timesScale;
-            gameRunInfo.addBigPoolTimes(addTimes);
-            log.debug("添加保险箱倍数 playerId = {},times = {}", gameData.playerId(), addTimes);
+        if (dollarsInfo.coinIndexId > 0) {
+            gameRunInfo.addBigPoolTimes(gameRunInfo.getDollarsGoldTimes());
+            log.debug("添加保险箱倍数 playerId = {},times = {}", gameData.playerId(), gameRunInfo.getDollarsGoldTimes());
         }
 
         gameRunInfo.setDollarsInfo(dollarsInfo);
@@ -1115,418 +1056,12 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     }
 
     @Override
-    protected DollarExpressResultLibDao getResultLibDao() {
-        return this.libDao;
-    }
-
-    @Override
-    protected DollarExpressGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected DollarExpressGenerateManager getGenerateManager() {
-        return this.generateManager;
-    }
-
-    @Override
-    protected DollarExpressPlayerGameData setGameDataValues(DollarExpressPlayerGameData playerGameData, SlotsPlayerGameDataDTO slotsPlayerGameDataDTO) {
-        DollarExpressPlayerGameDataDTO dto = (DollarExpressPlayerGameDataDTO) slotsPlayerGameDataDTO;
-        playerGameData.setRemainFreeCount(new AtomicInteger(dto.getRemainFreeCount()));
-        playerGameData.setInvers(new AtomicBoolean(dto.isInvers()));
-        playerGameData.setAllUnLock(new AtomicBoolean(dto.isAllUnLock()));
-        return playerGameData;
-    }
-
-    @Override
-    protected void specialGirdConfig(int gameType) {
-        Map<Integer, SpecialGirdCfg> tempSpecialGirdCfgMap = new HashMap<>();
-        Map<Integer, GirdUpdateConfig> tempGirdUpdateConfigMap = new HashMap<>();
-
-        for (Map.Entry<Integer, SpecialGirdCfg> en : GameDataManager.getSpecialGirdCfgMap().entrySet()) {
-            SpecialGirdCfg cfg = en.getValue();
-            if (cfg.getGameType() != gameType) {
-                continue;
-            }
-            if (cfg.getGirdUpdateType() != SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT && cfg.getGirdUpdateType() != SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT_2) {
-                continue;
-            }
-            GirdUpdateConfig config = new GirdUpdateConfig();
-            config.setId(cfg.getId());
-
-            PropInfo propInfo = new PropInfo();
-            int begin = 0;
-            int end = 0;
-
-            //元素
-            for (Map.Entry<Integer, Integer> elementEn : cfg.getElement().entrySet()) {
-                begin = end;
-
-                int iconId = elementEn.getKey();
-                config.setSpecialIconId(elementEn.getKey());
-                end += elementEn.getValue();
-                propInfo.addProp(iconId, begin, end);
-            }
-            propInfo.setSum(end);
-            config.setOtherIconPropInfo(propInfo);
-
-
-            propInfo = new PropInfo();
-            begin = 0;
-            end = 0;
-
-            //巨型块大小
-            for (List<String> list : cfg.getBigBlockSize()) {
-                begin = end;
-                end += Integer.parseInt(list.get(1));
-                propInfo.addProp(Integer.parseInt(list.get(0)), begin, end);
-            }
-            propInfo.setSum(end);
-            config.setSpecialIconPropInfo(propInfo);
-
-            propInfo = new PropInfo();
-            begin = 0;
-            end = 0;
-            //影响格子
-            for (List<Integer> list : cfg.getAffectGird()) {
-                int girdId = list.get(0);
-                int prop = list.get(1);
-                int maxShowLimit = list.get(2);
-
-                begin = end;
-
-                end += prop;
-                propInfo.addProp(girdId, begin, end, maxShowLimit);
-            }
-            propInfo.setSum(end);
-            config.setOtherIconAffectGirdPropInfo(propInfo);
-
-
-            propInfo = new PropInfo();
-            begin = 0;
-            end = 0;
-            //随机次数
-            for (Map.Entry<Integer, Integer> randCountEn : cfg.getRandCount().entrySet()) {
-                begin = end;
-                end += randCountEn.getValue();
-                propInfo.addProp(randCountEn.getKey(), begin, end);
-            }
-            propInfo.setSum(end);
-            config.setRandCountPropInfo(propInfo);
-
-            tempGirdUpdateConfigMap.put(cfg.getId(), config);
-            tempSpecialGirdCfgMap.put(cfg.getId(), cfg);
-        }
-
-        if (!tempSpecialGirdCfgMap.isEmpty()) {
-            this.specialGirdCfgMap = tempSpecialGirdCfgMap;
-        }
-        if (!tempGirdUpdateConfigMap.isEmpty()) {
-            this.girdUpdateConfigMap = tempGirdUpdateConfigMap;
-        }
-    }
-
-    /**
-     * 计算火车是否中奖池
-     *
-     * @param playerGameData
-     * @param trainList
-     * @param gameRunInfo
-     * @return
-     */
-    private DollarExpressGameRunInfo calTrainReward(DollarExpressPlayerGameData playerGameData, List<Train> trainList, DollarExpressGameRunInfo gameRunInfo) {
-        if (trainList == null || trainList.isEmpty()) {
-            return gameRunInfo;
-        }
-
-        //先转化程消息结构体
-        for (Train train : trainList) {
-            TrainInfo trainInfo = transTrainPbInfo(train, gameRunInfo.getBet());
-            gameRunInfo.addTrainInfo(trainInfo);
-        }
-
-        for (TrainInfo trainInfo : gameRunInfo.getTrainList()) {
-            //获取玩家累计贡献金额
-            long contribt = playerGameData.getAllContribtPoolGold();
-            if (contribt < 1) {
-                break;
-            }
-            log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},trainCoinId = {}", playerGameData.playerId(), contribt, trainInfo.type);
-
-            //真奖池
-            Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
-            if (smallPoolNumber == null) {
-                log.debug("获取小池子金额为空 playerId = {},roomCfgId = {},trainCoinId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), trainInfo.type);
-                break;
-            }
-            //假奖池
-            Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
-            if (fakeSmallPoolNumber == null) {
-                log.debug("获取(假)小池子金额为空 playerId = {},roomCfgId = {},trainCoinId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), trainInfo.type);
-                break;
-            }
-
-            //当真奖池 >= 假奖池时，才允许中奖
-            long smallPool = smallPoolNumber.longValue();
-            long fakeSmallPool = fakeSmallPoolNumber.longValue();
-
-            if (smallPool < fakeSmallPool) {
-                log.debug("真奖池小于假奖池，不允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
-                break;
-            }
-
-            log.debug("真奖池大于假奖池，允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
-            BigDecimal pool = BigDecimal.valueOf(smallPoolNumber.longValue());
-
-            int poolId = getPoolIdByTrain(trainInfo.type);
-            if (poolId < 1) {
-                log.debug("获取的池子id小于1 trainCoinId = {},poolId = {}", trainInfo.type, poolId);
-                continue;
-            }
-            PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
-            if (poolCfg == null) {
-                log.debug("获取的池子配置为空 trainCoinId = {},poolId = {}", trainInfo.type, poolId);
-                continue;
-            }
-            //中奖概率,这里保留了8位，所以最后可以取int值
-            int propV = BigDecimal.valueOf(contribt).divide(pool, 8, BigDecimal.ROUND_HALF_UP).divide(BigDecimal.valueOf(poolCfg.getPoolProp()), 8, BigDecimal.ROUND_HALF_UP).multiply(oneHundredMillionBigDecimal).intValue();
-            int rand = RandomUtils.randomInt(oneHundredMillion);
-//            rand = 1;
-            if (rand >= propV) {
-                log.debug("随机概率，未中奖 rand = {},propV = {}", rand, propV);
-                continue;
-            }
-            //计算奖池金额
-            //车厢节数+1，是因为要加上最后一个奖池车厢
-            long addGold = calTrainPoolValue(playerGameData.getLastBet(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), trainInfo.goldList.size() + 1, poolCfg.getDelayTime());
-
-            log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},addGold = {}", playerGameData.playerId(), rand, propV, addGold);
-
-            //给玩家加钱
-            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_TRAIN_" + pool);
-            if (!result.success()) {
-                log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
-                break;
-            }
-
-            //缓存中奖金额,以便计算玩家贡献金额
-            playerGameData.addSmallPoolReward(addGold);
-            gameRunInfo.addSmallPoolGold(addGold);
-
-            trainInfo.goldList.add(addGold);
-            trainInfo.poolId = poolId;
-            log.debug("该火车中奖，并且加钱成功 playerId = {},addGold = {}", playerGameData.playerId(), addGold);
-        }
-        return gameRunInfo;
-    }
-
-    /**
-     * 添加测试icons
-     *
-     * @param playerController
-     * @param testLibData
-     */
-    public void addTestIconData(PlayerController playerController, TestLibData testLibData, boolean icons) {
-        DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            return;
-        }
-        try {
-            DollarExpressResultLib lib = new DollarExpressResultLib();
-            lib.setRollerMode(playerGameData.getLastModelId());
-            lib.setRollerId(1);
-
-            if (icons) {
-                lib = generateManager.checkAward(testLibData.getIcons(), lib).get(0);
-            } else {
-                int[] arr = new int[21];
-                int index = 1;
-                for (int i = 1; i <= 5; i++) {
-                    int indexBegin = (i - 1) * 4;
-                    int[] tmpArr = new int[4];
-                    System.arraycopy(testLibData.getIcons(), indexBegin, tmpArr, 0, 4);
-
-                    int tmpIndex = RandomUtils.nextInt(0, 4);
-                    for (int j = 0; j < 4; j++) {
-                        arr[index] = tmpArr[tmpIndex];
-                        tmpIndex++;
-                        if (tmpIndex >= 4) {
-                            tmpIndex = 0;
-                        }
-                        index++;
-                    }
-                }
-                testLibData.setIcons(arr);
-            }
-            testLibData.setResultLib(lib);
-            playerGameData.addTestIconsData(testLibData);
-            log.info("添加测试icons成功 playerId = {},libId = {}", playerController.playerId(), lib.getId());
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    /**
-     * 测试使用，选择所有地区，只剩一个可选
-     *
-     * @param playerController
-     */
-    public void selectAllArea(PlayerController playerController) {
-        DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            return;
-        }
-        for (int i = 1; i < 8; i++) {
-            playerGameData.addSelectedArea(i);
-        }
-    }
-
-    /**
-     * 检查是否触发投资游戏
-     *
-     * @param playerGameData
-     */
-    private DollarExpressGameRunInfo checkInvers(DollarExpressPlayerGameData playerGameData, DollarExpressGameRunInfo gameRunInfo) {
-        if (playerGameData.getTotalDollars() < generateManager.getDollarExpressCollectDollarConfig().getMax()) {
-            return gameRunInfo;
-        }
-
-        gameRunInfo.setChoosableAreas(getChoosableAreas(playerGameData));
-        boolean flag = playerGameData.getInvers().compareAndSet(false, true);
-        if (flag) {
-            gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
-            playerGameData.setTotalDollars(0);
-            log.debug("美金累计到 {} 个，触发条件 {} 个，触发投资小游戏后清零 playerId = {}", gameRunInfo.getTotalDollars(), generateManager.getDollarExpressCollectDollarConfig().getMax(), playerGameData.playerId());
-        }
-        return gameRunInfo;
-    }
-
-    /**
-     * 获取投资游戏可选择的区域
-     *
-     * @param playerGameData
-     * @return
-     */
-    private List<Integer> getChoosableAreas(DollarExpressPlayerGameData playerGameData) {
-        Set<Integer> set = playerGameData.getSelectedAreaSet();
-        if (set == null || set.isEmpty()) {
-            return List.of(1, 2, 3, 4, 5, 6, 7, 8);
-        } else {
-            List<Integer> tmpList = new ArrayList<>();
-            for (int i = 1; i <= 8; i++) {
-                if (!set.contains(i)) {
-                    tmpList.add(i);
-                }
-            }
-            return tmpList;
-        }
-    }
-
-    /**
-     * 退出游戏
-     *
-     * @param playerController
-     * @return 返回值来标记是否可以进行断线重连
-     */
-    @Override
-    public boolean exit(PlayerController playerController) {
-        DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            return true;
-        }
-
-        if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD) {
-            TimerEvent<String> autoChooseEvent = new TimerEvent<>(this, 60, DollarExpressConstant.EventName.AUTO_CHOOSE_FREEMODEL_TYPE + "_" + playerController.playerId()).withTimeUnit(TimeUnit.SECONDS);
-            this.timerCenter.add(autoChooseEvent);
-            this.autoChooseFreeModeEventMap.put(playerController.playerId(), autoChooseEvent);
-            log.debug("添加自动二选一事件 playerId = {}", playerController.playerId());
-        }
-
-        if (playerGameData.getInvers().get()) {
-            TimerEvent<String> autoInversEvent = new TimerEvent<>(this, 60, DollarExpressConstant.EventName.AUTO_INVERS + "_" + playerController.playerId()).withTimeUnit(TimeUnit.SECONDS);
-            this.timerCenter.add(autoInversEvent);
-            this.autoInversEventMap.put(playerController.playerId(), autoInversEvent);
-            log.debug("添加自动投资游戏事件 playerId = {}", playerController.playerId());
-        }
-
-        playerGameData.setOnline(false);
-        return true;
-    }
-
-    @Override
-    public void onTimer(TimerEvent e) {
-        super.onTimer(e);
-
-        String[] arr = e.getParameter().toString().split("_");
-        if (DollarExpressConstant.EventName.AUTO_CHOOSE_FREEMODEL_TYPE.equals(arr[0])) {
-            long playerId = Long.parseLong(arr[1]);
-            this.autoChooseFreeModeEventMap.remove(playerId);
-            DollarExpressPlayerGameData playerGameData = this.gameDataMap.get(playerId);
-            if (playerGameData == null) {
-                log.debug("自动二选一事件，获取 playerGameData 为空 playerId = {}", playerId);
-                return;
-            }
-            autoChooseFreeModelType(playerGameData);
-            //检查当前是否处于特殊模式
-            if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_FREE) {
-                int forCount = playerGameData.getRemainFreeCount().get();
-                for (int i = 0; i < forCount; i++) {
-                    autoStartGame(playerGameData, playerGameData.getLastBet());
-                }
-            } else if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN) {
-                autoStartGame(playerGameData, playerGameData.getLastBet());
-            }
-        } else if (DollarExpressConstant.EventName.AUTO_INVERS.equals(arr[0])) {
-            long playerId = Long.parseLong(arr[1]);
-            this.autoInversEventMap.remove(playerId);
-            DollarExpressPlayerGameData playerGameData = this.gameDataMap.get(playerId);
-            if (playerGameData == null) {
-                log.debug("自动投资事件，获取 playerGameData 为空 playerId = {}", playerId);
-                return;
-            }
-            autoInvest(playerGameData);
-        }
-    }
-
-    @Override
-    public int getGameType() {
-        return CoreConst.GameType.DOLLAR_EXPRESS;
-    }
-
-    /**
-     * 玩家离线保存gameDataDto
-     */
-    @Override
-    protected void offlineSaveGameDataDto(DollarExpressPlayerGameData playerGameData) {
-        DollarExpressPlayerGameDataDTO dto = playerGameData.converToDto();
-        dto.setRemainFreeCount(playerGameData.getRemainFreeCount().get());
-        dto.setInvers(playerGameData.getInvers().get());
-        dto.setAllUnLock(playerGameData.getAllUnLock().get());
+    protected void offlineSaveGameDataDto(DollarExpressPlayerGameData gameData) {
+        DollarExpressPlayerGameDataDTO dto = gameData.converToDto();
+        dto.setRemainFreeCount(gameData.getRemainFreeCount().get());
+        dto.setInvers(gameData.getInvers().get());
+        dto.setAllUnLock(gameData.getAllUnLock().get());
         gameDataDao.saveGameData(dto);
-    }
-
-    /**
-     * 将库里面的中将线信息转化为消息
-     *
-     * @param infoList
-     * @param bet
-     * @return
-     */
-    private List<ResultLineInfo> transAwardLinePbInfo(List<DollarExpressAwardLineInfo> infoList, long bet) {
-        if (infoList == null || infoList.isEmpty()) {
-            return null;
-        }
-
-        List<ResultLineInfo> list = new ArrayList<>(infoList.size());
-        for (DollarExpressAwardLineInfo lineInfo : infoList) {
-            ResultLineInfo resultLineInfo = new ResultLineInfo();
-            resultLineInfo.id = lineInfo.getId();
-            resultLineInfo.iconIndexs = getIconIndexsByLineId(lineInfo.getId()).subList(0, lineInfo.getSameCount());
-//            resultLineInfo.times = lineInfo.getBaseTimes();
-            resultLineInfo.winGold = calWinGold(bet, lineInfo.getBaseTimes());
-            list.add(resultLineInfo);
-        }
-        return list;
     }
 
     /**
@@ -1583,23 +1118,66 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     }
 
     /**
+     * 将库里面的中将线信息转化为消息
+     *
+     * @param infoList
+     * @param oneBetScore 单线押分值
+     * @return
+     */
+    private List<ResultLineInfo> transAwardLinePbInfo(List<DollarExpressAwardLineInfo> infoList, long oneBetScore) {
+        if (infoList == null || infoList.isEmpty()) {
+            return null;
+        }
+
+        List<ResultLineInfo> list = new ArrayList<>(infoList.size());
+        for (DollarExpressAwardLineInfo lineInfo : infoList) {
+            ResultLineInfo resultLineInfo = new ResultLineInfo();
+            resultLineInfo.id = lineInfo.getId();
+            resultLineInfo.iconIndexs = getIconIndexsByLineId(lineInfo.getId()).subList(0, lineInfo.getSameCount());
+//            resultLineInfo.times = lineInfo.getBaseTimes();
+            resultLineInfo.winGold = oneBetScore * lineInfo.getBaseTimes();
+            list.add(resultLineInfo);
+        }
+        return list;
+    }
+
+    /**
      * 将库里面的火车信息转化为消息
      *
-     * @param train
      * @param bet
      * @return
      */
-    private TrainInfo transTrainPbInfo(Train train, long bet) {
-        TrainInfo trainInfo = new TrainInfo();
-        trainInfo.type = train.getTrainIconId();
-        if (train.getCoachs() != null && !train.getCoachs().isEmpty()) {
-            trainInfo.goldList = new ArrayList<>(train.getCoachs().size());
-            for (int[] arr : train.getCoachs()) {
-//                trainInfo.goldList.add(bet * arr[1]);
-                trainInfo.goldList.add(calWinGold(bet, arr[1]));
-            }
+    private List<TrainInfo> transTrainPbInfo(SpecialAuxiliaryInfo specialAuxiliaryInfo, long bet) {
+        if (specialAuxiliaryInfo.getAwardInfos() == null || specialAuxiliaryInfo.getAwardInfos().isEmpty()) {
+            return Collections.emptyList();
         }
-        return trainInfo;
+
+        SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(specialAuxiliaryInfo.getCfgId());
+        if (!generateManager.auxiliaryNormalTrainType(specialAuxiliaryCfg.getType())) {
+            return Collections.emptyList();
+        }
+
+        int trainType = generateManager.allTrainsTrainIconId(specialAuxiliaryCfg.getType());
+        if (trainType < 1) {
+            return Collections.emptyList();
+        }
+        List<TrainInfo> trainInfoList = new ArrayList<>();
+
+        for (Object object : specialAuxiliaryInfo.getAwardInfos()) {
+            SpecialAuxiliaryAwardInfo sa = (SpecialAuxiliaryAwardInfo) object;
+            if (sa.getAwardCList() == null || sa.getAwardCList().isEmpty()) {
+                continue;
+            }
+
+            TrainInfo trainInfo = new TrainInfo();
+            trainInfo.type = trainType;
+
+            trainInfo.goldList = new ArrayList<>();
+            sa.getAwardCList().forEach(times -> trainInfo.goldList.add(bet * times));
+
+            trainInfoList.add(trainInfo);
+        }
+        return trainInfoList;
     }
 
     private TrainInfo goldTrainPbInfo(int goldTrainCount, long gold) {
@@ -1612,19 +1190,228 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         return goldTrainInfo;
     }
 
-    private boolean checkUpdateType(int updateType, int libType) {
-        if (libType == SlotsConst.SpecialResultLib.TYPE_NORMAL) {
-            return true;
+
+    @Override
+    public int getGameType() {
+        return CoreConst.GameType.DOLLAR_EXPRESS;
+    }
+
+    @Override
+    protected DollarExpressResultLibDao getResultLibDao() {
+        return this.libDao;
+    }
+
+    @Override
+    protected DollarExpressGameDataDao getGameDataDao() {
+        return this.gameDataDao;
+    }
+
+    @Override
+    protected DollarExpressGenerateManager getGenerateManager() {
+        return this.generateManager;
+    }
+
+    @Override
+    protected DollarExpressPlayerGameData setGameDataValues(DollarExpressPlayerGameData playerGameData, SlotsPlayerGameDataDTO slotsPlayerGameDataDTO) {
+        DollarExpressPlayerGameDataDTO dto = (DollarExpressPlayerGameDataDTO) slotsPlayerGameDataDTO;
+        playerGameData.setRemainFreeCount(new AtomicInteger(dto.getRemainFreeCount()));
+        playerGameData.setInvers(new AtomicBoolean(dto.isInvers()));
+        playerGameData.setAllUnLock(new AtomicBoolean(dto.isAllUnLock()));
+        return playerGameData;
+    }
+
+    /**
+     * 计算火车是否中奖池
+     *
+     * @param playerGameData
+     * @param lib
+     * @param gameRunInfo
+     * @return
+     */
+    private DollarExpressGameRunInfo calTrainReward(DollarExpressPlayerGameData playerGameData, DollarExpressResultLib lib, DollarExpressGameRunInfo gameRunInfo) {
+        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            return gameRunInfo;
         }
 
-        if (libType == SlotsConst.SpecialResultLib.TYPE_GOLD_TRAIN) {
-            return updateType == SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT_2;
+        //先转化程消息结构体
+        lib.getSpecialAuxiliaryInfoList().forEach(info -> {
+            List<TrainInfo> trainInfoList = transTrainPbInfo(info, playerGameData.getOneBetScore());
+            gameRunInfo.addTrainInfo(trainInfoList);
+        });
+
+
+        for (TrainInfo trainInfo : gameRunInfo.getTrainList()) {
+            //获取玩家累计贡献金额
+            long contribt = playerGameData.getAllContribtPoolGold();
+            if (contribt < 1) {
+                break;
+            }
+            log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},trainCoinId = {}", playerGameData.playerId(), contribt, trainInfo.type);
+
+            //真奖池
+            Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
+            if (smallPoolNumber == null) {
+                log.debug("获取小池子金额为空 playerId = {},roomCfgId = {},trainCoinId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), trainInfo.type);
+                break;
+            }
+            //假奖池
+            Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
+            if (fakeSmallPoolNumber == null) {
+                log.debug("获取(假)小池子金额为空 playerId = {},roomCfgId = {},trainCoinId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), trainInfo.type);
+                break;
+            }
+
+            //当真奖池 >= 假奖池时，才允许中奖
+            long smallPool = smallPoolNumber.longValue();
+            long fakeSmallPool = fakeSmallPoolNumber.longValue();
+
+            if (smallPool < fakeSmallPool) {
+                log.debug("真奖池小于假奖池，不允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
+                break;
+            }
+
+            log.debug("真奖池大于假奖池，允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
+            BigDecimal pool = BigDecimal.valueOf(smallPoolNumber.longValue());
+
+            int poolId = getPoolIdByTrain(trainInfo.type);
+            if (poolId < 1) {
+                log.debug("获取的池子id小于1 trainCoinId = {},poolId = {}", trainInfo.type, poolId);
+                continue;
+            }
+            PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+            if (poolCfg == null) {
+                log.debug("获取的池子配置为空 trainCoinId = {},poolId = {}", trainInfo.type, poolId);
+                continue;
+            }
+            //中奖概率,这里保留了8位，所以最后可以取int值
+            int propV = BigDecimal.valueOf(contribt).divide(pool, 8, BigDecimal.ROUND_HALF_UP).divide(BigDecimal.valueOf(poolCfg.getPoolProp()), 8, BigDecimal.ROUND_HALF_UP).multiply(oneHundredMillionBigDecimal).intValue();
+            int rand = RandomUtils.randomInt(oneHundredMillion);
+//            rand = 1;
+            if (rand >= propV) {
+                log.debug("随机概率，未中奖 rand = {},propV = {}", rand, propV);
+                continue;
+            }
+            //计算奖池金额
+            //车厢节数+1，是因为要加上最后一个奖池车厢
+            long addGold = calTrainPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), trainInfo.goldList.size() + 1, poolCfg.getDelayTime());
+
+            log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},addGold = {}", playerGameData.playerId(), rand, propV, addGold);
+
+            //给玩家加钱
+            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_TRAIN_" + pool);
+            if (!result.success()) {
+                log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
+                break;
+            }
+
+            //缓存中奖金额,以便计算玩家贡献金额
+            playerGameData.addSmallPoolReward(addGold);
+            gameRunInfo.addSmallPoolGold(addGold);
+
+            trainInfo.goldList.add(addGold);
+            trainInfo.poolId = poolId;
+            log.debug("该火车中奖，并且加钱成功 playerId = {},addGold = {}", playerGameData.playerId(), addGold);
+        }
+        return gameRunInfo;
+    }
+
+    /**
+     * 添加测试icons
+     *
+     * @param playerController
+     * @param testLibData
+     */
+    public void addTestIconData(PlayerController playerController, TestLibData testLibData, boolean icons) {
+
+    }
+
+    /**
+     * 测试使用，选择所有地区，只剩一个可选
+     *
+     * @param playerController
+     */
+    public void selectAllArea(PlayerController playerController) {
+        DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            return;
+        }
+        for (int i = 1; i < 8; i++) {
+            playerGameData.addSelectedArea(i);
+        }
+    }
+
+    /**
+     * 检查是否触发投资游戏
+     *
+     * @param playerGameData
+     */
+    private DollarExpressGameRunInfo checkInvers(DollarExpressPlayerGameData playerGameData, DollarExpressGameRunInfo gameRunInfo) {
+        if (playerGameData.getTotalDollars() < this.dollarExpressCollectDollarConfig.getMax()) {
+            return gameRunInfo;
         }
 
-        if (libType == SlotsConst.SpecialResultLib.TYPE_AGAIN_GOLD_TRAIN) {
-            return updateType == SlotsConst.SpecialGird.GIRD_UPDATE_TYPE_APPOINT;
+        gameRunInfo.setChoosableAreas(getChoosableAreas(playerGameData));
+        boolean flag = playerGameData.getInvers().compareAndSet(false, true);
+        if (flag) {
+            gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());
+            playerGameData.setTotalDollars(0);
+            log.debug("美金累计到 {} 个，触发条件 {} 个，触发投资小游戏后清零 playerId = {}", gameRunInfo.getTotalDollars(), this.dollarExpressCollectDollarConfig.getMax(), playerGameData.playerId());
         }
-        return false;
+        return gameRunInfo;
+    }
+
+    /**
+     * 获取投资游戏可选择的区域
+     *
+     * @param playerGameData
+     * @return
+     */
+    private List<Integer> getChoosableAreas(DollarExpressPlayerGameData playerGameData) {
+        Set<Integer> set = playerGameData.getSelectedAreaSet();
+        if (set == null || set.isEmpty()) {
+            return List.of(1, 2, 3, 4, 5, 6, 7, 8);
+        } else {
+            List<Integer> tmpList = new ArrayList<>();
+            for (int i = 1; i <= 8; i++) {
+                if (!set.contains(i)) {
+                    tmpList.add(i);
+                }
+            }
+            return tmpList;
+        }
+    }
+
+    @Override
+    protected void specialPlayConfig() {
+        SpecialPlayCfg specialPlayCfg1 = GameDataManager.getSpecialPlayCfgList().stream().
+                filter(cfg -> cfg.getGameType() == this.gameType && cfg.getPlayType() == DollarExpressConstant.SpecialPlay.TYPE_COLLECT_DOLLAR).
+                findFirst().orElse(null);
+
+        SpecialPlayCfg specialPlayCfg2 = GameDataManager.getSpecialPlayCfgList().stream().
+                filter(cfg -> cfg.getGameType() == this.gameType && cfg.getPlayType() == DollarExpressConstant.SpecialPlay.TYPE_INVERS_ALL_WIN).
+                findFirst().orElse(null);
+
+        String[] arr = specialPlayCfg1.getValue().split(",");
+
+        DollarExpressCollectDollarConfig config = new DollarExpressCollectDollarConfig();
+
+        config.setStakeMin(Long.parseLong(arr[1]));
+        config.setBegin(Integer.parseInt(arr[2]));
+        config.setProp(Integer.parseInt(arr[3]));
+        config.setMax(Integer.parseInt(arr[4]));
+        config.setAuxiliaryId(Integer.parseInt(arr[5]));
+        config.setTriggerTarMap(specialPlayCfg1.getTriggerTag());
+        config.setTriggerType(specialPlayCfg1.getTriggerRewards().get(0));
+        config.setTriggerAuxiliaryId(specialPlayCfg1.getTriggerRewards().get(1));
+
+        String[] arr2 = specialPlayCfg2.getValue().split(",");
+        config.setAllWinCount(Integer.parseInt(arr2[1]));
+        config.setAllWinCountProp(Integer.parseInt(arr2[2]));
+        config.setAllWinCountAuxiliaryId(Integer.parseInt(arr2[3]));
+
+        this.dollarExpressCollectDollarConfig = config;
+
+
     }
 
     /**
@@ -1649,39 +1436,73 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         return 0;
     }
 
-    @Override
-    public void shutdown() {
-        try {
-            this.autoChooseFreeModeEventMap.forEach((k, v) -> v.run());
-            this.autoInversEventMap.forEach((k, v) -> v.run());
-            super.shutdown();
-            log.info("已关闭美元快递游戏管理器");
-        } catch (Exception e) {
-            log.error("", e);
-        }
-    }
-
-    private long calWinGold(long bet, long times) {
-        BigDecimal timesBigDecimal = BigDecimal.valueOf(times).divide(timesScaleBigDecimal, 2, RoundingMode.DOWN);
-        return BigDecimal.valueOf(bet).multiply(timesBigDecimal).longValue();
-    }
-
     /**
-     * 清除和玩家绑定的定时任务
+     * 退出游戏
      *
-     * @param playerId
+     * @param playerController
+     * @return 返回值来标记是否可以进行断线重连
      */
     @Override
-    public void clearPlayerEvent(long playerId) {
-        TimerEvent<String> chooseEvent = this.autoChooseFreeModeEventMap.remove(playerId);
-        if (chooseEvent != null) {
-            this.timerCenter.remove(chooseEvent);
-            log.debug("清除自动二选一事件 playerId = {}", playerId);
+    public boolean exit(PlayerController playerController) {
+        DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            return true;
         }
-        TimerEvent<String> inversEvent = this.autoInversEventMap.remove(playerId);
-        if (chooseEvent != null) {
-            this.timerCenter.remove(inversEvent);
-            log.debug("清除自动投资游戏事件 playerId = {}", playerId);
+
+        if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD) {
+            TimerEvent<String> autoChooseEvent = new TimerEvent<>(this, 60, DollarExpressConstant.EventName.AUTO_CHOOSE_FREEMODEL_TYPE + "_" + playerController.playerId()).withTimeUnit(TimeUnit.SECONDS);
+            this.timerCenter.add(autoChooseEvent);
+            this.autoChooseFreeModeEventMap.put(playerController.playerId(), autoChooseEvent);
+            log.debug("添加自动二选一事件 playerId = {}", playerController.playerId());
         }
+
+        if (playerGameData.getInvers().get()) {
+            TimerEvent<String> autoInversEvent = new TimerEvent<>(this, 60, DollarExpressConstant.EventName.AUTO_INVERS + "_" + playerController.playerId()).withTimeUnit(TimeUnit.SECONDS);
+            this.timerCenter.add(autoInversEvent);
+            this.autoInversEventMap.put(playerController.playerId(), autoInversEvent);
+            log.debug("添加自动投资游戏事件 playerId = {}", playerController.playerId());
+        }
+
+        playerGameData.setOnline(false);
+        return true;
+    }
+
+    @Override
+    public void onTimer(TimerEvent e) {
+        super.onTimer(e);
+
+        String[] arr = e.getParameter().toString().split("_");
+        if (DollarExpressConstant.EventName.AUTO_CHOOSE_FREEMODEL_TYPE.equals(arr[0])) {
+            long playerId = Long.parseLong(arr[1]);
+            this.autoChooseFreeModeEventMap.remove(playerId);
+            DollarExpressPlayerGameData playerGameData = this.gameDataMap.get(playerId);
+            if (playerGameData == null) {
+                log.debug("自动二选一事件，获取 playerGameData 为空 playerId = {}", playerId);
+                return;
+            }
+            autoChooseFreeModelType(playerGameData);
+            //检查当前是否处于特殊模式
+            if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_FREE) {
+                int forCount = playerGameData.getRemainFreeCount().get();
+                for (int i = 0; i < forCount; i++) {
+                    autoStartGame(playerGameData, playerGameData.getAllBetScore());
+                }
+            } else if (playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_TRAIN || playerGameData.getStatus() == DollarExpressConstant.Status.ALL_BOARD_GOLD_TRAIN) {
+                autoStartGame(playerGameData, playerGameData.getAllBetScore());
+            }
+        } else if (DollarExpressConstant.EventName.AUTO_INVERS.equals(arr[0])) {
+            long playerId = Long.parseLong(arr[1]);
+            this.autoInversEventMap.remove(playerId);
+            DollarExpressPlayerGameData playerGameData = this.gameDataMap.get(playerId);
+            if (playerGameData == null) {
+                log.debug("自动投资事件，获取 playerGameData 为空 playerId = {}", playerId);
+                return;
+            }
+            autoInvest(playerGameData);
+        }
+    }
+
+    public DollarExpressCollectDollarConfig getDollarExpressCollectDollarConfig() {
+        return dollarExpressCollectDollarConfig;
     }
 }

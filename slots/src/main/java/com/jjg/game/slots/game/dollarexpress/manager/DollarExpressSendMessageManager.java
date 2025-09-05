@@ -5,20 +5,17 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
 import com.jjg.game.core.manager.BaseSendMessageManager;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
-import com.jjg.game.sampledata.bean.ClientFreeRollerCfg;
-import com.jjg.game.sampledata.bean.ClientRollerCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.*;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -41,14 +38,20 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
      */
     public void sendConfigMessage(PlayerController playerController,DollarExpressGameRunInfo gameRunInfo) {
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
-        List<Integer> prizePoolIdList = generateManager.getBaseInitCfg().getPrizePoolIdList();
+        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
+        List<Integer> prizePoolIdList = baseInitCfg.getPrizePoolIdList();
 
         SendInfo sendInfo = new SendInfo();
 
         ResConfigInfo res = new ResConfigInfo(Code.SUCCESS);
         if (config != null) {
-            res.stakeList = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
-            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0),playerController.getPlayer().getRoomCfgId());
+            List<long[]> list = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
+            res.stakeList = new ArrayList<>(list.size());
+            for(long[] arr : list){
+                res.stakeList.add(arr[1]);
+            }
+
+            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
 
             //奖池信息
             if (prizePoolIdList != null && !prizePoolIdList.isEmpty()) {
@@ -68,10 +71,8 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
                 }
             }
 
-            res.dollarTargetCount = generateManager.getDollarExpressCollectDollarConfig().getMax();
-            res.clientRoller = getRollerInfo();
-            res.clientFreeRoller = getFreeRollerInfo();
-            res.collectMinStake = generateManager.getDollarExpressCollectDollarConfig().getStakeMin();
+            res.dollarTargetCount = gameManager.getDollarExpressCollectDollarConfig().getMax();
+            res.collectMinStake = gameManager.getDollarExpressCollectDollarConfig().getStakeMin();
             res.dollarCollectedCount = gameRunInfo.getTotalDollars();
         } else {
             res.code = Code.NOT_FOUND;
@@ -279,57 +280,5 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             }
         }
         return highlightList;
-    }
-
-    private List<RollerInfo> getRollerInfo() {
-        List<RollerInfo> list = new ArrayList<>();
-        for(ClientRollerCfg cfg : gameManager.getClientRollerCfgList()){
-            RollerInfo rollerInfo = new RollerInfo();
-            rollerInfo.column = cfg.getColumn();
-            rollerInfo.initGrid = new ArrayList<>();
-            for(List<Integer> tmpList : cfg.getInitGrid()){
-                ListInfo listInfo = new ListInfo();
-                listInfo.list = tmpList;
-                rollerInfo.initGrid.add(listInfo);
-            }
-
-            rollerInfo.axleCountScope = new ArrayList<>();
-            for(Map.Entry<Integer,List<Integer>> en : cfg.getAxleCountScope().entrySet()){
-                RollerScopeInfo rollerScopeInfo = new RollerScopeInfo();
-                rollerScopeInfo.id = en.getKey();
-
-                List<Integer> value = en.getValue();
-                rollerScopeInfo.begin = value.get(0);
-                rollerScopeInfo.end = value.get(1);
-                rollerInfo.axleCountScope.add(rollerScopeInfo);
-            }
-
-            rollerInfo.elements = cfg.getElements();
-            list.add(rollerInfo);
-        }
-        return list;
-    }
-
-    private List<RollerInfo> getFreeRollerInfo() {
-        List<RollerInfo> list = new ArrayList<>();
-        for(ClientFreeRollerCfg cfg : gameManager.getClientFreeRollerCfgList()){
-            RollerInfo rollerInfo = new RollerInfo();
-            rollerInfo.column = cfg.getColumn();
-
-            rollerInfo.axleCountScope = new ArrayList<>();
-            for(Map.Entry<Integer,List<Integer>> en : cfg.getAxleCountScope().entrySet()){
-                RollerScopeInfo rollerScopeInfo = new RollerScopeInfo();
-                rollerScopeInfo.id = en.getKey();
-
-                List<Integer> value = en.getValue();
-                rollerScopeInfo.begin = value.get(0);
-                rollerScopeInfo.end = value.get(1);
-                rollerInfo.axleCountScope.add(rollerScopeInfo);
-            }
-
-            rollerInfo.elements = cfg.getElements();
-            list.add(rollerInfo);
-        }
-        return list;
     }
 }

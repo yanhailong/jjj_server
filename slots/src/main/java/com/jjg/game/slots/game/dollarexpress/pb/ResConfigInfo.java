@@ -23,10 +23,6 @@ public class ResConfigInfo extends AbstractResponse {
     public List<PoolInfo> poolList;
     @ProtoDesc("美元收集目标值")
     public int dollarTargetCount;
-    @ProtoDesc("滚轴")
-    public List<RollerInfo> clientRoller;
-    @ProtoDesc("免费滚轴")
-    public List<RollerInfo> clientFreeRoller;
     @ProtoDesc("达到收集美元的最低押注")
     public long collectMinStake;
     @ProtoDesc("当前已收集美元个数")

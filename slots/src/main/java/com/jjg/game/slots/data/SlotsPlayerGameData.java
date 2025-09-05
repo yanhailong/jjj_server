@@ -17,12 +17,14 @@ public class SlotsPlayerGameData {
     protected AtomicBoolean hasPlaySlots = new AtomicBoolean(false);
     //当前所处状态(美元快递) 0.正常  1.二选一  2.正在免费旋转
     protected int status;
-    //原始押注值
-    private long lastStake;
     //最后一次活跃时间
     private int lastActiveTime;
     //是否在线
     private boolean online;
+    //最近一次的押注(单线押分)
+    private long oneBetScore;
+    //最近一次的押注(总押分)
+    private long allBetScore;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -68,14 +70,6 @@ public class SlotsPlayerGameData {
         this.status = status;
     }
 
-    public long getLastStake() {
-        return lastStake;
-    }
-
-    public void setLastStake(long lastStake) {
-        this.lastStake = lastStake;
-    }
-
     public int getLastActiveTime() {
         return lastActiveTime;
     }
@@ -92,5 +86,19 @@ public class SlotsPlayerGameData {
         this.online = online;
     }
 
+    public long getOneBetScore() {
+        return oneBetScore;
+    }
 
+    public void setOneBetScore(long oneBetScore) {
+        this.oneBetScore = oneBetScore;
+    }
+
+    public long getAllBetScore() {
+        return allBetScore;
+    }
+
+    public void setAllBetScore(long allBetScore) {
+        this.allBetScore = allBetScore;
+    }
 }
