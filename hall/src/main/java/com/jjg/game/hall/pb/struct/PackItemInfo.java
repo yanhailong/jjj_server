@@ -1,5 +1,6 @@
 package com.jjg.game.hall.pb.struct;
 
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 

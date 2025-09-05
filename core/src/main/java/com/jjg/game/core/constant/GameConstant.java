@@ -1,7 +1,6 @@
 package com.jjg.game.core.constant;
 
 import com.jjg.game.common.utils.CommonUtil;
-import com.jjg.game.common.utils.TimeHelper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -65,6 +64,8 @@ public class GameConstant {
 
         //玩家中奖跑马灯，间隔时间
         int PLAYER_WIN_INTERVAL = 8;
+        //活动开始跑马灯，间隔时间
+        int ACTIVITY_INTERVAL = 8;
     }
 
 

@@ -21,7 +21,7 @@ import com.jjg.game.hall.casino.pb.req.*;
 import com.jjg.game.hall.casino.pb.res.*;
 import com.jjg.game.hall.casino.service.PlayerBuildingService;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
-import com.jjg.game.hall.pb.struct.ItemInfo;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.hall.utils.ConditionUtil;
 import com.jjg.game.hall.utils.GlobalDataCache;
 import com.jjg.game.sampledata.GameDataManager;

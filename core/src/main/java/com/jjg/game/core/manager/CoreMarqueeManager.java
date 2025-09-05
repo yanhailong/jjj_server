@@ -1,12 +1,9 @@
 package com.jjg.game.core.manager;
 
 import com.alibaba.fastjson.JSON;
-import com.jjg.game.common.cluster.ClusterClient;
-import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.MarsCurator;
-import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.timer.TimerCenter;
@@ -352,7 +349,6 @@ public class CoreMarqueeManager implements TimerListener {
     }
 
 
-
     /**
      * 通知当前节点，所有的客户端要展示的跑马灯
      *
@@ -392,7 +388,7 @@ public class CoreMarqueeManager implements TimerListener {
      * @return
      */
     public Marquee getCurrentMarquee() {
-        if(this.marqueeMap == null || this.marqueeMap.isEmpty()) {
+        if (this.marqueeMap == null || this.marqueeMap.isEmpty()) {
             return null;
         }
         return this.marqueeMap.get(this.nowRunMarqueeId);
@@ -415,7 +411,7 @@ public class CoreMarqueeManager implements TimerListener {
      */
     public void playerWinMarquee(String playerNickName, int langId, int gameLangId, long value) {
 
-        log.debug("添加玩家中奖的跑马灯 nick = {},langId = {},gameLangId = {},value = {}", playerNickName, langId, gameLangId,value);
+        log.debug("添加玩家中奖的跑马灯 nick = {},langId = {},gameLangId = {},value = {}", playerNickName, langId, gameLangId, value);
 
         Marquee marquee = new Marquee();
 
@@ -454,6 +450,45 @@ public class CoreMarqueeManager implements TimerListener {
     }
 
     /**
+     * 活动开启跑马灯
+     *
+     * @param langId 跑马灯内容的多语言id
+     */
+    public void activityMarquee(int langId) {
+        if (langId == 0) {
+            return;
+        }
+        log.debug("活动开启的跑马灯 langId = {}", langId);
+        Marquee marquee = new Marquee();
+
+        marquee.setType(GameConstant.Marquee.SYSTEM_MSG);
+        marquee.setShowTime(GameConstant.Marquee.ACTIVITY_INTERVAL);
+        marquee.setInterval(GameConstant.Marquee.ACTIVITY_INTERVAL);
+        marquee.setCreateTime(TimeHelper.nowInt());
+
+        LanguageData contentData = new LanguageData();
+        contentData.setLangId(langId);
+        contentData.setType(GameConstant.Language.TYPE_LANGUAGE_MATCH);
+        marquee.setContent(contentData);
+
+        for (int i = 0; i < CoreConst.Common.REDIS_TRY_COUNT; i++) {
+            marquee.setId(RandomUtils.randomNum(-999999, -1));
+            //添加到redis
+            boolean add = marqueeDao.addMarqueeIfAbsent(marquee);
+            if (add) {
+                //构建请求消息
+                NotifyAllNodesMarqueeServer notify = new NotifyAllNodesMarqueeServer();
+                notify.marqueeInfo = transMarqueeInfo(marquee);
+                notify.type = marquee.getType();
+                //通知节点其他玩家
+                clusterSystem.broadcastNode(notify);
+                addNewMarquee(marquee);
+                break;
+            }
+        }
+    }
+
+    /**
      * 添加多语言参数
      *
      * @param params
@@ -469,6 +504,7 @@ public class CoreMarqueeManager implements TimerListener {
 
     /**
      * 将跑马灯对象转化为 协议结构体
+     *
      * @param marquee
      * @return
      */

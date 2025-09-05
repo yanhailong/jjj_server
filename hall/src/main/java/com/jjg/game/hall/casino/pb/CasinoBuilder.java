@@ -10,7 +10,7 @@ import com.jjg.game.hall.casino.data.TimeNodeData;
 import com.jjg.game.hall.casino.pb.bean.CasinoFloorInfo;
 import com.jjg.game.hall.casino.pb.bean.CasinoMachineShowInfo;
 import com.jjg.game.hall.casino.pb.bean.CasinoSimpleInfo;
-import com.jjg.game.hall.pb.struct.ItemInfo;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.hall.utils.GlobalDataCache;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingFunctionCfg;

@@ -1,10 +1,14 @@
 package com.jjg.game.common.utils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.text.DateFormat;
 import java.text.DateFormatSymbols;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
@@ -38,6 +42,7 @@ public final class TimeHelper {
      * 一周的秒数
      */
     public final static int WEEK_SECOND = 7 * 24 * 60 * 60;
+    private static final Logger log = LoggerFactory.getLogger(TimeHelper.class);
     /**
      * 本地时间处理器
      */
@@ -50,6 +55,11 @@ public final class TimeHelper {
      * 时区，默认为GMT+8
      */
     public static String timeZone = "GMT+8";
+
+    /**
+     * 时间格式,默认值为yyyy-MM-dd HH:mm:ss
+     */
+    public final static DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
      * 根据传入的目标时间返回1970年1月1日到目标时间的秒数，如果传入的时间格式不对，则返回-1
@@ -694,4 +704,46 @@ public final class TimeHelper {
     public static long calculateDifference(ChronoUnit chronoUnit, long startTime, long endTime) {
         return chronoUnit.between(LocalDateTime.ofInstant(Instant.ofEpochMilli(startTime), DEFAULT_ZONE), LocalDateTime.ofInstant(Instant.ofEpochMilli(endTime), DEFAULT_ZONE));
     }
+
+    /**
+     * 获取时间戳(毫秒)
+     *
+     * @param localDateTime 时间
+     * @return 时间戳(毫秒)
+     */
+    public static long getTimestamp(LocalDateTime localDateTime) {
+        return localDateTime.atZone(DEFAULT_ZONE).toInstant().toEpochMilli();
+    }
+
+    /**
+     * 获取时间戳(毫秒)
+     *
+     * @param timeStr 时间串
+     * @return 时间戳(毫秒)
+     */
+    public static long getTimestamp(String timeStr) {
+        try {
+            return LocalDateTime.parse(timeStr, dateTimeFormatter).atZone(DEFAULT_ZONE).toInstant().toEpochMilli();
+        } catch (Exception e) {
+            log.error("时间戳解析失败 timeStr={}", timeStr, e);
+        }
+        return 0;
+    }
+
+    /**
+     * 活动当前时间 前x天或者后x天的时间戳
+     *
+     * @param startTime 当前时间
+     * @param day       天数
+     * @return 计算后的天数
+     */
+    public static long getTimestampByDay(long startTime, int day) {
+        if (day == 0) {
+            return 0;
+        }
+        LocalDateTime instant = LocalDateTime.ofInstant(Instant.ofEpochMilli(startTime), DEFAULT_ZONE);
+        return instant.plusDays(day).atZone(DEFAULT_ZONE).toInstant().toEpochMilli();
+    }
+
+
 }
