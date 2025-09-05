@@ -201,6 +201,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.level = player.getLevel();
             res.exp = player.getExp();
             res.gameTypeList = likeGameDao.getLikeGames(player.getId());
+            res.createTime = player.getCreateTime();
 
             //添加轮播数据
             res.carouselList = getCarousel();

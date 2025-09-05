@@ -70,6 +70,8 @@ public class ResLogin extends AbstractResponse {
     public List<Carousel> carouselList;
     @ProtoDesc("客户端资源路径")
     public String resourceUrl;
+    @ProtoDesc("玩家创建时间(秒)")
+    public int createTime;
 
     public ResLogin(int code) {
         super(code);
