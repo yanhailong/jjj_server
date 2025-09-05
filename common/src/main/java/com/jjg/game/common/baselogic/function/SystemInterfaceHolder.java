@@ -67,8 +67,12 @@ public class SystemInterfaceHolder implements BeanPostProcessor {
             .sorted(Comparator.comparingInt(IGameSysFuncInterface::executeOrder))
             .forEach(f -> {
                 if (f instanceof IGameSysFuncInterface t) {
-                    log.debug("调用功能接口：{} 对应的实现：{}", clazz.getSimpleName(), t.getClass().getName());
-                    consumePerModule.accept((T) t);
+                    try {
+                        consumePerModule.accept((T) t);
+                    } catch (Exception e) {
+                        log.error("调用功能接口：{} 对应的实现：{} 发生异常！{}",
+                            clazz.getSimpleName(), t.getClass().getName(), e.getMessage(), e);
+                    }
                 }
             });
     }
