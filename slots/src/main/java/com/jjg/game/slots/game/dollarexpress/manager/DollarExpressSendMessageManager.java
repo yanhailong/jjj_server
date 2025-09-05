@@ -72,7 +72,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             }
 
             res.dollarTargetCount = gameManager.getDollarExpressCollectDollarConfig().getMax();
-            res.collectMinStake = gameManager.getDollarExpressCollectDollarConfig().getStakeMin();
+            res.collectMinStake = gameManager.getDollarExpressCollectDollarConfig().getStakeAllBetScoreMin();
             res.dollarCollectedCount = gameRunInfo.getTotalDollars();
         } else {
             res.code = Code.NOT_FOUND;
@@ -260,14 +260,14 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
 
             //添加黄金火车对应图标坐标
             if(goldTrain){
-                if (icon == DollarExpressConstant.BaseElement.ID_DOLLAR || icon == DollarExpressConstant.BaseElement.ID_GOLD_TRAIN) {
+                if (icon == DollarExpressConstant.BaseElement.ID_DOLLAR || icon == DollarExpressConstant.BaseElement.ID_DOLLAR_2 || icon == DollarExpressConstant.BaseElement.ID_GOLD_TRAIN) {
                     highlightList.add(i);
                 }
             }
 
             //添加现金奖励对应图标坐标
             if(safeBox){
-                if (icon == DollarExpressConstant.BaseElement.ID_DOLLAR || icon == DollarExpressConstant.BaseElement.ID_SAFE_BOX) {
+                if (icon == DollarExpressConstant.BaseElement.ID_DOLLAR || icon == DollarExpressConstant.BaseElement.ID_DOLLAR_2 || icon == DollarExpressConstant.BaseElement.ID_SAFE_BOX) {
                     highlightList.add(i);
                 }
             }

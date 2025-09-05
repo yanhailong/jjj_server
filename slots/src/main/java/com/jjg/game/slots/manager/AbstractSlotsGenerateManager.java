@@ -287,6 +287,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
                 //如果有连线
                 if (sameCount > 1) {
+                    log.debug("sameInfo = {}", JSON.toJSONString(sameInfo));
                     Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_NORMAL);
                     for (Map.Entry<Integer, BaseElementRewardCfg> rewardEn : normalRewardCfgMap.entrySet()) {
                         BaseElementRewardCfg rewardCfg = rewardEn.getValue();
@@ -301,7 +302,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                         }
 
                         //匹配连线的元素id和个数
-                        if (rewardCfg.getElementId().contains(sameInfo.getBaseIconId()) || sameCount != rewardCfg.getRewardNum()) {
+                        if (!rewardCfg.getElementId().contains(sameInfo.getBaseIconId()) || sameCount != rewardCfg.getRewardNum()) {
                             continue;
                         }
 
@@ -552,33 +553,33 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         if (wild_Front) {  //表示front是wild图标
             if (wild_Back) {  //均为wild，相同
                 sameInfo.setSame(true);
-//                log.debug("均为wild图标 iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
+                log.debug("均为wild图标 iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
             } else {
                 //如果2是普通图标
                 if (normal_Back) {
                     if (sameInfo.getBaseIconId() > 0) {
                         sameInfo.setSame(sameInfo.getBaseIconId() == iconIdBack);
-//                        log.debug("front 为wild，back是普通图标a iconIdFront = {},iconIdBack = {},same = {}", iconIdFront, iconIdBack,sameInfo.isSame());
+                        log.debug("front 为wild，back是普通图标a iconIdFront = {},iconIdBack = {},same = {}", iconIdFront, iconIdBack,sameInfo.isSame());
                     } else {
                         sameInfo.setSame(true);
                         sameInfo.setBaseIconId(iconIdBack);
-//                        log.debug("front 为wild，back是普通图标b iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
+                        log.debug("front 为wild，back是普通图标b iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
                     }
                 } else {
-//                    log.debug("front为wild，back是非wild的特殊图标 iconIdFront = {},iconIdBack = {},same = false", iconIdFront, iconIdBack);
+                    log.debug("front为wild，back是非wild的特殊图标 iconIdFront = {},iconIdBack = {},same = false", iconIdFront, iconIdBack);
                 }
             }
         } else if (normal_Front) {  //表示fornt是普通图标
             if (wild_Back) { //back是wild
                 sameInfo.setSame(true);
                 sameInfo.setBaseIconId(iconIdFront);
-//                log.debug("front为普通，back是wild iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
+                log.debug("front为普通，back是wild iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
             } else {
                 //如果front是普通，back是非wild，则只有两者id相同
                 if (iconIdFront == iconIdBack) {
                     sameInfo.setSame(true);
                     sameInfo.setBaseIconId(iconIdFront);
-//                    log.debug("均为普通图标 iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
+                    log.debug("均为普通图标 iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
                 }
             }
         } else {  //表示1是非wild的特殊图标,则无论2为什么，都不可能相同
@@ -808,6 +809,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
         Map<Integer, Map<Integer, PropInfo>> tempResultLibSectionPropMap = new HashMap<>();
 
+        boolean addSection = true;
         Map<Integer, Map<Integer, int[]>> tempResultLibSectionMap = new HashMap<>();
 
         int tmpDefaultRewardSectionIndex = -1;
@@ -831,14 +833,18 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             }
 
             //计算sectionProp
-            if (cfg.getSectionProp() != null && !cfg.getSectionProp().isEmpty() && tempResultLibSectionMap.isEmpty()) {
+            if (cfg.getSectionProp() != null && !cfg.getSectionProp().isEmpty()) {
                 Map<Integer, PropInfo> typeSectionPropMap = tempResultLibSectionPropMap.computeIfAbsent(cfg.getModelId(), k -> new HashMap<>());
 
                 for (Map.Entry<Integer, List<String>> en2 : cfg.getSectionProp().entrySet()) {
                     PropInfo propInfo = new PropInfo();
 
                     int type = en2.getKey();
-                    Map<Integer, int[]> sectionMap = tempResultLibSectionMap.computeIfAbsent(type, k -> new HashMap<>());
+
+                    Map<Integer, int[]> sectionMap = null;
+                    if(addSection){
+                        sectionMap = tempResultLibSectionMap.computeIfAbsent(type, k -> new HashMap<>());
+                    }
 
                     List<String> propList = en2.getValue();
 
@@ -855,16 +861,20 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                         propInfo.addProp(i, begin, end);
 
                         //倍数区间
-                        int[] tmpArr = new int[]{Integer.parseInt(arr2[0]), Integer.parseInt(arr2[1])};
-                        sectionMap.put(i, tmpArr);
-                        if (tmpArr[0] == 0) {
-                            tmpDefaultRewardSectionIndex = i;
+                        if(sectionMap != null){
+                            int[] tmpArr = new int[]{Integer.parseInt(arr2[0]), Integer.parseInt(arr2[1])};
+                            sectionMap.put(i, tmpArr);
+                            if (tmpArr[0] == 0) {
+                                tmpDefaultRewardSectionIndex = i;
+                            }
                         }
+
                     }
                     propInfo.setSum(end);
 
                     typeSectionPropMap.put(type, propInfo);
                 }
+                addSection = false;
             }
         }
 

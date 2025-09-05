@@ -176,7 +176,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 
 
         //检查黄金列车
-        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN) && !checkGoldTrain(lib)) {
+        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN) && !checkGoldTrainIcon(lib.getIconArr())) {
             log.info("检查黄金列车失败");
             return false;
         }
@@ -194,7 +194,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         }
 
         //检查免费模式
-        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE) && !checkFree(lib)) {
+        if (lib.getLibTypeSet().contains(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE) && !checkFreeIcon(lib.getIconArr())) {
             log.info("检查免费模式失败");
             return false;
         }
@@ -247,7 +247,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 continue;
             }
 
-            if (auxiliaryNormalTrainType(cfg.getType())) {  //拉火车
+            if (normalTrainsTrainIconId(cfg.getType()) > 0) {  //拉火车
                 List<SpecialAuxiliaryAwardInfo> awardInfos = info.getAwardInfos();
                 if (awardInfos == null || awardInfos.isEmpty()) {
                     continue;
@@ -295,7 +295,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @return
      */
     private long calGoldTrain(DollarExpressResultLib lib) throws Exception {
-        if(!checkGoldTrain(lib)){
+        if(!checkGoldTrainIcon(lib.getIconArr())){
             return 0;
         }
         if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty() ||
@@ -325,7 +325,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @return
      */
     private long calFree(DollarExpressResultLib lib) throws Exception {
-        if(!checkFree(lib)){
+        if(!checkFreeIcon(lib.getIconArr())){
             return 0;
         }
         if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
@@ -348,16 +348,15 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
     }
 
     /**
-     * 检查普通火车
-     *
-     * @param lib
+     * 检查普通火车的icon
+     * @param arr
      * @return
      */
-    public boolean checkNormalTrain(DollarExpressResultLib lib) {
+    public int checkNormalTrainIcon(int[] arr){
         //前面4列
         int trainCount = 0;
         for (int i = 1; i <= 16; i++) {
-            int icon = lib.getIconArr()[i];
+            int icon = arr[i];
             if (trainId(icon)) {
                 trainCount++;
             }
@@ -366,13 +365,27 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         boolean safeBox = false;
         //最后1列
         for (int i = 17; i <= 20; i++) {
-            int icon = lib.getIconArr()[i];
+            int icon = arr[i];
             if(icon == DollarExpressConstant.BaseElement.ID_SAFE_BOX) {
                 safeBox = true;
             }
         }
 
-        if(trainCount < 1 || !safeBox) {
+        if(trainCount > 0 && safeBox) {
+            return trainCount;
+        }
+        return 0;
+    }
+
+    /**
+     * 检查普通火车
+     *
+     * @param lib
+     * @return
+     */
+    public boolean checkNormalTrain(DollarExpressResultLib lib) {
+        int trainCount = checkNormalTrainIcon(lib.getIconArr());
+        if(trainCount < 1){
             return false;
         }
 
@@ -398,15 +411,15 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
     }
 
     /**
-     * 检查黄金火车
-     * @param lib
+     * 检查黄金列车的icon
+     * @param arr
      * @return
      */
-    public boolean checkGoldTrain(DollarExpressResultLib lib) {
+    public boolean checkGoldTrainIcon(int[] arr){
         //前面4列
         int dollarCount = 0;
         for (int i = 1; i <= 16; i++) {
-            int icon = lib.getIconArr()[i];
+            int icon = arr[i];
             if (icon == DollarExpressConstant.BaseElement.ID_DOLLAR || icon == DollarExpressConstant.BaseElement.ID_DOLLAR_2) {
                 dollarCount++;
             }
@@ -415,19 +428,13 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         boolean goldTrain = false;
         //最后1列
         for (int i = 17; i <= 20; i++) {
-            int icon = lib.getIconArr()[i];
+            int icon = arr[i];
             if(icon == DollarExpressConstant.BaseElement.ID_GOLD_TRAIN) {
                 goldTrain = true;
             }
         }
 
         if(dollarCount < 1 || !goldTrain) {
-            return false;
-        }
-
-        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty() ||
-                lib.getSpecialGirdInfoList() == null || lib.getSpecialGirdInfoList().isEmpty()) {
-            log.debug("满足黄金火车开启条件，但是没有数据");
             return false;
         }
         return true;
@@ -459,16 +466,15 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
     }
 
     /**
-     * 检查保险箱
-     *
-     * @param lib
+     * 检查现金奖励的icon
+     * @param arr
      * @return
      */
-    public boolean checkSafeBox(DollarExpressResultLib lib) {
+    public boolean checkSafeBoxIcon(int[] arr){
         //前面4列
         int dollarCount = 0;
         for (int i = 1; i <= 16; i++) {
-            int icon = lib.getIconArr()[i];
+            int icon = arr[i];
             if (icon == DollarExpressConstant.BaseElement.ID_DOLLAR || icon == DollarExpressConstant.BaseElement.ID_DOLLAR_2) {
                 dollarCount++;
             }
@@ -477,13 +483,27 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         boolean safeBox = false;
         //最后1列
         for (int i = 17; i <= 20; i++) {
-            int icon = lib.getIconArr()[i];
+            int icon = arr[i];
             if(icon == DollarExpressConstant.BaseElement.ID_SAFE_BOX) {
                 safeBox = true;
             }
         }
 
         if(dollarCount < 1 || !safeBox) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 检查保险箱
+     *
+     * @param lib
+     * @return
+     */
+    public boolean checkSafeBox(DollarExpressResultLib lib) {
+        boolean safeBoxIcon = checkSafeBoxIcon(lib.getIconArr());
+        if(!safeBoxIcon){
             return false;
         }
 
@@ -501,10 +521,10 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         return true;
     }
 
-    public boolean checkFree(DollarExpressResultLib lib) {
+    public boolean checkFreeIcon(int[] arr) {
         int freeCount = 0;
-        for(int i=0;i<lib.getIconArr().length;i++){
-            int icon = lib.getIconArr()[i];
+        for(int i=0;i<arr.length;i++){
+            int icon = arr[i];
             if(icon == DollarExpressConstant.BaseElement.ID_FREE) {
                 freeCount++;
             }
@@ -513,12 +533,6 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         if(freeCount < 1){
             return false;
         }
-
-        if(lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()){
-            log.debug("满足免费触发条件，但是没有数据");
-            return false;
-        }
-
         return true;
     }
 
@@ -597,21 +611,6 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         return allBoardMinCount;
     }
 
-    /**
-     * 检查 specialAuxiliary 中的type是不是拉火车
-     * @param type
-     * @return
-     */
-    public boolean auxiliaryNormalTrainType(int type){
-        if(type == DollarExpressConstant.SpecialAuxiliary.TYPE_GREEN_TRAIN ||
-                type == DollarExpressConstant.SpecialAuxiliary.TYPE_BLUE_TRAIN ||
-                type == DollarExpressConstant.SpecialAuxiliary.TYPE_PUEPLE_TRAIN ||
-                type == DollarExpressConstant.SpecialAuxiliary.TYPE_RED_TRAIN){
-            return true;
-        }
-        return false;
-    }
-
     public int allTrainsTrainIconId(int auxiliaryType){
         int icon = normalTrainsTrainIconId(auxiliaryType);
         if(icon > 0){
@@ -635,7 +634,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             return DollarExpressConstant.BaseElement.ID_GREEN_TRAIN;
         }
         if (auxiliaryType == DollarExpressConstant.SpecialAuxiliary.TYPE_BLUE_TRAIN) {
-            return DollarExpressConstant.BaseElement.ID_GREEN_TRAIN;
+            return DollarExpressConstant.BaseElement.ID_BLUE_TRAIN;
         }
         if (auxiliaryType == DollarExpressConstant.SpecialAuxiliary.TYPE_PUEPLE_TRAIN) {
             return DollarExpressConstant.BaseElement.ID_PURPLE_TRAIN;

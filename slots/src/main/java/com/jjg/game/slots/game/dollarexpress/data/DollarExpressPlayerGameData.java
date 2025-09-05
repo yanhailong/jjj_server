@@ -42,6 +42,8 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
     //全地图解锁
     private AtomicBoolean allUnLock = new AtomicBoolean(false);
 
+    private DollarExpressResultLib freeLib;
+
     public int getTotalDollars() {
         return totalDollars;
     }
@@ -229,5 +231,13 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
         BeanUtils.copyProperties(this,dto);
         dto.setPlayerId(this.playerId());
         return dto;
+    }
+
+    public DollarExpressResultLib getFreeLib() {
+        return freeLib;
+    }
+
+    public void setFreeLib(DollarExpressResultLib freeLib) {
+        this.freeLib = freeLib;
     }
 }
