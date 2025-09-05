@@ -23,12 +23,10 @@ import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
+import com.jjg.game.core.pb.gm.CarouselUpdateInfo;
 import com.jjg.game.core.pb.gm.ReqAllKickout;
 import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
-import com.jjg.game.core.service.CorePlayerService;
-import com.jjg.game.core.service.GameStatusService;
-import com.jjg.game.core.service.MailService;
-import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.core.service.*;
 import com.jjg.game.gm.dto.*;
 import com.jjg.game.gm.vo.*;
 import com.jjg.game.sampledata.GameDataManager;
@@ -48,7 +46,7 @@ import java.util.stream.Collectors;
 
 /**
  * @author lm
- * @date 2025/7/10 09:15
+ * @since 2025/7/10 09:15
  */
 @RestController
 @RequestMapping(method = {RequestMethod.POST}, value = "gm")
@@ -72,15 +70,14 @@ public class GMController extends AbstractController {
     private ClusterSystem clusterSystem;
     @Autowired
     private OnlinePlayerDao onlinePlayerDao;
+    @Autowired
+    private CarouselService carouselService;
 
     //邮件中的道具string，需要用正则匹配
-    private Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)\\]");
+    private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
 
     /**
      * 修改游戏状态
-     *
-     * @param dto
-     * @return
      */
     @RequestMapping(BackendGMCmd.CHANGE_GAME_STATUS)
     public WebResult<String> changeGameStatus(@RequestBody GameStatusDto dto) {
@@ -141,9 +138,6 @@ public class GMController extends AbstractController {
 
     /**
      * 添加跑马灯
-     *
-     * @param dto
-     * @return
      */
     @RequestMapping(BackendGMCmd.SNED_MARQUEE)
     public WebResult<String> sendMarquee(@RequestBody MarqueeDto dto) {
@@ -194,8 +188,6 @@ public class GMController extends AbstractController {
     /**
      * 停止跑马灯
      *
-     * @param dto
-     * @return
      */
     @RequestMapping(BackendGMCmd.STOP_MARQUEE)
     public WebResult<String> stopMarquee(@RequestBody StopMarqueeDto dto) {
@@ -227,8 +219,6 @@ public class GMController extends AbstractController {
     /**
      * 查询玩家信息
      *
-     * @param dto
-     * @return
      */
     @RequestMapping(BackendGMCmd.QUERY_ACCOUNT)
     public WebResult<PlayerVo> queryAccount(@RequestBody QueryAccountDto dto) {
@@ -276,6 +266,7 @@ public class GMController extends AbstractController {
                     log.debug("未找到该玩家账号信息 dto = {}", dto);
                     return fail("common.fail");
                 }
+                return fail("common.fail");
             }
 
             boolean check = checkPlayerInfo(dto, p, account);
@@ -314,8 +305,6 @@ public class GMController extends AbstractController {
     /**
      * 邮件
      *
-     * @param dto
-     * @return
      */
     @RequestMapping(BackendGMCmd.SEND_EMAIL)
     public WebResult<String> sendEmail(@RequestBody MailDto dto) {
@@ -373,8 +362,6 @@ public class GMController extends AbstractController {
     /**
      * 货币操作
      *
-     * @param dto
-     * @return
      */
     @RequestMapping(BackendGMCmd.GOLD_OPERATOR)
     public WebResult<String> goldOperator(@RequestBody GoldOperatorDto dto) {
@@ -479,8 +466,6 @@ public class GMController extends AbstractController {
     /**
      * 踢出玩家
      *
-     * @param dto
-     * @return
      */
     @RequestMapping(BackendGMCmd.KICK_ACCOUNT)
     public WebResult<String> kickAccount(@RequestBody KickAccountDto dto) {
@@ -527,8 +512,6 @@ public class GMController extends AbstractController {
     /**
      * 封禁
      *
-     * @param dto
-     * @return
      */
     @RequestMapping(BackendGMCmd.BAN_ACCOUNT)
     public WebResult<String> banAccount(@RequestBody BanAccountDto dto) {
@@ -572,8 +555,6 @@ public class GMController extends AbstractController {
     /**
      * 在线玩家
      *
-     * @param dto
-     * @return
      */
     @RequestMapping(BackendGMCmd.PLAYING_INFO)
     public WebResult<PageVo<List<OnlinePlayerVo>>> onlinePlayer(@RequestBody OnlinePlayerDto dto) {
@@ -624,16 +605,83 @@ public class GMController extends AbstractController {
         }
     }
 
+    /**
+     * 添加或者更新轮播数据
+     */
+    @RequestMapping(BackendGMCmd.REPLACE_CAROUSEL)
+    public WebResult<String> replaceCarousel(@RequestBody CarouselDto dto) {
+        log.info("收到轮播数据更新dto={}", dto);
+        try {
+            if (dto == null || dto.id() < 0 || dto.activityImageType() < 0) {
+                return fail("common.paramerror");
+            }
+            //构建变化的数据
+            Carousel carousel = buildCarousel(dto);
+            //构建通知变化数据对象
+            CarouselUpdateInfo carouselUpdateInfo = new CarouselUpdateInfo();
+            carouselUpdateInfo.setType(CarouselUpdateInfo.CarouselUpdateType.UPDATE);
+            carouselUpdateInfo.setCarousel(carousel);
+            carouselService.updateCarousel(carousel);
+            carouselService.notifyHallCarouselUpdate(List.of(carouselUpdateInfo));
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
 
-    /****************************************************************************************************************/
+    /**
+     * 删除轮播数据
+     */
+    @RequestMapping(BackendGMCmd.DELETE_CAROUSEL)
+    public WebResult<String> deleteCarousel(@RequestBody CarouselDeleteDto dto) {
+        log.info("收到删除轮播数据请求dto={}", dto);
+        try {
+            if (dto == null || dto.id().isEmpty()) {
+                return fail("common.paramerror");
+            }
+            List<CarouselUpdateInfo> updateInfoList = new ArrayList<>();
+            dto.id().forEach(id -> {
+                //构建变化的数据
+                Carousel carousel = new Carousel();
+                carousel.setId(id);
+                //构建通知变化数据对象
+                CarouselUpdateInfo carouselUpdateInfo = new CarouselUpdateInfo();
+                carouselUpdateInfo.setType(CarouselUpdateInfo.CarouselUpdateType.DELETE);
+                carouselUpdateInfo.setCarousel(carousel);
+                carouselService.deleteCarouselById(id);
+                updateInfoList.add(carouselUpdateInfo);
+            });
+            carouselService.notifyHallCarouselUpdate(updateInfoList);
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 同步轮播数据
+     */
+    @RequestMapping(BackendGMCmd.SYNC_CAROUSEL)
+    public WebResult<String> syncCarousel(@RequestBody CarouselSyncDto param) {
+        log.info("收到同步轮播数据请求carouselDtoList={}", param);
+        try {
+            if (param.list() != null && !param.list().isEmpty()) {
+                carouselService.sync(param.list());
+            }
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    //****************************************************************************************************************/
 
     /**
      * 检验玩家信息
      *
-     * @param dto
-     * @param player
-     * @param account
-     * @return
      */
     private boolean checkPlayerInfo(QueryAccountDto dto, Player player, Account account) {
         //检查玩家id
@@ -671,5 +719,20 @@ public class GMController extends AbstractController {
             }
         }
         return true;
+    }
+
+    /**
+     * 将请求对象转换为数据对象
+     */
+    public Carousel buildCarousel(CarouselDto dto) {
+        Carousel carousel = new Carousel();
+        carousel.setId(dto.id());
+        carousel.setActivityImageType(dto.activityImageType());
+        carousel.setSort(dto.sort());
+        carousel.setShowType(dto.showType());
+        carousel.setJumpType(dto.jumpType());
+        carousel.setJumpValue(dto.jumpValue());
+        carousel.setSourceName(dto.sourceName());
+        return carousel;
     }
 }

@@ -18,9 +18,9 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.data.Room;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.MarqueeInfo;
+import com.jjg.game.core.service.CarouselService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerSessionService;
@@ -45,12 +45,12 @@ import java.util.Optional;
 
 /**
  * @author 11
- * @date 2025/5/26 16:42
+ * @since 2025/5/26 16:42
  */
 @Component
 public class HallPlayerEventListener implements SessionCloseListener, SessionEnterListener, SessionLoginListener,
-    SessionLogoutListener {
-    private Logger log = LoggerFactory.getLogger(getClass());
+        SessionLogoutListener {
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private HallPlayerService hallPlayerService;
@@ -79,14 +79,16 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private List<PlayerLoginSuccessListener> playerLoginSuccessListenerList;
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private CarouselService carouselService;
 
     public void init() {
         Map<String, PlayerLoginSuccessListener> playerLoginSuccessListenerMap =
-            CommonUtil.getContext().getBeansOfType(PlayerLoginSuccessListener.class);
+                CommonUtil.getContext().getBeansOfType(PlayerLoginSuccessListener.class);
         playerLoginSuccessListenerList = playerLoginSuccessListenerMap.values()
-            .stream()
-            .sorted(Comparator.comparing(PlayerLoginSuccessListener::getOrder).reversed())
-            .toList();
+                .stream()
+                .sorted(Comparator.comparing(PlayerLoginSuccessListener::getOrder).reversed())
+                .toList();
 
     }
 
@@ -128,7 +130,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 res.code = Code.EXPIRE;
                 session.send(res);
                 log.debug("token校验失败,登录失败, playerId = {},dbToken = {},reqToken = {}", req.playerId,
-                    playerSessionToken.getToken(), req.token);
+                        playerSessionToken.getToken(), req.token);
                 session.verifyPassFail();
                 return;
             }
@@ -146,27 +148,27 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //标记是否为注册的账号
             boolean[] register = new boolean[1];
             CommonResult<Player> playerResult = hallPlayerService.loginAndNewOrSave(req.playerId,
-                player -> {
-                    if (player.getCreateTime() == 0) {
-                        player.setNickName("player" + req.playerId);
-                        player.setCreateTime(TimeHelper.nowInt());
-                        player.setIp(session.getAddress().getHost());
-                        player.setLevel(1);
+                    player -> {
+                        if (player.getCreateTime() == 0) {
+                            player.setNickName("player" + req.playerId);
+                            player.setCreateTime(TimeHelper.nowInt());
+                            player.setIp(session.getAddress().getHost());
+                            player.setLevel(1);
 
-                        //设置默认装扮
-                        player.setHeadImgId(hallService.getDefaultHeadImgId());
-                        player.setHeadFrameId(hallService.getDefaultHeadFrameId());
-                        player.setNationalId(hallService.getDefaultNationalId());
-                        player.setTitleId(hallService.getDefaultTitleId());
-                        // TODO.2CL 注册初始化接口
-                        PlayerPack pack = new PlayerPack();
-                        pack.setPlayerId(req.playerId);
-                        playerPackService.redisSave(pack);
-                        register[0] = true;
-                    } else {
-                        player.setIp(session.getAddress().getHost());
-                    }
-                });
+                            //设置默认装扮
+                            player.setHeadImgId(hallService.getDefaultHeadImgId());
+                            player.setHeadFrameId(hallService.getDefaultHeadFrameId());
+                            player.setNationalId(hallService.getDefaultNationalId());
+                            player.setTitleId(hallService.getDefaultTitleId());
+                            // TODO.2CL 注册初始化接口
+                            PlayerPack pack = new PlayerPack();
+                            pack.setPlayerId(req.playerId);
+                            playerPackService.redisSave(pack);
+                            register[0] = true;
+                        } else {
+                            player.setIp(session.getAddress().getHost());
+                        }
+                    });
 
             if (playerResult.code != Code.SUCCESS) {
                 res.code = Code.ERROR_REQ;
@@ -203,6 +205,12 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.level = player.getLevel();
             res.exp = player.getExp();
             res.gameTypeList = likeGameDao.getLikeGames(player.getId());
+
+            //添加轮播数据
+            res.carouselList = getCarousel();
+
+            //TODO:客户端资源地址 暂时硬编码 后续看需求进行改动
+            res.resourceUrl = "http://47.109.92.221:8099/Tmep/";
 
             //更新session
             PlayerSessionInfo playerSessionInfo = playerSessionService.online(session, player);
@@ -284,9 +292,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
     /**
      * 检查是否重连
-     *
-     * @param player
-     * @return
      */
     private boolean reconnect(PFSession session, Player player, PlayerSessionInfo playerSessionInfo) {
         MarsNode node = null;
@@ -307,8 +312,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //获取房间所在的节点
             node = clusterSystem.getNode(path);
             if (node == null) {
-                log.warn("断线重连时，房间所在的节点为空 playerId = {},roomId = {},path = {}",
-                    player.getId(), player.getRoomId(), node.getNodePath());
+                log.warn("断线重连时，房间所在的节点为空 playerId = {},roomId = {},path = {}", player.getId(), player.getRoomId(), path);
                 hallPlayerService.doSave(player.getId(), (p) -> {
                     p.setRoomId(0);
                     p.setGameType(0);
@@ -332,7 +336,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             node = clusterSystem.getNode(playerLastGameInfo.getNodePath());
             if (node == null) {
                 node =
-                    nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
+                        nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
                 if (node == null) {
                     playerLastGameInfo.setHalfwayOffline(false);
                     playerLastGameInfo.setNodePath(null);
@@ -342,7 +346,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             }
         }
         log.info("玩家重连开始切换节点 playerId={},gameType={},toNode = {}",
-            player.getId(), player.getGameType(), node.getNodePath());
+                player.getId(), player.getGameType(), node.getNodePath());
         playerSessionService.updateReconnectStatus(true, playerSessionInfo);
         clusterSystem.switchNode(session, node);
         return true;
@@ -350,8 +354,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
     /**
      * 获取当前跑马灯
-     *
-     * @return
      */
     private MarqueeInfo addMarquee() {
         try {
@@ -368,4 +370,12 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
         }
         return null;
     }
+
+    /**
+     * 获取当前的轮播数据
+     */
+    private List<Carousel> getCarousel() {
+        return carouselService.getCarouselList();
+    }
+
 }
