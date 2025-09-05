@@ -2,7 +2,7 @@ package com.jjg.game.core.constant;
 
 /**
  * @author lm
- * @date 2025/7/15 16:33
+ * @since 2025/7/15 16:33
  */
 public interface BackendGMCmd {
     String CHANGE_GAME_STATUS = "changeGameStatus";
@@ -22,6 +22,12 @@ public interface BackendGMCmd {
     String BAN_ACCOUNT = "banAccount";
     //在线玩家信息
     String PLAYING_INFO = "playingInfo";
+    //添加/更新轮播数据
+    String REPLACE_CAROUSEL = "eventImage";
+    //删除轮播数据
+    String DELETE_CAROUSEL = "eventImageDel";
+    //同步轮播数据
+    String SYNC_CAROUSEL = "syncEventImage";
 
     interface Result {
         String SUCCESS = "success";

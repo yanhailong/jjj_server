@@ -191,5 +191,7 @@ public interface MessageConst {
         int NOTICE_STOP_MARQUEE_HALL_MASTER = BASE_MSG_PREFIX | 0x4;
         //向其他节点发送全服踢人
         int NOTICE_ALL_KICK_OUT = BASE_MSG_PREFIX | 0x5;
+        //通知大厅节点更新轮播数据
+        int NOTICE_ALL_UPDATE_CAROUSEL = BASE_MSG_PREFIX | 0x6;
     }
 }

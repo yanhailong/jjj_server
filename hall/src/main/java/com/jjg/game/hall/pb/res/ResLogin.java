@@ -1,9 +1,10 @@
 package com.jjg.game.hall.pb.res;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.core.data.Carousel;
 import com.jjg.game.core.pb.MarqueeInfo;
 import com.jjg.game.hall.pb.struct.GameListConfig;
 import com.jjg.game.hall.pb.struct.GameWareInfo;
@@ -12,9 +13,9 @@ import java.util.List;
 
 /**
  * @author 11
- * @date 2025/5/26 15:22
+ * @since 2025/5/26 15:22
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CERTIFY_MESSAGE_TYPE, cmd = MessageConst.CertifyMessage.RES_LOGIN,resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CERTIFY_MESSAGE_TYPE, cmd = MessageConst.CertifyMessage.RES_LOGIN, resp = true)
 @ProtoDesc("登录返回")
 public class ResLogin extends AbstractResponse {
     @ProtoDesc("玩家id")
@@ -65,6 +66,10 @@ public class ResLogin extends AbstractResponse {
     public int hallBg;
     @ProtoDesc("如果有值，表示要重连进入游戏")
     public GameWareInfo gameWareInfo;
+    @ProtoDesc("轮播数据")
+    public List<Carousel> carouselList;
+    @ProtoDesc("客户端资源路径")
+    public String resourceUrl;
 
     public ResLogin(int code) {
         super(code);
