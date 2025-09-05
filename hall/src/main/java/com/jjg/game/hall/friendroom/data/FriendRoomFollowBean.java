@@ -1,6 +1,7 @@
 package com.jjg.game.hall.friendroom.data;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
@@ -9,6 +10,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * @author 2CL
  */
 @Document
+@CompoundIndex(
+    name = "playerId_followedPlayerId_invitationCode",
+    def = "{'playerId':1,'followedPlayerId':1,'invitationCode':1}"
+)
 public class FriendRoomFollowBean {
     @Id
     private long id;
