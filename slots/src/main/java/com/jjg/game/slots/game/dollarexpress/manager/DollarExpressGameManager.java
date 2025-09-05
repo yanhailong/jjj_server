@@ -528,36 +528,42 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             return gameRunInfo;
         }
 
-        //获取 specialResultLib 中的type
-        CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId());
-        if (!resultLibTypeResult.success()) {
-            gameRunInfo.setCode(libCfgResult.code);
-            return gameRunInfo;
+        int libType = 0;
+        //先去获取测试数据
+        TestLibData testLibData = playerGameData.pollTestLibData();
+        if (testLibData != null) {
+            libType = testLibData.getLibType();
+            log.debug("获取到测试数据 playerId = {},libType = {}", playerGameData.playerId(), libType);
         }
-        log.debug("获取到结果库类型 playerId = {},libType = {}", playerGameData.playerId(), resultLibTypeResult.data);
+
+        if(libType < 1) {
+            //获取 specialResultLib 中的type
+            CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId());
+            if (!resultLibTypeResult.success()) {
+                gameRunInfo.setCode(libCfgResult.code);
+                return gameRunInfo;
+            }
+            libType = resultLibTypeResult.data;
+            log.debug("获取到结果库类型 playerId = {},libType = {}", playerGameData.playerId(), libType);
+        }
 
         int sectionIndex = -1;
         DollarExpressResultLib resultLib = null;
 
-        //先去获取测试数据
-        TestLibData testLibData = playerGameData.pollTestLibData();
-        if (testLibData != null) {
-            resultLib = testLibData.getResultLib();
-            log.debug("获取到测试数据 playerId = {},updateGird = {},libId = {}", playerGameData.playerId(), updateGird, resultLib.getId());
-        }
+
 
         if (resultLib == null) {
             for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
                 //获取倍数区间
-                CommonResult<Integer> resultLibSectionResult = getResultLibSection(libCfgResult.data.getModelId(), resultLibTypeResult.data);
+                CommonResult<Integer> resultLibSectionResult = getResultLibSection(libCfgResult.data.getModelId(), libType);
                 if (!resultLibSectionResult.success()) {
                     continue;
                 }
 
                 //根据倍数区间从结果库里面随机获取一条
-                resultLib = libDao.getLibBySectionIndex(resultLibTypeResult.data, resultLibSectionResult.data);
+                resultLib = libDao.getLibBySectionIndex(libType, resultLibSectionResult.data);
                 if (resultLib == null) {
-                    log.debug("获取结果库失败 gameType = {},modelId = {},libType = {},sectionIndex = {},retry = {}", this.gameType, libCfgResult.data.getModelId(), resultLibTypeResult.data, resultLibSectionResult.data, i);
+                    log.debug("获取结果库失败 gameType = {},modelId = {},libType = {},sectionIndex = {},retry = {}", this.gameType, libCfgResult.data.getModelId(), libType, resultLibSectionResult.data, i);
                     continue;
                 }
                 sectionIndex = resultLibSectionResult.data;
@@ -570,12 +576,12 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         if (resultLib == null) {
             sectionIndex = this.defaultRewardSectionIndex;
             resultLib = libDao.getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_NORMAL, this.defaultRewardSectionIndex);
-            log.debug("前面获取结果库失败，所以找一个不中奖的结果返回 gameType = {},libType = {}", this.gameType, resultLibTypeResult.data);
+            log.debug("前面获取结果库失败，所以找一个不中奖的结果返回 gameType = {},libType = {}", this.gameType, libType);
         }
 
         if (resultLib == null) {
             gameRunInfo.setCode(Code.FAIL);
-            log.debug("获取结果库失败 gameType = {},libType = {}", this.gameType, resultLibTypeResult.data);
+            log.debug("获取结果库失败 gameType = {},libType = {}", this.gameType, libType);
             return gameRunInfo;
         }
 
@@ -664,6 +670,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
         gameRunInfo.setIconArr(trainLib.getIconArr());
 
+        //检查与美元相关的逻辑
+        gameRunInfo = checkDorllar(gameRunInfo, playerGameData, trainLib);
         //计算火车奖励
         gameRunInfo = calTrainReward(playerGameData, trainLib, gameRunInfo);
 
@@ -1343,29 +1351,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         if (playerGameData == null) {
             return;
         }
+
         try {
-            DollarExpressResultLib lib = new DollarExpressResultLib();
-            lib.setId(RandomUtils.getUUid());
-            lib.setIconArr(testLibData.getIcons());
-            if(generateManager.checkNormalTrainIcon(lib.getIconArr()) > 0){
-                lib.addLibType(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN);
-            }else if(generateManager.checkGoldTrainIcon(lib.getIconArr())){
-                lib.addLibType(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
-            }else if(generateManager.checkAllBoard(lib.getIconArr())){
-                lib.addLibType(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_ALL_BOARD);
-            }else if(generateManager.checkSafeBoxIcon(lib.getIconArr())){
-                lib.addLibType(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_SAFE_BOX);
-            }else if(generateManager.checkFreeIcon(lib.getIconArr())){
-                lib.addLibType(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE);
-            }else {
-                lib.addLibType(DollarExpressConstant.SpecialMode.TYPE_NORMAL);
-            }
-
-            lib = generateManager.checkAward(testLibData.getIcons(), lib);
-
-            testLibData.setResultLib(lib);
             playerGameData.addTestIconsData(testLibData);
-            log.info("添加测试icons成功 playerId = {},libId = {}", playerController.playerId(), lib.getId());
+            log.info("添加测试libType成功 playerId = {},libType = {}", playerController.playerId(),testLibData.getLibType());
         } catch (Exception e) {
             log.error("", e);
         }

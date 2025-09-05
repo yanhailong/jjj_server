@@ -130,25 +130,29 @@ public class DollarExpressMessageHandler implements GmListener {
         CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
         try {
             if ("setIcons".equalsIgnoreCase(gmOrders[0])) {
-                log.debug("收到设置图标的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
-
-                TestLibData testLibData = new TestLibData();
-
-                String[] arr2 = gmOrders[1].split(",");
-                int[] iconArr = new int[21];
-                for (int i = 1; i < iconArr.length; i++) {
-                    iconArr[i] = Integer.parseInt(arr2[i - 1]);
-                }
-                testLibData.setIcons(iconArr);
-                if (gmOrders.length > 2) {
-                    testLibData.setUpdateGird(Boolean.parseBoolean(gmOrders[2]));
-                }
-                gameManager.addTestIconData(playerController, testLibData);
+//                log.debug("收到设置图标的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+//
+//                TestLibData testLibData = new TestLibData();
+//
+//                String[] arr2 = gmOrders[1].split(",");
+//                int[] iconArr = new int[21];
+//                for (int i = 1; i < iconArr.length; i++) {
+//                    iconArr[i] = Integer.parseInt(arr2[i - 1]);
+//                }
+//                testLibData.setIcons(iconArr);
+//                gameManager.addTestIconData(playerController, testLibData);
             } else if ("libType".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到选择libtype 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 TestLibData testLibData = new TestLibData();
 
                 int libType = Integer.parseInt(gmOrders[1]);
+                if(libType < 1 || libType > 5) {
+                    log.debug("libType不合法 playerId = {},libType = {}", playerController.playerId(),libType);
+                    res.code = Code.PARAM_ERROR;
+                }else {
+                    testLibData.setLibType(libType);
+                    gameManager.addTestIconData(playerController, testLibData);
+                }
             } else if ("chooseFreeModel".equalsIgnoreCase(gmOrders[0])) {
                 log.debug("收到选择免费模式的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
                 ReqChooseFreeModel req = new ReqChooseFreeModel();
