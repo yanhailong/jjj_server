@@ -3,6 +3,7 @@ package com.jjg.game.core.service;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.base.player.IPlayerRegister;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerPackDao;
@@ -24,7 +25,7 @@ import java.util.*;
  * @date 2025/8/7 15:16
  */
 @Service
-public class PlayerPackService {
+public class PlayerPackService implements IPlayerRegister {
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
     private final String tableName = "playerPack";
@@ -473,5 +474,12 @@ public class PlayerPackService {
         }
         playerPackDao.save(playerPack);
         redisDel(playerPack.getPlayerId());
+    }
+
+    @Override
+    public void playerRegister(Player player) {
+        PlayerPack pack = new PlayerPack();
+        pack.setPlayerId(player.getId());
+        redisSave(pack);
     }
 }

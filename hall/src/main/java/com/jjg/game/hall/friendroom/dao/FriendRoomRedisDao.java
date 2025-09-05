@@ -44,6 +44,8 @@ public class FriendRoomRedisDao {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
+    private RedisTemplate<String, List<Long>> blackListRedisTemplate;
+    @Autowired
     private RedisLock redisLock;
     // 表名缓存，防止重复判断。如果是重新开服，此值会清空，但是也只是让key值多存一点时间，不影响其他逻辑
     private final Set<Integer> tableNameCache = new ConcurrentHashSet<>();
@@ -163,7 +165,7 @@ public class FriendRoomRedisDao {
      * 获取玩家黑名单列表
      */
     public List<Long> getPlayerBlackList(long playerId) {
-        return (List<Long>) stringRedisTemplate.opsForHash().get(PLAYER_BLACK_LIST, playerId + "");
+        return (List<Long>) blackListRedisTemplate.opsForHash().get(PLAYER_BLACK_LIST, playerId);
     }
 
     /**
@@ -171,9 +173,9 @@ public class FriendRoomRedisDao {
      */
     public void updatePlayerBlackList(long playerId, List<Long> playerBlackList) {
         if (playerBlackList.isEmpty()) {
-            stringRedisTemplate.opsForHash().delete(PLAYER_BLACK_LIST, playerId);
+            blackListRedisTemplate.opsForHash().delete(PLAYER_BLACK_LIST, playerId);
         } else {
-            stringRedisTemplate.opsForHash().put(PLAYER_BLACK_LIST, playerId, playerBlackList);
+            blackListRedisTemplate.opsForHash().put(PLAYER_BLACK_LIST, playerId, playerBlackList);
         }
     }
 }

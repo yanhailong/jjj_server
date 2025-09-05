@@ -27,6 +27,7 @@ import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.hall.friendroom.constant.FriendRoomConstant;
+import com.jjg.game.hall.friendroom.constant.FriendRoomErrorCode;
 import com.jjg.game.hall.friendroom.dao.FriendRoomFollowDao;
 import com.jjg.game.hall.friendroom.dao.FriendRoomRedisDao;
 import com.jjg.game.hall.friendroom.dao.HallFriendRoomDao;
@@ -589,7 +590,7 @@ public class FriendRoomServices implements IConsoleReceiver {
     public void reqOperateShieldPlayer(PlayerController playerController, ReqOperateShieldPlayer req) {
         ResOperateShieldPlayer res = new ResOperateShieldPlayer(Code.PARAM_ERROR);
         Player player = corePlayerService.get(playerController.playerId());
-        if (req.operateCode < 1 || req.operateCode > 3) {
+        if (req.operateCode < 1 || req.operateCode > 3 || req.playerId == null || req.playerId.isEmpty()) {
             playerController.send(res);
             return;
         }
@@ -597,6 +598,12 @@ public class FriendRoomServices implements IConsoleReceiver {
         // 黑名单数量
         int blockListNum = levelConfigCfg.getBlockListNum();
         List<Long> playerBlackList = friendRoomRedisDao.getPlayerBlackList(playerController.playerId());
+        playerBlackList = playerBlackList == null ? new ArrayList<>() : playerBlackList;
+        if (new HashSet<>(playerBlackList).containsAll(req.playerId)) {
+            res.code = FriendRoomErrorCode.FRIEND_ROOM_REPEAT_SHIELD;
+            playerController.send(res);
+            return;
+        }
         switch (req.operateCode) {
             case 1: {
                 playerBlackList.addAll(req.playerId);
@@ -631,11 +638,19 @@ public class FriendRoomServices implements IConsoleReceiver {
             default:
                 break;
         }
+        // 检查玩家是否存在
+        List<Player> players = corePlayerService.multiGetPlayer(req.playerId);
+        if (players.isEmpty() || players.size() != req.playerId.size()) {
+            res.code = FriendRoomErrorCode.FRIEND_ROOM_SHIELD_NONE_PLAYER;
+            playerController.send(res);
+            return;
+        }
         // 更新玩家黑名单
         friendRoomRedisDao.updatePlayerBlackList(playerController.playerId(), playerBlackList);
         res.code = Code.SUCCESS;
         res.operateCode = req.operateCode;
         res.playerId = req.playerId;
+        log.debug("更新后的屏蔽列表 {}", playerBlackList);
         playerController.send(res);
     }
 
@@ -649,10 +664,21 @@ public class FriendRoomServices implements IConsoleReceiver {
         PlayerLevelConfigCfg levelConfigCfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
         // 黑名单数量
         res.maxLimit = levelConfigCfg.getBlockListNum();
-        List<Player> blackListPlayers = corePlayerService.multiGetPlayer(playerBlackList);
-        res.shieldPlayerList =
-            blackListPlayers.stream().map(FriendRoomMessageBuilder::buildFriendRoomPlayerInfo).toList();
-        log.debug(JSON.toJSONString(res));
+        Map<Long, Player> blackListPlayers = corePlayerService.multiGetPlayerMap(playerBlackList);
+        List<BaseFriendRoomPlayerInfo> blackPlayerInfoList = new ArrayList<>();
+        if (playerBlackList != null) {
+            for (Long playerId : playerBlackList) {
+                BaseFriendRoomPlayerInfo playerInfo;
+                if (blackListPlayers.containsKey(playerId)) {
+                    playerInfo = FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(player);
+                } else {
+                    playerInfo = FriendRoomMessageBuilder.buildFriendRoomRobotPlayerInfo(playerId);
+                }
+                blackPlayerInfoList.add(playerInfo);
+            }
+        }
+        res.shieldPlayerList = blackPlayerInfoList;
+        log.debug("屏蔽好友列表 {}", JSON.toJSONString(res));
         playerController.send(res);
     }
 

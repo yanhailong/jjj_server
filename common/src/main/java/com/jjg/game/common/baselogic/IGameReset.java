@@ -7,7 +7,7 @@ import com.jjg.game.common.constant.EResetType;
  *
  * @author 2CL
  */
-public interface IReset {
+public interface IGameReset extends IGameSysFuncInterface {
     /**
      * 重置接口
      */

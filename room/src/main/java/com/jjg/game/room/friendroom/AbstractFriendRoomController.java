@@ -7,6 +7,7 @@ import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.RoomPlayer;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractRoomController;
@@ -326,7 +327,9 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         GamePlayer gamePlayer = gameController.getGameDataVo().getGamePlayer(banker);
         ResEditBankerPredicateGold res = new ResEditBankerPredicateGold(Code.SUCCESS);
         res.newlyPredicateGold = newlyBankerGold;
-        res.bankerResetGold = gamePlayer.getGold();
+        int transactionItemId = gameController.getGameTransactionItemId();
+        res.bankerResetGold =
+            transactionItemId == ItemUtils.getDiamondItemId() ? gamePlayer.getDiamond() : gamePlayer.getGold();
         playerController.send(res);
         return resCode;
     }

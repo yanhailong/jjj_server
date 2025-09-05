@@ -2,6 +2,7 @@ package com.jjg.game.hall.listener;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.baselogic.function.SystemInterfaceHolder;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
@@ -13,6 +14,8 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.player.IPlayerLoginSuccess;
+import com.jjg.game.core.base.player.IPlayerRegister;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
@@ -76,20 +79,12 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private LikeGameDao likeGameDao;
     @Autowired
     private HallRoomDao hallRoomDao;
-    private List<PlayerLoginSuccessListener> playerLoginSuccessListenerList;
     @Autowired
     private PlayerPackService playerPackService;
     @Autowired
     private CarouselService carouselService;
 
     public void init() {
-        Map<String, PlayerLoginSuccessListener> playerLoginSuccessListenerMap =
-                CommonUtil.getContext().getBeansOfType(PlayerLoginSuccessListener.class);
-        playerLoginSuccessListenerList = playerLoginSuccessListenerMap.values()
-                .stream()
-                .sorted(Comparator.comparing(PlayerLoginSuccessListener::getOrder).reversed())
-                .toList();
-
     }
 
     @Override
@@ -148,27 +143,28 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //标记是否为注册的账号
             boolean[] register = new boolean[1];
             CommonResult<Player> playerResult = hallPlayerService.loginAndNewOrSave(req.playerId,
-                    player -> {
-                        if (player.getCreateTime() == 0) {
-                            player.setNickName("player" + req.playerId);
-                            player.setCreateTime(TimeHelper.nowInt());
-                            player.setIp(session.getAddress().getHost());
-                            player.setLevel(1);
+                new HallPlayerService.LoginQueryDataAction() {
+                    @Override
+                    public void loginAction(Player player) {
+                        player.setIp(session.getAddress().getHost());
+                    }
 
-                            //设置默认装扮
-                            player.setHeadImgId(hallService.getDefaultHeadImgId());
-                            player.setHeadFrameId(hallService.getDefaultHeadFrameId());
-                            player.setNationalId(hallService.getDefaultNationalId());
-                            player.setTitleId(hallService.getDefaultTitleId());
-                            // TODO.2CL 注册初始化接口
-                            PlayerPack pack = new PlayerPack();
-                            pack.setPlayerId(req.playerId);
-                            playerPackService.redisSave(pack);
-                            register[0] = true;
-                        } else {
-                            player.setIp(session.getAddress().getHost());
-                        }
-                    });
+                    @Override
+                    public void registerAction(Player player) {
+                        player.setNickName("player" + req.playerId);
+                        player.setCreateTime(TimeHelper.nowInt());
+                        player.setIp(session.getAddress().getHost());
+                        player.setLevel(1);
+                        //设置默认装扮
+                        player.setHeadImgId(hallService.getDefaultHeadImgId());
+                        player.setHeadFrameId(hallService.getDefaultHeadFrameId());
+                        player.setNationalId(hallService.getDefaultNationalId());
+                        player.setTitleId(hallService.getDefaultTitleId());
+                        // 调用注册接口类
+                        SystemInterfaceHolder.callGameSysAction(IPlayerRegister.class, (f) -> f.playerRegister(player));
+                        register[0] = true;
+                    }
+                });
 
             if (playerResult.code != Code.SUCCESS) {
                 res.code = Code.ERROR_REQ;
@@ -244,19 +240,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             }
             log.info("玩家登录成功 playerId = {},res = {}", player.getId(), JSON.toJSONString(res));
 
-            //调用监听器
-            if (CollectionUtil.isNotEmpty(playerLoginSuccessListenerList)) {
-                for (PlayerLoginSuccessListener loginSuccessListener : playerLoginSuccessListenerList) {
-                    try {
-                        if (!loginSuccessListener.onPlayerLoginSuccess(playerController)) {
-                            break;
-                        }
-                    } catch (Exception e) {
-                        log.error("玩家登录成功调用 登录成功事件失败 playerId:{}", player.getId(), e);
-                    }
-                }
-            }
-
+            // 调用登录接口类
+            SystemInterfaceHolder.callGameSysAction(
+                IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player));
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             session.send(res);

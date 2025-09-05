@@ -12,7 +12,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.hall.listener.PlayerLoginSuccessListener;
+import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.hall.pb.struct.ItemInfo;
 import com.jjg.game.hall.vip.data.Vip;
 import com.jjg.game.hall.vip.data.VipCfgCache;
@@ -38,7 +38,7 @@ import java.util.*;
  * @date 2025/8/27 10:01
  */
 @Component
-public class VipManager implements ConfigExcelChangeListener, PlayerLoginSuccessListener {
+public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSuccess {
     private final Logger log = LoggerFactory.getLogger(VipManager.class);
     private final VipService vipService;
     private final PlayerPackService playerPackService;
@@ -58,7 +58,7 @@ public class VipManager implements ConfigExcelChangeListener, PlayerLoginSuccess
     @Override
     public void initSampleCallbackCollector() {
         addChangeSampleFileObserveWithCallBack(ViplevelCfg.EXCEL_NAME, VipCfgCache::initData)
-                .addInitSampleFileObserveWithCallBack(ViplevelCfg.EXCEL_NAME, VipCfgCache::initData);
+            .addInitSampleFileObserveWithCallBack(ViplevelCfg.EXCEL_NAME, VipCfgCache::initData);
 
     }
 
@@ -210,8 +210,7 @@ public class VipManager implements ConfigExcelChangeListener, PlayerLoginSuccess
     }
 
     @Override
-    public boolean onPlayerLoginSuccess(PlayerController playerController) {
-        Player player = playerController.getPlayer();
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player) {
         //vip经验衰减
         ViplevelCfg vipLevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
         if (Objects.nonNull(vipLevelCfg)) {
@@ -225,15 +224,15 @@ public class VipManager implements ConfigExcelChangeListener, PlayerLoginSuccess
                     long difference = TimeHelper.calculateDifference(ChronoUnit.MINUTES, lastOfflineTime, timeMillis);
                     if (difference >= interval) {
                         //经验衰减
-                        Player doneSave = playerService.doSave(player.getId(), vipLevelCfg.getRollback().getLast(), (savePlayer, value) -> {
-                            savePlayer.setVipExp(Math.max(player.getVipExp() - value, 0));
-                        });
+                        Player doneSave = playerService.doSave(player.getId(), vipLevelCfg.getRollback().getLast(),
+                            (savePlayer, value) -> {
+                                savePlayer.setVipExp(Math.max(player.getVipExp() - value, 0));
+                            });
                         playerController.setPlayer(doneSave);
                     }
                 }
             }
         }
         //获取上次退出时间
-        return true;
     }
 }

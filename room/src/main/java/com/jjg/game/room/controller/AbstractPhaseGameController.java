@@ -5,6 +5,7 @@ import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.timer.TimerEvent;
+import com.jjg.game.common.utils.ReflectUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
@@ -278,7 +279,7 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
                 // 如果请求在此阶段，直接处理
                 if (currentGamePhase.getGamePhase() == phaseMsgAdapter.getGamePhase()) {
                     Set<Class<AbstractMessage>> actualTypes =
-                        ReflectionTool.getClassSuperActualType(phaseMsgAdapter.getClass(), AbstractMessage.class);
+                        ReflectUtils.getClassSuperActualType(phaseMsgAdapter.getClass(), AbstractMessage.class);
                     if (actualTypes.isEmpty()) {
                         return;
                     }

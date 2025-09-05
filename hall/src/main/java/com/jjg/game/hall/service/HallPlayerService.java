@@ -9,7 +9,6 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.service.AbstractPlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerSessionService;
-import com.jjg.game.hall.casino.data.PlayerBuilding;
 import com.jjg.game.hall.casino.service.PlayerBuildingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -38,7 +37,7 @@ public class HallPlayerService extends AbstractPlayerService {
      * @param cbk
      * @return
      */
-    public CommonResult<Player> loginAndNewOrSave(long playerId, DataSaveCallback<Player> cbk) {
+    public CommonResult<Player> loginAndNewOrSave(long playerId, LoginQueryDataAction cbk) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         String key = getLockKey(playerId);
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
@@ -47,9 +46,9 @@ public class HallPlayerService extends AbstractPlayerService {
             if (player == null) {
                 player = new Player();
                 player.setId(playerId);
-                cbk.updateData(player);
+                cbk.registerAction(player);
             } else {
-                cbk.updateData(player);
+                cbk.loginAction(player);
             }
             //记录登录时间
             playerLoginTimeDao.add(playerId, System.currentTimeMillis());
@@ -63,6 +62,19 @@ public class HallPlayerService extends AbstractPlayerService {
             redisLock.unlock(key);
         }
         return result;
+    }
+
+    public interface LoginQueryDataAction {
+
+        /**
+         * 登录行为
+         */
+        void loginAction(Player player);
+
+        /**
+         * 注册行为
+         */
+        void registerAction(Player player);
     }
 
     /**

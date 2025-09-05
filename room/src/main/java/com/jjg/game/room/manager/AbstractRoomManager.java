@@ -8,6 +8,7 @@ import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.common.utils.ReflectUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
@@ -125,7 +126,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 if (aClass.isInterface() || Modifier.isAbstract(aClass.getModifiers())) {
                     continue;
                 }
-                Set<Class<Room>> roomDaoTypeParams = ReflectionTool.getClassSuperActualType(aClass);
+                Set<Class<Room>> roomDaoTypeParams = ReflectUtils.getClassSuperActualType(aClass);
                 Class<Room> roomClass = null;
                 for (Class<Room> roomDaoTypeParam : roomDaoTypeParams) {
                     if (Room.class.isAssignableFrom(roomDaoTypeParam)) {
@@ -715,7 +716,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         Class<AbstractRoomController<RC, R>> targetRoomControllerClass = null;
         for (Class<? extends AbstractRoomController> controllerClazz : this.roomControllerClazz) {
             // 获取房间控制器上的房间数据类型
-            Set<Class<Object>> roomDataClasses = ReflectionTool.getClassSuperActualType(controllerClazz);
+            Set<Class<Object>> roomDataClasses = ReflectUtils.getClassSuperActualType(controllerClazz);
             Class<? extends Room> roomDataClass = null;
             for (Class<?> clazz : roomDataClasses) {
                 if (Room.class.isAssignableFrom(clazz)) {
