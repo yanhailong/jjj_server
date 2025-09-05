@@ -1,6 +1,7 @@
 package com.jjg.game.core.pb.gm;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
@@ -12,7 +13,7 @@ import java.util.List;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SERVER_CONST_TYPE, cmd = MessageConst.ToServer.NOTICE_ALL_UPDATE_CAROUSEL, resp = true)
 @ProtoDesc("通知轮播数据更新")
-public class NotifyCarouselUpdate {
+public class NotifyCarouselUpdate extends AbstractNotice {
 
     /**
      * 变化的轮播数据

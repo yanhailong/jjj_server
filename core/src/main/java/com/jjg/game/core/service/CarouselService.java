@@ -86,10 +86,10 @@ public class CarouselService {
     /**
      * 根据ID删除轮播数据
      */
-    public void deleteCarouselById(long id) {
+    public boolean deleteCarouselById(long id) {
         if (id <= 0) {
             log.warn("删除轮播数据失败，ID无效: {}", id);
-            return;
+            return false;
         }
         try {
             Long result = redisTemplate.opsForHash().delete(tableName, id);
@@ -99,9 +99,11 @@ public class CarouselService {
             } else {
                 log.warn("删除轮播数据失败，数据不存在，ID: {}", id);
             }
+            return success;
         } catch (Exception e) {
             log.error("删除轮播数据异常，ID: {}", id, e);
         }
+        return false;
     }
 
     /**

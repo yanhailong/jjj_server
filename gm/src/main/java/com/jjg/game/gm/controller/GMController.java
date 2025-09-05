@@ -649,8 +649,11 @@ public class GMController extends AbstractController {
                 CarouselUpdateInfo carouselUpdateInfo = new CarouselUpdateInfo();
                 carouselUpdateInfo.setType(CarouselUpdateInfo.CarouselUpdateType.DELETE);
                 carouselUpdateInfo.setCarousel(carousel);
-                carouselService.deleteCarouselById(id);
-                updateInfoList.add(carouselUpdateInfo);
+                boolean deleted = carouselService.deleteCarouselById(id);
+                //删除成功才通知
+                if (deleted) {
+                    updateInfoList.add(carouselUpdateInfo);
+                }
             });
             carouselService.notifyHallCarouselUpdate(updateInfoList);
             return success("common.success");
