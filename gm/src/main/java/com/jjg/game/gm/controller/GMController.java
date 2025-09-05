@@ -642,16 +642,16 @@ public class GMController extends AbstractController {
             }
             List<CarouselUpdateInfo> updateInfoList = new ArrayList<>();
             dto.id().forEach(id -> {
-                //构建变化的数据
-                Carousel carousel = new Carousel();
-                carousel.setId(id);
-                //构建通知变化数据对象
-                CarouselUpdateInfo carouselUpdateInfo = new CarouselUpdateInfo();
-                carouselUpdateInfo.setType(CarouselUpdateInfo.CarouselUpdateType.DELETE);
-                carouselUpdateInfo.setCarousel(carousel);
                 boolean deleted = carouselService.deleteCarouselById(id);
                 //删除成功才通知
                 if (deleted) {
+                    //构建变化的数据
+                    Carousel carousel = new Carousel();
+                    carousel.setId(id);
+                    //构建通知变化数据对象
+                    CarouselUpdateInfo carouselUpdateInfo = new CarouselUpdateInfo();
+                    carouselUpdateInfo.setType(CarouselUpdateInfo.CarouselUpdateType.DELETE);
+                    carouselUpdateInfo.setCarousel(carousel);
                     updateInfoList.add(carouselUpdateInfo);
                 }
             });
