@@ -634,6 +634,8 @@ public class FriendRoomServices implements IConsoleReceiver {
         // 更新玩家黑名单
         friendRoomRedisDao.updatePlayerBlackList(playerController.playerId(), playerBlackList);
         res.code = Code.SUCCESS;
+        res.operateCode = req.operateCode;
+        res.playerId = req.playerId;
         playerController.send(res);
     }
 
