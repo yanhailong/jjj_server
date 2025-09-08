@@ -134,6 +134,8 @@ public class GameDataManager {
     containerMap.put(BuildingFloorCfg.class, new BuildingFloorCfgContainer());
     containerMap.put(BuildingFunctionCfg.class, new BuildingFunctionCfgContainer());
     containerMap.put(BuildingGainCfg.class, new BuildingGainCfgContainer());
+    containerMap.put(CashcowCfg.class, new CashcowCfgContainer());
+    containerMap.put(CashcowrewardsCfg.class, new CashcowrewardsCfgContainer());
     containerMap.put(ChessRobotCfg.class, new ChessRobotCfgContainer());
     containerMap.put(ConditionCfg.class, new ConditionCfgContainer());
     containerMap.put(DailyRewardsCfg.class, new DailyRewardsCfgContainer());
@@ -774,6 +776,30 @@ public class GameDataManager {
     return getInstance().getCfgContainer(BuildingGainCfg.class).getCfgBeanList();
   }
 
+  public static CashcowCfg getCashcowCfg(int key) {
+    return getInstance().getCfgContainer(CashcowCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, CashcowCfg> getCashcowCfgMap() {
+    return getInstance().getCfgContainer(CashcowCfg.class).getCfgBeanMap();
+  }
+
+  public static List<CashcowCfg> getCashcowCfgList() {
+    return getInstance().getCfgContainer(CashcowCfg.class).getCfgBeanList();
+  }
+
+  public static CashcowrewardsCfg getCashcowrewardsCfg(int key) {
+    return getInstance().getCfgContainer(CashcowrewardsCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, CashcowrewardsCfg> getCashcowrewardsCfgMap() {
+    return getInstance().getCfgContainer(CashcowrewardsCfg.class).getCfgBeanMap();
+  }
+
+  public static List<CashcowrewardsCfg> getCashcowrewardsCfgList() {
+    return getInstance().getCfgContainer(CashcowrewardsCfg.class).getCfgBeanList();
+  }
+
   public static ChessRobotCfg getChessRobotCfg(int key) {
     return getInstance().getCfgContainer(ChessRobotCfg.class).getCfgBeanMap().get(key);
   }
@@ -1222,6 +1248,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\workspace\\excelConfigs");
+    loadAllData("D:\\project\\gamedoc\\工具\\tool\\..\\..\\游戏配置表");
   }
 }

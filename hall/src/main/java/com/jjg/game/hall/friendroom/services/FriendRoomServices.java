@@ -517,7 +517,6 @@ public class FriendRoomServices {
             res.operatedPlayerId = req.playerId;
             res.code = Code.SUCCESS;
         }
-        log.debug("fan {}", JSON.toJSONString(res));
         playerController.send(res);
     }
 
