@@ -26,4 +26,14 @@ public class PokerPlayerInfo {
     public int operationType;
     @ProtoDesc("玩家状态(true在游戏中 false不在游戏中)")
     public boolean playerStatus;
+    @ProtoDesc("当前使用的筹码id")
+    public int chipsId;
+    @ProtoDesc("当前使用的牌背ID")
+    public int cardBackgroundId;
+    @ProtoDesc("头像框id")
+    public int headFrameId;
+    @ProtoDesc("国旗id")
+    public int nationalId;
+    @ProtoDesc("称号id")
+    public int titleId;
 }

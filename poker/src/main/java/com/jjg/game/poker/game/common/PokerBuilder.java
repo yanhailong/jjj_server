@@ -32,6 +32,11 @@ public class PokerBuilder {
         pokerPlayerInfo.playerId = gamePlayer.getId();
         pokerPlayerInfo.name = gamePlayer.getNickName();
         pokerPlayerInfo.icon = gamePlayer.getHeadImgId();
+        pokerPlayerInfo.chipsId = gamePlayer.getChipsId();
+        pokerPlayerInfo.cardBackgroundId = gamePlayer.getCardBackgroundId();
+        pokerPlayerInfo.headFrameId = gamePlayer.getHeadFrameId();
+        pokerPlayerInfo.nationalId = gamePlayer.getNationalId();
+        pokerPlayerInfo.titleId = gamePlayer.getTitleId();
         if (seatInfo != null) {
             pokerPlayerInfo.seatIndex = seatInfo.getSeatId();
             pokerPlayerInfo.status = seatInfo.isSeatDown();

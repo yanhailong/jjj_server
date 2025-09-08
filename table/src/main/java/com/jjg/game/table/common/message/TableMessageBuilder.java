@@ -85,7 +85,7 @@ public class TableMessageBuilder {
      * 构建游戏的前7玩家基础信息,包含玩家自己的数据
      */
     public static List<TablePlayerInfo> buildTablePlayerInfo(
-        long playerId, TableGameDataVo tableGameDataVo, int limit) {
+            long playerId, TableGameDataVo tableGameDataVo, int limit) {
         Map<Long, GamePlayer> sortedGamePlayer = getSortedGamePlayer(tableGameDataVo, limit);
         List<GamePlayer> gamePlayers = new ArrayList<>(sortedGamePlayer.values());
         if (!sortedGamePlayer.containsKey(playerId)) {
@@ -111,9 +111,9 @@ public class TableMessageBuilder {
      */
     private static Map<Long, GamePlayer> getSortedGamePlayer(GameDataVo<?> tableGameDataVo, int limit) {
         Stream<GamePlayer> sorted = tableGameDataVo.getGamePlayerMap()
-            .values()
-            .stream()
-            .sorted(Comparator.comparingLong(Player::getGold).reversed());
+                .values()
+                .stream()
+                .sorted(Comparator.comparingLong(Player::getGold).reversed());
         if (limit > 0) {
             sorted = sorted.limit(limit);
         }
@@ -146,6 +146,8 @@ public class TableMessageBuilder {
         tablePlayerInfo.nationalId = gamePlayer.getNationalId();
         tablePlayerInfo.headImgId = gamePlayer.getHeadImgId();
         tablePlayerInfo.titleId = gamePlayer.getTitleId();
+        tablePlayerInfo.chipsId = gamePlayer.getChipsId();
+        tablePlayerInfo.cardBackgroundId = gamePlayer.getCardBackgroundId();
         return tablePlayerInfo;
     }
 
@@ -160,7 +162,7 @@ public class TableMessageBuilder {
      * 通知场上玩家信息有变化
      */
     public static NotifyTableRoomPlayerInfoChange buildNotifyTableRoomPlayerInfoChange(
-        long changedPlayerId, int sendSize, TableGameDataVo dataVo) {
+            long changedPlayerId, int sendSize, TableGameDataVo dataVo) {
         NotifyTableRoomPlayerInfoChange infoChange = new NotifyTableRoomPlayerInfoChange();
         infoChange.changedPlayerId = changedPlayerId;
         infoChange.tableChangedPlayerInfos = new ArrayList<>();
@@ -180,7 +182,7 @@ public class TableMessageBuilder {
      * @param playerGet 结算的玩家获得的金币
      */
     public static List<PlayerChangedGold> getPlayerSettleInfos(
-        Map<Long, DefaultKeyValue<Long, Long>> playerGet, TableGameDataVo gameDataVo) {
+            Map<Long, DefaultKeyValue<Long, Long>> playerGet, TableGameDataVo gameDataVo) {
         List<PlayerChangedGold> settleInfoArrayList = new ArrayList<>();
         for (Map.Entry<Long, DefaultKeyValue<Long, Long>> entry : playerGet.entrySet()) {
             PlayerChangedGold info = new PlayerChangedGold();
@@ -228,9 +230,9 @@ public class TableMessageBuilder {
      * 添加玩家下注区域的数据
      */
     public static List<BetTableInfo> buildPlayerBetInfo(
-        List<BetTableInfo> betTableInfos, TableGameDataVo gameDataVo, long playerId) {
+            List<BetTableInfo> betTableInfos, TableGameDataVo gameDataVo, long playerId) {
         Map<Integer, BetTableInfo> tableInfoMap =
-            betTableInfos.stream().collect(HashMap::new, (map, e) -> map.put(e.betIdx, e), HashMap::putAll);
+                betTableInfos.stream().collect(HashMap::new, (map, e) -> map.put(e.betIdx, e), HashMap::putAll);
         Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
         if (playerBetInfo == null) {
             return betTableInfos;

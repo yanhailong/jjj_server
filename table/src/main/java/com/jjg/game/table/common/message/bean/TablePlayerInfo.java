@@ -46,6 +46,12 @@ public class TablePlayerInfo {
     @ProtoDesc("称号id")
     public int titleId;
 
+    @ProtoDesc("当前使用的筹码id")
+    public int chipsId;
+
+    @ProtoDesc("当前使用的牌背ID")
+    public int cardBackgroundId;
+
     @ProtoDesc("是否是庄家")
     public boolean isBanker;
 }
