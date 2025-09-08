@@ -780,9 +780,10 @@ public class HallMessageHandler implements GmListener {
         }
 
         // TODO 临时代码 info.limitGoldMin != -1
-        if (info.limitGoldMin != -1 && info.limitGoldMin > playerController.getPlayer().getGold()) {
-            log.debug("玩家金币不足 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), gameType
-                    , roomCfgId);
+        Player player = hallPlayerService.get(playerController.getPlayer().getId());
+        if (info.limitGoldMin != -1 && info.limitGoldMin > player.getGold()) {
+            log.debug("玩家金币不足 playerId = {},gameType = {},roomCfgId = {},gold = {},limmitGold = {}", playerController.playerId(), gameType
+                    , roomCfgId,player.getGold(), info.limitGoldMin);
             return new CommonResult<>(Code.NOT_ENOUGH);
         }
 
