@@ -18,24 +18,24 @@ public class PrivilegeCardCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "PrivilegeCard";
 
-  /** 购买花费(充值) */
-  protected int Purchasecost;
+  /** 每天返利(金币) */
+  protected Map<Integer,Long> dayRebate;
   /** 持续天数 */
   protected int days;
   /** 额外道具 */
-  protected Map<Integer,Integer> getItem;
-  /** 每天返利(金币) */
-  protected List<Integer> marquee;
+  protected Map<Integer,Long> getItem;
   /** 活动名称 */
   protected int name;
+  /** 购买花费(充值) */
+  protected int purchasecost;
   /** 总计返利(金币) */
-  protected List<Integer> needlevel;
+  protected Map<Integer,Long> totalRebate;
   /** 类型ID */
   protected int type;
 
-  /** 返回购买花费(充值) */
-  public int getPurchasecost() {
-    return Purchasecost;
+  /** 返回每天返利(金币) */
+  public Map<Integer,Long> getDayRebate() {
+    return dayRebate;
   }
 
   /** 返回持续天数 */
@@ -44,13 +44,8 @@ public class PrivilegeCardCfg extends BaseCfgBean {
   }
 
   /** 返回额外道具 */
-  public Map<Integer,Integer> getGetItem() {
+  public Map<Integer,Long> getGetItem() {
     return getItem;
-  }
-
-  /** 返回每天返利(金币) */
-  public List<Integer> getMarquee() {
-    return marquee;
   }
 
   /** 返回活动名称 */
@@ -58,9 +53,14 @@ public class PrivilegeCardCfg extends BaseCfgBean {
     return name;
   }
 
+  /** 返回购买花费(充值) */
+  public int getPurchasecost() {
+    return purchasecost;
+  }
+
   /** 返回总计返利(金币) */
-  public List<Integer> getNeedlevel() {
-    return needlevel;
+  public Map<Integer,Long> getTotalRebate() {
+    return totalRebate;
   }
 
   /** 返回类型ID */

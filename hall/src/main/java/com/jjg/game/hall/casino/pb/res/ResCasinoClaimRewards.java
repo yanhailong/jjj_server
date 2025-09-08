@@ -7,7 +7,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.hall.casino.pb.bean.CasinoSimpleInfo;
 import com.jjg.game.hall.constant.HallConstant;
-import com.jjg.game.hall.pb.struct.ItemInfo;
+import com.jjg.game.common.pb.ItemInfo;
 
 import java.util.List;
 

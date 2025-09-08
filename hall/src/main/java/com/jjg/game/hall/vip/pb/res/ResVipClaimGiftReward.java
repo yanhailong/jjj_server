@@ -5,7 +5,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.hall.constant.HallConstant;
-import com.jjg.game.hall.pb.struct.ItemInfo;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.hall.vip.pb.bean.VipGiftInfo;
 
 import java.util.List;

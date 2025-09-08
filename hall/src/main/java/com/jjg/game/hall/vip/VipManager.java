@@ -13,7 +13,7 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
-import com.jjg.game.hall.pb.struct.ItemInfo;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.hall.vip.data.Vip;
 import com.jjg.game.hall.vip.data.VipCfgCache;
 import com.jjg.game.hall.vip.data.VipGift;

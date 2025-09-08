@@ -26,7 +26,7 @@ import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.pb.req.*;
 import com.jjg.game.hall.pb.res.*;
-import com.jjg.game.hall.pb.struct.ItemInfo;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.hall.pb.struct.MailInfo;
 import com.jjg.game.hall.pb.struct.PackItemInfo;
 import com.jjg.game.hall.pb.struct.WarePoolInfo;

@@ -10,6 +10,7 @@ import com.jjg.game.common.net.NetAddress;
 import com.jjg.game.common.netty.ConnectPool;
 import com.jjg.game.common.netty.NettyConnect;
 import com.jjg.game.common.netty.NettyServer;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.timer.TimerCenter;
@@ -171,6 +172,20 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
         }
         return sessionMap.get(sessionId);
     }
+    /**
+     * 向节点广播消息
+     *
+     * @param msg 消息
+     */
+    public void broadcastNode(AbstractMessage msg) {
+        try {
+            for (PFSession pfSession : sessionMap.values()) {
+                pfSession.send(msg);
+            }
+        } catch (Exception e) {
+            log.error("向节点广播消息异常 msg:{}", msg, e);
+        }
+    }
 
     /**
      * 通过玩家id获取session
@@ -208,7 +223,9 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
      */
     public PFSession removeSession(String sessionId) {
         PFSession pfSession = sessionMap.remove(sessionId);
-        playerIdSessionMap.remove(pfSession.playerId);
+        if (pfSession != null) {
+            playerIdSessionMap.remove(pfSession.playerId);
+        }
         return pfSession;
     }
 

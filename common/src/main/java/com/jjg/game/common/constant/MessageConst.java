@@ -102,6 +102,9 @@ public interface MessageConst {
         int WEST_JOURNEY = 0x25;
         //埃及艳后
         int CLEOPATRA = 0x26;
+
+        //活动
+        int ACTIVITY = 0x27;
     }
 
     interface ToClientConst {

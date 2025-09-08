@@ -1,4 +1,4 @@
-package com.jjg.game.hall.pb.struct;
+package com.jjg.game.common.pb;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
