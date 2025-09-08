@@ -108,7 +108,7 @@ public class FriendRoomMessageHandler {
     @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_CHANGE_FRIEND_ROOM_NAME)
     public void reqUpdateFriendRoomName(PlayerController playerController, ReqUpdateFriendRoom req) {
         try {
-            int updateCode = friendRoomServices.reqUpdateFriendRoomName(playerController, req);
+            int updateCode = friendRoomServices.reqUpdateFriendRoomData(playerController, req);
             if (updateCode != Code.SUCCESS) {
                 ResManageFriendRoom res = new ResManageFriendRoom(updateCode);
                 playerController.send(res);

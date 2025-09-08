@@ -4,6 +4,7 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
+import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
@@ -17,6 +18,7 @@ import com.jjg.game.hall.match.MatchService;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -131,11 +133,68 @@ public class HallRoomService implements IConsoleReceiver {
     }
 
     /**
-     * 加入好友房房间
+     * 加入好友房房间，好友房特殊点：房间在关服时时间未过期时不会销毁，所以path是动态分配的
      */
     public int joinFriendRoom(PlayerController playerController, long roomId, int gameType) {
-        // 玩家不能重复加入房间
-        return joinRoomById(playerController, roomId, gameType);
+        // 查询房间
+        Room room = hallRoomDao.getRoom(gameType, roomId);
+        if (room == null) {
+            log.error("通过ID: {} 找不到好友房房间", roomId);
+            return Code.ROOM_NOT_FOUND;
+        }
+        MarsNode marsNode;
+        if (StringUtils.isEmpty(room.getPath())) {
+            // 随机分配一个
+            marsNode =
+                nodeManager.getGameNodeByWeight(
+                    gameType, playerController.playerId(), playerController.getPlayer().getIp());
+            if (marsNode == null) {
+                log.debug("加入好友房房间时 获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}",
+                    playerController.playerId(), gameType);
+                return Code.NOT_FOUND;
+            }
+            updateFriendRoomPath(room, marsNode);
+        } else {
+            // 查询房间节点
+            marsNode = marsCurator.getMarsNode(room.getPath());
+            if (marsNode == null) {
+                // 随机分配一个节点
+                marsNode = nodeManager.getGameNodeByWeight(
+                    gameType, playerController.playerId(), playerController.getPlayer().getIp());
+                if (marsNode == null) {
+                    // 直接返回错误
+                    return Code.FAIL;
+                }
+                updateFriendRoomPath(room, marsNode);
+            }
+        }
+        // 更新玩家的房间ID
+        playerController.setPlayer(
+            playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(room.getId())));
+        //更新session中的gametype
+        playerSessionService.changeGameType(playerController.playerId(), gameType, room.getRoomCfgId());
+        //切换节点
+        clusterSystem.switchNode(playerController.getSession(), marsNode);
+        return Code.SUCCESS;
+    }
+
+    /**
+     * 更新房间节点路径
+     */
+    private void updateFriendRoomPath(Room room, MarsNode marsCurator) {
+        hallRoomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<>() {
+            @Override
+            public void updateData(Room dataEntity) {
+
+            }
+
+            @Override
+            public Boolean updateDataWithRes(Room dataEntity) {
+                // 需要将房间的节点路径进行更新
+                dataEntity.setPath(marsCurator.getNodePath());
+                return true;
+            }
+        });
     }
 
     /**

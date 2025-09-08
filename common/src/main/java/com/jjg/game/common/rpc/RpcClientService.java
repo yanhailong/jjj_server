@@ -58,7 +58,6 @@ public class RpcClientService {
             Parameter parameter = parameters[i];
             parameterArgsMap.add(new Pair<>(parameter.getType().getName(), args[i]));
         }
-        log.debug("parameters 数量：{}", parameters.length);
         // 解析节点客户端列表
         List<ClusterClient> clusterClients = parseClusterClients(rpcReqParameter, reference);
         if (clusterClients.isEmpty()) {

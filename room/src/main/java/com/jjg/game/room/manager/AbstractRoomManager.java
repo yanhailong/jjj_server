@@ -23,7 +23,6 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.utils.ReflectionTool;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
@@ -45,7 +44,6 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.context.annotation.Bean;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
@@ -234,7 +232,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             return null;
         }
         // 获取当前节点的所有房间
-        R existedRoom = roomDao.getRoom(gameType, roomCfgId);
+        R existedRoom = roomDao.getRoom(gameType, roomId);
         if (existedRoom == null) {
             log.error("通过房间ID：{} 获取房间为空, 房间类型：{} 房间配置ID：{}", roomId, roomType, roomCfgId);
             return null;
@@ -336,14 +334,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
                 //如果该房间所在节点不是本节点，就要切换节点
                 if (!room.getPath().equals(this.nodeManager.getNodePath())) {
-                    MarsNode node = clusterSystem.getNode(room.getPath());
-                    if (node == null) {
-                        log.warn("加入房间成功，开始切换节点 gameType = {},roomId = {},playerId = {},toRoomPath = {}", gameType,
-                            roomId, playerController.playerId(), room.getPath());
-                        return Code.FAIL;
-                    }
-                    clusterSystem.switchNode(playerController.getSession(), node);
-                    return Code.SUCCESS;
+                    int code = switchRoomNodeOnJoin(room, playerController, roomDao);
+                    log.info("玩家加入房间时，切换到其他房间节点。");
+                    return code;
                 }
                 RC roomCfg = getRoomActualCfg(roomCfgId);
                 if (roomCfg == null) {
@@ -382,6 +375,31 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             log.error("玩家：{} 房间类型：{} 房间ID: {} 加入发生异常", playerController.playerId(), gameType, roomId, e);
         }
         return Code.FAIL;
+    }
+
+    private <R extends Room> int switchRoomNodeOnJoin(
+        R room, PlayerController playerController, AbstractRoomDao<R, ?> roomDao) {
+        MarsNode node = clusterSystem.getNode(room.getPath());
+        if (node == null) {
+            log.warn("房间节点为空，开始切换节点 gameType = {},roomId = {},playerId = {},toRoomPath = {}",
+                room.getGameType(), room.getId(), playerController.playerId(), room.getPath());
+            return Code.FAIL;
+        }
+        // 需要更新房间中节点路径数据
+        roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<R>() {
+            @Override
+            public void updateData(R dataEntity) {
+
+            }
+
+            @Override
+            public Boolean updateDataWithRes(Room dataEntity) {
+                dataEntity.setPath(node.getNodePath());
+                return true;
+            }
+        });
+        clusterSystem.switchNode(playerController.getSession(), node);
+        return Code.SUCCESS;
     }
 
     /**
@@ -617,7 +635,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         roomControllers.remove(roomId);
         // 好友房如果没有主动解散不能删除
         if (room instanceof FriendRoom friendRoom && friendRoom.getStatus() != 3) {
-            saveFriendRoomToRedis(friendRoom);
+            saveFriendRoomDataOnShutdown(friendRoom);
             log.info("关服回存好友房数据：{}", JSON.toJSONString(friendRoom));
         } else {
             // 刪除房间
@@ -628,7 +646,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     /**
      * 回存好友房数据
      */
-    private <R extends FriendRoom> void saveFriendRoomToRedis(R room) {
+    private <R extends FriendRoom> void saveFriendRoomDataOnShutdown(R room) {
         AbstractRoomDao<R, ? extends RoomPlayer> roomDao =
             (AbstractRoomDao<R, ? extends RoomPlayer>) getRoomDao(room.getClass());
         roomDao.doSave(room, new DataSaveCallback<>() {
@@ -640,6 +658,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             public Boolean updateDataWithRes(FriendRoom dataEntity) {
                 // 全量回存房间数据
                 BeanUtils.copyProperties(room, dataEntity);
+                // 需要将房间路径设置为空
+                dataEntity.setPath(null);
+                dataEntity.setInGaming(false);
                 return true;
             }
         });

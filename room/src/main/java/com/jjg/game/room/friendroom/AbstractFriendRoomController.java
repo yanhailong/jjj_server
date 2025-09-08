@@ -38,10 +38,31 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     }
 
     @Override
+    public <G extends Room> void initial(G room) {
+        super.initial(room);
+        // 在初始化完成后，保存房间的游戏运行状态
+        CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<R>() {
+            @Override
+            public void updateData(R dataEntity) {
+
+            }
+
+            @Override
+            public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                dataEntity.setInGaming(true);
+                return true;
+            }
+        });
+        if (result.success()) {
+            this.room = result.data;
+        }
+    }
+
+    @Override
     public boolean tryContinueGame() {
         boolean continueGameRes = super.tryContinueGame();
         if (continueGameRes) {
-            roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<>() {
+            CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<>() {
                 @Override
                 public void updateData(R dataEntity) {
                 }
@@ -52,11 +73,14 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                     long resetTime = dataEntity.getOverdueTime() - dataEntity.getPauseTime();
                     long curTime = System.currentTimeMillis();
                     dataEntity.setOverdueTime(curTime + resetTime);
-                    dataEntity.setStatus(0);
+                    dataEntity.setStatus(1);
                     dataEntity.setPauseTime(0);
                     return true;
                 }
             });
+            if (result.success()) {
+                this.room = result.data;
+            }
             // 如果能开始需要更新房间最新消息
             broadFriendRoomChange();
         } else {
@@ -74,18 +98,21 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     @Override
     public void pauseGame() {
         super.pauseGame();
-        roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<>() {
+        CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<>() {
             @Override
             public void updateData(R dataEntity) {
             }
 
             @Override
             public Boolean updateDataWithRes(FriendRoom dataEntity) {
-                dataEntity.setStatus(1);
+                dataEntity.setStatus(2);
                 dataEntity.setPauseTime(System.currentTimeMillis());
                 return true;
             }
         });
+        if (result.success()) {
+            this.room = result.data;
+        }
     }
 
     @Override
@@ -106,7 +133,8 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
      * 在下一轮开始时，进行销毁
      */
     public void destroyOnNextRoundStart() {
-
+        // 重新刷新room数据
+        room = roomDao.getRoom(room.getGameType(), room.getId());
     }
 
     @Override
@@ -159,7 +187,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                 return false;
             }
             // 续费时长
-            roomDao.doSave(room, new DataSaveCallback<R>() {
+            CommonResult<R> result = roomDao.doSave(room, new DataSaveCallback<R>() {
                 @Override
                 public void updateData(R dataEntity) {
                 }
@@ -170,6 +198,9 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                     return true;
                 }
             });
+            if (result.success()) {
+                this.room = result.data;
+            }
         }
         int minBankerAmount = FriendRoomSampleUtils.getRoomMinBankerAmount(roomCfg.getId());
         // 好友房，如果房间庄家不为空或者房间房主底注大于最小上庄金币
@@ -179,7 +210,10 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     @Override
     public void onRoomCantContinue() {
         super.onRoomCantContinue();
-        gameDestroy(true);
+        // 当房间处于销毁状态时，直接销毁房间
+        if (room.getStatus() == 3) {
+            gameDestroy(true);
+        }
     }
 
     /**
@@ -383,7 +417,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     }
 
     public void deductBankerGold(long bankerFlowing) {
-        roomDao.doSave(room, new DataSaveCallback<>() {
+        CommonResult<R> result = roomDao.doSave(room, new DataSaveCallback<>() {
             @Override
             public void updateData(R dataEntity) {
 
@@ -395,5 +429,8 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                 return true;
             }
         });
+        if (result.success()) {
+            this.room = result.data;
+        }
     }
 }

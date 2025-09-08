@@ -919,7 +919,7 @@ public class AbstractPlayerService {
         // 过滤空数据
         redisPlayer = redisPlayer.stream().filter(Objects::nonNull).toList();
         if (redisPlayer.size() == playerIds.size()) {
-            return redisPlayer;
+            return new ArrayList<>(redisPlayer);
         }
         Map<Long, Player> playerMap =
             redisPlayer.stream().filter(Objects::nonNull)
@@ -930,10 +930,10 @@ public class AbstractPlayerService {
         List<Player> players = playerDao.findAllById(queryFromDb);
         // 如果数据库中也查不到，直接返回从redis中查询到的数据
         if (players.isEmpty()) {
-            return playerMap.values().stream().toList();
+            return new ArrayList<>(playerMap.values().stream().toList());
         }
         players.addAll(playerMap.values());
-        return players;
+        return new ArrayList<>(players.stream().filter(Objects::nonNull).toList());
     }
 
     /**

@@ -50,7 +50,7 @@ public interface Code {
     // 重复加入房间
     int REPEAT_JOIN_ROOM = 415;
     // 非法名字
-    int ILLEGAL_NAME = 416;
+    int ILLEGAL_NAME = 49010;
     // 房间创建数量已达上限
     int CREATE_ROOM_TO_LIMIT = 417;
     // 非法的好友房邀请码
