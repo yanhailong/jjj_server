@@ -102,12 +102,6 @@ public class CasinoMachineInfo {
         }
     }
 
-    public long getRunEmploymentNum(long timeMillis) {
-        return Objects.isNull(employmentMap) ? 0 : employmentMap.values().stream()
-                .filter(employment -> employment.getEmploymentEndTime() > timeMillis)
-                .count();
-    }
-
     public void addLastProfit(long add) {
         this.lastProfit += add;
     }

@@ -45,6 +45,13 @@ public class ItemUtils {
         return itemInfos;
     }
 
+    public static ItemInfo buildItemInfo(int itemId, long count) {
+        ItemInfo info = new ItemInfo();
+        info.count = count;
+        info.itemId = itemId;
+        return info;
+    }
+
     public static ItemInfo buildGoldInfo(long num) {
         ItemInfo info = new ItemInfo();
         info.itemId = getGoldItemId();
@@ -52,9 +59,9 @@ public class ItemUtils {
         return info;
     }
 
-    public static long getGoldNum(Map<Integer, Long> itemInfo){
+    public static long getGoldNum(Map<Integer, Long> itemInfo) {
         int goldItemId = getGoldItemId();
-        return itemInfo.getOrDefault(goldItemId,0L);
+        return itemInfo.getOrDefault(goldItemId, 0L);
     }
 
 }

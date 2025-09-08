@@ -13,15 +13,18 @@ import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.casino.data.*;
 import com.jjg.game.hall.casino.pb.CasinoBuilder;
 import com.jjg.game.hall.casino.pb.bean.CasinoFloorInfo;
+import com.jjg.game.hall.casino.pb.bean.CasinoRewardsInfo;
 import com.jjg.game.hall.casino.pb.bean.CasinoSimpleInfo;
 import com.jjg.game.hall.casino.pb.req.*;
 import com.jjg.game.hall.casino.pb.res.*;
 import com.jjg.game.hall.casino.service.PlayerBuildingService;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.common.pb.ItemInfo;
+import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.utils.ConditionUtil;
 import com.jjg.game.hall.utils.GlobalDataCache;
 import com.jjg.game.sampledata.GameDataManager;
@@ -271,6 +274,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             Map<Long, CasinoMachineInfo> machineInfoData = casinoInfo.getMachineInfoData();
             long timeMillis = System.currentTimeMillis();
             Map<Integer, Long> getReward = new HashMap<>();
+            res.casinoRewardsInfos = new ArrayList<>();
             if (CollectionUtil.isNotEmpty(machineInfoData)) {
                 List<TimeNodeData> areaAdd = CasinoBuilder.getTimeNodeData(machineInfoData, timeMillis);
                 //计算总收获
@@ -287,12 +291,15 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                     if (totalNum == 0) {
                         continue;
                     }
+                    CasinoRewardsInfo casinoRewardsInfo = new CasinoRewardsInfo();
+                    casinoRewardsInfo.machineId = casinoMachineInfo.getId();
+                    casinoRewardsInfo.itemInfo = ItemUtils.buildItemInfo(cfg.getOutput().get(1), totalNum);
+                    res.casinoRewardsInfos.add(casinoRewardsInfo);
                     getReward.merge(cfg.getOutput().get(1), totalNum, Long::sum);
                     //修改数据
                     casinoMachineInfo.setProfitStartTime(timeMillis);
                     casinoMachineInfo.setLastProfit(0);
-                    casinoSimpleInfos.add(CasinoBuilder.buildCasinoSimpleMachineInfo(casinoInfo, casinoMachineInfo,
-                            timeMillis));
+                    casinoSimpleInfos.add(CasinoBuilder.buildCasinoSimpleMachineInfo(casinoInfo, casinoMachineInfo, timeMillis));
                     casinoInfo.setChange(true);
                 }
                 //发奖
@@ -303,13 +310,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                     return res;
                 }
             }
-            res.itemInfos = new ArrayList<>();
-            for (Map.Entry<Integer, Long> entry : getReward.entrySet()) {
-                ItemInfo itemInfo = new ItemInfo();
-                itemInfo.count = entry.getValue();
-                itemInfo.itemId = entry.getKey();
-                res.itemInfos.add(itemInfo);
-            }
+            res.itemInfos = ItemUtils.buildItemInfo(getReward);
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             log.error("请求一键领取机台收益异常", e);
@@ -424,7 +425,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 return res;
             }
             //如果之前已经停止受益了 计算停止的收益
-            if (casinoMachineInfo.getRunEmploymentNum(timeMillis) < cfg.getNumEmployees() || casinoEmployment.getEmploymentEndTime() > timeMillis) {
+            if (casinoEmployment.getEmploymentEndTime() > timeMillis) {
                 //计算之前的收益
                 List<TimeNodeData> areaAdd = CasinoBuilder.getTimeNodeData(casinoInfo.getMachineInfoData(), timeMillis);
                 long totalNum = CasinoBuilder.getTotalNum(areaAdd, casinoMachineInfo, cfg, timeMillis);
@@ -432,6 +433,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             }
             employmentMap.put(req.index, casinoEmployment);
             //设置数据
+            casinoEmployment.setEmploymentStartTime(timeMillis);
             casinoEmployment.setEmploymentId(req.staffId);
             casinoEmployment.setEmploymentEndTime(timeMillis + dealerFunctionCfg.getDuration() * 1000L);
             casinoEmployment.setId(dealerFunctionCfg.getId());
@@ -725,6 +727,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             for (PlayerBuilding playerBuilding : playerBuildingMap.values()) {
                 CasinoInfo casinoInfo = playerBuilding.getCasinoInfo();
                 Set<Long> changeMachineIds = new HashSet<>();
+                boolean allReflush = false;
                 Map<Long, CasinoMachineInfo> machineInfoData = casinoInfo.getMachineInfoData();
                 for (Map.Entry<Integer, Long> entry : casinoInfo.getBuildingCleaningEndTime().entrySet()) {
                     try {
@@ -742,6 +745,11 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                                 //升级结束 相差1000毫秒时推送一次
                                 if (remainTime > 0 && remainTime <= 1000) {
                                     changeMachineIds.add(casinoMachineInfo.getId());
+                                    BuildingFunctionCfg cfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(timeMillis));
+                                    if (HallConstant.Casino.ALL_REFLUSH_TYPE.contains(cfg.getTypeID())) {
+                                        allReflush = true;
+                                        break;
+                                    }
                                 }
                                 //雇佣结束
                                 Map<Integer, CasinoEmployment> employmentMap = casinoMachineInfo.getEmploymentMap();
@@ -765,6 +773,15 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                         PlayerController playerController = playerControllerMap.get(playerBuilding.getPlayerId());
                         if (Objects.isNull(playerController)) {
                             continue;
+                        }
+                        if (allReflush) {
+                            for (CasinoMachineInfo machineInfo : machineInfoData.values()) {
+                                BuildingFunctionCfg cfg = GameDataManager.getBuildingFunctionCfg(machineInfo.getRealConfigId(timeMillis));
+                                if (cfg == null || CollectionUtil.isEmpty(cfg.getOutput())) {
+                                    continue;
+                                }
+                                changeMachineIds.add(machineInfo.getId());
+                            }
                         }
                         List<CasinoSimpleInfo> simpleInfos = new ArrayList<>();
                         for (Long changeMachineId : changeMachineIds) {

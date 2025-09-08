@@ -3,6 +3,8 @@ package com.jjg.game.hall.constant;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 
+import java.util.List;
+
 /**
  * @author 11
  * @date 2025/6/10 17:04
@@ -14,6 +16,11 @@ public interface HallConstant {
         String SAMPLE_PATH = CoreConst.Common.SAMPLE_ROOT_PATH;
 
 
+    }
+
+    interface Casino {
+        //升级完成全部刷新类型
+        List<Integer> ALL_REFLUSH_TYPE = List.of(4, 5);
     }
 
     interface VerCode {
