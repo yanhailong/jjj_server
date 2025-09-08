@@ -806,6 +806,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                     log.info("回存我的赌场信息成功 playerId：{} casinoId:{}", playerId, playerBuilding.getCasinoId());
                 }
             }
+            playerBuildingService.delLastNode(playerId);
         } catch (Exception e) {
             log.error("回存我的赌场信息失败 playerId:{}", playerId, e);
         }
