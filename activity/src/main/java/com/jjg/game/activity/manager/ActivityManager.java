@@ -12,23 +12,25 @@ import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.res.NotifyActivityChange;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.cluster.ClusterSystem;
-import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.Pair;
-import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -40,9 +42,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author lm
  * @date 2025/9/3 18:16
  */
-@MessageType(MessageConst.MessageTypeDef.ACTIVITY)
 @Component
-public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess {
+public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess, GmListener {
     private static final Logger log = LoggerFactory.getLogger(ActivityManager.class);
     private final TimerCenter timerCenter;
     private final ActivityDao activityDao;
@@ -148,6 +149,15 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
     }
 
+    /**
+     * 每天凌晨4点半定时执行
+     */
+    @Scheduled(cron = "0 0 0 * * ? ")
+    private void zeroEvent() {
+        //0点事件
+        //TODO 推送在线玩家
+    }
+
     public boolean checkActivityData(ActivityData data, long timeMillis, List<Pair<Long, Long>> timerList) {
         if (!data.isOpen() || data.getStatus() == ActivityConstant.ActivityStatus.ENDED) {
             return false;
@@ -240,7 +250,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             if (!data.canRun()) {
                 continue;
             }
-            data.getType().getController().buildActivityInfo(player.getId(), data);
+            info.activityInfos.add(data.getType().getController().buildActivityInfo(player.getId(), data));
         }
         playerController.send(info);
     }
@@ -363,5 +373,31 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             log.error("玩家参加活动失败 playerId:{} activityId:{} ", playerId, activityId, e);
         }
 
+    }
+
+    @Override
+    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
+        String cmd = gmOrders[0];
+        if ("joinActivity".equalsIgnoreCase(cmd)) {
+            if (gmOrders.length < 3) {
+                return new CommonResult<>(Code.FAIL);
+            }
+            Long activityId = Long.parseLong(gmOrders[1]);
+            int detailId = Integer.parseInt(gmOrders[2]);
+            ActivityData data = getActivityData().get(activityId);
+            if (data == null) {
+                return new CommonResult<>(Code.NOT_FOUND);
+            }
+            int times = 1;
+            if (gmOrders.length == 4) {
+                times = Integer.parseInt(gmOrders[3]);
+            }
+            if (times < 1) {
+                return new CommonResult<>(Code.PARAM_ERROR);
+            }
+            data.getType().getController().joinActivity(playerController.playerId(), data, detailId);
+            return new CommonResult<>(Code.SUCCESS);
+        }
+        return null;
     }
 }

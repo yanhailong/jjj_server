@@ -5,7 +5,6 @@ import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
-import com.jjg.game.activity.common.message.ActivityBuilder;
 import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -97,15 +96,12 @@ public abstract class BaseActivityController {
      */
     public AbstractResponse getPlayerActivityInfoByType(long playerId, ActivityType activityType) {
         Map<Long, Map<Integer, PlayerActivityData>> playerActivityData = playerActivityDao.getAllPlayerActivityData(playerId, activityType);
-        if (CollectionUtil.isEmpty(playerActivityData)) {
-            return ActivityBuilder.getDefaultResponse();
-        }
         Map<Long, ActivityData> activityDataMap = activityManager.getActivityTypeData().get(activityType);
+        List<List<BaseActivityDetailInfo>> allDetailInfo = new ArrayList<>();
         if (CollectionUtil.isEmpty(activityDataMap)) {
-            return ActivityBuilder.getDefaultResponse();
+            return getPlayerActivityInfoByTypeRes(allDetailInfo);
         }
         Map<Long, Map<Integer, BaseCfgBean>> activityDetailInfo = activityManager.getActivityDetailInfo();
-        List<List<BaseActivityDetailInfo>> allDetailInfo = new ArrayList<>();
         for (ActivityData activityData : activityDataMap.values()) {
             Map<Integer, BaseCfgBean> baseCfgBeanMap = activityDetailInfo.get(activityData.getId());
             if (CollectionUtil.isEmpty(baseCfgBeanMap)) {
@@ -117,10 +113,7 @@ public abstract class BaseActivityController {
             if (CollectionUtil.isEmpty(activityData.getValue())) {
                 continue;
             }
-            Map<Integer, PlayerActivityData> privilegeCardCfgMap = playerActivityData.get(activityData.getId());
-            if (CollectionUtil.isEmpty(privilegeCardCfgMap)) {
-                continue;
-            }
+            Map<Integer, PlayerActivityData> privilegeCardCfgMap = playerActivityData.getOrDefault(activityData.getId(), Map.of());
             List<BaseActivityDetailInfo> arrayList = new ArrayList<>();
             allDetailInfo.add(arrayList);
             for (Integer id : activityData.getValue()) {

@@ -31,6 +31,11 @@
             <version>1.0.0-JJG-RELEASES</version>
         </dependency>
         <dependency>
+            <groupId>com.jjg.game</groupId>
+            <artifactId>activity</artifactId>
+            <version>1.0.0-JJG-RELEASES</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.11</version>

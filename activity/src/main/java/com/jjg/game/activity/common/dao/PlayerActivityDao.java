@@ -4,7 +4,6 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.activity.common.data.ActivityType;
-import com.jjg.game.common.redis.RedisLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.HashOperations;
@@ -43,7 +42,7 @@ public class PlayerActivityDao {
             HashOperations<String, String, String> hash = redisTemplate.opsForHash();
             String jsonData = hash.get(getKey(playerId, activityType.getType()), String.valueOf(activityId));
             if (jsonData == null) {
-                return null;
+                return Map.of();
             }
             return objectMapper.readValue(jsonData, new TypeReference<>() {
             });
@@ -51,7 +50,7 @@ public class PlayerActivityDao {
             log.error("获取活动数据异常 playerId:{} activityType:{} activityId:{}",
                     playerId, activityType, activityId, e);
         }
-        return null;
+        return Map.of();
     }
 
     /**

@@ -55,7 +55,7 @@ public class PrivilegeCardController extends BaseActivityController {
 
     public int getClaimStatus(PlayerPrivilegeCard data, long timeMillis) {
         //判断是否过期
-        if (data.getEndTime() < timeMillis) {
+        if (data.getEndTime() != -1 && data.getEndTime() < timeMillis) {
             return ActivityConstant.ClaimStatus.NOT_CLAIM;
         }
         //判断今天是否领取
@@ -89,7 +89,11 @@ public class PrivilegeCardController extends BaseActivityController {
                 return;
             }
             privilegeCard.setBuyTime(timeMillis);
-            privilegeCard.setEndTime(timeMillis + (long) cfg.getDays() * TimeHelper.ONE_DAY_OF_MILLIS);
+            if (cfg.getDays() == -1) {
+                privilegeCard.setEndTime(-1);
+            } else {
+                privilegeCard.setEndTime(timeMillis + (long) cfg.getDays() * TimeHelper.ONE_DAY_OF_MILLIS);
+            }
         } else {
             log.error("玩家参加活动失败 活动配置为空playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
         }
@@ -205,6 +209,7 @@ public class PrivilegeCardController extends BaseActivityController {
             long timeMillis = System.currentTimeMillis();
             if (data instanceof PlayerPrivilegeCard privilegeCard) {
                 info.claimStatus = getClaimStatus(privilegeCard, timeMillis);
+                info.remainTime = privilegeCard.getEndTime() - timeMillis;
                 info.hasClaimNum = ItemUtils.buildGoldInfo(privilegeCard.getHasClaimNum());
             }
             return info;
@@ -222,6 +227,7 @@ public class PrivilegeCardController extends BaseActivityController {
         for (List<BaseActivityDetailInfo> baseActivityDetailInfos : allDetailInfo) {
             PrivilegeCardType privilegeCardType = new PrivilegeCardType();
             privilegeCardType.detailInfos = new ArrayList<>();
+            cardTypeInfo.activityData.add(privilegeCardType);
             for (BaseActivityDetailInfo baseActivityDetailInfo : baseActivityDetailInfos) {
                 if (baseActivityDetailInfo instanceof PrivilegeCardDetailInfo info) {
                     privilegeCardType.detailInfos.add(info);

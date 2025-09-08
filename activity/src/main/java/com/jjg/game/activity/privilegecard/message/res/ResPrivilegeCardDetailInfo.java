@@ -14,7 +14,7 @@ import java.util.List;
  * @date 2025/9/3 17:47
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.RES_PRIVILEGE_CARD_DETAIL_INFO, resp = true)
-@ProtoDesc("响应每日奖励活动详细信息")
+@ProtoDesc("响应每日奖金活动详细信息")
 public class ResPrivilegeCardDetailInfo extends AbstractResponse {
     @ProtoDesc("活动详细信息")
     public List<PrivilegeCardDetailInfo> detailInfo;
