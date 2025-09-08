@@ -10,7 +10,6 @@ import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.res.NotifyActivityChange;
-import com.jjg.game.activity.common.message.res.NotifyActivityOpenInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
@@ -235,8 +234,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     @Override
     public void onPlayerLoginSuccess(PlayerController playerController, Player player) {
-        NotifyActivityOpenInfo info = new NotifyActivityOpenInfo();
-        info.activityTypes = new ArrayList<>();
+        NotifyActivityChange info = new NotifyActivityChange();
+        info.activityInfos = new ArrayList<>();
         for (ActivityData data : activityData.values()) {
             if (!data.canRun()) {
                 continue;
