@@ -283,6 +283,9 @@ public class CasinoBuilder {
                 }
             }
             BuildingFunctionCfg functionCfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(startPeriod));
+            if (CollectionUtil.isEmpty(functionCfg.getOutput())) {
+                continue;
+            }
             casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, baseEmployeesNum, functionCfg.getNumEmployees(), startPeriod, endPeriod);
             if (Objects.isNull(casinoMaxProfitBonus)) {
                 return totalNum;
