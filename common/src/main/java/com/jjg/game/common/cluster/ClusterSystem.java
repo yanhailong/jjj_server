@@ -10,7 +10,6 @@ import com.jjg.game.common.net.NetAddress;
 import com.jjg.game.common.netty.ConnectPool;
 import com.jjg.game.common.netty.NettyConnect;
 import com.jjg.game.common.netty.NettyServer;
-import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.timer.TimerCenter;
@@ -115,6 +114,23 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     }
 
     /**
+     * 广播消息给玩家
+     *
+     * @param notify   通知消息
+     * @param playerId 玩家id
+     * @param <T>      消息
+     */
+    public <T> void broadcastToPlayer(T notify, long playerId) {
+        String sessionStr = playerIdSessionMap.get(playerId);
+        if (StringUtils.isNotEmpty(sessionStr)) {
+            PFSession session = sessionMap.get(sessionStr);
+            if (session.getConnect() != null && session.getConnect().isActive()) {
+                session.send(notify);
+            }
+        }
+    }
+
+    /**
      * 广播消息给所有在线玩家
      *
      * @param notify     通知消息
@@ -172,20 +188,6 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
         }
         return sessionMap.get(sessionId);
     }
-    /**
-     * 向节点广播消息
-     *
-     * @param msg 消息
-     */
-    public void broadcastNode(AbstractMessage msg) {
-        try {
-            for (PFSession pfSession : sessionMap.values()) {
-                pfSession.send(msg);
-            }
-        } catch (Exception e) {
-            log.error("向节点广播消息异常 msg:{}", msg, e);
-        }
-    }
 
     /**
      * 通过玩家id获取session
@@ -206,6 +208,15 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
 //            }
 //        }
 //        return null;
+    }
+
+    /**
+     * 获取节点所有玩家的玩家id
+     *
+     * @return
+     */
+    public List<Long> getAllPlayerIds() {
+        return new ArrayList<>(playerIdSessionMap.keySet());
     }
 
     /**

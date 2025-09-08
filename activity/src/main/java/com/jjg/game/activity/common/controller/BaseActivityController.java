@@ -6,7 +6,9 @@ import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.ActivityBuilder;
+import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
+import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.core.service.PlayerPackService;
@@ -27,11 +29,6 @@ public abstract class BaseActivityController {
     protected final ActivityManager activityManager;
     protected final PlayerPackService playerPackService;
 
-    public PlayerActivityDao getPlayerActivityDao() {
-        return playerActivityDao;
-    }
-
-
     public BaseActivityController(PlayerActivityDao playerActivityDao, ActivityManager activityManager, PlayerPackService playerPackService) {
         this.playerActivityDao = playerActivityDao;
         this.activityManager = activityManager;
@@ -42,18 +39,17 @@ public abstract class BaseActivityController {
     /**
      * 增加玩家活动进度
      */
-    public void AddPlayerProgress(long playerId, ActivityData activityData, long progress) {
-
+    public int addPlayerProgress(long playerId, Map<Integer, PlayerActivityData> playerActivityDataMap, long progress) {
+        return ActivityConstant.ClaimStatus.NOT_CLAIM;
     }
 
     /**
      * 增加总体活动进度
      */
-    public void AddActivityProgress(long playerId, ActivityData activityData, long progress) {
-
+    public void addActivityProgress(ActivityData activityData, long progress) {
     }
 
-    public abstract AbstractResponse joinActivity(long playerId, ActivityData activityData,int detailId);
+    public abstract void joinActivity(long playerId, ActivityData activityData, int detailId);
 
     /**
      * 领取活动奖励
@@ -91,6 +87,10 @@ public abstract class BaseActivityController {
      */
     public abstract AbstractResponse getPlayerActivityInfoByTypeRes(List<List<BaseActivityDetailInfo>> allDetailInfo);
 
+    /**
+     * 构建玩家活动信息
+     */
+    public abstract ActivityInfo buildActivityInfo(long playerId, ActivityData activityData);
 
     /**
      * 通过类型获取活动详情

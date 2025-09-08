@@ -20,11 +20,10 @@ public class PlayerActivityDao {
     private final String TABLE_NAME = "activity:player:%s:%s";
     private final String LOCK_KEY = "activity:player:lock:%s:%s";
     private final RedisTemplate<String, String> redisTemplate;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public PlayerActivityDao(RedisTemplate<String, String> redisTemplate, ObjectMapper objectMapper, RedisLock redisLock) {
+    public PlayerActivityDao(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
-        this.objectMapper = objectMapper;
     }
 
     private String getKey(long playerId, long activityType) {

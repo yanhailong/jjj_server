@@ -9,11 +9,11 @@ import java.util.List;
 
 /**
  * @author lm
- * @date 2025/9/3 18:16
+ * @date 2025/9/5 17:10
  */
 @ProtobufMessage
-@ProtoDesc("通知活动变化")
-public class NotifyActivityChange extends AbstractNotice {
-    @ProtoDesc("活动信息")
-    public List<ActivityInfo> activityInfos;
+@ProtoDesc("通知玩家开放的活动类型")
+public class NotifyActivityOpenInfo extends AbstractNotice {
+    @ProtoDesc("开放的活动类型")
+    public List<ActivityInfo> activityTypes;
 }

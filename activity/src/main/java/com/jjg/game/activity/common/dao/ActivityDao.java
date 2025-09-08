@@ -34,6 +34,10 @@ public class ActivityDao {
         return redisTemplate.opsForHash();
     }
 
+    public String getLockKey(long activityId) {
+        return "activity:lock" + activityId;
+    }
+
     /**
      * 获取全部活动数据
      */

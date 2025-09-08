@@ -14,7 +14,6 @@ public class ResPrivilegeCardTypeInfo extends AbstractResponse {
     @ProtoDesc("活动信息")
     public List<PrivilegeCardType> activityData;
 
-
     public ResPrivilegeCardTypeInfo(int code) {
         super(code);
     }

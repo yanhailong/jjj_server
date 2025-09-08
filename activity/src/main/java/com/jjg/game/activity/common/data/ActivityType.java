@@ -9,15 +9,27 @@ import com.jjg.game.common.utils.CommonUtil;
  * @date 2025/9/3 16:11
  */
 public enum ActivityType {
-    PRIVILEGE_CARD(2, PrivilegeCardController.class, ActivityTargetType.LOGIN.getTargetKey());
+    PRIVILEGE_CARD(2, PrivilegeCardController.class, false, false, ActivityTargetType.LOGIN.getTargetKey());
     private final int type;
     private final Class<? extends BaseActivityController> className;
+    private final boolean canAddPlayerProgress;
+    private final boolean canAddActivityProgress;
     private BaseActivityController controller;
     private final long targetKey;
-    ActivityType(int type, Class<? extends BaseActivityController> className, long targetKey) {
+    ActivityType(int type, Class<? extends BaseActivityController> className, boolean canAddPlayerProgress, boolean canAddActivityProgress, long targetKey) {
         this.type = type;
         this.className = className;
+        this.canAddPlayerProgress = canAddPlayerProgress;
+        this.canAddActivityProgress = canAddActivityProgress;
         this.targetKey = targetKey;
+    }
+
+    public boolean isCanAddActivityProgress() {
+        return canAddActivityProgress;
+    }
+
+    public boolean isCanAddPlayerProgress() {
+        return canAddPlayerProgress;
     }
 
     public int getType() {

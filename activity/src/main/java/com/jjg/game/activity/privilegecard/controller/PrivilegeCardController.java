@@ -5,6 +5,8 @@ import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.PlayerActivityData;
+import com.jjg.game.activity.common.message.ActivityBuilder;
+import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.manager.ActivityManager;
@@ -64,12 +66,10 @@ public class PrivilegeCardController extends BaseActivityController {
     }
 
     @Override
-    public AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId) {
-        ResPrivilegeCardDetailInfo detailInfo = new ResPrivilegeCardDetailInfo(Code.SUCCESS);
+    public void joinActivity(long playerId, ActivityData activityData, int detailId) {
         if (activityData.getValue().contains(detailId)) {
             log.error("玩家参加活动失败 已经不存在该活动playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
-            detailInfo.code = Code.EXIST;
-            return detailInfo;
+            return;
         }
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
@@ -86,18 +86,13 @@ public class PrivilegeCardController extends BaseActivityController {
             }
             if (privilegeCard.getEndTime() > timeMillis) {
                 log.error("玩家参加活动失败 玩家已经参加过 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
-                detailInfo.code = Code.REPEAT_OP;
-                return detailInfo;
+                return;
             }
             privilegeCard.setBuyTime(timeMillis);
             privilegeCard.setEndTime(timeMillis + (long) cfg.getDays() * TimeHelper.ONE_DAY_OF_MILLIS);
-            detailInfo.detailInfo = new ArrayList<>();
-            detailInfo.detailInfo.add((PrivilegeCardDetailInfo) buildPlayerActivityDetail(activityData.getId(), cfg, privilegeCard));
-            return detailInfo;
         } else {
             log.error("玩家参加活动失败 活动配置为空playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
         }
-        return detailInfo;
     }
 
     @Override
@@ -108,7 +103,7 @@ public class PrivilegeCardController extends BaseActivityController {
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
         if (baseCfgBean instanceof PrivilegeCardCfg cfg) {
             PlayerPrivilegeCard data = null;
-            lock.lock(lockKey, 500);
+            lock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
                 //领取奖励
                 Map<Integer, PlayerPrivilegeCard> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
@@ -234,6 +229,23 @@ public class PrivilegeCardController extends BaseActivityController {
             }
         }
         return cardTypeInfo;
+    }
+
+    @Override
+    public ActivityInfo buildActivityInfo(long playerId, ActivityData activityData) {
+        Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+        int claimStatus = 0;
+        if (CollectionUtil.isNotEmpty(playerActivityData)) {
+            long timeMillis = System.currentTimeMillis();
+            for (PlayerPrivilegeCard privilegeCard : playerActivityData.values()) {
+                int status = getClaimStatus(privilegeCard, timeMillis);
+                if (status == ActivityConstant.ClaimStatus.CAN_CLAIM) {
+                    claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
+                    break;
+                }
+            }
+        }
+        return ActivityBuilder.buildActivityInfo(activityData, claimStatus);
     }
 
 

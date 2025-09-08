@@ -194,7 +194,7 @@ public class ActivityData {
         }
 
         if (StringUtils.isNotEmpty(cfg.getTime_end())) {
-            data.setTimeStart(TimeHelper.getTimestamp(cfg.getTime_end()));
+            data.setTimeEnd(TimeHelper.getTimestamp(cfg.getTime_end()));
         }
         return data;
     }

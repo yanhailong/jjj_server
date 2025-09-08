@@ -8,7 +8,8 @@ import com.jjg.game.common.constant.MessageConst;
  */
 public interface ActivityConstant {
     interface Common {
-
+        //redis 锁时间
+        int REDIS_LOCK = 500;
     }
 
     interface ActivityStatus {

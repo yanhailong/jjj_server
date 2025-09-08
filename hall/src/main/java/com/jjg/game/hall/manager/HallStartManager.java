@@ -1,5 +1,6 @@
 package com.jjg.game.hall.manager;
 
+import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
@@ -40,7 +41,8 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private CasinoManager casinoManager;
     @Autowired
     private HallPlayerEventListener hallPlayerEventListener;
-
+    @Autowired
+    private ActivityManager activityManager;
     private ApplicationContext context;
 
     private boolean running = false;
@@ -52,7 +54,7 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         hallService.init();
         hallPlayerEventListener.init();
         marqueeManager.init();
-
+        activityManager.initData();
         running = true;
     }
 
