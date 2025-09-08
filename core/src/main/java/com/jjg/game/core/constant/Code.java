@@ -89,6 +89,8 @@ public interface Code {
     int NOT_UNLOCKED = 434;
     // 庄家不能押注
     int BANKER_CANT_BET = 435;
+    // 非庄家不能修改准备金
+    int CANT_EDIT_BANKER_GOLD = 49074;
     // 服务器错误
     int EXCEPTION = 500;
 }

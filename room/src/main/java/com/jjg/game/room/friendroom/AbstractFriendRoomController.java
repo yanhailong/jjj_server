@@ -360,7 +360,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         long playerId = playerController.playerId();
         if (room.roomBankerId() != playerId) {
             // 不是庄家
-            return Code.PARAM_ERROR;
+            return Code.CANT_EDIT_BANKER_GOLD;
         }
         int resCode = addBankerPredicateGold(playerId, predictCostGold);
         if (resCode != Code.SUCCESS) {
