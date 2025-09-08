@@ -25,6 +25,9 @@ public class ResFollowedFriendRoomList extends AbstractResponse {
     @ProtoDesc("好友房间基础信息列表")
     public List<FriendRoomBaseData> roomList;
 
+    @ProtoDesc("玩家ID")
+    public long playerId;
+
     public ResFollowedFriendRoomList(int code) {
         super(code);
     }

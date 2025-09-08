@@ -55,7 +55,7 @@ public interface IRoomLifeCycle {
     /**
      * 游戏结束
      */
-    void gameOver();
+    void gameDestroy(boolean closeByPlayer);
 
     /**
      * 停止游戏，销毁房间或者停止房间定时器和状态机时调用

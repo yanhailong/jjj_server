@@ -580,8 +580,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 4. 回存房间数据
      * 5. 移除房间控制器
      * 6. 删除房间数据
+     *
+     * @param disbandRoomByPlayer 是否是玩家主动解散房间
      */
-    public <R extends Room> void disbandRoom(R room) {
+    public <R extends Room> void disbandRoom(R room, boolean disbandRoomByPlayer) {
         int gameType = room.getGameType();
         long roomId = room.getId();
         if (!roomControllerMap.containsKey(gameType)) {
@@ -613,8 +615,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         roomController.disbandRoom();
         // 移除房间map中的数据
         roomControllers.remove(roomId);
-        // 好友房不能删除
-        if (room instanceof FriendRoom friendRoom) {
+        // 好友房如果没有主动解散不能删除
+        if (room instanceof FriendRoom friendRoom && friendRoom.getStatus() != 3) {
             saveFriendRoomToRedis(friendRoom);
             log.info("关服回存好友房数据：{}", JSON.toJSONString(friendRoom));
         } else {
@@ -673,7 +675,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> values : roomControllerMap.values()) {
             for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : values.values()) {
                 // 调用房间的解散逻辑
-                disbandRoom(roomController.getRoom());
+                disbandRoom(roomController.getRoom(), false);
             }
         }
         // 最终关闭房间定时器

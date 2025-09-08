@@ -2,14 +2,17 @@ package com.jjg.game.common.rpc;
 
 import cn.hutool.core.convert.BasicType;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterConnect;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterProcessorExecutors;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.rpc.msg.ReqRpcServiceData;
 import com.jjg.game.common.rpc.msg.RespRpcServiceData;
+import org.bson.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +25,7 @@ import org.springframework.stereotype.Service;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -69,7 +73,7 @@ public class RpcServerService {
         Map<String, Class<?>> basicName =
             BasicType.PRIMITIVE_WRAPPER_MAP.keySet().stream()
                 .collect(HashMap::new, (map, e) -> map.put(e.getName(), e), HashMap::putAll);
-        Map<String, Object> parameterNameOfData = JSON.parseObject(req.parameterTypeWithData);
+        List<Object> parameterNameOfData = JSON.parseArray(req.parameterTypeWithData);
         Class<?>[] parameterTypes = new Class[parameterNameOfData.size()];
         // 数据
         Object[] args = new Object[parameterNameOfData.size()];
@@ -78,13 +82,15 @@ public class RpcServerService {
             // 解析key
             StandardEvaluationContext context = new StandardEvaluationContext(provider);
             String[] paramsName = new String[parameterNameOfData.size()];
-            for (Map.Entry<String, Object> entry : parameterNameOfData.entrySet()) {
-                args[i] = entry.getValue();
+            for (Object entry : parameterNameOfData) {
+                JSONObject paramTypeData = (JSONObject) entry;
+                args[i] = paramTypeData.get("second");
+                String paramType = paramTypeData.get("first").toString();
                 // 如果是基础类型
-                if (basicName.containsKey(entry.getKey())) {
-                    parameterTypes[i] = basicName.get(entry.getKey());
+                if (basicName.containsKey(paramType)) {
+                    parameterTypes[i] = basicName.get(paramType);
                 } else {
-                    parameterTypes[i] = Class.forName(entry.getKey());
+                    parameterTypes[i] = Class.forName(paramType);
                 }
                 if (parameterTypes[i].isAnnotationPresent(Param.class)) {
                     Param param = parameterTypes[i].getAnnotation(Param.class);

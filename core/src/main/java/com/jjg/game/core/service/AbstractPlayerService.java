@@ -910,12 +910,30 @@ public class AbstractPlayerService {
     /**
      * 批量获取玩家
      */
-    public List<Player> multiGetPlayer(Collection<Long> playerId) {
-        if (playerId == null) {
+    public List<Player> multiGetPlayer(Collection<Long> playerIds) {
+        if (playerIds == null || playerIds.isEmpty()) {
             return new ArrayList<>();
         }
         HashOperations<String, Long, Player> operations = redisTemplate.opsForHash();
-        return operations.multiGet(tableName, playerId);
+        List<Player> redisPlayer = operations.multiGet(tableName, playerIds);
+        // 过滤空数据
+        redisPlayer = redisPlayer.stream().filter(Objects::nonNull).toList();
+        if (redisPlayer.size() == playerIds.size()) {
+            return redisPlayer;
+        }
+        Map<Long, Player> playerMap =
+            redisPlayer.stream().filter(Objects::nonNull)
+                .collect(HashMap::new, (map, e) -> map.put(e.getId(), e), HashMap::putAll);
+        // 需要从数据中查询
+        List<Long> queryFromDb = new ArrayList<>(playerIds);
+        queryFromDb.removeAll(playerMap.keySet());
+        List<Player> players = playerDao.findAllById(queryFromDb);
+        // 如果数据库中也查不到，直接返回从redis中查询到的数据
+        if (players.isEmpty()) {
+            return playerMap.values().stream().toList();
+        }
+        players.addAll(playerMap.values());
+        return players;
     }
 
     /**
