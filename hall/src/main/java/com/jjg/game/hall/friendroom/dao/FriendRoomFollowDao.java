@@ -55,7 +55,7 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
                     .otherwise(0)
             ).build(),
             Aggregation.sort(Sort.by(
-                Sort.Order.desc("priority")
+                Sort.Order.asc("priority")
             )),
             Aggregation.group("followedPlayerId").first(Aggregation.ROOT).as("doc"),
             Aggregation.replaceRoot("doc"),

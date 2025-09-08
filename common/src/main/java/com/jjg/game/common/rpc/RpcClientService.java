@@ -6,6 +6,7 @@ import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.rpc.msg.ReqRpcServiceData;
 import com.jjg.game.common.rpc.msg.RespRpcServiceData;
 import org.apache.commons.lang3.StringUtils;
@@ -52,11 +53,12 @@ public class RpcClientService {
         String methodName = method.getName();
         Parameter[] parameters = method.getParameters();
         RpcReqParameterBuilder rpcReqParameter = GameRpcContext.getContext().getReqParameterBuilder();
-        Map<String, Object> parameterArgsMap = new HashMap<>();
+        List<Pair<String, Object>> parameterArgsMap = new ArrayList<>();
         for (int i = 0; i < parameters.length; i++) {
             Parameter parameter = parameters[i];
-            parameterArgsMap.put(parameter.getType().getName(), args[i]);
+            parameterArgsMap.add(new Pair<>(parameter.getType().getName(), args[i]));
         }
+        log.debug("parameters 数量：{}", parameters.length);
         // 解析节点客户端列表
         List<ClusterClient> clusterClients = parseClusterClients(rpcReqParameter, reference);
         if (clusterClients.isEmpty()) {

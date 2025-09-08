@@ -49,6 +49,7 @@ import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -517,15 +518,17 @@ public class FriendRoomServices implements IConsoleReceiver {
         }
         // 判断当前操作的玩家是否是玩家关注的
         Player targetPlayer = corePlayerService.get(req.playerId);
-        // 通过玩家ID，邀请码和目标玩家ID进行查找
-        FriendRoomFollowBean friendRoomFollowBean =
-            friendRoomFollowDao.getRoomFriend(
-                playerController.playerId(), req.playerId, targetPlayer.getFriendRoomInvitationCode());
-        // 如果查找不到，有可能对方重新刷新了邀请码
-        if (friendRoomFollowBean == null) {
-            res.code = Code.NOT_FOLLOWED;
-            playerController.send(res);
-            return;
+        if (playerController.playerId() != req.playerId) {
+            // 通过玩家ID，邀请码和目标玩家ID进行查找
+            FriendRoomFollowBean friendRoomFollowBean =
+                friendRoomFollowDao.getRoomFriend(
+                    playerController.playerId(), req.playerId, targetPlayer.getFriendRoomInvitationCode());
+            // 如果查找不到，有可能对方重新刷新了邀请码
+            if (friendRoomFollowBean == null) {
+                res.code = Code.NOT_FOLLOWED;
+                playerController.send(res);
+                return;
+            }
         }
         List<FriendRoom> friendRoomList = friendRoomDao.getPlayerAllFriendRoom(req.playerId);
         // 房间信息
@@ -536,6 +539,7 @@ public class FriendRoomServices implements IConsoleReceiver {
         }
         res.roomList = friendRoomBaseDataList;
         res.code = Code.SUCCESS;
+        res.playerId = req.playerId;
         log.debug("返回好友房列表： {}", JSON.toJSONString(res));
         playerController.send(res);
     }
@@ -959,6 +963,20 @@ public class FriendRoomServices implements IConsoleReceiver {
                 }
                 // 解散
             case 3:
+                if (req.operateCode == 3) {
+                    // 暂停游戏需要先保存房间为解散中
+                    friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
+                        @Override
+                        public void updateData(FriendRoom dataEntity) {
+                        }
+
+                        @Override
+                        public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                            dataEntity.setStatus(2);
+                            return true;
+                        }
+                    });
+                }
                 ClusterClient client = clusterSystem.getClusterByPath(friendRoom.getPath());
                 // 被操作的房间不能为空
                 if (client != null) {
@@ -1000,6 +1018,7 @@ public class FriendRoomServices implements IConsoleReceiver {
             res.nextPauseBtnOverdueTime =
                 friendRoom.getPauseTime() + intervalTime > curTime ?
                     friendRoom.getPauseTime() + intervalTime : 0;
+            res.roomId = req.roomId;
             res.code = Code.SUCCESS;
             playerController.send(res);
         } catch (Exception e) {

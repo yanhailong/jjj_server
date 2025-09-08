@@ -90,19 +90,6 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
     @Override
     public void stopGame() {
-        // 保存房间为解散中
-        roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<>() {
-            @Override
-            public void updateData(R dataEntity) {
-            }
-
-            @Override
-            public Boolean updateDataWithRes(FriendRoom dataEntity) {
-                dataEntity.setStatus(2);
-                return true;
-            }
-        });
-
         LinkedHashMap<Long, Long> applyBankers = getRoom().getBankerPredicateMap();
         if (applyBankers != null && !applyBankers.isEmpty()) {
             LinkedHashMap<Long, Long> applyBankersCopy = new LinkedHashMap<>(applyBankers);
@@ -116,6 +103,19 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     }
 
     /**
+     * 在下一轮开始时，进行销毁
+     */
+    public void destroyOnNextRoundStart() {
+
+    }
+
+    @Override
+    public void gameDestroy(boolean closeByPlayer) {
+        // 标记游戏为销毁中，
+        gameController.gameDestroy(closeByPlayer);
+    }
+
+    /**
      * 不能让机器人加入房间
      */
     @Override
@@ -124,6 +124,10 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
     @Override
     public boolean checkRoomCanContinue() {
+        // 如果房间状态为解散中.直接暂停游戏
+        if (room.getStatus() == 3) {
+            return false;
+        }
         // 需要检查房间时长
         if (room.getOverdueTime() < System.currentTimeMillis()) {
             // 如果时间到期且没有开启自动续费，先暂停游戏
@@ -175,6 +179,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     @Override
     public void onRoomCantContinue() {
         super.onRoomCantContinue();
+        gameDestroy(true);
     }
 
     /**

@@ -11,7 +11,6 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.common.pb.AbstractMessage;
-import com.jjg.game.core.utils.ReflectionTool;
 import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.IPhaseMsgAdapter;
 import com.jjg.game.room.base.IRoomPhase;
@@ -182,7 +181,7 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
         // 判断房间是否全部结束
         if (isGameOverAfterPhaseOver()) {
             // 调用roomController的游戏结束逻辑
-            roomController.gameOver();
+            roomController.gameDestroy(false);
         } else {
             // 检查房间是否可以进入下一轮
             boolean checkRes = checkRoomCanNextRound();
