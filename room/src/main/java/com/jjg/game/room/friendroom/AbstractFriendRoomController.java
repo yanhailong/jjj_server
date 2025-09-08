@@ -9,6 +9,7 @@ import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.SampleDataUtils;
+import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -135,6 +136,10 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     public void destroyOnNextRoundStart() {
         // 重新刷新room数据
         room = roomDao.getRoom(room.getGameType(), room.getId());
+        // 如果房间已经处于暂停状态或者未开启游戏,直接走销毁逻辑
+        if (gameController.getGameState() == EGameState.PAUSED || gameController.getGameState() == EGameState.INIT_DONE) {
+            gameDestroy(true);
+        }
     }
 
     @Override
