@@ -481,7 +481,7 @@ public class CoreMarqueeManager implements TimerListener {
                 notify.marqueeInfo = transMarqueeInfo(marquee);
                 notify.type = marquee.getType();
                 //通知节点其他玩家
-                clusterSystem.broadcastNode(notify);
+                clusterSystem.broadcastToOnlinePlayer(notify);
                 addNewMarquee(marquee);
                 break;
             }
