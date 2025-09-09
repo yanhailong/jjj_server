@@ -12,5 +12,5 @@ import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.MAHJIONG_WIN_TYPE, cmd = MahjiongWinConstant.MsgBean.REQ_CONFIG_INFO)
 @ProtoDesc("请求配置信息")
-public class ReqMahjiongwinConfigInfo extends AbstractMessage {
+public class ReqMahjiongwinEnterGame extends AbstractMessage {
 }

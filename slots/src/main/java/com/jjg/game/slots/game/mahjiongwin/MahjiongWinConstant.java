@@ -25,4 +25,14 @@ public interface MahjiongWinConstant {
         //金色图标最大id
         int GOLD_MAX = 18;
     }
+
+    interface Status{
+        int NORMAL = 0;
+        int FREE = 1;
+    }
+
+    interface SpecialMode{
+        int NORMAL = 1;
+        int FREE = 2;
+    }
 }

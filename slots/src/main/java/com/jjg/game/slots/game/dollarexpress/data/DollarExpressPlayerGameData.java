@@ -17,32 +17,18 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
     private int lastModelId;
     //最近一次所在的区间
     private int lastSectionIndex;
-    //玩家累计押注金额
-    private long allBet;
-    //玩家累计获得奖池(倍场)金额
-    private long rewardPoolGold;
-    //玩家奖池(倍场)累计贡献金额金额(没有减去已获得金额)
-    private long contribtPoolGold;
     //累计的美钞数量
     private int totalDollars;
     //记录出现可收集美元的局数
     private int addDollarsCount;
     //记录收集美元时的押注总和(用于计算累计的美钞的平均值)
     private long addDollarsTotalStake;
-
-    //用于测试
-    private LinkedList<TestLibData> testLibDataList;
-
-    //剩余的免费次数
-    private AtomicInteger remainFreeCount = new AtomicInteger(0);
     //是否可以投资
     private AtomicBoolean invers = new AtomicBoolean(false);
     //已经选择的地区
     private Set<Integer> selectedAreaSet;
     //全地图解锁
     private AtomicBoolean allUnLock = new AtomicBoolean(false);
-
-    private DollarExpressResultLib freeLib;
 
     public int getTotalDollars() {
         return totalDollars;
@@ -61,95 +47,8 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
         this.addDollarsTotalStake += stake;
     }
 
-    public int getLastModelId() {
-        return lastModelId;
-    }
-
-    public void setLastModelId(int lastModelId) {
-        this.lastModelId = lastModelId;
-    }
-
-    public int getLastSectionIndex() {
-        return lastSectionIndex;
-    }
-
-    public void setLastSectionIndex(int lastSectionIndex) {
-        this.lastSectionIndex = lastSectionIndex;
-    }
-
-    public AtomicInteger getRemainFreeCount() {
-        return remainFreeCount;
-    }
-
-    public long getAllBet() {
-        return allBet;
-    }
-
-    public void addAllBet(long bet) {
-        this.allBet += bet;
-    }
-
-    public void setAllBet(long allBet) {
-        this.allBet = allBet;
-    }
-
-    public long getRewardPoolGold() {
-        return rewardPoolGold;
-    }
-
-    public void setRewardPoolGold(long rewardPoolGold) {
-        this.rewardPoolGold = rewardPoolGold;
-    }
-
-    public long getContribtPoolGold() {
-        return contribtPoolGold;
-    }
-
-    public void setContribtPoolGold(long contribtPoolGold) {
-        this.contribtPoolGold = contribtPoolGold;
-    }
-
-    public void setRemainFreeCount(AtomicInteger remainFreeCount) {
-        this.remainFreeCount = remainFreeCount;
-    }
-
-    /**
-     * 获取玩家对奖池的累计贡献金额
-     * @return
-     */
-    public long getAllContribtPoolGold() {
-        return this.contribtPoolGold - this.rewardPoolGold;
-    }
-
-    public long addContribtPoolGold(long value){
-        this.contribtPoolGold += value;
-        return this.contribtPoolGold;
-    }
-
-    public void addTestIconsData(TestLibData testLibData) {
-        if(this.testLibDataList == null){
-            this.testLibDataList = new LinkedList<>();
-        }
-        this.testLibDataList.add(testLibData);
-    }
-
-    public TestLibData pollTestLibData() {
-        if(this.testLibDataList == null || this.testLibDataList.isEmpty()){
-            return null;
-        }
-        return this.testLibDataList.poll();
-    }
-
     public AtomicBoolean getInvers() {
         return invers;
-    }
-
-    public LinkedList<TestLibData> getTestLibDataList() {
-        return testLibDataList;
-    }
-
-    public void setTestLibDataList(LinkedList<TestLibData> testLibDataList) {
-        this.testLibDataList = testLibDataList;
     }
 
     public void setInvers(AtomicBoolean invers) {
@@ -221,23 +120,10 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
         this.allUnLock = allUnLock;
     }
 
-    public long addSmallPoolReward(long gold){
-        this.rewardPoolGold += gold;
-        return this.rewardPoolGold;
-    }
-
     public DollarExpressPlayerGameDataDTO converToDto(){
         DollarExpressPlayerGameDataDTO dto = new DollarExpressPlayerGameDataDTO();
         BeanUtils.copyProperties(this,dto);
         dto.setPlayerId(this.playerId());
         return dto;
-    }
-
-    public DollarExpressResultLib getFreeLib() {
-        return freeLib;
-    }
-
-    public void setFreeLib(DollarExpressResultLib freeLib) {
-        this.freeLib = freeLib;
     }
 }

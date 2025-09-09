@@ -1,7 +1,12 @@
 package com.jjg.game.slots.data;
 
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
+import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
+
+import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author 11
@@ -13,8 +18,10 @@ public class SlotsPlayerGameData {
     protected int gameType;
     //场次配置id
     protected int roomCfgId;
-    //是否玩过该slots游戏
-    protected AtomicBoolean hasPlaySlots = new AtomicBoolean(false);
+    //最近一次的模式id
+    private int lastModelId;
+    //最近一次所在的区间
+    private int lastSectionIndex;
     //当前所处状态(美元快递) 0.正常  1.二选一  2.正在免费旋转
     protected int status;
     //最后一次活跃时间
@@ -25,6 +32,21 @@ public class SlotsPlayerGameData {
     private long oneBetScore;
     //最近一次的押注(总押分)
     private long allBetScore;
+    //玩家累计押注金额
+    private long allBet;
+    //玩家累计获得奖池(倍场)金额
+    private long rewardPoolGold;
+    //玩家奖池(倍场)累计贡献金额金额(没有减去已获得金额)
+    private long contribtPoolGold;
+    //是否玩过该slots游戏
+    protected AtomicBoolean hasPlaySlots = new AtomicBoolean(false);
+    //剩余的免费次数
+    private AtomicInteger remainFreeCount = new AtomicInteger(0);
+    //缓存免费的结果库
+    private Object freeLib;
+    //用于测试
+    private LinkedList<TestLibData> testLibDataList;
+
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -100,5 +122,105 @@ public class SlotsPlayerGameData {
 
     public void setAllBetScore(long allBetScore) {
         this.allBetScore = allBetScore;
+    }
+
+    public long getAllBet() {
+        return allBet;
+    }
+
+    public void addAllBet(long bet) {
+        this.allBet += bet;
+    }
+
+    public void setAllBet(long allBet) {
+        this.allBet = allBet;
+    }
+
+    public long getRewardPoolGold() {
+        return rewardPoolGold;
+    }
+
+    public void setRewardPoolGold(long rewardPoolGold) {
+        this.rewardPoolGold = rewardPoolGold;
+    }
+
+    public long getContribtPoolGold() {
+        return contribtPoolGold;
+    }
+
+    public void setContribtPoolGold(long contribtPoolGold) {
+        this.contribtPoolGold = contribtPoolGold;
+    }
+
+    public void setRemainFreeCount(AtomicInteger remainFreeCount) {
+        this.remainFreeCount = remainFreeCount;
+    }
+
+    public AtomicInteger getRemainFreeCount() {
+        return remainFreeCount;
+    }
+
+    /**
+     * 获取玩家对奖池的累计贡献金额
+     * @return
+     */
+    public long getAllContribtPoolGold() {
+        return this.contribtPoolGold - this.rewardPoolGold;
+    }
+
+    public long addContribtPoolGold(long value){
+        this.contribtPoolGold += value;
+        return this.contribtPoolGold;
+    }
+
+    public Object getFreeLib() {
+        return freeLib;
+    }
+
+    public void setFreeLib(Object freeLib) {
+        this.freeLib = freeLib;
+    }
+
+    public LinkedList<TestLibData> getTestLibDataList() {
+        return testLibDataList;
+    }
+
+    public void setTestLibDataList(LinkedList<TestLibData> testLibDataList) {
+        this.testLibDataList = testLibDataList;
+    }
+
+    public void addTestIconsData(TestLibData testLibData) {
+        if(this.testLibDataList == null){
+            this.testLibDataList = new LinkedList<>();
+        }
+        this.testLibDataList.add(testLibData);
+    }
+
+    public TestLibData pollTestLibData() {
+        if(this.testLibDataList == null || this.testLibDataList.isEmpty()){
+            return null;
+        }
+        return this.testLibDataList.poll();
+    }
+
+    public long addSmallPoolReward(long gold){
+        this.rewardPoolGold += gold;
+        return this.rewardPoolGold;
+    }
+
+    public int getLastModelId() {
+        return lastModelId;
+    }
+
+    public void setLastModelId(int lastModelId) {
+        this.lastModelId = lastModelId;
+    }
+
+    public int getLastSectionIndex() {
+        return lastSectionIndex;
+    }
+
+    public void setLastSectionIndex(int lastSectionIndex) {
+        this.lastSectionIndex = lastSectionIndex;
     }
 }
