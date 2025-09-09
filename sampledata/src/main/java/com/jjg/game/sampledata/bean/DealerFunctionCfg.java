@@ -20,8 +20,6 @@ public class DealerFunctionCfg extends BaseCfgBean {
 
   /** 增加收益BUFF */
   protected int buffid;
-  /** 荷官描述多语言ID */
-  protected int describe;
   /** 持续时间/秒 */
   protected int duration;
   /** 聘请费用 */
@@ -34,11 +32,6 @@ public class DealerFunctionCfg extends BaseCfgBean {
   /** 返回增加收益BUFF */
   public int getBuffid() {
     return buffid;
-  }
-
-  /** 返回荷官描述多语言ID */
-  public int getDescribe() {
-    return describe;
   }
 
   /** 返回持续时间/秒 */
