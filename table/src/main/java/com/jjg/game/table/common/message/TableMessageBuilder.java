@@ -3,6 +3,7 @@ package com.jjg.game.table.common.message;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.pb.NotifyTableExitRoom;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -160,9 +161,12 @@ public class TableMessageBuilder {
      * 通知场上玩家信息有变化
      */
     public static NotifyTableRoomPlayerInfoChange buildNotifyTableRoomPlayerInfoChange(
-            long changedPlayerId, int sendSize, TableGameDataVo dataVo) {
+            PlayerController playerController, int sendSize, TableGameDataVo dataVo) {
         NotifyTableRoomPlayerInfoChange infoChange = new NotifyTableRoomPlayerInfoChange();
-        infoChange.changedPlayerId = changedPlayerId;
+        PlayerChip playerChip = new PlayerChip();
+        playerChip.chipId = playerController.getPlayer().getChipsId();
+        playerChip.playerId = playerController.playerId();
+        infoChange.changedPlayer = playerChip;
         infoChange.tableChangedPlayerInfos = new ArrayList<>();
         Map<Long, GamePlayer> sortedGamePlayers = getSortedGamePlayer(dataVo, sendSize);
         List<GamePlayer> sortedPlayersByGold = new ArrayList<>(sortedGamePlayers.values());
