@@ -480,6 +480,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
             return result;
         }
 
+
+
         //缓存获取到的freeLib
         playerGameData.setFreeLib(freeLib);
         result.data = freeGame;

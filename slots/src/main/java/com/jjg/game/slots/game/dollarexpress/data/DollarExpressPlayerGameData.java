@@ -13,10 +13,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2025/6/10 18:07
  */
 public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
-    //最近一次的模式id
-    private int lastModelId;
-    //最近一次所在的区间
-    private int lastSectionIndex;
     //累计的美钞数量
     private int totalDollars;
     //记录出现可收集美元的局数

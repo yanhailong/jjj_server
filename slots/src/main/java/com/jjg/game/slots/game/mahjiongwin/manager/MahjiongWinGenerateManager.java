@@ -7,7 +7,9 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRollerCfg;
+import com.jjg.game.sampledata.bean.SpecialPlayCfg;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
+import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAddIconInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAwardLineInfo;
@@ -22,11 +24,15 @@ import java.util.*;
  * @date 2025/8/1 17:33
  */
 @Component
-public class MajiongWinGenerateManager extends AbstractSlotsGenerateManager<MahjiongWinAwardLineInfo, MahjiongWinResultLib> {
-    public MajiongWinGenerateManager() {
+public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<MahjiongWinAwardLineInfo, MahjiongWinResultLib> {
+    public MahjiongWinGenerateManager() {
         super(MahjiongWinResultLib.class);
     }
 
+    private Map<Integer, Integer> addTimesMap;
+
+    //连续中奖增加倍数时，最大连续中奖次数
+    private int maxWinCount;
 
 
     @Override
@@ -46,7 +52,7 @@ public class MajiongWinGenerateManager extends AbstractSlotsGenerateManager<Mahj
         //存储消除后添加的图标
         List<MahjiongWinAddIconInfo> addIconInfoList = new ArrayList<>();
         //是否有消除
-        repairIcons(lib.getIconArr(), lib.getAwardLineInfoList(), addIconInfoList);
+        repairIcons(lib.getIconArr(), lib.getAwardLineInfoList(), addIconInfoList, 0);
 
         if (!addIconInfoList.isEmpty()) {
             lib.setAddIconInfos(addIconInfoList);
@@ -59,48 +65,65 @@ public class MajiongWinGenerateManager extends AbstractSlotsGenerateManager<Mahj
     @Override
     protected MahjiongWinAwardLineInfo addFullLineAwardInfo(Map<Integer, Set<Integer>> map, BaseElementRewardCfg cfg) {
         MahjiongWinAwardLineInfo info = new MahjiongWinAwardLineInfo();
-        info.setSameMap(map);
         info.setBaseTimes(cfg.getBet());
+
+        if (!map.isEmpty()) {
+            Set<Integer> set = new HashSet<>();
+            map.forEach((key, value) -> {
+                set.addAll(value);
+            });
+
+            info.setSameIconSet(set);
+        }
         return info;
     }
 
     /**
      * 修补图标
      */
-    public void repairIcons(int[] arr, List<MahjiongWinAwardLineInfo> list, List<MahjiongWinAddIconInfo> addIconInfoList) {
+    public void repairIcons(int[] arr, List<MahjiongWinAwardLineInfo> list, List<MahjiongWinAddIconInfo> addIconInfoList, int winCount) {
         if (list == null || list.isEmpty()) {
             return;
         }
+
+        winCount++;
+
+        //连续中奖后重置中奖倍数
+        resetLineRewardTimes(winCount, list);
 
         //拷贝数组
         int[] newArr = new int[arr.length];
         System.arraycopy(arr, 0, newArr, 0, arr.length);
 
-        Map<Integer, Integer> addIconSizeMap = new HashMap<>();
-
         MahjiongWinAddIconInfo addIconInfo = new MahjiongWinAddIconInfo();
+
+        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
 
         //将所有需要消除的图标进行汇总
         Map<Integer, Set<Integer>> allSameMap = new HashMap<>();
         for (MahjiongWinAwardLineInfo info : list) {
-            if (info.getSameMap() == null || info.getSameMap().isEmpty()) {
+            if (info.getSameIconSet() == null || info.getSameIconSet().isEmpty()) {
                 continue;
             }
 
-            for (Map.Entry<Integer, Set<Integer>> en : info.getSameMap().entrySet()) {
-                allSameMap.computeIfAbsent(en.getKey(), k -> new HashSet<>()).addAll(en.getValue());
-            }
+            info.getSameIconSet().forEach(index -> {
+                int columnId = index / baseInitCfg.getRows();
+                if ((index % baseInitCfg.getRows()) != 0) {
+                    columnId++;
+                }
+                allSameMap.computeIfAbsent(columnId, k -> new HashSet<>()).add(index);
+            });
         }
+
+        Map<Integer, Integer> addIconMap = new HashMap<>();
 
         for (Map.Entry<Integer, Set<Integer>> en : allSameMap.entrySet()) {
             int colIndex = en.getKey();
             Set<Integer> set = en.getValue();
-            processIcons(colIndex, set, arr);
-
-            addIconSizeMap.put(colIndex, set.size());
+            processIcons(colIndex, set, arr, addIconMap);
         }
 
-        addIconInfo.setAddIconCountMap(addIconSizeMap);
+        addIconInfo.setAddIconMap(addIconMap);
 
         //检查中奖
         List<MahjiongWinAwardLineInfo> newAwardInfoList = fullLine(arr);
@@ -108,7 +131,24 @@ public class MajiongWinGenerateManager extends AbstractSlotsGenerateManager<Mahj
         addIconInfo.setAwardLineInfoList(newAwardInfoList);
         addIconInfoList.add(addIconInfo);
 
-        repairIcons(newArr, newAwardInfoList, addIconInfoList);
+        repairIcons(newArr, newAwardInfoList, addIconInfoList, winCount);
+    }
+
+    private void resetLineRewardTimes(int winCount, List<MahjiongWinAwardLineInfo> list) {
+        Integer times;
+        if (winCount > this.maxWinCount) {
+            times = this.addTimesMap.get(this.maxWinCount);
+        } else {
+            times = this.addTimesMap.get(winCount);
+        }
+
+        if (times == null) {
+            return;
+        }
+
+        list.forEach(info -> {
+            info.setBaseTimes(info.getBaseTimes() * times);
+        });
     }
 
     /**
@@ -119,7 +159,8 @@ public class MajiongWinGenerateManager extends AbstractSlotsGenerateManager<Mahj
      * @param arr
      * @return 新增的图标id
      */
-    public void processIcons(int colIndex, Set<Integer> removedIndexes, int[] arr) {
+    public void processIcons(int colIndex, Set<Integer> removedIndexes, int[] arr,
+                             Map<Integer, Integer> addIconMap) {
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
         int rows = baseInitCfg.getRows();
 
@@ -136,15 +177,15 @@ public class MajiongWinGenerateManager extends AbstractSlotsGenerateManager<Mahj
         List<Integer> validIndexes = new ArrayList<>(baseInitCfg.getRows() - removedIndexes.size());
         for (int i = beginIndex; i <= endIndex; i++) {
             int icon = arr[i];
-            if(removedIndexes.contains(i)){
+            if (removedIndexes.contains(i)) {
                 //判断消除的图标是不是金色图标
-                if(icon >= MahjiongWinConstant.BaseElement.GOLD_MIN && icon <= MahjiongWinConstant.BaseElement.GOLD_MAX){
+                if (icon >= MahjiongWinConstant.BaseElement.GOLD_MIN && icon <= MahjiongWinConstant.BaseElement.GOLD_MAX) {
                     Integer replaceIcon = this.replaceIconMap.get(icon);
-                    if(replaceIcon != null){
+                    if (replaceIcon != null) {
                         validIndexes.add(replaceIcon);
                     }
                 }
-            }else {
+            } else {
                 validIndexes.add(icon);
             }
             arr[i] = -1;
@@ -176,12 +217,13 @@ public class MajiongWinGenerateManager extends AbstractSlotsGenerateManager<Mahj
             }
             int index = beginIndex + i;
             int oldIcon = arr[index];
-            if(oldIcon > 0){
+            if (oldIcon > 0) {
                 continue;
             }
 
             int elementId = baseRollerCfg.getElements().get(scopeIndex);
             arr[index] = elementId;
+            addIconMap.put(index, elementId);
             log.debug("补充新图标 index = {}, icon = {}", index, elementId);
 
             scopeIndex++;
@@ -271,22 +313,33 @@ public class MajiongWinGenerateManager extends AbstractSlotsGenerateManager<Mahj
         return times;
     }
 
-    private void printResult(int[] arr) {
-        StringBuilder sb = new StringBuilder();
+    @Override
+    protected void specialPlayConfig() {
+        Map<Integer, Integer> tmpAddTimesMap = new HashMap<>();
 
-        for (int i = 1; i <= 4; i++) {
-            for (int j = 0; j < 5; j++) {
-                int index = 4 * j + i;
-                int id = arr[index];
-                sb.append(id);
-                if (id < 10) {
-                    sb.append("   ");
-                } else {
-                    sb.append("  ");
+        int tmpMaxWinCount = 0;
+        for (Map.Entry<Integer, SpecialPlayCfg> en : GameDataManager.getSpecialPlayCfgMap().entrySet()) {
+            SpecialPlayCfg cfg = en.getValue();
+            if (cfg.getGameType() != this.gameType) {
+                continue;
+            }
+
+            //投资小游戏
+            if (cfg.getPlayType() == MahjiongWinConstant.SpecialPlay.TYPE_CONSECUTIVE_WINS) {
+                String[] arr = cfg.getValue().split("\\|");
+                for (String s : arr) {
+                    String[] arr1 = s.split("_");
+
+                    int count = Integer.parseInt(arr1[0]);
+                    tmpAddTimesMap.put(count, Integer.parseInt(arr1[1]));
+
+                    if (count > tmpMaxWinCount) {
+                        tmpMaxWinCount = count;
+                    }
                 }
             }
-            sb.append("\n");
         }
-        System.out.println(sb);
+        this.addTimesMap = tmpAddTimesMap;
+        this.maxWinCount = tmpMaxWinCount;
     }
 }
