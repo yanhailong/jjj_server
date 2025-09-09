@@ -12,6 +12,7 @@ import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,17 +24,12 @@ import java.util.stream.Collectors;
  * @date 2025/9/3 16:14
  */
 public abstract class BaseActivityController {
-
-    protected final PlayerActivityDao playerActivityDao;
-    protected final ActivityManager activityManager;
-    protected final PlayerPackService playerPackService;
-
-    public BaseActivityController(PlayerActivityDao playerActivityDao, ActivityManager activityManager, PlayerPackService playerPackService) {
-        this.playerActivityDao = playerActivityDao;
-        this.activityManager = activityManager;
-        this.playerPackService = playerPackService;
-    }
-
+    @Autowired
+    protected PlayerActivityDao playerActivityDao;
+    @Autowired
+    protected ActivityManager activityManager;
+    @Autowired
+    protected PlayerPackService playerPackService;
 
     /**
      * 增加玩家活动进度

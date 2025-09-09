@@ -10,6 +10,13 @@ public class PlayerActivityData {
     //领取状态
     private int claimStatus;
 
+    public PlayerActivityData() {
+    }
+
+    public PlayerActivityData(long activityId) {
+        this.activityId = activityId;
+    }
+
     public long getActivityId() {
         return activityId;
     }

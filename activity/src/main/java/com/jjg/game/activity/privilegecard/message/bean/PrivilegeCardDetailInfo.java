@@ -16,10 +16,10 @@ import java.util.List;
 public class PrivilegeCardDetailInfo extends BaseActivityDetailInfo {
     @ProtoDesc("总获利")
     public List<ItemInfo> totalGet;
-    @ProtoDesc("已领取总金币")
-    public ItemInfo hasClaimNum;
     @ProtoDesc("需要充值金额")
     public int rechargePrice;
     @ProtoDesc("剩余时间 毫秒")
     public long remainTime;
+    @ProtoDesc("持续天数")
+    public long days;
 }
