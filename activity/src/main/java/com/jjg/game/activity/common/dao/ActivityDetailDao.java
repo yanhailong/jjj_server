@@ -3,6 +3,7 @@ package com.jjg.game.activity.common.dao;
 import cn.hutool.core.collection.CollectionUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.activity.common.data.ActivityType;
+import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,11 +27,12 @@ public class ActivityDetailDao {
     private static final Logger log = LoggerFactory.getLogger(ActivityDetailDao.class);
     private static final String TABLE_NAME = "activity:server:detail:%s";
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
     private final RedisTemplate<String, Integer> redisTemplate;
 
     public ActivityDetailDao(RedisTemplate<String, Integer> redisTemplate) {
         this.redisTemplate = redisTemplate;
+        objectMapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
     }
 
     private String getKey(long activityId) {

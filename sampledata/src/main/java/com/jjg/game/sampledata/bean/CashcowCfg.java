@@ -18,18 +18,27 @@ public class CashcowCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "cashcow";
 
+  /** 达成条件 */
+  protected int condition;
   /** 所占总奖池比例万分比 */
   protected int distribution;
   /** 奖池初始值 */
   protected int initialprizepool;
   /** 消耗数量 */
   protected String needItem;
+  /** 道具ID_道具数量 */
+  protected List<Integer> rewards;
   /** 类型 */
   protected int type;
   /** 次数下限_次数上限（左闭右开）_玩家中奖万分比概率| */
   protected List<List<Integer>> weight;
   /** 机器人中奖频率 */
   protected List<List<Integer>> winningFrequency;
+
+  /** 返回达成条件 */
+  public int getCondition() {
+    return condition;
+  }
 
   /** 返回所占总奖池比例万分比 */
   public int getDistribution() {
@@ -44,6 +53,11 @@ public class CashcowCfg extends BaseCfgBean {
   /** 返回消耗数量 */
   public String getNeedItem() {
     return needItem;
+  }
+
+  /** 返回道具ID_道具数量 */
+  public List<Integer> getRewards() {
+    return rewards;
   }
 
   /** 返回类型 */

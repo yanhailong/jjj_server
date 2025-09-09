@@ -7,8 +7,6 @@ import com.jjg.game.activity.common.data.PlayerActivityData;
  * @date 2025/9/3 17:44
  */
 public class PlayerPrivilegeCard extends PlayerActivityData {
-    //已经领取金币数
-    private long hasClaimNum;
     //上次领取时间
     private long lastClaimTime;
     //购买时间
@@ -16,12 +14,11 @@ public class PlayerPrivilegeCard extends PlayerActivityData {
     //结束时间
     private long endTime;
 
-    public long getHasClaimNum() {
-        return hasClaimNum;
+    public PlayerPrivilegeCard() {
     }
 
-    public void setHasClaimNum(long hasClaimNum) {
-        this.hasClaimNum = hasClaimNum;
+    public PlayerPrivilegeCard(long activityId) {
+        super(activityId);
     }
 
     public long getLastClaimTime() {

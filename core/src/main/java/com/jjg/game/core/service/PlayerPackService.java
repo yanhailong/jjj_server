@@ -96,7 +96,7 @@ public class PlayerPackService implements IPlayerRegister {
 
         if (addGold > 0 || addDiamond > 0) {
             CommonResult<Player> goldAndDiamond =
-                corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, null);
+                    corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, null);
             if (!goldAndDiamond.success()) {
                 result.code = goldAndDiamond.code;
                 return result;
@@ -135,8 +135,8 @@ public class PlayerPackService implements IPlayerRegister {
         }
         if (result.success()) {
             Map<Integer, Long> addTempItemMap =
-                itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getItemId(), e.getItemCount()),
-                    HashMap::putAll);
+                    itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getItemId(), e.getItemCount()),
+                            HashMap::putAll);
             coreLogger.addItems(playerId, addTempItemMap, addType);
         }
         return result;
@@ -188,8 +188,9 @@ public class PlayerPackService implements IPlayerRegister {
      */
     public CommonResult<Void> removeItem(Player player, List<Item> removeItemList, String addType) {
         CommonResult<Void> result = new CommonResult<>(Code.NOT_ENOUGH_ITEM);
-        boolean checked = checkHasItems(player, removeItemList);
-        if (!checked) {
+        int code = checkHasItems(player, removeItemList);
+        if (code != Code.SUCCESS) {
+            result.code = code;
             return result;
         }
         long deductGoldV = 0;
@@ -260,7 +261,7 @@ public class PlayerPackService implements IPlayerRegister {
             //扣除金币和钻石
             if (deductGoldV > 0 || deductDiamondV > 0) {
                 CommonResult<Player> removeResult =
-                    corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
+                        corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
                 if (!removeResult.success()) {
                     result.code = removeResult.code;
                     return result;
@@ -296,7 +297,7 @@ public class PlayerPackService implements IPlayerRegister {
             for (Map.Entry<Integer, Long> entry : itemMap.entrySet()) {
                 itemList.add(new Item(entry.getKey(), entry.getValue()));
             }
-            return checkHasItems(player, itemList);
+            return checkHasItems(player, itemList) == Code.SUCCESS;
         } catch (Exception e) {
             log.error("检查道具异常 失败 playerId={}", playerId, e);
         }
@@ -310,36 +311,36 @@ public class PlayerPackService implements IPlayerRegister {
      * @param itemList 拥有道具
      * @return true 拥有 false 未拥有
      */
-    public boolean checkHasItems(Player player, List<Item> itemList) {
+    public int checkHasItems(Player player, List<Item> itemList) {
         long playerId = player.getId();
         try {
             PlayerPack playerPack = getFromAllDB(playerId);
             for (Item item : itemList) {
                 ItemCfg itemCfg = GameDataManager.getItemCfg(item.getItemId());
                 if (Objects.isNull(itemCfg)) {
-                    return false;
+                    return Code.NOT_FOUND;
                 }
                 if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
                     if (player.getGold() < item.getItemCount()) {
-                        return false;
+                        return Code.NOT_ENOUGH;
                     }
                     continue;
                 }
                 if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
                     if (player.getDiamond() < item.getItemCount()) {
-                        return false;
+                        return Code.NOT_ENOUGH;
                     }
                     continue;
                 }
                 if (Objects.isNull(playerPack) || !playerPack.checkHasItems(List.of(item))) {
-                    return false;
+                    return Code.NOT_ENOUGH_ITEM;
                 }
             }
-            return true;
+            return Code.SUCCESS;
         } catch (Exception e) {
             log.error("检查道具异常 playerId={}", playerId, e);
         }
-        return false;
+        return Code.FAIL;
     }
 
 

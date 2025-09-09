@@ -16,7 +16,7 @@ public enum ActivityTargetType {
      */
     LEVEL(2, 1 >> 1),
     /**
-     * 重置
+     * 充值
      */
     RECHARGE(2, 1 >> 2);
     private final long type;

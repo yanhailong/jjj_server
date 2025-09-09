@@ -45,18 +45,29 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess, GmListener {
     private static final Logger log = LoggerFactory.getLogger(ActivityManager.class);
+    /** 定时器中心，用于添加活动开始/结束的定时任务 */
     private final TimerCenter timerCenter;
+    /** 活动数据 DAO（活动基本信息存储） */
     private final ActivityDao activityDao;
+    /** 活动详细数据 DAO（活动子项配置存储） */
     private final ActivityDetailDao activityDetailDao;
+    /** 集群系统，节点间消息广播 */
     private final ClusterSystem clusterSystem;
+    /** 玩家活动数据 DAO */
     private final PlayerActivityDao playerActivityDao;
+    /** Redis 分布式锁，防止并发写冲突 */
     private final RedisLock redisLock;
-    //活动id->活动配置
-    private Map<Long, ActivityData> activityData = new ConcurrentHashMap<>();
-    private Map<ActivityType, Map<Long, ActivityData>> activityTypeData = new ConcurrentHashMap<>();
-    //活动id->对应活动配置
-    private Map<Long, Map<Integer, BaseCfgBean>> activityDetailInfo = new ConcurrentHashMap<>();
+    /** 活动跑马灯管理器 */
     private final CoreMarqueeManager marqueeManager;
+
+    /** 活动 id -> 活动数据 */
+    private Map<Long, ActivityData> activityData = new ConcurrentHashMap<>();
+    /** 活动类型 -> (活动 id -> 活动数据) */
+    private Map<ActivityType, Map<Long, ActivityData>> activityTypeData = new ConcurrentHashMap<>();
+    /** 活动 id -> 活动详细配置 */
+    private Map<Long, Map<Integer, BaseCfgBean>> activityDetailInfo = new ConcurrentHashMap<>();
+
+    /** 开服时间（毫秒） */
     private final long startServerTime = 1756656000000L;
 
     public ActivityManager(TimerCenter timerCenter, ActivityDao activityDao,
@@ -150,7 +161,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     }
 
     /**
-     * 每天凌晨4点半定时执行
+     * 每天凌晨定时执行
      */
     @Scheduled(cron = "0 0 0 * * ? ")
     private void zeroEvent() {
@@ -158,6 +169,13 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         //TODO 推送在线玩家
     }
 
+    /**
+     * 检查活动数据
+     * @param data 活动数据
+     * @param timeMillis 当前时间
+     * @param timerList 需要添加定时器的timer列表
+     * @return ture 将会添加到活动中
+     */
     public boolean checkActivityData(ActivityData data, long timeMillis, List<Pair<Long, Long>> timerList) {
         if (!data.isOpen() || data.getStatus() == ActivityConstant.ActivityStatus.ENDED) {
             return false;
