@@ -9,15 +9,23 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.room.base.AbstractMsgDealRoomPhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.BaseRoomMessageDispatcher;
 import com.jjg.game.sampledata.bean.RoomCfg;
+import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.data.TableGameDataVo;
+import com.jjg.game.table.common.message.bean.PlayerChip;
+import com.jjg.game.table.common.message.req.ReqOnlinePlayerChipInfo;
 import com.jjg.game.table.common.message.req.ReqRoomBaseInfo;
 import com.jjg.game.table.common.message.req.ReqTablePlayerInfo;
+import com.jjg.game.table.common.message.res.ResOnlinePlayerChipInfo;
 import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.Map;
 
 /**
  * 下注对战类的消息分发器，目前主要处理实现了{@linkplain AbstractMsgDealRoomPhase}类的消息类
@@ -47,7 +55,7 @@ public class TableGroupMessageDispatcher extends BaseRoomMessageDispatcher {
     @Command(value = TableRoomMessageConstant.ReqMsgBean.REQ_TABLE_PLAYER_INFO)
     public void reqTablePlayerInfo(PlayerController playerController, ReqTablePlayerInfo reqTablePlayerInfo) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-            roomManager.getGameControllerByPlayerId(playerController.playerId());
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
         int code = checkPlayerInGame(gameController, playerController);
         if (code != Code.SUCCESS) {
             log.warn("请求玩家信息时失败 CODE：{}", code);
@@ -58,9 +66,32 @@ public class TableGroupMessageDispatcher extends BaseRoomMessageDispatcher {
         // 更新操作时间
         tableGameDataVo.updatePlayerOperateTime(playerController.playerId());
         RespTablePlayerInfo respTablePlayerInfo =
-            TableMessageBuilder.buildTableAllPlayerInfo(tableGameDataVo);
+                TableMessageBuilder.buildTableAllPlayerInfo(tableGameDataVo);
         playerController.send(respTablePlayerInfo);
     }
+
+    /**
+     * 请求牌桌上玩家信息
+     */
+    @Command(value = TableRoomMessageConstant.ReqMsgBean.REQ_ONLINE_PLAYER_CHIP_INFO)
+    public void reqOnlinePlayerChipInfo(PlayerController playerController, ReqOnlinePlayerChipInfo req) {
+        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
+        ResOnlinePlayerChipInfo resOnlinePlayerChipInfo = new ResOnlinePlayerChipInfo(Code.PARAM_ERROR);
+        if (gameController instanceof BaseTableGameController<? extends TableGameDataVo> controller) {
+            resOnlinePlayerChipInfo.chips = new ArrayList<>();
+            TableGameDataVo gameDataVo = controller.getGameDataVo();
+            for (GamePlayer gamePlayer : gameDataVo.getGamePlayerMap().values()) {
+                PlayerChip playerChip = new PlayerChip();
+                playerChip.playerId = gamePlayer.getId();
+                playerChip.chipId = gamePlayer.getChipsId();
+                resOnlinePlayerChipInfo.chips.add(playerChip);
+            }
+            resOnlinePlayerChipInfo.code = Code.SUCCESS;
+        }
+        playerController.send(resOnlinePlayerChipInfo);
+    }
+
 
     /**
      * 玩家发送房间初始信息 客户端在刚进入房间时，不能收到服务端的主动推送，所以需要等客户端初始化完成后，主动向服务端请求
@@ -68,7 +99,7 @@ public class TableGroupMessageDispatcher extends BaseRoomMessageDispatcher {
     @Command(value = TableRoomMessageConstant.ReqMsgBean.REQ_ROOM_BASE_INFO)
     public void reqRoomBaseInfo(PlayerController playerController, ReqRoomBaseInfo reqRoomBaseInfo) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-            roomManager.getGameControllerByPlayerId(playerController.playerId());
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
         int code = checkPlayerInGame(gameController, playerController);
         if (code != Code.SUCCESS) {
             log.warn("请求房间初始化消息时失败 CODE：{}", code);

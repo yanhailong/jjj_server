@@ -3,15 +3,14 @@ package com.jjg.game.table.common.message;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.pb.NotifyTableExitRoom;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.data.TableGameDataVo;
-import com.jjg.game.table.common.message.bean.BetTableInfo;
-import com.jjg.game.table.common.message.bean.PlayerChangedGold;
-import com.jjg.game.table.common.message.bean.TablePlayerInfo;
+import com.jjg.game.table.common.message.bean.*;
 import com.jjg.game.table.common.message.req.NotifyTableLongTimeNoOperate;
 import com.jjg.game.table.common.message.res.NotifyPhaseChangInfo;
 import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
@@ -162,9 +161,12 @@ public class TableMessageBuilder {
      * 通知场上玩家信息有变化
      */
     public static NotifyTableRoomPlayerInfoChange buildNotifyTableRoomPlayerInfoChange(
-            long changedPlayerId, int sendSize, TableGameDataVo dataVo) {
+            PlayerController playerController, int sendSize, TableGameDataVo dataVo) {
         NotifyTableRoomPlayerInfoChange infoChange = new NotifyTableRoomPlayerInfoChange();
-        infoChange.changedPlayerId = changedPlayerId;
+        PlayerChip playerChip = new PlayerChip();
+        playerChip.chipId = playerController.getPlayer().getChipsId();
+        playerChip.playerId = playerController.playerId();
+        infoChange.changedPlayer = playerChip;
         infoChange.tableChangedPlayerInfos = new ArrayList<>();
         Map<Long, GamePlayer> sortedGamePlayers = getSortedGamePlayer(dataVo, sendSize);
         List<GamePlayer> sortedPlayersByGold = new ArrayList<>(sortedGamePlayers.values());
@@ -205,7 +207,10 @@ public class TableMessageBuilder {
     public static List<BetTableInfo> buildBetTableInfos(TableGameDataVo gameDataVo, boolean needPlayerBetGold) {
         Map<Long, Map<Integer, List<Integer>>> areaTotalBet = gameDataVo.getPlayerBetInfo();
         Map<Integer, BetTableInfo> baccaratTableInfoMap = new HashMap<>();
-        for (Map<Integer, List<Integer>> value : areaTotalBet.values()) {
+        for (Map.Entry<Long, Map<Integer, List<Integer>>> betEntry : areaTotalBet.entrySet()) {
+            Map<Integer, List<Integer>> value = betEntry.getValue();
+            Long playerId = betEntry.getKey();
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
             for (Map.Entry<Integer, List<Integer>> entry : value.entrySet()) {
                 if (!baccaratTableInfoMap.containsKey(entry.getKey())) {
                     baccaratTableInfoMap.put(entry.getKey(), new BetTableInfo());
@@ -218,7 +223,13 @@ public class TableMessageBuilder {
                     if (betTableInfo.betGoldList == null) {
                         betTableInfo.betGoldList = new ArrayList<>();
                     }
-                    betTableInfo.betGoldList.addAll(entry.getValue());
+                    for (Integer betValue : entry.getValue()) {
+                        //筹码值和皮肤
+                        BetPlayerChip betPlayerChip = new BetPlayerChip();
+                        betPlayerChip.chipValue = betValue;
+                        betPlayerChip.chipId = gamePlayer.getChipsId();
+                        betTableInfo.betGoldList.add(betPlayerChip);
+                    }
                 }
             }
         }

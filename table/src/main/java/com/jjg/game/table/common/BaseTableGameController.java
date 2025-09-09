@@ -135,7 +135,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         resortPlayerOnTable();
         // 通知场上玩家加入
         NotifyTableRoomPlayerInfoChange playerInfoChange =
-            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(),
+            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController,
                 TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
         // 需要排除当前玩家，玩家刚进场给自己发送没有意义
         broadcastToPlayers(RoomMessageBuilder
@@ -211,7 +211,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         resortPlayerOnTable();
         // 通知场上玩家离开
         NotifyTableRoomPlayerInfoChange playerInfoChange =
-            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController.playerId(),
+            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(playerController,
                 TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
         // 需要排除当前玩家，因为给离开的玩家发送已经没有意义
         broadcastToPlayers(RoomMessageBuilder
