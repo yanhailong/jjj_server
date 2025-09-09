@@ -42,6 +42,7 @@ public class RedBlackMessageBuilder {
                 GamePlayer gamePlayer = dataVo.getGamePlayer(playerId);
                 BetTableInfo betTableInfo = new BetTableInfo();
                 betTableInfo.betIdx = mapEntry.getKey();
+                betTableInfo.betGoldList = new ArrayList<>();
                 //计算个人押注和总押注
                 List<Integer> betList = playerBetInfo.get(playerId);
                 long playerBet = betList == null ? 0 : betList.stream().mapToInt(Integer::intValue).sum();

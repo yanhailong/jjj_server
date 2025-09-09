@@ -23,7 +23,7 @@ public class LoongTigerWarMessageBuilder {
      * 构架初始化信息
      */
     public static NotifyLoongTigerWarInfo buildInitInfo(
-        long playerId, LoongTigerWarGameDataVo dataVo, EGamePhase gamePhase) {
+            long playerId, LoongTigerWarGameDataVo dataVo, EGamePhase gamePhase) {
         NotifyLoongTigerWarInfo notifyLoongTigerWarInfo = new NotifyLoongTigerWarInfo();
         //历史记录
         notifyLoongTigerWarInfo.histories = dataVo.getHistories();
@@ -41,6 +41,7 @@ public class LoongTigerWarMessageBuilder {
                 GamePlayer gamePlayer = dataVo.getGamePlayer(playerId);
                 BetTableInfo betTableInfo = new BetTableInfo();
                 betTableInfo.betIdx = mapEntry.getKey();
+                betTableInfo.betGoldList = new ArrayList<>();
                 //计算个人押注和总押注
                 List<Integer> betList = playerBetInfo.get(playerId);
                 long playerBet = betList == null ? 0 : betList.stream().mapToInt(Integer::intValue).sum();
@@ -73,7 +74,7 @@ public class LoongTigerWarMessageBuilder {
         notifyLoongTigerWarInfo.playerInfos = TableMessageBuilder.buildPlayerInfoOnTable(dataVo);
         notifyLoongTigerWarInfo.totalPlayerNum = dataVo.getGamePlayerMap().size();
         notifyLoongTigerWarInfo.maxChipOnTable =
-            GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();
+                GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();
         return notifyLoongTigerWarInfo;
     }
 }
