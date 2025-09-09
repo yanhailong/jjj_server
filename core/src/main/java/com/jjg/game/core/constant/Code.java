@@ -54,7 +54,7 @@ public interface Code {
     // 房间创建数量已达上限
     int CREATE_ROOM_TO_LIMIT = 417;
     // 非法的好友房邀请码
-    int ILLEGAL_FRIEND_ROOM_INVITATION_CODE = 418;
+    int ILLEGAL_FRIEND_ROOM_INVITATION_CODE = 49002;
     // 未关注好友
     int NOT_FOLLOWED = 419;
     // 道具不足
@@ -89,6 +89,8 @@ public interface Code {
     int NOT_UNLOCKED = 434;
     // 庄家不能押注
     int BANKER_CANT_BET = 435;
+    // 非庄家不能修改准备金
+    int CANT_EDIT_BANKER_GOLD = 49074;
     // 服务器错误
     int EXCEPTION = 500;
 }

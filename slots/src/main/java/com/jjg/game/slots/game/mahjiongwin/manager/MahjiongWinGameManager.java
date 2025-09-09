@@ -1,8 +1,12 @@
 package com.jjg.game.slots.game.mahjiongwin.manager;
 
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinGameDataDao;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinResultLibDao;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
@@ -47,7 +51,32 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
      * @return
      */
     public MahjiongWinGameRunInfo playerStartGame(PlayerController playerController,long stake){
-        return null;
+        //获取玩家游戏数据
+        MahjiongWinPlayerGameData playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+            return new MahjiongWinGameRunInfo(Code.NOT_FOUND, playerController.playerId());
+        }
+
+        playerGameData.setLastActiveTime(TimeHelper.nowInt());
+        return startGame(playerController, playerGameData, false);
+    }
+
+    /**
+     * 开始游戏
+     * @param playerController
+     * @param playerGameData
+     * @param auto
+     * @return
+     */
+    public MahjiongWinGameRunInfo startGame(PlayerController playerController,MahjiongWinPlayerGameData playerGameData,boolean auto){
+        MahjiongWinGameRunInfo gameRunInfo = new MahjiongWinGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        try{
+
+        }catch (Exception e){
+            log.error("",e);
+        }
+        return gameRunInfo;
     }
 
     @Override

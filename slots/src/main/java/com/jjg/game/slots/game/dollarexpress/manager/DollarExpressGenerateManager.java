@@ -325,9 +325,6 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
      * @return
      */
     private long calFree(DollarExpressResultLib lib) throws Exception {
-        if(!checkFreeIcon(lib.getIconArr())){
-            return 0;
-        }
         if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
             return 0;
         }

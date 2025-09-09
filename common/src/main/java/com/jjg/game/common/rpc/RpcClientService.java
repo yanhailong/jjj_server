@@ -97,7 +97,8 @@ public class RpcClientService {
         // 使用RpcContext中的请求参数
         if (rpcReqParameter != null) {
             if (!rpcReqParameter.getClusterClients().isEmpty()) {
-                clusterClients = rpcReqParameter.getClusterClients();
+                clusterClients =
+                    new ArrayList<>(rpcReqParameter.getClusterClients().stream().filter(Objects::nonNull).toList());
             }
             // 如果没有传节点，则向默认节点类型中的所有节点发送
             if (clusterClients.isEmpty()) {
@@ -124,7 +125,7 @@ public class RpcClientService {
                 }
             }
         }
-        return clusterClients;
+        return clusterClients.stream().filter(Objects::nonNull).toList();
     }
 
     /**

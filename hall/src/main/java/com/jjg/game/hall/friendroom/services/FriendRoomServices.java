@@ -814,7 +814,7 @@ public class FriendRoomServices {
             return;
         }
         List<GameBillResult> gameBillResults =
-            billHistoryDao.pageFriendRoomBillByGameType(1000026, req.pageIdx, req.pageSize);
+            billHistoryDao.pageFriendRoomBillByGameType(playerController.playerId(), req.pageIdx, req.pageSize);
         List<GameBillInfo> gameBillInfos = new ArrayList<>();
         for (GameBillResult gameBillResult : gameBillResults) {
             GameBillInfo gameBillInfo = new GameBillInfo();
@@ -845,7 +845,7 @@ public class FriendRoomServices {
         }
         List<FriendRoomBillHistoryBean> pageFriendRoomBillHistory =
             billHistoryDao.pageFriendRoomBillHistory(
-                1000026, req.gameType, req.pageIdx, req.pageSize);
+                playerController.playerId(), req.gameType, req.pageIdx, req.pageSize);
         // 按月分的好友房账单历史
         Map<Integer, List<FriendRoomBillHistory>> friendRoomBillOfMonth = new HashMap<>();
         // 构建好友房账单历史
@@ -930,21 +930,19 @@ public class FriendRoomServices {
     /**
      * 请求一键领取所有的房间收益,为了避免更新 新加入的账单数据，所以需要对领取方法进行加锁
      */
-    @RedissonLock(key = "FriendRoomBillUpdate:#playerController.playerId()", waitTime = 10, timeUnit = TimeUnit.SECONDS)
-    public void reqTakeFriendRoomIncomeReward(@Param("playerController") PlayerController playerController) {
-        ResTakeFriendRoomBillIncome res = new ResTakeFriendRoomBillIncome(Code.SUCCESS);
+    @RedissonLock(key = "FriendRoomBillUpdate:#playerId", waitTime = 10, timeUnit = TimeUnit.SECONDS)
+    public int reqTakeFriendRoomIncomeReward(@Param("playerId") long playerId) {
         // 查询所有收益
-        List<Item> playerAllReward = billHistoryDao.getPlayerAllReward(playerController.playerId());
+        List<Item> playerAllReward = billHistoryDao.getPlayerAllReward(playerId);
         if (playerAllReward.isEmpty()) {
-            playerController.send(res);
-            return;
+            return Code.SUCCESS;
         }
         // 更新所有领奖状态
-        billHistoryDao.updateAllHistoryRewardTook(playerController.playerId());
+        billHistoryDao.updateAllHistoryRewardTook(playerId);
         // 给玩家添加收益道具
-        playerPackService.addItems(playerController.playerId(), playerAllReward, "friend_room_income_take_all");
+        playerPackService.addItems(playerId, playerAllReward, "friend_room_income_take_all");
         // 发送消息
-        playerController.send(res);
+        return Code.SUCCESS;
     }
 
     /**

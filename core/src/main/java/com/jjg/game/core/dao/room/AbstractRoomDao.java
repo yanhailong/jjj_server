@@ -145,6 +145,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         List<Object> rooms = redisTemplate.opsForHash().values(getTableName(gameType));
         return rooms.stream()
             .map(r -> (T) r)
+            .filter(r -> !(r instanceof FriendRoom))
             .filter(r -> r.getPath().equalsIgnoreCase(currentNodePath) && r.getRoomCfgId() == roomCfgId)
             .toList();
     }
