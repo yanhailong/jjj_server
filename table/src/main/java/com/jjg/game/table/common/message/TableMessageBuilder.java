@@ -9,9 +9,7 @@ import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.data.TableGameDataVo;
-import com.jjg.game.table.common.message.bean.BetTableInfo;
-import com.jjg.game.table.common.message.bean.PlayerChangedGold;
-import com.jjg.game.table.common.message.bean.TablePlayerInfo;
+import com.jjg.game.table.common.message.bean.*;
 import com.jjg.game.table.common.message.req.NotifyTableLongTimeNoOperate;
 import com.jjg.game.table.common.message.res.NotifyPhaseChangInfo;
 import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
@@ -205,7 +203,10 @@ public class TableMessageBuilder {
     public static List<BetTableInfo> buildBetTableInfos(TableGameDataVo gameDataVo, boolean needPlayerBetGold) {
         Map<Long, Map<Integer, List<Integer>>> areaTotalBet = gameDataVo.getPlayerBetInfo();
         Map<Integer, BetTableInfo> baccaratTableInfoMap = new HashMap<>();
-        for (Map<Integer, List<Integer>> value : areaTotalBet.values()) {
+        for (Map.Entry<Long, Map<Integer, List<Integer>>> betEntry : areaTotalBet.entrySet()) {
+            Map<Integer, List<Integer>> value = betEntry.getValue();
+            Long playerId = betEntry.getKey();
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
             for (Map.Entry<Integer, List<Integer>> entry : value.entrySet()) {
                 if (!baccaratTableInfoMap.containsKey(entry.getKey())) {
                     baccaratTableInfoMap.put(entry.getKey(), new BetTableInfo());
@@ -218,7 +219,13 @@ public class TableMessageBuilder {
                     if (betTableInfo.betGoldList == null) {
                         betTableInfo.betGoldList = new ArrayList<>();
                     }
-                    betTableInfo.betGoldList.addAll(entry.getValue());
+                    for (Integer betValue : entry.getValue()) {
+                        //筹码值和皮肤
+                        BetPlayerChip betPlayerChip = new BetPlayerChip();
+                        betPlayerChip.chipValue = betValue;
+                        betPlayerChip.chipId = gamePlayer.getChipsId();
+                        betTableInfo.betGoldList.add(betPlayerChip);
+                    }
                 }
             }
         }
