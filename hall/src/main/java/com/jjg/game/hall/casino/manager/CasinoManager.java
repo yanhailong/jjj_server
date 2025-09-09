@@ -10,8 +10,12 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Item;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.casino.data.*;
@@ -22,8 +26,6 @@ import com.jjg.game.hall.casino.pb.bean.CasinoSimpleInfo;
 import com.jjg.game.hall.casino.pb.req.*;
 import com.jjg.game.hall.casino.pb.res.*;
 import com.jjg.game.hall.casino.service.PlayerBuildingService;
-import com.jjg.game.core.base.player.IPlayerLoginSuccess;
-import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.utils.ConditionUtil;
 import com.jjg.game.hall.utils.GlobalDataCache;
@@ -134,7 +136,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             CommonResult<Void> result = playerPackService.removeItem(playerController.playerId(),
                     buyClaimAllRewardsConsumer.getFirst(), "一键升级购买");
             if (!result.success()) {
-                res.code = Code.NOT_ENOUGH_ITEM;
+                res.code = result.code;
                 return res;
             }
             //添加数据
@@ -421,7 +423,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             Item costItem = new Item(cost.getFirst(), cost.getLast());
             CommonResult<Void> result = playerPackService.removeItem(playerController.playerId(), costItem, "请求雇员职员");
             if (!result.success()) {
-                res.code = Code.NOT_ENOUGH_ITEM;
+                res.code = result.code;
                 return res;
             }
             //如果之前已经停止受益了 计算停止的收益
@@ -515,7 +517,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
         //扣除消耗
         CommonResult<Void> result = playerPackService.removeItem(playerController.playerId(), item, "加速清理");
         if (!result.success()) {
-            res.code = Code.NOT_ENOUGH_ITEM;
+            res.code = result.code;
             return res;
         }
         casinoInfo.getBuildingCleaningEndTime().put(req.floorId, timeMillis);
@@ -645,7 +647,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
         //扣除消耗
         CommonResult<Void> removed = playerPackService.removeItems(player, functionCfg.getUplevel_itemid(), "升级建筑");
         if (!removed.success()) {
-            res.code = Code.NOT_ENOUGH_ITEM;
+            res.code = removed.code;
             return res;
         }
         //修改数据
@@ -690,7 +692,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
         //扣除消耗
         CommonResult<Void> result = playerPackService.removeItem(playerController.playerId(), item, "加速升级");
         if (!result.success()) {
-            res.code = Code.NOT_ENOUGH_ITEM;
+            res.code = result.code;
             return res;
         }
         casinoMachineInfo.setBuildLvUpEndTime(timeMillis);
