@@ -123,10 +123,6 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             }
             //检查消耗
             Pair<Item, Integer> buyClaimAllRewardsConsumer = GlobalDataCache.getBuyClaimAllRewardsConsumer();
-            if (!playerPackService.checkHasItems(player, List.of(buyClaimAllRewardsConsumer.getFirst()))) {
-                res.code = Code.NOT_ENOUGH_ITEM;
-                return res;
-            }
             long oneClickClaimEndTime = casinoInfo.getOneClickClaimEndTime();
             if (oneClickClaimEndTime > System.currentTimeMillis()) {
                 res.code = Code.PARAM_ERROR;
@@ -372,6 +368,11 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             res.machineId = req.machineId;
             res.itemInfos = new ArrayList<>();
             res.itemInfos.add(CasinoBuilder.buildItemInfo(item));
+            res.casinoRewardsInfos = new ArrayList<>();
+            CasinoRewardsInfo casinoRewardsInfo = new CasinoRewardsInfo();
+            casinoRewardsInfo.machineId = req.machineId;
+            casinoRewardsInfo.itemInfo = CasinoBuilder.buildItemInfo(item);
+            res.casinoRewardsInfos.add(casinoRewardsInfo);
             return res;
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
@@ -638,11 +639,6 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 res.code = Code.BUILDING_LEVEL_IS_MAX;
                 return res;
             }
-        }
-        //检查消耗
-        if (!playerPackService.checkHasItems(player, functionCfg.getUplevel_itemid())) {
-            res.code = Code.NOT_ENOUGH_ITEM;
-            return res;
         }
         //扣除消耗
         CommonResult<Void> removed = playerPackService.removeItems(player, functionCfg.getUplevel_itemid(), "升级建筑");

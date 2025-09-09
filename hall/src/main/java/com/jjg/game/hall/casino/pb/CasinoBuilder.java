@@ -44,7 +44,7 @@ public class CasinoBuilder {
             Map<Long, CasinoMachineInfo> machineInfoData = casinoInfo.getMachineInfoData();
             for (Long machineId : machineIdList) {
                 CasinoMachineInfo machineInfo = machineInfoData.get(machineId);
-                CasinoMachineShowInfo casinoMachineShowInfo = CasinoBuilder.buildCasinoMachineInfo(machineInfo, casinoMaxProfitBonus, timeMillis);
+                CasinoMachineShowInfo casinoMachineShowInfo = CasinoBuilder.buildCasinoMachineInfo(machineInfoData, machineInfo, casinoMaxProfitBonus, timeMillis);
                 casinoFloorInfo.casinoMachineShowInfos.add(casinoMachineShowInfo);
             }
         }
@@ -76,14 +76,14 @@ public class CasinoBuilder {
     }
 
 
-    public static CasinoMachineShowInfo buildCasinoMachineInfo(CasinoMachineInfo machineInfo, Map<Integer, Integer> casinoMaxProfitBonus, long timeMillis) {
+    public static CasinoMachineShowInfo buildCasinoMachineInfo(Map<Long, CasinoMachineInfo> machineInfoData, CasinoMachineInfo machineInfo, Map<Integer, Integer> casinoMaxProfitBonus, long timeMillis) {
         CasinoMachineShowInfo casinoMachineShowInfo = new CasinoMachineShowInfo();
         casinoMachineShowInfo.machineId = machineInfo.getId();
         casinoMachineShowInfo.buildLvUpEndTime = machineInfo.getBuildLvUpEndTime();
         casinoMachineShowInfo.configId = machineInfo.getRealConfigId(timeMillis);
         casinoMachineShowInfo.profitStartTime = machineInfo.getProfitStartTime();
         casinoMachineShowInfo.state = getMachineState(machineInfo, timeMillis);
-        casinoMachineShowInfo.profitMaxTime = calculateMaxProfitTime(machineInfo, casinoMaxProfitBonus, timeMillis);
+        casinoMachineShowInfo.profitMaxTime = calculateMaxProfitTime(machineInfoData, machineInfo, casinoMaxProfitBonus, timeMillis);
         if (CollectionUtil.isNotEmpty(machineInfo.getEmploymentMap())) {
             casinoMachineShowInfo.employments = new ArrayList<>();
             for (CasinoEmployment employment : machineInfo.getEmploymentMap().values()) {
@@ -99,7 +99,7 @@ public class CasinoBuilder {
         casinoSimpleInfo.machineId = casinoMachineInfo.getId();
         casinoSimpleInfo.configId = casinoMachineInfo.getRealConfigId(timeMillis);
         casinoSimpleInfo.profitStartTime = casinoMachineInfo.getProfitStartTime();
-        casinoSimpleInfo.profitMaxTime = calculateMaxProfitTime(casinoMachineInfo, casinoMaxProfitBonus, timeMillis);
+        casinoSimpleInfo.profitMaxTime = calculateMaxProfitTime(casinoInfo.getMachineInfoData(), casinoMachineInfo, casinoMaxProfitBonus, timeMillis);
         return casinoSimpleInfo;
     }
 
@@ -126,7 +126,7 @@ public class CasinoBuilder {
     /**
      * 计算消减时间需要的道具
      *
-     * @param endTime 结束时间
+     * @param endTime    结束时间
      * @param timeMillis 当前时间
      * @return 花费道具
      */
@@ -184,12 +184,13 @@ public class CasinoBuilder {
     /**
      * 计算收益最大时间
      *
+     * @param machineInfoData 机台信息
      * @param casinoMachineInfo    机台信息
      * @param casinoMaxProfitBonus buff参数
      * @param timeMillis           当前时间
      * @return 收益最大时间(毫秒)
      */
-    public static long calculateMaxProfitTime(CasinoMachineInfo casinoMachineInfo, Map<Integer, Integer> casinoMaxProfitBonus, long timeMillis) {
+    public static long calculateMaxProfitTime(Map<Long, CasinoMachineInfo> machineInfoData, CasinoMachineInfo casinoMachineInfo, Map<Integer, Integer> casinoMaxProfitBonus, long timeMillis) {
         BuildingFunctionCfg cfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(timeMillis));
         if (casinoMachineInfo.getProfitStartTime() == 0 || CollectionUtil.isEmpty(cfg.getOutput())) {
             return 0;
@@ -214,20 +215,23 @@ public class CasinoBuilder {
         int num = getInstantaneousNum(hashMap, cfg.getOutput().getLast());
         //总数量
         long totalNum = getTotalNum(hashMap, cfg.getSavenum());
-        totalNum = totalNum - casinoMachineInfo.getLastProfit();
-        if (totalNum <= 0) {
-            return 0;
+        List<TimeNodeData> areaAdd = CasinoBuilder.getTimeNodeData(machineInfoData, timeMillis);
+        //计算总收获
+        long hasTotalNum = CasinoBuilder.getTotalNum(areaAdd, casinoMachineInfo, cfg, timeMillis);
+        long need = totalNum - hasTotalNum;
+        if (need <= 0) {
+            return timeMillis;
         }
-        long remainder = totalNum % num;
-        long times = ((totalNum - remainder) / num) + (remainder > 0 ? 1 : 0);
-        return times * intervalTime * ONE_MINUTE_OF_MILLIS + casinoMachineInfo.getProfitStartTime();
+        long remainder = need % num;
+        long times = ((need - remainder) / num) + (remainder > 0 ? 1 : 0);
+        return times * intervalTime * ONE_MINUTE_OF_MILLIS + timeMillis;
     }
 
 
     /**
      * 获取机台总收益
      *
-     * @param areaAdd 基础收益区域
+     * @param areaAdd           基础收益区域
      * @param casinoMachineInfo 机台信息
      * @param cfg               配置信息
      * @param timeMillis        当前时间戳
@@ -330,7 +334,7 @@ public class CasinoBuilder {
      * 添加buff值
      *
      * @param buffId buffId
-     * @param base 基础buff值
+     * @param base   基础buff值
      */
     private static void addBuffValue(int buffId, Map<Integer, Integer> base) {
         if (buffId > 0) {
@@ -343,13 +347,14 @@ public class CasinoBuilder {
 
     /**
      * 获取我的赌场最大加成buff值
-     * @param data 建筑时间数据
-     * @param base 基础buff值
+     *
+     * @param data      建筑时间数据
+     * @param base      基础buff值
      * @param startTime 开始时间
-     * @param endTime 结束时间
+     * @param endTime   结束时间
      * @return 最大加成buff值
      */
-    public static Map<Integer, Integer> getCasinoMaxProfitBonus(List<TimeNodeData> data, Map<Integer, Integer> base,  long startTime, long endTime) {
+    public static Map<Integer, Integer> getCasinoMaxProfitBonus(List<TimeNodeData> data, Map<Integer, Integer> base, long startTime, long endTime) {
         Map<Integer, Integer> addMap = new HashMap<>(base);
         for (TimeNodeData nodeData : data) {
             if (nodeData.getType() == 2) {
@@ -374,8 +379,9 @@ public class CasinoBuilder {
 
     /**
      * 获取领取收益时建筑时间数据
+     *
      * @param machineInfoData 机台信息
-     * @param timeMillis 当前时间
+     * @param timeMillis      当前时间
      * @return 建筑时间数据
      */
     public static List<TimeNodeData> getTimeNodeData(Map<Long, CasinoMachineInfo> machineInfoData, long timeMillis) {
