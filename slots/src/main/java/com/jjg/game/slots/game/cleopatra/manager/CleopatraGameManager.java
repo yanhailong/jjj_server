@@ -2,14 +2,12 @@ package com.jjg.game.slots.game.cleopatra.manager;
 
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinGameDataDao;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinResultLibDao;
-import com.jjg.game.slots.game.mahjiongwin.manager.MajiongWinGenerateManager;
-import com.jjg.game.slots.logger.SlotsLogger;
+import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinGenerateManager;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -24,7 +22,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
     @Autowired
     private MahjiongWinResultLibDao libDao;
     @Autowired
-    private MajiongWinGenerateManager generateManager;
+    private MahjiongWinGenerateManager generateManager;
     @Autowired
     private MahjiongWinGameDataDao gameDataDao;
 

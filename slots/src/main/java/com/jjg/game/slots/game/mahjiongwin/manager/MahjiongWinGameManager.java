@@ -5,19 +5,8 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseRoomCfg;
-import com.jjg.game.sampledata.bean.SpecialResultLibCfg;
-import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
-import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinGameDataDao;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinResultLibDao;
@@ -26,7 +15,6 @@ import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinPlayerGameData;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinResultLib;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -41,7 +29,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
     @Autowired
     private MahjiongWinResultLibDao libDao;
     @Autowired
-    private MajiongWinGenerateManager generateManager;
+    private MahjiongWinGenerateManager generateManager;
     @Autowired
     private SlotsPoolDao slotsPoolDao;
     @Autowired
@@ -100,7 +88,10 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
             } else {
                 gameRunInfo.setCode(Code.FAIL);
                 log.warn("当前状态错误 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
+                return gameRunInfo;
             }
+
+            gameRunInfo.setData(playerGameData);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -131,10 +122,8 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
 
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
 
-        gameRunInfo.setBet(betValue);
         gameRunInfo.setIconArr(resultLib.getIconArr());
-
-        gameRunInfo.setData(playerGameData);
+        gameRunInfo.setResultLib(resultLib);
         return gameRunInfo;
     }
 
@@ -145,6 +134,21 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
      * @return
      */
     private MahjiongWinGameRunInfo free(MahjiongWinGameRunInfo gameRunInfo, MahjiongWinPlayerGameData playerGameData){
+        CommonResult<MahjiongWinResultLib> libResult = freeGetLib(playerGameData);
+        if(!libResult.success()){
+            gameRunInfo.setCode(libResult.code);
+            return gameRunInfo;
+        }
+        MahjiongWinResultLib freeGame = libResult.data;
+
+        int afterCount = playerGameData.getRemainFreeCount().addAndGet(-1);
+        if (afterCount < 1) {
+            playerGameData.setStatus(MahjiongWinConstant.Status.NORMAL);
+            playerGameData.setFreeLib(null);
+        }
+
+        gameRunInfo.setIconArr(freeGame.getIconArr());
+
         return gameRunInfo;
     }
 
@@ -166,7 +170,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
     }
 
     @Override
-    protected MajiongWinGenerateManager getGenerateManager() {
+    protected MahjiongWinGenerateManager getGenerateManager() {
         return this.generateManager;
     }
 

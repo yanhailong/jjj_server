@@ -23,18 +23,18 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
     private long afterGold;
     //单线押分
     private long stake;
-    //玩家押注，已经除了100
-    private long bet;
     //图标
     private int[] iconArr;
-    //状态
-    private int status;
     //大奖展示id
     private int bigShowId;
     //剩余免费次数
     private int remainFreeCount;
     //玩家游戏数据
     private T data;
+    //结果库
+    private Object resultLib;
+    //当前结果库中的免费结果
+    private Object currentFreeLib;
 
     public GameRunInfo(int code, long playerId) {
         this.code = code;
@@ -77,14 +77,6 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
         this.allWinGold = allWinGold;
     }
 
-    public long getBet() {
-        return bet;
-    }
-
-    public void setBet(long bet) {
-        this.bet = bet;
-    }
-
     public long getBigPoolTimes() {
         return bigPoolTimes;
     }
@@ -103,14 +95,6 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
 
     public void setIconArr(int[] iconArr) {
         this.iconArr = iconArr;
-    }
-
-    public int getStatus() {
-        return status;
-    }
-
-    public void setStatus(int status) {
-        this.status = status;
     }
 
     public long getStake() {
@@ -175,5 +159,21 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
 
     public void setData(T data) {
         this.data = data;
+    }
+
+    public Object getResultLib() {
+        return resultLib;
+    }
+
+    public void setResultLib(Object resultLib) {
+        this.resultLib = resultLib;
+    }
+
+    public Object getCurrentFreeLib() {
+        return currentFreeLib;
+    }
+
+    public void setCurrentFreeLib(Object currentFreeLib) {
+        this.currentFreeLib = currentFreeLib;
     }
 }
