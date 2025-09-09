@@ -8,7 +8,8 @@ import com.jjg.game.common.constant.MessageConst;
  */
 public interface ActivityConstant {
     interface Common {
-
+        //redis 锁时间
+        int REDIS_LOCK = 500;
     }
 
     interface ActivityStatus {
@@ -36,9 +37,15 @@ public interface ActivityConstant {
         int REQ_ACTIVITY_INFO_BY_TYPE = BASE_MSG_PREFIX | 0x02;
         //请求领取活动奖励
         int REQ_ACTIVITY_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x03;
+        //通知活动变化
+        int NOTIFY_ACTIVITY_CHANGE = BASE_MSG_PREFIX | 0x04;
 
-
-        //每日奖励响应奖励领取
-        int RES_PRIVILEGE_CARD_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x04;
+        //每日奖金
+        //响应每日奖金活动类型信息
+        int RES_PRIVILEGE_CARD_TYPE_INFO = BASE_MSG_PREFIX | 0x05;
+        //响应每日奖励活动详细信息
+        int RES_PRIVILEGE_CARD_DETAIL_INFO = BASE_MSG_PREFIX | 0x06;
+        //响应每日奖金领取活动奖励
+        int RES_PRIVILEGE_CARD_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x07;
     }
 }

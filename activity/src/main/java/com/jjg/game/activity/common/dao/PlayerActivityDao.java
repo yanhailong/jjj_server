@@ -4,7 +4,6 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.activity.common.data.ActivityType;
-import com.jjg.game.common.redis.RedisLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.HashOperations;
@@ -20,11 +19,10 @@ public class PlayerActivityDao {
     private final String TABLE_NAME = "activity:player:%s:%s";
     private final String LOCK_KEY = "activity:player:lock:%s:%s";
     private final RedisTemplate<String, String> redisTemplate;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public PlayerActivityDao(RedisTemplate<String, String> redisTemplate, ObjectMapper objectMapper, RedisLock redisLock) {
+    public PlayerActivityDao(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
-        this.objectMapper = objectMapper;
     }
 
     private String getKey(long playerId, long activityType) {
@@ -44,7 +42,7 @@ public class PlayerActivityDao {
             HashOperations<String, String, String> hash = redisTemplate.opsForHash();
             String jsonData = hash.get(getKey(playerId, activityType.getType()), String.valueOf(activityId));
             if (jsonData == null) {
-                return null;
+                return Map.of();
             }
             return objectMapper.readValue(jsonData, new TypeReference<>() {
             });
@@ -52,7 +50,7 @@ public class PlayerActivityDao {
             log.error("获取活动数据异常 playerId:{} activityType:{} activityId:{}",
                     playerId, activityType, activityId, e);
         }
-        return null;
+        return Map.of();
     }
 
     /**

@@ -5,6 +5,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.hall.casino.pb.bean.CasinoRewardsInfo;
 import com.jjg.game.hall.casino.pb.bean.CasinoSimpleInfo;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.common.pb.ItemInfo;
@@ -20,6 +21,8 @@ import java.util.List;
 public class ResCasinoClaimRewards extends AbstractResponse {
     @ProtoDesc("机台id 为0时为一键领取")
     public long machineId;
+    @ProtoDesc("详细奖励道具信息")
+    public List<CasinoRewardsInfo> casinoRewardsInfos;
     @ProtoDesc("奖励道具信息")
     public List<ItemInfo> itemInfos;
     @ProtoDesc("机台信息")

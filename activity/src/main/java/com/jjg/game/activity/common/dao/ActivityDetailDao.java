@@ -26,11 +26,10 @@ public class ActivityDetailDao {
     private static final Logger log = LoggerFactory.getLogger(ActivityDetailDao.class);
     private static final String TABLE_NAME = "activity:server:detail:%s";
 
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final RedisTemplate<String, Integer> redisTemplate;
 
-    public ActivityDetailDao(ObjectMapper objectMapper, RedisTemplate<String, Integer> redisTemplate) {
-        this.objectMapper = objectMapper;
+    public ActivityDetailDao(RedisTemplate<String, Integer> redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 

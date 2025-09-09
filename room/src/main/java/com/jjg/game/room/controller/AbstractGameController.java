@@ -292,13 +292,13 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * 由房间控制器调用此方法
      */
     @Override
-    public void gameOver() {
+    public void gameDestroy(boolean closeByPlayer) {
         // 暂停游戏
         stopGame();
         // 调用结算逻辑
         gameOverSettlement();
         // 调用房间管理器的解散逻辑
-        roomController.getRoomManager().disbandRoom(roomController.getRoom());
+        roomController.getRoomManager().disbandRoom(roomController.getRoom(), closeByPlayer);
     }
 
     @Override

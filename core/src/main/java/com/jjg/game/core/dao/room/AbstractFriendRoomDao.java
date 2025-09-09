@@ -76,6 +76,10 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
             friendRoom.setRoomCfgId(roomCfgId);
             friendRoom.setAliasName(req.roomAliasName);
             friendRoom.setOverdueTime(req.timeOfOpenRoom + curTime);
+            // 如果时间大于0需要立马开始计时
+            if (req.timeOfOpenRoom > 0) {
+                friendRoom.setStatus(1);
+            }
             friendRoom.setAutoRenewal(req.autoRenewal);
             friendRoom.setPredictCostGoldNum(req.predictCostGoldNum);
             friendRoom.setCreator(playerId);

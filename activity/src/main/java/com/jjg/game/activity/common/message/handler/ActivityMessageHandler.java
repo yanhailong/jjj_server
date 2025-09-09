@@ -2,7 +2,6 @@ package com.jjg.game.activity.common.message.handler;
 
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;
-import com.jjg.game.activity.common.message.ActivityBuilder;
 import com.jjg.game.activity.common.message.req.ReqActivityClaimRewards;
 import com.jjg.game.activity.common.message.req.ReqActivityDetailInfo;
 import com.jjg.game.activity.common.message.req.ReqActivityInfoByType;
@@ -65,7 +64,6 @@ public class ActivityMessageHandler {
     public void reqActivityClaimRewards(PlayerController playerController, ReqActivityClaimRewards req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data == null || !data.getValue().contains(req.detailId)) {
-            playerController.send(ActivityBuilder.getDefaultResponse());
             return;
         }
         AbstractResponse response = data.getType().getController().claimActivityRewards(playerController.playerId(), data, req.detailId);

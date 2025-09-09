@@ -162,7 +162,7 @@ public class CasinoBuilder {
 
     public static long calculateMaxProfitTime(CasinoMachineInfo casinoMachineInfo, Map<Integer, Integer> casinoMaxProfitBonus, long timeMillis) {
         BuildingFunctionCfg cfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(timeMillis));
-        if (casinoMachineInfo.getRunEmploymentNum(timeMillis) < cfg.getNumEmployees()) {
+        if (casinoMachineInfo.getProfitStartTime() == 0 ) {
             return 0;
         }
         if (cfg.getSavenum() == 0) {
@@ -215,18 +215,12 @@ public class CasinoBuilder {
         List<TimeNodeData> tempAreaAdd = new ArrayList<>(areaAdd);
         //计算雇员在的时候的总收益加成
         if (CollectionUtil.isNotEmpty(employmentMap)) {
-            if (cfg.getNumEmployees() > employmentMap.size()) {
-                return 0;
-            }
             for (CasinoEmployment employment : employmentMap.values()) {
                 if (employment.getEmploymentEndTime() < startTime) {
                     continue;
                 }
                 tempAreaAdd.add(TimeNodeData.getNewTimeNodeData(employment));
             }
-        }
-        if (tempAreaAdd.size() - areaAdd.size() < cfg.getNumEmployees()) {
-            return 0;
         }
         tempAreaAdd.add(TimeNodeData.getNewTimeNodeData(casinoMachineInfo, getLastBuildingFunctionCfg(casinoMachineInfo.getConfigId())));
         //按时间拆分的时间段
@@ -239,7 +233,7 @@ public class CasinoBuilder {
         Iterator<TimeNodeData> iterator = tempAreaAdd.iterator();
         while (iterator.hasNext()) {
             TimeNodeData next = iterator.next();
-            if (next.getEndTime() > timeMillis) {
+            if (next.getEndTime() > timeMillis || next.getEndTime() <= startTime) {
                 allInTime.add(next);
                 iterator.remove();
                 continue;
@@ -283,6 +277,9 @@ public class CasinoBuilder {
                 }
             }
             BuildingFunctionCfg functionCfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(startPeriod));
+            if (CollectionUtil.isEmpty(functionCfg.getOutput())) {
+                continue;
+            }
             casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, baseEmployeesNum, functionCfg.getNumEmployees(), startPeriod, endPeriod);
             if (Objects.isNull(casinoMaxProfitBonus)) {
                 return totalNum;

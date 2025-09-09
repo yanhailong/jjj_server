@@ -36,6 +36,8 @@ public class FriendRoom extends Room {
     protected LinkedHashMap<Long, Long> bankerPredicateMap = new LinkedHashMap<>();
     // 房间创建者收益
     protected long creatorIncome;
+    // 房间是否处于游戏中
+    protected boolean inGaming;
 
     /**
      * 场上是否有庄家
@@ -200,6 +202,14 @@ public class FriendRoom extends Room {
 
     public void setRoomExpendId(int roomExpendId) {
         this.roomExpendId = roomExpendId;
+    }
+
+    public boolean isInGaming() {
+        return inGaming;
+    }
+
+    public void setInGaming(boolean inGaming) {
+        this.inGaming = inGaming;
     }
 
     @Override

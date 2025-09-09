@@ -7,8 +7,17 @@ package com.jjg.game.activity.common.data;
  * @date 2025/9/4 09:51
  */
 public enum ActivityTargetType {
+    /**
+     * 登录
+     */
     LOGIN(1, 1),
+    /**
+     * 等级变化
+     */
     LEVEL(2, 1 >> 1),
+    /**
+     * 重置
+     */
     RECHARGE(2, 1 >> 2);
     private final long type;
     private final long targetKey;

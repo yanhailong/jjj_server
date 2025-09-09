@@ -16,6 +16,7 @@ import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.friendroom.AbstractFriendRoomController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.RoomCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
@@ -185,31 +186,34 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
         // 获取房间控制器
         AbstractRoomController<? extends RoomCfg, ? extends Room> roomController = getRoomControllerByRoomId(roomId);
         if (roomController == null) {
+            log.debug("操作房间，但找不到指定的房间：{}", roomId);
             // TODO 如果是继续房间还需要查库和恢复房间的操作
             return;
         }
-        // 房主
-        long roomCreator = roomController.getRoom().getCreator();
-        if (roomCreator != playerId) {
-            log.error("操作异常，玩家：{} 请求操作房间，但房间房主ID为：{}", playerId, roomCreator);
-            return;
-        }
-        switch (operateCode) {
-            case 1:
-                log.info("收到请求暂停房间：{} 的请求", roomId);
-                // 暂停房间
-                roomController.pauseGame();
-                break;
-            case 2:
-                log.info("收到请求继续房间：{} 的请求", roomId);
-                // 继续游戏
-                roomController.tryContinueGame();
-                break;
-            case 3:
-                log.info("收到请求结算房间：{} 的请求", roomId);
-                // 解散房间
-                roomController.gameOver();
-                break;
+        if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
+            // 房主
+            long roomCreator = friendRoomController.getRoom().getCreator();
+            if (roomCreator != playerId) {
+                log.error("操作异常，玩家：{} 请求操作房间，但房间房主ID为：{}", playerId, roomCreator);
+                return;
+            }
+            switch (operateCode) {
+                case 2:
+                    log.info("收到请求暂停房间：{} 的请求", roomId);
+                    // 暂停房间
+                    friendRoomController.pauseGame();
+                    break;
+                case 1:
+                    log.info("收到请求继续房间：{} 的请求", roomId);
+                    // 继续游戏
+                    friendRoomController.tryContinueGame();
+                    break;
+                case 3:
+                    log.info("收到请求结算房间：{} 的请求", roomId);
+                    // 解散房间
+                    friendRoomController.destroyOnNextRoundStart();
+                    break;
+            }
         }
     }
 

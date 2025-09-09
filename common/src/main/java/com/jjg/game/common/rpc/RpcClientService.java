@@ -6,6 +6,7 @@ import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.rpc.msg.ReqRpcServiceData;
 import com.jjg.game.common.rpc.msg.RespRpcServiceData;
 import org.apache.commons.lang3.StringUtils;
@@ -52,10 +53,10 @@ public class RpcClientService {
         String methodName = method.getName();
         Parameter[] parameters = method.getParameters();
         RpcReqParameterBuilder rpcReqParameter = GameRpcContext.getContext().getReqParameterBuilder();
-        Map<String, Object> parameterArgsMap = new HashMap<>();
+        List<Pair<String, Object>> parameterArgsMap = new ArrayList<>();
         for (int i = 0; i < parameters.length; i++) {
             Parameter parameter = parameters[i];
-            parameterArgsMap.put(parameter.getType().getName(), args[i]);
+            parameterArgsMap.add(new Pair<>(parameter.getType().getName(), args[i]));
         }
         // 解析节点客户端列表
         List<ClusterClient> clusterClients = parseClusterClients(rpcReqParameter, reference);
@@ -96,7 +97,8 @@ public class RpcClientService {
         // 使用RpcContext中的请求参数
         if (rpcReqParameter != null) {
             if (!rpcReqParameter.getClusterClients().isEmpty()) {
-                clusterClients = rpcReqParameter.getClusterClients();
+                clusterClients =
+                    new ArrayList<>(rpcReqParameter.getClusterClients().stream().filter(Objects::nonNull).toList());
             }
             // 如果没有传节点，则向默认节点类型中的所有节点发送
             if (clusterClients.isEmpty()) {
@@ -123,7 +125,7 @@ public class RpcClientService {
                 }
             }
         }
-        return clusterClients;
+        return clusterClients.stream().filter(Objects::nonNull).toList();
     }
 
     /**
