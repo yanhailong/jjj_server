@@ -1,7 +1,5 @@
 package com.jjg.game.slots.game.dollarexpress.data;
 
-import com.jjg.game.slots.data.DollarInfo;
-
 import java.util.ArrayList;
 import java.util.List;
 

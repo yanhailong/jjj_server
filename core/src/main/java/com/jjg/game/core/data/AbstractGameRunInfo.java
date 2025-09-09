@@ -9,6 +9,8 @@ import com.jjg.game.core.constant.Code;
 public class AbstractGameRunInfo {
     protected int code;
     protected long playerId;
+    //是否为系统自动
+    protected boolean auto;
 
     public AbstractGameRunInfo(int code,long playerId) {
         this.code = code;
@@ -33,5 +35,13 @@ public class AbstractGameRunInfo {
 
     public void setPlayerId(long playerId) {
         this.playerId = playerId;
+    }
+
+    public boolean isAuto() {
+        return auto;
+    }
+
+    public void setAuto(boolean auto) {
+        this.auto = auto;
     }
 }

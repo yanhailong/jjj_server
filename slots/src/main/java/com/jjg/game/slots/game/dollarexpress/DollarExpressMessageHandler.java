@@ -36,8 +36,6 @@ public class DollarExpressMessageHandler implements GmListener {
     private DollarExpressGameManager gameManager;
     @Autowired
     private DollarExpressSendMessageManager sendMessageManager;
-    @Autowired
-    private DollarExpressGenerateManager generateManager;
 
 
     /**

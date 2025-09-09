@@ -24,7 +24,7 @@
         <logger name="com.jjg.game" level="debug" />
         <logger name="org.apache.commons.httpclient" level="error" />
         <logger name="org.apache.kafka" level="WARN"/>
-        <logger name="com.jjg.game.slots.manager.AbstractSlotsGenerateManager" level="error" additivity="false"/>
+        <logger name="com.jjg.game.slots.game.dollarexpress.manager.DollarExpressGenerateManager" level="error"/>
 
         <root level="info">
                 <appender-ref ref="console" />
