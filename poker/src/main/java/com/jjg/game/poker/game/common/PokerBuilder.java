@@ -72,8 +72,13 @@ public class PokerBuilder {
         pokerPlayerInfo.seatIndex = seatInfo.getSeatId();
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
         if (Objects.nonNull(gamePlayer)) {
-            pokerPlayerInfo.icon = gamePlayer.getHeadImgId();
             pokerPlayerInfo.name = gamePlayer.getNickName();
+            pokerPlayerInfo.icon = gamePlayer.getHeadImgId();
+            pokerPlayerInfo.chipsId = gamePlayer.getChipsId();
+            pokerPlayerInfo.cardBackgroundId = gamePlayer.getCardBackgroundId();
+            pokerPlayerInfo.headFrameId = gamePlayer.getHeadFrameId();
+            pokerPlayerInfo.nationalId = gamePlayer.getNationalId();
+            pokerPlayerInfo.titleId = gamePlayer.getTitleId();
             if (gameDataVo instanceof TexasGameDataVo texasGameDataVo) {
                 pokerPlayerInfo.accountNumber = texasGameDataVo.getTempGold().getOrDefault(gamePlayer.getId(), 0L);
             } else {
