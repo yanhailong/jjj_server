@@ -5,6 +5,7 @@ import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.table.common.message.TableRoomMessageConstant;
+import com.jjg.game.table.common.message.bean.PlayerChip;
 import com.jjg.game.table.common.message.bean.TablePlayerInfo;
 
 import java.util.List;
@@ -22,8 +23,8 @@ import java.util.List;
 @ProtoDesc("通知押注类房间玩家信息变化")
 public class NotifyTableRoomPlayerInfoChange extends AbstractNotice {
 
-    @ProtoDesc("产生变化的玩家ID")
-    public long changedPlayerId;
+    @ProtoDesc("产生变化的玩家")
+    public PlayerChip changedPlayer;
 
     @ProtoDesc("总人数")
     public int totalPlayerNum;

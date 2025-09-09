@@ -16,11 +16,11 @@ import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
     cmd = FriendRoomMessageConstant.ReqMsgCons.REQ_OPERATE_FRIEND_ROOM
 )
 @ProtoDesc("请求操作好友房间")
-public class ReqOperateFriendRoom  extends AbstractMessage {
+public class ReqOperateFriendRoom extends AbstractMessage {
 
     @ProtoDesc("房间ID")
     public long roomId;
 
-    @ProtoDesc("操作类型 1. 暂停 2. 重新开启 3. 解散")
+    @ProtoDesc("操作类型 1. 重新开始 2. 暂停 3. 解散")
     public int operateCode;
 }

@@ -8,6 +8,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.hall.friendroom.constant.FriendRoomMessageConstant;
 import com.jjg.game.hall.friendroom.message.req.*;
 import com.jjg.game.hall.friendroom.message.res.ResManageFriendRoom;
+import com.jjg.game.hall.friendroom.message.res.ResTakeFriendRoomBillIncome;
 import com.jjg.game.hall.friendroom.message.res.RespCreateFriendsRoom;
 import com.jjg.game.hall.friendroom.services.FriendRoomServices;
 import org.slf4j.Logger;
@@ -108,7 +109,7 @@ public class FriendRoomMessageHandler {
     @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_CHANGE_FRIEND_ROOM_NAME)
     public void reqUpdateFriendRoomName(PlayerController playerController, ReqUpdateFriendRoom req) {
         try {
-            int updateCode = friendRoomServices.reqUpdateFriendRoomName(playerController, req);
+            int updateCode = friendRoomServices.reqUpdateFriendRoomData(playerController, req);
             if (updateCode != Code.SUCCESS) {
                 ResManageFriendRoom res = new ResManageFriendRoom(updateCode);
                 playerController.send(res);
@@ -148,7 +149,9 @@ public class FriendRoomMessageHandler {
     @Command(FriendRoomMessageConstant.ReqMsgCons.REQ_TAKE_FRIEND_ROOM_BILL_INCOME)
     public void reqTakeFriendRoomIncomeReward(PlayerController playerController) {
         try {
-            friendRoomServices.reqTakeFriendRoomIncomeReward(playerController);
+            int resCode = friendRoomServices.reqTakeFriendRoomIncomeReward(playerController.playerId());
+            ResTakeFriendRoomBillIncome res = new ResTakeFriendRoomBillIncome(resCode);
+            playerController.send(res);
         } catch (Exception e) {
             log.error("请求一键领取好友房收益奖励异常，{}", e.getMessage(), e);
         }

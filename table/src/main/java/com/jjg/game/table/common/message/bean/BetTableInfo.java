@@ -26,5 +26,5 @@ public class BetTableInfo {
     public long betValue;
 
     @ProtoDesc("区域押注金币列表")
-    public List<Integer> betGoldList;
+    public List<BetPlayerChip> betGoldList;
 }

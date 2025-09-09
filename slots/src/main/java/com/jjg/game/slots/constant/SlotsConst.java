@@ -35,11 +35,6 @@ public interface SlotsConst {
 
         //获取lib失败，总计可尝试次数
         int GET_LIB_FAIL_RETRY_COUNT = 100;
-
-        //单线押分
-        int ONE_LINE = 1;
-        //总押分
-        int ALL_LINE = 2;
     }
 
     //结果库变更类型
@@ -70,30 +65,12 @@ public interface SlotsConst {
         int TYPE_DISPERSE_WILD = 4;
     }
 
-    interface SpecialPlay{
-        //数字符号指定元素本身每次出现随机的倍数金额
-        int TYPE_PLAY_NUMBER_TIMES = 0;
-        //美元现金
-        int TYPE_PLAY_DOLLAR = 1;
-        //投资
-        int TYPE_PLAY_INVEST = 2;
-        //收集已解锁的地图
-        int TYPE_PLAY_MAP = 3;
-    }
-
     interface BigWinShow{
         int SWEET = 1;
         int BIG = 2;
         int MEGA = 3;
         int EPIC = 4;
         int LEGENDARY = 5;
-    }
-
-    interface SpecialAuxiliary{
-        //免费旋转
-        int TYPE_FREE_ROLL = 0;
-        //开启宝箱
-        int TYPE_OPEN_BOX = 1;
     }
 
     interface BaseElementReward{
@@ -103,20 +80,16 @@ public interface SlotsConst {
         int LINE_TYPE_NORMAL = 1;
         //指定线类型
         int LINE_TYPE_ASSIGN = 2;
+        //满线图案
+        int LINE_TYPE_FULL = 3;
         //全局分散线类型
         int LINE_TYPE_DISPERSE_GLOBAL = 4;
+    }
 
-        //旋转状态，普通
-        int ROTATESTATE_NORMAL = 1;
-        //旋转状态，免费
-        int ROTATESTATE_FREE = 2;
-        //旋转状态，重转
-        int ROTATESTATE_AGAIN = 3;
-        //旋转状态，全部
-        int ROTATESTATE_ALL = 4;
-
-        int REWARD_TYPE_A = 0;
-        int REWARD_TYPE_B = 1;
-        int REWARD_TYPE_C = 2;
+    interface BaseInit{
+        //需要走baseline
+        int NEED_BASE_LINE = 1;
+        //不需要走baseline
+        int NOT_NEED_BASE_LINE = 0;
     }
 }

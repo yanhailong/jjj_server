@@ -123,6 +123,13 @@ public class CasinoBuilder {
         return 3;
     }
 
+    /**
+     * 计算消减时间需要的道具
+     *
+     * @param endTime 结束时间
+     * @param timeMillis 当前时间
+     * @return 花费道具
+     */
     public static Item calculateCostItemInfo(long endTime, long timeMillis) {
         long needTime = endTime - timeMillis;
         if (needTime < 0) {
@@ -144,28 +151,47 @@ public class CasinoBuilder {
         return 0;
     }
 
+    /**
+     * 获取总收益上限
+     *
+     * @param casinoMaxProfitBonus buff参数
+     * @param base                 基础值
+     * @return 总收益上限
+     */
     public static int getTotalNum(Map<Integer, Integer> casinoMaxProfitBonus, int base) {
-        Integer add = casinoMaxProfitBonus.getOrDefault(12, 0);
-        base += add;
         Integer addRatio = casinoMaxProfitBonus.getOrDefault(2, 0);
         base = base * (10000 + addRatio) / 10000;
+        Integer add = casinoMaxProfitBonus.getOrDefault(12, 0);
+        base += add;
         return base;
     }
 
+    /**
+     * 获取总产出值
+     *
+     * @param casinoMaxProfitBonus buff参数
+     * @param base                 基础值
+     * @return 总产出
+     */
     public static int getInstantaneousNum(Map<Integer, Integer> casinoMaxProfitBonus, int base) {
-        Integer add = casinoMaxProfitBonus.getOrDefault(11, 0);
-        base += add;
         Integer addRatio = casinoMaxProfitBonus.getOrDefault(1, 0);
         base = base * (10000 + addRatio) / 10000;
+        Integer add = casinoMaxProfitBonus.getOrDefault(11, 0);
+        base += add;
         return base;
     }
 
+    /**
+     * 计算收益最大时间
+     *
+     * @param casinoMachineInfo    机台信息
+     * @param casinoMaxProfitBonus buff参数
+     * @param timeMillis           当前时间
+     * @return 收益最大时间(毫秒)
+     */
     public static long calculateMaxProfitTime(CasinoMachineInfo casinoMachineInfo, Map<Integer, Integer> casinoMaxProfitBonus, long timeMillis) {
         BuildingFunctionCfg cfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(timeMillis));
-        if (casinoMachineInfo.getRunEmploymentNum(timeMillis) < cfg.getNumEmployees()) {
-            return 0;
-        }
-        if (cfg.getSavenum() == 0) {
+        if (casinoMachineInfo.getProfitStartTime() == 0 || CollectionUtil.isEmpty(cfg.getOutput())) {
             return 0;
         }
         Map<Integer, Integer> hashMap = new HashMap<>(casinoMaxProfitBonus);
@@ -201,7 +227,7 @@ public class CasinoBuilder {
     /**
      * 获取机台总收益
      *
-     * @param areaAdd
+     * @param areaAdd 基础收益区域
      * @param casinoMachineInfo 机台信息
      * @param cfg               配置信息
      * @param timeMillis        当前时间戳
@@ -215,18 +241,12 @@ public class CasinoBuilder {
         List<TimeNodeData> tempAreaAdd = new ArrayList<>(areaAdd);
         //计算雇员在的时候的总收益加成
         if (CollectionUtil.isNotEmpty(employmentMap)) {
-            if (cfg.getNumEmployees() > employmentMap.size()) {
-                return 0;
-            }
             for (CasinoEmployment employment : employmentMap.values()) {
                 if (employment.getEmploymentEndTime() < startTime) {
                     continue;
                 }
                 tempAreaAdd.add(TimeNodeData.getNewTimeNodeData(employment));
             }
-        }
-        if (tempAreaAdd.size() - areaAdd.size() < cfg.getNumEmployees()) {
-            return 0;
         }
         tempAreaAdd.add(TimeNodeData.getNewTimeNodeData(casinoMachineInfo, getLastBuildingFunctionCfg(casinoMachineInfo.getConfigId())));
         //按时间拆分的时间段
@@ -239,7 +259,7 @@ public class CasinoBuilder {
         Iterator<TimeNodeData> iterator = tempAreaAdd.iterator();
         while (iterator.hasNext()) {
             TimeNodeData next = iterator.next();
-            if (next.getEndTime() > timeMillis) {
+            if (next.getEndTime() > timeMillis || next.getEndTime() <= startTime) {
                 allInTime.add(next);
                 iterator.remove();
                 continue;
@@ -248,7 +268,6 @@ public class CasinoBuilder {
             timePeriod.add(Math.min(timeMillis, next.getEndTime()));
         }
         Map<Integer, Integer> base = new HashMap<>();
-        int baseEmployeesNum = 0;
         if (!allInTime.isEmpty()) {
             for (TimeNodeData timeNodeData : allInTime) {
                 int cfgId = timeNodeData.getConfigId();
@@ -262,7 +281,6 @@ public class CasinoBuilder {
                 } else {
                     DealerFunctionCfg dealerFunctionCfg = GameDataManager.getDealerFunctionCfg(cfgId);
                     addBuffValue(dealerFunctionCfg.getBuffid(), base);
-                    baseEmployeesNum++;
                 }
             }
         }
@@ -286,10 +304,7 @@ public class CasinoBuilder {
             if (CollectionUtil.isEmpty(functionCfg.getOutput())) {
                 continue;
             }
-            casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, baseEmployeesNum, functionCfg.getNumEmployees(), startPeriod, endPeriod);
-            if (Objects.isNull(casinoMaxProfitBonus)) {
-                return totalNum;
-            }
+            casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, startPeriod, endPeriod);
             //总数量
             int totalMaxNum = getTotalNum(casinoMaxProfitBonus, functionCfg.getSavenum());
             if (totalNum >= totalMaxNum) {
@@ -314,8 +329,8 @@ public class CasinoBuilder {
     /**
      * 添加buff值
      *
-     * @param buffId
-     * @param base
+     * @param buffId buffId
+     * @param base 基础buff值
      */
     private static void addBuffValue(int buffId, Map<Integer, Integer> base) {
         if (buffId > 0) {
@@ -326,9 +341,16 @@ public class CasinoBuilder {
         }
     }
 
-    public static Map<Integer, Integer> getCasinoMaxProfitBonus(List<TimeNodeData> data, Map<Integer, Integer> base, int baseEmployment, int needEmployment, long startTime, long endTime) {
+    /**
+     * 获取我的赌场最大加成buff值
+     * @param data 建筑时间数据
+     * @param base 基础buff值
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 最大加成buff值
+     */
+    public static Map<Integer, Integer> getCasinoMaxProfitBonus(List<TimeNodeData> data, Map<Integer, Integer> base,  long startTime, long endTime) {
         Map<Integer, Integer> addMap = new HashMap<>(base);
-        int nowEmployment = baseEmployment;
         for (TimeNodeData nodeData : data) {
             if (nodeData.getType() == 2) {
                 //雇员
@@ -336,7 +358,6 @@ public class CasinoBuilder {
                     //包含
                     DealerFunctionCfg cfg = GameDataManager.getDealerFunctionCfg(nodeData.getConfigId());
                     addBuffValue(cfg.getBuffid(), addMap);
-                    nowEmployment++;
                 }
             } else {
                 //机台
@@ -348,12 +369,15 @@ public class CasinoBuilder {
                 addBuffValue(buildingFunctionCfg.getBuffid(), addMap);
             }
         }
-        if (nowEmployment < needEmployment) {
-            return null;
-        }
         return addMap;
     }
 
+    /**
+     * 获取领取收益时建筑时间数据
+     * @param machineInfoData 机台信息
+     * @param timeMillis 当前时间
+     * @return 建筑时间数据
+     */
     public static List<TimeNodeData> getTimeNodeData(Map<Long, CasinoMachineInfo> machineInfoData, long timeMillis) {
         //总加成
         List<TimeNodeData> areaAdd = new ArrayList<>();

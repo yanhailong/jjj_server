@@ -18,8 +18,6 @@ public class BaseRoomCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "BaseRoom";
 
-  /** 被动小游戏 */
-  protected List<Integer> AutomaticallyGames;
   /** 实际押注抽水入奖池万分比 */
   protected int commissionProp;
   /** 默认押分 */
@@ -50,11 +48,6 @@ public class BaseRoomCfg extends BaseCfgBean {
   protected int roomName;
   /** VIP等级限制 */
   protected int vipLvLimit;
-
-  /** 返回被动小游戏 */
-  public List<Integer> getAutomaticallyGames() {
-    return AutomaticallyGames;
-  }
 
   /** 返回实际押注抽水入奖池万分比 */
   public int getCommissionProp() {

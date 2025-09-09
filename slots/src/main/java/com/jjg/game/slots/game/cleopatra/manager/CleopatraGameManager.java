@@ -5,6 +5,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
+import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinGameDataDao;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinResultLibDao;
 import com.jjg.game.slots.game.mahjiongwin.manager.MajiongWinGenerateManager;
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Component;
  * @date 2025/8/1 17:25
  */
 @Component
-public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlayerGameData> {
+public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlayerGameData, CleopatraResultLib> {
     @Autowired
     private MahjiongWinResultLibDao libDao;
     @Autowired
@@ -28,7 +29,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
     private MahjiongWinGameDataDao gameDataDao;
 
     public CleopatraGameManager() {
-        super(CleopatraPlayerGameData.class);
+        super(CleopatraPlayerGameData.class,CleopatraResultLib.class);
     }
 
     @Override

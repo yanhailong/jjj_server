@@ -25,5 +25,6 @@
         <module>table</module>
         <module>poker</module>
         <module>sampledata</module>
+        <module>activity</module>
     </modules>
 </project>

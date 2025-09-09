@@ -13,6 +13,7 @@ import com.jjg.game.slots.game.dollarexpress.pb.ReqStartGame;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinGameManager;
 import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinSendMessageManager;
+import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinEnterGame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,9 +41,9 @@ public class MajiongWinMessageHandler implements GmListener {
      * @param req
      */
     @Command(MahjiongWinConstant.MsgBean.REQ_CONFIG_INFO)
-    public void reqConfigInfo(PlayerController playerController, ReqConfigInfo req) {
+    public void reqConfigInfo(PlayerController playerController, ReqMahjiongwinEnterGame req) {
         try {
-            log.info("收到玩家请求配置 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+            log.info("收到玩家请求配置 playerId={}", playerController.playerId());
             sendMessageManager.sendConfigMessage(playerController);
         } catch (Exception e) {
             log.error("", e);
