@@ -271,11 +271,11 @@ public class CasinoBuilder {
         if (!allInTime.isEmpty()) {
             for (TimeNodeData timeNodeData : allInTime) {
                 int cfgId = timeNodeData.getConfigId();
-                if (timeNodeData.getStartTime() > startTime) {
-                    cfgId = timeNodeData.getLastLevelConfigId();
-                }
                 //机台
                 if (timeNodeData.getType() == 1) {
+                    if (timeNodeData.getStartTime() > startTime) {
+                        cfgId = timeNodeData.getLastLevelConfigId();
+                    }
                     BuildingFunctionCfg buildingFunctionCfg = GameDataManager.getBuildingFunctionCfg(cfgId);
                     addBuffValue(buildingFunctionCfg.getBuffid(), base);
                 } else {
