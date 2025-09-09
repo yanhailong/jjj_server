@@ -23,6 +23,9 @@ public class NotifyPlayerBet extends AbstractResponse {
     @ProtoDesc("玩家ID")
     public long playerId;
 
+    @ProtoDesc("玩家此次下注时的筹码皮肤id")
+    public long chipId;
+
     @ProtoDesc("下注玩家当前金币")
     public long playerCurGold;
 
