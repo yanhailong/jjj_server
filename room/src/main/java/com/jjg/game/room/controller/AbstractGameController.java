@@ -137,6 +137,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         } else {
             gamePlayer = JSON.parseObject(playerJson, GamePlayer.class);
             gameDataVo.addGamePlayer(gamePlayer);
+            gameDataVo.setRoomDestroyTime(0);
         }
         return gamePlayer;
     }
@@ -272,7 +273,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     @Override
-    public void disbandRoom() {
+    public void disbandRoom(Boolean disbandRoomByPlayer) {
         // 先暂停房间类的阶段执行逻辑
         gameState = EGameState.DESTROYING;
         if (gameDataTracker != null) {

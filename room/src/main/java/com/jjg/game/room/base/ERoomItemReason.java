@@ -13,6 +13,7 @@ public enum ERoomItemReason {
     FRIEND_ROOM_CONTINUES_BANKER_ADD_GOLD("好友房连续坐庄，自动下庄回退预付金币"),
     FRIEND_ROOM_PREDICATE_GOLD_NOT_ENOUGH("好友房预付金币不足，自动下庄回退预付金币"),
     FRIEND_ROOM_AUTO_RENEW_TIME("好友房自动续费时长扣金币"),
+    FRIEND_ROOM_DISBAND_REBACK_GOLD("好友房解散时返还准备金"),
     GAME_SETTLEMENT("游戏结算"),
     GAME_SETTLEMENT_BANKER_ADD("游戏结算,庄家赢钱"),
     GAME_BET("游戏押注"),

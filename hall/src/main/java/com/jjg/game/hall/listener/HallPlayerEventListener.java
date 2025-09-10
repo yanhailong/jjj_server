@@ -35,6 +35,8 @@ import com.jjg.game.hall.pb.res.ResLogin;
 import com.jjg.game.hall.pb.struct.GameWareInfo;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +54,7 @@ import java.util.Optional;
  */
 @Component
 public class HallPlayerEventListener implements SessionCloseListener, SessionEnterListener, SessionLoginListener,
-        SessionLogoutListener {
+    SessionLogoutListener {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -125,7 +127,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 res.code = Code.EXPIRE;
                 session.send(res);
                 log.debug("token校验失败,登录失败, playerId = {},dbToken = {},reqToken = {}", req.playerId,
-                        playerSessionToken.getToken(), req.token);
+                    playerSessionToken.getToken(), req.token);
                 session.verifyPassFail();
                 return;
             }
@@ -217,6 +219,10 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 res.gameWareInfo = new GameWareInfo();
                 res.gameWareInfo.gameType = player.getGameType();
                 res.gameWareInfo.roomCfgId = player.getRoomCfgId();
+                WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(player.getRoomCfgId());
+                if (warehouseCfg != null) {
+                    res.gameWareInfo.isFriendRoom = warehouseCfg.getRoomType() >= 10;
+                }
                 session.send(res);
                 hallLogger.login(player, req.token, playerSessionToken.getLoginType());
                 return;
@@ -299,7 +305,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //获取房间所在的节点
             node = clusterSystem.getNode(path);
             if (node == null) {
-                log.warn("断线重连时，房间所在的节点为空 playerId = {},roomId = {},path = {}", player.getId(), player.getRoomId(), path);
+                log.warn("断线重连时，房间所在的节点为空 playerId = {},roomId = {},path = {}", player.getId(), player.getRoomId(),
+                    path);
                 hallPlayerService.doSave(player.getId(), (p) -> {
                     p.setRoomId(0);
                     p.setGameType(0);
@@ -323,7 +330,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             node = clusterSystem.getNode(playerLastGameInfo.getNodePath());
             if (node == null) {
                 node =
-                        nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
+                    nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
                 if (node == null) {
                     playerLastGameInfo.setHalfwayOffline(false);
                     playerLastGameInfo.setNodePath(null);
@@ -333,7 +340,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             }
         }
         log.info("玩家重连开始切换节点 playerId={},gameType={},toNode = {}",
-                player.getId(), player.getGameType(), node.getNodePath());
+            player.getId(), player.getGameType(), node.getNodePath());
         playerSessionService.updateReconnectStatus(true, playerSessionInfo);
         clusterSystem.switchNode(session, node);
         return true;

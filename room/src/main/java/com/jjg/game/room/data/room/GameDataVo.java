@@ -36,6 +36,8 @@ public class GameDataVo<RC extends RoomCfg> {
     protected int beBankerTimes;
     // 当前申请下庄的玩家ID
     protected long applyCancelBeBankerPlayer;
+    // 房间销毁时间,到期后房间自动销毁.没有真人的空房间会删除,在销毁时间到期前如果加入新玩家重置此时间
+    protected long roomDestroyTime;
 
 
     /**
@@ -140,5 +142,13 @@ public class GameDataVo<RC extends RoomCfg> {
 
     public void setApplyCancelBeBankerPlayer(long applyCancelBeBankerPlayer) {
         this.applyCancelBeBankerPlayer = applyCancelBeBankerPlayer;
+    }
+
+    public long getRoomDestroyTime() {
+        return roomDestroyTime;
+    }
+
+    public void setRoomDestroyTime(long roomDestroyTime) {
+        this.roomDestroyTime = roomDestroyTime;
     }
 }
