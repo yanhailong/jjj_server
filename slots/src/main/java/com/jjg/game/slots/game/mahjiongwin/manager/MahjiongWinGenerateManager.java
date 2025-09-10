@@ -4,17 +4,18 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseElementRewardCfg;
-import com.jjg.game.sampledata.bean.BaseInitCfg;
-import com.jjg.game.sampledata.bean.BaseRollerCfg;
-import com.jjg.game.sampledata.bean.SpecialPlayCfg;
+import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
+import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
+import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
+import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAddFreeInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAddIconInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAwardLineInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinResultLib;
 import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
+import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -28,11 +29,12 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
     public MahjiongWinGenerateManager() {
         super(MahjiongWinResultLib.class);
     }
-
+    //连续中奖增加倍数
     private Map<Integer, Integer> addTimesMap;
-
     //连续中奖增加倍数时，最大连续中奖次数
     private int maxWinCount;
+    //
+    private MahjiongWinAddFreeInfo mahjiongWinAddFreeInfo;
 
 
     @Override
@@ -76,6 +78,66 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
             info.setSameIconSet(set);
         }
         return info;
+    }
+
+    @Override
+    protected void triggerFree(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg,
+                               SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig, SpecialAuxiliaryInfo specialAuxiliaryInfo) {
+        if (specialAuxiliaryPropConfig.getTriggerCountPropInfo() == null) {
+            return;
+        }
+
+        //检查是否有免费旋转次数，免费旋转的结果，通过specialMode生成
+        Integer freeCount = specialAuxiliaryPropConfig.getTriggerCountPropInfo().getRandKey();
+        if(freeCount == null || freeCount < 1){
+            return;
+        }
+
+        int remainFreeCount = freeCount;
+
+        while (remainFreeCount > 0) {
+            //检查是否有修改图案策略组id
+            int specialGroupGirdID = 0;
+            if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
+                Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
+                if (randKey != null && randKey > 0) {
+                    specialGroupGirdID = randKey;
+                }
+            }
+
+            MahjiongWinResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg,specialGroupGirdID);
+            int addCount = checkAddFreeCount(lib);
+            lib.setAddFreeCount(addCount);
+            remainFreeCount += addCount;
+            specialAuxiliaryInfo.addFreeGame((JSONObject) JSON.toJSON(lib));
+            log.debug("--------------{}------------", remainFreeCount);
+            remainFreeCount--;
+        }
+    }
+
+    /**
+     * 检查是否增加免费次数
+     * @param lib
+     * @return
+     */
+    private int checkAddFreeCount(MahjiongWinResultLib lib){
+        if(this.mahjiongWinAddFreeInfo.getLibType() != MahjiongWinConstant.SpecialMode.FREE){
+            return 0;
+        }
+
+        int addCount = 0;
+        for(int i=1;i<lib.getIconArr().length;i++){
+            int icon = lib.getIconArr()[i];
+            //是否出现了目标图标
+            if(icon != this.mahjiongWinAddFreeInfo.getAddFreeCount()){
+                continue;
+            }
+            boolean flag = SlotsUtil.calProp(this.mahjiongWinAddFreeInfo.getProp());
+            if(flag){
+                addCount += this.mahjiongWinAddFreeInfo.getAddFreeCount();
+            }
+        }
+        return addCount;
     }
 
     /**
@@ -337,6 +399,16 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
                         tmpMaxWinCount = count;
                     }
                 }
+            }else if (cfg.getPlayType() == MahjiongWinConstant.SpecialPlay.TYPE_ADD_FREE_COUNT) {  //增加免费次数
+                MahjiongWinAddFreeInfo tmpMahjiongWinAddFreeInfo = new MahjiongWinAddFreeInfo();
+                String[] arr = cfg.getValue().split("_");
+
+                tmpMahjiongWinAddFreeInfo.setLibType(Integer.parseInt(arr[0]));
+                tmpMahjiongWinAddFreeInfo.setTargetIcon(Integer.parseInt(arr[1]));
+                tmpMahjiongWinAddFreeInfo.setAddFreeCount(Integer.parseInt(arr[2]));
+                tmpMahjiongWinAddFreeInfo.setProp(Integer.parseInt(arr[3]));
+
+                this.mahjiongWinAddFreeInfo = tmpMahjiongWinAddFreeInfo;
             }
         }
         this.addTimesMap = tmpAddTimesMap;

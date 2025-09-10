@@ -19,33 +19,33 @@ public class SlotsPlayerGameData {
     //场次配置id
     protected int roomCfgId;
     //最近一次的模式id
-    private int lastModelId;
+    protected int lastModelId;
     //最近一次所在的区间
-    private int lastSectionIndex;
+    protected int lastSectionIndex;
     //当前所处状态(美元快递) 0.正常  1.二选一  2.正在免费旋转
     protected int status;
     //最后一次活跃时间
-    private int lastActiveTime;
+    protected int lastActiveTime;
     //是否在线
-    private boolean online;
+    protected boolean online;
     //最近一次的押注(单线押分)
-    private long oneBetScore;
+    protected long oneBetScore;
     //最近一次的押注(总押分)
-    private long allBetScore;
+    protected long allBetScore;
     //玩家累计押注金额
-    private long allBet;
+    protected long allBet;
     //玩家累计获得奖池(倍场)金额
-    private long rewardPoolGold;
+    protected long rewardPoolGold;
     //玩家奖池(倍场)累计贡献金额金额(没有减去已获得金额)
-    private long contribtPoolGold;
+    protected long contribtPoolGold;
     //是否玩过该slots游戏
     protected AtomicBoolean hasPlaySlots = new AtomicBoolean(false);
     //剩余的免费次数
-    private AtomicInteger remainFreeCount = new AtomicInteger(0);
+    protected AtomicInteger remainFreeCount = new AtomicInteger(0);
     //缓存免费的结果库
-    private Object freeLib;
+    protected Object freeLib;
     //用于测试
-    private LinkedList<TestLibData> testLibDataList;
+    protected LinkedList<TestLibData> testLibDataList;
 
 
     public PlayerController getPlayerController() {

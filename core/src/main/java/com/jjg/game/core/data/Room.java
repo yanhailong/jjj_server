@@ -272,7 +272,7 @@ public class Room {
     /**
      * 扣除庄家金币
      */
-    public void deductBankerGold(long deductGold) {
+    public void deductBankerPredicateItem(long deductItemNum) {
     }
 
     /**

@@ -163,19 +163,19 @@ public class FriendRoom extends Room {
      * 减少准备金
      */
     @Override
-    public void deductBankerGold(long deductGold) {
+    public void deductBankerPredicateItem(long deductItemNum) {
         // 优先扣除庄家的
-        if (deductGold < 0) {
+        if (deductItemNum < 0) {
             return;
         }
         Map.Entry<Long, Long> bankerInf = bankerPredicateMap.firstEntry();
-        long deductRes = bankerInf.getValue() - deductGold;
+        long deductRes = bankerInf.getValue() - deductItemNum;
         // 需要继续扣除底庄的金币
         if (deductRes < 0) {
             long predicateCostRes = predictCostGoldNum - deductRes;
             if (predicateCostRes < 0) {
                 predictCostGoldNum = 0;
-                log.error("扣除准备金币失败，扣除值：{}，庄家值：{} 底庄值：{}", deductGold, bankerInf.getValue(), predictCostGoldNum);
+                log.error("扣除准备金币失败，扣除值：{}，庄家值：{} 底庄值：{}", deductItemNum, bankerInf.getValue(), predictCostGoldNum);
                 return;
             } else {
                 predictCostGoldNum = predicateCostRes;

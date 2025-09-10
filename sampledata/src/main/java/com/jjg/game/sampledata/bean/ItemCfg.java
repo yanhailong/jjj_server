@@ -24,6 +24,8 @@ public class ItemCfg extends BaseCfgBean {
   protected int autoActivate;
   /** 激活的装扮 */
   protected int avatarID;
+  /** 掉落ID */
+  protected int dropId;
   /** 使用道具后获得道具 */
   protected Map<Integer,Long> getItem;
   /** 图标资源名 */
@@ -52,6 +54,11 @@ public class ItemCfg extends BaseCfgBean {
   /** 返回激活的装扮 */
   public int getAvatarID() {
     return avatarID;
+  }
+
+  /** 返回掉落ID */
+  public int getDropId() {
+    return dropId;
   }
 
   /** 返回使用道具后获得道具 */

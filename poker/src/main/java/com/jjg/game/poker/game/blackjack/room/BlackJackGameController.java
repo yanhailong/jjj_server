@@ -355,10 +355,12 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
 
 
     @Override
-    public void tryStartGame() {
+    public boolean tryStartGame() {
         if (gameDataVo.canStartGame() && getCurrentGamePhase() == EGamePhase.WAIT_READY) {
             addPokerPhaseTimer(new BlackJackBetPhase(this, gameDataVo.getId()));
+            return true;
         }
+        return false;
     }
 
     @Override

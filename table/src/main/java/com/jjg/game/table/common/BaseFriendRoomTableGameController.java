@@ -115,7 +115,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                 long roomBankerId = friendRoomController.getRoom().roomBankerId();
                 // 给庄家添加金币
                 addItem(roomBankerId, bankerFlowing,
-                    ERoomItemReason.GAME_SETTLEMENT_BANKER_ADD.withCfgId(getRoom().getRoomCfgId()));
+                    ERoomItemReason.FRIEND_ROOM_ADD_ROOM_CREATOR_RATIO.withCfgId(getRoom().getRoomCfgId()));
             }
             // 需要记录
             FriendRoomBillHistoryDao dao = roomController.getRoomManager().getFriendRoomBillHistoryDao();
@@ -130,9 +130,11 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                 }
                 // 构建基础历史数据bean
                 FriendRoomBillHistoryBean historyBean = FriendRoomBillHistoryHelper.buildFriendRoom(getRoom());
-                int incomeRatio =
-                    SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.CREATE_ROOM_FUNC_INCOME_RATIO);
-                long roomCreatorTotalIncome = roomTotalIncome * (incomeRatio / 10000);
+                long roomCreatorTotalIncome =
+                    settlementDataMap.values().stream()
+                        .filter(s -> s.getRoomCreatorIncome() > 0)
+                        .mapToLong(SettlementData::getRoomCreatorIncome)
+                        .sum();
                 historyBean.setTotalFlowing(roomCreatorTotalIncome);
                 historyBean.setItemId(getGameTransactionItemId());
                 historyBean.setPartInPlayerIncome(

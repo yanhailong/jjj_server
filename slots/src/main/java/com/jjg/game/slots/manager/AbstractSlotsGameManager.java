@@ -163,6 +163,15 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
      * @param libTypeCountMap 生成条数
      */
     protected void generate(Map<Integer,Integer> libTypeCountMap) {
+        generate(libTypeCountMap,true);
+    }
+
+    /**
+     * 生成结果集
+     *
+     * @param libTypeCountMap 生成条数
+     */
+    public void generate(Map<Integer,Integer> libTypeCountMap,boolean saveToDB) {
         String newDocName = null;
         String redisTableName = null;
         try {
@@ -203,6 +212,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
                     }
                     if (exceptGenSectionCountMap.isEmpty()) {
                         tmpExceptGenCountMap.remove(libType);
+                        System.out.println("移除 libType = " + countEn.getKey());
                         break;
                     }
 
@@ -252,33 +262,47 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
                             libList.add(lib);
                         } else {
                             exceptGenSectionCountMap.remove(index);
+                            System.out.println("移除 libtype = " + libType + ",index = " + index + ",size = " + exceptGenSectionCountMap.size());
                         }
                     }
 
                     if (libList.size() >= this.batchSaveCount) {
 //                        System.out.println("保存这里的111");
-                        saveCount += getResultLibDao().batchSave(libList, newDocName);
+                        if(saveToDB){
+                            saveCount += getResultLibDao().batchSave(libList, newDocName);
+                        }else {
+                            saveCount += libList.size();
+                        }
+
                         libList = new ArrayList<>();
+                    }
+
+                    if((currentForCount % 50000) == 0){
+                        System.out.println(currentForCount);
                     }
                 }
             }
 
-            if(libList.size() > 0) {
+            if(saveToDB && !libList.isEmpty()) {
 //                System.out.println("保存这里的222 size = " + libList.size());
                 saveCount += getResultLibDao().batchSave(libList, newDocName);
             }
 
-            log.debug("生成结束，开始转移到redis, newDocName = {}", newDocName);
-            //加载到redis
-            redisTableName = getResultLibDao().moveToRedis(newDocName, getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionMap());
+            if(saveToDB){
+                log.debug("生成结束，开始转移到redis, newDocName = {}", newDocName);
+                //加载到redis
+                redisTableName = getResultLibDao().moveToRedis(newDocName, getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionMap());
 
-            log.info("生成结果库结束，实际循环次数 = {},成功保存到数据库 {} 条,mongoName = {},redisName = {}", currentForCount,saveCount, newDocName, redisTableName);
+                log.info("生成结果库结束，实际循环次数 = {},成功保存到数据库 {} 条,mongoName = {},redisName = {}", currentForCount,saveCount, newDocName, redisTableName);
 
-            this.clearAllLibEvent = new TimerEvent<>(this, 1, "clearLibEvent").withTimeUnit(TimeUnit.MINUTES);
-            this.timerCenter.add(this.clearAllLibEvent);
+                this.clearAllLibEvent = new TimerEvent<>(this, 1, "clearLibEvent").withTimeUnit(TimeUnit.MINUTES);
+                this.timerCenter.add(this.clearAllLibEvent);
 
-            //通知其他节点，结果库变更
-            noticeNodeLibChange(SlotsConst.LibChangeType.LIB_CHANGE, Collections.EMPTY_LIST);
+                //通知其他节点，结果库变更
+                noticeNodeLibChange(SlotsConst.LibChangeType.LIB_CHANGE, Collections.EMPTY_LIST);
+            }else {
+                log.debug("生成结束，实际循环次数 = {},总计条数 = {}", currentForCount,saveCount);
+            }
         } catch (Exception e) {
             if(StringUtils.isNotEmpty(newDocName)) {
                 getResultLibDao().clearMongoLib(newDocName);
@@ -780,17 +804,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
         }
     }
 
-    protected <D extends AbstractResultLibDao> D getResultLibDao() {
-        return null;
-    }
+    protected abstract <D extends AbstractResultLibDao> D getResultLibDao();
 
-    protected <D extends AbstractGameDataDao> D getGameDataDao() {
-        return null;
-    }
+    protected abstract <D extends AbstractGameDataDao> D getGameDataDao();
 
-    protected <D extends AbstractSlotsGenerateManager> D getGenerateManager() {
-        return null;
-    }
+    protected abstract <D extends AbstractSlotsGenerateManager> D getGenerateManager();
 
     protected T setGameDataValues(T d, SlotsPlayerGameDataDTO dto) {
         return null;
