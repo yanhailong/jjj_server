@@ -293,9 +293,9 @@ public class FriendRoomServices {
         }
         // 检查房间是否可以加入
         int checkRes = checkJoinRoom(playerController, req, friendRoom);
-        log.debug("{} code: {} 请求进入好友房：{}, room: {} ",
-            playerController.playerId(), checkRes, req.roomId, JSON.toJSONString(friendRoom));
         if (checkRes != Code.SUCCESS) {
+            log.warn("{} code: {} 请求进入好友房：{} 失败, room: {} ",
+                playerController.playerId(), checkRes, req.roomId, JSON.toJSONString(friendRoom));
             resJoinFriendRoom.code = checkRes;
             playerController.send(resJoinFriendRoom);
             return;
@@ -308,6 +308,7 @@ public class FriendRoomServices {
             playerController.send(resJoinFriendRoom);
             return;
         }
+        log.info("玩家：{} 请求加入好友房：{} 成功", playerController.playerId(), friendRoom.logStr());
         resJoinFriendRoom.code = Code.SUCCESS;
         resJoinFriendRoom.roomCfgId = friendRoom.getRoomCfgId();
         playerController.send(resJoinFriendRoom);
@@ -449,7 +450,7 @@ public class FriendRoomServices {
         friendRoomFollowDao.addFriendByInvitationCode(player.getId(), targetPlayerId, invitationCode);
         res.playerInfo = FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(targetPlayer);
         res.code = Code.SUCCESS;
-        log.debug("{} 通过邀请码：{} 成功添加好友: {}", player.getId(), invitationCode, targetPlayer.getId());
+        log.info("{} 通过邀请码：{} 成功添加好友: {}", player.getId(), invitationCode, targetPlayer.getId());
         playerController.send(res);
     }
 
@@ -631,6 +632,7 @@ public class FriendRoomServices {
                     playerController.send(res);
                     return;
                 }
+                log.info("玩家：{} 请求将玩家：{} 添加到黑名单", player.getId(), JSON.toJSONString(req.playerId));
                 break;
             }
             case 2: {
@@ -640,6 +642,7 @@ public class FriendRoomServices {
                     playerController.send(res);
                     return;
                 }
+                log.info("玩家：{} 请求将玩家：{} 移除黑名单", player.getId(), JSON.toJSONString(req.playerId));
                 // 移除黑名单
                 playerBlackList.removeAll(req.playerId);
                 break;
@@ -652,6 +655,7 @@ public class FriendRoomServices {
                     return;
                 }
                 playerBlackList.clear();
+                log.info("玩家：{} 请求清空黑名单", player.getId());
             }
             default:
                 break;
@@ -766,7 +770,7 @@ public class FriendRoomServices {
         res.code = Code.SUCCESS;
         res.roomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(result.data);
         playerController.send(res);
-        log.debug("更新房间数据成功，req: {} roomData: {}",
+        log.info("请求更新房间数据成功，req: {} roomData: {}",
             JSON.toJSONString(updateFriendRoom), JSON.toJSONString(result.data));
         return Code.SUCCESS;
     }
@@ -829,7 +833,7 @@ public class FriendRoomServices {
         res.code = Code.SUCCESS;
         res.pageSize = req.pageSize;
         res.pageIdx = gameBillInfos.size() < req.pageSize ? -1 : req.pageIdx + 1;
-        log.info("res: {}", JSON.toJSONString(res));
+        log.debug("res: {}", JSON.toJSONString(res));
         playerController.send(res);
     }
 
@@ -1012,6 +1016,7 @@ public class FriendRoomServices {
                         return true;
                     }
                 });
+                log.info("玩家：{} 请求开启房间：{}", playerId, req.roomId);
                 // 操作房间
                 operateFriendRoom(playerController, client, req, friendRoom);
                 break;
@@ -1038,6 +1043,7 @@ public class FriendRoomServices {
                         return true;
                     }
                 });
+                log.info("玩家：{} 请求暂停房间：{}", playerId, req.roomId);
                 // 操作房间
                 operateFriendRoom(playerController, client, req, friendRoom);
                 break;
@@ -1060,6 +1066,7 @@ public class FriendRoomServices {
                         }
                     });
                 }
+                log.info("玩家：{} 请求解散房间：{}", playerId, req.roomId);
                 // 操作房间
                 operateFriendRoom(playerController, client, req, friendRoom);
                 break;
