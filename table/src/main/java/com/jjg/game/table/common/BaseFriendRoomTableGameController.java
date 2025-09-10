@@ -135,13 +135,23 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                         .filter(s -> s.getRoomCreatorIncome() > 0)
                         .mapToLong(SettlementData::getRoomCreatorIncome)
                         .sum();
-                historyBean.setTotalFlowing(roomCreatorTotalIncome);
+                historyBean.setTotalIncome(roomCreatorTotalIncome);
+                long totalFlowing =
+                    settlementDataMap.values().stream()
+                        .filter(s -> s.getBetWin() > 0)
+                        .mapToLong(SettlementData::getBetWin)
+                        .sum();
+                historyBean.setTotalFlowing(totalFlowing);
                 historyBean.setItemId(getGameTransactionItemId());
                 historyBean.setPartInPlayerIncome(
                     settlementDataMap.entrySet().stream()
                         .collect(HashMap::new,
                             (map, e)
-                                -> map.put(e.getKey(), e.getValue().getTotalWin()),
+                                -> map.put(
+                                e.getKey(),
+                                e.getValue().getBetWin() > 0
+                                    ? e.getValue().getBetWin()
+                                    : -1 * e.getValue().getBetTotal()),
                             HashMap::putAll));
                 // 添加历史
                 dao.addFriendRoomBillHistory(historyBean);
