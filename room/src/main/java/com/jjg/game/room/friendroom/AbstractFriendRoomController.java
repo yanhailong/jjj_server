@@ -231,8 +231,13 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         }
         int minBankerAmount = FriendRoomSampleUtils.getRoomMinBankerAmount(roomCfg.getId());
         // 好友房，如果房间庄家不为空或者房间房主底注大于最小上庄金币
-        return !room.getBankerPredicateMap().isEmpty() || room.getPredictCostGoldNum() > minBankerAmount;
+        return checkBankerCanNextRound() || room.getPredictCostGoldNum() >= minBankerAmount;
     }
+
+    /**
+     * 检查庄家是否能满足开始条件
+     */
+    protected abstract boolean checkBankerCanNextRound();
 
     @Override
     public void onRoomCantContinue() {
@@ -452,7 +457,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
             @Override
             public Boolean updateDataWithRes(FriendRoom dataEntity) {
-                dataEntity.deductBankerGold(Math.abs(bankerFlowing));
+                dataEntity.deductBankerPredicateItem(Math.abs(bankerFlowing));
                 return true;
             }
         });

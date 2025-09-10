@@ -146,6 +146,10 @@ public class AbstractPlayerService {
     }
 
     public CommonResult<Player> addDiamond(long playerId, long addNum, String addType, String desc) {
+        return addDiamond(playerId, addNum, addType, desc, false);
+    }
+
+    public CommonResult<Player> addDiamond(long playerId, long addNum, String addType, String desc, boolean isNotify) {
         LongRef longRef = PrimitiveRef.ofLong(0);
         Supplier<Player> supplier = () -> checkAndSave(playerId, new DataSaveCallback<>() {
             @Override
@@ -159,7 +163,7 @@ public class AbstractPlayerService {
                 return true;
             }
         });
-        return addDiamond(playerId, addNum, addType, desc, false, supplier, longRef);
+        return addDiamond(playerId, addNum, addType, desc, isNotify, supplier, longRef);
     }
 
     /**
@@ -512,7 +516,7 @@ public class AbstractPlayerService {
      * @param desc     dec
      * @return 最新Player
      */
-    protected CommonResult<Player> addGold(long playerId, long addNum, String addType, String desc, boolean isNotify) {
+    public CommonResult<Player> addGold(long playerId, long addNum, String addType, String desc, boolean isNotify) {
         LongRef playerBeforeGoldRef = PrimitiveRef.ofLong(0);
         Supplier<Player> supplier = () -> checkAndSave(playerId, new DataSaveCallback<>() {
             @Override

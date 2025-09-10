@@ -1,5 +1,8 @@
 package com.jjg.game.poker.game.common.gamephase;
 
+import com.jjg.game.core.constant.GlobalSampleConstantId;
+import com.jjg.game.core.data.RoomType;
+import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
@@ -39,6 +42,23 @@ public abstract class BaseSettlementPhase<T extends BasePokerGameDataVo> extends
             //开启下一局
             controller.tryStartNextGame();
         }
+    }
+
+    /**
+     * 计算房主应得的收益
+     */
+    protected long calcRoomCreatorIncome(long betValue) {
+        RoomType roomType = RoomType.getRoomType(gameDataVo.getRoomCfg().getId());
+        long bankerIncome = 0;
+        // 如果是好友房需要扣除一部分金币给房主
+        if (roomType == RoomType.POKER_TEAM_UP_ROOM || roomType == RoomType.BET_TEAM_UP_ROOM) {
+            // 庄家扣税比例
+            int bankerIncomeRatio =
+                SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.CREATE_ROOM_FUNC_INCOME_RATIO);
+            bankerIncome =
+                (long) Math.floor((betValue) * bankerIncomeRatio / 10000.0);
+        }
+        return bankerIncome;
     }
 
     public void phaseFinishDoAction() {

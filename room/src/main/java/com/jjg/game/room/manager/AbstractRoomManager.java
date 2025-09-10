@@ -1022,8 +1022,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 sortedRooms.subList(keepNum, sortedRooms.size()).stream()
                     .filter(p -> {
                         if (p.getSecond() instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
-                            // 好友房必须要处于销毁状态才能删除
-                            return friendRoomController.getRoom().getStatus() == 3;
+                            // 好友房必须要处于销毁状态且没有玩家才能删除
+                            return friendRoomController.getRoom().getStatus() == 3 && p.getSecond().getRoom().countPlayers() <= 0;
                         } else {
                             // 需要筛选所有空的房间，还有真人的房间不能销毁
                             return p.getSecond().getRoom().countPlayers() <= 0;
@@ -1117,7 +1117,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         int joined = joinRoom(playerController, gameType, roomConfigId, roomOtherId);
         return joined == Code.SUCCESS;
     }
-
 
     /**
      * 获取playerService

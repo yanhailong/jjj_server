@@ -119,13 +119,16 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     }
 
     @Override
-    public void tryStartGame() {
+    public boolean tryStartGame() {
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         int total = gameDataVo.getSeatDownNum();
         if (getCurrentGamePhase() == EGamePhase.WAIT_READY && roomCfg.getMinPlayer() <= total && total <= roomCfg.getMaxPlayer()) {
             addPokerPhase(new TexasPlayCardPhase(this));
             log.info("开启下一局 当前id{}", gameDataVo.getId());
+            nextRoundStart();
+            return true;
         }
+        return false;
     }
 
 

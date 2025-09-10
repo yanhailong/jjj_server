@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.common;
 
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.data.PokerFriendRoom;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.friendroom.AbstractFriendRoomController;
@@ -15,6 +16,17 @@ public class PokerFriendRoomController extends AbstractFriendRoomController<Room
 
     public PokerFriendRoomController(Class<? extends RoomPlayer> roomPlayerClazz, PokerFriendRoom room) {
         super(roomPlayerClazz, room);
+    }
+
+    @Override
+    protected boolean checkBankerCanNextRound() {
+        return switch (room.getGameType()) {
+            // 德州为系统庄家，不限制庄家，也没有上庄
+            case CoreConst.GameType.TEXAS -> true;
+            // TODO 暂定，后续确认需不需要庄家后再确定
+            case CoreConst.GameType.VEGAS_THREE, CoreConst.GameType.BLACK_JACK -> false;
+            default -> false;
+        };
     }
 
     @Override

@@ -56,18 +56,18 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     public <M extends AbstractMessage> void broadcastToPlayers(RoomMessageBuilder<M> message) {
         if (message.isToAll()) {
             Set<Long> playerIds = gameDataVo.getSeatInfo().values()
-                    .stream()
-                    .map(SeatInfo::getPlayerId)
-                    .filter(playerId -> !playerNotInit(playerId))
-                    .collect(Collectors.toSet());
+                .stream()
+                .map(SeatInfo::getPlayerId)
+                .filter(playerId -> !playerNotInit(playerId))
+                .collect(Collectors.toSet());
             message.setPlayerIds(playerIds);
             message.setToAll(false);
             roomController.broadcastToPlayers(message);
             return;
         }
         Set<Long> newSet = message.getPlayerIds().stream()
-                .filter(playerId -> !playerNotInit(playerId))
-                .collect(Collectors.toSet());
+            .filter(playerId -> !playerNotInit(playerId))
+            .collect(Collectors.toSet());
         if (!newSet.isEmpty()) {
             roomController.broadcastToPlayers(message);
         }
@@ -141,7 +141,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     @Override
     public void addGameTimeEvent(TimerEvent<IProcessorHandler> roomUpdateTimer, RoomEventType roomEventType) {
         RoomTimerEvent<IProcessorHandler, Room> timerEvent = new RoomTimerEvent<>(roomUpdateTimer,
-                roomController.getRoom(), roomEventType);
+            roomController.getRoom(), roomEventType);
         timerCenter.add(timerEvent);
         if (POKER_PLAYER_EVENT == roomEventType) {
             gameDataVo.setPlayerTimerEvent(timerEvent);
@@ -187,14 +187,14 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     }
 
     @Override
-    public final void respRoomInitInfo(PlayerController playerController) {
+    public void respRoomInitInfo(PlayerController playerController) {
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerController.playerId());
         gamePlayer.getPokerPlayerGameData().setInit(true);
         respRoomInitInfoAction(playerController);
         //通知其他玩家 玩家加入
         NotifyPokerPlayerChange playerChange = new NotifyPokerPlayerChange();
         playerChange.pokerPlayerInfo =
-                PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(playerController.playerId()), null, gameDataVo);
+            PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(playerController.playerId()), null, gameDataVo);
         playerChange.totalNum = gameDataVo.getGamePlayerMap().size();
         roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(playerChange).exceptPlayer(playerController.playerId()));
         //尝试开启游戏
@@ -231,13 +231,19 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
             gameState = EGameState.PAUSED;
             return;
         }
-        tryStartGame();
+        boolean tryStartGameRes = tryStartGame();
+        // 下一轮成功开始游戏，调用下一轮开始接口
+        if (tryStartGameRes) {
+            nextRoundStart();
+        }
     }
 
     /**
      * 尝试开启游戏
+     *
+     * @return 是否成功开始下一轮
      */
-    public abstract void tryStartGame();
+    public abstract boolean tryStartGame();
 
 
     public int isSeatDown(Map<Integer, SeatInfo> seatInfoList, long playerId) {
@@ -374,8 +380,8 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
             NotifyPokerPlayerChange playerChange = new NotifyPokerPlayerChange();
             playerChange.pokerPlayerInfo = PokerBuilder.buildPlayerInfo(gamePlayer, remove, gameDataVo);
             roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder()
-                    .toAllPlayer().exceptPlayer(playerController.playerId())
-                    .setData(playerChange));
+                .toAllPlayer().exceptPlayer(playerController.playerId())
+                .setData(playerChange));
         }
         return super.onPlayerLeaveRoom(playerController);
     }
