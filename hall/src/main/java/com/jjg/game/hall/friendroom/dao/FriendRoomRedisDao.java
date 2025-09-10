@@ -152,7 +152,6 @@ public class FriendRoomRedisDao {
         });
         // 设置key的过期时间
         if (!tableNameCache.contains(tableName)) {
-            log.debug("redisTemplate.getExpire(tableName) {}", redisTemplate.getExpire(tableName));
             if (redisTemplate.getExpire(tableName) <= 0) {
                 log.info("过期时间：{}", TimeHelper.ONE_DAY_OF_MILLIS + TimeHelper.ONE_HOUR_OF_MILLIS);
                 // 设置过期时间
