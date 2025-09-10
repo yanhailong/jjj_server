@@ -19,12 +19,12 @@ public class DropGroupCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "dropGroup";
 
   /** 子包组 */
-  protected Map<Integer,Long> dropDetailedID;
+  protected List<List<Integer>> dropDetailedID;
   /** 掉落主ID */
   protected int trunkID;
 
   /** 返回子包组 */
-  public Map<Integer,Long> getDropDetailedID() {
+  public List<List<Integer>> getDropDetailedID() {
     return dropDetailedID;
   }
 

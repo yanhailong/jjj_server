@@ -10,6 +10,8 @@ import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +32,10 @@ public abstract class BaseActivityController {
     protected ActivityManager activityManager;
     @Autowired
     protected PlayerPackService playerPackService;
+    @Autowired
+    protected CorePlayerService corePlayerService;
+    @Autowired
+    protected RedisLock redisLock;
 
     /**
      * 增加玩家活动进度
@@ -44,7 +50,7 @@ public abstract class BaseActivityController {
     public void addActivityProgress(ActivityData activityData, long progress) {
     }
 
-    public abstract void joinActivity(long playerId, ActivityData activityData, int detailId);
+    public abstract AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId);
 
     /**
      * 领取活动奖励
@@ -80,12 +86,37 @@ public abstract class BaseActivityController {
     /**
      * 获取类型获取活动详情响应信息
      */
-    public abstract AbstractResponse getPlayerActivityInfoByTypeRes(List<List<BaseActivityDetailInfo>> allDetailInfo);
+    public abstract AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, List<List<BaseActivityDetailInfo>> allDetailInfo);
 
     /**
      * 构建玩家活动信息
      */
     public abstract ActivityInfo buildActivityInfo(long playerId, ActivityData activityData);
+
+    public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
+        //限时活动不需要重置
+        if (activityData.getOpenType() == 2) {
+            return;
+        }
+        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+        if (CollectionUtil.isNotEmpty(playerActivityData)) {
+            boolean needRest = false;
+            for (PlayerActivityData data : playerActivityData.values()) {
+                if (data.getRound() != activityData.getRound()) {
+                    needRest = true;
+                    break;
+                }
+            }
+            if (needRest) {
+                String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
+                redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+                Map<Integer, PlayerActivityData> lockPlayerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+                if (CollectionUtil.isNotEmpty(lockPlayerActivityData)) {
+                    playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
+                }
+            }
+        }
+    }
 
     /**
      * 通过类型获取活动详情
@@ -95,7 +126,7 @@ public abstract class BaseActivityController {
         Map<Long, ActivityData> activityDataMap = activityManager.getActivityTypeData().get(activityType);
         List<List<BaseActivityDetailInfo>> allDetailInfo = new ArrayList<>();
         if (CollectionUtil.isEmpty(activityDataMap)) {
-            return getPlayerActivityInfoByTypeRes(allDetailInfo);
+            return getPlayerActivityInfoByTypeRes(playerId, allDetailInfo);
         }
         Map<Long, Map<Integer, BaseCfgBean>> activityDetailInfo = activityManager.getActivityDetailInfo();
         for (ActivityData activityData : activityDataMap.values()) {
@@ -123,7 +154,7 @@ public abstract class BaseActivityController {
                 }
             }
         }
-        return getPlayerActivityInfoByTypeRes(allDetailInfo);
+        return getPlayerActivityInfoByTypeRes(playerId, allDetailInfo);
     }
 
 

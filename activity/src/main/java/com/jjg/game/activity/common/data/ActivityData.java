@@ -25,7 +25,7 @@ public class ActivityData {
     /**
      * 开服活动轮数
      */
-    private int round;
+    private long round;
 
     /**
      * 解锁条件
@@ -82,6 +82,14 @@ public class ActivityData {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public void setRound(long round) {
+        this.round = round;
+    }
+
+    public long getRound() {
+        return round;
     }
 
     public Map<Integer, Integer> getCondition() {

@@ -17,8 +17,8 @@ public class PlayerPrivilegeCard extends PlayerActivityData {
     public PlayerPrivilegeCard() {
     }
 
-    public PlayerPrivilegeCard(long activityId) {
-        super(activityId);
+    public PlayerPrivilegeCard(long activityId, long round) {
+        super(activityId, round);
     }
 
     public long getLastClaimTime() {

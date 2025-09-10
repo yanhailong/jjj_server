@@ -1,17 +1,20 @@
 package com.jjg.game.activity.common.message.handler;
 
+import com.jjg.game.activity.cashcow.controller.CashCowController;
+import com.jjg.game.activity.cashcow.message.req.ReqCashCowRecord;
+import com.jjg.game.activity.cashcow.message.req.ReqCashCowTotalPool;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.message.req.ReqActivityClaimRewards;
 import com.jjg.game.activity.common.message.req.ReqActivityDetailInfo;
 import com.jjg.game.activity.common.message.req.ReqActivityInfoByType;
+import com.jjg.game.activity.common.message.req.ReqActivityPlayerJoin;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
-import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import org.springframework.stereotype.Component;
 
@@ -23,9 +26,11 @@ import org.springframework.stereotype.Component;
 @MessageType(value = MessageConst.MessageTypeDef.ACTIVITY)
 public class ActivityMessageHandler {
     private final ActivityManager activityManager;
+    private final CashCowController cashCowController;
 
-    public ActivityMessageHandler(ActivityManager activityManager) {
+    public ActivityMessageHandler(ActivityManager activityManager, CashCowController cashCowController) {
         this.activityManager = activityManager;
+        this.cashCowController = cashCowController;
     }
 
     /**
@@ -33,13 +38,14 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_ACTIVITY_DETAIL_INFO)
     public void reqActivityDetailInfo(PlayerController playerController, ReqActivityDetailInfo req) {
-        AbstractResponse response = new AbstractResponse(Code.PARAM_ERROR);
         //查找活动数据
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null) {
-            response = data.getType().getController().getPlayerActivityDetail(playerController.playerId(), data.getId(), req.detailId);
+            AbstractResponse response = data.getType().getController().getPlayerActivityDetail(playerController.playerId(), data.getId(), req.detailId);
+            if (response != null) {
+                playerController.send(response);
+            }
         }
-        playerController.send(response);
     }
 
     /**
@@ -49,12 +55,12 @@ public class ActivityMessageHandler {
     public void reqActivityInfoByType(PlayerController playerController, ReqActivityInfoByType req) {
         ActivityType activityType = ActivityType.fromType(req.activityType);
         if (activityType == null) {
-            AbstractResponse response = new AbstractResponse(Code.PARAM_ERROR);
-            playerController.send(response);
             return;
         }
         AbstractResponse response = activityType.getController().getPlayerActivityInfoByType(playerController.playerId(), activityType);
-        playerController.send(response);
+        if (response != null) {
+            playerController.send(response);
+        }
     }
 
     /**
@@ -67,6 +73,48 @@ public class ActivityMessageHandler {
             return;
         }
         AbstractResponse response = data.getType().getController().claimActivityRewards(playerController.playerId(), data, req.detailId);
-        playerController.send(response);
+        if (response != null) {
+            playerController.send(response);
+        }
+    }
+
+    /**
+     * 玩家请求参与活动
+     */
+    @Command(ActivityConstant.MsgBean.REQ_ACTIVITY_DETAIL_INFO)
+    public void reqActivityPlayerJoin(PlayerController playerController, ReqActivityPlayerJoin req) {
+        //查找活动数据
+        ActivityData data = activityManager.getActivityData().get(req.activityId);
+        if (data != null && data.getType().isCanInitiativeJoin()) {
+            AbstractResponse response = data.getType().getController().joinActivity(playerController.playerId(), data, req.detailId);
+            if (response != null) {
+                playerController.send(response);
+            }
+        }
+    }
+
+
+    /**
+     * 摇钱树请求记录
+     */
+    @Command(ActivityConstant.MsgBean.REQ_CASH_COW_RECORD)
+    public void reqCashCowRecord(PlayerController playerController, ReqCashCowRecord req) {
+        ActivityData data = activityManager.getActivityData().get(req.activityId);
+        if (data != null && data.canRun() && data.getType() == ActivityType.CASH_COW) {
+            AbstractResponse res = cashCowController.reqCashCowRecord(playerController, req);
+            playerController.send(res);
+        }
+    }
+
+    /**
+     * 摇钱树总奖池
+     */
+    @Command(ActivityConstant.MsgBean.REQ_ACTIVITY_CLAIM_REWARDS)
+    public void reqCashCowTotalPool(PlayerController playerController, ReqCashCowTotalPool req) {
+        ActivityData data = activityManager.getActivityData().get(req.activityId);
+        if (data != null && data.canRun() && data.getType() == ActivityType.CASH_COW) {
+            AbstractResponse res = cashCowController.reqCashCowTotalPool(playerController, req);
+            playerController.send(res);
+        }
     }
 }

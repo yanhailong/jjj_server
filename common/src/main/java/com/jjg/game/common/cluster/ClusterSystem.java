@@ -114,13 +114,13 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     }
 
     /**
-     * 广播消息给玩家
+     * 发送消息给玩家
      *
      * @param notify   通知消息
      * @param playerId 玩家id
      * @param <T>      消息
      */
-    public <T> void broadcastToPlayer(T notify, long playerId) {
+    public <T> void sendToPlayer(T notify, long playerId) {
         String sessionStr = playerIdSessionMap.get(playerId);
         if (StringUtils.isNotEmpty(sessionStr)) {
             PFSession session = sessionMap.get(sessionStr);

@@ -25,9 +25,9 @@ public class CashcowCfg extends BaseCfgBean {
   /** 奖池初始值 */
   protected int initialprizepool;
   /** 消耗数量 */
-  protected String needItem;
+  protected Map<Integer,Long> needItem;
   /** 道具ID_道具数量 */
-  protected List<Integer> rewards;
+  protected Map<Integer,Long> rewards;
   /** 类型 */
   protected int type;
   /** 次数下限_次数上限（左闭右开）_玩家中奖万分比概率| */
@@ -51,12 +51,12 @@ public class CashcowCfg extends BaseCfgBean {
   }
 
   /** 返回消耗数量 */
-  public String getNeedItem() {
+  public Map<Integer,Long> getNeedItem() {
     return needItem;
   }
 
   /** 返回道具ID_道具数量 */
-  public List<Integer> getRewards() {
+  public Map<Integer,Long> getRewards() {
     return rewards;
   }
 

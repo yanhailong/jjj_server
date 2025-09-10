@@ -18,7 +18,11 @@ public enum ActivityTargetType {
     /**
      * 充值
      */
-    RECHARGE(2, 1 >> 2);
+    RECHARGE(3, 1 >> 2),
+    /**
+     * 有效押注
+     */
+    EFFECTIVE_BET(4, 1 >> 3);
     private final long type;
     private final long targetKey;
 

@@ -15,7 +15,6 @@ import com.jjg.game.activity.privilegecard.message.res.ResPrivilegeCardClaimRewa
 import com.jjg.game.activity.privilegecard.message.res.ResPrivilegeCardDetailInfo;
 import com.jjg.game.activity.privilegecard.message.res.ResPrivilegeCardTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
-import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -39,12 +38,6 @@ import java.util.Map;
 @Component
 public class PrivilegeCardController extends BaseActivityController {
     private final Logger log = LoggerFactory.getLogger(PrivilegeCardController.class);
-    //redis 锁
-    private final RedisLock lock;
-
-    public PrivilegeCardController(RedisLock lock) {
-        this.lock = lock;
-    }
 
     public int getClaimStatus(PlayerPrivilegeCard data, long timeMillis) {
         //判断是否过期
@@ -59,10 +52,11 @@ public class PrivilegeCardController extends BaseActivityController {
     }
 
     @Override
-    public void joinActivity(long playerId, ActivityData activityData, int detailId) {
+    public AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId) {
+        ResPrivilegeCardDetailInfo res = null;
         if (!activityData.getValue().contains(detailId)) {
             log.error("玩家参加活动失败 已经不存在该活动playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
-            return;
+            return res;
         }
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
@@ -70,10 +64,10 @@ public class PrivilegeCardController extends BaseActivityController {
             try {
                 long timeMillis = System.currentTimeMillis();
                 Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-                PlayerPrivilegeCard privilegeCard = playerActivityData.computeIfAbsent(detailId, key -> new PlayerPrivilegeCard(activityData.getId()));
+                PlayerPrivilegeCard privilegeCard = playerActivityData.computeIfAbsent(detailId, key -> new PlayerPrivilegeCard(activityData.getId(), activityData.getRound()));
                 if (privilegeCard.getEndTime() > timeMillis) {
                     log.error("玩家参加活动失败 玩家已经参加过 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
-                    return;
+                    return res;
                 }
                 privilegeCard.setBuyTime(timeMillis);
                 if (cfg.getDays() == -1) {
@@ -89,12 +83,16 @@ public class PrivilegeCardController extends BaseActivityController {
                     }
                 }
                 playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
+                res = new ResPrivilegeCardDetailInfo(Code.SUCCESS);
+                res.detailInfo = new ArrayList<>();
+                res.detailInfo.add((PrivilegeCardDetailInfo) buildPlayerActivityDetail(activityData.getId(), cfg, privilegeCard));
             } catch (Exception e) {
                 log.error("购买每日奖金 出现异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
             }
         } else {
             log.error("玩家参加活动失败 活动配置为空playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
         }
+        return res;
     }
 
     @Override
@@ -105,15 +103,17 @@ public class PrivilegeCardController extends BaseActivityController {
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
         if (baseCfgBean instanceof PrivilegeCardCfg cfg) {
             PlayerPrivilegeCard data = null;
-            lock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
                 //领取奖励
                 Map<Integer, PlayerPrivilegeCard> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
                 if (CollectionUtil.isEmpty(dataMap)) {
+                    res.code = Code.PARAM_ERROR;
                     return res;
                 }
                 data = dataMap.get(detailId);
                 if (data == null) {
+                    res.code = Code.PARAM_ERROR;
                     return res;
                 }
                 long timeMillis = System.currentTimeMillis();
@@ -122,7 +122,7 @@ public class PrivilegeCardController extends BaseActivityController {
                     res.code = Code.REPEAT_OP;
                     return res;
                 }
-                CommonResult<Void> addedItems = playerPackService.addItems(playerId, cfg.getDayRebate(), "活动");
+                CommonResult<Void> addedItems = playerPackService.addItems(playerId, cfg.getDayRebate(), "privilegeCardRewords");
                 if (!addedItems.success()) {
                     res.code = Code.UNKNOWN_ERROR;
                     return res;
@@ -133,7 +133,7 @@ public class PrivilegeCardController extends BaseActivityController {
             } catch (Exception e) {
                 log.error("领取每日奖金异常 playerId:{} activityId:{}", playerId, activityData.getId(), e);
             } finally {
-                lock.unlock(lockKey);
+                redisLock.unlock(lockKey);
             }
             if (data != null) {
                 res.activityId = activityData.getId();
@@ -217,7 +217,7 @@ public class PrivilegeCardController extends BaseActivityController {
     }
 
     @Override
-    public AbstractResponse getPlayerActivityInfoByTypeRes(List<List<BaseActivityDetailInfo>> allDetailInfo) {
+    public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, List<List<BaseActivityDetailInfo>> allDetailInfo) {
         ResPrivilegeCardTypeInfo cardTypeInfo = new ResPrivilegeCardTypeInfo(Code.SUCCESS);
         if (CollectionUtil.isEmpty(allDetailInfo)) {
             return cardTypeInfo;

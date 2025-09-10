@@ -1,0 +1,186 @@
+package com.jjg.game.activity.cashcow.dao;
+
+import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.activity.cashcow.data.CashCowRecordData;
+import com.jjg.game.activity.constant.ActivityConstant;
+import com.jjg.game.common.redis.RedisLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+/**
+ * @author lm
+ * @date 2025/9/9 18:15
+ */
+@Repository
+public class CashCowDao {
+    private final Logger log = LoggerFactory.getLogger(CashCowDao.class);
+    private final RedisTemplate<String, CashCowRecordData> recordRedisTemplate;
+    private final RedisTemplate<String, Long> longRedisTemplate;
+    //redis 锁
+    private final RedisLock lock;
+    private static final String PLAYER_RECORD_KEY = "activity:cashcow:record:%d:%d"; // 单个玩家记录
+    private static final String ALL_RECORD_KEY = "activity:cashcow:record:all:%d";          // 全部玩家记录
+    private static final String POOL_KEY = "activity:cashcow:poll:%d";          // 总池
+    private static final String POOL_LOCK_KEY = "activity:cashcow:polllock:%d:%d";          // 总池
+    private static final String PLAYER_PROGRESS_KEY = "activity:cashcow:player:%d:%d";          // 总池
+
+
+    public CashCowDao(RedisTemplate<String, CashCowRecordData> recordRedisTemplate, RedisTemplate<String, Long> longRedisTemplate, RedisLock lock) {
+        this.recordRedisTemplate = recordRedisTemplate;
+        this.longRedisTemplate = longRedisTemplate;
+        this.lock = lock;
+    }
+
+
+    /**
+     * 摇钱树获取玩家进度奖池
+     */
+    public long getPlayerActivityProgress(long playerId, long activityId) {
+        String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, playerId, activityId);
+        Long progress = longRedisTemplate.opsForValue().get(playerProgressKey);
+        return progress == null ? 0 : progress;
+    }
+
+    /**
+     * 摇钱树增加玩家进度奖池
+     */
+    public long addPlayerActivityProgress(long playerId, long activityId, long addValue) {
+        String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, playerId, activityId);
+        Long progress = longRedisTemplate.opsForValue().increment(playerProgressKey, addValue);
+        return progress == null ? 0 : progress;
+    }
+
+
+    /**
+     * 摇钱树删除玩家进度奖池
+     */
+    public void delPlayerActivityProgress(long playerId, long activityId) {
+        String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, playerId, activityId);
+        longRedisTemplate.delete(playerProgressKey);
+    }
+
+
+    /**
+     * 摇钱树获取活动奖池
+     */
+    public long getActivityPool(long activityId, int detailId) {
+        String poolKey = String.format(POOL_KEY, activityId);
+        HashOperations<String, String, Long> hash = getOpsForHash();
+        Long pool = hash.get(poolKey, detailId);
+        return pool == null ? 0 : pool;
+    }
+
+    /**
+     * 摇钱树获取活动奖池
+     */
+    public long getActivityPool(long activityId) {
+        String poolKey = String.format(POOL_KEY, activityId);
+        HashOperations<String, String, Long> hash = getOpsForHash();
+        List<Long> values = hash.values(poolKey);
+        if (CollectionUtil.isEmpty(values)) {
+            return 0;
+        }
+        return values.stream().mapToLong(Long::longValue).sum();
+    }
+
+    /**
+     * 摇钱树设置活动奖池
+     */
+    public void setActivityPool(long activityId, int detailId, long setValue) {
+        String poolKey = String.format(POOL_KEY, activityId);
+        String poolLock = String.format(POOL_LOCK_KEY, activityId, detailId);
+        lock.lock(poolLock, ActivityConstant.Common.REDIS_LOCK);
+        try {
+            HashOperations<String, String, Long> hash = getOpsForHash();
+            hash.put(poolKey, String.valueOf(detailId), setValue);
+        } catch (Exception e) {
+            log.error("设置摇钱树奖池失败 activityId:{} detailId:{} addValue:{}", activityId, detailId, activityId, e);
+        } finally {
+            lock.unlock(poolKey);
+        }
+    }
+
+    /**
+     * 摇钱树添加活动奖池
+     */
+    public long addActivityPool(long activityId, int detailId, long addValue) {
+        String poolKey = String.format(POOL_KEY, activityId);
+        String poolLock = String.format(POOL_LOCK_KEY, activityId, detailId);
+        lock.lock(poolLock, ActivityConstant.Common.REDIS_LOCK);
+        try {
+            HashOperations<String, String, Long> hash = getOpsForHash();
+            return hash.increment(poolKey, String.valueOf(detailId), addValue);
+        } catch (Exception e) {
+            log.error("增加摇钱树奖池失败 activityId:{} detailId:{} addValue:{}", activityId, detailId, activityId, e);
+        } finally {
+            lock.unlock(poolKey);
+        }
+        return 0;
+    }
+
+    private HashOperations<String, String, Long> getOpsForHash() {
+        return longRedisTemplate.opsForHash();
+    }
+
+    /**
+     * 摇钱树减少活动奖池
+     *
+     * @param distribution 扣减比例
+     * @return 本次扣减的数量
+     */
+    public long reduceActivityPool(long activityId, int detailId, int distribution) {
+        String poolKey = String.format(POOL_KEY, activityId);
+        String poolLock = String.format(POOL_LOCK_KEY, activityId, detailId);
+        lock.lock(poolLock, ActivityConstant.Common.REDIS_LOCK);
+        try {
+            HashOperations<String, String, Long> opsForHash = getOpsForHash();
+            Long pool = opsForHash.get(poolKey, detailId);
+            if (pool == null) {
+                return 0;
+            }
+            long remain = pool - (pool * distribution / 10000);
+            opsForHash.put(poolKey, String.valueOf(detailId), remain);
+            return remain;
+        } catch (Exception e) {
+            log.error("减少摇钱树奖池失败 activityId:{} detailId:{} addValue:{}", activityId, detailId, activityId, e);
+        } finally {
+            lock.unlock(poolKey);
+        }
+        return 0;
+    }
+
+    /**
+     * 保存一条玩家活动记录
+     */
+    public void savePlayerRecordActivity(long playerId, long activityId, CashCowRecordData data) {
+        try {
+            String playerKey = String.format(PLAYER_RECORD_KEY, activityId, playerId);
+            // 推入玩家专属日志
+            recordRedisTemplate.opsForList().leftPush(playerKey, data);
+            // 推入全局日志
+            recordRedisTemplate.opsForList().leftPush(String.format(ALL_RECORD_KEY, activityId), data);
+        } catch (Exception e) {
+            log.error("保存玩家活动记录失败");
+        }
+    }
+
+    /**
+     * 获取指定玩家的活动记录（分页）
+     */
+    public List<CashCowRecordData> getPlayerRecordActivities(long playerId, long activityId, int start, int end) {
+        String playerKey = String.format(PLAYER_RECORD_KEY, activityId, playerId);
+        return recordRedisTemplate.opsForList().range(playerKey, start, end);
+    }
+
+    /**
+     * 获取所有玩家的活动记录（分页）
+     */
+    public List<CashCowRecordData> getAllRecordActivities(long activityId, int start, int end) {
+        return recordRedisTemplate.opsForList().range(String.format(ALL_RECORD_KEY, activityId), start, end);
+    }
+}
