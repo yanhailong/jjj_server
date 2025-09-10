@@ -148,6 +148,7 @@ public class FriendRoomServices {
         if (friendRoom == null) {
             return Code.PARAM_ERROR;
         }
+        RespCreateFriendsRoom res = new RespCreateFriendsRoom(Code.SUCCESS);
         // 保存邀请码
         if (invitationCode != player.getFriendRoomInvitationCode()) {
             final int newInvitationCode = invitationCode;
@@ -155,8 +156,8 @@ public class FriendRoomServices {
             corePlayerService.doSave(player.getId(), (p) -> p.setFriendRoomInvitationCode(newInvitationCode));
             // 添加邀请码映射
             friendRoomRedisDao.addInvitationCode(invitationCode, player.getId());
+            res.invitationCode = invitationCode;
         }
-        RespCreateFriendsRoom res = new RespCreateFriendsRoom(Code.SUCCESS);
         // 向游戏节点发送初始化房间指令
         initFriendRoomInGameNode(roomCfgId, friendRoom);
         // 构建好友房基础数据

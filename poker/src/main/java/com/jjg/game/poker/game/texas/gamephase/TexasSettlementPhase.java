@@ -31,6 +31,7 @@ import com.jjg.game.poker.game.texas.util.PlayerHand;
 import com.jjg.game.poker.game.texas.util.PokerHandEvaluator;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.data.room.SimplePlayerInfo;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
@@ -72,10 +73,11 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 }
             }
             return super.getPhaseRunTime() + FIX_CHIPS + FLIP_CARDS +
-                    TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) * addTimes
-                    + TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SIDE_POOL) * gameDataVo.getPool().size();
+                TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) * addTimes
+                + TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SIDE_POOL) * gameDataVo.getPool().size();
         }
-        return super.getPhaseRunTime() + fixChips + FLIP_CARDS + TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SIDE_POOL) * gameDataVo.getPool().size();
+        return super.getPhaseRunTime() + fixChips + FLIP_CARDS + TexasDataHelper.getExecutionTime(gameDataVo,
+            PokerPhase.SIDE_POOL) * gameDataVo.getPool().size();
     }
 
     @Override
@@ -116,7 +118,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         //摊牌的玩家信息 玩家id-> 玩家信息->手牌
         Map<Long, Pair<PlayerSeatInfo, List<Card>>> playerCards = new HashMap<>();
         Map<Integer, PokerCard> cardListMap = TexasDataHelper.getCardListMap(TexasDataHelper.getPoolId(gameDataVo));
-        List<Card> publicCards = gameDataVo.getPublicCards().stream().map(cardListMap::get).collect(Collectors.toList());
+        List<Card> publicCards =
+            gameDataVo.getPublicCards().stream().map(cardListMap::get).collect(Collectors.toList());
         for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
             if (info.getOperationType() == PokerConstant.PlayerOperation.DISCARD || info.isDelState()) {
                 continue;
@@ -174,6 +177,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         notifyTexasSettlementInfo.endTime = gameDataVo.getPhaseEndTime();
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         List<TexasSettlementPlayerInfo> settlementInfoArrayList = new ArrayList<>();
+        Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         //生成结算信息 并发奖
         for (Map.Entry<Long, Pair<PlayerSeatInfo, List<Card>>> entry : playerCards.entrySet()) {
             Long playerId = entry.getKey();
@@ -188,16 +192,23 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 handResult = TexasBuilder.getTempHandType(pair.getFirst(), gameDataVo);
             }
             settlementPlayerInfo.cards = handResult.getBestCards().stream()
-                    .map(card -> ((PokerCard) card).getClientId()).collect(Collectors.toList());
+                .map(card -> ((PokerCard) card).getClientId()).collect(Collectors.toList());
             //添加记录
             settlementAllCards.put(playerId, settlementPlayerInfo.cards);
             long totalGet = playerGet.getOrDefault(playerId, 0L);
             if (totalGet > 0) {
                 //扣税
                 Long bet = baseBetInfo.getOrDefault(playerId, 0L);
-                totalGet = bet + (totalGet - bet) * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000;
+                long afterRatio = (totalGet - bet) * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000;
+                long roomCreatorIncome = calcRoomCreatorIncome(totalGet - bet);
+                totalGet = bet + afterRatio - roomCreatorIncome;
                 //增加金币
                 controller.changePlayerGold(gamePlayer, totalGet);
+                // 添加账单记录
+                settlementDataMap.put(
+                    playerId, settlementDataMap.getOrDefault(playerId, new SettlementData())
+                        .increaseBySettlementData(new SettlementData(
+                            afterRatio, bet, totalGet, bet, roomCreatorIncome)));
             }
             pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().getOrDefault(playerId, 0L);
             pokerPlayerSettlementInfo.getGold = totalGet;
@@ -206,6 +217,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             settlementPlayerInfo.handCards = TexasDataHelper.getClientId(gameDataVo, pair.getFirst().getCurrentCards());
             settlementInfoArrayList.add(settlementPlayerInfo);
         }
+        // 添加房主流水记录
+        controller.dealBankerFlowing(0, settlementDataMap);
         notifyTexasSettlementInfo.playerSettlementInfos = settlementInfoArrayList;
         return notifyTexasSettlementInfo;
     }
@@ -256,7 +269,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 if (info.isDelState()) {
                     continue;
                 }
-                List<TexasRoundInfo> texasRoundInfos = playerRoundInfos.computeIfAbsent(info.getPlayerId(), k -> new ArrayList<>());
+                List<TexasRoundInfo> texasRoundInfos = playerRoundInfos.computeIfAbsent(info.getPlayerId(),
+                    k -> new ArrayList<>());
                 HandResult tempHandType = TexasBuilder.getTempHandType(info, gameDataVo);
                 int rank = Objects.nonNull(tempHandType) ? tempHandType.getHandRank().rank : 0;
                 texasRoundInfos.add(TexasBuilder.getTexasRoundInfo(nextRound, clientId, rank));
@@ -274,8 +288,10 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         //通知
         for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
             List<TexasRoundInfo> orDefault = playerRoundInfos.getOrDefault(seatInfo.getPlayerId(), defaultInfo);
-            NotifyTexasAllInSettlementInfo inSettlementInfo = TexasBuilder.getNotifyAllInSettlementInfo(normalSettlementInfo, orDefault);
-            broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(seatInfo.getPlayerId(), inSettlementInfo));
+            NotifyTexasAllInSettlementInfo inSettlementInfo =
+                TexasBuilder.getNotifyAllInSettlementInfo(normalSettlementInfo, orDefault);
+            broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(seatInfo.getPlayerId(),
+                inSettlementInfo));
         }
     }
 
@@ -284,9 +300,9 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
      */
     public void settlementByOnePlayer(TexasGameController controller) {
         List<PlayerSeatInfo> infoList = gameDataVo.getPlayerSeatInfoList()
-                .stream()
-                .filter(info -> info.getOperationType() != PokerConstant.PlayerOperation.DISCARD && !info.isDelState())
-                .toList();
+            .stream()
+            .filter(info -> info.getOperationType() != PokerConstant.PlayerOperation.DISCARD && !info.isDelState())
+            .toList();
         if (infoList.size() > 1) {
             log.error("出现错误 未弃牌人数大于1");
             normalSettlement(controller);
@@ -307,18 +323,27 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         pokerPlayerSettlementInfo.playerId = playerId;
         //增加金币
         Long allBet = baseBetInfo.getOrDefault(playerId, 0L);
-        long get = total - allBet;
+        long beforeRatio = total - allBet;
         //添加记录
         TexasSaveHistory texasHistory = gameDataVo.getTexasHistory();
         for (TexasHistoryPlayerInfo info : texasHistory.getTotalPlayerBetInfo()) {
             if (info.playerId == playerId) {
-                info.betValue = get;
+                info.betValue = beforeRatio;
                 continue;
             }
             info.betValue = -info.betValue;
         }
-        get = get * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000;
+        // 房主收益
+        long roomCreatorIncome = calcRoomCreatorIncome(beforeRatio);
+        long get = beforeRatio * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000 - roomCreatorIncome;
         controller.changePlayerGold(gamePlayer, allBet + get);
+        Map<Long, SettlementData> settlementDataMap = new HashMap<>();
+        // 添加账单记录
+        settlementDataMap.put(
+            playerId, settlementDataMap.getOrDefault(playerId, new SettlementData())
+                .increaseBySettlementData(new SettlementData(
+                    get, allBet, beforeRatio, allBet, roomCreatorIncome)));
+        controller.dealBankerFlowing(0, settlementDataMap);
         pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().getOrDefault(playerId, 0L);
         pokerPlayerSettlementInfo.getGold = allBet + get;
         pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;
@@ -328,7 +353,6 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         notifyTexasSettlementInfo.playerSettlementInfos = settlementInfoArrayList;
         broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSettlementInfo));
         gameDataVo.setNotifyTexasSettlementInfo(notifyTexasSettlementInfo);
-
     }
 
     public void addLog(TexasGameController controller, TexasSaveHistory texasSaveHistory) {
@@ -339,7 +363,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             Long betValue = baseBetInfo.getOrDefault(info.playerId, 0L);
             SimplePlayerInfo simplePlayerInfo = new SimplePlayerInfo(info.playerId, info.playerName);
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.TOTAL_BET, betValue);
-            gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.TOTAL_WIN, betValue + info.betValue);
+            gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.TOTAL_WIN,
+                betValue + info.betValue);
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.INCOME, info.betValue);
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.EFFECTIVE_BET, betValue);
         }
@@ -356,7 +381,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 Map<Long, RoomPlayer> roomPlayers = controller.getRoom().getRoomPlayers();
                 if (CollectionUtil.isNotEmpty(roomPlayers)) {
                     AbstractRoomManager roomManager = controller.getRoomController().getRoomManager();
-                    Map<Long, PlayerController> playerControllers = controller.getRoomController().getPlayerControllers();
+                    Map<Long, PlayerController> playerControllers =
+                        controller.getRoomController().getPlayerControllers();
                     for (RoomPlayer roomPlayer : roomPlayers.values()) {
                         if (!roomPlayer.isOnline()) {
                             PlayerController playerController = playerControllers.get(roomPlayer.getPlayerId());

@@ -118,7 +118,9 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                     if (cfg.getIsRatio() == 1) {
                         canGet = canGet * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
                     }
-                    canGet += backBet;
+                    // 房主收益，如果不是好友房此值为0
+                    long roomCreatorIncome = calcRoomCreatorIncome(cfg, totalBet);
+                    canGet += backBet - roomCreatorIncome;
                     // 给玩家添加金币
                     gameController.addItem(
                         gamePlayer.getId(), canGet,
@@ -127,8 +129,8 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                         key -> new DefaultKeyValue<>(0L, 0L));
                     keyValue.setKey(keyValue.getKey() + totalBet);
                     keyValue.setValue(keyValue.getValue() + canGet);
-                    canGet += backBet;
-                    SettlementData settlementData = new SettlementData(canGet - backBet, backBet, canGet, totalBet);
+                    SettlementData settlementData =
+                        new SettlementData(canGet - backBet, backBet, canGet, totalBet, roomCreatorIncome);
                     if (!settlementDataMap.containsKey(playerId)) {
                         settlementDataMap.put(playerId, settlementData);
                     } else {

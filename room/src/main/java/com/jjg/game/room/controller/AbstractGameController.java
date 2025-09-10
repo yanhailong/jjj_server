@@ -457,6 +457,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        if (gamePlayer == null) {
+            log.error("异常操作，不能扣除非游戏好友的金币");
+            throw new RuntimeException("异常操作，不能扣除非游戏好友的金币");
+        }
         Supplier<GamePlayer> supplier = () -> {
             beforeUpdateGold.value = gamePlayer.getGold();
             long afterCoin = gamePlayer.getGold() - num;
@@ -486,6 +490,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateDiamond = PrimitiveRef.ofLong(0);
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        if (gamePlayer == null) {
+            log.error("异常操作，不能扣除非游戏好友的钻石");
+            throw new RuntimeException("异常操作，不能扣除非游戏好友的钻石");
+        }
         Supplier<GamePlayer> supplier = () -> {
             beforeUpdateDiamond.value = gamePlayer.getDiamond();
             long afterDiamond = gamePlayer.getDiamond() - num;
@@ -563,24 +571,29 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param isNotify 是否通知
      * @return 扣除结果
      */
-    private int addGold(long playerId, long num, String addType, String desc, boolean isNotify) {
+    private <P extends Player> int addGold(long playerId, long num, String addType, String desc, boolean isNotify) {
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
-        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-        Supplier<GamePlayer> supplier = () -> {
-            beforeUpdateGold.value = gamePlayer.getGold();
-            gamePlayer.setGold(Math.min(Long.MAX_VALUE, gamePlayer.getGold() + num));
-            return gamePlayer;
-        };
-        // 机器人直接扣除
-        if (gamePlayer instanceof GameRobotPlayer) {
-            supplier.get();
-            return Code.SUCCESS;
-        }
-        CommonResult<GamePlayer> result =
-            playerService.addGold(playerId, num, addType, desc, isNotify, supplier, beforeUpdateGold);
-        if (result.data == null) {
-            return Code.FAIL;
+        P gamePlayer = (P) gameDataVo.getGamePlayer(playerId);
+        CommonResult<P> result;
+        if (gamePlayer != null) {
+            Supplier<P> supplier = () -> {
+                beforeUpdateGold.value = gamePlayer.getGold();
+                gamePlayer.setGold(Math.min(Long.MAX_VALUE, gamePlayer.getGold() + num));
+                return gamePlayer;
+            };
+            // 机器人直接扣除
+            if (gamePlayer instanceof GameRobotPlayer) {
+                supplier.get();
+                return Code.SUCCESS;
+            }
+            result = playerService.addGold(playerId, num, addType, desc, isNotify, supplier, beforeUpdateGold);
+            if (result.data == null) {
+                return Code.FAIL;
+            }
+        } else {
+            log.error("异常操作，不能添加非游戏好友的金币");
+            throw new RuntimeException("异常操作，不能添加非游戏好友的金币");
         }
         return result.code;
     }
@@ -595,24 +608,29 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param isNotify 是否通知
      * @return 扣除结果
      */
-    private int addDiamond(long playerId, long num, String addType, String desc, boolean isNotify) {
+    private <P extends Player> int addDiamond(long playerId, long num, String addType, String desc, boolean isNotify) {
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
-        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-        Supplier<GamePlayer> supplier = () -> {
-            beforeUpdateGold.value = gamePlayer.getDiamond();
-            gamePlayer.setDiamond(Math.min(Long.MAX_VALUE, gamePlayer.getDiamond() + num));
-            return gamePlayer;
-        };
-        // 机器人直接扣除
-        if (gamePlayer instanceof GameRobotPlayer) {
-            supplier.get();
-            return Code.SUCCESS;
-        }
-        CommonResult<GamePlayer> result =
-            playerService.addDiamond(playerId, num, addType, desc, isNotify, supplier, beforeUpdateGold);
-        if (result.data == null) {
-            return Code.FAIL;
+        P gamePlayer = (P) gameDataVo.getGamePlayer(playerId);
+        CommonResult<P> result;
+        if (gamePlayer != null) {
+            Supplier<P> supplier = () -> {
+                beforeUpdateGold.value = gamePlayer.getDiamond();
+                gamePlayer.setDiamond(Math.min(Long.MAX_VALUE, gamePlayer.getDiamond() + num));
+                return gamePlayer;
+            };
+            // 机器人直接扣除
+            if (gamePlayer instanceof GameRobotPlayer) {
+                supplier.get();
+                return Code.SUCCESS;
+            }
+            result = playerService.addDiamond(playerId, num, addType, desc, isNotify, supplier, beforeUpdateGold);
+            if (result.data == null) {
+                return Code.FAIL;
+            }
+        } else {
+            log.error("异常操作，不能添加非游戏好友的钻石");
+            throw new RuntimeException("异常操作，不能添加非游戏好友的钻石");
         }
         return result.code;
     }
