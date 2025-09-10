@@ -1,6 +1,5 @@
 package com.jjg.game.slots.game.mahjiongwin.data;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -9,17 +8,17 @@ import java.util.Map;
  * @date 2025/9/8 16:26
  */
 public class MahjiongWinAddIconInfo {
-    //添加的图案，列 -> 图标坐标
-    private Map<Integer, Integer> addIconCountMap;
+    //添加的图案， 坐标 -> 图标id
+    private Map<Integer, Integer> addIconMap;
     //奖励
     private List<MahjiongWinAwardLineInfo> awardLineInfoList;
 
-    public Map<Integer, Integer> getAddIconCountMap() {
-        return addIconCountMap;
+    public Map<Integer, Integer> getAddIconMap() {
+        return addIconMap;
     }
 
-    public void setAddIconCountMap(Map<Integer, Integer> addIconCountMap) {
-        this.addIconCountMap = addIconCountMap;
+    public void setAddIconMap(Map<Integer, Integer> addIconMap) {
+        this.addIconMap = addIconMap;
     }
 
     public List<MahjiongWinAwardLineInfo> getAwardLineInfoList() {
@@ -28,12 +27,5 @@ public class MahjiongWinAddIconInfo {
 
     public void setAwardLineInfoList(List<MahjiongWinAwardLineInfo> awardLineInfoList) {
         this.awardLineInfoList = awardLineInfoList;
-    }
-
-    public void addIconCount(int colIndex, int count) {
-        if(this.addIconCountMap == null) {
-            this.addIconCountMap = new HashMap<>();
-        }
-        this.addIconCountMap.put(colIndex, count);
     }
 }

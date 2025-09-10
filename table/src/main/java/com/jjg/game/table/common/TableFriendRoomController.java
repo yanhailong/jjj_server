@@ -19,6 +19,11 @@ public class TableFriendRoomController extends AbstractFriendRoomController<Room
     }
 
     @Override
+    protected boolean checkBankerCanNextRound() {
+        return !room.getBankerPredicateMap().isEmpty();
+    }
+
+    @Override
     public void reloadRoomCfg() {
         // 重载配置表引用
         roomCfg = GameDataManager.getRoom_BetCfg(room.getRoomCfgId());

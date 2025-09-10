@@ -11,7 +11,10 @@ import java.util.List;
  */
 @Document
 public class MahjiongWinResultLib extends SlotsResultLib<MahjiongWinAwardLineInfo> {
+    //消除补齐的信息
     private List<MahjiongWinAddIconInfo> addIconInfos;
+    //增加的免费次数
+    private int addFreeCount;
 
     public List<MahjiongWinAddIconInfo> getAddIconInfos() {
         return addIconInfos;
@@ -19,5 +22,13 @@ public class MahjiongWinResultLib extends SlotsResultLib<MahjiongWinAwardLineInf
 
     public void setAddIconInfos(List<MahjiongWinAddIconInfo> addIconInfos) {
         this.addIconInfos = addIconInfos;
+    }
+
+    public int getAddFreeCount() {
+        return addFreeCount;
+    }
+
+    public void setAddFreeCount(int addFreeCount) {
+        this.addFreeCount = addFreeCount;
     }
 }

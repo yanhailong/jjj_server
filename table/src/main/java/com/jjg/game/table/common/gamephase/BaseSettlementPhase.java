@@ -1,5 +1,8 @@
 package com.jjg.game.table.common.gamephase;
 
+import com.jjg.game.core.constant.GlobalSampleConstantId;
+import com.jjg.game.core.data.RoomType;
+import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.base.AbstractRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
@@ -70,23 +73,46 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
         int winRatio = gameDataVo.getRoomCfg().getWinRatio();
         // 倍率计算
         long multiAdd =
-                (long) Math.floor(betValue * (weightCfg.getOdds() / 100.0) * ((
-                        10000 - (weightCfg.getIsRatio() == 1 ? winRatio : 0)) / 10000.0));
+            (long) Math.floor(betValue * (weightCfg.getOdds() / 100.0) * ((
+                10000 - (weightCfg.getIsRatio() == 1 ? winRatio : 0)) / 10000.0));
         long betReturn = (long) Math.floor(betValue * (weightCfg.getReturnRate() / 10000.0));
+
+        // 计算房主收益
+        long bankerIncome = calcRoomCreatorIncome(weightCfg, betValue);
+        multiAdd = multiAdd - bankerIncome;
+
         // 赢的总值
         long totalWin = multiAdd + betReturn;
         if (!(gamePlayer instanceof GameRobotPlayer)) {
-            log.info("玩家：{} {} 在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{}",
-                    gamePlayer.getId(),
-                    gameDataVo.roomLogInfo(),
-                    weightCfg.getId(),
-                    betValue,
-                    multiAdd,
-                    betReturn,
-                    totalWin);
+            log.info("玩家：{} {} 在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{} 庄家： {}",
+                gamePlayer.getId(),
+                gameDataVo.roomLogInfo(),
+                weightCfg.getId(),
+                betValue,
+                multiAdd,
+                betReturn,
+                totalWin,
+                bankerIncome);
         }
         // 倍率计算 + 压分返还 + 赢的总值
-        return new SettlementData(multiAdd, betReturn, totalWin, betValue);
+        return new SettlementData(multiAdd, betReturn, totalWin, betValue, bankerIncome);
+    }
+
+    /**
+     * 计算房主应得的收益
+     */
+    protected long calcRoomCreatorIncome(WinPosWeightCfg weightCfg, long betValue) {
+        RoomType roomType = RoomType.getRoomType(gameDataVo.getRoomCfg().getId());
+        long bankerIncome = 0;
+        // 如果是好友房需要扣除一部分金币给房主
+        if (roomType == RoomType.POKER_TEAM_UP_ROOM || roomType == RoomType.BET_TEAM_UP_ROOM) {
+            // 庄家扣税比例
+            int bankerIncomeRatio =
+                SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.CREATE_ROOM_FUNC_INCOME_RATIO);
+            bankerIncome =
+                (long) Math.floor((betValue * (weightCfg.getOdds() / 100.0)) * bankerIncomeRatio / 10000.0);
+        }
+        return bankerIncome;
     }
 
     @Override

@@ -10,6 +10,8 @@ public class SpecialAuxiliaryPropConfig {
     private PropInfo triggerCountPropInfo;
     //随机次数权重
     private PropInfo randCountPropInfo;
+    //修改图案策略组
+    private PropInfo specialGroupGirdIDPropInfo;
     //奖励c
     private PropInfo awardTypeCPropInfo;
 
@@ -35,6 +37,14 @@ public class SpecialAuxiliaryPropConfig {
 
     public void setRandCountPropInfo(PropInfo randCountPropInfo) {
         this.randCountPropInfo = randCountPropInfo;
+    }
+
+    public PropInfo getSpecialGroupGirdIDPropInfo() {
+        return specialGroupGirdIDPropInfo;
+    }
+
+    public void setSpecialGroupGirdIDPropInfo(PropInfo specialGroupGirdIDPropInfo) {
+        this.specialGroupGirdIDPropInfo = specialGroupGirdIDPropInfo;
     }
 
     public PropInfo getAwardTypeCPropInfo() {

@@ -21,7 +21,6 @@ public class FriendRoomBillHistoryHelper {
         historyBean.setGameType(friendRoom.getGameType());
         historyBean.setGameCfgId(friendRoom.getRoomCfgId());
         historyBean.setRoomCreator(friendRoom.getCreator());
-        historyBean.setTotalIncome(friendRoom.getCreatorIncome());
         return historyBean;
     }
 }

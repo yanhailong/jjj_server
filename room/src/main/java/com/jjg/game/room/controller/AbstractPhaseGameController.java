@@ -249,8 +249,8 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     }
 
     @Override
-    public void disbandRoom() {
-        super.disbandRoom();
+    public void disbandRoom(Boolean disbandRoomByPlayer) {
+        super.disbandRoom(disbandRoomByPlayer);
         // 再调用游戏内的解散房间逻辑
         gamePhases.stream()
             .filter(iGamePhase -> iGamePhase.getGamePhase().equals(EGamePhase.DISS_MISS))
@@ -336,6 +336,10 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
      */
     public EGamePhase getCurrentGamePhase() {
         if (currentGamePhase == null) {
+            // 如果房间未开始，返回房间处于暂停阶段
+            if (gameState == EGameState.INIT_DONE) {
+                return EGamePhase.GAME_PAUSE;
+            }
             log.error("获取游戏的阶段为空，此情况不应该出现，{}", gameDataVo.roomLogInfo());
             return null;
         }

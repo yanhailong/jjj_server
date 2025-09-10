@@ -18,7 +18,7 @@ public class FriendRoomBillHistoryMonth {
     @ProtoDesc("总收益")
     public long totalIncome;
 
-    @ProtoDesc("总赢分")
+    @ProtoDesc("总局数")
     public long totalOfMatches;
 
     @ProtoDesc("账单历史")

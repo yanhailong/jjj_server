@@ -2,6 +2,7 @@ package com.jjg.game.core.dao.room;
 
 import com.jjg.game.common.constant.StrConstant;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.data.RoomType;
@@ -84,12 +85,32 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
             friendRoom.setPredictCostGoldNum(req.predictCostGoldNum);
             friendRoom.setCreator(playerId);
             friendRoom.setRoomExpendId(req.roomExpandId);
-            String tableName = getPlayerFriendRoomTableName(playerId);
             FriendRoom savedRoom = createRoom(friendRoom);
+            String tableName = getPlayerFriendRoomTableName(playerId);
             redisTemplate.opsForHash().put(tableName, savedRoom.getId(), gameType);
             return savedRoom;
         } catch (Exception e) {
             log.error("创建好友房出现异常, {}", e.getMessage(), e);
+        }
+        return null;
+    }
+
+    @Override
+    public Long removeRoom(int gameType, long roomId, int wareId) {
+        String key = getLockName(gameType, roomId);
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            T room = getRoom(gameType, roomId);
+            if (room != null) {
+                String tableName = getPlayerFriendRoomTableName(room.getCreator());
+                redisTemplate.opsForHash().delete(tableName, roomId);
+                return redisTemplate.opsForHash().delete(getTableName(gameType), roomId);
+            }
+            return null;
+        } catch (Exception e) {
+            log.warn("清除房间出现异常,gameType = {},roomId = {}", gameType, roomId, e);
+        } finally {
+            redisLock.unlock(key);
         }
         return null;
     }
@@ -184,7 +205,8 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
         return roomObjectList.stream()
             .map(a -> a == null ? null : (List) a)
             .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll)
-            .stream().filter(Objects::nonNull)
+            .stream()
+            .filter(Objects::nonNull)
             .map((a) -> (FriendRoom) a)
             .collect(Collectors.toList());
     }

@@ -2,7 +2,6 @@ package com.jjg.game.slots.game.mahjiongwin.data;
 
 import com.jjg.game.slots.data.AwardLineInfo;
 
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -12,8 +11,8 @@ import java.util.Set;
 public class MahjiongWinAwardLineInfo extends AwardLineInfo {
     //中奖线的倍数
     private int baseTimes;
-    //列 -> iconsId
-    private Map<Integer, Set<Integer>> sameMap;
+    //相同元素的坐标id
+    private Set<Integer> sameIconSet;
 
     public int getBaseTimes() {
         return baseTimes;
@@ -23,11 +22,11 @@ public class MahjiongWinAwardLineInfo extends AwardLineInfo {
         this.baseTimes = baseTimes;
     }
 
-    public Map<Integer, Set<Integer>> getSameMap() {
-        return sameMap;
+    public Set<Integer> getSameIconSet() {
+        return sameIconSet;
     }
 
-    public void setSameMap(Map<Integer, Set<Integer>> sameMap) {
-        this.sameMap = sameMap;
+    public void setSameIconSet(Set<Integer> sameIconSet) {
+        this.sameIconSet = sameIconSet;
     }
 }
