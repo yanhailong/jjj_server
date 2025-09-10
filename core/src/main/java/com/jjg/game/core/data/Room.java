@@ -3,6 +3,7 @@ package com.jjg.game.core.data;
 import com.jjg.game.core.constant.EGameType;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 房间对象
@@ -20,7 +21,7 @@ public class Room {
     //场次id
     protected int roomCfgId;
     //该房间内的玩家
-    protected Map<Long, RoomPlayer> roomPlayers = new HashMap<>();
+    protected Map<Long, RoomPlayer> roomPlayers = new ConcurrentHashMap<>();
     //座位号 -> 玩家id,座位号从0开始
     protected Map<Integer, Long> playerSits;
     //房间人数最大限制
@@ -238,6 +239,13 @@ public class Room {
      */
     public int countRobots() {
         return (int) roomPlayers.values().stream().filter(RoomPlayer::isRobot).count();
+    }
+
+    /**
+     * 房间中真人的数量
+     */
+    public int countPlayers() {
+        return (int) roomPlayers.values().stream().filter(r -> !r.isRobot()).count();
     }
 
     public boolean empty() {

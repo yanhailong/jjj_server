@@ -50,7 +50,7 @@ public interface IRoomLifeCycle {
      * 房间解散时调用
      * 调用路径 (房间游戏结束) -> (RoomManager.disbandRoom) -> (RoomController.disbandRoom) -> (GameController.disbandRoom)
      */
-    void disbandRoom();
+    void disbandRoom(Boolean disbandRoomByPlayer);
 
     /**
      * 游戏结束

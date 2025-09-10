@@ -188,6 +188,10 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      */
     protected CommonResult<? extends Room> checkRoomCanJoin(PlayerController playerController) {
         R thatRoom = this.room;
+        // 房间处于销毁流程中，不能加入
+        if (roomState == ERoomState.ROOM_DESTROYING || roomState == ERoomState.ROOM_DESTROYED) {
+            return new CommonResult<>(Code.FORBID);
+        }
         return roomDao.doSave(playerController.getPlayer().getGameType(),
             this.room.getId()
             , new DataSaveCallback<>() {
@@ -298,9 +302,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
     @Override
-    public void disbandRoom() {
+    public void disbandRoom(Boolean disbandRoomByPlayer) {
         // 调用房间控制器中的解散房间逻辑
-        gameController.disbandRoom();
+        gameController.disbandRoom(disbandRoomByPlayer);
         // 标记游戏状态为销毁完成
         gameController.markDestroyed();
         // 回存房间数据
@@ -360,28 +364,11 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             // 没有找到对应的游戏控制器，可能是没有实现对应的游戏控制器，先中断流程
             throw new RuntimeException("游戏类型：" + roomCfg.getId() + " 未实现游戏控制器");
         }
-        // 空房间检查
-        addEmptyRoomCheckTimer();
         // 房间Timer执行tick时间 现在默认 200ms
         // 添加房间tick
         timerCenter.add(new RoomTimerEvent<>(
             this, room, this::roomTick, RoomConstant.ROOM_TICK_TIME, RoomEventType.ROOM_TICK));
         roomState = ERoomState.READY;
-    }
-
-    /**
-     * 子类不需要处理此逻辑
-     */
-    private void addEmptyRoomCheckTimer() {
-        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfg.getId());
-        List<Integer> roomDeletionSolution = warehouseCfg.getRoomDeletion_Solution();
-        if (roomDeletionSolution == null || roomDeletionSolution.size() < 2) {
-            return;
-        }
-        int deleteTimeCheck = roomDeletionSolution.get(1);
-        timerCenter.add(new RoomTimerEvent<>(this, room, deleteTimeCheck, () -> {
-
-        }, RoomEventType.ROOM_EMPTY_ROOM_CHECK));
     }
 
     @Override
@@ -401,27 +388,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             // 机器人加入逻辑
             checkRobotJoinRoom();
         }
-    }
-
-    /**
-     * 换房间
-     */
-    public boolean changeRoom(PlayerController playerController, long oldRoomId, int gameType, int roomConfigId) {
-        //获取另一个房间id
-        long roomOtherId = roomManager.getSameRoomOtherId(oldRoomId, gameType, roomConfigId);
-        if (roomOtherId == 0) {
-            return false;
-        }
-        //退出房间
-        int exited = roomManager.exitRoom(playerController);
-        if (exited != Code.SUCCESS) {
-            log.info("换房间时退出当前房间失败 playerId:{} oldRoomId:{} gameType:{} roomConfigId:{}",
-                oldRoomId, roomOtherId, gameType, roomConfigId);
-            return false;
-        }
-        //加入房间
-        int joined = roomManager.joinRoom(playerController, gameType, roomConfigId, roomOtherId);
-        return joined == Code.SUCCESS;
     }
 
     /**

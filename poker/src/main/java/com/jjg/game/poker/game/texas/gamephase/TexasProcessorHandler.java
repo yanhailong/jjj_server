@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.texas.gamephase;
 
+import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BasePokerProcessorHandler;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerSampleCardOperation;
@@ -15,7 +16,7 @@ public class TexasProcessorHandler extends BasePokerProcessorHandler<TexasGameDa
     //本局玩家定时器id
     private final int timerId;
 
-    public TexasProcessorHandler(long playerId, long id, TexasGameController gameController, int timerId) {
+    public TexasProcessorHandler(long playerId, long id, BasePokerGameController<TexasGameDataVo> gameController, int timerId) {
         super(playerId, id, gameController);
         this.timerId = timerId;
     }

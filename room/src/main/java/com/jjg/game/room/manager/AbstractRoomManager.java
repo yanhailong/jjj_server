@@ -3,22 +3,26 @@ package com.jjg.game.room.manager;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterProcessorExecutors;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.common.concurrent.processor.GameProcessor;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.data.DataSaveCallback;
+import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.timer.TimerCenter;
+import com.jjg.game.common.timer.TimerEvent;
+import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.ReflectUtils;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.dao.room.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.data.BetFriendRoom;
-import com.jjg.game.core.data.Room;
-import com.jjg.game.core.data.RoomPlayer;
-import com.jjg.game.core.data.RoomType;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.service.CorePlayerService;
@@ -30,6 +34,7 @@ import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.datatrack.RoomDataTrackLogger;
+import com.jjg.game.room.friendroom.AbstractFriendRoomController;
 import com.jjg.game.room.services.RobotService;
 import com.jjg.game.room.timer.RoomTimerCenter;
 import com.jjg.game.sampledata.GameDataManager;
@@ -57,7 +62,8 @@ import java.util.stream.Collectors;
  * @author 11
  * @date 2025/6/25 10:19
  */
-public abstract class AbstractRoomManager implements ApplicationContextAware, ConfigExcelChangeListener {
+public abstract class AbstractRoomManager implements ApplicationContextAware, ConfigExcelChangeListener,
+    TimerListener<IProcessorHandler> {
     protected final Logger log = LoggerFactory.getLogger(getClass());
     // 房间管理器是否处于房间关闭流程中
     private boolean isRoomStopping = false;
@@ -85,6 +91,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     protected ApplicationContext applicationContext;
     // 房间计时器(线程池)
     protected RoomTimerCenter roomTimerCenter;
+    // 房间管理器timer,多线程，非房间线程，如果需要调用房间相关的逻辑，需要抛到对应的房间线程
+    protected TimerCenter roomManagerTimer;
     // 不同类型的房间roomDao
     protected Map<Class<? extends Room>, AbstractRoomDao<? extends Room, ? extends RoomPlayer>> roomDaoMap
         = new HashMap<>();
@@ -104,6 +112,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     public AbstractRoomManager() {
         this.roomTimerCenter = new RoomTimerCenter("room-timer", processorExecutors);
         this.roomTimerCenter.start();
+        this.roomManagerTimer = new TimerCenter("room-manager-timer");
+        this.roomManagerTimer.start();
+        // 添加空房间检查
+        this.roomManagerTimer.add(new TimerEvent<>(this, this::emptyRoomCheck, 5000));
     }
 
     @PostConstruct
@@ -541,7 +553,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         return matchDataDao.getNewWaitJoinRoomId(gameType, roomConfigId, oldRoomId);
     }
 
-
     /**
      * 机器人批量退出房间
      */
@@ -630,7 +641,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         // 将机器人回收
         robotPlayerExitRoom(robotPlayers);
         // 调用解散房间控制器中的逻辑
-        roomController.disbandRoom();
+        roomController.disbandRoom(disbandRoomByPlayer);
         // 移除房间map中的数据
         roomControllers.remove(roomId);
         // 好友房如果没有主动解散不能删除
@@ -949,6 +960,164 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         }
         log.info("更新房间控制器中的配置引用成功！数量：{}", roomControllers.size());
     }
+
+    @Override
+    public void onTimer(TimerEvent<IProcessorHandler> event) {
+        if (event == null || event.getParameter() == null) {
+            return;
+        }
+        try {
+            // 执行事件的回调
+            event.getParameter().action();
+        } catch (Exception ex) {
+            log.error("房间管理器的定时器更新逻辑异常, {}", ex.getMessage(), ex);
+            throw new RuntimeException(ex);
+        }
+    }
+
+    /**
+     * 空房间检测, 5s 检测一次
+     */
+    protected void emptyRoomCheck() {
+        if (this.roomControllerMap.isEmpty()) {
+            return;
+        }
+        // 房间配置 <=> Pair<此类房间至少保存的数量，房间删除时间>
+        Map<Integer, Pair<Integer, Integer>> roomCfgIdPlayerLimitMap = getRoomPlayerLimitCfg();
+        // 房间CfgID <=> 房间真人数量+房间控制器
+        Map<Integer, List<Pair<Integer, AbstractRoomController<? extends RoomCfg, ? extends Room>>>> roomNumMap =
+            new HashMap<>();
+        // 检查空房间
+        for (Map.Entry<Integer, Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> entry :
+            this.roomControllerMap.entrySet()) {
+            for (Map.Entry<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerEntry :
+                entry.getValue().entrySet()) {
+                AbstractRoomController<? extends RoomCfg, ? extends Room> roomController =
+                    roomControllerEntry.getValue();
+                Room room = roomController.getRoom();
+                roomNumMap.computeIfAbsent(room.getRoomCfgId(), k -> new ArrayList<>()).add(new Pair<>(room.countPlayers(), roomController));
+            }
+        }
+        log.debug("开始检查空房间：{}", roomNumMap.size());
+        // 当前时间
+        long curTime = System.currentTimeMillis();
+        // 需要销毁的房间
+        List<AbstractRoomController<? extends RoomCfg, ? extends Room>> needDestroyRooms = new ArrayList<>();
+        // 标记或销毁空的房间
+        for (Map.Entry<Integer, List<Pair<Integer, AbstractRoomController<? extends RoomCfg, ? extends Room>>>> entry : roomNumMap.entrySet()) {
+            Pair<Integer, Integer> configPair = roomCfgIdPlayerLimitMap.get(entry.getKey());
+            if (configPair == null) {
+                continue;
+            }
+            int keepNum = configPair.getFirst();
+            // 如果小于最小保存的数量
+            if (entry.getValue().size() <= keepNum) {
+                continue;
+            }
+            // 需要过滤掉其他 空房间,按真人数量降序排序
+            List<Pair<Integer, AbstractRoomController<? extends RoomCfg, ? extends Room>>> sortedRooms =
+                entry.getValue().stream().sorted((o1, o2) -> Integer.compare(o2.getFirst(), o1.getFirst())).toList();
+            // 获取所有的空房间
+            List<Pair<Integer, AbstractRoomController<? extends RoomCfg, ? extends Room>>> emptyRoom =
+                sortedRooms.subList(keepNum, sortedRooms.size()).stream()
+                    .filter(p -> {
+                        if (p.getSecond() instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
+                            // 好友房必须要处于销毁状态才能删除
+                            return friendRoomController.getRoom().getStatus() == 3;
+                        } else {
+                            // 需要筛选所有空的房间，还有真人的房间不能销毁
+                            return p.getSecond().getRoom().countPlayers() <= 0;
+                        }
+                    })
+                    .toList();
+            if (emptyRoom.isEmpty()) {
+                continue;
+            }
+            // 删除时间
+            int deleteTime = configPair.getSecond();
+            // 立刻销毁
+            if (deleteTime <= 0) {
+                needDestroyRooms.addAll(emptyRoom.stream().map(Pair::getSecond).toList());
+            } else {
+                // 标记销毁
+                for (Pair<Integer, AbstractRoomController<? extends RoomCfg, ? extends Room>> controllerPair :
+                    emptyRoom) {
+                    GameDataVo<?> gameDataVo = controllerPair.getSecond().getGameController().getGameDataVo();
+                    long roomDestroyTime = gameDataVo.getRoomDestroyTime();
+                    if (roomDestroyTime <= 0) {
+                        gameDataVo.setRoomDestroyTime(curTime + ((long) deleteTime * TimeHelper.ONE_SECOND_OF_MILLIS));
+                    } else if (roomDestroyTime <= curTime) {
+                        // 如果到了销毁时间
+                        needDestroyRooms.add(controllerPair.getSecond());
+                    }
+                }
+            }
+        }
+        if (!needDestroyRooms.isEmpty()) {
+            // 销毁过期房间
+            destroyRoomNow(needDestroyRooms);
+        }
+    }
+
+    /**
+     * 销毁房间
+     *
+     * @param needDestroyRooms 需要销毁的房间列表
+     */
+    protected void destroyRoomNow(List<AbstractRoomController<? extends RoomCfg, ? extends Room>> needDestroyRooms) {
+        for (AbstractRoomController<? extends RoomCfg, ? extends Room> needDestroyRoomController : needDestroyRooms) {
+            log.info("开始销毁空房间: {}", needDestroyRoomController.getRoom().logStr());
+            // 需要将销毁逻辑切换到原来的房间线程执行
+            GameProcessor gameProcessor =
+                processorExecutors.getProcessorById(needDestroyRoomController.getRoom().getId());
+            gameProcessor.executeHandler(new BaseHandler<>() {
+                @Override
+                public void action() {
+                    // 调用房间销毁逻辑
+                    needDestroyRoomController.gameDestroy(false);
+                }
+            });
+        }
+    }
+
+    /**
+     * 获取房间玩家限制配置
+     */
+    private Map<Integer, Pair<Integer, Integer>> getRoomPlayerLimitCfg() {
+        // 房间配置 <=> Pair<此类房间至少保存的数量，房间删除时间>
+        return GameDataManager.getWarehouseCfgList().stream().collect(HashMap::new, (map, cfg) -> {
+            List<Integer> roomDeletionSolution = cfg.getRoomDeletion_Solution();
+            if (roomDeletionSolution.isEmpty()) {
+                map.put(cfg.getId(), new Pair<>(0, 0));
+            } else if (roomDeletionSolution.size() == 1) {
+                map.put(cfg.getId(), new Pair<>(roomDeletionSolution.getFirst(), 0));
+            } else {
+                map.put(cfg.getId(), new Pair<>(roomDeletionSolution.getFirst(), roomDeletionSolution.get(1)));
+            }
+        }, HashMap::putAll);
+    }
+
+    /**
+     * 换房间
+     */
+    public boolean changeRoom(PlayerController playerController, long oldRoomId, int gameType, int roomConfigId) {
+        //获取另一个房间id
+        long roomOtherId = getSameRoomOtherId(oldRoomId, gameType, roomConfigId);
+        if (roomOtherId == 0) {
+            return false;
+        }
+        //退出房间
+        int exited = exitRoom(playerController);
+        if (exited != Code.SUCCESS) {
+            log.info("换房间时退出当前房间失败 playerId:{} oldRoomId:{} gameType:{} roomConfigId:{}",
+                oldRoomId, roomOtherId, gameType, roomConfigId);
+            return false;
+        }
+        //加入房间
+        int joined = joinRoom(playerController, gameType, roomConfigId, roomOtherId);
+        return joined == Code.SUCCESS;
+    }
+
 
     /**
      * 获取playerService

@@ -209,7 +209,7 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
                     friendRoomController.tryContinueGame();
                     break;
                 case 3:
-                    log.info("收到请求结算房间：{} 的请求", roomId);
+                    log.info("收到请求解散房间：{} 的请求", roomId);
                     // 解散房间
                     friendRoomController.destroyOnNextRoundStart();
                     break;

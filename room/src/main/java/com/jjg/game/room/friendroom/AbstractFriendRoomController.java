@@ -70,6 +70,9 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
                 @Override
                 public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                    if (dataEntity.getPauseTime() == 0) {
+                        return false;
+                    }
                     // 动态加上时间
                     long resetTime = dataEntity.getOverdueTime() - dataEntity.getPauseTime();
                     long curTime = System.currentTimeMillis();
@@ -81,6 +84,8 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             });
             if (result.success()) {
                 this.room = result.data;
+            } else {
+                return false;
             }
             // 如果能开始需要更新房间最新消息
             broadFriendRoomChange();
@@ -117,6 +122,15 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     }
 
     @Override
+    protected CommonResult<? extends Room> checkRoomCanJoin(PlayerController playerController) {
+        // 房间不为运行状态不能加入
+        if (room.getStatus() != 1) {
+            return new CommonResult<>(Code.FORBID);
+        }
+        return super.checkRoomCanJoin(playerController);
+    }
+
+    @Override
     public void stopGame() {
         LinkedHashMap<Long, Long> applyBankers = getRoom().getBankerPredicateMap();
         if (applyBankers != null && !applyBankers.isEmpty()) {
@@ -136,8 +150,9 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     public void destroyOnNextRoundStart() {
         // 重新刷新room数据
         room = roomDao.getRoom(room.getGameType(), room.getId());
-        // 如果房间已经处于暂停状态或者未开启游戏,直接走销毁逻辑
-        if (gameController.getGameState() == EGameState.PAUSED || gameController.getGameState() == EGameState.INIT_DONE) {
+        // 如果房间处于未开启游戏,直接走销毁逻辑
+        if (gameController.getGameState() == EGameState.INIT_DONE) {
+            log.info("房间处于未开启状态，直接解散");
             gameDestroy(true);
         }
     }
@@ -146,6 +161,20 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     public void gameDestroy(boolean closeByPlayer) {
         // 标记游戏为销毁中，
         gameController.gameDestroy(closeByPlayer);
+    }
+
+    @Override
+    public void disbandRoom(Boolean closeByPlayer) {
+        super.disbandRoom(closeByPlayer);
+        // 解散完成后需要将剩余的准备金返给玩家
+        if (room.getStatus() == 3) {
+            int gameTransactionItemId = gameController.getGameTransactionItemId();
+            roomManager.getPlayerPackService().addItem(
+                room.getCreator(),
+                gameTransactionItemId,
+                room.getPredictCostGoldNum(),
+                ERoomItemReason.FRIEND_ROOM_DISBAND_REBACK_GOLD.name());
+        }
     }
 
     /**
@@ -174,21 +203,12 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             }
             List<Integer> requiredMoney = roomExpendCfg.getRequiredMoney();
             int gold = requiredMoney.get(1);
-            long roomCreator = room.getCreator();
             // 时长，毫秒
             long durationTime = (long) roomExpendCfg.getDurationTime() * TimeHelper.ONE_MINUTE_OF_MILLIS;
-            int deductCode;
-            // TODO 需要整合扣除道具方法
-            if (gameController.getGameDataVo().getGamePlayer(roomCreator) != null) {
-                deductCode =
-                    gameController.deductItem(
-                        roomCreator, gold, ERoomItemReason.FRIEND_ROOM_AUTO_RENEW_TIME.withCfgId(room.getRoomCfgId()));
-            } else {
-                CommonResult<?> commonResult = roomManager.getPlayerService().deductGold(roomCreator, gold,
-                    ERoomItemReason.FRIEND_ROOM_AUTO_RENEW_TIME.name(), room.getRoomCfgId() + "");
-                deductCode = commonResult.code;
-            }
-            if (deductCode != Code.SUCCESS) {
+            // 从房间底庄中扣除金币，如果不足直接暂停游戏
+            if (gold > room.getPredictCostGoldNum()) {
+                // 自动续费失败，房间准备金不足
+                log.info("自动续费失败，房间准备金不足: need: {} rest: {}", gold, room.getPredictCostGoldNum());
                 return false;
             }
             // 续费时长
@@ -200,6 +220,8 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                 @Override
                 public Boolean updateDataWithRes(FriendRoom dataEntity) {
                     dataEntity.setOverdueTime(System.currentTimeMillis() + durationTime);
+                    // TODO日志
+                    dataEntity.setPredictCostGoldNum(dataEntity.getPredictCostGoldNum() - gold);
                     return true;
                 }
             });
