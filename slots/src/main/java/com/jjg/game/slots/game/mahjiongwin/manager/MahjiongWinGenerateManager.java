@@ -39,29 +39,30 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
     @Override
     public MahjiongWinResultLib checkAward(int[] arr, MahjiongWinResultLib lib) throws Exception {
-        lib.setGameType(this.gameType);
-        lib.setIconArr(arr);
-
-        //检查满线图案
-        List<MahjiongWinAwardLineInfo> fullLineInfoList = fullLine(arr);
-        lib.addAllAwardLineInfo(fullLineInfoList);
-
-        //检查全局分散图案
-        List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib.getLibTypeSet(), arr, lib.getSpecialGirdInfoList());
-        lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
-
-
-        //存储消除后添加的图标
-        List<MahjiongWinAddIconInfo> addIconInfoList = new ArrayList<>();
-        //是否有消除
-        repairIcons(lib.getIconArr(), lib.getAwardLineInfoList(), addIconInfoList, 0);
-
-        if (!addIconInfoList.isEmpty()) {
-            lib.setAddIconInfos(addIconInfoList);
-        }
-
-        calTimes(lib);
-        return lib;
+//        lib.setGameType(this.gameType);
+//        lib.setIconArr(arr);
+//
+//        //检查满线图案
+//        List<MahjiongWinAwardLineInfo> fullLineInfoList = fullLine(arr);
+//        lib.addAllAwardLineInfo(fullLineInfoList);
+//
+//        //检查全局分散图案
+//        List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
+//        lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
+//
+//
+//        //存储消除后添加的图标
+//        List<MahjiongWinAddIconInfo> addIconInfoList = new ArrayList<>();
+//        //是否有消除
+//        repairIcons(lib.getIconArr(), lib.getAwardLineInfoList(), addIconInfoList, 0);
+//
+//        if (!addIconInfoList.isEmpty()) {
+//            lib.setAddIconInfos(addIconInfoList);
+//        }
+//
+//        calTimes(lib);
+//        return lib;
+        return super.checkAward(arr, lib);
     }
 
     @Override
@@ -92,6 +93,8 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
         if(freeCount == null || freeCount < 1){
             return;
         }
+
+        log.debug("增加免费游戏次数 addCount = {}",freeCount);
 
         int remainFreeCount = freeCount;
 
@@ -129,7 +132,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
         for(int i=1;i<lib.getIconArr().length;i++){
             int icon = lib.getIconArr()[i];
             //是否出现了目标图标
-            if(icon != this.mahjiongWinAddFreeInfo.getAddFreeCount()){
+            if(icon != this.mahjiongWinAddFreeInfo.getTargetIcon()){
                 continue;
             }
             boolean flag = SlotsUtil.calProp(this.mahjiongWinAddFreeInfo.getProp());

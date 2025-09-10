@@ -202,20 +202,26 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         lib.setGameType(this.gameType);
         lib.setIconArr(arr);
 
+        //lib做为入参，防止在方法里面被修改，所有拷贝一份
+        T tmpLib = (T)lib.clone();
         //检查连线
-        List<A> awardLineInfoList = winLines(lib.getIconArr(), SlotsConst.BaseElementReward.LINE_TYPE_NORMAL);
+        List<A> awardLineInfoList = winLines(tmpLib, SlotsConst.BaseElementReward.LINE_TYPE_NORMAL);
         lib.setAwardLineInfoList(awardLineInfoList);
 
+        //lib做为入参，防止在方法里面被修改，所有拷贝一份
+        tmpLib = (T)lib.clone();
         //检查指定图案
-        List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = assignPattern(lib.getLibTypeSet(), arr, lib.getSpecialGirdInfoList());
+        List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = assignPattern(tmpLib);
         lib.addSpecialAuxiliaryInfo(specialAuxiliaryInfoList);
 
         //检查满线图案
         List<A> fullLineInfoList = fullLine(arr);
         lib.addAllAwardLineInfo(fullLineInfoList);
 
+        //lib做为入参，防止在方法里面被修改，所有拷贝一份
+        tmpLib = (T)lib.clone();
         //检查全局分散图案
-        List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib.getLibTypeSet(), arr, lib.getSpecialGirdInfoList());
+        List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(tmpLib);
         lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
 
         //计算倍数
@@ -271,10 +277,10 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     /**
      * 检查中奖线
      *
-     * @param arr
+     * @param lib
      * @return
      */
-    public List<A> winLines(int[] arr, int lineType) {
+    public List<A> winLines(T lib, int lineType) {
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
         if (baseInitCfg.getLineType() != SlotsConst.BaseInit.NEED_BASE_LINE) {
             return Collections.emptyList();
@@ -309,7 +315,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                     }
 
 //                log.debug("index1={}, index2={}", index1, index2);
-                    sameInfo = iconSame(sameInfo, arr[index1], arr[index2]);
+                    sameInfo = iconSame(sameInfo, lib.getIconArr()[index1], lib.getIconArr()[index2]);
                     if (sameInfo.isSame()) {
                         sameInfo.setSame(false);
                         sameCount = sameCount < 1 ? 2 : sameCount + 1;
@@ -334,7 +340,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                             continue;
                         }
 
-                        A info = addAwardLineInfo(cfg, rewardCfg, sameCount, sameInfo.getBaseIconId(), lineList, arr);
+                        A info = addAwardLineInfo(cfg, rewardCfg, sameCount, sameInfo.getBaseIconId(), lineList, lib.getIconArr());
                         awardLineInfoList.add(info);
                         break;
                     }
@@ -347,11 +353,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
     /**
      * 检查指定图案
-     *
-     * @param arr
-     * @param specialGirdInfoList 修改格子后的数据
      */
-    protected List<SpecialAuxiliaryInfo> assignPattern(Set<Integer> libTypeSet, int[] arr, List<SpecialGirdInfo> specialGirdInfoList) {
+    protected List<SpecialAuxiliaryInfo> assignPattern(T lib) {
         //获取指定图案的配置
         Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_ASSIGN);
         if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
@@ -367,8 +370,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             int mustIconCount = 0;
             //条件图案
             Map<Integer, Integer> conditionIconsMap = new HashMap<>();
-            for (int i = 0; i < arr.length; i++) {
-                int icon = arr[i];
+            for (int i = 0; i < lib.getIconArr().length; i++) {
+                int icon = lib.getIconArr()[i];
                 //检查条件参数的图案
                 if (icon == cfg.getRewardNum()) {
                     mustIconCount++;
@@ -391,8 +394,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             conditionIconsMap.forEach((k, v) -> {
                 for (int i = 0; i < v; i++) {
                     cfg.getFeatureTriggerId().forEach(miniGameId -> {
-                        libTypeSet.forEach(libType -> {
-                            SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, arr, miniGameId, specialGirdInfoList);
+                        lib.getLibTypeSet().forEach(libType -> {
+                            SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(lib,libType,miniGameId);
                             if (specialAuxiliaryInfo != null) {
                                 specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
                             }
@@ -423,7 +426,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             Map<Integer, Set<Integer>> sameMap = fullColSame(arr, cfg);
             if (!sameMap.isEmpty()) {
                 list.add(addFullLineAwardInfo(sameMap, cfg));
-                log.debug("中奖 sameMap = {},times = {}", sameMap, cfg.getBet());
+                log.debug("满线中奖 sameMap = {},times = {}", sameMap, cfg.getBet());
             }
         }
         return list;
@@ -431,10 +434,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
     /**
      * 全局分散
-     *
-     * @param arr
      */
-    protected List<SpecialAuxiliaryInfo> overallDisperse(Set<Integer> libTypeSet, int[] arr, List<SpecialGirdInfo> specialGirdInfoList) {
+    protected List<SpecialAuxiliaryInfo> overallDisperse(T lib) {
         //获取全局分散图案的配置
         Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE_GLOBAL);
         if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
@@ -446,23 +447,12 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         //小游戏
         List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = new ArrayList<>();
 
-        List<List<Integer>> tmpElementIdList = new ArrayList<>();
-
-        outFor:
         for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
             BaseElementRewardCfg cfg = en.getValue();
 
-            //检查是不是比较同一种元素
-            boolean match = tmpElementIdList.stream().anyMatch(tmpList -> tmpList.equals(cfg.getElementId()));
-            if (match) {
-                continue;
-            }
-
-            tmpElementIdList.add(cfg.getElementId());
-
             Map<Integer, Integer> mustShowIconMap = new HashMap<>();
-            for (int i = 0; i < arr.length; i++) {
-                int icon = arr[i];
+            for (int i = 0; i < lib.getIconArr().length; i++) {
+                int icon = lib.getIconArr()[i];
                 //检查必须出现的图案
                 if (cfg.getElementId().contains(icon)) {
                     mustShowIconMap.merge(icon, 1, Integer::sum);
@@ -470,11 +460,15 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             }
 
             //检查出现的个数是否满足
+            int elementsCount = 0;
             for (int iconId : cfg.getElementId()) {
                 Integer count = mustShowIconMap.get(iconId);
-                if (count == null || count != cfg.getRewardNum()) {
-                    continue outFor;
+                if(count != null){
+                    elementsCount += count;
                 }
+            }
+            if(elementsCount != cfg.getRewardNum()){
+                continue;
             }
 
             //是否触发小游戏
@@ -483,8 +477,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             }
 
             cfg.getFeatureTriggerId().forEach(miniGameId -> {
-                libTypeSet.forEach(libType -> {
-                    SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, arr, miniGameId, specialGirdInfoList);
+                lib.getLibTypeSet().forEach(libType -> {
+                    SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(lib,libType, miniGameId);
                     if (specialAuxiliaryInfo != null) {
                         specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
                     }
@@ -511,7 +505,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * @param miniGameId
      * @return
      */
-    public SpecialAuxiliaryInfo triggerMiniGame(int specialModeType, int[] arr, int miniGameId, List<SpecialGirdInfo> specialGirdInfoList) {
+    public SpecialAuxiliaryInfo triggerMiniGame(T lib,int specialModeType,int miniGameId) {
         log.debug("触发小游戏 miniGameId = {}", miniGameId);
         //根据小游戏id去找相关配置
         SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(miniGameId);
@@ -532,7 +526,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         //检查免费旋转
         triggerFree(specialModeType, specialAuxiliaryCfg, specialAuxiliaryPropConfig, specialAuxiliaryInfo);
         //检查是否有额外奖励
-        triggerAuxiliaryExtra(arr, specialAuxiliaryCfg, specialAuxiliaryPropConfig, specialAuxiliaryInfo, specialGirdInfoList);
+        triggerAuxiliaryExtra(lib, specialAuxiliaryCfg, specialAuxiliaryPropConfig, specialAuxiliaryInfo);
         return specialAuxiliaryInfo;
     }
 
@@ -575,15 +569,13 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     /**
      * 检查是否有额外奖励
      *
-     * @param arr
      * @param specialAuxiliaryCfg
      * @param specialAuxiliaryPropConfig
      * @param specialAuxiliaryInfo
-     * @param specialGirdInfoList
      */
-    protected void triggerAuxiliaryExtra(int[] arr, SpecialAuxiliaryCfg specialAuxiliaryCfg,
-                                         SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig, SpecialAuxiliaryInfo specialAuxiliaryInfo,
-                                         List<SpecialGirdInfo> specialGirdInfoList) {
+    protected void triggerAuxiliaryExtra(T lib, SpecialAuxiliaryCfg specialAuxiliaryCfg,
+                                         SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig, SpecialAuxiliaryInfo specialAuxiliaryInfo
+                                         ) {
         if (specialAuxiliaryPropConfig.getRandCountPropInfo() == null) {
             return;
         }
@@ -595,8 +587,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
         //找到修改格子后的配置
         SpecialGirdInfo sgInfo = null;
-        if (specialGirdInfoList != null && !specialGirdInfoList.isEmpty()) {
-            sgInfo = specialGirdInfoList.stream().filter(info -> info.getCfgId() == specialAuxiliaryCfg.getId()).findFirst().orElse(null);
+        if (lib.getSpecialGirdInfoList() != null && !lib.getSpecialGirdInfoList().isEmpty()) {
+            sgInfo = lib.getSpecialGirdInfoList().stream().filter(info -> info.getCfgId() == specialAuxiliaryCfg.getId()).findFirst().orElse(null);
         }
 
         SpecialAuxiliaryAwardInfo specialAuxiliaryAwardInfo = new SpecialAuxiliaryAwardInfo();
@@ -615,7 +607,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 for (Map.Entry<Integer, Integer> en : sgInfo.getValueMap().entrySet()) {
                     int girdId = en.getKey();
                     //检查是不是配置的图标
-                    if (arr[girdId] == icon) {
+                    if (lib.getIconArr()[girdId] == icon) {
                         int newValue = SlotsUtil.calProp(prop, en.getValue());
                         sgInfo.getValueMap().put(girdId, newValue);
                     }

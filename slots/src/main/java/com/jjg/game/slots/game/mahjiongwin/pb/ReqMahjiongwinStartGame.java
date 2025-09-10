@@ -13,4 +13,6 @@ import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.MAHJIONG_WIN_TYPE, cmd = MahjiongWinConstant.MsgBean.REQ_START_GAME)
 @ProtoDesc("请求开始游戏")
 public class ReqMahjiongwinStartGame extends AbstractMessage {
+    @ProtoDesc("下注金额")
+    public long stakeVlue;
 }

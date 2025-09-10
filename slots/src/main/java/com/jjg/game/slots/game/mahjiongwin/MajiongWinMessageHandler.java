@@ -14,6 +14,7 @@ import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinGameManager;
 import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinSendMessageManager;
 import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinEnterGame;
+import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinStartGame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,7 +58,7 @@ public class MajiongWinMessageHandler implements GmListener {
      * @param req
      */
     @Command(MahjiongWinConstant.MsgBean.REQ_START_GAME)
-    public void reqStartGame(PlayerController playerController, ReqStartGame req) {
+    public void reqStartGame(PlayerController playerController, ReqMahjiongwinStartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             MahjiongWinGameRunInfo gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeVlue);

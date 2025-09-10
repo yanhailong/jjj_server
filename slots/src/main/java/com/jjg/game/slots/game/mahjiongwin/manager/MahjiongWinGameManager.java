@@ -6,6 +6,7 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
@@ -102,6 +103,39 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
                 return gameRunInfo;
             }
 
+            //标准池
+            if (gameRunInfo.getBigPoolTimes() > 0) {
+                long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
+                if (addGold > 0) {
+                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_BET_REWARD");
+                    if (!result.success()) {
+                        log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
+                        gameRunInfo.setCode(result.code);
+                        return gameRunInfo;
+                    }
+                    gameRunInfo.setAllWinGold(addGold);
+                }
+            }
+
+            gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
+
+            //玩家当前金币
+            Player player = slotsPlayerService.get(playerGameData.playerId());
+            gameRunInfo.setAfterGold(player.getGold());
+            if (playerController != null) {
+                playerController.setPlayer(player);
+            }
+
+            //添加大奖展示id
+            int times = (int) (gameRunInfo.getAllWinGold() / betValue);
+            log.debug("计算出获奖倍数 times = {}", times);
+            gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
+
+            //系统自动玩的游戏，不会走跑马灯
+            if (!auto) {
+                checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
+            }
+            gameRunInfo.setData(playerGameData);
             gameRunInfo.setData(playerGameData);
         } catch (Exception e) {
             log.error("", e);

@@ -169,4 +169,8 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
     public int hashCode() {
         return Objects.hashCode(id);
     }
+
+    public Object clone() throws CloneNotSupportedException{
+        return super.clone();
+    }
 }
