@@ -323,8 +323,7 @@ public class CasinoBuilder {
             }
             //数量
             int num = getInstantaneousNum(casinoMaxProfitBonus, cfg.getOutput().getLast());
-            long remainder = period % intervalTime;
-            totalNum = Math.min(totalNum + times * num + (remainder > 0 ? num : 0), totalMaxNum);
+            totalNum = Math.min(totalNum + times * num, totalMaxNum);
         }
         return totalNum;
     }
