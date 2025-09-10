@@ -23,6 +23,9 @@ public class RespCreateFriendsRoom extends AbstractResponse {
     @ProtoDesc("房间基础信息")
     public FriendRoomBaseData roomBaseData;
 
+    @ProtoDesc("邀请码，玩家第一次创建时发送")
+    public int invitationCode;
+
     public RespCreateFriendsRoom(int code) {
         super(code);
     }
