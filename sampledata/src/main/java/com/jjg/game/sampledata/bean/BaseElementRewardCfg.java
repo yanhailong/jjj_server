@@ -20,7 +20,7 @@ public class BaseElementRewardCfg extends BaseCfgBean {
 
   /** 倍率 */
   protected int bet;
-  /** 额外出现元素导致倍率加成 */
+  /** 额外出现元素导致倍率加成{元素ID_数量_倍率} */
   protected List<List<Integer>> betTimes;
   /** 元素ID_相同元素_相同元素 */
   protected List<Integer> elementId;
@@ -34,15 +34,15 @@ public class BaseElementRewardCfg extends BaseCfgBean {
   protected int lineType;
   /** 条件参数 */
   protected int rewardNum;
-  /** 旋转状态 */
-  protected int rotateState;
+  /** 额外元素倍率计算方式 */
+  protected int statisticalType;
 
   /** 返回倍率 */
   public int getBet() {
     return bet;
   }
 
-  /** 返回额外出现元素导致倍率加成 */
+  /** 返回额外出现元素导致倍率加成{元素ID_数量_倍率} */
   public List<List<Integer>> getBetTimes() {
     return betTimes;
   }
@@ -77,9 +77,9 @@ public class BaseElementRewardCfg extends BaseCfgBean {
     return rewardNum;
   }
 
-  /** 返回旋转状态 */
-  public int getRotateState() {
-    return rotateState;
+  /** 返回额外元素倍率计算方式 */
+  public int getStatisticalType() {
+    return statisticalType;
   }
 
   @Override

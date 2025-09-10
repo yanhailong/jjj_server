@@ -1,5 +1,7 @@
 package com.jjg.game.slots.utils;
 
+import cn.hutool.core.util.RandomUtil;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.slots.data.PropInfo;
 
 import java.math.BigDecimal;
@@ -62,7 +64,7 @@ public class SlotsUtil {
     }
 
     /**
-     * 根据万分比返回
+     * 根据万分比返回all的值
      * @param prop
      * @param all
      * @return
@@ -79,5 +81,23 @@ public class SlotsUtil {
         BigDecimal divide = propValue.divide(TEN_THOUSAND_BIGDECIMAL, 0, BigDecimal.ROUND_HALF_UP);
         BigDecimal multiply = BigDecimal.valueOf(all).multiply(divide);
         return multiply.intValue();
+    }
+
+    /**
+     * 根据万分比计算是否命中
+     * @param prop
+     * @return
+     */
+    public static boolean calProp(int prop) {
+        if(prop == 0) {
+            return false;
+        }
+
+        if(prop == TEN_THOUSAND) {
+            return true;
+        }
+
+        int rand = RandomUtils.randomMinMax(1,TEN_THOUSAND);
+        return prop <= rand;
     }
 }

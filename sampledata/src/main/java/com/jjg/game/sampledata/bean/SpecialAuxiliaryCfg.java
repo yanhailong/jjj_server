@@ -22,7 +22,7 @@ public class SpecialAuxiliaryCfg extends BaseCfgBean {
   protected List<Integer> awardTypeA;
   /** 奖励类型B */
   protected String awardTypeB;
-  /** 计算类型&倍数，中奖权重，最大出现次数，根据配置额外增加 */
+  /** 倍数，中奖权重，最大出现次数，根据配置额外增加 */
   protected Map<Integer,Integer> awardTypeC;
   /** 赋予值类型 */
   protected List<Integer> awardTypeC_value;
@@ -34,6 +34,8 @@ public class SpecialAuxiliaryCfg extends BaseCfgBean {
   protected int rollerMode;
   /** 修改图案策略，改完后再进行中奖判断 */
   protected List<Integer> specialGirdID;
+  /** 修改图案策略组，多个修改中按概率抽取1个修改 */
+  protected Map<Integer,Integer> specialGroupGirdID;
   /** 旋转次数&权重 */
   protected Map<Integer,Integer> triggerCount;
   /** 客户端玩法模式 */
@@ -49,7 +51,7 @@ public class SpecialAuxiliaryCfg extends BaseCfgBean {
     return awardTypeB;
   }
 
-  /** 返回计算类型&倍数，中奖权重，最大出现次数，根据配置额外增加 */
+  /** 返回倍数，中奖权重，最大出现次数，根据配置额外增加 */
   public Map<Integer,Integer> getAwardTypeC() {
     return awardTypeC;
   }
@@ -77,6 +79,11 @@ public class SpecialAuxiliaryCfg extends BaseCfgBean {
   /** 返回修改图案策略，改完后再进行中奖判断 */
   public List<Integer> getSpecialGirdID() {
     return specialGirdID;
+  }
+
+  /** 返回修改图案策略组，多个修改中按概率抽取1个修改 */
+  public Map<Integer,Integer> getSpecialGroupGirdID() {
+    return specialGroupGirdID;
   }
 
   /** 返回旋转次数&权重 */

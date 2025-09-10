@@ -2,7 +2,6 @@ package com.jjg.game.slots.game.mahjiongwin.data;
 
 import com.jjg.game.slots.data.AwardLineInfo;
 
-import java.util.List;
 import java.util.Set;
 
 /**

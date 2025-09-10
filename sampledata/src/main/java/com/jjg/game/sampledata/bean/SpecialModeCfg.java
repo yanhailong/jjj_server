@@ -28,6 +28,8 @@ public class SpecialModeCfg extends BaseCfgBean {
   protected int rows;
   /** 修改图案策略 */
   protected List<Integer> specialGirdID;
+  /** 修改图案策略组，多个修改中按概率抽取1个修改 */
+  protected Map<Integer,Integer> specialGroupGirdID;
   /** 执行次数 */
   protected int triggerCount;
   /** 游戏模式 */
@@ -56,6 +58,11 @@ public class SpecialModeCfg extends BaseCfgBean {
   /** 返回修改图案策略 */
   public List<Integer> getSpecialGirdID() {
     return specialGirdID;
+  }
+
+  /** 返回修改图案策略组，多个修改中按概率抽取1个修改 */
+  public Map<Integer,Integer> getSpecialGroupGirdID() {
+    return specialGroupGirdID;
   }
 
   /** 返回执行次数 */
