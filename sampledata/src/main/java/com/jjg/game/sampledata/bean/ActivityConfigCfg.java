@@ -20,6 +20,10 @@ public class ActivityConfigCfg extends BaseCfgBean {
 
   /** 解锁条件 */
   protected Map<Integer,Integer> condition;
+  /** 掉落条件 */
+  protected List<Integer> dropcondition;
+  /** 道具掉落包ID */
+  protected List<Integer> dropid;
   /** 活动持续时间(天) */
   protected int duration;
   /** 跑马灯通知 */
@@ -42,6 +46,16 @@ public class ActivityConfigCfg extends BaseCfgBean {
   /** 返回解锁条件 */
   public Map<Integer,Integer> getCondition() {
     return condition;
+  }
+
+  /** 返回掉落条件 */
+  public List<Integer> getDropcondition() {
+    return dropcondition;
+  }
+
+  /** 返回道具掉落包ID */
+  public List<Integer> getDropid() {
+    return dropid;
   }
 
   /** 返回活动持续时间(天) */
