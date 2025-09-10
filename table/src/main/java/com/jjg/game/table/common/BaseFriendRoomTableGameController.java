@@ -1,5 +1,6 @@
 package com.jjg.game.table.common;
 
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
@@ -143,6 +144,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                         .sum();
                 historyBean.setTotalFlowing(totalFlowing);
                 historyBean.setItemId(getGameTransactionItemId());
+                historyBean.setMonth(TimeHelper.getMonthNumerical());
                 historyBean.setPartInPlayerIncome(
                     settlementDataMap.entrySet().stream()
                         .collect(HashMap::new,

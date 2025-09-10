@@ -48,7 +48,7 @@ public class FriendRoomRedisDao {
     @Autowired
     private RedisLock redisLock;
     // 表名缓存，防止重复判断。如果是重新开服，此值会清空，但是也只是让key值多存一点时间，不影响其他逻辑
-    private final Set<Integer> tableNameCache = new ConcurrentHashSet<>();
+    private final Set<String> tableNameCache = new ConcurrentHashSet<>();
 
     /**
      * 获取一个邀请码
@@ -86,16 +86,7 @@ public class FriendRoomRedisDao {
      */
     private String getInvitationResetTableName() {
         int dayNumerical = TimeHelper.getDayNumerical();
-        String curDayKey = INVITATION_RESET_TABLE_NAME + dayNumerical;
-        if (!tableNameCache.contains(dayNumerical)) {
-            tableNameCache.add(dayNumerical);
-            if (!redisTemplate.hasKey(curDayKey)) {
-                // 设置过期时间
-                redisTemplate.expire(
-                    curDayKey, TimeHelper.ONE_DAY_OF_MILLIS + TimeHelper.ONE_MINUTE_OF_MILLIS, TimeUnit.MILLISECONDS);
-            }
-        }
-        return curDayKey;
+        return INVITATION_RESET_TABLE_NAME + dayNumerical;
     }
 
     /**
@@ -159,6 +150,17 @@ public class FriendRoomRedisDao {
                 invitationPlayerTableName.getBytes(), (newInvitationCode + "").getBytes(), (playerId + "").getBytes());
             return null;
         });
+        // 设置key的过期时间
+        if (!tableNameCache.contains(tableName)) {
+            log.debug("redisTemplate.getExpire(tableName) {}", redisTemplate.getExpire(tableName));
+            if (redisTemplate.getExpire(tableName) <= 0) {
+                log.info("过期时间：{}", TimeHelper.ONE_DAY_OF_MILLIS + TimeHelper.ONE_HOUR_OF_MILLIS);
+                // 设置过期时间
+                redisTemplate.expire(
+                    tableName, TimeHelper.ONE_DAY_OF_MILLIS + TimeHelper.ONE_HOUR_OF_MILLIS, TimeUnit.MILLISECONDS);
+                tableNameCache.add(tableName);
+            }
+        }
     }
 
     /**
