@@ -230,8 +230,8 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             }
         }
         int minBankerAmount = FriendRoomSampleUtils.getRoomMinBankerAmount(roomCfg.getId());
-        // 好友房，如果房间庄家不为空或者房间房主底注大于最小上庄金币
-        return checkBankerCanNextRound() || room.getPredictCostGoldNum() >= minBankerAmount;
+        // 好友房，如果房间庄家不为空且房间房主底注大于最小上庄金币
+        return checkBankerCanNextRound() && room.getPredictCostGoldNum() >= minBankerAmount;
     }
 
     /**
