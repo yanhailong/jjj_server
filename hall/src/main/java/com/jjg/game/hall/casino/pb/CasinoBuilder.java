@@ -184,7 +184,7 @@ public class CasinoBuilder {
     /**
      * 计算收益最大时间
      *
-     * @param machineInfoData 机台信息
+     * @param machineInfoData      机台信息
      * @param casinoMachineInfo    机台信息
      * @param casinoMaxProfitBonus buff参数
      * @param timeMillis           当前时间
@@ -289,7 +289,34 @@ public class CasinoBuilder {
             }
         }
         //计算时间 按时间排序
-        List<Long> finalTimePeriod = timePeriod.stream().distinct().sorted().toList();
+        List<Long> sortTimePeriod = timePeriod.stream().distinct().sorted().toList();
+        //时间合并
+        List<Long> finalTimePeriod = new ArrayList<>();
+        for (int i = 0; i < sortTimePeriod.size(); i++) {
+            Long startPeriod = sortTimePeriod.get(i);
+            BuildingFunctionCfg functionCfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(startPeriod));
+            if (CollectionUtil.isEmpty(functionCfg.getOutput())) {
+                continue;
+            }
+            finalTimePeriod.add(startPeriod);
+            //间隔时间
+            int intervalTime = functionCfg.getOutput().getFirst() * ONE_MINUTE_OF_MILLIS;
+            if (i + 1 >= sortTimePeriod.size()) {
+                break;
+            }
+            boolean find = false;
+            for (int j = i + 1; j < sortTimePeriod.size(); j++) {
+                Long nextTime = sortTimePeriod.get(j);
+                if (nextTime - startPeriod > intervalTime) {
+                    i = j - 1;
+                    find = true;
+                    break;
+                }
+            }
+            if (!find) {
+                break;
+            }
+        }
         //收益结束到现在全部都在时间内
         for (int i = 0; i < finalTimePeriod.size(); i++) {
             Long startPeriod = finalTimePeriod.get(i);
@@ -304,10 +331,8 @@ public class CasinoBuilder {
                     break;
                 }
             }
+            //时间合并
             BuildingFunctionCfg functionCfg = GameDataManager.getBuildingFunctionCfg(casinoMachineInfo.getRealConfigId(startPeriod));
-            if (CollectionUtil.isEmpty(functionCfg.getOutput())) {
-                continue;
-            }
             casinoMaxProfitBonus = getCasinoMaxProfitBonus(tempAreaAdd, base, startPeriod, endPeriod);
             //总数量
             int totalMaxNum = getTotalNum(casinoMaxProfitBonus, functionCfg.getSavenum());
