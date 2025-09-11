@@ -419,7 +419,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             return gamePlayer.getDiamond();
         } else {
             log.error("游戏：{} 获取道具 暂不支持其他道具ID：{} 进行交易", getRoom().logStr(), transactionItemId);
-            return Code.FAIL;
+            return 0;
         }
     }
 
