@@ -19,6 +19,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -57,6 +58,36 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
         );
     }
 
+
+    public static class MonthStatisticsDto {
+        // 月份
+        public int month;
+        // 总数
+        public int count;
+    }
+
+    /**
+     * 获取月份统计
+     */
+    public List<MonthStatisticsDto> monthStatistic(long playerId, int gameType, List<Integer> month) {
+        if (month.isEmpty()) {
+            return new ArrayList<>();
+        }
+        Aggregation aggregation = Aggregation.newAggregation(
+            Aggregation.match(
+                Criteria.where("roomCreator").is(playerId)
+                    .and("gameType").is(gameType)
+                    .and("month").in(month)),
+            Aggregation.group("month").count().as("count"),
+            Aggregation.project()
+                .and("_id").as("month")
+                .and("count").as("count")
+        );
+        AggregationResults<MonthStatisticsDto> results =
+            mongoTemplate.aggregate(aggregation, "friendRoomBillHistoryBean", MonthStatisticsDto.class);
+        return results.getMappedResults();
+    }
+
     /**
      * 根据ID查找账单数据
      */
@@ -70,8 +101,7 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
     public List<GameBillResult> pageFriendRoomBillByGameType(long playerId, int pageIdx, int pageSize) {
         Aggregation aggregation =
             Aggregation.newAggregation(
-                Aggregation.match(
-                    Criteria.where("roomCreator").is(playerId).and("hasTookIncome").is(false)),
+                Aggregation.match(Criteria.where("roomCreator").is(playerId)),
                 Aggregation.group("gameType")
                     .sum("totalIncome").as("totalIncome")
                     .sum("totalFlowing").as("totalWin")

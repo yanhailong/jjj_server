@@ -298,6 +298,14 @@ public final class TimeHelper {
     }
 
     /**
+     * 获取当月的数字表示, 202012
+     */
+    public static int getMonthNumerical() {
+        String monthStr = getDate(System.currentTimeMillis(), "yyyyMM");
+        return Integer.parseInt(monthStr);
+    }
+
+    /**
      * 打印给定的时间,输出格式为默认格式
      *
      * @param currentTime

@@ -52,7 +52,7 @@ public interface Code {
     // 非法名字
     int ILLEGAL_NAME = 49010;
     // 房间创建数量已达上限
-    int CREATE_ROOM_TO_LIMIT = 417;
+    int CREATE_ROOM_TO_LIMIT = 49054;
     // 非法的好友房邀请码
     int ILLEGAL_FRIEND_ROOM_INVITATION_CODE = 49002;
     // 未关注好友
