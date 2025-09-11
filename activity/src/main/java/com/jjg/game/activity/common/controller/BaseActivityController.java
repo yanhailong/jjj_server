@@ -9,6 +9,7 @@ import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.manager.ActivityManager;
+import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.service.CorePlayerService;
@@ -36,6 +37,8 @@ public abstract class BaseActivityController {
     protected CorePlayerService corePlayerService;
     @Autowired
     protected RedisLock redisLock;
+    @Autowired
+    protected MarsCurator marsCurator;
 
     /**
      * 增加玩家活动进度
@@ -49,6 +52,13 @@ public abstract class BaseActivityController {
      */
     public void addActivityProgress(ActivityData activityData, long progress) {
     }
+
+    /**
+     * 活动加载完成执行
+     */
+    public void activityLoadCompleted(ActivityData activityData) {
+    }
+
 
     public abstract AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId);
 
