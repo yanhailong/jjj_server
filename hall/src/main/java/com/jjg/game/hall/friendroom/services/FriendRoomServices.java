@@ -522,6 +522,12 @@ public class FriendRoomServices {
         }
         // 判断当前操作的玩家是否是玩家关注的
         Player targetPlayer = corePlayerService.get(req.playerId);
+        if (targetPlayer == null) {
+            res.code = Code.PARAM_ERROR;
+            playerController.send(res);
+            log.error("通过玩家ID：{} 刷新好友房列表异常", req.playerId);
+            return;
+        }
         if (playerController.playerId() != req.playerId) {
             // 通过玩家ID，邀请码和目标玩家ID进行查找
             FriendRoomFollowBean friendRoomFollowBean =
