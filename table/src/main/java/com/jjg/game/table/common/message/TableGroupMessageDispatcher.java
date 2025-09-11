@@ -66,7 +66,7 @@ public class TableGroupMessageDispatcher extends BaseRoomMessageDispatcher {
         // 更新操作时间
         tableGameDataVo.updatePlayerOperateTime(playerController.playerId());
         RespTablePlayerInfo respTablePlayerInfo =
-                TableMessageBuilder.buildTableAllPlayerInfo(tableGameDataVo);
+                TableMessageBuilder.buildTableAllPlayerInfo(gameController, tableGameDataVo);
         playerController.send(respTablePlayerInfo);
     }
 

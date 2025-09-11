@@ -1,6 +1,7 @@
 package com.jjg.game.table.sizedicetreasure.data;
 
 
+import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.sizedicetreasure.message.SizeDiceTreasureHistoryBean;
@@ -25,8 +26,8 @@ public class SizeDiceTreasureGameDataVo extends TableGameDataVo {
     }
 
     @Override
-    public void clearRoundData() {
-        super.clearRoundData();
+    public void clearRoundData(AbstractGameController<?, ?> gameController) {
+        super.clearRoundData(gameController);
         sizeDiceTreasureSettlementInfo = null;
     }
 

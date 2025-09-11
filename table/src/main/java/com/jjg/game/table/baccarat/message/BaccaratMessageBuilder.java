@@ -7,6 +7,7 @@ import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
@@ -104,9 +105,11 @@ public class BaccaratMessageBuilder {
     /**
      * 断线重连进入时
      */
-    public static NotifyBaccaratTableInfo buildNotifyBaccaratTableInfo(BaccaratGameDataVo gameDataVo,
-                                                                       EGamePhase eGamePhase,
-                                                                       NotifyBaccaratSettlementInfo settlementInfo) {
+    public static NotifyBaccaratTableInfo buildNotifyBaccaratTableInfo(
+        AbstractGameController<?, ?> gameController,
+        BaccaratGameDataVo gameDataVo,
+        EGamePhase eGamePhase,
+        NotifyBaccaratSettlementInfo settlementInfo) {
         NotifyBaccaratTableInfo notifyBaccaratTableInfo = new NotifyBaccaratTableInfo();
         if (eGamePhase == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
             notifyBaccaratTableInfo.baccaratSettlementInfo = settlementInfo.baccaratSettlementInfo;
@@ -114,7 +117,7 @@ public class BaccaratMessageBuilder {
         }
         notifyBaccaratTableInfo.cardStateList = gameDataVo.getBetRecord();
         notifyBaccaratTableInfo.gamePhase = eGamePhase;
-        notifyBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameDataVo, true, true);
+        notifyBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameController, gameDataVo, true, true);
         return notifyBaccaratTableInfo;
     }
 
@@ -124,7 +127,7 @@ public class BaccaratMessageBuilder {
      * 构建百家乐面板数据
      */
     public static RespBaccaratTableInfo buildRespBaccaratTableInfo(
-        BaccaratGameDataVo gameDataVo, EGamePhase eGamePhase) {
+        AbstractGameController<?, ?> gameController, BaccaratGameDataVo gameDataVo, EGamePhase eGamePhase) {
         // 如果刚好处于等待阶段则直接设置为下注阶段
         if (eGamePhase == EGamePhase.WAIT_READY) {
             eGamePhase = EGamePhase.BET;
@@ -137,7 +140,7 @@ public class BaccaratMessageBuilder {
         }
         respBaccaratTableInfo.cardStateList = gameDataVo.getBetRecord();
         respBaccaratTableInfo.gamePhase = eGamePhase;
-        respBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameDataVo, true, true);
+        respBaccaratTableInfo.baccaratTableInfo = buildTableInfo(gameController, gameDataVo, true, true);
         respBaccaratTableInfo.betInfoList = gameDataVo.getRoomCfg().getBetList();
         respBaccaratTableInfo.playerTotalNum = gameDataVo.getPlayerNum();
         GlobalConfigCfg globalConfigCfg =
@@ -150,21 +153,24 @@ public class BaccaratMessageBuilder {
     /**
      * 构建 消息通知
      */
-    public static NotifyBaccaratBetStart buildNotifyBaccaratBetStart(BaccaratGameDataVo gameDataVo) {
+    public static NotifyBaccaratBetStart buildNotifyBaccaratBetStart(
+        AbstractGameController<?, ?> gameController, BaccaratGameDataVo gameDataVo) {
         NotifyBaccaratBetStart notifyInfo = new NotifyBaccaratBetStart();
-        notifyInfo.baccaratTableInfo = buildTableInfo(gameDataVo, false, true);
+        notifyInfo.baccaratTableInfo = buildTableInfo(gameController, gameDataVo, false, true);
         return notifyInfo;
     }
 
     /**
      * 构建结算消息通知
      */
-    public static NotifyBaccaratSettlementInfo buildNotifySettlementMessage(BaccaratGameDataVo gameDataVo,
-                                                                            List<PlayerChangedGold> changedGolds,
-                                                                            BaccaratSettlementInfo settlementInfo) {
+    public static NotifyBaccaratSettlementInfo buildNotifySettlementMessage(
+        AbstractGameController<?, ?> gameController,
+        BaccaratGameDataVo gameDataVo,
+        List<PlayerChangedGold> changedGolds,
+        BaccaratSettlementInfo settlementInfo) {
         NotifyBaccaratSettlementInfo notifyInfo = new NotifyBaccaratSettlementInfo();
         notifyInfo.baccaratSettlementInfo = settlementInfo;
-        notifyInfo.baccaratTableInfo = buildTableInfo(gameDataVo, false, false);
+        notifyInfo.baccaratTableInfo = buildTableInfo(gameController, gameDataVo, false, false);
         notifyInfo.playerChangedGolds = changedGolds;
         notifyInfo.needClearRoad = gameDataVo.getCardList().size() < 6;
         log.debug("{} 场上庄家牌：{} 庄家补牌：{} 庄家点数：{} 闲家牌：{} 闲家补牌：{} 闲家点数：{} 输赢结果：{} 牌型结果：{}",
@@ -184,8 +190,11 @@ public class BaccaratMessageBuilder {
     /**
      * 构建百家乐场上基础信息
      */
-    public static BaccaratTableInfo buildTableInfo(BaccaratGameDataVo gameDataVo, boolean needPlayerBetGold,
-                                                   boolean needTablePlayer) {
+    public static BaccaratTableInfo buildTableInfo(
+        AbstractGameController<?, ?> gameController,
+        BaccaratGameDataVo gameDataVo,
+        boolean needPlayerBetGold,
+        boolean needTablePlayer) {
         BaccaratTableInfo tableInfo = new BaccaratTableInfo();
         tableInfo.tableAreaInfos = TableMessageBuilder.buildBetTableInfos(gameDataVo, needPlayerBetGold);
         tableInfo.tableCountDownTime = gameDataVo.getPhaseEndTime();
@@ -195,7 +204,10 @@ public class BaccaratMessageBuilder {
             List<GamePlayer> gamePlayers =
                 gameDataVo.getGamePlayerMap().values().stream().filter(g -> g.getTableGameData().getSitNum() > 0).toList();
             tableInfo.tablePlayerInfoList =
-                gamePlayers.stream().limit(TableConstant.ON_TABLE_PLAYER_NUM).map(TableMessageBuilder::buildTablePlayerInfo).toList();
+                gamePlayers.stream()
+                    .limit(TableConstant.ON_TABLE_PLAYER_NUM)
+                    .map(g -> TableMessageBuilder.buildTablePlayerInfo(gameController, g))
+                    .toList();
         }
         return tableInfo;
     }

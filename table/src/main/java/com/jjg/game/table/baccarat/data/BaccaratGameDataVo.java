@@ -1,6 +1,8 @@
 package com.jjg.game.table.baccarat.data;
 
 import com.jjg.game.core.data.Player;
+import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.baccarat.message.resp.BaccaratCardState;
@@ -35,8 +37,8 @@ public class BaccaratGameDataVo extends TableGameDataVo {
     }
 
     @Override
-    public void clearRoundData() {
-        super.clearRoundData();
+    public void clearRoundData(AbstractGameController<?, ?> gameController) {
+        super.clearRoundData(gameController);
         isFillCard = false;
         // 将玩家的座位复位
         for (GamePlayer gamePlayer : gamePlayerMap.values()) {
@@ -46,7 +48,8 @@ public class BaccaratGameDataVo extends TableGameDataVo {
             // 取金币最高的7个人，放在场上
             gamePlayerMap.values()
                 .stream()
-                .sorted(Comparator.comparingLong(Player::getGold).reversed()).toList()
+                .sorted((o1, o2) ->
+                    Long.compare(gameController.getItemNum(o2.getId()), gameController.getItemNum(o1.getId()))).toList()
                 .subList(0, Math.min(gamePlayerMap.size(), TableConstant.ON_TABLE_PLAYER_NUM));
         // 将前7个人的位置进行排序
         for (int i = 1; i <= gamePlayers.size(); i++) {

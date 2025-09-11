@@ -1,6 +1,7 @@
 package com.jjg.game.table.vietnamdice.data;
 
 
+import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.vietnamdice.message.VietnamDiceHistoryBean;
@@ -29,8 +30,8 @@ public class VietnamDiceGameDataVo extends TableGameDataVo {
     }
 
     @Override
-    public void clearRoundData() {
-        super.clearRoundData();
+    public void clearRoundData(AbstractGameController<?, ?> gameController) {
+        super.clearRoundData(gameController);
         vietnamDiceSettlementInfo = null;
     }
 

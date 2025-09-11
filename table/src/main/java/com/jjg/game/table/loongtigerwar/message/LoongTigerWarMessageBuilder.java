@@ -2,6 +2,7 @@ package com.jjg.game.table.loongtigerwar.message;
 
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -23,7 +24,8 @@ public class LoongTigerWarMessageBuilder {
      * 构架初始化信息
      */
     public static NotifyLoongTigerWarInfo buildInitInfo(
-            long playerId, LoongTigerWarGameDataVo dataVo, EGamePhase gamePhase) {
+        AbstractGameController<?, ?> gameController, long playerId, LoongTigerWarGameDataVo dataVo,
+        EGamePhase gamePhase) {
         NotifyLoongTigerWarInfo notifyLoongTigerWarInfo = new NotifyLoongTigerWarInfo();
         //历史记录
         notifyLoongTigerWarInfo.histories = dataVo.getHistories();
@@ -70,7 +72,7 @@ public class LoongTigerWarMessageBuilder {
         }
         //押分列表
         notifyLoongTigerWarInfo.betPointList = dataVo.getRoomCfg().getBetList();
-        notifyLoongTigerWarInfo.playerInfos = TableMessageBuilder.buildPlayerInfoOnTable(dataVo);
+        notifyLoongTigerWarInfo.playerInfos = TableMessageBuilder.buildPlayerInfoOnTable(gameController, dataVo);
         notifyLoongTigerWarInfo.totalPlayerNum = dataVo.getGamePlayerMap().size();
         notifyLoongTigerWarInfo.maxChipOnTable =
                 GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();

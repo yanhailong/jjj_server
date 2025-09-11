@@ -2,6 +2,7 @@ package com.jjg.game.table.redblackwar.message;
 
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.table.common.message.TableMessageBuilder;
@@ -23,8 +24,7 @@ public class RedBlackMessageBuilder {
      * 构建初始化信息
      */
     public static NotifyRedBlackWarInfo buildInitInfo(
-        long playerId, RedBlackWarGameDataVo dataVo, EGamePhase gamePhase) {
-
+        AbstractGameController<?, ?> controller, long playerId, RedBlackWarGameDataVo dataVo, EGamePhase gamePhase) {
         NotifyRedBlackWarInfo notifyRedBlackWarInfo = new NotifyRedBlackWarInfo();
         //历史记录
         notifyRedBlackWarInfo.redBlackHistories = dataVo.getHistories();
@@ -71,7 +71,7 @@ public class RedBlackMessageBuilder {
         }
         //押分列表
         notifyRedBlackWarInfo.betPointList = dataVo.getRoomCfg().getBetList();
-        notifyRedBlackWarInfo.playerInfos = TableMessageBuilder.buildPlayerInfoOnTable(dataVo);
+        notifyRedBlackWarInfo.playerInfos = TableMessageBuilder.buildPlayerInfoOnTable(controller, dataVo);
         notifyRedBlackWarInfo.totalPlayerNum = dataVo.getGamePlayerMap().size();
         notifyRedBlackWarInfo.maxChipOnTable =
             GameDataManager.getGlobalConfigCfg(GlobalSampleConstantId.MAX_CHIP_ON_TABLE).getIntValue();

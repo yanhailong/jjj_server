@@ -114,7 +114,8 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         NotifyLoongTigerWarSettleInfo warSettleInfo = new NotifyLoongTigerWarSettleInfo();
         warSettleInfo.loongCard = twoSpecificCard.getFirst();
         warSettleInfo.tigerCard = twoSpecificCard.getSecond();
-        warSettleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(playerGet, gameDataVo);
+        warSettleInfo.playerSettleInfos =
+            TableMessageBuilder.getPlayerSettleInfos(gameController, playerGet, gameDataVo);
         warSettleInfo.winState = next;
         warSettleInfo.waitEndTime = gameDataVo.getPhaseEndTime();
         //更新房间记录
@@ -128,8 +129,8 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         for (GamePlayer gamePlayer : gameDataVo.getGamePlayerMap().values()) {
             TablePlayerGameData tableGameData = gamePlayer.getTableGameData();
             DefaultKeyValue<Long, Long> keyValue = playerGet.get(gamePlayer.getId());
-            long getGold = keyValue == null ? 0 : keyValue.getValue() - keyValue.getKey();
-            tableGameData.addBetRecord(getGold);
+            long goldCanGet = keyValue == null ? 0 : keyValue.getValue() - keyValue.getKey();
+            tableGameData.addBetRecord(goldCanGet);
         }
         //发送通知
         broadcastMsgToRoom(warSettleInfo);

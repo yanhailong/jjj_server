@@ -41,8 +41,7 @@ public class RiverAnimalsMessageBuilder {
         NotifyRiverAnimalsTableInfo tableInfo = new NotifyRiverAnimalsTableInfo();
         RiverAnimalsGameDataVo gameDataVo = gameController.getGameDataVo();
         tableInfo.baseDiceTableInfo =
-            BaseDiceMessageBuilder.buildDiceTableInfo(
-                playerId, gameController.getCurrentGamePhase(), gameDataVo, isInitial);
+            BaseDiceMessageBuilder.buildDiceTableInfo(playerId, gameController, gameDataVo, isInitial);
         tableInfo.settlementHistory = gameDataVo.getWinAreaCfgIdHistory();
         tableInfo.settlementInfo = gameDataVo.getAnimalsSettlementInfo();
         return tableInfo;
