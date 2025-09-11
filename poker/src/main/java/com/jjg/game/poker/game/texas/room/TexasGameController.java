@@ -552,7 +552,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         TexasCfg texasCfg = TexasDataHelper.getTexasCfg(gameDataVo);
         if (hasTempCurrency < texasCfg.getTablecoin()) {
             long defaultCoinsNum = Math.min(TexasDataHelper.getDefaultCoinsNum(gameDataVo), texasCfg.getTablecoin());
-            if (gamePlayer.getGold() >= defaultCoinsNum) {
+            if (getItemNum(gamePlayer.getId()) >= defaultCoinsNum) {
                 //增加零时货币
                 gameDataVo.getTempGold().put(seatInfo.getPlayerId(), defaultCoinsNum);
                 NotifyTexasTempGoldReflush reflush = new NotifyTexasTempGoldReflush();
