@@ -292,7 +292,7 @@ public class FriendRoomServices {
             return;
         }
         // 检查房间是否可以加入
-        int checkRes = checkJoinRoom(playerController, req, friendRoom);
+        int checkRes = checkJoinRoom(playerController.playerId(), req.playerId, friendRoom);
         if (checkRes != Code.SUCCESS) {
             log.warn("{} code: {} 请求进入好友房：{} 失败, room: {} ",
                 playerController.playerId(), checkRes, req.roomId, JSON.toJSONString(friendRoom));
@@ -317,10 +317,13 @@ public class FriendRoomServices {
     /**
      * 检查加入房间条件
      */
-    private int checkJoinRoom(PlayerController playerController, ReqJoinFriendRoom req, FriendRoom friendRoom) {
+    public int checkJoinRoom(long playerId, long friendPlayerId, FriendRoom friendRoom) {
+        if (friendPlayerId <= 0) {
+            return Code.PARAM_ERROR;
+        }
         // 检查房间状态
         int roomStatus = friendRoom.getStatus();
-        if (roomStatus != 1) {
+        if (roomStatus != 1 && roomStatus != 2) {
             return Code.ROOM_CANT_JOIN;
         }
         // 检查房间过期时间
@@ -333,17 +336,17 @@ public class FriendRoomServices {
             return Code.ROOM_FULL;
         }
         // 检查黑名单
-        List<Long> targetFriendBlackList = friendRoomRedisDao.getPlayerBlackList(req.playerId);
-        if (targetFriendBlackList != null && targetFriendBlackList.contains(playerController.playerId())) {
+        List<Long> targetFriendBlackList = friendRoomRedisDao.getPlayerBlackList(friendPlayerId);
+        if (targetFriendBlackList != null && targetFriendBlackList.contains(playerId)) {
             return Code.BAN_CAUSE_BLACK_LIST;
         }
         // 如果不是玩家自己需要检查
-        if (playerController.playerId() != req.playerId) {
+        if (playerId != friendPlayerId) {
             // 需要查询好友关系是否存在
-            Player targetPlayer = corePlayerService.get(req.playerId);
+            Player targetPlayer = corePlayerService.get(friendPlayerId);
             int targetPlayerCode = targetPlayer.getFriendRoomInvitationCode();
             FriendRoomFollowBean friendRoomFollowBean =
-                friendRoomFollowDao.getRoomFriend(playerController.playerId(), req.playerId, targetPlayerCode);
+                friendRoomFollowDao.getRoomFriend(playerId, friendPlayerId, targetPlayerCode);
             // 好友关系不存在
             if (friendRoomFollowBean == null) {
                 return Code.FRIEND_NOT_FOLLOWED;

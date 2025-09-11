@@ -158,16 +158,17 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 session.setWorkId(player.getRoomId());
                 int code = roomManager.joinRoom(
                     playerController, info.getGameType(), info.getRoomCfgId(), player.getRoomId());
-                if (code == Code.SUCCESS) {
-                    return;
-                } else {
-                    // TODO 加入失败,推送协议
+                if (code != Code.SUCCESS) {
+                    // 加入失败,需要客户端主动确认当前玩家处于哪个场景中，ReqConfirmPlayerScene
                     playerService.doSave(playerId, p -> {
                         p.setGameType(0);
                         p.setRoomCfgId(0);
                         p.setRoomId(0);
                     });
+                    // 将玩家切回到大厅
+                    clusterSystem.switchNode(playerController.getSession(), NodeType.HALL);
                 }
+                return;
             }
             IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());
             if (playerRoomEventListener == null) {

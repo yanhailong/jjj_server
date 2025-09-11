@@ -466,6 +466,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 return;
             }
             roomPlayer.setOnline(false);
+            // 房间断线逻辑
+            roomController.disconnected(playerController);
         } catch (Exception e) {
             log.error("掉线退出时异常：{}", e.getMessage(), e);
         }

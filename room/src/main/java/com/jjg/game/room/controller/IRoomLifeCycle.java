@@ -42,6 +42,11 @@ public interface IRoomLifeCycle {
     void reconnect();
 
     /**
+     * 玩家断线
+     */
+    default void disconnected(PlayerController playerController) {}
+
+    /**
      * 玩家主动请求退出房间
      */
     <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController);

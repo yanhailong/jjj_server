@@ -20,7 +20,7 @@ public class TableFriendRoomController extends AbstractFriendRoomController<Room
 
     @Override
     protected boolean checkBankerCanNextRound() {
-        return !room.getBankerPredicateMap().isEmpty();
+        return true;
     }
 
     @Override

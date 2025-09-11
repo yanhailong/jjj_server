@@ -123,8 +123,8 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
     @Override
     protected CommonResult<? extends Room> checkRoomCanJoin(PlayerController playerController) {
-        // 房间不为运行状态不能加入
-        if (room.getStatus() != 1) {
+        // 房间不为运行状态不能加入,暂停可以加入
+        if (room.getStatus() != 1 && room.getStatus() != 2) {
             log.debug("玩家：{} 不能进入房间：{} 当前状态：{}", playerController.playerId(), room.getId(), room.getStatus());
             return new CommonResult<>(Code.FORBID);
         }
@@ -245,9 +245,15 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     @Override
     public void onRoomCantContinue() {
         super.onRoomCantContinue();
-        // 当房间处于销毁状态时，直接销毁房间
+        // 当房间处于销毁状态时，需要清理掉所有房间内处于断线状态的玩家
         if (room.getStatus() == 3) {
-            gameDestroy(true);
+            for (Map.Entry<Long, RoomPlayer> entry : room.getRoomPlayers().entrySet()) {
+                // 如果玩家不在线，房间又处于销毁状态，直接清理，如果在线等房间踢人
+                if (!entry.getValue().isOnline()) {
+                    // 踢出房间
+                    roomManager.exitRoom(entry.getKey());
+                }
+            }
         }
     }
 

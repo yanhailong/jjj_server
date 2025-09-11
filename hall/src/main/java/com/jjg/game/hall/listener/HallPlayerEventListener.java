@@ -29,6 +29,7 @@ import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.dao.LikeGameDao;
+import com.jjg.game.hall.friendroom.services.FriendRoomServices;
 import com.jjg.game.hall.logger.HallLogger;
 import com.jjg.game.hall.pb.req.ReqLogin;
 import com.jjg.game.hall.pb.res.ResLogin;
@@ -85,6 +86,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private PlayerPackService playerPackService;
     @Autowired
     private CarouselService carouselService;
+    @Autowired
+    private FriendRoomServices friendRoomServices;
 
     public void init() {
     }
@@ -271,11 +274,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
     @Override
     public void sessionEnter(PFSession session, long playerId) {
-        Player player = hallPlayerService.doSave(playerId, p -> {
-            p.setRoomId(0);
-            p.setGameType(0);
-            p.setRoomCfgId(0);
-        });
+        Player player = resetPlayerRoomData(playerId);
         PlayerController playerController = new PlayerController(session, player);
         session.setReference(playerController);
 
@@ -294,12 +293,20 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             Room room = hallRoomDao.getRoom(player.getGameType(), player.getRoomId());
             if (room == null) {
                 log.warn("断线重连时，获取房间对象为空 playerId = {},roomId = {}", player.getId(), player.getRoomId());
-                hallPlayerService.doSave(player.getId(), (p) -> {
-                    p.setRoomId(0);
-                    p.setGameType(0);
-                    p.setRoomCfgId(0);
-                });
+                // 重置玩家房间数据
+                resetPlayerRoomData(player.getId());
                 return false;
+            }
+            if (room instanceof FriendRoom friendRoom) {
+                int checkRes = friendRoomServices.checkJoinRoom(player.getId(), friendRoom.getCreator(), friendRoom);
+                // 进入好友房失败，直接重置玩家房间数据
+                if (checkRes != Code.SUCCESS) {
+                    log.warn("断线重连时，进入好友房失败 playerId = {},roomId = {} checkRes: {}",
+                        player.getId(), player.getRoomId(), checkRes);
+                    // 重置玩家房间数据
+                    resetPlayerRoomData(player.getId());
+                    return false;
+                }
             }
             String path = room.getPath();
             //获取房间所在的节点
@@ -307,11 +314,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             if (node == null) {
                 log.warn("断线重连时，房间所在的节点为空 playerId = {},roomId = {},path = {}", player.getId(), player.getRoomId(),
                     path);
-                hallPlayerService.doSave(player.getId(), (p) -> {
-                    p.setRoomId(0);
-                    p.setGameType(0);
-                    p.setRoomCfgId(0);
-                });
+                resetPlayerRoomData(player.getId());
                 return false;
             }
         } else {
@@ -363,6 +366,18 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             log.error("", e);
         }
         return null;
+    }
+
+    /**
+     * 重置玩家房间数据
+     */
+    private Player resetPlayerRoomData(long playerId) {
+        log.info("重置玩家：{} 房间数据", playerId);
+        return hallPlayerService.doSave(playerId, (p) -> {
+            p.setRoomId(0);
+            p.setGameType(0);
+            p.setRoomCfgId(0);
+        });
     }
 
     /**

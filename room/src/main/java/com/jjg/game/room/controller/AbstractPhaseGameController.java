@@ -221,6 +221,8 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
         roomController.pausedGame();
         // 标记为暂停完成
         gameState = EGameState.PAUSED;
+        // 调用房间不能继续的逻辑
+        roomController.onRoomCantContinue();
     }
 
     @Override
