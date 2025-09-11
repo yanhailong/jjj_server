@@ -36,10 +36,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -107,6 +104,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         this.marqueeManager = marqueeManager;
         this.marsCurator = marsCurator;
     }
+
 
     public Map<Long, ActivityData> getActivityData() {
         return activityData;
@@ -203,12 +201,18 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     }
 
     /**
-     * 每天凌晨定时执行
+     * 定时更新
      */
-    @Scheduled(cron = "0 0 0 * * ? ")
-    private void zeroEvent() {
-        //0点事件
-        //TODO 推送在线玩家
+    @Scheduled(cron = "0 0 * * * ? ")
+    private void saveActivity() {
+        if (marsCurator.isMaster()) {
+            Map<Long, ActivityData> dataHashMap = new HashMap<>(activityData);
+            activityDao.saveActivities(dataHashMap);
+            Map<Long, Map<Integer, BaseCfgBean>> longMapHashMap = new HashMap<>(activityDetailInfo);
+            for (Map.Entry<Long, Map<Integer, BaseCfgBean>> longMapEntry : longMapHashMap.entrySet()) {
+                activityDetailDao.saveActivityDetails(longMapEntry.getKey(), longMapEntry.getValue());
+            }
+        }
     }
 
 

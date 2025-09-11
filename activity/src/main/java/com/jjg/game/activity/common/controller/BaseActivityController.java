@@ -91,7 +91,7 @@ public abstract class BaseActivityController {
     /**
      * 获取活动详情
      */
-    public abstract AbstractResponse getPlayerActivityDetail(long playerId, long activityId, int detailId);
+    public abstract AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId);
 
     /**
      * 获取类型获取活动详情响应信息
@@ -103,6 +103,12 @@ public abstract class BaseActivityController {
      */
     public abstract ActivityInfo buildActivityInfo(long playerId, ActivityData activityData);
 
+    /**
+     * 检查玩家数据并重置
+     *
+     * @param playerId     玩家id
+     * @param activityData 活动数据
+     */
     public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
         //限时活动不需要重置
         if (activityData.getOpenType() == 2) {
@@ -170,8 +176,6 @@ public abstract class BaseActivityController {
 
     /**
      * 加载活动详细数据
-     *
-     * @return
      */
     public Map<Integer, BaseCfgBean> loadDetailData(Map<Integer, BaseCfgBean> dbData) {
         List<BaseCfgBean> detailCfgBean = getDetailCfgBean();

@@ -23,11 +23,11 @@ public class CashCowDao {
     private final RedisTemplate<String, Long> longRedisTemplate;
     //redis 锁
     private final RedisLock lock;
-    private static final String PLAYER_RECORD_KEY = "activity:cashcow:record:%d:%d"; // 单个玩家记录
-    private static final String ALL_RECORD_KEY = "activity:cashcow:record:all:%d";          // 全部玩家记录
-    private static final String POOL_KEY = "activity:cashcow:poll:%d";          // 总池
-    private static final String POOL_LOCK_KEY = "activity:cashcow:polllock:%d:%d";          // 总池
-    private static final String PLAYER_PROGRESS_KEY = "activity:cashcow:player:%d:%d";          // 总池
+    private final String PLAYER_RECORD_KEY = "activity:cashcow:record:%d:%d"; // 单个玩家记录
+    private final String ALL_RECORD_KEY = "activity:cashcow:record:all:%d";          // 全部玩家记录
+    private final String POOL_KEY = "activity:cashcow:poll:%d";          // 总池
+    private final String POOL_LOCK_KEY = "activity:cashcow:polllock:%d:%d";          // 总池
+    private final String PLAYER_PROGRESS_KEY = "activity:cashcow:player:%d:%d";          // 总池
 
 
     public CashCowDao(RedisTemplate<String, CashCowRecordData> recordRedisTemplate, RedisTemplate<String, Long> longRedisTemplate, RedisLock lock) {

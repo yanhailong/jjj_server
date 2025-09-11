@@ -54,10 +54,6 @@ public class PrivilegeCardController extends BaseActivityController {
     @Override
     public AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId) {
         ResPrivilegeCardDetailInfo res = null;
-        if (!activityData.getValue().contains(detailId)) {
-            log.error("玩家参加活动失败 已经不存在该活动playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
-            return res;
-        }
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
         if (baseCfgBean instanceof PrivilegeCardCfg cfg) {
@@ -165,36 +161,22 @@ public class PrivilegeCardController extends BaseActivityController {
     }
 
     @Override
-    public AbstractResponse getPlayerActivityDetail(long playerId, long activityId, int detailId) {
+    public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
+        long activityId = activityData.getId();
         ResPrivilegeCardDetailInfo detailInfo = new ResPrivilegeCardDetailInfo(Code.SUCCESS);
         ActivityData data = activityManager.getActivityData().get(activityId);
-        if (data == null || detailId != -1 && !data.getValue().contains(detailId)) {
-            return detailInfo;
-        }
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
-        if (CollectionUtil.isEmpty(baseCfgBeanMap) || detailId != -1 && !baseCfgBeanMap.containsKey(detailId)) {
-            return detailInfo;
-        }
         Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, data.getType(), activityId);
         detailInfo.detailInfo = new ArrayList<>();
-        if (detailId == -1) {
-            for (Integer id : data.getValue()) {
-                BaseActivityDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(id), playerActivityData.get(id));
-                if (baseActivityDetailInfo instanceof PrivilegeCardDetailInfo cardDetailInfo) {
-                    detailInfo.detailInfo.add(cardDetailInfo);
-                }
-            }
-        } else {
-            BaseActivityDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId));
-            if (baseActivityDetailInfo instanceof PrivilegeCardDetailInfo cardDetailInfo) {
-                detailInfo.detailInfo.add(cardDetailInfo);
-            }
+        BaseActivityDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId));
+        if (baseActivityDetailInfo instanceof PrivilegeCardDetailInfo cardDetailInfo) {
+            detailInfo.detailInfo.add(cardDetailInfo);
         }
         return detailInfo;
     }
 
     @Override
-    public BaseActivityDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public PrivilegeCardDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (baseCfgBean instanceof PrivilegeCardCfg cfg) {
             PrivilegeCardDetailInfo info = new PrivilegeCardDetailInfo();
             info.activityId = activityId;

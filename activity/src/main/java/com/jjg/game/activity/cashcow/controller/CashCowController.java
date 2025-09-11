@@ -14,11 +14,13 @@ import com.jjg.game.activity.cashcow.message.req.ReqCashCowTotalPool;
 import com.jjg.game.activity.cashcow.message.res.*;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
+import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.ActivityBuilder;
 import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
+import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
@@ -54,7 +56,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @date 2025/9/3 17:43
  */
 @Component
-public class CashCowController extends BaseActivityController implements TimerListener<CashCowTimerParam> {
+public class CashCowController extends BaseActivityController implements TimerListener<CashCowTimerParam>, IGameClusterLeaderListener {
     private final Logger log = LoggerFactory.getLogger(CashCowController.class);
     private final CashCowDao cashCowDao;
     private final TimerCenter timerCenter;
@@ -87,11 +89,6 @@ public class CashCowController extends BaseActivityController implements TimerLi
     public AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId) {
         ResCashCowJoin res = new ResCashCowJoin(Code.SUCCESS);
         long activityId = activityData.getId();
-        if (!activityData.getValue().contains(detailId)) {
-            log.error("玩家参加活动失败 已经不存在该活动playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId);
-            res.code = Code.NOT_FOUND;
-            return res;
-        }
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
         if (baseCfgBean instanceof CashcowCfg cfg) {
@@ -226,6 +223,10 @@ public class CashCowController extends BaseActivityController implements TimerLi
     public void onActivityEnd(ActivityData activityData) {
         //设置活动状态
         activityData.setStatus(ActivityConstant.ActivityStatus.ENDED);
+        removeAllRobotTimer();
+    }
+
+    private void removeAllRobotTimer() {
         //清除机器人定时器
         for (Map<Integer, CashCowTimerParam> value : timerMap.values()) {
             for (CashCowTimerParam timerParam : value.values()) {
@@ -327,36 +328,22 @@ public class CashCowController extends BaseActivityController implements TimerLi
     }
 
     @Override
-    public AbstractResponse getPlayerActivityDetail(long playerId, long activityId, int detailId) {
+    public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData data, int detailId) {
+        long activityId = data.getId();
         ResCashCowDetailInfo detailInfo = new ResCashCowDetailInfo(Code.SUCCESS);
-        ActivityData data = activityManager.getActivityData().get(activityId);
-        if (data == null || detailId != -1 && !data.getValue().contains(detailId)) {
-            return detailInfo;
-        }
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
-        if (CollectionUtil.isEmpty(baseCfgBeanMap) || detailId != -1 && !baseCfgBeanMap.containsKey(detailId)) {
-            return detailInfo;
-        }
         Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, data.getType(), activityId);
         detailInfo.detailInfo = new ArrayList<>();
-        if (detailId == -1) {
-            for (Integer id : data.getValue()) {
-                BaseActivityDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(id), playerActivityData.get(id));
-                if (baseActivityDetailInfo instanceof CashCowDetailInfo cardDetailInfo) {
-                    detailInfo.detailInfo.add(cardDetailInfo);
-                }
-            }
-        } else {
-            BaseActivityDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId));
-            if (baseActivityDetailInfo instanceof CashCowDetailInfo cardDetailInfo) {
-                detailInfo.detailInfo.add(cardDetailInfo);
-            }
+        BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
+        if (baseCfgBean instanceof CashcowCfg cfg) {
+            CashCowDetailInfo cardDetailInfo = buildPlayerActivityDetail(activityId, cfg, playerActivityData.get(detailId));
+            detailInfo.detailInfo.add(cardDetailInfo);
         }
         return detailInfo;
     }
 
     @Override
-    public BaseActivityDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public CashCowDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (baseCfgBean instanceof CashcowCfg cfg) {
             CashCowDetailInfo info = new CashCowDetailInfo();
             info.activityId = activityId;
@@ -451,11 +438,11 @@ public class CashCowController extends BaseActivityController implements TimerLi
         //个人记录
         if (req.type == 1) {
             playerRecordActivities = cashCowDao.getPlayerRecordActivities(playerController.playerId(), req.activityId,
-                    req.startIndex, req.startIndex + Math.min(req.size,ActivityConstant.CashCow.DEFAULT_SIZE));
+                    req.startIndex, req.startIndex + Math.min(req.size, ActivityConstant.CashCow.DEFAULT_SIZE));
         } else if (req.type == 2) {
             //全局记录
             playerRecordActivities = cashCowDao.getAllRecordActivities(req.activityId, req.startIndex, req.startIndex +
-                    Math.min(req.size,ActivityConstant.CashCow.DEFAULT_SIZE));
+                    Math.min(req.size, ActivityConstant.CashCow.DEFAULT_SIZE));
         }
         if (CollectionUtil.isNotEmpty(playerRecordActivities)) {
             res.recordList = new ArrayList<>();
@@ -472,6 +459,9 @@ public class CashCowController extends BaseActivityController implements TimerLi
         return res;
     }
 
+    /**
+     * 请求摇钱树总池子
+     */
     public AbstractResponse reqCashCowTotalPool(PlayerController playerController, ReqCashCowTotalPool req) {
         ResCashCowTotalPool res = new ResCashCowTotalPool(Code.SUCCESS);
         res.activityId = req.activityId;
@@ -494,5 +484,31 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 addRobotTimer(cfg, LocalDateTime.now(), param.activityId(), true);
             }
         }
+    }
+
+    @Override
+    public void isLeader() {
+        //获取所有该类型的活动
+        Map<Long, ActivityData> activityDataMap = activityManager.getActivityTypeData().get(ActivityType.CASH_COW);
+        if (CollectionUtil.isEmpty(activityDataMap)) {
+            return;
+        }
+        for (ActivityData activityData : activityDataMap.values()) {
+            if (!activityData.canRun()) {
+                Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
+                for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
+                    if (cfgBean instanceof CashcowCfg cfg) {
+                        addRobotTimer(cfg, LocalDateTime.now(), activityData.getId(), false);
+                    }
+                }
+            }
+        }
+        log.debug("选举为主节点 摇钱树机器人添加");
+    }
+
+    @Override
+    public void notLeader() {
+        removeAllRobotTimer();
+        log.debug("退举 摇钱树机器人删除");
     }
 }

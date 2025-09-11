@@ -40,8 +40,8 @@ public class ActivityMessageHandler {
     public void reqActivityDetailInfo(PlayerController playerController, ReqActivityDetailInfo req) {
         //查找活动数据
         ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null) {
-            AbstractResponse response = data.getType().getController().getPlayerActivityDetail(playerController.playerId(), data.getId(), req.detailId);
+        if (data != null && data.getValue().contains(req.detailId)) {
+            AbstractResponse response = data.getType().getController().getPlayerActivityDetail(playerController.playerId(), data, req.detailId);
             if (response != null) {
                 playerController.send(response);
             }
@@ -85,7 +85,7 @@ public class ActivityMessageHandler {
     public void reqActivityPlayerJoin(PlayerController playerController, ReqActivityPlayerJoin req) {
         //查找活动数据
         ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null && data.getType().isCanInitiativeJoin()) {
+        if (data != null && data.getValue().contains(req.detailId) && data.getType().isCanInitiativeJoin()) {
             AbstractResponse response = data.getType().getController().joinActivity(playerController.playerId(), data, req.detailId);
             if (response != null) {
                 playerController.send(response);
