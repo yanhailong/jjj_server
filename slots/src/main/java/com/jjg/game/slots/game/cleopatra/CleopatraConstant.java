@@ -17,4 +17,8 @@ public interface CleopatraConstant {
         int REQ_START_GAME = BASE_MSG_PREFIX | 0x3;
         int RES_START_GAME = BASE_MSG_PREFIX | 0x4;
     }
+
+    interface SpecialPlay{
+        int TYPE_ADD_ICON = 6;
+    }
 }

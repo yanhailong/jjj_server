@@ -24,7 +24,7 @@ public class BaseRollerCfg extends BaseCfgBean {
   protected List<Integer> clientRollerAxleCountScope;
   /** 元素列表 */
   protected List<Integer> clientRollerElements;
-  /** 列数 */
+  /** 序号 */
   protected int column;
   /** 滚轴图案 */
   protected List<Integer> elements;
@@ -50,7 +50,7 @@ public class BaseRollerCfg extends BaseCfgBean {
     return clientRollerElements;
   }
 
-  /** 返回列数 */
+  /** 返回序号 */
   public int getColumn() {
     return column;
   }

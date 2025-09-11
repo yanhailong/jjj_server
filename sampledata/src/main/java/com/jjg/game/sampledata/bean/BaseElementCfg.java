@@ -22,6 +22,8 @@ public class BaseElementCfg extends BaseCfgBean {
   protected int elementId;
   /** 游戏ID */
   protected int gameId;
+  /** 图标上显示多语言ID */
+  protected int languageID;
   /** 消除后变化元素ID */
   protected int postChangeElementId;
   /** 类型 */
@@ -35,6 +37,11 @@ public class BaseElementCfg extends BaseCfgBean {
   /** 返回游戏ID */
   public int getGameId() {
     return gameId;
+  }
+
+  /** 返回图标上显示多语言ID */
+  public int getLanguageID() {
+    return languageID;
   }
 
   /** 返回消除后变化元素ID */

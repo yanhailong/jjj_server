@@ -12,5 +12,5 @@ import com.jjg.game.slots.game.cleopatra.CleopatraConstant;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.CLEOPATRA, cmd = CleopatraConstant.MsgBean.REQ_CONFIG_INFO)
 @ProtoDesc("请求配置信息")
-public class ReqCleopatraConfigInfo extends AbstractMessage {
+public class ReqCleopatraEnterGame extends AbstractMessage {
 }

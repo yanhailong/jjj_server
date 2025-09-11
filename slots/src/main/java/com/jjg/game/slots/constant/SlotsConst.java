@@ -80,10 +80,12 @@ public interface SlotsConst {
         int LINE_TYPE_NORMAL = 1;
         //指定线类型
         int LINE_TYPE_ASSIGN = 2;
-        //满线图案
+        //满线图案_x连
         int LINE_TYPE_FULL = 3;
         //全局分散线类型
         int LINE_TYPE_DISPERSE_GLOBAL = 4;
+        //满线图案_数量
+        int LINE_TYPE_FULL_COUNT = 5;
     }
 
     interface BaseInit{

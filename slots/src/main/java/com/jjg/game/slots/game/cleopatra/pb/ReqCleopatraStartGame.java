@@ -13,4 +13,6 @@ import com.jjg.game.slots.game.cleopatra.CleopatraConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.CLEOPATRA, cmd = CleopatraConstant.MsgBean.REQ_START_GAME)
 @ProtoDesc("请求开始游戏")
 public class ReqCleopatraStartGame extends AbstractMessage {
+    @ProtoDesc("下注金额")
+    public long stakeVlue;
 }
