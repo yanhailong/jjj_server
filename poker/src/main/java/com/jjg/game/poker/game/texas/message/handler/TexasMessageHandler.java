@@ -91,7 +91,7 @@ public class TexasMessageHandler {
                             return;
                         }
                         seatInfo.setSeatDown(true);
-                        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, gameDataVo);
+                        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, controller);
                         controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
                         // 通知场上玩家加入 准备进入开始阶段
                         boolean canStartGame = gameDataVo.canStartGame();
@@ -105,13 +105,13 @@ public class TexasMessageHandler {
                             boolean isPlaying = seatInfo.isSeatDown() && seatInfo.isJoinGame();
                             seatInfo.setSeatDown(false);
                             seatInfo.setJoinGame(false);
-                            change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, gameDataVo);
+                            change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, controller);
                             controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
                             controller.runPlayerSeatChange(seatInfo, isPlaying);
                             return;
                         }
                         seatInfo.setSeatDown(false);
-                        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, gameDataVo);
+                        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, controller);
                         controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
                         return;
                     }
@@ -165,7 +165,7 @@ public class TexasMessageHandler {
         //换座位
         RoomPlayer roomPlayer = roomPlayers.get(seatInfo.getPlayerId());
         SeatInfo newSeatInfo = addNewSeatInfo(roomPlayer, seatInfo, srcSeatId, gameDataVo);
-        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, newSeatInfo, gameDataVo);
+        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, newSeatInfo, controller);
         return change;
     }
 

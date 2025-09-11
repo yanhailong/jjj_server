@@ -6,6 +6,7 @@ import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
+import org.apache.poi.ss.formula.functions.T;
 
 import java.util.Objects;
 
@@ -20,7 +21,8 @@ public class PokerBuilder {
     /**
      * 构建玩家基本信息
      */
-    public static PokerPlayerInfo buildPlayerInfo(GamePlayer gamePlayer, SeatInfo seatInfo, BasePokerGameDataVo gameDataVo) {
+    public static PokerPlayerInfo buildPlayerInfo(GamePlayer gamePlayer, SeatInfo seatInfo, BasePokerGameController<? extends BasePokerGameDataVo> controller) {
+        BasePokerGameDataVo gameDataVo = controller.getGameDataVo();
         if (Objects.isNull(seatInfo)) {
             for (SeatInfo info : gameDataVo.getSeatInfo().values()) {
                 if (info.getPlayerId() == gamePlayer.getId()) {
@@ -45,7 +47,7 @@ public class PokerBuilder {
         if (gameDataVo instanceof TexasGameDataVo texasGameDataVo) {
             pokerPlayerInfo.accountNumber = texasGameDataVo.getTempGold().getOrDefault(gamePlayer.getId(), 0L);
         } else {
-            pokerPlayerInfo.accountNumber = gamePlayer.getGold();
+            pokerPlayerInfo.accountNumber = controller.getItemNum(gamePlayer.getId());
         }
         return pokerPlayerInfo;
     }
@@ -64,12 +66,13 @@ public class PokerBuilder {
     /**
      * 返回基本的玩家信息(不包含操作类型)
      */
-    public static PokerPlayerInfo getPokerPlayerInfo(SeatInfo seatInfo, BasePokerGameDataVo gameDataVo) {
+    public static PokerPlayerInfo getPokerPlayerInfo(SeatInfo seatInfo, BasePokerGameController<? extends BasePokerGameDataVo> controller) {
         PokerPlayerInfo pokerPlayerInfo = new PokerPlayerInfo();
         pokerPlayerInfo.playerId = seatInfo.getPlayerId();
         pokerPlayerInfo.playerStatus = seatInfo.isJoinGame();
         pokerPlayerInfo.status = seatInfo.isSeatDown();
         pokerPlayerInfo.seatIndex = seatInfo.getSeatId();
+        BasePokerGameDataVo gameDataVo = controller.getGameDataVo();
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
         if (Objects.nonNull(gamePlayer)) {
             pokerPlayerInfo.name = gamePlayer.getNickName();
@@ -82,7 +85,7 @@ public class PokerBuilder {
             if (gameDataVo instanceof TexasGameDataVo texasGameDataVo) {
                 pokerPlayerInfo.accountNumber = texasGameDataVo.getTempGold().getOrDefault(gamePlayer.getId(), 0L);
             } else {
-                pokerPlayerInfo.accountNumber = gamePlayer.getGold();
+                pokerPlayerInfo.accountNumber = controller.getItemNum(seatInfo.getPlayerId());
             }
         }
         return pokerPlayerInfo;

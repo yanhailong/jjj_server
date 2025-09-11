@@ -416,7 +416,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                     continue;
                 }
                 controller.addTempGoldOrOutTable(seatInfo, gamePlayer);
-                infos.add(PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, gameDataVo));
+                infos.add(PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, controller));
             }
             NotifyTexasSettlementPlayerChange notifySettlementPlayerChange = new NotifyTexasSettlementPlayerChange();
             notifySettlementPlayerChange.pokerPlayerInfos = infos;

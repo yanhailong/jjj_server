@@ -37,7 +37,7 @@ import java.util.*;
  * @author 2CL
  */
 public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
-        AbstractMsgDealRoomPhase<Room_BetCfg, D, ReqBet> {
+    AbstractMsgDealRoomPhase<Room_BetCfg, D, ReqBet> {
 
     private static final Logger log = LoggerFactory.getLogger(BaseTableBetPhase.class);
 
@@ -65,7 +65,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         // 清除房间的数据
         clearRoomData();
         broadcastMsgToRoom(
-                TableMessageBuilder.getNotifyPhaseChangInfo(getGamePhase(), gameDataVo.getPhaseEndTime()));
+            TableMessageBuilder.getNotifyPhaseChangInfo(getGamePhase(), gameDataVo.getPhaseEndTime()));
     }
 
     @Override
@@ -108,7 +108,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
                 playerAreaInfoMap = new HashMap<>();
             }
             playerAreaInfoMap.computeIfAbsent(
-                    betAreaIdx, k -> new ArrayList<>()).addAll(entry.getValue());
+                betAreaIdx, k -> new ArrayList<>()).addAll(entry.getValue());
         }
         // 更新押注数据
         gameDataVo.updatePlayerBetInfo(playerController.playerId(), playerAreaInfoMap);
@@ -126,10 +126,10 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         }
         // 扣除玩家金币
         gameController.deductItem(
-                gamePlayer.getId(), playerTotalBetGold,
-                ERoomItemReason.GAME_BET.withCfgId(gameDataVo.getRoomCfg().getId()));
+            gamePlayer.getId(), playerTotalBetGold,
+            ERoomItemReason.GAME_BET.withCfgId(gameDataVo.getRoomCfg().getId()));
         gamePlayer.getTableGameData().addTotalBet(playerTotalBetGold);
-        notifyPlayerBet.playerCurGold = gamePlayer.getGold();
+        notifyPlayerBet.playerCurGold = gameController.getItemNum(gamePlayer.getId());
         notifyPlayerBet.chipId = gamePlayer.getChipsId();
         // 向房间广播下注改变信息
         broadcastMsgToRoom(notifyPlayerBet);
@@ -189,8 +189,8 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         }
         // 给机器人添加异步执行押注的逻辑,执行时会回调到房间线程处理
         addPhaseTimer(
-                new TimerEvent<>(gameController, betRandTime, () -> doRobotBet(gameRobotPlayer, betRobotCfg)),
-                RoomEventType.TRIGGER_ROBOT_BET_ACTION);
+            new TimerEvent<>(gameController, betRandTime, () -> doRobotBet(gameRobotPlayer, betRobotCfg)),
+            RoomEventType.TRIGGER_ROBOT_BET_ACTION);
     }
 
     /**
@@ -201,14 +201,14 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         List<List<Integer>> betRobotId = robotCfg.getBetRobotID();
         int betActionId = RandomUtils.randomByWeightList(betRobotId);
         Integer betAction = TableSampleDataHolder.getBetActionDataCache(
-                betActionId, gameDataVo.getRoomCfg().getId());
+            betActionId, gameDataVo.getRoomCfg().getId());
         if (betAction == null) {
             return null;
         }
         BetRobotCfg betRobotCfg = GameDataManager.getBetRobotCfg(betAction);
         if (betRobotCfg == null) {
             throw new GameSampleException("机器人押注错误，机器人：" + gameRobotPlayer.getId()
-                    + "机器人押注表中未找到押注策略配置");
+                + "机器人押注表中未找到押注策略配置");
         }
         return betRobotCfg;
     }
@@ -258,10 +258,10 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(robotPlayer.getId());
         // 给玩家添加金币
         gameController.deductItem(
-                gamePlayer.getId(), randomGold,
-                ERoomItemReason.GAME_BET.withCfgId(gameDataVo.getRoomCfg().getId()));
+            gamePlayer.getId(), randomGold,
+            ERoomItemReason.GAME_BET.withCfgId(gameDataVo.getRoomCfg().getId()));
         gamePlayer.getTableGameData().addTotalBet(randomGold);
-        notifyPlayerBet.playerCurGold = gamePlayer.getGold();
+        notifyPlayerBet.playerCurGold = gameController.getItemNum(gamePlayer.getId());
         notifyPlayerBet.chipId = gamePlayer.getChipsId();
         // 向玩家广播下注数据
         broadcastMsgToRoom(notifyPlayerBet);
@@ -287,8 +287,8 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         }
         // 添加计时器，进行循环模拟押注
         addPhaseTimer(
-                new TimerEvent<>(gameController, roundTime, () -> robotBetAction(robotPlayer)),
-                RoomEventType.ROBOT_BET_LOOP);
+            new TimerEvent<>(gameController, roundTime, () -> robotBetAction(robotPlayer)),
+            RoomEventType.ROBOT_BET_LOOP);
 
     }
 
@@ -297,9 +297,9 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
      */
     protected Map<Integer, BetAreaCfg> getBetAreaCfgMap() {
         return GameDataManager.getBetAreaCfgList()
-                .stream()
-                .filter(betRobotCfg -> betRobotCfg.getGameID() == gameController.gameControlType().getGameTypeId())
-                .collect(HashMap::new, (map, cfg) -> map.put(cfg.getId(), cfg), HashMap::putAll);
+            .stream()
+            .filter(betRobotCfg -> betRobotCfg.getGameID() == gameController.gameControlType().getGameTypeId())
+            .collect(HashMap::new, (map, cfg) -> map.put(cfg.getId(), cfg), HashMap::putAll);
     }
 
     /**
@@ -329,7 +329,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
                 return Code.PARAM_ERROR;
             }
             playerReqBetMap.put(betBean.betAreaIdx,
-                    playerReqBetMap.getOrDefault(betBean.betAreaIdx, 0L) + betBean.betValue);
+                playerReqBetMap.getOrDefault(betBean.betAreaIdx, 0L) + betBean.betValue);
         }
         for (Map.Entry<Integer, Long> entry : playerReqBetMap.entrySet()) {
             // 下注区域
@@ -348,7 +348,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             long curIdxTotalBet = gameDataVo.getAreaTotalBet(betAreaIdx);
             if (curIdxTotalBet + betValue > roomIdxMaxLimit) {
                 log.debug("区域：{} 房间押注总和：{} 玩家请求：{} 限制值：{}",
-                        betAreaCfg.getId(), curIdxTotalBet, betValue, roomIdxMaxLimit);
+                    betAreaCfg.getId(), curIdxTotalBet, betValue, roomIdxMaxLimit);
                 return Code.AREA_BET_TO_LIMIT;
             }
             // 玩家区域上限
@@ -357,11 +357,11 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             long playerBetTotal = 0;
             if (playerBetInfo != null) {
                 playerBetTotal =
-                        playerBetInfo.getOrDefault(betAreaIdx, new ArrayList<>()).stream().mapToInt(Integer::intValue).sum();
+                    playerBetInfo.getOrDefault(betAreaIdx, new ArrayList<>()).stream().mapToInt(Integer::intValue).sum();
             }
             if (playerBetTotal + betValue > playerIdxMaxLimit) {
                 log.debug("区域：{} 玩家押注总和：{}  当前下注：{} 限制值：{}",
-                        betAreaCfg.getId(), playerBetTotal, betValue, playerIdxMaxLimit);
+                    betAreaCfg.getId(), playerBetTotal, betValue, playerIdxMaxLimit);
                 return Code.BET_TO_LIMIT;
             }
             totalBetValue += betValue;
@@ -373,7 +373,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         }
         // 检查玩家的钱是否带够
         long needTake = totalBetValue;
-        if (needTake > gamePlayer.getGold()) {
+        if (needTake > gameController.getItemNum(gamePlayer.getId())) {
             return Code.NOT_ENOUGH;
         }
         // 检查庄家是否有足够的钱去赔付
@@ -397,11 +397,11 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             long playerReqBet = playerReqBetMap.getOrDefault(entry.getKey(), 0L);
             // 获取区域，所有玩家的下注总和
             long playerBet =
-                    playerBetInfo.getOrDefault(entry.getKey(), new HashMap<>()).values()
-                            .stream()
-                            .map(l -> l.stream().mapToInt(a -> a).sum())
-                            .mapToLong(a -> a)
-                            .sum();
+                playerBetInfo.getOrDefault(entry.getKey(), new HashMap<>()).values()
+                    .stream()
+                    .map(l -> l.stream().mapToInt(a -> a).sum())
+                    .mapToLong(a -> a)
+                    .sum();
             long areaTotalBet = playerBet + playerReqBet;
             // 需要乘以赔付倍数
             areaTotalBet = areaTotalBet * (entry.getValue().getMaxPetMultiplier() / 100);

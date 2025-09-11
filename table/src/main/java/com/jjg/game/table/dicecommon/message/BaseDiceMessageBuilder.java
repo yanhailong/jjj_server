@@ -2,6 +2,8 @@ package com.jjg.game.table.dicecommon.message;
 
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.data.TableGameDataVo;
@@ -28,12 +30,14 @@ public class BaseDiceMessageBuilder {
      * 构建骰子类牌桌信息
      */
     public static BaseDiceTableInfo buildDiceTableInfo(
-        long playerId, EGamePhase curGamePhase, TableGameDataVo gameDataVo, boolean isInitial) {
+        long playerId, AbstractPhaseGameController<?, ?> gameController, TableGameDataVo gameDataVo,
+        boolean isInitial) {
         BaseDiceTableInfo diceTableInfo = new BaseDiceTableInfo();
-        diceTableInfo.gamePhase = curGamePhase;
+        diceTableInfo.gamePhase = gameController.getCurrentGamePhase();
         diceTableInfo.tableCountDownTime = gameDataVo.getPhaseEndTime();
         diceTableInfo.playerInfo =
-            TableMessageBuilder.buildTablePlayerInfo(playerId, gameDataVo, TableConstant.ON_TABLE_PLAYER_NUM);
+            TableMessageBuilder.buildTablePlayerInfo(
+                gameController, playerId, gameDataVo, TableConstant.ON_TABLE_PLAYER_NUM);
         if (isInitial) {
             diceTableInfo.betPointList = gameDataVo.getRoomCfg().getBetList();
         }

@@ -6,6 +6,7 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.player.IPlayerRegister;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.dao.PlayerAvatarDao;
 import com.jjg.game.core.dao.PlayerPackDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
@@ -45,6 +46,8 @@ public class PlayerPackService implements IPlayerRegister {
     private CoreLogger coreLogger;
     @Autowired
     private ClusterSystem clusterSystem;
+    @Autowired
+    private PlayerAvatarDao playerAvatarDao;
 
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
@@ -109,6 +112,7 @@ public class PlayerPackService implements IPlayerRegister {
         }
 
         String key = getLockKey(playerId);
+        List<Integer> autoActivateSkin = new ArrayList<>(itemList.size());
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         try {
             PlayerPack playerPack = getFromAllDB(playerId);
@@ -122,8 +126,12 @@ public class PlayerPackService implements IPlayerRegister {
                 if (itemCfg == null) {
                     continue;
                 }
-
                 playerPack.addItem(itemId, item.getItemCount(), itemCfg.getProp());
+                if (itemCfg.getAutoActivate() == 1) {
+                    if (itemCfg.getAvatarID() > 0) {
+                        autoActivateSkin.add(itemCfg.getAvatarID());
+                    }
+                }
             }
 
             redisTemplate.opsForHash().put(tableName, playerId, playerPack);
@@ -134,6 +142,12 @@ public class PlayerPackService implements IPlayerRegister {
             redisLock.unlock(key);
         }
         if (result.success()) {
+            //自动激活皮肤
+            if (!autoActivateSkin.isEmpty()) {
+                if (!playerAvatarDao.addByType(playerId, autoActivateSkin)) {
+                    log.error("自动添加皮肤失败，  playerId={} cfgId={}", playerId, autoActivateSkin);
+                }
+            }
             Map<Integer, Long> addTempItemMap =
                     itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getItemId(), e.getItemCount()),
                             HashMap::putAll);
@@ -141,6 +155,7 @@ public class PlayerPackService implements IPlayerRegister {
         }
         return result;
     }
+
 
     /**
      * 移除道具

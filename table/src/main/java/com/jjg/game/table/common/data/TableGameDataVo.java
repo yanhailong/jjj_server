@@ -1,5 +1,6 @@
 package com.jjg.game.table.common.data;
 
+import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.sampledata.GameDataManager;
@@ -19,7 +20,7 @@ public class TableGameDataVo extends GameDataVo<Room_BetCfg> {
     // 玩家下注数据 玩家ID：下注区域ID：下注金币列表
     protected final Map<Long, Map<Integer, List<Integer>>> playerBetInfo = new HashMap<>();
 
-    public void clearRoundData() {
+    public void clearRoundData(AbstractGameController<?, ?> gameController) {
         // 玩家的区域押注信息清除
         playerBetInfo.clear();
     }

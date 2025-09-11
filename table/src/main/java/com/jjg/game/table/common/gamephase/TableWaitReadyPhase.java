@@ -30,7 +30,7 @@ public class TableWaitReadyPhase<T extends TableGameDataVo> extends AbstractRoom
         // 通知房间等待消息
         notifyRoomReadyMessage();
         // 清除数据
-        gameDataVo.clearRoundData();
+        gameDataVo.clearRoundData(gameController);
     }
 
     /**
@@ -41,7 +41,7 @@ public class TableWaitReadyPhase<T extends TableGameDataVo> extends AbstractRoom
         notifyRoomReadyWait.roomId = gameDataVo.getRoomId();
         notifyRoomReadyWait.waitEndTime = gameDataVo.getPhaseEndTime();
         notifyRoomReadyWait.tablePlayerInfo =
-            TableMessageBuilder.buildTablePlayerInfo(gameDataVo, TableConstant.ON_TABLE_PLAYER_NUM);
+            TableMessageBuilder.buildTablePlayerInfo(gameController, gameDataVo, TableConstant.ON_TABLE_PLAYER_NUM);
         notifyRoomReadyWait.totalPlayerNum = gameDataVo.getPlayerNum();
         // 发送进入等待时间的消息
         broadcastMsgToRoom(notifyRoomReadyWait);

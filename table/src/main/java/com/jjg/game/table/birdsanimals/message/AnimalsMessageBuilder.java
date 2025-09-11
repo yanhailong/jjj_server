@@ -68,7 +68,7 @@ public class AnimalsMessageBuilder {
         tableInfo.gamePhase = gameController.getCurrentGamePhase();
         tableInfo.tableCountDownTime = gameDataVo.getPhaseEndTime();
         List<TablePlayerInfo> playerInfo =
-            TableMessageBuilder.buildTablePlayerInfo(Collections.singletonList(playerId), gameDataVo);
+            TableMessageBuilder.buildTablePlayerInfo(gameController, Collections.singletonList(playerId), gameDataVo);
         tableInfo.playerInfo = playerInfo.get(0);
         if (tableInfo.gamePhase == EGamePhase.GAME_ROUND_OVER_SETTLEMENT) {
             tableInfo.settlementInfo = gameDataVo.getAnimalsSettlementInfo();

@@ -81,7 +81,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             gameController.addItem(
                 gamePlayer.getId(), playerSettlementData.getTotalWin(),
                 ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
-            playerChangedGold.playerCurGold = gamePlayer.getGold();
+            playerChangedGold.playerCurGold = gameController.getItemNum(gamePlayer.getId());
             playerChangedGolds.add(playerChangedGold);
             bankerChangeGold += playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal();
             settlementDataMap.put(playerId, playerSettlementData);

@@ -23,7 +23,7 @@ public class BaccaratTableWaitReadyPhase extends TableWaitReadyPhase<BaccaratGam
     public void phaseDoAction() {
         super.phaseDoAction();
         // 清除每轮的场上临时数据
-        gameDataVo.clearRoundData();
+        gameDataVo.clearRoundData(gameController);
         // 如果牌只有6张直接全部洗牌
         if (gameDataVo.getCardList().size() < 6) {
             // 重新洗牌前需要删除场上记录的输赢路单数据
