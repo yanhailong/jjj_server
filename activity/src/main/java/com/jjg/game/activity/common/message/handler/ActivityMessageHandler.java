@@ -81,7 +81,7 @@ public class ActivityMessageHandler {
     /**
      * 玩家请求参与活动
      */
-    @Command(ActivityConstant.MsgBean.REQ_ACTIVITY_DETAIL_INFO)
+    @Command(ActivityConstant.MsgBean.REQ_ACTIVITY_PLAYER_JOIN)
     public void reqActivityPlayerJoin(PlayerController playerController, ReqActivityPlayerJoin req) {
         //查找活动数据
         ActivityData data = activityManager.getActivityData().get(req.activityId);
@@ -109,7 +109,7 @@ public class ActivityMessageHandler {
     /**
      * 摇钱树总奖池
      */
-    @Command(ActivityConstant.MsgBean.REQ_ACTIVITY_CLAIM_REWARDS)
+    @Command(ActivityConstant.MsgBean.REQ_CASH_COW_TOTAL_POOL)
     public void reqCashCowTotalPool(PlayerController playerController, ReqCashCowTotalPool req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.canRun() && data.getType() == ActivityType.CASH_COW) {

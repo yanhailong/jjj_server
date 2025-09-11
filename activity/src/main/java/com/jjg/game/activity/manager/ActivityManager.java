@@ -177,6 +177,14 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         for (ActivityData data : tempActivityData.values()) {
             activityTypeData.computeIfAbsent(data.getType(), k -> new ConcurrentHashMap<>()).put(data.getId(), data);
         }
+        //检查是否要主动开启
+        for (ActivityData data : activityData.values()) {
+            //设置状态
+            if (data.getStatus() != ActivityConstant.ActivityStatus.RUNNING && data.getTimeStart() <= timeMillis && timeMillis <= data.getTimeEnd()) {
+                data.getType().getController().onActivityStart(data);
+                data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
+            }
+        }
     }
 
     /**
@@ -221,11 +229,6 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         if (data.getTimeEnd() > timeMillis) {
             timerList.add(Pair.newPair(data.getTimeEnd(), activityInfoId));
-        }
-        //设置状态
-        if (data.getTimeStart() <= timeMillis & timeMillis <= data.getTimeEnd()) {
-            data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
-            data.getType().getController().onActivityStart(data);
         }
         return true;
     }
