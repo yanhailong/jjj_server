@@ -196,6 +196,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 data.getType().getController().onActivityStart(data);
                 data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
             }
+            if (data.canRun()) {
+                data.getType().getController().activityLoadCompleted(data);
+            }
         }
     }
 
