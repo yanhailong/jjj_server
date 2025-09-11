@@ -4,6 +4,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
+import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.FriendRoomBillHistoryBean;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
@@ -11,6 +12,7 @@ import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.FriendRoomBillHistoryHelper;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.friendroom.AbstractFriendRoomController;
 import com.jjg.game.room.friendroom.FriendRoomSampleUtils;
@@ -166,6 +168,14 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
         if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
             friendRoomController.broadFriendRoomChange();
         }
+    }
+
+    @Override
+    protected boolean checkPlayerCanExitWhenNoOperate(GamePlayer gamePlayer) {
+        // 庄家不能被踢出
+        FriendRoom room = (FriendRoom) roomController.getRoom();
+        long roomBankerId = room.roomBankerId();
+        return roomBankerId != gamePlayer.getId();
     }
 
     @Override

@@ -190,6 +190,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         R thatRoom = this.room;
         // 房间处于销毁流程中，不能加入
         if (roomState == ERoomState.ROOM_DESTROYING || roomState == ERoomState.ROOM_DESTROYED) {
+            log.debug("玩家：{} 不能加入，当前房间处于销毁状态", playerController.playerId());
             return new CommonResult<>(Code.FORBID);
         }
         return roomDao.doSave(playerController.getPlayer().getGameType(),
