@@ -175,6 +175,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
         String newDocName = null;
         String redisTableName = null;
         try {
+            if(!saveToDB){
+                boolean lock = getResultLibDao().addGenerateLock(this.gameType);
+                if(lock){
+                    log.info("生成结果库时添加锁失败，gameType = {}", this.gameType);
+                    return;
+                }
+            }
+
             log.info("开始生成结果库，libTypeCountMap = {}", libTypeCountMap);
 
             //计算出每个区间需要的条数
@@ -212,7 +220,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
                     }
                     if (exceptGenSectionCountMap.isEmpty()) {
                         tmpExceptGenCountMap.remove(libType);
-                        System.out.println("移除 libType = " + countEn.getKey());
                         break;
                     }
 
@@ -262,7 +269,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
                             libList.add(lib);
                         } else {
                             exceptGenSectionCountMap.remove(index);
-                            System.out.println("移除 libtype = " + libType + ",index = " + index + ",size = " + exceptGenSectionCountMap.size());
                         }
                     }
 
@@ -275,10 +281,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
                         }
 
                         libList = new ArrayList<>();
-                    }
-
-                    if((currentForCount % 50000) == 0){
-                        System.out.println(currentForCount);
                     }
                 }
             }

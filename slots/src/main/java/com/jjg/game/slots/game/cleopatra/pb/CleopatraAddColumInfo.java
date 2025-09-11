@@ -14,8 +14,8 @@ import java.util.List;
 public class CleopatraAddColumInfo {
     @ProtoDesc("新增列图标")
     public List<Integer> icons;
-    @ProtoDesc("中奖图标个数")
-    public int winCount;
+    @ProtoDesc("中奖图标坐标")
+    public List<Integer> indexList;
     @ProtoDesc("倍率")
     public int times;
 }

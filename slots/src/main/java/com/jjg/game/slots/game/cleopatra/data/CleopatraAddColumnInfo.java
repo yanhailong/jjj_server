@@ -2,13 +2,16 @@ package com.jjg.game.slots.game.cleopatra.data;
 
 import com.jjg.game.slots.data.AwardLineInfo;
 
+import java.util.List;
+
 /**
  * @author 11
  * @date 2025/9/11 11:46
  */
 public class CleopatraAddColumnInfo extends AwardLineInfo {
     private int[] arr;
-    private int count;
+    //中奖图标的坐标
+    private List<Integer> indexList;
 
     public int[] getArr() {
         return arr;
@@ -18,11 +21,11 @@ public class CleopatraAddColumnInfo extends AwardLineInfo {
         this.arr = arr;
     }
 
-    public int getCount() {
-        return count;
+    public List<Integer> getIndexList() {
+        return indexList;
     }
 
-    public void setCount(int count) {
-        this.count = count;
+    public void setIndexList(List<Integer> indexList) {
+        this.indexList = indexList;
     }
 }

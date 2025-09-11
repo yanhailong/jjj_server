@@ -15,16 +15,16 @@ import java.util.Map;
 @Document
 public class CleopatraResultLib extends SlotsResultLib<CleopatraAddColumnInfo> {
     //中奖图标的初始个数
-    private int[] winIcons;
+    private List<Integer> winIconIndexList;
     //可以中奖的奖池id
     private List<Integer> jackpotIds;
 
-    public int[] getWinIcons() {
-        return winIcons;
+    public List<Integer> getWinIconIndexList() {
+        return winIconIndexList;
     }
 
-    public void setWinIcons(int[] winIcons) {
-        this.winIcons = winIcons;
+    public void setWinIconIndexList(List<Integer> winIconIndexList) {
+        this.winIconIndexList = winIconIndexList;
     }
 
     public List<Integer> getJackpotIds() {
@@ -40,11 +40,5 @@ public class CleopatraResultLib extends SlotsResultLib<CleopatraAddColumnInfo> {
             this.jackpotIds = new ArrayList<>();
         }
         this.jackpotIds.add(jackpotId);
-    }
-
-    public void addWinIcon(int winIcon,int count) {
-        this.winIcons = new int[2];
-        this.winIcons[0] = winIcon;
-        this.winIcons[1] = count;
     }
 }

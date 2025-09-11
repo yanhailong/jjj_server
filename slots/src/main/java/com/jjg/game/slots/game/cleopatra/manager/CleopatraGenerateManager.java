@@ -99,26 +99,25 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
         //普通图标
         Set<Integer> normalIconSet = this.iconsMap.get(SlotsConst.BaseElement.TYPE_NORMAL);
 
-        //icon -> count
-        Map<Integer, Integer> firstColIcons = new HashMap<>();
+        //icon -> 坐标列表
+        Map<Integer, List<Integer>> firstColIcons = new HashMap<>();
 
         //获取第一列出现的图标
         for (int i = 1; i <= baseInitCfg.getRows(); i++) {
             int icon = lib.getIconArr()[i];
-            firstColIcons.merge(icon, 1, Integer::sum);
+
+            firstColIcons.computeIfAbsent(icon, k -> new ArrayList<>()).add(i);
         }
 
         //然后从第二列开始检查，是否出现了第一列的图标
-        for (Map.Entry<Integer, Integer> en : firstColIcons.entrySet()) {
+        for (Map.Entry<Integer, List<Integer>> en : firstColIcons.entrySet()) {
             //第一列的图标和数量
             int icon = en.getKey();
-            int count = en.getValue();
+            List<Integer> list = en.getValue();
 
             boolean firstNormal = normalIconSet.contains(icon);
 
             boolean lastColShow = false;
-
-            int allCount = count;
 
             //从第2列开始，检查每一个图标
             for (int col = 2; col <= baseInitCfg.getCols(); col++) {
@@ -137,10 +136,10 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
 
                     if (wild && firstNormal) {
                         flag = true;
-                        allCount++;
+                        list.add(index);
                     } else if (icon == tmpIcon) {
                         flag = true;
-                        allCount++;
+                        list.add(index);
                     }
                 }
 
@@ -157,15 +156,15 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
 
             for(Map.Entry<Integer, BaseElementRewardCfg> fullLineCountEn :fullLineCountCfgMap.entrySet()){
                 BaseElementRewardCfg cfg = fullLineCountEn.getValue();
-                if(cfg.getElementId().contains(icon) && allCount >= cfg.getRewardNum()){
+                if(cfg.getElementId().contains(icon) && list.size() >= cfg.getRewardNum()){
                     //最后一列是否出现
                     if (lastColShow) {
-                        lib.addWinIcon(icon, allCount);
+                        lib.setWinIconIndexList(list);
                         List<CleopatraAddColumnInfo> addColumnList = new ArrayList<>();
                         addColumnInfo(1, icon, baseInitCfg.getRows(), baseInitCfg.getCols() + 1, addColumnList);
                         return addColumnList;
                     }else {
-                        lib.addWinIcon(icon, allCount);
+                        lib.setWinIconIndexList(list);
                     }
                 }
             }
@@ -194,7 +193,8 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
         //根据滚轴id获取1列图案
         int[] colIcons = generateColumnIcons(addColumnConfig.getRollerId(), rows, colId);
 
-        int count = 0;
+        //中奖图标坐标
+        List<Integer> indexList = new ArrayList<>();
         for (int i = 0; i < colIcons.length; i++) {
             int icon = colIcons[i];
             boolean wild = false;
@@ -203,17 +203,16 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
             }
 
             if (wild || icon == winIcon) {
-                count++;
+                indexList.add(i);
             }
         }
 
         CleopatraAddColumnInfo addColumnInfo = new CleopatraAddColumnInfo();
         addColumnInfo.setArr(colIcons);
-        addColumnInfo.setCount(count);
+        addColumnInfo.setIndexList(indexList);
         awardInfoList.add(addColumnInfo);
 
-        if (count < 1) {
-
+        if (indexList.isEmpty()) {
             return;
         }
 
@@ -279,15 +278,15 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
             return;
         }
 
-        int winIcon = lib.getWinIcons()[0];
-        int winIconInitCount = lib.getWinIcons()[1];
+        int winIcon = lib.getIconArr()[lib.getWinIconIndexList().getFirst()];
+        int winIconInitCount = lib.getWinIconIndexList().size();
 
         //获取基础分
         int iconBaseScore = this.iconBaseScoreMap.get(winIcon);
 
         //计算该图标总数量
         for (CleopatraAddColumnInfo info : lib.getAwardLineInfoList()) {
-            winIconInitCount += info.getCount();
+            winIconInitCount += info.getIndexList().size();
         }
 
         //获取增加列倍数

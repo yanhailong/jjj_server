@@ -159,35 +159,7 @@ public class HallMessageHandler implements GmListener {
     public void reqPool(PlayerController playerController, ReqPool req) {
         ResPool res = new ResPool(HallCode.SUCCESS);
         try {
-            List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(req.gameType);
-            if (wareHouseConfigList == null || wareHouseConfigList.isEmpty()) {
-                res.code = Code.FORBID;
-                log.debug("未找到倍场信息，获取奖池信息失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
-                return;
-            }
-
-            Map<Object, Object> smallPool = poolDao.getSmallPoolByRoomCfgId(req.gameType);
-            Map<Object, Object> fakeSmallPool = poolDao.getFakeSmallPoolByRoomCfgId(req.gameType);
-
-            List<WarePoolInfo> warePoolInfoList = new ArrayList<>();
-            for (Map.Entry<Object, Object> en : smallPool.entrySet()) {
-                WarePoolInfo warePoolInfo = new WarePoolInfo();
-                warePoolInfo.wareId = Integer.parseInt(en.getKey().toString());
-                long smallPoolValue = Long.parseLong(en.getValue().toString());
-
-                Object o = fakeSmallPool.get(warePoolInfo.wareId);
-                if (o != null) {
-                    long fakeSmallPoolValue = Long.parseLong(o.toString());
-                    if (fakeSmallPoolValue > smallPoolValue) {
-                        smallPoolValue = fakeSmallPoolValue;
-                    }
-                }
-
-                warePoolInfo.pool = smallPoolValue;
-                warePoolInfoList.add(warePoolInfo);
-            }
-
-            res.warePoolInfoList = warePoolInfoList;
+            res.warePoolInfoList = hallService.getPoolListByGameType(req.gameType);
             log.info("玩家获取奖池信息，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);

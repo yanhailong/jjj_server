@@ -16,6 +16,9 @@ import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * 麻将胡了游戏逻辑处理器
  * @author 11
@@ -37,7 +40,11 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
     @Override
     public void init() {
         log.info("启动埃及艳后游戏管理器...");
-        this.libDao.init(this.gameType);
+        super.init();
+
+//        Map<Integer, Integer> map = new HashMap<>();
+//        map.put(1, 50000);
+//        addGenerateLibEvent(map);
     }
 
     /**

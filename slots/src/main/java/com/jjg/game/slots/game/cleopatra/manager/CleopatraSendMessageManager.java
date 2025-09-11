@@ -11,6 +11,7 @@ import com.jjg.game.slots.game.cleopatra.data.CleopatraAddColumnInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
 import com.jjg.game.slots.game.cleopatra.pb.CleopatraAddColumInfo;
+import com.jjg.game.slots.game.cleopatra.pb.ResCleopatraEnterGame;
 import com.jjg.game.slots.game.cleopatra.pb.ResCleotapraStartGame;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
@@ -50,7 +51,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
 
         SendInfo sendInfo = new SendInfo();
 
-        ResMahjiongwinEnterGame res = new ResMahjiongwinEnterGame(Code.SUCCESS);
+        ResCleopatraEnterGame res = new ResCleopatraEnterGame(Code.SUCCESS);
         if (config != null) {
             List<long[]> list = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
             res.stakeList = new ArrayList<>(list.size());
@@ -93,11 +94,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
             res.exp = playerController.getPlayer().getExp();
 
             CleopatraResultLib lib = (CleopatraResultLib) gameRunInfo.getResultLib();
-            if(lib.getWinIcons() != null) {
-                res.winIconId = lib.getWinIcons()[0];
-                res.winIconCount = lib.getWinIcons()[1];
-            }
-
+            res.winIconList = lib.getWinIconIndexList();
             res.addColumInfoList = addColumInfoList(lib);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
@@ -120,8 +117,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
         for(CleopatraAddColumnInfo info : lib.getAwardLineInfoList()){
             CleopatraAddColumInfo addColumInfo = new CleopatraAddColumInfo();
             addColumInfo.icons = Arrays.stream(info.getArr()).boxed().collect(Collectors.toList());
-            addColumInfo.winCount = info.getCount();
-            addColumInfo.times = info.getCount();
+            addColumInfo.indexList = info.getIndexList();
             addColumInfo.times = addColumnConfig.getTimes();
             list.add(addColumInfo);
         }
