@@ -20,4 +20,6 @@ public class CashCowDetailInfo extends BaseActivityDetailInfo {
     public int type;
     @ProtoDesc("奖池")
     public long pool;
+    @ProtoDesc("需要进度")
+    public long needProgress;
 }

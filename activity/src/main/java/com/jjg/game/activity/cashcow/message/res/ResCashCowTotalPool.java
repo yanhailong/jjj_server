@@ -10,7 +10,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  * @author lm
  * @date 2025/9/10 10:58
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.RES_CASH_COW_TOTAL_POOL)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.RES_CASH_COW_TOTAL_POOL,resp = true)
 @ProtoDesc("响应摇钱树总奖池")
 public class ResCashCowTotalPool extends AbstractResponse {
     @ProtoDesc("活动id")
