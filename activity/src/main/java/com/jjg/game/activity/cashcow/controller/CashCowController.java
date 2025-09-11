@@ -210,8 +210,8 @@ public class CashCowController extends BaseActivityController {
             activityData.setRound(TimeHelper.toYyyyMMdd00000(activityData.getTimeStart()));
             if (CollectionUtil.isNotEmpty(baseCfgBeanMap)) {
                 for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
-                    if (cfgBean instanceof CashcowCfg cfg) {
-                        cashCowDao.addActivityPool(activityId, cfg.getId(), cfg.getInitialprizepool());
+                    if (cfgBean instanceof CashcowCfg cfg && cfg.getType() != 4) {
+                        cashCowDao.setActivityPool(activityId, cfg.getId(), cfg.getInitialprizepool());
                     }
                 }
             } else {
@@ -296,6 +296,7 @@ public class CashCowController extends BaseActivityController {
                 if (data != null) {
                     info.claimStatus = data.getClaimStatus();
                 }
+                info.needProgress = cfg.getCondition();
             } else {
                 //抽奖
                 info.costItems = ItemUtils.buildItemInfo(cfg.getNeedItem());

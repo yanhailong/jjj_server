@@ -13,6 +13,7 @@ import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.res.NotifyActivityChange;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
@@ -36,6 +37,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -71,7 +73,10 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 活动跑马灯管理器
      */
     private final CoreMarqueeManager marqueeManager;
-
+    /**
+     * 节点管理
+     */
+    private final MarsCurator marsCurator;
     /**
      * 活动 id -> 活动数据
      */
@@ -92,13 +97,15 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     public ActivityManager(TimerCenter timerCenter, ActivityDao activityDao,
                            ActivityDetailDao activityDetailDao, ClusterSystem clusterSystem,
-                           PlayerActivityDao playerActivityDao, CoreMarqueeManager marqueeManager) {
+                           PlayerActivityDao playerActivityDao, CoreMarqueeManager marqueeManager,
+                           MarsCurator marsCurator) {
         this.timerCenter = timerCenter;
         this.activityDao = activityDao;
         this.activityDetailDao = activityDetailDao;
         this.clusterSystem = clusterSystem;
         this.playerActivityDao = playerActivityDao;
         this.marqueeManager = marqueeManager;
+        this.marsCurator = marsCurator;
     }
 
     public Map<Long, ActivityData> getActivityData() {
@@ -151,11 +158,13 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             long activityInfoId = activityConfigCfg.getId();
             Map<Integer, BaseCfgBean> loadedDetailData = data.getType().getController().loadDetailData(activityDetailInfo.get(activityInfoId));
             if (CollectionUtil.isNotEmpty(loadedDetailData)) {
-                for (Integer id : loadedDetailData.keySet()) {
+                Iterator<Integer> iterator = loadedDetailData.keySet().iterator();
+                while (iterator.hasNext()) {
+                    Integer id = iterator.next();
                     if (data.getValue().contains(id)) {
                         continue;
                     }
-                    loadedDetailData.remove(id);
+                    iterator.remove();
                 }
                 tempActivityDetailInfo.put(activityInfoId, loadedDetailData);
             }
@@ -166,10 +175,13 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         for (Pair<Long, Long> pair : timerList) {
             timerCenter.add(new TimerEvent<>(this, pair.getFirst(), pair.getSecond()));
         }
-        //保存到redis
-        activityDao.saveActivities(tempActivityData);
-        for (Map.Entry<Long, Map<Integer, BaseCfgBean>> entry : tempActivityDetailInfo.entrySet()) {
-            activityDetailDao.saveActivityDetails(entry.getKey(), entry.getValue());
+
+        //主节点保存到redis
+        if (marsCurator.isMaster()) {
+            activityDao.saveActivities(tempActivityData);
+            for (Map.Entry<Long, Map<Integer, BaseCfgBean>> entry : tempActivityDetailInfo.entrySet()) {
+                activityDetailDao.saveActivityDetails(entry.getKey(), entry.getValue());
+            }
         }
         activityData = tempActivityData;
         activityDetailInfo = tempActivityDetailInfo;
@@ -195,6 +207,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         //0点事件
         //TODO 推送在线玩家
     }
+
 
     /**
      * 检查活动数据
