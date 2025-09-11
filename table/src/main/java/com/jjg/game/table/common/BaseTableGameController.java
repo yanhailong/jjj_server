@@ -175,6 +175,10 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         int exitTipLangId = gameDataVo.getRoomCfg().getEscTipText();
         for (Map.Entry<Long, GamePlayer> entry : gamePlayerMap.entrySet()) {
             GamePlayer gamePlayer = entry.getValue();
+            // 检查当前玩家是否能在无操作的情况下退出
+            if (!checkPlayerCanExitWhenNoOperate(gamePlayer)) {
+                continue;
+            }
             long playerLatestOperateTime = gamePlayer.getTableGameData().getPlayerLatestOperateTime();
             // 如果还没进入房间
             if (playerLatestOperateTime <= 0) {
@@ -202,6 +206,10 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
                     .addPlayerId(entry.getKey()).setData(notifyTableLongTimeNoOperate));
             }
         }
+    }
+
+    protected boolean checkPlayerCanExitWhenNoOperate(GamePlayer gamePlayer) {
+        return true;
     }
 
     @Override

@@ -961,6 +961,7 @@ public class FriendRoomServices {
      */
     public void reqOperateFriendRoom(PlayerController playerController, ReqOperateFriendRoom req) {
         ResOperateFriendRoom res = new ResOperateFriendRoom(Code.PARAM_ERROR);
+        log.debug("{} ", JSON.toJSONString(req));
         if (req.operateCode < 1 || req.operateCode > 3 || req.roomId <= 0) {
             playerController.send(res);
             return;

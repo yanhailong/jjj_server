@@ -160,6 +160,13 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                     playerController, info.getGameType(), info.getRoomCfgId(), player.getRoomId());
                 if (code == Code.SUCCESS) {
                     return;
+                } else {
+                    // TODO 加入失败,推送协议
+                    playerService.doSave(playerId, p -> {
+                        p.setGameType(0);
+                        p.setRoomCfgId(0);
+                        p.setRoomId(0);
+                    });
                 }
             }
             IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());
