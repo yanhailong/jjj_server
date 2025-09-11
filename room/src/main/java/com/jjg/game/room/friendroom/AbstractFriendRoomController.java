@@ -123,8 +123,9 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
     @Override
     protected CommonResult<? extends Room> checkRoomCanJoin(PlayerController playerController) {
-        // 房间不为运行状态不能加入
-        if (room.getStatus() != 1) {
+        // 房间不为运行状态不能加入,暂停可以加入
+        if (room.getStatus() != 1 && room.getStatus() != 2) {
+            log.debug("玩家：{} 不能进入房间：{} 当前状态：{}", playerController.playerId(), room.getId(), room.getStatus());
             return new CommonResult<>(Code.FORBID);
         }
         return super.checkRoomCanJoin(playerController);
@@ -186,6 +187,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
     @Override
     public boolean checkRoomCanContinue() {
+        broadFriendRoomChange();
         // 如果房间状态为解散中.直接暂停游戏
         if (room.getStatus() == 3) {
             return false;
@@ -230,8 +232,9 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             }
         }
         int minBankerAmount = FriendRoomSampleUtils.getRoomMinBankerAmount(roomCfg.getId());
-        // 好友房，如果房间庄家不为空或者房间房主底注大于最小上庄金币
-        return checkBankerCanNextRound() || room.getPredictCostGoldNum() >= minBankerAmount;
+        long bankerResetGold = room.roomBankerResetGold();
+        // 好友房，如果房间庄家不为空且房间房主底注大于最小上庄金币
+        return checkBankerCanNextRound() && (room.getPredictCostGoldNum() + bankerResetGold) >= minBankerAmount;
     }
 
     /**
@@ -242,9 +245,15 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     @Override
     public void onRoomCantContinue() {
         super.onRoomCantContinue();
-        // 当房间处于销毁状态时，直接销毁房间
+        // 当房间处于销毁状态时，需要清理掉所有房间内处于断线状态的玩家
         if (room.getStatus() == 3) {
-            gameDestroy(true);
+            for (Map.Entry<Long, RoomPlayer> entry : room.getRoomPlayers().entrySet()) {
+                // 如果玩家不在线，房间又处于销毁状态，直接清理，如果在线等房间踢人
+                if (!entry.getValue().isOnline()) {
+                    // 踢出房间
+                    roomManager.exitRoom(entry.getKey());
+                }
+            }
         }
     }
 
@@ -276,7 +285,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     public void broadFriendRoomChange() {
         NotifyFriendRoomDataChange notify = new NotifyFriendRoomDataChange();
         notify.bankerPlayerId = room.roomBankerId();
-        notify.bankerPredicateCostGold = room.getPredictCostGoldNum();
+        notify.bankerPredicateCostGold = room.roomBankerResetGold();
         notify.roomCreatorPredicateCostGold = room.getPredictCostGoldNum();
         broadcastToPlayers(RoomMessageBuilder.newBuilder().setData(notify).toAllPlayer());
     }
@@ -295,6 +304,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         if (playerGold <= 0) {
             return Code.SUCCESS;
         }
+        room.cancelApplyBanker(playerId);
         int code = gameController.addItem(
             playerId, playerGold, ERoomItemReason.FRIEND_ROOM_CANCEL_BANKER_ADD_GOLD.withCfgId(room.getRoomCfgId()));
         log.info("玩家：{} 申请取消成为庄家，添加金币：{}", playerId, playerGold);

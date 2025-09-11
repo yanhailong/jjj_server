@@ -34,6 +34,8 @@ public class FriendRoomBillHistoryBean {
     private Map<Long, Long> partInPlayerIncome;
     // 道具ID
     private int itemId;
+    // 月份
+    private int month;
 
     public long getId() {
         return id;
@@ -121,5 +123,13 @@ public class FriendRoomBillHistoryBean {
 
     public void setItemId(int itemId) {
         this.itemId = itemId;
+    }
+
+    public int getMonth() {
+        return month;
+    }
+
+    public void setMonth(int month) {
+        this.month = month;
     }
 }

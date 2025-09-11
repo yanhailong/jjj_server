@@ -3,6 +3,8 @@ package com.jjg.game.activity.common.dao;
 import cn.hutool.core.collection.CollectionUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.activity.common.data.ActivityType;
+import com.jjg.game.activity.constant.ActivityConstant;
+import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import org.slf4j.Logger;
@@ -24,15 +26,26 @@ import java.util.Map;
  */
 @Repository
 public class ActivityDetailDao {
-    private static final Logger log = LoggerFactory.getLogger(ActivityDetailDao.class);
-    private static final String TABLE_NAME = "activity:server:detail:%s";
-
+    private final Logger log = LoggerFactory.getLogger(ActivityDetailDao.class);
+    private final String TABLE_NAME = "activity:server:detail:%d";
+    private final String ACTIVITY_DETAIL_LOCK = "activity:detaillock:%d:%d";
+    private final String ACTIVITY_ALL_DETAIL_LOCK = "activity:alldetaillock:%d";
     private final ObjectMapper objectMapper;
     private final RedisTemplate<String, Integer> redisTemplate;
+    private final RedisLock redisLock;
 
-    public ActivityDetailDao(RedisTemplate<String, Integer> redisTemplate) {
+    public ActivityDetailDao(RedisTemplate<String, Integer> redisTemplate, RedisLock redisLock) {
         this.redisTemplate = redisTemplate;
+        this.redisLock = redisLock;
         objectMapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
+    }
+
+    public String getLockKey(long activityId, int detailId) {
+        return ACTIVITY_DETAIL_LOCK.formatted(activityId, detailId);
+    }
+
+    public String getAllLockKey(long activityId) {
+        return ACTIVITY_ALL_DETAIL_LOCK.formatted(activityId);
     }
 
     private String getKey(long activityId) {
@@ -90,11 +103,15 @@ public class ActivityDetailDao {
      * 保存或更新单个详情
      */
     public void saveActivityDetail(long activityId, int detailId, BaseCfgBean detail) {
+        String lockKey = getLockKey(activityId, detailId);
+        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
             String json = objectMapper.writeValueAsString(detail);
             opsForHash().put(getKey(activityId), detailId, json);
         } catch (Exception e) {
             log.error("保存活动详情失败 activityId={}, detailId={}", activityId, detailId, e);
+        } finally {
+            redisLock.unlock(lockKey);
         }
     }
 
@@ -102,17 +119,21 @@ public class ActivityDetailDao {
      * 批量保存活动详情
      */
     public void saveActivityDetails(long activityId, Map<Integer, BaseCfgBean> details) {
+        if (CollectionUtil.isEmpty(details)) {
+            return;
+        }
+        String allLockKey = getAllLockKey(activityId);
+        redisLock.lock(allLockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
-            if (CollectionUtil.isEmpty(details)) {
-                return;
-            }
             Map<Integer, String> jsonMap = new HashMap<>();
             for (Map.Entry<Integer, BaseCfgBean> entry : details.entrySet()) {
                 jsonMap.put(entry.getKey(), objectMapper.writeValueAsString(entry.getValue()));
             }
             opsForHash().putAll(getKey(activityId), jsonMap);
         } catch (Exception e) {
-            log.error("批量保存活动详情失败 activityId={}, size={}", activityId, details != null ? details.size() : 0, e);
+            log.error("批量保存活动详情失败 activityId={}, size={}", activityId, details.size(), e);
+        } finally {
+            redisLock.unlock(allLockKey);
         }
     }
 

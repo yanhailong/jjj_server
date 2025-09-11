@@ -9,12 +9,22 @@ public class PlayerActivityData {
     private long activityId;
     //领取状态
     private int claimStatus;
+    //参加的期数
+    private long round;
 
     public PlayerActivityData() {
     }
 
-    public PlayerActivityData(long activityId) {
+    public PlayerActivityData(long activityId, long round) {
         this.activityId = activityId;
+    }
+
+    public long getRound() {
+        return round;
+    }
+
+    public void setRound(long round) {
+        this.round = round;
     }
 
     public long getActivityId() {

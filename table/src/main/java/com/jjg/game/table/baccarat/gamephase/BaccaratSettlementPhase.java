@@ -84,7 +84,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         List<PlayerChangedGold> playerChangedGolds = new ArrayList<>(changedGolds.values());
         NotifyBaccaratSettlementInfo baccaratTableInfo =
             BaccaratMessageBuilder.buildNotifySettlementMessage(
-                gameDataVo, playerChangedGolds, baccaratSettlementInfo);
+                gameController, gameDataVo, playerChangedGolds, baccaratSettlementInfo);
         // 将结算信息写入到场上，方便中途加入的玩家读取
         gameDataVo.setBaccaratSettlementInfo(baccaratTableInfo);
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
@@ -216,7 +216,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                     ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
                 // 需要扣除庄家的钱
                 bankerChangeGold -= settlementData.getBetWin();
-                playerGoldChange.playerCurGold = gamePlayer.getGold();
+                playerGoldChange.playerCurGold = gameController.getItemNum(gamePlayer.getId());
                 playerChangedGolds.put(playerEntry.getKey(), playerGoldChange);
             } else {
                 // 需要给庄家加钱

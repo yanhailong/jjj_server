@@ -88,7 +88,7 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
                     if (Objects.nonNull(seatInfo)) {
                         seatInfo.setSeatDown(false);
                         NotifyPokerPlayerChange notifyPokerPlayerChange = new NotifyPokerPlayerChange();
-                        notifyPokerPlayerChange.pokerPlayerInfo = PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(seatInfo.getPlayerId()), seatInfo, gameDataVo);
+                        notifyPokerPlayerChange.pokerPlayerInfo = PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(seatInfo.getPlayerId()), seatInfo, controller);
                         broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyPokerPlayerChange).exceptPlayer(seatInfo.getPlayerId()));
                     }
                     RoomPlayer roomPlayer = gameController.getRoom().getRoomPlayers().get(info.getPlayerId());

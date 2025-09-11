@@ -169,6 +169,10 @@ public interface MessageConst {
         int NOTIFY_EXIT = BASE_MSG_PREFIX | 0x9C;
         //通知功能开放
         int NOTIFY_FUNC_OPEN = BASE_MSG_PREFIX | 0x9D;
+        //请求确认玩家当前处于哪个场景中
+        int REQ_CONFIRM_PLAYER_SCENE = BASE_MSG_PREFIX | 0x9E;
+        //确认玩家当前处于哪个场景中
+        int RES_CONFIRM_PLAYER_SCENE = BASE_MSG_PREFIX | 0x9F;
     }
 
     interface RoomMessage {

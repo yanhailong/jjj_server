@@ -1,6 +1,8 @@
 package com.jjg.game.activity.common.dao;
 
 import com.jjg.game.activity.common.data.ActivityData;
+import com.jjg.game.activity.constant.ActivityConstant;
+import com.jjg.game.common.redis.RedisLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.HashOperations;
@@ -21,13 +23,16 @@ import java.util.Map;
  */
 @Repository
 public class ActivityDao {
-    private static final Logger log = LoggerFactory.getLogger(ActivityDao.class);
-    private static final String TABLE_NAME = "activity:server";
-
+    private final Logger log = LoggerFactory.getLogger(ActivityDao.class);
+    private final String TABLE_NAME = "activity:server";
+    private final String ACTIVITY_ALL_LOCK = "activity:alllock";
+    private final String ACTIVITY_LOCK = "activity:lock:%d";
     private final RedisTemplate<String, ActivityData> redisTemplate;
+    private final RedisLock redisLock;
 
-    public ActivityDao(RedisTemplate<String, ActivityData> redisTemplate) {
+    public ActivityDao(RedisTemplate<String, ActivityData> redisTemplate, RedisLock redisLock) {
         this.redisTemplate = redisTemplate;
+        this.redisLock = redisLock;
     }
 
     private HashOperations<String, Long, ActivityData> opsForHash() {
@@ -35,8 +40,13 @@ public class ActivityDao {
     }
 
     public String getLockKey(long activityId) {
-        return "activity:lock" + activityId;
+        return ACTIVITY_LOCK.formatted(activityId);
     }
+
+    public String getAllLockKey() {
+        return ACTIVITY_ALL_LOCK;
+    }
+
 
     /**
      * 获取全部活动数据
@@ -87,29 +97,37 @@ public class ActivityDao {
     /**
      * 保存或更新单个活动配置
      */
-    public void saveActivity(ActivityData config) {
-        if (config == null || config.getId() == 0) {
+    public void saveActivity(ActivityData data) {
+        if (data == null || data.getId() == 0) {
             log.warn("保存活动配置失败: config 或 ID 为空");
             return;
         }
+        String lockKey = getLockKey(data.getId());
+        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
-            opsForHash().put(TABLE_NAME, config.getId(), config);
+            opsForHash().put(TABLE_NAME, data.getId(), data);
         } catch (Exception e) {
-            log.error("保存活动配置异常 id={}", config.getId(), e);
+            log.error("保存活动配置异常 id={}", data.getId(), e);
+        } finally {
+            redisLock.unlock(lockKey);
         }
     }
 
     /**
      * 批量保存活动配置
      */
-    public void saveActivities(Map<Long, ActivityData> configs) {
-        if (configs == null || configs.isEmpty()) {
+    public void saveActivities(Map<Long, ActivityData> activityDataMap) {
+        if (activityDataMap == null || activityDataMap.isEmpty()) {
             return;
         }
+        String allLockKey = getAllLockKey();
+        redisLock.lock(allLockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
-            opsForHash().putAll(TABLE_NAME, configs);
+            opsForHash().putAll(TABLE_NAME, activityDataMap);
         } catch (Exception e) {
-            log.error("批量保存活动配置异常, size={}", configs.size(), e);
+            log.error("批量保存活动配置异常, size={}", activityDataMap.size(), e);
+        } finally {
+            redisLock.unlock(allLockKey);
         }
     }
 

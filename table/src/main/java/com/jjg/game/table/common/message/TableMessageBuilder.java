@@ -6,6 +6,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.pb.NotifyTableExitRoom;
 import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.table.common.TableConstant;
@@ -30,12 +31,13 @@ public class TableMessageBuilder {
     /**
      * 玩家数据列表
      */
-    public static RespTablePlayerInfo buildTableAllPlayerInfo(TableGameDataVo dataVo) {
+    public static RespTablePlayerInfo buildTableAllPlayerInfo(
+        AbstractGameController<?, ?> gameController, TableGameDataVo dataVo) {
         RespTablePlayerInfo playerBetInfo = new RespTablePlayerInfo(Code.SUCCESS);
         playerBetInfo.tablePlayerInfo = new ArrayList<>();
-        Map<Long, GamePlayer> sortedGamePlayers = getSortedGamePlayer(dataVo, 0);
+        Map<Long, GamePlayer> sortedGamePlayers = getSortedGamePlayer(gameController, dataVo, 0);
         for (GamePlayer gamePlayer : sortedGamePlayers.values()) {
-            TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(gamePlayer);
+            TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(gameController, gamePlayer);
             playerBetInfo.tablePlayerInfo.add(tablePlayerInfo);
         }
         // 按照金币给玩家排序
@@ -46,7 +48,8 @@ public class TableMessageBuilder {
     /**
      * 构建游戏的玩家基础信息
      */
-    public static List<TablePlayerInfo> buildTablePlayerInfo(List<Long> playerIds, TableGameDataVo tableGameDataVo) {
+    public static List<TablePlayerInfo> buildTablePlayerInfo(
+        AbstractGameController<?, ?> gameController, List<Long> playerIds, TableGameDataVo tableGameDataVo) {
         Map<Long, GamePlayer> gamePlayerMap = tableGameDataVo.getGamePlayerMap();
         List<TablePlayerInfo> tablePlayerInfos = new ArrayList<>(playerIds.size());
         for (Long playerId : playerIds) {
@@ -54,7 +57,7 @@ public class TableMessageBuilder {
             if (Objects.isNull(gamePlayer)) {
                 continue;
             }
-            tablePlayerInfos.add(buildTablePlayerInfo(gamePlayer));
+            tablePlayerInfos.add(buildTablePlayerInfo(gameController, gamePlayer));
         }
         return tablePlayerInfos;
     }
@@ -63,18 +66,20 @@ public class TableMessageBuilder {
     /**
      * 构建游戏的前6玩家基础信息
      */
-    public static List<TablePlayerInfo> buildPlayerInfoOnTable(GameDataVo<?> tableGameDataVo) {
-        return buildTablePlayerInfo(tableGameDataVo, TableConstant.ON_TABLE_PLAYER_NUM);
+    public static List<TablePlayerInfo> buildPlayerInfoOnTable(
+        AbstractGameController<?, ?> gameController, GameDataVo<?> tableGameDataVo) {
+        return buildTablePlayerInfo(gameController, tableGameDataVo, TableConstant.ON_TABLE_PLAYER_NUM);
     }
 
     /**
      * 构建游戏的前6玩家基础信息
      */
-    public static List<TablePlayerInfo> buildTablePlayerInfo(GameDataVo<?> tableGameDataVo, int limit) {
-        Map<Long, GamePlayer> sortedGamePlayers = getSortedGamePlayer(tableGameDataVo, limit);
+    public static List<TablePlayerInfo> buildTablePlayerInfo(
+        AbstractGameController<?, ?> gameController, GameDataVo<?> tableGameDataVo, int limit) {
+        Map<Long, GamePlayer> sortedGamePlayers = getSortedGamePlayer(gameController, tableGameDataVo, limit);
         List<TablePlayerInfo> tablePlayerInfos = new ArrayList<>(sortedGamePlayers.size());
         for (GamePlayer gamePlayer : sortedGamePlayers.values()) {
-            tablePlayerInfos.add(buildTablePlayerInfo(gamePlayer));
+            tablePlayerInfos.add(buildTablePlayerInfo(gameController, gamePlayer));
         }
         return tablePlayerInfos;
     }
@@ -84,8 +89,8 @@ public class TableMessageBuilder {
      * 构建游戏的前7玩家基础信息,包含玩家自己的数据
      */
     public static List<TablePlayerInfo> buildTablePlayerInfo(
-            long playerId, TableGameDataVo tableGameDataVo, int limit) {
-        Map<Long, GamePlayer> sortedGamePlayer = getSortedGamePlayer(tableGameDataVo, limit);
+        AbstractGameController<?, ?> gameController, long playerId, TableGameDataVo tableGameDataVo, int limit) {
+        Map<Long, GamePlayer> sortedGamePlayer = getSortedGamePlayer(gameController, tableGameDataVo, limit);
         List<GamePlayer> gamePlayers = new ArrayList<>(sortedGamePlayer.values());
         if (!sortedGamePlayer.containsKey(playerId)) {
             if (gamePlayers.size() == limit) {
@@ -95,7 +100,7 @@ public class TableMessageBuilder {
         }
         List<TablePlayerInfo> tablePlayerInfos = new ArrayList<>(gamePlayers.size());
         for (GamePlayer gamePlayer : gamePlayers) {
-            tablePlayerInfos.add(buildTablePlayerInfo(gamePlayer));
+            tablePlayerInfos.add(buildTablePlayerInfo(gameController, gamePlayer));
         }
         return tablePlayerInfos;
     }
@@ -108,11 +113,13 @@ public class TableMessageBuilder {
      * @param limit           列表长度（小于等于0为全部）
      * @return 排序后的GamePlayer列表
      */
-    private static Map<Long, GamePlayer> getSortedGamePlayer(GameDataVo<?> tableGameDataVo, int limit) {
+    private static Map<Long, GamePlayer> getSortedGamePlayer(
+        AbstractGameController<?, ?> gameController, GameDataVo<?> tableGameDataVo, int limit) {
         Stream<GamePlayer> sorted = tableGameDataVo.getGamePlayerMap()
-                .values()
-                .stream()
-                .sorted(Comparator.comparingLong(Player::getGold).reversed());
+            .values()
+            .stream()
+            .sorted((o1, o2) ->
+                Long.compare(gameController.getItemNum(o2.getId()), gameController.getItemNum(o1.getId())));
         if (limit > 0) {
             sorted = sorted.limit(limit);
         }
@@ -122,13 +129,14 @@ public class TableMessageBuilder {
     /**
      * 构建游戏的玩家基础信息
      */
-    public static TablePlayerInfo buildTablePlayerInfo(GamePlayer gamePlayer) {
+    public static TablePlayerInfo buildTablePlayerInfo(
+        AbstractGameController<?, ?> gameController, GamePlayer gamePlayer) {
         TablePlayerInfo tablePlayerInfo = new TablePlayerInfo();
         tablePlayerInfo.playerId = gamePlayer.getId();
         tablePlayerInfo.playerName = gamePlayer.getNickName();
         tablePlayerInfo.local = gamePlayer.getIp();
         tablePlayerInfo.vipLevel = gamePlayer.getVipLevel();
-        tablePlayerInfo.goldNum = gamePlayer.getGold();
+        tablePlayerInfo.goldNum = gameController.getItemNum(gamePlayer.getId());
         List<Pair<Boolean, Long>> betInfoList = gamePlayer.getTableGameData().getBetInfoList();
         long totalBet = 0;
         int winNum = 0;
@@ -161,18 +169,21 @@ public class TableMessageBuilder {
      * 通知场上玩家信息有变化
      */
     public static NotifyTableRoomPlayerInfoChange buildNotifyTableRoomPlayerInfoChange(
-            PlayerController playerController, int sendSize, TableGameDataVo dataVo) {
+        AbstractGameController<?, ?> controller,
+        PlayerController playerController,
+        int sendSize,
+        TableGameDataVo dataVo) {
         NotifyTableRoomPlayerInfoChange infoChange = new NotifyTableRoomPlayerInfoChange();
         PlayerChip playerChip = new PlayerChip();
         playerChip.chipId = playerController.getPlayer().getChipsId();
         playerChip.playerId = playerController.playerId();
         infoChange.changedPlayer = playerChip;
         infoChange.tableChangedPlayerInfos = new ArrayList<>();
-        Map<Long, GamePlayer> sortedGamePlayers = getSortedGamePlayer(dataVo, sendSize);
+        Map<Long, GamePlayer> sortedGamePlayers = getSortedGamePlayer(controller, dataVo, sendSize);
         List<GamePlayer> sortedPlayersByGold = new ArrayList<>(sortedGamePlayers.values());
         infoChange.totalPlayerNum = dataVo.getPlayerNum();
         for (GamePlayer gamePlayer : sortedPlayersByGold) {
-            TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(gamePlayer);
+            TablePlayerInfo tablePlayerInfo = buildTablePlayerInfo(controller, gamePlayer);
             infoChange.tableChangedPlayerInfos.add(tablePlayerInfo);
         }
         return infoChange;
@@ -184,7 +195,9 @@ public class TableMessageBuilder {
      * @param playerGet 结算的玩家获得的金币
      */
     public static List<PlayerChangedGold> getPlayerSettleInfos(
-            Map<Long, DefaultKeyValue<Long, Long>> playerGet, TableGameDataVo gameDataVo) {
+        AbstractGameController<?, ?> gameController,
+        Map<Long, DefaultKeyValue<Long, Long>> playerGet,
+        TableGameDataVo gameDataVo) {
         List<PlayerChangedGold> settleInfoArrayList = new ArrayList<>();
         for (Map.Entry<Long, DefaultKeyValue<Long, Long>> entry : playerGet.entrySet()) {
             PlayerChangedGold info = new PlayerChangedGold();
@@ -194,7 +207,7 @@ public class TableMessageBuilder {
             info.playerBetGold = keyValue.getKey();
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(entry.getKey());
             if (Objects.nonNull(gamePlayer)) {
-                info.playerCurGold = gamePlayer.getGold();
+                info.playerCurGold = gameController.getItemNum(gamePlayer.getId());
             }
             settleInfoArrayList.add(info);
         }
@@ -241,9 +254,9 @@ public class TableMessageBuilder {
      * 添加玩家下注区域的数据
      */
     public static List<BetTableInfo> buildPlayerBetInfo(
-            List<BetTableInfo> betTableInfos, TableGameDataVo gameDataVo, long playerId) {
+        List<BetTableInfo> betTableInfos, TableGameDataVo gameDataVo, long playerId) {
         Map<Integer, BetTableInfo> tableInfoMap =
-                betTableInfos.stream().collect(HashMap::new, (map, e) -> map.put(e.betIdx, e), HashMap::putAll);
+            betTableInfos.stream().collect(HashMap::new, (map, e) -> map.put(e.betIdx, e), HashMap::putAll);
         Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
         if (playerBetInfo == null) {
             return betTableInfos;

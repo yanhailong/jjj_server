@@ -194,7 +194,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         //通知其他玩家 玩家加入
         NotifyPokerPlayerChange playerChange = new NotifyPokerPlayerChange();
         playerChange.pokerPlayerInfo =
-            PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(playerController.playerId()), null, gameDataVo);
+            PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(playerController.playerId()), null, this);
         playerChange.totalNum = gameDataVo.getGamePlayerMap().size();
         roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(playerChange).exceptPlayer(playerController.playerId()));
         //尝试开启游戏
@@ -378,7 +378,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                 }
             }
             NotifyPokerPlayerChange playerChange = new NotifyPokerPlayerChange();
-            playerChange.pokerPlayerInfo = PokerBuilder.buildPlayerInfo(gamePlayer, remove, gameDataVo);
+            playerChange.pokerPlayerInfo = PokerBuilder.buildPlayerInfo(gamePlayer, remove, this);
             roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder()
                 .toAllPlayer().exceptPlayer(playerController.playerId())
                 .setData(playerChange));

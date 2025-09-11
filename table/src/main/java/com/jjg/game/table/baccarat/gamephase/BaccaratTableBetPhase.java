@@ -31,7 +31,7 @@ public class BaccaratTableBetPhase extends BaseTableBetPhase<BaccaratGameDataVo>
         super.phaseDoAction();
         // 向玩家通知场上数据,发送 BET_START 的阶段数据
         NotifyBaccaratBetStart baccaratTableInfo =
-            BaccaratMessageBuilder.buildNotifyBaccaratBetStart(gameDataVo);
+            BaccaratMessageBuilder.buildNotifyBaccaratBetStart(gameController, gameDataVo);
         broadcastMsgToRoom(baccaratTableInfo);
         // 通知所有观察者
         BaccaratMessageBuilder.notifyObserversOnPhaseChange((BaseTableGameController<BaccaratGameDataVo>) gameController);

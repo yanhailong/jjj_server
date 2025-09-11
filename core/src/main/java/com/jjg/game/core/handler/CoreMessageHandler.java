@@ -2,6 +2,7 @@ package com.jjg.game.core.handler;
 
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
@@ -12,7 +13,9 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
+import com.jjg.game.core.pb.ESceneType;
 import com.jjg.game.core.pb.ReqGm;
+import com.jjg.game.core.pb.ResConfirmPlayerScene;
 import com.jjg.game.core.pb.ResGm;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
@@ -123,7 +126,8 @@ public class CoreMessageHandler {
             if ("bet".equals(cmd)) {
                 log.debug("收到添加经验的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), arr);
                 long num = Long.parseLong(params);
-                CommonResult<Player> result = playerService.betDeductGold(playerController.playerId(), num, true, "gmtest");
+                CommonResult<Player> result =
+                    playerService.betDeductGold(playerController.playerId(), num, true, "gmtest");
                 res.code = result.code;
                 playerController.send(res);
                 return;
@@ -186,7 +190,8 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setGold(result.data.getGold());
-        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(), result.data.getDiamond(), result.data.getVipLevel());
+        coreSendMessageManager.packMoneyChangeMessage(
+            playerController, result.data.getGold(), result.data.getDiamond(), result.data.getVipLevel());
     }
 
     /**
@@ -213,7 +218,8 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setGold(result.data.getGold());
-        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(), result.data.getDiamond(), result.data.getVipLevel());
+        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(),
+            result.data.getDiamond(), result.data.getVipLevel());
     }
 
     /**
@@ -240,7 +246,8 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setDiamond(result.data.getDiamond());
-        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(), result.data.getDiamond(), result.data.getVipLevel());
+        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(),
+            result.data.getDiamond(), result.data.getVipLevel());
     }
 
     /**
@@ -260,14 +267,16 @@ public class CoreMessageHandler {
         }
 
         Long num = Long.parseLong(params);
-        CommonResult<Player> result = playerService.gmSetDiamond(playerController.playerId(), num, "gmSetDiamond", null);
+        CommonResult<Player> result = playerService.gmSetDiamond(playerController.playerId(), num, "gmSetDiamond",
+            null);
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
             return;
         }
         playerController.getPlayer().setDiamond(result.data.getDiamond());
-        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(), result.data.getDiamond(), result.data.getVipLevel());
+        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(),
+            result.data.getDiamond(), result.data.getVipLevel());
     }
 
     /**
@@ -290,11 +299,13 @@ public class CoreMessageHandler {
         CommonResult<Player> result = playerService.setVip(playerController.playerId(), num, "gmSetVip", null);
         if (!result.success()) {
             res.code = result.code;
-            log.debug("使用gm失败 playerId = {},order = {},code = {},params = {}", playerController.playerId(), order, result.code, params);
+            log.debug("使用gm失败 playerId = {},order = {},code = {},params = {}", playerController.playerId(), order,
+                result.code, params);
             return;
         }
         playerController.getPlayer().setVipLevel(result.data.getVipLevel());
-        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(), result.data.getDiamond(), result.data.getVipLevel());
+        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(),
+            result.data.getDiamond(), result.data.getVipLevel());
     }
 
     private void addItem(ResGm res, PlayerController playerController, String[] orders) throws Exception {
@@ -315,5 +326,15 @@ public class CoreMessageHandler {
         }
         playerController.send(res);
         log.debug("添加道具成功 playerId = {},orders = {}", playerController.playerId(), orders);
+    }
+
+    @Command(MessageConst.CoreMessage.REQ_CONFIRM_PLAYER_SCENE)
+    public void reqConfirmPlayerScene(PlayerController playerController) {
+        // 获取当前节点类型
+        NodeType nodeType = NodeType.getNodeTypeByName(nodeConfig.getType());
+        // 如果玩家在房间中
+        ResConfirmPlayerScene res = new ResConfirmPlayerScene(Code.SUCCESS);
+        res.sceneType = nodeType == NodeType.GAME ? ESceneType.ROOM : ESceneType.HALL;
+        playerController.send(res);
     }
 }

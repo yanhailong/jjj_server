@@ -60,7 +60,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             gameController.addItem(
                 gamePlayer.getId(), playerSettlementData.getTotalWin(),
                 ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
-            playerChangedGold.playerCurGold = gamePlayer.getGold();
+            playerChangedGold.playerCurGold = gameController.getItemNum(gamePlayer.getId());
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
             bankerChangeGold += playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal();

@@ -406,6 +406,24 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     /**
+     * 获取房间内能交易的道具数量
+     */
+    public long getItemNum(long playerId) {
+        int transactionItemId = getGameTransactionItemId();
+        int goldCfgId = ItemUtils.getGoldItemId();
+        int diamondCfgId = ItemUtils.getDiamondItemId();
+        GamePlayer gamePlayer = getGamePlayer(playerId);
+        if (transactionItemId == goldCfgId) {
+            return gamePlayer.getGold();
+        } else if (transactionItemId == diamondCfgId) {
+            return gamePlayer.getDiamond();
+        } else {
+            log.error("游戏：{} 获取道具 暂不支持其他道具ID：{} 进行交易", getRoom().logStr(), transactionItemId);
+            return 0;
+        }
+    }
+
+    /**
      * 扣除金币
      */
     public int deductItem(long playerId, long num, ERoomItemReason deductType) {

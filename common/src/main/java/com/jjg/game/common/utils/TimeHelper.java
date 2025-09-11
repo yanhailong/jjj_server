@@ -57,9 +57,13 @@ public final class TimeHelper {
     public static String timeZone = "GMT+8";
 
     /**
-     * 时间格式,默认值为yyyy-MM-dd HH:mm:ss
+     * 时间格式,默认值为yyyy/MM/dd HH:mm:ss
      */
     public final static DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+    /**
+     * 时间格式,默认值为yyyy/MM/dd
+     */
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     /**
      * 根据传入的目标时间返回1970年1月1日到目标时间的秒数，如果传入的时间格式不对，则返回-1
@@ -291,6 +295,14 @@ public final class TimeHelper {
     public static int getDayNumerical() {
         String dayStr = getDate(System.currentTimeMillis(), "yyyyMMdd");
         return Integer.parseInt(dayStr);
+    }
+
+    /**
+     * 获取当月的数字表示, 202012
+     */
+    public static int getMonthNumerical() {
+        String monthStr = getDate(System.currentTimeMillis(), "yyyyMM");
+        return Integer.parseInt(monthStr);
     }
 
     /**
@@ -745,5 +757,19 @@ public final class TimeHelper {
         return instant.plusDays(day).atZone(DEFAULT_ZONE).toInstant().toEpochMilli();
     }
 
+    /**
+     * 将时间戳转换为YyyyMMdd00000格式
+     *
+     * @param epochMilli 要转换的时间
+     * @return YyyyMMdd00000格式的时间戳
+     */
+    public static long toYyyyMMdd00000(long epochMilli) {
+        // 转换成 LocalDateTime（默认系统时区，可改成 ZoneOffset.UTC）
+        LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMilli), DEFAULT_ZONE);
+        // 格式化成 yyyyMMdd
+        String dateStr = dateTime.format(FORMATTER);
+        // 拼接 00000 并转成 long
+        return Long.parseLong(dateStr + "00000");
+    }
 
 }
