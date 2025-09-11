@@ -14,6 +14,7 @@ import com.jjg.game.poker.game.texas.message.bean.TexasRoundInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasAllInSettlementInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasPublicCardChange;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementInfo;
+import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.poker.game.texas.util.HandResult;
 import com.jjg.game.poker.game.texas.util.PokerHandEvaluator;
@@ -135,10 +136,11 @@ public class TexasBuilder {
     }
 
 
-    public static TexasPlayerInfo getTexasPlayerInfo(PlayerSeatInfo playerSeatInfo, SeatInfo seatInfo, TexasGameDataVo gameDataVo) {
+    public static TexasPlayerInfo getTexasPlayerInfo(PlayerSeatInfo playerSeatInfo, SeatInfo seatInfo, TexasGameController controller) {
         TexasPlayerInfo texasPlayerInfo = new TexasPlayerInfo();
+        TexasGameDataVo gameDataVo = controller.getGameDataVo();
         texasPlayerInfo.totalBet = gameDataVo.getRoundBet().getOrDefault(seatInfo.getPlayerId(), 0L);
-        PokerPlayerInfo playerInfo = PokerBuilder.getPokerPlayerInfo(seatInfo, gameDataVo);
+        PokerPlayerInfo playerInfo = PokerBuilder.getPokerPlayerInfo(seatInfo, controller);
         if (Objects.nonNull(playerSeatInfo)) {
             texasPlayerInfo.handCards = TexasDataHelper.getClientId(gameDataVo, playerSeatInfo.getCurrentCards());
             playerInfo.operationType = playerSeatInfo.getOperationType();

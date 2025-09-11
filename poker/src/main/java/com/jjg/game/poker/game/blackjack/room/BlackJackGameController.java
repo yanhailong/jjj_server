@@ -119,7 +119,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifyBlackJackDoubleBetInfo));
             return;
         }
-        if (gamePlayer.getGold() < betValue) {
+        if (getItemNum(playerId) < betValue) {
             notifyBlackJackDoubleBetInfo.code = Code.NOT_ENOUGH;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifyBlackJackDoubleBetInfo));
             return;
@@ -245,7 +245,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, msg));
             return;
         }
-        if (gamePlayer.getGold() < betValue) {
+        if (getItemNum(playerId) < betValue) {
             msg.code = Code.NOT_ENOUGH;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, msg));
             return;
@@ -406,7 +406,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             return;
         }
         //金币判断
-        if (gamePlayer.getGold() < betValue) {
+        if (getItemNum(playerId) < betValue) {
             jackBetResult.code = Code.NOT_ENOUGH;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, jackBetResult));
             return;
@@ -466,7 +466,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifyCutCard));
             return;
         }
-        if (gamePlayer.getGold() < betValue) {
+        if (getItemNum(playerId) < betValue) {
             notifyCutCard.code = Code.NOT_ENOUGH;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifyCutCard));
         }

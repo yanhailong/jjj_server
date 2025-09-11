@@ -235,16 +235,10 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             blackJackSettlementInfo.playerId = playerId;
             Long totalGet = playerGet.getOrDefault(playerId, 0L);
             long get = totalGet - controller.getPlayerTotalBet(playerId);
-            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-            if (Objects.isNull(gamePlayer)) {
-                log.error("21点发奖找不到GamePlayer playerId:{} get:{} id:{}", playerId, get, gameDataVo.getId());
-            }
-            if (totalGet > 0 && Objects.nonNull(gamePlayer)) {
-                gameController.addItem(playerId, totalGet, ERoomItemReason.GAME_SETTLEMENT);
-            }
+            gameController.addItem(playerId, totalGet, ERoomItemReason.GAME_SETTLEMENT);
             blackJackSettlementInfo.getGold = get;
             blackJackSettlementInfo.win = get >= 0;
-            blackJackSettlementInfo.currentGold = Objects.isNull(gamePlayer) ? 0 : gamePlayer.getGold();
+            blackJackSettlementInfo.currentGold = controller.getItemNum(playerId);
             settlementPlayerInfo.settlementInfos.add(settlementInfo);
         }
         gameDataVo.setSettlementInfo(settlementPlayerInfo);
