@@ -41,8 +41,7 @@ public class SizeDiceTreasureMessageBuilder {
         NotifySizeDiceTreasureTableInfo tableInfo = new NotifySizeDiceTreasureTableInfo();
         SizeDiceTreasureGameDataVo gameDataVo = gameController.getGameDataVo();
         tableInfo.baseDiceTableInfo =
-            BaseDiceMessageBuilder.buildDiceTableInfo(
-                playerId, gameController.getCurrentGamePhase(), gameDataVo, isInitial);
+            BaseDiceMessageBuilder.buildDiceTableInfo(playerId, gameController, gameDataVo, isInitial);
         tableInfo.settlementInfo = gameDataVo.getAnimalsSettlementInfo();
         tableInfo.settlementHistory = gameDataVo.getWinAreaCfgIdHistory();
         return tableInfo;

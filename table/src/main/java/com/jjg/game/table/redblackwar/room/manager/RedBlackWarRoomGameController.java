@@ -69,7 +69,7 @@ public class RedBlackWarRoomGameController extends BaseTableGameController<RedBl
         //发送房间信息
         RedBlackWarGameDataVo dataVo = getGameDataVo();
         NotifyRedBlackWarInfo notifyRedBlackWarInfo =
-            RedBlackMessageBuilder.buildInitInfo(playerController.playerId(), dataVo, getCurrentGamePhase());
+            RedBlackMessageBuilder.buildInitInfo(this, playerController.playerId(), dataVo, getCurrentGamePhase());
         //发送给玩家
         broadcastToPlayers(
             RoomMessageBuilder.newBuilder().addPlayerId(playerController.playerId()).setData(notifyRedBlackWarInfo));

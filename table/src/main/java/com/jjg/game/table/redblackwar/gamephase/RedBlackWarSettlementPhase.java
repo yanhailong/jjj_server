@@ -150,7 +150,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         settleInfo.blackCardType = blackHandType.getRank();
         settleInfo.redCards = redCard.stream().map(Card::getValue).toList();
         settleInfo.redCardType = redHandType.getRank();
-        settleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(playerGet, gameDataVo);
+        settleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(gameController, playerGet, gameDataVo);
         settleInfo.isLucky = luckBet;
         //记录
         addLog(gameDataVo, playerGet, settleInfo.redCards, settleInfo.blackCards);
@@ -164,8 +164,8 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         for (GamePlayer gamePlayer : gameDataVo.getGamePlayerMap().values()) {
             TablePlayerGameData tableGameData = gamePlayer.getTableGameData();
             DefaultKeyValue<Long, Long> keyValue = playerGet.get(gamePlayer.getId());
-            long getGold = keyValue == null ? 0 : keyValue.getValue() - keyValue.getKey();
-            tableGameData.addBetRecord(getGold);
+            long goldCanGet = keyValue == null ? 0 : keyValue.getValue() - keyValue.getKey();
+            tableGameData.addBetRecord(goldCanGet);
         }
         //发送通知
         broadcastMsgToRoom(settleInfo);

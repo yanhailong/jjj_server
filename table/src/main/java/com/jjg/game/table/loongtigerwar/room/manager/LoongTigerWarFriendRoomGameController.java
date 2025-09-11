@@ -70,7 +70,7 @@ public class LoongTigerWarFriendRoomGameController extends BaseFriendRoomTableGa
         //发送房间信息
         LoongTigerWarGameDataVo dataVo = getGameDataVo();
         NotifyLoongTigerWarInfo notifyLoongTigerWarInfo =
-            LoongTigerWarMessageBuilder.buildInitInfo(playerController.playerId(), dataVo, getCurrentGamePhase());
+            LoongTigerWarMessageBuilder.buildInitInfo(this, playerController.playerId(), dataVo, getCurrentGamePhase());
         //发送给玩家
         broadcastToPlayers(
             RoomMessageBuilder.newBuilder().addPlayerId(playerController.playerId()).setData(notifyLoongTigerWarInfo));

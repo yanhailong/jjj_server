@@ -1,6 +1,8 @@
 package com.jjg.game.table.birdsanimals.data;
 
 
+import com.jjg.game.room.controller.AbstractGameController;
+import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.birdsanimals.message.AnimalsHistoryBean;
 import com.jjg.game.table.birdsanimals.message.AnimalsSettlementInfo;
@@ -25,8 +27,8 @@ public class AnimalsGameDataVo extends TableGameDataVo {
     }
 
     @Override
-    public void clearRoundData() {
-        super.clearRoundData();
+    public void clearRoundData(AbstractGameController<?, ?> gameController) {
+        super.clearRoundData(gameController);
         animalsSettlementInfo = null;
     }
 

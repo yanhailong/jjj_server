@@ -40,8 +40,7 @@ public class VietnamDiceMessageBuilder {
         NotifyVietnamDiceTableInfo tableInfo = new NotifyVietnamDiceTableInfo();
         VietnamDiceGameDataVo gameDataVo = gameController.getGameDataVo();
         tableInfo.baseDiceTableInfo =
-            BaseDiceMessageBuilder.buildDiceTableInfo(
-                playerId, gameController.getCurrentGamePhase(), gameDataVo, isInitial);
+            BaseDiceMessageBuilder.buildDiceTableInfo(playerId, gameController, gameDataVo, isInitial);
         tableInfo.historyDiceData =
             gameDataVo.getWinAreaCfgIdHistory().stream().map(v -> v.diceData).toList();
         tableInfo.settlementInfo = gameDataVo.getVietnamDiceSettlementInfo();

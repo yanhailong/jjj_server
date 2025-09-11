@@ -48,7 +48,7 @@ public class BaccaratGameController extends BaseTableGameController<BaccaratGame
         EGamePhase eGamePhase = getCurrentGamePhase();
         // 如果在结算阶段需要从缓存中读取数据
         RespBaccaratTableInfo baccaratTableInfo =
-            BaccaratMessageBuilder.buildRespBaccaratTableInfo(gameDataVo, eGamePhase);
+            BaccaratMessageBuilder.buildRespBaccaratTableInfo(this, gameDataVo, eGamePhase);
         // send
         playerController.send(Objects.requireNonNullElseGet(baccaratTableInfo,
             () -> new RespBaccaratTableInfo(Code.FAIL)));
