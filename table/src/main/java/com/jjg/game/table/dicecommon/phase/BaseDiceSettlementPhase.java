@@ -67,8 +67,6 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             bankerChangeGold += playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal();
             settlementDataMap.put(playerId, playerSettlementData);
         }
-        long addProgress = settlementDataMap.values().stream().mapToLong(SettlementData::getEffectiveWaterFlow).sum();
-        gameController.addActivityProgress(addProgress);
         gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
         // 场上玩家金币变化
         diceSettlementInfo.playerChangedGolds = playerChangedGolds;

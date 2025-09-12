@@ -51,6 +51,9 @@ public class GameDataManager {
   /** 默认的监听器 */
   private static final IContainerEachLoadListener DEFAULT_LISTENER;
 
+  /** 管理器是否加载所有配置成功 */
+  private boolean loadAllFinished = false;
+
   static {
     DEFAULT_LISTENER =
         new IContainerEachLoadListener() {
@@ -290,6 +293,8 @@ public class GameDataManager {
           containerMap.size(),
           (System.currentTimeMillis() - loadStartTime) / 1000f);
       cfgBeanContainerRelator = Collections.unmodifiableMap(containerMap);
+      // 标记加载完成
+      loadAllFinished = true;
     }
   }
 
@@ -558,6 +563,28 @@ public class GameDataManager {
       throw new RuntimeException(
           "can`t found cfg genpackage.bean class: " + baseCfgBeanClass.getSimpleName() + " genpackage.container");
     }
+  }
+
+  /**
+   * 通过配置表bean判断是否有此容器
+   *
+   * @param baseCfgBeanClass 配置表beanClass
+   * @param <T> 容器类型
+   * @param <Bfg> 配置表类型
+   * @return 配置表容器
+   */
+  @SuppressWarnings("unchecked")
+  public <Bfg extends BaseCfgBean> boolean hasCfgContainer(Class<Bfg> baseCfgBeanClass) {
+    return cfgBeanContainerRelator.containsKey(baseCfgBeanClass);
+  }
+
+  /**
+   * 管理器是否加载完成
+   *
+   * @return
+   */
+  public boolean isLoadAllFinished() {
+    return loadAllFinished;
   }
 
   /**
@@ -1235,6 +1262,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\project\\gamedoc\\工具\\tool\\..\\..\\游戏配置表");
+    loadAllData("E:\\java\\gamedoc\\游戏配置表");
   }
 }

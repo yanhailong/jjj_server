@@ -117,7 +117,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             if (randKey == null) {
                 randKey = 0;
             }
-            SpecialGirdInfo specialGirdInfo = girdUpdate(randKey, arr);
+            SpecialGirdInfo specialGirdInfo = gridUpdate(lib, randKey, arr);
             if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
                 lib.addSpecialGirdInfo(specialGirdInfo);
             }
@@ -126,7 +126,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         //修改格子
         if (specialModeCfg.getSpecialGirdID() != null && !specialModeCfg.getSpecialGirdID().isEmpty()) {
             for (int specialGirdCfgId : specialModeCfg.getSpecialGirdID()) {
-                SpecialGirdInfo specialGirdInfo = girdUpdate(specialGirdCfgId, arr);
+                SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGirdCfgId, arr);
                 if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
                     lib.addSpecialGirdInfo(specialGirdInfo);
                 }
@@ -166,7 +166,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
             //修改格子策略组
             if (specialGroupGirdID > 0) {
-                SpecialGirdInfo specialGirdInfo = girdUpdate(specialGroupGirdID, arr);
+                SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGroupGirdID, arr);
                 if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
                     lib.addSpecialGirdInfo(specialGirdInfo);
                 }
@@ -175,7 +175,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             //修改格子
             if (specialAuxiliaryCfg.getSpecialGirdID() != null && !specialAuxiliaryCfg.getSpecialGirdID().isEmpty()) {
                 for (int specialGirdCfgId : specialAuxiliaryCfg.getSpecialGirdID()) {
-                    SpecialGirdInfo specialGirdInfo = girdUpdate(specialGirdCfgId, arr);
+                    SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGirdCfgId, arr);
                     if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
                         lib.addSpecialGirdInfo(specialGirdInfo);
                     }
@@ -1192,6 +1192,18 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         data.setResultLibSectionPropMap(tempResultLibSectionPropMap);
         data.setResultLibSectionMap(tempResultLibSectionMap);
         return data;
+    }
+
+    /**
+     * 根据给定的配置ID和图标数组更新特殊格子信息。
+     *
+     * @param lib   结果库实例
+     * @param cfgId specialGirdCfg的配置id
+     * @param arr   图标数组
+     * @return 更新后的SpecialGirdInfo对象
+     */
+    protected SpecialGirdInfo gridUpdate(T lib, int cfgId, int[] arr) {
+        return girdUpdate(cfgId, arr);
     }
 
     /**

@@ -60,7 +60,7 @@ public interface IRoomLifeCycle {
     /**
      * 游戏结束
      */
-    void gameDestroy(boolean closeByPlayer);
+    void gameDestroy(boolean closeByPlayer, boolean notifyExitRoom);
 
     /**
      * 停止游戏，销毁房间或者停止房间定时器和状态机时调用

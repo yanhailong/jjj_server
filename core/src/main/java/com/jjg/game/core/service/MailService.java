@@ -9,6 +9,7 @@ import com.jjg.game.core.dao.MailDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
+import com.jjg.game.sampledata.bean.MailCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -183,7 +184,8 @@ public class MailService {
             return result;
         }
         result.data = map;
-        log.info("一键领取结果 playerId = {}, batchUpdateCount = {}, addItemsResultCode = {}", playerId, count, addItemsResult.code);
+        log.info("一键领取结果 playerId = {}, batchUpdateCount = {}, addItemsResultCode = {}", playerId, count,
+            addItemsResult.code);
         return result;
     }
 
@@ -205,6 +207,16 @@ public class MailService {
         mailDao.save(mail);
         log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}", playerId, mail.getId());
     }
+
+
+    /**
+     * 添加系统配置邮件
+     */
+    public void addCfgMail(long playerId, int mailCfgId) {
+        MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
+        addMail(playerId, mailCfg.getTitle() + "", mailCfg.getText() + "", new ArrayList<>());
+    }
+
 
     /**
      * 保存多语言邮件
@@ -307,7 +319,8 @@ public class MailService {
                 boolean reve = mailDao.playerHasServerMail(playerId, mail.getId());
                 //检查邮件是否过期
                 if (mail.getTimeout() < now) {
-                    log.info("检测到系统邮件到期 mailId = {},title = {},timeout = {}", mail.getId(), mail.getTitle(), mail.getTimeout());
+                    log.info("检测到系统邮件到期 mailId = {},title = {},timeout = {}", mail.getId(), mail.getTitle(),
+                        mail.getTimeout());
                     if (reve) {
                         mailDao.removeServerMail(mail.getId());
                     }
@@ -357,7 +370,8 @@ public class MailService {
 
         mail.setItems(items);
 
-        int expireTime = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.DEFAULT_MAIL_VALID_TIME).getIntValue();
+        int expireTime =
+            GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.DEFAULT_MAIL_VALID_TIME).getIntValue();
         mail.setTimeout(mail.getSendTime() + expireTime);
         return mail;
     }

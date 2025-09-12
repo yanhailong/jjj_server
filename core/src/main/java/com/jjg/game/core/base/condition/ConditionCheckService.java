@@ -2,11 +2,13 @@ package com.jjg.game.core.base.condition;
 
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,30 +33,52 @@ public class ConditionCheckService {
      */
     public void initConditionChecker() {
         Map<String, IGameConditionChecker> gameConditionCheckerMap =
-            CommonUtil.getContext().getBeansOfType(IGameConditionChecker.class);
+                CommonUtil.getContext().getBeansOfType(IGameConditionChecker.class);
         for (Map.Entry<String, IGameConditionChecker> entry : gameConditionCheckerMap.entrySet()) {
             String bindConditionCheckType = entry.getValue().bindConditionCheckType();
             if (conditionCheckerMap.containsKey(bindConditionCheckType)) {
                 log.error("重复添加类型：{} 的系统条件检查，{} =》{}",
-                    bindConditionCheckType,
-                    entry.getValue().getClass().getName(),
-                    conditionCheckerMap.get(bindConditionCheckType).getClass().getName());
+                        bindConditionCheckType,
+                        entry.getValue().getClass().getName(),
+                        conditionCheckerMap.get(bindConditionCheckType).getClass().getName());
             }
             conditionCheckerMap.put(bindConditionCheckType, entry.getValue());
         }
         Map<String, IPlayerConditionChecker> playerConditionCheckerMap =
-            CommonUtil.getContext().getBeansOfType(IPlayerConditionChecker.class);
+                CommonUtil.getContext().getBeansOfType(IPlayerConditionChecker.class);
         for (Map.Entry<String, IPlayerConditionChecker> entry : playerConditionCheckerMap.entrySet()) {
             String bindConditionCheckType = entry.getValue().bindConditionCheckType();
             if (conditionCheckerMap.containsKey(bindConditionCheckType)) {
                 log.error("重复添加类型：{} 的玩家条件检查，{} =》{}",
-                    bindConditionCheckType,
-                    entry.getValue().getClass().getName(),
-                    conditionCheckerMap.get(bindConditionCheckType).getClass().getName());
+                        bindConditionCheckType,
+                        entry.getValue().getClass().getName(),
+                        conditionCheckerMap.get(bindConditionCheckType).getClass().getName());
             }
             conditionCheckerMap.put(bindConditionCheckType, entry.getValue());
         }
     }
+
+    /**
+     * 是否触发成功
+     *
+     * @param checkParams 检查参数
+     */
+    public boolean isTriggerComplete(Object sourceTarget, Map<Integer, Integer> checkParams) {
+        for (Map.Entry<Integer, Integer> entry : checkParams.entrySet()) {
+            ConditionCfg cfg = GameDataManager.getConditionCfg(entry.getKey());
+            if (cfg == null) {
+                log.error("条件检查配置为空 id:{}", entry.getKey());
+                return false;
+            }
+            List<CheckerParam> checkerParams =
+                    Collections.singletonList(new CheckerParam(cfg.getConditionType(), entry.getValue()));
+            if (!isTriggerComplete(sourceTarget, cfg, checkerParams)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 
     /**
      * 是否触发成功
@@ -65,6 +89,7 @@ public class ConditionCheckService {
     public boolean isTriggerComplete(Object sourceTarget, ConditionCfg conditionCfg, List<CheckerParam> checkParams) {
         return isTriggerComplete(sourceTarget, conditionCfg.getTriggerEventType(), checkParams);
     }
+
 
     /**
      * 是否触发成功

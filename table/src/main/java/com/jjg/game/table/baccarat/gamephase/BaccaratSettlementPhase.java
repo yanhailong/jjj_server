@@ -229,8 +229,6 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameController, playerBetInfo);
             }
         }
-        long total = settlementDataMap.values().stream().mapToLong(SettlementData::getEffectiveWaterFlow).sum();
-        gameController.addActivityProgress(total);
         // 处理庄家输赢金币
         gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
         return playerChangedGolds;

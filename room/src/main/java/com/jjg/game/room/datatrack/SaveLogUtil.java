@@ -25,7 +25,6 @@ public class SaveLogUtil {
     public static void  generalLog(Map<Long, Map<Integer, List<Integer>>> betData, Map<Long, DefaultKeyValue<Long, Long>> playerGet, Map<Long, GamePlayer> gamePlayerMap, AbstractPhaseGameController<Room_BetCfg, ?> gameController) {
         Map<Integer, Long> areaTotalBet = new HashMap<>();
         GameDataTracker gameDataTracker = gameController.getGameDataTracker();
-        long addProgress = 0;
         for (Map.Entry<Long, Map<Integer, List<Integer>>> entry : betData.entrySet()) {
             GamePlayer gamePlayer = gamePlayerMap.get(entry.getKey());
             if (Objects.isNull(gamePlayer) || gamePlayer instanceof GameRobotPlayer) {
@@ -65,7 +64,6 @@ public class SaveLogUtil {
             long sum = effectiveWaterFlow.values().stream().mapToLong(Math::abs).sum();
             if (sum > 0) {
                 RoomDataHelper.checkPlayerVipLevel(gamePlayer, gameController, sum);
-                addProgress += sum;
             }
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, sum);
             //添加活动进度
@@ -73,13 +71,13 @@ public class SaveLogUtil {
             Thread.ofVirtual().start(() -> {
                 ActivityManager activityManager = gameController.getRoomController().getRoomManager().getActivityManager();
                 if (sum > 0) {
-                    activityManager.addPlayerActivityProgress(gamePlayer.getId(), ActivityTargetType.EFFECTIVE_BET.getTargetKey(), sum);
+                    activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.EFFECTIVE_BET.getTargetKey(), sum);
+                    activityManager.addActivityProgress(gamePlayer, ActivityTargetType.EFFECTIVE_BET.getTargetKey(), sum);
                 }
-                activityManager.addPlayerActivityProgress(gamePlayer.getId(), ActivityTargetType.BET.getTargetKey(), finalTotalBet);
+                activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.BET.getTargetKey(), finalTotalBet);
             });
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_DATA, areaMap);
         }
-        gameController.addActivityProgress(addProgress);
         gameDataTracker.addGameLogData(DataTrackNameConstant.AREA_DATA, areaTotalBet);
     }
 
