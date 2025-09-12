@@ -22,7 +22,7 @@ public class SpecialAuxiliaryCfg extends BaseCfgBean {
   protected List<Integer> awardTypeA;
   /** 奖励类型B */
   protected String awardTypeB;
-  /** 倍数，中奖权重，最大出现次数，根据配置额外增加 */
+  /** 单线押分倍数，中奖权重，最大出现次数，根据配置额外增加 */
   protected Map<Integer,Integer> awardTypeC;
   /** 赋予值类型 */
   protected List<Integer> awardTypeC_value;
@@ -51,7 +51,7 @@ public class SpecialAuxiliaryCfg extends BaseCfgBean {
     return awardTypeB;
   }
 
-  /** 返回倍数，中奖权重，最大出现次数，根据配置额外增加 */
+  /** 返回单线押分倍数，中奖权重，最大出现次数，根据配置额外增加 */
   public Map<Integer,Integer> getAwardTypeC() {
     return awardTypeC;
   }
