@@ -1,5 +1,6 @@
 package com.jjg.game.room.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.data.DataSaveCallback;
@@ -145,13 +146,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             playerController.setScene(this);
             //非重连
             if (!reconnect) {
-                // 检查等待房间的逻辑
-                updateWaitRoomList();
-                // 检查房间开始的逻辑，由房间判断和游戏判断开启时机
-                if (checkRoomCanContinue() && gameController.checkRoomCanStart()) {
-                    // 检查通过开始游戏
-                    startGame();
-                }
+                // 当玩家加入时尝试开启游戏
+                tryStartGameOnPlayerJoinIn(playerController);
             }
             result.data = room;
             return result;
@@ -160,6 +156,28 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             result.code = Code.EXCEPTION;
         }
         return result;
+    }
+
+    /**
+     * 尝试开启游戏
+     */
+    protected void tryStartGameOnPlayerJoinIn(PlayerController playerController) {
+        if (!playerController.isRobotPlayer()) {
+            log.info("尝试启动游戏：玩家：{} 房间是否可以开始：{} 游戏是否可以开始：{} 游戏当前状态：{}",
+                playerController.playerId(),
+                checkRoomCanContinue(),
+                gameController.checkRoomCanStart(),
+                gameController.getGameState()
+            );
+            log.debug("房间数据：{}", JSON.toJSONString(room));
+        }
+        // 检查等待房间的逻辑
+        updateWaitRoomList();
+        // 检查房间开始的逻辑，由房间判断和游戏判断开启时机
+        if (checkRoomCanContinue() && gameController.checkRoomCanStart()) {
+            // 检查通过开始游戏
+            startGame();
+        }
     }
 
     /**

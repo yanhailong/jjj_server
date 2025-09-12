@@ -380,6 +380,8 @@ public class FriendRoomServices {
         for (FriendRoom friendRoom : friendRoomList) {
             FriendRoomBaseData friendRoomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
             friendRoomBaseDataList.add(friendRoomBaseData);
+            // 检查房间的自动续费
+            autoRenewalRoomInHall(friendRoom);
         }
         notifyFriendRoomPanelData.roomBaseDataList = friendRoomBaseDataList;
         notifyFriendRoomPanelData.invitationCode = playerController.getPlayer().getFriendRoomInvitationCode();
@@ -410,6 +412,84 @@ public class FriendRoomServices {
         log.debug("好友面板数据：{} ", JSON.toJSONString(notifyFriendRoomPanelData));
         // 发送数据
         playerController.send(notifyFriendRoomPanelData);
+    }
+
+    /**
+     * 在大厅给房间自动续费
+     */
+    private void autoRenewalRoomInHall(FriendRoom friendRoom) {
+        // 如果房间不在游戏中或者没有开启自动续费
+        if (friendRoom.isInGaming() || !friendRoom.isAutoRenewal()) {
+            return;
+        }
+        // 被暂停的房间不管
+        if (friendRoom.getPauseTime() != 0) {
+            return;
+        }
+        // 查看房间剩余时间
+        long resetTime = FriendRoomMessageBuilder.getRoomResetTime(friendRoom);
+        // 还没到时间
+        if (resetTime > 0) {
+            return;
+        }
+        // 自动续费，检查玩家金币是否足够
+        RoomExpendCfg roomExpendCfg = getAutoRenewalCfg();
+        if (roomExpendCfg == null || roomExpendCfg.getRequiredMoney().size() < 2) {
+            return;
+        }
+        List<Integer> requiredMoney = roomExpendCfg.getRequiredMoney();
+        int itemNum = requiredMoney.get(1);
+        // 时长，毫秒
+        long durationTime = (long) roomExpendCfg.getDurationTime() * TimeHelper.ONE_MINUTE_OF_MILLIS;
+        // 从房间底庄中扣除金币，如果不足直接暂停游戏
+        if (itemNum > friendRoom.getPredictCostGoldNum() || itemNum <= 0) {
+            // 自动续费失败，房间准备金不足
+            log.info("自动续费失败，房间准备金不足: need: {} rest: {}", itemNum, friendRoom.getPredictCostGoldNum());
+            return;
+        }
+        long overdueTime = friendRoom.getOverdueTime();
+        long curTime = System.currentTimeMillis();
+        long totalTake = 0;
+        while (itemNum < friendRoom.getPredictCostGoldNum()) {
+            friendRoom.setPredictCostGoldNum(friendRoom.getPredictCostGoldNum() - itemNum);
+            totalTake += itemNum;
+            overdueTime += durationTime;
+            if (overdueTime > curTime) {
+                break;
+            }
+        }
+        // 如果时间没有改变，说明准备金不足
+        if (overdueTime == friendRoom.getOverdueTime()) {
+            return;
+        }
+        log.info("玩家：{} 房间: {} 在大厅进行自动续费，续费时长：{} 消耗准备金：{}",
+            friendRoom.getCreator(), friendRoom.getId(), overdueTime - friendRoom.getOverdueTime(), totalTake);
+        long finalOverdueTime = overdueTime;
+        friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(), new DataSaveCallback<>() {
+            @Override
+            public void updateData(FriendRoom dataEntity) {
+
+            }
+
+            @Override
+            public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                dataEntity.setPredictCostGoldNum(friendRoom.getPredictCostGoldNum());
+                dataEntity.setOverdueTime(finalOverdueTime);
+                return true;
+            }
+        });
+    }
+
+    /**
+     * 房间自动续费时获取续费配置
+     */
+    private RoomExpendCfg getAutoRenewalCfg() {
+        for (RoomExpendCfg roomExpendCfg : GameDataManager.getRoomExpendCfgList()) {
+            if (roomExpendCfg.getDurationtype() == 1) {
+                return roomExpendCfg;
+            }
+        }
+        return null;
     }
 
     /**
@@ -543,9 +623,14 @@ public class FriendRoomServices {
         List<FriendRoom> friendRoomList = friendRoomDao.getPlayerAllFriendRoom(req.playerId);
         // 房间信息
         List<FriendRoomBaseData> friendRoomBaseDataList = new ArrayList<>();
+        boolean isSelf = req.playerId == playerController.playerId();
         for (FriendRoom friendRoom : friendRoomList) {
             FriendRoomBaseData friendRoomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
             friendRoomBaseDataList.add(friendRoomBaseData);
+            if (isSelf) {
+                // 检查房间的自动续费
+                autoRenewalRoomInHall(friendRoom);
+            }
         }
         res.roomList = friendRoomBaseDataList;
         res.code = Code.SUCCESS;
@@ -626,11 +711,19 @@ public class FriendRoomServices {
         // 黑名单数量
         int blockListNum = levelConfigCfg.getBlockListNum();
         List<Long> playerBlackList = friendRoomRedisDao.getPlayerBlackList(playerController.playerId());
+        log.info("玩家：{} 请求操作屏蔽好友：{} {} {}", player.getId(), req.playerId, req.operateCode, playerBlackList);
         playerBlackList = playerBlackList == null ? new ArrayList<>() : playerBlackList;
-        if (new HashSet<>(playerBlackList).containsAll(req.playerId)) {
+        if (new HashSet<>(playerBlackList).containsAll(req.playerId) && req.operateCode == 1) {
             res.code = FriendRoomErrorCode.FRIEND_ROOM_REPEAT_SHIELD;
             playerController.send(res);
             return;
+        } else {
+            if (!new HashSet<>(playerBlackList).containsAll(req.playerId)) {
+                // 移除非法好友列表
+                res.code = Code.NOT_FOUND;
+                playerController.send(res);
+                return;
+            }
         }
         switch (req.operateCode) {
             case 1: {
@@ -653,7 +746,7 @@ public class FriendRoomServices {
                 }
                 log.info("玩家：{} 请求将玩家：{} 移除黑名单", player.getId(), JSON.toJSONString(req.playerId));
                 // 移除黑名单
-                playerBlackList.removeAll(req.playerId);
+                playerBlackList.removeIf(p -> req.playerId.contains(p));
                 break;
             }
             case 3: {
@@ -691,22 +784,24 @@ public class FriendRoomServices {
     public void reqPlayerBlackList(PlayerController playerController) {
         List<Long> playerBlackList = friendRoomRedisDao.getPlayerBlackList(playerController.playerId());
         ResShieldPlayerList res = new ResShieldPlayerList(Code.SUCCESS);
+        if (playerBlackList == null || playerBlackList.isEmpty()) {
+            playerController.send(res);
+            return;
+        }
         Player player = corePlayerService.get(playerController.playerId());
         PlayerLevelConfigCfg levelConfigCfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
         // 黑名单数量
         res.maxLimit = levelConfigCfg.getBlockListNum();
         Map<Long, Player> blackListPlayers = corePlayerService.multiGetPlayerMap(playerBlackList);
         List<BaseFriendRoomPlayerInfo> blackPlayerInfoList = new ArrayList<>();
-        if (playerBlackList != null) {
-            for (Long playerId : playerBlackList) {
-                BaseFriendRoomPlayerInfo playerInfo;
-                if (blackListPlayers.containsKey(playerId)) {
-                    playerInfo = FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(player);
-                } else {
-                    playerInfo = FriendRoomMessageBuilder.buildFriendRoomRobotPlayerInfo(playerId);
-                }
-                blackPlayerInfoList.add(playerInfo);
+        for (Long playerId : playerBlackList) {
+            BaseFriendRoomPlayerInfo playerInfo;
+            if (blackListPlayers.containsKey(playerId)) {
+                playerInfo = FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(blackListPlayers.get(playerId));
+            } else {
+                playerInfo = FriendRoomMessageBuilder.buildFriendRoomRobotPlayerInfo(playerId);
             }
+            blackPlayerInfoList.add(playerInfo);
         }
         res.shieldPlayerList = blackPlayerInfoList;
         log.debug("屏蔽好友列表 {}", JSON.toJSONString(res));

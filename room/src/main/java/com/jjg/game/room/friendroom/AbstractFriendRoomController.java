@@ -1,5 +1,6 @@
 package com.jjg.game.room.friendroom;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
@@ -60,7 +61,35 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     }
 
     @Override
+    protected void tryStartGameOnPlayerJoinIn(PlayerController playerController) {
+        if (!playerController.isRobotPlayer()) {
+            log.info("尝试启动游戏：玩家：{} 房间是否可以开始：{} 游戏是否可以开始：{} 房间状态：{} 游戏当前状态：{}",
+                playerController.playerId(),
+                checkRoomCanContinue(),
+                gameController.checkRoomCanStart(),
+                room.getStatus(),
+                gameController.getGameState()
+            );
+        }
+        // 检查房间开始的逻辑，如果房间游戏暂停需要尝试启动游戏
+        if (checkRoomCanContinue() && gameController.checkRoomCanStart()) {
+            // 检查通过开始游戏
+            tryContinueGame();
+        }
+    }
+
+    @Override
     public boolean tryContinueGame() {
+        log.warn("请求尝试开启游戏");
+        // 更新房间数据
+        R newlyRoom = roomDao.getRoom(room.getGameType(), room.getId());
+        if (newlyRoom != null) {
+            this.room = newlyRoom;
+            if (this.room.getStatus() != 1) {
+                log.warn("请求开始游戏，但是房间状态不为 1");
+                return false;
+            }
+        }
         boolean continueGameRes = super.tryContinueGame();
         if (continueGameRes) {
             CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<>() {
@@ -85,11 +114,13 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             if (result.success()) {
                 this.room = result.data;
             } else {
+                log.warn("请求尝试开启游戏，但是房间更新失败");
                 return false;
             }
             // 如果能开始需要更新房间最新消息
             broadFriendRoomChange();
         } else {
+            log.warn("请求尝试开启游戏，尝试失败，准备尝试开始游戏");
             // 如果房间刚开始，则需要尝试启动游戏
             if (checkRoomCanContinue() && gameController.checkRoomCanStart()) {
                 log.debug("尝试继续游戏，处于游戏开始阶段，准备开始游戏");
@@ -103,21 +134,14 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
     @Override
     public void pauseGame() {
+        // 已经暂停不能再请求暂停游戏，否则会出现异常
+        if (gameController.getGameState() == EGameState.PAUSED) {
+            return;
+        }
         super.pauseGame();
-        CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<>() {
-            @Override
-            public void updateData(R dataEntity) {
-            }
-
-            @Override
-            public Boolean updateDataWithRes(FriendRoom dataEntity) {
-                dataEntity.setStatus(2);
-                dataEntity.setPauseTime(System.currentTimeMillis());
-                return true;
-            }
-        });
-        if (result.success()) {
-            this.room = result.data;
+        R newlyRoom = roomDao.getRoom(room.getGameType(), room.getId());
+        if (newlyRoom != null) {
+            this.room = newlyRoom;
         }
     }
 
@@ -189,31 +213,43 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     public boolean checkRoomCanContinue() {
         broadFriendRoomChange();
         // 如果房间状态为解散中.直接暂停游戏
-        if (room.getStatus() == 3) {
+        if (room.getStatus() != 1) {
             return false;
         }
+        long curTime = System.currentTimeMillis();
         // 需要检查房间时长
-        if (room.getOverdueTime() < System.currentTimeMillis()) {
+        if (room.getOverdueTime() < curTime) {
             // 如果时间到期且没有开启自动续费，先暂停游戏
             if (!room.isAutoRenewal()) {
                 return false;
             }
             // 自动续费，检查玩家金币是否足够
-            RoomExpendCfg roomExpendCfg = GameDataManager.getRoomExpendCfg(room.getRoomExpendId());
+            RoomExpendCfg roomExpendCfg = getAutoRenewalCfg();
             if (roomExpendCfg == null) {
                 return false;
             }
             List<Integer> requiredMoney = roomExpendCfg.getRequiredMoney();
-            int gold = requiredMoney.get(1);
+            int itemNum = requiredMoney.get(1);
             // 时长，毫秒
             long durationTime = (long) roomExpendCfg.getDurationTime() * TimeHelper.ONE_MINUTE_OF_MILLIS;
             // 从房间底庄中扣除金币，如果不足直接暂停游戏
-            if (gold > room.getPredictCostGoldNum()) {
+            if (itemNum > room.getPredictCostGoldNum()) {
                 // 自动续费失败，房间准备金不足
-                log.info("自动续费失败，房间准备金不足: need: {} rest: {}", gold, room.getPredictCostGoldNum());
+                log.info("自动续费失败，房间准备金不足: need: {} rest: {}", itemNum, room.getPredictCostGoldNum());
                 return false;
             }
+            long overdueTime = room.getOverdueTime();
+            long totalTake = 0;
+            while (itemNum < room.getPredictCostGoldNum()) {
+                room.setPredictCostGoldNum(room.getPredictCostGoldNum() - itemNum);
+                totalTake += itemNum;
+                overdueTime += durationTime;
+                if (overdueTime > curTime) {
+                    break;
+                }
+            }
             // 续费时长
+            long finalOverdueTime = overdueTime;
             CommonResult<R> result = roomDao.doSave(room, new DataSaveCallback<R>() {
                 @Override
                 public void updateData(R dataEntity) {
@@ -221,20 +257,37 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
                 @Override
                 public Boolean updateDataWithRes(FriendRoom dataEntity) {
-                    dataEntity.setOverdueTime(System.currentTimeMillis() + durationTime);
+                    dataEntity.setOverdueTime(finalOverdueTime);
                     // TODO日志
-                    dataEntity.setPredictCostGoldNum(dataEntity.getPredictCostGoldNum() - gold);
+                    dataEntity.setPredictCostGoldNum(dataEntity.getPredictCostGoldNum());
                     return true;
                 }
             });
             if (result.success()) {
                 this.room = result.data;
+                log.info("房间：{} 自动续费成功, 过期时间：{} 总花费：{}", room.logStr(), overdueTime, totalTake);
             }
         }
         int minBankerAmount = FriendRoomSampleUtils.getRoomMinBankerAmount(roomCfg.getId());
         long bankerResetGold = room.roomBankerResetGold();
+        boolean checkAmount = (room.getPredictCostGoldNum() + bankerResetGold) >= minBankerAmount;
+        if (!checkAmount) {
+            log.info(" 房间准备金不足，房间即将暂停，房间准备金余额：{} 庄家：{}", room.roomBankerResetGold(), bankerResetGold);
+        }
         // 好友房，如果房间庄家不为空且房间房主底注大于最小上庄金币
-        return checkBankerCanNextRound() && (room.getPredictCostGoldNum() + bankerResetGold) >= minBankerAmount;
+        return checkBankerCanNextRound() && checkAmount;
+    }
+
+    /**
+     * 房间自动续费时获取续费配置
+     */
+    private RoomExpendCfg getAutoRenewalCfg() {
+        for (RoomExpendCfg roomExpendCfg : GameDataManager.getRoomExpendCfgList()) {
+            if (roomExpendCfg.getDurationtype() == 1) {
+                return roomExpendCfg;
+            }
+        }
+        return null;
     }
 
     /**
@@ -295,7 +348,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
      */
     public int markBankerCancel(long playerId) {
         // 如果当前玩家是庄家直接标记
-        if (room.roomBankerId() == playerId) {
+        if (room.roomBankerId() == playerId && isStartedGame()) {
             gameController.getGameDataVo().setApplyCancelBeBankerPlayer(playerId);
             return Code.SUCCESS;
         }
@@ -358,7 +411,8 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         long roomBankerId = getRoom().roomBankerId();
         // 如果庄家离开房间，需要下庄
         if (playerController.playerId() == roomBankerId) {
-            cancelBeBanker(playerController.playerId(), ERoomItemReason.FRIEND_ROOM_LEAVE_ROOM_ADD_GOLD);
+            cancelBeBanker(playerController.playerId(),
+                com.jjg.game.room.base.ERoomItemReason.FRIEND_ROOM_LEAVE_ROOM_ADD_GOLD);
         }
         return super.onPlayerLeaveRoom(playerController);
     }
