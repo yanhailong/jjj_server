@@ -313,7 +313,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
                 if (cfgBean instanceof CashcowCfg cfg) {
                     long pool = cashCowDao.getActivityPool(activityId, cfg.getId());
-                    if (pool == 0) {
+                    if (pool == 0 && cfg.getType() != 4) {
                         //初始化池子
                         cashCowDao.addActivityPool(activityId, cfg.getId(), cfg.getInitialprizepool());
                     } else {
@@ -594,7 +594,11 @@ public class CashCowController extends BaseActivityController implements TimerLi
                                     for (ActivityData activityData : activityDataMap.values()) {
                                         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
                                         for (BaseCfgBean baseCfgBean : baseCfgBeanMap.values()) {
-                                            cashCowDao.addActivityPool(activityData.getId(), baseCfgBean.getId(), addValue);
+                                            if (baseCfgBean instanceof CashcowCfg cashcowCfg) {
+                                                if (cashcowCfg.getType() != 4) {
+                                                    cashCowDao.addActivityPool(activityData.getId(), baseCfgBean.getId(), addValue);
+                                                }
+                                            }
                                         }
                                     }
                                 }
