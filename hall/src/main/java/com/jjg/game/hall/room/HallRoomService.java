@@ -155,8 +155,8 @@ public class HallRoomService implements IConsoleReceiver {
             }
             updateFriendRoomPath(room, marsNode);
         } else {
-            // 查询房间节点
             marsNode = marsCurator.getMarsNode(room.getPath());
+            // 查询房间节点 TODO 需要判断当前节点是否是维护节点，如果是维护的节点需要重新挑选一个节点
             if (marsNode == null) {
                 // 随机分配一个节点
                 marsNode = nodeManager.getGameNodeByWeight(
@@ -218,6 +218,8 @@ public class HallRoomService implements IConsoleReceiver {
             matchDataDao.moveWaitJoinRoomIdToLast(gameType, room.getRoomCfgId(), roomId);
             // 直接返回错误
             return Code.FAIL;
+        } else {
+            // TODO 需要判断当前节点是否是维护节点，如果是维护的节点需要重新挑选一个节点
         }
         // 更新玩家的房间ID
         playerController.setPlayer(

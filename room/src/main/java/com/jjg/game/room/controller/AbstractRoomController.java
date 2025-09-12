@@ -296,9 +296,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      * 房间游戏结束
      */
     @Override
-    public void gameDestroy(boolean closeByPlayer) {
+    public void gameDestroy(boolean closeByPlayer, boolean notifyExit) {
         // 调用游戏控制器中的结束逻辑
-        gameController.gameDestroy(closeByPlayer);
+        gameController.gameDestroy(closeByPlayer, notifyExit);
     }
 
     @Override

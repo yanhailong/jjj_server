@@ -185,7 +185,7 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
         // 判断房间是否全部结束
         if (isGameOverAfterPhaseOver()) {
             // 调用roomController的游戏结束逻辑
-            roomController.gameDestroy(false);
+            roomController.gameDestroy(false, true);
         } else {
             // 检查房间是否可以进入下一轮
             boolean checkRes = checkRoomCanNextRound();

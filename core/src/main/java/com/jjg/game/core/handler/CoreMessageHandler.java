@@ -13,10 +13,14 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
+import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.ESceneType;
 import com.jjg.game.core.pb.ReqGm;
 import com.jjg.game.core.pb.ResConfirmPlayerScene;
 import com.jjg.game.core.pb.ResGm;
+import com.jjg.game.core.pb.reddot.NotifyRedDot;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
+import com.jjg.game.core.pb.reddot.ReqRedDot;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import org.slf4j.Logger;
@@ -24,16 +28,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
  * @author 11
- * @date 2025/6/11 16:09
+ * @since 2025/6/11 16:09
  */
 @Component
 @MessageType(MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE)
 public class CoreMessageHandler {
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private NodeConfig nodeConfig;
@@ -45,10 +51,12 @@ public class CoreMessageHandler {
     private PlayerPackService playerPackService;
     @Autowired
     private CoreMarqueeManager marqueeManager;
+    @Autowired
+    private RedDotManager redDotManager;
+
 
     /**
-     * @param playerController
-     * @param req
+     *
      */
     @Command(MessageConst.CoreMessage.REQ_GM)
     public void reqGm(PlayerController playerController, ReqGm req) {
@@ -61,7 +69,7 @@ public class CoreMessageHandler {
                 return;
             }
 
-            if (req.order.length() < 1) {
+            if (req.order.isEmpty()) {
                 res.code = Code.PARAM_ERROR;
                 playerController.send(res);
                 log.debug("参数错误，使用gm失败 playerId = {},order = {}", playerController.playerId(), req.order);
@@ -127,7 +135,7 @@ public class CoreMessageHandler {
                 log.debug("收到添加经验的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), arr);
                 long num = Long.parseLong(params);
                 CommonResult<Player> result =
-                    playerService.betDeductGold(playerController.playerId(), num, true, "gmtest");
+                        playerService.betDeductGold(playerController.playerId(), num, true, "gmtest");
                 res.code = result.code;
                 playerController.send(res);
                 return;
@@ -168,12 +176,6 @@ public class CoreMessageHandler {
 
     /**
      * gm修改金币
-     *
-     * @param res
-     * @param playerController
-     * @param order
-     * @param params
-     * @throws Exception
      */
     private void addGold(ResGm res, PlayerController playerController, String order, String params) throws Exception {
         if (params == null || params.isEmpty()) {
@@ -182,7 +184,7 @@ public class CoreMessageHandler {
             return;
         }
 
-        Long num = Long.parseLong(params);
+        long num = Long.parseLong(params);
         CommonResult<Player> result = playerService.addGold(playerController.playerId(), num, "gmAddGold", null);
         if (!result.success()) {
             res.code = result.code;
@@ -191,17 +193,11 @@ public class CoreMessageHandler {
         }
         playerController.getPlayer().setGold(result.data.getGold());
         coreSendMessageManager.packMoneyChangeMessage(
-            playerController, result.data.getGold(), result.data.getDiamond(), result.data.getVipLevel());
+                playerController, result.data.getGold(), result.data.getDiamond(), result.data.getVipLevel());
     }
 
     /**
      * gm修改金币
-     *
-     * @param res
-     * @param playerController
-     * @param order
-     * @param params
-     * @throws Exception
      */
     private void setGold(ResGm res, PlayerController playerController, String order, String params) throws Exception {
         if (params == null || params.isEmpty()) {
@@ -210,7 +206,7 @@ public class CoreMessageHandler {
             return;
         }
 
-        Long num = Long.parseLong(params);
+        long num = Long.parseLong(params);
         CommonResult<Player> result = playerService.gmSetGold(playerController.playerId(), num, "gmSetGold", null);
         if (!result.success()) {
             res.code = result.code;
@@ -219,17 +215,11 @@ public class CoreMessageHandler {
         }
         playerController.getPlayer().setGold(result.data.getGold());
         coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(),
-            result.data.getDiamond(), result.data.getVipLevel());
+                result.data.getDiamond(), result.data.getVipLevel());
     }
 
     /**
      * gm修改钻石
-     *
-     * @param res
-     * @param playerController
-     * @param order
-     * @param params
-     * @throws Exception
      */
     private void addDiamond(ResGm res, PlayerController playerController, String order, String params) throws Exception {
         if (params == null || params.isEmpty()) {
@@ -238,7 +228,7 @@ public class CoreMessageHandler {
             return;
         }
 
-        Long num = Long.parseLong(params);
+        long num = Long.parseLong(params);
         CommonResult<Player> result = playerService.addDiamond(playerController.playerId(), num, "gmAddDiamond", null);
         if (!result.success()) {
             res.code = result.code;
@@ -247,17 +237,11 @@ public class CoreMessageHandler {
         }
         playerController.getPlayer().setDiamond(result.data.getDiamond());
         coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(),
-            result.data.getDiamond(), result.data.getVipLevel());
+                result.data.getDiamond(), result.data.getVipLevel());
     }
 
     /**
      * gm修改钻石
-     *
-     * @param res
-     * @param playerController
-     * @param order
-     * @param params
-     * @throws Exception
      */
     private void setDiamond(ResGm res, PlayerController playerController, String order, String params) throws Exception {
         if (params == null || params.isEmpty()) {
@@ -266,9 +250,9 @@ public class CoreMessageHandler {
             return;
         }
 
-        Long num = Long.parseLong(params);
+        long num = Long.parseLong(params);
         CommonResult<Player> result = playerService.gmSetDiamond(playerController.playerId(), num, "gmSetDiamond",
-            null);
+                null);
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
@@ -276,17 +260,11 @@ public class CoreMessageHandler {
         }
         playerController.getPlayer().setDiamond(result.data.getDiamond());
         coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(),
-            result.data.getDiamond(), result.data.getVipLevel());
+                result.data.getDiamond(), result.data.getVipLevel());
     }
 
     /**
      * gm修改vip等级
-     *
-     * @param res
-     * @param playerController
-     * @param order
-     * @param params
-     * @throws Exception
      */
     private void setVip(ResGm res, PlayerController playerController, String order, String params) throws Exception {
         if (params == null || params.isEmpty()) {
@@ -300,12 +278,12 @@ public class CoreMessageHandler {
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {},params = {}", playerController.playerId(), order,
-                result.code, params);
+                    result.code, params);
             return;
         }
         playerController.getPlayer().setVipLevel(result.data.getVipLevel());
         coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(),
-            result.data.getDiamond(), result.data.getVipLevel());
+                result.data.getDiamond(), result.data.getVipLevel());
     }
 
     private void addItem(ResGm res, PlayerController playerController, String[] orders) throws Exception {
@@ -337,4 +315,29 @@ public class CoreMessageHandler {
         res.sceneType = nodeType == NodeType.GAME ? ESceneType.ROOM : ESceneType.HALL;
         playerController.send(res);
     }
+
+    /**
+     * 请求加载所有小红点
+     */
+    @Command(MessageConst.CoreMessage.REQ_RED_DOT)
+    public void loadRedDot(PlayerController playerController, ReqRedDot req) {
+        List<RedDotDetails> result = new ArrayList<>();
+        long playerId = playerController.getPlayer().getId();
+        RedDotDetails.RedDotModule module = req.getModule();
+        if (module != null) {
+            RedDotDetails.RedDotSubmodule submodule = req.getSubmodule();
+            if (submodule != null) {
+                List<RedDotDetails> redDots = redDotManager.load(module, submodule, playerId);
+                result.addAll(redDots);
+            }
+        } else {
+            List<RedDotDetails> redDotDetails = redDotManager.loadAll(playerId);
+            result.addAll(redDotDetails);
+        }
+        NotifyRedDot notifyRedDot = new NotifyRedDot();
+        notifyRedDot.setRedDotList(result);
+        //回复红点数据
+        playerController.send(notifyRedDot);
+    }
+
 }

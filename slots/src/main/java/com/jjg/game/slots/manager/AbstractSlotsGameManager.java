@@ -2,8 +2,6 @@ package com.jjg.game.slots.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.jjg.game.activity.common.data.ActivityTargetType;
-import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
@@ -49,8 +47,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
+ * slots游戏管理器抽象类
+ *
  * @author 11
- * @date 2025/7/1 16:42
+ * @since 2025/7/1 16:42
  */
 public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L extends SlotsResultLib> implements TimerListener, ConfigExcelChangeListener {
     protected Logger log = LoggerFactory.getLogger(getClass());
@@ -67,8 +67,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected CoreMarqueeManager marqueeManager;
     @Autowired
     protected SlotsLogger logger;
-    @Autowired
-    protected ActivityManager activityManager;
+
     //游戏类型
     protected int gameType;
     //在specualResultLib
@@ -133,9 +132,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 添加生成结果库事件
-     *
-     * @param libTypeCountMap
-     * @return
      */
     public boolean addGenerateLibEvent(Map<Integer, Integer> libTypeCountMap) {
         if (this.generateLibEvent != null) {
@@ -176,9 +172,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         String newDocName = null;
         String redisTableName = null;
         try {
-            if (!saveToDB) {
+            if(!saveToDB){
                 boolean lock = getResultLibDao().addGenerateLock(this.gameType);
-                if (lock) {
+                if(lock){
                     log.info("生成结果库时添加锁失败，gameType = {}", this.gameType);
                     return;
                 }
@@ -518,10 +514,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 给池子加钱
-     *
-     * @param gameData
-     * @param betValue
-     * @return
      */
     protected CommonResult<Player> goldToPool(T gameData, long betValue, BaseRoomCfg baseRoomCfg) {
         CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, true, "SLOTS_BET");
@@ -529,24 +521,21 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             log.debug("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.playerId(), betValue, result.code);
             return result;
         }
-        Thread.ofVirtual().start(() -> {
-            activityManager.addPlayerActivityProgress(gameData.getPlayerController().getPlayer(), ActivityTargetType.EFFECTIVE_BET.getTargetKey(), betValue);
-            activityManager.addActivityProgress(gameData.getPlayerController().getPlayer(), ActivityTargetType.EFFECTIVE_BET.getTargetKey(), betValue);
-        });
+
         BigDecimal bet = BigDecimal.valueOf(betValue);
         log.debug("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.playerId(), betValue, result.data.getGold());
 
         //给标准池子加钱
-        BigDecimal toBigPoolProp = BigDecimal.valueOf(baseRoomCfg.getInitBasePoolProportion()).divide(tenThousandBigDecimal, 4, BigDecimal.ROUND_HALF_UP);
-        long toBigPoolGold = bet.multiply(toBigPoolProp).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
+        BigDecimal toBigPoolProp = BigDecimal.valueOf(baseRoomCfg.getInitBasePoolProportion()).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
+        long toBigPoolGold = bet.multiply(toBigPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
         if (toBigPoolGold > 0) {
             long poolCoin = slotsPoolDao.addToBigPool(this.gameType, gameData.getRoomCfgId(), toBigPoolGold);
             log.debug("给标准池加钱成功 gameType = {},roomCfgId = {},add = {},afterGold = {}", gameData.getGameType(), gameData.getRoomCfgId(), toBigPoolGold, poolCoin);
         }
 
         //给小池子加钱
-        BigDecimal toSmallPoolProp = BigDecimal.valueOf(baseRoomCfg.getCommissionProp()).divide(tenThousandBigDecimal, 4, BigDecimal.ROUND_HALF_UP);
-        long toSmallPoolGold = bet.multiply(toSmallPoolProp).setScale(0, BigDecimal.ROUND_HALF_UP).longValue();
+        BigDecimal toSmallPoolProp = BigDecimal.valueOf(baseRoomCfg.getCommissionProp()).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
+        long toSmallPoolGold = bet.multiply(toSmallPoolProp).setScale(0, RoundingMode.HALF_UP).longValue();
         if (toSmallPoolGold > 0) {
             long poolCoin = slotsPoolDao.addToSmallPool(this.gameType, gameData.getRoomCfgId(), toSmallPoolGold);
             gameData.addAllBet(poolCoin);
@@ -605,10 +594,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 根据模式id获取libCfg
-     *
-     * @param gameType
-     * @param modelId
-     * @return
      */
     protected SpecialResultLibCfg getLibCfgByModelId(int gameType, int modelId) {
         for (Map.Entry<Integer, SpecialResultLibCfg> en : GameDataManager.getSpecialResultLibCfgMap().entrySet()) {
@@ -623,9 +608,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     /**
      * 获取libCfg，如果第一次玩这个游戏(按gameType计算)，那么使用默认的水池
      * 否则要计算水池偏差
-     *
-     * @param gameData
-     * @return
      */
     public CommonResult<SpecialResultLibCfg> getLibCfg(T gameData, long poolInit) {
         CommonResult<SpecialResultLibCfg> result = new CommonResult<>(Code.SUCCESS);
@@ -812,7 +794,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      *
      * @param stake
      * @param growthRate
-     * @param delayTime  延迟时间
+     * @param delayTime 延迟时间
      * @return
      */
     public long calPoolValue(long stake, List<Integer> growthRate, int initTimes, int maxTimes, int delayTime) {
