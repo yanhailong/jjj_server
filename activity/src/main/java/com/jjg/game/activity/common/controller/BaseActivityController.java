@@ -16,6 +16,7 @@ import com.jjg.game.sampledata.bean.BaseCfgBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -92,7 +93,7 @@ public abstract class BaseActivityController {
     /**
      * 获取类型获取活动详情响应信息
      */
-    public abstract AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, List<List<BaseActivityDetailInfo>> allDetailInfo);
+    public abstract AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo);
 
     /**
      * 构建玩家活动信息
@@ -131,9 +132,9 @@ public abstract class BaseActivityController {
     public AbstractResponse getPlayerActivityInfoByType(long playerId, ActivityType activityType) {
         Map<Long, Map<Integer, PlayerActivityData>> playerActivityData = playerActivityDao.getAllPlayerActivityData(playerId, activityType);
         Map<Long, ActivityData> activityDataMap = activityManager.getActivityTypeData().get(activityType);
-        List<List<BaseActivityDetailInfo>> allDetailInfo = new ArrayList<>();
+        Map<Long, List<BaseActivityDetailInfo>> allDetailInfoMap = new HashMap<>();
         if (CollectionUtil.isEmpty(activityDataMap)) {
-            return getPlayerActivityInfoByTypeRes(playerId, allDetailInfo);
+            return getPlayerActivityInfoByTypeRes(playerId, allDetailInfoMap);
         }
         Map<Long, Map<Integer, BaseCfgBean>> activityDetailInfo = activityManager.getActivityDetailInfo();
         for (ActivityData activityData : activityDataMap.values()) {
@@ -149,7 +150,7 @@ public abstract class BaseActivityController {
             }
             Map<Integer, PlayerActivityData> privilegeCardCfgMap = playerActivityData.getOrDefault(activityData.getId(), Map.of());
             List<BaseActivityDetailInfo> arrayList = new ArrayList<>();
-            allDetailInfo.add(arrayList);
+            allDetailInfoMap.put(activityData.getId(), arrayList);
             for (Integer id : activityData.getValue()) {
                 BaseCfgBean baseCfgBean = baseCfgBeanMap.get(id);
                 if (baseCfgBean == null) {
@@ -161,7 +162,7 @@ public abstract class BaseActivityController {
                 }
             }
         }
-        return getPlayerActivityInfoByTypeRes(playerId, allDetailInfo);
+        return getPlayerActivityInfoByTypeRes(playerId, allDetailInfoMap);
     }
 
 

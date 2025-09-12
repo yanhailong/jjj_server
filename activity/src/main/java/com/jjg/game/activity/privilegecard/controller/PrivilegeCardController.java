@@ -199,13 +199,13 @@ public class PrivilegeCardController extends BaseActivityController {
     }
 
     @Override
-    public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, List<List<BaseActivityDetailInfo>> allDetailInfo) {
+    public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
         ResPrivilegeCardTypeInfo cardTypeInfo = new ResPrivilegeCardTypeInfo(Code.SUCCESS);
         if (CollectionUtil.isEmpty(allDetailInfo)) {
             return cardTypeInfo;
         }
         cardTypeInfo.activityData = new ArrayList<>();
-        for (List<BaseActivityDetailInfo> baseActivityDetailInfos : allDetailInfo) {
+        for (List<BaseActivityDetailInfo> baseActivityDetailInfos : allDetailInfo.values()) {
             PrivilegeCardType privilegeCardType = new PrivilegeCardType();
             privilegeCardType.detailInfos = new ArrayList<>();
             cardTypeInfo.activityData.add(privilegeCardType);

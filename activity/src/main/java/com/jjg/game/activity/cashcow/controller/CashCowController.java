@@ -6,7 +6,7 @@ import com.jjg.game.activity.cashcow.dao.CashCowDao;
 import com.jjg.game.activity.cashcow.data.CashCowPlayerActivityData;
 import com.jjg.game.activity.cashcow.data.CashCowRecordData;
 import com.jjg.game.activity.cashcow.message.bean.CashCowDetailInfo;
-import com.jjg.game.activity.cashcow.message.bean.CashCowDetailType;
+import com.jjg.game.activity.cashcow.message.bean.CashCowActivityInfo;
 import com.jjg.game.activity.cashcow.message.bean.CashCowShowRecord;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowRecord;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowTotalPool;
@@ -296,7 +296,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
         //初始化摇钱树
         if (activityData.getRound() == 0) {
-            activityData.setRound(TimeHelper.toYyyyMMdd00000(activityData.getTimeStart()));
+            activityData.setRound(activityData.getId());
             if (CollectionUtil.isNotEmpty(baseCfgBeanMap)) {
                 for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
                     if (cfgBean instanceof CashcowCfg cfg && cfg.getType() != 4) {
@@ -429,27 +429,27 @@ public class CashCowController extends BaseActivityController implements TimerLi
     }
 
     @Override
-    public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, List<List<BaseActivityDetailInfo>> allDetailInfo) {
+    public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
         ResCashCowTypeInfo cashCowTypeInfo = new ResCashCowTypeInfo(Code.SUCCESS);
         if (CollectionUtil.isEmpty(allDetailInfo)) {
             return cashCowTypeInfo;
         }
         cashCowTypeInfo.activityData = new ArrayList<>();
-        long activityId = 0;
-        for (List<BaseActivityDetailInfo> baseActivityDetailInfos : allDetailInfo) {
-            CashCowDetailType cashCowDetailType = new CashCowDetailType();
-            cashCowDetailType.detailInfos = new ArrayList<>();
-            cashCowTypeInfo.activityData.add(cashCowDetailType);
-            for (BaseActivityDetailInfo baseActivityDetailInfo : baseActivityDetailInfos) {
-                if (activityId == 0) {
-                    activityId = baseActivityDetailInfo.activityId;
-                }
+        long timeMillis = System.currentTimeMillis();
+        for (Map.Entry<Long, List<BaseActivityDetailInfo>> entry : allDetailInfo.entrySet()) {
+            CashCowActivityInfo cashCowActiviTyInfo = new CashCowActivityInfo();
+            cashCowActiviTyInfo.detailInfos = new ArrayList<>();
+            cashCowTypeInfo.activityData.add(cashCowActiviTyInfo);
+            for (BaseActivityDetailInfo baseActivityDetailInfo : entry.getValue()) {
                 if (baseActivityDetailInfo instanceof CashCowDetailInfo info) {
-                    cashCowDetailType.detailInfos.add(info);
+                    cashCowActiviTyInfo.detailInfos.add(info);
                 }
             }
-            cashCowDetailType.currentProgress = cashCowDao.getPlayerActivityProgress(playerId, activityId);
-            activityId = 0;
+            Long activityId = entry.getKey();
+            cashCowActiviTyInfo.currentProgress = cashCowDao.getPlayerActivityProgress(playerId, activityId);
+            ActivityData data = activityManager.getActivityData().get(activityId);
+            cashCowActiviTyInfo.remainingTime = data.getTimeEnd() - timeMillis;
+            cashCowActiviTyInfo.round = data.getRound();
         }
         return cashCowTypeInfo;
     }
