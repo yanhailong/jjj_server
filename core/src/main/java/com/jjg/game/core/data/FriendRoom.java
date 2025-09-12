@@ -169,22 +169,20 @@ public class FriendRoom extends Room {
             return;
         }
         Map.Entry<Long, Long> bankerInf = bankerPredicateMap.firstEntry();
-        long deductRes = bankerInf.getValue() - deductItemNum;
-        // 需要继续扣除底庄的金币
-        if (deductRes < 0) {
-            long predicateCostRes = predictCostGoldNum - deductRes;
-            if (predicateCostRes < 0) {
-                predictCostGoldNum = 0;
-                log.error("扣除准备金币失败，扣除值：{}，庄家值：{} 底庄值：{}", deductItemNum, bankerInf.getValue(), predictCostGoldNum);
-                return;
-            } else {
-                predictCostGoldNum = predicateCostRes;
-            }
-            // 设置扣除后的值
-            bankerPredicateMap.put(bankerInf.getKey(), 0L);
+        if (bankerInf == null) {
+            predictCostGoldNum = Math.max(predictCostGoldNum - deductItemNum, 0);
+            log.info("扣除房间准备金：{} 剩余：{}", deductItemNum, predictCostGoldNum);
         } else {
-            // 设置扣除后的值
-            bankerPredicateMap.put(bankerInf.getKey(), deductRes);
+            long deductRes = bankerInf.getValue() - deductItemNum;
+            if (deductRes <= 0) {
+                // 设置扣除后的值
+                bankerPredicateMap.put(bankerInf.getKey(), 0L);
+                predictCostGoldNum = Math.max(predictCostGoldNum - deductRes, 0);
+                log.info("扣除庄家准备金：{} 剩余：{} 扣除房主准备金：{} 剩余：{}", deductItemNum, 0, deductRes, predictCostGoldNum);
+            } else {
+                bankerPredicateMap.put(bankerInf.getKey(), deductRes);
+                log.info("扣除庄家准备金：{} 剩余：{}", deductItemNum, deductRes);
+            }
         }
     }
 

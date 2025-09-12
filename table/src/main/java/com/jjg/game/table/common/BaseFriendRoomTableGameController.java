@@ -129,14 +129,6 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
             // 需要记录
             FriendRoomBillHistoryDao dao = roomController.getRoomManager().getFriendRoomBillHistoryDao();
             if (!settlementDataMap.isEmpty()) {
-                long roomTotalIncome =
-                    settlementDataMap.values().stream()
-                        .filter(s -> s.getBetWin() > 0)
-                        .mapToLong(SettlementData::getBetWin)
-                        .sum();
-                if (roomTotalIncome <= 0) {
-                    return;
-                }
                 // 构建基础历史数据bean
                 FriendRoomBillHistoryBean historyBean = FriendRoomBillHistoryHelper.buildFriendRoom(getRoom());
                 long roomCreatorTotalIncome =

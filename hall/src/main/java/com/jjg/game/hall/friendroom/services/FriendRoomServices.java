@@ -871,7 +871,7 @@ public class FriendRoomServices {
                     return true;
                 }
             });
-        if (addTime > 0 && friendRoom.isInGaming()) {
+        if ((addTime > 0 || updateFriendRoom.predictCostGoldNum > 0) && friendRoom.isInGaming()) {
             if (!StringUtils.isEmpty(friendRoom.getPath())) {
                 ClusterClient client = clusterSystem.getClusterByPath(friendRoom.getPath());
                 // 单房间，直接等返回
@@ -879,7 +879,7 @@ public class FriendRoomServices {
                     RpcReqParameterBuilder.create()
                         .addClusterClient(client)
                         .setTryMillisPerClient(1000));
-                // 请求尝试开启游戏，如果游戏处于暂停状态
+                // 请求尝试开启游戏，如果游戏处于暂停状态，可以考虑异步请求开启游戏
                 hallRoomBridge.operateFriendRoom(player.getId(), friendRoom.getId(), 1);
             }
         }
