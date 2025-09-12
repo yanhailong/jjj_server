@@ -17,7 +17,7 @@ public class CashCowActivityInfo {
     @ProtoDesc("当前进度")
     public long currentProgress;
     @ProtoDesc("剩余时间")
-    public long remainingTime;
+    public long endTime;
     @ProtoDesc("期数")
     public long round;
 }

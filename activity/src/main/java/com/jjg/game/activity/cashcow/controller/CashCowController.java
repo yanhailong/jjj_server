@@ -48,6 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 摇钱树
@@ -64,7 +65,8 @@ public class CashCowController extends BaseActivityController implements TimerLi
     private final Map<Long, Map<Integer, Long>> timerMap;
     private long lastRobotAddTime;
     private final String TIMER_KEY = "cashCow";
-    private TimerEvent<String> timerEvent = null;
+    private volatile TimerEvent<String> timerEvent = null;
+    private final ReentrantLock reentrantLock = new ReentrantLock();
 
     public CashCowController(CashCowDao cashCowDao, TimerCenter timerCenter) {
         this.cashCowDao = cashCowDao;
@@ -80,9 +82,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             return;
         }
         if (activityManager.isExecutionNode()) {
-            //添加定时器
-            timerEvent = new TimerEvent<>(this, TIMER_KEY, TimeHelper.ONE_SECOND_OF_MILLIS);
-            timerCenter.add(timerEvent);
+            addTimerEvent();
             LocalDateTime now = LocalDateTime.now();
             for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
                 if (cfgBean instanceof CashcowCfg cfg) {
@@ -90,6 +90,21 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 }
             }
         }
+    }
+
+    /**
+     * 添加轮询定时器
+     */
+    public void addTimerEvent() {
+        if (timerEvent == null) {
+            reentrantLock.lock();
+            if (timerEvent == null) {
+                //添加定时器
+                timerEvent = new TimerEvent<>(this, TIMER_KEY, TimeHelper.ONE_SECOND_OF_MILLIS);
+                timerCenter.add(timerEvent);
+            }
+        }
+        reentrantLock.unlock();
     }
 
     @Override
@@ -435,7 +450,6 @@ public class CashCowController extends BaseActivityController implements TimerLi
             return cashCowTypeInfo;
         }
         cashCowTypeInfo.activityData = new ArrayList<>();
-        long timeMillis = System.currentTimeMillis();
         for (Map.Entry<Long, List<BaseActivityDetailInfo>> entry : allDetailInfo.entrySet()) {
             CashCowActivityInfo cashCowActiviTyInfo = new CashCowActivityInfo();
             cashCowActiviTyInfo.detailInfos = new ArrayList<>();
@@ -448,7 +462,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             Long activityId = entry.getKey();
             cashCowActiviTyInfo.currentProgress = cashCowDao.getPlayerActivityProgress(playerId, activityId);
             ActivityData data = activityManager.getActivityData().get(activityId);
-            cashCowActiviTyInfo.remainingTime = data.getTimeEnd() - timeMillis;
+            cashCowActiviTyInfo.endTime = data.getTimeEnd();
             cashCowActiviTyInfo.round = data.getRound();
         }
         return cashCowTypeInfo;
@@ -575,7 +589,12 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 }
             }
             //机器人自动增加奖池
-            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_ROBOT_ADD_Frequency);
+            GlobalConfigCfg globalConfigCfg = null;
+            try {
+                globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_ROBOT_ADD_Frequency);
+            } catch (Exception e) {
+                log.error("加载配置表错误", e);
+            }
             if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
                 String[] cfg = StringUtils.split(globalConfigCfg.getValue(), "_");
                 if (cfg.length == 2) {
@@ -637,10 +656,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
     @Override
     public void isLeader() {
         if (activityManager.isExecutionNode()) {
-            if (timerEvent == null) {
-                timerEvent = new TimerEvent<>(this, TIMER_KEY, TimeHelper.ONE_SECOND_OF_MILLIS);
-                timerCenter.add(timerEvent);
-            }
+            addTimerEvent();
             //获取所有该类型的活动
             Map<Long, ActivityData> activityDataMap = activityManager.getActivityTypeData().get(ActivityType.CASH_COW);
             if (CollectionUtil.isEmpty(activityDataMap)) {
