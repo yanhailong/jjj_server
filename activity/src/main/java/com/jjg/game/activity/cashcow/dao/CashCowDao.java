@@ -20,7 +20,7 @@ import java.util.List;
 public class CashCowDao {
     private final Logger log = LoggerFactory.getLogger(CashCowDao.class);
     private final RedisTemplate<String, CashCowRecordData> recordRedisTemplate;
-    private final RedisTemplate<String, Long> longRedisTemplate;
+    private final RedisTemplate<String, String> longRedisTemplate;
     //redis 锁
     private final RedisLock lock;
     private final String PLAYER_RECORD_KEY = "activity:cashcow:record:%d:%d"; // 单个玩家记录
@@ -30,7 +30,7 @@ public class CashCowDao {
     private final String PLAYER_PROGRESS_KEY = "activity:cashcow:player:%d:%d";          // 总池
 
 
-    public CashCowDao(RedisTemplate<String, CashCowRecordData> recordRedisTemplate, RedisTemplate<String, Long> longRedisTemplate, RedisLock lock) {
+    public CashCowDao(RedisTemplate<String, CashCowRecordData> recordRedisTemplate,  RedisTemplate<String, String> longRedisTemplate, RedisLock lock) {
         this.recordRedisTemplate = recordRedisTemplate;
         this.longRedisTemplate = longRedisTemplate;
         this.lock = lock;
@@ -42,8 +42,8 @@ public class CashCowDao {
      */
     public long getPlayerActivityProgress(long playerId, long activityId) {
         String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, playerId, activityId);
-        Long progress = longRedisTemplate.opsForValue().get(playerProgressKey);
-        return progress == null ? 0 : progress;
+        String progress = longRedisTemplate.opsForValue().get(playerProgressKey);
+        return progress == null ? 0 : Long.parseLong(progress);
     }
 
     /**

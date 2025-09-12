@@ -1,6 +1,6 @@
 package com.jjg.game.activity.cashcow.message.res;
 
-import com.jjg.game.activity.cashcow.message.bean.CashCowDetailType;
+import com.jjg.game.activity.cashcow.message.bean.CashCowActivityInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
@@ -17,7 +17,7 @@ import java.util.List;
 @ProtoDesc("响应摇钱树活动类型信息")
 public class ResCashCowTypeInfo extends AbstractResponse {
     @ProtoDesc("活动信息")
-    public List<CashCowDetailType> activityData;
+    public List<CashCowActivityInfo> activityData;
 
     public ResCashCowTypeInfo(int code) {
         super(code);

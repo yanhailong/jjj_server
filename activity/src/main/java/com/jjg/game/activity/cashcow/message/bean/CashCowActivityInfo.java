@@ -11,10 +11,13 @@ import java.util.List;
  */
 @ProtobufMessage
 @ProtoDesc("摇钱树类型活动信息")
-public class CashCowDetailType {
+public class CashCowActivityInfo {
     @ProtoDesc("活动详细信息")
     public List<CashCowDetailInfo> detailInfos;
     @ProtoDesc("当前进度")
     public long currentProgress;
-
+    @ProtoDesc("剩余时间")
+    public long remainingTime;
+    @ProtoDesc("期数")
+    public long round;
 }

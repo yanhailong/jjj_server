@@ -1,6 +1,7 @@
 package com.jjg.game.room.manager;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.cluster.ClusterProcessorExecutors;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
@@ -87,6 +88,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     private PlayerPackService playerPackService;
     @Autowired
     protected FriendRoomBillHistoryDao friendRoomBillHistoryDao;
+    @Autowired
+    protected ActivityManager activityManager;
     // context
     protected ApplicationContext applicationContext;
     // 房间计时器(线程池)
@@ -116,6 +119,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         this.roomManagerTimer.start();
         // 添加空房间检查
         this.roomManagerTimer.add(new TimerEvent<>(this, this::emptyRoomCheck, 5000));
+    }
+
+    public ActivityManager getActivityManager() {
+        return activityManager;
     }
 
     @PostConstruct

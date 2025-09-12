@@ -19,7 +19,6 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.OnlinePlayerDao;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
-import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerLastGameInfo;
 import com.jjg.game.core.data.PlayerSessionInfo;
@@ -407,11 +406,6 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
 
     @Override
     public void logout(long playerId, String sessionId) {
-        Account account = accountDao.queryAccountByPlayerId(playerId);
-        if (Objects.nonNull(account)) {
-            //设置离线时间
-            account.setLastOfflineTime(System.currentTimeMillis());
-            accountDao.save(account);
-        }
+        accountDao.updateLastOfflineTime(playerId, System.currentTimeMillis());
     }
 }

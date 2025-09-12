@@ -21,4 +21,5 @@ public interface GlobalSampleConstantId {
     int CASINO_REDUCE_TIME_CONFIG = 17;
     //购买一键领取消耗 global表id
     int BUY_ALL_CLAIM_ALL_REWARDS = 19;
+
 }

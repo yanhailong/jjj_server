@@ -35,7 +35,7 @@ import java.util.Map;
  * @author 2CL
  */
 public abstract class BaseTableGameController<G extends TableGameDataVo> extends
-    AbstractPhaseGameController<Room_BetCfg, G> {
+        AbstractPhaseGameController<Room_BetCfg, G> {
 
     public BaseTableGameController(AbstractRoomController<Room_BetCfg, ? extends Room> roomController) {
         super(roomController);
@@ -46,12 +46,12 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         super.initial(room);
         // 玩家长时间未操作检查
         tickTaskMap.put(ETickTaskType.PLAYER_NO_OPERATE_CHECK,
-            new BaseGameTickTask(TableConstant.PLAYER_NO_OPERATE_CHECK_INTERVAL) {
-                @Override
-                public void run(long triggeredTimestamp) {
-                    checkPlayerNoOperateAlert();
-                }
-            });
+                new BaseGameTickTask(TableConstant.PLAYER_NO_OPERATE_CHECK_INTERVAL) {
+                    @Override
+                    public void run(long triggeredTimestamp) {
+                        checkPlayerNoOperateAlert();
+                    }
+                });
     }
 
     @Override
@@ -135,14 +135,14 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         resortPlayerOnTable();
         // 通知场上玩家加入
         NotifyTableRoomPlayerInfoChange playerInfoChange =
-            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(
-                this, playerController, TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
+                TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(
+                        this, playerController, TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
         // 需要排除当前玩家，玩家刚进场给自己发送没有意义
         broadcastToPlayers(RoomMessageBuilder
-            .newBuilder()
-            .setData(playerInfoChange)
-            .toAllPlayer()
-            .exceptPlayer(playerController.playerId()));
+                .newBuilder()
+                .setData(playerInfoChange)
+                .toAllPlayer()
+                .exceptPlayer(playerController.playerId()));
         // 进入房间时需要更新操作时间
         gameDataVo.updatePlayerOperateTime(playerController.playerId());
         return gamePlayer;
@@ -189,9 +189,9 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
                 RoomPlayer roomPlayer = roomController.getRoomPlayer(gamePlayer.getId());
                 if (roomPlayer == null || roomPlayer.isOnline()) {
                     NotifyTableExitRoom notifyTableExitRoom =
-                        TableMessageBuilder.buildNotifyTableExitRoom(exitTipLangId);
+                            TableMessageBuilder.buildNotifyTableExitRoom(exitTipLangId);
                     broadcastToPlayers(RoomMessageBuilder.newBuilder()
-                        .addPlayerId(entry.getKey()).setData(notifyTableExitRoom));
+                            .addPlayerId(entry.getKey()).setData(notifyTableExitRoom));
                 } else {
                     roomController.getRoomManager().exitRoom(gamePlayer.getId());
                 }
@@ -201,9 +201,9 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
             if (playerLatestOperateTime + waitTime < currentTime && !gamePlayer.getTableGameData().isHasNotifyNoOperate()) {
                 gamePlayer.getTableGameData().setHasNotifyNoOperate(true);
                 NotifyTableLongTimeNoOperate notifyTableLongTimeNoOperate =
-                    TableMessageBuilder.buildNotifyTableLongTimeNoOperate(waitTimeTipLangId);
+                        TableMessageBuilder.buildNotifyTableLongTimeNoOperate(waitTimeTipLangId);
                 broadcastToPlayers(RoomMessageBuilder.newBuilder()
-                    .addPlayerId(entry.getKey()).setData(notifyTableLongTimeNoOperate));
+                        .addPlayerId(entry.getKey()).setData(notifyTableLongTimeNoOperate));
             }
         }
     }
@@ -219,14 +219,14 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         resortPlayerOnTable();
         // 通知场上玩家离开
         NotifyTableRoomPlayerInfoChange playerInfoChange =
-            TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(
-                this, playerController, TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
+                TableMessageBuilder.buildNotifyTableRoomPlayerInfoChange(
+                        this, playerController, TableConstant.ON_TABLE_PLAYER_NUM, gameDataVo);
         // 需要排除当前玩家，因为给离开的玩家发送已经没有意义
         broadcastToPlayers(RoomMessageBuilder
-            .newBuilder()
-            .setData(playerInfoChange)
-            .toAllPlayer()
-            .exceptPlayer(playerController.playerId()));
+                .newBuilder()
+                .setData(playerInfoChange)
+                .toAllPlayer()
+                .exceptPlayer(playerController.playerId()));
         return leaveRes;
     }
 
@@ -235,13 +235,15 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
      */
     private void resortPlayerOnTable() {
         List<GamePlayer> topGamePlayers =
-            gameDataVo.getGamePlayerMap().values().stream()
-                .sorted((o1, o2) -> Long.compare(getItemNum(o2.getId()), getItemNum(o1.getId())))
-                .limit(TableConstant.ON_TABLE_PLAYER_NUM)
-                .toList();
+                gameDataVo.getGamePlayerMap().values().stream()
+                        .sorted((o1, o2) -> Long.compare(getItemNum(o2.getId()), getItemNum(o1.getId())))
+                        .limit(TableConstant.ON_TABLE_PLAYER_NUM)
+                        .toList();
         for (int i = 1; i <= topGamePlayers.size(); i++) {
             GamePlayer player = topGamePlayers.get(i - 1);
             player.getTableGameData().setSitNum(i);
         }
     }
+
+
 }

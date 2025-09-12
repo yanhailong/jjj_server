@@ -1,5 +1,7 @@
 package com.jjg.game.poker.game.texas.room;
 
+import com.jjg.game.activity.common.data.ActivityTargetType;
+import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
@@ -37,6 +39,7 @@ import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.message.RoomMessageBuilder;
@@ -190,6 +193,14 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         }
         gameDataVo.getPool().getFirst().addChips(betValue);
         gameDataVo.getPool().getFirst().addEligiblePlayer(playerId);
+        //添加活动进度
+        final long finalBetValue = betValue;
+        Thread.ofVirtual().start(() -> {
+            ActivityManager activityManager = getRoomController().getRoomManager().getActivityManager();
+            if (!(gamePlayer instanceof GameRobotPlayer)) {
+                activityManager.addPlayerActivityProgress(playerId, ActivityTargetType.BET.getTargetKey(), finalBetValue);
+            }
+        });
         //通知
         NotifyTexasBet notifyTexasBet = new NotifyTexasBet();
         notifyTexasBet.betType = info.getOperationType();

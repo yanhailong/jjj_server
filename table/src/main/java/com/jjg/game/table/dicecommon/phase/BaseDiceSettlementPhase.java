@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
@@ -37,7 +38,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
      * 骰子结算
      */
     protected <S extends AbstractMessage> void settlementDice(
-        BaseDiceSettlementInfo diceSettlementInfo, List<WinPosWeightCfg> winPosWeightCfgs, S settlement) {
+            BaseDiceSettlementInfo diceSettlementInfo, List<WinPosWeightCfg> winPosWeightCfgs, S settlement) {
         List<PlayerChangedGold> playerChangedGolds = new ArrayList<>();
         // 庄家变化的钱
         long bankerChangeGold = 0;
@@ -58,28 +59,30 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             playerChangedGolds.add(playerChangedGold);
             // 给玩家添加金币
             gameController.addItem(
-                gamePlayer.getId(), playerSettlementData.getTotalWin(),
-                ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
+                    gamePlayer.getId(), playerSettlementData.getTotalWin(),
+                    ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
             playerChangedGold.playerCurGold = gameController.getItemNum(gamePlayer.getId());
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
             bankerChangeGold += playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal();
             settlementDataMap.put(playerId, playerSettlementData);
         }
+        long addProgress = settlementDataMap.values().stream().mapToLong(SettlementData::getEffectiveWaterFlow).sum();
+        gameController.addActivityProgress(addProgress);
         gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
         // 场上玩家金币变化
         diceSettlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
             diceSettlementInfo.betTableInfos =
-                TableMessageBuilder.buildPlayerBetInfo(diceSettlementInfo.betTableInfos, gameDataVo, playerId);
+                    TableMessageBuilder.buildPlayerBetInfo(diceSettlementInfo.betTableInfos, gameDataVo, playerId);
             Map<Integer, List<Integer>> playerBetInfo = gameDataVo.getPlayerBetInfo(playerId);
             // 玩家未下注
             if (playerBetInfo != null && !playerBetInfo.isEmpty()) {
                 gameDataTracker.addPlayerLogData(
-                    entry.getValue(),
-                    DataTrackNameConstant.AREA_DATA,
-                    JSON.toJSONString(diceSettlementInfo.betTableInfos));
+                        entry.getValue(),
+                        DataTrackNameConstant.AREA_DATA,
+                        JSON.toJSONString(diceSettlementInfo.betTableInfos));
             }
             // 给玩家发送数据
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().setData(settlement).addPlayerId(playerId));
@@ -90,7 +93,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
      * 计算结算金币
      */
     protected SettlementData calcSettlementGold(
-        GamePlayer gamePlayer, List<WinPosWeightCfg> winPosWeightCfgs, Map<Integer, List<Integer>> playerBetInfo) {
+            GamePlayer gamePlayer, List<WinPosWeightCfg> winPosWeightCfgs, Map<Integer, List<Integer>> playerBetInfo) {
         SettlementData playerSettlementData = new SettlementData();
         for (WinPosWeightCfg winPosWeightCfg : winPosWeightCfgs) {
             List<Integer> betAreas = winPosWeightCfg.getBetArea();
@@ -104,8 +107,10 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
                 }
             }
         }
-        // 记录日志
-        BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            // 记录日志
+            BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
+        }
         return playerSettlementData;
     }
 }

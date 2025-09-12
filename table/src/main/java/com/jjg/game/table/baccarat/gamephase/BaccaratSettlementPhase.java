@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.base.ERoomItemReason;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
@@ -57,23 +58,23 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         checkHasDouble(baccaratSettlementInfo);
         // 检查闲家是否补牌
         if (!baccaratSettlementInfo.cardState.hasKingCard &&
-            checkNeedFillCard(baccaratSettlementInfo.playerCardIds, true, (byte) 0)) {
+                checkNeedFillCard(baccaratSettlementInfo.playerCardIds, true, (byte) 0)) {
             baccaratSettlementInfo.extraPlayerCardId = removeFirst(cardList);
             baccaratSettlementInfo.playerCardIds.add(baccaratSettlementInfo.extraPlayerCardId);
             gameDataVo.setFillCard(true);
         }
         // 检查庄家是否补牌
         if (!baccaratSettlementInfo.cardState.hasKingCard &&
-            checkNeedFillCard(baccaratSettlementInfo.bankerCardIds, false, baccaratSettlementInfo.extraPlayerCardId)) {
+                checkNeedFillCard(baccaratSettlementInfo.bankerCardIds, false, baccaratSettlementInfo.extraPlayerCardId)) {
             baccaratSettlementInfo.extraBankerCardId = removeFirst(cardList);
             baccaratSettlementInfo.bankerCardIds.add(baccaratSettlementInfo.extraBankerCardId);
             gameDataVo.setFillCard(true);
         }
         // 总分统计
         baccaratSettlementInfo.playerPointId =
-            (byte) (baccaratSettlementInfo.playerCardIds.stream().mapToInt(this::getCardPointId).sum() % 10.0);
+                (byte) (baccaratSettlementInfo.playerCardIds.stream().mapToInt(this::getCardPointId).sum() % 10.0);
         baccaratSettlementInfo.bankerPointId =
-            (byte) (baccaratSettlementInfo.bankerCardIds.stream().mapToInt(this::getCardPointId).sum() % 10.0);
+                (byte) (baccaratSettlementInfo.bankerCardIds.stream().mapToInt(this::getCardPointId).sum() % 10.0);
         // 计算牌桌的输赢状态
         calcWinState(baccaratSettlementInfo);
         // 将牌局的输赢保存到牌桌上
@@ -83,15 +84,15 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
         gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, baccaratSettlementInfo);
         List<PlayerChangedGold> playerChangedGolds = new ArrayList<>(changedGolds.values());
         NotifyBaccaratSettlementInfo baccaratTableInfo =
-            BaccaratMessageBuilder.buildNotifySettlementMessage(
-                gameController, gameDataVo, playerChangedGolds, baccaratSettlementInfo);
+                BaccaratMessageBuilder.buildNotifySettlementMessage(
+                        gameController, gameDataVo, playerChangedGolds, baccaratSettlementInfo);
         // 将结算信息写入到场上，方便中途加入的玩家读取
         gameDataVo.setBaccaratSettlementInfo(baccaratTableInfo);
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             // 获取每个玩家的信息
             baccaratTableInfo.baccaratTableInfo.tableAreaInfos =
-                BaccaratMessageBuilder.buildPlayerBetInfo(
-                    baccaratTableInfo.baccaratTableInfo, gameDataVo, entry.getKey());
+                    BaccaratMessageBuilder.buildPlayerBetInfo(
+                            baccaratTableInfo.baccaratTableInfo, gameDataVo, entry.getKey());
             //log.debug("玩家：{} 结算数据: {}", entry.getKey(), JSON.toJSONString(baccaratTableInfo));
             PlayerChangedGold changedGold = changedGolds.get(entry.getKey());
             // 玩家有赢钱且大于0
@@ -104,11 +105,11 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             }
             // 向每个玩家发送通知消息
             broadcastBuilderToRoom(
-                RoomMessageBuilder.newBuilder().setData(baccaratTableInfo).setPlayerIds(Collections.singleton(entry.getKey())));
+                    RoomMessageBuilder.newBuilder().setData(baccaratTableInfo).setPlayerIds(Collections.singleton(entry.getKey())));
             if (gameDataVo.getPlayerBetInfo().containsKey(entry.getKey())) {
                 gameDataTracker.addPlayerLogData(
-                    entry.getValue(), DataTrackNameConstant.AREA_DATA,
-                    JSON.toJSONString(baccaratTableInfo.baccaratTableInfo.tableAreaInfos));
+                        entry.getValue(), DataTrackNameConstant.AREA_DATA,
+                        JSON.toJSONString(baccaratTableInfo.baccaratTableInfo.tableAreaInfos));
             }
         }
         // 通知所有观察者
@@ -123,9 +124,9 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     public void checkHasKingCard(BaccaratSettlementInfo baccaratSettlementInfo) {
         // 总分统计
         byte playerPointId =
-            (byte) (baccaratSettlementInfo.playerCardIds.stream().mapToInt(this::getCardPointId).sum() % 10.0);
+                (byte) (baccaratSettlementInfo.playerCardIds.stream().mapToInt(this::getCardPointId).sum() % 10.0);
         byte bankerPointId =
-            (byte) (baccaratSettlementInfo.bankerCardIds.stream().mapToInt(this::getCardPointId).sum() % 10.0);
+                (byte) (baccaratSettlementInfo.bankerCardIds.stream().mapToInt(this::getCardPointId).sum() % 10.0);
         // 是否有天王牌
         baccaratSettlementInfo.cardState = new BaccaratCardState();
         baccaratSettlementInfo.cardState.hasKingCard = playerPointId >= 8 || bankerPointId >= 8;
@@ -161,11 +162,11 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     private void checkHasDouble(BaccaratSettlementInfo baccaratSettlementInfo) {
         // 计算牌型输赢,计算是否有对子
         boolean playerDoubleCard =
-            baccaratSettlementInfo.playerCardIds.stream().map(PokerCardUtils::getPointId).distinct().count()
-                != baccaratSettlementInfo.playerCardIds.size();
+                baccaratSettlementInfo.playerCardIds.stream().map(PokerCardUtils::getPointId).distinct().count()
+                        != baccaratSettlementInfo.playerCardIds.size();
         boolean bankerDoubleCard =
-            baccaratSettlementInfo.bankerCardIds.stream().map(PokerCardUtils::getPointId).distinct().count()
-                != baccaratSettlementInfo.bankerCardIds.size();
+                baccaratSettlementInfo.bankerCardIds.stream().map(PokerCardUtils::getPointId).distinct().count()
+                        != baccaratSettlementInfo.bankerCardIds.size();
         // 庄对子为1
         if (bankerDoubleCard) {
             baccaratSettlementInfo.cardState.cardTypeWinState = 1;
@@ -198,11 +199,11 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 continue;
             }
             long playerTotalBetGold =
-                playerBetInfo.values()
-                    .stream()
-                    .map(a -> a.stream().mapToInt(Integer::intValue).sum())
-                    .mapToLong(Integer::longValue)
-                    .sum();
+                    playerBetInfo.values()
+                            .stream()
+                            .map(a -> a.stream().mapToInt(Integer::intValue).sum())
+                            .mapToLong(Integer::longValue)
+                            .sum();
             // 玩家押注赢
             SettlementData settlementData = checkPlayerBetWin(gamePlayer, playerBetInfo, baccaratSettlementInfo);
             if (settlementData.getTotalWin() > 0) {
@@ -212,8 +213,8 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 playerGoldChange.playerBetGold = playerTotalBetGold;
                 // 给玩家添加金币
                 gameController.addItem(
-                    gamePlayer.getId(), settlementData.getTotalWin(),
-                    ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
+                        gamePlayer.getId(), settlementData.getTotalWin(),
+                        ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
                 // 需要扣除庄家的钱
                 bankerChangeGold -= settlementData.getBetWin();
                 playerGoldChange.playerCurGold = gameController.getItemNum(gamePlayer.getId());
@@ -223,9 +224,13 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 bankerChangeGold += settlementData.getBetTotal();
             }
             settlementDataMap.put(gamePlayer.getId(), settlementData);
-            // 记录押注日志
-            BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameController, playerBetInfo);
+            if (!(gamePlayer instanceof GameRobotPlayer)) {
+                // 记录押注日志
+                BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameController, playerBetInfo);
+            }
         }
+        long total = settlementDataMap.values().stream().mapToLong(SettlementData::getEffectiveWaterFlow).sum();
+        gameController.addActivityProgress(total);
         // 处理庄家输赢金币
         gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
         return playerChangedGolds;
@@ -263,15 +268,15 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
      * 通过玩家下注数据，计算获得的金币值
      */
     private SettlementData checkPlayerBetWin(
-        GamePlayer gamePlayer, Map<Integer, List<Integer>> playerBetInfo, BaccaratSettlementInfo settlementInfo) {
+            GamePlayer gamePlayer, Map<Integer, List<Integer>> playerBetInfo, BaccaratSettlementInfo settlementInfo) {
         // 下注区域                        1:庄对     2:和    3: 闲对 4: 闲 5: 庄
         // winState          输赢状态      1:庄赢     2:闲赢  3：和
         // cardTypeWinState  牌型的输赢状态 0:默认状态，1:庄对  2：闲对，3：庄和闲都有对子
         Map<Integer, WinPosWeightCfg> weightCfgMap =
-            GameDataManager.getWinPosWeightCfgList()
-                .stream()
-                .filter(cfg -> cfg.getGameID() == EGameType.BACCARAT.getGameTypeId())
-                .collect(HashMap::new, (map, cfg) -> map.put(cfg.getWinPosID(), cfg), HashMap::putAll);
+                GameDataManager.getWinPosWeightCfgList()
+                        .stream()
+                        .filter(cfg -> cfg.getGameID() == EGameType.BACCARAT.getGameTypeId())
+                        .collect(HashMap::new, (map, cfg) -> map.put(cfg.getWinPosID(), cfg), HashMap::putAll);
         SettlementData playerSettlementData = new SettlementData();
         for (Map.Entry<Integer, List<Integer>> entry : playerBetInfo.entrySet()) {
             long areaTotal = entry.getValue().stream().mapToInt(Integer::intValue).sum();
@@ -280,7 +285,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 case 1: {
                     if (settlementInfo.cardState.cardTypeWinState == 1 || settlementInfo.cardState.cardTypeWinState == 3) {
                         SettlementData settlementData =
-                            calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
+                                calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                         playerSettlementData.increaseBySettlementData(settlementData);
                     }
                     break;
@@ -288,28 +293,28 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 case 2:
                     if (settlementInfo.cardState.winState == 3) {
                         SettlementData settlementData =
-                            calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
+                                calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                         playerSettlementData.increaseBySettlementData(settlementData);
                     }
                     break;
                 case 3:
                     if (settlementInfo.cardState.cardTypeWinState == 2 || settlementInfo.cardState.cardTypeWinState == 3) {
                         SettlementData settlementData =
-                            calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
+                                calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                         playerSettlementData.increaseBySettlementData(settlementData);
                     }
                     break;
                 case 4:
                     if (settlementInfo.cardState.winState == 2) {
                         SettlementData settlementData =
-                            calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
+                                calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                         playerSettlementData.increaseBySettlementData(settlementData);
                     }
                     break;
                 case 5:
                     if (settlementInfo.cardState.winState == 1) {
                         SettlementData settlementData =
-                            calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
+                                calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                         playerSettlementData.increaseBySettlementData(settlementData);
                     }
                     break;

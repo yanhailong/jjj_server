@@ -16,7 +16,8 @@ public interface IPlayerLoginSuccess extends IGameSysFuncInterface {
      * 玩家登录成功事件
      *
      * @param playerController 玩家信息
+     * @param firstLogin       是否是首次登录
      * @return true 继续执行 false终止执行
      */
-    void onPlayerLoginSuccess(PlayerController playerController, Player player);
+    void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin);
 }

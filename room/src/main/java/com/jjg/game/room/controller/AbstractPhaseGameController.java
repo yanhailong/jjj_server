@@ -1,6 +1,8 @@
 package com.jjg.game.room.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.activity.common.data.ActivityTargetType;
+import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
@@ -362,5 +364,20 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
             }
         }
         return null;
+    }
+
+    /**
+     * 增加活动进度
+     *
+     * @param addProgress 增加的进度值
+     */
+    public void addActivityProgress(long addProgress) {
+        if (addProgress <= 0) {
+            return;
+        }
+        Thread.ofVirtual().start(() -> {
+            ActivityManager activityManager = getRoomController().getRoomManager().getActivityManager();
+            activityManager.addActivityProgress(ActivityTargetType.EFFECTIVE_BET.getTargetKey(), addProgress);
+        });
     }
 }
