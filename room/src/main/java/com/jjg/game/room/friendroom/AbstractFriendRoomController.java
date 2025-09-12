@@ -1,13 +1,10 @@
 package com.jjg.game.room.friendroom;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.data.FriendRoom;
-import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.base.EGameState;
@@ -72,7 +69,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             );
         }
         // 检查房间开始的逻辑，如果房间游戏暂停需要尝试启动游戏
-        if (checkRoomCanContinue() && gameController.checkRoomCanStart()) {
+        if (checkRoomCanContinue()) {
             // 检查通过开始游戏
             tryContinueGame();
         }
@@ -357,7 +354,21 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         if (playerGold <= 0) {
             return Code.SUCCESS;
         }
-        room.cancelApplyBanker(playerId);
+        CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(),
+            new DataSaveCallback<>() {
+                @Override
+                public void updateData(R dataEntity) {
+                }
+
+                @Override
+                public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                    dataEntity.cancelApplyBanker(playerId);
+                    return true;
+                }
+            });
+        if (result.success()) {
+            this.room = result.data;
+        }
         int code = gameController.addItem(
             playerId, playerGold, ERoomItemReason.FRIEND_ROOM_CANCEL_BANKER_ADD_GOLD.withCfgId(room.getRoomCfgId()));
         log.info("玩家：{} 申请取消成为庄家，添加金币：{}", playerId, playerGold);
