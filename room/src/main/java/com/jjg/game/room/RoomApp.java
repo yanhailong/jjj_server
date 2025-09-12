@@ -1,5 +1,6 @@
 package com.jjg.game.room;
 
+import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.service.CoreStartService;
@@ -42,7 +43,8 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
     private RoomEventListener roomEventListener;
     @Autowired
     private ApplicationEventPublisher eventPublisher;
-
+    @Autowired
+    private ActivityManager activityManager;
     private ApplicationContext context;
 
     private boolean running = false;
@@ -69,6 +71,7 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
         marsCoreStartService.init(this.context, Collections.emptySet());
         coreStartService.init(this.context);
         roomEventListener.init();
+        activityManager.initData();
         //调用启动方法
         for (Map.Entry<String, IRoomStartListener> en : startListenerMap.entrySet()) {
             en.getValue().start();

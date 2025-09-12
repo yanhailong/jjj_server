@@ -157,7 +157,7 @@ public class MarsCurator implements TreeCacheListener {
                     Map<String, IGameClusterLeaderListener>
                         listenerMap = CommonUtil.getContext().getBeansOfType(IGameClusterLeaderListener.class);
                     try {
-                        listenerMap.values().forEach(listener -> listener.isLeader());
+                        listenerMap.values().forEach(IGameClusterLeaderListener::isLeader);
                     } catch (Exception e) {
                         log.error("游戏节点：{} 在选举成master时调用监听器发生异常", tmpPath, e);
                     }
@@ -173,7 +173,7 @@ public class MarsCurator implements TreeCacheListener {
                     Map<String, IGameClusterLeaderListener>
                         listenerMap = CommonUtil.getContext().getBeansOfType(IGameClusterLeaderListener.class);
                     try {
-                        listenerMap.values().forEach(listener -> listener.notLeader());
+                        listenerMap.values().forEach(IGameClusterLeaderListener::notLeader);
                     } catch (Exception e) {
                         log.error("游戏节点：{} 在变成非master节点时调用监听器发生异常", tmpPath, e);
                     }

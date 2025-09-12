@@ -152,13 +152,13 @@ public class PlayerActivityDao {
      * @param dataMap 活动数据 Map，key 为活动 ID，value 为具体活动数据对象
      * @param <T> 活动数据类型
      */
-    public <T> void savePlayerActivityData(long playerId, ActivityType activityType, Map<Long, T> dataMap) {
+    public <T> void savePlayerActivityData(long playerId, ActivityType activityType, Map<Integer, T> dataMap) {
         if (CollectionUtil.isEmpty(dataMap)) {
             return;
         }
         try {
             Map<String, String> hashMap = new HashMap<>();
-            for (Map.Entry<Long, T> entry : dataMap.entrySet()) {
+            for (Map.Entry<Integer, T> entry : dataMap.entrySet()) {
                 hashMap.put(String.valueOf(entry.getKey()), mapper.writeValueAsString(entry.getValue()));
             }
             HashOperations<String, String, String> hash = redisTemplate.opsForHash();

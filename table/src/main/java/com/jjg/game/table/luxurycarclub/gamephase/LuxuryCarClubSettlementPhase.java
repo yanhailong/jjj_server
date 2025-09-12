@@ -5,6 +5,7 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
@@ -75,8 +76,10 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             playerChangedGold.playerWinGold = playerSettlementData.getBetWin();
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
-            // 添加日志埋点数据
-            BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
+            if (!(gamePlayer instanceof GameRobotPlayer)) {
+                // 添加日志埋点数据
+                BetDataTrackLogUtils.recordBetLog(playerSettlementData, gamePlayer, gameController, playerBetInfo);
+            }
             // 给玩家添加金币
             gameController.addItem(
                 gamePlayer.getId(), playerSettlementData.getTotalWin(),
@@ -86,6 +89,8 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             bankerChangeGold += playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal();
             settlementDataMap.put(playerId, playerSettlementData);
         }
+        long addProgress = settlementDataMap.values().stream().mapToLong(SettlementData::getEffectiveWaterFlow).sum();
+        gameController.addActivityProgress(addProgress);
         gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
         // 场上玩家金币变化
         settlement.settlementInfo.playerChangedGolds = playerChangedGolds;

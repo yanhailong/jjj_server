@@ -14,15 +14,20 @@ public enum ActivityTargetType {
     /**
      * 等级变化
      */
-    LEVEL(2, 1 >> 1),
+    LEVEL(2, 1 << 1),
     /**
      * 充值
      */
-    RECHARGE(3, 1 >> 2),
+    RECHARGE(3, 1 << 2),
     /**
      * 有效押注
      */
-    EFFECTIVE_BET(4, 1 >> 3);
+    EFFECTIVE_BET(4, 1 << 3),
+    /**
+     * 押注
+     */
+    BET(5, 1 << 4);
+
     private final long type;
     private final long targetKey;
 
@@ -38,4 +43,15 @@ public enum ActivityTargetType {
     public long getTargetKey() {
         return targetKey;
     }
+
+
+    public static long getTagetKey(ActivityTargetType... targetType) {
+        long tagetKey = 0;
+        for (ActivityTargetType type : targetType) {
+            tagetKey = type.getTargetKey() | tagetKey;
+        }
+        return tagetKey;
+    }
+
+
 }

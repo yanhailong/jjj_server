@@ -5,7 +5,6 @@ import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.activity.cashcow.dao.CashCowDao;
 import com.jjg.game.activity.cashcow.data.CashCowPlayerActivityData;
 import com.jjg.game.activity.cashcow.data.CashCowRecordData;
-import com.jjg.game.activity.cashcow.data.CashCowTimerParam;
 import com.jjg.game.activity.cashcow.message.bean.CashCowDetailInfo;
 import com.jjg.game.activity.cashcow.message.bean.CashCowDetailType;
 import com.jjg.game.activity.cashcow.message.bean.CashCowShowRecord;
@@ -36,6 +35,7 @@ import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.CashcowCfg;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -56,12 +56,15 @@ import java.util.concurrent.ConcurrentHashMap;
  * @date 2025/9/3 17:43
  */
 @Component
-public class CashCowController extends BaseActivityController implements TimerListener<CashCowTimerParam>, IGameClusterLeaderListener {
+public class CashCowController extends BaseActivityController implements TimerListener<String>, IGameClusterLeaderListener {
     private final Logger log = LoggerFactory.getLogger(CashCowController.class);
     private final CashCowDao cashCowDao;
     private final TimerCenter timerCenter;
     //活动id->detailId-> 添加定时器的参数
-    private final Map<Long, Map<Integer, CashCowTimerParam>> timerMap;
+    private final Map<Long, Map<Integer, Long>> timerMap;
+    private long lastRobotAddTime;
+    private final String TIMER_KEY = "cashCow";
+    private TimerEvent<String> timerEvent = null;
 
     public CashCowController(CashCowDao cashCowDao, TimerCenter timerCenter) {
         this.cashCowDao = cashCowDao;
@@ -76,13 +79,59 @@ public class CashCowController extends BaseActivityController implements TimerLi
         if (CollectionUtil.isEmpty(baseCfgBeanMap)) {
             return;
         }
-        //添加机器人定时器
-        LocalDateTime now = LocalDateTime.now();
-        for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
-            if (cfgBean instanceof CashcowCfg cfg) {
-                addRobotTimer(cfg, now, activityId, false);
+        if (activityManager.isExecutionNode()) {
+            //添加定时器
+            timerEvent = new TimerEvent<>(this, TIMER_KEY, TimeHelper.ONE_SECOND_OF_MILLIS);
+            timerCenter.add(timerEvent);
+            LocalDateTime now = LocalDateTime.now();
+            for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
+                if (cfgBean instanceof CashcowCfg cfg) {
+                    addRobotTimer(cfg, now, activityId, false);
+                }
             }
         }
+    }
+
+    @Override
+    public void addActivityProgress(ActivityData activityData, long progress) {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_ADD_POOL_PROPORTION);
+        long realProgress = BigDecimal.valueOf(progress).multiply(BigDecimal.valueOf(globalConfigCfg.getIntValue())).divide(BigDecimal.valueOf(10000), RoundingMode.FLOOR).longValue();
+        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
+        for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
+            if (cfgBean instanceof CashcowCfg cfg && cfg.getType() != 4) {
+                cashCowDao.addActivityPool(activityData.getId(), cfgBean.getId(), realProgress);
+            }
+        }
+    }
+
+    @Override
+    public boolean addPlayerProgress(long playerId, ActivityData data, long progress) {
+        long added = cashCowDao.addPlayerActivityProgress(playerId, data.getId(), progress);
+        String lockKey = playerActivityDao.getLockKey(playerId, data.getId());
+        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(data.getId());
+        boolean canClaim = false;
+        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        try {
+            Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, data.getType(), data.getId());
+            for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
+                if (cfgBean instanceof CashcowCfg cfg && cfg.getType() == 4) {
+                    CashCowPlayerActivityData activityData = playerActivityData.computeIfAbsent(cfg.getId(), key -> new CashCowPlayerActivityData(data.getId(), data.getRound()));
+                    if (activityData.getClaimStatus() == ActivityConstant.ClaimStatus.CLAIMED) {
+                        continue;
+                    }
+                    if (added >= cfg.getCondition()) {
+                        activityData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+                        canClaim = true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("摇钱树增加玩家个人进度失败 playerId:{} addVelue:{}", playerId, progress);
+            throw new RuntimeException(e);
+        } finally {
+            redisLock.unlock(lockKey);
+        }
+        return canClaim;
     }
 
     @Override
@@ -91,15 +140,8 @@ public class CashCowController extends BaseActivityController implements TimerLi
         long activityId = activityData.getId();
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
-        if (baseCfgBean instanceof CashcowCfg cfg) {
+        if (baseCfgBean instanceof CashcowCfg cfg && cfg.getType() != 4) {
             try {
-                Player player = corePlayerService.get(playerId);
-                //检查消耗
-                boolean checked = playerPackService.checkHasItems(player, cfg.getNeedItem());
-                if (!checked) {
-                    res.code = Code.NOT_ENOUGH_ITEM;
-                    return res;
-                }
                 List<List<Integer>> weight = cfg.getWeight();
                 if (CollectionUtil.isEmpty(weight) || cfg.getDistribution() <= 0) {
                     res.code = Code.SAMPLE_ERROR;
@@ -111,13 +153,29 @@ public class CashCowController extends BaseActivityController implements TimerLi
                         return res;
                     }
                 }
+                Player player = corePlayerService.get(playerId);
                 long get = 0;
                 //加锁
                 String lockKey = playerActivityDao.getLockKey(playerId, activityId);
                 redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
                 try {
                     Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
-                    CashCowPlayerActivityData data = playerActivityData.computeIfAbsent(detailId, key -> new CashCowPlayerActivityData(activityId, activityData.getRound()));
+                    CashCowPlayerActivityData data = playerActivityData.computeIfAbsent(detailId, key -> {
+                                CashCowPlayerActivityData temp = new CashCowPlayerActivityData(activityId, activityData.getRound());
+                                temp.setRemainFreeTimes(getConfigFreeTimes());
+                                return temp;
+                            }
+                    );
+                    if (data.getRemainFreeTimes() > 0) {
+                        data.setRemainFreeTimes(data.getRemainFreeTimes() - 1);
+                    } else {
+                        //扣除消耗
+                        CommonResult<Void> result = playerPackService.removeItems(player, cfg.getNeedItem(), "cashcow");
+                        if (!result.success()) {
+                            res.code = result.code;
+                            return res;
+                        }
+                    }
                     int joinTimes = data.getJoinTimes();
                     for (List<Integer> list : weight) {
                         //判断次数范围
@@ -138,6 +196,8 @@ public class CashCowController extends BaseActivityController implements TimerLi
                             break;
                         }
                     }
+                    data.setJoinTimes(data.getJoinTimes() + 1);
+                    playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, playerActivityData);
                 } catch (Exception e) {
                     log.error("玩家参加摇钱树加锁后出现异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
                 } finally {
@@ -223,16 +283,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
     public void onActivityEnd(ActivityData activityData) {
         //设置活动状态
         activityData.setStatus(ActivityConstant.ActivityStatus.ENDED);
-        removeAllRobotTimer();
-    }
-
-    private void removeAllRobotTimer() {
-        //清除机器人定时器
-        for (Map<Integer, CashCowTimerParam> value : timerMap.values()) {
-            for (CashCowTimerParam timerParam : value.values()) {
-                timerCenter.remove(this, timerParam);
-            }
-        }
+        timerMap.clear();
     }
 
     @Override
@@ -258,7 +309,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         } else {
             activityData.addRound();
             //将上一轮的加作为底池
-            GlobalConfigCfg configCfg = GameDataManager.getGlobalConfigCfg(23);
+            GlobalConfigCfg configCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_ADD_NEXT_ROUND_PROPORTION);
             for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
                 if (cfgBean instanceof CashcowCfg cfg) {
                     long pool = cashCowDao.getActivityPool(activityId, cfg.getId());
@@ -311,14 +362,12 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 }
             }
             //随机间隔时间
-            int nextTime = RandomUtil.randomInt(probabilityList.get(2), probabilityList.get(3));
+            long nextTime = RandomUtil.randomInt(probabilityList.get(2), probabilityList.get(3));
             //添加定时器
-            CashCowTimerParam timerParam = new CashCowTimerParam(activityId, cfg.getId());
-            timerCenter.add(new TimerEvent<>(this, nextTime * 1000, timerParam));
             log.debug("摇钱树添加机器人获奖成功 activity:{} detailId:{} time:{}", activityId, cfg.getId(), nextTime);
             //保存到列表
-            Map<Integer, CashCowTimerParam> paramMap = timerMap.computeIfAbsent(activityId, key -> new HashMap<>());
-            paramMap.put(cfg.getId(), timerParam);
+            Map<Integer, Long> paramMap = timerMap.computeIfAbsent(activityId, key -> new HashMap<>());
+            paramMap.put(cfg.getId(), System.currentTimeMillis() + nextTime * TimeHelper.ONE_SECOND_OF_MILLIS);
         }
     }
 
@@ -361,10 +410,22 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 //抽奖
                 info.costItems = ItemUtils.buildItemInfo(cfg.getNeedItem());
                 info.pool = cashCowDao.getActivityPool(activityId, baseCfgBean.getId());
+                if (data instanceof CashCowPlayerActivityData cashCowPlayerActivityData) {
+                    info.remainFreeTimes = cashCowPlayerActivityData.getRemainFreeTimes();
+                } else {
+                    info.remainFreeTimes = getConfigFreeTimes();
+                }
             }
             return info;
         }
         return null;
+    }
+
+    /**
+     * 获取配置的免费次数
+     */
+    private int getConfigFreeTimes() {
+        return GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_FREE_TIMES).getIntValue();
     }
 
     @Override
@@ -404,13 +465,17 @@ public class CashCowController extends BaseActivityController implements TimerLi
         if (CollectionUtil.isNotEmpty(baseCfgBeanMap)) {
             for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
                 //累计奖励
-                if (cfgBean instanceof CashcowCfg cfg && cfg.getType() == 4) {
-                    if (activityProgress >= cfg.getCondition()) {
-                        CashCowPlayerActivityData data = playerActivityData.get(cfg.getId());
-                        if (data == null) {
+                if (cfgBean instanceof CashcowCfg cfg) {
+                    CashCowPlayerActivityData data = playerActivityData.get(cfg.getId());
+                    if (cfg.getType() == 4 && activityProgress >= cfg.getCondition()) {
+                        if (data != null && data.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
                             claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
                             break;
                         }
+                    }
+                    if (cfg.getType() != 4 && (data == null || data.getRemainFreeTimes() > 0)) {
+                        claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
+                        break;
                     }
                 }
             }
@@ -418,6 +483,27 @@ public class CashCowController extends BaseActivityController implements TimerLi
         return ActivityBuilder.buildActivityInfo(activityData, claimStatus);
     }
 
+    @Override
+    public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
+        super.checkPlayerDataAndReset(playerId, activityData);
+        //重置每日免费次数
+        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
+        redisLock.lock(lockKey);
+        try {
+            Map<Integer, CashCowPlayerActivityData> playerActivityDataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+            if (CollectionUtil.isNotEmpty(playerActivityDataMap)) {
+                for (CashCowPlayerActivityData playerActivityData : playerActivityDataMap.values()) {
+                    //重置每日免费
+                    playerActivityData.setRemainFreeTimes(getConfigFreeTimes());
+                }
+            }
+            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), playerActivityDataMap);
+        } catch (Exception e) {
+            log.error("重置摇钱树每日免费次数失败 playerId:{} activity:{}", playerId, activityData.getType(), e);
+        } finally {
+            redisLock.unlock(lockKey);
+        }
+    }
 
     @Override
     public List<BaseCfgBean> getDetailCfgBean() {
@@ -470,45 +556,108 @@ public class CashCowController extends BaseActivityController implements TimerLi
     }
 
     @Override
-    public void onTimer(TimerEvent<CashCowTimerParam> timerEvent) {
-        if (marsCurator.isMaster()) {
+    public void onTimer(TimerEvent<String> timerEvent) {
+        if (activityManager.isExecutionNode()) {
+            long timeMillis = System.currentTimeMillis();
             //机器人定时抽奖
-            CashCowTimerParam param = timerEvent.getParameter();
-            ActivityData data = activityManager.getActivityData().get(param.activityId());
-            if (data == null || !data.canRun()) {
-                return;
+            for (Map.Entry<Long, Map<Integer, Long>> entry : timerMap.entrySet()) {
+                Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(entry.getKey());
+                for (Map.Entry<Integer, Long> longEntry : entry.getValue().entrySet()) {
+                    if (timeMillis >= longEntry.getValue()) {
+                        BaseCfgBean baseCfgBean = baseCfgBeanMap.get(longEntry.getKey());
+                        if (baseCfgBean instanceof CashcowCfg cfg) {
+                            addRobotTimer(cfg, LocalDateTime.now(), entry.getKey(), true);
+                        }
+                    }
+                }
             }
-            Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(param.activityId());
-            BaseCfgBean baseCfgBean = baseCfgBeanMap.get(param.detailId());
-            if (baseCfgBean instanceof CashcowCfg cfg) {
-                addRobotTimer(cfg, LocalDateTime.now(), param.activityId(), true);
-            }
-        }
-    }
-
-    @Override
-    public void isLeader() {
-        //获取所有该类型的活动
-        Map<Long, ActivityData> activityDataMap = activityManager.getActivityTypeData().get(ActivityType.CASH_COW);
-        if (CollectionUtil.isEmpty(activityDataMap)) {
-            return;
-        }
-        for (ActivityData activityData : activityDataMap.values()) {
-            if (!activityData.canRun()) {
-                Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-                for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
-                    if (cfgBean instanceof CashcowCfg cfg) {
-                        addRobotTimer(cfg, LocalDateTime.now(), activityData.getId(), false);
+            //机器人自动增加奖池
+            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_ROBOT_ADD_Frequency);
+            if (StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
+                String[] cfg = StringUtils.split(globalConfigCfg.getValue(), "_");
+                if (cfg.length == 2) {
+                    //判断是否触发
+                    if (lastRobotAddTime <= 0 && lastRobotAddTime + Long.parseLong(cfg[0]) * TimeHelper.ONE_SECOND_OF_MILLIS < timeMillis) {
+                        lastRobotAddTime = timeMillis;
+                        if (Integer.parseInt(cfg[0]) < RandomUtil.randomInt(10000)) {
+                            //触发增加
+                            GlobalConfigCfg addCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_ROBOT_ADD_VALUE);
+                            List<List<Integer>> cfgAdd = getCfgAdd(addCfg.getValue());
+                            if (CollectionUtil.isEmpty(cfgAdd)) {
+                                return;
+                            }
+                            int hour = LocalDateTime.now().getHour();
+                            for (List<Integer> list : cfgAdd) {
+                                if (list.getFirst() >= hour && hour < list.get(1)) {
+                                    int addValue = RandomUtil.randomInt(list.get(2), list.get(3));
+                                    Map<Long, ActivityData> activityDataMap = activityManager.getActivityTypeData().get(ActivityType.CASH_COW);
+                                    for (ActivityData activityData : activityDataMap.values()) {
+                                        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
+                                        for (BaseCfgBean baseCfgBean : baseCfgBeanMap.values()) {
+                                            cashCowDao.addActivityPool(activityData.getId(), baseCfgBean.getId(), addValue);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
-        log.debug("选举为主节点 摇钱树机器人添加");
+    }
+
+    /**
+     * 获取摇钱树机器人自动增加奖池配置
+     *
+     * @param cfg 配置
+     */
+    public List<List<Integer>> getCfgAdd(String cfg) {
+        List<List<Integer>> arrayList = new ArrayList<>();
+        if (StringUtils.isNotEmpty(cfg)) {
+            String[] split = StringUtils.split(cfg, "|");
+            for (String string : split) {
+                List<Integer> list = new ArrayList<>();
+                arrayList.add(list);
+                String[] split2 = StringUtils.split(string, "_");
+                for (String s : split2) {
+                    list.add(Integer.parseInt(s));
+                }
+            }
+        }
+        return arrayList;
+    }
+
+    @Override
+    public void isLeader() {
+        if (activityManager.isExecutionNode()) {
+            if (timerEvent == null) {
+                timerEvent = new TimerEvent<>(this, TIMER_KEY, TimeHelper.ONE_SECOND_OF_MILLIS);
+                timerCenter.add(timerEvent);
+            }
+            //获取所有该类型的活动
+            Map<Long, ActivityData> activityDataMap = activityManager.getActivityTypeData().get(ActivityType.CASH_COW);
+            if (CollectionUtil.isEmpty(activityDataMap)) {
+                return;
+            }
+            for (ActivityData activityData : activityDataMap.values()) {
+                if (!activityData.canRun()) {
+                    Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
+                    for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
+                        if (cfgBean instanceof CashcowCfg cfg) {
+                            addRobotTimer(cfg, LocalDateTime.now(), activityData.getId(), false);
+                        }
+                    }
+                }
+            }
+            log.debug("选举为主节点 摇钱树机器人添加");
+        }
     }
 
     @Override
     public void notLeader() {
-        removeAllRobotTimer();
+        timerCenter.remove(this, TIMER_KEY);
+        timerEvent = null;
+        timerMap.clear();
         log.debug("退举 摇钱树机器人删除");
     }
 }

@@ -4,16 +4,15 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.dao.ActivityDao;
 import com.jjg.game.activity.common.dao.ActivityDetailDao;
-import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
-import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.common.data.ActivityType;
-import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.res.NotifyActivityChange;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.MarsCurator;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
@@ -63,9 +62,10 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     private final ClusterSystem clusterSystem;
     /**
-     * 玩家活动数据 DAO
+     * 节点配置
      */
-    private final PlayerActivityDao playerActivityDao;
+    private final NodeConfig nodeConfig;
+
     /**
      * 活动跑马灯管理器
      */
@@ -86,7 +86,6 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 活动 id -> 活动详细配置
      */
     private Map<Long, Map<Integer, BaseCfgBean>> activityDetailInfo = new ConcurrentHashMap<>();
-
     /**
      * 开服时间（毫秒）
      */
@@ -94,15 +93,15 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     public ActivityManager(TimerCenter timerCenter, ActivityDao activityDao,
                            ActivityDetailDao activityDetailDao, ClusterSystem clusterSystem,
-                           PlayerActivityDao playerActivityDao, CoreMarqueeManager marqueeManager,
-                           MarsCurator marsCurator) {
+                           CoreMarqueeManager marqueeManager,
+                           MarsCurator marsCurator, NodeConfig nodeConfig) {
         this.timerCenter = timerCenter;
         this.activityDao = activityDao;
         this.activityDetailDao = activityDetailDao;
         this.clusterSystem = clusterSystem;
-        this.playerActivityDao = playerActivityDao;
         this.marqueeManager = marqueeManager;
         this.marsCurator = marsCurator;
+        this.nodeConfig = nodeConfig;
     }
 
 
@@ -205,7 +204,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     @Scheduled(cron = "0 0 * * * ? ")
     private void saveActivity() {
-        if (marsCurator.isMaster()) {
+        if (isExecutionNode()) {
             Map<Long, ActivityData> dataHashMap = new HashMap<>(activityData);
             activityDao.saveActivities(dataHashMap);
             Map<Long, Map<Integer, BaseCfgBean>> longMapHashMap = new HashMap<>(activityDetailInfo);
@@ -316,7 +315,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     }
 
     @Override
-    public void onPlayerLoginSuccess(PlayerController playerController, Player player) {
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
         NotifyActivityChange info = new NotifyActivityChange();
         info.activityInfos = new ArrayList<>();
         for (ActivityData data : activityData.values()) {
@@ -324,7 +323,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 continue;
             }
             BaseActivityController controller = data.getType().getController();
-            controller.checkPlayerDataAndReset(player.getId(), data);
+            if (firstLogin) {
+                controller.checkPlayerDataAndReset(player.getId(), data);
+            }
             info.activityInfos.add(controller.buildActivityInfo(player.getId(), data));
         }
         playerController.send(info);
@@ -334,14 +335,14 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     /**
      * 玩家活动进度更新
      *
-     * @param playerId           玩家id
-     * @param activityTargetType 触发类型
-     * @param value              增加值
+     * @param playerId          玩家id
+     * @param activityTargetKey 触发key
+     * @param value             增加值
      */
-    public void addPlayerActivityProgress(long playerId, ActivityTargetType activityTargetType, long value) {
+    public void addPlayerActivityProgress(long playerId, long activityTargetKey, long value) {
         //获取需要增加的活动类型
         for (ActivityType activityType : ActivityType.values()) {
-            if (!activityType.isCanAddPlayerProgress() || (activityType.getTargetKey() & activityTargetType.getTargetKey()) == 0) {
+            if (!activityType.isCanAddPlayerProgress() || (activityType.getTargetKey() & activityTargetKey) == 0) {
                 continue;
             }
             Map<Long, ActivityData> activityDataMap = activityTypeData.get(activityType);
@@ -351,10 +352,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             List<ActivityData> dataArrayList = new ArrayList<>();
             for (ActivityData data : activityDataMap.values()) {
                 try {
-                    //获取该玩家的活动详细信息
-                    Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityType, data.getId());
-                    int added = data.getType().getController().addPlayerProgress(playerId, playerActivityData, value);
-                    if (added == ActivityConstant.ClaimStatus.CAN_CLAIM) {
+                    boolean canClaim = data.getType().getController().addPlayerProgress(playerId, data, value);
+                    if (canClaim) {
                         dataArrayList.add(data);
                     }
                 } catch (Exception e) {
@@ -377,12 +376,12 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     /**
      * 活动进度更新
      *
-     * @param activityTargetType
+     * @param activityTargetKey
      * @param value
      */
-    public void addActivityProgress(ActivityTargetType activityTargetType, long value) {
+    public void addActivityProgress(long activityTargetKey, long value) {
         for (ActivityType activityType : ActivityType.values()) {
-            if (!activityType.isCanAddActivityProgress() || (activityType.getTargetKey() & activityTargetType.getTargetKey()) == 0) {
+            if (!activityType.isCanAddActivityProgress() || (activityType.getTargetKey() & activityTargetKey) == 0) {
                 continue;
             }
             Map<Long, ActivityData> activityDataMap = activityTypeData.get(activityType);
@@ -457,4 +456,12 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         return null;
     }
+
+    /**
+     * 判断是否是活动执行节点
+     */
+    public boolean isExecutionNode() {
+        return NodeType.HALL == NodeType.getNodeTypeByName(nodeConfig.getType()) && marsCurator.isMaster();
+    }
+
 }

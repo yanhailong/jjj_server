@@ -58,7 +58,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
     @Override
     public void initSampleCallbackCollector() {
         addChangeSampleFileObserveWithCallBack(ViplevelCfg.EXCEL_NAME, VipCfgCache::initData)
-            .addInitSampleFileObserveWithCallBack(ViplevelCfg.EXCEL_NAME, VipCfgCache::initData);
+                .addInitSampleFileObserveWithCallBack(ViplevelCfg.EXCEL_NAME, VipCfgCache::initData);
 
     }
 
@@ -210,29 +210,30 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
     }
 
     @Override
-    public void onPlayerLoginSuccess(PlayerController playerController, Player player) {
-        //vip经验衰减
-        ViplevelCfg vipLevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
-        if (Objects.nonNull(vipLevelCfg)) {
-            Integer interval = vipLevelCfg.getRollback().getFirst();
-            if (!interval.equals(-1)) {
-                Account account = accountDao.queryAccountByPlayerId(player.getId());
-                if (Objects.nonNull(account)) {
-                    long lastOfflineTime = account.getLastOfflineTime();
-                    long timeMillis = System.currentTimeMillis();
-                    //计算差值
-                    long difference = TimeHelper.calculateDifference(ChronoUnit.MINUTES, lastOfflineTime, timeMillis);
-                    if (difference >= interval) {
-                        //经验衰减
-                        Player doneSave = playerService.doSave(player.getId(), vipLevelCfg.getRollback().getLast(),
-                            (savePlayer, value) -> {
-                                savePlayer.setVipExp(Math.max(player.getVipExp() - value, 0));
-                            });
-                        playerController.setPlayer(doneSave);
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+        if (firstLogin) {
+            //vip经验衰减
+            ViplevelCfg vipLevelCfg = VipCfgCache.getVipLevelCfg(player.getVipLevel());
+            if (Objects.nonNull(vipLevelCfg)) {
+                Integer interval = vipLevelCfg.getRollback().getFirst();
+                if (!interval.equals(-1)) {
+                    Account account = accountDao.queryAccountByPlayerId(player.getId());
+                    if (Objects.nonNull(account)) {
+                        long lastOfflineTime = account.getLastOfflineTime();
+                        long timeMillis = System.currentTimeMillis();
+                        //计算差值
+                        long difference = TimeHelper.calculateDifference(ChronoUnit.MINUTES, lastOfflineTime, timeMillis);
+                        if (difference >= interval) {
+                            //经验衰减
+                            Player doneSave = playerService.doSave(player.getId(), vipLevelCfg.getRollback().getLast(),
+                                    (savePlayer, value) -> {
+                                        savePlayer.setVipExp(Math.max(player.getVipExp() - value, 0));
+                                    });
+                            playerController.setPlayer(doneSave);
+                        }
                     }
                 }
             }
         }
-        //获取上次退出时间
     }
 }

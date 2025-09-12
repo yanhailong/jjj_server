@@ -34,6 +34,16 @@ public interface ActivityConstant {
     interface CashCow {
         //默认分页大小
         int DEFAULT_SIZE = 30;
+        //摇钱树活动增长金额
+        int CASH_COW_ROBOT_ADD_VALUE = 21;
+        //摇钱树活动增加频率
+        int CASH_COW_ROBOT_ADD_Frequency = 22;
+        //摇钱树活动当前奖金累计进入下一期的万分比比例
+        int CASH_COW_ADD_NEXT_ROUND_PROPORTION = 23;
+        //摇钱树活动当玩家产生有效打码量的金额万分比进入奖池
+        int CASH_COW_ADD_POOL_PROPORTION = 24;
+        //摇钱树活动每日免费获得的抽奖次数（重置时间跟随系统）
+        int CASH_COW_FREE_TIMES = 25;
     }
 
     interface MsgBean {

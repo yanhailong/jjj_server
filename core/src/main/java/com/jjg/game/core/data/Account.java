@@ -29,7 +29,7 @@ public class Account {
     private String lastLoginMac;
     //最近一次登录时间
     private long lastLoginTime;
-    //最近一次登录时间
+    //最近一次离线时间
     private long lastOfflineTime;
     //当前状态
     private int status;
