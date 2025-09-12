@@ -212,6 +212,10 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
             gameState = EGameState.GAMING;
             tryStartNextGame();
             return true;
+        } else if (gameState == EGameState.PAUSING_ON_NEXT_ROUND) {
+            // 如果还在下一轮暂停状态直接设置为游戏中
+            gameState = EGameState.GAMING;
+            return true;
         }
         return false;
     }
@@ -257,7 +261,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     }
 
     @Override
-    protected final GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
+    public final GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
         GamePlayer gamePlayer = super.onPlayerJoinRoom(playerController, gameStartStatus);
         RoomPlayer roomPlayer = getRoom().getRoomPlayers().get(gamePlayer.getId());
         PokerPlayerGameData pokerPlayerGameData = new PokerPlayerGameData();

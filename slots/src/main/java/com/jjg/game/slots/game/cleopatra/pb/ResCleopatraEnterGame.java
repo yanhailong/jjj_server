@@ -5,7 +5,8 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.slots.game.cleopatra.CleopatraConstant;
-import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
+
+import java.util.List;
 
 /**
  * @author 11
@@ -13,9 +14,15 @@ import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.CLEOPATRA, cmd = CleopatraConstant.MsgBean.RES_CONFIG_INFO, resp = true)
 @ProtoDesc("返回配置信息")
-public class ResCleopatraConfigInfo extends AbstractResponse {
+public class ResCleopatraEnterGame extends AbstractResponse {
+    @ProtoDesc("押注列表")
+    public List<Long> stakeList;
+    @ProtoDesc("默认押注")
+    public long defaultBet;
+    @ProtoDesc("奖池信息")
+    public List<CleopatraPoolInfo> poolList;
 
-    public ResCleopatraConfigInfo(int code) {
+    public ResCleopatraEnterGame(int code) {
         super(code);
     }
 }

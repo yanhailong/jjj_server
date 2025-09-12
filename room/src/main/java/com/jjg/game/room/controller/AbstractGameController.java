@@ -6,6 +6,7 @@ import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.ExceptionUtils;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
@@ -123,7 +124,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      *
      * @return 返回进行数据复制后的GamePlayer对象
      */
-    protected GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
+    public GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
         // 将玩家数据复制到玩家游戏数据中
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         Player player = playerController.isRobotPlayer()
@@ -566,6 +567,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @return 扣除结果
      */
     public int addItem(long playerId, long num, String addType, String desc, boolean isNotify) {
+        if (playerId <= 0 || num <= 0) {
+            return Code.FAIL;
+        }
         int transactionItemId = getGameTransactionItemId();
         int goldCfgId = ItemUtils.getGoldItemId();
         int diamondCfgId = ItemUtils.getDiamondItemId();
@@ -590,6 +594,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @return 扣除结果
      */
     private <P extends Player> int addGold(long playerId, long num, String addType, String desc, boolean isNotify) {
+        if (playerId <= 0 || num <= 0) {
+            return Code.FAIL;
+        }
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
         P gamePlayer = (P) gameDataVo.getGamePlayer(playerId);
@@ -630,7 +637,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
         P gamePlayer = (P) gameDataVo.getGamePlayer(playerId);
-        CommonResult<P> result;
+        CommonResult<P> result = new CommonResult<>(Code.FAIL);
         if (gamePlayer != null) {
             Supplier<P> supplier = () -> {
                 beforeUpdateGold.value = gamePlayer.getDiamond();
@@ -647,8 +654,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 return Code.FAIL;
             }
         } else {
-            log.error("异常操作，不能添加非游戏好友的钻石");
-            throw new RuntimeException("异常操作，不能添加非游戏好友的钻石");
+            log.error("异常操作，room: {} 不能添加非游戏好友: {} 的钻石：{} {}",
+                gameDataVo.roomLogInfo(), playerId, num, ExceptionUtils.currentThreadTraces());
         }
         return result.code;
     }

@@ -1,19 +1,29 @@
 package com.jjg.game.slots.game.cleopatra.manager;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.slots.dao.AbstractGameDataDao;
-import com.jjg.game.slots.dao.AbstractResultLibDao;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BaseInitCfg;
+import com.jjg.game.slots.game.cleopatra.dao.CleopatraGameDataDao;
+import com.jjg.game.slots.game.cleopatra.dao.CleopatraResultLibDao;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
-import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinGameDataDao;
-import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinResultLibDao;
-import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinGenerateManager;
+import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 麻将胡了游戏逻辑处理器
@@ -23,11 +33,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlayerGameData, CleopatraResultLib> {
     @Autowired
-    private MahjiongWinResultLibDao libDao;
+    private CleopatraResultLibDao libDao;
     @Autowired
-    private MahjiongWinGenerateManager generateManager;
+    private CleopatraGenerateManager generateManager;
     @Autowired
-    private MahjiongWinGameDataDao gameDataDao;
+    private CleopatraGameDataDao gameDataDao;
 
     public CleopatraGameManager() {
         super(CleopatraPlayerGameData.class,CleopatraResultLib.class);
@@ -36,7 +46,11 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
     @Override
     public void init() {
         log.info("启动埃及艳后游戏管理器...");
-        this.libDao.init(this.gameType);
+        super.init();
+
+//        Map<Integer, Integer> map = new HashMap<>();
+//        map.put(1, 50000);
+//        addGenerateLibEvent(map);
     }
 
     /**
@@ -46,29 +60,133 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
      * @return
      */
     public CleopatraGameRunInfo playerStartGame(PlayerController playerController, long stake){
-        return null;
+        //获取玩家游戏数据
+        CleopatraPlayerGameData playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+            return new CleopatraGameRunInfo(Code.NOT_FOUND, playerController.playerId());
+        }
+
+        playerGameData.setLastActiveTime(TimeHelper.nowInt());
+        return startGame(playerController, playerGameData, stake, false);
+    }
+
+    /**
+     * 获取奖池
+     *
+     * @param playerController
+     */
+    public DollarExpressGameRunInfo getPoolValue(PlayerController playerController, long stake) {
+        DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerController.playerId());
+        try {
+            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
+            List<Integer> prizePoolIdList = baseInitCfg.getPrizePoolIdList();
+            for(int poolId : prizePoolIdList) {
+                gameRunInfo.setMini(getPoolValueByPoolId(poolId, stake));
+            }
+        } catch (Exception e) {
+            log.error("", e);
+            gameRunInfo.setCode(Code.EXCEPTION);
+        }
+        return gameRunInfo;
+    }
+
+    /**
+     * 开始游戏
+     *
+     * @param playerController
+     * @param playerGameData
+     * @param auto
+     * @return
+     */
+    public CleopatraGameRunInfo startGame(PlayerController playerController, CleopatraPlayerGameData playerGameData, long betValue, boolean auto) {
+        CleopatraGameRunInfo gameRunInfo = new CleopatraGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+        try {
+            gameRunInfo.setAuto(auto);
+
+            gameRunInfo = normal(gameRunInfo, playerGameData, betValue);
+
+            //标准池
+            if (gameRunInfo.getBigPoolTimes() > 0) {
+                long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
+                if (addGold > 0) {
+                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_BET_REWARD");
+                    if (!result.success()) {
+                        log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
+                        gameRunInfo.setCode(result.code);
+                        return gameRunInfo;
+                    }
+                    gameRunInfo.setAllWinGold(addGold);
+                }
+            }
+
+            gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
+
+            //玩家当前金币
+            Player player = slotsPlayerService.get(playerGameData.playerId());
+            gameRunInfo.setAfterGold(player.getGold());
+            if (playerController != null) {
+                playerController.setPlayer(player);
+            }
+
+            //添加大奖展示id
+            int times = (int) (gameRunInfo.getAllWinGold() / betValue);
+            log.debug("计算出获奖倍数 times = {}", times);
+            gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
+
+            //系统自动玩的游戏，不会走跑马灯
+            if (!auto) {
+                checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
+            }
+            gameRunInfo.setData(playerGameData);
+            gameRunInfo.setData(playerGameData);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+        return gameRunInfo;
+    }
+
+    /**
+     * 普通正常流程
+     *
+     * @param gameRunInfo
+     * @param playerGameData
+     * @param betValue
+     * @return
+     */
+    private CleopatraGameRunInfo normal(CleopatraGameRunInfo gameRunInfo, CleopatraPlayerGameData playerGameData, long betValue) {
+        CommonResult<CleopatraResultLib> libResult = normalGetLib(playerGameData, betValue);
+        if (!libResult.success()) {
+            gameRunInfo.setCode(libResult.code);
+            return gameRunInfo;
+        }
+        CleopatraResultLib resultLib = libResult.data;
+        log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+        gameRunInfo.setIconArr(resultLib.getIconArr());
+        gameRunInfo.setResultLib(resultLib);
+        return gameRunInfo;
     }
 
 
 
     @Override
-    protected MahjiongWinResultLibDao getResultLibDao() {
+    protected CleopatraResultLibDao getResultLibDao() {
         return this.libDao;
     }
 
     @Override
-    protected MahjiongWinGameDataDao getGameDataDao() {
+    protected CleopatraGameDataDao getGameDataDao() {
         return this.gameDataDao;
     }
 
     @Override
-    protected MahjiongWinGenerateManager getGenerateManager() {
+    protected CleopatraGenerateManager getGenerateManager() {
         return this.generateManager;
     }
 
     @Override
     public int getGameType() {
-        return CoreConst.GameType.MAHJIONG_WIN;
+        return CoreConst.GameType.CLEOPATRA;
     }
 
     @Override

@@ -114,7 +114,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         PropInfo propInfo = this.specialModeGroupGirdPropMap.get(libType);
         if (propInfo != null) {
             Integer randKey = propInfo.getRandKey();
-            if(randKey == null){
+            if (randKey == null) {
                 randKey = 0;
             }
             SpecialGirdInfo specialGirdInfo = girdUpdate(randKey, arr);
@@ -210,13 +210,17 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = assignPattern(lib);
         lib.addSpecialAuxiliaryInfo(specialAuxiliaryInfoList);
 
-        //检查满线图案
+        //检查满线图案_x连
         List<A> fullLineInfoList = fullLine(lib);
         lib.addAllAwardLineInfo(fullLineInfoList);
 
         //检查全局分散图案
         List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
         lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
+
+        //检查满线图案_数量
+        List<A> fullLineCountInfoList = fullLineCount(lib);
+        lib.addAllAwardLineInfo(fullLineCountInfoList);
 
         //计算倍数
         calTimes(lib);
@@ -269,12 +273,59 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     }
 
     /**
+     * 根据滚轴id，生成一列的图标
+     *
+     * @param rollerMode
+     * @param rows
+     * @return
+     */
+    public int[] generateColumnIcons(int rollerMode, int rows, int colId) {
+        Map<Integer, BaseRollerCfg> rollerCfgMap = this.baseRollerCfgMap.get(rollerMode);
+        if (rollerCfgMap == null) {
+            log.warn("生成1列图标时，rollerCfgMap 配置为空 rollerMode={}", rollerMode);
+            return null;
+        }
+
+        BaseRollerCfg cfg = rollerCfgMap.get(colId);
+        if (cfg == null) {
+            log.warn("生成1列图标时，baseRollerCfg 配置为空 rollerMode={},colId = {}", rollerMode, colId);
+            return null;
+        }
+
+        if (cfg.getAxleCountScope() == null || cfg.getAxleCountScope().isEmpty()) {
+            log.warn("没有该滚轴的范围,生成1列图标失败 gameType = {},rollerCfgId = {}", this.gameType, cfg.getId());
+            return null;
+        }
+
+        int[] arr = new int[rows];
+
+        //区间范围的第一个下标
+        int first = cfg.getAxleCountScope().get(0) - 1;
+        //区间范围的最后一个下标
+        int last = cfg.getAxleCountScope().get(1) - 1;
+
+        //随机生成一个起始位置
+        int scopeIndex = RandomUtils.randomMinMax(first, last);
+
+        for (int i = 0; i < rows; i++) {
+            //首尾相连
+            if (scopeIndex > last) {
+                scopeIndex = first;
+            }
+            int elementId = cfg.getElements().get(scopeIndex);
+            arr[i] = elementId;
+            scopeIndex++;
+        }
+        return arr;
+    }
+
+    /**
      * 检查中奖线
      *
      * @return
      */
     public List<A> winLines(T lib, int lineType) {
-        return winLines(lib.getIconArr(),lineType);
+        return winLines(lib.getIconArr(), lineType);
     }
 
     /**
@@ -285,7 +336,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     public List<A> winLines(int[] arr, int lineType) {
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
         if (baseInitCfg.getLineType() != SlotsConst.BaseInit.NEED_BASE_LINE) {
-            return Collections.emptyList();
+            return null;
         }
         log.debug("开始检查中奖线信息 lineType = {}", lineType);
         List<A> awardLineInfoList = new ArrayList<>();
@@ -357,7 +408,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * 检查指定图案
      */
     protected List<SpecialAuxiliaryInfo> assignPattern(T lib) {
-        return assignPattern(lib.getLibTypeSet(),lib.getIconArr(),lib.getSpecialGirdInfoList());
+        return assignPattern(lib.getLibTypeSet(), lib.getIconArr(), lib.getSpecialGirdInfoList());
     }
 
     /**
@@ -367,8 +418,12 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         //获取指定图案的配置
         Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_ASSIGN);
         if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
-            return Collections.EMPTY_LIST;
+            return null;
         }
+
+        //获取每个图标出现的次数
+        Map<Integer, Integer> showCountMap = checkIconShowCount(arr);
+
         log.debug("检查指定图案");
 
         //小游戏
@@ -376,21 +431,18 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
             BaseElementRewardCfg cfg = en.getValue();
             //必须出现的图案
-            int mustIconCount = 0;
-            //条件图案
-            Map<Integer, Integer> conditionIconsMap = new HashMap<>();
-            for (int i = 0; i < arr.length; i++) {
-                int icon = arr[i];
-                //检查条件参数的图案
-                if (icon == cfg.getRewardNum()) {
-                    mustIconCount++;
-                } else if (cfg.getElementId().contains(icon)) {
-                    conditionIconsMap.merge(icon, 1, Integer::sum);
+            Integer mustIconCount = showCountMap.get(cfg.getRewardNum());
+            //条件图案总数量
+            int elementAllCount = 0;
+            for (int iconId : cfg.getElementId()) {
+                Integer count = showCountMap.get(iconId);
+                if (count != null) {
+                    elementAllCount++;
                 }
             }
 
             //检查条件是否都满足
-            if (mustIconCount < 1 || conditionIconsMap.isEmpty()) {
+            if (mustIconCount == null || mustIconCount < 1 || elementAllCount < 1) {
                 continue;
             }
 
@@ -399,26 +451,22 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 continue;
             }
 
-
-            conditionIconsMap.forEach((k, v) -> {
-                for (int i = 0; i < v; i++) {
-                    cfg.getFeatureTriggerId().forEach(miniGameId -> {
-                        libTypeSet.forEach(libType -> {
-                            SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, arr, miniGameId, specialGirdInfoList);
-                            if (specialAuxiliaryInfo != null) {
-                                specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
-                            }
-                        });
+            for (int i = 0; i < elementAllCount; i++) {
+                cfg.getFeatureTriggerId().forEach(miniGameId -> {
+                    libTypeSet.forEach(libType -> {
+                        SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, arr, miniGameId, specialGirdInfoList);
+                        if (specialAuxiliaryInfo != null) {
+                            specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
+                        }
                     });
-                }
-            });
+                });
+            }
         }
         return specialAuxiliaryInfoList;
     }
 
     /**
      * 检查满线图案
-     *
      */
     public List<A> fullLine(T lib) {
         return fullLine(lib.getIconArr());
@@ -433,7 +481,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         //获取全局分散图案的配置
         Map<Integer, BaseElementRewardCfg> fullRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_FULL);
         if (fullRewardCfgMap == null || fullRewardCfgMap.isEmpty()) {
-            return Collections.EMPTY_LIST;
+            return null;
         }
         log.debug("检查满线图案");
 
@@ -453,7 +501,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * 全局分散
      */
     protected List<SpecialAuxiliaryInfo> overallDisperse(T lib) {
-        return overallDisperse(lib.getLibTypeSet(),lib.getIconArr(),lib.getSpecialGirdInfoList());
+        return overallDisperse(lib.getLibTypeSet(), lib.getIconArr(), lib.getSpecialGirdInfoList());
     }
 
     /**
@@ -463,8 +511,11 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         //获取全局分散图案的配置
         Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE_GLOBAL);
         if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
-            return Collections.EMPTY_LIST;
+            return null;
         }
+
+        //获取每个图标出现的次数
+        Map<Integer, Integer> showCountMap = checkIconShowCount(arr);
 
         log.debug("检查全局分散");
 
@@ -474,24 +525,15 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
             BaseElementRewardCfg cfg = en.getValue();
 
-            Map<Integer, Integer> mustShowIconMap = new HashMap<>();
-            for (int i = 0; i < arr.length; i++) {
-                int icon = arr[i];
-                //检查必须出现的图案
-                if (cfg.getElementId().contains(icon)) {
-                    mustShowIconMap.merge(icon, 1, Integer::sum);
-                }
-            }
-
             //检查出现的个数是否满足
             int elementsCount = 0;
             for (int iconId : cfg.getElementId()) {
-                Integer count = mustShowIconMap.get(iconId);
-                if(count != null){
+                Integer count = showCountMap.get(iconId);
+                if (count != null) {
                     elementsCount += count;
                 }
             }
-            if(elementsCount != cfg.getRewardNum()){
+            if (elementsCount != cfg.getRewardNum()) {
                 continue;
             }
 
@@ -513,12 +555,118 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         return specialAuxiliaryInfoList;
     }
 
-    protected A addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount,
-                                 int baseIconId, List<Integer> lineList, int[] arr) {
+    /**
+     * 检查满线图案_数量
+     *
+     * @param lib
+     * @return
+     */
+    protected List<A> fullLineCount(T lib) {
+        return fullLineCount(lib.getIconArr());
+    }
+
+    /**
+     * 检查满线图案_数量
+     *
+     * @param arr
+     * @return
+     */
+    protected List<A> fullLineCount(int[] arr) {
+        //获取满线图案_数量的配置
+        Map<Integer, BaseElementRewardCfg> fullLineCountCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_FULL_COUNT);
+        if (fullLineCountCfgMap == null || fullLineCountCfgMap.isEmpty()) {
+            return null;
+        }
+
+        List<A> awardInfoList = new ArrayList<>();
+
+        log.debug("检查满线图案_数量");
+
+        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+
+        //wild图标
+        Set<Integer> wildIconSet = this.iconsMap.get(SlotsConst.BaseElement.TYPE_WILD);
+        //普通图标
+        Set<Integer> normalIconSet = this.iconsMap.get(SlotsConst.BaseElement.TYPE_NORMAL);
+
+        //icon -> count
+        Map<Integer, Integer> firstColIcons = new HashMap<>();
+
+        //获取第一列出现的图标
+        for (int i = 1; i <= baseInitCfg.getRows(); i++) {
+            int icon = arr[i];
+            firstColIcons.merge(icon, 1, Integer::sum);
+        }
+
+        //然后从第二列开始检查，是否出现了第一列的图标
+        for (Map.Entry<Integer, Integer> en : firstColIcons.entrySet()) {
+            //第一列的图标和数量
+            int icon = en.getKey();
+            int count = en.getValue();
+
+            int allCount = count;
+
+            boolean firstNormal = normalIconSet.contains(icon);
+
+            //从第2列开始，检查每一个图标
+            for (int col = 2; col <= baseInitCfg.getCols(); col++) {
+                int beginIndex = (col - 1) * baseInitCfg.getRows() + 1;
+
+                boolean flag = false;
+
+                for (int i = 0; i < baseInitCfg.getRows(); i++) {
+                    int index = beginIndex + i;
+                    int tmpIcon = arr[index];
+
+                    boolean wild = false;
+                    if (wildIconSet != null && wildIconSet.contains(tmpIcon)) {
+                        wild = true;
+                    }
+
+                    if (wild && firstNormal) {
+                        allCount++;
+                        flag = true;
+                    } else if (icon == tmpIcon) {
+                        allCount++;
+                        flag = true;
+                    }
+                }
+
+                //这一列遍历结束后，检查图标个数是否增长
+                if (!flag) { //如果没有增长，表示这一列中没有出现第一列的图标，所以中断
+                    break;
+                }
+            }
+
+            //找到baseElementReward表中关于该图标的配置
+            for (Map.Entry<Integer, BaseElementRewardCfg> rewardCfgEn : fullLineCountCfgMap.entrySet()) {
+                BaseElementRewardCfg cfg = rewardCfgEn.getValue();
+                //配置表中的图标是否包含该图标
+                if (!cfg.getElementId().contains(icon)) {
+                    continue;
+                }
+
+                if (allCount < cfg.getRewardNum()) {
+                    continue;
+                }
+
+                A rewardInfo = addFullLineCountAwardInfo(icon, count, cfg);
+                awardInfoList.add(rewardInfo);
+            }
+        }
+
+        return awardInfoList;
+    }
+
+    protected A addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
         return null;
     }
 
     protected A addFullLineAwardInfo(Map<Integer, Set<Integer>> map, BaseElementRewardCfg cfg) {
+        return null;
+    }
+
+    protected A addFullLineCountAwardInfo(int icon, int count, BaseElementRewardCfg cfg) {
         return null;
     }
 
@@ -562,8 +710,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * @param specialAuxiliaryPropConfig
      * @param specialAuxiliaryInfo
      */
-    protected void triggerFree(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg,
-                               SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig, SpecialAuxiliaryInfo specialAuxiliaryInfo) {
+    protected void triggerFree(int specialModeType, SpecialAuxiliaryCfg specialAuxiliaryCfg, SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig, SpecialAuxiliaryInfo specialAuxiliaryInfo) {
         if (specialAuxiliaryPropConfig.getTriggerCountPropInfo() == null) {
             return;
         }
@@ -597,9 +744,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * @param specialAuxiliaryPropConfig
      * @param specialAuxiliaryInfo
      */
-    protected void triggerAuxiliaryExtra(int[] arr, SpecialAuxiliaryCfg specialAuxiliaryCfg,
-                                         SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig, SpecialAuxiliaryInfo specialAuxiliaryInfo,
-                                         List<SpecialGirdInfo> specialGirdInfoList) {
+    protected void triggerAuxiliaryExtra(int[] arr, SpecialAuxiliaryCfg specialAuxiliaryCfg, SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig, SpecialAuxiliaryInfo specialAuxiliaryInfo, List<SpecialGirdInfo> specialGirdInfoList) {
         if (specialAuxiliaryPropConfig.getRandCountPropInfo() == null) {
             return;
         }
@@ -621,8 +766,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         //开始触发额外奖励
         for (int i = 0; i < randCount; i++) {
             //获取奖励A
-            if (specialAuxiliaryCfg.getAwardTypeA() != null && !specialAuxiliaryCfg.getAwardTypeA().isEmpty() &&
-                    sgInfo != null && sgInfo.getValueMap() != null && !sgInfo.getValueMap().isEmpty()) {
+            if (specialAuxiliaryCfg.getAwardTypeA() != null && !specialAuxiliaryCfg.getAwardTypeA().isEmpty() && sgInfo != null && sgInfo.getValueMap() != null && !sgInfo.getValueMap().isEmpty()) {
                 //指定图标
                 int icon = specialAuxiliaryCfg.getAwardTypeA().get(0);
                 //指定图标的金额万分比
@@ -731,7 +875,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
                 //检查是否出现了配置中的图标
                 int iconId = arr[index];
-                if (wildIconSet.contains(iconId) || iconsList.contains(iconId)) {
+                if ((wildIconSet != null && wildIconSet.contains(iconId)) || iconsList.contains(iconId)) {
                     sameMap.computeIfAbsent(colIndex, k -> new HashSet<>()).add(index);
                     hasValidElement = true;
                 }
@@ -753,9 +897,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         }
 
         // 找出最长的连续列段
-        List<Integer> longestSequence = allSequences.stream()
-                .max(Comparator.comparingInt(List::size))
-                .orElse(Collections.emptyList());
+        List<Integer> longestSequence = allSequences.stream().max(Comparator.comparingInt(List::size)).orElse(Collections.emptyList());
 
         // 只保留最长连续列的记录
         sameMap.entrySet().removeIf(en -> !longestSequence.contains(en.getKey()));
@@ -859,8 +1001,8 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             if (v.getGameType() == this.gameType) {
                 tmpSpecialModeCfgMap.put(v.getType(), v);
 
-                if(v.getSpecialGroupGirdID() != null && !v.getSpecialGroupGirdID().isEmpty()){
-                    tmpSpecialModeGroupGirdPropMap.put(v.getType(),SlotsUtil.converMapToPropInfo(v.getSpecialGroupGirdID()));
+                if (v.getSpecialGroupGirdID() != null && !v.getSpecialGroupGirdID().isEmpty()) {
+                    tmpSpecialModeGroupGirdPropMap.put(v.getType(), SlotsUtil.converMapToPropInfo(v.getSpecialGroupGirdID()));
                 }
             }
         });
@@ -1142,15 +1284,9 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
     @Override
     public void changeSampleCallbackCollector() {
-        addChangeSampleFileObserveWithCallBack(BaseInitCfg.EXCEL_NAME, this::baseRollerCfg)
-                .addChangeSampleFileObserveWithCallBack(BaseElementCfg.EXCEL_NAME, this::baseElementConfig)
-                .addChangeSampleFileObserveWithCallBack(BaseElementRewardCfg.EXCEL_NAME, this::baseElementRewardConfig)
-                .addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, this::baseLineConfig)
+        addChangeSampleFileObserveWithCallBack(BaseInitCfg.EXCEL_NAME, this::baseRollerCfg).addChangeSampleFileObserveWithCallBack(BaseElementCfg.EXCEL_NAME, this::baseElementConfig).addChangeSampleFileObserveWithCallBack(BaseElementRewardCfg.EXCEL_NAME, this::baseElementRewardConfig).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, this::baseLineConfig)
 
-                .addChangeSampleFileObserveWithCallBack(SpecialModeCfg.EXCEL_NAME, this::specialModeConfig)
-                .addChangeSampleFileObserveWithCallBack(SpecialAuxiliaryCfg.EXCEL_NAME, this::specialAuxiliaryConfig)
-                .addChangeSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, this::specialGirdConfig)
-                .addChangeSampleFileObserveWithCallBack(SpecialResultLibCfg.EXCEL_NAME, this::specialResultLibConfig);
+                .addChangeSampleFileObserveWithCallBack(SpecialModeCfg.EXCEL_NAME, this::specialModeConfig).addChangeSampleFileObserveWithCallBack(SpecialAuxiliaryCfg.EXCEL_NAME, this::specialAuxiliaryConfig).addChangeSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, this::specialGirdConfig).addChangeSampleFileObserveWithCallBack(SpecialResultLibCfg.EXCEL_NAME, this::specialResultLibConfig);
     }
 
     public void setSpecialResultLibCacheData(SpecialResultLibCacheData specialResultLibCacheData) {
@@ -1216,5 +1352,20 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             }
             return false;
         });
+    }
+
+    /**
+     * 计算每个图标出现的次数
+     *
+     * @param arr
+     * @return
+     */
+    protected Map<Integer, Integer> checkIconShowCount(int[] arr) {
+        Map<Integer, Integer> map = new HashMap<>();
+        for (int i = 1; i < arr.length; i++) {
+            int icon = arr[i];
+            map.merge(icon, 1, Integer::sum);
+        }
+        return map;
     }
 }

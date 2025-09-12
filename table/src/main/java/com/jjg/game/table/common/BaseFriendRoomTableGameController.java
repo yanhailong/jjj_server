@@ -55,6 +55,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                         } else {
                             cancelBeBankerSuccess = true;
                             gameDataVo.setApplyCancelBeBankerPlayer(0);
+                            log.info("玩家：{} 申请下庄成功", roomBankerId);
                         }
                     }
                     // 如果庄家没有申请下庄
@@ -71,6 +72,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                                 log.error("检查庄家自动下庄时失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
                             } else {
                                 cancelBeBankerSuccess = true;
+                                log.info("玩家：{} 上庄次数达到上限，自动下庄", roomBankerId);
                             }
                         }
                     }
@@ -87,24 +89,28 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                                     roomBankerId, ERoomItemReason.FRIEND_ROOM_PREDICATE_GOLD_NOT_ENOUGH);
                             if (code != Code.SUCCESS) {
                                 log.error("检查庄家剩余准备金时，自动下庄失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
+                            } else {
+                                log.info("庄家：{} 准备金不足，自动下庄", roomBankerId);
                             }
                         }
                     }
-                } else {
-                    log.error("游戏：{} 进入下一轮之前，庄家为空", gameDataVo.roomLogInfo());
-                    checkRes = false;
-                }
-                if (checkRes) {
-                    // 如果没有庄家则不能继续，需要通过玩家申请上庄重新启动游戏
-                    checkRes = friendRoomController.getRoom().hasBanker();
-                }
-                // 如果检查的结果是不能继续
-                if (!checkRes) {
-                    friendRoomController.pauseGame();
                 }
             }
         }
         return checkRes;
+    }
+
+    /**
+     * 检查房间准备金是否足够
+     */
+    protected boolean checkPredicateGoldEnough(FriendRoom friendRoom) {
+        int minBankerAmount = FriendRoomSampleUtils.getRoomMinBankerAmount(gameDataVo.getRoomCfg().getId());
+        long bankerResetGold = friendRoom.roomBankerResetGold();
+        boolean checkAmount = (friendRoom.getPredictCostGoldNum() + bankerResetGold) >= minBankerAmount;
+        if (!checkAmount) {
+            log.info(" 房间准备金不足，房间即将暂停，房间准备金余额：{} 庄家：{}", friendRoom.roomBankerResetGold(), bankerResetGold);
+        }
+        return checkAmount;
     }
 
     @Override
@@ -123,14 +129,6 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
             // 需要记录
             FriendRoomBillHistoryDao dao = roomController.getRoomManager().getFriendRoomBillHistoryDao();
             if (!settlementDataMap.isEmpty()) {
-                long roomTotalIncome =
-                    settlementDataMap.values().stream()
-                        .filter(s -> s.getBetWin() > 0)
-                        .mapToLong(SettlementData::getBetWin)
-                        .sum();
-                if (roomTotalIncome <= 0) {
-                    return;
-                }
                 // 构建基础历史数据bean
                 FriendRoomBillHistoryBean historyBean = FriendRoomBillHistoryHelper.buildFriendRoom(getRoom());
                 long roomCreatorTotalIncome =

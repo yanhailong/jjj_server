@@ -25,7 +25,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -295,12 +294,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     public DollarExpressGameRunInfo getPoolValue(PlayerController playerController, long stake) {
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerController.playerId());
         try {
-            DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
-            if (playerGameData != null) {
-                //设置活跃时间
-                playerGameData.setLastActiveTime(TimeHelper.nowInt());
-            }
-
             gameRunInfo.setMini(getPoolValueByPoolId(DollarExpressConstant.Common.MINI_POOL_ID, stake));
             gameRunInfo.setMinor(getPoolValueByPoolId(DollarExpressConstant.Common.MINOR_POOL_ID, stake));
             gameRunInfo.setMajor(getPoolValueByPoolId(DollarExpressConstant.Common.MAJOR_POOL_ID, stake));
@@ -310,11 +303,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             gameRunInfo.setCode(Code.EXCEPTION);
         }
         return gameRunInfo;
-    }
-
-    public long getPoolValueByPoolId(int poolId, long stake) throws Exception {
-        PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
-        return calTrainPoolValue(stake, poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax());
     }
 
     /**
@@ -697,44 +685,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     }
 
     /**
-     * 地图全部解锁，奖励黄金火车
-     *
-     * @param gameRunInfo
-     * @param playerGameData
-     * @return
-     */
-    private DollarExpressGameRunInfo areaAllUnlockGoldTrain(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData, boolean updateGird) {
-        log.debug("进入地图全部解锁，奖励黄金火车流程 playerId = {}", playerGameData.playerId());
-        DollarExpressResultLib goldTrainLib = null;
-        for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
-            //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN);
-            if (!result.success()) {
-                continue;
-            }
-            //获取结果库
-            goldTrainLib = libDao.getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_GOLD_TRAIN, result.data);
-            if (goldTrainLib == null) {
-                continue;
-            }
-            break;
-        }
-
-        if (goldTrainLib == null) {
-            gameRunInfo.setCode(Code.FAIL);
-            log.debug("地图全部解锁,未在该条结果库中找到重转信息 gameType = {},modelId = {}", this.gameType, playerGameData.getLastModelId());
-            return gameRunInfo;
-        }
-
-        playerGameData.setStatus(DollarExpressConstant.Status.NORMAL);
-        gameRunInfo.setIconArr(goldTrainLib.getIconArr());
-
-        gameRunInfo.setBigPoolTimes(goldTrainLib.getTimes());
-        playerGameData.setSelectedAreaSet(null);
-        return gameRunInfo;
-    }
-
-    /**
      * 设置美元倍数等信息
      *
      * @param gameRunInfo
@@ -837,15 +787,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             for (SpecialAuxiliaryInfo info : lib.getSpecialAuxiliaryInfoList()) {
                 SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(info.getCfgId());
 
-                //拉火车场景
-                if (generateManager.allTrainsTrainIconId(specialAuxiliaryCfg.getType()) > 0 && info.getAwardInfos() != null && !info.getAwardInfos().isEmpty()) {
+                //黄金火车火车场景
+                if (generateManager.goldTrainsTrainIconId(specialAuxiliaryCfg.getType()) > 0 && info.getAwardInfos() != null && !info.getAwardInfos().isEmpty()) {
                     for (Object object : info.getAwardInfos()) {
                         SpecialAuxiliaryAwardInfo awardInfo = (SpecialAuxiliaryAwardInfo) object;
-
-                        //如果奖励C不为空，说明不是黄金列车
-                        if (awardInfo.getAwardCList() != null && awardInfo.getAwardCList().isEmpty()) {
-                            continue;
-                        }
 
                         long times = awardInfo.getRandCount() * gameRunInfo.getDollarsGoldTimes();
 
@@ -877,59 +822,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         dto.setInvers(gameData.getInvers().get());
         dto.setAllUnLock(gameData.getAllUnLock().get());
         gameDataDao.saveGameData(dto);
-    }
-
-    /**
-     * 计算火车奖池金额
-     *
-     * @param stake
-     * @param growthRate
-     * @return
-     */
-    public long calTrainPoolValue(long stake, List<Integer> growthRate, int initTimes, int maxTimes) {
-        return calTrainPoolValue(stake, growthRate, initTimes, maxTimes, 0, 0);
-    }
-
-    /**
-     * 计算火车奖池金额
-     *
-     * @param stake
-     * @param growthRate
-     * @return
-     */
-    public long calTrainPoolValue(long stake, List<Integer> growthRate, int initTimes, int maxTimes, int coach, int delayTime) {
-        //押注
-        BigDecimal stakeBigDecimal = BigDecimal.valueOf(stake);
-        //奖池初始金额
-        BigDecimal initPoolBigDecimal = stakeBigDecimal.multiply(BigDecimal.valueOf(initTimes));
-        //奖池上限金额
-        BigDecimal maxPoolBigDecimal = stakeBigDecimal.multiply(BigDecimal.valueOf(maxTimes));
-
-        //间隔时间
-        int timeValue = growthRate.get(0);
-        BigDecimal intervalTime = BigDecimal.valueOf(timeValue);
-
-        //增加万分比
-        int propValue = growthRate.get(1);
-        BigDecimal prop = BigDecimal.valueOf(propValue).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
-
-        //循环时间
-        BigDecimal circulTimeBigDecimal = BigDecimal.ONE.divide(prop, 4, RoundingMode.HALF_UP).multiply(intervalTime);
-
-        //总的延迟时间
-        int allDelayTime = (coach * delayTime) / 1000;
-        //余数y
-        int y = (TimeHelper.getNowDaySeconds() + allDelayTime) % circulTimeBigDecimal.intValue();
-
-        //实际金额
-        BigDecimal step1 = BigDecimal.valueOf(y).divide(intervalTime, 4, RoundingMode.HALF_UP);
-        BigDecimal step2 = step1.multiply(prop);
-        BigDecimal step3 = step2.multiply(maxPoolBigDecimal.subtract(initPoolBigDecimal));
-        long addGold = initPoolBigDecimal.add(step3).longValue();
-
-//        log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},intervalTime = {},y = {},addGold = {}", playerGameData.playerId(), rand, propV, intervalTime, y, addGold);
-//        log.debug("计算火车奖池金额 stake = {},timeValue = {},propValue = {},y = {},addGold = {}", stake, timeValue, propValue, y, addGold);
-        return addGold;
     }
 
     /**
@@ -967,8 +859,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             return Collections.emptyList();
         }
 
-        log.debug("打印火车奖励 specialAuxiliaryInfo = {}",JSON.toJSONString(specialAuxiliaryInfo));
-
         SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(specialAuxiliaryInfo.getCfgId());
         if (generateManager.allTrainsTrainIconId(specialAuxiliaryCfg.getType()) < 1) {
             return Collections.emptyList();
@@ -978,6 +868,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         if (trainType < 1) {
             return Collections.emptyList();
         }
+        log.debug("打印火车奖励 specialAuxiliaryInfo = {}",JSON.toJSONString(specialAuxiliaryInfo));
+
         List<TrainInfo> trainInfoList = new ArrayList<>();
 
         for (Object object : specialAuxiliaryInfo.getAwardInfos()) {
@@ -1115,7 +1007,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
             //计算奖池金额
             //车厢节数+1，是因为要加上最后一个奖池车厢
-            long addGold = calTrainPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), trainInfo.goldList.size() + 1, poolCfg.getDelayTime());
+            //总的延迟时间
+            int allDelayTime = ((trainInfo.goldList.size() + 1) * poolCfg.getDelayTime()) / 1000;
+            long addGold = calPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), allDelayTime);
 
             log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},addGold = {}", playerGameData.playerId(), rand, propV, addGold);
 

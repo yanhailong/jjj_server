@@ -2,6 +2,11 @@ package com.jjg.game.hall.service;
 
 import cn.hutool.core.util.EnumUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.timer.TimerCenter;
+import com.jjg.game.common.timer.TimerEvent;
+import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
@@ -15,12 +20,13 @@ import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.constant.HallCode;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.dao.BindDao;
+import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.pb.res.NotifyGameList;
 import com.jjg.game.hall.pb.struct.GameListConfig;
+import com.jjg.game.hall.pb.struct.WarePoolInfo;
 import com.jjg.game.hall.utils.HallTool;
-import com.jjg.game.hall.vip.data.VipCfgCache;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import org.apache.commons.lang3.StringUtils;
@@ -30,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -37,7 +44,7 @@ import java.util.stream.Collectors;
  * @date 2025/6/18 14:56
  */
 @Component
-public class HallService implements ConfigExcelChangeListener {
+public class HallService implements ConfigExcelChangeListener, TimerListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -56,12 +63,18 @@ public class HallService implements ConfigExcelChangeListener {
     private LikeGameDao likeGameDao;
     @Autowired
     private ClusterSystem clusterSystem;
+    @Autowired
+    private TimerCenter timerCenter;
+    @Autowired
+    private HallPoolDao poolDao;
 
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
     private Map<Integer, GameStatus> gameStatusesMap;
     //排序后的gameList
     private List<GameListConfig> sortGameList;
+    //游戏倍场界面的奖池
+    private Map<Integer,List<WarePoolInfo>> poolMap;
 
     public Map<Integer, GameStatus> getGameStatusesMap() {
         return gameStatusesMap;
@@ -76,11 +89,21 @@ public class HallService implements ConfigExcelChangeListener {
     //默认称号id
     private int defaultTitleId = 0;
 
+    private TimerEvent<String> updatePoolEvent;
+
     public void init() {
         //缓存倍场的配置信息
         initWareHouseConfigData();
         //缓存每个游戏的状态
         loadGameStatuses(gameStatusService.getAllGameStatus());
+
+        //添加更新奖池的定时任务
+        addCheckOffLineEvent();
+    }
+
+    public void addCheckOffLineEvent() {
+        this.updatePoolEvent = new TimerEvent<>(this, "updatePoolEvent", 10).withTimeUnit(TimeUnit.SECONDS);
+        timerCenter.add(this.updatePoolEvent);
     }
 
     public void loadGameStatuses(List<GameStatus> gameStatuses) {
@@ -103,6 +126,18 @@ public class HallService implements ConfigExcelChangeListener {
 
     public List<WareHouseConfigInfo> getWareHouseConfigByGameType(int gameType) {
         return wareHouseConfigMap.get(gameType);
+    }
+
+    /**
+     * 根据游戏获取奖池
+     * @param gameType
+     * @return
+     */
+    public List<WarePoolInfo> getPoolListByGameType(int gameType) {
+        if(this.poolMap == null || this.poolMap.isEmpty()) {
+            return null;
+        }
+        return this.poolMap.get(gameType);
     }
 
     public boolean canJoinGame(int gameType) {
@@ -638,5 +673,48 @@ public class HallService implements ConfigExcelChangeListener {
 
     public List<GameListConfig> getSortGameList() {
         return sortGameList;
+    }
+
+    @Override
+    public void onTimer(TimerEvent e) {
+        if(this.updatePoolEvent == e){
+            updatePoolEvent();
+        }
+    }
+
+    /**
+     * 更新奖池
+     */
+    private void updatePoolEvent() {
+        Map<Integer,List<WarePoolInfo>> tmpPoolMap = new HashMap<>();
+
+        this.sortGameList.forEach(cfg -> {
+            if(CommonUtil.getMajorTypeByGameType(cfg.sid) == CoreConst.GameMajorType.SLOTS){
+                Map<Object, Object> smallPool = poolDao.getSmallPoolByRoomCfgId(cfg.sid);
+                Map<Object, Object> fakeSmallPool = poolDao.getFakeSmallPoolByRoomCfgId(cfg.sid);
+
+                List<WarePoolInfo> warePoolInfoList = new ArrayList<>();
+                for (Map.Entry<Object, Object> en : smallPool.entrySet()) {
+                    WarePoolInfo warePoolInfo = new WarePoolInfo();
+                    warePoolInfo.wareId = Integer.parseInt(en.getKey().toString());
+                    long smallPoolValue = Long.parseLong(en.getValue().toString());
+
+                    Object o = fakeSmallPool.get(warePoolInfo.wareId);
+                    if (o != null) {
+                        long fakeSmallPoolValue = Long.parseLong(o.toString());
+                        if (fakeSmallPoolValue > smallPoolValue) {
+                            smallPoolValue = fakeSmallPoolValue;
+                        }
+                    }
+
+                    warePoolInfo.pool = smallPoolValue;
+                    warePoolInfoList.add(warePoolInfo);
+                }
+
+                tmpPoolMap.put(cfg.sid, warePoolInfoList);
+            }
+        });
+
+        this.poolMap = tmpPoolMap;
     }
 }

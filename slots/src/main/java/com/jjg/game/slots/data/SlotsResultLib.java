@@ -152,6 +152,9 @@ public class SlotsResultLib<T extends AwardLineInfo> implements Cloneable{
     }
 
     public void addAllAwardLineInfo(List<T> awardLineInfos) {
+        if(awardLineInfos == null || awardLineInfos.isEmpty()) {
+            return;
+        }
         if(this.awardLineInfoList == null) {
             this.awardLineInfoList = new ArrayList<>();
         }

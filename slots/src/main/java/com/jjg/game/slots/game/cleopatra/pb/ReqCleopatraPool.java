@@ -8,11 +8,11 @@ import com.jjg.game.slots.game.cleopatra.CleopatraConstant;
 
 /**
  * @author 11
- * @date 2025/8/1 17:50
+ * @date 2025/9/12 11:02
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CLEOPATRA, cmd = CleopatraConstant.MsgBean.REQ_START_GAME)
-@ProtoDesc("请求开始游戏")
-public class ReqCleopatraStartGame extends AbstractMessage {
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CLEOPATRA, cmd = CleopatraConstant.MsgBean.REQ_POOL_VALUE)
+@ProtoDesc("请求获取奖池")
+public class ReqCleopatraPool extends AbstractMessage {
     @ProtoDesc("下注金额")
     public long stakeVlue;
 }
