@@ -28,6 +28,7 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.pb.ResExitGame;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
@@ -97,6 +98,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     protected RoomTimerCenter roomTimerCenter;
     // 房间管理器timer,多线程，非房间线程，如果需要调用房间相关的逻辑，需要抛到对应的房间线程
     protected TimerCenter roomManagerTimer;
+    protected MailService mailService;
     // 不同类型的房间roomDao
     protected Map<Class<? extends Room>, AbstractRoomDao<? extends Room, ? extends RoomPlayer>> roomDaoMap
         = new HashMap<>();
@@ -1152,5 +1154,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
     public PlayerPackService getPlayerPackService() {
         return playerPackService;
+    }
+
+    public MailService getMailService() {
+        return mailService;
     }
 }
