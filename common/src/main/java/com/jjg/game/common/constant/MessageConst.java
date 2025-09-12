@@ -173,6 +173,10 @@ public interface MessageConst {
         int REQ_CONFIRM_PLAYER_SCENE = BASE_MSG_PREFIX | 0x9E;
         //确认玩家当前处于哪个场景中
         int RES_CONFIRM_PLAYER_SCENE = BASE_MSG_PREFIX | 0x9F;
+        //请求小红点数据
+        int REQ_RED_DOT = BASE_MSG_PREFIX | 0x10;
+        //通知红点数据更新
+        int NOTIFY_RED_DOT = BASE_MSG_PREFIX | 0x11;
     }
 
     interface RoomMessage {
