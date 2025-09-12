@@ -29,7 +29,6 @@ import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.*;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
 import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
@@ -786,6 +785,63 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
         return result;
     }
 
+    public long getPoolValueByPoolId(int poolId, long stake) throws Exception {
+        PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+        return calPoolValue(stake, poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax());
+    }
+
+    /**
+     * 计算奖池金额
+     *
+     * @param stake
+     * @param growthRate
+     * @return
+     */
+    public long calPoolValue(long stake, List<Integer> growthRate, int initTimes, int maxTimes) {
+        return calPoolValue(stake, growthRate, initTimes, maxTimes, 0);
+    }
+
+    /**
+     * 计算奖池金额
+     *
+     * @param stake
+     * @param growthRate
+     * @param delayTime 延迟时间
+     * @return
+     */
+    public long calPoolValue(long stake, List<Integer> growthRate, int initTimes, int maxTimes, int delayTime) {
+        //押注
+        BigDecimal stakeBigDecimal = BigDecimal.valueOf(stake);
+        //奖池初始金额
+        BigDecimal initPoolBigDecimal = stakeBigDecimal.multiply(BigDecimal.valueOf(initTimes));
+        //奖池上限金额
+        BigDecimal maxPoolBigDecimal = stakeBigDecimal.multiply(BigDecimal.valueOf(maxTimes));
+
+        //间隔时间
+        int timeValue = growthRate.get(0);
+        BigDecimal intervalTime = BigDecimal.valueOf(timeValue);
+
+        //增加万分比
+        int propValue = growthRate.get(1);
+        BigDecimal prop = BigDecimal.valueOf(propValue).divide(tenThousandBigDecimal, 4, RoundingMode.HALF_UP);
+
+        //循环时间
+        BigDecimal circulTimeBigDecimal = BigDecimal.ONE.divide(prop, 4, RoundingMode.HALF_UP).multiply(intervalTime);
+
+        //余数y
+        int y = (TimeHelper.getNowDaySeconds() + delayTime) % circulTimeBigDecimal.intValue();
+
+        //实际金额
+        BigDecimal step1 = BigDecimal.valueOf(y).divide(intervalTime, 4, RoundingMode.HALF_UP);
+        BigDecimal step2 = step1.multiply(prop);
+        BigDecimal step3 = step2.multiply(maxPoolBigDecimal.subtract(initPoolBigDecimal));
+        long addGold = initPoolBigDecimal.add(step3).longValue();
+
+//        log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},intervalTime = {},y = {},addGold = {}", playerGameData.playerId(), rand, propV, intervalTime, y, addGold);
+//        log.debug("计算火车奖池金额 stake = {},timeValue = {},propValue = {},y = {},addGold = {}", stake, timeValue, propValue, y, addGold);
+        return addGold;
+    }
+
 
     @Override
     public void onTimer(TimerEvent e) {
@@ -924,30 +980,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
         return baseLineCfg.getPosLocation();
     }
 
-    /**
-     * 检测是否区间变化
-     *
-     * @param map1
-     * @param map2
-     */
-    private boolean compareSectionMap(Map<Integer, Map<Integer, Map<Integer, int[]>>> map1, Map<Integer, Map<Integer, Map<Integer, int[]>>> map2) {
-        // 比较第一层
-        if (!map1.keySet().equals(map2.keySet())) {
-            return false;
-        }
-
-        // 比较每一层
-        for (Integer key : map1.keySet()) {
-            Map<Integer, Map<Integer, int[]>> innerMap1 = map1.get(key);
-            Map<Integer, Map<Integer, int[]>> innerMap2 = map2.get(key);
-
-            if (!compareMiddleMaps(innerMap1, innerMap2)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
 
     private boolean compareMiddleMaps(Map<Integer, Map<Integer, int[]>> map1, Map<Integer, Map<Integer, int[]>> map2) {
 

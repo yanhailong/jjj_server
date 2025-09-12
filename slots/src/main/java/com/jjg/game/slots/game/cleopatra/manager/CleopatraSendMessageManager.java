@@ -12,11 +12,10 @@ import com.jjg.game.slots.game.cleopatra.data.AddColumnConfig;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraAddColumnInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
-import com.jjg.game.slots.game.cleopatra.pb.CleopatraAddColumInfo;
-import com.jjg.game.slots.game.cleopatra.pb.CleopatraPoolInfo;
-import com.jjg.game.slots.game.cleopatra.pb.ResCleopatraEnterGame;
-import com.jjg.game.slots.game.cleopatra.pb.ResCleotapraStartGame;
+import com.jjg.game.slots.game.cleopatra.pb.*;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.PoolInfo;
+import com.jjg.game.slots.game.dollarexpress.pb.ResPoolValue;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinResultLib;
@@ -127,6 +126,27 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回押注结果", false);
+    }
+
+    /**
+     * 返回奖池结果
+     *
+     * @param playerController
+     * @param gameRunInfo
+     */
+    public void sendPoolValue(PlayerController playerController, DollarExpressGameRunInfo gameRunInfo) {
+        SendInfo sendInfo = new SendInfo();
+
+        ResCleopatraPool res = new ResCleopatraPool(gameRunInfo.getCode());
+        if (gameRunInfo.success()) {
+            res.poolValue = gameRunInfo.getMini();
+        } else {
+            log.debug("奖池结果错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
+        }
+
+        sendInfo.addPlayerMsg(playerController.playerId(), res);
+        sendInfo.getLogMessage().add(res);
+        sendRun(playerController, sendInfo, "返回奖池结果", false);
     }
 
     private List<CleopatraAddColumInfo> addColumInfoList(CleopatraResultLib lib){

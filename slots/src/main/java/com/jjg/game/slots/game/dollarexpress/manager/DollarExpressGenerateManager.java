@@ -29,6 +29,129 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
     //触发普通二选一，最少需要allboard个数
     private int allBoardMinCount = Integer.MAX_VALUE;
 
+    @Override
+    protected List<SpecialAuxiliaryInfo> assignPattern(DollarExpressResultLib lib) {
+        //获取指定图案的配置
+        Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_ASSIGN);
+        if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
+            return null;
+        }
+
+        //获取每个图标出现的次数
+        Map<Integer, Integer> showCountMap = checkIconShowCount(lib.getIconArr());
+
+        log.debug("检查指定图案");
+
+        //小游戏
+        List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = new ArrayList<>();
+        //已经出现的小游戏id
+        Set<Integer> showAuxiliaryIdSet = new HashSet<>();
+        addShowAuxiliaryId(lib,showAuxiliaryIdSet);
+
+
+        for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
+            BaseElementRewardCfg cfg = en.getValue();
+            //必须出现的图案
+            Integer mustIconCount = showCountMap.get(cfg.getRewardNum());
+            //条件图案总数量
+            int elementAllCount = 0;
+            for (int iconId : cfg.getElementId()) {
+                Integer count = showCountMap.get(iconId);
+                if (count != null) {
+                    elementAllCount++;
+                }
+            }
+
+            //检查条件是否都满足
+            if (mustIconCount == null || mustIconCount < 1 || elementAllCount < 1) {
+                continue;
+            }
+
+            //是否触发小游戏
+            if (cfg.getFeatureTriggerId() == null || cfg.getFeatureTriggerId().isEmpty()) {
+                continue;
+            }
+
+            for (int i = 0; i < elementAllCount; i++) {
+                cfg.getFeatureTriggerId().forEach(miniGameId -> {
+                    if(!showAuxiliaryIdSet.contains(miniGameId)) { //如果没出现过的小游戏可以触发，拉火车除外
+                        lib.getLibTypeSet().forEach(libType -> {
+                            SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
+                            if (specialAuxiliaryInfo != null) {
+                                SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(specialAuxiliaryInfo.getCfgId());
+
+                                if(normalTrainsTrainIconId(specialAuxiliaryCfg.getType()) < 1){ //如果不是拉火车，则加入检测重复的名单里
+                                    showAuxiliaryIdSet.add(miniGameId);
+                                }
+                                specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        return specialAuxiliaryInfoList;
+    }
+
+    @Override
+    protected List<SpecialAuxiliaryInfo> overallDisperse(DollarExpressResultLib lib) {
+        //获取全局分散图案的配置
+        Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE_GLOBAL);
+        if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
+            return null;
+        }
+
+        //获取每个图标出现的次数
+        Map<Integer, Integer> showCountMap = checkIconShowCount(lib.getIconArr());
+        //已经出现的小游戏id
+        Set<Integer> showAuxiliaryIdSet = new HashSet<>();
+        addShowAuxiliaryId(lib,showAuxiliaryIdSet);
+
+        log.debug("检查全局分散");
+
+        //小游戏
+        List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = new ArrayList<>();
+
+        for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
+            BaseElementRewardCfg cfg = en.getValue();
+
+            //检查出现的个数是否满足
+            int elementsCount = 0;
+            for (int iconId : cfg.getElementId()) {
+                Integer count = showCountMap.get(iconId);
+                if (count != null) {
+                    elementsCount += count;
+                }
+            }
+            if (elementsCount != cfg.getRewardNum()) {
+                continue;
+            }
+
+            //是否触发小游戏
+            if (cfg.getFeatureTriggerId() == null || cfg.getFeatureTriggerId().isEmpty()) {
+                continue;
+            }
+
+            cfg.getFeatureTriggerId().forEach(miniGameId -> {
+                if(!showAuxiliaryIdSet.contains(miniGameId)) { //如果没出现过的小游戏可以触发，拉火车除外
+                    lib.getLibTypeSet().forEach(libType -> {
+                        SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
+                        if (specialAuxiliaryInfo != null) {
+                            SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(specialAuxiliaryInfo.getCfgId());
+
+                            if(normalTrainsTrainIconId(specialAuxiliaryCfg.getType()) < 1){ //如果不是拉火车，则加入检测重复的名单里
+                                showAuxiliaryIdSet.add(miniGameId);
+                            }
+                            specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
+                        }
+                    });
+                }
+
+            });
+        }
+        return specialAuxiliaryInfoList;
+    }
+
     /**
      * 添加中奖线信息
      *
@@ -625,6 +748,13 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         return 0;
     }
 
+    public int goldTrainsTrainIconId(int auxiliaryType) {
+        if (auxiliaryType == DollarExpressConstant.SpecialAuxiliary.TYPE_GOLD_TRAIN) {
+            return DollarExpressConstant.BaseElement.ID_GOLD_TRAIN;
+        }
+        return 0;
+    }
+
     /**
      * specialAuxiliary 中的火车type与icon转化
      *
@@ -645,5 +775,23 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             return DollarExpressConstant.BaseElement.ID_RED_TRAIN;
         }
         return 0;
+    }
+
+    /**
+     * 添加已经出现的小游戏id
+     * @param lib
+     * @param set
+     */
+    private void addShowAuxiliaryId(DollarExpressResultLib lib,Set<Integer> set){
+        if(lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()){
+            return;
+        }
+
+        lib.getSpecialAuxiliaryInfoList().forEach(info -> {
+            SpecialAuxiliaryCfg cfg = GameDataManager.getSpecialAuxiliaryCfg(info.getCfgId());
+            if(normalTrainsTrainIconId(cfg.getType()) < 1){  //拉火车可以重复
+                set.add(info.getCfgId());
+            }
+        });
     }
 }

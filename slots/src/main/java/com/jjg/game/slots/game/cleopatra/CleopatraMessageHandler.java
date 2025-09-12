@@ -11,7 +11,11 @@ import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
 import com.jjg.game.slots.game.cleopatra.manager.CleopatraGameManager;
 import com.jjg.game.slots.game.cleopatra.manager.CleopatraSendMessageManager;
 import com.jjg.game.slots.game.cleopatra.pb.ReqCleopatraEnterGame;
+import com.jjg.game.slots.game.cleopatra.pb.ReqCleopatraPool;
 import com.jjg.game.slots.game.cleopatra.pb.ReqCleopatraStartGame;
+import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
+import com.jjg.game.slots.game.dollarexpress.pb.ReqPoolValue;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinGameManager;
@@ -43,7 +47,7 @@ public class CleopatraMessageHandler implements GmListener {
      * @param playerController
      * @param req
      */
-    @Command(MahjiongWinConstant.MsgBean.REQ_CONFIG_INFO)
+    @Command(CleopatraConstant.MsgBean.REQ_CONFIG_INFO)
     public void reqConfigInfo(PlayerController playerController, ReqCleopatraEnterGame req) {
         try {
             log.info("收到玩家请求配置 playerId={}", playerController.playerId());
@@ -59,12 +63,29 @@ public class CleopatraMessageHandler implements GmListener {
      * @param playerController
      * @param req
      */
-    @Command(MahjiongWinConstant.MsgBean.REQ_START_GAME)
+    @Command(CleopatraConstant.MsgBean.REQ_START_GAME)
     public void reqStartGame(PlayerController playerController, ReqCleopatraStartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             CleopatraGameRunInfo gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeVlue);
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 奖池
+     *
+     * @param playerController
+     * @param req
+     */
+    @Command(CleopatraConstant.MsgBean.REQ_POOL_VALUE)
+    public void reqPoolValue(PlayerController playerController, ReqCleopatraPool req) {
+        try {
+            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+            DollarExpressGameRunInfo gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
+            sendMessageManager.sendPoolValue(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

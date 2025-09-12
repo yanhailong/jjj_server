@@ -7,16 +7,22 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraGameDataDao;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraResultLibDao;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
+import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -63,6 +69,26 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
 
         playerGameData.setLastActiveTime(TimeHelper.nowInt());
         return startGame(playerController, playerGameData, stake, false);
+    }
+
+    /**
+     * 获取奖池
+     *
+     * @param playerController
+     */
+    public DollarExpressGameRunInfo getPoolValue(PlayerController playerController, long stake) {
+        DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerController.playerId());
+        try {
+            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
+            List<Integer> prizePoolIdList = baseInitCfg.getPrizePoolIdList();
+            for(int poolId : prizePoolIdList) {
+                gameRunInfo.setMini(getPoolValueByPoolId(poolId, stake));
+            }
+        } catch (Exception e) {
+            log.error("", e);
+            gameRunInfo.setCode(Code.EXCEPTION);
+        }
+        return gameRunInfo;
     }
 
     /**

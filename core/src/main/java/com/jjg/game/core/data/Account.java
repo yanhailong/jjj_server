@@ -33,6 +33,8 @@ public class Account {
     private long lastOfflineTime;
     //当前状态
     private int status;
+    //渠道
+    private int channel;
 
 
     public long getPlayerId() {
@@ -121,5 +123,13 @@ public class Account {
 
     public void setStatus(int status) {
         this.status = status;
+    }
+
+    public int getChannel() {
+        return channel;
+    }
+
+    public void setChannel(int channel) {
+        this.channel = channel;
     }
 }

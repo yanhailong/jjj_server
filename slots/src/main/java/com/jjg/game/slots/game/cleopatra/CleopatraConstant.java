@@ -16,6 +16,10 @@ public interface CleopatraConstant {
         //开始游戏
         int REQ_START_GAME = BASE_MSG_PREFIX | 0x3;
         int RES_START_GAME = BASE_MSG_PREFIX | 0x4;
+
+        //请求奖池
+        int REQ_POOL_VALUE = BASE_MSG_PREFIX | 0x5;
+        int RES_POOL_VALUE = BASE_MSG_PREFIX | 0x6;
     }
 
     interface SpecialPlay{
