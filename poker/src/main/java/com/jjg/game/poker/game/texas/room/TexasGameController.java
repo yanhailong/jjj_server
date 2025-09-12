@@ -198,7 +198,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         Thread.ofVirtual().start(() -> {
             ActivityManager activityManager = getRoomController().getRoomManager().getActivityManager();
             if (!(gamePlayer instanceof GameRobotPlayer)) {
-                activityManager.addPlayerActivityProgress(playerId, ActivityTargetType.BET.getTargetKey(), finalBetValue);
+                activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.BET.getTargetKey(), finalBetValue);
             }
         });
         //通知

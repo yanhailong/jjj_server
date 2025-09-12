@@ -3,6 +3,7 @@ package com.jjg.game.activity.common.message.handler;
 import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowRecord;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowTotalPool;
+import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.message.req.ReqActivityClaimRewards;
@@ -41,9 +42,12 @@ public class ActivityMessageHandler {
         //查找活动数据
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.getValue().contains(req.detailId)) {
-            AbstractResponse response = data.getType().getController().getPlayerActivityDetail(playerController.playerId(), data, req.detailId);
-            if (response != null) {
-                playerController.send(response);
+            BaseActivityController controller = data.getType().getController();
+            if (controller.checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+                AbstractResponse response = controller.getPlayerActivityDetail(playerController.playerId(), data, req.detailId);
+                if (response != null) {
+                    playerController.send(response);
+                }
             }
         }
     }
@@ -57,7 +61,7 @@ public class ActivityMessageHandler {
         if (activityType == null) {
             return;
         }
-        AbstractResponse response = activityType.getController().getPlayerActivityInfoByType(playerController.playerId(), activityType);
+        AbstractResponse response = activityType.getController().getPlayerActivityInfoByType(playerController.getPlayer(), activityType);
         if (response != null) {
             playerController.send(response);
         }
@@ -72,9 +76,12 @@ public class ActivityMessageHandler {
         if (data == null || !data.getValue().contains(req.detailId)) {
             return;
         }
-        AbstractResponse response = data.getType().getController().claimActivityRewards(playerController.playerId(), data, req.detailId);
-        if (response != null) {
-            playerController.send(response);
+        BaseActivityController controller = data.getType().getController();
+        if (controller.checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+            AbstractResponse response = controller.claimActivityRewards(playerController.playerId(), data, req.detailId);
+            if (response != null) {
+                playerController.send(response);
+            }
         }
     }
 
@@ -86,9 +93,12 @@ public class ActivityMessageHandler {
         //查找活动数据
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.getValue().contains(req.detailId) && data.getType().isCanInitiativeJoin()) {
-            AbstractResponse response = data.getType().getController().joinActivity(playerController.playerId(), data, req.detailId);
-            if (response != null) {
-                playerController.send(response);
+            BaseActivityController controller = data.getType().getController();
+            if (controller.checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+                AbstractResponse response = controller.joinActivity(playerController.playerId(), data, req.detailId);
+                if (response != null) {
+                    playerController.send(response);
+                }
             }
         }
     }
@@ -101,8 +111,10 @@ public class ActivityMessageHandler {
     public void reqCashCowRecord(PlayerController playerController, ReqCashCowRecord req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.canRun() && data.getType() == ActivityType.CASH_COW) {
-            AbstractResponse res = cashCowController.reqCashCowRecord(playerController, req);
-            playerController.send(res);
+            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+                AbstractResponse res = cashCowController.reqCashCowRecord(playerController, req);
+                playerController.send(res);
+            }
         }
     }
 
@@ -113,8 +125,10 @@ public class ActivityMessageHandler {
     public void reqCashCowTotalPool(PlayerController playerController, ReqCashCowTotalPool req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.canRun() && data.getType() == ActivityType.CASH_COW) {
-            AbstractResponse res = cashCowController.reqCashCowTotalPool(playerController, req);
-            playerController.send(res);
+            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+                AbstractResponse res = cashCowController.reqCashCowTotalPool(playerController, req);
+                playerController.send(res);
+            }
         }
     }
 }

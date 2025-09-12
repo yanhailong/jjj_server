@@ -10,6 +10,8 @@ import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.base.condition.ConditionCheckService;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
@@ -36,6 +38,8 @@ public abstract class BaseActivityController {
     protected CorePlayerService corePlayerService;
     @Autowired
     protected RedisLock redisLock;
+    @Autowired
+    protected ConditionCheckService conditionCheckService;
 
     /**
      * 增加玩家活动进度
@@ -56,6 +60,17 @@ public abstract class BaseActivityController {
     public void activityLoadCompleted(ActivityData activityData) {
     }
 
+    /**
+     * 检查玩家是否能参与活动
+     *
+     * @param activityData 活动数据
+     * @param player       玩家数据
+     * @return true 能参加活动 false不能参加活动
+     */
+    public boolean checkPlayerCanJoinActivity(Player player, ActivityData activityData) {
+        // 检查是否触发成功
+        return conditionCheckService.isTriggerComplete(player, activityData.getCondition());
+    }
 
     public abstract AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId);
 
@@ -129,7 +144,8 @@ public abstract class BaseActivityController {
     /**
      * 通过类型获取活动详情
      */
-    public AbstractResponse getPlayerActivityInfoByType(long playerId, ActivityType activityType) {
+    public AbstractResponse getPlayerActivityInfoByType(Player player, ActivityType activityType) {
+        long playerId = player.getId();
         Map<Long, Map<Integer, PlayerActivityData>> playerActivityData = playerActivityDao.getAllPlayerActivityData(playerId, activityType);
         Map<Long, ActivityData> activityDataMap = activityManager.getActivityTypeData().get(activityType);
         Map<Long, List<BaseActivityDetailInfo>> allDetailInfoMap = new HashMap<>();
@@ -139,7 +155,8 @@ public abstract class BaseActivityController {
         Map<Long, Map<Integer, BaseCfgBean>> activityDetailInfo = activityManager.getActivityDetailInfo();
         for (ActivityData activityData : activityDataMap.values()) {
             Map<Integer, BaseCfgBean> baseCfgBeanMap = activityDetailInfo.get(activityData.getId());
-            if (CollectionUtil.isEmpty(baseCfgBeanMap)) {
+            if (CollectionUtil.isEmpty(baseCfgBeanMap) || !activityData.canRun()
+                    || CollectionUtil.isEmpty(activityData.getValue()) || !checkPlayerCanJoinActivity(player, activityData)) {
                 continue;
             }
             if (!activityData.canRun()) {

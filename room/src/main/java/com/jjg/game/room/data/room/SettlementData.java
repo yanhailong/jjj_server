@@ -16,8 +16,6 @@ public class SettlementData {
     private long betTotal;
     // 应该给房主加的值
     private long roomCreatorIncome;
-    // 有效流水
-    private long effectiveWaterFlow;
     public SettlementData() {
     }
 
@@ -51,14 +49,6 @@ public class SettlementData {
 
     public long getRoomCreatorIncome() {
         return roomCreatorIncome;
-    }
-
-    public long getEffectiveWaterFlow() {
-        return effectiveWaterFlow;
-    }
-
-    public void setEffectiveWaterFlow(long effectiveWaterFlow) {
-        this.effectiveWaterFlow = effectiveWaterFlow;
     }
 
     /**

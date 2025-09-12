@@ -361,7 +361,6 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
     public void addLog(TexasGameController controller, TexasSaveHistory texasSaveHistory) {
         TexasHistory texasHistory = controller.buildTexasHistory(0, texasSaveHistory);
         Map<Long, Long> baseBetInfo = controller.getGameDataVo().getBaseBetInfo();
-        long totalEffectiveBet = 0;
         ActivityManager activityManager = controller.getRoomController().getRoomManager().getActivityManager();
         //构建玩家信息
         for (TexasHistoryPlayerInfo info : texasHistory.totalPlayerBetInfo) {
@@ -373,18 +372,15 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.INCOME, info.betValue);
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.EFFECTIVE_BET, betValue);
             //增加个人
-            if (!(controller.getGameDataVo().getGamePlayer(info.playerId) instanceof GameRobotPlayer)) {
-                totalEffectiveBet += betValue;
+            GamePlayer gamePlayer = controller.getGameDataVo().getGamePlayer(info.playerId);
+            if (!(gamePlayer instanceof GameRobotPlayer)) {
                 Thread.ofVirtual().start(() -> {
-                    activityManager.addPlayerActivityProgress(info.playerId, ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue);
+                    activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue);
+                    activityManager.addActivityProgress(gamePlayer, ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue);
                 });
             }
         }
         //增加总体
-        long finalTotalEffectiveBet = totalEffectiveBet;
-        Thread.ofVirtual().start(() -> {
-            activityManager.addActivityProgress(ActivityTargetType.EFFECTIVE_BET.getTargetKey(), finalTotalEffectiveBet);
-        });
         gameDataTracker.addGameLogData("TexasInfo", texasHistory);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
     }

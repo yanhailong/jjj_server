@@ -319,10 +319,10 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         NotifyActivityChange info = new NotifyActivityChange();
         info.activityInfos = new ArrayList<>();
         for (ActivityData data : activityData.values()) {
-            if (!data.canRun()) {
+            BaseActivityController controller = data.getType().getController();
+            if (!data.canRun() || !controller.checkPlayerCanJoinActivity(player, data)) {
                 continue;
             }
-            BaseActivityController controller = data.getType().getController();
             if (firstLogin) {
                 controller.checkPlayerDataAndReset(player.getId(), data);
             }
@@ -335,11 +335,15 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     /**
      * 玩家活动进度更新
      *
-     * @param playerId          玩家id
+     * @param player            玩家数据
      * @param activityTargetKey 触发key
      * @param value             增加值
      */
-    public void addPlayerActivityProgress(long playerId, long activityTargetKey, long value) {
+    public void addPlayerActivityProgress(Player player, long activityTargetKey, long value) {
+        if (value <= 0) {
+            return;
+        }
+        long playerId = player.getId();
         //获取需要增加的活动类型
         for (ActivityType activityType : ActivityType.values()) {
             if (!activityType.isCanAddPlayerProgress() || (activityType.getTargetKey() & activityTargetKey) == 0) {
@@ -351,6 +355,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             }
             List<ActivityData> dataArrayList = new ArrayList<>();
             for (ActivityData data : activityDataMap.values()) {
+                if (!data.getType().getController().checkPlayerCanJoinActivity(player, data)) {
+                    continue;
+                }
                 try {
                     boolean canClaim = data.getType().getController().addPlayerProgress(playerId, data, value);
                     if (canClaim) {
@@ -376,10 +383,13 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     /**
      * 活动进度更新
      *
-     * @param activityTargetKey
-     * @param value
+     * @param activityTargetKey 活动触发key
+     * @param value 增加值
      */
-    public void addActivityProgress(long activityTargetKey, long value) {
+    public void addActivityProgress(Player player, long activityTargetKey, long value) {
+        if (value <= 0) {
+            return;
+        }
         for (ActivityType activityType : ActivityType.values()) {
             if (!activityType.isCanAddActivityProgress() || (activityType.getTargetKey() & activityTargetKey) == 0) {
                 continue;
@@ -389,6 +399,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 continue;
             }
             for (ActivityData data : activityDataMap.values()) {
+                if (!data.getType().getController().checkPlayerCanJoinActivity(player, data)) {
+                    continue;
+                }
                 try {
                     //获取该玩家的活动详细信息
                     data.getType().getController().addActivityProgress(data, value);

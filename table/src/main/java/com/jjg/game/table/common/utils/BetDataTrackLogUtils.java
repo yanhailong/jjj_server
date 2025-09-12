@@ -41,7 +41,6 @@ public class BetDataTrackLogUtils {
             long effectiveWaterFlow = calculationEffectiveWaterFlow(playerBetInfo);
             if (effectiveWaterFlow > 0) {
                 RoomDataHelper.checkPlayerVipLevel(gamePlayer, controller, effectiveWaterFlow);
-                settlementData.setEffectiveWaterFlow(effectiveWaterFlow);
             }
             gameDataTracker.addPlayerLogData(
                     gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, effectiveWaterFlow);
@@ -50,9 +49,10 @@ public class BetDataTrackLogUtils {
                 Thread.ofVirtual().start(() -> {
                     ActivityManager activityManager = controller.getRoomController().getRoomManager().getActivityManager();
                     if (effectiveWaterFlow > 0) {
-                        activityManager.addPlayerActivityProgress(gamePlayer.getId(), ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveWaterFlow);
+                        activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveWaterFlow);
+                        activityManager.addActivityProgress(gamePlayer, ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveWaterFlow);
                     }
-                    activityManager.addPlayerActivityProgress(gamePlayer.getId(), ActivityTargetType.BET.getTargetKey(), settlementData.getBetTotal());
+                    activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.BET.getTargetKey(), settlementData.getBetTotal());
                 });
             }
         }

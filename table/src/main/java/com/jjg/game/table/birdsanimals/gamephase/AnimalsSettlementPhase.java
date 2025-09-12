@@ -95,8 +95,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
             bankerChangeGold += settlementData.getTotalWin() - settlementData.getBetTotal();
             settlementDataMap.put(playerId, settlementData);
         }
-        long addProgress = settlementDataMap.values().stream().mapToLong(SettlementData::getEffectiveWaterFlow).sum();
-        gameController.addActivityProgress(addProgress);
+
         gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
         // 场上玩家金币变化
         settlement.settlementInfo.playerChangedGolds = playerChangedGolds;
