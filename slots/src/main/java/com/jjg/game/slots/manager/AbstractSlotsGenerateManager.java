@@ -437,7 +437,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             for (int iconId : cfg.getElementId()) {
                 Integer count = showCountMap.get(iconId);
                 if (count != null) {
-                    elementAllCount++;
+                    elementAllCount += count;
                 }
             }
 
@@ -816,33 +816,33 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         if (wild_Front) {  //表示front是wild图标
             if (wild_Back) {  //均为wild，相同
                 sameInfo.setSame(true);
-                log.debug("均为wild图标 iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
+//                log.debug("均为wild图标 iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
             } else {
                 //如果2是普通图标
                 if (normal_Back) {
                     if (sameInfo.getBaseIconId() > 0) {
                         sameInfo.setSame(sameInfo.getBaseIconId() == iconIdBack);
-                        log.debug("front 为wild，back是普通图标a iconIdFront = {},iconIdBack = {},same = {}", iconIdFront, iconIdBack, sameInfo.isSame());
+//                        log.debug("front 为wild，back是普通图标a iconIdFront = {},iconIdBack = {},same = {}", iconIdFront, iconIdBack, sameInfo.isSame());
                     } else {
                         sameInfo.setSame(true);
                         sameInfo.setBaseIconId(iconIdBack);
-                        log.debug("front 为wild，back是普通图标b iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
+//                        log.debug("front 为wild，back是普通图标b iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
                     }
                 } else {
-                    log.debug("front为wild，back是非wild的特殊图标 iconIdFront = {},iconIdBack = {},same = false", iconIdFront, iconIdBack);
+//                    log.debug("front为wild，back是非wild的特殊图标 iconIdFront = {},iconIdBack = {},same = false", iconIdFront, iconIdBack);
                 }
             }
         } else if (normal_Front) {  //表示fornt是普通图标
             if (wild_Back) { //back是wild
                 sameInfo.setSame(true);
                 sameInfo.setBaseIconId(iconIdFront);
-                log.debug("front为普通，back是wild iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
+//                log.debug("front为普通，back是wild iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
             } else {
                 //如果front是普通，back是非wild，则只有两者id相同
                 if (iconIdFront == iconIdBack) {
                     sameInfo.setSame(true);
                     sameInfo.setBaseIconId(iconIdFront);
-                    log.debug("均为普通图标 iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
+//                    log.debug("均为普通图标 iconIdFront = {},iconIdBack = {},same = true", iconIdFront, iconIdBack);
                 }
             }
         } else {  //表示1是非wild的特殊图标,则无论2为什么，都不可能相同

@@ -46,7 +46,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         List<SpecialAuxiliaryInfo> specialAuxiliaryInfoList = new ArrayList<>();
         //已经出现的小游戏id
         Set<Integer> showAuxiliaryIdSet = new HashSet<>();
-        addShowAuxiliaryId(lib,showAuxiliaryIdSet);
+        addShowAuxiliaryId(lib, showAuxiliaryIdSet);
 
 
         for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
@@ -58,7 +58,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             for (int iconId : cfg.getElementId()) {
                 Integer count = showCountMap.get(iconId);
                 if (count != null) {
-                    elementAllCount++;
+                    elementAllCount += count;
                 }
             }
 
@@ -72,16 +72,19 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
                 continue;
             }
 
+            log.debug("elementAllCount = {},showAuxiliaryIdSet = {},element = {}", elementAllCount, showAuxiliaryIdSet, cfg.getElementId());
+
             for (int i = 0; i < elementAllCount; i++) {
                 cfg.getFeatureTriggerId().forEach(miniGameId -> {
-                    if(!showAuxiliaryIdSet.contains(miniGameId)) { //如果没出现过的小游戏可以触发，拉火车除外
+                    if (!showAuxiliaryIdSet.contains(miniGameId)) { //如果没出现过的小游戏可以触发，拉火车除外
                         lib.getLibTypeSet().forEach(libType -> {
                             SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
                             if (specialAuxiliaryInfo != null) {
                                 SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(specialAuxiliaryInfo.getCfgId());
 
-                                if(normalTrainsTrainIconId(specialAuxiliaryCfg.getType()) < 1){ //如果不是拉火车，则加入检测重复的名单里
+                                if (normalTrainsTrainIconId(specialAuxiliaryCfg.getType()) < 1) { //如果不是拉火车，则加入检测重复的名单里
                                     showAuxiliaryIdSet.add(miniGameId);
+                                    log.debug("showAuxiliaryIdSet 添加 miniGameId = {}", miniGameId);
                                 }
                                 specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
                             }
@@ -105,7 +108,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         Map<Integer, Integer> showCountMap = checkIconShowCount(lib.getIconArr());
         //已经出现的小游戏id
         Set<Integer> showAuxiliaryIdSet = new HashSet<>();
-        addShowAuxiliaryId(lib,showAuxiliaryIdSet);
+        addShowAuxiliaryId(lib, showAuxiliaryIdSet);
 
         log.debug("检查全局分散");
 
@@ -133,13 +136,13 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             }
 
             cfg.getFeatureTriggerId().forEach(miniGameId -> {
-                if(!showAuxiliaryIdSet.contains(miniGameId)) { //如果没出现过的小游戏可以触发，拉火车除外
+                if (!showAuxiliaryIdSet.contains(miniGameId)) { //如果没出现过的小游戏可以触发，拉火车除外
                     lib.getLibTypeSet().forEach(libType -> {
                         SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(libType, lib.getIconArr(), miniGameId, lib.getSpecialGirdInfoList());
                         if (specialAuxiliaryInfo != null) {
                             SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(specialAuxiliaryInfo.getCfgId());
 
-                            if(normalTrainsTrainIconId(specialAuxiliaryCfg.getType()) < 1){ //如果不是拉火车，则加入检测重复的名单里
+                            if (normalTrainsTrainIconId(specialAuxiliaryCfg.getType()) < 1) { //如果不是拉火车，则加入检测重复的名单里
                                 showAuxiliaryIdSet.add(miniGameId);
                             }
                             specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
@@ -527,7 +530,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         }
 
         if (trainDataCount != trainCount) {
-            log.debug("火车数据对不上");
+            log.debug("火车数据对不上 trainDataCount = {}, trainCount = {}", trainDataCount, trainCount);
             return false;
         }
         return true;
@@ -779,17 +782,18 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
 
     /**
      * 添加已经出现的小游戏id
+     *
      * @param lib
      * @param set
      */
-    private void addShowAuxiliaryId(DollarExpressResultLib lib,Set<Integer> set){
-        if(lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()){
+    private void addShowAuxiliaryId(DollarExpressResultLib lib, Set<Integer> set) {
+        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
             return;
         }
 
         lib.getSpecialAuxiliaryInfoList().forEach(info -> {
             SpecialAuxiliaryCfg cfg = GameDataManager.getSpecialAuxiliaryCfg(info.getCfgId());
-            if(normalTrainsTrainIconId(cfg.getType()) < 1){  //拉火车可以重复
+            if (normalTrainsTrainIconId(cfg.getType()) < 1) {  //拉火车可以重复
                 set.add(info.getCfgId());
             }
         });

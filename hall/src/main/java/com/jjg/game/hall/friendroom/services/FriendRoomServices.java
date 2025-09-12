@@ -127,7 +127,7 @@ public class FriendRoomServices {
         CommonResult<Void> removeItem;
         Map<Integer, Long> itemMap = new HashMap<>();
         if (req.predictCostGoldNum != 0) {
-            itemMap.put(reqItem.getItemId(), reqItem.getItemCount());
+            itemMap.put(reqItem.getId(), reqItem.getItemCount());
             itemMap.put(ItemUtils.getGoldItemId(), req.predictCostGoldNum);
             removeItem = playerPackService.removeItems(player, itemMap, "create_friend_room");
         } else {
@@ -1062,7 +1062,7 @@ public class FriendRoomServices {
         log.info("玩家：{} 一键领取奖励：{}",
             playerId,
             playerAllReward.stream()
-                .map(i -> "{id: " + i.getItemId() + " " + "count: " + i.getItemCount() + "}")
+                .map(i -> "{id: " + i.getId() + " " + "count: " + i.getItemCount() + "}")
                 .collect(Collectors.joining(",")));
         // 更新所有领奖状态
         billHistoryDao.updateAllHistoryRewardTook(playerId);

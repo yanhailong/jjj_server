@@ -143,7 +143,7 @@ public class PlayerPack {
         }
 
         //校验道具id
-        if (id != item.getItemId()) {
+        if (id != item.getId()) {
             result.code = Code.PARAM_ERROR;
             return result;
         }
@@ -156,7 +156,7 @@ public class PlayerPack {
             items.remove(girdId);
             usedGird.remove(girdId);
 
-            List<Integer> list = itemIndexMap.get(item.getItemId());
+            List<Integer> list = itemIndexMap.get(item.getId());
             if (list != null && !list.isEmpty()) {
                 list.removeIf(i -> i == girdId);
             }
@@ -268,7 +268,7 @@ public class PlayerPack {
             return false;
         }
         for (Item checkItem : checkItems) {
-            long count = getItemCount(checkItem.getItemId());
+            long count = getItemCount(checkItem.getId());
             if (count < checkItem.getItemCount()) {
                 return false;
             }

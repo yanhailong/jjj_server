@@ -84,7 +84,7 @@ public class MailService {
 
             Map<Integer, Long> map = new HashMap<>();
             mail.getItems().forEach(mailItem -> {
-                int id = mailItem.getItemId();
+                int id = mailItem.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(id);
                 if (itemCfg == null) {
                     log.debug("未找到该道具，领取邮件内道具失败， playerId = {},itemId = {},desc = {}", playerId, id, desc);
@@ -158,7 +158,7 @@ public class MailService {
                 continue;
             }
             mail.getItems().forEach(mailItem -> {
-                int id = mailItem.getItemId();
+                int id = mailItem.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(id);
                 if (itemCfg == null) {
                     log.debug("未找到该道具，领取邮件内道具失败， playerId = {},itemId = {}", playerId, id);
