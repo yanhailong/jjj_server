@@ -80,8 +80,8 @@ public class FriendRoomMessageBuilder {
         friendRoomBaseData.nextPauseBtnOverdueTime =
             friendRoom.getPauseTime() + intervalTime > curTime ? friendRoom.getPauseTime() + intervalTime : 0;
         Tuple2<Integer, Integer> roomMaxLimitCfg = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
-        friendRoomBaseData.maxPlayerNum = roomMaxLimitCfg.getT2();
-        friendRoomBaseData.limitGoldMin = warehouseCfg.getEnterLimit();
+        friendRoomBaseData.maxPlayerNum = roomMaxLimitCfg.getT1();
+        friendRoomBaseData.limitGoldMin = warehouseCfg.getBetShow();
         return friendRoomBaseData;
     }
 
