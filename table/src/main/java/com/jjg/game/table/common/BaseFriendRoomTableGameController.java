@@ -55,6 +55,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                         } else {
                             cancelBeBankerSuccess = true;
                             gameDataVo.setApplyCancelBeBankerPlayer(0);
+                            log.info("玩家：{} 申请下庄成功", roomBankerId);
                         }
                     }
                     // 如果庄家没有申请下庄
@@ -71,6 +72,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                                 log.error("检查庄家自动下庄时失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
                             } else {
                                 cancelBeBankerSuccess = true;
+                                log.info("玩家：{} 上庄次数达到上限，自动下庄", roomBankerId);
                             }
                         }
                     }
@@ -87,6 +89,8 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                                     roomBankerId, ERoomItemReason.FRIEND_ROOM_PREDICATE_GOLD_NOT_ENOUGH);
                             if (code != Code.SUCCESS) {
                                 log.error("检查庄家剩余准备金时，自动下庄失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
+                            } else {
+                                log.info("庄家：{} 准备金不足，自动下庄", roomBankerId);
                             }
                         }
                     }

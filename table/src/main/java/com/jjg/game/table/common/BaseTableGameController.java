@@ -128,7 +128,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     }
 
     @Override
-    protected GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
+    public GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
         GamePlayer gamePlayer = super.onPlayerJoinRoom(playerController, gameStartStatus);
         gamePlayer.setTableGameData(new TablePlayerGameData());
         // 场上玩家重新排序

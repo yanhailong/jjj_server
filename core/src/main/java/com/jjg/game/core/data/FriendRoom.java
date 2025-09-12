@@ -128,7 +128,7 @@ public class FriendRoom extends Room {
     }
 
     public void setPredictCostGoldNum(long predictCostGoldNum) {
-        this.predictCostGoldNum = predictCostGoldNum;
+        this.predictCostGoldNum = Math.max(0, predictCostGoldNum);
     }
 
     public int getStatus() {

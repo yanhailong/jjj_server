@@ -130,6 +130,10 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
             gameState = EGameState.GAMING;
             autoRunGamePhase();
             return true;
+        } else if (gameState == EGameState.PAUSING_ON_NEXT_ROUND) {
+            // 如果还在下一轮暂停状态直接设置为游戏中
+            gameState = EGameState.GAMING;
+            return true;
         }
         return false;
     }
@@ -226,10 +230,10 @@ public abstract class AbstractPhaseGameController<RC extends RoomCfg, G extends 
     }
 
     @Override
-    protected GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
+    public GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
         GamePlayer gamePlayer = super.onPlayerJoinRoom(playerController, gameStartStatus);
         // 当玩家中途加入阶段时
-        if (isGameStarted()) {
+        if (isGameStarted() && currentGamePhase != null) {
             currentGamePhase.onPlayerHalfwayJoinPhase(gamePlayer);
         }
         return gamePlayer;
