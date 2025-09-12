@@ -6,6 +6,7 @@ import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.ExceptionUtils;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
@@ -566,6 +567,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @return 扣除结果
      */
     public int addItem(long playerId, long num, String addType, String desc, boolean isNotify) {
+        if (playerId <= 0 || num <= 0) {
+            return Code.FAIL;
+        }
         int transactionItemId = getGameTransactionItemId();
         int goldCfgId = ItemUtils.getGoldItemId();
         int diamondCfgId = ItemUtils.getDiamondItemId();
@@ -590,6 +594,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @return 扣除结果
      */
     private <P extends Player> int addGold(long playerId, long num, String addType, String desc, boolean isNotify) {
+        if (playerId <= 0 || num <= 0) {
+            return Code.FAIL;
+        }
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
         P gamePlayer = (P) gameDataVo.getGamePlayer(playerId);
@@ -647,7 +654,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 return Code.FAIL;
             }
         } else {
-            log.error("异常操作，不能添加非游戏好友的钻石");
+            log.error("异常操作，room: {} 不能添加非游戏好友: {} 的钻石：{} {}",
+                gameDataVo.roomLogInfo(), playerId, num, ExceptionUtils.currentThreadTraces());
         }
         return result.code;
     }

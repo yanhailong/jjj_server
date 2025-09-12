@@ -22,7 +22,7 @@ public interface HallRoomBridge extends IGameRpc {
      *
      * @param playerId    玩家ID
      * @param roomId      房间ID
-     * @param operateCode 操作码 1. 暂停 2. 重新开启 3. 解散
+     * @param operateCode 操作码 1. 重新开启 2. 暂停 3. 解散
      */
     void operateFriendRoom(long playerId, long roomId, int operateCode);
 

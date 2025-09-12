@@ -859,7 +859,7 @@ public class FriendRoomServices {
                     dataEntity.setAutoRenewal(updateFriendRoom.autoRenewal);
                     if (finalAddTime > 0) {
                         long curTime = System.currentTimeMillis();
-                        // 如果游戏暂停了,需要动态计算,不管时间是否暂停，都只需要给原有的过期时间加上增量时间
+                        // 不管时间是否暂停，都只需要给原有的过期时间加上增量时间
                         if (dataEntity.getOverdueTime() < curTime) {
                             // 房间已经过期，续时间
                             dataEntity.setOverdueTime(curTime + finalAddTime);
@@ -871,6 +871,18 @@ public class FriendRoomServices {
                     return true;
                 }
             });
+        if ((addTime > 0 || updateFriendRoom.predictCostGoldNum > 0) && friendRoom.isInGaming()) {
+            if (!StringUtils.isEmpty(friendRoom.getPath())) {
+                ClusterClient client = clusterSystem.getClusterByPath(friendRoom.getPath());
+                // 单房间，直接等返回
+                GameRpcContext.getContext().setReqParameterBuilder(
+                    RpcReqParameterBuilder.create()
+                        .addClusterClient(client)
+                        .setTryMillisPerClient(1000));
+                // 请求尝试开启游戏，如果游戏处于暂停状态，可以考虑异步请求开启游戏
+                hallRoomBridge.operateFriendRoom(player.getId(), friendRoom.getId(), 1);
+            }
+        }
         res.code = Code.SUCCESS;
         res.roomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(result.data);
         playerController.send(res);
