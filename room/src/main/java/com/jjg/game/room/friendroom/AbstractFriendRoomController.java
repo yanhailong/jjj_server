@@ -174,14 +174,14 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         // 如果房间处于未开启游戏,直接走销毁逻辑
         if (gameController.getGameState() == EGameState.INIT_DONE) {
             log.info("房间处于未开启状态，直接解散");
-            gameDestroy(true);
+            gameDestroy(true, true);
         }
     }
 
     @Override
-    public void gameDestroy(boolean closeByPlayer) {
+    public void gameDestroy(boolean closeByPlayer, boolean notifyExitRoom) {
         // 标记游戏为销毁中，
-        gameController.gameDestroy(closeByPlayer);
+        gameController.gameDestroy(closeByPlayer, notifyExitRoom);
     }
 
     @Override
