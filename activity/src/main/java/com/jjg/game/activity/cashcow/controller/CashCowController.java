@@ -562,6 +562,9 @@ public class CashCowController extends BaseActivityController implements TimerLi
             //机器人定时抽奖
             for (Map.Entry<Long, Map<Integer, Long>> entry : timerMap.entrySet()) {
                 Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(entry.getKey());
+                if (CollectionUtil.isEmpty(baseCfgBeanMap)) {
+                    continue;
+                }
                 for (Map.Entry<Integer, Long> longEntry : entry.getValue().entrySet()) {
                     if (timeMillis >= longEntry.getValue()) {
                         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(longEntry.getKey());
@@ -573,7 +576,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             }
             //机器人自动增加奖池
             GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_ROBOT_ADD_Frequency);
-            if (StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
+            if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
                 String[] cfg = StringUtils.split(globalConfigCfg.getValue(), "_");
                 if (cfg.length == 2) {
                     //判断是否触发
