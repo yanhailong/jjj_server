@@ -26,7 +26,9 @@ import com.jjg.game.core.dao.room.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.match.MatchDataDao;
+import com.jjg.game.core.pb.ResExitGame;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
@@ -96,6 +98,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     protected RoomTimerCenter roomTimerCenter;
     // 房间管理器timer,多线程，非房间线程，如果需要调用房间相关的逻辑，需要抛到对应的房间线程
     protected TimerCenter roomManagerTimer;
+    protected MailService mailService;
     // 不同类型的房间roomDao
     protected Map<Class<? extends Room>, AbstractRoomDao<? extends Room, ? extends RoomPlayer>> roomDaoMap
         = new HashMap<>();
@@ -621,7 +624,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      *
      * @param disbandRoomByPlayer 是否是玩家主动解散房间
      */
-    public <R extends Room> void disbandRoom(R room, boolean disbandRoomByPlayer) {
+    public <R extends Room> void disbandRoom(R room, boolean disbandRoomByPlayer, boolean exitNotify) {
         int gameType = room.getGameType();
         long roomId = room.getId();
         if (!roomControllerMap.containsKey(gameType)) {
@@ -640,6 +643,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         List<PlayerController> robotPlayers = new ArrayList<>();
         for (Map.Entry<Long, RoomPlayer> entry : room.getRoomPlayers().entrySet()) {
             if (!entry.getValue().isRobot()) {
+                if (exitNotify) {
+                    PlayerController playerController = roomController.getPlayerController(entry.getKey());
+                    playerController.send(new ResExitGame(Code.SUCCESS));
+                }
                 // 将玩家踢出房间
                 exitRoom(entry.getKey());
             } else {
@@ -678,7 +685,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             public Boolean updateDataWithRes(FriendRoom dataEntity) {
                 // 全量回存房间数据
                 BeanUtils.copyProperties(room, dataEntity);
-                // 需要将房间路径设置为空
+                // 需要将房间路径设置为空，避免出现进入维护的节点
                 dataEntity.setPath(null);
                 dataEntity.setInGaming(false);
                 return true;
@@ -716,7 +723,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> values : roomControllerMap.values()) {
             for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : values.values()) {
                 // 调用房间的解散逻辑
-                disbandRoom(roomController.getRoom(), false);
+                disbandRoom(roomController.getRoom(), false, true);
             }
         }
         // 最终关闭房间定时器
@@ -1083,7 +1090,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 @Override
                 public void action() {
                     // 调用房间销毁逻辑
-                    needDestroyRoomController.gameDestroy(false);
+                    needDestroyRoomController.gameDestroy(false, false);
                 }
             });
         }
@@ -1147,5 +1154,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
     public PlayerPackService getPlayerPackService() {
         return playerPackService;
+    }
+
+    public MailService getMailService() {
+        return mailService;
     }
 }

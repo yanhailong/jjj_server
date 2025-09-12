@@ -371,6 +371,10 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         if (roomBankerId != 0 && roomBankerId == gamePlayer.getId()) {
             return Code.BANKER_CANT_BET;
         }
+        // 庄家不能押注
+        if (roomBankerId == 0 && gamePlayer.getId() == gameController.getRoom().getCreator()) {
+            return Code.BANKER_CANT_BET;
+        }
         // 检查玩家的钱是否带够
         long needTake = totalBetValue;
         if (needTake > gameController.getItemNum(gamePlayer.getId())) {

@@ -174,14 +174,14 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         // 如果房间处于未开启游戏,直接走销毁逻辑
         if (gameController.getGameState() == EGameState.INIT_DONE) {
             log.info("房间处于未开启状态，直接解散");
-            gameDestroy(true);
+            gameDestroy(true, true);
         }
     }
 
     @Override
-    public void gameDestroy(boolean closeByPlayer) {
+    public void gameDestroy(boolean closeByPlayer, boolean notifyExitRoom) {
         // 标记游戏为销毁中，
-        gameController.gameDestroy(closeByPlayer);
+        gameController.gameDestroy(closeByPlayer, notifyExitRoom);
     }
 
     @Override
@@ -217,6 +217,12 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         if (room.getOverdueTime() < curTime) {
             // 如果时间到期且没有开启自动续费，先暂停游戏
             if (!room.isAutoRenewal()) {
+                log.info("房间：{} 时长到期", room.logStr());
+                return false;
+            }
+            if (room.getRoomPlayers().isEmpty()) {
+                roomManager.getMailService().addCfgMail(room.getCreator(), 2);
+                log.info("房间：{} 时长到期,没有玩家暂停续费", room.logStr());
                 return false;
             }
             // 自动续费，检查玩家金币是否足够
@@ -232,6 +238,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             if (itemNum > room.getPredictCostGoldNum()) {
                 // 自动续费失败，房间准备金不足
                 log.info("自动续费失败，房间准备金不足: need: {} rest: {}", itemNum, room.getPredictCostGoldNum());
+                roomManager.getMailService().addCfgMail(room.getCreator(), 3);
                 return false;
             }
             long overdueTime = room.getOverdueTime();
