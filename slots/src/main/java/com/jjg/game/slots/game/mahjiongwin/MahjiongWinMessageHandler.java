@@ -7,18 +7,20 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
-import com.jjg.game.slots.game.dollarexpress.pb.ReqConfigInfo;
-import com.jjg.game.slots.game.dollarexpress.pb.ReqStartGame;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinGameManager;
 import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinSendMessageManager;
 import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinEnterGame;
 import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinStartGame;
+import com.jjg.game.slots.handler.SlotsMessageHandler;
+import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author 11
@@ -26,9 +28,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @MessageType(MessageConst.MessageTypeDef.MAHJIONG_WIN_TYPE)
-public class MajiongWinMessageHandler implements GmListener {
-    private Logger log = LoggerFactory.getLogger(getClass());
-
+public class MahjiongWinMessageHandler extends SlotsMessageHandler {
 
     @Autowired
     private MahjiongWinGameManager gameManager;
@@ -69,7 +69,16 @@ public class MajiongWinMessageHandler implements GmListener {
     }
 
     @Override
-    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
-        return null;
+    protected AbstractSlotsGameManager getGameManager() {
+        return this.gameManager;
+    }
+
+    @Override
+    protected Map<Integer, Integer> getGenerateMap(int count) {
+        Map<Integer, Integer> countMap = new HashMap<>();
+        for (int i = 1; i <= 2; i++) {
+            countMap.put(i, count);
+        }
+        return countMap;
     }
 }

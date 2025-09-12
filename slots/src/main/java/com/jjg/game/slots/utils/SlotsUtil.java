@@ -84,6 +84,26 @@ public class SlotsUtil {
     }
 
     /**
+     * 根据万分比返回all的值
+     * @param prop
+     * @param all
+     * @return
+     */
+    public static long calProp(int prop,long all) {
+        if(prop == 0) {
+            return 0;
+        }
+
+        if(prop == TEN_THOUSAND) {
+            return all;
+        }
+        BigDecimal propValue = BigDecimal.valueOf(prop);
+        BigDecimal divide = propValue.divide(TEN_THOUSAND_BIGDECIMAL, 0, BigDecimal.ROUND_HALF_UP);
+        BigDecimal multiply = BigDecimal.valueOf(all).multiply(divide);
+        return multiply.intValue();
+    }
+
+    /**
      * 根据万分比计算是否命中
      * @param prop
      * @return

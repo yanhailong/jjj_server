@@ -11,6 +11,7 @@ import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -99,6 +100,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
         this.libClass = libClass;
     }
 
+    //更新获取奖池的事件
+    private TimerEvent<String> gameUpdatePoolEvent;
     //检查离线玩家事件
     private TimerEvent<String> checkOffLineEvent;
     //总押分 roomCfgId -> [0] = 单线押分  [1] = 总押分
@@ -309,7 +312,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
                 getResultLibDao().clearMongoLib(newDocName);
             }
             if(StringUtils.isNotEmpty(redisTableName)) {
-                getResultLibDao().clearRedisLib(redisTableName);
+                getResultLibDao().clearRedisLib(redisTableName,this.gameType);
             }
             getResultLibDao().removeGenerateLock(this.gameType);
             log.error("", e);
@@ -550,9 +553,20 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
         return result;
     }
 
+    /**
+     * 添加检查离线的定时任务
+     */
     protected void addCheckOffLineEvent() {
         this.checkOffLineEvent = new TimerEvent<>(this, "offLineEvent", 1).withTimeUnit(TimeUnit.MINUTES);
         timerCenter.add(this.checkOffLineEvent);
+    }
+
+    /**
+     * 添加检查离线的定时任务
+     */
+    protected void addUpdatePoolEvent() {
+        this.gameUpdatePoolEvent = new TimerEvent<>(this, "gameUpdatePoolEvent", 20).withTimeUnit(TimeUnit.SECONDS);
+        timerCenter.add(this.gameUpdatePoolEvent);
     }
 
     /**
@@ -791,6 +805,63 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
     }
 
     /**
+     * 计算是否奖池中奖
+     * @param playerGameData
+     * @param poolId
+     * @return
+     * @throws Exception
+     */
+    protected PoolCfg randWinPool(T playerGameData,int poolId) {
+        //获取玩家累计贡献金额
+        long contribt = playerGameData.getAllContribtPoolGold();
+        if (contribt < 1) {
+            return null;
+        }
+        log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},poolId = {}", playerGameData.playerId(), contribt, poolId);
+
+        //真奖池
+        Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
+        if (smallPoolNumber == null) {
+            log.debug("获取小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
+            return null;
+        }
+        //假奖池
+        Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
+        if (fakeSmallPoolNumber == null) {
+            log.debug("获取(假)小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
+            return null;
+        }
+
+        //当真奖池 >= 假奖池时，才允许中奖
+        long smallPool = smallPoolNumber.longValue();
+        long fakeSmallPool = fakeSmallPoolNumber.longValue();
+
+        if (smallPool < fakeSmallPool) {
+            log.debug("真奖池小于假奖池，不允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
+            return null;
+        }
+
+        log.debug("真奖池大于假奖池，允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
+        BigDecimal pool = BigDecimal.valueOf(smallPoolNumber.longValue());
+
+
+        PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+        if (poolCfg == null) {
+            log.debug("获取的池子配置为空 poolId = {}", poolId);
+            return null;
+        }
+        //中奖概率,这里保留了8位，所以最后可以取int值
+        int propV = BigDecimal.valueOf(contribt).divide(pool, 8, BigDecimal.ROUND_HALF_UP).divide(BigDecimal.valueOf(poolCfg.getPoolProp()), 8, BigDecimal.ROUND_HALF_UP).multiply(oneHundredMillionBigDecimal).intValue();
+        int rand = RandomUtils.randomInt(oneHundredMillion);
+//            rand = 1;
+        if (rand >= propV) {
+            log.debug("随机概率，未中奖 rand = {},propV = {}", rand, propV);
+            return null;
+        }
+        return poolCfg;
+    }
+
+    /**
      * 计算奖池金额
      *
      * @param stake
@@ -849,11 +920,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L e
             checkOffLine();
         }else if (this.clearAllLibEvent == e) {
             getResultLibDao().clearMongoLib();
-            getResultLibDao().clearRedisLib();
+            getResultLibDao().clearRedisLib(this.gameType);
             this.clearAllLibEvent = null;
             getResultLibDao().removeGenerateLock(this.gameType);
         } else if (this.clearRedisLibEvent == e) {
-            getResultLibDao().clearRedisLib();
+            getResultLibDao().clearRedisLib(this.gameType);
             this.clearRedisLibEvent = null;
             getResultLibDao().removeGenerateLock(this.gameType);
         } else if (this.generateLibEvent == e) {

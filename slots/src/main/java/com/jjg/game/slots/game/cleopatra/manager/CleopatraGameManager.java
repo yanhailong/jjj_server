@@ -9,6 +9,9 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
+import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraGameDataDao;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraResultLibDao;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
@@ -38,6 +41,8 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
     private CleopatraGenerateManager generateManager;
     @Autowired
     private CleopatraGameDataDao gameDataDao;
+    @Autowired
+    private SlotsPoolDao slotsPoolDao;
 
     public CleopatraGameManager() {
         super(CleopatraPlayerGameData.class,CleopatraResultLib.class);
@@ -149,25 +154,60 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
     /**
      * 普通正常流程
      *
-     * @param gameRunInfo
      * @param playerGameData
      * @param betValue
      * @return
      */
     private CleopatraGameRunInfo normal(CleopatraGameRunInfo gameRunInfo, CleopatraPlayerGameData playerGameData, long betValue) {
-        CommonResult<CleopatraResultLib> libResult = normalGetLib(playerGameData, betValue);
-        if (!libResult.success()) {
-            gameRunInfo.setCode(libResult.code);
+        CleopatraResultLib resultLib = null;
+        for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
+            //获取一个倍数区间
+            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN);
+            if (!result.success()) {
+                continue;
+            }
+            //获取结果库
+            CommonResult<CleopatraResultLib> libResult = normalGetLib(playerGameData, betValue);
+            if (!libResult.success()) {
+                continue;
+            }
+
+            CleopatraResultLib tmpLib = libResult.data;
+            //检查是否有奖池奖励
+            if(tmpLib.getJackpotIds() != null && !tmpLib.getJackpotIds().isEmpty()) {
+                //判断中奖概率
+                int poolId = tmpLib.getJackpotIds().get(0);
+                PoolCfg poolCfg = randWinPool(playerGameData, poolId);
+                if(poolCfg == null) { //为空表示不能奖池中奖，重新获取
+                    continue;
+                }
+            }
+            resultLib = tmpLib;
+            break;
+        }
+
+        if(resultLib == null) {
+            log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.playerId(),this.gameType, betValue);
             return gameRunInfo;
         }
-        CleopatraResultLib resultLib = libResult.data;
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
+
+        if(resultLib.getJackpotIds() != null && !resultLib.getJackpotIds().isEmpty()) {
+            resultLib.getJackpotIds().forEach(poolId -> {
+                PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+                if(poolCfg.getTruePool() > 0){
+                    CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, poolCfg.getTruePool(), poolCfg.getTruePool(), "SLOTS_REWARD_POOL");
+                    if(result.success()) {
+                        gameRunInfo.addSmallPoolGold(result.data);
+                    }
+                }
+            });
+        }
+
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
         return gameRunInfo;
     }
-
-
 
     @Override
     protected CleopatraResultLibDao getResultLibDao() {
