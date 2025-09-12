@@ -2,6 +2,8 @@ package com.jjg.game.slots.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.activity.common.data.ActivityTargetType;
+import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
@@ -67,7 +69,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected CoreMarqueeManager marqueeManager;
     @Autowired
     protected SlotsLogger logger;
-
+    @Autowired
+    protected ActivityManager activityManager;
     //游戏类型
     protected int gameType;
     //在specualResultLib
@@ -172,9 +175,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         String newDocName = null;
         String redisTableName = null;
         try {
-            if(!saveToDB){
+            if (!saveToDB) {
                 boolean lock = getResultLibDao().addGenerateLock(this.gameType);
-                if(lock){
+                if (lock) {
                     log.info("生成结果库时添加锁失败，gameType = {}", this.gameType);
                     return;
                 }
@@ -521,7 +524,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             log.debug("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.playerId(), betValue, result.code);
             return result;
         }
-
+        Thread.ofVirtual().start(() -> {
+            activityManager.addActivityProgress(gameData.getPlayerController().getPlayer(),
+                    ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue);
+            activityManager.addPlayerActivityProgress(gameData.getPlayerController().getPlayer(),
+                    ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue);
+        });
         BigDecimal bet = BigDecimal.valueOf(betValue);
         log.debug("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.playerId(), betValue, result.data.getGold());
 
@@ -794,7 +802,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      *
      * @param stake
      * @param growthRate
-     * @param delayTime 延迟时间
+     * @param delayTime  延迟时间
      * @return
      */
     public long calPoolValue(long stake, List<Integer> growthRate, int initTimes, int maxTimes, int delayTime) {
