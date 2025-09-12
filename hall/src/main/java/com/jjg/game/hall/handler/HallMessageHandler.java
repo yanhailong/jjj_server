@@ -29,7 +29,6 @@ import com.jjg.game.hall.pb.req.*;
 import com.jjg.game.hall.pb.res.*;
 import com.jjg.game.hall.pb.struct.MailInfo;
 import com.jjg.game.hall.pb.struct.PackItemInfo;
-import com.jjg.game.hall.pb.struct.WarePoolInfo;
 import com.jjg.game.hall.room.HallRoomService;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
@@ -502,7 +501,7 @@ public class HallMessageHandler implements GmListener {
                         info.items = new ArrayList<>(mail.getItems().size());
                         mail.getItems().forEach(mailItem -> {
                             ItemInfo infoItem = new ItemInfo();
-                            infoItem.itemId = mailItem.getItemId();
+                            infoItem.itemId = mailItem.getId();
                             infoItem.count = mailItem.getItemCount();
                             info.items.add(infoItem);
                         });
@@ -970,7 +969,7 @@ public class HallMessageHandler implements GmListener {
             PackItemInfo info = new PackItemInfo();
             info.girdId = key;
             info.item = new ItemInfo();
-            info.item.itemId = value.getItemId();
+            info.item.itemId = value.getId();
             info.item.count = value.getItemCount();
             packItemInfos.add(info);
         });

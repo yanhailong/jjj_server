@@ -81,7 +81,7 @@ public class PlayerPackService implements IPlayerRegister {
         long addDiamond = 0;
         List<Item> itemList = new ArrayList<>();
         for (Item item : addItemList) {
-            int itemId = item.getItemId();
+            int itemId = item.getId();
             ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
             if (itemCfg == null) {
                 continue;
@@ -121,7 +121,7 @@ public class PlayerPackService implements IPlayerRegister {
             }
 
             for (Item item : itemList) {
-                int itemId = item.getItemId();
+                int itemId = item.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
                 if (itemCfg == null) {
                     continue;
@@ -149,7 +149,7 @@ public class PlayerPackService implements IPlayerRegister {
                 }
             }
             Map<Integer, Long> addTempItemMap =
-                    itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getItemId(), e.getItemCount()),
+                    itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getItemCount()),
                             HashMap::putAll);
             coreLogger.addItems(playerId, addTempItemMap, addType);
         }
@@ -165,7 +165,7 @@ public class PlayerPackService implements IPlayerRegister {
      * @return 最新的背包结果
      */
     public CommonResult<Void> removeItem(long playerId, Item remove, String addType) {
-        return removeItem(playerId, remove.getItemId(), remove.getItemCount(), addType);
+        return removeItem(playerId, remove.getId(), remove.getItemCount(), addType);
     }
 
     /**
@@ -216,7 +216,7 @@ public class PlayerPackService implements IPlayerRegister {
         try {
             List<Item> packItemList = new ArrayList<>();
             for (Item item : removeItemList) {
-                int itemId = item.getItemId();
+                int itemId = item.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
                 if (itemCfg == null) {
                     log.debug("移除道具失败，未找到配置 playerId = {},itemId = {}", playerId, itemId);
@@ -254,7 +254,7 @@ public class PlayerPackService implements IPlayerRegister {
             }
 
             for (Item item : packItemList) {
-                int id = item.getItemId();
+                int id = item.getId();
                 long count = item.getItemCount();
                 Integer gridId = item.getGridId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(id);
@@ -331,7 +331,7 @@ public class PlayerPackService implements IPlayerRegister {
         try {
             PlayerPack playerPack = getFromAllDB(playerId);
             for (Item item : itemList) {
-                ItemCfg itemCfg = GameDataManager.getItemCfg(item.getItemId());
+                ItemCfg itemCfg = GameDataManager.getItemCfg(item.getId());
                 if (Objects.isNull(itemCfg)) {
                     return Code.NOT_FOUND;
                 }

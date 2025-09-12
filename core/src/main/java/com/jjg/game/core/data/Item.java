@@ -8,7 +8,7 @@ package com.jjg.game.core.data;
  */
 public class Item {
     //道具id
-    private int itemId;
+    private int id;
     //道具数量
     private long itemCount;
     //格子ID
@@ -17,23 +17,23 @@ public class Item {
     public Item() {
     }
 
-    public Item(int itemId, long itemCount) {
-        this.itemId = itemId;
+    public Item(int id, long itemCount) {
+        this.id = id;
         this.itemCount = itemCount;
     }
 
-    public Item(int gridId, int itemId, long itemCount) {
-        this.itemId = itemId;
+    public Item(int gridId, int id, long itemCount) {
+        this.id = id;
         this.itemCount = itemCount;
         this.gridId = gridId;
     }
 
-    public int getItemId() {
-        return itemId;
+    public int getId() {
+        return id;
     }
 
-    public void setItemId(int itemId) {
-        this.itemId = itemId;
+    public void setId(int id) {
+        this.id = id;
     }
 
     public long getItemCount() {

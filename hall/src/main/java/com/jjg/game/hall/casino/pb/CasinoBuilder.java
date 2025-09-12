@@ -29,7 +29,7 @@ import static com.jjg.game.common.utils.TimeHelper.ONE_MINUTE_OF_MILLIS;
 public class CasinoBuilder {
     public static ItemInfo buildItemInfo(Item item) {
         ItemInfo itemInfo = new ItemInfo();
-        itemInfo.itemId = item.getItemId();
+        itemInfo.itemId = item.getId();
         itemInfo.count = item.getItemCount();
         return itemInfo;
     }
@@ -139,7 +139,7 @@ public class CasinoBuilder {
         //需要的秒数
         long needS = needTime / 1000;
         long num = needS / reduceTimeConfig.getSecond() + (needS % reduceTimeConfig.getSecond() == 0 ? 0 : 1);
-        return new Item(reduceTimeConfig.getFirst().getItemId(), reduceTimeConfig.getFirst().getItemCount() * num);
+        return new Item(reduceTimeConfig.getFirst().getId(), reduceTimeConfig.getFirst().getItemCount() * num);
     }
 
     public static int getMachineState(CasinoMachineInfo casinoMachineInfo, long timeMillis) {
