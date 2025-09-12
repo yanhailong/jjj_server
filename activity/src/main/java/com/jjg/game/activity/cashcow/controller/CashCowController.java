@@ -103,8 +103,8 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 timerEvent = new TimerEvent<>(this, TIMER_KEY, TimeHelper.ONE_SECOND_OF_MILLIS);
                 timerCenter.add(timerEvent);
             }
+            reentrantLock.unlock();
         }
-        reentrantLock.unlock();
     }
 
     @Override
