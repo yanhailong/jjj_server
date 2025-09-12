@@ -94,21 +94,23 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                             }
                         }
                     }
-                } else {
-                    log.error("游戏：{} 进入下一轮之前，庄家为空", gameDataVo.roomLogInfo());
-                    checkRes = false;
-                }
-                if (checkRes) {
-                    // 如果没有庄家则不能继续，需要通过玩家申请上庄重新启动游戏
-                    checkRes = friendRoomController.getRoom().hasBanker();
-                }
-                // 如果检查的结果是不能继续
-                if (!checkRes) {
-                    friendRoomController.pauseGame();
                 }
             }
         }
         return checkRes;
+    }
+
+    /**
+     * 检查房间准备金是否足够
+     */
+    protected boolean checkPredicateGoldEnough(FriendRoom friendRoom) {
+        int minBankerAmount = FriendRoomSampleUtils.getRoomMinBankerAmount(gameDataVo.getRoomCfg().getId());
+        long bankerResetGold = friendRoom.roomBankerResetGold();
+        boolean checkAmount = (friendRoom.getPredictCostGoldNum() + bankerResetGold) >= minBankerAmount;
+        if (!checkAmount) {
+            log.info(" 房间准备金不足，房间即将暂停，房间准备金余额：{} 庄家：{}", friendRoom.roomBankerResetGold(), bankerResetGold);
+        }
+        return checkAmount;
     }
 
     @Override

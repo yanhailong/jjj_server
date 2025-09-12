@@ -96,13 +96,12 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
                 @Override
                 public Boolean updateDataWithRes(FriendRoom dataEntity) {
-                    if (dataEntity.getPauseTime() == 0) {
-                        return false;
+                    if (dataEntity.getPauseTime() != 0) {
+                        // 动态加上时间
+                        long resetTime = dataEntity.getOverdueTime() - dataEntity.getPauseTime();
+                        long curTime = System.currentTimeMillis();
+                        dataEntity.setOverdueTime(curTime + resetTime);
                     }
-                    // 动态加上时间
-                    long resetTime = dataEntity.getOverdueTime() - dataEntity.getPauseTime();
-                    long curTime = System.currentTimeMillis();
-                    dataEntity.setOverdueTime(curTime + resetTime);
                     dataEntity.setStatus(1);
                     dataEntity.setPauseTime(0);
                     return true;
