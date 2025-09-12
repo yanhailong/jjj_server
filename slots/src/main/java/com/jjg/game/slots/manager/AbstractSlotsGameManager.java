@@ -2,6 +2,8 @@ package com.jjg.game.slots.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.activity.common.data.ActivityTargetType;
+import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
@@ -11,6 +13,7 @@ import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
