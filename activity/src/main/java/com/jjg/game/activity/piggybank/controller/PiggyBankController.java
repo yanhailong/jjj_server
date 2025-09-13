@@ -68,7 +68,7 @@ public class PiggyBankController extends BaseActivityController {
                 piggyBankData.setBuyTime(timeMillis);
                 if (piggyBankData.getProgress() >= cfg.getFullup()) {
                     piggyBankData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
-                    piggyBankData.setFullTime(System.currentTimeMillis());
+                    piggyBankData.setFullTime(timeMillis);
                 }
                 playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
             } catch (Exception e) {
@@ -258,6 +258,7 @@ public class PiggyBankController extends BaseActivityController {
     @Override
     public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
         long timeMillis = System.currentTimeMillis();
+        boolean change = false;
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
@@ -271,11 +272,15 @@ public class PiggyBankController extends BaseActivityController {
                 BaseCfgBean baseCfgBean = baseCfgBeanMap.get(piggyBankDataEntry.getKey());
                 if (baseCfgBean instanceof PiggyBankCfg cfg) {
                     //进行重置发奖
-                    if (piggyBankData.getFullTime() + (long) TimeHelper.ONE_DAY_OF_MILLIS * cfg.getResetime() >= timeMillis) {
+                    if (piggyBankData.getFullTime() + (long) TimeHelper.ONE_DAY_OF_MILLIS * cfg.getResetime() <= timeMillis) {
                         mailService.addCfgMail(playerId, ActivityConstant.PiggyBank.MAIL_ID, ItemUtils.buildItems(cfg.getGetitem()));
                         resetPiggyBankData(piggyBankData);
+                        change = true;
                     }
                 }
+            }
+            if (change) {
+                playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
             }
         } catch (Exception e) {
             log.error("储钱罐超时自动发奖失败 playerId:{} activityId:{}", playerId, activityData.getId(), e);

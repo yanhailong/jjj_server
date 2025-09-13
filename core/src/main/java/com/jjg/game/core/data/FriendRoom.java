@@ -191,7 +191,11 @@ public class FriendRoom extends Room {
      */
     @Override
     public long bankerTotalGold() {
-        return this.bankerPredicateMap.values().stream().mapToLong(a -> a).sum() + predictCostGoldNum;
+        if (roomBankerId() == 0) {
+            return predictCostGoldNum;
+        } else {
+            return roomBankerResetGold();
+        }
     }
 
     public int getRoomExpendId() {

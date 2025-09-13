@@ -22,6 +22,4 @@ public class CashCowDetailInfo extends BaseActivityDetailInfo {
     public long pool;
     @ProtoDesc("需要进度")
     public long needProgress;
-    @ProtoDesc("剩余免费次数")
-    public int remainFreeTimes;
 }

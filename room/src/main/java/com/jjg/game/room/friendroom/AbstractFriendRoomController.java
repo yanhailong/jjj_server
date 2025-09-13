@@ -1,11 +1,11 @@
 package com.jjg.game.room.friendroom;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.ERoomItemReason;
@@ -128,6 +128,30 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         return continueGameRes;
     }
 
+    /**
+     * 添加房间准备金
+     */
+    public void addRoomPredicateGold(long addPredicateGold) {
+        if (addPredicateGold < 0) {
+            return;
+        }
+        CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<R>() {
+            @Override
+            public void updateData(R dataEntity) {
+
+            }
+
+            @Override
+            public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                dataEntity.setPredictCostGoldNum(dataEntity.getPredictCostGoldNum() + addPredicateGold);
+                return true;
+            }
+        });
+        if (result.success()) {
+            this.room = result.data;
+        }
+    }
+
     @Override
     public void pauseGame() {
         // 已经暂停不能再请求暂停游戏，否则会出现异常
@@ -190,11 +214,17 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         // 解散完成后需要将剩余的准备金返给玩家
         if (room.getStatus() == 3) {
             int gameTransactionItemId = gameController.getGameTransactionItemId();
-            roomManager.getPlayerPackService().addItem(
-                room.getCreator(),
-                gameTransactionItemId,
-                room.getPredictCostGoldNum(),
-                ERoomItemReason.FRIEND_ROOM_DISBAND_REBACK_GOLD.name());
+            int gainRatio = SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.FRIEND_ROOM_DESTROY_GAIN_RATIO);
+            if (room.getPredictCostGoldNum() > 0) {
+                long gainGold =
+                    (long) (room.getPredictCostGoldNum() * (Math.max(0, Math.min(gainRatio, 10000)) / 10000.0));
+                log.info("房间：{} 销毁返回准备金币：{} {}", room.logStr(), gainGold, room.getPredictCostGoldNum());
+                roomManager.getPlayerPackService().addItem(
+                    room.getCreator(),
+                    gameTransactionItemId,
+                    gainGold,
+                    ERoomItemReason.FRIEND_ROOM_DISBAND_REBACK_GOLD.name());
+            }
         }
     }
 
@@ -343,6 +373,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         notify.bankerPlayerId = room.roomBankerId();
         notify.bankerPredicateCostGold = room.roomBankerResetGold();
         notify.roomCreatorPredicateCostGold = room.getPredictCostGoldNum();
+        log.debug("广播变化数据: {}", JSON.toJSONString(notify));
         broadcastToPlayers(RoomMessageBuilder.newBuilder().setData(notify).toAllPlayer());
     }
 
@@ -479,9 +510,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         GamePlayer gamePlayer = gameController.getGameDataVo().getGamePlayer(banker);
         ResEditBankerPredicateGold res = new ResEditBankerPredicateGold(Code.SUCCESS);
         res.newlyPredicateGold = newlyBankerGold;
-        int transactionItemId = gameController.getGameTransactionItemId();
-        res.bankerResetGold =
-            transactionItemId == ItemUtils.getDiamondItemId() ? gamePlayer.getDiamond() : gamePlayer.getGold();
+        res.bankerResetGold = gameController.getItemNum(gamePlayer.getId());
         playerController.send(res);
         return resCode;
     }

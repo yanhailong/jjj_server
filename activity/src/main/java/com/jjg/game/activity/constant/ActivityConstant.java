@@ -37,13 +37,13 @@ public interface ActivityConstant {
         //摇钱树活动增长金额
         int CASH_COW_ROBOT_ADD_VALUE = 21;
         //摇钱树活动增加频率
-        int CASH_COW_ROBOT_ADD_Frequency = 22;
+        int CASH_COW_ROBOT_ADD_FREQUENCY = 22;
         //摇钱树活动当前奖金累计进入下一期的万分比比例
         int CASH_COW_ADD_NEXT_ROUND_PROPORTION = 23;
         //摇钱树活动当玩家产生有效打码量的金额万分比进入奖池
         int CASH_COW_ADD_POOL_PROPORTION = 24;
-        //摇钱树活动每日免费获得的抽奖次数（重置时间跟随系统）
-        int CASH_COW_FREE_TIMES = 25;
+        //摇钱树活动每日免费获得的道具（重置时间跟随系统）
+        int CASH_COW_FREE_ITEM = 25;
     }
 
     //储钱罐
@@ -82,8 +82,6 @@ public interface ActivityConstant {
         //摇钱树请求游戏记录信息
         int REQ_CASH_COW_RECORD = BASE_MSG_PREFIX | 0x0B;
         int RES_CASH_COW_RECORD = BASE_MSG_PREFIX | 0x0C;
-        //摇钱树请求参加活动
-        int REQ_CASH_COW_JOIN = BASE_MSG_PREFIX | 0x0D;
         //请求参加活动
         int REQ_ACTIVITY_PLAYER_JOIN = BASE_MSG_PREFIX | 0x0E;
         //响应摇钱树活动参加结果
@@ -91,6 +89,10 @@ public interface ActivityConstant {
         //摇钱树请求总池数量
         int REQ_CASH_COW_TOTAL_POOL = BASE_MSG_PREFIX | 0x10;
         int RES_CASH_COW_TOTAL_POOL = BASE_MSG_PREFIX | 0x11;
+        //摇钱树请求领取免费道具
+        int REQ_CASH_COW_FREE_REWARDS = BASE_MSG_PREFIX | 0x15;
+        //响应摇钱树请求领取免费道具
+        int RES_CASH_COW_FREE_REWARDS = BASE_MSG_PREFIX | 0x16;
 
         //储钱罐
         //响应储钱罐活动类型信息

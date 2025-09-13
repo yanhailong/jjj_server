@@ -1,5 +1,6 @@
 package com.jjg.game.activity.cashcow.message.bean;
 
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
@@ -22,4 +23,8 @@ public class CashCowActivityInfo {
     public long round;
     @ProtoDesc("重置剩余时间")
     public long resetRemainTime;
+    @ProtoDesc("免费道具列表")
+    public ItemInfo freeItemInfo;
+    @ProtoDesc("免费道具领取状态 true已经领取")
+    public boolean freeStatus;
 }
