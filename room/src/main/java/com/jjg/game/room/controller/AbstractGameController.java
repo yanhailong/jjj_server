@@ -480,6 +480,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             log.error("异常操作，不能扣除非游戏好友的金币");
             throw new RuntimeException("异常操作，不能扣除非游戏好友的金币");
         }
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            log.info("玩家：{} 扣除金币数量：{}", playerId, num);
+        }
         Supplier<GamePlayer> supplier = () -> {
             beforeUpdateGold.value = gamePlayer.getGold();
             long afterCoin = gamePlayer.getGold() - num;
@@ -512,6 +515,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         if (gamePlayer == null) {
             log.error("异常操作，不能扣除非游戏好友的钻石");
             throw new RuntimeException("异常操作，不能扣除非游戏好友的钻石");
+        }
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            log.info("玩家：{} 扣除钻石数量：{}", playerId, num);
         }
         Supplier<GamePlayer> supplier = () -> {
             beforeUpdateDiamond.value = gamePlayer.getDiamond();
@@ -602,6 +608,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         P gamePlayer = (P) gameDataVo.getGamePlayer(playerId);
         CommonResult<P> result;
         if (gamePlayer != null) {
+            if (!(gamePlayer instanceof GameRobotPlayer)) {
+                log.info("玩家：{} 添加金币数量：{}", playerId, num);
+            }
             Supplier<P> supplier = () -> {
                 beforeUpdateGold.value = gamePlayer.getGold();
                 gamePlayer.setGold(Math.min(Long.MAX_VALUE, gamePlayer.getGold() + num));
@@ -639,6 +648,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         P gamePlayer = (P) gameDataVo.getGamePlayer(playerId);
         CommonResult<P> result = new CommonResult<>(Code.FAIL);
         if (gamePlayer != null) {
+            if (!(gamePlayer instanceof GameRobotPlayer)) {
+                log.info("玩家：{} 添加钻石数量：{}", playerId, num);
+            }
             Supplier<P> supplier = () -> {
                 beforeUpdateGold.value = gamePlayer.getDiamond();
                 gamePlayer.setDiamond(Math.min(Long.MAX_VALUE, gamePlayer.getDiamond() + num));

@@ -24,7 +24,7 @@ public class FriendRoomMessageBuilder {
         basePlayerInfo.vipLevel = player.getVipLevel();
         basePlayerInfo.gender = player.getGender();
         basePlayerInfo.headFrameId = player.getHeadFrameId();
-        basePlayerInfo.goldNum = player.getGold();
+        basePlayerInfo.goldNum = player.getDiamond();
         return basePlayerInfo;
     }
 }

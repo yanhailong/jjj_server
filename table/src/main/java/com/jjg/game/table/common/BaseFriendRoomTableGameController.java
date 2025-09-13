@@ -116,15 +116,25 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
     @Override
     public void dealBankerFlowing(long bankerFlowing, Map<Long, SettlementData> settlementDataMap) {
         if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
-            if (bankerFlowing < 0) {
+            // 给庄家或房主准备金添加金币 都需要扣房间税
+            long roomBankerId = friendRoomController.getRoom().roomBankerId();
+            // 如果场上玩家赢钱，说明需要扣除准备金或者庄家金币
+            if (bankerFlowing > 0) {
+                log.info("庄家输金币，扣除庄家金币：{}", bankerFlowing);
                 // 扣除庄家的金币
                 friendRoomController.deductBankerGold(bankerFlowing);
-            } else {
-                // 给庄家添加金币
-                long roomBankerId = friendRoomController.getRoom().roomBankerId();
-                // 给庄家添加金币
-                addItem(roomBankerId, bankerFlowing,
-                    ERoomItemReason.FRIEND_ROOM_ADD_ROOM_CREATOR_RATIO.withCfgId(getRoom().getRoomCfgId()));
+            } else if (bankerFlowing < 0) {
+                int ratio = gameDataVo.getRoomCfg().getEffectiveRatio();
+                long afterRatio = (long) (bankerFlowing * (ratio / 10000.0));
+                log.info("庄家赢金币，添加庄家金币：{} {}", bankerFlowing, afterRatio);
+                if (roomBankerId <= 0) {
+                    // 给房间添加准备金
+                    friendRoomController.addRoomPredicateGold(Math.abs(afterRatio));
+                } else {
+                    // 给庄家添加金币
+                    addItem(roomBankerId, afterRatio,
+                        ERoomItemReason.FRIEND_ROOM_ADD_ROOM_CREATOR_RATIO.withCfgId(getRoom().getRoomCfgId()));
+                }
             }
             // 需要记录
             FriendRoomBillHistoryDao dao = roomController.getRoomManager().getFriendRoomBillHistoryDao();

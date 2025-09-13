@@ -378,6 +378,9 @@ public class FriendRoomServices {
         // 房间信息
         List<FriendRoomBaseData> friendRoomBaseDataList = new ArrayList<>();
         for (FriendRoom friendRoom : friendRoomList) {
+            if (friendRoom.getStatus() == 3) {
+                continue;
+            }
             FriendRoomBaseData friendRoomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
             friendRoomBaseDataList.add(friendRoomBaseData);
             // 检查房间的自动续费
@@ -625,6 +628,9 @@ public class FriendRoomServices {
         List<FriendRoomBaseData> friendRoomBaseDataList = new ArrayList<>();
         boolean isSelf = req.playerId == playerController.playerId();
         for (FriendRoom friendRoom : friendRoomList) {
+            if (friendRoom.getStatus() == 3) {
+                continue;
+            }
             FriendRoomBaseData friendRoomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
             friendRoomBaseDataList.add(friendRoomBaseData);
             if (isSelf) {
