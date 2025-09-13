@@ -4,12 +4,15 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.cashcow.data.CashCowRecordData;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.utils.TimeHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 /**
@@ -26,16 +29,47 @@ public class CashCowDao {
     private final String PLAYER_RECORD_KEY = "activity:cashcow:record:%d:%d"; // 单个玩家记录
     private final String ALL_RECORD_KEY = "activity:cashcow:record:all:%d";          // 全部玩家记录
     private final String POOL_KEY = "activity:cashcow:poll:%d";          // 总池
-    private final String POOL_LOCK_KEY = "activity:cashcow:polllock:%d:%d";          // 总池
-    private final String PLAYER_PROGRESS_KEY = "activity:cashcow:player:%d:%d";          // 总池
+    private final String POOL_LOCK_KEY = "activity:cashcow:polllock:%d:%d";          // 总池锁
+    private final String PLAYER_PROGRESS_KEY = "activity:cashcow:player:%d:%d";          // 玩家进度
+    private final String PLAYER_FREE_KEY = "activity:cashcow:free:%d:%d";          // 免费道具
+    private final String PLAYER_FREE_LOCK_KEY = "activity:cashcow:freelock:%d:%d";          // 免费道具
 
 
-    public CashCowDao(RedisTemplate<String, CashCowRecordData> recordRedisTemplate,  RedisTemplate<String, String> longRedisTemplate, RedisLock lock) {
+    public CashCowDao(RedisTemplate<String, CashCowRecordData> recordRedisTemplate, RedisTemplate<String, String> longRedisTemplate, RedisLock lock) {
         this.recordRedisTemplate = recordRedisTemplate;
         this.longRedisTemplate = longRedisTemplate;
         this.lock = lock;
     }
 
+
+    /**
+     * 获取免费道具领取状态
+     *
+     * @param playerId   玩家id
+     * @param activityId 活动id
+     * @return true 已经领取 false没有领取
+     */
+    public boolean getFreeRewardsStatus(long playerId, long activityId) {
+        String lastTime = longRedisTemplate.opsForValue().get(PLAYER_FREE_KEY.formatted(playerId, activityId));
+        if (lastTime == null) {
+            return false;
+        }
+        return TimeHelper.inSameDay(Long.parseLong(lastTime), System.currentTimeMillis());
+    }
+
+    public String getPlayerFreeLockKey(long playerId, long activityId) {
+        return String.format(PLAYER_FREE_LOCK_KEY, playerId, activityId);
+    }
+
+    /**
+     * 到下一天凌晨自动取消
+     *
+     * @param playerId   玩家id
+     * @param activityId 活动id
+     */
+    public void addFreeRewardsCount(long playerId, long activityId) {
+        longRedisTemplate.opsForValue().set(PLAYER_FREE_KEY.formatted(playerId, activityId), String.valueOf(System.currentTimeMillis()));
+    }
 
     /**
      * 摇钱树获取玩家进度奖池
@@ -148,7 +182,10 @@ public class CashCowDao {
                 return 0;
             }
             long realPool = Long.parseLong(pool);
-            long remain = realPool - (realPool * distribution / 10000);
+            long remain = realPool - (BigDecimal.valueOf(realPool)
+                    .multiply(BigDecimal.valueOf(distribution))
+                    .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN))
+                    .longValue();
             opsForHash.put(poolKey, String.valueOf(detailId), String.valueOf(remain));
             return remain;
         } catch (Exception e) {

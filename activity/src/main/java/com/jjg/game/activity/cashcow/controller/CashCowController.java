@@ -8,6 +8,7 @@ import com.jjg.game.activity.cashcow.data.CashCowRecordData;
 import com.jjg.game.activity.cashcow.message.bean.CashCowActivityInfo;
 import com.jjg.game.activity.cashcow.message.bean.CashCowDetailInfo;
 import com.jjg.game.activity.cashcow.message.bean.CashCowShowRecord;
+import com.jjg.game.activity.cashcow.message.req.ReqCashCowFreeRewards;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowRecord;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowTotalPool;
 import com.jjg.game.activity.cashcow.message.res.*;
@@ -27,8 +28,10 @@ import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
@@ -57,7 +60,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @date 2025/9/3 17:43
  */
 @Component
-public class CashCowController extends BaseActivityController implements TimerListener<String>, IGameClusterLeaderListener {
+public class CashCowController extends BaseActivityController implements TimerListener<String>, IGameClusterLeaderListener, ConfigExcelChangeListener {
     private final Logger log = LoggerFactory.getLogger(CashCowController.class);
     private final CashCowDao cashCowDao;
     private final TimerCenter timerCenter;
@@ -73,6 +76,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         this.timerCenter = timerCenter;
         timerMap = new ConcurrentHashMap<>();
     }
+
 
     @Override
     public void activityLoadCompleted(ActivityData activityData) {
@@ -163,7 +167,11 @@ public class CashCowController extends BaseActivityController implements TimerLi
         long activityId = activityData.getId();
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
-        if (baseCfgBean instanceof CashcowCfg cfg && cfg.getType() != 4) {
+        if (baseCfgBean instanceof CashcowCfg cfg) {
+            if (cfg.getType() != 4) {
+                res.code = Code.PARAM_ERROR;
+                return res;
+            }
             try {
                 List<List<Integer>> weight = cfg.getWeight();
                 if (CollectionUtil.isEmpty(weight) || cfg.getDistribution() <= 0) {
@@ -183,21 +191,13 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
                 try {
                     Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
-                    CashCowPlayerActivityData data = playerActivityData.computeIfAbsent(detailId, key -> {
-                                CashCowPlayerActivityData temp = new CashCowPlayerActivityData(activityId, activityData.getRound());
-                                temp.setRemainFreeTimes(getConfigFreeTimes());
-                                return temp;
-                            }
+                    CashCowPlayerActivityData data = playerActivityData.computeIfAbsent(detailId, key -> new CashCowPlayerActivityData(activityId, activityData.getRound())
                     );
-                    if (data.getRemainFreeTimes() > 0) {
-                        data.setRemainFreeTimes(data.getRemainFreeTimes() - 1);
-                    } else {
-                        //扣除消耗
-                        CommonResult<Void> result = playerPackService.removeItems(player, cfg.getNeedItem(), "cashcow");
-                        if (!result.success()) {
-                            res.code = result.code;
-                            return res;
-                        }
+                    //扣除消耗
+                    CommonResult<Void> result = playerPackService.removeItems(player, cfg.getNeedItem(), "cashcow");
+                    if (!result.success()) {
+                        res.code = result.code;
+                        return res;
                     }
                     int joinTimes = data.getJoinTimes();
                     for (List<Integer> list : weight) {
@@ -433,11 +433,6 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 //抽奖
                 info.costItems = ItemUtils.buildItemInfo(cfg.getNeedItem());
                 info.pool = cashCowDao.getActivityPool(activityId, baseCfgBean.getId());
-                if (data instanceof CashCowPlayerActivityData cashCowPlayerActivityData) {
-                    info.remainFreeTimes = cashCowPlayerActivityData.getRemainFreeTimes();
-                } else {
-                    info.remainFreeTimes = getConfigFreeTimes();
-                }
             }
             return info;
         }
@@ -447,8 +442,13 @@ public class CashCowController extends BaseActivityController implements TimerLi
     /**
      * 获取配置的免费次数
      */
-    private int getConfigFreeTimes() {
-        return GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_FREE_TIMES).getIntValue();
+    private Item getConfigFreeRewards() {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_FREE_ITEM);
+        String[] itemInfo = StringUtils.split(globalConfigCfg.getValue(), "_");
+        if (itemInfo.length == 2) {
+           return new Item(Integer.parseInt(itemInfo[0]), Long.parseLong(itemInfo[1]));
+        }
+        return null;
     }
 
     @Override
@@ -473,6 +473,11 @@ public class CashCowController extends BaseActivityController implements TimerLi
             cashCowActiviTyInfo.endTime = data.getTimeEnd();
             cashCowActiviTyInfo.round = data.getRound();
             cashCowActiviTyInfo.resetRemainTime = TimeHelper.getNextDayRemainTime();
+            Item freeRewards = getConfigFreeRewards();
+            if (freeRewards != null) {
+                cashCowActiviTyInfo.freeItemInfo = ItemUtils.buildItemInfo(freeRewards.getId(), freeRewards.getItemCount());
+            }
+            cashCowActiviTyInfo.freeStatus = cashCowDao.getFreeRewardsStatus(playerId, activityId);
         }
         return cashCowTypeInfo;
     }
@@ -486,6 +491,10 @@ public class CashCowController extends BaseActivityController implements TimerLi
         int claimStatus = 0;
         Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
         if (CollectionUtil.isNotEmpty(baseCfgBeanMap)) {
+            if (cashCowDao.getFreeRewardsStatus(playerId, activityData.getId())) {
+                claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
+                return ActivityBuilder.buildActivityInfo(activityData, claimStatus);
+            }
             for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
                 //累计奖励
                 if (cfgBean instanceof CashcowCfg cfg) {
@@ -496,43 +505,12 @@ public class CashCowController extends BaseActivityController implements TimerLi
                             break;
                         }
                     }
-                    if (cfg.getType() != 4 && (data == null || data.getRemainFreeTimes() > 0)) {
-                        claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
-                        break;
-                    }
                 }
             }
         }
         return ActivityBuilder.buildActivityInfo(activityData, claimStatus);
     }
 
-    @Override
-    public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
-        super.checkPlayerDataAndReset(playerId, activityData);
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-        //重置每日免费次数
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-        redisLock.lock(lockKey);
-        try {
-            Map<Integer, CashCowPlayerActivityData> playerActivityDataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-            if (CollectionUtil.isNotEmpty(playerActivityDataMap)) {
-                Map<Integer, CashCowPlayerActivityData> newData = new HashMap<>(playerActivityDataMap.size());
-                for (Map.Entry<Integer, CashCowPlayerActivityData> entry : playerActivityDataMap.entrySet()) {
-                    BaseCfgBean baseCfgBean = baseCfgBeanMap.get(entry.getKey());
-                    if (baseCfgBean instanceof CashcowCfg cfg && cfg.getType() != 4) {
-                        entry.getValue().setRemainFreeTimes(getConfigFreeTimes());
-                        newData.put(entry.getKey(), entry.getValue());
-                    }
-                }
-                playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), newData);
-            }
-            cashCowDao.delPlayerActivityProgress(playerId, activityData.getId());
-        } catch (Exception e) {
-            log.error("重置摇钱树每日免费次数失败 playerId:{} activity:{}", playerId, activityData.getType(), e);
-        } finally {
-            redisLock.unlock(lockKey);
-        }
-    }
 
     @Override
     public List<BaseCfgBean> getDetailCfgBean() {
@@ -606,7 +584,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 }
                 if (GameDataManager.getInstance().isLoadAllFinished()) {
                     //机器人自动增加奖池
-                    GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_ROBOT_ADD_Frequency);
+                    GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_ROBOT_ADD_FREQUENCY);
                     if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
                         String[] cfg = StringUtils.split(globalConfigCfg.getValue(), "_");
                         if (cfg.length == 2) {
@@ -698,5 +676,42 @@ public class CashCowController extends BaseActivityController implements TimerLi
         timerEvent = null;
         timerMap.clear();
         log.debug("退举 摇钱树机器人删除");
+    }
+
+    public AbstractResponse reqCashCowFreeRewards(PlayerController playerController, ReqCashCowFreeRewards req) {
+        ResCashCowFreeRewards res = new ResCashCowFreeRewards(Code.SUCCESS);
+        Item freeRewards = getConfigFreeRewards();
+        if (freeRewards == null) {
+            res.code = Code.SAMPLE_ERROR;
+            return res;
+        }
+        boolean freeRewardsStatus = cashCowDao.getFreeRewardsStatus(playerController.playerId(), req.activityId);
+        if (freeRewardsStatus) {
+            res.code = Code.REPEAT_OP;
+            return res;
+        }
+        String playerFreeLockKey = cashCowDao.getPlayerFreeLockKey(playerController.playerId(), req.activityId);
+        redisLock.lock(playerFreeLockKey, ActivityConstant.Common.REDIS_LOCK);
+        try {
+            freeRewardsStatus = cashCowDao.getFreeRewardsStatus(playerController.playerId(), req.activityId);
+            if (freeRewardsStatus) {
+                res.code = Code.REPEAT_OP;
+                return res;
+            }
+            //添加道具
+            CommonResult<Void> commonResult = playerPackService.addItem(playerController.playerId(), freeRewards.getId(), freeRewards.getItemCount(), "CashCowFreeRewards");
+            if (!commonResult.success()) {
+                res.code = Code.UNKNOWN_ERROR;
+                return res;
+            }
+            cashCowDao.addFreeRewardsCount(playerController.playerId(), req.activityId);
+        } catch (Exception e) {
+            log.error("摇钱树请求领取免费道具失败 playerId:{} activityId:{}", playerController.playerId(), req.activityId);
+        } finally {
+            redisLock.unlock(playerFreeLockKey);
+        }
+        res.activityId = req.activityId;
+        res.itemInfos = ItemUtils.buildItemInfo(freeRewards.getId(), freeRewards.getItemCount());
+        return res;
     }
 }

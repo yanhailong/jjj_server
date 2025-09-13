@@ -10,8 +10,6 @@ public class CashCowPlayerActivityData extends PlayerActivityData {
 
     //总参加次数
     private int joinTimes;
-    //剩余免费次数
-    private int remainFreeTimes;
 
     public CashCowPlayerActivityData() {
     }
@@ -20,13 +18,6 @@ public class CashCowPlayerActivityData extends PlayerActivityData {
         super(activityId, round);
     }
 
-    public int getRemainFreeTimes() {
-        return remainFreeTimes;
-    }
-
-    public void setRemainFreeTimes(int remainFreeTimes) {
-        this.remainFreeTimes = remainFreeTimes;
-    }
 
     public int getJoinTimes() {
         return joinTimes;
