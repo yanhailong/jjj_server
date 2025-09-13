@@ -44,14 +44,14 @@ public abstract class BaseActivityController {
     /**
      * 增加玩家活动进度
      */
-    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress) {
+    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, Object additionalParameters) {
         return false;
     }
 
     /**
      * 增加总体活动进度
      */
-    public void addActivityProgress(ActivityData activityData, long progress) {
+    public void addActivityProgress(ActivityData activityData, long progress, Object additionalParameters) {
     }
 
     /**

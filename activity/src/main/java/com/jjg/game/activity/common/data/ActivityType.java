@@ -2,6 +2,7 @@ package com.jjg.game.activity.common.data;
 
 import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.common.controller.BaseActivityController;
+import com.jjg.game.activity.piggybank.controller.PiggyBankController;
 import com.jjg.game.activity.privilegecard.controller.PrivilegeCardController;
 import com.jjg.game.common.utils.CommonUtil;
 
@@ -15,7 +16,10 @@ public enum ActivityType {
             ActivityTargetType.LOGIN.getTargetKey(), false),
     //摇钱树
     CASH_COW(3, CashCowController.class, true, true,
-            ActivityTargetType.EFFECTIVE_BET.getTargetKey(), true);
+            ActivityTargetType.EFFECTIVE_BET.getTargetKey(), true),
+    //储钱罐
+    PIGGY_BANK(4, PiggyBankController.class, true, false,
+            ActivityTargetType.BET.getTargetKey(), false);
     //活动类型
     private final int type;
     //活动控制器的class

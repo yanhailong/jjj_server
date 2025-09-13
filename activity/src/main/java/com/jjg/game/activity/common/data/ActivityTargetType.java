@@ -20,11 +20,11 @@ public enum ActivityTargetType {
      */
     RECHARGE(3, 1 << 2),
     /**
-     * 有效押注
+     * 有效押注金币
      */
     EFFECTIVE_BET(4, 1 << 3),
     /**
-     * 押注
+     * 押注金币
      */
     BET(5, 1 << 4);
 

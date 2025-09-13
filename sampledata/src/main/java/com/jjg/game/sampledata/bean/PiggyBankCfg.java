@@ -1,8 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
 import javax.annotation.processing.Generated;
+import java.util.Map;
 /**
  * 配置bean
  *
@@ -18,8 +17,10 @@ public class PiggyBankCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "PiggyBank";
 
+  /** 罐子存储上限 */
+  protected long fullup;
   /** 奖励1 */
-  protected Map<Integer,Integer> getitem;
+  protected Map<Integer,Long> getitem;
   /** 罐子类型 */
   protected int name;
   /** 购买金额 */
@@ -29,8 +30,13 @@ public class PiggyBankCfg extends BaseCfgBean {
   /** 万分比 */
   protected int weight;
 
+  /** 返回罐子存储上限 */
+  public long getFullup() {
+    return fullup;
+  }
+
   /** 返回奖励1 */
-  public Map<Integer,Integer> getGetitem() {
+  public Map<Integer,Long> getGetitem() {
     return getitem;
   }
 

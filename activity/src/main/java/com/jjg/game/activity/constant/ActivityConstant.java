@@ -46,6 +46,14 @@ public interface ActivityConstant {
         int CASH_COW_FREE_TIMES = 25;
     }
 
+    //储钱罐
+    interface PiggyBank {
+        //每次下注金币的万分比飞入储钱罐
+        int INCOME_PER_TEN_THOUSAND = 26;
+        //自动领取邮件id
+        int MAIL_ID = 1;
+    }
+
     interface MsgBean {
         int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.ACTIVITY << MessageConst.MessageCommon.RIGHT_MOVE;
         //请求活动详细信息
@@ -84,6 +92,13 @@ public interface ActivityConstant {
         int REQ_CASH_COW_TOTAL_POOL = BASE_MSG_PREFIX | 0x10;
         int RES_CASH_COW_TOTAL_POOL = BASE_MSG_PREFIX | 0x11;
 
+        //储钱罐
+        //响应储钱罐活动类型信息
+        int RES_PIGGY_BANK_ACTIVITY_INFOS = BASE_MSG_PREFIX | 0x12;
+        //响应每日奖励活动详细信息
+        int RES_PIGGY_BANK_DETAIL_INFO = BASE_MSG_PREFIX | 0x13;
+        //响应每日奖金领取活动奖励
+        int RES_PIGGY_BANK_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x14;
 
     }
 }

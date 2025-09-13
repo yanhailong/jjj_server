@@ -49,10 +49,10 @@ public class BetDataTrackLogUtils {
                 Thread.ofVirtual().start(() -> {
                     ActivityManager activityManager = controller.getRoomController().getRoomManager().getActivityManager();
                     if (effectiveWaterFlow > 0) {
-                        activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveWaterFlow);
-                        activityManager.addActivityProgress(gamePlayer, ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveWaterFlow);
+                        activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveWaterFlow, controller.getGameTransactionItemId());
+                        activityManager.addActivityProgress(gamePlayer, ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveWaterFlow, controller.getGameTransactionItemId());
                     }
-                    activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.BET.getTargetKey(), settlementData.getBetTotal());
+                    activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.BET.getTargetKey(), settlementData.getBetTotal(), controller.getGameTransactionItemId());
                 });
             }
         }

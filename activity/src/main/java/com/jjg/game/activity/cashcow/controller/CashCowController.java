@@ -5,8 +5,8 @@ import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.activity.cashcow.dao.CashCowDao;
 import com.jjg.game.activity.cashcow.data.CashCowPlayerActivityData;
 import com.jjg.game.activity.cashcow.data.CashCowRecordData;
-import com.jjg.game.activity.cashcow.message.bean.CashCowDetailInfo;
 import com.jjg.game.activity.cashcow.message.bean.CashCowActivityInfo;
+import com.jjg.game.activity.cashcow.message.bean.CashCowDetailInfo;
 import com.jjg.game.activity.cashcow.message.bean.CashCowShowRecord;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowRecord;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowTotalPool;
@@ -108,7 +108,8 @@ public class CashCowController extends BaseActivityController implements TimerLi
     }
 
     @Override
-    public void addActivityProgress(ActivityData activityData, long progress) {
+    public void addActivityProgress(ActivityData activityData, long progress, Object additionalParameters) {
+        if (notAddProgress(additionalParameters)) return;
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_ADD_POOL_PROPORTION);
         long realProgress = BigDecimal.valueOf(progress).multiply(BigDecimal.valueOf(globalConfigCfg.getIntValue())).divide(BigDecimal.valueOf(10000), RoundingMode.FLOOR).longValue();
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
@@ -119,8 +120,15 @@ public class CashCowController extends BaseActivityController implements TimerLi
         }
     }
 
+    private static boolean notAddProgress(Object additionalParameters) {
+        return additionalParameters instanceof Integer itemId && !itemId.equals(ItemUtils.getGoldItemId());
+    }
+
     @Override
-    public boolean addPlayerProgress(long playerId, ActivityData data, long progress) {
+    public boolean addPlayerProgress(long playerId, ActivityData data, long progress, Object additionalParameters) {
+        if (notAddProgress(additionalParameters)) {
+            return false;
+        }
         long added = cashCowDao.addPlayerActivityProgress(playerId, data.getId(), progress);
         String lockKey = playerActivityDao.getLockKey(playerId, data.getId());
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(data.getId());

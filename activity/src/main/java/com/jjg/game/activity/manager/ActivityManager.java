@@ -335,11 +335,12 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     /**
      * 玩家活动进度更新
      *
-     * @param player            玩家数据
-     * @param activityTargetKey 触发key
-     * @param value             增加值
+     * @param player               玩家数据
+     * @param activityTargetKey    触发key
+     * @param value                增加值
+     * @param additionalParameters 额外参数
      */
-    public void addPlayerActivityProgress(Player player, long activityTargetKey, long value) {
+    public void addPlayerActivityProgress(Player player, long activityTargetKey, long value, Object additionalParameters) {
         if (value <= 0) {
             return;
         }
@@ -359,7 +360,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     continue;
                 }
                 try {
-                    boolean canClaim = data.getType().getController().addPlayerProgress(playerId, data, value);
+                    boolean canClaim = data.getType().getController().addPlayerProgress(playerId, data, value, additionalParameters);
                     if (canClaim) {
                         dataArrayList.add(data);
                     }
@@ -383,10 +384,11 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     /**
      * 活动进度更新
      *
-     * @param activityTargetKey 活动触发key
-     * @param value 增加值
+     * @param activityTargetKey    活动触发key
+     * @param value                增加值
+     * @param additionalParameters 额外参数
      */
-    public void addActivityProgress(Player player, long activityTargetKey, long value) {
+    public void addActivityProgress(Player player, long activityTargetKey, long value, Object additionalParameters) {
         if (value <= 0) {
             return;
         }
@@ -404,7 +406,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 }
                 try {
                     //获取该玩家的活动详细信息
-                    data.getType().getController().addActivityProgress(data, value);
+                    data.getType().getController().addActivityProgress(data, value, additionalParameters);
                 } catch (Exception e) {
                     log.error("增加活动进度失败  activityId:{} value:{}", data.getId(), value, e);
                 }

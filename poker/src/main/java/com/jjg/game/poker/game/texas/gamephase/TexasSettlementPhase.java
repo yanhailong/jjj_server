@@ -360,7 +360,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
 
     public void addLog(TexasGameController controller, TexasSaveHistory texasSaveHistory) {
         TexasHistory texasHistory = controller.buildTexasHistory(0, texasSaveHistory);
-        Map<Long, Long> baseBetInfo = controller.getGameDataVo().getBaseBetInfo();
+        TexasGameDataVo gameDataVo = controller.getGameDataVo();
+        Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         ActivityManager activityManager = controller.getRoomController().getRoomManager().getActivityManager();
         //构建玩家信息
         for (TexasHistoryPlayerInfo info : texasHistory.totalPlayerBetInfo) {
@@ -372,11 +373,11 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.INCOME, info.betValue);
             gameDataTracker.addPlayerLogData(simplePlayerInfo, DataTrackNameConstant.EFFECTIVE_BET, betValue);
             //增加个人
-            GamePlayer gamePlayer = controller.getGameDataVo().getGamePlayer(info.playerId);
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.playerId);
             if (!(gamePlayer instanceof GameRobotPlayer)) {
                 Thread.ofVirtual().start(() -> {
-                    activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue);
-                    activityManager.addActivityProgress(gamePlayer, ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue);
+                    activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue, controller.getGameTransactionItemId());
+                    activityManager.addActivityProgress(gamePlayer, ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue, controller.getGameTransactionItemId());
                 });
             }
         }

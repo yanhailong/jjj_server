@@ -22,7 +22,7 @@ import java.util.Objects;
  * @date 2025/8/13 16:04
  */
 public class SaveLogUtil {
-    public static void  generalLog(Map<Long, Map<Integer, List<Integer>>> betData, Map<Long, DefaultKeyValue<Long, Long>> playerGet, Map<Long, GamePlayer> gamePlayerMap, AbstractPhaseGameController<Room_BetCfg, ?> gameController) {
+    public static void generalLog(Map<Long, Map<Integer, List<Integer>>> betData, Map<Long, DefaultKeyValue<Long, Long>> playerGet, Map<Long, GamePlayer> gamePlayerMap, AbstractPhaseGameController<Room_BetCfg, ?> gameController) {
         Map<Integer, Long> areaTotalBet = new HashMap<>();
         GameDataTracker gameDataTracker = gameController.getGameDataTracker();
         for (Map.Entry<Long, Map<Integer, List<Integer>>> entry : betData.entrySet()) {
@@ -71,10 +71,10 @@ public class SaveLogUtil {
             Thread.ofVirtual().start(() -> {
                 ActivityManager activityManager = gameController.getRoomController().getRoomManager().getActivityManager();
                 if (sum > 0) {
-                    activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.EFFECTIVE_BET.getTargetKey(), sum);
-                    activityManager.addActivityProgress(gamePlayer, ActivityTargetType.EFFECTIVE_BET.getTargetKey(), sum);
+                    activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.EFFECTIVE_BET.getTargetKey(), sum, gameController.getGameTransactionItemId());
+                    activityManager.addActivityProgress(gamePlayer, ActivityTargetType.EFFECTIVE_BET.getTargetKey(), sum,gameController.getGameTransactionItemId());
                 }
-                activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.BET.getTargetKey(), finalTotalBet);
+                activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.BET.getTargetKey(), finalTotalBet, gameController.getGameTransactionItemId());
             });
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_DATA, areaMap);
         }

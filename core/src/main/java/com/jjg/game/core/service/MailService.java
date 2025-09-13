@@ -229,6 +229,14 @@ public class MailService implements IRedDotService {
         addMail(playerId, mailCfg.getTitle() + "", mailCfg.getText() + "", new ArrayList<>());
     }
 
+    /**
+     * 添加系统配置邮件
+     */
+    public void addCfgMail(long playerId, int mailCfgId, List<Item> items) {
+        MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
+        addMail(playerId, mailCfg.getTitle() + "", mailCfg.getText() + "", items);
+    }
+
 
     /**
      * 保存多语言邮件

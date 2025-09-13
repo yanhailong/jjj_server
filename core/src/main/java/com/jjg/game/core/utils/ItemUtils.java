@@ -2,6 +2,7 @@ package com.jjg.game.core.utils;
 
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.data.Item;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 
@@ -44,6 +45,18 @@ public class ItemUtils {
         }
         return itemInfos;
     }
+
+    public static List<Item> buildItems(Map<Integer, Long> itemInfo) {
+        List<Item> items = new ArrayList<>();
+        for (Map.Entry<Integer, Long> longEntry : itemInfo.entrySet()) {
+            Item item = new Item();
+            item.setId(longEntry.getKey());
+            item.setItemCount(longEntry.getValue());
+            items.add(item);
+        }
+        return items;
+    }
+
 
     public static ItemInfo buildItemInfo(int itemId, long count) {
         ItemInfo info = new ItemInfo();
