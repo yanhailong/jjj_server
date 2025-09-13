@@ -146,7 +146,9 @@ public class SlotsLogger extends BaseLogger {
      */
     private void getAwardLineInfo(JSONObject json, WealthGodGameRunInfo gameRunInfo) {
         WealthGodSpinInfo spinInfo = gameRunInfo.getSpinInfo();
-
+        if (spinInfo == null) {
+            return;
+        }
         List<WealthGodResultLineInfo> resultLineInfoList = spinInfo.getResultLineInfoList();
 
         if (resultLineInfoList == null || resultLineInfoList.isEmpty()) {

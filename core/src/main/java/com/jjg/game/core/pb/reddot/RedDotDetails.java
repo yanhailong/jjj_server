@@ -32,7 +32,7 @@ public class RedDotDetails {
      * 数量
      */
     @ProtoDesc("数量")
-    private int count;
+    private long count;
 
     /**
      * 额外参数
@@ -107,11 +107,11 @@ public class RedDotDetails {
         this.extra = extra;
     }
 
-    public int getCount() {
+    public long getCount() {
         return count;
     }
 
-    public void setCount(int count) {
+    public void setCount(long count) {
         this.count = count;
     }
 

@@ -7,6 +7,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.slots.service.SlotsPlayerService;
+import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

@@ -100,11 +100,11 @@ public class GameConstant {
 
     public class Mail {
         //未阅读
-        public static final int STAUTS_NOT_READ = 0;
+        public static final int STATUS_NOT_READ = 0;
         //已阅读
-        public static final int STAUTS_READ = 1;
+        public static final int STATUS_READ = 1;
         //已领取
-        public static final int STAUTS_GET_ITEMS = 2;
+        public static final int STATUS_GET_ITEMS = 2;
     }
 
     public class GlobalConfig {

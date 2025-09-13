@@ -150,6 +150,7 @@ public class GameDataManager {
     containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
     containerMap.put(ItemCfg.class, new ItemCfgContainer());
     containerMap.put(MailCfg.class, new MailCfgContainer());
+    containerMap.put(PiggyBankCfg.class, new PiggyBankCfgContainer());
     containerMap.put(PlayerLevelConfigCfg.class, new PlayerLevelConfigCfgContainer());
     containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
     containerMap.put(PoolCfg.class, new PoolCfgContainer());
@@ -956,6 +957,18 @@ public class GameDataManager {
 
   public static List<MailCfg> getMailCfgList() {
     return getInstance().getCfgContainer(MailCfg.class).getCfgBeanList();
+  }
+
+  public static PiggyBankCfg getPiggyBankCfg(int key) {
+    return getInstance().getCfgContainer(PiggyBankCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PiggyBankCfg> getPiggyBankCfgMap() {
+    return getInstance().getCfgContainer(PiggyBankCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PiggyBankCfg> getPiggyBankCfgList() {
+    return getInstance().getCfgContainer(PiggyBankCfg.class).getCfgBeanList();
   }
 
   public static PlayerLevelConfigCfg getPlayerLevelConfigCfg(int key) {
