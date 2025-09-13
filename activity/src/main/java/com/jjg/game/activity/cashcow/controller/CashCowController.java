@@ -222,7 +222,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 res.activityId = activityId;
                 res.detailId = detailId;
                 res.num = get;
-                res.poll = cashCowDao.getActivityPool(activityId);
+                res.pool = cashCowDao.getActivityPool(activityId);
                 res.totalPool = cashCowDao.getActivityPool(activityId);
             } catch (Exception e) {
                 log.error("玩家参加摇钱树  出现异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
@@ -464,6 +464,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             ActivityData data = activityManager.getActivityData().get(activityId);
             cashCowActiviTyInfo.endTime = data.getTimeEnd();
             cashCowActiviTyInfo.round = data.getRound();
+            cashCowActiviTyInfo.resetRemainTime = TimeHelper.getNextDayRemainTime();
         }
         return cashCowTypeInfo;
     }
