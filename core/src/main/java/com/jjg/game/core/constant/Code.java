@@ -76,7 +76,7 @@ public interface Code {
     // 房主不能上庄
     int ROOM_CREATOR_CANT_BE_BANKER = 428;
     // 庄家金币不足以赔付
-    int BANKER_GOLD_NOT_ENOUGH_TO_PAY = 429;
+    int BANKER_GOLD_NOT_ENOUGH_TO_PAY = 49025;
     // 房间不能加入
     int ROOM_CANT_JOIN = 430;
     // 房间已满

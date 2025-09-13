@@ -10,10 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.aggregation.AddFieldsOperation;
-import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.aggregation.AggregationResults;
-import org.springframework.data.mongodb.core.aggregation.ConditionalOperators;
+import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -21,6 +18,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 房间好友Dao
@@ -48,20 +46,14 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
      */
     public List<FriendRoomFollowBean> getRoomFriendList(long playerId, int pageNum, int pageSize) {
         Aggregation aggregation = Aggregation.newAggregation(
-            Aggregation.match(Criteria.where("playerId").is(playerId)),
-            AddFieldsOperation.builder().addField("priority").withValue(
-                ConditionalOperators.when(Criteria.where("removeTime").lte(0))
-                    .then(1)
-                    .otherwise(0)
-            ).build(),
+            Aggregation.match(Criteria.where("playerId").is(playerId).and("removeTime").lte(0)),
             Aggregation.sort(Sort.by(
-                Sort.Order.desc("priority")
+                Sort.Order.desc("followedTimeStamp")
             )),
-            Aggregation.group("followedPlayerId").first(Aggregation.ROOT).as("doc"),
-            Aggregation.replaceRoot("doc"),
             Aggregation.skip((long) pageNum * pageSize),
             Aggregation.limit(pageSize)
         );
+        // 需要对查询进行优化
         return mongoTemplate.aggregate(aggregation, "friendRoomFollowBean", FriendRoomFollowBean.class).getMappedResults();
     }
 

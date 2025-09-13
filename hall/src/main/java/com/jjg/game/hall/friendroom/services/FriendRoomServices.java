@@ -367,17 +367,19 @@ public class FriendRoomServices {
         List<FriendRoomFollowBean> friendRoomFollowBeans = friendRoomFollowDao.getDefualtRoomFriendList(player.getId());
         Map<Long, FriendRoomFollowBean> friendRoomFollowBeanMap =
             friendRoomFollowBeans.stream().collect(
-                HashMap::new, (map, e) -> map.put(e.getFollowedPlayerId(), e), HashMap::putAll);
+                LinkedHashMap::new, (map, e) -> map.put(e.getFollowedPlayerId(), e), HashMap::putAll);
         List<Long> followedPlayerId =
             friendRoomFollowBeans.stream().map(FriendRoomFollowBean::getFollowedPlayerId).toList();
         List<Player> followedplayerList = corePlayerService.multiGetPlayer(followedPlayerId);
         // 好友信息
-        Map<Long, BaseFriendRoomPlayerInfo> baseFriendRoomPlayerInfos =
+        notifyFriendRoomPanelData.roomFriendInfos =
             buildFriendRoomPlayerInfoList(followedPlayerId, followedplayerList, friendRoomFollowBeanMap);
-        notifyFriendRoomPanelData.roomFriendInfos = baseFriendRoomPlayerInfos.values().stream().toList();
         // 房间信息
         List<FriendRoomBaseData> friendRoomBaseDataList = new ArrayList<>();
         for (FriendRoom friendRoom : friendRoomList) {
+            if (friendRoom.getStatus() == 3) {
+                continue;
+            }
             FriendRoomBaseData friendRoomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
             friendRoomBaseDataList.add(friendRoomBaseData);
             // 检查房间的自动续费
@@ -397,7 +399,7 @@ public class FriendRoomServices {
             friendRoomBaseDataList.stream().map(data -> {
                 Tuple2<Integer, Integer> tuple =
                     SampleDataUtils.getRoomMaxLimit(GameDataManager.getWarehouseCfg(data.gameId));
-                return tuple.getT2();
+                return tuple.getT1();
             }).mapToInt(a -> a).sum();
         // 邀请码重置使用次数
         Integer icRestTimes = friendRoomRedisDao.getInvitationCodeResetUseTimes(player.getId());
@@ -575,10 +577,12 @@ public class FriendRoomServices {
             playerController.send(res);
             return;
         }
+        log.info("玩家：{} 请求操作好友：{} 列表, code: {}",
+            playerController.playerId(), req.playerId, code.name());
         switch (code) {
             case TOP_UP -> friendRoomFollowBean.setTopUpTimeStamp(System.currentTimeMillis());
             case REMOVE -> friendRoomFollowBean.setRemoveTime(System.currentTimeMillis());
-            case CANCEL_TOP_UP -> friendRoomFollowBean.setRemoveTime(0);
+            case CANCEL_TOP_UP -> friendRoomFollowBean.setTopUpTimeStamp(0);
         }
         FriendRoomFollowBean updatedFriendRoomFollowBean =
             friendRoomFollowDao.updateFriendRoomFollowBean(friendRoomFollowBean);
@@ -625,6 +629,9 @@ public class FriendRoomServices {
         List<FriendRoomBaseData> friendRoomBaseDataList = new ArrayList<>();
         boolean isSelf = req.playerId == playerController.playerId();
         for (FriendRoom friendRoom : friendRoomList) {
+            if (friendRoom.getStatus() == 3) {
+                continue;
+            }
             FriendRoomBaseData friendRoomBaseData = FriendRoomMessageBuilder.buildFriendRoomBaseData(friendRoom);
             friendRoomBaseDataList.add(friendRoomBaseData);
             if (isSelf) {
@@ -660,11 +667,10 @@ public class FriendRoomServices {
         List<Player> followedplayerList = corePlayerService.multiGetPlayer(followedPlayerId);
         Map<Long, FriendRoomFollowBean> friendRoomFollowBeanMap =
             friendRoomFollowBeans.stream().collect(
-                HashMap::new, (map, e) -> map.put(e.getFollowedPlayerId(), e), HashMap::putAll);
-        Map<Long, BaseFriendRoomPlayerInfo> friendRoomPlayerInfoMap =
-            buildFriendRoomPlayerInfoList(followedPlayerId, followedplayerList, friendRoomFollowBeanMap);
+                LinkedHashMap::new, (map, e) -> map.put(e.getFollowedPlayerId(), e), HashMap::putAll);
         // 不包含的，或者过期的需要移除这部分的数据
-        res.followedFriendList = friendRoomPlayerInfoMap.values().stream().toList();
+        res.followedFriendList = buildFriendRoomPlayerInfoList(followedPlayerId, followedplayerList,
+            friendRoomFollowBeanMap);
         PlayerLevelConfigCfg playerLevelConfigCfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
         res.maxFollowLimit = playerLevelConfigCfg.getFriendsNum();
         log.debug("请求刷新好友关注列表: {}", JSON.toJSONString(res));
@@ -674,27 +680,34 @@ public class FriendRoomServices {
     /**
      * 构建好友数据
      */
-    private Map<Long, BaseFriendRoomPlayerInfo> buildFriendRoomPlayerInfoList(
+    private List<BaseFriendRoomPlayerInfo> buildFriendRoomPlayerInfoList(
         List<Long> followedPlayerId, List<Player> followedPlayerList, Map<Long, FriendRoomFollowBean> followBeanMap) {
         // 好友信息
-        Map<Long, BaseFriendRoomPlayerInfo> baseFriendRoomPlayerInfos = new HashMap<>();
-        for (Player followedPlayer : followedPlayerList) {
-            BaseFriendRoomPlayerInfo info = FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(followedPlayer);
-            FriendRoomFollowBean friendRoomFollowBean = followBeanMap.get(followedPlayer.getId());
-            long topUpTimeStamp = friendRoomFollowBean.getTopUpTimeStamp();
-            info.isTopUp = topUpTimeStamp > 0;
-            info.isLostFriendRelationship = friendRoomFollowBean.getRemoveTime() > 0;
-            info.topUpTime = topUpTimeStamp;
-            info.addTime = friendRoomFollowBean.getFollowedTimeStamp();
-            info.maxRoomNum = playerMaxRoomNum(followedPlayer.getLevel());
-            baseFriendRoomPlayerInfos.put(followedPlayer.getId(), info);
+        Map<Long, BaseFriendRoomPlayerInfo> baseFriendRoomPlayerInfos = new LinkedHashMap<>();
+        Map<Long, Player> followedPlayerMap = followedPlayerList.stream()
+            .collect(HashMap::new, (map, e) -> {
+                map.put(e.getId(), e);
+            }, HashMap::putAll);
+        for (Map.Entry<Long, FriendRoomFollowBean> entry : followBeanMap.entrySet()) {
+            Player followedPlayer = followedPlayerMap.get(entry.getKey());
+            if (followedPlayer != null) {
+                BaseFriendRoomPlayerInfo info = FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(followedPlayer);
+                FriendRoomFollowBean friendRoomFollowBean = followBeanMap.get(followedPlayer.getId());
+                long topUpTimeStamp = friendRoomFollowBean.getTopUpTimeStamp();
+                info.isTopUp = topUpTimeStamp > 0;
+                info.isLostFriendRelationship = friendRoomFollowBean.getRemoveTime() > 0;
+                info.topUpTime = topUpTimeStamp;
+                info.addTime = friendRoomFollowBean.getFollowedTimeStamp();
+                info.maxRoomNum = playerMaxRoomNum(followedPlayer.getLevel());
+                baseFriendRoomPlayerInfos.put(followedPlayer.getId(), info);
+            }
         }
         // 获取当前所有好友的当前房间数量
         Map<Long, Integer> friendRoomNumMap = friendRoomDao.getPlayerFriendRoomNum(followedPlayerId);
         for (Map.Entry<Long, BaseFriendRoomPlayerInfo> entry : baseFriendRoomPlayerInfos.entrySet()) {
             entry.getValue().curRoomNum = friendRoomNumMap.getOrDefault(entry.getKey(), 0);
         }
-        return baseFriendRoomPlayerInfos;
+        return baseFriendRoomPlayerInfos.values().stream().toList();
     }
 
     /**

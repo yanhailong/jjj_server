@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -277,10 +278,10 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             }).toList();
             spinInfo.setResultLineInfoList(resultLineInfos);
         }
-        List<Integer> iconList = new ArrayList<>();
-        for (int i : resultLib.getIconArr()) {
-            iconList.add(i);
-        }
+        List<Integer> iconList = Arrays.stream(resultLib.getIconArr())
+                .filter(v -> v != 0)
+                .boxed()
+                .toList();
         //记录图标信息
         spinInfo.setIconList(iconList);
         //图标变化信息

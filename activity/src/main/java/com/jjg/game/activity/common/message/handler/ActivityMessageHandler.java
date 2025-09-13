@@ -1,6 +1,7 @@
 package com.jjg.game.activity.common.message.handler;
 
 import com.jjg.game.activity.cashcow.controller.CashCowController;
+import com.jjg.game.activity.cashcow.message.req.ReqCashCowFreeRewards;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowRecord;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowTotalPool;
 import com.jjg.game.activity.common.controller.BaseActivityController;
@@ -131,4 +132,20 @@ public class ActivityMessageHandler {
             }
         }
     }
+
+    /**
+     * 摇钱树请求领取免费奖励
+     */
+    @Command(ActivityConstant.MsgBean.REQ_CASH_COW_FREE_REWARDS)
+    public void reqCashCowFreeRewards(PlayerController playerController, ReqCashCowFreeRewards req) {
+        ActivityData data = activityManager.getActivityData().get(req.activityId);
+        if (data != null && data.canRun() && data.getType() == ActivityType.CASH_COW) {
+            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+                AbstractResponse res = cashCowController.reqCashCowFreeRewards(playerController, req);
+                playerController.send(res);
+            }
+        }
+    }
+
+
 }
