@@ -18,6 +18,7 @@ import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinPlayerGameData;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinResultLib;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -46,6 +47,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
 
     public MahjiongWinGameManager() {
         super(MahjiongWinPlayerGameData.class, MahjiongWinResultLib.class);
+        this.log = LoggerFactory.getLogger(getClass());
     }
 
     @Override

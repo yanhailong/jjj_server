@@ -21,6 +21,7 @@ import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -46,6 +47,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
 
     public CleopatraGameManager() {
         super(CleopatraPlayerGameData.class,CleopatraResultLib.class);
+        this.log = LoggerFactory.getLogger(getClass());
     }
 
     @Override
@@ -162,10 +164,10 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
         CleopatraResultLib resultLib = null;
         for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
             //获取一个倍数区间
-            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN);
-            if (!result.success()) {
-                continue;
-            }
+//            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN);
+//            if (!result.success()) {
+//                continue;
+//            }
             //获取结果库
             CommonResult<CleopatraResultLib> libResult = normalGetLib(playerGameData, betValue);
             if (!libResult.success()) {
