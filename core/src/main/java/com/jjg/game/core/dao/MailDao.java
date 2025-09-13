@@ -84,14 +84,14 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
         Criteria criteria = Criteria.where("playerId").is(playerId)
                 .andOperator(
                         new Criteria().orOperator(
-                                Criteria.where("status").is(GameConstant.Mail.STAUTS_READ)
+                                Criteria.where("status").is(GameConstant.Mail.STATUS_READ)
                                         .andOperator(
                                                 new Criteria().orOperator(
                                                         Criteria.where("items").size(0),
                                                         Criteria.where("items").is(null)
                                                 )
                                         ),
-                                Criteria.where("status").is(GameConstant.Mail.STAUTS_GET_ITEMS)
+                                Criteria.where("status").is(GameConstant.Mail.STATUS_GET_ITEMS)
                         )
                 );
         Query query = new Query(criteria);
@@ -105,9 +105,9 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
      * @param playerId
      * @return
      */
-    public List<Mail> getItemMails(long playerId) {
+    public List<Mail> getItemMails(long playerId, int status) {
         // 创建查询条件
-        Criteria criteria = Criteria.where("playerId").is(playerId).and("status").ne(GameConstant.Mail.STAUTS_GET_ITEMS)
+        Criteria criteria = Criteria.where("playerId").is(playerId).and("status").ne(status)
                 .and("items").exists(true)
                 .ne(null)
                 .not().size(0);
@@ -117,13 +117,27 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
     }
 
     /**
+     * 获取邮件数量
+     */
+    public long getItemsMailsCount(long playerId, int status) {
+        // 创建查询条件
+        Criteria criteria = Criteria.where("playerId").is(playerId).and("status").ne(status)
+                .and("items").exists(true)
+                .ne(null)
+                .not().size(0);
+
+        Query query = new Query(criteria);
+        return mongoTemplate.count(query, Mail.class);
+    }
+
+    /**
      * @param mailId
      */
     public boolean readMail(long playerId, long mailId) {
         Query query = Query.query(Criteria.where("id").is(mailId)
                 .and("playerId").is(playerId)
-                .and("status").lt(GameConstant.Mail.STAUTS_READ));
-        return mongoTemplate.updateFirst(query, Update.update("status", GameConstant.Mail.STAUTS_READ), Mail.class).getModifiedCount() > 0;
+                .and("status").lt(GameConstant.Mail.STATUS_READ));
+        return mongoTemplate.updateFirst(query, Update.update("status", GameConstant.Mail.STATUS_READ), Mail.class).getModifiedCount() > 0;
     }
 
     /**
@@ -134,9 +148,9 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
     public boolean getMailItems(long playerId, long mailId) {
         Query query = Query.query(Criteria.where("id").is(mailId)
                 .and("playerId").is(playerId)
-                .and("status").lte(GameConstant.Mail.STAUTS_READ));
+                .and("status").lte(GameConstant.Mail.STATUS_READ));
 
-        return mongoTemplate.updateFirst(query, Update.update("status", GameConstant.Mail.STAUTS_GET_ITEMS), Mail.class).getModifiedCount() > 0;
+        return mongoTemplate.updateFirst(query, Update.update("status", GameConstant.Mail.STATUS_GET_ITEMS), Mail.class).getModifiedCount() > 0;
     }
 
     /**

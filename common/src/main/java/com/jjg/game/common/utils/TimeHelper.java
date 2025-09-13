@@ -772,4 +772,16 @@ public final class TimeHelper {
         return Long.parseLong(dateStr + "00000");
     }
 
+    /**
+     * 获取到明天凌晨的剩余时间(毫秒)
+     *
+     */
+    public static long getNextDayRemainTime() {
+        LocalDateTime now = LocalDateTime.now();
+
+        // 明天凌晨 0 点
+        LocalDateTime nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay();
+        return  ChronoUnit.MILLIS.between(now, nextMidnight);
+    }
+
 }

@@ -3,32 +3,28 @@ package com.jjg.game.core.manager;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.base.reddot.IRedDotService;
-import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.pb.reddot.NotifyRedDot;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 /**
  * 红点管理器
  * 负责管理所有红点服务的注册和调用
  */
 @Component
-public class RedDotManager implements ApplicationContextAware {
+public class RedDotManager {
 
     private static final Logger log = LoggerFactory.getLogger(RedDotManager.class);
-
-    private ApplicationContext applicationContext;
 
     private final ClusterSystem clusterSystem;
 
@@ -42,35 +38,16 @@ public class RedDotManager implements ApplicationContextAware {
         this.clusterSystem = clusterSystem;
     }
 
-    @Override
-    public void setApplicationContext(@NonNull ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-    }
-
-    @PostConstruct
-    public void init() {
-        try {
-            Map<String, IRedDotService> beansOfType = this.applicationContext.getBeansOfType(IRedDotService.class);
-            log.info("开始加载红点服务，发现服务类数量: {}", beansOfType.size());
-            int successCount = 0;
-            for (Map.Entry<String, IRedDotService> redDotServiceEntry : beansOfType.entrySet()) {
-                String name = redDotServiceEntry.getKey();
-                IRedDotService service = redDotServiceEntry.getValue();
-                if (service != null) {
-                    RedDotDetails.RedDotModule serviceModule = service.getModule();
-                    if (serviceModule != null) {
-                        redDotServiceCache.put(serviceModule, service);
-                        successCount++;
-                        log.debug("成功注册红点服务: {} -> {}", serviceModule, name);
-                    } else {
-                        log.warn("红点服务 {} 的模块为空，跳过注册", name);
-                    }
-                }
-            }
-            log.info("红点服务加载完成，成功注册: {}/{}", successCount, beansOfType.size());
-        } catch (Exception e) {
-            log.error("初始化红点管理器失败", e);
-            throw new RuntimeException("红点管理器初始化失败", e);
+    /**
+     * 注册红点服务
+     * 
+     * @param module 红点模块
+     * @param service 红点服务实例
+     */
+    public void registerService(RedDotDetails.RedDotModule module, IRedDotService service) {
+        if (module != null && service != null) {
+            redDotServiceCache.put(module, service);
+            log.debug("注册红点服务: {} -> {}", module, service.getClass().getSimpleName());
         }
     }
 
@@ -153,6 +130,20 @@ public class RedDotManager implements ApplicationContextAware {
         } else {
             clusterSystem.broadcastToOnlinePlayer(notifyRedDot);
         }
+    }
+
+    /**
+     * 更新客户端的红点数据。
+     *
+     * @param supplier 用于提供红点详情列表的Supplier
+     * @param playerId 玩家ID，如果小于等于0，则向所有在线玩家广播更新
+     */
+    public void updateRedDot(Supplier<List<RedDotDetails>> supplier, long playerId) {
+        List<RedDotDetails> list = supplier.get();
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        updateRedDot(list, playerId);
     }
 
 }

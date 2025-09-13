@@ -222,7 +222,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 res.activityId = activityId;
                 res.detailId = detailId;
                 res.num = get;
-                res.poll = cashCowDao.getActivityPool(activityId);
+                res.pool = cashCowDao.getActivityPool(activityId);
                 res.totalPool = cashCowDao.getActivityPool(activityId);
             } catch (Exception e) {
                 log.error("玩家参加摇钱树  出现异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
@@ -464,6 +464,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             ActivityData data = activityManager.getActivityData().get(activityId);
             cashCowActiviTyInfo.endTime = data.getTimeEnd();
             cashCowActiviTyInfo.round = data.getRound();
+            cashCowActiviTyInfo.resetRemainTime = TimeHelper.getNextDayRemainTime();
         }
         return cashCowTypeInfo;
     }
@@ -500,18 +501,24 @@ public class CashCowController extends BaseActivityController implements TimerLi
     @Override
     public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
         super.checkPlayerDataAndReset(playerId, activityData);
+        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         //重置每日免费次数
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         redisLock.lock(lockKey);
         try {
             Map<Integer, CashCowPlayerActivityData> playerActivityDataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
             if (CollectionUtil.isNotEmpty(playerActivityDataMap)) {
-                for (CashCowPlayerActivityData playerActivityData : playerActivityDataMap.values()) {
-                    //重置每日免费
-                    playerActivityData.setRemainFreeTimes(getConfigFreeTimes());
+                Map<Integer, CashCowPlayerActivityData> newData = new HashMap<>(playerActivityDataMap.size());
+                for (Map.Entry<Integer, CashCowPlayerActivityData> entry : playerActivityDataMap.entrySet()) {
+                    BaseCfgBean baseCfgBean = baseCfgBeanMap.get(entry.getKey());
+                    if (baseCfgBean instanceof CashcowCfg cfg && cfg.getType() != 4) {
+                        entry.getValue().setRemainFreeTimes(getConfigFreeTimes());
+                        newData.put(entry.getKey(), entry.getValue());
+                    }
                 }
+                playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), newData);
             }
-            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), playerActivityDataMap);
+            cashCowDao.delPlayerActivityProgress(playerId, activityData.getId());
         } catch (Exception e) {
             log.error("重置摇钱树每日免费次数失败 playerId:{} activity:{}", playerId, activityData.getType(), e);
         } finally {
