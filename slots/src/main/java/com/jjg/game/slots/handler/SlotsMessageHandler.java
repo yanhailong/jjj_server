@@ -1,8 +1,21 @@
 package com.jjg.game.slots.handler;
 
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
+import com.jjg.game.slots.game.dollarexpress.pb.ReqChooseFreeModel;
+import com.jjg.game.slots.game.dollarexpress.pb.ReqInvestArea;
+import com.jjg.game.slots.game.dollarexpress.pb.ReqStartGame;
+import com.jjg.game.slots.manager.SlotsFactoryManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author 11
@@ -11,7 +24,51 @@ import org.slf4j.LoggerFactory;
 public abstract class SlotsMessageHandler implements GmListener {
     protected final Logger log;
 
+
+    @Autowired
+    private SlotsFactoryManager slotsFactoryManager;
+
     public SlotsMessageHandler() {
         this.log = LoggerFactory.getLogger(getClass());
+    }
+
+    @Override
+    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
+        CommonResult<String> res = new CommonResult<>();
+        try {
+//            if ("libType".equalsIgnoreCase(gmOrders[0])) {
+//                log.debug("收到选择libtype 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+//                TestLibData testLibData = new TestLibData();
+//
+//                int libType = Integer.parseInt(gmOrders[1]);
+//                if(libType < 1 || libType > 6) {
+//                    log.debug("libType不合法 playerId = {},libType = {}", playerController.playerId(),libType);
+//                    res.code = Code.PARAM_ERROR;
+//                }else {
+//                    testLibData.setLibType(libType);
+//                    slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType()).addTestIconData(playerController,testLibData);
+//                }
+//            }else if ("adminGenerateLib".equals(gmOrders[0])) {
+//                log.debug("收到生成结果库的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+//                int count = Integer.parseInt(gmOrders[1]);
+//                if (count > 100000) {
+//                    log.debug("数字太大，请重新输入 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
+//                    res.code = Code.FAIL;
+//                    return res;
+//                }
+//
+//                boolean success = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType())
+//                        .addGenerateLibEvent(countMap(playerController.getPlayer().getGameType(),count));
+//                if (!success) {
+//                    res.code = Code.FAIL;
+//                }
+//            }else {
+//                res.code = Code.NOT_FOUND;
+//            }
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        return res;
     }
 }

@@ -69,48 +69,4 @@ public class MahjiongWinMessageHandler extends SlotsMessageHandler {
             log.error("", e);
         }
     }
-
-    @Override
-    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
-        CommonResult<String> res = new CommonResult<>();
-        try {
-            if ("libType".equalsIgnoreCase(gmOrders[0])) {
-                log.debug("收到选择libtype 的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
-                TestLibData testLibData = new TestLibData();
-
-                int libType = Integer.parseInt(gmOrders[1]);
-                if(libType != 1 && libType != 2) {
-                    log.debug("libType不合法 playerId = {},libType = {}", playerController.playerId(),libType);
-                    res.code = Code.PARAM_ERROR;
-                }else {
-                    testLibData.setLibType(libType);
-                    gameManager.addTestIconData(playerController, testLibData);
-                }
-            }else if ("adminGenerateLib".equals(gmOrders[0])) {
-                log.debug("收到生成结果库的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
-                int count = Integer.parseInt(gmOrders[1]);
-                if (count > 100000) {
-                    log.debug("数字太大，请重新输入 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
-                    res.code = Code.FAIL;
-                    return res;
-                }
-
-                Map<Integer,Integer> countMap = new HashMap<>();
-                for(int i=1;i<=6;i++){
-                    countMap.put(i, count);
-                }
-
-                boolean success = gameManager.addGenerateLibEvent(countMap);
-                if (!success) {
-                    res.code = Code.FAIL;
-                }
-            }else {
-                res.code = Code.NOT_FOUND;
-            }
-        } catch (Exception e) {
-            log.error("", e);
-            res.code = Code.EXCEPTION;
-        }
-        return res;
-    }
 }

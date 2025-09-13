@@ -18,21 +18,35 @@ public class ScratchCardsCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "ScratchCards";
 
+  /** 礼包购买金额 */
+  protected int cost;
   /** 奖励1 */
-  protected Map<Integer,Integer> getitem;
+  protected Map<Integer,Long> getitem;
   /** 中奖图标数量 */
   protected int name;
+  /** 类型 */
+  protected int type;
   /** 中奖权重值 */
   protected int weight;
 
+  /** 返回礼包购买金额 */
+  public int getCost() {
+    return cost;
+  }
+
   /** 返回奖励1 */
-  public Map<Integer,Integer> getGetitem() {
+  public Map<Integer,Long> getGetitem() {
     return getitem;
   }
 
   /** 返回中奖图标数量 */
   public int getName() {
     return name;
+  }
+
+  /** 返回类型 */
+  public int getType() {
+    return type;
   }
 
   /** 返回中奖权重值 */

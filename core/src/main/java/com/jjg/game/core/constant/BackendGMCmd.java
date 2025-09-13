@@ -28,6 +28,8 @@ public interface BackendGMCmd {
     String DELETE_CAROUSEL = "eventImageDel";
     //同步轮播数据
     String SYNC_CAROUSEL = "syncEventImage";
+    //生成结果库
+    String GENERATE_LIB = "generateLib";
 
     interface Result {
         String SUCCESS = "success";

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.NotifyKickout;
@@ -24,6 +25,7 @@ import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.gm.CarouselUpdateInfo;
+import com.jjg.game.core.pb.gm.NotifyGenrateLib;
 import com.jjg.game.core.pb.gm.ReqAllKickout;
 import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
 import com.jjg.game.core.service.*;
@@ -673,6 +675,39 @@ public class GMController extends AbstractController {
             if (param.list() != null && !param.list().isEmpty()) {
                 carouselService.sync(param.list());
             }
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 生成结果库
+     */
+    @RequestMapping(BackendGMCmd.GENERATE_LIB)
+    public WebResult<String> generateLib(@RequestBody GenerateLibDto param) {
+        log.info("收到生成结果库的请求请求 param={}", param);
+        try {
+            ClusterClient clusterClient = null;
+            if(StringUtils.isNotEmpty(param.nodeName())){
+                clusterClient = clusterSystem.getNodesByName(param.nodeName());
+            }else {
+                clusterClient = clusterSystem.randClientByType(NodeType.GAME, CoreConst.GameMajorType.SLOTS);
+            }
+
+            if(clusterClient==null){
+                log.debug("未找到对应的游戏节点");
+                return fail("common.fail");
+            }
+
+            NotifyGenrateLib notify = new NotifyGenrateLib();
+            notify.gameType = param.gameType();
+            notify.count = param.count();
+
+            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
+            ClusterMessage msg = new ClusterMessage(pfMessage);
+            clusterClient.write(msg);
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);

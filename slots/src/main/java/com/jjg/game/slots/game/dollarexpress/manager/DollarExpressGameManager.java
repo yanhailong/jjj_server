@@ -111,9 +111,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @return
      */
     public DollarExpressGameRunInfo playerStartGame(PlayerController playerController, long betValue) {
-        System.out.println("333");
-
-        System.out.println(JSON.toJSONString(this.gameDataMap));
         //获取玩家游戏数据
         DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
@@ -206,9 +203,24 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             List<Long> rewardGoldList = new ArrayList<>();
             long allAddGold = 0;
 
-            long avg = playerGameData.getAddDollarsTotalStake() / playerGameData.getAddDollarsCount();
+            //押分类型
+            int scoreType = 0;
+            if(specialAuxiliaryCfg.getAwardTypeC_value() != null && !specialAuxiliaryCfg.getAwardTypeC_value().isEmpty()){
+                scoreType = specialAuxiliaryCfg.getAwardTypeC_value().get(0);
+            }
+
+            long betScore = 0;
+            if(scoreType == SlotsConst.Common.SCORE_TYPE_ONE_BET){
+                betScore = playerGameData.getOneBetScore();
+            }else if(scoreType == SlotsConst.Common.SCORE_TYPE_ONE_BET){
+                betScore = playerGameData.getAllBetScore();
+            }else {
+                //默认平均单线押分
+                betScore = playerGameData.getAddDollarsTotalStake() / playerGameData.getAddDollarsCount();
+            }
+
             for (int times : timesList) {
-                long gold = avg * times;
+                long gold = betScore * times;
                 rewardGoldList.add(gold);
                 allAddGold += gold;
                 if (times > 0) {
@@ -787,7 +799,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
 
             if (collect) {
-                gameData.addDollarsTotalStake(gameData.getAllBetScore());
+                gameData.addDollarsTotalStake(gameData.getOneBetScore());
                 log.debug("count = {},avg = {}", gameData.getAddDollarsCount(), gameData.getAddDollarsTotalStake() / gameData.getAddDollarsCount());
             }
         }

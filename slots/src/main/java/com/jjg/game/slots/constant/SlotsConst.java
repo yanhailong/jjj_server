@@ -18,23 +18,18 @@ public interface SlotsConst {
 
 
     interface Common {
-        //excel配置所在目录
-        String SAMPLE_PATH = CoreConst.Common.SAMPLE_ROOT_PATH;
-
-        BigDecimal BIGDECIMAL_TWO = BigDecimal.valueOf(2);
-
-        //触发局
-        int TYPE_TRIGGER = 0;
-        //二选一之免费
-        int TYPE_FREE = 1;
-        //二选一之火车
-        int TYPE_TRAIN = 2;
-
         //首次玩某个slots游戏，应该使用的模式id
         int FIRST_GAME_GET_MODEL_ID = 4;
 
         //获取lib失败，总计可尝试次数
         int GET_LIB_FAIL_RETRY_COUNT = 100;
+
+        //单线押分
+        int SCORE_TYPE_ONE_BET = 1;
+        //总押分
+        int SCORE_TYPE_ALL_BET = 2;
+        //平均单线押分
+        int SCORE_TYPE_AVG_ONE_BET = 3;
     }
 
     //结果库变更类型
