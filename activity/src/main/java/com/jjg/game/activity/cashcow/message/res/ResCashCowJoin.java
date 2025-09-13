@@ -22,7 +22,7 @@ public class ResCashCowJoin extends AbstractResponse {
     @ProtoDesc("总奖池")
     public long totalPool;
     @ProtoDesc("奖池")
-    public long poll;
+    public long pool;
 
     public ResCashCowJoin(int code) {
         super(code);
