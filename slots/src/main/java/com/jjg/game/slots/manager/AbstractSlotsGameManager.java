@@ -183,7 +183,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         String redisTableName = null;
         try {
             boolean lock = getResultLibDao().addGenerateLock(this.gameType);
-            if (lock) {
+            if (!lock) {
                 log.info("生成结果库时添加锁失败，gameType = {}", this.gameType);
                 return;
             }
