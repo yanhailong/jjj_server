@@ -109,7 +109,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
             //总计获得金币
             res.allWinGold = gameRunInfo.getAllWinGold();
             //图标信息
-            res.iconList = IntStream.range(1, 12).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
+            res.iconList = IntStream.range(1, 13).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
             //大奖展示id
             res.bigWinShow = gameRunInfo.getBigShowId();
             //等级信息
@@ -150,7 +150,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
     }
 
     private List<CleopatraAddColumInfo> addColumInfoList(CleopatraResultLib lib){
-        if(lib == null){
+        if(lib == null || lib.getAwardLineInfoList() == null || lib.getAwardLineInfoList().isEmpty()){
             return null;
         }
 

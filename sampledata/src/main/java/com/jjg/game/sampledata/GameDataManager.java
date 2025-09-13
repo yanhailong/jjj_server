@@ -150,6 +150,7 @@ public class GameDataManager {
     containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
     containerMap.put(ItemCfg.class, new ItemCfgContainer());
     containerMap.put(MailCfg.class, new MailCfgContainer());
+    containerMap.put(PiggyBankCfg.class, new PiggyBankCfgContainer());
     containerMap.put(PlayerLevelConfigCfg.class, new PlayerLevelConfigCfgContainer());
     containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
     containerMap.put(PoolCfg.class, new PoolCfgContainer());
@@ -958,6 +959,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(MailCfg.class).getCfgBeanList();
   }
 
+  public static PiggyBankCfg getPiggyBankCfg(int key) {
+    return getInstance().getCfgContainer(PiggyBankCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PiggyBankCfg> getPiggyBankCfgMap() {
+    return getInstance().getCfgContainer(PiggyBankCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PiggyBankCfg> getPiggyBankCfgList() {
+    return getInstance().getCfgContainer(PiggyBankCfg.class).getCfgBeanList();
+  }
+
   public static PlayerLevelConfigCfg getPlayerLevelConfigCfg(int key) {
     return getInstance().getCfgContainer(PlayerLevelConfigCfg.class).getCfgBeanMap().get(key);
   }
@@ -1262,6 +1275,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("E:\\java\\gamedoc\\游戏配置表");
+    loadAllData("D:\\workspace\\gamedoc\\游戏配置表");
   }
 }

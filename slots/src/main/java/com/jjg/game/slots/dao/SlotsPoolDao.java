@@ -7,6 +7,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.slots.service.SlotsPlayerService;
+import com.jjg.game.slots.utils.SlotsUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -149,6 +150,40 @@ public class SlotsPoolDao extends AbstractPoolDao {
         }
 
         log.debug("从小池子扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomCfgId, value, poolValue, addType);
+        return result;
+    }
+
+    /**
+     * 按照奖池的百分比奖励给玩家
+     *
+     * @param playerId
+     * @param gameType
+     * @param roomCfgId
+     * @param ratio 奖池万分比
+     * @param addType
+     * @return
+     */
+    public CommonResult<Long> rewardByRatioFromSmallPool(long playerId, int gameType, int roomCfgId,int ratio, String addType) {
+        CommonResult<Long> result = new CommonResult<>(Code.SUCCESS);
+
+        Number poolValue = getSmallPoolByRoomCfgId(gameType, roomCfgId);
+
+        long value = SlotsUtil.calProp(ratio, poolValue.longValue());
+
+        Long afterPoolValue = addToSmallPool(gameType, roomCfgId,-value);
+        if (afterPoolValue == null) {
+            result.code = Code.FAIL;
+            return result;
+        }
+
+        CommonResult<Player> addResult = slotsPlayerService.addGold(playerId, afterPoolValue, addType);
+        if (!addResult.success()) {  //如果失败，要把钱重新加回池子
+            addToSmallPool(gameType, roomCfgId, value);
+            return result;
+        }
+
+        result.data = value;
+        log.debug("从小池子按照百分比扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},beforeValue = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomCfgId,poolValue, value,afterPoolValue, addType);
         return result;
     }
 }

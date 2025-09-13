@@ -20,10 +20,10 @@ public class ItemCfg extends BaseCfgBean {
 
   /** 自动激活的图鉴ID */
   protected int album;
-  /** 获得后是否使用并激活装扮和图鉴 */
-  protected int autoActivate;
   /** 激活的装扮 */
   protected int avatarID;
+  /** 是否允许在背包内展示 */
+  protected int displayOrNot;
   /** 掉落ID */
   protected int dropId;
   /** 使用道具后获得道具 */
@@ -46,14 +46,14 @@ public class ItemCfg extends BaseCfgBean {
     return album;
   }
 
-  /** 返回获得后是否使用并激活装扮和图鉴 */
-  public int getAutoActivate() {
-    return autoActivate;
-  }
-
   /** 返回激活的装扮 */
   public int getAvatarID() {
     return avatarID;
+  }
+
+  /** 返回是否允许在背包内展示 */
+  public int getDisplayOrNot() {
+    return displayOrNot;
   }
 
   /** 返回掉落ID */

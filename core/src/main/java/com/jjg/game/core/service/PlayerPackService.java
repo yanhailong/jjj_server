@@ -3,10 +3,10 @@ package com.jjg.game.core.service;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.base.item.EItemUseStrategy;
 import com.jjg.game.core.base.player.IPlayerRegister;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.dao.PlayerAvatarDao;
 import com.jjg.game.core.dao.PlayerPackDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
@@ -46,8 +46,6 @@ public class PlayerPackService implements IPlayerRegister {
     private CoreLogger coreLogger;
     @Autowired
     private ClusterSystem clusterSystem;
-    @Autowired
-    private PlayerAvatarDao playerAvatarDao;
 
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
@@ -99,7 +97,7 @@ public class PlayerPackService implements IPlayerRegister {
 
         if (addGold > 0 || addDiamond > 0) {
             CommonResult<Player> goldAndDiamond =
-                    corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, null);
+                corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, null);
             if (!goldAndDiamond.success()) {
                 result.code = goldAndDiamond.code;
                 return result;
@@ -112,7 +110,7 @@ public class PlayerPackService implements IPlayerRegister {
         }
 
         String key = getLockKey(playerId);
-        List<Integer> autoActivateSkin = new ArrayList<>(itemList.size());
+        Map<EItemUseStrategy, List<Item>> autoActivateMap = new HashMap<>(itemList.size());
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         try {
             PlayerPack playerPack = getFromAllDB(playerId);
@@ -126,11 +124,11 @@ public class PlayerPackService implements IPlayerRegister {
                 if (itemCfg == null) {
                     continue;
                 }
-                playerPack.addItem(itemId, item.getItemCount(), itemCfg.getProp());
-                if (itemCfg.getAutoActivate() == 1) {
-                    if (itemCfg.getAvatarID() > 0) {
-                        autoActivateSkin.add(itemCfg.getAvatarID());
-                    }
+                EItemUseStrategy strategy = EItemUseStrategy.getItemUseStrategy(itemCfg.getType());
+                if (strategy != null) {
+                    autoActivateMap.computeIfAbsent(strategy, k -> new ArrayList<>()).add(item);
+                } else {
+                    playerPack.addItem(itemId, item.getItemCount(), itemCfg.getProp());
                 }
             }
 
@@ -142,15 +140,14 @@ public class PlayerPackService implements IPlayerRegister {
             redisLock.unlock(key);
         }
         if (result.success()) {
-            //自动激活皮肤
-            if (!autoActivateSkin.isEmpty()) {
-                if (!playerAvatarDao.addByType(playerId, autoActivateSkin)) {
-                    log.error("自动添加皮肤失败，  playerId={} cfgId={}", playerId, autoActivateSkin);
+            if (!autoActivateMap.isEmpty()) {
+                for (Map.Entry<EItemUseStrategy, List<Item>> entry : autoActivateMap.entrySet()) {
+                    entry.getKey().getUseStrategy().autoUse(playerId, entry.getValue());
                 }
             }
             Map<Integer, Long> addTempItemMap =
-                    itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getItemCount()),
-                            HashMap::putAll);
+                itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getItemCount()),
+                    HashMap::putAll);
             coreLogger.addItems(playerId, addTempItemMap, addType);
         }
         return result;
@@ -276,7 +273,7 @@ public class PlayerPackService implements IPlayerRegister {
             //扣除金币和钻石
             if (deductGoldV > 0 || deductDiamondV > 0) {
                 CommonResult<Player> removeResult =
-                        corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
+                    corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
                 if (!removeResult.success()) {
                     result.code = removeResult.code;
                     return result;

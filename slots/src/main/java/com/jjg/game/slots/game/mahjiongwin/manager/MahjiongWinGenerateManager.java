@@ -5,10 +5,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
-import com.jjg.game.slots.data.SpecialAuxiliaryAwardInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
-import com.jjg.game.slots.data.SpecialGirdInfo;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAddFreeInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAddIconInfo;
@@ -29,8 +27,9 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
     public MahjiongWinGenerateManager() {
         super(MahjiongWinResultLib.class);
     }
-    //连续中奖增加倍数
-    private Map<Integer, Integer> addTimesMap;
+
+    //连续中奖增加倍数  libType -> count -> times
+    private Map<Integer, Map<Integer, Integer>> addTimesMap;
     //连续中奖增加倍数时，最大连续中奖次数
     private int maxWinCount;
     //
@@ -52,8 +51,13 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
         //存储消除后添加的图标
         List<MahjiongWinAddIconInfo> addIconInfoList = new ArrayList<>();
-        //是否有消除
-        repairIcons(lib.getIconArr(), lib.getAwardLineInfoList(), addIconInfoList, 0);
+
+        if(lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
+            lib.getLibTypeSet().forEach(type -> {
+                //是否有消除
+                repairIcons(type, lib.getIconArr(), lib.getAwardLineInfoList(), addIconInfoList, 0);
+            });
+        }
 
         if (!addIconInfoList.isEmpty()) {
             lib.setAddIconInfos(addIconInfoList);
@@ -88,11 +92,11 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
         //检查是否有免费旋转次数，免费旋转的结果，通过specialMode生成
         Integer freeCount = specialAuxiliaryPropConfig.getTriggerCountPropInfo().getRandKey();
-        if(freeCount == null || freeCount < 1){
+        if (freeCount == null || freeCount < 1) {
             return;
         }
 
-        log.debug("增加免费游戏次数 addCount = {}",freeCount);
+        log.debug("增加免费游戏次数 addCount = {}", freeCount);
 
         int remainFreeCount = freeCount;
 
@@ -106,7 +110,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
                 }
             }
 
-            MahjiongWinResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg,specialGroupGirdID);
+            MahjiongWinResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
             int addCount = checkAddFreeCount(lib);
             lib.setAddFreeCount(addCount);
             remainFreeCount += addCount;
@@ -118,23 +122,24 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
     /**
      * 检查是否增加免费次数
+     *
      * @param lib
      * @return
      */
-    private int checkAddFreeCount(MahjiongWinResultLib lib){
-        if(this.mahjiongWinAddFreeInfo.getLibType() != MahjiongWinConstant.SpecialMode.FREE){
+    private int checkAddFreeCount(MahjiongWinResultLib lib) {
+        if (this.mahjiongWinAddFreeInfo.getLibType() != MahjiongWinConstant.SpecialMode.FREE) {
             return 0;
         }
 
         int addCount = 0;
-        for(int i=1;i<lib.getIconArr().length;i++){
+        for (int i = 1; i < lib.getIconArr().length; i++) {
             int icon = lib.getIconArr()[i];
             //是否出现了目标图标
-            if(icon != this.mahjiongWinAddFreeInfo.getTargetIcon()){
+            if (icon != this.mahjiongWinAddFreeInfo.getTargetIcon()) {
                 continue;
             }
             boolean flag = SlotsUtil.calProp(this.mahjiongWinAddFreeInfo.getProp());
-            if(flag){
+            if (flag) {
                 addCount += this.mahjiongWinAddFreeInfo.getAddFreeCount();
             }
         }
@@ -144,7 +149,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
     /**
      * 修补图标
      */
-    public void repairIcons(int[] arr, List<MahjiongWinAwardLineInfo> list, List<MahjiongWinAddIconInfo> addIconInfoList, int winCount) {
+    public void repairIcons(int libType, int[] arr, List<MahjiongWinAwardLineInfo> list, List<MahjiongWinAddIconInfo> addIconInfoList, int winCount) {
         if (list == null || list.isEmpty()) {
             return;
         }
@@ -152,7 +157,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
         winCount++;
 
         //连续中奖后重置中奖倍数
-        resetLineRewardTimes(winCount, list);
+        resetLineRewardTimes(libType, winCount, list);
 
         //拷贝数组
         int[] newArr = new int[arr.length];
@@ -194,15 +199,20 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
         addIconInfo.setAwardLineInfoList(newAwardInfoList);
         addIconInfoList.add(addIconInfo);
 
-        repairIcons(newArr, newAwardInfoList, addIconInfoList, winCount);
+        repairIcons(libType, newArr, newAwardInfoList, addIconInfoList, winCount);
     }
 
-    private void resetLineRewardTimes(int winCount, List<MahjiongWinAwardLineInfo> list) {
+    private void resetLineRewardTimes(int libType, int winCount, List<MahjiongWinAwardLineInfo> list) {
+        Map<Integer, Integer> temMap = this.addTimesMap.get(libType);
+        if (temMap == null || temMap.isEmpty()) {
+            return;
+        }
+
         Integer times;
         if (winCount > this.maxWinCount) {
-            times = this.addTimesMap.get(this.maxWinCount);
+            times = temMap.get(this.maxWinCount);
         } else {
-            times = this.addTimesMap.get(winCount);
+            times = temMap.get(winCount);
         }
 
         if (times == null) {
@@ -378,7 +388,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
     @Override
     protected void specialPlayConfig() {
-        Map<Integer, Integer> tmpAddTimesMap = new HashMap<>();
+        Map<Integer, Map<Integer, Integer>> tmpAddTimesMap = new HashMap<>();
 
         int tmpMaxWinCount = 0;
         for (Map.Entry<Integer, SpecialPlayCfg> en : GameDataManager.getSpecialPlayCfgMap().entrySet()) {
@@ -387,20 +397,29 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
                 continue;
             }
 
-            //投资小游戏
+            //连续中奖
             if (cfg.getPlayType() == MahjiongWinConstant.SpecialPlay.TYPE_CONSECUTIVE_WINS) {
-                String[] arr = cfg.getValue().split("\\|");
+                String[] arr = cfg.getValue().split(";");
                 for (String s : arr) {
-                    String[] arr1 = s.split("_");
+                    String[] arr1 = s.split(",");
+                    int libType = Integer.parseInt(arr1[0]);
 
-                    int count = Integer.parseInt(arr1[0]);
-                    tmpAddTimesMap.put(count, Integer.parseInt(arr1[1]));
+                    Map<Integer, Integer> temMap = tmpAddTimesMap.computeIfAbsent(libType, k -> new HashMap<>());
 
-                    if (count > tmpMaxWinCount) {
-                        tmpMaxWinCount = count;
+                    String[] arr2 = arr1[1].split("\\|");
+                    for (String s2 : arr2) {
+                        String[] arr3 = s2.split("_");
+                        int count = Integer.parseInt(arr3[0]);
+                        int times = Integer.parseInt(arr3[1]);
+
+                        temMap.put(count, times);
+
+                        if (count > tmpMaxWinCount) {
+                            tmpMaxWinCount = count;
+                        }
                     }
                 }
-            }else if (cfg.getPlayType() == MahjiongWinConstant.SpecialPlay.TYPE_ADD_FREE_COUNT) {  //增加免费次数
+            } else if (cfg.getPlayType() == MahjiongWinConstant.SpecialPlay.TYPE_ADD_FREE_COUNT) {  //增加免费次数
                 MahjiongWinAddFreeInfo tmpMahjiongWinAddFreeInfo = new MahjiongWinAddFreeInfo();
                 String[] arr = cfg.getValue().split("_");
 

@@ -1,6 +1,5 @@
 package com.jjg.game.hall.service;
 
-import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;

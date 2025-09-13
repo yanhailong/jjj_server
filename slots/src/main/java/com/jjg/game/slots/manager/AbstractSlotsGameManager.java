@@ -13,9 +13,11 @@ import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.slots.data.GameRunInfo;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -52,9 +54,9 @@ import java.util.stream.Collectors;
  * slots游戏管理器抽象类
  *
  * @author 11
- * @since 2025/7/1 16:42
+ * @date 2025/7/1 16:42
  */
-public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L extends SlotsResultLib> implements TimerListener, ConfigExcelChangeListener {
+public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData,L extends SlotsResultLib> implements TimerListener, ConfigExcelChangeListener {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -97,11 +99,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected Map<Integer, int[]> bigWinShowMap = null;
 
 
-    public AbstractSlotsGameManager(Class<T> playerGameDataClass, Class<L> libClass) {
+    public AbstractSlotsGameManager(Class<T> playerGameDataClass,Class<L> libClass) {
         this.playerGameDataClass = playerGameDataClass;
         this.libClass = libClass;
     }
 
+    //更新获取奖池的事件
+    private TimerEvent<String> gameUpdatePoolEvent;
     //检查离线玩家事件
     private TimerEvent<String> checkOffLineEvent;
     //总押分 roomCfgId -> [0] = 单线押分  [1] = 总押分
@@ -135,14 +139,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 添加生成结果库事件
+     * @param libTypeCountMap
+     * @return
      */
-    public boolean addGenerateLibEvent(Map<Integer, Integer> libTypeCountMap) {
+    public boolean addGenerateLibEvent(Map<Integer,Integer> libTypeCountMap) {
         if (this.generateLibEvent != null) {
             log.debug("当前有未执行的生成结果库任务，所以添加失败");
             return false;
         }
 
-        if (libTypeCountMap == null || libTypeCountMap.isEmpty()) {
+        if(libTypeCountMap == null || libTypeCountMap.isEmpty()) {
             log.debug("libTypeCountMap 为空，生成失败");
             return false;
         }
@@ -162,8 +168,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      *
      * @param libTypeCountMap 生成条数
      */
-    protected void generate(Map<Integer, Integer> libTypeCountMap) {
-        generate(libTypeCountMap, true);
+    protected void generate(Map<Integer,Integer> libTypeCountMap) {
+        generate(libTypeCountMap,true);
     }
 
     /**
@@ -171,13 +177,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      *
      * @param libTypeCountMap 生成条数
      */
-    public void generate(Map<Integer, Integer> libTypeCountMap, boolean saveToDB) {
+    public void generate(Map<Integer,Integer> libTypeCountMap,boolean saveToDB) {
         String newDocName = null;
         String redisTableName = null;
         try {
-            if (!saveToDB) {
+            if(!saveToDB){
                 boolean lock = getResultLibDao().addGenerateLock(this.gameType);
-                if (lock) {
+                if(lock){
                     log.info("生成结果库时添加锁失败，gameType = {}", this.gameType);
                     return;
                 }
@@ -245,7 +251,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                             return false;
                         }).findFirst().orElse(null);
 
-                        if (resEn == null) {
+                        if(resEn == null){
                             log.warn("未找到对应的倍数区间 libType = {}, times = {}", tmpLibType, times);
                             continue;
                         }
@@ -274,9 +280,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
                     if (libList.size() >= this.batchSaveCount) {
 //                        System.out.println("保存这里的111");
-                        if (saveToDB) {
+                        if(saveToDB){
                             saveCount += getResultLibDao().batchSave(libList, newDocName);
-                        } else {
+                        }else {
                             saveCount += libList.size();
                         }
 
@@ -285,32 +291,32 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 }
             }
 
-            if (saveToDB && !libList.isEmpty()) {
+            if(saveToDB && !libList.isEmpty()) {
 //                System.out.println("保存这里的222 size = " + libList.size());
                 saveCount += getResultLibDao().batchSave(libList, newDocName);
             }
 
-            if (saveToDB) {
+            if(saveToDB){
                 log.debug("生成结束，开始转移到redis, newDocName = {}", newDocName);
                 //加载到redis
                 redisTableName = getResultLibDao().moveToRedis(newDocName, getGenerateManager().getSpecialResultLibCacheData().getResultLibSectionMap());
 
-                log.info("生成结果库结束，实际循环次数 = {},成功保存到数据库 {} 条,mongoName = {},redisName = {}", currentForCount, saveCount, newDocName, redisTableName);
+                log.info("生成结果库结束，实际循环次数 = {},成功保存到数据库 {} 条,mongoName = {},redisName = {}", currentForCount,saveCount, newDocName, redisTableName);
 
                 this.clearAllLibEvent = new TimerEvent<>(this, 1, "clearLibEvent").withTimeUnit(TimeUnit.MINUTES);
                 this.timerCenter.add(this.clearAllLibEvent);
 
                 //通知其他节点，结果库变更
                 noticeNodeLibChange(SlotsConst.LibChangeType.LIB_CHANGE, Collections.EMPTY_LIST);
-            } else {
-                log.debug("生成结束，实际循环次数 = {},总计条数 = {}", currentForCount, saveCount);
+            }else {
+                log.debug("生成结束，实际循环次数 = {},总计条数 = {}", currentForCount,saveCount);
             }
         } catch (Exception e) {
-            if (StringUtils.isNotEmpty(newDocName)) {
+            if(StringUtils.isNotEmpty(newDocName)) {
                 getResultLibDao().clearMongoLib(newDocName);
             }
-            if (StringUtils.isNotEmpty(redisTableName)) {
-                getResultLibDao().clearRedisLib(redisTableName);
+            if(StringUtils.isNotEmpty(redisTableName)) {
+                getResultLibDao().clearRedisLib(redisTableName,this.gameType);
             }
             getResultLibDao().removeGenerateLock(this.gameType);
             log.error("", e);
@@ -323,18 +329,17 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 普通流程获取结果库
-     *
      * @param playerGameData
      * @param betValue
      * @return
      */
-    protected CommonResult<L> normalGetLib(T playerGameData, long betValue) {
+    protected CommonResult<L> normalGetLib(T playerGameData,long betValue){
         CommonResult<L> result = new CommonResult<>(Code.SUCCESS);
         log.debug("开始正常流程 playerId = {},betValue = {}", playerGameData.playerId(), betValue);
         //获取倍场配置
         BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(playerGameData.getRoomCfgId());
         if (baseRoomCfg == null) {
-            log.warn("获取倍场配置失败 playerId = {},gameType = {},roomCfgId = {},betValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), betValue);
+            log.warn("获取倍场配置失败 playerId = {},gameType = {},roomCfgId = {},betValue = {}", playerGameData.playerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(),betValue);
             result.code = Code.NOT_FOUND;
             return result;
         }
@@ -368,7 +373,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             log.debug("获取到测试数据 playerId = {},libType = {}", playerGameData.playerId(), libType);
         }
 
-        if (libType < 1) {
+        if(libType < 1) {
             //获取 specialResultLib 中的type
             CommonResult<Integer> resultLibTypeResult = getResultLibType(playerGameData.getGameType(), libCfgResult.data.getModelId());
             if (!resultLibTypeResult.success()) {
@@ -390,7 +395,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
 
             //根据倍数区间从结果库里面随机获取一条
-            resultLib = (L) getResultLibDao().getLibBySectionIndex(libType, resultLibSectionResult.data);
+            resultLib = (L)getResultLibDao().getLibBySectionIndex(libType, resultLibSectionResult.data);
             if (resultLib == null) {
                 log.debug("获取结果库失败 gameType = {},modelId = {},libType = {},sectionIndex = {},retry = {}", this.gameType, libCfgResult.data.getModelId(), libType, resultLibSectionResult.data, i);
                 continue;
@@ -403,7 +408,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         //如果前面没有获取到lib，则获取一个无奖励的结果
         if (resultLib == null) {
             sectionIndex = this.defaultRewardSectionIndex;
-            resultLib = (L) getResultLibDao().getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_NORMAL, this.defaultRewardSectionIndex);
+            resultLib = (L)getResultLibDao().getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_NORMAL, this.defaultRewardSectionIndex);
             log.debug("前面获取结果库失败，所以找一个不中奖的结果返回 gameType = {},libType = {}", this.gameType, libType);
         }
 
@@ -435,7 +440,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 免费模式获取结果库
-     *
      * @param playerGameData
      * @return
      */
@@ -443,8 +447,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         CommonResult<L> result = new CommonResult<>(Code.SUCCESS);
         log.debug("开始获取免费结果库 playerId = {}", playerGameData.playerId());
 
-        L freeLib = (L) playerGameData.getFreeLib();
-        if (freeLib == null) {
+        L freeLib = (L)playerGameData.getFreeLib();
+        if(freeLib == null) {
             for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
                 //获取一个倍数区间
                 CommonResult<Integer> sectionResult = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE);
@@ -452,7 +456,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     continue;
                 }
                 //获取结果库
-                freeLib = (L) getResultLibDao().getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE, sectionResult.data);
+                freeLib = (L)getResultLibDao().getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE, sectionResult.data);
                 if (freeLib == null) {
                     continue;
                 }
@@ -477,7 +481,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         //找到结果库中免费游戏的结果
         SpecialAuxiliaryInfo specialAuxiliaryInfo = null;
         for (Object obj : freeLib.getSpecialAuxiliaryInfoList()) {
-            SpecialAuxiliaryInfo tmpInfo = (SpecialAuxiliaryInfo) obj;
+            SpecialAuxiliaryInfo tmpInfo = (SpecialAuxiliaryInfo)obj;
             SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(tmpInfo.getCfgId());
             if (specialAuxiliaryCfg.getType() != DollarExpressConstant.SpecialAuxiliary.TYPE_ALL_BOARD_FREE) {
                 continue;
@@ -498,7 +502,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         int size = specialAuxiliaryInfo.getFreeGames().size();
 
         JSONObject jsonObject = specialAuxiliaryInfo.getFreeGames().get(size - playerGameData.getRemainFreeCount().get());
-        L freeGame = JSON.parseObject(jsonObject.toJSONString(), this.libClass);
+        L freeGame = JSON.parseObject(jsonObject.toJSONString(),this.libClass);
 //        DollarExpressResultLib freeGame = (DollarExpressResultLib) specialAuxiliaryInfo.getAwardInfos().get(size - playerGameData.getRemainFreeCount().get());
 
         if (freeGame == null) {
@@ -509,6 +513,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
 
+
         //缓存获取到的freeLib
         playerGameData.setFreeLib(freeLib);
         result.data = freeGame;
@@ -517,9 +522,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 给池子加钱
+     *
+     * @param gameData
+     * @param betValue
+     * @return
      */
     protected CommonResult<Player> goldToPool(T gameData, long betValue, BaseRoomCfg baseRoomCfg) {
-        CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, true, "SLOTS_BET");
+        CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue,true, "SLOTS_BET");
         if (!result.success()) {
             log.debug("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.playerId(), betValue, result.code);
             return result;
@@ -553,17 +562,28 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         return result;
     }
 
+    /**
+     * 添加检查离线的定时任务
+     */
     protected void addCheckOffLineEvent() {
         this.checkOffLineEvent = new TimerEvent<>(this, "offLineEvent", 1).withTimeUnit(TimeUnit.MINUTES);
         timerCenter.add(this.checkOffLineEvent);
     }
 
     /**
+     * 添加检查离线的定时任务
+     */
+    protected void addUpdatePoolEvent() {
+        this.gameUpdatePoolEvent = new TimerEvent<>(this, "gameUpdatePoolEvent", 20).withTimeUnit(TimeUnit.SECONDS);
+        timerCenter.add(this.gameUpdatePoolEvent);
+    }
+
+    /**
      * 关闭
      */
     public void shutdown() {
-        this.gameDataMap.forEach((k, v) -> {
-            v.forEach((k1, v1) -> {
+        this.gameDataMap.forEach((k,v) -> {
+            v.forEach((k1,v1) -> {
                 offlineSaveGameDataDto(v1);
             });
         });
@@ -602,6 +622,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     /**
      * 根据模式id获取libCfg
+     *
+     * @param gameType
+     * @param modelId
+     * @return
      */
     protected SpecialResultLibCfg getLibCfgByModelId(int gameType, int modelId) {
         for (Map.Entry<Integer, SpecialResultLibCfg> en : GameDataManager.getSpecialResultLibCfgMap().entrySet()) {
@@ -616,6 +640,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     /**
      * 获取libCfg，如果第一次玩这个游戏(按gameType计算)，那么使用默认的水池
      * 否则要计算水池偏差
+     *
+     * @param gameData
+     * @return
      */
     public CommonResult<SpecialResultLibCfg> getLibCfg(T gameData, long poolInit) {
         CommonResult<SpecialResultLibCfg> result = new CommonResult<>(Code.SUCCESS);
@@ -661,10 +688,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     public T getPlayerGameData(PlayerController playerController) {
-        return getPlayerGameData(playerController.playerId(), playerController.getPlayer().getRoomCfgId());
+        return getPlayerGameData(playerController.playerId(),playerController.getPlayer().getRoomCfgId());
     }
 
-    public T getPlayerGameData(long playerId, int roomCfgId) {
+    public T getPlayerGameData(long playerId,int roomCfgId) {
         Map<Long, T> temMap = this.gameDataMap.get(roomCfgId);
         if (temMap == null || temMap.isEmpty()) {
             return null;
@@ -787,6 +814,63 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
+     * 计算是否奖池中奖
+     * @param playerGameData
+     * @param poolId
+     * @return
+     * @throws Exception
+     */
+    protected PoolCfg randWinPool(T playerGameData,int poolId) {
+        //获取玩家累计贡献金额
+        long contribt = playerGameData.getAllContribtPoolGold();
+        if (contribt < 1) {
+            return null;
+        }
+        log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},poolId = {}", playerGameData.playerId(), contribt, poolId);
+
+        //真奖池
+        Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
+        if (smallPoolNumber == null) {
+            log.debug("获取小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
+            return null;
+        }
+        //假奖池
+        Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
+        if (fakeSmallPoolNumber == null) {
+            log.debug("获取(假)小池子金额为空 playerId = {},roomCfgId = {},poolId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), poolId);
+            return null;
+        }
+
+        //当真奖池 >= 假奖池时，才允许中奖
+        long smallPool = smallPoolNumber.longValue();
+        long fakeSmallPool = fakeSmallPoolNumber.longValue();
+
+        if (smallPool < fakeSmallPool) {
+            log.debug("真奖池小于假奖池，不允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
+            return null;
+        }
+
+        log.debug("真奖池大于假奖池，允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
+        BigDecimal pool = BigDecimal.valueOf(smallPoolNumber.longValue());
+
+
+        PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+        if (poolCfg == null) {
+            log.debug("获取的池子配置为空 poolId = {}", poolId);
+            return null;
+        }
+        //中奖概率,这里保留了8位，所以最后可以取int值
+        int propV = BigDecimal.valueOf(contribt).divide(pool, 8, BigDecimal.ROUND_HALF_UP).divide(BigDecimal.valueOf(poolCfg.getPoolProp()), 8, BigDecimal.ROUND_HALF_UP).multiply(oneHundredMillionBigDecimal).intValue();
+        int rand = RandomUtils.randomInt(oneHundredMillion);
+//            rand = 1;
+        if (rand >= propV) {
+            log.debug("随机概率，未中奖 rand = {},propV = {}", rand, propV);
+            return null;
+        }
+        return poolCfg;
+    }
+
+    /**
      * 计算奖池金额
      *
      * @param stake
@@ -802,7 +886,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      *
      * @param stake
      * @param growthRate
-     * @param delayTime  延迟时间
+     * @param delayTime 延迟时间
      * @return
      */
     public long calPoolValue(long stake, List<Integer> growthRate, int initTimes, int maxTimes, int delayTime) {
@@ -843,13 +927,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     public void onTimer(TimerEvent e) {
         if (this.checkOffLineEvent == e) {
             checkOffLine();
-        } else if (this.clearAllLibEvent == e) {
+        }else if (this.clearAllLibEvent == e) {
             getResultLibDao().clearMongoLib();
-            getResultLibDao().clearRedisLib();
+            getResultLibDao().clearRedisLib(this.gameType);
             this.clearAllLibEvent = null;
             getResultLibDao().removeGenerateLock(this.gameType);
         } else if (this.clearRedisLibEvent == e) {
-            getResultLibDao().clearRedisLib();
+            getResultLibDao().clearRedisLib(this.gameType);
             this.clearRedisLibEvent = null;
             getResultLibDao().removeGenerateLock(this.gameType);
         } else if (this.generateLibEvent == e) {
@@ -1020,6 +1104,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
 
+
     public boolean exit(PlayerController playerController) {
         return true;
     }
@@ -1134,7 +1219,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         try {
             playerGameData.addTestIconsData(testLibData);
-            log.info("添加测试libType成功 playerId = {},libType = {}", playerController.playerId(), testLibData.getLibType());
+            log.info("添加测试libType成功 playerId = {},libType = {}", playerController.playerId(),testLibData.getLibType());
         } catch (Exception e) {
             log.error("", e);
         }

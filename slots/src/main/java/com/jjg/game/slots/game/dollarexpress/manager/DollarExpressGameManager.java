@@ -955,66 +955,25 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         for (TrainInfo trainInfo : gameRunInfo.getTrainList()) {
-            //获取玩家累计贡献金额
-            long contribt = playerGameData.getAllContribtPoolGold();
-            if (contribt < 1) {
-                break;
-            }
-            log.debug("玩家累计贡献金额 playerId = {},contribtGold = {},trainCoinId = {}", playerGameData.playerId(), contribt, trainInfo.type);
-
-            //真奖池
-            Number smallPoolNumber = slotsPoolDao.getSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
-            if (smallPoolNumber == null) {
-                log.debug("获取小池子金额为空 playerId = {},roomCfgId = {},trainCoinId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), trainInfo.type);
-                break;
-            }
-            //假奖池
-            Number fakeSmallPoolNumber = slotsPoolDao.getFakeSmallPoolByRoomCfgId(playerGameData.getGameType(), playerGameData.getRoomCfgId());
-            if (fakeSmallPoolNumber == null) {
-                log.debug("获取(假)小池子金额为空 playerId = {},roomCfgId = {},trainCoinId = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), trainInfo.type);
-                break;
-            }
-
-            //当真奖池 >= 假奖池时，才允许中奖
-            long smallPool = smallPoolNumber.longValue();
-            long fakeSmallPool = fakeSmallPoolNumber.longValue();
-
-            if (smallPool < fakeSmallPool) {
-                log.debug("真奖池小于假奖池，不允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
-                break;
-            }
-
-            log.debug("真奖池大于假奖池，允许中奖 playerId = {},roomCfgId = {},smallPool = {},fakeSmallPoolNumber = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), smallPool, fakeSmallPool);
-            BigDecimal pool = BigDecimal.valueOf(smallPoolNumber.longValue());
-
             int poolId = getPoolIdByTrain(trainInfo.type);
-            if (poolId < 1) {
+             if (poolId < 1) {
                 log.debug("获取的池子id小于1 trainCoinId = {},poolId = {}", trainInfo.type, poolId);
                 continue;
             }
-            PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
-            if (poolCfg == null) {
-                log.debug("获取的池子配置为空 trainCoinId = {},poolId = {}", trainInfo.type, poolId);
-                continue;
-            }
-            //中奖概率,这里保留了8位，所以最后可以取int值
-            int propV = BigDecimal.valueOf(contribt).divide(pool, 8, BigDecimal.ROUND_HALF_UP).divide(BigDecimal.valueOf(poolCfg.getPoolProp()), 8, BigDecimal.ROUND_HALF_UP).multiply(oneHundredMillionBigDecimal).intValue();
-            int rand = RandomUtils.randomInt(oneHundredMillion);
-//            rand = 1;
-            if (rand >= propV) {
-                log.debug("随机概率，未中奖 rand = {},propV = {}", rand, propV);
-                continue;
-            }
+            PoolCfg poolCfg = randWinPool(playerGameData,poolId);
+             if(poolCfg == null){
+                 continue;
+             }
             //计算奖池金额
             //车厢节数+1，是因为要加上最后一个奖池车厢
             //总的延迟时间
             int allDelayTime = ((trainInfo.goldList.size() + 1) * poolCfg.getDelayTime()) / 1000;
             long addGold = calPoolValue(playerGameData.getOneBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), allDelayTime);
 
-            log.debug("概率计算可以中小奖池 playerId = {},rand = {},propV = {},addGold = {}", playerGameData.playerId(), rand, propV, addGold);
+            log.debug("概率计算可以中小奖池 playerId = {},addGold = {}", playerGameData.playerId(), addGold);
 
             //给玩家加钱
-            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_TRAIN_" + pool);
+            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_TRAIN_" + poolId);
             if (!result.success()) {
                 log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
                 break;

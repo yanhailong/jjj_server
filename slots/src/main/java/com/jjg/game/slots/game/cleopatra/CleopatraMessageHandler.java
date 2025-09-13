@@ -22,10 +22,15 @@ import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinGameManager;
 import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinSendMessageManager;
 import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinEnterGame;
 import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinStartGame;
+import com.jjg.game.slots.handler.SlotsMessageHandler;
+import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author 11
@@ -33,9 +38,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @MessageType(MessageConst.MessageTypeDef.CLEOPATRA)
-public class CleopatraMessageHandler implements GmListener {
-    private Logger log = LoggerFactory.getLogger(getClass());
-
+public class CleopatraMessageHandler extends SlotsMessageHandler {
     @Autowired
     private CleopatraGameManager gameManager;
     @Autowired
@@ -92,7 +95,16 @@ public class CleopatraMessageHandler implements GmListener {
     }
 
     @Override
-    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
-        return null;
+    protected AbstractSlotsGameManager getGameManager() {
+        return this.gameManager;
+    }
+
+    @Override
+    protected Map<Integer, Integer> getGenerateMap(int count) {
+        Map<Integer, Integer> countMap = new HashMap<>();
+        for (int i = 1; i <= 1; i++) {
+            countMap.put(i, count);
+        }
+        return countMap;
     }
 }

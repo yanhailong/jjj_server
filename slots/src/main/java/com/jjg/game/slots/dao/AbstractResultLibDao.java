@@ -235,14 +235,14 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
     /**
      * 清除redis结果库
      */
-    public void clearRedisLib(){
-        clearRedisLib(this.currentRedisLibName);
+    public void clearRedisLib(int gameType){
+        clearRedisLib(this.currentRedisLibName,gameType);
     }
 
     /**
      * 清除redis结果库
      */
-    public void clearRedisLib(String redisLibName){
+    public void clearRedisLib(String redisLibName,int gameType){
         if (redisLibName == null || redisLibName.isEmpty()) {
             log.debug("从redis删除结果库失败，redisLibName 为空");
             return;
@@ -252,10 +252,11 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
                 ? this.slotsResultLib2
                 : this.slotsResultLib1;
 
+        String gameTableName = removeName + ":" + gameType;
         RKeys keys = redisson.getKeys();
         long start = System.currentTimeMillis();
-        long deleted = keys.deleteByPattern(removeName + "*");
-        log.debug("从redis移除结果库 removeName = {}, 删除Key数量 = {},耗时 = {} ms", removeName, deleted,System.currentTimeMillis() - start);
+        long deleted = keys.deleteByPattern(gameTableName + "*");
+        log.debug("从redis移除结果库 removeName = {}, 删除Key数量 = {},耗时 = {} ms", gameTableName, deleted,System.currentTimeMillis() - start);
     }
 
     public T getLibBySectionIndex(int libType, int sectionIndex) {
