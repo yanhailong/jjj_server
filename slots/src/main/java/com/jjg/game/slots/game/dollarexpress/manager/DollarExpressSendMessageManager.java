@@ -99,7 +99,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             //总计获得金币
             res.allWinGold = gameRunInfo.getAllWinGold();
             //当前状态
-            res.status = gameRunInfo.getData().getStatus();
+            res.status = gameRunInfo.getStatus();
             //图标信息
             res.iconList = IntStream.range(1, 21).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
             //中奖线信息

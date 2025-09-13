@@ -21,10 +21,10 @@ import com.jjg.game.slots.game.dollarexpress.pb.DollarsInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ResultLineInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.TrainInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -56,6 +56,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
     public DollarExpressGameManager() {
         super(DollarExpressPlayerGameData.class,DollarExpressResultLib.class);
+        this.log = LoggerFactory.getLogger(getClass());
     }
 
     @Override
@@ -110,6 +111,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @return
      */
     public DollarExpressGameRunInfo playerStartGame(PlayerController playerController, long betValue) {
+        System.out.println("333");
+
+        System.out.println(JSON.toJSONString(this.gameDataMap));
         //获取玩家游戏数据
         DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
@@ -518,6 +522,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
 
         gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+        gameRunInfo.setStatus(playerGameData.getStatus());
         return gameRunInfo;
     }
 
@@ -553,6 +558,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
         log.debug("获取到拉火车的结果库 playerId = {},libId = {}", playerGameData.playerId(), trainLib.getId());
 
+        gameRunInfo.setStatus(playerGameData.getStatus());
         playerGameData.setStatus(DollarExpressConstant.Status.NORMAL);
 
         gameRunInfo.setIconArr(trainLib.getIconArr());
@@ -601,6 +607,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
         log.debug("成功获取黄金列车结果库 playerId = {},libId = {}", playerGameData.playerId(), goldTrainLib.getId());
 
+        gameRunInfo.setStatus(playerGameData.getStatus());
         playerGameData.setStatus(DollarExpressConstant.Status.NORMAL);
         gameRunInfo.setIconArr(goldTrainLib.getIconArr());
 
@@ -626,6 +633,8 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
         DollarExpressResultLib freeGame = libResult.data;
 
+        gameRunInfo.setStatus(playerGameData.getStatus());
+
         int afterCount = playerGameData.getRemainFreeCount().addAndGet(-1);
         if (afterCount < 1) {
             playerGameData.setStatus(DollarExpressConstant.Status.NORMAL);
@@ -641,6 +650,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(freeGame.getAwardLineInfoList(), playerGameData.getOneBetScore()));
         gameRunInfo.setBigPoolTimes(freeGame.getTimes());
         gameRunInfo.setRemainFreeCount(afterCount);
+
         return gameRunInfo;
     }
 

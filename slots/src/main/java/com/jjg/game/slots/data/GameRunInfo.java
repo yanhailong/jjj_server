@@ -9,6 +9,8 @@ import com.jjg.game.core.constant.Code;
 public class GameRunInfo<T extends SlotsPlayerGameData> {
     protected int code;
     protected long playerId;
+    //当前所处的状态
+    protected int status;
     //是否为系统自动
     protected boolean auto;
     //标准池子中奖倍数
@@ -59,6 +61,14 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
 
     public void setPlayerId(long playerId) {
         this.playerId = playerId;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
     }
 
     public boolean isAuto() {

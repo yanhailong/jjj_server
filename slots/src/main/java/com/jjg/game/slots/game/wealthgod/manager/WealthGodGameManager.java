@@ -26,6 +26,7 @@ import com.jjg.game.slots.game.wealthgod.pb.WealthGodIconChangeInfo;
 import com.jjg.game.slots.game.wealthgod.pb.WealthGodResultLineInfo;
 import com.jjg.game.slots.game.wealthgod.pb.WealthGodSpinInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -50,6 +51,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
 
     public WealthGodGameManager() {
         super(WealthGodPlayerGameData.class, WealthGodResultLib.class);
+        this.log = LoggerFactory.getLogger(getClass());
     }
 
     @Override

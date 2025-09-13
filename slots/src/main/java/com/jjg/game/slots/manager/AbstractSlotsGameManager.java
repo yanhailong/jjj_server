@@ -38,7 +38,6 @@ import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.service.SlotsPlayerService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -57,7 +56,7 @@ import java.util.stream.Collectors;
  * @date 2025/7/1 16:42
  */
 public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L extends SlotsResultLib> implements TimerListener, ConfigExcelChangeListener {
-    protected Logger log = LoggerFactory.getLogger(getClass());
+    protected Logger log;
 
     @Autowired
     protected SlotsPlayerService slotsPlayerService;
@@ -1214,11 +1213,15 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param testLibData
      */
     public void addTestIconData(PlayerController playerController, TestLibData testLibData) {
+        System.out.println("111");
+
+        System.out.println(JSON.toJSONString(this.gameDataMap));
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
             return;
         }
 
+        System.out.println("2222");
         try {
             playerGameData.addTestIconsData(testLibData);
             log.info("添加测试libType成功 playerId = {},libType = {}", playerController.playerId(), testLibData.getLibType());
