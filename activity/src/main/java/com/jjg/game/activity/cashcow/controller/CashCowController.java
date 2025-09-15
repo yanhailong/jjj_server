@@ -170,7 +170,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
         if (baseCfgBean instanceof CashcowCfg cfg) {
-            if (cfg.getType() != 4) {
+            if (cfg.getType() == 4) {
                 res.code = Code.PARAM_ERROR;
                 return res;
             }
