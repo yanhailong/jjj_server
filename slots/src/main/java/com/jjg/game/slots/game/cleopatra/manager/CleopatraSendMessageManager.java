@@ -21,6 +21,7 @@ import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinResultLib;
 import com.jjg.game.slots.game.mahjiongwin.pb.ResMahjiongwinEnterGame;
 import com.jjg.game.slots.game.mahjiongwin.pb.ResMahjiongwinStartGame;
+import com.jjg.game.slots.logger.SlotsLogger;
 import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -42,7 +43,8 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
     private CleopatraGameManager gameManager;
     @Autowired
     private CleopatraGenerateManager generateManager;
-
+    @Autowired
+    private SlotsLogger slotsLogger;
 
     /**
      * 发送游戏配置
@@ -126,6 +128,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回押注结果", false);
+        slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo,res);
     }
 
     /**

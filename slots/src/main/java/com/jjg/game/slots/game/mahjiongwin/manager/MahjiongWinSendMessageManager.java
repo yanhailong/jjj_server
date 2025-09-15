@@ -13,6 +13,7 @@ import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinAwardLineInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinResultLib;
 import com.jjg.game.slots.game.mahjiongwin.pb.*;
+import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +29,8 @@ import java.util.stream.IntStream;
 public class MahjiongWinSendMessageManager extends BaseSendMessageManager {
     @Autowired
     private MahjiongWinGameManager gameManager;
+    @Autowired
+    private SlotsLogger slotsLogger;
 
     /**
      * 发送游戏配置
@@ -101,6 +104,7 @@ public class MahjiongWinSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回押注结果", false);
+        slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo,res);
     }
 
     /**

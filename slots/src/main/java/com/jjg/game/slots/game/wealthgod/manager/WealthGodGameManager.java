@@ -111,10 +111,11 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
         try {
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
-            gameRunInfo.setAfterGold(player.getGold());
+            gameRunInfo.setBeforeGold(player.getGold());
             if (playerController != null) {
                 playerController.setPlayer(player);
             }
+
             //房间配置id
             int roomCfgId = player.getRoomCfgId();
             //旋转一次
@@ -145,13 +146,18 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             }
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
+            //玩家当前金币
+            player = slotsPlayerService.get(playerGameData.playerId());
+            gameRunInfo.setAfterGold(player.getGold());
+            if (playerController != null) {
+                playerController.setPlayer(player);
+            }
+
             //添加大奖展示id
             int times = (int) (gameRunInfo.getAllWinGold() / betValue);
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
-            //发送日志
-            logger.gameResult(player, gameRunInfo);
             return gameRunInfo;
         } catch (Exception e) {
             log.error("", e);

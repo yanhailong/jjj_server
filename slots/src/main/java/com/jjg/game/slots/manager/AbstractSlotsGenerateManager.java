@@ -182,7 +182,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
             }
 
             //判断中奖，返回
-            return checkAward(arr, lib);
+            return checkFreeAward(arr, lib);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -228,6 +228,18 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         //计算倍数
         calTimes(lib);
         return lib;
+    }
+
+    /**
+     * 检查免费局奖励
+     *
+     * @param arr
+     * @param lib
+     * @return
+     * @throws Exception
+     */
+    public T checkFreeAward(int[] arr, T lib) throws Exception {
+        return checkAward(arr, lib);
     }
 
     /**
@@ -481,23 +493,92 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
      * @param arr
      */
     public List<A> fullLine(int[] arr) {
-        //获取全局分散图案的配置
-        Map<Integer, BaseElementRewardCfg> fullRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_FULL);
-        if (fullRewardCfgMap == null || fullRewardCfgMap.isEmpty()) {
+        //获取满线图案_数量的配置
+        Map<Integer, BaseElementRewardCfg> fullLineCountCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_FULL);
+        if (fullLineCountCfgMap == null || fullLineCountCfgMap.isEmpty()) {
             return null;
         }
+
+        List<A> awardInfoList = new ArrayList<>();
+
         log.debug("检查满线图案");
 
-        List<A> list = new ArrayList<>();
-        for (Map.Entry<Integer, BaseElementRewardCfg> en : fullRewardCfgMap.entrySet()) {
-            BaseElementRewardCfg cfg = en.getValue();
-            Map<Integer, Set<Integer>> sameMap = fullColSame(arr, cfg);
-            if (!sameMap.isEmpty()) {
-                list.add(addFullLineAwardInfo(sameMap, cfg));
-                log.debug("满线中奖 sameMap = {},times = {}", sameMap, cfg.getBet());
+        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+
+        //wild图标
+        Set<Integer> wildIconSet = this.iconsMap.get(SlotsConst.BaseElement.TYPE_WILD);
+        //普通图标
+        Set<Integer> normalIconSet = this.iconsMap.get(SlotsConst.BaseElement.TYPE_NORMAL);
+
+        //icon -> count
+        Map<Integer, Set<Integer>> firstColIcons = new HashMap<>();
+
+        //获取第一列出现的图标
+        for (int i = 1; i <= baseInitCfg.getRows(); i++) {
+            int icon = arr[i];
+            firstColIcons.computeIfAbsent(icon, k -> new HashSet<>()).add(i);
+        }
+
+        //然后从第二列开始检查，是否出现了第一列的图标
+        for (Map.Entry<Integer, Set<Integer>> en : firstColIcons.entrySet()) {
+            //第一列的图标和数量
+            int icon = en.getKey();
+            Set<Integer> iconIndexSet = en.getValue();
+
+            boolean firstNormal = normalIconSet.contains(icon);
+            Set<Integer> sameIconIndexSet = new HashSet<>();
+
+            //找到baseElementReward表中关于该图标的配置
+            for (Map.Entry<Integer, BaseElementRewardCfg> rewardCfgEn : fullLineCountCfgMap.entrySet()) {
+                int maxCol = 1;
+
+                BaseElementRewardCfg cfg = rewardCfgEn.getValue();
+                //配置表中的图标是否包含该图标
+                if (!cfg.getElementId().contains(icon)) {
+                    continue;
+                }
+
+                //从第2列开始，检查每一个图标
+                for (int col = 2; col <= baseInitCfg.getCols(); col++) {
+                    int beginIndex = (col - 1) * baseInitCfg.getRows() + 1;
+
+                    boolean flag = false;
+
+                    for (int i = 0; i < baseInitCfg.getRows(); i++) {
+                        int index = beginIndex + i;
+                        int tmpIcon = arr[index];
+
+                        boolean wild = false;
+                        if (wildIconSet != null && wildIconSet.contains(tmpIcon)) {
+                            wild = true;
+                        }
+
+                        if (wild && firstNormal) {
+                            flag = true;
+                            sameIconIndexSet.add(index);
+                        } else if (cfg.getElementId().contains(tmpIcon)) {
+                            flag = true;
+                            sameIconIndexSet.add(index);
+                        }
+                    }
+
+                    //这一列遍历结束后，检查图标个数是否增长
+                    if (!flag) { //如果没有增长，表示这一列中没有出现第一列的图标，所以中断
+                        break;
+                    }
+                    maxCol = col;
+                }
+
+                if (maxCol == cfg.getRewardNum()) {
+                    sameIconIndexSet.addAll(iconIndexSet);
+
+                    A rewardInfo = addFullLineAwardInfo(sameIconIndexSet, cfg);
+                    awardInfoList.add(rewardInfo);
+                }
             }
         }
-        return list;
+
+        return awardInfoList;
     }
 
     /**
@@ -718,7 +799,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         return null;
     }
 
-    protected A addFullLineAwardInfo(Map<Integer, Set<Integer>> map, BaseElementRewardCfg cfg) {
+    protected A addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
         return null;
     }
 
@@ -916,6 +997,10 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
         List<Integer> iconsList = cfg.getElementId();
 
+        log.debug("iconList = {}", iconsList);
+
+
+
         // 记录所有连续列段
         List<List<Integer>> allSequences = new ArrayList<>();
         List<Integer> currentSequence = new ArrayList<>();
@@ -932,6 +1017,7 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
                 //检查是否出现了配置中的图标
                 int iconId = arr[index];
                 if ((wildIconSet != null && wildIconSet.contains(iconId)) || iconsList.contains(iconId)) {
+                    log.debug("index = {},icon = {}", index, iconId);
                     sameMap.computeIfAbsent(colIndex, k -> new HashSet<>()).add(index);
                     hasValidElement = true;
                 }

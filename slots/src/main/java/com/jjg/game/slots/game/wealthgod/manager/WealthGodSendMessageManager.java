@@ -10,6 +10,8 @@ import com.jjg.game.slots.game.wealthgod.data.WealthGodGameRunInfo;
 import com.jjg.game.slots.game.wealthgod.pb.res.ResWealthGodConfigInfo;
 import com.jjg.game.slots.game.wealthgod.pb.res.ResWealthGodPoolValue;
 import com.jjg.game.slots.game.wealthgod.pb.res.ResWealthGodStartGame;
+import com.jjg.game.slots.logger.SlotsLogger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -22,6 +24,8 @@ import java.util.List;
 public class WealthGodSendMessageManager extends BaseSendMessageManager {
 
     private final WealthGodGameManager gameManager;
+    @Autowired
+    private SlotsLogger slotsLogger;
 
     public WealthGodSendMessageManager(WealthGodGameManager gameManager) {
         this.gameManager = gameManager;
@@ -74,6 +78,7 @@ public class WealthGodSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回押注结果", false);
+        slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo,res);
     }
 
     /**

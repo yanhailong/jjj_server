@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.slots.data.SlotsResultLib;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.data.SpecialAuxiliaryPropConfig;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
@@ -52,10 +53,14 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
         //存储消除后添加的图标
         List<MahjiongWinAddIconInfo> addIconInfoList = new ArrayList<>();
 
+        //拷贝数组
+        int[] newArr = new int[arr.length];
+        System.arraycopy(arr, 0, newArr, 0, arr.length);
+
         if(lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
             lib.getLibTypeSet().forEach(type -> {
                 //是否有消除
-                repairIcons(type, lib.getIconArr(), lib.getAwardLineInfoList(), addIconInfoList, 0);
+                repairIcons(type, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
             });
         }
 
@@ -68,18 +73,41 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
     }
 
     @Override
-    protected MahjiongWinAwardLineInfo addFullLineAwardInfo(Map<Integer, Set<Integer>> map, BaseElementRewardCfg cfg) {
+    public MahjiongWinResultLib checkFreeAward(int[] arr, MahjiongWinResultLib lib) throws Exception {
+        lib.setGameType(this.gameType);
+        lib.setIconArr(arr);
+
+        //检查满线图案
+        List<MahjiongWinAwardLineInfo> fullLineInfoList = fullLine(lib);
+        lib.addAllAwardLineInfo(fullLineInfoList);
+
+        //检查全局分散图案
+        List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
+        lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
+
+        //存储消除后添加的图标
+        List<MahjiongWinAddIconInfo> addIconInfoList = new ArrayList<>();
+
+        //拷贝数组
+        int[] newArr = new int[arr.length];
+        System.arraycopy(arr, 0, newArr, 0, arr.length);
+
+        //是否有消除
+        repairIcons(MahjiongWinConstant.SpecialMode.FREE, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
+
+        if (!addIconInfoList.isEmpty()) {
+            lib.setAddIconInfos(addIconInfoList);
+        }
+
+        calTimes(lib);
+        return lib;
+    }
+
+    @Override
+    protected MahjiongWinAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg) {
         MahjiongWinAwardLineInfo info = new MahjiongWinAwardLineInfo();
         info.setBaseTimes(cfg.getBet());
-
-        if (!map.isEmpty()) {
-            Set<Integer> set = new HashSet<>();
-            map.forEach((key, value) -> {
-                set.addAll(value);
-            });
-
-            info.setSameIconSet(set);
-        }
+        info.setSameIconSet(sameIconIndexSet);
         return info;
     }
 
@@ -159,10 +187,6 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
         //连续中奖后重置中奖倍数
         resetLineRewardTimes(libType, winCount, list);
 
-        //拷贝数组
-        int[] newArr = new int[arr.length];
-        System.arraycopy(arr, 0, newArr, 0, arr.length);
-
         MahjiongWinAddIconInfo addIconInfo = new MahjiongWinAddIconInfo();
 
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
@@ -199,7 +223,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
         addIconInfo.setAwardLineInfoList(newAwardInfoList);
         addIconInfoList.add(addIconInfo);
 
-        repairIcons(libType, newArr, newAwardInfoList, addIconInfoList, winCount);
+        repairIcons(libType, arr, newAwardInfoList, addIconInfoList, winCount);
     }
 
     private void resetLineRewardTimes(int libType, int winCount, List<MahjiongWinAwardLineInfo> list) {
@@ -433,5 +457,26 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
         }
         this.addTimesMap = tmpAddTimesMap;
         this.maxWinCount = tmpMaxWinCount;
+    }
+
+    protected void printResult(int[] arr) {
+        BaseInitCfg cfg = GameDataManager.getBaseInitCfg(this.gameType);
+
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 1; i <= cfg.getRows(); i++) {
+            for (int j = 0; j < cfg.getCols(); j++) {
+                int index = cfg.getRows() * j + i;
+                int id = arr[index];
+                sb.append(id);
+                if (id < 10) {
+                    sb.append("   ");
+                } else {
+                    sb.append("  ");
+                }
+            }
+            sb.append("\n");
+        }
+        System.out.println(sb);
     }
 }

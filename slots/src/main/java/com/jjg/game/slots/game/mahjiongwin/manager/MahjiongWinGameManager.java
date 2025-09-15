@@ -93,6 +93,13 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
         try {
             gameRunInfo.setAuto(auto);
 
+            //玩家当前金币
+            Player player = slotsPlayerService.get(playerGameData.playerId());
+            gameRunInfo.setBeforeGold(player.getGold());
+            if (playerController != null) {
+                playerController.setPlayer(player);
+            }
+
             //获取当前处于哪种状态
             int status = playerGameData.getStatus();
             if (status == MahjiongWinConstant.Status.NORMAL) {
@@ -122,7 +129,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.playerId());
             gameRunInfo.setAfterGold(player.getGold());
             if (playerController != null) {
                 playerController.setPlayer(player);
@@ -137,7 +144,6 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
             if (!auto) {
                 checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             }
-            gameRunInfo.setData(playerGameData);
             gameRunInfo.setData(playerGameData);
         } catch (Exception e) {
             log.error("", e);
@@ -181,6 +187,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
 
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
+        gameRunInfo.setStake(betValue);
         return gameRunInfo;
     }
 
