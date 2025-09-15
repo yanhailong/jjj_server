@@ -1,7 +1,8 @@
 package com.jjg.game.sampledata.bean;
 
+import java.util.*;
+
 import javax.annotation.processing.Generated;
-import java.util.Map;
 /**
  * 配置bean
  *

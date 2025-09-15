@@ -252,7 +252,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
                 ? this.slotsResultLib2
                 : this.slotsResultLib1;
 
-        String gameTableName = removeName + ":" + gameType;
+        String gameTableName = removeName + gameType;
         RKeys keys = redisson.getKeys();
         long start = System.currentTimeMillis();
         long deleted = keys.deleteByPattern(gameTableName + "*");

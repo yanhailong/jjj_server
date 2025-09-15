@@ -204,5 +204,8 @@ public interface MessageConst {
         int NOTICE_ALL_KICK_OUT = BASE_MSG_PREFIX | 0x5;
         //通知大厅节点更新轮播数据
         int NOTICE_ALL_UPDATE_CAROUSEL = BASE_MSG_PREFIX | 0x6;
+
+        //通知生成结果库
+        int NOTICE_GENERATE_LIB = BASE_MSG_PREFIX | 0x7;
     }
 }

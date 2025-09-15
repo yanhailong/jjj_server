@@ -22,7 +22,7 @@ public class Item {
         this.itemCount = itemCount;
     }
 
-    public Item(int gridId, int id, long itemCount) {
+    public Item(Integer gridId, int id, long itemCount) {
         this.id = id;
         this.itemCount = itemCount;
         this.gridId = gridId;

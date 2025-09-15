@@ -341,9 +341,8 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     /**
      * 随机一个客户端节点
      */
-    public ClusterClient randClientByType(NodeType nodeType, int gameType) {
+    public ClusterClient randClientByType(NodeType nodeType, int gameMajorType) {
         String nodeTypeStr = nodeType.toString();
-        int gameMajorType = CommonUtil.getMajorTypeByGameType(gameType);
         Map.Entry<MarsNode, ClusterClient> en = clusterClientMap.entrySet().stream().filter(e -> {
             if (nodeTypeStr.equals(e.getValue().getType())) {
                 int[] gameMajorTypes = e.getValue().nodeConfig.gameMajorTypes;

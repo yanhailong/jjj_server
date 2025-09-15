@@ -182,12 +182,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         String newDocName = null;
         String redisTableName = null;
         try {
-            if (!saveToDB) {
-                boolean lock = getResultLibDao().addGenerateLock(this.gameType);
-                if (lock) {
-                    log.info("生成结果库时添加锁失败，gameType = {}", this.gameType);
-                    return;
-                }
+            boolean lock = getResultLibDao().addGenerateLock(this.gameType);
+            if (!lock) {
+                log.info("生成结果库时添加锁失败，gameType = {}", this.gameType);
+                return;
             }
 
             log.info("开始生成结果库，libTypeCountMap = {}", libTypeCountMap);
@@ -930,7 +928,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     public void onTimer(TimerEvent e) {
         if (this.checkOffLineEvent == e) {
             checkOffLine();
-        } else if (this.clearAllLibEvent == e) {
+        } else if(this.gameUpdatePoolEvent == e){
+
+        }else if (this.clearAllLibEvent == e) {
             getResultLibDao().clearMongoLib();
             getResultLibDao().clearRedisLib(this.gameType);
             this.clearAllLibEvent = null;
@@ -975,6 +975,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             offlineSaveGameDataDto(gameData);
             return true;
         }));
+    }
+
+    protected void gameUpdatePool(){
+
     }
 
     /**
@@ -1205,6 +1209,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         } catch (Exception e) {
             log.error("", e);
         }
+    }
+
+    public void notifySpecialResultLibCacheData(List<SpecialResultLibCfg> cfgList){
+        if(cfgList != null && !cfgList.isEmpty()){
+            SpecialResultLibCacheData data = getGenerateManager().calSpecialResultLibCacheData(cfgList);
+            getGenerateManager().setSpecialResultLibCacheData(data);
+        }
+        getResultLibDao().reloadLib();
     }
 
     /**

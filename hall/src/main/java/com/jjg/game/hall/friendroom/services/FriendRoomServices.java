@@ -399,7 +399,7 @@ public class FriendRoomServices {
             friendRoomBaseDataList.stream().map(data -> {
                 Tuple2<Integer, Integer> tuple =
                     SampleDataUtils.getRoomMaxLimit(GameDataManager.getWarehouseCfg(data.gameId));
-                return tuple.getT2();
+                return tuple.getT1();
             }).mapToInt(a -> a).sum();
         // 邀请码重置使用次数
         Integer icRestTimes = friendRoomRedisDao.getInvitationCodeResetUseTimes(player.getId());
