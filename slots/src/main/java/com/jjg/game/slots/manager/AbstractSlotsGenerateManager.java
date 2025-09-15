@@ -8,7 +8,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.*;
-
 import com.jjg.game.slots.utils.SlotsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -221,6 +220,10 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         //检查满线图案_数量
         List<A> fullLineCountInfoList = fullLineCount(lib);
         lib.addAllAwardLineInfo(fullLineCountInfoList);
+
+        //检查连线分散数量
+        List<A> lineDispersionCount = lineDispersionCount(lib);
+        lib.addAllAwardLineInfo(lineDispersionCount);
 
         //计算倍数
         calTimes(lib);
@@ -656,6 +659,59 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         }
 
         return awardInfoList;
+    }
+
+    /**
+     * 检查连线_分散_数量
+     *
+     * @param lib
+     * @return
+     */
+    protected List<A> lineDispersionCount(T lib) {
+        int[] arr = lib.getIconArr();
+        //获取连线_分散_数量的配置
+        Map<Integer, BaseElementRewardCfg> dispersionLineCountCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE);
+        if (dispersionLineCountCfgMap == null || dispersionLineCountCfgMap.isEmpty()) {
+            return null;
+        }
+        List<A> resultList = new ArrayList<>();
+        log.debug("开始检测 连线_分散_数量");
+        //线配置
+        Map<Integer, BaseLineCfg> lineCfgMap = GameDataManager.getBaseLineCfgMap();
+        //遍历所有中奖线配置
+        lineCfgMap.values().forEach(baseLineCfg -> {
+            List<Integer> posLocation = baseLineCfg.getPosLocation();
+            //k:图标id -> v:图标数量
+            Map<Integer, Integer> countMap = new HashMap<>();
+            posLocation.forEach(location -> {
+                int icon = arr[location];
+                countMap.merge(icon, 1, Integer::sum);
+            });
+            //根据图标id和数量查看奖励配置是否存在
+            countMap.forEach((icon, count) -> dispersionLineCountCfgMap.values().stream()
+                    .filter(cfg -> cfg.getElementId().contains(icon) && cfg.getRewardNum() == count)
+                    .forEach(cfg -> {
+                        A rewardInfo = addDispersionLineCountAwardInfo(countMap, baseLineCfg, cfg, icon, count);
+                        if (rewardInfo != null) {
+                            resultList.add(rewardInfo);
+                        }
+                    }));
+        });
+        return resultList;
+    }
+
+    /**
+     * 添加连线分散数量统计的奖励
+     *
+     * @param countMap    k:图标id -> v:图标数量
+     * @param baseLineCfg 中奖线配置
+     * @param rewardCfg   奖励配置
+     * @param icon        图标id
+     * @param count       图标数量
+     * @return
+     */
+    protected A addDispersionLineCountAwardInfo(Map<Integer, Integer> countMap, BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int icon, int count) {
+        return null;
     }
 
     protected A addAwardLineInfo(BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int sameCount, int baseIconId, List<Integer> lineList, int[] arr) {
@@ -1296,9 +1352,9 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
     @Override
     public void changeSampleCallbackCollector() {
-        addChangeSampleFileObserveWithCallBack(BaseInitCfg.EXCEL_NAME, this::baseRollerCfg).addChangeSampleFileObserveWithCallBack(BaseElementCfg.EXCEL_NAME, this::baseElementConfig).addChangeSampleFileObserveWithCallBack(BaseElementRewardCfg.EXCEL_NAME, this::baseElementRewardConfig).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, this::baseLineConfig)
+        addChangeSampleFileObserveWithCallBack(BaseInitCfg.EXCEL_NAME, this::baseRollerCfg).addChangeSampleFileObserveWithCallBack(BaseElementCfg.EXCEL_NAME, this::baseElementConfig).addChangeSampleFileObserveWithCallBack(com.jjg.game.sampledata.bean.BaseElementRewardCfg.EXCEL_NAME, this::baseElementRewardConfig).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, this::baseLineConfig)
 
-                .addChangeSampleFileObserveWithCallBack(SpecialModeCfg.EXCEL_NAME, this::specialModeConfig).addChangeSampleFileObserveWithCallBack(SpecialAuxiliaryCfg.EXCEL_NAME, this::specialAuxiliaryConfig).addChangeSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, this::specialGirdConfig).addChangeSampleFileObserveWithCallBack(SpecialResultLibCfg.EXCEL_NAME, this::specialResultLibConfig);
+                .addChangeSampleFileObserveWithCallBack(SpecialModeCfg.EXCEL_NAME, this::specialModeConfig).addChangeSampleFileObserveWithCallBack(com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg.EXCEL_NAME, this::specialAuxiliaryConfig).addChangeSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, this::specialGirdConfig).addChangeSampleFileObserveWithCallBack(SpecialResultLibCfg.EXCEL_NAME, this::specialResultLibConfig);
     }
 
     public void setSpecialResultLibCacheData(SpecialResultLibCacheData specialResultLibCacheData) {
