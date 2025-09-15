@@ -1,8 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
 import javax.annotation.processing.Generated;
+import java.util.Map;
 /**
  * 配置bean
  *
@@ -23,7 +22,7 @@ public class ScratchCardsCfg extends BaseCfgBean {
   /** 奖励1 */
   protected Map<Integer,Long> getitem;
   /** 中奖图标数量 */
-  protected int name;
+  protected int iconNum;
   /** 类型 */
   protected int type;
   /** 中奖权重值 */
@@ -40,8 +39,8 @@ public class ScratchCardsCfg extends BaseCfgBean {
   }
 
   /** 返回中奖图标数量 */
-  public int getName() {
-    return name;
+  public int getIconNum() {
+    return iconNum;
   }
 
   /** 返回类型 */

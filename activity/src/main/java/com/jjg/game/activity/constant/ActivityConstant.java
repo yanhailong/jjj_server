@@ -46,6 +46,11 @@ public interface ActivityConstant {
         int CASH_COW_FREE_ITEM = 25;
     }
 
+    interface ScratchCards{
+        //刮刮乐消耗道具
+        int SCRATCH_CARDS_COST_ITEM = 28;
+    }
+
     //储钱罐
     interface PiggyBank {
         //每次下注金币的万分比飞入储钱罐
@@ -64,6 +69,8 @@ public interface ActivityConstant {
         int REQ_ACTIVITY_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x03;
         //通知活动变化
         int NOTIFY_ACTIVITY_CHANGE = BASE_MSG_PREFIX | 0x04;
+        //响应活动购买礼包结果
+        int RES_ACTIVITY_BUY_GIFT = BASE_MSG_PREFIX | 0x17;
         //每日奖金
         //响应每日奖金活动类型信息
         int RES_PRIVILEGE_CARD_TYPE_INFO = BASE_MSG_PREFIX | 0x05;
@@ -102,5 +109,12 @@ public interface ActivityConstant {
         //响应每日奖金领取活动奖励
         int RES_PIGGY_BANK_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x14;
 
+        //刮刮乐
+        //响应刮刮乐活动详细信息
+        int RES_SCRATCH_CARDS_DETAIL_INFO = BASE_MSG_PREFIX | 0x19;
+        //响应刮刮乐参加活动
+        int RES_SCRATCH_CARDS_JOIN_ACTIVITY = BASE_MSG_PREFIX | 0x1A;
+        //响应刮刮乐活动类型信息
+        int RES_SCRATCH_CARDS_TYPE_INFO = BASE_MSG_PREFIX | 0x1B;
     }
 }

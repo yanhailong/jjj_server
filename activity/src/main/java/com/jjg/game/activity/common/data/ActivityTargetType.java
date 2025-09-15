@@ -8,6 +8,10 @@ package com.jjg.game.activity.common.data;
  */
 public enum ActivityTargetType {
     /**
+     * 无
+     */
+    NONE(0, 0),
+    /**
      * 登录
      */
     LOGIN(1, 1),

@@ -16,4 +16,6 @@ public class ReqActivityPlayerJoin {
     public long activityId;
     @ProtoDesc("详情id")
     public int detailId;
+    @ProtoDesc("参加次数")
+    public int joinTimes;
 }

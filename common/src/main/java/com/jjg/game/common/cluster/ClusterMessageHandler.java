@@ -75,7 +75,7 @@ public class ClusterMessageHandler {
         if (resSessionVerifyPass.success) {
             if (this.sessionVerifyListenerMap != null && this.sessionVerifyListenerMap.size() > 0) {
                 this.sessionVerifyListenerMap.forEach((k, v) -> v.userVerifyPass(resSessionVerifyPass.sessionId,
-                    resSessionVerifyPass.playerId, resSessionVerifyPass.ip));
+                        resSessionVerifyPass.playerId, resSessionVerifyPass.ip));
             }
         } else {
             GateSession gateSession = GateSession.getGateSessionMap().get(resSessionVerifyPass.sessionId);
@@ -100,9 +100,7 @@ public class ClusterMessageHandler {
             pfSession = new PFSession(sessionId, connect, sessionCreate.netAddress);
         }
         pfSession.setAddress(sessionCreate.netAddress);
-        clusterSystem.putSession(sessionId, pfSession);
         pfSession.gatePath = gatePath;
-
         if (sessionCreate.loginData != null && this.sessionLoginListenerMap != null && !this.sessionLoginListenerMap.isEmpty()) {
             for (Map.Entry<String, SessionLoginListener> en : this.sessionLoginListenerMap.entrySet()) {
                 en.getValue().login(pfSession, sessionCreate.loginData);
@@ -114,6 +112,7 @@ public class ClusterMessageHandler {
                 }
             }
         }
+        clusterSystem.putSession(sessionId, pfSession);
     }
 
     /**

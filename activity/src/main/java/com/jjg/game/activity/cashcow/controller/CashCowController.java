@@ -152,6 +152,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                     }
                 }
             }
+            playerActivityDao.savePlayerActivityData(playerId,data.getType(),data.getId(),playerActivityData);
         } catch (Exception e) {
             log.error("摇钱树增加玩家个人进度失败 playerId:{} addVelue:{}", playerId, progress);
             throw new RuntimeException(e);
@@ -162,7 +163,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
     }
 
     @Override
-    public AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId) {
+    public AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId, int times) {
         ResCashCowJoin res = new ResCashCowJoin(Code.SUCCESS);
         long activityId = activityData.getId();
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);

@@ -72,12 +72,21 @@ public abstract class BaseActivityController {
         return conditionCheckService.isTriggerComplete(player, activityData.getCondition());
     }
 
-    public abstract AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId);
+    /**
+     * 玩家请求参加活动
+     */
+    public abstract AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId, int times);
 
     /**
      * 领取活动奖励
      */
     public abstract AbstractResponse claimActivityRewards(long playerId, ActivityData activityData, int detailId);
+
+    /**
+     * 请求购买活动礼包
+     */
+    public void buyActivityGift(long playerId, ActivityData activityData, int giftId) {
+    }
 
     /**
      * 活动结束
@@ -114,6 +123,7 @@ public abstract class BaseActivityController {
      * 构建玩家活动信息
      */
     public abstract ActivityInfo buildActivityInfo(long playerId, ActivityData activityData);
+
 
     /**
      * 检查玩家数据并重置
