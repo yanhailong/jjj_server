@@ -169,13 +169,13 @@ public class PlayerPackService implements IPlayerRegister {
      * 移除道具
      */
     public CommonResult<Void> removeItem(long playerId, int id, long count, String addType) {
-        return removeItem(playerId, 0, id, count, addType);
+        return removeItem(playerId, null, id, count, addType);
     }
 
     /**
      * 移除道具
      */
-    public CommonResult<Void> removeItem(long playerId, int girdId, int id, long count, String addType) {
+    public CommonResult<Void> removeItem(long playerId, Integer girdId, int id, long count, String addType) {
         Player player = corePlayerService.get(playerId);
         return removeItem(player, Collections.singletonList(new Item(girdId, id, count)), addType);
     }
