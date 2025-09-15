@@ -124,7 +124,7 @@ public class FriendRoomServices {
         }
         // 扣除道具
         assert reqItem != null;
-        CommonResult<Void> removeItem;
+        CommonResult<Long> removeItem;
         Map<Integer, Long> itemMap = new HashMap<>();
         if (req.predictCostGoldNum != 0) {
             itemMap.put(reqItem.getId(), reqItem.getItemCount());
@@ -842,7 +842,7 @@ public class FriendRoomServices {
             RoomExpendCfg roomExpendCfg = GameDataManager.getRoomExpendCfg(updateFriendRoom.timeOfOpenRoom);
             List<Integer> requiredMoney = roomExpendCfg.getRequiredMoney();
             // 扣除道具
-            CommonResult<Void> removeItem =
+            CommonResult<Long> removeItem =
                 playerPackService.removeItem(
                     player.getId(),
                     new Item(requiredMoney.getFirst(), requiredMoney.get(1)), "manage_friend_room"

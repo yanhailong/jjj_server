@@ -79,7 +79,7 @@ public class ActivityMessageHandler {
         }
         BaseActivityController controller = data.getType().getController();
         if (controller.checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
-            AbstractResponse response = controller.claimActivityRewards(playerController.playerId(), data, req.detailId);
+            AbstractResponse response = controller.claimActivityRewards(playerController.getPlayer(), data, req.detailId);
             if (response != null) {
                 playerController.send(response);
             }
@@ -96,7 +96,7 @@ public class ActivityMessageHandler {
         if (data != null && data.getValue().contains(req.detailId) && data.getType().isCanInitiativeJoin()) {
             BaseActivityController controller = data.getType().getController();
             if (controller.checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
-                AbstractResponse response = controller.joinActivity(playerController.playerId(), data, req.detailId, req.joinTimes);
+                AbstractResponse response = controller.joinActivity(playerController.getPlayer(), data, req.detailId, req.joinTimes);
                 if (response != null) {
                     playerController.send(response);
                 }

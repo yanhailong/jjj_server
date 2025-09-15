@@ -7,6 +7,7 @@ import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
+import com.jjg.game.activity.log.ActivityLogger;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.redis.RedisLock;
@@ -40,6 +41,8 @@ public abstract class BaseActivityController {
     protected RedisLock redisLock;
     @Autowired
     protected ConditionCheckService conditionCheckService;
+    @Autowired
+    protected ActivityLogger activityLogger;
 
     /**
      * 增加玩家活动进度
@@ -72,20 +75,21 @@ public abstract class BaseActivityController {
         return conditionCheckService.isTriggerComplete(player, activityData.getCondition());
     }
 
+
     /**
      * 玩家请求参加活动
      */
-    public abstract AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId, int times);
+    public abstract AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times);
 
     /**
      * 领取活动奖励
      */
-    public abstract AbstractResponse claimActivityRewards(long playerId, ActivityData activityData, int detailId);
+    public abstract AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId);
 
     /**
      * 请求购买活动礼包
      */
-    public void buyActivityGift(long playerId, ActivityData activityData, int giftId) {
+    public void buyActivityGift(Player player, ActivityData activityData, int giftId) {
     }
 
     /**

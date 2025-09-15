@@ -9,6 +9,7 @@ import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.common.message.res.ResActivityBuyGift;
 import com.jjg.game.activity.constant.ActivityConstant;
+import com.jjg.game.activity.log.data.ScratchCardsResult;
 import com.jjg.game.activity.scratchcards.message.bean.ScratchCardsActivity;
 import com.jjg.game.activity.scratchcards.message.bean.ScratchCardsDetailInfo;
 import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsDetailInfo;
@@ -19,6 +20,7 @@ import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
@@ -43,7 +45,7 @@ public class ScratchCardsController extends BaseActivityController {
     private final Logger log = LoggerFactory.getLogger(ScratchCardsController.class);
 
     @Override
-    public AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId, int times) {
+    public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
         ResScratchCardsJoinActivity res = new ResScratchCardsJoinActivity(Code.SUCCESS);
         if (times <= 0) {
             res.code = Code.PARAM_ERROR;
@@ -51,6 +53,7 @@ public class ScratchCardsController extends BaseActivityController {
         }
         res.activityId = activityData.getId();
         res.detailId = detailId;
+        long playerId = player.getId();
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         WeightRandom<ScratchCardsCfg> random = new WeightRandom<>();
         for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
@@ -61,7 +64,7 @@ public class ScratchCardsController extends BaseActivityController {
         //判断消耗
         Item costItem = getCostItem();
         costItem.setItemCount(costItem.getItemCount() * times);
-        CommonResult<Void> removedItem = playerPackService.removeItem(playerId, costItem, "ScratchCardsJoin");
+        CommonResult<Long> removedItem = playerPackService.removeItem(playerId, costItem, "ScratchCardsJoin");
         if (!removedItem.success()) {
             res.code = removedItem.code;
             return res;
@@ -69,6 +72,7 @@ public class ScratchCardsController extends BaseActivityController {
         ScratchCardsCfg max7 = null;
         //奖励列表
         Map<Integer, Long> rewards = new HashMap<>();
+        List<ScratchCardsResult> scratchCardsResults = new ArrayList<>();
         //循环获奖
         for (int i = 0; i < times; i++) {
             ScratchCardsCfg rewardCfg = random.next();
@@ -77,18 +81,24 @@ public class ScratchCardsController extends BaseActivityController {
                     rewards.merge(entry.getKey(), entry.getValue(), Long::sum);
                 }
             }
+            ScratchCardsResult scratchCardsResult = new ScratchCardsResult(rewardCfg.getIconNum(), rewardCfg.getGetitem(), rewardCfg.getId());
+            scratchCardsResults.add(scratchCardsResult);
             if (max7 == null || max7.getIconNum() < rewardCfg.getIconNum()) {
                 max7 = rewardCfg;
             }
         }
+        CommonResult<Long> commonResult = null;
         if (CollectionUtil.isNotEmpty(rewards)) {
-            CommonResult<Void> commonResult = playerPackService.addItems(playerId, rewards, "ScratchCardsJoin");
+            commonResult = playerPackService.addItems(playerId, rewards, "ScratchCardsJoin");
             if (!commonResult.success()) {
                 log.error("刮刮乐添加道具失败 playerId={}", playerId);
             }
-            res.numOf7 = max7 == null ? 0 : max7.getIconNum();
+            res.numOf7 = max7.getIconNum();
             res.infoList = ItemUtils.buildItemInfo(rewards);
         }
+        //添加日志
+        activityLogger.sendScratchCardsJoin(player, activityData, costItem, times, removedItem.data
+                , commonResult == null ? 0 : commonResult.data, rewards, scratchCardsResults);
         return res;
     }
 
@@ -102,7 +112,7 @@ public class ScratchCardsController extends BaseActivityController {
     }
 
     @Override
-    public AbstractResponse claimActivityRewards(long playerId, ActivityData activityData, int detailId) {
+    public AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId) {
         return null;
     }
 
@@ -149,13 +159,14 @@ public class ScratchCardsController extends BaseActivityController {
     }
 
     @Override
-    public void buyActivityGift(long playerId, ActivityData activityData, int giftId) {
+    public void buyActivityGift(Player player, ActivityData activityData, int giftId) {
         ResActivityBuyGift res = new ResActivityBuyGift(Code.SUCCESS);
         res.activityId = activityData.getId();
+        long playerId = player.getId();
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(giftId);
         if (baseCfgBean instanceof ScratchCardsCfg cfg && cfg.getType() == 2) {
-            CommonResult<Void> addItems = playerPackService.addItems(playerId, cfg.getGetitem(), "ScratchCardsGift");
+            CommonResult<Long> addItems = playerPackService.addItems(playerId, cfg.getGetitem(), "ScratchCardsGift");
             if (!addItems.success()) {
                 log.error("刮刮乐购买礼包自动领奖失败 playerId:{} activityData:{}", playerId, activityData);
                 res.code = Code.UNKNOWN_ERROR;
@@ -163,6 +174,8 @@ public class ScratchCardsController extends BaseActivityController {
                 return;
             }
             res.itemInfos = ItemUtils.buildItemInfo(cfg.getGetitem());
+            //发送日志
+            activityLogger.sendActivityGift(player, activityData, addItems.data, cfg.getGetitem(), giftId);
             activityManager.sendToPlayer(playerId, res);
         }
     }

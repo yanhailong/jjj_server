@@ -418,7 +418,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     /**
      * 参加活动
      */
-    public void joinActivity(long playerId, long activityId, int detailId, int times) {
+    public void joinActivity(Player player, long activityId, int detailId, int times) {
+        long playerId = player.getId();
         try {
             //获取该玩家的活动详细信息
             ActivityData data = activityData.get(activityId);
@@ -426,7 +427,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 log.warn("玩家请求参加的活动未开始 playerId:{} activityId:{}  ", playerId, activityId);
                 return;
             }
-            AbstractResponse res = data.getType().getController().joinActivity(playerId, data, detailId, times);
+            AbstractResponse res = data.getType().getController().joinActivity(player, data, detailId, times);
             if (res != null) {
                 //同步一次活动状态
                 clusterSystem.sendToPlayer(res, playerId);
@@ -466,7 +467,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             if (times < 1) {
                 return new CommonResult<>(Code.PARAM_ERROR);
             }
-            joinActivity(playerController.playerId(), data.getId(), detailId,times);
+            joinActivity(playerController.getPlayer(), data.getId(), detailId, times);
             return new CommonResult<>(Code.SUCCESS);
         }
         if ("buyActivityGift".equalsIgnoreCase(cmd)) {
@@ -476,7 +477,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             if (data == null) {
                 return new CommonResult<>(Code.NOT_FOUND);
             }
-            data.getType().getController().buyActivityGift(playerController.playerId(), data, detailId);
+            data.getType().getController().buyActivityGift(playerController.getPlayer(), data, detailId);
             return new CommonResult<>(Code.SUCCESS);
         }
         return null;

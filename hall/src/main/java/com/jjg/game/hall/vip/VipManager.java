@@ -2,7 +2,9 @@ package com.jjg.game.hall.vip;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.EnumUtil;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.Account;
@@ -12,8 +14,6 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.base.player.IPlayerLoginSuccess;
-import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.hall.vip.data.Vip;
 import com.jjg.game.hall.vip.data.VipCfgCache;
 import com.jjg.game.hall.vip.data.VipGift;
@@ -171,7 +171,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
                 vip.getGiftGetTime().put(gift.getType(), timeMillis);
             }
             vipService.redisSave(playerId, vip);
-            CommonResult<Void> addedItems = playerPackService.addItems(playerController.playerId(), rewards, "vip奖励领取");
+            CommonResult<Long> addedItems = playerPackService.addItems(playerController.playerId(), rewards, "vip奖励领取");
             res.code = addedItems.code;
             if (!addedItems.success()) {
                 return res;
