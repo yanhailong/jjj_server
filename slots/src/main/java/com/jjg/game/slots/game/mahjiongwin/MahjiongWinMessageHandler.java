@@ -4,25 +4,16 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
-import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinGameManager;
 import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinSendMessageManager;
 import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinEnterGame;
 import com.jjg.game.slots.game.mahjiongwin.pb.ReqMahjiongwinStartGame;
-import com.jjg.game.slots.handler.SlotsMessageHandler;
-import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author 11
@@ -30,7 +21,8 @@ import java.util.Map;
  */
 @Component
 @MessageType(MessageConst.MessageTypeDef.MAHJIONG_WIN_TYPE)
-public class MahjiongWinMessageHandler extends SlotsMessageHandler {
+public class MahjiongWinMessageHandler {
+    private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private MahjiongWinGameManager gameManager;

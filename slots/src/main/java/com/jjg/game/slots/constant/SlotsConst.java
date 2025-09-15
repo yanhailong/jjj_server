@@ -22,7 +22,7 @@ public interface SlotsConst {
         int FIRST_GAME_GET_MODEL_ID = 4;
 
         //获取lib失败，总计可尝试次数
-        int GET_LIB_FAIL_RETRY_COUNT = 100;
+        int GET_LIB_FAIL_RETRY_COUNT = 10;
 
         //单线押分
         int SCORE_TYPE_ONE_BET = 1;

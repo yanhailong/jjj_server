@@ -533,7 +533,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         //添加中奖线信息
         gameRunInfo.setAwardLineInfos(transAwardLinePbInfo(resultLib.getAwardLineInfoList(), playerGameData.getOneBetScore()));
 
-        gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+        if(gameRunInfo.getBigPoolTimes() < 1){
+            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+        }
+
         gameRunInfo.setStatus(playerGameData.getStatus());
         return gameRunInfo;
     }
@@ -1010,21 +1013,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             log.debug("该火车中奖，并且加钱成功 playerId = {},addGold = {}", playerGameData.playerId(), addGold);
         }
         return gameRunInfo;
-    }
-
-    /**
-     * 测试使用，选择所有地区，只剩一个可选
-     *
-     * @param playerController
-     */
-    public void selectAllArea(PlayerController playerController) {
-        DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            return;
-        }
-        for (int i = 1; i < 8; i++) {
-            playerGameData.addSelectedArea(i);
-        }
     }
 
     /**
