@@ -38,6 +38,8 @@ public class ActivityConfigCfg extends BaseCfgBean {
   protected String time_end;
   /** 开始时间 */
   protected String time_start;
+  /** 进度触发类型 */
+  protected Map<Integer,Integer> triggerType;
   /** 类型ID */
   protected int type;
   /** 值1 */
@@ -91,6 +93,11 @@ public class ActivityConfigCfg extends BaseCfgBean {
   /** 返回开始时间 */
   public String getTime_start() {
     return time_start;
+  }
+
+  /** 返回进度触发类型 */
+  public Map<Integer,Integer> getTriggerType() {
+    return triggerType;
   }
 
   /** 返回类型ID */
