@@ -1,9 +1,6 @@
 package com.jjg.game.slots.constant;
 
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.constant.MessageConst;
-
-import java.math.BigDecimal;
 
 /**
  * @author 11
@@ -81,6 +78,8 @@ public interface SlotsConst {
         int LINE_TYPE_DISPERSE_GLOBAL = 4;
         //满线图案_数量
         int LINE_TYPE_FULL_COUNT = 5;
+        //连线_分散 只统计这条线上的图标个数,不论是否相连
+        int LINE_TYPE_DISPERSE = 6;
     }
 
     interface BaseInit{
