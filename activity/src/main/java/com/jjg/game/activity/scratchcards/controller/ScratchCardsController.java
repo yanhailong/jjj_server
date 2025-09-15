@@ -1,6 +1,7 @@
 package com.jjg.game.activity.scratchcards.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.activity.activitylog.data.ScratchCardsResult;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.PlayerActivityData;
@@ -9,7 +10,6 @@ import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.common.message.res.ResActivityBuyGift;
 import com.jjg.game.activity.constant.ActivityConstant;
-import com.jjg.game.activity.log.data.ScratchCardsResult;
 import com.jjg.game.activity.scratchcards.message.bean.ScratchCardsActivity;
 import com.jjg.game.activity.scratchcards.message.bean.ScratchCardsDetailInfo;
 import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsDetailInfo;

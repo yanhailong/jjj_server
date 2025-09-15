@@ -1,13 +1,13 @@
 package com.jjg.game.activity.common.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.activity.activitylog.data.ActivityLogger;
 import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
-import com.jjg.game.activity.log.ActivityLogger;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.redis.RedisLock;
