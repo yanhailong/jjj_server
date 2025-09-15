@@ -296,7 +296,7 @@ public class CoreMessageHandler {
         int itemId = Integer.parseInt(orders[1]);
         int count = Integer.parseInt(orders[2]);
 
-        CommonResult<Void> result = playerPackService.addItem(playerController.playerId(), itemId, count, "gmAdd");
+        CommonResult<Long> result = playerPackService.addItem(playerController.playerId(), itemId, count, "gmAdd");
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},orders = {}", playerController.playerId(), orders);

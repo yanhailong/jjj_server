@@ -19,6 +19,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -49,8 +50,9 @@ public class PiggyBankController extends BaseActivityController {
     }
 
     @Override
-    public AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId, int times) {
+    public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
         ResPiggyBankDetailInfo res = null;
+        long playerId = player.getId();
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
         if (baseCfgBean instanceof PiggyBankCfg cfg) {
@@ -75,6 +77,9 @@ public class PiggyBankController extends BaseActivityController {
                 log.error("玩家参加活动失败 出现异常,playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
             } finally {
                 redisLock.unlock(lockKey);
+            }
+            if (piggyBankData != null) {
+                activityLogger.sendPiggyBankJoin(player, activityData, piggyBankData, cfg.getName(), detailId);
             }
             res = new ResPiggyBankDetailInfo(Code.SUCCESS);
             res.detailInfo = new ArrayList<>();
@@ -130,13 +135,15 @@ public class PiggyBankController extends BaseActivityController {
     }
 
     @Override
-    public AbstractResponse claimActivityRewards(long playerId, ActivityData activityData, int detailId) {
+    public AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId) {
         ResPiggyBankClaimRewards res = new ResPiggyBankClaimRewards(Code.SUCCESS);
+        long playerId = player.getId();
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
         if (baseCfgBean instanceof PiggyBankCfg cfg) {
             PiggyBankData data = null;
+            CommonResult<Long> addedItems = null;
             redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
                 //领取奖励
@@ -150,7 +157,7 @@ public class PiggyBankController extends BaseActivityController {
                     res.code = Code.ERROR_REQ;
                     return res;
                 }
-                CommonResult<Void> addedItems = playerPackService.addItems(playerId, cfg.getGetitem(), "privilegeCardRewords");
+                addedItems = playerPackService.addItems(playerId, cfg.getGetitem(), "privilegeCardRewords");
                 if (!addedItems.success()) {
                     res.code = Code.UNKNOWN_ERROR;
                     return res;
@@ -164,6 +171,10 @@ public class PiggyBankController extends BaseActivityController {
                 redisLock.unlock(lockKey);
             }
             if (data != null) {
+                if (addedItems != null && addedItems.success()) {
+                    activityLogger.sendPiggyBankRewards(player, activityData, data, cfg.getWeight(), cfg.getName(),
+                            addedItems.data, cfg.getGetitem());
+                }
                 res.activityId = activityData.getId();
                 res.detailId = detailId;
                 res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());

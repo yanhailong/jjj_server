@@ -12,4 +12,6 @@ public interface FriendRoomErrorCode {
     int FRIEND_ROOM_SHIELD_NONE_PLAYER = 49048;
     // 好友房重复屏蔽玩家
     int FRIEND_ROOM_REPEAT_SHIELD = 49049;
+    // 等级不足
+    int CREATE_ROOM_VIP_NOT_ENOUGH = 49009;
 }

@@ -129,7 +129,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 return res;
             }
             //扣除道具
-            CommonResult<Void> result = playerPackService.removeItem(playerController.playerId(),
+            CommonResult<Long> result = playerPackService.removeItem(playerController.playerId(),
                     buyClaimAllRewardsConsumer.getFirst(), "一键升级购买");
             if (!result.success()) {
                 res.code = result.code;
@@ -301,7 +301,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                     casinoInfo.setChange(true);
                 }
                 //发奖
-                CommonResult<Void> result = playerPackService.addItems(playerController.playerId(), getReward,
+                CommonResult<Long> result = playerPackService.addItems(playerController.playerId(), getReward,
                         "一键领取赌场收益");
                 if (!result.success()) {
                     res.code = result.code;
@@ -357,7 +357,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             casinoInfo.setChange(true);
             //发奖
             Item item = new Item(cfg.getOutput().get(1), totalNum);
-            CommonResult<Void> result = playerPackService.addItem(playerController.playerId(), item.getId(),
+            CommonResult<Long> result = playerPackService.addItem(playerController.playerId(), item.getId(),
                     item.getItemCount(), "一键领取机台收益");
             if (!result.success()) {
                 res.code = Code.UNKNOWN_ERROR;
@@ -422,7 +422,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             CasinoEmployment casinoEmployment = employmentMap.getOrDefault(req.index, new CasinoEmployment());
             List<Integer> cost = dealerFunctionCfg.getHiringExpenses();
             Item costItem = new Item(cost.getFirst(), cost.getLast());
-            CommonResult<Void> result = playerPackService.removeItem(playerController.playerId(), costItem, "请求雇员职员");
+            CommonResult<Long> result = playerPackService.removeItem(playerController.playerId(), costItem, "请求雇员职员");
             if (!result.success()) {
                 res.code = result.code;
                 return res;
@@ -516,7 +516,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             return res;
         }
         //扣除消耗
-        CommonResult<Void> result = playerPackService.removeItem(playerController.playerId(), item, "加速清理");
+        CommonResult<Long> result = playerPackService.removeItem(playerController.playerId(), item, "加速清理");
         if (!result.success()) {
             res.code = result.code;
             return res;
@@ -641,7 +641,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             }
         }
         //扣除消耗
-        CommonResult<Void> removed = playerPackService.removeItems(player, functionCfg.getUplevel_itemid(), "升级建筑");
+        CommonResult<Long> removed = playerPackService.removeItems(player, functionCfg.getUplevel_itemid(), "升级建筑");
         if (!removed.success()) {
             res.code = removed.code;
             return res;
@@ -686,7 +686,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             return res;
         }
         //扣除消耗
-        CommonResult<Void> result = playerPackService.removeItem(playerController.playerId(), item, "加速升级");
+        CommonResult<Long> result = playerPackService.removeItem(playerController.playerId(), item, "加速升级");
         if (!result.success()) {
             res.code = result.code;
             return res;

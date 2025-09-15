@@ -1,5 +1,6 @@
 package com.jjg.game.core.logger;
 
+import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.config.NodeConfig;
@@ -24,7 +25,6 @@ public class BaseLogger {
     protected KafkaTemplate<String, String> kafkaTemplate;
 
     private final String GAME_LOGS_TOPIC = "game-logs";
-
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -300,10 +300,12 @@ public class BaseLogger {
      * @param playerId
      * @param addType
      */
-    public void addItems(long playerId, Map<Integer, Long> map, String addType) {
+    public long addItems(long playerId, Map<Integer, Long> map, String addType) {
+        long snowflakeNextId = IdUtil.getSnowflakeNextId();
         try {
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
+            json.put("operationId", snowflakeNextId);
 
             JSONArray jsonArray = new JSONArray();
             map.forEach((k, v) -> {
@@ -319,6 +321,7 @@ public class BaseLogger {
         } catch (Exception e) {
             log.error("", e);
         }
+        return snowflakeNextId;
     }
 
     /**
@@ -327,10 +330,12 @@ public class BaseLogger {
      * @param playerId
      * @param addType
      */
-    public void addItem(long playerId, int itemId, long count, String addType) {
+    public long addItem(long playerId, int itemId, long count, String addType) {
+        long snowflakeNextId = IdUtil.getSnowflakeNextId();
         try {
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
+            json.put("operationId", snowflakeNextId);
 
             JSONArray jsonArray = new JSONArray();
             JSONObject jsonObject = new JSONObject();
@@ -344,6 +349,7 @@ public class BaseLogger {
         } catch (Exception e) {
             log.error("", e);
         }
+        return snowflakeNextId;
     }
 
 

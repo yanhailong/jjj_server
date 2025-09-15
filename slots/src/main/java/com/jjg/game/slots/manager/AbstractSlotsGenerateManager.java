@@ -757,27 +757,27 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
         }
         List<A> resultList = new ArrayList<>();
         log.debug("开始检测 连线_分散_数量");
-        //线配置
-        Map<Integer, BaseLineCfg> lineCfgMap = GameDataManager.getBaseLineCfgMap();
         //遍历所有中奖线配置
-        lineCfgMap.values().forEach(baseLineCfg -> {
-            List<Integer> posLocation = baseLineCfg.getPosLocation();
-            //k:图标id -> v:图标数量
-            Map<Integer, Integer> countMap = new HashMap<>();
-            posLocation.forEach(location -> {
-                int icon = arr[location];
-                countMap.merge(icon, 1, Integer::sum);
-            });
-            //根据图标id和数量查看奖励配置是否存在
-            countMap.forEach((icon, count) -> dispersionLineCountCfgMap.values().stream()
-                    .filter(cfg -> cfg.getElementId().contains(icon) && cfg.getRewardNum() == count)
-                    .forEach(cfg -> {
-                        A rewardInfo = addDispersionLineCountAwardInfo(countMap, baseLineCfg, cfg, icon, count);
-                        if (rewardInfo != null) {
-                            resultList.add(rewardInfo);
-                        }
-                    }));
-        });
+        GameDataManager.getBaseLineCfgList().stream()
+                .filter(cfg -> cfg.getGameType() == this.gameType)
+                .forEach(baseLineCfg -> {
+                    List<Integer> posLocation = baseLineCfg.getPosLocation();
+                    //k:图标id -> v:图标数量
+                    Map<Integer, Integer> countMap = new HashMap<>();
+                    posLocation.forEach(location -> {
+                        int icon = arr[location];
+                        countMap.merge(icon, 1, Integer::sum);
+                    });
+                    //根据图标id和数量查看奖励配置是否存在
+                    countMap.forEach((icon, count) -> dispersionLineCountCfgMap.values().stream()
+                            .filter(cfg -> cfg.getElementId().contains(icon) && cfg.getRewardNum() == count)
+                            .forEach(cfg -> {
+                                A rewardInfo = addDispersionLineCountAwardInfo(countMap, baseLineCfg, cfg, icon, count);
+                                if (rewardInfo != null) {
+                                    resultList.add(rewardInfo);
+                                }
+                            }));
+                });
         return resultList;
     }
 
