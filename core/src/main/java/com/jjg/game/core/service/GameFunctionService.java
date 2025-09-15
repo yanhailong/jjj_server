@@ -1,5 +1,6 @@
 package com.jjg.game.core.service;
 
+import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.base.condition.CheckerParam;
 import com.jjg.game.core.base.condition.ConditionCheckService;
@@ -78,10 +79,21 @@ public class GameFunctionService implements GameEventListener {
         }
     }
 
+
+    /**
+     * 检查游戏功能开放，应该根据功能的整个协议蔟去拦截整个功能
+     */
+    public boolean checkGameFunctionOpen(Player player, EFunctionType eFunctionType) {
+        return checkGameFunctionOpen(player, GameDataManager.getGameFunctionCfg(eFunctionType.getFunctionId()));
+    }
+
     /**
      * 检查游戏功能开放
      */
-    private boolean checkGameFunctionOpen(Player player, GameFunctionCfg functionCfg) {
+    public boolean checkGameFunctionOpen(Player player, GameFunctionCfg functionCfg) {
+        if (functionCfg == null) {
+            return false;
+        }
         List<Integer> conditionTypes = functionCfg.getVipLevel();
         ConditionCfg conditionCfg = GameDataManager.getConditionCfg(conditionTypes.getFirst());
         if (conditionCfg == null) {

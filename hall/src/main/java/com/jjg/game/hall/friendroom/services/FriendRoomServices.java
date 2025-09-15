@@ -3,6 +3,7 @@ package com.jjg.game.hall.friendroom.services;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.data.DataSaveCallback;
@@ -19,6 +20,7 @@ import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao.GameBillResult;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.rpc.HallRoomBridge;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.IllegalNameCheckService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
@@ -85,6 +87,8 @@ public class FriendRoomServices {
     // 账单历史查询
     @Autowired
     private FriendRoomBillHistoryDao billHistoryDao;
+    @Autowired
+    private GameFunctionService gameFunctionService;
     // 暂停时间
     private Map<Long, Long> roomPauseTimeRec = new ConcurrentHashMap<>();
 
@@ -194,6 +198,10 @@ public class FriendRoomServices {
         // 准备金检查
         if (reqCreateFriendsRoom.predictCostGoldNum < 0) {
             return Code.PARAM_ERROR;
+        }
+        // 检查游戏功能是否开放
+        if (gameFunctionService.checkGameFunctionOpen(player, EFunctionType.FRIEND_ROOM)) {
+            return FriendRoomErrorCode.CREATE_ROOM_VIP_NOT_ENOUGH;
         }
         // 房间名检查
         if (checkRoomName(reqCreateFriendsRoom.roomAliasName) != Code.SUCCESS) {
