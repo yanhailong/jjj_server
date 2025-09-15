@@ -4,6 +4,7 @@ import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.piggybank.controller.PiggyBankController;
 import com.jjg.game.activity.privilegecard.controller.PrivilegeCardController;
+import com.jjg.game.activity.scratchcards.controller.ScratchCardsController;
 import com.jjg.game.common.utils.CommonUtil;
 
 /**
@@ -19,7 +20,10 @@ public enum ActivityType {
             ActivityTargetType.EFFECTIVE_BET.getTargetKey(), true),
     //储钱罐
     PIGGY_BANK(4, PiggyBankController.class, true, false,
-            ActivityTargetType.BET.getTargetKey(), false);
+            ActivityTargetType.BET.getTargetKey(), false),
+    //刮刮乐
+    SCRATCH_CARDS(5, ScratchCardsController.class, false, false,
+            ActivityTargetType.NONE.getTargetKey(), true);
     //活动类型
     private final int type;
     //活动控制器的class
@@ -34,6 +38,7 @@ public enum ActivityType {
     private final long targetKey;
     //是否能主动参加活动
     private final boolean canInitiativeJoin;
+
     ActivityType(int type, Class<? extends BaseActivityController> className, boolean canAddPlayerProgress, boolean canAddActivityProgress, long targetKey, boolean canInitiativeJoin) {
         this.type = type;
         this.className = className;

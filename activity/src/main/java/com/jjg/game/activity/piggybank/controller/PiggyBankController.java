@@ -49,7 +49,7 @@ public class PiggyBankController extends BaseActivityController {
     }
 
     @Override
-    public AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId) {
+    public AbstractResponse joinActivity(long playerId, ActivityData activityData, int detailId, int times) {
         ResPiggyBankDetailInfo res = null;
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);

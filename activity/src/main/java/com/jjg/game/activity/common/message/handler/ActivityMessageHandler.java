@@ -96,7 +96,7 @@ public class ActivityMessageHandler {
         if (data != null && data.getValue().contains(req.detailId) && data.getType().isCanInitiativeJoin()) {
             BaseActivityController controller = data.getType().getController();
             if (controller.checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
-                AbstractResponse response = controller.joinActivity(playerController.playerId(), data, req.detailId);
+                AbstractResponse response = controller.joinActivity(playerController.playerId(), data, req.detailId, req.joinTimes);
                 if (response != null) {
                     playerController.send(response);
                 }

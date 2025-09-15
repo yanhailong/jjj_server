@@ -418,7 +418,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     /**
      * 参加活动
      */
-    public void joinActivity(long playerId, long activityId, int detailId) {
+    public void joinActivity(long playerId, long activityId, int detailId, int times) {
         try {
             //获取该玩家的活动详细信息
             ActivityData data = activityData.get(activityId);
@@ -426,7 +426,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 log.warn("玩家请求参加的活动未开始 playerId:{} activityId:{}  ", playerId, activityId);
                 return;
             }
-            AbstractResponse res = data.getType().getController().joinActivity(playerId, data, detailId);
+            AbstractResponse res = data.getType().getController().joinActivity(playerId, data, detailId, times);
             if (res != null) {
                 //同步一次活动状态
                 clusterSystem.sendToPlayer(res, playerId);
@@ -448,11 +448,11 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
+        if (gmOrders.length < 3) {
+            return new CommonResult<>(Code.FAIL);
+        }
         String cmd = gmOrders[0];
         if ("joinActivity".equalsIgnoreCase(cmd)) {
-            if (gmOrders.length < 3) {
-                return new CommonResult<>(Code.FAIL);
-            }
             Long activityId = Long.parseLong(gmOrders[1]);
             int detailId = Integer.parseInt(gmOrders[2]);
             ActivityData data = getActivityData().get(activityId);
@@ -466,7 +466,17 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             if (times < 1) {
                 return new CommonResult<>(Code.PARAM_ERROR);
             }
-            joinActivity(playerController.playerId(), data.getId(), detailId);
+            joinActivity(playerController.playerId(), data.getId(), detailId,times);
+            return new CommonResult<>(Code.SUCCESS);
+        }
+        if ("buyActivityGift".equalsIgnoreCase(cmd)) {
+            Long activityId = Long.parseLong(gmOrders[1]);
+            int detailId = Integer.parseInt(gmOrders[2]);
+            ActivityData data = getActivityData().get(activityId);
+            if (data == null) {
+                return new CommonResult<>(Code.NOT_FOUND);
+            }
+            data.getType().getController().buyActivityGift(playerController.playerId(), data, detailId);
             return new CommonResult<>(Code.SUCCESS);
         }
         return null;
