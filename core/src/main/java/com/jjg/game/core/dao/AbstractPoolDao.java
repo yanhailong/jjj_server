@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 
+import java.util.Map;
+
 /**
  * @author 11
  * @date 2025/6/18 16:12
@@ -85,6 +87,15 @@ public abstract class AbstractPoolDao {
             return null;
         }
         return after;
+    }
+
+    public Map<Object, Object> getSmallPoolByRoomCfgId(int gameType) {
+        // 直接获取整个Hash（因为只有3个字段，HGETALL最有效率）
+        return redisTemplate.opsForHash().entries(smallTableName(gameType));
+    }
+
+    public Map<Object, Object> getFakeSmallPoolByRoomCfgId(int gameType) {
+        return redisTemplate.opsForHash().entries(fakeSmallTableName(gameType));
     }
 
     protected String tableName(int gameType){

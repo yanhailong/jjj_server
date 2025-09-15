@@ -19,8 +19,6 @@ public class ResCleopatraEnterGame extends AbstractResponse {
     public List<Long> stakeList;
     @ProtoDesc("默认押注")
     public long defaultBet;
-    @ProtoDesc("奖池信息")
-    public List<CleopatraPoolInfo> poolList;
 
     public ResCleopatraEnterGame(int code) {
         super(code);

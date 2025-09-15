@@ -54,6 +54,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
     public void init() {
         log.info("启动埃及艳后游戏管理器...");
         super.init();
+        addUpdatePoolEvent();
 
 //        Map<Integer, Integer> map = new HashMap<>();
 //        map.put(1, 50000);
@@ -86,11 +87,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
     public DollarExpressGameRunInfo getPoolValue(PlayerController playerController, long stake) {
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerController.playerId());
         try {
-            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
-            List<Integer> prizePoolIdList = baseInitCfg.getPrizePoolIdList();
-            for(int poolId : prizePoolIdList) {
-                gameRunInfo.setMini(getPoolValueByPoolId(poolId, stake));
-            }
+            gameRunInfo.setMini(getPoolValueByRoomCfgId(playerController.getPlayer().getRoomCfgId()));
         } catch (Exception e) {
             log.error("", e);
             gameRunInfo.setCode(Code.EXCEPTION);

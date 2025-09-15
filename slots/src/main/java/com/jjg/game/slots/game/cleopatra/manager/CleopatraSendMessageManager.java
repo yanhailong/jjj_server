@@ -53,8 +53,6 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
      */
     public void sendConfigMessage(PlayerController playerController) {
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
-        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
-        List<Integer> prizePoolIdList = baseInitCfg.getPrizePoolIdList();
 
         SendInfo sendInfo = new SendInfo();
 
@@ -67,24 +65,6 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
             }
 
             res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
-
-            //奖池信息
-            if (prizePoolIdList != null && !prizePoolIdList.isEmpty()) {
-                res.poolList = new ArrayList<>();
-                for (int poolId : prizePoolIdList) {
-                    PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
-                    if (poolCfg == null) {
-                        continue;
-                    }
-                    CleopatraPoolInfo poolInfo = new CleopatraPoolInfo();
-                    poolInfo.id = poolId;
-                    poolInfo.initTimes = poolCfg.getFakePoolInitTimes();
-                    poolInfo.maxTimes = poolCfg.getFakePoolMax();
-                    poolInfo.perSomeSec = poolCfg.getGrowthRate().get(0);
-                    poolInfo.updateProp = poolCfg.getGrowthRate().get(1);
-                    res.poolList.add(poolInfo);
-                }
-            }
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
