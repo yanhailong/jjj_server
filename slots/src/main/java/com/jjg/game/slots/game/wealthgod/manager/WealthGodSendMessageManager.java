@@ -72,6 +72,8 @@ public class WealthGodSendMessageManager extends BaseSendMessageManager {
             res.exp = playerController.getPlayer().getExp();
             //本次spin数据
             res.spinInfo = gameRunInfo.getSpinInfo();
+            //jackpot奖池奖励金额
+            res.jackpotValue = gameRunInfo.getJackpotValue();
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }

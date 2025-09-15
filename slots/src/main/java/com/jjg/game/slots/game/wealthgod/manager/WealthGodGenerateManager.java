@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.wealthgod.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -69,42 +70,6 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
             }
         }
         return times;
-    }
-
-    /**
-     * 检测是否触发jackpot
-     */
-    private void checkJackpot(WealthGodResultLib lib) {
-        int[] arr = lib.getIconArr();
-        //获取全局分散图案的配置
-        Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE_GLOBAL);
-        if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
-            return;
-        }
-        log.debug("checkJackpot 检查全局分散");
-
-        //记录每个图标出现的次数
-        Map<Integer, Integer> iconCountMap = new HashMap<>();
-        for (int icon : arr) {
-            iconCountMap.merge(icon, 1, Integer::sum);
-        }
-        for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
-            BaseElementRewardCfg cfg = en.getValue();
-            //检查出现的个数是否满足
-            int elementsCount = 0;
-            for (int iconId : cfg.getElementId()) {
-                Integer count = iconCountMap.get(iconId);
-                if (count != null) {
-                    elementsCount += count;
-                }
-            }
-            if (elementsCount != cfg.getRewardNum()) {
-                continue;
-            }
-            //触发jackpot
-            int jackpotId = cfg.getJackpotID();
-            lib.setJackpotId(jackpotId);
-        }
     }
 
     @Override
@@ -224,7 +189,7 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
         }
         log.debug("检查全局分散");
         //小游戏
-        int[] arr = lib.getIconArr();
+        int[] arr = lib.getSource();
         //记录每个图标出现的次数
         Map<Integer, Integer> iconCountMap = new HashMap<>();
         for (int icon : arr) {
@@ -375,6 +340,12 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
             if (arr == null) {
                 return null;
             }
+
+            Map<Integer, Integer> changeMap = oldLib.getIconChangeMap();
+            //还原之前已经是wild的图标
+            if (changeMap != null && !changeMap.isEmpty()) {
+                changeMap.forEach((index, icon) -> arr[index] = icon);
+            }
             log.debug("生成免费游戏图标 arr = {}", Arrays.toString(arr));
             //修改格子策略组
             if (specialGroupGirdID > 0) {
@@ -383,7 +354,6 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
                     lib.addSpecialGirdInfo(specialGirdInfo);
                 }
             }
-
             //修改格子
             if (specialAuxiliaryCfg.getSpecialGirdID() != null && !specialAuxiliaryCfg.getSpecialGirdID().isEmpty()) {
                 for (int specialGirdCfgId : specialAuxiliaryCfg.getSpecialGirdID()) {
@@ -393,21 +363,160 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
                     }
                 }
             }
-            Map<Integer, Integer> changeMap = oldLib.getIconChangeMap();
-            //还原之前已经是wild的图标
-            if (changeMap != null && !changeMap.isEmpty()) {
-                changeMap.forEach((index, icon) -> {
-                    lib.addChange(index, icon);
-                    arr[index] = icon;
-                });
-            }
+            //替换财神图标
+            int[] replaceArr = replaceWealthGod(lib, arr);
+            //记录元数据
+            lib.setSource(arr);
             //判断中奖，返回
-            return checkAward(arr, lib);
+            return checkAward(replaceArr, lib);
         } catch (Exception e) {
             log.error("", e);
         }
         return null;
 
+    }
+
+    @Override
+    public WealthGodResultLib generateOne(int libType) throws Exception {
+        //获取模式配置
+        SpecialModeCfg specialModeCfg = this.specialModeCfgMap.get(libType);
+        if (specialModeCfg == null) {
+            log.warn("生成图标时，specialModeCfg 配置为空 gameType = {},libType = {}", this.gameType, libType);
+            return null;
+        }
+
+        //创建结果库对象
+        WealthGodResultLib lib = createResultLib();
+        lib.setId(RandomUtils.getUUid());
+        lib.setRollerMode(specialModeCfg.getRollerMode());
+        lib.addLibType(libType);
+
+        //生成所有的图标
+        int[] arr = generateAllIcons(specialModeCfg.getRollerMode(), specialModeCfg.getCols(), specialModeCfg.getRows());
+        if (arr == null) {
+            return null;
+        }
+
+        log.debug("生成图标 arr = {}", Arrays.toString(arr));
+
+        //修改格子策略组
+        PropInfo propInfo = this.specialModeGroupGirdPropMap.get(libType);
+        if (propInfo != null) {
+            Integer randKey = propInfo.getRandKey();
+            if (randKey == null) {
+                randKey = 0;
+            }
+            SpecialGirdInfo specialGirdInfo = gridUpdate(lib, randKey, arr);
+            if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
+                lib.addSpecialGirdInfo(specialGirdInfo);
+            }
+        }
+
+        //修改格子
+        if (specialModeCfg.getSpecialGirdID() != null && !specialModeCfg.getSpecialGirdID().isEmpty()) {
+            for (int specialGirdCfgId : specialModeCfg.getSpecialGirdID()) {
+                SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGirdCfgId, arr);
+                if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
+                    lib.addSpecialGirdInfo(specialGirdInfo);
+                }
+            }
+        }
+
+        //替换财神图标
+        int[] replaceArr = replaceWealthGod(lib, arr);
+
+        //记录元数据
+        lib.setSource(arr);
+
+        //判断中奖，返回
+        return checkAward(replaceArr, lib);
+    }
+
+    /**
+     * 替换财神图标为wild
+     */
+    private int[] replaceWealthGod(WealthGodResultLib lib, int[] param) {
+        int[] arr = Arrays.copyOf(param, param.length);
+
+        //获取全局分散图案的配置
+        Map<Integer, BaseElementRewardCfg> normalRewardCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE_GLOBAL);
+        if (normalRewardCfgMap == null || normalRewardCfgMap.isEmpty()) {
+            return null;
+        }
+
+        //获取每个图标出现的次数
+        Map<Integer, Integer> showCountMap = checkIconShowCount(arr);
+
+        log.debug("财神变wild");
+
+        for (Map.Entry<Integer, BaseElementRewardCfg> en : normalRewardCfgMap.entrySet()) {
+            BaseElementRewardCfg cfg = en.getValue();
+
+            //检查出现的个数是否满足
+            int elementsCount = 0;
+            for (int iconId : cfg.getElementId()) {
+                Integer count = showCountMap.get(iconId);
+                if (count != null) {
+                    elementsCount += count;
+                }
+            }
+            if (elementsCount != cfg.getRewardNum()) {
+                continue;
+            }
+
+            //是否触发小游戏
+            if (cfg.getFeatureTriggerId() == null || cfg.getFeatureTriggerId().isEmpty()) {
+                continue;
+            }
+
+            int miniGameId = cfg.getFeatureTriggerId().getFirst();
+
+            //根据小游戏id去找相关配置
+            SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(miniGameId);
+            if (specialAuxiliaryCfg == null) {
+                log.warn("未找到该小游戏的配置 miniGameId = {}", miniGameId);
+                return arr;
+            }
+
+            SpecialAuxiliaryPropConfig specialAuxiliaryPropConfig = this.specialAuxiliaryPropConfigMap.get(miniGameId);
+            if (specialAuxiliaryPropConfig == null) {
+                log.warn("未找到该小游戏小关的权重信息配置 miniGameId = {}", miniGameId);
+                return arr;
+            }
+            //检查是否有免费旋转次数，免费旋转的结果，通过specialMode生成
+            Integer freeCount = specialAuxiliaryPropConfig.getTriggerCountPropInfo().getRandKey();
+            if (freeCount == null || freeCount < 1) {
+                return arr;
+            }
+
+            for (int i = 0; i < freeCount; i++) {
+                //检查是否有修改图案策略组id
+                int specialGroupGirdID = 0;
+                if (specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo() != null) {
+                    Integer randKey = specialAuxiliaryPropConfig.getSpecialGroupGirdIDPropInfo().getRandKey();
+                    if (randKey != null && randKey > 0) {
+                        specialGroupGirdID = randKey;
+                    }
+                }
+                //修改格子策略组
+                if (specialGroupGirdID > 0) {
+                    SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGroupGirdID, arr);
+                    if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
+                        lib.addSpecialGirdInfo(specialGirdInfo);
+                    }
+                }
+                //修改格子
+                if (specialAuxiliaryCfg.getSpecialGirdID() != null && !specialAuxiliaryCfg.getSpecialGirdID().isEmpty()) {
+                    for (int specialGirdCfgId : specialAuxiliaryCfg.getSpecialGirdID()) {
+                        SpecialGirdInfo specialGirdInfo = gridUpdate(lib, specialGirdCfgId, arr);
+                        if (specialGirdInfo != null && !specialGirdInfo.emptyInfo()) {
+                            lib.addSpecialGirdInfo(specialGirdInfo);
+                        }
+                    }
+                }
+            }
+        }
+        return arr;
     }
 
 }
