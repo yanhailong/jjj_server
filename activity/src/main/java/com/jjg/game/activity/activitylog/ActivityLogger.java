@@ -10,7 +10,6 @@ import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
-import com.jjg.game.core.utils.ItemUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -25,7 +24,7 @@ import java.util.Map;
 @Component
 public class ActivityLogger extends BaseLogger {
 
-    private final String TOPIC = "Activity";
+    private final String TOPIC = "activity";
 
     /**
      * 每日奖金道具参加获得日志记录
