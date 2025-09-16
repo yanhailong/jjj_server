@@ -230,10 +230,8 @@ public class CashCowController extends BaseActivityController implements TimerLi
                     redisLock.unlock(lockKey);
                 }
                 //记录日志
-                if (addedItem != null) {
-                    activityLogger.sendCashCowJoinLog(player, activityData, detailId
-                            , cfg.getType(), cfg.getNeedItem(), removed.data, get, addedItem.data);
-                }
+                activityLogger.sendCashCowJoinLog(player, activityData, detailId
+                        , cfg.getType(), cfg.getNeedItem(), removed.data, get, addedItem == null ? null : addedItem.data);
                 //构建返回消息
                 res.activityId = activityId;
                 res.detailId = detailId;
