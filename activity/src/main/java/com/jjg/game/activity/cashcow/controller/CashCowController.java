@@ -562,8 +562,8 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 cashCowShowRecord.name = playerRecordActivity.getName();
                 res.recordList.add(cashCowShowRecord);
             }
-            res.isEnd = playerRecordActivities.getSecond();
-            res.startIndex = req.startIndex + playerRecordActivities.getFirst().size();
+            res.hasNext = playerRecordActivities.getSecond();
+            res.startIndex = req.startIndex;
         }
         return res;
     }
