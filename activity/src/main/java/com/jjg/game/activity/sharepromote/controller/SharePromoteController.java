@@ -16,6 +16,7 @@ import com.jjg.game.activity.sharepromote.message.res.ResSharePromoteTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -53,7 +54,7 @@ public class SharePromoteController extends BaseActivityController {
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
         if (baseCfgBean instanceof PrivilegeCardCfg cfg) {
             PlayerActivityData data = null;
-            CommonResult<Long> addedItems;
+            CommonResult<ItemOperationResult> addedItems;
             redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
                 //领取奖励

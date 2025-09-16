@@ -18,6 +18,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -61,7 +62,7 @@ public class PrivilegeCardController extends BaseActivityController {
         if (baseCfgBean instanceof PrivilegeCardCfg cfg) {
             long timeMillis = System.currentTimeMillis();
             PlayerPrivilegeCard privilegeCard = null;
-            CommonResult<Long> addedItems = null;
+            CommonResult<ItemOperationResult> addedItems = null;
             String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
             redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
@@ -113,7 +114,7 @@ public class PrivilegeCardController extends BaseActivityController {
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
         if (baseCfgBean instanceof PrivilegeCardCfg cfg) {
             PlayerPrivilegeCard data = null;
-            CommonResult<Long> addedItems = null;
+            CommonResult<ItemOperationResult> addedItems = null;
             redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
                 //领取奖励

@@ -20,6 +20,7 @@ import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -64,7 +65,7 @@ public class ScratchCardsController extends BaseActivityController {
         //判断消耗
         Item costItem = getCostItem();
         costItem.setItemCount(costItem.getItemCount() * times);
-        CommonResult<Long> removedItem = playerPackService.removeItem(playerId, costItem, "ScratchCardsJoin");
+        CommonResult<ItemOperationResult> removedItem = playerPackService.removeItem(playerId, costItem, "ScratchCardsJoin");
         if (!removedItem.success()) {
             res.code = removedItem.code;
             return res;
@@ -87,7 +88,7 @@ public class ScratchCardsController extends BaseActivityController {
                 max7 = rewardCfg;
             }
         }
-        CommonResult<Long> commonResult = null;
+        CommonResult<ItemOperationResult> commonResult = null;
         if (CollectionUtil.isNotEmpty(rewards)) {
             commonResult = playerPackService.addItems(playerId, rewards, "ScratchCardsJoin");
             if (!commonResult.success()) {
@@ -98,7 +99,7 @@ public class ScratchCardsController extends BaseActivityController {
         }
         //添加日志
         activityLogger.sendScratchCardsJoin(player, activityData, costItem, times, removedItem.data
-                , commonResult == null ? 0 : commonResult.data, rewards, scratchCardsResults);
+                , commonResult == null ? null : commonResult.data, rewards, scratchCardsResults);
         return res;
     }
 
@@ -166,7 +167,7 @@ public class ScratchCardsController extends BaseActivityController {
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(giftId);
         if (baseCfgBean instanceof ScratchCardsCfg cfg && cfg.getType() == 2) {
-            CommonResult<Long> addItems = playerPackService.addItems(playerId, cfg.getGetitem(), "ScratchCardsGift");
+            CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerId, cfg.getGetitem(), "ScratchCardsGift");
             if (!addItems.success()) {
                 log.error("刮刮乐购买礼包自动领奖失败 playerId:{} activityData:{}", playerId, activityData);
                 res.code = Code.UNKNOWN_ERROR;

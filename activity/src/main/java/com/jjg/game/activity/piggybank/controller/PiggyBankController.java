@@ -19,6 +19,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
@@ -143,7 +144,7 @@ public class PiggyBankController extends BaseActivityController {
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
         if (baseCfgBean instanceof PiggyBankCfg cfg) {
             PiggyBankData data = null;
-            CommonResult<Long> addedItems = null;
+            CommonResult<ItemOperationResult> addedItems = null;
             redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
                 //领取奖励

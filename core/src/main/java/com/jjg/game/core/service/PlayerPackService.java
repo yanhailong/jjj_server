@@ -8,10 +8,7 @@ import com.jjg.game.core.base.player.IPlayerRegister;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerPackDao;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Item;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerPack;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
@@ -58,14 +55,14 @@ public class PlayerPackService implements IPlayerRegister {
     /**
      * 添加道具
      */
-    public CommonResult<Long> addItem(long playerId, int id, long count, String addType) {
+    public CommonResult<ItemOperationResult> addItem(long playerId, int id, long count, String addType) {
         return addItems(playerId, Collections.singletonList(new Item(id, count)), addType);
     }
 
     /**
      * 添加多个道具
      */
-    public CommonResult<Long> addItems(long playerId, Map<Integer, Long> addItemMap, String addType) {
+    public CommonResult<ItemOperationResult> addItems(long playerId, Map<Integer, Long> addItemMap, String addType) {
         List<Item> itemList = new ArrayList<>();
         for (Map.Entry<Integer, Long> entry : addItemMap.entrySet()) {
             itemList.add(new Item(entry.getKey(), entry.getValue()));
@@ -76,10 +73,11 @@ public class PlayerPackService implements IPlayerRegister {
     /**
      * 添加多个道具
      */
-    public CommonResult<Long> addItems(long playerId, List<Item> addItemList, String addType) {
-        CommonResult<Long> result = new CommonResult<>(Code.FAIL);
+    public CommonResult<ItemOperationResult> addItems(long playerId, List<Item> addItemList, String addType) {
+        CommonResult<ItemOperationResult> result = new CommonResult<>(Code.FAIL);
         long addGold = 0;
         long addDiamond = 0;
+        result.data = new ItemOperationResult();
         List<Item> itemList = new ArrayList<>();
         for (Item item : addItemList) {
             int itemId = item.getId();
@@ -100,23 +98,25 @@ public class PlayerPackService implements IPlayerRegister {
 
         if (addGold > 0 || addDiamond > 0) {
             CommonResult<Player> goldAndDiamond =
-                corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, null);
+                    corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, null);
             if (!goldAndDiamond.success()) {
                 result.code = goldAndDiamond.code;
                 return result;
             }
+            result.data.setDiamond(goldAndDiamond.data.getDiamond());
+            result.data.setGoldNum(goldAndDiamond.data.getGold());
         }
 
         if (itemList.isEmpty()) {
             result.code = Code.SUCCESS;
             return result;
         }
-
+        PlayerPack playerPack = null;
         String key = getLockKey(playerId);
         Map<EItemUseStrategy, List<Item>> autoActivateMap = new HashMap<>(itemList.size());
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         try {
-            PlayerPack playerPack = getFromAllDB(playerId);
+            playerPack = getFromAllDB(playerId);
             if (playerPack == null) {
                 playerPack = new PlayerPack();
             }
@@ -134,7 +134,6 @@ public class PlayerPackService implements IPlayerRegister {
                     playerPack.addItem(itemId, item.getItemCount(), itemCfg.getProp());
                 }
             }
-
             redisTemplate.opsForHash().put(tableName, playerId, playerPack);
             result.code = Code.SUCCESS;
         } catch (Exception e) {
@@ -143,15 +142,23 @@ public class PlayerPackService implements IPlayerRegister {
             redisLock.unlock(key);
         }
         if (result.success()) {
+            if (playerPack != null) {
+                Map<Integer, Long> changeAfterNum = new HashMap<>(itemList.size());
+                for (Item item : itemList) {
+                    long count = playerPack.getItemCount(item.getId());
+                    changeAfterNum.put(item.getId(), count);
+                }
+                result.data.setChangeEndItemNum(changeAfterNum);
+            }
             if (!autoActivateMap.isEmpty()) {
                 for (Map.Entry<EItemUseStrategy, List<Item>> entry : autoActivateMap.entrySet()) {
                     entry.getKey().getUseStrategy().autoUse(playerId, entry.getValue());
                 }
             }
             Map<Integer, Long> addTempItemMap =
-                itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getItemCount()),
-                    HashMap::putAll);
-            result.data = coreLogger.addItems(playerId, addTempItemMap, addType);
+                    itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getItemCount()),
+                            HashMap::putAll);
+            coreLogger.addItems(playerId, addTempItemMap, addType);
         }
         return result;
     }
@@ -164,21 +171,21 @@ public class PlayerPackService implements IPlayerRegister {
      * @param remove   移除的道具
      * @return 最新的背包结果
      */
-    public CommonResult<Long> removeItem(long playerId, Item remove, String addType) {
+    public CommonResult<ItemOperationResult> removeItem(long playerId, Item remove, String addType) {
         return removeItem(playerId, remove.getId(), remove.getItemCount(), addType);
     }
 
     /**
      * 移除道具
      */
-    public CommonResult<Long> removeItem(long playerId, int id, long count, String addType) {
+    public CommonResult<ItemOperationResult> removeItem(long playerId, int id, long count, String addType) {
         return removeItem(playerId, null, id, count, addType);
     }
 
     /**
      * 移除道具
      */
-    public CommonResult<Long> removeItem(long playerId, Integer girdId, int id, long count, String addType) {
+    public CommonResult<ItemOperationResult> removeItem(long playerId, Integer girdId, int id, long count, String addType) {
         Player player = corePlayerService.get(playerId);
         return removeItem(player, Collections.singletonList(new Item(girdId, id, count)), addType);
     }
@@ -188,7 +195,7 @@ public class PlayerPackService implements IPlayerRegister {
      *
      * @param player 玩家信息
      */
-    public CommonResult<Long> removeItems(Player player, Map<Integer, Long> removeItemMap, String addType) {
+    public CommonResult<ItemOperationResult> removeItems(Player player, Map<Integer, Long> removeItemMap, String addType) {
         List<Item> itemList = new ArrayList<>();
         for (Map.Entry<Integer, Long> entry : removeItemMap.entrySet()) {
             itemList.add(new Item(entry.getKey(), entry.getValue()));
@@ -201,13 +208,14 @@ public class PlayerPackService implements IPlayerRegister {
      *
      * @param player 玩家信息
      */
-    public CommonResult<Long> removeItem(Player player, List<Item> removeItemList, String addType) {
-        CommonResult<Long> result = new CommonResult<>(Code.NOT_ENOUGH_ITEM);
+    public CommonResult<ItemOperationResult> removeItem(Player player, List<Item> removeItemList, String addType) {
+        CommonResult<ItemOperationResult> result = new CommonResult<>(Code.NOT_ENOUGH_ITEM);
         int code = checkHasItems(player, removeItemList);
         if (code != Code.SUCCESS) {
             result.code = code;
             return result;
         }
+        result.data = new ItemOperationResult();
         long deductGoldV = 0;
         long deductDiamondV = 0;
         long playerId = player.getId();
@@ -281,6 +289,8 @@ public class PlayerPackService implements IPlayerRegister {
                     result.code = removeResult.code;
                     return result;
                 }
+                result.data.setDiamond(removeResult.data.getDiamond());
+                result.data.setDiamond(removeResult.data.getGold());
             }
             if (packItemList.isEmpty()) {
                 result.code = Code.SUCCESS;
@@ -288,6 +298,12 @@ public class PlayerPackService implements IPlayerRegister {
             }
             redisTemplate.opsForHash().put(tableName, playerId, playerPack);
             result.code = Code.SUCCESS;
+            //放入最新的道具信息
+            Map<Integer, Long> changeAfterNum = new HashMap<>();
+            for (Item item : packItemList) {
+                changeAfterNum.put(item.getId(), playerPack.getItemCount(item.getId()));
+            }
+            result.data.setChangeEndItemNum(changeAfterNum);
             return result;
         } catch (Exception e) {
             log.error("移除道具，保存 playerPack 失败 playerId={}", playerId, e);
@@ -371,13 +387,13 @@ public class PlayerPackService implements IPlayerRegister {
                                       String addType) {
         CommonResult<Void> result = new CommonResult<>(Code.FAIL);
 
-        CommonResult<Long> removeResult = removeItem(playerId, girdId, useItemId, useItemCount, addType);
+        CommonResult<ItemOperationResult> removeResult = removeItem(playerId, girdId, useItemId, useItemCount, addType);
         if (!removeResult.success()) {
             result.code = removeResult.code;
             return result;
         }
 
-        CommonResult<Long> addResult = addItems(playerId, addItemsMap, addType);
+        CommonResult<ItemOperationResult> addResult = addItems(playerId, addItemsMap, addType);
         if (!addResult.success()) {
             //添加失败，要将之前扣除的道具加回去
             addItem(playerId, useItemId, useItemCount, "fail.rollback");

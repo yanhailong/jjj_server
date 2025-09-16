@@ -185,7 +185,7 @@ public class MailService implements IRedDotService {
         }
 
         long count = mailDao.batchUpdateMailStatus(mailIds, GameConstant.Mail.STATUS_GET_ITEMS);
-        CommonResult<Long> addItemsResult = playerPackService.addItems(playerId, map, "getAllMailsItems");
+        CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(playerId, map, "getAllMailsItems");
         if (!addItemsResult.success()) {
             log.debug("一键领取失败 playerId = {},code = {}", playerId, addItemsResult.code);
             result.code = addItemsResult.code;

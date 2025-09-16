@@ -300,13 +300,10 @@ public class BaseLogger {
      * @param playerId
      * @param addType
      */
-    public long addItems(long playerId, Map<Integer, Long> map, String addType) {
-        long snowflakeNextId = IdUtil.getSnowflakeNextId();
+    public void addItems(long playerId, Map<Integer, Long> map, String addType) {
         try {
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
-            json.put("operationId", snowflakeNextId);
-
             JSONArray jsonArray = new JSONArray();
             map.forEach((k, v) -> {
                 JSONObject jsonObject = new JSONObject();
@@ -321,7 +318,6 @@ public class BaseLogger {
         } catch (Exception e) {
             log.error("", e);
         }
-        return snowflakeNextId;
     }
 
     /**
