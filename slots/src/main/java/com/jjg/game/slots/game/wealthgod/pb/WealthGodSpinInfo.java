@@ -21,12 +21,6 @@ public class WealthGodSpinInfo {
     @ProtoDesc("图标变化信息列表")
     public List<WealthGodIconChangeInfo> iconChangeInfoList;
 
-    @ProtoDesc("免费旋转数据")
-    public WealthGodSpinInfo freeSpin;
-
-    @ProtoDesc("获得的奖池金额")
-    public long jackpotValue;
-
     public List<Integer> getIconList() {
         return iconList;
     }
@@ -51,11 +45,4 @@ public class WealthGodSpinInfo {
         this.iconChangeInfoList = iconChangeInfoList;
     }
 
-    public WealthGodSpinInfo getFreeSpin() {
-        return freeSpin;
-    }
-
-    public void setFreeSpin(WealthGodSpinInfo freeSpin) {
-        this.freeSpin = freeSpin;
-    }
 }

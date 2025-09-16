@@ -3,16 +3,23 @@ package com.jjg.game.slots.game.wealthgod.data;
 import com.jjg.game.slots.data.GameRunInfo;
 import com.jjg.game.slots.game.wealthgod.pb.WealthGodSpinInfo;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 财神游戏
  */
 public class WealthGodGameRunInfo extends GameRunInfo<WealthGodPlayerGameData> {
 
     /**
-     * 旋转的结果
+     * 所有的免费旋转的结果
      */
-    private WealthGodSpinInfo spinInfo;
+    private List<WealthGodSpinInfo> spinInfo = new ArrayList<>();
 
+    /**
+     * 获得的奖池金额
+     */
+    public long jackpotValue;
     /**
      * 玩家获取的奖池id
      */
@@ -22,13 +29,6 @@ public class WealthGodGameRunInfo extends GameRunInfo<WealthGodPlayerGameData> {
         super(code, playerId);
     }
 
-    public WealthGodSpinInfo getSpinInfo() {
-        return spinInfo;
-    }
-
-    public void setSpinInfo(WealthGodSpinInfo spinInfo) {
-        this.spinInfo = spinInfo;
-    }
 
     public int getJackpotId() {
         return jackpotId;
@@ -36,5 +36,21 @@ public class WealthGodGameRunInfo extends GameRunInfo<WealthGodPlayerGameData> {
 
     public void setJackpotId(int jackpotId) {
         this.jackpotId = jackpotId;
+    }
+
+    public List<WealthGodSpinInfo> getSpinInfo() {
+        return spinInfo;
+    }
+
+    public void setSpinInfo(List<WealthGodSpinInfo> spinInfo) {
+        this.spinInfo = spinInfo;
+    }
+
+    public long getJackpotValue() {
+        return jackpotValue;
+    }
+
+    public void setJackpotValue(long jackpotValue) {
+        this.jackpotValue = jackpotValue;
     }
 }

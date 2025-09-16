@@ -1,7 +1,6 @@
-package com.jjg.game.slots.game.wealthgod.manager;
+package com.jjg.game.slots.game.superstar.manager;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
@@ -10,91 +9,110 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
-import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.SpecialResultLibCfg;
 import com.jjg.game.slots.constant.SlotsConst;
-import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.game.wealthgod.WealthGodConstant;
-import com.jjg.game.slots.game.wealthgod.dao.WealthGodGameDataDao;
-import com.jjg.game.slots.game.wealthgod.dao.WealthGodResultLibDao;
-import com.jjg.game.slots.game.wealthgod.data.WealthGodAwardLineInfo;
-import com.jjg.game.slots.game.wealthgod.data.WealthGodGameRunInfo;
-import com.jjg.game.slots.game.wealthgod.data.WealthGodPlayerGameData;
-import com.jjg.game.slots.game.wealthgod.data.WealthGodResultLib;
-import com.jjg.game.slots.game.wealthgod.pb.WealthGodIconChangeInfo;
-import com.jjg.game.slots.game.wealthgod.pb.WealthGodResultLineInfo;
-import com.jjg.game.slots.game.wealthgod.pb.WealthGodSpinInfo;
+import com.jjg.game.slots.game.superstar.SuperStarConstant;
+import com.jjg.game.slots.game.superstar.dao.SuperStarGameDataDao;
+import com.jjg.game.slots.game.superstar.dao.SuperStarResultLibDao;
+import com.jjg.game.slots.game.superstar.data.SuperStarAwardLineInfo;
+import com.jjg.game.slots.game.superstar.data.SuperStarGameRunInfo;
+import com.jjg.game.slots.game.superstar.data.SuperStarPlayerGameData;
+import com.jjg.game.slots.game.superstar.data.SuperStarResultLib;
+import com.jjg.game.slots.game.superstar.pb.SuperStarResultLineInfo;
+import com.jjg.game.slots.game.superstar.pb.SuperStarSpinInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
 /**
- *
+ * 超级明星游戏管理器
  */
 @Component
-public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlayerGameData, WealthGodResultLib> {
+public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlayerGameData, SuperStarResultLib> {
 
     @Autowired
-    private WealthGodGenerateManager generateManager;
+    private SuperStarResultLibDao superStarResultLibDao;
     @Autowired
-    private WealthGodResultLibDao wealthGodResultLibDao;
+    private SuperStarGameDataDao superStarGameDataDao;
     @Autowired
-    private WealthGodGameDataDao gameDataDao;
-    @Autowired
-    private SlotsPoolDao slotsPoolDao;
+    private SuperStarGenerateManager superStarGenerateManager;
 
-    public WealthGodGameManager() {
-        super(WealthGodPlayerGameData.class, WealthGodResultLib.class);
+    public SuperStarGameManager() {
+        super(SuperStarPlayerGameData.class, SuperStarResultLib.class);
         this.log = LoggerFactory.getLogger(getClass());
     }
 
     @Override
     public void init() {
-        log.info("启动财神游戏管理器...");
+        log.info("SuperStarGameManager");
         super.init();
+        //        Map<Integer, Integer> countMap = new HashMap<>();
+//        countMap.put(1, 5000);
+//        countMap.put(2, 5000);
+//        countMap.put(3, 5000);
+//        addGenerateLibEvent(countMap);
+    }
+
+    @Override
+    protected SuperStarResultLibDao getResultLibDao() {
+        return superStarResultLibDao;
+    }
+
+    @Override
+    protected SuperStarGameDataDao getGameDataDao() {
+        return superStarGameDataDao;
+    }
+
+    @Override
+    protected SuperStarGenerateManager getGenerateManager() {
+        return superStarGenerateManager;
     }
 
     /**
      * 玩家离线保存gameDataDto
+     *
+     * @param gameData
      */
     @Override
-    protected void offlineSaveGameDataDto(WealthGodPlayerGameData gameData) {
+    protected void offlineSaveGameDataDto(SuperStarPlayerGameData gameData) {
 
     }
 
     @Override
     public int getGameType() {
-        return CoreConst.GameType.WEALTH_GOD;
+        return CoreConst.GameType.SUPER_STAR;
     }
 
-    @Override
-    protected WealthGodResultLibDao getResultLibDao() {
-        return this.wealthGodResultLibDao;
-    }
-
-    @Override
-    protected WealthGodGameDataDao getGameDataDao() {
-        return this.gameDataDao;
-    }
-
-    @Override
-    protected WealthGodGenerateManager getGenerateManager() {
-        return this.generateManager;
+    /**
+     * 获取奖池
+     */
+    public SuperStarGameRunInfo getPoolValue(PlayerController playerController, long stake) {
+        SuperStarGameRunInfo gameRunInfo = new SuperStarGameRunInfo(Code.SUCCESS, playerController.playerId());
+        try {
+            gameRunInfo.setMini(getPoolValueByPoolId(SuperStarConstant.Common.MINI_POOL_ID, stake));
+            gameRunInfo.setMinor(getPoolValueByPoolId(SuperStarConstant.Common.MINOR_POOL_ID, stake));
+            gameRunInfo.setMajor(getPoolValueByPoolId(SuperStarConstant.Common.MAJOR_POOL_ID, stake));
+            gameRunInfo.setGrand(getPoolValueByPoolId(SuperStarConstant.Common.GRAND_POOL_ID, stake));
+        } catch (Exception e) {
+            log.error("", e);
+            gameRunInfo.setCode(Code.EXCEPTION);
+        }
+        return gameRunInfo;
     }
 
     /**
      * 开始游戏
      */
-    public WealthGodGameRunInfo playerStartGame(PlayerController playerController, long betValue) {
+    public SuperStarGameRunInfo playerStartGame(PlayerController playerController, long betValue) {
         //获取玩家游戏数据
-        WealthGodPlayerGameData playerGameData = getPlayerGameData(playerController);
+        SuperStarPlayerGameData playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
             log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-            return new WealthGodGameRunInfo(Code.NOT_FOUND, playerController.playerId());
+            return new SuperStarGameRunInfo(Code.NOT_FOUND, playerController.playerId());
         }
         playerGameData.setLastActiveTime(TimeHelper.nowInt());
         return startGame(playerController, playerGameData, betValue);
@@ -103,18 +121,15 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
     /**
      * 开始游戏
      */
-    public WealthGodGameRunInfo startGame(PlayerController playerController, WealthGodPlayerGameData playerGameData, long betValue) {
-        WealthGodGameRunInfo gameRunInfo = new WealthGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
+    public SuperStarGameRunInfo startGame(PlayerController playerController, SuperStarPlayerGameData playerGameData, long betValue) {
+        SuperStarGameRunInfo gameRunInfo = new SuperStarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
-            gameRunInfo.setBeforeGold(player.getGold());
+            gameRunInfo.setAfterGold(player.getGold());
             if (playerController != null) {
                 playerController.setPlayer(player);
             }
-
-            //房间配置id
-            int roomCfgId = player.getRoomCfgId();
             //旋转一次
             spin(gameRunInfo, playerGameData, betValue);
             //标准池
@@ -128,28 +143,20 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
                         return gameRunInfo;
                     }
                 }
-                int jackpotId = gameRunInfo.getJackpotId();
+                int jackpotId = gameRunInfo.getSpinInfo().getJackpotId();
                 //检测奖池奖励
                 if (jackpotId > 0) {
-                    long pool = calculatePool(roomCfgId, jackpotId);
+                    long pool = getPoolValueByPoolId(jackpotId, betValue);
                     if (pool > 0) {
                         addGold += pool;
                         slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), pool, "SLOTS_JACKPOT_REWARD");
                         //记录发奖金额
-                        gameRunInfo.setJackpotValue(pool);
+                        gameRunInfo.getSpinInfo().jackpotValue = pool;
                     }
                 }
                 gameRunInfo.setAllWinGold(addGold);
             }
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
-
-            //玩家当前金币
-            player = slotsPlayerService.get(playerGameData.playerId());
-            gameRunInfo.setAfterGold(player.getGold());
-            if (playerController != null) {
-                playerController.setPlayer(player);
-            }
-
             //添加大奖展示id
             int times = (int) (gameRunInfo.getAllWinGold() / betValue);
             log.debug("计算出获奖倍数 times = {}", times);
@@ -166,7 +173,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
     /**
      * 普通正常流程
      */
-    private void spin(WealthGodGameRunInfo gameRunInfo, WealthGodPlayerGameData playerGameData, long betValue) {
+    private void spin(SuperStarGameRunInfo gameRunInfo, SuperStarPlayerGameData playerGameData, long betValue) {
         log.debug("开始正常流程 playerId = {},betValue = {},", playerGameData.playerId(), betValue);
         //获取倍场配置
         BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(playerGameData.getRoomCfgId());
@@ -208,11 +215,10 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             return;
         }
         libType = resultLibTypeResult.data;
-        libType = 3;
         log.debug("获取到结果库类型 playerId = {},libType = {}", playerGameData.playerId(), libType);
 
         int sectionIndex = -1;
-        WealthGodResultLib resultLib = null;
+        SuperStarResultLib resultLib = null;
 
         for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
             //获取倍数区间
@@ -222,7 +228,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             }
 
             //根据倍数区间从结果库里面随机获取一条
-            resultLib = wealthGodResultLibDao.getLibBySectionIndex(libType, resultLibSectionResult.data);
+            resultLib = superStarResultLibDao.getLibBySectionIndex(libType, resultLibSectionResult.data);
             if (resultLib == null) {
                 log.debug("获取结果库失败 gameType = {},modelId = {},libType = {},sectionIndex = {},retry = {}", this.gameType, libCfgResult.data.getModelId(), libType, resultLibSectionResult.data, i);
                 continue;
@@ -234,7 +240,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
         //如果前面没有获取到lib，则获取一个无奖励的结果
         if (resultLib == null) {
             sectionIndex = this.defaultRewardSectionIndex;
-            resultLib = wealthGodResultLibDao.getLibBySectionIndex(WealthGodConstant.SpecialMode.TYPE_NORMAL, this.defaultRewardSectionIndex);
+            resultLib = superStarResultLibDao.getLibBySectionIndex(SuperStarConstant.Common.SPECIAL_MODE_TYPE_NORMAL, this.defaultRewardSectionIndex);
             log.debug("前面获取结果库失败，所以找一个不中奖的结果返回 gameType = {},libType = {}", this.gameType, libType);
         }
         if (resultLib == null) {
@@ -252,12 +258,11 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
         playerGameData.setOneBetScore(betScoreArr[0]);
         playerGameData.setAllBetScore(betScoreArr[1]);
         gameRunInfo.setStake(betValue);
-        //所有的spin数据
-        List<WealthGodSpinInfo> infoList = new ArrayList<>();
-        respinAnalysis(resultLib, playerGameData.getOneBetScore(), infoList);
-        gameRunInfo.setSpinInfo(infoList);
+        //记录spin数据
+        SuperStarSpinInfo spinInfo = spinAnalysis(resultLib, playerGameData.getOneBetScore());
         //记录奖池id
-        gameRunInfo.setJackpotId(resultLib.getJackpotId());
+        spinInfo.setJackpotId(resultLib.getJackpotId());
+        gameRunInfo.setSpinInfo(spinInfo);
         if (sectionIndex > 0) {
             playerGameData.setLastSectionIndex(sectionIndex);
         }
@@ -267,15 +272,15 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
     }
 
     /**
-     * 重转数据解析
+     * 旋转数据解析
      */
-    public void respinAnalysis(WealthGodResultLib resultLib, long oneBetScore, List<WealthGodSpinInfo> resultList) {
-        WealthGodSpinInfo spinInfo = new WealthGodSpinInfo();
+    public SuperStarSpinInfo spinAnalysis(SuperStarResultLib resultLib, long oneBetScore) {
+        SuperStarSpinInfo spinInfo = new SuperStarSpinInfo();
         //记录中奖信息
-        List<WealthGodAwardLineInfo> awardLineInfoList = resultLib.getAwardLineInfoList();
+        List<SuperStarAwardLineInfo> awardLineInfoList = resultLib.getAwardLineInfoList();
         if (awardLineInfoList != null && !awardLineInfoList.isEmpty()) {
-            List<WealthGodResultLineInfo> resultLineInfos = awardLineInfoList.stream().map(lineInfo -> {
-                WealthGodResultLineInfo resultLineInfo = new WealthGodResultLineInfo();
+            List<SuperStarResultLineInfo> resultLineInfos = awardLineInfoList.stream().map(lineInfo -> {
+                SuperStarResultLineInfo resultLineInfo = new SuperStarResultLineInfo();
                 resultLineInfo.id = lineInfo.getLineId();
                 resultLineInfo.iconIndex = getIconIndexsByLineId(lineInfo.getLineId()).subList(0, lineInfo.getSameCount());
                 resultLineInfo.winGold = oneBetScore * lineInfo.getBaseTimes();
@@ -284,68 +289,13 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             }).toList();
             spinInfo.setResultLineInfoList(resultLineInfos);
         }
-        List<Integer> iconList = Arrays.stream(resultLib.getSource())
+        List<Integer> iconList = Arrays.stream(resultLib.getIconArr())
                 .filter(v -> v != 0)
                 .boxed()
                 .toList();
         //记录图标信息
         spinInfo.setIconList(iconList);
-        //图标变化信息
-        Map<Integer, Integer> iconChangeMap = resultLib.getIconChangeMap();
-        List<WealthGodIconChangeInfo> iconChangeInfoList = new ArrayList<>();
-        if (iconChangeMap != null && !iconChangeMap.isEmpty()) {
-            iconChangeMap.forEach((index, icon) -> {
-                WealthGodIconChangeInfo changeInfo = new WealthGodIconChangeInfo();
-                changeInfo.setIndex(index);
-                changeInfo.setIcon(icon);
-                iconChangeInfoList.add(changeInfo);
-            });
-            //记录图标变化
-            spinInfo.setIconChangeInfoList(iconChangeInfoList);
-        }
-        resultList.add(spinInfo);
-        List<SpecialAuxiliaryInfo> specialAuxiliaryInfos = resultLib.getSpecialAuxiliaryInfoList();
-        if (specialAuxiliaryInfos != null && !specialAuxiliaryInfos.isEmpty()) {
-            SpecialAuxiliaryInfo specialAuxiliaryInfo = specialAuxiliaryInfos.getFirst();
-            List<JSONObject> freeGames = specialAuxiliaryInfo.getFreeGames();
-            if (freeGames != null && !freeGames.isEmpty()) {
-                JSONObject gamesFirst = freeGames.getFirst();
-                WealthGodResultLib temp = JSONObject.parseObject(gamesFirst.toJSONString(), WealthGodResultLib.class);
-                if (temp != null) {
-                    respinAnalysis(temp, oneBetScore, resultList);
-                }
-            }
-        }
+        return spinInfo;
     }
 
-    /**
-     * 计算奖池的金额
-     */
-    public long calculatePool(int roomConfigId, int poolId) {
-        //奖池配置
-        PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
-        if (poolCfg == null) {
-            return 0L;
-        }
-        Number pool = slotsPoolDao.getBigPoolByRoomCfgId(getGameType(), roomConfigId);
-        if (pool != null) {
-            log.warn("财神计算奖池奖励金额为:[{}]!", pool.longValue());
-        }
-
-        //TODO:发奖
-        return 0L;
-    }
-
-    public long getPoolValue(PlayerController playerController) {
-        //玩家当前金币
-        Player player = playerController.getPlayer();
-        //房间配置id
-        int roomCfgId = player.getRoomCfgId();
-        Number pool = slotsPoolDao.getBigPoolByRoomCfgId(getGameType(), roomCfgId);
-        if (pool != null) {
-            return pool.longValue();
-
-        }
-        return 0L;
-    }
 }

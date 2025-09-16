@@ -5,6 +5,7 @@ import com.jjg.game.slots.data.SlotsResultLib;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,6 +31,11 @@ public class WealthGodResultLib extends SlotsResultLib<WealthGodAwardLineInfo> {
      * v=变化后的icon
      */
     private Map<Integer, Integer> iconChangeMap;
+
+    /**
+     * 元图标数组
+     */
+    private int[] source;
 
     public SpecialAuxiliaryInfo getWaitFree() {
         return waitFree;
@@ -60,6 +66,14 @@ public class WealthGodResultLib extends SlotsResultLib<WealthGodAwardLineInfo> {
             this.iconChangeMap = new HashMap<>();
         }
         this.iconChangeMap.put(index, icon);
+    }
+
+    public int[] getSource() {
+        return source;
+    }
+
+    public void setSource(int[] source) {
+        this.source = Arrays.copyOf(source, source.length);
     }
 
     @Override
