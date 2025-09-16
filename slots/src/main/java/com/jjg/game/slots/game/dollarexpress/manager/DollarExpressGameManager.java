@@ -648,7 +648,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @return
      */
     private DollarExpressGameRunInfo allBoardFree(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData) {
-        CommonResult<DollarExpressResultLib> libResult = freeGetLib(playerGameData);
+        CommonResult<DollarExpressResultLib> libResult = freeGetLib(playerGameData,DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE);
         if(!libResult.success()){
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;

@@ -200,7 +200,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
      * @return
      */
     private MahjiongWinGameRunInfo free(MahjiongWinGameRunInfo gameRunInfo, MahjiongWinPlayerGameData playerGameData) {
-        CommonResult<MahjiongWinResultLib> libResult = freeGetLib(playerGameData);
+        CommonResult<MahjiongWinResultLib> libResult = freeGetLib(playerGameData,MahjiongWinConstant.SpecialMode.FREE);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;

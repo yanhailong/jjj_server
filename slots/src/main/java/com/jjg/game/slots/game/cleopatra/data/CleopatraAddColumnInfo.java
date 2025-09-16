@@ -13,6 +13,8 @@ public class CleopatraAddColumnInfo extends AwardLineInfo {
     private int[] arr;
     //中奖图标的坐标
     private Map<Integer, Set<Integer>> winIconIndexMap;
+    //奖池图标坐标
+    private Set<Integer> poolIconIndexSet;
 
     public int[] getArr() {
         return arr;
@@ -28,5 +30,13 @@ public class CleopatraAddColumnInfo extends AwardLineInfo {
 
     public void setWinIconIndexMap(Map<Integer, Set<Integer>> winIconIndexMap) {
         this.winIconIndexMap = winIconIndexMap;
+    }
+
+    public Set<Integer> getPoolIconIndexSet() {
+        return poolIconIndexSet;
+    }
+
+    public void setPoolIconIndexSet(Set<Integer> poolIconIndexSet) {
+        this.poolIconIndexSet = poolIconIndexSet;
     }
 }

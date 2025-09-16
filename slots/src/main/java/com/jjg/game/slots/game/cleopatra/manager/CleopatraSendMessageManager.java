@@ -149,8 +149,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
 
         List<CleopatraAddColumInfo> list = new ArrayList<>();
 
-        AddColumnConfig addColumnConfig = generateManager.getAddColumnInfoMap().get(lib.getAwardLineInfoList().size());
-
+        int winCount = 1;
         for(CleopatraAddColumnInfo info : lib.getAwardLineInfoList()){
             CleopatraAddColumInfo addColumInfo = new CleopatraAddColumInfo();
             addColumInfo.icons = Arrays.stream(info.getArr()).boxed().collect(Collectors.toList());
@@ -164,7 +163,13 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
                     addColumInfo.winIconInfoList.add(winIconInfo);
                 });
             }
+            AddColumnConfig addColumnConfig = generateManager.getAddColumnInfoMap().get(winCount);
             addColumInfo.times = addColumnConfig.getTimes();
+            winCount++;
+
+            if(info.getPoolIconIndexSet() != null && !info.getPoolIconIndexSet().isEmpty()){
+                addColumInfo.poolIconIndexs = new ArrayList<>(info.getPoolIconIndexSet());
+            }
             list.add(addColumInfo);
         }
         return list;

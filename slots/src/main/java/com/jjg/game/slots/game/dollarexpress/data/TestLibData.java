@@ -7,6 +7,7 @@ package com.jjg.game.slots.game.dollarexpress.data;
 public class TestLibData {
     private int[] icons;
     private int libType;
+    private Object data;
 
     public int[] getIcons() {
         return icons;
@@ -22,5 +23,13 @@ public class TestLibData {
 
     public void setLibType(int libType) {
         this.libType = libType;
+    }
+
+    public Object getData() {
+        return data;
+    }
+
+    public void setData(Object data) {
+        this.data = data;
     }
 }

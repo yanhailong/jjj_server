@@ -18,4 +18,6 @@ public class CleopatraAddColumInfo {
     public List<CleopatraWinIconInfo> winIconInfoList;
     @ProtoDesc("倍率")
     public int times;
+    @ProtoDesc("奖池id坐标")
+    public List<Integer> poolIconIndexs;
 }

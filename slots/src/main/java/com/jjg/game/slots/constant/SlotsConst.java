@@ -88,4 +88,8 @@ public interface SlotsConst {
         //不需要走baseline
         int NOT_NEED_BASE_LINE = 0;
     }
+
+    interface GM{
+
+    }
 }

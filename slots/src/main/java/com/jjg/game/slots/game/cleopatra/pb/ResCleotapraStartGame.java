@@ -36,6 +36,8 @@ public class ResCleotapraStartGame extends AbstractResponse {
     public long rewardPoolValue;
     @ProtoDesc("奖池奖励后，当前奖池的值")
     public long poolValue;
+    @ProtoDesc("奖池id坐标")
+    public List<Integer> poolIconIndexs;
 
     public ResCleotapraStartGame(int code) {
         super(code);
