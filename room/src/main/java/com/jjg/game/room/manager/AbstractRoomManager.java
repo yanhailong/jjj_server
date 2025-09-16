@@ -18,6 +18,7 @@ import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.ReflectUtils;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
@@ -92,12 +93,15 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     protected FriendRoomBillHistoryDao friendRoomBillHistoryDao;
     @Autowired
     protected ActivityManager activityManager;
+    @Autowired
+    protected GameEventManager gameEventManager;
     // context
     protected ApplicationContext applicationContext;
     // 房间计时器(线程池)
     protected RoomTimerCenter roomTimerCenter;
     // 房间管理器timer,多线程，非房间线程，如果需要调用房间相关的逻辑，需要抛到对应的房间线程
     protected TimerCenter roomManagerTimer;
+    @Autowired
     protected MailService mailService;
     // 不同类型的房间roomDao
     protected Map<Class<? extends Room>, AbstractRoomDao<? extends Room, ? extends RoomPlayer>> roomDaoMap
@@ -1158,5 +1162,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
     public MailService getMailService() {
         return mailService;
+    }
+
+    public GameEventManager getGameEventManager() {
+        return gameEventManager;
     }
 }

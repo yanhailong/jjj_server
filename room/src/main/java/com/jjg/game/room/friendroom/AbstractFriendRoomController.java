@@ -373,6 +373,8 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         notify.bankerPlayerId = room.roomBankerId();
         notify.bankerPredicateCostGold = room.roomBankerResetGold();
         notify.roomCreatorPredicateCostGold = room.getPredictCostGoldNum();
+        // 游戏交易道具ID
+        notify.gameTransactionItemId = gameController.getGameTransactionItemId();
         log.debug("广播变化数据: {}", JSON.toJSONString(notify));
         broadcastToPlayers(RoomMessageBuilder.newBuilder().setData(notify).toAllPlayer());
     }
@@ -510,7 +512,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         GamePlayer gamePlayer = gameController.getGameDataVo().getGamePlayer(banker);
         ResEditBankerPredicateGold res = new ResEditBankerPredicateGold(Code.SUCCESS);
         res.newlyPredicateGold = newlyBankerGold;
-        res.bankerResetGold = gameController.getItemNum(gamePlayer.getId());
+        res.bankerResetGold = gameController.getTransactionItemNum(gamePlayer.getId());
         playerController.send(res);
         return resCode;
     }

@@ -27,4 +27,7 @@ public class NotifyFriendRoomDataChange extends AbstractNotice {
 
     @ProtoDesc("庄家准备金")
     public long bankerPredicateCostGold;
+
+    @ProtoDesc("游戏使用交易货币ID")
+    public int gameTransactionItemId;
 }

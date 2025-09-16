@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.dao.ActivityDao;
 import com.jjg.game.activity.common.dao.ActivityDetailDao;
+import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.message.bean.ActivityInfo;
@@ -20,20 +21,31 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.condition.ConditionCheckService;
+import com.jjg.game.core.base.drop.ConditionProgressDao;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEvent;
+import com.jjg.game.core.base.gameevent.GameEventListener;
+import com.jjg.game.core.base.gameevent.GameEventManager;
+import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
+import com.jjg.game.sampledata.bean.ConditionCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,7 +55,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * @date 2025/9/3 18:16
  */
 @Component
-public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess, GmListener {
+public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess, GmListener, GameEventListener,
+    ConfigExcelChangeListener {
     private static final Logger log = LoggerFactory.getLogger(ActivityManager.class);
     /**
      * 定时器中心，用于添加活动开始/结束的定时任务
@@ -57,6 +70,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 活动详细数据 DAO（活动子项配置存储）
      */
     private final ActivityDetailDao activityDetailDao;
+    // 玩家消息dao
+    private PlayerActivityDao playerActivityDao;
     /**
      * 集群系统，节点间消息广播
      */
@@ -86,6 +101,14 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 活动 id -> 活动详细配置
      */
     private Map<Long, Map<Integer, BaseCfgBean>> activityDetailInfo = new ConcurrentHashMap<>();
+    // 事件类型 => 活动ID列表
+    private final Map<EGameEventType, List<Integer>> eventTypeListMap = new HashMap<>();
+    @Autowired
+    private GameEventManager gameEventManager;
+    @Autowired
+    private ConditionCheckService conditionCheckService;
+    @Autowired
+    private ConditionProgressDao conditionProgressDao;
     /**
      * 开服时间（毫秒）
      */
@@ -135,7 +158,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             }
             long activityInfoId = data.getId();
             //获取详细配置信息
-            Map<Integer, BaseCfgBean> activityDetailInfos = activityDetailDao.getActivityDetailInfos(activityInfoId, data.getType());
+            Map<Integer, BaseCfgBean> activityDetailInfos = activityDetailDao.getActivityDetailInfos(activityInfoId,
+                data.getType());
             if (CollectionUtil.isNotEmpty(activityDetailInfos)) {
                 tempActivityDetailInfo.put(activityInfoId, activityDetailInfos);
             }
@@ -153,7 +177,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 continue;
             }
             long activityInfoId = activityConfigCfg.getId();
-            Map<Integer, BaseCfgBean> loadedDetailData = data.getType().getController().loadDetailData(activityDetailInfo.get(activityInfoId));
+            Map<Integer, BaseCfgBean> loadedDetailData =
+                data.getType().getController().loadDetailData(activityDetailInfo.get(activityInfoId));
             if (CollectionUtil.isNotEmpty(loadedDetailData)) {
                 Iterator<Integer> iterator = loadedDetailData.keySet().iterator();
                 while (iterator.hasNext()) {
@@ -340,7 +365,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * @param value                增加值
      * @param additionalParameters 额外参数
      */
-    public void addPlayerActivityProgress(Player player, long activityTargetKey, long value, Object additionalParameters) {
+    public void addPlayerActivityProgress(Player player, long activityTargetKey, long value,
+                                          Object additionalParameters) {
         if (value <= 0) {
             return;
         }
@@ -360,7 +386,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     continue;
                 }
                 try {
-                    boolean canClaim = data.getType().getController().addPlayerProgress(playerId, data, value, additionalParameters);
+                    boolean canClaim = data.getType().getController().addPlayerProgress(playerId, data, value,
+                        additionalParameters);
                     if (canClaim) {
                         dataArrayList.add(data);
                     }
@@ -490,4 +517,78 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         return NodeType.HALL == NodeType.getNodeTypeByName(nodeConfig.getType()) && marsCurator.isMaster();
     }
 
+    @Override
+    public <T extends GameEvent> void handleEvent(T gameEvent) {
+        // 产生有效流水 需要检查是否能掉落道具
+        if (gameEvent.getGameEventType() == EGameEventType.PLAYER_BET) {
+            // 道具掉落检查
+            checkDropItem(gameEvent);
+        }
+    }
+
+    /**
+     * 检查道具掉落
+     */
+    private <T extends GameEvent> void checkDropItem(T gameEvent) {
+        if (gameEvent instanceof PlayerEffectiveFlowingEvent effectiveFlowingEvent) {
+            Player player = effectiveFlowingEvent.getPlayer();
+            // 检查道具掉落
+            List<Integer> activityIdList = eventTypeListMap.get(gameEvent.getGameEventType());
+            for (Integer activityId : activityIdList) {
+                ActivityConfigCfg activityConfigCfg = GameDataManager.getActivityConfigCfg(activityId);
+                if (activityConfigCfg == null) {
+                    continue;
+                }
+                // 不能为空
+                if (CollectionUtils.isEmpty(activityConfigCfg.getDropid())) {
+                    continue;
+                }
+                String conditionKey =
+                    // 玩家ID+有效流水type+活动ID
+                    player.getId() + ":" + effectiveFlowingEvent.getGameEventType().name() + ":" + activityId;
+                Number oldProgress = conditionProgressDao.getProgress(conditionKey);
+                long newProgress =
+                    ((Number) effectiveFlowingEvent.getEventChangeValue()).longValue() + oldProgress.longValue();
+                conditionProgressDao.addProgress(conditionKey, newProgress);
+                // 检查活动进度是否达到
+                conditionCheckService.isTriggerComplete(player, new HashMap<>());
+                // 获取当前活动的进度
+                List<Integer> dropIdList = activityConfigCfg.getDropid();
+                for (Integer dropGroupId : dropIdList) {
+
+                }
+            }
+        }
+    }
+
+    @Override
+    public List<EGameEventType> needMonitorEvents() {
+        List<EGameEventType> eventTypes = new ArrayList<>();
+        List<ActivityConfigCfg> activityConfigList = GameDataManager.getActivityConfigCfgList();
+        for (ActivityConfigCfg activityConfigCfg : activityConfigList) {
+            List<Integer> dropCondition = activityConfigCfg.getDropcondition();
+            if (CollectionUtils.isEmpty(dropCondition)) {
+                continue;
+            }
+            ConditionCfg conditionCfg = GameDataManager.getConditionCfg(dropCondition.getFirst());
+            if (conditionCfg == null) {
+                continue;
+            }
+            // 获取游戏事件类型
+            EGameEventType gameEventType = EGameEventType.gameEventType(conditionCfg.getTriggerEventType());
+            eventTypes.add(gameEventType);
+            // 添加事件缓存
+            eventTypeListMap.computeIfAbsent(gameEventType, k -> new ArrayList<>()).add(activityConfigCfg.getId());
+        }
+        return eventTypes;
+    }
+
+    @Override
+    public void initSampleCallbackCollector() {
+        // 添加活动表监听
+        addChangeSampleFileObserveWithCallBack(
+            ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this))
+            .addChangeSampleFileObserveWithCallBack(
+                ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this));
+    }
 }

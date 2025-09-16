@@ -8,6 +8,7 @@ import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
@@ -66,6 +67,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     protected long robotLastCreatedTime;
     // 房间状态
     private volatile ERoomState roomState;
+    // 游戏事件管理器
+    private GameEventManager gameEventManager;
 
     public AbstractRoomController(Class<? extends RoomPlayer> roomPlayerClazz, R room) {
         this.roomPlayerClazz = roomPlayerClazz;
@@ -377,6 +380,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         roomState = ERoomState.INIT_START;
         // 当前房间的线程实例，用于投递一些异步任务
         roomProcessor = roomManager.getProcessorExecutors().getProcessorById(room.getId());
+        // 游戏事件管理器
+        gameEventManager = roomManager.getGameEventManager();
         // 创建游戏控制器
         gameController = createGameController(roomCfg);
         if (gameController == null) {
@@ -700,5 +705,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     public RoomPlayer getRoomPlayer(long playerId) {
         return room.getRoomPlayers().get(playerId);
+    }
+
+    public GameEventManager getGameEventManager() {
+        return gameEventManager;
     }
 }
