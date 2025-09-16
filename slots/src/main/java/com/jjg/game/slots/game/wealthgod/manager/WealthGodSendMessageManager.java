@@ -10,6 +10,8 @@ import com.jjg.game.slots.game.wealthgod.data.WealthGodGameRunInfo;
 import com.jjg.game.slots.game.wealthgod.pb.res.ResWealthGodConfigInfo;
 import com.jjg.game.slots.game.wealthgod.pb.res.ResWealthGodPoolValue;
 import com.jjg.game.slots.game.wealthgod.pb.res.ResWealthGodStartGame;
+import com.jjg.game.slots.logger.SlotsLogger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -22,6 +24,8 @@ import java.util.List;
 public class WealthGodSendMessageManager extends BaseSendMessageManager {
 
     private final WealthGodGameManager gameManager;
+    @Autowired
+    private SlotsLogger slotsLogger;
 
     public WealthGodSendMessageManager(WealthGodGameManager gameManager) {
         this.gameManager = gameManager;
@@ -68,12 +72,15 @@ public class WealthGodSendMessageManager extends BaseSendMessageManager {
             res.exp = playerController.getPlayer().getExp();
             //本次spin数据
             res.spinInfo = gameRunInfo.getSpinInfo();
+            //jackpot奖池奖励金额
+            res.jackpotValue = gameRunInfo.getJackpotValue();
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回押注结果", false);
+        slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo,res);
     }
 
     /**

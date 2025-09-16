@@ -22,6 +22,7 @@ import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
@@ -543,7 +544,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         ResCashCowRecord res = new ResCashCowRecord(Code.SUCCESS);
         res.activityId = req.activityId;
         res.type = req.type;
-        List<CashCowRecordData> playerRecordActivities = null;
+        Pair<List<CashCowRecordData>, Boolean> playerRecordActivities = null;
         //个人记录
         if (req.type == 1) {
             playerRecordActivities = cashCowDao.getPlayerRecordActivities(playerController.playerId(), req.activityId,
@@ -553,9 +554,9 @@ public class CashCowController extends BaseActivityController implements TimerLi
             playerRecordActivities = cashCowDao.getAllRecordActivities(req.activityId, req.startIndex, req.startIndex +
                     Math.min(req.size, ActivityConstant.CashCow.DEFAULT_SIZE));
         }
-        if (CollectionUtil.isNotEmpty(playerRecordActivities)) {
+        if (playerRecordActivities != null && CollectionUtil.isNotEmpty(playerRecordActivities.getFirst())) {
             res.recordList = new ArrayList<>();
-            for (CashCowRecordData playerRecordActivity : playerRecordActivities) {
+            for (CashCowRecordData playerRecordActivity : playerRecordActivities.getFirst()) {
                 CashCowShowRecord cashCowShowRecord = new CashCowShowRecord();
                 cashCowShowRecord.recordTime = playerRecordActivity.getRecordTime();
                 cashCowShowRecord.type = playerRecordActivity.getType();
@@ -564,6 +565,8 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 cashCowShowRecord.name = playerRecordActivity.getName();
                 res.recordList.add(cashCowShowRecord);
             }
+            res.isEnd = playerRecordActivities.getSecond();
+            res.startIndex = req.startIndex + playerRecordActivities.getFirst().size();
         }
         return res;
     }

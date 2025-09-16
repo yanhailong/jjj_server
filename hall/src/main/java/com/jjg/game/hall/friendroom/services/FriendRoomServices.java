@@ -3,6 +3,7 @@ package com.jjg.game.hall.friendroom.services;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.data.DataSaveCallback;
@@ -19,6 +20,7 @@ import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao.GameBillResult;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.rpc.HallRoomBridge;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.IllegalNameCheckService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
@@ -85,6 +87,8 @@ public class FriendRoomServices {
     // 账单历史查询
     @Autowired
     private FriendRoomBillHistoryDao billHistoryDao;
+    @Autowired
+    private GameFunctionService gameFunctionService;
     // 暂停时间
     private Map<Long, Long> roomPauseTimeRec = new ConcurrentHashMap<>();
 
@@ -194,6 +198,10 @@ public class FriendRoomServices {
         // 准备金检查
         if (reqCreateFriendsRoom.predictCostGoldNum < 0) {
             return Code.PARAM_ERROR;
+        }
+        // 检查游戏功能是否开放
+        if (gameFunctionService.checkGameFunctionOpen(player, EFunctionType.FRIEND_ROOM)) {
+            return FriendRoomErrorCode.CREATE_ROOM_VIP_NOT_ENOUGH;
         }
         // 房间名检查
         if (checkRoomName(reqCreateFriendsRoom.roomAliasName) != Code.SUCCESS) {
@@ -837,24 +845,29 @@ public class FriendRoomServices {
             return Code.PARAM_ERROR;
         }
         // 添加时间
-        int addTime;
-        if (updateFriendRoom.timeOfOpenRoom != 0) {
+        int addTime = 0;
+        if (updateFriendRoom.timeOfOpenRoom != 0 || updateFriendRoom.predictCostGoldNum > 0) {
+            Map<Integer, Long> itemMap = new HashMap<>();
             RoomExpendCfg roomExpendCfg = GameDataManager.getRoomExpendCfg(updateFriendRoom.timeOfOpenRoom);
-            List<Integer> requiredMoney = roomExpendCfg.getRequiredMoney();
+            if (roomExpendCfg != null) {
+                List<Integer> requiredMoney = roomExpendCfg.getRequiredMoney();
+                itemMap.put(requiredMoney.getFirst(), Long.valueOf(requiredMoney.get(1)));
+            }
+            if (updateFriendRoom.predictCostGoldNum > 0) {
+                int diamondItemId = ItemUtils.getDiamondItemId();
+                itemMap.put(diamondItemId,
+                    itemMap.getOrDefault(diamondItemId, 0L) + updateFriendRoom.predictCostGoldNum);
+            }
             // 扣除道具
-            CommonResult<Long> removeItem =
-                playerPackService.removeItem(
-                    player.getId(),
-                    new Item(requiredMoney.getFirst(), requiredMoney.get(1)), "manage_friend_room"
-                );
+            CommonResult<Long> removeItem = playerPackService.removeItems(player, itemMap, "manage_friend_room");
             // 移除道具失败
             if (!removeItem.success()) {
                 return removeItem.code;
             }
-            // 开启时长，毫秒
-            addTime = roomExpendCfg.getDurationTime() * TimeHelper.ONE_MINUTE_OF_MILLIS;
-        } else {
-            addTime = 0;
+            if (roomExpendCfg != null) {
+                // 开启时长，毫秒
+                addTime = roomExpendCfg.getDurationTime() * TimeHelper.ONE_MINUTE_OF_MILLIS;
+            }
         }
         int finalAddTime = addTime;
         CommonResult<FriendRoom> result = friendRoomDao.doSave(friendRoom.getGameType(), friendRoom.getId(),
@@ -917,19 +930,28 @@ public class FriendRoomServices {
                 return Code.ILLEGAL_NAME;
             }
         }
+        Map<Integer, Long> itemMap = new HashMap<>();
         if (updateFriendRoom.timeOfOpenRoom != 0) {
             // 牌局时长ID合法性检查
             RoomExpendCfg roomExpendCfg = GameDataManager.getRoomExpendCfg(updateFriendRoom.timeOfOpenRoom);
             if (roomExpendCfg == null) {
                 return Code.PARAM_ERROR;
             }
+            List<Integer> requiredMoney = roomExpendCfg.getRequiredMoney();
+            itemMap.put(requiredMoney.getFirst(), Long.valueOf(requiredMoney.get(1)));
         }
         // 准备金扣费检查 需要扣除的金币数量
         long needDeductGold = updateFriendRoom.predictCostGoldNum;
         if (needDeductGold < 0 || updateFriendRoom.roomId <= 0) {
             return Code.PARAM_ERROR;
         }
-        if (needDeductGold > 0 && player.getGold() < needDeductGold) {
+        // 钻石判断
+        if (needDeductGold > 0) {
+            int diamondItemId = ItemUtils.getDiamondItemId();
+            itemMap.put(diamondItemId, itemMap.getOrDefault(diamondItemId, 0L) + needDeductGold);
+        }
+        // 道具检查
+        if (!playerPackService.checkHasItems(player, itemMap)) {
             return Code.NOT_ENOUGH;
         }
         return Code.SUCCESS;

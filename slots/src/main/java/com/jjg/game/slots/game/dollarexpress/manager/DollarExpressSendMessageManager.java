@@ -11,6 +11,7 @@ import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.*;
+import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +31,8 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
     private DollarExpressGameManager gameManager;
     @Autowired
     private DollarExpressGenerateManager generateManager;
+    @Autowired
+    private SlotsLogger logger;
 
     /**
      * 发送游戏配置
@@ -127,6 +130,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回押注结果", false);
+        logger.gameResult(playerController.getPlayer(), gameRunInfo,res);
     }
 
 

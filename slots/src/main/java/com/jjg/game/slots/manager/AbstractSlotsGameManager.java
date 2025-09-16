@@ -89,7 +89,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected Class<T> playerGameDataClass;
     protected Class<L> libClass;
 
-    //roomName -> cfg
+    //roomCfgId -> cfg
     protected Map<Integer, BaseRoomCfg> roomCfgMap;
     //lineId -> cfg
     protected Map<Integer, BaseLineCfg> lineCfgMap;
@@ -97,7 +97,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     //大奖展示倍数区间
     protected Map<Integer, int[]> bigWinShowMap = null;
-
+    //倍场的奖池数据
+    protected Map<Integer,Long> poolValueMap;
 
     public AbstractSlotsGameManager(Class<T> playerGameDataClass, Class<L> libClass) {
         this.playerGameDataClass = playerGameDataClass;
@@ -929,7 +930,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (this.checkOffLineEvent == e) {
             checkOffLine();
         } else if(this.gameUpdatePoolEvent == e){
-
+            gameUpdatePool();
         }else if (this.clearAllLibEvent == e) {
             getResultLibDao().clearMongoLib();
             getResultLibDao().clearRedisLib(this.gameType);
@@ -977,8 +978,30 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }));
     }
 
+    /**
+     * 更新奖池
+     */
     protected void gameUpdatePool(){
+        Map<Integer,Long> tmpPoolValueMap = new HashMap<>();
+        Map<Object, Object> smallPool = slotsPoolDao.getSmallPoolByRoomCfgId(this.gameType);
+        Map<Object, Object> fakeSmallPool = slotsPoolDao.getFakeSmallPoolByRoomCfgId(this.gameType);
 
+        for (Map.Entry<Object, Object> en : smallPool.entrySet()) {
+            int roomCfgId = Integer.parseInt(en.getKey().toString());
+            long smallPoolValue = Long.parseLong(en.getValue().toString());
+
+            Object o = fakeSmallPool.get(roomCfgId);
+            if (o != null) {
+                long fakeSmallPoolValue = Long.parseLong(o.toString());
+                if (fakeSmallPoolValue > smallPoolValue) {
+                    smallPoolValue = fakeSmallPoolValue;
+                }
+            }
+
+            tmpPoolValueMap.put(roomCfgId, smallPoolValue);
+        }
+//        log.debug("更新奖池 gameType = {},map = {}", this.gameType, tmpPoolValueMap);
+        this.poolValueMap = tmpPoolValueMap;
     }
 
     /**
@@ -1226,21 +1249,33 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param testLibData
      */
     public void addTestIconData(PlayerController playerController, TestLibData testLibData) {
-        System.out.println("111");
-
-        System.out.println(JSON.toJSONString(this.gameDataMap));
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
             return;
         }
 
-        System.out.println("2222");
         try {
             playerGameData.addTestIconsData(testLibData);
             log.info("添加测试libType成功 playerId = {},libType = {}", playerController.playerId(), testLibData.getLibType());
         } catch (Exception e) {
             log.error("", e);
         }
+    }
+
+    /**
+     * 根据倍场id获取奖池
+     * @param roomCfgId
+     * @return
+     */
+    public long getPoolValueByRoomCfgId(int roomCfgId) {
+       if(this.poolValueMap == null){
+           return 0;
+       }
+        Long v = this.poolValueMap.get(roomCfgId);
+        if(v == null){
+            return 0;
+        }
+        return v;
     }
 
 }

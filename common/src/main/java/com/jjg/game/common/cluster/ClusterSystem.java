@@ -344,9 +344,13 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     public ClusterClient randClientByType(NodeType nodeType, int gameMajorType) {
         String nodeTypeStr = nodeType.toString();
         Map.Entry<MarsNode, ClusterClient> en = clusterClientMap.entrySet().stream().filter(e -> {
-            if (nodeTypeStr.equals(e.getValue().getType())) {
-                int[] gameMajorTypes = e.getValue().nodeConfig.gameMajorTypes;
-                if (gameMajorTypes != null) {
+            ClusterClient clusterClient = e.getValue();
+            if (nodeTypeStr.equals(clusterClient.getType())) {
+                int[] gameMajorTypes = clusterClient.nodeConfig.gameMajorTypes;
+                if (gameMajorTypes != null && clusterClient.nodeConfig.weight > 0 &&
+                        (clusterClient.nodeConfig.getWhiteIpList() == null || clusterClient.nodeConfig.getWhiteIpList().length < 1) &&
+                        (clusterClient.nodeConfig.getWhiteIdList() == null || clusterClient.nodeConfig.getWhiteIdList().length < 1)) {
+
                     for (int mType : gameMajorTypes) {
                         if (mType == gameMajorType) {
                             return true;

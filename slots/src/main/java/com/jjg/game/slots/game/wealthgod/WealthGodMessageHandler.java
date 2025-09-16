@@ -5,9 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
-import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.slots.game.wealthgod.data.WealthGodGameRunInfo;
 import com.jjg.game.slots.game.wealthgod.manager.WealthGodGameManager;
 import com.jjg.game.slots.game.wealthgod.manager.WealthGodSendMessageManager;
@@ -23,7 +21,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @MessageType(MessageConst.MessageTypeDef.WEALTH_GOD)
-public class WealthGodMessageHandler implements GmListener {
+public class WealthGodMessageHandler {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -77,8 +75,4 @@ public class WealthGodMessageHandler implements GmListener {
         }
     }
 
-    @Override
-    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
-        return null;
-    }
 }

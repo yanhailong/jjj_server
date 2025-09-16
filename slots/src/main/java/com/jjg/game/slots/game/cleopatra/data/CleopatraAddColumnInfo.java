@@ -3,6 +3,7 @@ package com.jjg.game.slots.game.cleopatra.data;
 import com.jjg.game.slots.data.AwardLineInfo;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author 11
@@ -11,7 +12,7 @@ import java.util.List;
 public class CleopatraAddColumnInfo extends AwardLineInfo {
     private int[] arr;
     //中奖图标的坐标
-    private List<Integer> indexList;
+    private Map<Integer,List<Integer>> winIconIndexMap;
 
     public int[] getArr() {
         return arr;
@@ -21,11 +22,11 @@ public class CleopatraAddColumnInfo extends AwardLineInfo {
         this.arr = arr;
     }
 
-    public List<Integer> getIndexList() {
-        return indexList;
+    public Map<Integer, List<Integer>> getWinIconIndexMap() {
+        return winIconIndexMap;
     }
 
-    public void setIndexList(List<Integer> indexList) {
-        this.indexList = indexList;
+    public void setWinIconIndexMap(Map<Integer, List<Integer>> winIconIndexMap) {
+        this.winIconIndexMap = winIconIndexMap;
     }
 }

@@ -417,6 +417,14 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
+
+            //玩家当前金币
+            Player player = slotsPlayerService.get(playerGameData.playerId());
+            gameRunInfo.setBeforeGold(player.getGold());
+            if (playerController != null) {
+                playerController.setPlayer(player);
+            }
+
             boolean allAreaUnlock = playerGameData.getAllUnLock().compareAndSet(true, false);
             if (allAreaUnlock) {
                 gameRunInfo = areaAllUnlockGoldTrain(gameRunInfo, playerGameData);
@@ -467,7 +475,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
             }
 
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.playerId());
             gameRunInfo.setAfterGold(player.getGold());
             if (playerController != null) {
                 playerController.setPlayer(player);
@@ -483,8 +491,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             }
             gameRunInfo.setData(playerGameData);
-            //发送日志
-            logger.gameResult(player, gameRunInfo);
             return gameRunInfo;
         } catch (Exception e) {
             log.error("", e);
@@ -538,6 +544,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         gameRunInfo.setStatus(playerGameData.getStatus());
+        gameRunInfo.setStake(betValue);
         return gameRunInfo;
     }
 

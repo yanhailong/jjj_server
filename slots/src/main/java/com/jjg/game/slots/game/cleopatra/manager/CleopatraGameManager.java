@@ -54,6 +54,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
     public void init() {
         log.info("启动埃及艳后游戏管理器...");
         super.init();
+        addUpdatePoolEvent();
 
 //        Map<Integer, Integer> map = new HashMap<>();
 //        map.put(1, 50000);
@@ -86,11 +87,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
     public DollarExpressGameRunInfo getPoolValue(PlayerController playerController, long stake) {
         DollarExpressGameRunInfo gameRunInfo = new DollarExpressGameRunInfo(Code.SUCCESS, playerController.playerId());
         try {
-            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
-            List<Integer> prizePoolIdList = baseInitCfg.getPrizePoolIdList();
-            for(int poolId : prizePoolIdList) {
-                gameRunInfo.setMini(getPoolValueByPoolId(poolId, stake));
-            }
+            gameRunInfo.setMini(getPoolValueByRoomCfgId(playerController.getPlayer().getRoomCfgId()));
         } catch (Exception e) {
             log.error("", e);
             gameRunInfo.setCode(Code.EXCEPTION);
@@ -110,6 +107,12 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
         CleopatraGameRunInfo gameRunInfo = new CleopatraGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
             gameRunInfo.setAuto(auto);
+            //玩家当前金币
+            Player player = slotsPlayerService.get(playerGameData.playerId());
+            gameRunInfo.setBeforeGold(player.getGold());
+            if (playerController != null) {
+                playerController.setPlayer(player);
+            }
 
             gameRunInfo = normal(gameRunInfo, playerGameData, betValue);
 
@@ -130,7 +133,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
             //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
+            player = slotsPlayerService.get(playerGameData.playerId());
             gameRunInfo.setAfterGold(player.getGold());
             if (playerController != null) {
                 playerController.setPlayer(player);
@@ -162,6 +165,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
      */
     private CleopatraGameRunInfo normal(CleopatraGameRunInfo gameRunInfo, CleopatraPlayerGameData playerGameData, long betValue) {
         CleopatraResultLib resultLib = null;
+        PoolCfg poolCfg = null;
         for (int i = 0; i < SlotsConst.Common.GET_LIB_FAIL_RETRY_COUNT; i++) {
             //获取一个倍数区间
 //            CommonResult<Integer> result = getResultLibSection(playerGameData.getLastModelId(), DollarExpressConstant.SpecialMode.TYPE_TRIGGER_NORMAL_TRAIN);
@@ -179,10 +183,12 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
             if(tmpLib.getJackpotIds() != null && !tmpLib.getJackpotIds().isEmpty()) {
                 //判断中奖概率
                 int poolId = tmpLib.getJackpotIds().get(0);
-                PoolCfg poolCfg = randWinPool(playerGameData, poolId);
+                poolCfg = randWinPool(playerGameData, poolId);
                 if(poolCfg == null) { //为空表示不能奖池中奖，重新获取
                     continue;
                 }
+            }else {
+                poolCfg = null;
             }
             resultLib = tmpLib;
             break;
@@ -195,19 +201,21 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
 
         if(resultLib.getJackpotIds() != null && !resultLib.getJackpotIds().isEmpty()) {
-            resultLib.getJackpotIds().forEach(poolId -> {
-                PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
-                if(poolCfg.getTruePool() > 0){
+            for(int poolId : resultLib.getJackpotIds()){
+                if(poolCfg.getId() == poolId && poolCfg.getTruePool() > 0){
                     CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, poolCfg.getTruePool(), poolCfg.getTruePool(), "SLOTS_REWARD_POOL");
                     if(result.success()) {
                         gameRunInfo.addSmallPoolGold(result.data);
+
+                        gameRunInfo.setCurrentPoolValue(getPoolValueByRoomCfgId(playerGameData.getRoomCfgId()));
                     }
                 }
-            });
+            }
         }
 
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
+        gameRunInfo.setStake(betValue);
         return gameRunInfo;
     }
 

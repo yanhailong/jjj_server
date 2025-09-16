@@ -21,6 +21,7 @@ import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinResultLib;
 import com.jjg.game.slots.game.mahjiongwin.pb.ResMahjiongwinEnterGame;
 import com.jjg.game.slots.game.mahjiongwin.pb.ResMahjiongwinStartGame;
+import com.jjg.game.slots.logger.SlotsLogger;
 import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -42,7 +43,8 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
     private CleopatraGameManager gameManager;
     @Autowired
     private CleopatraGenerateManager generateManager;
-
+    @Autowired
+    private SlotsLogger slotsLogger;
 
     /**
      * 发送游戏配置
@@ -51,8 +53,6 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
      */
     public void sendConfigMessage(PlayerController playerController) {
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
-        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
-        List<Integer> prizePoolIdList = baseInitCfg.getPrizePoolIdList();
 
         SendInfo sendInfo = new SendInfo();
 
@@ -65,24 +65,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
             }
 
             res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
-
-            //奖池信息
-            if (prizePoolIdList != null && !prizePoolIdList.isEmpty()) {
-                res.poolList = new ArrayList<>();
-                for (int poolId : prizePoolIdList) {
-                    PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
-                    if (poolCfg == null) {
-                        continue;
-                    }
-                    CleopatraPoolInfo poolInfo = new CleopatraPoolInfo();
-                    poolInfo.id = poolId;
-                    poolInfo.initTimes = poolCfg.getFakePoolInitTimes();
-                    poolInfo.maxTimes = poolCfg.getFakePoolMax();
-                    poolInfo.perSomeSec = poolCfg.getGrowthRate().get(0);
-                    poolInfo.updateProp = poolCfg.getGrowthRate().get(1);
-                    res.poolList.add(poolInfo);
-                }
-            }
+            res.poolValue = gameManager.getPoolValueByRoomCfgId(config.getId());
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
@@ -117,8 +100,11 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
             res.exp = playerController.getPlayer().getExp();
 
             CleopatraResultLib lib = (CleopatraResultLib) gameRunInfo.getResultLib();
-            res.winIconList = lib.getWinIconIndexList();
+//            res.winIconList = lib.getWinIconIndexList();
             res.addColumInfoList = addColumInfoList(lib);
+
+            res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
+            res.poolValue = gameRunInfo.getCurrentPoolValue();
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
@@ -126,6 +112,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回押注结果", false);
+        slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo,res);
     }
 
     /**
@@ -146,7 +133,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
 
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
-        sendRun(playerController, sendInfo, "返回奖池结果", false);
+//        sendRun(playerController, sendInfo, "返回奖池结果", false);
     }
 
     private List<CleopatraAddColumInfo> addColumInfoList(CleopatraResultLib lib){
@@ -161,7 +148,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
         for(CleopatraAddColumnInfo info : lib.getAwardLineInfoList()){
             CleopatraAddColumInfo addColumInfo = new CleopatraAddColumInfo();
             addColumInfo.icons = Arrays.stream(info.getArr()).boxed().collect(Collectors.toList());
-            addColumInfo.indexList = info.getIndexList();
+//            addColumInfo.indexList = info.getIndexList();
             addColumInfo.times = addColumnConfig.getTimes();
             list.add(addColumInfo);
         }

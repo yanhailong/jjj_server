@@ -23,7 +23,7 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
     private long smallPoolGold;
     //玩家当前的金币
     private long afterGold;
-    //单线押分
+    //总押分
     private long stake;
     //图标
     private int[] iconArr;

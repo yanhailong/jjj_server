@@ -7,6 +7,8 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.slots.game.wealthgod.WealthGodConstant;
 import com.jjg.game.slots.game.wealthgod.pb.WealthGodSpinInfo;
 
+import java.util.List;
+
 /**
  *
  */
@@ -24,8 +26,10 @@ public class ResWealthGodStartGame extends AbstractResponse {
     public int level;
     @ProtoDesc("经验")
     public long exp;
-    @ProtoDesc("spin结果")
-    public WealthGodSpinInfo spinInfo;
+    @ProtoDesc("获得的奖池金额")
+    public long jackpotValue;
+    @ProtoDesc("所有spin数据")
+    public List<WealthGodSpinInfo> spinInfo;
 
     public ResWealthGodStartGame(int code) {
         super(code);
