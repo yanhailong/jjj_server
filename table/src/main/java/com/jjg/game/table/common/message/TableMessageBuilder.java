@@ -2,7 +2,6 @@ package com.jjg.game.table.common.message;
 
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.pb.NotifyTableExitRoom;
 import com.jjg.game.room.constant.EGamePhase;
@@ -119,7 +118,7 @@ public class TableMessageBuilder {
             .values()
             .stream()
             .sorted((o1, o2) ->
-                Long.compare(gameController.getItemNum(o2.getId()), gameController.getItemNum(o1.getId())));
+                Long.compare(gameController.getTransactionItemNum(o2.getId()), gameController.getTransactionItemNum(o1.getId())));
         if (limit > 0) {
             sorted = sorted.limit(limit);
         }
@@ -136,7 +135,7 @@ public class TableMessageBuilder {
         tablePlayerInfo.playerName = gamePlayer.getNickName();
         tablePlayerInfo.local = gamePlayer.getIp();
         tablePlayerInfo.vipLevel = gamePlayer.getVipLevel();
-        tablePlayerInfo.goldNum = gameController.getItemNum(gamePlayer.getId());
+        tablePlayerInfo.goldNum = gameController.getTransactionItemNum(gamePlayer.getId());
         List<Pair<Boolean, Long>> betInfoList = gamePlayer.getTableGameData().getBetInfoList();
         long totalBet = 0;
         int winNum = 0;
@@ -207,7 +206,7 @@ public class TableMessageBuilder {
             info.playerBetGold = keyValue.getKey();
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(entry.getKey());
             if (Objects.nonNull(gamePlayer)) {
-                info.playerCurGold = gameController.getItemNum(gamePlayer.getId());
+                info.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
             }
             settleInfoArrayList.add(info);
         }

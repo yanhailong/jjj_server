@@ -3,6 +3,7 @@ package com.jjg.game.room.datatrack;
 
 import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.manager.ActivityManager;
+import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -22,7 +23,9 @@ import java.util.Objects;
  * @date 2025/8/13 16:04
  */
 public class SaveLogUtil {
-    public static void generalLog(Map<Long, Map<Integer, List<Integer>>> betData, Map<Long, DefaultKeyValue<Long, Long>> playerGet, Map<Long, GamePlayer> gamePlayerMap, AbstractPhaseGameController<Room_BetCfg, ?> gameController) {
+    public static void generalLog(Map<Long, Map<Integer, List<Integer>>> betData, Map<Long, DefaultKeyValue<Long,
+                                      Long>> playerGet, Map<Long, GamePlayer> gamePlayerMap,
+                                  AbstractPhaseGameController<Room_BetCfg, ?> gameController) {
         Map<Integer, Long> areaTotalBet = new HashMap<>();
         GameDataTracker gameDataTracker = gameController.getGameDataTracker();
         for (Map.Entry<Long, Map<Integer, List<Integer>>> entry : betData.entrySet()) {
@@ -68,17 +71,31 @@ public class SaveLogUtil {
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, sum);
             //添加活动进度
             long finalTotalBet = totalBet;
-            Thread.ofVirtual().start(() -> {
-                ActivityManager activityManager = gameController.getRoomController().getRoomManager().getActivityManager();
-                if (sum > 0) {
-                    activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.EFFECTIVE_BET.getTargetKey(), sum, gameController.getGameTransactionItemId());
-                    activityManager.addActivityProgress(gamePlayer, ActivityTargetType.EFFECTIVE_BET.getTargetKey(), sum,gameController.getGameTransactionItemId());
-                }
-                activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.BET.getTargetKey(), finalTotalBet, gameController.getGameTransactionItemId());
-            });
+            // 处理有效流水
+            Thread.ofVirtual().start(() -> dealEffectiveWaterFlow(gameController, gamePlayer, sum, finalTotalBet));
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_DATA, areaMap);
         }
         gameDataTracker.addGameLogData(DataTrackNameConstant.AREA_DATA, areaTotalBet);
     }
 
+    /**
+     * 处理有效流水
+     */
+    public static void dealEffectiveWaterFlow(
+        AbstractPhaseGameController<Room_BetCfg, ?> controller, GamePlayer player, long effectiveGold, long allBet) {
+        ActivityManager activityManager =
+            controller.getRoomController().getRoomManager().getActivityManager();
+        if (effectiveGold > 0) {
+            activityManager.addPlayerActivityProgress(player,
+                ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveGold,
+                controller.getGameTransactionItemId());
+            activityManager.addActivityProgress(player,
+                ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveGold,
+                controller.getGameTransactionItemId());
+            controller.getGameEventManager().triggerEvent(
+                new PlayerEffectiveFlowingEvent(player, controller.getRoom().getGameType(), effectiveGold, 0));
+        }
+        activityManager.addPlayerActivityProgress(
+            player, ActivityTargetType.BET.getTargetKey(), allBet, controller.getGameTransactionItemId());
+    }
 }

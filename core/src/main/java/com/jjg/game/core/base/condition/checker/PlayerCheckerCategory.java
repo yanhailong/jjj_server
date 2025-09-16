@@ -38,8 +38,34 @@ public class PlayerCheckerCategory {
         }
 
         @Override
-        public String bindConditionCheckParam() {
+        public List<String> bindConditionCheckParam() {
             return EGameEventType.PLAYER_LEVEL.getBindProperties();
+        }
+
+        @Override
+        public EConditionComparator defaultConditionComparator() {
+            return EConditionComparator.GTE;
+        }
+    }
+
+    @Component
+    public static class PlayerEffectiveBetAllGameChecker extends AbstractProgressConditionChecker {
+
+        @Override
+        public boolean check(Player player, List<CheckerParam> comparatorTaget) {
+            CheckerParam checkerParam = filterBindParamCheckParam(comparatorTaget);
+
+            return false;
+        }
+
+        @Override
+        public String bindConditionCheckType() {
+            return EGameEventType.PLAYER_BET.name();
+        }
+
+        @Override
+        public List<String> bindConditionCheckParam() {
+            return EGameEventType.PLAYER_BET.getBindProperties();
         }
 
         @Override

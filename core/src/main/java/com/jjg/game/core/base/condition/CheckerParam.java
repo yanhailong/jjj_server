@@ -1,6 +1,7 @@
 package com.jjg.game.core.base.condition;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * 检查参数
@@ -11,7 +12,7 @@ public class CheckerParam {
     /**
      * 检查名
      */
-    private final List<String> checkName;
+    private final Set<String> checkName;
 
     /**
      * 目标参数
@@ -23,19 +24,19 @@ public class CheckerParam {
      */
     private EConditionComparator comparator;
 
-    public CheckerParam(List<String> checkName, Object targetParam) {
+    public CheckerParam(Set<String> checkName, Object targetParam) {
         this.checkName = checkName;
         this.targetParam = targetParam;
     }
 
 
-    public CheckerParam(List<String> checkName, Object targetParam, EConditionComparator comparator) {
+    public CheckerParam(Set<String> checkName, Object targetParam, EConditionComparator comparator) {
         this.checkName = checkName;
         this.targetParam = targetParam;
         this.comparator = comparator;
     }
 
-    public List<String> getCheckName() {
+    public Set<String> getCheckName() {
         return checkName;
     }
 

@@ -90,7 +90,7 @@ public class AnimalsSettlementPhase extends BaseSettlementPhase<AnimalsGameDataV
             gameController.addItem(
                     gamePlayer.getId(), settlementData.getTotalWin(),
                     ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
-            playerChangedGold.playerCurGold = gameController.getItemNum(gamePlayer.getId());
+            playerChangedGold.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
             playerChangedGolds.add(playerChangedGold);
             bankerChangeGold += settlementData.getTotalWin() - settlementData.getBetTotal();
             settlementDataMap.put(playerId, settlementData);

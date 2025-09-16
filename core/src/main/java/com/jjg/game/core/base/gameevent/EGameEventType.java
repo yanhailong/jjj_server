@@ -1,5 +1,7 @@
 package com.jjg.game.core.base.gameevent;
 
+import java.util.List;
+
 /**
  * 游戏事件类型
  *
@@ -8,24 +10,30 @@ package com.jjg.game.core.base.gameevent;
 public enum EGameEventType {
     // 玩家升级
     PLAYER_LEVEL(true, "levelID"),
+    // 个人有效下注
+    PLAYER_BET(true, "bet"),
+    // 个人有效下注计算所有游戏
+    PLAYER_BETALL(true, "bet"),
+    // 个人有效下注计算所有游戏
+    PLAY_GAME(true, "bet", "gameID"),
     ;
 
     // 事件是否由玩家产生
     final boolean isRelatedPlayer;
 
     // 绑定事件产生变化的属性，例如：玩家升级，绑定玩家的等级，LevelId. 如果
-    final String bindProperties;
+    final List<String> bindProperties;
 
-    EGameEventType(boolean isRelatedPlayer, String bindProperties) {
+    EGameEventType(boolean isRelatedPlayer, String... bindProperties) {
         this.isRelatedPlayer = isRelatedPlayer;
-        this.bindProperties = bindProperties;
+        this.bindProperties = List.of(bindProperties);
     }
 
     public boolean isRelatedPlayer() {
         return isRelatedPlayer;
     }
 
-    public String getBindProperties() {
+    public List<String> getBindProperties() {
         return bindProperties;
     }
 

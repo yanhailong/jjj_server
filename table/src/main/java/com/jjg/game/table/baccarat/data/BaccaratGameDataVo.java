@@ -1,8 +1,6 @@
 package com.jjg.game.table.baccarat.data;
 
-import com.jjg.game.core.data.Player;
 import com.jjg.game.room.controller.AbstractGameController;
-import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.baccarat.message.resp.BaccaratCardState;
@@ -11,7 +9,6 @@ import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.data.TableGameDataVo;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -49,7 +46,7 @@ public class BaccaratGameDataVo extends TableGameDataVo {
             gamePlayerMap.values()
                 .stream()
                 .sorted((o1, o2) ->
-                    Long.compare(gameController.getItemNum(o2.getId()), gameController.getItemNum(o1.getId()))).toList()
+                    Long.compare(gameController.getTransactionItemNum(o2.getId()), gameController.getTransactionItemNum(o1.getId()))).toList()
                 .subList(0, Math.min(gamePlayerMap.size(), TableConstant.ON_TABLE_PLAYER_NUM));
         // 将前7个人的位置进行排序
         for (int i = 1; i <= gamePlayers.size(); i++) {

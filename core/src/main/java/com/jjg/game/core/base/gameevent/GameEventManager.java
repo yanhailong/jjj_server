@@ -5,10 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -23,7 +20,7 @@ public class GameEventManager {
     /**
      * 事件类型map
      */
-    private final Map<EGameEventType, List<GameEventListener>> eventListMap = new ConcurrentHashMap<>();
+    private final Map<EGameEventType, Set<GameEventListener>> eventListMap = new ConcurrentHashMap<>();
 
     /**
      * 初始化事件监听器
@@ -46,7 +43,7 @@ public class GameEventManager {
         List<EGameEventType> gameEventTypes = gameEventListener.needMonitorEvents();
         for (EGameEventType gameEventType : gameEventTypes) {
             // 注册监听器
-            eventListMap.computeIfAbsent(gameEventType, k -> new ArrayList<>()).add(gameEventListener);
+            eventListMap.computeIfAbsent(gameEventType, k -> new HashSet<>()).add(gameEventListener);
         }
         log.info("注册事件监听器：{} 成功", gameEventListener.getClass().getName());
     }
@@ -56,15 +53,19 @@ public class GameEventManager {
      *
      * @param gameEvent 游戏事件
      */
-    public void triggerEvent(GameEvent gameEvent) {
+    public <T extends GameEvent> void triggerEvent(T gameEvent) {
         EGameEventType gameEventType = gameEvent.getGameEventType();
-        List<GameEventListener> eventListeners = eventListMap.get(gameEventType);
+        Set<GameEventListener> eventListeners = eventListMap.get(gameEventType);
         if (eventListeners == null || eventListeners.isEmpty()) {
             return;
         }
         // 处理事件
         for (GameEventListener eventListener : eventListeners) {
-            eventListener.handleEvent(gameEvent);
+            try {
+                eventListener.handleEvent(gameEvent);
+            } catch (Exception exception) {
+                log.error("触发事件：{} 时出现异常：{}", gameEventType, exception.getMessage());
+            }
         }
     }
 }

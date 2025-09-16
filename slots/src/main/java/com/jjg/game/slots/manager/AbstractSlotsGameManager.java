@@ -15,6 +15,8 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.gameevent.GameEventManager;
+import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
@@ -57,7 +59,8 @@ import java.util.stream.Collectors;
  * @date 2025/7/1 16:42
  */
 public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L extends SlotsResultLib> implements TimerListener, ConfigExcelChangeListener {
-    protected Logger log = LoggerFactory.getLogger(getClass()); ;
+    protected Logger log = LoggerFactory.getLogger(getClass());
+    ;
 
     @Autowired
     protected SlotsPlayerService slotsPlayerService;
@@ -73,6 +76,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected SlotsLogger logger;
     @Autowired
     protected ActivityManager activityManager;
+    @Autowired
+    protected GameEventManager gameEventManager;
     //游戏类型
     protected int gameType;
     //在specualResultLib
@@ -98,7 +103,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     //大奖展示倍数区间
     protected Map<Integer, int[]> bigWinShowMap = null;
     //倍场的奖池数据
-    protected Map<Integer,Long> poolValueMap;
+    protected Map<Integer, Long> poolValueMap;
 
     public AbstractSlotsGameManager(Class<T> playerGameDataClass, Class<L> libClass) {
         this.playerGameDataClass = playerGameDataClass;
@@ -547,10 +552,15 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return result;
         }
         Thread.ofVirtual().start(() -> {
-            activityManager.addActivityProgress(gameData.getPlayerController().getPlayer(),
-                    ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
-            activityManager.addPlayerActivityProgress(gameData.getPlayerController().getPlayer(),
-                    ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
+            Player player = gameData.getPlayerController().getPlayer();
+            activityManager.addActivityProgress(
+                player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET),
+                betValue, ItemUtils.getGoldItemId());
+            activityManager.addPlayerActivityProgress(player,
+                ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue,
+                ItemUtils.getGoldItemId());
+            // 触发有效流水事件
+            gameEventManager.triggerEvent(new PlayerEffectiveFlowingEvent(player, gameType, betValue, 0));
         });
         BigDecimal bet = BigDecimal.valueOf(betValue);
         log.debug("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.playerId(), betValue, result.data.getGold());

@@ -102,7 +102,8 @@ public class GameFunctionService implements GameEventListener {
         List<Object> params =
             conditionTypes.subList(1, conditionTypes.size()).stream().map(a -> (Object) a).toList();
         List<CheckerParam> checkerParams =
-            Collections.singletonList(new CheckerParam(conditionCfg.getConditionType(), params));
+            Collections.singletonList(
+                new CheckerParam(new HashSet<>(conditionCfg.getConditionType()), params));
         // 检查是否触发成功
         return conditionCheckService.isTriggerComplete(player, conditionCfg, checkerParams);
     }

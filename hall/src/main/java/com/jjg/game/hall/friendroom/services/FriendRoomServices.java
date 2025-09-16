@@ -132,7 +132,7 @@ public class FriendRoomServices {
         Map<Integer, Long> itemMap = new HashMap<>();
         if (req.predictCostGoldNum != 0) {
             itemMap.put(reqItem.getId(), reqItem.getItemCount());
-            itemMap.put(ItemUtils.getGoldItemId(), req.predictCostGoldNum);
+            itemMap.put(ItemUtils.getDiamondItemId(), req.predictCostGoldNum);
             removeItem = playerPackService.removeItems(player, itemMap, "create_friend_room");
         } else {
             removeItem = playerPackService.removeItem(player.getId(), reqItem, "create_friend_room");
@@ -200,7 +200,7 @@ public class FriendRoomServices {
             return Code.PARAM_ERROR;
         }
         // 检查游戏功能是否开放
-        if (gameFunctionService.checkGameFunctionOpen(player, EFunctionType.FRIEND_ROOM)) {
+        if (!gameFunctionService.checkGameFunctionOpen(player, EFunctionType.FRIEND_ROOM)) {
             return FriendRoomErrorCode.CREATE_ROOM_VIP_NOT_ENOUGH;
         }
         // 房间名检查
@@ -235,7 +235,7 @@ public class FriendRoomServices {
         // 需要扣除的金币数量,
         long needDeductGold = reqCreateFriendsRoom.predictCostGoldNum;
         // 金币扣除检查
-        if (needDeductGold != 0 && player.getGold() < needDeductGold) {
+        if (needDeductGold != 0 && player.getDiamond() < needDeductGold) {
             return Code.NOT_ENOUGH;
         }
         return Code.SUCCESS;
@@ -384,6 +384,7 @@ public class FriendRoomServices {
             buildFriendRoomPlayerInfoList(followedPlayerId, followedplayerList, friendRoomFollowBeanMap);
         // 房间信息
         List<FriendRoomBaseData> friendRoomBaseDataList = new ArrayList<>();
+        friendRoomList.sort((o1, o2) -> Long.compare(o2.getCreateTime(), o1.getCreateTime()));
         for (FriendRoom friendRoom : friendRoomList) {
             if (friendRoom.getStatus() == 3) {
                 continue;
@@ -541,7 +542,13 @@ public class FriendRoomServices {
         }
         // 通过邀请码添加关注好友
         friendRoomFollowDao.addFriendByInvitationCode(player.getId(), targetPlayerId, invitationCode);
-        res.playerInfo = FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(targetPlayer);
+        BaseFriendRoomPlayerInfo roomPlayerInfo = FriendRoomMessageBuilder.buildFriendRoomPlayerInfo(targetPlayer);
+        roomPlayerInfo.maxRoomNum = playerMaxRoomNum(targetPlayer.getLevel());
+        // 获取当前所有好友的当前房间数量
+        Map<Long, Integer> friendRoomNumMap =
+            friendRoomDao.getPlayerFriendRoomNum(Collections.singletonList(targetPlayerId));
+        roomPlayerInfo.curRoomNum = friendRoomNumMap.getOrDefault(targetPlayerId, 0);
+        res.playerInfo = roomPlayerInfo;
         res.code = Code.SUCCESS;
         log.info("{} 通过邀请码：{} 成功添加好友: {}", player.getId(), invitationCode, targetPlayer.getId());
         playerController.send(res);
@@ -633,6 +640,7 @@ public class FriendRoomServices {
             }
         }
         List<FriendRoom> friendRoomList = friendRoomDao.getPlayerAllFriendRoom(req.playerId);
+        friendRoomList.sort((o1, o2) -> Long.compare(o2.getCreateTime(), o1.getCreateTime()));
         // 房间信息
         List<FriendRoomBaseData> friendRoomBaseDataList = new ArrayList<>();
         boolean isSelf = req.playerId == playerController.playerId();
