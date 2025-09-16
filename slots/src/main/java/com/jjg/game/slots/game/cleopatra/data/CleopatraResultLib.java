@@ -11,16 +11,16 @@ import java.util.*;
  */
 @Document
 public class CleopatraResultLib extends SlotsResultLib<CleopatraAddColumnInfo> {
-    //中奖图标id
-    private Map<Integer,List<Integer>> winIcons;
+    //中奖图标id ->坐标id集合
+    private Map<Integer,Set<Integer>> winIcons;
     //可以中奖的奖池id
     private List<Integer> jackpotIds;
 
-    public Map<Integer, List<Integer>> getWinIcons() {
+    public Map<Integer, Set<Integer>> getWinIcons() {
         return winIcons;
     }
 
-    public void setWinIcons(Map<Integer, List<Integer>> winIcons) {
+    public void setWinIcons(Map<Integer, Set<Integer>> winIcons) {
         this.winIcons = winIcons;
     }
 
@@ -39,13 +39,13 @@ public class CleopatraResultLib extends SlotsResultLib<CleopatraAddColumnInfo> {
         this.jackpotIds.add(jackpotId);
     }
 
-    public void addWinIcon(int winIcon,List<Integer> indexList) {
-        if(indexList == null || indexList.isEmpty()) {
+    public void addWinIcon(int winIcon,Set<Integer> indexSet) {
+        if(indexSet == null || indexSet.isEmpty()) {
             return;
         }
         if(this.winIcons == null) {
             this.winIcons = new HashMap<>();
         }
-        this.winIcons.computeIfAbsent(winIcon, k -> new ArrayList<>()).addAll(indexList);
+        this.winIcons.computeIfAbsent(winIcon, k -> new HashSet<>()).addAll(indexSet);
     }
 }

@@ -188,10 +188,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         String newDocName = null;
         String redisTableName = null;
         try {
-            boolean lock = getResultLibDao().addGenerateLock(this.gameType);
-            if (!lock) {
-                log.info("生成结果库时添加锁失败，gameType = {}", this.gameType);
-                return;
+            if(saveToDB){
+                boolean lock = getResultLibDao().addGenerateLock(this.gameType);
+                if (!lock) {
+                    log.info("生成结果库时添加锁失败，gameType = {}", this.gameType);
+                    return;
+                }
             }
 
             log.info("开始生成结果库，libTypeCountMap = {}", libTypeCountMap);
@@ -239,6 +241,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     currentForCount++;
 
                     SlotsResultLib lib = getGenerateManager().generateOne(libType);
+                    if(lib == null){
+                        continue;
+                    }
 
 //                    log.debug("打印lib = {}",JSON.toJSONString(lib));
 

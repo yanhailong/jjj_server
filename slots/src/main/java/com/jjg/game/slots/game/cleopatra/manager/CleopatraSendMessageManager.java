@@ -26,10 +26,7 @@ import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -100,7 +97,16 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
             res.exp = playerController.getPlayer().getExp();
 
             CleopatraResultLib lib = (CleopatraResultLib) gameRunInfo.getResultLib();
-//            res.winIconList = lib.getWinIconIndexList();
+            res.winIconInfoList = new ArrayList<>();
+
+            if(lib.getWinIcons() != null && !lib.getWinIcons().isEmpty()) {
+                lib.getWinIcons().forEach((k,v) -> {
+                    CleopatraWinIconInfo winIconInfo = new CleopatraWinIconInfo();
+                    winIconInfo.iconId = k;
+                    winIconInfo.indexList = new ArrayList<>(v);
+                    res.winIconInfoList.add(winIconInfo);
+                });
+            }
             res.addColumInfoList = addColumInfoList(lib);
 
             res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
@@ -132,8 +138,8 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
         }
 
         sendInfo.addPlayerMsg(playerController.playerId(), res);
-        sendInfo.getLogMessage().add(res);
-//        sendRun(playerController, sendInfo, "返回奖池结果", false);
+//        sendInfo.getLogMessage().add(res);
+        sendRun(playerController, sendInfo, "返回奖池结果", true);
     }
 
     private List<CleopatraAddColumInfo> addColumInfoList(CleopatraResultLib lib){
@@ -148,7 +154,16 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
         for(CleopatraAddColumnInfo info : lib.getAwardLineInfoList()){
             CleopatraAddColumInfo addColumInfo = new CleopatraAddColumInfo();
             addColumInfo.icons = Arrays.stream(info.getArr()).boxed().collect(Collectors.toList());
-//            addColumInfo.indexList = info.getIndexList();
+
+            if(info.getWinIconIndexMap() != null && !info.getWinIconIndexMap().isEmpty()){
+                addColumInfo.winIconInfoList = new ArrayList<>();
+                info.getWinIconIndexMap().forEach((k,v) -> {
+                    CleopatraWinIconInfo winIconInfo = new CleopatraWinIconInfo();
+                    winIconInfo.iconId = k;
+                    winIconInfo.indexList = new ArrayList<>(v);
+                    addColumInfo.winIconInfoList.add(winIconInfo);
+                });
+            }
             addColumInfo.times = addColumnConfig.getTimes();
             list.add(addColumInfo);
         }
