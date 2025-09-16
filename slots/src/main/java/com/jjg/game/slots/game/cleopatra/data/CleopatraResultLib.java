@@ -3,10 +3,7 @@ package com.jjg.game.slots.game.cleopatra.data;
 import com.jjg.game.slots.data.SlotsResultLib;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author 11
@@ -14,17 +11,17 @@ import java.util.Map;
  */
 @Document
 public class CleopatraResultLib extends SlotsResultLib<CleopatraAddColumnInfo> {
-    //中奖图标的初始个数
-    private List<Integer> winIconIndexList;
+    //中奖图标id
+    private Map<Integer,List<Integer>> winIcons;
     //可以中奖的奖池id
     private List<Integer> jackpotIds;
 
-    public List<Integer> getWinIconIndexList() {
-        return winIconIndexList;
+    public Map<Integer, List<Integer>> getWinIcons() {
+        return winIcons;
     }
 
-    public void setWinIconIndexList(List<Integer> winIconIndexList) {
-        this.winIconIndexList = winIconIndexList;
+    public void setWinIcons(Map<Integer, List<Integer>> winIcons) {
+        this.winIcons = winIcons;
     }
 
     public List<Integer> getJackpotIds() {
@@ -40,5 +37,15 @@ public class CleopatraResultLib extends SlotsResultLib<CleopatraAddColumnInfo> {
             this.jackpotIds = new ArrayList<>();
         }
         this.jackpotIds.add(jackpotId);
+    }
+
+    public void addWinIcon(int winIcon,List<Integer> indexList) {
+        if(indexList == null || indexList.isEmpty()) {
+            return;
+        }
+        if(this.winIcons == null) {
+            this.winIcons = new HashMap<>();
+        }
+        this.winIcons.computeIfAbsent(winIcon, k -> new ArrayList<>()).addAll(indexList);
     }
 }

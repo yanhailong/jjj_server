@@ -65,6 +65,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
             }
 
             res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
+            res.poolValue = gameManager.getPoolValueByRoomCfgId(config.getId());
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
@@ -99,8 +100,11 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
             res.exp = playerController.getPlayer().getExp();
 
             CleopatraResultLib lib = (CleopatraResultLib) gameRunInfo.getResultLib();
-            res.winIconList = lib.getWinIconIndexList();
+//            res.winIconList = lib.getWinIconIndexList();
             res.addColumInfoList = addColumInfoList(lib);
+
+            res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
+            res.poolValue = gameRunInfo.getCurrentPoolValue();
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
@@ -129,7 +133,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
 
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
-        sendRun(playerController, sendInfo, "返回奖池结果", false);
+//        sendRun(playerController, sendInfo, "返回奖池结果", false);
     }
 
     private List<CleopatraAddColumInfo> addColumInfoList(CleopatraResultLib lib){
@@ -144,7 +148,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
         for(CleopatraAddColumnInfo info : lib.getAwardLineInfoList()){
             CleopatraAddColumInfo addColumInfo = new CleopatraAddColumInfo();
             addColumInfo.icons = Arrays.stream(info.getArr()).boxed().collect(Collectors.toList());
-            addColumInfo.indexList = info.getIndexList();
+//            addColumInfo.indexList = info.getIndexList();
             addColumInfo.times = addColumnConfig.getTimes();
             list.add(addColumInfo);
         }

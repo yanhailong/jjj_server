@@ -1000,6 +1000,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
             tmpPoolValueMap.put(roomCfgId, smallPoolValue);
         }
+//        log.debug("更新奖池 gameType = {},map = {}", this.gameType, tmpPoolValueMap);
         this.poolValueMap = tmpPoolValueMap;
     }
 
@@ -1266,7 +1267,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param roomCfgId
      * @return
      */
-    protected long getPoolValueByRoomCfgId(int roomCfgId) {
+    public long getPoolValueByRoomCfgId(int roomCfgId) {
        if(this.poolValueMap == null){
            return 0;
        }

@@ -73,7 +73,7 @@ public class CleopatraMessageHandler {
     @Command(CleopatraConstant.MsgBean.REQ_POOL_VALUE)
     public void reqPoolValue(PlayerController playerController, ReqCleopatraPool req) {
         try {
-            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+//            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             DollarExpressGameRunInfo gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
             sendMessageManager.sendPoolValue(playerController, gameRunInfo);
         } catch (Exception e) {
