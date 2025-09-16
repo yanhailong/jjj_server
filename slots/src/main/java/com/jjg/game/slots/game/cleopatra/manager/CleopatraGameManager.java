@@ -216,6 +216,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
         gameRunInfo.setStake(betValue);
+        gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         return gameRunInfo;
     }
 

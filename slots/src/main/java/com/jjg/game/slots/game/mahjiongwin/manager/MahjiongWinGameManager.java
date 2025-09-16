@@ -188,6 +188,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
         gameRunInfo.setStake(betValue);
+        gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         return gameRunInfo;
     }
 
@@ -220,7 +221,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
         }
 
         gameRunInfo.setIconArr(freeGame.getIconArr());
-
+        gameRunInfo.addBigPoolTimes(freeGame.getTimes());
         return gameRunInfo;
     }
 
