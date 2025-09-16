@@ -3,6 +3,7 @@ package com.jjg.game.activity.cashcow.dao;
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.cashcow.data.CashCowRecordData;
 import com.jjg.game.activity.constant.ActivityConstant;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import org.slf4j.Logger;
@@ -214,15 +215,29 @@ public class CashCowDao {
     /**
      * 获取指定玩家的活动记录（分页）
      */
-    public List<CashCowRecordData> getPlayerRecordActivities(long playerId, long activityId, int start, int end) {
+    public Pair<List<CashCowRecordData>, Boolean> getPlayerRecordActivities(long playerId, long activityId, int start, int end) {
         String playerKey = String.format(PLAYER_RECORD_KEY, activityId, playerId);
-        return recordRedisTemplate.opsForList().range(playerKey, start, end);
+        List<CashCowRecordData> records = recordRedisTemplate.opsForList().range(playerKey, start, end);
+        return getRecordData(start, end, records);
     }
+
 
     /**
      * 获取所有玩家的活动记录（分页）
      */
-    public List<CashCowRecordData> getAllRecordActivities(long activityId, int start, int end) {
-        return recordRedisTemplate.opsForList().range(String.format(ALL_RECORD_KEY, activityId), start, end);
+    public Pair<List<CashCowRecordData>, Boolean> getAllRecordActivities(long activityId, int start, int end) {
+        List<CashCowRecordData> records = recordRedisTemplate.opsForList().range(String.format(ALL_RECORD_KEY, activityId), start, end);
+        return getRecordData(start, end, records);
+    }
+
+    private Pair<List<CashCowRecordData>, Boolean> getRecordData(int start, int end, List<CashCowRecordData> records) {
+        boolean hasNext = false;
+        int pageSize = end - start;
+        if (records != null && records.size() > pageSize) {
+            hasNext = true;
+            // 去掉多查的那一条
+            records = records.subList(0, pageSize);
+        }
+        return Pair.newPair(records, hasNext);
     }
 }

@@ -22,15 +22,13 @@ import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Item;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -187,8 +185,8 @@ public class CashCowController extends BaseActivityController implements TimerLi
                     }
                 }
                 Player player = corePlayerService.get(playerId);
-                CommonResult<Long> addedItem = null;
-                CommonResult<Long> removed = null;
+                CommonResult<ItemOperationResult> addedItem = null;
+                CommonResult<ItemOperationResult> removed = null;
                 long get = 0;
                 //加锁
                 String lockKey = playerActivityDao.getLockKey(playerId, activityId);
@@ -234,7 +232,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 //记录日志
                 if (addedItem != null) {
                     activityLogger.sendCashCowJoinLog(player, activityData, detailId
-                            , cfg.getType(), cfg.getNeedItem(), addedItem.data, removed.data, get);
+                            , cfg.getType(), cfg.getNeedItem(), removed.data, get, addedItem.data);
                 }
                 //构建返回消息
                 res.activityId = activityId;
@@ -271,7 +269,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 return res;
             }
             CashCowPlayerActivityData data = null;
-            CommonResult<Long> addedItems = null;
+            CommonResult<ItemOperationResult> addedItems = null;
             boolean send = false;
             redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
@@ -543,7 +541,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         ResCashCowRecord res = new ResCashCowRecord(Code.SUCCESS);
         res.activityId = req.activityId;
         res.type = req.type;
-        List<CashCowRecordData> playerRecordActivities = null;
+        Pair<List<CashCowRecordData>, Boolean> playerRecordActivities = null;
         //个人记录
         if (req.type == 1) {
             playerRecordActivities = cashCowDao.getPlayerRecordActivities(playerController.playerId(), req.activityId,
@@ -553,9 +551,9 @@ public class CashCowController extends BaseActivityController implements TimerLi
             playerRecordActivities = cashCowDao.getAllRecordActivities(req.activityId, req.startIndex, req.startIndex +
                     Math.min(req.size, ActivityConstant.CashCow.DEFAULT_SIZE));
         }
-        if (CollectionUtil.isNotEmpty(playerRecordActivities)) {
+        if (playerRecordActivities != null && CollectionUtil.isNotEmpty(playerRecordActivities.getFirst())) {
             res.recordList = new ArrayList<>();
-            for (CashCowRecordData playerRecordActivity : playerRecordActivities) {
+            for (CashCowRecordData playerRecordActivity : playerRecordActivities.getFirst()) {
                 CashCowShowRecord cashCowShowRecord = new CashCowShowRecord();
                 cashCowShowRecord.recordTime = playerRecordActivity.getRecordTime();
                 cashCowShowRecord.type = playerRecordActivity.getType();
@@ -564,6 +562,8 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 cashCowShowRecord.name = playerRecordActivity.getName();
                 res.recordList.add(cashCowShowRecord);
             }
+            res.hasNext = playerRecordActivities.getSecond();
+            res.startIndex = req.startIndex;
         }
         return res;
     }
@@ -706,7 +706,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             res.code = Code.REPEAT_OP;
             return res;
         }
-        CommonResult<Long> addItems = null;
+        CommonResult<ItemOperationResult> addItems = null;
         String playerFreeLockKey = cashCowDao.getPlayerFreeLockKey(playerController.playerId(), req.activityId);
         redisLock.lock(playerFreeLockKey, ActivityConstant.Common.REDIS_LOCK);
         try {

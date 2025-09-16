@@ -7,10 +7,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
-import com.jjg.game.core.data.Account;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
@@ -171,7 +168,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
                 vip.getGiftGetTime().put(gift.getType(), timeMillis);
             }
             vipService.redisSave(playerId, vip);
-            CommonResult<Long> addedItems = playerPackService.addItems(playerController.playerId(), rewards, "vip奖励领取");
+            CommonResult<ItemOperationResult> addedItems = playerPackService.addItems(playerController.playerId(), rewards, "vip奖励领取");
             res.code = addedItems.code;
             if (!addedItems.success()) {
                 return res;

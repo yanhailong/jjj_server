@@ -116,5 +116,13 @@ public interface ActivityConstant {
         int RES_SCRATCH_CARDS_JOIN_ACTIVITY = BASE_MSG_PREFIX | 0x1A;
         //响应刮刮乐活动类型信息
         int RES_SCRATCH_CARDS_TYPE_INFO = BASE_MSG_PREFIX | 0x1B;
+
+        //推广分享
+        //响应推广分享活动详细信息
+        int RES_SHARE_PROMOTE_DETAIL_INFO = BASE_MSG_PREFIX | 0x1C;
+        //响应推广分享领取奖励
+        int RES_SHARE_PROMOTE_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x1D;
+        //响应推广分享活动类型信息
+        int RES_SHARE_PROMOTE_TYPE_INFO = BASE_MSG_PREFIX | 0x1E;
     }
 }
