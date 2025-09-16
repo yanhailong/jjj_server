@@ -93,7 +93,7 @@ public class SaveLogUtil {
                 ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveGold,
                 controller.getGameTransactionItemId());
             controller.getGameEventManager().triggerEvent(
-                new PlayerEffectiveFlowingEvent(player, controller.getRoom().getGameType(), effectiveGold, 0));
+                new PlayerEffectiveFlowingEvent(player, controller.getRoom().getRoomCfgId(), effectiveGold, 0));
         }
         activityManager.addPlayerActivityProgress(
             player, ActivityTargetType.BET.getTargetKey(), allBet, controller.getGameTransactionItemId());

@@ -21,8 +21,10 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.condition.CheckParamCategory.EffectiveFlowingParam;
 import com.jjg.game.core.base.condition.ConditionCheckService;
 import com.jjg.game.core.base.drop.ConditionProgressDao;
+import com.jjg.game.core.base.drop.ConditionProgressKeyCons;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
@@ -539,19 +541,29 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 if (activityConfigCfg == null) {
                     continue;
                 }
+                List<Integer> dropCondition = activityConfigCfg.getDropcondition();
+                if (CollectionUtils.isEmpty(dropCondition)) {
+                    continue;
+                }
                 // 不能为空
                 if (CollectionUtils.isEmpty(activityConfigCfg.getDropid())) {
                     continue;
                 }
+                // 条件key
                 String conditionKey =
-                    // 玩家ID+有效流水type+活动ID
-                    player.getId() + ":" + effectiveFlowingEvent.getGameEventType().name() + ":" + activityId;
-                Number oldProgress = conditionProgressDao.getProgress(conditionKey);
-                long newProgress =
-                    ((Number) effectiveFlowingEvent.getEventChangeValue()).longValue() + oldProgress.longValue();
-                conditionProgressDao.addProgress(conditionKey, newProgress);
+                    ConditionProgressKeyCons.BET_EFFECTIVE_FLOWING + player.getId() + ":" + activityId;
+                ConditionCfg cfg = GameDataManager.getConditionCfg(dropCondition.getFirst());
+                EffectiveFlowingParam effectiveFlowingParam = new EffectiveFlowingParam(cfg.getConditionType(), null);
+                effectiveFlowingParam.setFlowingValue((Long) effectiveFlowingEvent.getEventChangeValue());
+                effectiveFlowingParam.setGameCfgId(effectiveFlowingParam.getGameCfgId());
+                effectiveFlowingParam.setConditionProgressKey(conditionKey);
+                effectiveFlowingParam.setNeedUpdateProgress(true);
                 // 检查活动进度是否达到
-                conditionCheckService.isTriggerComplete(player, new HashMap<>());
+                boolean triggerRes = conditionCheckService.isTriggerComplete(
+                    player, cfg, Collections.singletonList(effectiveFlowingParam));
+                if (triggerRes) {
+
+                }
                 // 获取当前活动的进度
                 List<Integer> dropIdList = activityConfigCfg.getDropid();
                 for (Integer dropGroupId : dropIdList) {
@@ -563,24 +575,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     @Override
     public List<EGameEventType> needMonitorEvents() {
-        List<EGameEventType> eventTypes = new ArrayList<>();
-        List<ActivityConfigCfg> activityConfigList = GameDataManager.getActivityConfigCfgList();
-        for (ActivityConfigCfg activityConfigCfg : activityConfigList) {
-            List<Integer> dropCondition = activityConfigCfg.getDropcondition();
-            if (CollectionUtils.isEmpty(dropCondition)) {
-                continue;
-            }
-            ConditionCfg conditionCfg = GameDataManager.getConditionCfg(dropCondition.getFirst());
-            if (conditionCfg == null) {
-                continue;
-            }
-            // 获取游戏事件类型
-            EGameEventType gameEventType = EGameEventType.gameEventType(conditionCfg.getTriggerEventType());
-            eventTypes.add(gameEventType);
-            // 添加事件缓存
-            eventTypeListMap.computeIfAbsent(gameEventType, k -> new ArrayList<>()).add(activityConfigCfg.getId());
-        }
-        return eventTypes;
+        // 全监听
+        return Arrays.stream(EGameEventType.values()).toList();
     }
 
     @Override

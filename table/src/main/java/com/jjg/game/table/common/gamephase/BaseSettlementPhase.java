@@ -110,7 +110,8 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
             int bankerIncomeRatio =
                 SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.CREATE_ROOM_FUNC_INCOME_RATIO);
             bankerIncome =
-                (long) Math.floor((betValue * (weightCfg.getOdds() / 100.0)) * bankerIncomeRatio / 10000.0);
+                (long) Math.floor((betValue * (weightCfg.getOdds() / 100.0)) * (bankerIncomeRatio / 10000.0));
+            log.info("房主：{} 收益：{}", gameController.getRoom().getCreator(), bankerIncome);
         }
         return bankerIncome;
     }

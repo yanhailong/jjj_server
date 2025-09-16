@@ -573,7 +573,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue,
                 ItemUtils.getGoldItemId());
             // 触发有效流水事件
-            gameEventManager.triggerEvent(new PlayerEffectiveFlowingEvent(player, gameType, betValue, 0));
+            gameEventManager.triggerEvent(
+                new PlayerEffectiveFlowingEvent(player, gameData.getRoomCfgId(), betValue, 0));
         });
         BigDecimal bet = BigDecimal.valueOf(betValue);
         log.debug("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.playerId(), betValue,
