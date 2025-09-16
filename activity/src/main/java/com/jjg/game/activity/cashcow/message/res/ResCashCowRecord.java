@@ -24,8 +24,8 @@ public class ResCashCowRecord extends AbstractResponse {
     public List<CashCowShowRecord> recordList;
     @ProtoDesc("起始索引")
     public int startIndex;
-    @ProtoDesc("数据是否已经请求完")
-    public boolean isEnd;
+    @ProtoDesc("是否还有数据")
+    public boolean hasNext;
 
     public ResCashCowRecord(int code) {
         super(code);
