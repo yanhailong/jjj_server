@@ -1,7 +1,7 @@
 package com.jjg.game.activity.common.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.jjg.game.activity.activitylog.data.ActivityLogger;
+import com.jjg.game.activity.activitylog.ActivityLogger;
 import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;

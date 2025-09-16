@@ -1,8 +1,9 @@
-package com.jjg.game.activity.activitylog.data;
+package com.jjg.game.activity.activitylog;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.activity.activitylog.data.ScratchCardsResult;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.piggybank.data.PiggyBankData;
 import com.jjg.game.core.data.Item;
