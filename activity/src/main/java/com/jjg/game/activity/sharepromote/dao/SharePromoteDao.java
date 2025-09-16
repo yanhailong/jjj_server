@@ -8,6 +8,9 @@ import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Repository;
 
 import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -29,7 +32,7 @@ public class SharePromoteDao {
     private final String SHARE_PROMOTE_BIND_KEY = "activity:sharepromote:bind:%s";
     //绑定玩家的id
     private final String SHARE_PROMOTE_ALREADY_BIND_KEY = "activity:sharepromote:alreadybind";
-    private final String UNIQUE_CODE_KEY = "activity:sharepromote:code";
+    private final String SHARE_PROMOTE_CODE = "activity:sharepromote:code";
     private final String SHARE_PROMOTE_REWARDS_RECORD = "activity:sharepromote:record";
     private final String SHARE_PROMOTE_REWARDS_RANK = "activity:sharepromote:rank";
     private final String SHARE_PROMOTE_REWARDS_INCOME_RANK = "activity:sharepromote:incomerank:%d";
@@ -69,10 +72,33 @@ public class SharePromoteDao {
      * 添加玩家收入
      */
     public void addPlayerIncome(long playerId, long sourcePlayerId, long addValue) {
+        // 1. 累计总收入
         String key = SHARE_PROMOTE_REWARDS_INCOME.formatted(playerId);
-        String incomeKey = SHARE_PROMOTE_REWARDS_INCOME_RANK.formatted(playerId);
         redisTemplate.opsForValue().increment(key, addValue);
+
+        // 2. 来源排行榜
+        String incomeKey = SHARE_PROMOTE_REWARDS_INCOME_RANK.formatted(playerId);
         redisTemplate.opsForZSet().incrementScore(incomeKey, String.valueOf(sourcePlayerId), addValue);
+
+        // 3. 按天收入
+        String dailyKey = String.format("activity:sharepromote:income:%s:%d",
+                LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE), playerId);
+        redisTemplate.opsForValue().increment(dailyKey, addValue);
+
+        // 设置过期时间（例如保留 1 天）
+        redisTemplate.expire(dailyKey, Duration.ofDays(1));
+    }
+
+    /**
+     * 获取昨天总收入
+     * @param playerId 玩家id
+     * @return 昨天总收入
+     */
+    public long getYesterdayIncome(long playerId) {
+        String key = String.format("activity:sharepromote:income:%s:%d",
+                LocalDate.now().minusDays(1).format(DateTimeFormatter.BASIC_ISO_DATE), playerId);
+        String value = redisTemplate.opsForValue().get(key);
+        return value == null ? 0L : Long.parseLong(value);
     }
 
     /**
@@ -138,7 +164,7 @@ public class SharePromoteDao {
      */
     public int bindPlayer(long playerId, String code) {
         //参考邀请码是否合法
-        String createPlayerId = getHashOperations().get(UNIQUE_CODE_KEY, code);
+        String createPlayerId = getHashOperations().get(SHARE_PROMOTE_CODE, code);
         if (createPlayerId == null) {
             return 1;
         }
@@ -184,7 +210,7 @@ public class SharePromoteDao {
         do {
             code = generateCode();
             // result == 1 表示成功新增，说明之前没有
-            added = redisTemplate.opsForHash().putIfAbsent(UNIQUE_CODE_KEY, code, code);
+            added = redisTemplate.opsForHash().putIfAbsent(SHARE_PROMOTE_CODE, code, code);
         } while (!added);
 
         return code;
