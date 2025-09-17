@@ -17,23 +17,38 @@ import java.math.RoundingMode;
 import java.util.List;
 
 /**
+ * 摇钱树 DAO
+ *
+ * 主要负责摇钱树相关数据的 Redis 存取，包括：
+ *  - 玩家免费奖励状态
+ *  - 玩家进度
+ *  - 活动奖池（总奖池 & 分奖池）
+ *  - 活动记录（个人 & 全局）
+ *
+ * 使用 Redis 实现高性能缓存和并发安全（通过分布式锁 RedisLock）。
+ *
  * @author lm
  * @date 2025/9/9 18:15
  */
 @Repository
 public class CashCowDao {
     private final Logger log = LoggerFactory.getLogger(CashCowDao.class);
+
+    /** 玩家/全局记录存储，key->List，value->CashCowRecordData */
     private final RedisTemplate<String, CashCowRecordData> recordRedisTemplate;
+    /** 长整型/字符串数据存储，key->String，value->String */
     private final RedisTemplate<String, String> longRedisTemplate;
-    //redis 锁
+    /** Redis 分布式锁，保证并发安全 */
     private final RedisLock lock;
-    private final String PLAYER_RECORD_KEY = "activity:cashcow:record:%d:%d"; // 单个玩家记录
-    private final String ALL_RECORD_KEY = "activity:cashcow:record:all:%d";          // 全部玩家记录
-    private final String POOL_KEY = "activity:cashcow:poll:%d";          // 总池
-    private final String POOL_LOCK_KEY = "activity:cashcow:polllock:%d:%d";          // 总池锁
-    private final String PLAYER_PROGRESS_KEY = "activity:cashcow:player:%d:%d";          // 玩家进度
-    private final String PLAYER_FREE_KEY = "activity:cashcow:free:%d:%d";          // 免费道具
-    private final String PLAYER_FREE_LOCK_KEY = "activity:cashcow:freelock:%d:%d";          // 免费道具
+
+    // -------------------- Redis Key 定义 --------------------
+    private final String PLAYER_RECORD_KEY = "activity:cashcow:record:%d:%d";   // 单个玩家的活动记录 key
+    private final String ALL_RECORD_KEY = "activity:cashcow:record:all:%d";    // 全部玩家的活动记录 key
+    private final String POOL_KEY = "activity:cashcow:poll:%d";                // 活动奖池 key（Hash）
+    private final String POOL_LOCK_KEY = "activity:cashcow:polllock:%d:%d";    // 活动奖池锁 key
+    private final String PLAYER_PROGRESS_KEY = "activity:cashcow:player:%d:%d";// 玩家进度 key
+    private final String PLAYER_FREE_KEY = "activity:cashcow:free:%d:%d";      // 玩家免费奖励 key
+    private final String PLAYER_FREE_LOCK_KEY = "activity:cashcow:freelock:%d:%d"; // 玩家免费奖励锁 key
 
 
     public CashCowDao(RedisTemplate<String, CashCowRecordData> recordRedisTemplate, RedisTemplate<String, String> longRedisTemplate, RedisLock lock) {
@@ -43,37 +58,47 @@ public class CashCowDao {
     }
 
 
+    // -------------------- 免费奖励相关 --------------------
+
     /**
-     * 获取免费道具领取状态
+     * 获取玩家是否已经领取当天的免费奖励
      *
      * @param playerId   玩家id
      * @param activityId 活动id
-     * @return true 已经领取 false没有领取
+     * @return true 已领取，false 未领取
      */
     public boolean getFreeRewardsStatus(long playerId, long activityId) {
         String lastTime = longRedisTemplate.opsForValue().get(PLAYER_FREE_KEY.formatted(playerId, activityId));
         if (lastTime == null) {
             return false;
         }
+        // 判断是否在同一天（同一天 -> 已领取）
         return TimeHelper.inSameDay(Long.parseLong(lastTime), System.currentTimeMillis());
     }
 
+    /**
+     * 获取玩家免费奖励锁 key
+     */
     public String getPlayerFreeLockKey(long playerId, long activityId) {
         return String.format(PLAYER_FREE_LOCK_KEY, playerId, activityId);
     }
 
     /**
-     * 到下一天凌晨自动取消
-     *
-     * @param playerId   玩家id
-     * @param activityId 活动id
+     * 记录玩家领取免费奖励的时间
+     * <p>
+     * 存储当前时间戳（通过业务逻辑判断 inSameDay）。
      */
     public void addFreeRewardsCount(long playerId, long activityId) {
         longRedisTemplate.opsForValue().set(PLAYER_FREE_KEY.formatted(playerId, activityId), String.valueOf(System.currentTimeMillis()));
     }
 
+
+    // -------------------- 玩家进度相关 --------------------
+
     /**
-     * 摇钱树获取玩家进度奖池
+     * 获取玩家在某个活动中的进度
+     *
+     * @return 当前进度，默认为 0
      */
     public long getPlayerActivityProgress(long playerId, long activityId) {
         String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, playerId, activityId);
@@ -82,7 +107,9 @@ public class CashCowDao {
     }
 
     /**
-     * 摇钱树增加玩家进度奖池
+     * 增加玩家进度
+     *
+     * @return 增加后的进度总值
      */
     public long addPlayerActivityProgress(long playerId, long activityId, long addValue) {
         String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, playerId, activityId);
@@ -90,9 +117,9 @@ public class CashCowDao {
         return progress == null ? 0 : progress;
     }
 
-
     /**
-     * 摇钱树删除玩家进度奖池
+     * 删除玩家进度
+     * - 主要用于领奖后清理
      */
     public void delPlayerActivityProgress(long playerId, long activityId) {
         String playerProgressKey = String.format(PLAYER_PROGRESS_KEY, playerId, activityId);
@@ -100,8 +127,10 @@ public class CashCowDao {
     }
 
 
+    // -------------------- 活动奖池相关 --------------------
+
     /**
-     * 摇钱树获取活动奖池
+     * 获取指定 detailId 的活动奖池余额
      */
     public long getActivityPool(long activityId, int detailId) {
         String poolKey = String.format(POOL_KEY, activityId);
@@ -111,7 +140,7 @@ public class CashCowDao {
     }
 
     /**
-     * 摇钱树获取活动奖池
+     * 获取活动的总奖池（所有 detailId 的和）
      */
     public long getActivityPool(long activityId) {
         String poolKey = String.format(POOL_KEY, activityId);
@@ -124,7 +153,7 @@ public class CashCowDao {
     }
 
     /**
-     * 摇钱树设置活动奖池
+     * 设置某个 detailId 的奖池值
      */
     public void setActivityPool(long activityId, int detailId, long setValue) {
         String poolKey = String.format(POOL_KEY, activityId);
@@ -141,7 +170,9 @@ public class CashCowDao {
     }
 
     /**
-     * 摇钱树添加活动奖池
+     * 增加某个 detailId 的奖池值
+     *
+     * @return 增加后的总值
      */
     public long addActivityPool(long activityId, int detailId, long addValue) {
         String poolKey = String.format(POOL_KEY, activityId);
@@ -167,10 +198,10 @@ public class CashCowDao {
     }
 
     /**
-     * 摇钱树减少活动奖池
+     * 按比例减少奖池（分配奖励）
      *
-     * @param distribution 扣减比例
-     * @return 本次扣减的数量
+     * @param distribution 扣减比例（万分比，例如 2000 = 20%）
+     * @return 扣减后剩余的奖池数量
      */
     public long reduceActivityPool(long activityId, int detailId, int distribution) {
         String poolKey = String.format(POOL_KEY, activityId);
@@ -183,6 +214,7 @@ public class CashCowDao {
                 return 0;
             }
             long realPool = Long.parseLong(pool);
+            // 计算剩余奖池：realPool - (realPool * distribution / 10000)
             long remain = realPool - (BigDecimal.valueOf(realPool)
                     .multiply(BigDecimal.valueOf(distribution))
                     .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN))
@@ -197,15 +229,20 @@ public class CashCowDao {
         return 0;
     }
 
+
+    // -------------------- 活动记录相关 --------------------
+
     /**
      * 保存一条玩家活动记录
+     * - 存入玩家个人日志
+     * - 同时存入全局日志
      */
     public void savePlayerRecordActivity(long playerId, long activityId, CashCowRecordData data) {
         try {
             String playerKey = String.format(PLAYER_RECORD_KEY, activityId, playerId);
-            // 推入玩家专属日志
+            // 玩家个人记录（List 左进）
             recordRedisTemplate.opsForList().leftPush(playerKey, data);
-            // 推入全局日志
+            // 全局记录（List 左进）
             recordRedisTemplate.opsForList().leftPush(String.format(ALL_RECORD_KEY, activityId), data);
         } catch (Exception e) {
             log.error("保存玩家活动记录失败");
@@ -214,13 +251,16 @@ public class CashCowDao {
 
     /**
      * 获取指定玩家的活动记录（分页）
+     *
+     * @param start 起始下标
+     * @param end   结束下标（包含）
+     * @return Pair(记录列表, 是否有下一页)
      */
     public Pair<List<CashCowRecordData>, Boolean> getPlayerRecordActivities(long playerId, long activityId, int start, int end) {
         String playerKey = String.format(PLAYER_RECORD_KEY, activityId, playerId);
         List<CashCowRecordData> records = recordRedisTemplate.opsForList().range(playerKey, start, end);
         return getRecordData(start, end, records);
     }
-
 
     /**
      * 获取所有玩家的活动记录（分页）
@@ -230,12 +270,20 @@ public class CashCowDao {
         return getRecordData(start, end, records);
     }
 
+    /**
+     * 公共分页处理逻辑
+     *
+     * @param start   起始下标
+     * @param end     结束下标
+     * @param records 查询结果
+     * @return Pair(实际返回的数据, 是否有下一页)
+     */
     private Pair<List<CashCowRecordData>, Boolean> getRecordData(int start, int end, List<CashCowRecordData> records) {
         boolean hasNext = false;
         int pageSize = end - start;
         if (records != null && records.size() > pageSize) {
             hasNext = true;
-            // 去掉多查的那一条
+            // 去掉多查的那一条，避免超量
             records = records.subList(0, pageSize);
         }
         return Pair.newPair(records, hasNext);
