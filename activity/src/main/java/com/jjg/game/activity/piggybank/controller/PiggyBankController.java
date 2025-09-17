@@ -38,85 +38,152 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @author lm
- * @date 2025/9/3 17:43
+ * PiggyBankController
+ * 储钱罐活动控制器
+ * 继承自 BaseActivityController，实现储钱罐相关活动逻辑
  */
 @Component
 public class PiggyBankController extends BaseActivityController {
+
+    // 日志记录
     private final Logger log = LoggerFactory.getLogger(PiggyBankController.class);
+
+    // 邮件服务，用于发放奖励
     private final MailService mailService;
 
+    // 构造方法，注入 MailService
     public PiggyBankController(MailService mailService) {
         this.mailService = mailService;
     }
 
+    /**
+     * 玩家参加储钱罐活动
+     *
+     * @param player       玩家对象
+     * @param activityData 活动数据
+     * @param detailId     活动子项ID
+     * @param times        购买次数（一般为1）
+     * @return 返回响应对象
+     */
     @Override
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
         ResPiggyBankDetailInfo res = null;
         long playerId = player.getId();
+
+        // 获取活动详细配置
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
+
+        // 判断配置是否为储钱罐活动配置
         if (baseCfgBean instanceof PiggyBankCfg cfg) {
             long timeMillis = System.currentTimeMillis();
             String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
+
+            // 分布式锁，防止并发购买
             redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+
             PiggyBankData piggyBankData = null;
             try {
+                // 获取玩家活动数据
                 Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+
+                // 获取或初始化子活动数据
                 piggyBankData = playerActivityData.computeIfAbsent(detailId, key -> new PiggyBankData(activityData.getId(), activityData.getRound()));
+
+                // 玩家已参加过，直接返回错误
                 if (piggyBankData.getBuyTime() > 0) {
                     log.error("玩家参加活动失败 玩家已经参加过 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
                     return res;
                 }
+
+                // 设置购买时间
                 piggyBankData.setBuyTime(timeMillis);
+
+                // 判断是否已满额
                 if (piggyBankData.getProgress() >= cfg.getFullup()) {
                     piggyBankData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
                     piggyBankData.setFullTime(timeMillis);
                 }
+
+                // 保存玩家活动数据
                 playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
             } catch (Exception e) {
                 log.error("玩家参加活动失败 出现异常,playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
             } finally {
                 redisLock.unlock(lockKey);
             }
+
+            // 日志记录玩家参加活动
             if (piggyBankData != null) {
                 activityLogger.sendPiggyBankJoin(player, activityData, piggyBankData, cfg.getName(), detailId);
             }
+
+            // 构建响应
             res = new ResPiggyBankDetailInfo(Code.SUCCESS);
             res.detailInfo = new ArrayList<>();
             res.detailInfo.add(buildPlayerActivityDetail(activityData.getId(), cfg, piggyBankData));
-
         } else {
+            // 配置错误
             log.error("玩家参加活动失败 活动配置为空playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
         }
+
         return res;
     }
 
+    /**
+     * 添加玩家活动进度
+     *
+     * @param playerId             玩家ID
+     * @param activityData         活动数据
+     * @param progress             增加进度
+     * @param additionalParameters 附加参数（用于过滤非金币道具）
+     * @return 是否可以领取奖励
+     */
     @Override
     public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, Object additionalParameters) {
+        // 如果不是金币，则不增加储钱罐进度
         if (additionalParameters instanceof Integer itemId && !itemId.equals(ItemUtils.getGoldItemId())) {
             return false;
         }
+
+        // 获取全局配置，计算每万元金币进度
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.PiggyBank.INCOME_PER_TEN_THOUSAND);
-        //基础值
-        BigDecimal baseAdd = BigDecimal.valueOf(progress).multiply(BigDecimal.valueOf(globalConfigCfg.getIntValue())).divide(BigDecimal.valueOf(10000), RoundingMode.DOWN);
+        BigDecimal baseAdd = BigDecimal.valueOf(progress)
+                .multiply(BigDecimal.valueOf(globalConfigCfg.getIntValue()))
+                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN);
+
         long activityId = activityData.getId();
-        //添加玩家进度
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
+
         boolean canClaim = false;
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
+
+        // 分布式锁
         redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
             Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
+
+            // 遍历所有储钱罐子活动
             for (Map.Entry<Integer, BaseCfgBean> entry : baseCfgBeanMap.entrySet()) {
                 BaseCfgBean cfgBean = entry.getValue();
                 if (cfgBean instanceof PiggyBankCfg cfg) {
-                    PiggyBankData piggyBankData = playerActivityData.computeIfAbsent(entry.getKey(), key -> new PiggyBankData(activityData.getId(), activityData.getRound()));
+                    PiggyBankData piggyBankData = playerActivityData.computeIfAbsent(entry.getKey(),
+                            key -> new PiggyBankData(activityData.getId(), activityData.getRound()));
+
+                    // 如果进度已经满了，跳过
                     if (piggyBankData.getProgress() > cfg.getFullup()) {
                         continue;
                     }
-                    long addValue = baseAdd.multiply(BigDecimal.valueOf(cfg.getWeight())).divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+
+                    // 计算加成值
+                    long addValue = baseAdd.multiply(BigDecimal.valueOf(cfg.getWeight()))
+                            .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
+                            .longValue();
+
+                    // 更新进度
                     piggyBankData.setProgress(Math.min(cfg.getFullup(), piggyBankData.getProgress() + addValue));
+
+                    // 判断是否可领取奖励
                     if (piggyBankData.getProgress() >= cfg.getFullup() && piggyBankData.getBuyTime() > 0) {
                         piggyBankData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
                         piggyBankData.setFullTime(System.currentTimeMillis());
@@ -124,105 +191,146 @@ public class PiggyBankController extends BaseActivityController {
                     }
                 }
             }
+
+            // 保存更新后的数据
             if (!playerActivityData.isEmpty()) {
                 playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, playerActivityData);
             }
         } catch (Exception e) {
-            log.error("储钱罐添加玩家进度异常 playerId:{}  activityId:{} detailId:{}", playerId, activityData.getId(), activityId, e);
+            log.error("储钱罐添加玩家进度异常 playerId:{}  activityId:{} ", playerId, activityData.getId(), e);
         } finally {
             redisLock.unlock(lockKey);
         }
+
         return canClaim;
     }
 
+    /**
+     * 玩家领取储钱罐奖励
+     */
     @Override
     public AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId) {
         ResPiggyBankClaimRewards res = new ResPiggyBankClaimRewards(Code.SUCCESS);
         long playerId = player.getId();
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
+
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
+
         if (baseCfgBean instanceof PiggyBankCfg cfg) {
             PiggyBankData data = null;
             CommonResult<ItemOperationResult> addedItems = null;
+
             redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
-                //领取奖励
+                // 获取玩家储钱罐数据
                 Map<Integer, PiggyBankData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
                 data = dataMap.get(detailId);
+
+                // 数据不存在，返回参数错误
                 if (data == null) {
                     res.code = Code.PARAM_ERROR;
                     return res;
                 }
+
+                // 如果不能领取，返回请求错误
                 if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
                     res.code = Code.ERROR_REQ;
                     return res;
                 }
+
+                // 添加奖励到背包
                 addedItems = playerPackService.addItems(playerId, cfg.getGetitem(), "privilegeCardRewords");
                 if (!addedItems.success()) {
                     res.code = Code.UNKNOWN_ERROR;
                     return res;
                 }
-                //修改活动数据
+
+                // 重置储钱罐数据
                 resetPiggyBankData(data);
+
+                // 保存数据
                 playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
             } catch (Exception e) {
                 log.error("领取每日奖金异常 playerId:{} activityId:{}", playerId, activityData.getId(), e);
             } finally {
                 redisLock.unlock(lockKey);
             }
-            if (data != null) {
-                if (addedItems != null && addedItems.success()) {
-                    activityLogger.sendPiggyBankRewards(player, activityData, data, cfg.getWeight(), cfg.getName(),
-                            addedItems.data, cfg.getGetitem());
-                }
-                res.activityId = activityData.getId();
-                res.detailId = detailId;
-                res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
-                res.detailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, data);
+
+            // 记录日志
+            if (data != null && addedItems != null && addedItems.success()) {
+                activityLogger.sendPiggyBankRewards(player, activityData, data, cfg.getWeight(), cfg.getName(),
+                        addedItems.data, cfg.getGetitem());
             }
+
+            // 构建响应
+            res.activityId = activityData.getId();
+            res.detailId = detailId;
+            res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
+            res.detailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, data);
         }
-        //发送响应
+
         return res;
     }
 
+    /**
+     * 活动结束回调
+     */
     @Override
     public void onActivityEnd(ActivityData activityData) {
-
+        // 当前储钱罐活动无特殊逻辑
     }
 
+    /**
+     * 活动开始回调
+     */
     @Override
     public void onActivityStart(ActivityData activityData) {
-
+        // 当前储钱罐活动无特殊逻辑
     }
 
+    /**
+     * 更新活动数据（暂未实现）
+     */
     @Override
     public int updateActivity(String jsonData) {
         return 0;
     }
 
+    /**
+     * 获取玩家储钱罐活动详情
+     */
     @Override
     public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
         long activityId = activityData.getId();
         ResPiggyBankDetailInfo detailInfo = new ResPiggyBankDetailInfo(Code.SUCCESS);
+
+        // 获取活动配置与玩家数据
         ActivityData data = activityManager.getActivityData().get(activityId);
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
         Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, data.getType(), activityId);
+
+        // 构建返回详情
         detailInfo.detailInfo = new ArrayList<>();
         PiggyBankDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId));
         detailInfo.detailInfo.add(baseActivityDetailInfo);
+
         return detailInfo;
     }
 
+    /**
+     * 构建玩家储钱罐活动详情
+     */
     @Override
     public PiggyBankDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (baseCfgBean instanceof PiggyBankCfg cfg) {
             PiggyBankDetailInfo info = new PiggyBankDetailInfo();
             info.activityId = activityId;
             info.detailId = baseCfgBean.getId();
-            info.rechargePrice = cfg.getPay();
-            //奖励信息
-            info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetitem());
+            info.rechargePrice = cfg.getPay(); // 充值金额
+            info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetitem()); // 奖励道具
+
+            // 设置玩家数据
             if (data instanceof PiggyBankData piggyBankData) {
                 info.claimStatus = piggyBankData.getClaimStatus();
                 info.progress = piggyBankData.getProgress();
@@ -232,30 +340,43 @@ public class PiggyBankController extends BaseActivityController {
         return null;
     }
 
+    /**
+     * 根据类型构建玩家活动信息列表
+     */
     @Override
     public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
         ResPiggyBankActivityInfos activityInfos = new ResPiggyBankActivityInfos(Code.SUCCESS);
+
         if (CollectionUtil.isEmpty(allDetailInfo)) {
             return activityInfos;
         }
+
         activityInfos.activityData = new ArrayList<>();
         for (List<BaseActivityDetailInfo> baseActivityDetailInfos : allDetailInfo.values()) {
             PiggyBankActivityInfo activityInfo = new PiggyBankActivityInfo();
             activityInfo.detailInfos = new ArrayList<>();
             activityInfos.activityData.add(activityInfo);
+
+            // 只添加储钱罐类型的详情
             for (BaseActivityDetailInfo baseActivityDetailInfo : baseActivityDetailInfos) {
                 if (baseActivityDetailInfo instanceof PiggyBankDetailInfo info) {
                     activityInfo.detailInfos.add(info);
                 }
             }
         }
+
         return activityInfos;
     }
 
+    /**
+     * 构建单个活动信息
+     */
     @Override
     public ActivityInfo buildActivityInfo(long playerId, ActivityData activityData) {
         Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
         int claimStatus = 0;
+
+        // 判断是否有可领取奖励的子活动
         if (CollectionUtil.isNotEmpty(playerActivityData)) {
             for (PiggyBankData data : playerActivityData.values()) {
                 if (data.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
@@ -264,33 +385,48 @@ public class PiggyBankController extends BaseActivityController {
                 }
             }
         }
+
         return ActivityBuilder.buildActivityInfo(activityData, claimStatus);
     }
 
+    /**
+     * 检查玩家数据并在条件满足时重置
+     */
     @Override
     public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
         long timeMillis = System.currentTimeMillis();
         boolean change = false;
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
+
+        // 分布式锁
         redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
             Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+
+            // 遍历所有储钱罐数据
             for (Map.Entry<Integer, PiggyBankData> piggyBankDataEntry : playerActivityData.entrySet()) {
                 PiggyBankData piggyBankData = piggyBankDataEntry.getValue();
+
                 if (piggyBankData.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                    continue;
+                    continue; // 未可领取状态跳过
                 }
+
                 BaseCfgBean baseCfgBean = baseCfgBeanMap.get(piggyBankDataEntry.getKey());
                 if (baseCfgBean instanceof PiggyBankCfg cfg) {
-                    //进行重置发奖
+                    // 判断是否到达重置时间
                     if (piggyBankData.getFullTime() + (long) TimeHelper.ONE_DAY_OF_MILLIS * cfg.getResetime() <= timeMillis) {
+                        // 邮件发奖
                         mailService.addCfgMail(playerId, ActivityConstant.PiggyBank.MAIL_ID, ItemUtils.buildItems(cfg.getGetitem()));
+
+                        // 重置数据
                         resetPiggyBankData(piggyBankData);
                         change = true;
                     }
                 }
             }
+
+            // 保存数据
             if (change) {
                 playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
             }
@@ -299,6 +435,8 @@ public class PiggyBankController extends BaseActivityController {
         } finally {
             redisLock.unlock(lockKey);
         }
+
+        // 调用父类方法
         super.checkPlayerDataAndReset(playerId, activityData);
     }
 
@@ -316,7 +454,6 @@ public class PiggyBankController extends BaseActivityController {
     public List<BaseCfgBean> getDetailCfgBean() {
         return new ArrayList<>(GameDataManager.getPiggyBankCfgList());
     }
-
 
     @Override
     public Class<PiggyBankCfg> getDetailDataClass() {
