@@ -560,8 +560,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             log.debug("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.playerId(), betValue, result.code);
             return result;
         }
+
+        Player player = result.data;
+
         Thread.ofVirtual().start(() -> {
-            Player player = gameData.getPlayerController().getPlayer();
             activityManager.addActivityProgress(
                 player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET),
                 betValue, ItemUtils.getGoldItemId());

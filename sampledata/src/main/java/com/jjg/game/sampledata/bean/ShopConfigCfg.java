@@ -18,66 +18,63 @@ public class ShopConfigCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "ShopConfig";
 
-  /** 天数规则 */
-  protected int day;
-  /** 折扣原价 */
-  protected String discount;
-  /** 折扣 */
-  protected String discountratio;
-  /** 存在时间 */
-  protected String duration;
-  /** 图标 */
-  protected String icon1;
-  /** 标签 */
-  protected String icon2;
+  /** 金币或钻石原价数量 */
+  protected Map<Integer,Long> discount;
+  /** 金币或钻石售价数量 */
+  protected Map<Integer,Long> discountratio;
+  /** 结束日期 */
+  protected Date endTime;
   /** 道具奖励 */
-  protected String item;
-  /** 等级条件 */
-  protected int level;
+  protected Map<Integer,Long> item;
+  /** 标签1 */
+  protected String label1;
+  /** 标签2 */
+  protected int label2;
+  /** 解锁条件 */
+  protected Map<Integer,Integer> level;
   /** 购买价格 */
   protected int money;
+  /** 是否开启 */
+  protected boolean open;
+  /** 图标 */
+  protected String picName;
+  /** 开始日期 */
+  protected Date startTime;
   /** 分类 */
   protected int type;
-  /** 指定日期开放 */
-  protected String yymmdd;
 
-  /** 返回天数规则 */
-  public int getDay() {
-    return day;
-  }
-
-  /** 返回折扣原价 */
-  public String getDiscount() {
+  /** 返回金币或钻石原价数量 */
+  public Map<Integer,Long> getDiscount() {
     return discount;
   }
 
-  /** 返回折扣 */
-  public String getDiscountratio() {
+  /** 返回金币或钻石售价数量 */
+  public Map<Integer,Long> getDiscountratio() {
     return discountratio;
   }
 
-  /** 返回存在时间 */
-  public String getDuration() {
-    return duration;
-  }
-
-  /** 返回图标 */
-  public String getIcon1() {
-    return icon1;
-  }
-
-  /** 返回标签 */
-  public String getIcon2() {
-    return icon2;
+  /** 返回结束日期 */
+  public Date getEndTime() {
+    return endTime;
   }
 
   /** 返回道具奖励 */
-  public String getItem() {
+  public Map<Integer,Long> getItem() {
     return item;
   }
 
-  /** 返回等级条件 */
-  public int getLevel() {
+  /** 返回标签1 */
+  public String getLabel1() {
+    return label1;
+  }
+
+  /** 返回标签2 */
+  public int getLabel2() {
+    return label2;
+  }
+
+  /** 返回解锁条件 */
+  public Map<Integer,Integer> getLevel() {
     return level;
   }
 
@@ -86,14 +83,24 @@ public class ShopConfigCfg extends BaseCfgBean {
     return money;
   }
 
+  /** 返回是否开启 */
+  public boolean getOpen() {
+    return open;
+  }
+
+  /** 返回图标 */
+  public String getPicName() {
+    return picName;
+  }
+
+  /** 返回开始日期 */
+  public Date getStartTime() {
+    return startTime;
+  }
+
   /** 返回分类 */
   public int getType() {
     return type;
-  }
-
-  /** 返回指定日期开放 */
-  public String getYymmdd() {
-    return yymmdd;
   }
 
   @Override

@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.net.SocketException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -46,9 +47,13 @@ public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> imp
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
-        throws Exception {
+            throws Exception {
         //cause.printStackTrace();
-        log.debug("tips caught exception,ctx=" + ctx, cause);
+        if (cause instanceof SocketException) {
+
+        } else {
+            log.error("tips caught exception,ctx={}", ctx, cause);
+        }
         close();
     }
 
@@ -159,8 +164,8 @@ public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> imp
     @Override
     public String toString() {
         return "NettyConnect{" +
-            "ctx=" + ctx +
-            ", remoteAddress=" + remoteAddress +
-            '}';
+                "ctx=" + ctx +
+                ", remoteAddress=" + remoteAddress +
+                '}';
     }
 }

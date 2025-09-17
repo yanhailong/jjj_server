@@ -41,7 +41,7 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
 
     @Override
     public CleopatraResultLib checkAward(int[] arr, CleopatraResultLib lib) throws Exception {
-        return checkAward(arr,lib,null);
+        return checkAward(arr, lib, null);
     }
 
     public CleopatraResultLib checkAward(int[] arr, CleopatraResultLib lib, List<int[]> testAddIcons) throws Exception {
@@ -60,10 +60,6 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
         List<CleopatraAddColumnInfo> fullLineInfoList = fullLine(lib);
         lib.addAllAwardLineInfo(fullLineInfoList);
 
-        //检查全局分散图案
-        List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
-        lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
-
         //检查满线图案_数量
         List<CleopatraAddColumnInfo> fullLineCountInfoList = fullLineCount(lib, testAddIcons);
         lib.addAllAwardLineInfo(fullLineCountInfoList);
@@ -71,6 +67,10 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
         //检查连线分散数量
         List<CleopatraAddColumnInfo> lineDispersionCount = lineDispersionCount(lib);
         lib.addAllAwardLineInfo(lineDispersionCount);
+
+        //检查全局分散图案
+        List<SpecialAuxiliaryInfo> overallDisperseAuxiliaryInfoList = overallDisperse(lib);
+        lib.addSpecialAuxiliaryInfo(overallDisperseAuxiliaryInfoList);
 
         //计算倍数
         calTimes(lib);
@@ -86,7 +86,7 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
         }
 
         //获取每个图标出现的次数
-        Map<Integer, Integer> showCountMap = checkIconShowCount(lib.getIconArr());
+        Map<Integer, Integer> showCountMap = checkIconShowCount(lib);
 
         log.debug("检查全局分散");
 
@@ -104,7 +104,7 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
                     elementsCount += count;
                 }
             }
-            if (elementsCount != cfg.getRewardNum()) {
+            if (elementsCount < cfg.getRewardNum()) {
                 continue;
             }
 
@@ -130,7 +130,7 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
 
     @Override
     public List<CleopatraAddColumnInfo> fullLineCount(CleopatraResultLib lib) {
-        return fullLineCount(lib,null);
+        return fullLineCount(lib, null);
     }
 
     public List<CleopatraAddColumnInfo> fullLineCount(CleopatraResultLib lib, List<int[]> testAddIcons) {
@@ -218,22 +218,42 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
         }
 
         boolean add = false;
-
         //获取最后一列是否出现奖池图标,或者中奖图标
         Set<Integer> poolIconIndexSet = new HashSet<>();
-        int index = baseInitCfg.getRows() * (baseInitCfg.getCols() - 1);
-        for (int i = 1; i <= baseInitCfg.getRows(); i++) {
-            int tmpIndex = index + i;
-            int icon = lib.getIconArr()[tmpIndex];
+        for (int col = 1; col <= baseInitCfg.getCols(); col++) {
+            int beginIndex = (col - 1) * baseInitCfg.getRows() + 1;
+            //是否为最后一列
+            boolean lastCol = col == baseInitCfg.getCols();
+            //是否出现奖池图标
+            boolean showPoolIcon = false;
 
-            if (poolIconSet.contains(icon)) {
-                add = true;
-                poolIconIndexSet.add(tmpIndex);
+            for (int i = 0; i < baseInitCfg.getRows(); i++) {
+                //获取图标
+                int index = beginIndex + i;
+                int tmpIcon = lib.getIconArr()[index];
+
+                //记录奖池图标
+                if (poolIconSet.contains(tmpIcon)) {
+                    poolIconIndexSet.add(index);
+                    showPoolIcon = true;
+                }
+
+                if (lastCol) {
+                    //检查最后一列是否有中奖图标
+                    if (lib.getWinIcons() != null && !lib.getWinIcons().isEmpty()) {
+                        if (lib.getWinIcons().containsKey(tmpIcon) || wildIconSet.contains(tmpIcon)) {
+                            add = true;
+                        }
+                    }
+                }
             }
 
-            if(lib.getWinIcons() != null && !lib.getWinIcons().isEmpty()){
-                if(lib.getWinIcons().containsKey(icon) || wildIconSet.contains(icon)){
+            //检查最后一列是否有奖池图标
+            if (lastCol) {
+                if (showPoolIcon) {
                     add = true;
+                } else {
+                    poolIconIndexSet = null;
                 }
             }
         }
@@ -241,7 +261,7 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
         if (add) {
             lib.setPoolIconIndexSet(poolIconIndexSet);
             List<CleopatraAddColumnInfo> addColumnList = new ArrayList<>();
-            addColumnInfo(1, firstColIcons, baseInitCfg.getRows(), baseInitCfg.getCols() + 1, addColumnList, fullLineCountCfgMap,testAddIcons);
+            addColumnInfo(1, firstColIcons, baseInitCfg.getRows(), baseInitCfg.getCols() + 1, addColumnList, fullLineCountCfgMap, testAddIcons);
             return addColumnList;
         }
         return null;
@@ -339,7 +359,7 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
             return;
         }
 
-        addColumnInfo(winCount + 1, firstColIcons, rows, colId + 1, awardInfoList, fullLineCountCfgMap,testAddIcons);
+        addColumnInfo(winCount + 1, firstColIcons, rows, colId + 1, awardInfoList, fullLineCountCfgMap, testAddIcons);
     }
 
     @Override
@@ -467,6 +487,7 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
                 }
             }
 
+            log.debug("iconId = {},count = {},iconBaseScore = {},addTimes = {}", icon, count, iconBaseScore, addTimes);
             lib.addTimes(count * iconBaseScore * addTimes);
         }
 
@@ -475,5 +496,26 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
 
     public Map<Integer, AddColumnConfig> getAddColumnInfoMap() {
         return addColumnInfoMap;
+    }
+
+    @Override
+    protected Map<Integer, Integer> checkIconShowCount(CleopatraResultLib lib) {
+        Map<Integer, Integer> map = new HashMap<>();
+        for (int i = 1; i < lib.getIconArr().length; i++) {
+            int icon = lib.getIconArr()[i];
+            map.merge(icon, 1, Integer::sum);
+        }
+
+        if (lib.getAwardLineInfoList() == null || lib.getAwardLineInfoList().isEmpty()) {
+            return map;
+        }
+
+        lib.getAwardLineInfoList().forEach(info -> {
+            for (int i = 0; i < info.getArr().length; i++) {
+                int icon = info.getArr()[i];
+                map.merge(icon, 1, Integer::sum);
+            }
+        });
+        return map;
     }
 }
