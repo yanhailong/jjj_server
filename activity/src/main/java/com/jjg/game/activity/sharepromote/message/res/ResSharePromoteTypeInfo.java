@@ -13,11 +13,13 @@ import java.util.List;
  * @author lm
  * @date 2025/9/5 11:30
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY,cmd = ActivityConstant.MsgBean.RES_SHARE_PROMOTE_TYPE_INFO,resp = true)
-@ProtoDesc("响应推广分享活动类型信息")
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.RES_SHARE_PROMOTE_TYPE_INFO, resp = true)
+@ProtoDesc("推广分享活动类型信息")
 public class ResSharePromoteTypeInfo extends AbstractResponse {
     @ProtoDesc("活动信息")
     public List<SharePromoteActivityInfo> activityData;
+    @ProtoDesc("可领取收益")
+    public long getProfitReward;
 
     public ResSharePromoteTypeInfo(int code) {
         super(code);

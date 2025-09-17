@@ -10,7 +10,7 @@ import java.util.List;
  * @date 2025/9/5 11:28
  */
 @ProtobufMessage
-@ProtoDesc("每日奖金类型活动信息")
+@ProtoDesc("推广分享类型活动信息")
 public class SharePromoteActivityInfo {
     @ProtoDesc("活动详细信息")
     public List<SharePromoteDetailInfo> detailInfos;

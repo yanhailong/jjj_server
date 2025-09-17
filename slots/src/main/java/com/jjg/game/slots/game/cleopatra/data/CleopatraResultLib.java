@@ -15,6 +15,8 @@ public class CleopatraResultLib extends SlotsResultLib<CleopatraAddColumnInfo> {
     private Map<Integer,Set<Integer>> winIcons;
     //可以中奖的奖池id
     private List<Integer> jackpotIds;
+    //奖池图标坐标
+    private Set<Integer> poolIconIndexSet;
 
     public Map<Integer, Set<Integer>> getWinIcons() {
         return winIcons;
@@ -47,5 +49,13 @@ public class CleopatraResultLib extends SlotsResultLib<CleopatraAddColumnInfo> {
             this.winIcons = new HashMap<>();
         }
         this.winIcons.computeIfAbsent(winIcon, k -> new HashSet<>()).addAll(indexSet);
+    }
+
+    public Set<Integer> getPoolIconIndexSet() {
+        return poolIconIndexSet;
+    }
+
+    public void setPoolIconIndexSet(Set<Integer> poolIconIndexSet) {
+        this.poolIconIndexSet = poolIconIndexSet;
     }
 }

@@ -46,7 +46,7 @@ public interface ActivityConstant {
         int CASH_COW_FREE_ITEM = 25;
     }
 
-    interface ScratchCards{
+    interface ScratchCards {
         //刮刮乐消耗道具
         int SCRATCH_CARDS_COST_ITEM = 28;
     }
@@ -58,6 +58,13 @@ public interface ActivityConstant {
         //自动领取邮件id
         int MAIL_ID = 1;
     }
+
+    //推广分享
+    interface SharePromote {
+        //最大请求记录数
+        int MAX_SIZE = 10;
+    }
+
 
     interface MsgBean {
         int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.ACTIVITY << MessageConst.MessageCommon.RIGHT_MOVE;
@@ -124,5 +131,25 @@ public interface ActivityConstant {
         int RES_SHARE_PROMOTE_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x1D;
         //响应推广分享活动类型信息
         int RES_SHARE_PROMOTE_TYPE_INFO = BASE_MSG_PREFIX | 0x1E;
+        //请求绑定玩家
+        int REQ_SHARE_PROMOTE_BIND_PLAYER = BASE_MSG_PREFIX | 0x1F;
+        //请求领取收益奖励
+        int REQ_SHARE_PROMOTE_CLAIM_PROFIT_REWARD = BASE_MSG_PREFIX | 0x20;
+        //请求总览信息
+        int REQ_SHARE_PROMOTE_GLOBAL_INFO = BASE_MSG_PREFIX | 0x21;
+        //请求周排行榜
+        int REQ_SHARE_PROMOTE_WEEK_RANK_INFO = BASE_MSG_PREFIX | 0x22;
+        //请求推广分享我的收益排行榜信息
+        int REQ_SHARE_PROMOTE_SELF_RANK_INFO = BASE_MSG_PREFIX | 0x24;
+        //响应绑定玩家结果
+        int RES_SHARE_PROMOTE_BIND_PLAYER =  BASE_MSG_PREFIX | 0x25;
+        //响应领取收益奖励结果
+        int RES_SHARE_PROMOTE_CLAIM_PROFIT_REWARD = BASE_MSG_PREFIX | 0x26;
+        //响应总览信息
+        int RES_SHARE_PROMOTE_GLOBAL_INFO = BASE_MSG_PREFIX | 0x27;
+        //响应周榜信息
+        int RES_SHARE_PROMOTE_WEEK_RANK_INFO = BASE_MSG_PREFIX | 0x28;
+        //响应推广分享我的收益排行榜信息
+        int RES_SHARE_PROMOTE_SELF_RANK_INFO = BASE_MSG_PREFIX | 0x29;
     }
 }

@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.cleopatra.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -12,6 +13,7 @@ import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.game.cleopatra.CleopatraConstant;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraGameDataDao;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraResultLibDao;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
@@ -20,17 +22,17 @@ import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
 import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
+import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 麻将胡了游戏逻辑处理器
+ *
  * @author 11
  * @date 2025/8/1 17:25
  */
@@ -46,7 +48,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
     private SlotsPoolDao slotsPoolDao;
 
     public CleopatraGameManager() {
-        super(CleopatraPlayerGameData.class,CleopatraResultLib.class);
+        super(CleopatraPlayerGameData.class, CleopatraResultLib.class);
         this.log = LoggerFactory.getLogger(getClass());
     }
 
@@ -63,11 +65,12 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
 
     /**
      * 玩家开始游戏
+     *
      * @param playerController
      * @param stake
      * @return
      */
-    public CleopatraGameRunInfo playerStartGame(PlayerController playerController, long stake){
+    public CleopatraGameRunInfo playerStartGame(PlayerController playerController, long stake) {
         //获取玩家游戏数据
         CleopatraPlayerGameData playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
@@ -173,38 +176,38 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
 //                continue;
 //            }
             //获取结果库
-            CommonResult<CleopatraResultLib> libResult = normalGetLib(playerGameData, betValue);
+            CommonResult<CleopatraResultLib> libResult = normalGetLib(playerGameData, betValue, CleopatraConstant.SpecialMode.NORMAL);
             if (!libResult.success()) {
                 continue;
             }
 
             CleopatraResultLib tmpLib = libResult.data;
             //检查是否有奖池奖励
-            if(tmpLib.getJackpotIds() != null && !tmpLib.getJackpotIds().isEmpty()) {
+            if (tmpLib.getJackpotIds() != null && !tmpLib.getJackpotIds().isEmpty()) {
                 //判断中奖概率
                 int poolId = tmpLib.getJackpotIds().get(0);
                 poolCfg = randWinPool(playerGameData, poolId);
-                if(poolCfg == null) { //为空表示不能奖池中奖，重新获取
+                if (poolCfg == null) { //为空表示不能奖池中奖，重新获取
                     continue;
                 }
-            }else {
+            } else {
                 poolCfg = null;
             }
             resultLib = tmpLib;
             break;
         }
 
-        if(resultLib == null) {
-            log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.playerId(),this.gameType, betValue);
+        if (resultLib == null) {
+            log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.playerId(), this.gameType, betValue);
             return gameRunInfo;
         }
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
 
-        if(resultLib.getJackpotIds() != null && !resultLib.getJackpotIds().isEmpty()) {
-            for(int poolId : resultLib.getJackpotIds()){
-                if(poolCfg.getId() == poolId && poolCfg.getTruePool() > 0){
+        if (resultLib.getJackpotIds() != null && !resultLib.getJackpotIds().isEmpty()) {
+            for (int poolId : resultLib.getJackpotIds()) {
+                if (poolCfg.getId() == poolId && poolCfg.getTruePool() > 0) {
                     CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.playerId(), this.gameType, poolCfg.getTruePool(), poolCfg.getTruePool(), "SLOTS_REWARD_POOL");
-                    if(result.success()) {
+                    if (result.success()) {
                         gameRunInfo.addSmallPoolGold(result.data);
 
                         gameRunInfo.setCurrentPoolValue(getPoolValueByRoomCfgId(playerGameData.getRoomCfgId()));
@@ -218,6 +221,52 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
         gameRunInfo.setStake(betValue);
         gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         return gameRunInfo;
+    }
+
+    @Override
+    public boolean addTestIconDataIcons(PlayerController playerController, String icons) {
+        CleopatraPlayerGameData playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            return false;
+        }
+
+        try {
+            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+            int[] initArr = new int[baseInitCfg.getRows() * baseInitCfg.getCols() + 1];
+
+            String[] splitArr = icons.split(";");
+            String[] arr2 = splitArr[0].split(",");
+            for (int i = 1; i < initArr.length; i++) {
+                initArr[i] = Integer.parseInt(arr2[i - 1]);
+            }
+
+            CleopatraResultLib lib = new CleopatraResultLib();
+            lib.addLibType(1);
+            lib.setId(RandomUtils.getUUid());
+
+            List<int[]> addIconList = new ArrayList<>();
+            if(splitArr.length > 1){
+                for(int i = 1; i < splitArr.length; i++){
+                    String[] arr3 = splitArr[i].split(",");
+
+                    int[] tmpArr = new int[baseInitCfg.getRows()];
+                    for(int j = 0; j < tmpArr.length; j++){
+                        tmpArr[j] = Integer.parseInt(arr3[j]);
+                    }
+                    addIconList.add(tmpArr);
+                }
+            }
+
+            TestLibData testLibData = new TestLibData();
+            lib = generateManager.checkAward(initArr,lib,addIconList);
+            testLibData.setData(lib);
+            playerGameData.addTestIconsData(testLibData);
+            log.info("添加测试icons成功 playerId = {},icons = {}", playerController.playerId(), icons);
+            return true;
+        } catch (Exception e) {
+            log.error("", e);
+        }
+        return false;
     }
 
     @Override
@@ -247,11 +296,11 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
 
     @Override
     public void shutdown() {
-        try{
+        try {
             super.shutdown();
             log.info("已关闭埃及艳后游戏管理器");
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 }

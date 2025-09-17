@@ -18,10 +18,7 @@ import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Item;
-import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
@@ -196,6 +193,12 @@ public class ScratchCardsController extends BaseActivityController {
                 if (baseActivityDetailInfo instanceof ScratchCardsDetailInfo info) {
                     ScratchCardsType.detailInfos.add(info);
                 }
+            }
+            //获取剩余次数
+            Item costItem = getCostItem();
+            PlayerPack playerPack = playerPackService.getFromAllDB(playerId);
+            if (playerPack != null) {
+                ScratchCardsType.remainTimes = playerPack.getItemCount(costItem.getId());
             }
         }
         return cardTypeInfo;

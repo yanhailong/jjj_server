@@ -25,4 +25,8 @@ public interface CleopatraConstant {
     interface SpecialPlay{
         int TYPE_ADD_ICON = 6;
     }
+
+    interface SpecialMode{
+        int NORMAL = 1;
+    }
 }

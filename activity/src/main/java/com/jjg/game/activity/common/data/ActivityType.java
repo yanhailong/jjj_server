@@ -5,6 +5,7 @@ import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.piggybank.controller.PiggyBankController;
 import com.jjg.game.activity.privilegecard.controller.PrivilegeCardController;
 import com.jjg.game.activity.scratchcards.controller.ScratchCardsController;
+import com.jjg.game.activity.sharepromote.controller.SharePromoteController;
 import com.jjg.game.common.utils.CommonUtil;
 
 /**
@@ -23,7 +24,10 @@ public enum ActivityType {
             ActivityTargetType.BET.getTargetKey(), false),
     //刮刮乐
     SCRATCH_CARDS(5, ScratchCardsController.class, false, false,
-            ActivityTargetType.NONE.getTargetKey(), true);
+            ActivityTargetType.NONE.getTargetKey(), true),
+    //推广分享
+    SHARE_PROMOTE(5, SharePromoteController.class, true, false,
+                  ActivityTargetType.RECHARGE.getTargetKey(), false);
     //活动类型
     private final int type;
     //活动控制器的class

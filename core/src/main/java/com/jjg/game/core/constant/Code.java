@@ -89,6 +89,12 @@ public interface Code {
     int NOT_UNLOCKED = 434;
     // 庄家不能押注
     int BANKER_CANT_BET = 435;
+    // 請輸入正確的code
+    int CODE_ERROR = 436;
+    // 該玩家已經與你完成綁定
+    int ALREADY_BOUND = 437;
+    // 該玩家已與其他人完成綁定
+    int ALREADY_OTHER_BOUND = 438;
     // 非庄家不能修改准备金
     int CANT_EDIT_BANKER_GOLD = 49074;
     // 服务器错误

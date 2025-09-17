@@ -34,7 +34,9 @@ public class ActivityLogger extends BaseLogger {
         json.put("operation", "join");
         //奖励
         json.put("rewards", JSON.toJSONString(rewards));
-        json.put("rewardsItemNum", JSON.toJSONString(result));
+        if (result != null) {
+            json.put("rewardsItemNum", JSON.toJSONString(result));
+        }
         sendLog(TOPIC, player, json);
     }
 
@@ -83,9 +85,8 @@ public class ActivityLogger extends BaseLogger {
     /**
      * 摇钱树领取免费道具记录
      */
-    public void sendCashCowFreeRewards(Player player, long activityDataId, ItemOperationResult result, Item reward) {
-        JSONObject json = new JSONObject();
-        json.put("activityId", activityDataId);
+    public void sendCashCowFreeRewards(Player player, ActivityData activityData, ItemOperationResult result, Item reward) {
+        JSONObject json = buildBaseInfo(activityData, 0);
         json.put("operation", "freeRewards");
         json.put("rewards", JSON.toJSONString(Map.of(reward.getId(), reward.getItemCount())));
         json.put("rewardsItemNum", JSON.toJSONString(result));
