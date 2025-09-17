@@ -565,10 +565,25 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     /**
      * 判断是否是活动执行节点
+     *
      * @return true 是活动执行节点
      */
     public boolean isExecutionNode() {
         return NodeType.HALL == NodeType.getNodeTypeByName(nodeConfig.getType()) && marsCurator.isMaster();
+    }
+
+    /**
+     * 判断玩家是否剋参加活动
+     *
+     * @param data   活动数据
+     * @param player 玩家数据
+     * @return true 能参加活动 false不能参加活动
+     */
+    public boolean playerCanJoinActivity(ActivityData data, Player player) {
+        if (data == null || player == null) {
+            return false;
+        }
+        return data.canRun() && data.getType().getController().checkPlayerCanJoinActivity(player, data);
     }
 
     @Override
