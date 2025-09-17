@@ -1,7 +1,6 @@
 package com.jjg.game.core.logger;
 
 import cn.hutool.core.util.IdUtil;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.config.NodeConfig;
@@ -369,7 +368,7 @@ public class BaseLogger {
         json.put("time", System.currentTimeMillis());
         json.put("nodeName", nodeConfig.getName());
         json.put("nodeType", nodeConfig.getType());
-        log.info("sendLog:{}", JSON.toJSONString(json));
+//        log.info("sendLog:{}", JSON.toJSONString(json));
         kafkaTemplate.send(StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic.toLowerCase(),
                 JSONObject.toJSONString(json));
     }
