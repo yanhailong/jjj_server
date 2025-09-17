@@ -17,5 +17,11 @@ public class ActivityItemDropInfo {
     public List<KVInfo> itemMap;
 
     @ProtoDesc("活动ID")
-    public int activityId;
+    public long activityId;
+
+    @ProtoDesc("活动类型")
+    public int activityType;
+
+    @ProtoDesc("游戏类型 1. slots，2. 百人押注 3. poker对战")
+    public int gameType;
 }

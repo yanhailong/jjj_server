@@ -29,7 +29,10 @@ import com.jjg.game.core.base.drop.ConditionProgressKeyCons;
 import com.jjg.game.core.base.drop.DropItemDao;
 import com.jjg.game.core.base.drop.DropItemLogger;
 import com.jjg.game.core.base.drop.ItemDropDataHolder;
-import com.jjg.game.core.base.gameevent.*;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEvent;
+import com.jjg.game.core.base.gameevent.GameEventListener;
+import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.constant.Code;
@@ -45,6 +48,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.ConditionCfg;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -666,7 +670,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 List<Item> dropItems = triggerDropItem(player, activityData, triggerTimes, effectiveFlowingEvent);
                 if (!dropItems.isEmpty()) {
                     ActivityItemDropInfo activityItemDropInfo =
-                            buildActivityDropInfo(activityData.getType().getType(), dropItems);
+                        buildActivityDropInfo(activityData, effectiveFlowingEvent.getGameCfgId(), dropItems);
                     itemDropInfos.add(activityItemDropInfo);
                 }
             }
@@ -684,9 +688,12 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     /**
      * 构建活动掉落信息
      */
-    private ActivityItemDropInfo buildActivityDropInfo(int activityType, List<Item> dropItems) {
+    private ActivityItemDropInfo buildActivityDropInfo(ActivityData activityData, int gameCfgId, List<Item> dropItems) {
         ActivityItemDropInfo activityItemDropInfo = new ActivityItemDropInfo();
-        activityItemDropInfo.activityId = activityType;
+        activityItemDropInfo.activityType = activityData.getType().getType();
+        activityItemDropInfo.activityId = activityData.getId();
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(gameCfgId);
+        activityItemDropInfo.gameType = warehouseCfg.getGameType();
         activityItemDropInfo.itemMap =
                 dropItems.stream().map(item -> {
                     KVInfo kvInfo = new KVInfo();
