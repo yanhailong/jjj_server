@@ -30,6 +30,8 @@ public class ResWealthGodStartGame extends AbstractResponse {
     public long jackpotValue;
     @ProtoDesc("所有spin数据")
     public List<WealthGodSpinInfo> spinInfo;
+    @ProtoDesc("中奖后的奖池金额")
+    public long poolValue;
 
     public ResWealthGodStartGame(int code) {
         super(code);

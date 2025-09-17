@@ -25,10 +25,14 @@ public class WealthGodGameRunInfo extends GameRunInfo<WealthGodPlayerGameData> {
      */
     private int jackpotId;
 
+    /**
+     * jackpot奖励给玩家后剩余的奖池金额
+     */
+    private long poolValue;
+
     public WealthGodGameRunInfo(int code, long playerId) {
         super(code, playerId);
     }
-
 
     public int getJackpotId() {
         return jackpotId;
@@ -52,5 +56,13 @@ public class WealthGodGameRunInfo extends GameRunInfo<WealthGodPlayerGameData> {
 
     public void setJackpotValue(long jackpotValue) {
         this.jackpotValue = jackpotValue;
+    }
+
+    public long getPoolValue() {
+        return poolValue;
+    }
+
+    public void setPoolValue(long poolValue) {
+        this.poolValue = poolValue;
     }
 }
