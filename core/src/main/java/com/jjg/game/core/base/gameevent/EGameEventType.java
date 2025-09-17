@@ -11,7 +11,7 @@ public enum EGameEventType {
     // 玩家升级
     PLAYER_LEVEL(true, "levelID"),    // 玩家升级
     //充值
-    RECHARGE(true, (String[]) null),
+    RECHARGE(true, ""),
     // 产生有效流水
     EFFECTIVE_FLOWING(true, "effectiveFlowing"),
     // 个人有效下注 不计算好友房
