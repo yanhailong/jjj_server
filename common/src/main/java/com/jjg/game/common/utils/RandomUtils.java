@@ -1,5 +1,7 @@
 package com.jjg.game.common.utils;
 
+import com.jjg.game.common.proto.Pair;
+
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -445,6 +447,7 @@ public class RandomUtils {
 
         return result;
     }
+
     /**
      * 随机获得列表中的一定量的元素，返回List<br>
      * 此方法与{@link #randomEles(List, int)} 不同点在于，不会获取重复位置的元素
@@ -465,6 +468,26 @@ public class RandomUtils {
             result.add(source.get(e));
         }
         return result;
+    }
+
+    /**
+     * 根据权重随机
+     */
+    public static <T> T randomByWeight(List<Pair<Integer, T>> source) {
+        if (source == null || source.isEmpty()) {
+            return null;
+        }
+        if (source.size() == 1) {
+            return source.getFirst().getSecond();
+        }
+        Integer totalWeight = 0;
+        Map<Pair<Integer, T>, Integer> weightMap = new LinkedHashMap<>(source.size());
+        for (Pair<Integer, T> weightPair : source) {
+            totalWeight += weightPair.getFirst();
+            weightMap.put(weightPair, totalWeight);
+        }
+        Set<Pair<Integer, T>> randomByWeight = getRandomByWeight(weightMap, 1);
+        return randomByWeight.stream().map(Pair::getSecond).toList().getFirst();
     }
 
     /**

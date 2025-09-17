@@ -25,6 +25,8 @@ import com.jjg.game.core.base.condition.CheckParamCategory.EffectiveFlowingParam
 import com.jjg.game.core.base.condition.ConditionCheckService;
 import com.jjg.game.core.base.drop.ConditionProgressDao;
 import com.jjg.game.core.base.drop.ConditionProgressKeyCons;
+import com.jjg.game.core.base.drop.DropItemLogger;
+import com.jjg.game.core.base.drop.ItemDropDataHolder;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
@@ -32,12 +34,11 @@ import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
@@ -115,6 +116,11 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 开服时间（毫秒）
      */
     private final long startServerTime = 1756656000000L;
+    @Autowired
+    private ItemDropDataHolder itemDropDataHolder;
+    @Autowired
+    private PlayerPackService playerPackService;
+    private DropItemLogger dropItemLogger;
 
     public ActivityManager(TimerCenter timerCenter, ActivityDao activityDao,
                            ActivityDetailDao activityDetailDao, ClusterSystem clusterSystem,
@@ -522,54 +528,78 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     @Override
     public <T extends GameEvent> void handleEvent(T gameEvent) {
         // 产生有效流水 需要检查是否能掉落道具
-        if (gameEvent.getGameEventType() == EGameEventType.PLAYER_BET) {
+        if (gameEvent instanceof PlayerEffectiveFlowingEvent playerEffectiveFlowingEvent) {
             // 道具掉落检查
-            checkDropItem(gameEvent);
+            checkDropItem(playerEffectiveFlowingEvent);
         }
     }
 
     /**
      * 检查道具掉落
      */
-    private <T extends GameEvent> void checkDropItem(T gameEvent) {
-        if (gameEvent instanceof PlayerEffectiveFlowingEvent effectiveFlowingEvent) {
-            Player player = effectiveFlowingEvent.getPlayer();
-            // 检查道具掉落
-            List<Integer> activityIdList = eventTypeListMap.get(gameEvent.getGameEventType());
-            for (Integer activityId : activityIdList) {
-                ActivityConfigCfg activityConfigCfg = GameDataManager.getActivityConfigCfg(activityId);
-                if (activityConfigCfg == null) {
-                    continue;
-                }
-                List<Integer> dropCondition = activityConfigCfg.getDropcondition();
-                if (CollectionUtils.isEmpty(dropCondition)) {
-                    continue;
-                }
-                // 不能为空
-                if (CollectionUtils.isEmpty(activityConfigCfg.getDropid())) {
-                    continue;
-                }
-                // 条件key
-                String conditionKey =
-                    ConditionProgressKeyCons.BET_EFFECTIVE_FLOWING + player.getId() + ":" + activityId;
-                ConditionCfg cfg = GameDataManager.getConditionCfg(dropCondition.getFirst());
-                EffectiveFlowingParam effectiveFlowingParam = new EffectiveFlowingParam(cfg.getConditionType(), null);
-                effectiveFlowingParam.setFlowingValue((Long) effectiveFlowingEvent.getEventChangeValue());
-                effectiveFlowingParam.setGameCfgId(effectiveFlowingParam.getGameCfgId());
-                effectiveFlowingParam.setConditionProgressKey(conditionKey);
-                effectiveFlowingParam.setNeedUpdateProgress(true);
-                // 检查活动进度是否达到
-                boolean triggerRes = conditionCheckService.isTriggerComplete(
-                    player, cfg, Collections.singletonList(effectiveFlowingParam));
-                if (triggerRes) {
-
-                }
-                // 获取当前活动的进度
-                List<Integer> dropIdList = activityConfigCfg.getDropid();
-                for (Integer dropGroupId : dropIdList) {
-
-                }
+    private void checkDropItem(PlayerEffectiveFlowingEvent effectiveFlowingEvent) {
+        Player player = effectiveFlowingEvent.getPlayer();
+        // 检查道具掉落
+        List<Integer> activityIdList = eventTypeListMap.get(effectiveFlowingEvent.getGameEventType());
+        for (Integer activityId : activityIdList) {
+            ActivityConfigCfg activityConfigCfg = GameDataManager.getActivityConfigCfg(activityId);
+            if (activityConfigCfg == null) {
+                continue;
             }
+            List<Integer> dropCondition = activityConfigCfg.getDropcondition();
+            if (CollectionUtils.isEmpty(dropCondition)) {
+                continue;
+            }
+            // 不能为空
+            if (CollectionUtils.isEmpty(activityConfigCfg.getDropid())) {
+                continue;
+            }
+            // 条件key
+            String conditionKey =
+                ConditionProgressKeyCons.BET_EFFECTIVE_FLOWING + player.getId() + ":" + activityId;
+            ConditionCfg cfg = GameDataManager.getConditionCfg(dropCondition.getFirst());
+            EffectiveFlowingParam effectiveFlowingParam = new EffectiveFlowingParam(cfg.getConditionType(), null);
+            effectiveFlowingParam.setFlowingValue((Long) effectiveFlowingEvent.getEventChangeValue());
+            effectiveFlowingParam.setGameCfgId(effectiveFlowingParam.getGameCfgId());
+            effectiveFlowingParam.setConditionProgressKey(conditionKey);
+            effectiveFlowingParam.setNeedUpdateProgress(true);
+            // 检查活动进度是否达到
+            boolean triggerRes = conditionCheckService.isTriggerComplete(
+                player, cfg, Collections.singletonList(effectiveFlowingParam));
+            if (triggerRes) {
+                // 触发次数
+                int triggerTimes = effectiveFlowingParam.getTriggerTimes();
+                // 触发掉落逻辑
+                triggerDropItem(player, activityConfigCfg, triggerTimes, effectiveFlowingEvent);
+            }
+        }
+    }
+
+    /**
+     * 触发道具掉落
+     */
+    private void triggerDropItem(
+        Player player, ActivityConfigCfg activityCfg, int triggerTimes, PlayerEffectiveFlowingEvent event) {
+        List<Item> dropItems = new ArrayList<>();
+        // 随机N次
+        for (int i = 0; i < triggerTimes; i++) {
+            // 获取当前活动的进度
+            List<Integer> dropIdList = activityCfg.getDropid();
+            // 根据分组配置，获取对应的子包组ID
+            List<Item> randDropItems = itemDropDataHolder.randDropItems(dropIdList);
+            if (!CollectionUtils.isEmpty(randDropItems)) {
+                dropItems.addAll(randDropItems);
+            }
+        }
+        if (dropItems.isEmpty()) {
+            return;
+        }
+        // 添加道具
+        CommonResult<ItemOperationResult> result =
+            playerPackService.addItems(player.getId(), dropItems, "ACTIVITY_DROP_ITEM");
+        if (result.success()) {
+            // 记录日志
+            dropItemLogger.recordDropItem(player, activityCfg.getId(), event.getGameCfgId(), result.data);
         }
     }
 

@@ -51,7 +51,6 @@ public class PlayerPackService implements IPlayerRegister {
         return lockTableName + playerId;
     }
 
-
     /**
      * 添加道具
      */
@@ -98,7 +97,7 @@ public class PlayerPackService implements IPlayerRegister {
 
         if (addGold > 0 || addDiamond > 0) {
             CommonResult<Player> goldAndDiamond =
-                    corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, null);
+                corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, null);
             if (!goldAndDiamond.success()) {
                 result.code = goldAndDiamond.code;
                 return result;
@@ -114,13 +113,15 @@ public class PlayerPackService implements IPlayerRegister {
         PlayerPack playerPack = null;
         String key = getLockKey(playerId);
         Map<EItemUseStrategy, List<Item>> autoActivateMap = new HashMap<>(itemList.size());
+        // TODO 当前的加锁位置会有数据覆盖问题
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         try {
             playerPack = getFromAllDB(playerId);
             if (playerPack == null) {
                 playerPack = new PlayerPack();
             }
-
+            boolean hasChange = false;
+            Map<Integer, Long> changeBefore = new HashMap<>(itemList.size());
             for (Item item : itemList) {
                 int itemId = item.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
@@ -131,10 +132,16 @@ public class PlayerPackService implements IPlayerRegister {
                 if (strategy != null) {
                     autoActivateMap.computeIfAbsent(strategy, k -> new ArrayList<>()).add(item);
                 } else {
+                    changeBefore.put(itemId, changeBefore.getOrDefault(itemId, 0L) + playerPack.getItemCount(itemId));
                     playerPack.addItem(itemId, item.getItemCount(), itemCfg.getProp());
+                    hasChange = true;
                 }
             }
-            redisTemplate.opsForHash().put(tableName, playerId, playerPack);
+            // 如果有改变才写入，自使用的道具不会改变背包数据
+            if (hasChange) {
+                redisTemplate.opsForHash().put(tableName, playerId, playerPack);
+                result.data.setChangeBeforeItemNum(changeBefore);
+            }
             result.code = Code.SUCCESS;
         } catch (Exception e) {
             log.error("添加多个道具，保存 playerPack 失败 playerId={}", playerId, e);
@@ -156,8 +163,8 @@ public class PlayerPackService implements IPlayerRegister {
                 }
             }
             Map<Integer, Long> addTempItemMap =
-                    itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getItemCount()),
-                            HashMap::putAll);
+                itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getItemCount()),
+                    HashMap::putAll);
             coreLogger.addItems(playerId, addTempItemMap, addType);
         }
         return result;
@@ -185,7 +192,8 @@ public class PlayerPackService implements IPlayerRegister {
     /**
      * 移除道具
      */
-    public CommonResult<ItemOperationResult> removeItem(long playerId, Integer girdId, int id, long count, String addType) {
+    public CommonResult<ItemOperationResult> removeItem(long playerId, Integer girdId, int id, long count,
+                                                        String addType) {
         Player player = corePlayerService.get(playerId);
         return removeItem(player, Collections.singletonList(new Item(girdId, id, count)), addType);
     }
@@ -195,7 +203,8 @@ public class PlayerPackService implements IPlayerRegister {
      *
      * @param player 玩家信息
      */
-    public CommonResult<ItemOperationResult> removeItems(Player player, Map<Integer, Long> removeItemMap, String addType) {
+    public CommonResult<ItemOperationResult> removeItems(Player player, Map<Integer, Long> removeItemMap,
+                                                         String addType) {
         List<Item> itemList = new ArrayList<>();
         for (Map.Entry<Integer, Long> entry : removeItemMap.entrySet()) {
             itemList.add(new Item(entry.getKey(), entry.getValue()));
@@ -220,6 +229,7 @@ public class PlayerPackService implements IPlayerRegister {
         long deductDiamondV = 0;
         long playerId = player.getId();
         String key = getLockKey(playerId);
+        // TODO 当前加锁位置，有概率造成前面检查checkHasItems失效
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         try {
             List<Item> packItemList = new ArrayList<>();
@@ -261,6 +271,7 @@ public class PlayerPackService implements IPlayerRegister {
                 return result;
             }
 
+            Map<Integer, Long> changeBefore = new HashMap<>(packItemList.size());
             for (Item item : packItemList) {
                 int id = item.getId();
                 long count = item.getItemCount();
@@ -271,6 +282,7 @@ public class PlayerPackService implements IPlayerRegister {
                     return result;
                 }
                 CommonResult<Long> removeResult;
+                changeBefore.put(id, changeBefore.getOrDefault(id, 0L) + playerPack.getItemCount(id));
                 if (gridId == null) {
                     removeResult = playerPack.removeItem(id, count);
                 } else {
@@ -284,7 +296,7 @@ public class PlayerPackService implements IPlayerRegister {
             //扣除金币和钻石
             if (deductGoldV > 0 || deductDiamondV > 0) {
                 CommonResult<Player> removeResult =
-                        corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
+                    corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
                 if (!removeResult.success()) {
                     result.code = removeResult.code;
                     return result;
@@ -304,6 +316,7 @@ public class PlayerPackService implements IPlayerRegister {
                 changeAfterNum.put(item.getId(), playerPack.getItemCount(item.getId()));
             }
             result.data.setChangeEndItemNum(changeAfterNum);
+            result.data.setChangeBeforeItemNum(changeBefore);
             return result;
         } catch (Exception e) {
             log.error("移除道具，保存 playerPack 失败 playerId={}", playerId, e);
