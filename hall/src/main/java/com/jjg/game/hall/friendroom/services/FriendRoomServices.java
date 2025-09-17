@@ -746,7 +746,7 @@ public class FriendRoomServices {
             res.code = FriendRoomErrorCode.FRIEND_ROOM_REPEAT_SHIELD;
             playerController.send(res);
             return;
-        } else {
+        } else if (req.operateCode != 1) {
             if (!new HashSet<>(playerBlackList).containsAll(req.playerId)) {
                 // 移除非法好友列表
                 res.code = Code.NOT_FOUND;
@@ -867,7 +867,8 @@ public class FriendRoomServices {
                     itemMap.getOrDefault(diamondItemId, 0L) + updateFriendRoom.predictCostGoldNum);
             }
             // 扣除道具
-            CommonResult<ItemOperationResult> removeItem = playerPackService.removeItems(player, itemMap, "manage_friend_room");
+            CommonResult<ItemOperationResult> removeItem = playerPackService.removeItems(player, itemMap,
+                "manage_friend_room");
             // 移除道具失败
             if (!removeItem.success()) {
                 return removeItem.code;

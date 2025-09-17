@@ -177,6 +177,8 @@ public interface MessageConst {
         int REQ_RED_DOT = BASE_MSG_PREFIX | 0x10;
         //通知红点数据更新
         int NOTIFY_RED_DOT = BASE_MSG_PREFIX | 0x11;
+        //通知道具掉落
+        int NOTIFY_ITEM_DROP = BASE_MSG_PREFIX | 0x12;
     }
 
     interface RoomMessage {

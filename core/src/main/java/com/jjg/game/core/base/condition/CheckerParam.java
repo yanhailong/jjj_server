@@ -1,6 +1,5 @@
 package com.jjg.game.core.base.condition;
 
-import java.util.List;
 import java.util.Set;
 
 /**

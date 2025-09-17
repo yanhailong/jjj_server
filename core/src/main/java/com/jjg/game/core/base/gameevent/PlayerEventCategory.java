@@ -9,24 +9,17 @@ import com.jjg.game.core.data.Player;
  */
 public class PlayerEventCategory {
 
+    /**
+     * 玩家有效流水发生事件
+     */
     public static class PlayerEffectiveFlowingEvent extends PlayerEvent {
-        // 游戏类型
-        private int gameType;
         // 游戏配置ID
         private int gameCfgId;
 
         public PlayerEffectiveFlowingEvent(
-            Player player, int gameType, Object eventChangeValue, Object newlyValue) {
+            Player player, int gameCfgId, Object eventChangeValue, Object newlyValue) {
             super(player, EGameEventType.PLAYER_BET, eventChangeValue, newlyValue);
-            this.gameType = gameType;
-        }
-
-        public int getGameType() {
-            return gameType;
-        }
-
-        public void setGameType(int gameType) {
-            this.gameType = gameType;
+            this.gameCfgId = gameCfgId;
         }
 
         public int getGameCfgId() {

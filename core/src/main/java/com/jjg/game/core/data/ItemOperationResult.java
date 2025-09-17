@@ -9,6 +9,8 @@ import java.util.Map;
  * @date 2025/9/16 14:40
  */
 public class ItemOperationResult {
+    //变化前的道具数量
+    private Map<Integer, Long> changeBeforeItemNum;
     //变化后的道具数量
     private Map<Integer, Long> changeEndItemNum;
     //变化后的金币数量
@@ -22,6 +24,14 @@ public class ItemOperationResult {
 
     public void setChangeEndItemNum(Map<Integer, Long> changeEndItemNum) {
         this.changeEndItemNum = changeEndItemNum;
+    }
+
+    public Map<Integer, Long> getChangeBeforeItemNum() {
+        return changeBeforeItemNum;
+    }
+
+    public void setChangeBeforeItemNum(Map<Integer, Long> changeBeforeItemNum) {
+        this.changeBeforeItemNum = changeBeforeItemNum;
     }
 
     public long getGoldNum() {

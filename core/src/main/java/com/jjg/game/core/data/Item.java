@@ -55,4 +55,13 @@ public class Item {
     public void setGridId(int gridId) {
         this.gridId = gridId;
     }
+
+    @Override
+    public String toString() {
+        return "Item{" +
+            "id=" + id +
+            ", itemCount=" + itemCount +
+            ", gridId=" + gridId +
+            '}';
+    }
 }

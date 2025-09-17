@@ -3,6 +3,7 @@ package com.jjg.game.core.base.condition.checker;
 import com.jjg.game.core.base.condition.CheckerParam;
 import com.jjg.game.core.base.condition.EConditionComparator;
 import com.jjg.game.core.base.condition.IPlayerConditionChecker;
+import com.jjg.game.core.base.drop.ConditionProgressKeyCons;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.data.Player;
 import org.springframework.stereotype.Component;
@@ -54,8 +55,22 @@ public class PlayerCheckerCategory {
         @Override
         public boolean check(Player player, List<CheckerParam> comparatorTaget) {
             CheckerParam checkerParam = filterBindParamCheckParam(comparatorTaget);
+            long targetEffectiveBet;
+            if (checkerParam.getTargetParam() instanceof List<?> list) {
+                targetEffectiveBet = (int) list.getFirst();
+            } else {
+                targetEffectiveBet = (int) checkerParam.getTargetParam();
+            }
+            Number progress = conditionProgressDao.getProgress(getProgressKey(player));
+            if (progress == null) {
+                progress = 0;
+            }
+            long curProgress = progress.longValue();
+            boolean comparateRes = getConditionComparator(checkerParam).longComparate(targetEffectiveBet, curProgress);
+            if (comparateRes) {
 
-            return false;
+            }
+            return curProgress >= targetEffectiveBet;
         }
 
         @Override
@@ -70,7 +85,12 @@ public class PlayerCheckerCategory {
 
         @Override
         public EConditionComparator defaultConditionComparator() {
-            return EConditionComparator.GTE;
+            return EConditionComparator.EQ;
+        }
+
+        @Override
+        protected String getProgressKey(Player player) {
+            return ConditionProgressKeyCons.BET_EFFECTIVE_FLOWING + player.getId();
         }
     }
 }

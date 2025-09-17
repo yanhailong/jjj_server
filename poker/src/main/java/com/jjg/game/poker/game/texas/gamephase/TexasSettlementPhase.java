@@ -385,7 +385,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                         controller.getGameTransactionItemId());
                     // 触发事件
                     gameController.getGameEventManager().triggerEvent(
-                        new PlayerEffectiveFlowingEvent(gamePlayer, gameDataVo.getRoomCfg().getGameID(), betValue, 0));
+                        new PlayerEffectiveFlowingEvent(gamePlayer, gameDataVo.getRoomCfg().getId(), betValue, 0));
                 });
             }
         }
