@@ -16,4 +16,6 @@ public class SharePromoteActivityInfo {
     public List<SharePromoteDetailInfo> detailInfos;
     @ProtoDesc("进度")
     public long progress;
+    @ProtoDesc("可领取收益")
+    public long getProfitReward;
 }

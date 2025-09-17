@@ -73,6 +73,10 @@ public interface ActivityConstant {
     interface SharePromote {
         //最大请求记录数
         int MAX_SIZE = 10;
+        //排行榜奖励类型
+        int RANK_REWARDS = 2;
+        //最大记录数
+        int MAX_RECODE_NUM = 20;
     }
 
 
