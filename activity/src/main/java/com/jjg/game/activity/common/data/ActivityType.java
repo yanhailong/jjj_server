@@ -2,7 +2,6 @@ package com.jjg.game.activity.common.data;
 
 import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.common.controller.BaseActivityController;
-import com.jjg.game.activity.levelpack.controller.PlayerLevelPackController;
 import com.jjg.game.activity.piggybank.controller.PiggyBankController;
 import com.jjg.game.activity.privilegecard.controller.PrivilegeCardController;
 import com.jjg.game.activity.scratchcards.controller.ScratchCardsController;
@@ -28,10 +27,7 @@ public enum ActivityType {
             ActivityTargetType.NONE.getTargetKey(), true),
     //推广分享
     SHARE_PROMOTE(6, SharePromoteController.class, true, false,
-            ActivityTargetType.RECHARGE.getTargetKey(), false),
-    //等级礼包
-    LEVEL_PACK(7, PlayerLevelPackController.class, false, false,
-            ActivityTargetType.LEVEL.getTargetKey(), false);
+            ActivityTargetType.RECHARGE.getTargetKey(), false);
     //活动类型
     private final int type;
     //活动控制器的class
