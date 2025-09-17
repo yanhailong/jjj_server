@@ -33,7 +33,6 @@ import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.*;
-import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
@@ -344,7 +343,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param betValue
      * @return
      */
-    protected CommonResult<L> normalGetLib(T playerGameData, long betValue) {
+    protected CommonResult<L> normalGetLib(T playerGameData, long betValue,int specialModeNormalType) {
         CommonResult<L> result = new CommonResult<>(Code.SUCCESS);
         log.debug("开始正常流程 playerId = {},betValue = {}", playerGameData.playerId(), betValue);
         //获取倍场配置
@@ -425,7 +424,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //如果前面没有获取到lib，则获取一个无奖励的结果
             if (resultLib == null) {
                 sectionIndex = this.defaultRewardSectionIndex;
-                resultLib = (L) getResultLibDao().getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_NORMAL, this.defaultRewardSectionIndex);
+                resultLib = (L) getResultLibDao().getLibBySectionIndex(specialModeNormalType, this.defaultRewardSectionIndex);
                 log.debug("前面获取结果库失败，所以找一个不中奖的结果返回 gameType = {},libType = {}", this.gameType, libType);
 
                 if (resultLib == null) {
@@ -463,6 +462,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     protected CommonResult<L> freeGetLib(T playerGameData,int specialModeFreeLibType) {
+        return freeGetLib(playerGameData,specialModeFreeLibType,0);
+    }
+
+    /**
+     * 免费模式获取结果库
+     *
+     * @param playerGameData
+     * @return
+     */
+    protected CommonResult<L> freeGetLib(T playerGameData,int specialModeFreeLibType,int specialAuxiliary) {
         CommonResult<L> result = new CommonResult<>(Code.SUCCESS);
         log.debug("开始获取免费结果库 playerId = {}", playerGameData.playerId());
 
@@ -475,7 +484,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     continue;
                 }
                 //获取结果库
-                freeLib = (L) getResultLibDao().getLibBySectionIndex(DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE, sectionResult.data);
+                freeLib = (L) getResultLibDao().getLibBySectionIndex(specialModeFreeLibType, sectionResult.data);
                 if (freeLib == null) {
                     continue;
                 }
@@ -502,7 +511,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         for (Object obj : freeLib.getSpecialAuxiliaryInfoList()) {
             SpecialAuxiliaryInfo tmpInfo = (SpecialAuxiliaryInfo) obj;
             SpecialAuxiliaryCfg specialAuxiliaryCfg = GameDataManager.getSpecialAuxiliaryCfg(tmpInfo.getCfgId());
-            if (specialAuxiliaryCfg.getType() != DollarExpressConstant.SpecialAuxiliary.TYPE_ALL_BOARD_FREE) {
+            if (specialAuxiliary > 0 && specialAuxiliaryCfg.getType() != specialAuxiliary) {
                 continue;
             }
             if (tmpInfo.getFreeGames() == null || tmpInfo.getFreeGames().isEmpty()) {

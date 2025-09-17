@@ -160,7 +160,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
      * @return
      */
     private MahjiongWinGameRunInfo normal(MahjiongWinGameRunInfo gameRunInfo, MahjiongWinPlayerGameData playerGameData, long betValue) {
-        CommonResult<MahjiongWinResultLib> libResult = normalGetLib(playerGameData, betValue);
+        CommonResult<MahjiongWinResultLib> libResult = normalGetLib(playerGameData, betValue,MahjiongWinConstant.SpecialMode.NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;

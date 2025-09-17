@@ -509,7 +509,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @return
      */
     private DollarExpressGameRunInfo normal(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData, long betValue) {
-        CommonResult<DollarExpressResultLib> libResult = normalGetLib(playerGameData, betValue);
+        CommonResult<DollarExpressResultLib> libResult = normalGetLib(playerGameData, betValue,DollarExpressConstant.SpecialMode.TYPE_NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
@@ -648,7 +648,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @return
      */
     private DollarExpressGameRunInfo allBoardFree(DollarExpressGameRunInfo gameRunInfo, DollarExpressPlayerGameData playerGameData) {
-        CommonResult<DollarExpressResultLib> libResult = freeGetLib(playerGameData,DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE);
+        CommonResult<DollarExpressResultLib> libResult = freeGetLib(playerGameData,DollarExpressConstant.SpecialMode.TYPE_TRIGGER_FREE,DollarExpressConstant.SpecialAuxiliary.TYPE_ALL_BOARD_FREE);
         if(!libResult.success()){
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
