@@ -169,6 +169,11 @@ public class SlotsPoolDao extends AbstractPoolDao {
         Number poolValue = getSmallPoolByRoomCfgId(gameType, roomCfgId);
 
         long value = SlotsUtil.calProp(ratio, poolValue.longValue());
+        if(value < 1){
+            result.code = Code.FAIL;
+            log.debug("计算出的 value 小于1 playerId = {},gameType = {},roomCfgId = {}", playerId, gameType,roomCfgId);
+            return result;
+        }
 
         Long afterPoolValue = addToSmallPool(gameType, roomCfgId,-value);
         if (afterPoolValue == null) {
@@ -176,9 +181,11 @@ public class SlotsPoolDao extends AbstractPoolDao {
             return result;
         }
 
-        CommonResult<Player> addResult = slotsPlayerService.addGold(playerId, afterPoolValue, addType);
+        CommonResult<Player> addResult = slotsPlayerService.addGold(playerId, value, addType);
         if (!addResult.success()) {  //如果失败，要把钱重新加回池子
+            result.code = Code.FAIL;
             addToSmallPool(gameType, roomCfgId, value);
+            log.debug("操作失败，已将金币加回池子 playerId = {},gameType = {},roomCfgId = {}", playerId, gameType,roomCfgId);
             return result;
         }
 

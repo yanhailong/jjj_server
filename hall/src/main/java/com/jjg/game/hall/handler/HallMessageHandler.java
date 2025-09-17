@@ -29,6 +29,7 @@ import com.jjg.game.hall.pb.req.*;
 import com.jjg.game.hall.pb.res.*;
 import com.jjg.game.hall.pb.struct.MailInfo;
 import com.jjg.game.hall.pb.struct.PackItemInfo;
+import com.jjg.game.hall.pb.struct.ShopProductInfo;
 import com.jjg.game.hall.room.HallRoomService;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
@@ -38,6 +39,7 @@ import com.jjg.game.hall.vip.data.VipCfgCache;
 import com.jjg.game.hall.vip.pb.req.ReqVipClaimGiftReward;
 import com.jjg.game.hall.vip.pb.req.ReqVipInfo;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ShopConfigCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -985,6 +987,16 @@ public class HallMessageHandler implements GmListener {
         List<Integer> openedFuncIdList = gameFunctionService.getOpenedFuncIdList(player);
         ResFunctionOpenList res = new ResFunctionOpenList(Code.SUCCESS);
         res.openedFunctionIdList = openedFuncIdList;
+        playerController.send(res);
+    }
+
+    /**
+     * 获取商城
+     */
+    @Command(HallConstant.MsgBean.REQ_SHOP)
+    public void reqShop(PlayerController playerController) {
+        ResShop res = new ResShop(Code.SUCCESS);
+        res.shopProductInfoList = hallService.getShop(playerController.getPlayer());
         playerController.send(res);
     }
 }
