@@ -610,21 +610,6 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     }
 
     /**
-     * 触发等级礼包活动
-     */
-    private void tagetLevelPack(Player player) {
-        Map<Long, ActivityData> activityDataMap = activityTypeData.get(ActivityType.LEVEL_PACK);
-        if (CollectionUtil.isNotEmpty(activityDataMap)) {
-            for (ActivityData data : activityDataMap.values()) {
-                if (!playerCanJoinActivity(data, player)) {
-                    continue;
-                }
-                data.getType().getController().joinActivity(player, data, -1, 1);
-            }
-        }
-    }
-
-    /**
      * 检查道具掉落
      */
     private void checkDropItem(PlayerEffectiveFlowingEvent effectiveFlowingEvent) {
