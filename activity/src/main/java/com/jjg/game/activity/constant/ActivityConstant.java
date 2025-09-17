@@ -10,6 +10,10 @@ public interface ActivityConstant {
     interface Common {
         //redis 锁时间
         int REDIS_LOCK = 500;
+        //限时活动类型
+        int LIMIT_TYPE = 2;
+        //开服活动类型
+        int OPEN_SERVER_TYPE = 1;
     }
 
     interface ActivityStatus {
@@ -44,6 +48,8 @@ public interface ActivityConstant {
         int CASH_COW_ADD_POOL_PROPORTION = 24;
         //摇钱树活动每日免费获得的道具（重置时间跟随系统）
         int CASH_COW_FREE_ITEM = 25;
+        //累计奖励类型领奖类型
+        int CUMULATIVE_REWARDS_REWARD_TYPE = 4;
     }
 
     interface ScratchCards {
@@ -142,7 +148,7 @@ public interface ActivityConstant {
         //请求推广分享我的收益排行榜信息
         int REQ_SHARE_PROMOTE_SELF_RANK_INFO = BASE_MSG_PREFIX | 0x24;
         //响应绑定玩家结果
-        int RES_SHARE_PROMOTE_BIND_PLAYER =  BASE_MSG_PREFIX | 0x25;
+        int RES_SHARE_PROMOTE_BIND_PLAYER = BASE_MSG_PREFIX | 0x25;
         //响应领取收益奖励结果
         int RES_SHARE_PROMOTE_CLAIM_PROFIT_REWARD = BASE_MSG_PREFIX | 0x26;
         //响应总览信息

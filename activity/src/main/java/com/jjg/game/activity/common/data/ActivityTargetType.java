@@ -31,8 +31,9 @@ public enum ActivityTargetType {
      * 押注金币
      */
     BET(5, 1 << 4);
-
+    //触发类型
     private final long type;
+    //触发key
     private final long targetKey;
 
     ActivityTargetType(long type, long targetKey) {

@@ -26,7 +26,7 @@ public enum ActivityType {
     SCRATCH_CARDS(5, ScratchCardsController.class, false, false,
             ActivityTargetType.NONE.getTargetKey(), true),
     //推广分享
-    SHARE_PROMOTE(5, SharePromoteController.class, true, false,
+    SHARE_PROMOTE(6, SharePromoteController.class, true, false,
                   ActivityTargetType.RECHARGE.getTargetKey(), false);
     //活动类型
     private final int type;
