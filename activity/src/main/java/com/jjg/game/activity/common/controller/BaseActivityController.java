@@ -271,7 +271,7 @@ public abstract class BaseActivityController {
             }
 
             // 获取玩家该活动的数据（子项维度）
-            Map<Integer, PlayerActivityData> privilegeCardCfgMap = playerActivityData.getOrDefault(activityData.getId(), Map.of());
+            Map<Integer, PlayerActivityData> playerActivityDataMap = playerActivityData.getOrDefault(activityData.getId(), Map.of());
 
             // 构建活动详情列表
             List<BaseActivityDetailInfo> arrayList = new ArrayList<>();
@@ -282,8 +282,7 @@ public abstract class BaseActivityController {
                 if (baseCfgBean == null) {
                     continue;
                 }
-                BaseActivityDetailInfo detail =
-                        buildPlayerActivityDetail(activityData.getId(), baseCfgBean, privilegeCardCfgMap.get(id));
+                BaseActivityDetailInfo detail = buildPlayerActivityDetail(activityData.getId(), baseCfgBean, playerActivityDataMap.get(id));
                 if (detail != null) {
                     arrayList.add(detail);
                 }
