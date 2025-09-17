@@ -1,7 +1,6 @@
 package com.jjg.game.hall.levelpack.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.jjg.game.activity.sharepromote.dao.PlayerLevelDao;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.redis.RedisLock;
@@ -18,8 +17,9 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.constant.HallConstant;
+import com.jjg.game.hall.levelpack.dao.PlayerLevelDao;
+import com.jjg.game.hall.levelpack.data.PlayerLevelPackData;
 import com.jjg.game.hall.levelpack.message.bean.PlayerLevelPackDetailInfo;
-import com.jjg.game.hall.levelpack.message.data.PlayerLevelPackData;
 import com.jjg.game.hall.levelpack.message.req.ReqPlayerLevelClaimRewards;
 import com.jjg.game.hall.levelpack.message.res.NotifyPlayerLevelPackDetailInfo;
 import com.jjg.game.hall.levelpack.message.res.ResPlayerLevelClaimRewards;
