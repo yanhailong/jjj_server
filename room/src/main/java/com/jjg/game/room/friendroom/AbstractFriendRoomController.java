@@ -116,7 +116,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             // 如果能开始需要更新房间最新消息
             broadFriendRoomChange();
         } else {
-            log.warn("请求尝试开启游戏，尝试失败，准备尝试开始游戏");
+            log.warn("请求尝试开启游戏，尝试失败，准备尝试开始游戏：{}", getRoom().logStr());
             // 如果房间刚开始，则需要尝试启动游戏
             if (checkRoomCanContinue() && gameController.checkRoomCanStart()) {
                 log.debug("尝试继续游戏，处于游戏开始阶段，准备开始游戏");

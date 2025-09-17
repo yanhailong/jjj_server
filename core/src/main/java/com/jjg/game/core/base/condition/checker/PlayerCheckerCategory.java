@@ -53,7 +53,6 @@ public class PlayerCheckerCategory {
         }
     }
 
-    @Component
     public static abstract class BaseEffectiveBetChecker extends AbstractProgressConditionChecker {
 
         @Override
