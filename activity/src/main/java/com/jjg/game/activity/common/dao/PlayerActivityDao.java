@@ -95,14 +95,14 @@ public class PlayerActivityDao {
             HashOperations<String, String, String> hash = redisTemplate.opsForHash();
             String jsonData = hash.get(getKey(playerId, activityType.getType()), String.valueOf(activityId));
             if (jsonData == null) {
-                return Map.of();
+                return new HashMap<>();
             }
             return mapper.readValue(jsonData, new TypeReference<>() {
             });
         } catch (Exception e) {
             log.error("获取活动数据异常 playerId:{} activityType:{} activityId:{}",
                     playerId, activityType, activityId, e);
-            return Map.of();
+            return new HashMap<>();
         }
     }
 
