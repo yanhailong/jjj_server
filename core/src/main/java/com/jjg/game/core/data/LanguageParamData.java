@@ -8,6 +8,18 @@ public class LanguageParamData {
     private int type;
     private String param;
 
+    public LanguageParamData() {
+    }
+
+    public LanguageParamData(String param) {
+        this.param = param;
+    }
+
+    public LanguageParamData(int type, String param) {
+        this.param = param;
+        this.type = type;
+    }
+
     public int getType() {
         return type;
     }

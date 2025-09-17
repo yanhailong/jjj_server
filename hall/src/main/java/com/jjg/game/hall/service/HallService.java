@@ -25,7 +25,9 @@ import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.pb.res.NotifyGameList;
 import com.jjg.game.hall.pb.struct.GameListConfig;
+import com.jjg.game.hall.pb.struct.ShopProductInfo;
 import com.jjg.game.hall.pb.struct.WarePoolInfo;
+import com.jjg.game.hall.utils.ConditionUtil;
 import com.jjg.game.hall.utils.HallTool;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -35,6 +37,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -552,6 +557,59 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return null;
         }
         return new ArrayList<>(set);
+    }
+
+    /**
+     * 获取商城
+     * @param player
+     * @return
+     */
+    public List<ShopProductInfo> getShop(Player player) {
+        List<ShopProductInfo> list = new ArrayList<>();
+
+        LocalDateTime now = LocalDateTime.now();
+        for(Map.Entry<Integer,ShopConfigCfg> en : GameDataManager.getShopConfigCfgMap().entrySet()){
+            ShopConfigCfg cfg = en.getValue();
+            //是否开启
+            if(!cfg.getOpen()){
+                continue;
+            }
+
+            //检查解锁条件
+            if(ConditionUtil.checkCondition(player, cfg.getLevel()) != Code.SUCCESS){
+                continue;
+            }
+
+            //检查开始时间
+            if(cfg.getStartTime() != null){
+                LocalDateTime startTime = cfg.getStartTime().toInstant()
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDateTime();
+
+                if(now.compareTo(startTime) < 0){
+                    continue;
+                }
+            }
+
+            int entTime = -1;
+            //检查结束时间
+            if(cfg.getEndTime() != null){
+                ZonedDateTime zonedDateTime = cfg.getEndTime().toInstant().atZone(ZoneId.systemDefault());
+                LocalDateTime endTime = zonedDateTime.toLocalDateTime();
+                entTime = (int)zonedDateTime.toEpochSecond();
+                if(now.compareTo(endTime) > 0){
+                    continue;
+                }
+            }
+
+            ShopProductInfo info = new ShopProductInfo();
+            info.id = cfg.getId();
+            info.money = cfg.getMoney();
+            info.endTime = entTime;
+            list.add(info);
+        }
+
+        return list;
     }
 
     /***********************************************************************************************************/

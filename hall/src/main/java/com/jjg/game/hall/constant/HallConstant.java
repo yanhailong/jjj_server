@@ -190,5 +190,9 @@ public interface HallConstant {
         int REQ_PLAYER_LEVEL_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x46;
         //玩家领取等级礼包返回
         int RES_PLAYER_LEVEL_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x47;
+
+        //请求商城
+        int REQ_SHOP = BASE_MSG_PREFIX | 0X48;
+        int RES_SHOP = BASE_MSG_PREFIX | 0X49;
     }
 }

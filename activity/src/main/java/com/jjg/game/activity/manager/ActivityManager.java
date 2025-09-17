@@ -601,7 +601,6 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         if (gameEvent instanceof PlayerEffectiveFlowingEvent playerEffectiveFlowingEvent) {
             // 道具掉落检查
             checkDropItem(playerEffectiveFlowingEvent);
-
         }
         if (gameEvent instanceof PlayerEvent playerEvent && playerEvent.getGameEventType()==EGameEventType.PLAYER_LEVEL) {
             Player player = playerEvent.getPlayer();

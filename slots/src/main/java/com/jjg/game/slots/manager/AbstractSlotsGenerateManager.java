@@ -1511,6 +1511,16 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
     /**
      * 计算每个图标出现的次数
      *
+     * @param lib
+     * @return
+     */
+    protected Map<Integer, Integer> checkIconShowCount(T lib) {
+        return checkIconShowCount(lib.getIconArr());
+    }
+
+    /**
+     * 计算每个图标出现的次数
+     *
      * @param arr
      * @return
      */
