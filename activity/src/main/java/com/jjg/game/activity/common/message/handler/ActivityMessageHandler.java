@@ -48,7 +48,7 @@ public class ActivityMessageHandler {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.getValue().contains(req.detailId)) {
             BaseActivityController controller = data.getType().getController();
-            if (controller.checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse response = controller.getPlayerActivityDetail(playerController.playerId(), data, req.detailId);
                 if (response != null) {
                     playerController.send(response);
@@ -82,7 +82,7 @@ public class ActivityMessageHandler {
             return;
         }
         BaseActivityController controller = data.getType().getController();
-        if (controller.checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
             AbstractResponse response = controller.claimActivityRewards(playerController.getPlayer(), data, req.detailId);
             if (response != null) {
                 playerController.send(response);
@@ -99,7 +99,7 @@ public class ActivityMessageHandler {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.getValue().contains(req.detailId) && data.getType().isCanInitiativeJoin()) {
             BaseActivityController controller = data.getType().getController();
-            if (controller.checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse response = controller.joinActivity(playerController.getPlayer(), data, req.detailId, req.joinTimes);
                 if (response != null) {
                     playerController.send(response);
@@ -115,8 +115,8 @@ public class ActivityMessageHandler {
     @Command(ActivityConstant.MsgBean.REQ_CASH_COW_RECORD)
     public void reqCashCowRecord(PlayerController playerController, ReqCashCowRecord req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null && data.canRun() && data.getType() == ActivityType.CASH_COW) {
-            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+        if (data != null && data.getType() == ActivityType.CASH_COW) {
+            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse res = cashCowController.reqCashCowRecord(playerController, req);
                 playerController.send(res);
             }
@@ -129,8 +129,8 @@ public class ActivityMessageHandler {
     @Command(ActivityConstant.MsgBean.REQ_CASH_COW_TOTAL_POOL)
     public void reqCashCowTotalPool(PlayerController playerController, ReqCashCowTotalPool req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null && data.canRun() && data.getType() == ActivityType.CASH_COW) {
-            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+        if (data != null && data.getType() == ActivityType.CASH_COW) {
+            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse res = cashCowController.reqCashCowTotalPool(playerController, req);
                 playerController.send(res);
             }
@@ -143,8 +143,8 @@ public class ActivityMessageHandler {
     @Command(ActivityConstant.MsgBean.REQ_CASH_COW_FREE_REWARDS)
     public void reqCashCowFreeRewards(PlayerController playerController, ReqCashCowFreeRewards req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null && data.canRun() && data.getType() == ActivityType.CASH_COW) {
-            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+        if (data != null && data.getType() == ActivityType.CASH_COW) {
+            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse res = cashCowController.reqCashCowFreeRewards(playerController, data, req);
                 playerController.send(res);
             }
@@ -157,8 +157,8 @@ public class ActivityMessageHandler {
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_BIND_PLAYER)
     public void reqSharePromoteBindPlayer(PlayerController playerController, ReqSharePromoteBindPlayer req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null && data.canRun() && data.getType() == ActivityType.SHARE_PROMOTE) {
-            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+        if (data != null  && data.getType() == ActivityType.SHARE_PROMOTE) {
+            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse res = sharePromoteController.reqSharePromoteBindPlayer(playerController, req);
                 playerController.send(res);
             }
@@ -171,8 +171,8 @@ public class ActivityMessageHandler {
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_CLAIM_PROFIT_REWARD)
     public void reqSharePromoteClaimProfitReward(PlayerController playerController, ReqSharePromoteClaimProfitReward req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null && data.canRun() && data.getType() == ActivityType.SHARE_PROMOTE) {
-            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+        if (data != null  && data.getType() == ActivityType.SHARE_PROMOTE) {
+            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse res = sharePromoteController.reqSharePromoteClaimProfitReward(playerController, req);
                 playerController.send(res);
             }
@@ -185,8 +185,8 @@ public class ActivityMessageHandler {
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_GLOBAL_INFO)
     public void reqSharePromoteGlobalInfo(PlayerController playerController, ReqSharePromoteGlobalInfo req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null && data.canRun() && data.getType() == ActivityType.SHARE_PROMOTE) {
-            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+        if (data != null  && data.getType() == ActivityType.SHARE_PROMOTE) {
+            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse res = sharePromoteController.reqSharePromoteGlobalInfo(playerController, req);
                 playerController.send(res);
             }
@@ -199,8 +199,8 @@ public class ActivityMessageHandler {
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_WEEK_RANK_INFO)
     public void reqSharePromoteWeekRankInfo(PlayerController playerController, ReqSharePromoteWeekRankInfo req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null && data.canRun() && data.getType() == ActivityType.SHARE_PROMOTE) {
-            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+        if (data != null  && data.getType() == ActivityType.SHARE_PROMOTE) {
+            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse res = sharePromoteController.reqSharePromoteWeekRankInfo(playerController, req);
                 playerController.send(res);
             }
@@ -210,11 +210,11 @@ public class ActivityMessageHandler {
     /**
      * 推广分享-请求推广分享我的收益排行榜信息
      */
-    @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_WEEK_RANK_INFO)
+    @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_SELF_RANK_INFO)
     public void reqSharePromoteSelfRankInfo(PlayerController playerController, ReqSharePromoteSelfRankInfo req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null && data.canRun() && data.getType() == ActivityType.SHARE_PROMOTE) {
-            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+        if (data != null && data.getType() == ActivityType.SHARE_PROMOTE) {
+            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse res = sharePromoteController.reqSharePromoteSelfRankInfo(playerController, req);
                 playerController.send(res);
             }

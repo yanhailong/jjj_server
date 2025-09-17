@@ -387,7 +387,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         info.activityInfos = new ArrayList<>();
         for (ActivityData data : activityData.values()) {
             BaseActivityController controller = data.getType().getController();
-            if (!data.canRun() || !controller.checkPlayerCanJoinActivity(player, data)) {
+            if (!playerCanJoinActivity(data, playerController.getPlayer())) {
                 continue;
             }
             //玩家首次登录执行
@@ -425,7 +425,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             List<ActivityData> dataArrayList = new ArrayList<>();
             for (ActivityData data : activityDataMap.values()) {
                 //检查活动参加条件
-                if (!data.getType().getController().checkPlayerCanJoinActivity(player, data)) {
+                if (!playerCanJoinActivity(data, player)) {
                     continue;
                 }
                 try {
@@ -472,7 +472,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             }
             for (ActivityData data : activityDataMap.values()) {
                 //检查活动参加条件
-                if (!data.getType().getController().checkPlayerCanJoinActivity(player, data)) {
+                if (!playerCanJoinActivity(data, player)) {
                     continue;
                 }
                 try {
