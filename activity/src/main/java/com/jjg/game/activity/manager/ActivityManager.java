@@ -4,8 +4,8 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.dao.ActivityDao;
 import com.jjg.game.activity.common.dao.ActivityDetailDao;
-import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
+import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.res.NotifyActivityChange;
@@ -59,7 +59,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess, GmListener, GameEventListener,
-    ConfigExcelChangeListener {
+        ConfigExcelChangeListener {
     private static final Logger log = LoggerFactory.getLogger(ActivityManager.class);
     /**
      * 定时器中心，用于添加活动开始/结束的定时任务
@@ -73,8 +73,6 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 活动详细数据 DAO（活动子项配置存储）
      */
     private final ActivityDetailDao activityDetailDao;
-    // 玩家消息dao
-    private PlayerActivityDao playerActivityDao;
     /**
      * 集群系统，节点间消息广播
      */
@@ -157,23 +155,52 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         Map<Long, Map<Integer, BaseCfgBean>> tempActivityDetailInfo = new ConcurrentHashMap<>();
         //要添加定时器的列表 时间戳 活动id
         List<Pair<Long, Long>> timerList = new ArrayList<>();
-        long timeMillis = System.currentTimeMillis();
+        long currentTime = System.currentTimeMillis();
         //从数据库加载
-        List<ActivityData> allActivityInfos = activityDao.getAllActivityInfos();
-        for (ActivityData data : allActivityInfos) {
-            if (!checkActivityData(data, timeMillis, timerList)) {
-                continue;
-            }
-            long activityInfoId = data.getId();
-            //获取详细配置信息
-            Map<Integer, BaseCfgBean> activityDetailInfos = activityDetailDao.getActivityDetailInfos(activityInfoId,
-                data.getType());
-            if (CollectionUtil.isNotEmpty(activityDetailInfos)) {
-                tempActivityDetailInfo.put(activityInfoId, activityDetailInfos);
-            }
-            tempActivityData.put(activityInfoId, data);
-        }
+        loadActivityConfigByDB(currentTime, timerList, tempActivityDetailInfo, tempActivityData);
         //从配置表加载
+        loadActivityConfigByExcel(tempActivityData, currentTime, timerList, tempActivityDetailInfo);
+        //添加活动定时器
+        for (Pair<Long, Long> pair : timerList) {
+            timerCenter.add(new TimerEvent<>(this, pair.getFirst(), pair.getSecond()));
+        }
+        //主节点保存到redis
+        if (marsCurator.isMaster()) {
+            activityDao.saveActivities(tempActivityData);
+            for (Map.Entry<Long, Map<Integer, BaseCfgBean>> entry : tempActivityDetailInfo.entrySet()) {
+                activityDetailDao.saveActivityDetails(entry.getKey(), entry.getValue());
+            }
+        }
+        //重新赋值到内存
+        activityData = tempActivityData;
+        activityDetailInfo = tempActivityDetailInfo;
+        activityTypeData = new ConcurrentHashMap<>();
+        //缓存为活动类型->活动数据保存
+        for (ActivityData data : tempActivityData.values()) {
+            activityTypeData.computeIfAbsent(data.getType(), k -> new ConcurrentHashMap<>()).put(data.getId(), data);
+        }
+        //检查是否要主动开启
+        for (ActivityData data : activityData.values()) {
+            //设置状态
+            if (data.getStatus() != ActivityConstant.ActivityStatus.RUNNING && data.getTimeStart() <= currentTime && currentTime <= data.getTimeEnd()) {
+                data.getType().getController().onActivityStart(data);
+                data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
+            }
+            if (data.canRun()) {
+                data.getType().getController().activityLoadCompleted(data);
+            }
+        }
+    }
+
+    /**
+     * 从excel加载活动数据
+     *
+     * @param tempActivityData       活动临时数据数据
+     * @param currentTime            当前时间
+     * @param timerList              定时器列表
+     * @param tempActivityDetailInfo 活动详情临时数据
+     */
+    private void loadActivityConfigByExcel(Map<Long, ActivityData> tempActivityData, long currentTime, List<Pair<Long, Long>> timerList, Map<Long, Map<Integer, BaseCfgBean>> tempActivityDetailInfo) {
         List<ActivityConfigCfg> activityConfigCfgList = GameDataManager.getActivityConfigCfgList();
         for (ActivityConfigCfg activityConfigCfg : activityConfigCfgList) {
             ActivityType activityType = ActivityType.fromType(activityConfigCfg.getType());
@@ -181,13 +208,13 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 continue;
             }
             ActivityData data = ActivityData.getActivityData(activityConfigCfg, activityType);
-            if (!checkActivityData(data, timeMillis, timerList)) {
+            if (!checkActivityData(data, currentTime, timerList)) {
                 continue;
             }
             long activityInfoId = activityConfigCfg.getId();
-            Map<Integer, BaseCfgBean> loadedDetailData =
-                data.getType().getController().loadDetailData(activityDetailInfo.get(activityInfoId));
+            Map<Integer, BaseCfgBean> loadedDetailData = data.getType().getController().loadDetailData(activityDetailInfo.get(activityInfoId));
             if (CollectionUtil.isNotEmpty(loadedDetailData)) {
+                //移除未配置在ActivityConfigCfg中的活动详情
                 Iterator<Integer> iterator = loadedDetailData.keySet().iterator();
                 while (iterator.hasNext()) {
                     Integer id = iterator.next();
@@ -201,41 +228,37 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             tempActivityDetailInfo.put(activityInfoId, loadedDetailData);
             tempActivityData.put(activityInfoId, data);
         }
-        //添加定时器
-        for (Pair<Long, Long> pair : timerList) {
-            timerCenter.add(new TimerEvent<>(this, pair.getFirst(), pair.getSecond()));
-        }
+    }
 
-        //主节点保存到redis
-        if (marsCurator.isMaster()) {
-            activityDao.saveActivities(tempActivityData);
-            for (Map.Entry<Long, Map<Integer, BaseCfgBean>> entry : tempActivityDetailInfo.entrySet()) {
-                activityDetailDao.saveActivityDetails(entry.getKey(), entry.getValue());
+    /**
+     * 从数据库加载活动数据
+     *
+     * @param timeMillis             当前时间
+     * @param timerList              定时器列表
+     * @param tempActivityDetailInfo 临时活动详情数据
+     * @param tempActivityData       临时活动数据
+     */
+    private void loadActivityConfigByDB(long timeMillis, List<Pair<Long, Long>> timerList, Map<Long, Map<Integer, BaseCfgBean>> tempActivityDetailInfo, Map<Long, ActivityData> tempActivityData) {
+        List<ActivityData> allActivityInfos = activityDao.getAllActivityInfos();
+        for (ActivityData data : allActivityInfos) {
+            if (!checkActivityData(data, timeMillis, timerList)) {
+                continue;
             }
-        }
-        activityData = tempActivityData;
-        activityDetailInfo = tempActivityDetailInfo;
-        activityTypeData = new ConcurrentHashMap<>();
-        for (ActivityData data : tempActivityData.values()) {
-            activityTypeData.computeIfAbsent(data.getType(), k -> new ConcurrentHashMap<>()).put(data.getId(), data);
-        }
-        //检查是否要主动开启
-        for (ActivityData data : activityData.values()) {
-            //设置状态
-            if (data.getStatus() != ActivityConstant.ActivityStatus.RUNNING && data.getTimeStart() <= timeMillis && timeMillis <= data.getTimeEnd()) {
-                data.getType().getController().onActivityStart(data);
-                data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
+            long activityInfoId = data.getId();
+            //获取详细配置信息
+            Map<Integer, BaseCfgBean> activityDetailInfos = activityDetailDao.getActivityDetailInfos(activityInfoId,
+                    data.getType());
+            if (CollectionUtil.isNotEmpty(activityDetailInfos)) {
+                tempActivityDetailInfo.put(activityInfoId, activityDetailInfos);
             }
-            if (data.canRun()) {
-                data.getType().getController().activityLoadCompleted(data);
-            }
+            tempActivityData.put(activityInfoId, data);
         }
     }
 
     /**
-     * 定时更新
+     * 定时更新活动数据到redis
      */
-    @Scheduled(cron = "0 0 * * * ? ")
+    @Scheduled(cron = "0 0 6 * * ? ")
     private void saveActivity() {
         if (isExecutionNode()) {
             Map<Long, ActivityData> dataHashMap = new HashMap<>(activityData);
@@ -261,24 +284,26 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             return false;
         }
         //通过活动类型判断
-        if (data.getOpenType() == 1) {
+        if (data.getOpenType() == ActivityConstant.Common.OPEN_SERVER_TYPE) {
             //开服 开始时间戳为0设置为开服时间，结束时间戳为持续时间的时间戳 添加结束时间
             if (data.getTimeEnd() < timeMillis) {
                 long timestampByDay = TimeHelper.getTimestampByDay(startServerTime, data.getDuration());
                 data.setTimeStart(startServerTime);
                 data.setTimeEnd(timestampByDay);
             }
-        } else if (data.getOpenType() == 2 && timeMillis > data.getTimeEnd()) {
+        } else if (data.getOpenType() == ActivityConstant.Common.LIMIT_TYPE && timeMillis > data.getTimeEnd()) {
             return false;
         }
+        //当前时间大于结束直接不添加到活动中
         if (data.getTimeEnd() < timeMillis) {
             return false;
         }
         long activityInfoId = data.getId();
-        //定时器添加
+        //添加活动开始定时器
         if (data.getTimeStart() > timeMillis) {
             timerList.add(Pair.newPair(data.getTimeStart(), activityInfoId));
         }
+        //添加活动结束定时器
         if (data.getTimeEnd() > timeMillis) {
             timerList.add(Pair.newPair(data.getTimeEnd(), activityInfoId));
         }
@@ -293,31 +318,35 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         if (data == null) {
             return;
         }
-        //判断是开启还是结束
         long timeMillis = System.currentTimeMillis();
-        //开启
+        //活动开启
         if (data.getStatus() == ActivityConstant.ActivityStatus.NOT_START && timeMillis >= data.getTimeStart()) {
             data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
+            //活动开始执行
             data.getType().getController().onActivityStart(data);
-            //活动开始
+            //活动开始发送跑马灯
             marqueeManager.activityMarquee(data.getMarquee());
             //推送活动变化
             notifyNodeActivityChange(data);
         }
-        //结束
+        //活动结束
         if (data.getStatus() == ActivityConstant.ActivityStatus.RUNNING && timeMillis >= data.getTimeEnd()) {
-            //限时
-            if (data.getOpenType() == 2) {
+            //限时活动
+            if (data.getOpenType() == ActivityConstant.Common.LIMIT_TYPE) {
                 data.setStatus(ActivityConstant.ActivityStatus.ENDED);
+                //活动结束执行
                 data.getType().getController().onActivityEnd(data);
                 //推送活动变化
                 notifyNodeActivityChange(data);
-            } else if (data.getOpenType() == 1) {
+            } else if (data.getOpenType() == ActivityConstant.Common.OPEN_SERVER_TYPE) {
+                //开发活动
                 //修改轮数
                 data.addRound();
                 data.setTimeStart(data.getTimeEnd());
+                //计算结束时间
                 long timestampByDay = TimeHelper.getTimestampByDay(startServerTime, data.getDuration());
                 data.setTimeEnd(timestampByDay);
+                //活动结束执行
                 data.getType().getController().onActivityEnd(data);
                 notifyNodeActivityChange(data);
             }
@@ -325,6 +354,11 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     }
 
+    /**
+     * 通知节点活动变化
+     *
+     * @param data 活动数据
+     */
     public void notifyNodeActivityChange(ActivityData data) {
         NotifyActivityChange notifyActivityChange = new NotifyActivityChange();
         ActivityInfo activityInfo = new ActivityInfo();
@@ -356,6 +390,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             if (!data.canRun() || !controller.checkPlayerCanJoinActivity(player, data)) {
                 continue;
             }
+            //玩家首次登录执行
             if (firstLogin) {
                 controller.checkPlayerDataAndReset(player.getId(), data);
             }
@@ -373,8 +408,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * @param value                增加值
      * @param additionalParameters 额外参数
      */
-    public void addPlayerActivityProgress(Player player, long activityTargetKey, long value,
-                                          Object additionalParameters) {
+    public void addPlayerActivityProgress(Player player, long activityTargetKey, long value, Object additionalParameters) {
         if (value <= 0) {
             return;
         }
@@ -390,12 +424,13 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             }
             List<ActivityData> dataArrayList = new ArrayList<>();
             for (ActivityData data : activityDataMap.values()) {
+                //检查活动参加条件
                 if (!data.getType().getController().checkPlayerCanJoinActivity(player, data)) {
                     continue;
                 }
                 try {
-                    boolean canClaim = data.getType().getController().addPlayerProgress(playerId, data, value,
-                        additionalParameters);
+                    boolean canClaim = data.getType().getController().addPlayerProgress(playerId, data, value, additionalParameters);
+                    //如果进度增加后能够领取则放入
                     if (canClaim) {
                         dataArrayList.add(data);
                     }
@@ -403,7 +438,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     log.error("增加玩家活动进度失败 playerId:{} activityId:{} value:{}", playerId, data.getId(), value, e);
                 }
             }
-            //广播给玩家
+            //广播给玩家可以领取的活动
             if (CollectionUtil.isNotEmpty(dataArrayList)) {
                 NotifyActivityChange activityChange = new NotifyActivityChange();
                 activityChange.activityInfos = new ArrayList<>();
@@ -436,6 +471,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 continue;
             }
             for (ActivityData data : activityDataMap.values()) {
+                //检查活动参加条件
                 if (!data.getType().getController().checkPlayerCanJoinActivity(player, data)) {
                     continue;
                 }
@@ -446,12 +482,16 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     log.error("增加活动进度失败  activityId:{} value:{}", data.getId(), value, e);
                 }
             }
-            //TODO 广播给全节点玩家
         }
     }
 
     /**
      * 参加活动
+     *
+     * @param player     玩家信息
+     * @param activityId 活动id
+     * @param detailId   活动详情ID
+     * @param times      次数
      */
     public void joinActivity(Player player, long activityId, int detailId, int times) {
         long playerId = player.getId();
@@ -476,7 +516,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     /**
      * 获取节点在线玩家id
      *
-     * @return 节点在线玩家id
+     * @return 节点在线玩家id集合
      */
     public List<Long> getOnlinePlayerIds() {
         return clusterSystem.getAllPlayerIds();
@@ -515,11 +555,17 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             data.getType().getController().buyActivityGift(playerController.getPlayer(), data, detailId);
             return new CommonResult<>(Code.SUCCESS);
         }
+        if ("recharge".equalsIgnoreCase(cmd)) {
+            long count = Long.parseLong(gmOrders[1]);
+            addPlayerActivityProgress(playerController.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), count, null);
+            return new CommonResult<>(Code.SUCCESS);
+        }
         return null;
     }
 
     /**
      * 判断是否是活动执行节点
+     * @return true 是活动执行节点
      */
     public boolean isExecutionNode() {
         return NodeType.HALL == NodeType.getNodeTypeByName(nodeConfig.getType()) && marsCurator.isMaster();
@@ -556,7 +602,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             }
             // 条件key
             String conditionKey =
-                ConditionProgressKeyCons.BET_EFFECTIVE_FLOWING + player.getId() + ":" + activityId;
+                    ConditionProgressKeyCons.BET_EFFECTIVE_FLOWING + player.getId() + ":" + activityId;
             ConditionCfg cfg = GameDataManager.getConditionCfg(dropCondition.getFirst());
             EffectiveFlowingParam effectiveFlowingParam = new EffectiveFlowingParam(cfg.getConditionType(), null);
             effectiveFlowingParam.setFlowingValue((Long) effectiveFlowingEvent.getEventChangeValue());
@@ -565,7 +611,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             effectiveFlowingParam.setNeedUpdateProgress(true);
             // 检查活动进度是否达到
             boolean triggerRes = conditionCheckService.isTriggerComplete(
-                player, cfg, Collections.singletonList(effectiveFlowingParam));
+                    player, cfg, Collections.singletonList(effectiveFlowingParam));
             if (triggerRes) {
                 // 触发次数
                 int triggerTimes = effectiveFlowingParam.getTriggerTimes();
@@ -579,7 +625,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 触发道具掉落
      */
     private void triggerDropItem(
-        Player player, ActivityConfigCfg activityCfg, int triggerTimes, PlayerEffectiveFlowingEvent event) {
+            Player player, ActivityConfigCfg activityCfg, int triggerTimes, PlayerEffectiveFlowingEvent event) {
         List<Item> dropItems = new ArrayList<>();
         // 随机N次
         for (int i = 0; i < triggerTimes; i++) {
@@ -596,7 +642,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         // 添加道具
         CommonResult<ItemOperationResult> result =
-            playerPackService.addItems(player.getId(), dropItems, "ACTIVITY_DROP_ITEM");
+                playerPackService.addItems(player.getId(), dropItems, "ACTIVITY_DROP_ITEM");
         if (result.success()) {
             // 记录日志
             dropItemLogger.recordDropItem(player, activityCfg.getId(), event.getGameCfgId(), result.data);
@@ -613,8 +659,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     public void initSampleCallbackCollector() {
         // 添加活动表监听
         addChangeSampleFileObserveWithCallBack(
-            ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this))
-            .addChangeSampleFileObserveWithCallBack(
-                ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this));
+                ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this))
+                .addChangeSampleFileObserveWithCallBack(
+                        ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this));
     }
 }
