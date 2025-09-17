@@ -694,7 +694,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         log.debug("退举 摇钱树机器人删除");
     }
 
-    public AbstractResponse reqCashCowFreeRewards(PlayerController playerController, ReqCashCowFreeRewards req) {
+    public AbstractResponse reqCashCowFreeRewards(PlayerController playerController, ActivityData data, ReqCashCowFreeRewards req) {
         ResCashCowFreeRewards res = new ResCashCowFreeRewards(Code.SUCCESS);
         Item freeRewards = getConfigFreeRewards();
         if (freeRewards == null) {
@@ -728,7 +728,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             redisLock.unlock(playerFreeLockKey);
         }
         if (addItems != null && addItems.success()) {
-            activityLogger.sendCashCowFreeRewards(playerController.getPlayer(), req.activityId, addItems.data, freeRewards);
+            activityLogger.sendCashCowFreeRewards(playerController.getPlayer(), data, addItems.data, freeRewards);
         }
         res.activityId = req.activityId;
         res.itemInfos = ItemUtils.buildItemInfo(freeRewards.getId(), freeRewards.getItemCount());

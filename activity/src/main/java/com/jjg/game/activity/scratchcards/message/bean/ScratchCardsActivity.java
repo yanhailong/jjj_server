@@ -14,4 +14,6 @@ import java.util.List;
 public class ScratchCardsActivity {
     @ProtoDesc("活动详细信息")
     public List<ScratchCardsDetailInfo> detailInfos;
+    @ProtoDesc("剩余次数")
+    public long remainTimes;
 }

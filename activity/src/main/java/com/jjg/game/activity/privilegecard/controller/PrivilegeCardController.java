@@ -92,9 +92,7 @@ public class PrivilegeCardController extends BaseActivityController {
                 redisLock.unlock(lockKey);
             }
             //发送日志
-            if (addedItems != null && addedItems.success()) {
-                activityLogger.sendPrivilegeCardJoinLog(player, activityData, detailId, addedItems.data, cfg.getGetItem());
-            }
+            activityLogger.sendPrivilegeCardJoinLog(player, activityData, detailId, addedItems == null ? null : addedItems.data, cfg.getGetItem());
             res = new ResPrivilegeCardDetailInfo(Code.SUCCESS);
             res.detailInfo = new ArrayList<>();
             res.detailInfo.add(buildPlayerActivityDetail(activityData.getId(), cfg, privilegeCard));

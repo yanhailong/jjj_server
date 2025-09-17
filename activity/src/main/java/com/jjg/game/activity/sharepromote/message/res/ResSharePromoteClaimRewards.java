@@ -14,8 +14,8 @@ import java.util.List;
  * @author lm
  * @date 2025/9/4 13:43
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.RES_SHARE_PROMOTE_CLAIM_REWARDS,resp = true)
-@ProtoDesc("响应推广分享领取活动奖励")
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.RES_SHARE_PROMOTE_CLAIM_REWARDS, resp = true)
+@ProtoDesc("推广分享领取活动进度奖励")
 public class ResSharePromoteClaimRewards extends AbstractResponse {
     @ProtoDesc("活动id")
     public long activityId;

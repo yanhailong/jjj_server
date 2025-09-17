@@ -13,6 +13,8 @@ import com.jjg.game.activity.common.message.req.ReqActivityInfoByType;
 import com.jjg.game.activity.common.message.req.ReqActivityPlayerJoin;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.manager.ActivityManager;
+import com.jjg.game.activity.sharepromote.controller.SharePromoteController;
+import com.jjg.game.activity.sharepromote.message.req.*;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.protostuff.Command;
@@ -29,10 +31,12 @@ import org.springframework.stereotype.Component;
 public class ActivityMessageHandler {
     private final ActivityManager activityManager;
     private final CashCowController cashCowController;
+    private final SharePromoteController sharePromoteController;
 
-    public ActivityMessageHandler(ActivityManager activityManager, CashCowController cashCowController) {
+    public ActivityMessageHandler(ActivityManager activityManager, CashCowController cashCowController, SharePromoteController sharePromoteController) {
         this.activityManager = activityManager;
         this.cashCowController = cashCowController;
+        this.sharePromoteController = sharePromoteController;
     }
 
     /**
@@ -141,11 +145,79 @@ public class ActivityMessageHandler {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.canRun() && data.getType() == ActivityType.CASH_COW) {
             if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
-                AbstractResponse res = cashCowController.reqCashCowFreeRewards(playerController, req);
+                AbstractResponse res = cashCowController.reqCashCowFreeRewards(playerController, data, req);
                 playerController.send(res);
             }
         }
     }
 
+    /**
+     * 推广分享-请求绑定玩家
+     */
+    @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_BIND_PLAYER)
+    public void reqSharePromoteBindPlayer(PlayerController playerController, ReqSharePromoteBindPlayer req) {
+        ActivityData data = activityManager.getActivityData().get(req.activityId);
+        if (data != null && data.canRun() && data.getType() == ActivityType.SHARE_PROMOTE) {
+            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+                AbstractResponse res = sharePromoteController.reqSharePromoteBindPlayer(playerController, req);
+                playerController.send(res);
+            }
+        }
+    }
 
+    /**
+     * 推广分享-请求领取收益奖励
+     */
+    @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_CLAIM_PROFIT_REWARD)
+    public void reqSharePromoteClaimProfitReward(PlayerController playerController, ReqSharePromoteClaimProfitReward req) {
+        ActivityData data = activityManager.getActivityData().get(req.activityId);
+        if (data != null && data.canRun() && data.getType() == ActivityType.SHARE_PROMOTE) {
+            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+                AbstractResponse res = sharePromoteController.reqSharePromoteClaimProfitReward(playerController, req);
+                playerController.send(res);
+            }
+        }
+    }
+
+    /**
+     * 推广分享-请求推广分享总览信息
+     */
+    @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_GLOBAL_INFO)
+    public void reqSharePromoteGlobalInfo(PlayerController playerController, ReqSharePromoteGlobalInfo req) {
+        ActivityData data = activityManager.getActivityData().get(req.activityId);
+        if (data != null && data.canRun() && data.getType() == ActivityType.SHARE_PROMOTE) {
+            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+                AbstractResponse res = sharePromoteController.reqSharePromoteGlobalInfo(playerController, req);
+                playerController.send(res);
+            }
+        }
+    }
+
+    /**
+     * 推广分享-请求推广分享周榜信息
+     */
+    @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_WEEK_RANK_INFO)
+    public void reqSharePromoteWeekRankInfo(PlayerController playerController, ReqSharePromoteWeekRankInfo req) {
+        ActivityData data = activityManager.getActivityData().get(req.activityId);
+        if (data != null && data.canRun() && data.getType() == ActivityType.SHARE_PROMOTE) {
+            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+                AbstractResponse res = sharePromoteController.reqSharePromoteWeekRankInfo(playerController, req);
+                playerController.send(res);
+            }
+        }
+    }
+
+    /**
+     * 推广分享-请求推广分享我的收益排行榜信息
+     */
+    @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_WEEK_RANK_INFO)
+    public void reqSharePromoteSelfRankInfo(PlayerController playerController, ReqSharePromoteSelfRankInfo req) {
+        ActivityData data = activityManager.getActivityData().get(req.activityId);
+        if (data != null && data.canRun() && data.getType() == ActivityType.SHARE_PROMOTE) {
+            if (data.getType().getController().checkPlayerCanJoinActivity(playerController.getPlayer(), data)) {
+                AbstractResponse res = sharePromoteController.reqSharePromoteSelfRankInfo(playerController, req);
+                playerController.send(res);
+            }
+        }
+    }
 }
