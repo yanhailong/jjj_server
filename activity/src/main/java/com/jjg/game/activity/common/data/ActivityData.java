@@ -68,6 +68,20 @@ public class ActivityData {
      */
     private List<Integer> value;
 
+    /**
+     * 进度触发类型
+     */
+    private Map<Integer, Integer> triggerType;
+
+    /**
+     * 掉落条件
+     */
+    private List<Integer> dropCondition;
+    /**
+     * 道具掉落包ID
+     */
+    private List<Integer> dropId;
+
     public int getStatus() {
         return status;
     }
@@ -176,6 +190,30 @@ public class ActivityData {
         this.round++;
     }
 
+    public Map<Integer, Integer> getTriggerType() {
+        return triggerType;
+    }
+
+    public void setTriggerType(Map<Integer, Integer> triggerType) {
+        this.triggerType = triggerType;
+    }
+
+    public List<Integer> getDropCondition() {
+        return dropCondition;
+    }
+
+    public void setDropCondition(List<Integer> dropCondition) {
+        this.dropCondition = dropCondition;
+    }
+
+    public List<Integer> getDropId() {
+        return dropId;
+    }
+
+    public void setDropId(List<Integer> dropId) {
+        this.dropId = dropId;
+    }
+
     public boolean canRun() {
         return isOpen() && status == ActivityConstant.ActivityStatus.RUNNING;
     }
@@ -195,7 +233,9 @@ public class ActivityData {
         data.setOpenType(cfg.getOpen_type());
         data.setType(activityType);
         data.setValue(cfg.getValue());
-
+        data.setCondition(cfg.getCondition());
+        data.setDropCondition(cfg.getDropcondition());
+        data.setTriggerType(cfg.getTriggerType());
         // 解析时间字符串为时间戳（假设格式是 yyyy-MM-dd HH:mm:ss）
         if (StringUtils.isNotEmpty(cfg.getTime_start())) {
             data.setTimeStart(TimeHelper.getTimestamp(cfg.getTime_start()));
