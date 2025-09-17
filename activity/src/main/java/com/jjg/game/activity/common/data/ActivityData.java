@@ -233,7 +233,7 @@ public class ActivityData {
         data.setOpenType(cfg.getOpen_type());
         data.setType(activityType);
         data.setValue(cfg.getValue());
-        data.setCondition(cfg.getCondition());
+        data.setDropId(cfg.getDropid());
         data.setDropCondition(cfg.getDropcondition());
         data.setTriggerType(cfg.getTriggerType());
         // 解析时间字符串为时间戳（假设格式是 yyyy-MM-dd HH:mm:ss）
