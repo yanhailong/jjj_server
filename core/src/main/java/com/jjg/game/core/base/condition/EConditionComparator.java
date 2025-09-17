@@ -79,8 +79,8 @@ public enum EConditionComparator {
             case GT -> source < target;
             case LT -> source > target;
             case EQ -> source == target;
-            case GTE -> source <= target;
-            case LTE -> source >= target;
+            case GTE -> source >= target;
+            case LTE -> source <= target;
             default -> false;
         };
     }

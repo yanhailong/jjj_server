@@ -14,8 +14,10 @@ import java.util.List;
 public class CleopatraAddColumInfo {
     @ProtoDesc("新增列图标")
     public List<Integer> icons;
-    @ProtoDesc("中奖图标坐标")
-    public List<Integer> indexList;
+    @ProtoDesc("中奖图标信息")
+    public List<CleopatraWinIconInfo> winIconInfoList;
     @ProtoDesc("倍率")
     public int times;
+    @ProtoDesc("奖池id坐标")
+    public List<Integer> poolIconIndexs;
 }

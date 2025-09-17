@@ -217,7 +217,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                         ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
                 // 需要扣除庄家的钱
                 bankerChangeGold -= settlementData.getBetWin();
-                playerGoldChange.playerCurGold = gameController.getItemNum(gamePlayer.getId());
+                playerGoldChange.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
                 playerChangedGolds.put(playerEntry.getKey(), playerGoldChange);
             } else {
                 // 需要给庄家加钱

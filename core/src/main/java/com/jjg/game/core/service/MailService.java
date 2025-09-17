@@ -224,9 +224,23 @@ public class MailService implements IRedDotService {
     /**
      * 添加系统配置邮件
      */
+    public void addCfgMail(long playerId, int titleLanId, int contentId, List<Item> items) {
+        LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_LANGUAGE_MATCH, titleLanId + "");
+        LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_LANGUAGE_MATCH, contentId + "");
+        Mail mail = createMail(titleData, contentData, items, false);
+        mail.setId(IdUtil.getSnowflakeNextId());
+        mail.setPlayerId(playerId);
+        mailDao.save(mail);
+        //邮件变化时通知客户端刷新小红点
+        redDotManager.updateRedDot(() -> initialize(playerId, null), playerId);
+    }
+
+    /**
+     * 添加系统配置邮件
+     */
     public void addCfgMail(long playerId, int mailCfgId) {
         MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        addMail(playerId, mailCfg.getTitle() + "", mailCfg.getText() + "", new ArrayList<>());
+        addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), new ArrayList<>());
     }
 
     /**
@@ -234,7 +248,7 @@ public class MailService implements IRedDotService {
      */
     public void addCfgMail(long playerId, int mailCfgId, List<Item> items) {
         MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        addMail(playerId, mailCfg.getTitle() + "", mailCfg.getText() + "", items);
+        addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items);
     }
 
 

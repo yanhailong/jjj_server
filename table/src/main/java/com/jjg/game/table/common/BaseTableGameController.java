@@ -66,7 +66,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
         super.nextRoundStart();
         for (GamePlayer value : gameDataVo.getGamePlayerMapExceptRobot().values()) {
             // 玩家每轮进入时记录一下金币值，打点需要
-            value.getTableGameData().setRoundStartPlayerGold(getItemNum(value.getId()));
+            value.getTableGameData().setRoundStartPlayerGold(getTransactionItemNum(value.getId()));
         }
     }
 
@@ -116,7 +116,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     protected boolean isNeedRobotPlayerExitRoom(GameRobotPlayer gameRobotPlayer, RobotCfg robotCfg, int maxBetOnTable) {
         boolean needExit = false;
         int exitMultiplier = robotCfg.getExitMultiplier();
-        int playerMulti = (int) Math.floor(getItemNum(gameRobotPlayer.getId()) / (maxBetOnTable * 100.0));
+        int playerMulti = (int) Math.floor(getTransactionItemNum(gameRobotPlayer.getId()) / (maxBetOnTable * 100.0));
         // 如果机器人当前携带的金币 / 押注游戏游戏 * 100 得出倍数小于了配置的倍数直接让机器人退出
         if (playerMulti < exitMultiplier) {
             needExit = true;
@@ -236,7 +236,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     private void resortPlayerOnTable() {
         List<GamePlayer> topGamePlayers =
                 gameDataVo.getGamePlayerMap().values().stream()
-                        .sorted((o1, o2) -> Long.compare(getItemNum(o2.getId()), getItemNum(o1.getId())))
+                        .sorted((o1, o2) -> Long.compare(getTransactionItemNum(o2.getId()), getTransactionItemNum(o1.getId())))
                         .limit(TableConstant.ON_TABLE_PLAYER_NUM)
                         .toList();
         for (int i = 1; i <= topGamePlayers.size(); i++) {

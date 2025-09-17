@@ -8,6 +8,7 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.ExceptionUtils;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.common.pb.AbstractMessage;
@@ -62,6 +63,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     protected Map<ETickTaskType, BaseGameTickTask> tickTaskMap = new HashMap<>();
     // 游戏埋点记录
     protected GameDataTracker gameDataTracker;
+    // 游戏事件管理器
+    protected GameEventManager gameEventManager;
 
     public AbstractGameController(AbstractRoomController<RC, ? extends Room> roomController) {
         this.roomController = roomController;
@@ -99,6 +102,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     @Override
     public <R extends Room> void initial(R room) {
         gameState = EGameState.INIT_DONE;
+        // 游戏事件管理器
+        this.gameEventManager = roomController.getGameEventManager();
     }
 
     /**
@@ -409,7 +414,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 获取房间内能交易的道具数量
      */
-    public long getItemNum(long playerId) {
+    public long getTransactionItemNum(long playerId) {
         int transactionItemId = getGameTransactionItemId();
         int goldCfgId = ItemUtils.getGoldItemId();
         int diamondCfgId = ItemUtils.getDiamondItemId();
@@ -670,5 +675,9 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 gameDataVo.roomLogInfo(), playerId, num, ExceptionUtils.currentThreadTraces());
         }
         return result.code;
+    }
+
+    public GameEventManager getGameEventManager() {
+        return gameEventManager;
     }
 }

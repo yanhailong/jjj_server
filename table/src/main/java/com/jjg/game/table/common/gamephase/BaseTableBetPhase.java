@@ -129,7 +129,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             gamePlayer.getId(), playerTotalBetGold,
             ERoomItemReason.GAME_BET.withCfgId(gameDataVo.getRoomCfg().getId()));
         gamePlayer.getTableGameData().addTotalBet(playerTotalBetGold);
-        notifyPlayerBet.playerCurGold = gameController.getItemNum(gamePlayer.getId());
+        notifyPlayerBet.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
         notifyPlayerBet.chipId = gamePlayer.getChipsId();
         // 向房间广播下注改变信息
         broadcastMsgToRoom(notifyPlayerBet);
@@ -261,7 +261,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             gamePlayer.getId(), randomGold,
             ERoomItemReason.GAME_BET.withCfgId(gameDataVo.getRoomCfg().getId()));
         gamePlayer.getTableGameData().addTotalBet(randomGold);
-        notifyPlayerBet.playerCurGold = gameController.getItemNum(gamePlayer.getId());
+        notifyPlayerBet.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
         notifyPlayerBet.chipId = gamePlayer.getChipsId();
         // 向玩家广播下注数据
         broadcastMsgToRoom(notifyPlayerBet);
@@ -377,7 +377,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         }
         // 检查玩家的钱是否带够
         long needTake = totalBetValue;
-        if (needTake > gameController.getItemNum(gamePlayer.getId())) {
+        if (needTake > gameController.getTransactionItemNum(gamePlayer.getId())) {
             return Code.NOT_ENOUGH;
         }
         // 检查庄家是否有足够的钱去赔付

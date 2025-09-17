@@ -6,7 +6,6 @@ import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
-import org.apache.poi.ss.formula.functions.T;
 
 import java.util.Objects;
 
@@ -47,7 +46,7 @@ public class PokerBuilder {
         if (gameDataVo instanceof TexasGameDataVo texasGameDataVo) {
             pokerPlayerInfo.accountNumber = texasGameDataVo.getTempGold().getOrDefault(gamePlayer.getId(), 0L);
         } else {
-            pokerPlayerInfo.accountNumber = controller.getItemNum(gamePlayer.getId());
+            pokerPlayerInfo.accountNumber = controller.getTransactionItemNum(gamePlayer.getId());
         }
         return pokerPlayerInfo;
     }
@@ -85,7 +84,7 @@ public class PokerBuilder {
             if (gameDataVo instanceof TexasGameDataVo texasGameDataVo) {
                 pokerPlayerInfo.accountNumber = texasGameDataVo.getTempGold().getOrDefault(gamePlayer.getId(), 0L);
             } else {
-                pokerPlayerInfo.accountNumber = controller.getItemNum(seatInfo.getPlayerId());
+                pokerPlayerInfo.accountNumber = controller.getTransactionItemNum(seatInfo.getPlayerId());
             }
         }
         return pokerPlayerInfo;

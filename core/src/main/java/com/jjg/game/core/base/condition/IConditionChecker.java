@@ -1,5 +1,6 @@
 package com.jjg.game.core.base.condition;
 
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -20,7 +21,7 @@ public interface IConditionChecker {
      * 绑定的条件检查参数，一般用 Condition表中的ConditionType字段 进行表示，也可自定义类型，需要在触发调用时，写入此返回值
      * !!! 不要使用 EGameEventType 枚举替代 ！！！
      */
-    String bindConditionCheckParam();
+    List<String> bindConditionCheckParam();
 
     /**
      * 默认的条件比较器
@@ -40,9 +41,9 @@ public interface IConditionChecker {
      * 根据绑定的条件检查参数，获取对应的目标检查param
      */
     default CheckerParam filterBindParamCheckParam(List<CheckerParam> checkerParams) {
-        String bindConditionCheckParam = bindConditionCheckParam();
+        List<String> bindConditionCheckParam = bindConditionCheckParam();
         for (CheckerParam checkerParam : checkerParams) {
-            if (checkerParam.getCheckName().contains(bindConditionCheckParam)) {
+            if (checkerParam.getCheckName().containsAll(bindConditionCheckParam)) {
                 return checkerParam;
             }
         }

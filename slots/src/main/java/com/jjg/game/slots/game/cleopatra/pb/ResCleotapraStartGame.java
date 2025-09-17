@@ -28,16 +28,16 @@ public class ResCleotapraStartGame extends AbstractResponse {
     public int level;
     @ProtoDesc("经验")
     public long exp;
-    @ProtoDesc("中奖图标id")
-    public List<Integer> winIcons;
-    @ProtoDesc("中奖图标坐标")
-    public List<Integer> winIconList;
+    @ProtoDesc("中奖图标信息")
+    public List<CleopatraWinIconInfo> winIconInfoList;
     @ProtoDesc("新增列信息")
     public List<CleopatraAddColumInfo> addColumInfoList;
     @ProtoDesc("从奖池获得的奖励")
     public long rewardPoolValue;
     @ProtoDesc("奖池奖励后，当前奖池的值")
     public long poolValue;
+    @ProtoDesc("奖池id坐标")
+    public List<Integer> poolIconIndexs;
 
     public ResCleotapraStartGame(int code) {
         super(code);

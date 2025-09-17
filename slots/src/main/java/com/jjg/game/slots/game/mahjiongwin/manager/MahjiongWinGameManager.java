@@ -160,7 +160,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
      * @return
      */
     private MahjiongWinGameRunInfo normal(MahjiongWinGameRunInfo gameRunInfo, MahjiongWinPlayerGameData playerGameData, long betValue) {
-        CommonResult<MahjiongWinResultLib> libResult = normalGetLib(playerGameData, betValue);
+        CommonResult<MahjiongWinResultLib> libResult = normalGetLib(playerGameData, betValue,MahjiongWinConstant.SpecialMode.NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
@@ -188,6 +188,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
         gameRunInfo.setStake(betValue);
+        gameRunInfo.addBigPoolTimes(resultLib.getTimes());
         return gameRunInfo;
     }
 
@@ -199,7 +200,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
      * @return
      */
     private MahjiongWinGameRunInfo free(MahjiongWinGameRunInfo gameRunInfo, MahjiongWinPlayerGameData playerGameData) {
-        CommonResult<MahjiongWinResultLib> libResult = freeGetLib(playerGameData);
+        CommonResult<MahjiongWinResultLib> libResult = freeGetLib(playerGameData,MahjiongWinConstant.SpecialMode.FREE);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
@@ -220,7 +221,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
         }
 
         gameRunInfo.setIconArr(freeGame.getIconArr());
-
+        gameRunInfo.addBigPoolTimes(freeGame.getTimes());
         return gameRunInfo;
     }
 
