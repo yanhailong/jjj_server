@@ -12,7 +12,6 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -120,7 +119,7 @@ public class PlayerActivityDao {
             HashOperations<String, String, String> hash = redisTemplate.opsForHash();
             Map<String, String> entries = hash.entries(getKey(playerId, activityType.getType()));
             if (CollectionUtil.isEmpty(entries)) {
-                return Collections.emptyMap();
+                return new HashMap<>();
             }
 
             Map<Long, Map<Integer, T>> result = new HashMap<>(entries.size());
@@ -133,7 +132,7 @@ public class PlayerActivityDao {
         } catch (Exception e) {
             log.error("批量获取活动数据异常 playerId:{} activityType:{}",
                     playerId, activityType, e);
-            return Collections.emptyMap();
+            return new HashMap<>();
         }
     }
 

@@ -166,12 +166,5 @@ public interface ActivityConstant {
         //响应推广分享我的收益排行榜信息
         int RES_SHARE_PROMOTE_SELF_RANK_INFO = BASE_MSG_PREFIX | 0x29;
 
-
-
-        //等级礼包
-        //活动详细信息
-        int RES_PLAYER_LEVEL_PACK_DETAIL_INFO = BASE_MSG_PREFIX | 0x2A;
-        //活动类型信息
-        int RES_PLAYER_LEVEL_PACK_TYPE_INFO = BASE_MSG_PREFIX | 0x2B;
     }
 }

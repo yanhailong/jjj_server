@@ -1,12 +1,16 @@
 package com.jjg.game.core.handler;
 
+import cn.hutool.core.util.EnumUtil;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.core.base.gameevent.GameEventManager;
+import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.RechargeType;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
@@ -54,7 +58,8 @@ public class CoreMessageHandler {
     private CoreMarqueeManager marqueeManager;
     @Autowired
     private RedDotManager redDotManager;
-
+    @Autowired
+    private GameEventManager gameEventManager;
 
     /**
      *
@@ -139,6 +144,16 @@ public class CoreMessageHandler {
                         playerService.betDeductGold(playerController.playerId(), num, true, "gmtest");
                 res.code = result.code;
                 playerController.send(res);
+                return;
+            }
+
+            if ("recharge".equals(cmd)) {
+                log.debug("收到充值的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), arr);
+                int type = Integer.parseInt(arr[0]);
+                //1等级礼包 测试用
+                RechargeType rechargeType = EnumUtil.getBy(RechargeType.class, e -> e.getType() == type);
+                int id = Integer.parseInt(arr[1]);
+                gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(playerController.getPlayer(), id, rechargeType));
                 return;
             }
 

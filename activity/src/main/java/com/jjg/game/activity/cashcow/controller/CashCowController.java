@@ -196,7 +196,6 @@ public class CashCowController extends BaseActivityController implements TimerLi
             playerActivityDao.savePlayerActivityData(playerId, data.getType(), data.getId(), playerActivityData);
         } catch (Exception e) {
             log.error("摇钱树增加玩家个人进度失败 playerId:{} addVelue:{}", playerId, progress);
-            throw new RuntimeException(e);
         } finally {
             redisLock.unlock(lockKey);
         }

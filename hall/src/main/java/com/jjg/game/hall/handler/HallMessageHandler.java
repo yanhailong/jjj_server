@@ -25,6 +25,8 @@ import com.jjg.game.hall.constant.HallCode;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
+import com.jjg.game.hall.levelpack.manager.PlayerLevelPackManager;
+import com.jjg.game.hall.levelpack.message.req.ReqPlayerLevelClaimRewards;
 import com.jjg.game.hall.pb.req.*;
 import com.jjg.game.hall.pb.res.*;
 import com.jjg.game.hall.pb.struct.MailInfo;
@@ -78,7 +80,8 @@ public class HallMessageHandler implements GmListener {
     private CorePlayerService corePlayerService;
     @Autowired
     private PlayerAvatarDao playerAvatarDao;
-
+    @Autowired
+    private PlayerLevelPackManager playerLevelPackManager;
     /**
      * 进入游戏
      *
@@ -915,6 +918,19 @@ public class HallMessageHandler implements GmListener {
     public void reqVipInfo(PlayerController playerController, ReqVipInfo req) {
         playerController.send(vipManager.reqVipInfo(playerController, req));
     }
+
+    /**
+     * 等级礼包 请求领取等级礼包
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_PLAYER_LEVEL_CLAIM_REWARDS)
+    public void reqPlayerLevelClaimRewards(PlayerController playerController, ReqPlayerLevelClaimRewards req) {
+        playerController.send(playerLevelPackManager.ReqPlayerLevelClaimRewards(playerController, req));
+    }
+
+
+
 
     /**
      * VIP 请求领取VIP礼包

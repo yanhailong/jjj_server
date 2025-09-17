@@ -33,6 +33,14 @@ public interface HallConstant {
         int CODE_MAX = 9999;
     }
 
+    interface ClaimStatus {
+        //不可领取
+        int NOT_CLAIM = 1;
+        //可领取
+        int CAN_CLAIM = 2;
+        //已领取
+        int CLAIMED = 3;
+    }
 
     /**
      * 传入,返回参数类型
@@ -172,5 +180,15 @@ public interface HallConstant {
         //请求vip请求领取礼包
         int REQ_VIP_CLAIM_GIFT_REWARD = BASE_MSG_PREFIX | 0X43;
         int RES_VIP_CLAIM_GIFT_REWARD = BASE_MSG_PREFIX | 0X44;
+
+
+
+        //等级礼包
+        //通知详细信息
+        int NOTIFY_PLAYER_LEVEL_PACK_DETAIL_INFO = BASE_MSG_PREFIX | 0x45;
+        //请求领取玩家等级礼包
+        int REQ_PLAYER_LEVEL_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x46;
+        //玩家领取等级礼包返回
+        int RES_PLAYER_LEVEL_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x47;
     }
 }

@@ -105,7 +105,7 @@ public class ActivityDetailDao {
             // 获取 Redis 中所有详情配置
             Map<Integer, String> entries = opsForHash().entries(getKey(activityId));
             if (CollectionUtil.isEmpty(entries)) {
-                return Map.of();
+                return new HashMap<>();
             }
 
             // 获取具体活动类型对应的详情数据Class
