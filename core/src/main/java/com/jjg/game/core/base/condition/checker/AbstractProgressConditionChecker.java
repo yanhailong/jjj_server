@@ -1,8 +1,7 @@
 package com.jjg.game.core.base.condition.checker;
 
 import com.jjg.game.core.base.condition.IPlayerConditionChecker;
-import com.jjg.game.core.base.drop.ConditionProgressDao;
-import com.jjg.game.core.data.Player;
+import com.jjg.game.core.base.drop.DropItemDao;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -13,9 +12,5 @@ import org.springframework.beans.factory.annotation.Autowired;
 public abstract class AbstractProgressConditionChecker implements IPlayerConditionChecker {
     // 条件进度查询dao
     @Autowired
-    protected ConditionProgressDao conditionProgressDao;
-
-    protected String getProgressKey(Player player) {
-        return player.getId() + ":" + bindConditionCheckType();
-    }
+    protected DropItemDao dropItemDao;
 }

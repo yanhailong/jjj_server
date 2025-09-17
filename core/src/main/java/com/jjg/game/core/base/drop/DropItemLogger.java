@@ -24,7 +24,7 @@ public class DropItemLogger extends BaseLogger {
      * @param activityId          活动ID
      * @param itemOperationResult 道具操作记录
      */
-    public void recordDropItem(Player player, int activityId, int gameCfgId, ItemOperationResult itemOperationResult) {
+    public void recordDropItem(Player player, long activityId, int gameCfgId, ItemOperationResult itemOperationResult) {
         JSONObject data = new JSONObject();
         data.put("activityId", activityId);
         data.put("gameCfgId", gameCfgId);

@@ -18,11 +18,13 @@ public class CheckParamCategory {
         // 流水值
         private long flowingValue;
         // 游戏配置ID
-        private long gameCfgId;
+        private int gameCfgId;
         // 需要更新进度
         private boolean needUpdateProgress;
         // 触发次数
         private int triggerTimes;
+        // 条件配置列表
+        private List<Integer> conditionCfg;
 
         public EffectiveFlowingParam(Set<String> checkName, Object targetParam) {
             super(checkName, targetParam);
@@ -48,11 +50,11 @@ public class CheckParamCategory {
             this.flowingValue = flowingValue;
         }
 
-        public long getGameCfgId() {
+        public int getGameCfgId() {
             return gameCfgId;
         }
 
-        public void setGameCfgId(long gameCfgId) {
+        public void setGameCfgId(int gameCfgId) {
             this.gameCfgId = gameCfgId;
         }
 
@@ -70,6 +72,14 @@ public class CheckParamCategory {
 
         public void setTriggerTimes(int triggerTimes) {
             this.triggerTimes = triggerTimes;
+        }
+
+        public List<Integer> getConditionCfg() {
+            return conditionCfg;
+        }
+
+        public void setConditionCfg(List<Integer> conditionCfg) {
+            this.conditionCfg = conditionCfg;
         }
     }
 }
