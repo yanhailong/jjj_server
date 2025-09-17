@@ -18,7 +18,7 @@ public class PlayerEventCategory {
 
         public PlayerEffectiveFlowingEvent(
             Player player, int gameCfgId, Object eventChangeValue, Object newlyValue) {
-            super(player, EGameEventType.PLAYER_BET, eventChangeValue, newlyValue);
+            super(player, EGameEventType.EFFECTIVE_FLOWING, eventChangeValue, newlyValue);
             this.gameCfgId = gameCfgId;
         }
 

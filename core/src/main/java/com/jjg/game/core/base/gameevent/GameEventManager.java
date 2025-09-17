@@ -64,7 +64,8 @@ public class GameEventManager {
             try {
                 eventListener.handleEvent(gameEvent);
             } catch (Exception exception) {
-                log.error("触发事件：{} 时出现异常：{}", gameEventType, exception.getMessage());
+                log.error("listener: {} 触发事件：{} 时出现异常：{}",
+                    eventListener.getClass().getName(), gameEventType, exception.getMessage());
             }
         }
     }

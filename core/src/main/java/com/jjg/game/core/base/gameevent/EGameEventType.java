@@ -10,12 +10,20 @@ import java.util.List;
 public enum EGameEventType {
     // 玩家升级
     PLAYER_LEVEL(true, "levelID"),
-    // 个人有效下注
+    // 产生有效流水
+    EFFECTIVE_FLOWING(true, "effectiveFlowing"),
+    // 个人有效下注 不计算好友房
     PLAYER_BET(true, "bet"),
-    // 个人有效下注计算所有游戏
+    // 个人有效下注 计算所有游戏
     PLAYER_BETALL(true, "bet"),
-    // 个人有效下注计算所有游戏
+    // 个人有效下注 计算配置范围内的游戏
     PLAY_GAME(true, "bet", "gameID"),
+    // 个人有效下注 计算不在配置范围内的游戏
+    NOTPLAY_GAME(true, "bet", "gameID"),
+    // 个人有效下注 计算不在配置范围内的游戏类型  Warehouse表中gameType字段值
+    PLAY_GAMETYPE(true, "bet", "gametype"),
+    // 个人有效下注 计算不在配置范围内的房间类型  Warehouse表中roomType字段值
+    PLAY_ROOMTYPE(true, "bet", "roomtype"),
     ;
 
     // 事件是否由玩家产生

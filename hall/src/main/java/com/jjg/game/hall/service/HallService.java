@@ -571,7 +571,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         for (WarehouseCfg c : GameDataManager.getWarehouseCfgList()) {
             List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameID(),
                     k -> new ArrayList<>());
-            if (c.getRoomType() < 10) {
+            if (c.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
                 WareHouseConfigInfo info = new WareHouseConfigInfo();
                 info.wareId = c.getId();
                 info.limitGoldMin = c.getEnterLimit();
