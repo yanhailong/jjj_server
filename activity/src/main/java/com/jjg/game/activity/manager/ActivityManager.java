@@ -29,10 +29,7 @@ import com.jjg.game.core.base.drop.ConditionProgressKeyCons;
 import com.jjg.game.core.base.drop.DropItemDao;
 import com.jjg.game.core.base.drop.DropItemLogger;
 import com.jjg.game.core.base.drop.ItemDropDataHolder;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
-import com.jjg.game.core.base.gameevent.GameEventManager;
+import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.constant.Code;
@@ -606,10 +603,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             checkDropItem(playerEffectiveFlowingEvent);
 
         }
-        if (gameEvent instanceof PlayerEvent playerEvent) {
+        if (gameEvent instanceof PlayerEvent playerEvent && playerEvent.getGameEventType()==EGameEventType.PLAYER_LEVEL) {
             Player player = playerEvent.getPlayer();
-            //触发玩家等级礼包活动
-            tagetLevelPack(player);
             //添加其他活动进度
             addPlayerActivityProgress(player, ActivityTargetType.LEVEL.getTargetKey(), player.getLevel(), null);
         }
