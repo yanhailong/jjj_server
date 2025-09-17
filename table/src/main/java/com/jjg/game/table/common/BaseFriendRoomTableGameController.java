@@ -9,6 +9,7 @@ import com.jjg.game.core.data.FriendRoomBillHistoryBean;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.utils.SampleDataUtils;
+import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.FriendRoomBillHistoryHelper;
@@ -16,6 +17,8 @@ import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.friendroom.AbstractFriendRoomController;
 import com.jjg.game.room.friendroom.FriendRoomSampleUtils;
+import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.message.resp.NotifyPauseGameOnNewRound;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 
@@ -100,6 +103,25 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
         return checkRes;
     }
 
+    @Override
+    public void broadcastGamePauseInfo() {
+        NotifyPauseGameOnNewRound notifyPauseGameOnNewRound = new NotifyPauseGameOnNewRound();
+        FriendRoom friendRoom = getRoom();
+        if (friendRoom.getStatus() == 2) {
+            notifyPauseGameOnNewRound.pauseType = 1;
+        }
+        if (friendRoom.getOverdueTime() < System.currentTimeMillis()) {
+            notifyPauseGameOnNewRound.pauseType = 3;
+        }
+        int minBankerAmount =
+            FriendRoomSampleUtils.getRoomMinBankerAmount(gameDataVo.getRoomCfg().getId());
+        if (!friendRoom.hasBanker() || friendRoom.getPredictCostGoldNum() < minBankerAmount) {
+            notifyPauseGameOnNewRound.pauseType = 2;
+        }
+        broadcastToPlayers(
+            RoomMessageBuilder.newBuilder().setData(notifyPauseGameOnNewRound).toAllPlayer());
+    }
+
     /**
      * 检查房间准备金是否足够
      */
@@ -175,6 +197,10 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
     public void respRoomInitInfo(PlayerController playerController) {
         if (roomController instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
             friendRoomController.broadFriendRoomChange();
+        }
+        // 如果处于暂停阶段，还需要通知前端，暂停原因
+        if (gameState == EGameState.PAUSED) {
+            broadcastGamePauseInfo();
         }
     }
 
