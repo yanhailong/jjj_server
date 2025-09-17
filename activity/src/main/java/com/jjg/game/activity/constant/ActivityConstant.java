@@ -55,6 +55,10 @@ public interface ActivityConstant {
     interface ScratchCards {
         //刮刮乐消耗道具
         int SCRATCH_CARDS_COST_ITEM = 28;
+        //刮刮乐中奖类型
+        int REWARDS_TYPE = 1;
+        //刮刮乐礼包类型
+        int GIFT_TYPE = 2;
     }
 
     //储钱罐
