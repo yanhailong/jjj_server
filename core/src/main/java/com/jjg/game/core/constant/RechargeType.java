@@ -8,7 +8,7 @@ public enum RechargeType {
     /**
      * 等级礼包
      */
-    PLAYER_LEVEL(1);
+    PLAYER_LEVEL_GIFT(1);
     private final int type;
 
     RechargeType(int type) {

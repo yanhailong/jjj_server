@@ -48,4 +48,14 @@ public class PlayerLevelPackData {
     public void setBuyEndTime(long buyEndTime) {
         this.buyEndTime = buyEndTime;
     }
+
+    @Override
+    public String toString() {
+        return "PlayerLevelPackData{" +
+                "id=" + id +
+                ", claimStatus=" + claimStatus +
+                ", targetTime=" + targetTime +
+                ", buyEndTime=" + buyEndTime +
+                '}';
+    }
 }

@@ -5,11 +5,10 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
-import com.jjg.game.core.base.gameevent.PlayerEvent;
+import com.jjg.game.core.base.gameevent.*;
+import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.RechargeType;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
@@ -38,7 +37,7 @@ import java.util.Map;
  * @date 2025/9/3
  */
 @Component
-public class PlayerLevelPackManager implements GameEventListener {
+public class PlayerLevelPackManager implements GameEventListener, IPlayerLoginSuccess {
     private final Logger log = LoggerFactory.getLogger(PlayerLevelPackManager.class);
 
     private final RedisLock redisLock;
@@ -94,6 +93,8 @@ public class PlayerLevelPackManager implements GameEventListener {
                 //构建新的PlayerLevelPackData
                 PlayerLevelPackData data = new PlayerLevelPackData();
                 data.setTargetTime(currentTimeMillis);
+                data.setId(packCfg.getId());
+                data.setClaimStatus(HallConstant.ClaimStatus.NOT_CLAIM);
                 data.setBuyEndTime((long) packCfg.getTime() * TimeHelper.ONE_MINUTE_OF_MILLIS + currentTimeMillis);
                 playerLevelPackData.put(packCfg.getId(), data);
                 change = true;
@@ -185,13 +186,69 @@ public class PlayerLevelPackManager implements GameEventListener {
 
     @Override
     public <T extends GameEvent> void handleEvent(T gameEvent) {
-        if (gameEvent instanceof PlayerEvent event) {
-            targetGift(event.getPlayer());
+        switch (gameEvent) {
+            case PlayerEventCategory.PlayerRechargeEvent event -> {
+                Player player = event.getPlayer();
+                if (event.getType() == RechargeType.PLAYER_LEVEL_GIFT) {
+                    dealRecharge(player, event.getId());
+                }
+            }
+            case PlayerEvent event -> {
+                if (event.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
+                    targetGift(event.getPlayer());
+                }
+            }
+            default -> {
+            }
         }
+
+    }
+
+    /**
+     * 处理玩家充值礼包
+     *
+     * @param player 玩家信息
+     */
+    private void dealRecharge(Player player, int id) {
+        try {
+
+            String lockKey = playerLevelDao.getLockKey(player.getId());
+            redisLock.lock(lockKey, REDIS_LOCK_TIME);
+            PlayerLevelPackData playerLevelPackData = null;
+            try {
+                playerLevelPackData = playerLevelDao.getPlayerLevelPackData(player.getId(), id);
+                //购买条件判断
+                if (playerLevelPackData == null || playerLevelPackData.getClaimStatus() != HallConstant.ClaimStatus.NOT_CLAIM) {
+                    log.error("玩家购买等级礼包失败 数据不存在 playerLevelPackData：{} playerId:{} id:{} ", playerLevelPackData, player.getId(), id);
+                    return;
+                }
+                playerLevelPackData.setClaimStatus(HallConstant.ClaimStatus.CAN_CLAIM);
+                playerLevelDao.savePackData(player.getId(), id, playerLevelPackData);
+            } catch (Exception e) {
+                log.error("等级礼包修改数据异常 playerId:{} id:{} ", player.getId(), id, e);
+            } finally {
+                redisLock.unlock(lockKey);
+            }
+            if (playerLevelPackData != null) {
+                clusterSystem.sendToPlayer(buildNotifyPlayerLevelPackDetailInfo(Map.of(playerLevelPackData.getId(), playerLevelPackData)), player.getId());
+            }
+        } catch (Exception e) {
+            log.error("等级礼包购买 异常playerId:{} id:{} ", player.getId(), id, e);
+        }
+
     }
 
     @Override
     public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.PLAYER_LEVEL);
+        return List.of(EGameEventType.PLAYER_LEVEL, EGameEventType.RECHARGE);
+    }
+
+    @Override
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+        Map<Integer, PlayerLevelPackData> playerLevelPackData = playerLevelDao.getPlayerLevelPackData(player.getId());
+        if (CollectionUtil.isEmpty(playerLevelPackData)) {
+            return;
+        }
+        playerController.send(buildNotifyPlayerLevelPackDetailInfo(playerLevelPackData));
     }
 }

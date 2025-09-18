@@ -149,10 +149,10 @@ public class CoreMessageHandler {
 
             if ("recharge".equals(cmd)) {
                 log.debug("收到充值的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), arr);
-                int type = Integer.parseInt(arr[0]);
+                int type = Integer.parseInt(arr[1]);
                 //1等级礼包 测试用
                 RechargeType rechargeType = EnumUtil.getBy(RechargeType.class, e -> e.getType() == type);
-                int id = Integer.parseInt(arr[1]);
+                int id = Integer.parseInt(arr[2]);
                 gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(playerController.getPlayer(), id, rechargeType));
                 return;
             }
