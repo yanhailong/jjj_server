@@ -17,6 +17,8 @@ public class PlayerLevelPackDetailInfo {
     public int id;
     @ProtoDesc("领取状态 1不可领取 2可领取 3已领取")
     public int claimStatus;
+    @ProtoDesc("等级")
+    public int level;
     @ProtoDesc("奖励")
     public List<ItemInfo> rewardItems;
     @ProtoDesc("剩余时间")
