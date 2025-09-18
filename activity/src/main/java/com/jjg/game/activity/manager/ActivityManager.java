@@ -691,11 +691,15 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         activityItemDropInfo.activityId = activityData.getId();
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(gameCfgId);
         activityItemDropInfo.gameType = warehouseCfg.getGameType();
+        Map<Integer, Long> itemMap = new HashMap<>();
+        for (Item dropItem : dropItems) {
+            itemMap.put(dropItem.getId(), itemMap.getOrDefault(dropItem.getId(), 0L) + dropItem.getItemCount());
+        }
         activityItemDropInfo.itemMap =
-            dropItems.stream().map(item -> {
+            itemMap.entrySet().stream().map(item -> {
                 KVInfo kvInfo = new KVInfo();
-                kvInfo.key = item.getId();
-                kvInfo.value = (int) (item.getItemCount());
+                kvInfo.key = item.getKey();
+                kvInfo.value = item.getValue().intValue();
                 return kvInfo;
             }).toList();
         return activityItemDropInfo;

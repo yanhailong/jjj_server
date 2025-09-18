@@ -772,7 +772,7 @@ public class FriendRoomServices {
             case 2: {
                 if (playerBlackList.isEmpty()) {
                     // 非法操作
-                    res.code = Code.PARAM_ERROR;
+                    res.code = Code.SUCCESS;
                     playerController.send(res);
                     return;
                 }
@@ -784,7 +784,7 @@ public class FriendRoomServices {
             case 3: {
                 if (playerBlackList.isEmpty()) {
                     // 非法操作
-                    res.code = Code.PARAM_ERROR;
+                    res.code = Code.SUCCESS;
                     playerController.send(res);
                     return;
                 }
