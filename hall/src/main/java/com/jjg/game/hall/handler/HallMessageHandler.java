@@ -1012,7 +1012,24 @@ public class HallMessageHandler implements GmListener {
     @Command(HallConstant.MsgBean.REQ_SHOP)
     public void reqShop(PlayerController playerController) {
         ResShop res = new ResShop(Code.SUCCESS);
-        res.shopProductInfoList = hallService.getShop(playerController.getPlayer());
+        List<ShopProduct> shopProductList = hallService.getShop(playerController.getPlayer());
+        if(shopProductList != null && !shopProductList.isEmpty()) {
+            res.shopProductInfoList = new ArrayList<>(shopProductList.size());
+            shopProductList.forEach((shopProduct) -> {
+                ShopProductInfo info = new ShopProductInfo();
+                info.id = shopProduct.getId();
+                info.type = shopProduct.getType();
+                info.endTime = shopProduct.getEndTime();
+                info.currencyItemId = shopProduct.getCurrencyItemId();
+                info.originalCount = shopProduct.getOriginalCount();
+                info.currentCount = shopProduct.getCurrentCount();
+                info.money = shopProduct.getMoney();
+                info.label1 = shopProduct.getLabel1();
+                info.label2 = shopProduct.getLabel2();
+                info.pic = shopProduct.getPic();
+                res.shopProductInfoList.add(info);
+            });
+        }
         playerController.send(res);
     }
 }

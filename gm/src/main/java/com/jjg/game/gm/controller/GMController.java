@@ -19,15 +19,13 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.MarqueeDao;
 import com.jjg.game.core.dao.OnlinePlayerDao;
+import com.jjg.game.core.dao.ShopProductDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
-import com.jjg.game.core.pb.gm.CarouselUpdateInfo;
-import com.jjg.game.core.pb.gm.NotifyGenrateLib;
-import com.jjg.game.core.pb.gm.ReqAllKickout;
-import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
+import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.service.*;
 import com.jjg.game.gm.dto.*;
 import com.jjg.game.gm.vo.*;
@@ -43,6 +41,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -74,6 +73,8 @@ public class GMController extends AbstractController {
     private OnlinePlayerDao onlinePlayerDao;
     @Autowired
     private CarouselService carouselService;
+    @Autowired
+    private ShopProductDao shopProductDao;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -708,6 +709,61 @@ public class GMController extends AbstractController {
             PFMessage pfMessage = MessageUtil.getPFMessage(notify);
             ClusterMessage msg = new ClusterMessage(pfMessage);
             clusterClient.write(msg);
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 保存商品
+     */
+    @RequestMapping(BackendGMCmd.SAVE_SHOP_PRODUCTS)
+    public WebResult<String> saveShopProducts(@RequestBody SaveShopProductsDto dto) {
+        log.info("收到保存商品请求 param={}", dto);
+        try {
+            if(dto.products() == null || dto.products().isEmpty()){
+                log.debug("保存的商品列表为空");
+                return fail("common.fail");
+            }
+
+            boolean match = dto.products().stream().anyMatch(p -> p.getId() < 1);
+            if(match){
+                log.debug("商品的id不能小于1");
+                return fail("common.fail");
+            }
+
+            shopProductDao.saveProducts(dto.products());
+
+            //通知大厅节点，商城商品变更
+            PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyShopProductChange());
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString())::contains);
+
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 删除商品
+     */
+    @RequestMapping(BackendGMCmd.DEL_SHOP_PRODUCTS)
+    public WebResult<String> delShopProducts(@RequestBody DelShopProductsDto dto) {
+        log.info("收到删除商品请求 param={}", dto);
+        try {
+            if(dto.productIds() == null || dto.productIds().isEmpty()){
+                log.debug("删除的商品列表为空");
+                return fail("common.fail");
+            }
+
+            shopProductDao.delById(dto.productIds());
+
+            //通知大厅节点，商城商品变更
+            PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyShopProductChange());
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString())::contains);
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);
