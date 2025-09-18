@@ -14,7 +14,6 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.*;
-import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.RechargeType;
 import com.jjg.game.core.data.CommonResult;
@@ -38,7 +37,7 @@ import java.util.Map;
  * @date 2025/9/3
  */
 @Component
-public class PlayerLevelPackManager implements GameEventListener, IPlayerLoginSuccess {
+public class PlayerLevelPackManager implements GameEventListener {
     private final Logger log = LoggerFactory.getLogger(PlayerLevelPackManager.class);
 
     private final RedisLock redisLock;
@@ -247,14 +246,6 @@ public class PlayerLevelPackManager implements GameEventListener, IPlayerLoginSu
         return List.of(EGameEventType.PLAYER_LEVEL, EGameEventType.RECHARGE);
     }
 
-    @Override
-    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
-        Map<Integer, PlayerLevelPackData> playerLevelPackData = playerLevelDao.getPlayerLevelPackData(player.getId());
-        if (CollectionUtil.isEmpty(playerLevelPackData)) {
-            return;
-        }
-        playerController.send(buildNotifyPlayerLevelPackDetailInfo(playerLevelPackData));
-    }
 
     public Object reqPlayerLevelPackDetailInfo(PlayerController playerController, ReqPlayerLevelPackDetailInfo req) {
         Map<Integer, PlayerLevelPackData> playerLevelPackData = playerLevelDao.getPlayerLevelPackData(playerController.playerId());
