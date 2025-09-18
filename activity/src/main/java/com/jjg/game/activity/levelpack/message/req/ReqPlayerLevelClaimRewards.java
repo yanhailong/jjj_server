@@ -10,7 +10,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  * @date 2025/9/17 19:01
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_CLAIM_REWARDS)
-@ProtoDesc("等级礼包详细信息")
+@ProtoDesc("领取等级礼包奖励")
 public class ReqPlayerLevelClaimRewards {
     @ProtoDesc("礼包id")
     public int id;
