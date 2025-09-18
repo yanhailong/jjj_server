@@ -19,6 +19,7 @@ import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.activity.sharepromote.controller.SharePromoteController;
 import com.jjg.game.activity.sharepromote.message.req.*;
 import com.jjg.game.common.config.NodeConfig;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.AbstractResponse;
@@ -86,6 +87,9 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_ACTIVITY_CLAIM_REWARDS)
     public void reqActivityClaimRewards(PlayerController playerController, ReqActivityClaimRewards req) {
+        if (serverCanClaimRewardsAndJoin()) {
+            return;
+        }
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data == null || !data.getValue().contains(req.detailId)) {
             return;
@@ -104,6 +108,9 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_ACTIVITY_PLAYER_JOIN)
     public void reqActivityPlayerJoin(PlayerController playerController, ReqActivityPlayerJoin req) {
+        if (serverCanClaimRewardsAndJoin()) {
+            return;
+        }
         //查找活动数据
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.getValue().contains(req.detailId) && data.getType().isCanInitiativeJoin()) {
@@ -151,6 +158,9 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_CASH_COW_FREE_REWARDS)
     public void reqCashCowFreeRewards(PlayerController playerController, ReqCashCowFreeRewards req) {
+        if (serverCanClaimRewardsAndJoin()) {
+            return;
+        }
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.getType() == ActivityType.CASH_COW) {
             if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
@@ -179,6 +189,9 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_CLAIM_PROFIT_REWARD)
     public void reqSharePromoteClaimProfitReward(PlayerController playerController, ReqSharePromoteClaimProfitReward req) {
+        if (serverCanClaimRewardsAndJoin()) {
+            return;
+        }
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.getType() == ActivityType.SHARE_PROMOTE) {
             if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
@@ -238,16 +251,27 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_CLAIM_REWARDS)
     public void reqPlayerLevelClaimRewards(PlayerController playerController, ReqPlayerLevelClaimRewards req) {
+        if (serverCanClaimRewardsAndJoin()) {
+            return;
+        }
+        playerController.send(playerLevelPackManager.ReqPlayerLevelClaimRewards(playerController, req));
+    }
+
+    /**
+     * 当前服务器能否领奖
+     * @return true 可以 false不行
+     */
+    private boolean serverCanClaimRewardsAndJoin() {
         if (NodeType.getNodeTypeByName(nodeConfig.getType()) == NodeType.GAME) {
             if (nodeConfig.getGameMajorTypes() != null) {
                 for (int gameMajorType : nodeConfig.getGameMajorTypes()) {
-                    if (gameMajorType == 2 || gameMajorType == 3) {
-                        return;
+                    if (gameMajorType == CoreConst.GameMajorType.POKER || gameMajorType == CoreConst.GameMajorType.TABLE) {
+                        return true;
                     }
                 }
             }
         }
-        playerController.send(playerLevelPackManager.ReqPlayerLevelClaimRewards(playerController, req));
+        return false;
     }
 
     /**
