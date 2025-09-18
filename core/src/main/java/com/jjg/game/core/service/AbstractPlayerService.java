@@ -813,7 +813,8 @@ public class AbstractPlayerService {
      * @param effective ture 是有效流水
      * @return
      */
-    public CommonResult<Player> betDeductGold(long playerId, long num, String addType, boolean effective, String desc) {
+    public CommonResult<Player> betDeductGold(
+        long playerId, long num, String addType, boolean effective, String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (num < 1) {
             log.warn("押注扣除金币错误 playerId={},num={}", playerId, num);

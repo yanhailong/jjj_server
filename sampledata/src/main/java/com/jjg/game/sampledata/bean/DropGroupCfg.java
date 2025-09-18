@@ -18,10 +18,17 @@ public class DropGroupCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "dropGroup";
 
+  /** 每天掉落次数 */
+  protected int dropCount;
   /** 子包组 */
   protected List<List<Integer>> dropDetailedID;
   /** 掉落主ID */
   protected int trunkID;
+
+  /** 返回每天掉落次数 */
+  public int getDropCount() {
+    return dropCount;
+  }
 
   /** 返回子包组 */
   public List<List<Integer>> getDropDetailedID() {

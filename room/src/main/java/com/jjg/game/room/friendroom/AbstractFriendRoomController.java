@@ -20,6 +20,7 @@ import com.jjg.game.room.message.struct.ApplyBankPlayerInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.RoomCfg;
 import com.jjg.game.sampledata.bean.RoomExpendCfg;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -116,7 +117,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             // 如果能开始需要更新房间最新消息
             broadFriendRoomChange();
         } else {
-            log.warn("请求尝试开启游戏，尝试失败，准备尝试开始游戏");
+            log.warn("请求尝试开启游戏，尝试失败，准备尝试开始游戏：{}", getRoom().logStr());
             // 如果房间刚开始，则需要尝试启动游戏
             if (checkRoomCanContinue() && gameController.checkRoomCanStart()) {
                 log.debug("尝试继续游戏，处于游戏开始阶段，准备开始游戏");
@@ -251,7 +252,11 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                 return false;
             }
             if (room.getRoomPlayers().isEmpty()) {
-                roomManager.getMailService().addCfgMail(room.getCreator(), 2);
+                List<LanguageParamData> params = new ArrayList<>();
+                WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(room.getRoomCfgId());
+                params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
+                params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
+                roomManager.getMailService().addCfgMail(room.getCreator(), 2, null, params);
                 log.info("房间：{} 时长到期,没有玩家暂停续费", room.logStr());
                 return false;
             }
@@ -268,7 +273,11 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             if (itemNum > room.getPredictCostGoldNum()) {
                 // 自动续费失败，房间准备金不足
                 log.info("自动续费失败，房间准备金不足: need: {} rest: {}", itemNum, room.getPredictCostGoldNum());
-                roomManager.getMailService().addCfgMail(room.getCreator(), 3);
+                List<LanguageParamData> params = new ArrayList<>();
+                WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(room.getRoomCfgId());
+                params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
+                params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
+                roomManager.getMailService().addCfgMail(room.getCreator(), 3, null, params);
                 return false;
             }
             long overdueTime = room.getOverdueTime();

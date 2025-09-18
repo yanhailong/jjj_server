@@ -52,7 +52,7 @@ public class RoomMessageHandler {
             log.debug("退出游戏 playerId = {}", playerId);
             if (playerController.getPlayer().getGameType() != EGameType.BACCARAT.getGameTypeId()) {
                 AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-                    roomManager.getGameControllerByPlayerId(playerId);
+                    roomManager.getGameControllerByRoomId(playerController.getPlayer().getRoomId());
                 if (Objects.isNull(gameController)) {
                     playerController.send(new ResExitGame(Code.PARAM_ERROR));
                     return;

@@ -12,6 +12,8 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BetAreaCfg;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import org.apache.commons.collections4.keyvalue.DefaultKeyValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +25,8 @@ import java.util.Objects;
  * @date 2025/8/13 16:04
  */
 public class SaveLogUtil {
+    private static final Logger log = LoggerFactory.getLogger(SaveLogUtil.class);
+
     public static void generalLog(Map<Long, Map<Integer, List<Integer>>> betData, Map<Long, DefaultKeyValue<Long,
                                       Long>> playerGet, Map<Long, GamePlayer> gamePlayerMap,
                                   AbstractPhaseGameController<Room_BetCfg, ?> gameController) {
@@ -94,6 +98,7 @@ public class SaveLogUtil {
                 controller.getGameTransactionItemId());
             controller.getGameEventManager().triggerEvent(
                 new PlayerEffectiveFlowingEvent(player, controller.getRoom().getRoomCfgId(), effectiveGold, 0));
+            log.debug("玩家：{} 在房间：{} 产生有效流水：{}", player.getId(), controller.getRoom().getRoomCfgId(), effectiveGold);
         }
         activityManager.addPlayerActivityProgress(
             player, ActivityTargetType.BET.getTargetKey(), allBet, controller.getGameTransactionItemId());

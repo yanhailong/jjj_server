@@ -13,6 +13,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.PlayerAvatarDao;
+import com.jjg.game.core.dao.ShopProductDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.GameStatusService;
@@ -25,7 +26,9 @@ import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.pb.res.NotifyGameList;
 import com.jjg.game.hall.pb.struct.GameListConfig;
+import com.jjg.game.hall.pb.struct.ShopProductInfo;
 import com.jjg.game.hall.pb.struct.WarePoolInfo;
+import com.jjg.game.hall.utils.ConditionUtil;
 import com.jjg.game.hall.utils.HallTool;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -35,8 +38,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -67,6 +74,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private TimerCenter timerCenter;
     @Autowired
     private HallPoolDao poolDao;
+    @Autowired
+    private ShopProductDao shopProductDao;
 
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
@@ -74,7 +83,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     //排序后的gameList
     private List<GameListConfig> sortGameList;
     //游戏倍场界面的奖池
-    private Map<Integer,List<WarePoolInfo>> poolMap;
+    private Map<Integer, List<WarePoolInfo>> poolMap;
+    //商城商品
+    private Map<Integer, ShopProduct> shopProductMap;
 
     public Map<Integer, GameStatus> getGameStatusesMap() {
         return gameStatusesMap;
@@ -98,14 +109,24 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         loadGameStatuses(gameStatusService.getAllGameStatus());
 
         //添加更新奖池的定时任务
-        addCheckOffLineEvent();
+        addUpdatePoolEvent();
+        //加载商城商品
+        loadShopProducts();
     }
 
-    public void addCheckOffLineEvent() {
+    /**
+     * 添加更新奖池的定时任务
+     */
+    public void addUpdatePoolEvent() {
         this.updatePoolEvent = new TimerEvent<>(this, "updatePoolEvent", 10).withTimeUnit(TimeUnit.SECONDS);
         timerCenter.add(this.updatePoolEvent);
     }
 
+    /**
+     * 缓存每个游戏的状态
+     *
+     * @param gameStatuses
+     */
     public void loadGameStatuses(List<GameStatus> gameStatuses) {
         if (gameStatuses == null || gameStatuses.isEmpty()) {
             this.gameStatusesMap = new HashMap<>();
@@ -115,6 +136,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         this.sortGameList = sortGameList();
     }
 
+    /**
+     * 刷新游戏状态
+     */
     public void refreshGameStatuses() {
         loadGameStatuses(gameStatusService.getAllGameStatus());
 
@@ -130,11 +154,12 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
     /**
      * 根据游戏获取奖池
+     *
      * @param gameType
      * @return
      */
     public List<WarePoolInfo> getPoolListByGameType(int gameType) {
-        if(this.poolMap == null || this.poolMap.isEmpty()) {
+        if (this.poolMap == null || this.poolMap.isEmpty()) {
             return null;
         }
         return this.poolMap.get(gameType);
@@ -554,6 +579,47 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         return new ArrayList<>(set);
     }
 
+    /**
+     * 获取商城
+     *
+     * @param player
+     * @return
+     */
+    public List<ShopProduct> getShop(Player player) {
+        if(this.shopProductMap == null || this.shopProductMap.isEmpty()) {
+            return null;
+        }
+
+        List<ShopProduct> list = new ArrayList<>();
+
+        int now = TimeHelper.nowInt();
+        for(Map.Entry<Integer,ShopProduct> en : this.shopProductMap.entrySet()){
+            ShopProduct shopProduct = en.getValue();
+            //是否开启
+            if(!shopProduct.isOpen()){
+                continue;
+            }
+
+            //检查解锁条件
+            if (ConditionUtil.checkCondition(player, shopProduct.getConditionsMap()) != Code.SUCCESS) {
+                continue;
+            }
+
+            //检查开始时间
+            if(shopProduct.getStartTime() > 0 && now < shopProduct.getStartTime()){
+                continue;
+            }
+
+            //检查开始时间
+            if(shopProduct.getEndTime() > 0 && now > shopProduct.getEndTime()){
+                continue;
+            }
+
+            list.add(shopProduct);
+        }
+        return list;
+    }
+
     /***********************************************************************************************************/
 
     @Override
@@ -571,7 +637,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         for (WarehouseCfg c : GameDataManager.getWarehouseCfgList()) {
             List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameID(),
                     k -> new ArrayList<>());
-            if (c.getRoomType() < 10) {
+            if (c.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
                 WareHouseConfigInfo info = new WareHouseConfigInfo();
                 info.wareId = c.getId();
                 info.limitGoldMin = c.getEnterLimit();
@@ -677,7 +743,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
     @Override
     public void onTimer(TimerEvent e) {
-        if(this.updatePoolEvent == e){
+        if (this.updatePoolEvent == e) {
             updatePoolEvent();
         }
     }
@@ -686,10 +752,10 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      * 更新奖池
      */
     private void updatePoolEvent() {
-        Map<Integer,List<WarePoolInfo>> tmpPoolMap = new HashMap<>();
+        Map<Integer, List<WarePoolInfo>> tmpPoolMap = new HashMap<>();
 
         this.sortGameList.forEach(cfg -> {
-            if(CommonUtil.getMajorTypeByGameType(cfg.sid) == CoreConst.GameMajorType.SLOTS){
+            if (CommonUtil.getMajorTypeByGameType(cfg.sid) == CoreConst.GameMajorType.SLOTS) {
                 Map<Object, Object> smallPool = poolDao.getSmallPoolByRoomCfgId(cfg.sid);
                 Map<Object, Object> fakeSmallPool = poolDao.getFakeSmallPoolByRoomCfgId(cfg.sid);
 
@@ -716,5 +782,17 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         });
 
         this.poolMap = tmpPoolMap;
+    }
+
+    /**
+     * 加载商城商品
+     */
+    public void loadShopProducts(){
+        List<ShopProduct> all = shopProductDao.getAll();
+        if(all != null && !all.isEmpty()){
+            this.shopProductMap = all.stream()
+                    .collect(Collectors.toUnmodifiableMap(ShopProduct::getId, Function.identity()));
+            log.info("加载商城商品数量 size = {}", this.shopProductMap.size());
+        }
     }
 }

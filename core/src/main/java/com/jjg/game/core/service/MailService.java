@@ -1,6 +1,7 @@
 package com.jjg.game.core.service;
 
 import cn.hutool.core.util.IdUtil;
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.reddot.IRedDotService;
@@ -105,7 +106,7 @@ public class MailService implements IRedDotService {
                 playerPackService.addItems(playerId, map, "getMailItems");
             }
             //邮件变化时通知客户端刷新小红点
-            redDotManager.updateRedDot(() -> initialize(playerId, null), playerId);
+            redDotManager.updateRedDot(() -> initialize(playerId, 0), playerId);
         } catch (Exception e) {
             log.error("", e);
             result.code = Code.EXCEPTION;
@@ -185,7 +186,8 @@ public class MailService implements IRedDotService {
         }
 
         long count = mailDao.batchUpdateMailStatus(mailIds, GameConstant.Mail.STATUS_GET_ITEMS);
-        CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(playerId, map, "getAllMailsItems");
+        CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(playerId, map,
+            "getAllMailsItems");
         if (!addItemsResult.success()) {
             log.debug("一键领取失败 playerId = {},code = {}", playerId, addItemsResult.code);
             result.code = addItemsResult.code;
@@ -193,9 +195,9 @@ public class MailService implements IRedDotService {
         }
         result.data = map;
         log.info("一键领取结果 playerId = {}, batchUpdateCount = {}, addItemsResultCode = {}", playerId, count,
-                addItemsResult.code);
+            addItemsResult.code);
         //邮件变化时通知客户端刷新小红点
-        redDotManager.updateRedDot(() -> initialize(playerId, null), playerId);
+        redDotManager.updateRedDot(() -> initialize(playerId, 0), playerId);
         return result;
     }
 
@@ -217,22 +219,27 @@ public class MailService implements IRedDotService {
         mailDao.save(mail);
         log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}", playerId, mail.getId());
         //邮件变化时通知客户端刷新小红点
-        redDotManager.updateRedDot(() -> initialize(playerId, null), playerId);
+        redDotManager.updateRedDot(() -> initialize(playerId, 0), playerId);
     }
 
 
     /**
      * 添加系统配置邮件
      */
-    public void addCfgMail(long playerId, int titleLanId, int contentId, List<Item> items) {
-        LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_LANGUAGE_MATCH, titleLanId + "");
-        LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_LANGUAGE_MATCH, contentId + "");
+    public void addCfgMail(
+        long playerId, int titleLanId, int contentId, List<Item> items, List<LanguageParamData> params) {
+        LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_LANGUAGE_MATCH, "");
+        LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_LANGUAGE_MATCH, "");
+        titleData.setLangId(titleLanId);
+        contentData.setLangId(contentId);
+        contentData.setParams(params);
         Mail mail = createMail(titleData, contentData, items, false);
         mail.setId(IdUtil.getSnowflakeNextId());
         mail.setPlayerId(playerId);
+        log.debug("玩家：{} 添加配置邮件：{}", playerId, JSON.toJSONString(mail));
         mailDao.save(mail);
         //邮件变化时通知客户端刷新小红点
-        redDotManager.updateRedDot(() -> initialize(playerId, null), playerId);
+        redDotManager.updateRedDot(() -> initialize(playerId, 0), playerId);
     }
 
     /**
@@ -240,7 +247,7 @@ public class MailService implements IRedDotService {
      */
     public void addCfgMail(long playerId, int mailCfgId) {
         MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), new ArrayList<>());
+        addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), new ArrayList<>(), new ArrayList<>());
     }
 
     /**
@@ -248,7 +255,16 @@ public class MailService implements IRedDotService {
      */
     public void addCfgMail(long playerId, int mailCfgId, List<Item> items) {
         MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items);
+        addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, new ArrayList<>());
+    }
+
+
+    /**
+     * 添加系统配置邮件
+     */
+    public void addCfgMail(long playerId, int mailCfgId, List<Item> items, List<LanguageParamData> params) {
+        MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
+        addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, params);
     }
 
 
@@ -267,7 +283,7 @@ public class MailService implements IRedDotService {
         mailDao.save(mail);
         log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}", playerId, mail.getId());
         //邮件变化时通知客户端刷新小红点
-        redDotManager.updateRedDot(() -> initialize(playerId, null), playerId);
+        redDotManager.updateRedDot(() -> initialize(playerId, 0), playerId);
     }
 
     /**
@@ -290,7 +306,7 @@ public class MailService implements IRedDotService {
             mail.setPlayerId(playerId);
             mails.add(mail);
             //邮件变化时通知客户端刷新小红点
-            redDotManager.updateRedDot(() -> initialize(playerId, null), playerId);
+            redDotManager.updateRedDot(() -> initialize(playerId, 0), playerId);
         }
         long saveCount = mailDao.batchSaveMails(mails);
         log.debug("批量保存邮件数量 mails.size = {}", saveCount);
@@ -357,7 +373,8 @@ public class MailService implements IRedDotService {
                 boolean reve = mailDao.playerHasServerMail(playerId, mail.getId());
                 //检查邮件是否过期
                 if (mail.getTimeout() < now) {
-                    log.info("检测到系统邮件到期 mailId = {},title = {},timeout = {}", mail.getId(), mail.getTitle(), mail.getTimeout());
+                    log.info("检测到系统邮件到期 mailId = {},title = {},timeout = {}", mail.getId(), mail.getTitle(),
+                        mail.getTimeout());
                     if (reve) {
                         mailDao.removeServerMail(mail.getId());
                     }
@@ -407,7 +424,8 @@ public class MailService implements IRedDotService {
 
         mail.setItems(items);
 
-        int expireTime = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.DEFAULT_MAIL_VALID_TIME).getIntValue();
+        int expireTime =
+            GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.DEFAULT_MAIL_VALID_TIME).getIntValue();
         mail.setTimeout(mail.getSendTime() + expireTime);
         return mail;
     }
@@ -428,12 +446,12 @@ public class MailService implements IRedDotService {
      * 初始化红点信息
      *
      * @param playerId  玩家id
-     * @param submodule 子模块 {@link RedDotDetails.RedDotSubmodule}
+     * @param submodule 子模块
      *                  </p>
      *                  (如果指定了子模块则加载子模块数据,没有则加载所有子模块)
      */
     @Override
-    public List<RedDotDetails> initialize(long playerId, RedDotDetails.RedDotSubmodule submodule) {
+    public List<RedDotDetails> initialize(long playerId, int submodule) {
         RedDotDetails redDotDetails = new RedDotDetails();
         redDotDetails.setRedDotModule(getModule());
         long itemMailsCount = mailDao.getItemsMailsCount(playerId, GameConstant.Mail.STATUS_NOT_READ);

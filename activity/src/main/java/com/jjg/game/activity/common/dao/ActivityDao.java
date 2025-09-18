@@ -105,7 +105,7 @@ public class ActivityDao {
             List<ActivityData> list = opsForHash().multiGet(TABLE_NAME, new ArrayList<>(activityIds));
             Map<Long, ActivityData> result = new HashMap<>(activityIds.size());
             for (int i = 0; i < activityIds.size(); i++) {
-                ActivityData data = (list != null && i < list.size()) ? list.get(i) : null;
+                ActivityData data = i < list.size() ? list.get(i) : null;
                 if (data != null) {
                     result.put(activityIds.get(i), data);
                 }

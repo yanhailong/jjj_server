@@ -18,8 +18,7 @@ import java.util.List;
 public class ResSharePromoteTypeInfo extends AbstractResponse {
     @ProtoDesc("活动信息")
     public List<SharePromoteActivityInfo> activityData;
-    @ProtoDesc("可领取收益")
-    public long getProfitReward;
+
 
     public ResSharePromoteTypeInfo(int code) {
         super(code);

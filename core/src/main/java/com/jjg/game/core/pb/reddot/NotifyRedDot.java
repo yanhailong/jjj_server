@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 更新小红点数据
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE, cmd = MessageConst.CoreMessage.NOTIFY_RED_DOT)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE, cmd = MessageConst.CoreMessage.NOTIFY_RED_DOT, resp = true)
 @ProtoDesc("更新小红点数据")
 public class NotifyRedDot extends AbstractNotice {
 

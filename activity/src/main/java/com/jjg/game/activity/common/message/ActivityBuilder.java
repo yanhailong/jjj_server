@@ -15,7 +15,6 @@ public class ActivityBuilder {
         activityInfo.activityId = data.getId();
         activityInfo.activityType = data.getType().getType();
         activityInfo.status = data.getStatus();
-        activityInfo.claimStatus = claimStatus;
         return activityInfo;
     }
 }

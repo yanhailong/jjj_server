@@ -1,7 +1,6 @@
 package com.jjg.game.activity.activitylog;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.activitylog.data.ScratchCardsResult;
 import com.jjg.game.activity.common.data.ActivityData;
@@ -132,11 +131,7 @@ public class ActivityLogger extends BaseLogger {
         json.put("cost", JSON.toJSONString(Map.of(totalCost.getId(), totalCost.getItemCount())));
         json.put("costItemNum", JSON.toJSONString(costAfter));
         json.put("times", times);
-        JSONArray detail = new JSONArray();
-        for (ScratchCardsResult result : scratchCardsResults) {
-            detail.add(JSON.toJSONString(result));
-        }
-        json.put("detail", JSON.toJSONString(detail));
+        json.put("detail", JSON.toJSONString(scratchCardsResults));
         sendLog(TOPIC, player, json);
     }
 

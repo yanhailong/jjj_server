@@ -3,7 +3,6 @@ package com.jjg.game.activity.sharepromote.dao;
 import com.jjg.game.activity.sharepromote.data.SharePromotePlayerData;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.HashOperations;
@@ -21,107 +20,118 @@ import java.util.Map;
 import java.util.Set;
 
 /**
+ * SharePromoteDao
+ * <p>
+ * 推广分享活动数据访问层
+ * 负责玩家推广绑定、收益统计、排行榜管理、唯一邀请码生成等 Redis 操作
+ * 设计要点：
+ * 1. 使用 Redis Hash、Set、ZSet、String 类型存储不同类型数据
+ * 2. 提供排行榜分页查询和个人收益查询
+ * 3. 支持全局唯一邀请码生成
+ * 4. 支持每日收入自动过期
+ * </p>
+ *
  * @author lm
- * @date 2025/9/15 17:30
+ * @date 2025/9/15
  */
 @Repository
 public class SharePromoteDao {
 
     private final Logger log = LoggerFactory.getLogger(SharePromoteDao.class);
+
+    // 随机码生成配置
     private final String CHAR_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private final SecureRandom RANDOM = new SecureRandom();
     private final int CODE_LENGTH = 12;
+
+    // Redis 模板
     private final RedisTemplate<String, String> redisTemplate;
     private final RedisTemplate<String, SharePromotePlayerData> playerDataRedisTemplate;
-    //玩家id
-    private final String SHARE_PROMOTE_BIND_KEY = "activity:sharepromote:bind:%s";
-    //绑定玩家的id
-    private final String SHARE_PROMOTE_ALREADY_BIND_KEY = "activity:sharepromote:alreadybind:%s";
-    private final String SHARE_PROMOTE_CODE = "activity:sharepromote:code";
-    private final String SHARE_PROMOTE_REWARDS_RANK = "activity:sharepromote:rank";
-    private final String SHARE_PROMOTE_REWARDS_INCOME_RANK = "activity:sharepromote:incomerank:%d";
-    private final String SHARE_PROMOTE_REWARDS_INCOME = "activity:sharepromote:income:%d";
-    private final String SHARE_PROMOTE_REWARDS_HISTORY_INCOME = "activity:sharepromote:historyincome:%d";
-    private final String SHARE_PROMOTE_PLAYER_INFO = "activity:sharepromote:player:%d";
-    private final String SHARE_PROMOTE_LOCK = "activity:sharepromote:lock:%d";
+
+    // Redis Key 模板
+    private final String SHARE_PROMOTE_BIND_KEY = "activity:sharepromote:bind:%s";                  // source -> targets
+    private final String SHARE_PROMOTE_ALREADY_BIND_KEY = "activity:sharepromote:alreadybind:%s";  // 被绑定玩家
+    private final String SHARE_PROMOTE_CODE = "activity:sharepromote:code";                         // 全局唯一邀请码 Hash
+    private final String SHARE_PROMOTE_REWARDS_RANK = "activity:sharepromote:rank";               // 总收益排行榜 ZSet
+    private final String SHARE_PROMOTE_REWARDS_INCOME_RANK = "activity:sharepromote:incomerank:%d"; // 玩家来源收益排行榜
+    private final String SHARE_PROMOTE_REWARDS_INCOME = "activity:sharepromote:income:%d";       // 玩家可领取收益
+    private final String SHARE_PROMOTE_REWARDS_HISTORY_INCOME = "activity:sharepromote:historyincome:%d"; // 玩家历史总收益
+    private final String SHARE_PROMOTE_PLAYER_INFO = "activity:sharepromote:player:%d";           // 玩家信息
+    private final String SHARE_PROMOTE_LOCK = "activity:sharepromote:lock:%d";                    // 玩家操作锁
 
     public SharePromoteDao(RedisTemplate<String, String> redisTemplate, RedisTemplate<String, SharePromotePlayerData> playerDataRedisTemplate) {
         this.redisTemplate = redisTemplate;
         this.playerDataRedisTemplate = playerDataRedisTemplate;
     }
 
-
+    /** 获取 Hash 操作对象 */
     public HashOperations<String, String, String> getHashOperations() {
         return redisTemplate.opsForHash();
     }
 
+    /** 获取玩家操作锁 Key */
     public String getLock(long playerId) {
         return SHARE_PROMOTE_LOCK.formatted(playerId);
     }
 
-
     /**
-     * 获取收益排行榜总分数
+     * 获取总收益排行榜（分页）
+     *
+     * @param startIndex 起始索引
+     * @param size 页大小
+     * @return Pair<排行榜数据, 是否有下一页>
      */
-    public Pair<Map<Long, Double>, Boolean> getPlayerIncomeRank(int startIndex, int size) {
+    public Pair<Map<Long, Double>, Boolean> getAllIncomeRank(int startIndex, int size) {
         return getTopIncomePlayers(SHARE_PROMOTE_REWARDS_RANK, startIndex, size);
     }
 
-    /**
-     * 更新收益排行榜总分数
-     */
+    /** 更新总收益排行榜分数 */
     public void updateRankScore(long playerId, long rank) {
         redisTemplate.opsForZSet().incrementScore(SHARE_PROMOTE_REWARDS_RANK, String.valueOf(playerId), rank);
     }
 
-    /**
-     * 删除收益排行榜数据
-     */
+    /** 删除总收益排行榜数据 */
     public void deleteRank() {
         redisTemplate.delete(SHARE_PROMOTE_REWARDS_RANK);
     }
 
-    /**
-     * 添加玩家收入
-     */
-    public void addPlayerIncome(long sourcePlayerId, long addValue) {
-        // 获取被绑定的id
-        String bindInfo = SHARE_PROMOTE_ALREADY_BIND_KEY.formatted(sourcePlayerId);
-        if (StringUtils.isEmpty(bindInfo)) {
-            return;
-        }
-        String[] bindInfoArr = StringUtils.split(bindInfo, "_");
-        if (bindInfoArr.length != 2) {
-            return;
-        }
-        long playerId = Long.parseLong(bindInfoArr[0]);
-
-        if (addValue > 0) {
-            // 1. 可领取总收入
-            String key = SHARE_PROMOTE_REWARDS_INCOME.formatted(playerId);
-            redisTemplate.opsForValue().increment(key, addValue);
-            // 2. 历史总收入
-            String historyKey = SHARE_PROMOTE_REWARDS_HISTORY_INCOME.formatted(playerId);
-            redisTemplate.opsForValue().increment(historyKey, addValue);
-            // 3. 按天收入
-            String dailyKey = String.format("activity:sharepromote:income:%s:%d",
-                    LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE), playerId);
-            redisTemplate.opsForValue().increment(dailyKey, addValue);
-            // 设置过期时间（例如保留 1 天）
-            redisTemplate.expire(dailyKey, Duration.ofDays(1));
-        }
-        // 2. 来源排行榜
-        String incomeKey = SHARE_PROMOTE_REWARDS_INCOME_RANK.formatted(playerId);
-        redisTemplate.opsForZSet().incrementScore(incomeKey, String.valueOf(sourcePlayerId), addValue);
-
+    /** 获取玩家是否已被绑定信息 */
+    public String getBindInfo(long sourcePlayerId) {
+        return redisTemplate.opsForValue().get(SHARE_PROMOTE_ALREADY_BIND_KEY.formatted(sourcePlayerId));
     }
 
     /**
-     * 获取昨天总收入
-     *
-     * @param playerId 玩家id
-     * @return 昨天总收入
+     * 增加玩家收益
+     * 会更新：
+     * 1. 可领取总收益
+     * 2. 历史总收益
+     * 3. 当日收益
+     * 4. 来源排行榜
      */
+    public void addPlayerIncome(long sourcePlayerId, long beneficiaryPlayerId, long addValue) {
+        if (addValue <= 0) return;
+
+        String incomeKey = SHARE_PROMOTE_REWARDS_INCOME_RANK.formatted(beneficiaryPlayerId);
+
+        // 可领取总收入
+        String key = SHARE_PROMOTE_REWARDS_INCOME.formatted(beneficiaryPlayerId);
+        redisTemplate.opsForValue().increment(key, addValue);
+
+        // 历史总收入
+        String historyKey = SHARE_PROMOTE_REWARDS_HISTORY_INCOME.formatted(beneficiaryPlayerId);
+        redisTemplate.opsForValue().increment(historyKey, addValue);
+
+        // 当日收入
+        String dailyKey = String.format("activity:sharepromote:income:%s:%d",
+                LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE), beneficiaryPlayerId);
+        redisTemplate.opsForValue().increment(dailyKey, addValue);
+        redisTemplate.expire(dailyKey, Duration.ofDays(1));
+
+        // 来源排行榜
+        redisTemplate.opsForZSet().incrementScore(incomeKey, String.valueOf(sourcePlayerId), addValue);
+    }
+
+    /** 获取玩家昨天总收入 */
     public long getYesterdayIncome(long playerId) {
         String key = String.format("activity:sharepromote:income:%s:%d",
                 LocalDate.now().minusDays(1).format(DateTimeFormatter.BASIC_ISO_DATE), playerId);
@@ -130,115 +140,109 @@ public class SharePromoteDao {
     }
 
     /**
-     * 获取收入排行榜前N名
+     * 获取排行榜前 N 名玩家
      *
-     * @param topN 排名前N
-     * @return Map<playerId, income>
+     * @param rankKey 排行榜 Redis Key
+     * @param start 起始索引
+     * @param topN 页大小
+     * @return Pair<排行榜数据, 是否有下一页>
      */
     public Pair<Map<Long, Double>, Boolean> getTopIncomePlayers(String rankKey, int start, int topN) {
         Set<ZSetOperations.TypedTuple<String>> results =
                 redisTemplate.opsForZSet().reverseRangeWithScores(rankKey, start, topN);
+
         if (results == null || results.isEmpty()) {
             return Pair.newPair(Collections.emptyMap(), false);
         }
+
         LinkedHashMap<Long, Double> topPlayers = new LinkedHashMap<>();
         for (ZSetOperations.TypedTuple<String> tuple : results) {
-            if (tuple.getValue() == null) {
-                continue;
+            if (tuple.getValue() != null) {
+                topPlayers.put(Long.valueOf(tuple.getValue()), tuple.getScore());
             }
-            topPlayers.put(Long.valueOf(tuple.getValue()), tuple.getScore());
         }
+
         boolean hasNext = false;
         int pageSize = topN - start;
-        if ( topPlayers.size() > pageSize) {
+        if (topPlayers.size() > pageSize) {
             hasNext = true;
-            // 去掉多查的那一条
             topPlayers.pollLastEntry();
         }
         return Pair.newPair(topPlayers, hasNext);
     }
 
-    /**
-     * 获取玩家自己的收益排行榜信息
-     */
-    public Pair<Map<Long, Double>, Boolean> getPlayerIncomeRank(long playerId, int startIndex, int size) {
+    /** 获取指定玩家的来源收益排行榜（分页） */
+    public Pair<Map<Long, Double>, Boolean> getAllIncomeRank(long playerId, int startIndex, int size) {
         String incomeKey = SHARE_PROMOTE_REWARDS_INCOME_RANK.formatted(playerId);
         return getTopIncomePlayers(incomeKey, startIndex, size);
     }
 
-    /**
-     * 删除玩家收入
-     */
+    /** 删除玩家可领取收益 */
     public void delPlayerIncome(long playerId) {
         String key = SHARE_PROMOTE_REWARDS_INCOME.formatted(playerId);
         redisTemplate.delete(key);
     }
 
-    /**
-     * 获取玩家可领取收入
-     */
+    /** 获取玩家可领取收益 */
     public long getPlayerIncome(long playerId) {
         String key = SHARE_PROMOTE_REWARDS_INCOME.formatted(playerId);
         String income = redisTemplate.opsForValue().get(key);
         return income == null ? 0 : Long.parseLong(income);
     }
 
-    /**
-     * 获取玩家历史总收入
-     */
+    /** 获取玩家历史总收益 */
     public long getPlayerHistoryIncome(long playerId) {
         String key = SHARE_PROMOTE_REWARDS_HISTORY_INCOME.formatted(playerId);
         String income = redisTemplate.opsForValue().get(key);
         return income == null ? 0 : Long.parseLong(income);
     }
 
-
     /**
-     * 绑定玩家
+     * 玩家绑定推广码
      *
-     * @param playerId 请求被绑定人
-     * @param code     绑定码
-     * @return true = 绑定成功; false = 已经被绑定过
+     * @param playerId 请求绑定的玩家
+     * @param code 推广码
+     * @return Code.SUCCESS/Code.ALREADY_BOUND/Code.ALREADY_OTHER_BOUND/Code.CODE_ERROR
      */
     public int bindPlayer(long playerId, String code) {
-        //参考邀请码是否合法
         try {
             String createPlayerId = getHashOperations().get(SHARE_PROMOTE_CODE, code);
-            if (createPlayerId == null) {
-                return Code.CODE_ERROR;
-            }
-            Boolean success = redisTemplate.opsForValue().setIfAbsent(SHARE_PROMOTE_ALREADY_BIND_KEY.formatted(createPlayerId), getBindString(playerId));
+            if (createPlayerId == null) return Code.CODE_ERROR;
+
+            // 被绑定玩家是否已绑定过
+            Boolean success = redisTemplate.opsForValue().setIfAbsent(
+                    SHARE_PROMOTE_ALREADY_BIND_KEY.formatted(createPlayerId), getBindString(playerId));
             if (Boolean.FALSE.equals(success)) {
-                log.info("绑定失败 playerId={} 已经被 绑定", playerId);
+                log.info("绑定失败 playerId={} 已经被绑定", playerId);
                 return Code.ALREADY_OTHER_BOUND;
             }
+
             String bindKey = SHARE_PROMOTE_BIND_KEY.formatted(createPlayerId);
-            //判断即将绑定的玩家是否已经绑定该用户
             Boolean member = redisTemplate.opsForSet().isMember(bindKey, String.valueOf(playerId));
-            if (Boolean.TRUE.equals(member)) {
-                return Code.ALREADY_BOUND;
-            }
-            String requestBingKey = SHARE_PROMOTE_BIND_KEY.formatted(playerId);
-            // 保存 source -> target 的绑定关系
-            redisTemplate.opsForSet().add(requestBingKey, String.valueOf(playerId));
+            if (Boolean.TRUE.equals(member)) return Code.ALREADY_BOUND;
+
+            // 保存绑定关系
+            String requestBindKey = SHARE_PROMOTE_BIND_KEY.formatted(playerId);
+            redisTemplate.opsForSet().add(requestBindKey, createPlayerId);
+
             log.info("绑定成功 playerId={} code={}", playerId, code);
-            addPlayerIncome(Long.parseLong(createPlayerId), 0);
+
+            // 初始化来源排行榜
+            String incomeKey = SHARE_PROMOTE_REWARDS_INCOME_RANK.formatted(playerId);
+            redisTemplate.opsForZSet().add(incomeKey, createPlayerId, 0);
+
         } catch (Exception e) {
             log.error("绑定玩家出现异常 playerId={} code={}", playerId, code, e);
         }
         return Code.SUCCESS;
     }
 
+    /** 构建绑定信息字符串 */
     private String getBindString(long playerId) {
         return String.format("%d_%d", playerId, System.currentTimeMillis());
     }
 
-    /**
-     * 获取某个 source 已经绑定的 target 数量
-     *
-     * @param playerId 推广者ID
-     * @return 绑定数量
-     */
+    /** 获取玩家已绑定的目标数量 */
     public long getBindCount(long playerId) {
         String bindKey = SHARE_PROMOTE_BIND_KEY.formatted(playerId);
         Long size = redisTemplate.opsForSet().size(bindKey);
@@ -246,37 +250,35 @@ public class SharePromoteDao {
     }
 
     /**
-     * 生成全局唯一的12位码（大小写字母 + 数字）
-     *
-     * @return 唯一码
+     * 生成全局唯一邀请码
+     * 12位随机大小写字母 + 数字
      */
     public String generateUniqueCode(long playerId) {
         String code;
         boolean added;
         String strPlayerId = String.valueOf(playerId);
+
         do {
             code = generateCode();
-            // result == 1 表示成功新增，说明之前没有
             added = redisTemplate.opsForHash().putIfAbsent(SHARE_PROMOTE_CODE, code, strPlayerId);
         } while (!added);
 
         return code;
     }
 
+    /** 获取玩家信息对象 */
     public SharePromotePlayerData getPlayerInfoData(long playerId) {
         String key = SHARE_PROMOTE_PLAYER_INFO.formatted(playerId);
         return playerDataRedisTemplate.opsForValue().get(key);
     }
 
+    /** 保存玩家信息对象 */
     public void savePlayerInfoData(long playerId, SharePromotePlayerData data) {
         String key = SHARE_PROMOTE_PLAYER_INFO.formatted(playerId);
         playerDataRedisTemplate.opsForValue().set(key, data);
     }
 
-
-    /**
-     * 生成随机12位码
-     */
+    /** 生成随机 12 位码 */
     private String generateCode() {
         StringBuilder sb = new StringBuilder(CODE_LENGTH);
         for (int i = 0; i < CODE_LENGTH; i++) {

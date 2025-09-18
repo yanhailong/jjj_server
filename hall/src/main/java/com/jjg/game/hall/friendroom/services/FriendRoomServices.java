@@ -300,7 +300,7 @@ public class FriendRoomServices {
             return;
         }
         // 检查房间是否可以加入
-        int checkRes = checkJoinRoom(playerController.playerId(), req.playerId, friendRoom);
+        int checkRes = checkJoinRoom(playerController.playerId(), req.playerId, friendRoom, false);
         if (checkRes != Code.SUCCESS) {
             log.warn("{} code: {} 请求进入好友房：{} 失败, room: {} ",
                 playerController.playerId(), checkRes, req.roomId, JSON.toJSONString(friendRoom));
@@ -325,14 +325,17 @@ public class FriendRoomServices {
     /**
      * 检查加入房间条件
      */
-    public int checkJoinRoom(long playerId, long friendPlayerId, FriendRoom friendRoom) {
+    public int checkJoinRoom(long playerId, long friendPlayerId, FriendRoom friendRoom, boolean isReconnect) {
         if (friendPlayerId <= 0) {
             return Code.PARAM_ERROR;
         }
         // 检查房间状态
         int roomStatus = friendRoom.getStatus();
-        if (roomStatus != 1 && roomStatus != 2) {
-            return Code.ROOM_CANT_JOIN;
+        // 如果是断线重连，房间处于任何状态都可以进入
+        if (!isReconnect) {
+            if (roomStatus != 1 && roomStatus != 2) {
+                return Code.ROOM_CANT_JOIN;
+            }
         }
         // 检查房间过期时间
         long roomResetTime = FriendRoomMessageBuilder.getRoomResetTime(friendRoom);
@@ -769,7 +772,7 @@ public class FriendRoomServices {
             case 2: {
                 if (playerBlackList.isEmpty()) {
                     // 非法操作
-                    res.code = Code.PARAM_ERROR;
+                    res.code = Code.SUCCESS;
                     playerController.send(res);
                     return;
                 }
@@ -781,7 +784,7 @@ public class FriendRoomServices {
             case 3: {
                 if (playerBlackList.isEmpty()) {
                     // 非法操作
-                    res.code = Code.PARAM_ERROR;
+                    res.code = Code.SUCCESS;
                     playerController.send(res);
                     return;
                 }

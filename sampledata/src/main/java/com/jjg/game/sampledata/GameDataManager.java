@@ -1,38 +1,24 @@
 package com.jjg.game.sampledata;
 
+import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.container.*;
+import com.jjg.game.sampledata.container.BaseCfgContainer.ContainerExceptionBlocker;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.processing.Generated;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-// =================== 模板开始 ===================
-import com.jjg.game.sampledata.bean.*;
-import com.jjg.game.sampledata.container.*;
-// =================== 模板结束 ===================
-import com.jjg.game.sampledata.container.BaseCfgContainer.ContainerExceptionBlocker;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import javax.annotation.processing.Generated;
 
 /**
  * 游戏数据管理器
@@ -1340,6 +1326,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\workspace\\gamedoc\\游戏配置表");
+    loadAllData("E:\\java\\gamedoc\\游戏配置表");
   }
 }

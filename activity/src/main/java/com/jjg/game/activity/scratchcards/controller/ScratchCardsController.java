@@ -35,16 +35,38 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * 刮刮乐活动控制器
+ * 负责玩家参与刮刮乐活动、购买礼包、获取奖励、获取活动信息等逻辑
+ * <p>
+ * 核心职责：
+ * 1. 玩家参与活动并消耗道具
+ * 2. 根据权重随机分配奖励
+ * 3. 玩家购买礼包奖励发放
+ * 4. 构建前端所需的活动数据
+ * 5. 日志记录
+ * </p>
+ *
  * @author lm
- * @date 2025/9/3 17:43
+ * @date 2025/9/3
  */
 @Component
 public class ScratchCardsController extends BaseActivityController {
     private final Logger log = LoggerFactory.getLogger(ScratchCardsController.class);
 
+    /**
+     * 玩家参与刮刮乐活动
+     *
+     * @param player       玩家对象
+     * @param activityData 活动数据
+     * @param detailId     活动明细ID
+     * @param times        参与次数
+     * @return 参与活动结果响应
+     */
     @Override
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
         ResScratchCardsJoinActivity res = new ResScratchCardsJoinActivity(Code.SUCCESS);
+
+        // 校验参与次数
         if (times <= 0) {
             res.code = Code.PARAM_ERROR;
             return res;
@@ -52,39 +74,56 @@ public class ScratchCardsController extends BaseActivityController {
         res.activityId = activityData.getId();
         res.detailId = detailId;
         long playerId = player.getId();
+
+        // 获取活动明细配置
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
+
+        // 构建权重随机器，只选择 type = ActivityConstant.ScratchCards.REWARDS_TYPE 的刮刮乐奖项
         WeightRandom<ScratchCardsCfg> random = new WeightRandom<>();
         for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
-            if (cfgBean instanceof ScratchCardsCfg cfg && cfg.getType() == 1) {
+            if (cfgBean instanceof ScratchCardsCfg cfg && cfg.getType() == ActivityConstant.ScratchCards.REWARDS_TYPE) {
                 random.add(cfg, cfg.getWeight());
             }
         }
-        //判断消耗
+
+        // 获取消耗道具，并计算总消耗
         Item costItem = getCostItem();
         costItem.setItemCount(costItem.getItemCount() * times);
+
+        // 扣除玩家道具
         CommonResult<ItemOperationResult> removedItem = playerPackService.removeItem(playerId, costItem, "ScratchCardsJoin");
         if (!removedItem.success()) {
             res.code = removedItem.code;
             return res;
         }
-        ScratchCardsCfg max7 = null;
-        //奖励列表
-        Map<Integer, Long> rewards = new HashMap<>();
-        List<ScratchCardsResult> scratchCardsResults = new ArrayList<>();
-        //循环获奖
+
+        // 初始化奖励记录
+        ScratchCardsCfg max7 = null; // 最大 iconNum 的奖励
+        Map<Integer, Long> rewards = new HashMap<>(); // 奖励总表
+        List<ScratchCardsResult> scratchCardsResults = new ArrayList<>(); // 每次抽奖结果
+
+        // 循环执行抽奖
         for (int i = 0; i < times; i++) {
             ScratchCardsCfg rewardCfg = random.next();
+
+            // 累加奖励道具
             if (CollectionUtil.isNotEmpty(rewardCfg.getGetitem())) {
                 for (Map.Entry<Integer, Long> entry : rewardCfg.getGetitem().entrySet()) {
                     rewards.merge(entry.getKey(), entry.getValue(), Long::sum);
                 }
             }
+
+            // 构建每次刮刮乐结果
             ScratchCardsResult scratchCardsResult = new ScratchCardsResult(rewardCfg.getIconNum(), rewardCfg.getGetitem(), rewardCfg.getId());
             scratchCardsResults.add(scratchCardsResult);
+
+            // 记录最大 iconNum 奖励
             if (max7 == null || max7.getIconNum() < rewardCfg.getIconNum()) {
                 max7 = rewardCfg;
             }
         }
+
+        // 发放奖励道具
         CommonResult<ItemOperationResult> commonResult = null;
         if (CollectionUtil.isNotEmpty(rewards)) {
             commonResult = playerPackService.addItems(playerId, rewards, "ScratchCardsJoin");
@@ -94,12 +133,18 @@ public class ScratchCardsController extends BaseActivityController {
             res.numOf7 = max7.getIconNum();
             res.infoList = ItemUtils.buildItemInfo(rewards);
         }
-        //添加日志
-        activityLogger.sendScratchCardsJoin(player, activityData, costItem, times, removedItem.data
-                , commonResult == null ? null : commonResult.data, rewards, scratchCardsResults);
+
+        // 记录日志
+        activityLogger.sendScratchCardsJoin(player, activityData, costItem, times, removedItem.data, commonResult == null ? null : commonResult.data, rewards, scratchCardsResults);
+
         return res;
     }
 
+    /**
+     * 获取刮刮乐活动消耗的道具
+     *
+     * @return 消耗道具对象
+     */
     public Item getCostItem() {
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.ScratchCards.SCRATCH_CARDS_COST_ITEM);
         String[] itemInfo = StringUtils.split(globalConfigCfg.getValue(), "_");
@@ -109,6 +154,9 @@ public class ScratchCardsController extends BaseActivityController {
         return null;
     }
 
+    /**
+     * 刮刮乐活动奖励领取接口（暂未实现）
+     */
     @Override
     public AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId) {
         return null;
@@ -116,39 +164,47 @@ public class ScratchCardsController extends BaseActivityController {
 
     @Override
     public void onActivityEnd(ActivityData activityData) {
-
+        // 活动结束逻辑，可扩展
     }
 
     @Override
     public void onActivityStart(ActivityData activityData) {
-
+        // 活动开始逻辑，可扩展
     }
 
     @Override
     public int updateActivity(String jsonData) {
+        // 可用于更新活动配置
         return 0;
     }
 
+    /**
+     * 获取玩家刮刮乐活动明细
+     */
     @Override
     public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
         long activityId = activityData.getId();
         ResScratchCardsDetailInfo detailInfo = new ResScratchCardsDetailInfo(Code.SUCCESS);
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
+
         detailInfo.detailInfo = new ArrayList<>();
         ScratchCardsDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), null);
         detailInfo.detailInfo.add(baseActivityDetailInfo);
         return detailInfo;
     }
 
+    /**
+     * 构建玩家刮刮乐活动明细信息
+     */
     @Override
     public ScratchCardsDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (baseCfgBean instanceof ScratchCardsCfg cfg) {
             ScratchCardsDetailInfo info = new ScratchCardsDetailInfo();
             info.activityId = activityId;
-            info.detailId = baseCfgBean.getId();
+            info.detailId = cfg.getId();
             info.type = cfg.getType();
             info.buyPrice = cfg.getCost();
-            //奖励信息
+            // 奖励信息
             info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetitem());
             info.numOf7 = cfg.getIconNum();
             return info;
@@ -156,6 +212,9 @@ public class ScratchCardsController extends BaseActivityController {
         return null;
     }
 
+    /**
+     * 玩家购买刮刮乐礼包
+     */
     @Override
     public void buyActivityGift(Player player, ActivityData activityData, int giftId) {
         ResActivityBuyGift res = new ResActivityBuyGift(Code.SUCCESS);
@@ -163,7 +222,7 @@ public class ScratchCardsController extends BaseActivityController {
         long playerId = player.getId();
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
         BaseCfgBean baseCfgBean = baseCfgBeanMap.get(giftId);
-        if (baseCfgBean instanceof ScratchCardsCfg cfg && cfg.getType() == 2) {
+        if (baseCfgBean instanceof ScratchCardsCfg cfg && cfg.getType() == ActivityConstant.ScratchCards.GIFT_TYPE) {
             CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerId, cfg.getGetitem(), "ScratchCardsGift");
             if (!addItems.success()) {
                 log.error("刮刮乐购买礼包自动领奖失败 playerId:{} activityData:{}", playerId, activityData);
@@ -172,12 +231,15 @@ public class ScratchCardsController extends BaseActivityController {
                 return;
             }
             res.itemInfos = ItemUtils.buildItemInfo(cfg.getGetitem());
-            //发送日志
+            // 日志记录
             activityLogger.sendActivityGift(player, activityData, addItems.data, cfg.getGetitem(), giftId);
             activityManager.sendToPlayer(playerId, res);
         }
     }
 
+    /**
+     * 获取玩家刮刮乐活动类型信息（前端展示）
+     */
     @Override
     public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
         ResScratchCardsTypeInfo cardTypeInfo = new ResScratchCardsTypeInfo(Code.SUCCESS);
@@ -186,35 +248,36 @@ public class ScratchCardsController extends BaseActivityController {
         }
         cardTypeInfo.activityData = new ArrayList<>();
         for (List<BaseActivityDetailInfo> baseActivityDetailInfos : allDetailInfo.values()) {
-            ScratchCardsActivity ScratchCardsType = new ScratchCardsActivity();
-            ScratchCardsType.detailInfos = new ArrayList<>();
-            cardTypeInfo.activityData.add(ScratchCardsType);
+            ScratchCardsActivity scratchCardsType = new ScratchCardsActivity();
+            scratchCardsType.detailInfos = new ArrayList<>();
+            cardTypeInfo.activityData.add(scratchCardsType);
             for (BaseActivityDetailInfo baseActivityDetailInfo : baseActivityDetailInfos) {
                 if (baseActivityDetailInfo instanceof ScratchCardsDetailInfo info) {
-                    ScratchCardsType.detailInfos.add(info);
+                    scratchCardsType.detailInfos.add(info);
                 }
             }
-            //获取剩余次数
+            // 获取剩余次数
             Item costItem = getCostItem();
             PlayerPack playerPack = playerPackService.getFromAllDB(playerId);
             if (playerPack != null) {
-                ScratchCardsType.remainTimes = playerPack.getItemCount(costItem.getId());
+                scratchCardsType.remainTimes = playerPack.getItemCount(costItem.getId());
             }
         }
         return cardTypeInfo;
     }
 
+    /**
+     * 构建前端活动信息
+     */
     @Override
     public ActivityInfo buildActivityInfo(long playerId, ActivityData activityData) {
         return ActivityBuilder.buildActivityInfo(activityData, ActivityConstant.ClaimStatus.CAN_CLAIM);
     }
 
-
     @Override
     public List<BaseCfgBean> getDetailCfgBean() {
         return new ArrayList<>(GameDataManager.getScratchCardsCfgList());
     }
-
 
     @Override
     public Class<ScratchCardsCfg> getDetailDataClass() {

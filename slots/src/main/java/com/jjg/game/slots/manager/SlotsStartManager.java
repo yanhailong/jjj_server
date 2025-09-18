@@ -1,5 +1,6 @@
 package com.jjg.game.slots.manager;
 
+import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
@@ -15,6 +16,7 @@ import java.util.Collections;
 
 /**
  * slots类游戏启动总线类
+ *
  * @author 11
  * @date 2025/6/10 16:37
  */
@@ -28,6 +30,8 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
     private CoreMarqueeManager marqueeManager;
     @Autowired
     private SlotsFactoryManager slotsFactoryManager;
+    @Autowired
+    private ActivityManager activityManager;
     //上下文
     private ApplicationContext context;
 
@@ -43,6 +47,8 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
         this.slotsFactoryManager.init(this.context);
         //跑马灯
         this.marqueeManager.init();
+        //加载活动数据
+        activityManager.initData();
         running = true;
     }
 

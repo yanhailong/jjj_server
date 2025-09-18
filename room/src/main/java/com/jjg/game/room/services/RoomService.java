@@ -7,6 +7,7 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
@@ -114,7 +115,7 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         }
         for (WarehouseCfg warehouseCfg : warehouseCfgs) {
             // 组队类型的房间直接跳过
-            if (warehouseCfg.getRoomType() >= 10) {
+            if (warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
                 continue;
             }
             List<Integer> deletionSolution = warehouseCfg.getRoomDeletion_Solution();

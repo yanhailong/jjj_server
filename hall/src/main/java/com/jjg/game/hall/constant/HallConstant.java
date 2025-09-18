@@ -33,7 +33,6 @@ public interface HallConstant {
         int CODE_MAX = 9999;
     }
 
-
     /**
      * 传入,返回参数类型
      */
@@ -172,5 +171,10 @@ public interface HallConstant {
         //请求vip请求领取礼包
         int REQ_VIP_CLAIM_GIFT_REWARD = BASE_MSG_PREFIX | 0X43;
         int RES_VIP_CLAIM_GIFT_REWARD = BASE_MSG_PREFIX | 0X44;
+
+
+        //请求商城
+        int REQ_SHOP = BASE_MSG_PREFIX | 0X48;
+        int RES_SHOP = BASE_MSG_PREFIX | 0X49;
     }
 }

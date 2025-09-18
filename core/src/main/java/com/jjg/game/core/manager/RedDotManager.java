@@ -40,8 +40,8 @@ public class RedDotManager {
 
     /**
      * 注册红点服务
-     * 
-     * @param module 红点模块
+     *
+     * @param module  红点模块
      * @param service 红点服务实例
      */
     public void registerService(RedDotDetails.RedDotModule module, IRedDotService service) {
@@ -67,7 +67,7 @@ public class RedDotManager {
         for (Map.Entry<RedDotDetails.RedDotModule, IRedDotService> entry : redDotServiceCache.entrySet()) {
             try {
                 RedDotDetails.RedDotModule module = entry.getKey();
-                List<RedDotDetails> detailsList = load(module, null, playerId);
+                List<RedDotDetails> detailsList = load(module, 0, playerId);
                 if (detailsList != null && !detailsList.isEmpty()) {
                     allRedDots.addAll(detailsList);
                 }
@@ -86,7 +86,7 @@ public class RedDotManager {
      * @param playerId 玩家ID
      * @return 指定模块的红点详情列表，如果模块不存在则返回空列表
      */
-    public List<RedDotDetails> load(RedDotDetails.RedDotModule module, RedDotDetails.RedDotSubmodule submodule, long playerId) {
+    public List<RedDotDetails> load(RedDotDetails.RedDotModule module, int submodule, long playerId) {
         if (module == null) {
             log.warn("红点模块为空，玩家ID: {}", playerId);
             return Collections.emptyList();

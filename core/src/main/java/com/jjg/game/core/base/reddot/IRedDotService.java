@@ -8,7 +8,7 @@ import java.util.List;
  * 红点服务
  * <p style = "color:red"> 需要定义红点模块和子模块
  * <p>红点模块{@link RedDotDetails.RedDotModule}
- * <p>子模块{@link RedDotDetails.RedDotSubmodule}
+ * <p>子模块
  */
 public interface IRedDotService {
 
@@ -21,11 +21,11 @@ public interface IRedDotService {
      * 初始化红点信息
      *
      * @param playerId  玩家id
-     * @param submodule 子模块 {@link RedDotDetails.RedDotSubmodule}
+     * @param submodule 子模块
      *                  </p>
      *                  (如果指定了子模块则加载子模块数据,没有则加载所有子模块)
      */
-    List<RedDotDetails> initialize(long playerId, RedDotDetails.RedDotSubmodule submodule);
+    List<RedDotDetails> initialize(long playerId, int submodule);
 
 
 }

@@ -26,7 +26,7 @@ public class RedDotDetails {
      * 子模块
      */
     @ProtoDesc("子模块 1-获得新道具 2-签到")
-    private RedDotSubmodule redDotSubmodule;
+    private int redDotSubmodule;
 
     /**
      * 数量
@@ -81,23 +81,6 @@ public class RedDotDetails {
         ACTIVITY,
     }
 
-    /**
-     * 红点子模块
-     */
-    @ProtobufMessage
-    @ProtoDesc("红点子模块")
-    public enum RedDotSubmodule {
-        /**
-         * 新道具
-         */
-        @ProtoDesc("新道具")
-        NEW_ITEM,
-        /**
-         * 签到
-         */
-        @ProtoDesc("签到")
-        SIGN_IN,
-    }
 
     public String getExtra() {
         return extra;
@@ -115,11 +98,11 @@ public class RedDotDetails {
         this.count = count;
     }
 
-    public RedDotSubmodule getRedDotSubmodule() {
+    public int getRedDotSubmodule() {
         return redDotSubmodule;
     }
 
-    public void setRedDotSubmodule(RedDotSubmodule redDotSubmodule) {
+    public void setRedDotSubmodule(int redDotSubmodule) {
         this.redDotSubmodule = redDotSubmodule;
     }
 

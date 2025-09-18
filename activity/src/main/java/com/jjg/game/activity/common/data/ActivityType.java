@@ -27,7 +27,7 @@ public enum ActivityType {
             ActivityTargetType.NONE.getTargetKey(), true),
     //推广分享
     SHARE_PROMOTE(6, SharePromoteController.class, true, false,
-                  ActivityTargetType.RECHARGE.getTargetKey(), false);
+            ActivityTargetType.RECHARGE.getTargetKey(), false);
     //活动类型
     private final int type;
     //活动控制器的class

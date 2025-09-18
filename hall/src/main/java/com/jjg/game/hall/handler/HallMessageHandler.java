@@ -29,6 +29,7 @@ import com.jjg.game.hall.pb.req.*;
 import com.jjg.game.hall.pb.res.*;
 import com.jjg.game.hall.pb.struct.MailInfo;
 import com.jjg.game.hall.pb.struct.PackItemInfo;
+import com.jjg.game.hall.pb.struct.ShopProductInfo;
 import com.jjg.game.hall.room.HallRoomService;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
@@ -916,6 +917,7 @@ public class HallMessageHandler implements GmListener {
         playerController.send(vipManager.reqVipInfo(playerController, req));
     }
 
+
     /**
      * VIP 请求领取VIP礼包
      *
@@ -985,6 +987,33 @@ public class HallMessageHandler implements GmListener {
         List<Integer> openedFuncIdList = gameFunctionService.getOpenedFuncIdList(player);
         ResFunctionOpenList res = new ResFunctionOpenList(Code.SUCCESS);
         res.openedFunctionIdList = openedFuncIdList;
+        playerController.send(res);
+    }
+
+    /**
+     * 获取商城
+     */
+    @Command(HallConstant.MsgBean.REQ_SHOP)
+    public void reqShop(PlayerController playerController) {
+        ResShop res = new ResShop(Code.SUCCESS);
+        List<ShopProduct> shopProductList = hallService.getShop(playerController.getPlayer());
+        if(shopProductList != null && !shopProductList.isEmpty()) {
+            res.shopProductInfoList = new ArrayList<>(shopProductList.size());
+            shopProductList.forEach((shopProduct) -> {
+                ShopProductInfo info = new ShopProductInfo();
+                info.id = shopProduct.getId();
+                info.type = shopProduct.getType();
+                info.endTime = shopProduct.getEndTime();
+                info.currencyItemId = shopProduct.getCurrencyItemId();
+                info.originalCount = shopProduct.getOriginalCount();
+                info.currentCount = shopProduct.getCurrentCount();
+                info.money = shopProduct.getMoney();
+                info.label1 = shopProduct.getLabel1();
+                info.label2 = shopProduct.getLabel2();
+                info.pic = shopProduct.getPic();
+                res.shopProductInfoList.add(info);
+            });
+        }
         playerController.send(res);
     }
 }
