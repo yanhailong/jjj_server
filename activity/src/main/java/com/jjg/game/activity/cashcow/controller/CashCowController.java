@@ -44,10 +44,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -295,8 +292,9 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 res.detailId = detailId;
                 res.num = get;
                 // 获取当前活动总池（所有 detail 汇总或 DAO 实现的含义）
-                res.pool = cashCowDao.getActivityPool(activityId);
-                res.totalPool = cashCowDao.getActivityPool(activityId);
+                Pair<Long, Long> activityPool = cashCowDao.getActivityPool(activityId, detailId);
+                res.pool = activityPool.getSecond();
+                res.totalPool = activityPool.getFirst();
             } catch (Exception e) {
                 // 捕获外层异常，避免接口抛出未捕获异常
                 log.error("玩家参加摇钱树  出现异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
@@ -414,7 +412,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             GlobalConfigCfg configCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_ADD_NEXT_ROUND_PROPORTION);
             for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
                 if (cfgBean instanceof CashcowCfg cfg) {
-                    long pool = cashCowDao.getActivityPool(activityId, cfg.getId());
+                    long pool = cashCowDao.getSpecifiedActivityPool(activityId, cfg.getId());
                     if (pool == 0 && cfg.getType() != ActivityConstant.CashCow.CUMULATIVE_REWARDS_REWARD_TYPE) {
                         // 如果上一轮奖池为 0，则初始化为配置的初始奖池
                         cashCowDao.addActivityPool(activityId, cfg.getId(), cfg.getInitialprizepool());
@@ -531,7 +529,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             } else {
                 // 抽奖类型：返回消耗道具信息和当前奖池
                 info.costItems = ItemUtils.buildItemInfo(cfg.getNeedItem());
-                info.pool = cashCowDao.getActivityPool(activityId, baseCfgBean.getId());
+                info.pool = cashCowDao.getSpecifiedActivityPool(activityId, baseCfgBean.getId());
             }
             return info;
         }
@@ -789,7 +787,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             }
             for (ActivityData activityData : activityDataMap.values()) {
                 // 仅处理可以运行的活动
-                if (!activityData.canRun()) {
+                if (activityData.canRun()) {
                     Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
                     for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
                         if (cfgBean instanceof CashcowCfg cfg) {
@@ -860,7 +858,39 @@ public class CashCowController extends BaseActivityController implements TimerLi
 
     @Override
     public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
+        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
+        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        // 获取玩家该活动的历史数据
+        try {
+            Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+            if (CollectionUtil.isNotEmpty(playerActivityData)) {
+                boolean needRest = false;
+                Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
+                Iterator<Map.Entry<Integer, CashCowPlayerActivityData>> iterator = playerActivityData.entrySet().iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry<Integer, CashCowPlayerActivityData> entry = iterator.next();
+                    CashCowPlayerActivityData data = entry.getValue();
+                    // 如果期数数不一致，则需要重置
+                    if (data.getRound() != activityData.getRound()) {
+                        needRest = true;
+                        break;
+                    }
+                    BaseCfgBean baseCfgBean = baseCfgBeanMap.get(entry.getKey());
+                    if (baseCfgBean instanceof CashcowCfg cfg && cfg.getType() == ActivityConstant.CashCow.CUMULATIVE_REWARDS_REWARD_TYPE) {
+                        iterator.remove();
+                    }
+                }
+                if (needRest) {
+                    playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
+                } else {
+                    playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
+                }
+            }
+        } catch (Exception e) {
+            log.error("摇钱树重置数据失败 playerId:{} activityId:{}", playerId, activityData.getId());
+        } finally {
+            redisLock.unlock(lockKey);
+        }
         cashCowDao.delPlayerActivityProgress(playerId, activityData.getId());
-        playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
     }
 }
