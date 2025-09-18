@@ -32,14 +32,17 @@ import com.jjg.game.core.base.drop.ItemDropDataHolder;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
+import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
+import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.ActivityItemDropInfo;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.pb.NotifyItemDropInfo;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
@@ -62,7 +65,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess, GmListener, GameEventListener,
-        ConfigExcelChangeListener {
+        ConfigExcelChangeListener, IRedDotService {
     private static final Logger log = LoggerFactory.getLogger(ActivityManager.class);
     /**
      * 定时器中心，用于添加活动开始/结束的定时任务
@@ -107,6 +110,10 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     private Map<Long, Map<Integer, BaseCfgBean>> activityDetailInfo = new ConcurrentHashMap<>();
     // 事件类型 => 活动ID列表
     private final Map<EGameEventType, List<Integer>> eventTypeListMap = new HashMap<>();
+    /**
+     * 红点管理
+     */
+    private final RedDotManager redDotManager;
     @Autowired
     private GameEventManager gameEventManager;
     @Autowired
@@ -126,7 +133,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     public ActivityManager(TimerCenter timerCenter, ActivityDao activityDao,
                            ActivityDetailDao activityDetailDao, ClusterSystem clusterSystem,
                            CoreMarqueeManager marqueeManager,
-                           MarsCurator marsCurator, NodeConfig nodeConfig) {
+                           MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager) {
         this.timerCenter = timerCenter;
         this.activityDao = activityDao;
         this.activityDetailDao = activityDetailDao;
@@ -134,6 +141,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         this.marqueeManager = marqueeManager;
         this.marsCurator = marsCurator;
         this.nodeConfig = nodeConfig;
+        this.redDotManager = redDotManager;
     }
 
 
@@ -168,7 +176,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             timerCenter.add(new TimerEvent<>(this, pair.getFirst(), pair.getSecond()));
         }
         //主节点保存到redis
-        if (marsCurator.isMaster()) {
+        if (isExecutionNode()) {
             activityDao.saveActivities(tempActivityData);
             for (Map.Entry<Long, Map<Integer, BaseCfgBean>> entry : tempActivityDetailInfo.entrySet()) {
                 activityDetailDao.saveActivityDetails(entry.getKey(), entry.getValue());
@@ -264,7 +272,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     /**
      * 定时更新活动数据到redis
      */
-    @Scheduled(cron = "0 0 6 * * ? ")
+    @Scheduled(cron = "0 0 0/6 * * ?")
     private void saveActivity() {
         if (isExecutionNode()) {
             Map<Long, ActivityData> dataHashMap = new HashMap<>(activityData);
@@ -446,15 +454,17 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     log.error("增加玩家活动进度失败 playerId:{} activityId:{} value:{}", playerId, data.getId(), value, e);
                 }
             }
-            //广播给玩家可以领取的活动
+            //通知红点
             if (CollectionUtil.isNotEmpty(dataArrayList)) {
-                NotifyActivityChange activityChange = new NotifyActivityChange();
-                activityChange.activityInfos = new ArrayList<>();
+                List<RedDotDetails> redInfo = new ArrayList<>();
                 for (ActivityData data : dataArrayList) {
-                    ActivityInfo activityInfo = data.getType().getController().buildActivityInfo(playerId, data);
-                    activityChange.activityInfos.add(activityInfo);
+                    RedDotDetails redDotDetails = new RedDotDetails();
+                    redDotDetails.setRedDotModule(getModule());
+                    redDotDetails.setRedDotType(RedDotDetails.RedDotType.COMMON);
+                    redDotDetails.setRedDotSubmodule(data.getType().getType());
+                    redInfo.add(redDotDetails);
                 }
-                clusterSystem.sendToPlayer(activityChange, playerId);
+                redDotManager.updateRedDot(redInfo, playerId);
             }
         }
     }
@@ -602,7 +612,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             // 道具掉落检查
             checkDropItem(playerEffectiveFlowingEvent);
         }
-        if (gameEvent instanceof PlayerEvent playerEvent && playerEvent.getGameEventType()==EGameEventType.PLAYER_LEVEL) {
+        if (gameEvent instanceof PlayerEvent playerEvent && playerEvent.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
             Player player = playerEvent.getPlayer();
             //添加其他活动进度
             addPlayerActivityProgress(player, ActivityTargetType.LEVEL.getTargetKey(), player.getLevel(), null);
@@ -649,7 +659,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 List<Item> dropItems = triggerDropItem(player, activityData, triggerTimes, effectiveFlowingEvent);
                 if (!dropItems.isEmpty()) {
                     ActivityItemDropInfo activityItemDropInfo =
-                        buildActivityDropInfo(activityData, effectiveFlowingEvent.getGameCfgId(), dropItems);
+                            buildActivityDropInfo(activityData, effectiveFlowingEvent.getGameCfgId(), dropItems);
                     itemDropInfos.add(activityItemDropInfo);
                 }
             }
@@ -739,5 +749,56 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this))
                 .addInitSampleFileObserveWithCallBack(
                         ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this));
+    }
+
+    /**
+     * 获取所属模块{@link RedDotDetails.RedDotModule}
+     */
+    @Override
+    public RedDotDetails.RedDotModule getModule() {
+        return RedDotDetails.RedDotModule.ACTIVITY;
+    }
+
+    /**
+     * 初始化红点信息
+     *
+     * @param playerId  玩家id
+     * @param submodule 子模块
+     *                  </p>
+     *                  (如果指定了子模块则加载子模块数据,没有则加载所有子模块)
+     */
+    @Override
+    public List<RedDotDetails> initialize(long playerId, int submodule) {
+        if (CollectionUtil.isEmpty(activityData)) {
+            return List.of();
+        }
+        Map<Long, ActivityData> activityDataMap = null;
+        //全活动红点
+        if (submodule == 0) {
+            activityDataMap = activityData;
+        } else {
+            //指定活动类型红点
+            ActivityType activityType = ActivityType.fromType(submodule);
+            if (activityType != null) {
+                activityDataMap = activityTypeData.get(activityType);
+            }
+        }
+        //没有数据直接返回
+        if (CollectionUtil.isEmpty(activityDataMap)) {
+            return List.of();
+        }
+        List<RedDotDetails> redDotDetails = new ArrayList<>();
+        for (ActivityData data : activityDataMap.values()) {
+            //判断该活动是否有红点
+            boolean redDot = data.getType().getController().hasRedDot(playerId, data);
+            if (redDot) {
+                RedDotDetails redDotDetailInfo = new RedDotDetails();
+                redDotDetailInfo.setRedDotModule(getModule());
+                redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
+                redDotDetailInfo.setRedDotSubmodule(data.getType().getType());
+                redDotDetails.add(redDotDetailInfo);
+            }
+        }
+        return redDotDetails;
     }
 }

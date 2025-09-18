@@ -19,7 +19,7 @@ public class ReqRedDot extends AbstractMessage {
     private RedDotDetails.RedDotModule module;
 
     @ProtoDesc("加载模块中对应子模块的红点数据,如果没有模块参数子模块不会被读取")
-    private RedDotDetails.RedDotSubmodule submodule;
+    private int submodule;
 
     public RedDotDetails.RedDotModule getModule() {
         return module;
@@ -29,11 +29,11 @@ public class ReqRedDot extends AbstractMessage {
         this.module = module;
     }
 
-    public RedDotDetails.RedDotSubmodule getSubmodule() {
+    public int getSubmodule() {
         return submodule;
     }
 
-    public void setSubmodule(RedDotDetails.RedDotSubmodule submodule) {
+    public void setSubmodule(int submodule) {
         this.submodule = submodule;
     }
 }

@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 /**
  * 活动基础控制器抽象类
- *
+ * <p>
  * 封装了游戏活动的通用逻辑，提供：
  * 1. 玩家参与活动流程
  * 2. 活动奖励发放
@@ -42,31 +42,45 @@ import java.util.stream.Collectors;
  */
 public abstract class BaseActivityController {
 
-    /** 玩家活动数据访问对象 */
+    /**
+     * 玩家活动数据访问对象
+     */
     @Autowired
     protected PlayerActivityDao playerActivityDao;
 
-    /** 活动管理器，负责全局活动配置和状态管理 */
+    /**
+     * 活动管理器，负责全局活动配置和状态管理
+     */
     @Autowired
     protected ActivityManager activityManager;
 
-    /** 玩家背包服务，用于发放道具、物品 */
+    /**
+     * 玩家背包服务，用于发放道具、物品
+     */
     @Autowired
     protected PlayerPackService playerPackService;
 
-    /** 玩家核心服务，用于获取玩家基本信息 */
+    /**
+     * 玩家核心服务，用于获取玩家基本信息
+     */
     @Autowired
     protected CorePlayerService corePlayerService;
 
-    /** 分布式 Redis 锁，防止并发导致数据错误 */
+    /**
+     * 分布式 Redis 锁，防止并发导致数据错误
+     */
     @Autowired
     protected RedisLock redisLock;
 
-    /** 条件检查服务，用于判断玩家是否符合参与条件 */
+    /**
+     * 条件检查服务，用于判断玩家是否符合参与条件
+     */
     @Autowired
     protected ConditionCheckService conditionCheckService;
 
-    /** 活动日志记录器，用于追踪活动行为 */
+    /**
+     * 活动日志记录器，用于追踪活动行为
+     */
     @Autowired
     protected ActivityLogger activityLogger;
 
@@ -74,9 +88,9 @@ public abstract class BaseActivityController {
     /**
      * 增加玩家的活动进度
      *
-     * @param playerId 玩家ID
-     * @param activityData 活动数据
-     * @param progress 要增加的进度值
+     * @param playerId             玩家ID
+     * @param activityData         活动数据
+     * @param progress             要增加的进度值
      * @param additionalParameters 额外参数，留作扩展
      * @return true 需要给前端发送数据，false 不需要给前端发送数据
      */
@@ -87,8 +101,8 @@ public abstract class BaseActivityController {
     /**
      * 增加活动整体进度（全局共享进度）
      *
-     * @param activityData 活动数据
-     * @param progress 增加的进度值
+     * @param activityData         活动数据
+     * @param progress             增加的进度值
      * @param additionalParameters 扩展参数
      */
     public void addActivityProgress(ActivityData activityData, long progress, Object additionalParameters) {
@@ -106,7 +120,7 @@ public abstract class BaseActivityController {
      * 检查玩家是否能参与活动
      *
      * @param activityData 活动数据
-     * @param player 玩家对象
+     * @param player       玩家对象
      * @return true 可以参与；false 不能参与
      */
     public boolean checkPlayerCanJoinActivity(Player player, ActivityData activityData) {
@@ -118,10 +132,10 @@ public abstract class BaseActivityController {
     /**
      * 玩家请求参加活动
      *
-     * @param player 玩家对象
+     * @param player       玩家对象
      * @param activityData 活动数据
-     * @param detailId 活动子项ID
-     * @param times 请求参加的次数
+     * @param detailId     活动子项ID
+     * @param times        请求参加的次数
      * @return 响应对象
      */
     public abstract AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times);
@@ -129,9 +143,9 @@ public abstract class BaseActivityController {
     /**
      * 玩家领取活动奖励
      *
-     * @param player 玩家对象
+     * @param player       玩家对象
      * @param activityData 活动数据
-     * @param detailId 奖励详情ID
+     * @param detailId     奖励详情ID
      * @return 响应对象
      */
     public abstract AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId);
@@ -139,9 +153,9 @@ public abstract class BaseActivityController {
     /**
      * 玩家购买活动礼包
      *
-     * @param player 玩家对象
+     * @param player       玩家对象
      * @param activityData 活动数据
-     * @param giftId 礼包ID
+     * @param giftId       礼包ID
      */
     public void buyActivityGift(Player player, ActivityData activityData, int giftId) {
     }
@@ -171,9 +185,9 @@ public abstract class BaseActivityController {
     /**
      * 构建玩家的活动详情数据
      *
-     * @param activityId 活动ID
+     * @param activityId  活动ID
      * @param baseCfgBean 配置数据
-     * @param data 玩家活动数据
+     * @param data        玩家活动数据
      * @return 活动详情对象
      */
     public abstract BaseActivityDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data);
@@ -181,9 +195,9 @@ public abstract class BaseActivityController {
     /**
      * 获取指定玩家的活动详情
      *
-     * @param playerId 玩家ID
+     * @param playerId     玩家ID
      * @param activityData 活动数据
-     * @param detailId 活动详情ID
+     * @param detailId     活动详情ID
      * @return 响应对象
      */
     public abstract AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId);
@@ -191,7 +205,7 @@ public abstract class BaseActivityController {
     /**
      * 构建指定活动类型的响应
      *
-     * @param playerId 玩家ID
+     * @param playerId      玩家ID
      * @param allDetailInfo 活动详情映射
      * @return 响应对象
      */
@@ -200,7 +214,7 @@ public abstract class BaseActivityController {
     /**
      * 构建玩家活动基本信息
      *
-     * @param playerId 玩家ID
+     * @param playerId     玩家ID
      * @param activityData 活动数据
      * @return 活动信息
      */
@@ -210,7 +224,7 @@ public abstract class BaseActivityController {
     /**
      * 检查玩家的活动数据是否需要重置
      *
-     * @param playerId 玩家ID
+     * @param playerId     玩家ID
      * @param activityData 活动数据
      */
     public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
@@ -238,7 +252,7 @@ public abstract class BaseActivityController {
     /**
      * 获取指定类型的玩家活动信息
      *
-     * @param player 玩家对象
+     * @param player       玩家对象
      * @param activityType 活动类型
      * @return 响应对象
      */
@@ -327,4 +341,21 @@ public abstract class BaseActivityController {
      */
     public abstract Class<? extends BaseCfgBean> getDetailDataClass();
 
+    /**
+     * 返回当前活动是否有红点
+     *
+     * @return true 有红点 false没有红点
+     */
+    public boolean hasRedDot(long playerId, ActivityData activityData) {
+        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+        if (CollectionUtil.isEmpty(playerActivityData)) {
+            return false;
+        }
+        for (PlayerActivityData data : playerActivityData.values()) {
+            if (data.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

@@ -106,7 +106,7 @@ public class MailService implements IRedDotService {
                 playerPackService.addItems(playerId, map, "getMailItems");
             }
             //邮件变化时通知客户端刷新小红点
-            redDotManager.updateRedDot(() -> initialize(playerId, null), playerId);
+            redDotManager.updateRedDot(() -> initialize(playerId, 0), playerId);
         } catch (Exception e) {
             log.error("", e);
             result.code = Code.EXCEPTION;
@@ -197,7 +197,7 @@ public class MailService implements IRedDotService {
         log.info("一键领取结果 playerId = {}, batchUpdateCount = {}, addItemsResultCode = {}", playerId, count,
             addItemsResult.code);
         //邮件变化时通知客户端刷新小红点
-        redDotManager.updateRedDot(() -> initialize(playerId, null), playerId);
+        redDotManager.updateRedDot(() -> initialize(playerId, 0), playerId);
         return result;
     }
 
@@ -219,7 +219,7 @@ public class MailService implements IRedDotService {
         mailDao.save(mail);
         log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}", playerId, mail.getId());
         //邮件变化时通知客户端刷新小红点
-        redDotManager.updateRedDot(() -> initialize(playerId, null), playerId);
+        redDotManager.updateRedDot(() -> initialize(playerId, 0), playerId);
     }
 
 
@@ -239,7 +239,7 @@ public class MailService implements IRedDotService {
         log.debug("玩家：{} 添加配置邮件：{}", playerId, JSON.toJSONString(mail));
         mailDao.save(mail);
         //邮件变化时通知客户端刷新小红点
-        redDotManager.updateRedDot(() -> initialize(playerId, null), playerId);
+        redDotManager.updateRedDot(() -> initialize(playerId, 0), playerId);
     }
 
     /**
@@ -283,7 +283,7 @@ public class MailService implements IRedDotService {
         mailDao.save(mail);
         log.warn("这里应该通知玩家收到邮件 playerId = {},mailId = {}", playerId, mail.getId());
         //邮件变化时通知客户端刷新小红点
-        redDotManager.updateRedDot(() -> initialize(playerId, null), playerId);
+        redDotManager.updateRedDot(() -> initialize(playerId, 0), playerId);
     }
 
     /**
@@ -306,7 +306,7 @@ public class MailService implements IRedDotService {
             mail.setPlayerId(playerId);
             mails.add(mail);
             //邮件变化时通知客户端刷新小红点
-            redDotManager.updateRedDot(() -> initialize(playerId, null), playerId);
+            redDotManager.updateRedDot(() -> initialize(playerId, 0), playerId);
         }
         long saveCount = mailDao.batchSaveMails(mails);
         log.debug("批量保存邮件数量 mails.size = {}", saveCount);
@@ -446,12 +446,12 @@ public class MailService implements IRedDotService {
      * 初始化红点信息
      *
      * @param playerId  玩家id
-     * @param submodule 子模块 {@link RedDotDetails.RedDotSubmodule}
+     * @param submodule 子模块
      *                  </p>
      *                  (如果指定了子模块则加载子模块数据,没有则加载所有子模块)
      */
     @Override
-    public List<RedDotDetails> initialize(long playerId, RedDotDetails.RedDotSubmodule submodule) {
+    public List<RedDotDetails> initialize(long playerId, int submodule) {
         RedDotDetails redDotDetails = new RedDotDetails();
         redDotDetails.setRedDotModule(getModule());
         long itemMailsCount = mailDao.getItemsMailsCount(playerId, GameConstant.Mail.STATUS_NOT_READ);

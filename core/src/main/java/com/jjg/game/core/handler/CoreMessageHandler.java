@@ -341,8 +341,8 @@ public class CoreMessageHandler {
         long playerId = playerController.getPlayer().getId();
         RedDotDetails.RedDotModule module = req.getModule();
         if (module != null) {
-            RedDotDetails.RedDotSubmodule submodule = req.getSubmodule();
-            if (submodule != null) {
+            int submodule = req.getSubmodule();
+            if (submodule == 0) {
                 List<RedDotDetails> redDots = redDotManager.load(module, submodule, playerId);
                 result.addAll(redDots);
             }

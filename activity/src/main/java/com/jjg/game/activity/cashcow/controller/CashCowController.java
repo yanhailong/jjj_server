@@ -627,11 +627,11 @@ public class CashCowController extends BaseActivityController implements TimerLi
         return new ArrayList<>(GameDataManager.getCashcowCfgList());
     }
 
-
     @Override
     public Class<CashcowCfg> getDetailDataClass() {
         return CashcowCfg.class;
     }
+
 
     public AbstractResponse reqCashCowRecord(PlayerController playerController, ReqCashCowRecord req) {
         // 查询玩家或全局中奖记录（分页）
@@ -856,5 +856,11 @@ public class CashCowController extends BaseActivityController implements TimerLi
         res.activityId = req.activityId;
         res.itemInfos = ItemUtils.buildItemInfo(freeRewards.getId(), freeRewards.getItemCount());
         return res;
+    }
+
+    @Override
+    public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
+        cashCowDao.delPlayerActivityProgress(playerId, activityData.getId());
+        super.checkPlayerDataAndReset(playerId, activityData);
     }
 }

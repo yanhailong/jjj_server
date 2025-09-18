@@ -1,11 +1,12 @@
 package com.jjg.game.activity.common.dao;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.redis.RedisLock;
-import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,8 +55,8 @@ public class ActivityDetailDao {
     public ActivityDetailDao(RedisTemplate<String, Integer> redisTemplate, RedisLock redisLock) {
         this.redisTemplate = redisTemplate;
         this.redisLock = redisLock;
-        // 使用统一配置的 ObjectMapper
-        objectMapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
+        objectMapper = new ObjectMapper();
+        objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
     }
 
     /**

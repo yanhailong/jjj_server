@@ -70,6 +70,21 @@ public class PrivilegeCardController extends BaseActivityController {
         return ActivityConstant.ClaimStatus.CAN_CLAIM;
     }
 
+    @Override
+    public boolean hasRedDot(long playerId, ActivityData activityData) {
+        Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+        if (CollectionUtil.isEmpty(playerActivityData)) {
+            return false;
+        }
+        long currentTimeMillis = System.currentTimeMillis();
+        for (PlayerPrivilegeCard data : playerActivityData.values()) {
+            if (getClaimStatus(data, currentTimeMillis) == ActivityConstant.ClaimStatus.CAN_CLAIM) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * 玩家加入特权卡活动
      *
