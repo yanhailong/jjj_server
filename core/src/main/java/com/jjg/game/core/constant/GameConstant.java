@@ -53,7 +53,7 @@ public class GameConstant {
         //玩家交易
         int PLAYER_EXCHANGE = 200;
         //活动公告
-        int AVTIVITY = 300;
+        int ACTIVITY = 300;
         //玩家赢奖
         int PLAYER_WIN = 400;
 

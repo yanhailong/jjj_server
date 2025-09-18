@@ -127,11 +127,15 @@ public class TexasMessageHandler {
                     }
                     if (!controller.addTempGoldOrOutTable(seatInfo, gamePlayer)) {
                         change.code = Code.TEXAS_NOT_ENOUGH;
-                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
+                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
                         return;
                     }
                     NotifyTexasSeatStateChange notifyTexasSeatStateChange = swapSeat(controller, seatInfo, gamePlayer, reqTexasChangeSeatState.param);
-                    controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSeatStateChange));
+                    if (notifyTexasSeatStateChange.code == Code.SUCCESS) {
+                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSeatStateChange));
+                    } else {
+                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifyTexasSeatStateChange));
+                    }
                     // 通知场上玩家加入 准备进入开始阶段
                     boolean canStartGame = gameDataVo.canStartGame();
                     if (canStartGame && controller.getCurrentGamePhase() == EGamePhase.WAIT_READY) {

@@ -47,6 +47,8 @@ public class CoreMarqueeManager implements TimerListener {
     private LinkedList<Marquee> sortedMarquees;
     //排序后的玩家中奖跑马灯列表,  在列表越靠后，越优先
     private LinkedList<Marquee> playerWinSortedMarquees;
+    //排序后的活动跑马灯列表,  在列表越靠后，越优先
+    private LinkedList<Marquee> activitySortedMarquees;
     //映射表
     private Map<Integer, Marquee> marqueeMap;
     //当前正在运行的跑马灯
@@ -77,18 +79,20 @@ public class CoreMarqueeManager implements TimerListener {
         Map<Integer, Marquee> tmpMarqueeMap = new HashMap<>();
         List<Marquee> tmpList = new ArrayList<>();
         List<Marquee> tmpPlayerWinList = new ArrayList<>();
+        List<Marquee> tmpActivityList = new ArrayList<>();
         for (Object o : allMarquee) {
             Marquee marquee = (Marquee) o;
-            if (marquee.getType() == GameConstant.Marquee.PLAYER_WIN) {
-                tmpPlayerWinList.add(marquee);
-            } else {
-                tmpList.add(marquee);
+            switch (marquee.getType()) {
+                case GameConstant.Marquee.PLAYER_WIN -> tmpPlayerWinList.add(marquee);
+                case GameConstant.Marquee.ACTIVITY -> tmpActivityList.add(marquee);
+                default -> tmpList.add(marquee);
             }
             tmpMarqueeMap.put(marquee.getId(), marquee);
         }
 
         this.sortedMarquees = sortMarquee(tmpList);
-        this.playerWinSortedMarquees = sortPlayerWinMarquee(tmpPlayerWinList);
+        this.playerWinSortedMarquees = sortMarqueeByCreateTime(tmpPlayerWinList);
+        this.activitySortedMarquees = sortMarqueeByCreateTime(tmpActivityList);
         this.marqueeMap = tmpMarqueeMap;
 
         log.debug("初始加载跑马灯后打印 map.size = {}", this.marqueeMap.size());
@@ -108,25 +112,39 @@ public class CoreMarqueeManager implements TimerListener {
             return;
         }
 
-        if (marquee.getType() == GameConstant.Marquee.PLAYER_WIN) {
-            List<Marquee> marqueeList = null;
-            if (this.playerWinSortedMarquees != null) {
-                marqueeList = new ArrayList<>(this.playerWinSortedMarquees);
-            } else {
-                marqueeList = new ArrayList<>();
+        switch (marquee.getType()) {
+            case GameConstant.Marquee.PLAYER_WIN -> {
+                List<Marquee> marqueeList;
+                if (this.playerWinSortedMarquees != null) {
+                    marqueeList = new ArrayList<>(this.playerWinSortedMarquees);
+                } else {
+                    marqueeList = new ArrayList<>();
+                }
+                marqueeList.add(marquee);
+                this.playerWinSortedMarquees = sortMarqueeByCreateTime(marqueeList);
             }
-            marqueeList.add(marquee);
-            this.playerWinSortedMarquees = sortPlayerWinMarquee(marqueeList);
-        } else {
-            List<Marquee> marqueeList = null;
-            if (this.sortedMarquees != null) {
-                marqueeList = new ArrayList<>(this.sortedMarquees);
-            } else {
-                marqueeList = new ArrayList<>();
+            case GameConstant.Marquee.ACTIVITY -> {
+                List<Marquee> marqueeList;
+                if (this.activitySortedMarquees != null) {
+                    marqueeList = new ArrayList<>(this.activitySortedMarquees);
+                } else {
+                    marqueeList = new ArrayList<>();
+                }
+                marqueeList.add(marquee);
+                this.playerWinSortedMarquees = sortMarqueeByCreateTime(marqueeList);
             }
-            marqueeList.add(marquee);
-            this.sortedMarquees = sortMarquee(marqueeList);
+            default -> {
+                List<Marquee> marqueeList;
+                if (this.sortedMarquees != null) {
+                    marqueeList = new ArrayList<>(this.sortedMarquees);
+                } else {
+                    marqueeList = new ArrayList<>();
+                }
+                marqueeList.add(marquee);
+                this.sortedMarquees = sortMarquee(marqueeList);
+            }
         }
+
         this.marqueeMap.put(marquee.getId(), marquee);
 
         log.debug("添加跑马灯后打印 map.size = {}", this.marqueeMap.size());
@@ -148,21 +166,31 @@ public class CoreMarqueeManager implements TimerListener {
         if (this.nowRunMarqueeId == id) {
             this.nowRunMarqueeId = 0;
         }
-
-        if (remove.getType() == GameConstant.Marquee.PLAYER_WIN) {
-            if (this.playerWinSortedMarquees == null || this.playerWinSortedMarquees.isEmpty()) {
-                return;
+        switch (remove.getType()) {
+            case GameConstant.Marquee.PLAYER_WIN -> {
+                if (this.playerWinSortedMarquees == null || this.playerWinSortedMarquees.isEmpty()) {
+                    return;
+                }
+                List<Marquee> marqueeList = new ArrayList<>(this.playerWinSortedMarquees);
+                marqueeList.removeIf(marquee -> marquee.getId() == id);
+                this.playerWinSortedMarquees = sortMarqueeByCreateTime(marqueeList);
             }
-            List<Marquee> marqueeList = new ArrayList<>(this.playerWinSortedMarquees);
-            marqueeList.removeIf(marquee -> marquee.getId() == id);
-            this.playerWinSortedMarquees = sortPlayerWinMarquee(marqueeList);
-        } else {
-            if (this.sortedMarquees == null || this.sortedMarquees.isEmpty()) {
-                return;
+            case GameConstant.Marquee.ACTIVITY -> {
+                if (this.activitySortedMarquees == null || this.activitySortedMarquees.isEmpty()) {
+                    return;
+                }
+                List<Marquee> marqueeList = new ArrayList<>(this.activitySortedMarquees);
+                marqueeList.removeIf(marquee -> marquee.getId() == id);
+                this.activitySortedMarquees = sortMarqueeByCreateTime(marqueeList);
             }
-            List<Marquee> marqueeList = new ArrayList<>(this.sortedMarquees);
-            marqueeList.removeIf(marquee -> marquee.getId() == id);
-            this.sortedMarquees = sortMarquee(marqueeList);
+            default -> {
+                if (this.sortedMarquees == null || this.sortedMarquees.isEmpty()) {
+                    return;
+                }
+                List<Marquee> marqueeList = new ArrayList<>(this.sortedMarquees);
+                marqueeList.removeIf(marquee -> marquee.getId() == id);
+                this.sortedMarquees = sortMarquee(marqueeList);
+            }
         }
 
         log.debug("删除跑马灯后打印 map.size = {}", this.marqueeMap.size());
@@ -207,7 +235,7 @@ public class CoreMarqueeManager implements TimerListener {
      * @param list
      * @return
      */
-    private LinkedList<Marquee> sortPlayerWinMarquee(List<Marquee> list) {
+    private LinkedList<Marquee> sortMarqueeByCreateTime(List<Marquee> list) {
         //进行排序
         return list
                 .stream()
@@ -260,6 +288,46 @@ public class CoreMarqueeManager implements TimerListener {
         if (!findMarquee && this.playerWinSortedMarquees != null && !this.playerWinSortedMarquees.isEmpty()) {
             // 获取从尾部开始的 ListIterator
             ListIterator<Marquee> it = this.playerWinSortedMarquees.listIterator(this.playerWinSortedMarquees.size());
+            while (it.hasPrevious()) {
+                Marquee marquee = it.previous();
+                if (marquee.getStartTime() < 1) {  //表示这条中奖的跑马灯还没有推送
+                    this.nowRunMarqueeId = marquee.getId();
+                    addNotifySendEvent(marquee.getId());
+                    break;
+                } else {
+                    if (now > marquee.getEndTime()) {
+                        //删除过期的跑马灯
+                        it.remove();
+                        this.marqueeMap.remove(marquee.getId());
+                        removeFromeRedis(marquee.getId());
+                        if (this.nowRunMarqueeId == marquee.getId()) {
+                            this.nowRunMarqueeId = 0;
+                        }
+                        log.debug("移除过期中奖跑马灯 id = {}", marquee.getId());
+                        continue;
+                    }
+
+                    if (now < marquee.getStartTime()) {
+                        continue;
+                    }
+                    break;
+                }
+            }
+        }
+        checkActivityMarquee(findMarquee, now);
+    }
+
+    /**
+     * 检查活动跑马灯
+     *
+     * @param findMarquee
+     * @param now
+     */
+    private void checkActivityMarquee(boolean findMarquee, int now) {
+        //再检查玩家中奖的跑马灯
+        if (!findMarquee && this.activitySortedMarquees != null && !this.activitySortedMarquees.isEmpty()) {
+            // 获取从尾部开始的 ListIterator
+            ListIterator<Marquee> it = this.activitySortedMarquees.listIterator(this.activitySortedMarquees.size());
             while (it.hasPrevious()) {
                 Marquee marquee = it.previous();
                 if (marquee.getStartTime() < 1) {  //表示这条中奖的跑马灯还没有推送
@@ -355,7 +423,7 @@ public class CoreMarqueeManager implements TimerListener {
      * @param marquee
      */
     private void notifyClientMarquee(Marquee marquee) {
-        if (marquee.getType() == GameConstant.Marquee.PLAYER_WIN) {
+        if (marquee.getType() == GameConstant.Marquee.PLAYER_WIN || marquee.getType() == GameConstant.Marquee.ACTIVITY) {
             if (marquee.getStartTime() < 1) {
                 int now = TimeHelper.nowInt();
                 marquee.setStartTime(now);
@@ -461,7 +529,7 @@ public class CoreMarqueeManager implements TimerListener {
         log.debug("活动开启的跑马灯 langId = {}", langId);
         Marquee marquee = new Marquee();
 
-        marquee.setType(GameConstant.Marquee.SYSTEM_MSG);
+        marquee.setType(GameConstant.Marquee.ACTIVITY);
         marquee.setShowTime(GameConstant.Marquee.ACTIVITY_INTERVAL);
         marquee.setInterval(GameConstant.Marquee.ACTIVITY_INTERVAL);
         marquee.setCreateTime(TimeHelper.nowInt());
@@ -480,8 +548,7 @@ public class CoreMarqueeManager implements TimerListener {
                 NotifyAllNodesMarqueeServer notify = new NotifyAllNodesMarqueeServer();
                 notify.marqueeInfo = transMarqueeInfo(marquee);
                 notify.type = marquee.getType();
-                //通知节点其他玩家
-                clusterSystem.broadcastToOnlinePlayer(notify);
+                notifyHallAndGameNodeStartMarquee(notify);
                 addNewMarquee(marquee);
                 break;
             }
