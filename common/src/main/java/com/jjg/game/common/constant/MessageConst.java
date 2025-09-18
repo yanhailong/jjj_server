@@ -209,5 +209,7 @@ public interface MessageConst {
 
         //通知生成结果库
         int NOTICE_GENERATE_LIB = BASE_MSG_PREFIX | 0x7;
+        //通知商城商品变更
+        int NOTICE_SHOP_PRODUCT_CHANGE = BASE_MSG_PREFIX | 0x8;
     }
 }

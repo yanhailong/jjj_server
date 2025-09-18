@@ -37,4 +37,17 @@ public class HallToServerMessageHandler extends CoreToServerMessageHandler {
         }
         coreLogger.gmOrder(BackendGMCmd.CHANGE_GAME_STATUS + ":" + req.cmdParam, null, result);
     }
+
+    @Command(MessageConst.ToServer.NOTICE_SHOP_PRODUCT_CHANGE)
+    public void reqShopProductChange(ReqRefreshGameStatus req) {
+        log.info("收到商城商品变更的命令");
+        String result = BackendGMCmd.Result.SUCCESS;
+        try {
+            hallService.loadShopProducts();
+        } catch (Exception e) {
+            log.error("", e);
+            result = BackendGMCmd.Result.FAIL;
+        }
+//        coreLogger.gmOrder(BackendGMCmd.CHANGE_GAME_STATUS + ":" + req.cmdParam, null, result);
+    }
 }
