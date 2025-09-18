@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
  * redis分布式锁
@@ -214,5 +215,69 @@ public class RedisLock {
     public void forceUnlock(String key) {
         RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
         redissonLock.forceUnlock();
+    }
+
+    /**
+     * 尝试获取锁并执行逻辑，无返回值
+     * 如果获取到锁则执行传入的逻辑代码，执行完毕后自动释放锁
+     * 如果没有获取到锁则不执行任何逻辑
+     *
+     * @param key      锁名
+     * @param runnable 要执行的逻辑代码
+     */
+    public void tryLockAndRun(String key, Runnable runnable) {
+        boolean lockAcquired = tryLock(key);
+        if (lockAcquired) {
+            try {
+                runnable.run();
+            } finally {
+                unlock(key);
+            }
+        }
+    }
+
+    /**
+     * 尝试获取锁并执行逻辑，有返回值
+     * 如果获取到锁则执行传入的逻辑代码并返回结果，执行完毕后自动释放锁
+     * 如果没有获取到锁则返回null
+     *
+     * @param key      锁名
+     * @param supplier 要执行的逻辑代码
+     * @param <T>      返回值类型
+     * @return 执行结果，如果未获取到锁则返回null
+     */
+    public <T> T tryLockAndGet(String key, Supplier<T> supplier) {
+        boolean lockAcquired = tryLock(key);
+        if (lockAcquired) {
+            try {
+                return supplier.get();
+            } finally {
+                unlock(key);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 尝试获取锁并执行逻辑，有返回值，可指定默认值
+     * 如果获取到锁则执行传入的逻辑代码并返回结果，执行完毕后自动释放锁
+     * 如果没有获取到锁则返回指定的默认值
+     *
+     * @param key          锁名
+     * @param supplier     要执行的逻辑代码
+     * @param defaultValue 未获取到锁时的默认返回值
+     * @param <T>          返回值类型
+     * @return 执行结果，如果未获取到锁则返回默认值
+     */
+    public <T> T tryLockAndGet(String key, Supplier<T> supplier, T defaultValue) {
+        boolean lockAcquired = tryLock(key);
+        if (lockAcquired) {
+            try {
+                return supplier.get();
+            } finally {
+                unlock(key);
+            }
+        }
+        return defaultValue;
     }
 }
