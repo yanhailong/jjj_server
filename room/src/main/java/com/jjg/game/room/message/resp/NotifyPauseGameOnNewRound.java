@@ -19,6 +19,6 @@ import com.jjg.game.room.message.RoomMessageConstant;
 @ProtoDesc("游戏暂停通知,一般在新的一轮开始时通知")
 public class NotifyPauseGameOnNewRound extends AbstractNotice {
 
-    @ProtoDesc("暂停类型：1.房主暂停 2. 准备金不足或者没有庄家 3. 时间不足")
+    @ProtoDesc("暂停类型：1.房主暂停 2. 准备金不足或者没有庄家 3. 时间不足 4. 房间解散")
     public int pauseType;
 }

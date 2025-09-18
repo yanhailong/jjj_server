@@ -118,6 +118,9 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
         if (!friendRoom.hasBanker() || friendRoom.getPredictCostGoldNum() < minBankerAmount) {
             notifyPauseGameOnNewRound.pauseType = 2;
         }
+        if (friendRoom.getStatus() == 3) {
+            notifyPauseGameOnNewRound.pauseType = 4;
+        }
         broadcastToPlayers(
             RoomMessageBuilder.newBuilder().setData(notifyPauseGameOnNewRound).toAllPlayer());
     }
