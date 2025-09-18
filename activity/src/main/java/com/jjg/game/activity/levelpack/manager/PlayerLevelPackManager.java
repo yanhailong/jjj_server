@@ -1,6 +1,14 @@
-package com.jjg.game.hall.levelpack.manager;
+package com.jjg.game.activity.levelpack.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.activity.constant.ActivityConstant;
+import com.jjg.game.activity.levelpack.dao.PlayerLevelDao;
+import com.jjg.game.activity.levelpack.data.PlayerLevelPackData;
+import com.jjg.game.activity.levelpack.message.bean.PlayerLevelPackDetailInfo;
+import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelClaimRewards;
+import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelPackDetailInfo;
+import com.jjg.game.activity.levelpack.message.res.NotifyPlayerLevelPackDetailInfo;
+import com.jjg.game.activity.levelpack.message.res.ResPlayerLevelClaimRewards;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.redis.RedisLock;
@@ -15,13 +23,6 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
-import com.jjg.game.hall.constant.HallConstant;
-import com.jjg.game.hall.levelpack.dao.PlayerLevelDao;
-import com.jjg.game.hall.levelpack.data.PlayerLevelPackData;
-import com.jjg.game.hall.levelpack.message.bean.PlayerLevelPackDetailInfo;
-import com.jjg.game.hall.levelpack.message.req.ReqPlayerLevelClaimRewards;
-import com.jjg.game.hall.levelpack.message.res.NotifyPlayerLevelPackDetailInfo;
-import com.jjg.game.hall.levelpack.message.res.ResPlayerLevelClaimRewards;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PlayerLevelPackCfg;
 import org.slf4j.Logger;
@@ -94,7 +95,7 @@ public class PlayerLevelPackManager implements GameEventListener, IPlayerLoginSu
                 PlayerLevelPackData data = new PlayerLevelPackData();
                 data.setTargetTime(currentTimeMillis);
                 data.setId(packCfg.getId());
-                data.setClaimStatus(HallConstant.ClaimStatus.NOT_CLAIM);
+                data.setClaimStatus(ActivityConstant.ClaimStatus.NOT_CLAIM);
                 data.setBuyEndTime((long) packCfg.getTime() * TimeHelper.ONE_MINUTE_OF_MILLIS + currentTimeMillis);
                 playerLevelPackData.put(packCfg.getId(), data);
                 change = true;
@@ -123,7 +124,7 @@ public class PlayerLevelPackManager implements GameEventListener, IPlayerLoginSu
         long currentTimeMillis = System.currentTimeMillis();
         info.detailInfo = new ArrayList<>(playerLevelPackData.size());
         for (PlayerLevelPackData data : playerLevelPackData.values()) {
-            if (data.getClaimStatus() == HallConstant.ClaimStatus.CLAIMED) {
+            if (data.getClaimStatus() == ActivityConstant.ClaimStatus.CLAIMED) {
                 continue;
             }
             PlayerLevelPackCfg packCfg = GameDataManager.getPlayerLevelPackCfg(data.getId());
@@ -145,17 +146,20 @@ public class PlayerLevelPackManager implements GameEventListener, IPlayerLoginSu
     public AbstractResponse ReqPlayerLevelClaimRewards(PlayerController playerController, ReqPlayerLevelClaimRewards req) {
         ResPlayerLevelClaimRewards res = new ResPlayerLevelClaimRewards(Code.SUCCESS);
         PlayerLevelPackCfg packCfg = GameDataManager.getPlayerLevelPackCfg(req.id);
+        //检查配置
         if (packCfg == null || CollectionUtil.isEmpty(packCfg.getLevelRewards())) {
             res.code = Code.SAMPLE_ERROR;
             return res;
         }
         long playerId = playerController.playerId();
         PlayerLevelPackData playerLevelPackData = playerLevelDao.getPlayerLevelPackData(playerId, req.id);
-        if (playerLevelPackData == null || playerLevelPackData.getClaimStatus() == HallConstant.ClaimStatus.NOT_CLAIM) {
+        //检查等级礼包数据
+        if (playerLevelPackData == null || playerLevelPackData.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
             res.code = Code.PARAM_ERROR;
             return res;
         }
-        if (playerLevelPackData.getClaimStatus() == HallConstant.ClaimStatus.CLAIMED) {
+        //检查领奖状态
+        if (playerLevelPackData.getClaimStatus() == ActivityConstant.ClaimStatus.CLAIMED) {
             res.code = Code.REPEAT_OP;
             return res;
         }
@@ -165,12 +169,12 @@ public class PlayerLevelPackManager implements GameEventListener, IPlayerLoginSu
         try {
             playerLevelPackData = playerLevelDao.getPlayerLevelPackData(playerId, req.id);
             //领取奖励
-            if (playerLevelPackData != null && playerLevelPackData.getClaimStatus() == HallConstant.ClaimStatus.CAN_CLAIM) {
+            if (playerLevelPackData != null && playerLevelPackData.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
                 added = playerPackService.addItems(playerId, packCfg.getLevelRewards(), "playerLevelClaim");
                 if (!added.success()) {
                     log.error("等级礼包添加道具失败 playerId:{} id:{} ", playerId, req.id);
                 }
-                playerLevelPackData.setClaimStatus(HallConstant.ClaimStatus.CLAIMED);
+                playerLevelPackData.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
                 playerLevelDao.savePackData(playerId, req.id, playerLevelPackData);
             }
         } catch (Exception e) {
@@ -218,11 +222,11 @@ public class PlayerLevelPackManager implements GameEventListener, IPlayerLoginSu
             try {
                 playerLevelPackData = playerLevelDao.getPlayerLevelPackData(player.getId(), id);
                 //购买条件判断
-                if (playerLevelPackData == null || playerLevelPackData.getClaimStatus() != HallConstant.ClaimStatus.NOT_CLAIM) {
+                if (playerLevelPackData == null || playerLevelPackData.getClaimStatus() != ActivityConstant.ClaimStatus.NOT_CLAIM) {
                     log.error("玩家购买等级礼包失败 数据不存在 playerLevelPackData：{} playerId:{} id:{} ", playerLevelPackData, player.getId(), id);
                     return;
                 }
-                playerLevelPackData.setClaimStatus(HallConstant.ClaimStatus.CAN_CLAIM);
+                playerLevelPackData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
                 playerLevelDao.savePackData(player.getId(), id, playerLevelPackData);
             } catch (Exception e) {
                 log.error("等级礼包修改数据异常 playerId:{} id:{} ", player.getId(), id, e);
@@ -250,5 +254,10 @@ public class PlayerLevelPackManager implements GameEventListener, IPlayerLoginSu
             return;
         }
         playerController.send(buildNotifyPlayerLevelPackDetailInfo(playerLevelPackData));
+    }
+
+    public Object reqPlayerLevelPackDetailInfo(PlayerController playerController, ReqPlayerLevelPackDetailInfo req) {
+        Map<Integer, PlayerLevelPackData> playerLevelPackData = playerLevelDao.getPlayerLevelPackData(playerController.playerId());
+        return buildNotifyPlayerLevelPackDetailInfo(playerLevelPackData);
     }
 }

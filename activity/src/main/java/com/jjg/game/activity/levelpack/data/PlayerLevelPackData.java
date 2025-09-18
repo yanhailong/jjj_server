@@ -1,4 +1,4 @@
-package com.jjg.game.hall.levelpack.data;
+package com.jjg.game.activity.levelpack.data;
 
 /**
  * @author lm

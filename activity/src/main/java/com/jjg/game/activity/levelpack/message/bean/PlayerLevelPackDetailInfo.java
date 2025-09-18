@@ -1,4 +1,4 @@
-package com.jjg.game.hall.levelpack.message.bean;
+package com.jjg.game.activity.levelpack.message.bean;
 
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;

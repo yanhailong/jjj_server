@@ -1,6 +1,6 @@
-package com.jjg.game.hall.levelpack.dao;
+package com.jjg.game.activity.levelpack.dao;
 
-import com.jjg.game.hall.levelpack.data.PlayerLevelPackData;
+import com.jjg.game.activity.levelpack.data.PlayerLevelPackData;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;

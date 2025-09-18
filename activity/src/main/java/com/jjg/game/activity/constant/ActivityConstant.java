@@ -166,5 +166,14 @@ public interface ActivityConstant {
         //响应推广分享我的收益排行榜信息
         int RES_SHARE_PROMOTE_SELF_RANK_INFO = BASE_MSG_PREFIX | 0x29;
 
+        //等级礼包
+        //请求等级礼包详情
+        int REQ_PLAYER_LEVEL_PACK_DETAIL_INFO = BASE_MSG_PREFIX | 0x3A;
+        //通知详细信息
+        int NOTIFY_PLAYER_LEVEL_PACK_DETAIL_INFO = BASE_MSG_PREFIX | 0x3B;
+        //请求领取玩家等级礼包
+        int REQ_PLAYER_LEVEL_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x3C;
+        //玩家领取等级礼包返回
+        int RES_PLAYER_LEVEL_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x3D;
     }
 }

@@ -12,10 +12,15 @@ import com.jjg.game.activity.common.message.req.ReqActivityDetailInfo;
 import com.jjg.game.activity.common.message.req.ReqActivityInfoByType;
 import com.jjg.game.activity.common.message.req.ReqActivityPlayerJoin;
 import com.jjg.game.activity.constant.ActivityConstant;
+import com.jjg.game.activity.levelpack.manager.PlayerLevelPackManager;
+import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelClaimRewards;
+import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelPackDetailInfo;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.activity.sharepromote.controller.SharePromoteController;
 import com.jjg.game.activity.sharepromote.message.req.*;
+import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
@@ -32,11 +37,15 @@ public class ActivityMessageHandler {
     private final ActivityManager activityManager;
     private final CashCowController cashCowController;
     private final SharePromoteController sharePromoteController;
+    private final PlayerLevelPackManager playerLevelPackManager;
+    private final NodeConfig nodeConfig;
 
-    public ActivityMessageHandler(ActivityManager activityManager, CashCowController cashCowController, SharePromoteController sharePromoteController) {
+    public ActivityMessageHandler(ActivityManager activityManager, CashCowController cashCowController, SharePromoteController sharePromoteController, PlayerLevelPackManager playerLevelPackManager, NodeConfig nodeConfig) {
         this.activityManager = activityManager;
         this.cashCowController = cashCowController;
         this.sharePromoteController = sharePromoteController;
+        this.playerLevelPackManager = playerLevelPackManager;
+        this.nodeConfig = nodeConfig;
     }
 
     /**
@@ -157,7 +166,7 @@ public class ActivityMessageHandler {
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_BIND_PLAYER)
     public void reqSharePromoteBindPlayer(PlayerController playerController, ReqSharePromoteBindPlayer req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null  && data.getType() == ActivityType.SHARE_PROMOTE) {
+        if (data != null && data.getType() == ActivityType.SHARE_PROMOTE) {
             if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse res = sharePromoteController.reqSharePromoteBindPlayer(playerController, req);
                 playerController.send(res);
@@ -171,7 +180,7 @@ public class ActivityMessageHandler {
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_CLAIM_PROFIT_REWARD)
     public void reqSharePromoteClaimProfitReward(PlayerController playerController, ReqSharePromoteClaimProfitReward req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null  && data.getType() == ActivityType.SHARE_PROMOTE) {
+        if (data != null && data.getType() == ActivityType.SHARE_PROMOTE) {
             if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse res = sharePromoteController.reqSharePromoteClaimProfitReward(playerController, req);
                 playerController.send(res);
@@ -185,7 +194,7 @@ public class ActivityMessageHandler {
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_GLOBAL_INFO)
     public void reqSharePromoteGlobalInfo(PlayerController playerController, ReqSharePromoteGlobalInfo req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null  && data.getType() == ActivityType.SHARE_PROMOTE) {
+        if (data != null && data.getType() == ActivityType.SHARE_PROMOTE) {
             if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse res = sharePromoteController.reqSharePromoteGlobalInfo(playerController, req);
                 playerController.send(res);
@@ -199,7 +208,7 @@ public class ActivityMessageHandler {
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_WEEK_RANK_INFO)
     public void reqSharePromoteWeekRankInfo(PlayerController playerController, ReqSharePromoteWeekRankInfo req) {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null  && data.getType() == ActivityType.SHARE_PROMOTE) {
+        if (data != null && data.getType() == ActivityType.SHARE_PROMOTE) {
             if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse res = sharePromoteController.reqSharePromoteWeekRankInfo(playerController, req);
                 playerController.send(res);
@@ -220,4 +229,36 @@ public class ActivityMessageHandler {
             }
         }
     }
+
+
+    /**
+     * 等级礼包 请求领取等级礼包
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_CLAIM_REWARDS)
+    public void reqPlayerLevelClaimRewards(PlayerController playerController, ReqPlayerLevelClaimRewards req) {
+        if (NodeType.getNodeTypeByName(nodeConfig.getType()) == NodeType.GAME) {
+            if (nodeConfig.getGameMajorTypes() != null) {
+                for (int gameMajorType : nodeConfig.getGameMajorTypes()) {
+                    if (gameMajorType == 2 || gameMajorType == 3) {
+                        return;
+                    }
+                }
+            }
+        }
+        playerController.send(playerLevelPackManager.ReqPlayerLevelClaimRewards(playerController, req));
+    }
+
+    /**
+     * 等级礼包 请求领取等级礼包
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_CLAIM_REWARDS)
+    public void reqPlayerLevelPackDetailInfo(PlayerController playerController, ReqPlayerLevelPackDetailInfo req) {
+        playerController.send(playerLevelPackManager.reqPlayerLevelPackDetailInfo(playerController, req));
+    }
+
+
 }
