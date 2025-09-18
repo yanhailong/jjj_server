@@ -861,6 +861,6 @@ public class CashCowController extends BaseActivityController implements TimerLi
     @Override
     public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
         cashCowDao.delPlayerActivityProgress(playerId, activityData.getId());
-        super.checkPlayerDataAndReset(playerId, activityData);
+        playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
     }
 }
