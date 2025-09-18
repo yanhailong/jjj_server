@@ -302,7 +302,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 return false;
             }
             if (room instanceof FriendRoom friendRoom) {
-                int checkRes = friendRoomServices.checkJoinRoom(player.getId(), friendRoom.getCreator(), friendRoom);
+                int checkRes =
+                    friendRoomServices.checkJoinRoom(player.getId(), friendRoom.getCreator(), friendRoom, true);
                 // 进入好友房失败，直接重置玩家房间数据
                 if (checkRes != Code.SUCCESS) {
                     log.warn("断线重连时，进入好友房失败 playerId = {},roomId = {} checkRes: {}",

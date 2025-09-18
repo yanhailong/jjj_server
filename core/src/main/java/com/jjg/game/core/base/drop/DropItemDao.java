@@ -67,7 +67,7 @@ public class DropItemDao {
      * 获取道具分组计数
      */
     public Map<Integer, Integer> getItemDropGroupCounter(long playerId) {
-        String tableName = getConditionProgressTableName();
+        String tableName = getItemDropGroupCounterTableName();
         return (Map<Integer, Integer>) itemDropGrouMap.opsForHash().get(tableName, playerId);
     }
 
@@ -75,7 +75,7 @@ public class DropItemDao {
      * 更新道具分组计数
      */
     public void updateItemDropGroupCounter(long playerId, Map<Integer, Integer> itemDropGroupCounter) {
-        String tableName = getConditionProgressTableName();
+        String tableName = getItemDropGroupCounterTableName();
         itemDropGrouMap.opsForHash().put(tableName, playerId, itemDropGroupCounter);
     }
 }

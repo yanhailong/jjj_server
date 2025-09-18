@@ -103,7 +103,7 @@ public class ItemDropDataHolder implements ConfigExcelChangeListener {
         List<Pair<Integer, Item>> items = new ArrayList<>();
         for (Integer dropGroupId : dropGroupIdList) {
             // 分组已经掉落过的次数
-            int usedDropGroupTimes = itemDropGroupCounter.get(dropGroupId);
+            int usedDropGroupTimes = itemDropGroupCounter.getOrDefault(dropGroupId, 0);
             // 分组限制每天掉落的次数
             int limitedGroupTimes = getDropGroupLimit(dropGroupId);
             if (usedDropGroupTimes >= limitedGroupTimes) {

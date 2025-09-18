@@ -58,10 +58,10 @@ public class PlayerCheckerCategory {
         @Override
         public boolean check(Player player, List<CheckerParam> comparatorTaget) {
             CheckerParam checkerParam = filterBindParamCheckParam(comparatorTaget);
-            if (checkerParam.getTargetParam() instanceof EffectiveFlowingParam param) {
+            if (checkerParam instanceof EffectiveFlowingParam param) {
                 String conditionProgressKey = param.getConditionProgressKey();
                 Number conditionProgressNumber = dropItemDao.getProgress(conditionProgressKey);
-                long curConditionProgress = conditionProgressNumber.longValue();
+                long curConditionProgress = conditionProgressNumber == null ? 0 : conditionProgressNumber.longValue();
                 // 变化的流水
                 long flowingValue = param.getFlowingValue();
                 // 流水值
