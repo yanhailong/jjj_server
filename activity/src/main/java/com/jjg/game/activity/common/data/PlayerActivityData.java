@@ -17,6 +17,7 @@ public class PlayerActivityData {
 
     public PlayerActivityData(long activityId, long round) {
         this.activityId = activityId;
+        this.round = round;
     }
 
     public long getRound() {

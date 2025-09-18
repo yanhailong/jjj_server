@@ -15,16 +15,17 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 摇钱树 DAO
- *
+ * <p>
  * 主要负责摇钱树相关数据的 Redis 存取，包括：
- *  - 玩家免费奖励状态
- *  - 玩家进度
- *  - 活动奖池（总奖池 & 分奖池）
- *  - 活动记录（个人 & 全局）
- *
+ * - 玩家免费奖励状态
+ * - 玩家进度
+ * - 活动奖池（总奖池 & 分奖池）
+ * - 活动记录（个人 & 全局）
+ * <p>
  * 使用 Redis 实现高性能缓存和并发安全（通过分布式锁 RedisLock）。
  *
  * @author lm
@@ -34,11 +35,17 @@ import java.util.List;
 public class CashCowDao {
     private final Logger log = LoggerFactory.getLogger(CashCowDao.class);
 
-    /** 玩家/全局记录存储，key->List，value->CashCowRecordData */
+    /**
+     * 玩家/全局记录存储，key->List，value->CashCowRecordData
+     */
     private final RedisTemplate<String, CashCowRecordData> recordRedisTemplate;
-    /** 长整型/字符串数据存储，key->String，value->String */
+    /**
+     * 长整型/字符串数据存储，key->String，value->String
+     */
     private final RedisTemplate<String, String> longRedisTemplate;
-    /** Redis 分布式锁，保证并发安全 */
+    /**
+     * Redis 分布式锁，保证并发安全
+     */
     private final RedisLock lock;
 
     // -------------------- Redis Key 定义 --------------------
@@ -132,7 +139,7 @@ public class CashCowDao {
     /**
      * 获取指定 detailId 的活动奖池余额
      */
-    public long getActivityPool(long activityId, int detailId) {
+    public long getSpecifiedActivityPool(long activityId, int detailId) {
         String poolKey = String.format(POOL_KEY, activityId);
         HashOperations<String, String, String> hash = getOpsForHash();
         String pool = hash.get(poolKey, String.valueOf(detailId));
@@ -141,15 +148,35 @@ public class CashCowDao {
 
     /**
      * 获取活动的总奖池（所有 detailId 的和）
+     *
+     * @return 总奖池值
      */
     public long getActivityPool(long activityId) {
+       return getActivityPool(activityId,0).getFirst();
+    }
+
+    /**
+     * 获取活动的总奖池（所有 detailId 的和）和指定池的值
+     *
+     * @return 总奖池值, 指定奖池值
+     */
+    public Pair<Long, Long> getActivityPool(long activityId, int detailId) {
         String poolKey = String.format(POOL_KEY, activityId);
         HashOperations<String, String, String> hash = getOpsForHash();
-        List<String> values = hash.values(poolKey);
+        Map<String, String> values = hash.entries(poolKey);
         if (CollectionUtil.isEmpty(values)) {
-            return 0;
+            return Pair.newPair(0L, 0L);
         }
-        return values.stream().mapToLong(Long::parseLong).sum();
+        long totalPool = 0;
+        long pool = 0;
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            long temp = Long.parseLong(entry.getValue());
+            if (Integer.parseInt(entry.getKey()) == detailId) {
+                pool = temp;
+            }
+            totalPool += temp;
+        }
+        return Pair.newPair(totalPool, pool);
     }
 
     /**
