@@ -548,10 +548,44 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
+        String cmd = gmOrders[0];
+        if ("reload".equalsIgnoreCase(cmd)) {
+            Map<Long, ActivityData> tempActivityData = new ConcurrentHashMap<>();
+            Map<Long, Map<Integer, BaseCfgBean>> tempActivityDetailInfo = new ConcurrentHashMap<>();
+            //要添加定时器的列表 时间戳 活动id
+            List<Pair<Long, Long>> timerList = new ArrayList<>();
+            long currentTime = System.currentTimeMillis();
+            activityDetailInfo.clear();
+            //从配置表加载
+            loadActivityConfigByExcel(tempActivityData, currentTime, timerList, tempActivityDetailInfo);
+            //添加活动定时器
+            for (Pair<Long, Long> pair : timerList) {
+                timerCenter.add(new TimerEvent<>(this, pair.getFirst(), pair.getSecond()));
+            }
+            //重新赋值到内存
+            activityData = tempActivityData;
+            activityDetailInfo = tempActivityDetailInfo;
+            activityTypeData = new ConcurrentHashMap<>();
+            //缓存为活动类型->活动数据保存
+            for (ActivityData data : tempActivityData.values()) {
+                activityTypeData.computeIfAbsent(data.getType(), k -> new ConcurrentHashMap<>()).put(data.getId(), data);
+            }
+            //检查是否要主动开启
+            for (ActivityData data : activityData.values()) {
+                //设置状态
+                if (data.getStatus() != ActivityConstant.ActivityStatus.RUNNING && data.getTimeStart() <= currentTime && currentTime <= data.getTimeEnd()) {
+                    data.getType().getController().onActivityStart(data);
+                    data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
+                }
+                if (data.canRun()) {
+                    data.getType().getController().activityLoadCompleted(data);
+                }
+            }
+            return new CommonResult<>(Code.SUCCESS);
+        }
         if (gmOrders.length < 3) {
             return new CommonResult<>(Code.FAIL);
         }
-        String cmd = gmOrders[0];
         if ("joinActivity".equalsIgnoreCase(cmd)) {
             Long activityId = Long.parseLong(gmOrders[1]);
             int detailId = Integer.parseInt(gmOrders[2]);
@@ -585,6 +619,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     , null);
             return new CommonResult<>(Code.SUCCESS);
         }
+
         return null;
     }
 

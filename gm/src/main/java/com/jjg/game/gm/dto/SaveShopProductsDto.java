@@ -1,7 +1,5 @@
 package com.jjg.game.gm.dto;
 
-import com.jjg.game.core.data.ShopProduct;
-
 import java.util.List;
 
 /**
@@ -9,6 +7,6 @@ import java.util.List;
  * @date 2025/9/18 9:44
  */
 public record SaveShopProductsDto(
-        List<ShopProduct> products
+        List<ShopProductDto> products
 ) {
 }

@@ -15,8 +15,22 @@ public class SlotsPlayerGameDataDTO {
     protected int roomCfgId;
     //当前所处状态(美元快递) 0.正常  1.二选一  2.正在免费旋转
     protected int status;
-    //原始押注值
-    protected long lastStake;
+    //单线押分
+    protected long oneBetScore;
+    //总押分
+    protected long allBetScore;
+    //最近一次的模式id
+    private int lastModelId;
+    //最近一次所在的区间
+    private int lastSectionIndex;
+    //玩家累计押注金额
+    private long allBet;
+    //玩家累计获得奖池(倍场)金额
+    private long rewardPoolGold;
+    //玩家奖池(倍场)累计贡献金额金额(没有减去已获得金额)
+    private long contribtPoolGold;
+    //剩余的免费次数
+    private int remainFreeCount;
 
     public long getPlayerId() {
         return playerId;
@@ -50,11 +64,67 @@ public class SlotsPlayerGameDataDTO {
         this.status = status;
     }
 
-    public long getLastStake() {
-        return lastStake;
+    public long getOneBetScore() {
+        return oneBetScore;
     }
 
-    public void setLastStake(long lastStake) {
-        this.lastStake = lastStake;
+    public void setOneBetScore(long oneBetScore) {
+        this.oneBetScore = oneBetScore;
+    }
+
+    public long getAllBetScore() {
+        return allBetScore;
+    }
+
+    public void setAllBetScore(long allBetScore) {
+        this.allBetScore = allBetScore;
+    }
+
+    public int getLastModelId() {
+        return lastModelId;
+    }
+
+    public void setLastModelId(int lastModelId) {
+        this.lastModelId = lastModelId;
+    }
+
+    public int getLastSectionIndex() {
+        return lastSectionIndex;
+    }
+
+    public void setLastSectionIndex(int lastSectionIndex) {
+        this.lastSectionIndex = lastSectionIndex;
+    }
+
+    public long getAllBet() {
+        return allBet;
+    }
+
+    public void setAllBet(long allBet) {
+        this.allBet = allBet;
+    }
+
+    public long getRewardPoolGold() {
+        return rewardPoolGold;
+    }
+
+    public void setRewardPoolGold(long rewardPoolGold) {
+        this.rewardPoolGold = rewardPoolGold;
+    }
+
+    public long getContribtPoolGold() {
+        return contribtPoolGold;
+    }
+
+    public void setContribtPoolGold(long contribtPoolGold) {
+        this.contribtPoolGold = contribtPoolGold;
+    }
+
+    public int getRemainFreeCount() {
+        return remainFreeCount;
+    }
+
+    public void setRemainFreeCount(int remainFreeCount) {
+        this.remainFreeCount = remainFreeCount;
     }
 }

@@ -16,14 +16,12 @@ public class ShopProductInfo {
     public int type;
     @ProtoDesc("结束时间")
     public int endTime;
-    @ProtoDesc("货币的itemId")
-    public int currencyItemId;
     @ProtoDesc("原价数量")
     public long originalCount;
-    @ProtoDesc("当前数量")
-    public long currentCount;
+    @ProtoDesc("购买类型  -1.充值  ,其他值则为道具id")
+    public int payType;
     @ProtoDesc("价格")
-    public int money;
+    public long money;
     @ProtoDesc("标签1   1.best   2.most popular")
     public int label1;
     @ProtoDesc("标签2")

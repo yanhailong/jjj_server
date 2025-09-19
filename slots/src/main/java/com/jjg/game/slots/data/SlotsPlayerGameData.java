@@ -3,7 +3,9 @@ package com.jjg.game.slots.data;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressResultLib;
 import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
+import org.springframework.beans.BeanUtils;
 
+import java.lang.reflect.Constructor;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -222,5 +224,14 @@ public class SlotsPlayerGameData {
 
     public void setLastSectionIndex(int lastSectionIndex) {
         this.lastSectionIndex = lastSectionIndex;
+    }
+
+    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception{
+        Constructor<T> constructor = cla.getConstructor();
+        T t = constructor.newInstance();
+        BeanUtils.copyProperties(this,t);
+        t.setPlayerId(this.playerId());
+        t.setRemainFreeCount(this.remainFreeCount.get());
+        return t;
     }
 }

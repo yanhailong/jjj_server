@@ -76,13 +76,15 @@ public class WealthGodSendMessageManager extends BaseSendMessageManager {
             res.jackpotValue = gameRunInfo.getJackpotValue();
             //jackpot奖池奖励金额扣除后的剩余金额
             res.poolValue = gameRunInfo.getPoolValue();
+
+            slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回押注结果", false);
-        slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
+
     }
 
     /**

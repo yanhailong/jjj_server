@@ -18,10 +18,9 @@ import com.jjg.game.slots.game.cleopatra.dao.CleopatraGameDataDao;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraResultLibDao;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraGameRunInfo;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
+import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameDataDTO;
 import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
-import com.jjg.game.slots.game.dollarexpress.DollarExpressConstant;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameData;
 import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import org.slf4j.LoggerFactory;
@@ -293,7 +292,12 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
 
     @Override
     protected void offlineSaveGameDataDto(CleopatraPlayerGameData gameData) {
-
+        try{
+            CleopatraPlayerGameDataDTO dto = gameData.converToDto(CleopatraPlayerGameDataDTO.class);
+            gameDataDao.saveGameData(dto);
+        }catch (Exception e){
+            log.error("",e);
+        }
     }
 
     @Override

@@ -82,7 +82,7 @@ public interface Code {
     // 房间已满
     int ROOM_FULL = 431;
     // 黑名单
-    int BAN_CAUSE_BLACK_LIST = 432;
+    int BAN_CAUSE_BLACK_LIST = 49041;
     // 德州坐下余额不足
     int TEXAS_NOT_ENOUGH = 433;
     // 使用未拥有的皮肤

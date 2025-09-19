@@ -11,13 +11,11 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameDataDTO;
 import com.jjg.game.slots.game.wealthgod.WealthGodConstant;
 import com.jjg.game.slots.game.wealthgod.dao.WealthGodGameDataDao;
 import com.jjg.game.slots.game.wealthgod.dao.WealthGodResultLibDao;
-import com.jjg.game.slots.game.wealthgod.data.WealthGodAwardLineInfo;
-import com.jjg.game.slots.game.wealthgod.data.WealthGodGameRunInfo;
-import com.jjg.game.slots.game.wealthgod.data.WealthGodPlayerGameData;
-import com.jjg.game.slots.game.wealthgod.data.WealthGodResultLib;
+import com.jjg.game.slots.game.wealthgod.data.*;
 import com.jjg.game.slots.game.wealthgod.pb.WealthGodIconChangeInfo;
 import com.jjg.game.slots.game.wealthgod.pb.WealthGodResultLineInfo;
 import com.jjg.game.slots.game.wealthgod.pb.WealthGodSpinInfo;
@@ -68,7 +66,12 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
      */
     @Override
     protected void offlineSaveGameDataDto(WealthGodPlayerGameData gameData) {
-
+        try{
+            WealthGodPlayerGameDataDTO dto = gameData.converToDto(WealthGodPlayerGameDataDTO.class);
+            gameDataDao.saveGameData(dto);
+        }catch (Exception e){
+            log.error("",e);
+        }
     }
 
     @Override

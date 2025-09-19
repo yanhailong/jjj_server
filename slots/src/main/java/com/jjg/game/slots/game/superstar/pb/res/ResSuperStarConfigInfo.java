@@ -5,6 +5,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.slots.game.superstar.SuperStarConstant;
+import com.jjg.game.slots.game.superstar.pb.SuperStarPoolInfo;
 
 import java.util.List;
 
@@ -19,6 +20,8 @@ public class ResSuperStarConfigInfo extends AbstractResponse {
     public List<Long> stakeList;
     @ProtoDesc("默认押注")
     public long defaultBet;
+    @ProtoDesc("奖池信息")
+    public List<SuperStarPoolInfo> poolList;
 
     public ResSuperStarConfigInfo(int code) {
         super(code);

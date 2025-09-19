@@ -4,10 +4,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
-import com.jjg.game.core.data.FriendRoom;
-import com.jjg.game.core.data.FriendRoomBillHistoryBean;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.Room;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.ERoomItemReason;
@@ -115,8 +112,11 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
         }
         int minBankerAmount =
             FriendRoomSampleUtils.getRoomMinBankerAmount(gameDataVo.getRoomCfg().getId());
-        if (!friendRoom.hasBanker() || friendRoom.getPredictCostGoldNum() < minBankerAmount) {
-            notifyPauseGameOnNewRound.pauseType = 2;
+        // 只有押注才有提示
+        if (gameControlType().getDefualtRoomType() == RoomType.BET_ROOM) {
+            if (!friendRoom.hasBanker() || friendRoom.getPredictCostGoldNum() < minBankerAmount) {
+                notifyPauseGameOnNewRound.pauseType = 2;
+            }
         }
         if (friendRoom.getStatus() == 3) {
             notifyPauseGameOnNewRound.pauseType = 4;

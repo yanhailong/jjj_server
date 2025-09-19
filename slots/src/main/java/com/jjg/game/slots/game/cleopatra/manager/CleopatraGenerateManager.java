@@ -417,7 +417,7 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
 
     @Override
     public void calTimes(CleopatraResultLib lib) throws Exception {
-        if (lib.getAwardLineInfoList() == null || lib.getAwardLineInfoList().isEmpty()) {
+        if((lib.getWinIcons() == null || lib.getWinIcons().isEmpty()) && (lib.getAwardLineInfoList() == null || lib.getAwardLineInfoList().isEmpty())) {
             return;
         }
 
@@ -427,31 +427,47 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
 
         //图标组合在一起
-        int[] arr = new int[lib.getIconArr().length + lib.getAwardLineInfoList().size() * baseInitCfg.getRows()];
-        System.arraycopy(lib.getIconArr(), 0, arr, 0, lib.getIconArr().length);
-        int beginIndex = lib.getIconArr().length;
-        for (CleopatraAddColumnInfo info : lib.getAwardLineInfoList()) {
-            System.arraycopy(info.getArr(), 0, arr, beginIndex, info.getArr().length);
-            beginIndex += info.getArr().length;
+        int[] arr;
+        if(lib.getAwardLineInfoList() == null || lib.getAwardLineInfoList().isEmpty()){
+            arr = new int[lib.getIconArr().length];
+            System.arraycopy(lib.getIconArr(), 0, arr, 0, lib.getIconArr().length);
+        }else {
+            arr = new int[lib.getIconArr().length + lib.getAwardLineInfoList().size() * baseInitCfg.getRows()];
+            System.arraycopy(lib.getIconArr(), 0, arr, 0, lib.getIconArr().length);
+
+            int beginIndex = lib.getIconArr().length;
+            for (CleopatraAddColumnInfo info : lib.getAwardLineInfoList()) {
+                System.arraycopy(info.getArr(), 0, arr, beginIndex, info.getArr().length);
+                beginIndex += info.getArr().length;
+            }
         }
 
 //        System.out.println(Arrays.toString(arr));
 
         //所有的中奖的图标
         Set<Integer> allWinIconSet = new HashSet<>();
+        //初始图案的中奖图标
         if (lib.getWinIcons() != null && !lib.getWinIcons().isEmpty()) {
             for (Map.Entry<Integer, Set<Integer>> en : lib.getWinIcons().entrySet()) {
                 allWinIconSet.add(en.getKey());
             }
         }
 
-        for (CleopatraAddColumnInfo info : lib.getAwardLineInfoList()) {
-            if (info.getWinIconIndexMap() == null || info.getWinIconIndexMap().isEmpty()) {
-                continue;
+        //获取增加列倍数
+        int addTimes = 1;
+
+        //新增列的中奖图标
+        if(lib.getAwardLineInfoList() != null && !lib.getAwardLineInfoList().isEmpty()){
+            for (CleopatraAddColumnInfo info : lib.getAwardLineInfoList()) {
+                if (info.getWinIconIndexMap() == null || info.getWinIconIndexMap().isEmpty()) {
+                    continue;
+                }
+                info.getWinIconIndexMap().forEach((k, v) -> {
+                    allWinIconSet.add(k);
+                });
             }
-            info.getWinIconIndexMap().forEach((k, v) -> {
-                allWinIconSet.add(k);
-            });
+
+            addTimes = this.addColumnInfoMap.get(lib.getAwardLineInfoList().size()).getTimes();
         }
 
         int cols = (arr.length - 1) / baseInitCfg.getRows();
@@ -459,8 +475,6 @@ public class CleopatraGenerateManager extends AbstractSlotsGenerateManager<Cleop
             cols++;
         }
 
-        //获取增加列倍数
-        int addTimes = this.addColumnInfoMap.get(lib.getAwardLineInfoList().size()).getTimes();
         for (int icon : allWinIconSet) {
 
             //获取基础分

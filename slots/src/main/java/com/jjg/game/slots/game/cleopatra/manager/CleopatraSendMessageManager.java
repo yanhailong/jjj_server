@@ -111,6 +111,8 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
 
             res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
             res.poolValue = gameRunInfo.getCurrentPoolValue();
+
+            slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo,res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
@@ -118,7 +120,7 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回押注结果", false);
-        slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo,res);
+
     }
 
     /**

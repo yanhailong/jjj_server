@@ -1,11 +1,11 @@
 package com.jjg.game.slots.game.dollarexpress.data;
 
 import com.jjg.game.slots.data.SlotsPlayerGameData;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import org.springframework.beans.BeanUtils;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 玩家游戏数据
@@ -116,10 +116,12 @@ public class DollarExpressPlayerGameData extends SlotsPlayerGameData {
         this.allUnLock = allUnLock;
     }
 
-    public DollarExpressPlayerGameDataDTO converToDto(){
-        DollarExpressPlayerGameDataDTO dto = new DollarExpressPlayerGameDataDTO();
-        BeanUtils.copyProperties(this,dto);
-        dto.setPlayerId(this.playerId());
+    @Override
+    public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception {
+        T dto = super.converToDto(cla);
+        DollarExpressPlayerGameDataDTO dollarDto = (DollarExpressPlayerGameDataDTO) dto;
+        dollarDto.setInvers(this.invers.get());
+        dollarDto.setAllUnLock(this.allUnLock.get());
         return dto;
     }
 }
