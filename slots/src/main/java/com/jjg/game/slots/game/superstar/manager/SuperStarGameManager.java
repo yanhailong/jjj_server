@@ -6,13 +6,11 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameDataDTO;
 import com.jjg.game.slots.game.superstar.SuperStarConstant;
 import com.jjg.game.slots.game.superstar.dao.SuperStarGameDataDao;
 import com.jjg.game.slots.game.superstar.dao.SuperStarResultLibDao;
-import com.jjg.game.slots.game.superstar.data.SuperStarAwardLineInfo;
-import com.jjg.game.slots.game.superstar.data.SuperStarGameRunInfo;
-import com.jjg.game.slots.game.superstar.data.SuperStarPlayerGameData;
-import com.jjg.game.slots.game.superstar.data.SuperStarResultLib;
+import com.jjg.game.slots.game.superstar.data.*;
 import com.jjg.game.slots.game.superstar.pb.SuperStarResultLineInfo;
 import com.jjg.game.slots.game.superstar.pb.SuperStarSpinInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
@@ -35,6 +33,8 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
     private SuperStarGameDataDao superStarGameDataDao;
     @Autowired
     private SuperStarGenerateManager superStarGenerateManager;
+    @Autowired
+    private SuperStarGameDataDao gameDataDao;
 
     public SuperStarGameManager() {
         super(SuperStarPlayerGameData.class, SuperStarResultLib.class);
@@ -74,7 +74,12 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
      */
     @Override
     protected void offlineSaveGameDataDto(SuperStarPlayerGameData gameData) {
-
+        try{
+            SuperStarPlayerGameDataDTO dto = gameData.converToDto(SuperStarPlayerGameDataDTO.class);
+            gameDataDao.saveGameData(dto);
+        }catch (Exception e){
+            log.error("",e);
+        }
     }
 
     @Override

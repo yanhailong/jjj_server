@@ -27,14 +27,12 @@ public class ShopProduct {
     private int endTime;
     //奖励道具
     private Map<Integer,Long> rewardItems;
-    //货币的itemId
-    private int currencyItemId;
     //原价数量
     private long originalCount;
-    //当前数量
-    private long currentCount;
+    //购买类型  -1.充值  ,其他值则为道具id
+    private int payType;
     //价格
-    private int money;
+    private long money;
     //标签1
     private int label1;
     //标签2
@@ -98,14 +96,6 @@ public class ShopProduct {
         this.rewardItems = rewardItems;
     }
 
-    public int getCurrencyItemId() {
-        return currencyItemId;
-    }
-
-    public void setCurrencyItemId(int currencyItemId) {
-        this.currencyItemId = currencyItemId;
-    }
-
     public long getOriginalCount() {
         return originalCount;
     }
@@ -114,19 +104,19 @@ public class ShopProduct {
         this.originalCount = originalCount;
     }
 
-    public long getCurrentCount() {
-        return currentCount;
+    public int getPayType() {
+        return payType;
     }
 
-    public void setCurrentCount(long currentCount) {
-        this.currentCount = currentCount;
+    public void setPayType(int payType) {
+        this.payType = payType;
     }
 
-    public int getMoney() {
+    public long getMoney() {
         return money;
     }
 
-    public void setMoney(int money) {
+    public void setMoney(long money) {
         this.money = money;
     }
 

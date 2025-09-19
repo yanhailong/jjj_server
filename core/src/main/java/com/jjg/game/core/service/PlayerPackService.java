@@ -302,7 +302,7 @@ public class PlayerPackService implements IPlayerRegister {
                     return result;
                 }
                 result.data.setDiamond(removeResult.data.getDiamond());
-                result.data.setDiamond(removeResult.data.getGold());
+                result.data.setGoldNum(removeResult.data.getGold());
             }
             if (packItemList.isEmpty()) {
                 result.code = Code.SUCCESS;
@@ -387,6 +387,18 @@ public class PlayerPackService implements IPlayerRegister {
         return Code.FAIL;
     }
 
+    /**
+     * 使用道具
+     *
+     * @param playerId
+     * @param useItemId
+     * @return
+     */
+    public CommonResult<ItemOperationResult> useItem(long playerId, int useItemId, long useItemCount,
+                                      Map<Integer, Long> addItemsMap,
+                                      String addType) {
+        return useItem(playerId,null,useItemId,useItemCount,addItemsMap,addType);
+    }
 
     /**
      * 使用道具
@@ -395,10 +407,10 @@ public class PlayerPackService implements IPlayerRegister {
      * @param useItemId
      * @return
      */
-    public CommonResult<Void> useItem(long playerId, int girdId, int useItemId, long useItemCount,
+    public CommonResult<ItemOperationResult> useItem(long playerId, Integer girdId, int useItemId, long useItemCount,
                                       Map<Integer, Long> addItemsMap,
                                       String addType) {
-        CommonResult<Void> result = new CommonResult<>(Code.FAIL);
+        CommonResult<ItemOperationResult> result = new CommonResult<>(Code.FAIL);
 
         CommonResult<ItemOperationResult> removeResult = removeItem(playerId, girdId, useItemId, useItemCount, addType);
         if (!removeResult.success()) {
@@ -419,6 +431,7 @@ public class PlayerPackService implements IPlayerRegister {
             coreLogger.useItem(playerId, useItemId, 1, addType);
         }
         result.code = Code.SUCCESS;
+        result.data = addResult.data;
         return result;
     }
 

@@ -89,6 +89,8 @@ public class CoreConst {
 
         //redis如果发生锁竞争,则设置重试最大次数
         public static final int REDIS_TRY_COUNT = 10;
+        //MONGO插入数据失败,则设置重试最大次数
+        public static final int MONGO_TRY_COUNT = 10;
 
         //excel根目录
         public static final String SAMPLE_ROOT_PATH = "resources/sample/";

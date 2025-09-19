@@ -208,7 +208,7 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setGold(result.data.getGold());
-        coreSendMessageManager.packMoneyChangeMessage(
+        coreSendMessageManager.buildMoneyChangeMessage(
                 playerController, result.data.getGold(), result.data.getDiamond(), result.data.getVipLevel());
     }
 
@@ -230,7 +230,7 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setGold(result.data.getGold());
-        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(),
+        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data.getGold(),
                 result.data.getDiamond(), result.data.getVipLevel());
     }
 
@@ -252,7 +252,7 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setDiamond(result.data.getDiamond());
-        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(),
+        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data.getGold(),
                 result.data.getDiamond(), result.data.getVipLevel());
     }
 
@@ -275,7 +275,7 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setDiamond(result.data.getDiamond());
-        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(),
+        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data.getGold(),
                 result.data.getDiamond(), result.data.getVipLevel());
     }
 
@@ -298,7 +298,7 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setVipLevel(result.data.getVipLevel());
-        coreSendMessageManager.packMoneyChangeMessage(playerController, result.data.getGold(),
+        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data.getGold(),
                 result.data.getDiamond(), result.data.getVipLevel());
     }
 

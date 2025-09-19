@@ -187,7 +187,7 @@ public class AbstractPlayerService {
         //记录日志
         if (player != null) {
             if (isNotify) {
-                sendMessageManager.buildPlayerMoneyInfo(player);
+                sendMessageManager.buildMoneyChangeMessage(player);
             }
             //TODO 后期要排除机器人的情况
             coreLogger.useDiamond(player, diamondBeforeUpdate.value, addNum, addType, desc);
@@ -289,7 +289,7 @@ public class AbstractPlayerService {
             result.data = p;
 
             if (isNotify) {
-                sendMessageManager.buildPlayerMoneyInfo(p);
+                sendMessageManager.buildMoneyChangeMessage(p);
             }
             return result;
         }
@@ -347,7 +347,7 @@ public class AbstractPlayerService {
         //记录日志
         if (player != null) {
             if (isNotify) {
-                sendMessageManager.buildPlayerMoneyInfo(player);
+                sendMessageManager.buildMoneyChangeMessage(player);
             }
             //TODO 后期要排除机器人的情况
             coreLogger.useDiamond(player, beforeUpdateGold.value, -num, addType, desc);
@@ -570,7 +570,7 @@ public class AbstractPlayerService {
             result.data = p;
             if (isNotify) {
                 // 推送金币变化消息
-                sendMessageManager.buildPlayerMoneyInfo(p);
+                sendMessageManager.buildMoneyChangeMessage(p);
             }
             return result;
         }
@@ -618,7 +618,7 @@ public class AbstractPlayerService {
             result.data = p;
             if (isNotify) {
                 // 推送金币变化消息
-                sendMessageManager.buildPlayerMoneyInfo(p);
+                sendMessageManager.buildMoneyChangeMessage(p);
             }
             return result;
         }
@@ -674,7 +674,7 @@ public class AbstractPlayerService {
         if (p != null) {
             if (isNotify) {
                 // 推送金币变化消息
-                sendMessageManager.buildPlayerMoneyInfo(p);
+                sendMessageManager.buildMoneyChangeMessage(p);
             }
             //TODO 后期要排除机器人的情况
             coreLogger.useGold(p, beforeUpdateGold.value, -num, addType, desc);
@@ -795,7 +795,7 @@ public class AbstractPlayerService {
             }
             if (notify) {
                 // 推送金币变化消息
-                sendMessageManager.buildPlayerMoneyInfo(p);
+                sendMessageManager.buildMoneyChangeMessage(p);
             }
             result.code = Code.SUCCESS;
             result.data = p;
@@ -884,7 +884,7 @@ public class AbstractPlayerService {
                 player = levelUp(player, cfg);
                 if (effective) {
                     if (VipUtil.checkVipLevel(player, num)) {
-                        sendMessageManager.buildPlayerMoneyInfo(player);
+                        sendMessageManager.buildMoneyChangeMessage(player);
                     }
                 }
                 log.info("玩家押注获取经验 playerId = {},addExp = {},level = {}", playerId, tmpAddExp, player.getLevel());

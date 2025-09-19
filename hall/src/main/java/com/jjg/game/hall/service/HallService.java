@@ -519,7 +519,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             }
 
             Map<Integer, Long> addItemsMap = new HashMap<>();
-            CommonResult<Void> useResult;
+            CommonResult<ItemOperationResult> useResult;
             for (Map.Entry<Integer, Long> en : itemCfg.getGetItem().entrySet()) {
                 int addItemId = en.getKey();
                 ItemCfg addItemCfg = GameDataManager.getItemCfg(addItemId);

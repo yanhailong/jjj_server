@@ -123,6 +123,8 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
+
+            logger.gameResult(playerController.getPlayer(), gameRunInfo,res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
@@ -130,7 +132,7 @@ public class DollarExpressSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回押注结果", false);
-        logger.gameResult(playerController.getPlayer(), gameRunInfo,res);
+
     }
 
 

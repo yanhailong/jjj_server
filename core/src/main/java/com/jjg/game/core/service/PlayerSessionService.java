@@ -116,8 +116,17 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
         return new PFSession(playerSessionInfo.getSessionId(), connect, null);
     }
 
+    /**
+     * 根据玩家id获取session
+     * @param playerId
+     * @return
+     */
     public PFSession getSession(long playerId) {
-        return getSession(getInfo(playerId));
+        PFSession session = clusterSystem.getSession(playerId);
+        if(session == null) {
+            session = getSession(getInfo(playerId));
+        }
+        return session;
     }
 
     public void sendAll(Object object) {

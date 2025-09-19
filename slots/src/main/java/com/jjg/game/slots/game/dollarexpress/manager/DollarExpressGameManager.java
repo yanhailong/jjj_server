@@ -849,11 +849,13 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
     @Override
     protected void offlineSaveGameDataDto(DollarExpressPlayerGameData gameData) {
-        DollarExpressPlayerGameDataDTO dto = gameData.converToDto();
-        dto.setRemainFreeCount(gameData.getRemainFreeCount().get());
-        dto.setInvers(gameData.getInvers().get());
-        dto.setAllUnLock(gameData.getAllUnLock().get());
-        gameDataDao.saveGameData(dto);
+        try{
+            DollarExpressPlayerGameDataDTO dto = gameData.converToDto(DollarExpressPlayerGameDataDTO.class);
+            gameDataDao.saveGameData(dto);
+        }catch (Exception e){
+            log.error("",e);
+        }
+
     }
 
     /**

@@ -13,6 +13,8 @@ import com.jjg.game.slots.game.dollarexpress.pb.ResConfigInfo;
 import com.jjg.game.slots.game.dollarexpress.pb.ResPoolValue;
 import com.jjg.game.slots.game.superstar.data.SuperStarGameRunInfo;
 import com.jjg.game.slots.game.superstar.pb.res.ResSuperStarStartGame;
+import com.jjg.game.slots.logger.SlotsLogger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -25,6 +27,9 @@ import java.util.List;
 public class SuperStarSendMessageManager extends BaseSendMessageManager {
 
     private final SuperStarGameManager gameManager;
+
+    @Autowired
+    private SlotsLogger slotsLogger;
 
     public SuperStarSendMessageManager(SuperStarGameManager gameManager) {
         this.gameManager = gameManager;
@@ -99,6 +104,8 @@ public class SuperStarSendMessageManager extends BaseSendMessageManager {
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
             res.spinInfo = gameRunInfo.getSpinInfo();
+
+            slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo, res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }

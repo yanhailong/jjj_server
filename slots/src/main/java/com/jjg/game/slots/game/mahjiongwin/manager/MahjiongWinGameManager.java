@@ -10,11 +10,13 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameDataDTO;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinGameDataDao;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinResultLibDao;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinPlayerGameData;
+import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinPlayerGameDataDTO;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinResultLib;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
@@ -222,6 +224,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
 
         gameRunInfo.setIconArr(freeGame.getIconArr());
         gameRunInfo.addBigPoolTimes(freeGame.getTimes());
+        gameRunInfo.setResultLib(freeGame);
         return gameRunInfo;
     }
 
@@ -233,7 +236,12 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
 
     @Override
     protected void offlineSaveGameDataDto(MahjiongWinPlayerGameData gameData) {
-
+        try{
+            MahjiongWinPlayerGameDataDTO dto = gameData.converToDto(MahjiongWinPlayerGameDataDTO.class);
+            gameDataDao.saveGameData(dto);
+        }catch (Exception e){
+            log.error("",e);
+        }
     }
 
     @Override

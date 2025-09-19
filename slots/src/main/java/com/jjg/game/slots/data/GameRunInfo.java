@@ -35,8 +35,6 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
     private T data;
     //结果库
     private Object resultLib;
-    //当前结果库中的免费结果
-    private Object currentFreeLib;
 
     public GameRunInfo(int code, long playerId) {
         this.code = code;
@@ -177,13 +175,5 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
 
     public void setResultLib(Object resultLib) {
         this.resultLib = resultLib;
-    }
-
-    public Object getCurrentFreeLib() {
-        return currentFreeLib;
-    }
-
-    public void setCurrentFreeLib(Object currentFreeLib) {
-        this.currentFreeLib = currentFreeLib;
     }
 }

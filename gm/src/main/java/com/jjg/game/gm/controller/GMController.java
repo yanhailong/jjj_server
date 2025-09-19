@@ -32,6 +32,7 @@ import com.jjg.game.gm.vo.*;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -728,13 +729,20 @@ public class GMController extends AbstractController {
                 return fail("common.fail");
             }
 
-            boolean match = dto.products().stream().anyMatch(p -> p.getId() < 1);
+            boolean match = dto.products().stream().anyMatch(p -> p.id() < 1);
             if(match){
                 log.debug("商品的id不能小于1");
                 return fail("common.fail");
             }
 
-            shopProductDao.saveProducts(dto.products());
+            List<ShopProduct> list = new ArrayList<>();
+            dto.products().forEach(p -> {
+                ShopProduct shopProduct = new ShopProduct();
+                BeanUtils.copyProperties(p, shopProduct);
+                list.add(shopProduct);
+            });
+
+            shopProductDao.saveProducts(list);
 
             //通知大厅节点，商城商品变更
             PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyShopProductChange());

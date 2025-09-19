@@ -88,15 +88,12 @@ public class MahjiongWinSendMessageManager extends BaseSendMessageManager {
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
 
-            MahjiongWinResultLib lib;
-            if(res.status == MahjiongWinConstant.Status.FREE){
-                lib = (MahjiongWinResultLib) gameRunInfo.getCurrentFreeLib();
-            }else {
-                lib = (MahjiongWinResultLib) gameRunInfo.getResultLib();
-            }
+            MahjiongWinResultLib lib = (MahjiongWinResultLib) gameRunInfo.getResultLib();
 
             res.rewardIconInfo = addRewardIcons(lib.getIconArr(),lib.getAwardLineInfoList(), gameRunInfo.getData().getOneBetScore());
             res.addIconInfoList = addIconInfos(lib, gameRunInfo);
+
+            slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo,res);
         } else {
             log.debug("开始游戏错误  playerId={},code={}", playerController.playerId(), gameRunInfo.getCode());
         }
@@ -104,7 +101,7 @@ public class MahjiongWinSendMessageManager extends BaseSendMessageManager {
         sendInfo.addPlayerMsg(playerController.playerId(), res);
         sendInfo.getLogMessage().add(res);
         sendRun(playerController, sendInfo, "返回押注结果", false);
-        slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo,res);
+
     }
 
     /**
