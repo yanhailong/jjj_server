@@ -564,7 +564,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             activityTypeData = new ConcurrentHashMap<>();
             //缓存为活动类型->活动数据保存
             for (ActivityData data : tempActivityData.values()) {
-                activityTypeData.computeIfAbsent(data.getType(), k -> new ConcurrentHashMap<>()).put(data.getId(), data);
+                activityTypeData.computeIfAbsent(data.getType(), k -> new ConcurrentHashMap<>()).put(data.getId(),
+                    data);
             }
             //检查是否要主动开启
             for (ActivityData data : activityData.values()) {
@@ -778,7 +779,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             playerPackService.addItems(player.getId(), dropItems, "ACTIVITY_DROP_ITEM");
         if (result.success()) {
             // 记录日志
-            dropItemLogger.recordDropItem(player, activityData.getId(), event.getGameCfgId(), result.data);
+            dropItemLogger.recordDropItem(player, activityData.getId(), event.getGameCfgId(), dropItems, result.data);
         }
         return dropItems;
     }
