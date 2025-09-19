@@ -27,8 +27,10 @@ public class ShopProduct {
     private int endTime;
     //奖励道具
     private Map<Integer,Long> rewardItems;
-    //原价数量
-    private long originalCount;
+    //价值类型
+    int valueType;
+    //价值
+    long value;
     //购买类型  -1.充值  ,其他值则为道具id
     private int payType;
     //价格
@@ -96,12 +98,20 @@ public class ShopProduct {
         this.rewardItems = rewardItems;
     }
 
-    public long getOriginalCount() {
-        return originalCount;
+    public int getValueType() {
+        return valueType;
     }
 
-    public void setOriginalCount(long originalCount) {
-        this.originalCount = originalCount;
+    public void setValueType(int valueType) {
+        this.valueType = valueType;
+    }
+
+    public long getValue() {
+        return value;
+    }
+
+    public void setValue(long value) {
+        this.value = value;
     }
 
     public int getPayType() {

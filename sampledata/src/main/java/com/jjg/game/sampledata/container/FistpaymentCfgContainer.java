@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.AccumulatedRewardsCfg;
+import com.jjg.game.sampledata.bean.FistpaymentCfg;
 
 /**
- * AccumulatedRewards.xlsx配置管理容器
+ * FirstPayment.xlsx配置管理容器
  *
- * @excelName AccumulatedRewards.xlsx
- * @sheetName AccumulatedRewards
+ * @excelName FirstPayment.xlsx
+ * @sheetName fistpayment
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class AccumulatedRewardsCfgContainer extends BaseCfgContainer<AccumulatedRewardsCfg> {
+public class FistpaymentCfgContainer extends BaseCfgContainer<FistpaymentCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -27,23 +27,23 @@ public class AccumulatedRewardsCfgContainer extends BaseCfgContainer<Accumulated
   }
 
   @Override
-  public AccumulatedRewardsCfgContainer getNewContainer(){
-    return new AccumulatedRewardsCfgContainer();
+  public FistpaymentCfgContainer getNewContainer(){
+    return new FistpaymentCfgContainer();
   }
 
-  public AccumulatedRewardsCfgContainer() {
+  public FistpaymentCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("AccumulatedRewards.xlsx");
+    excelNameList.add("FirstPayment.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected AccumulatedRewardsCfg createNewBean() {
-    return new AccumulatedRewardsCfg();
+  protected FistpaymentCfg createNewBean() {
+    return new FistpaymentCfg();
   }
 }

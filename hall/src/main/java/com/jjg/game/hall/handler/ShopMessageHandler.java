@@ -52,7 +52,8 @@ public class ShopMessageHandler implements GmListener {
                 info.id = shopProduct.getId();
                 info.type = shopProduct.getType();
                 info.endTime = shopProduct.getEndTime();
-                info.originalCount = shopProduct.getOriginalCount();
+                info.value = shopProduct.getValue();
+                info.valueType = shopProduct.getValueType();
                 info.payType = shopProduct.getPayType();
                 info.money = shopProduct.getMoney();
                 info.label1 = shopProduct.getLabel1();

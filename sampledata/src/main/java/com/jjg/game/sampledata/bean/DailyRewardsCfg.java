@@ -21,7 +21,9 @@ public class DailyRewardsCfg extends BaseCfgBean {
   /** 签到天数 */
   protected int days;
   /** 签到奖励 */
-  protected Map<Integer,Integer> getItem;
+  protected Map<Integer,Long> getItem;
+  /** 类型 */
+  protected int type;
 
   /** 返回签到天数 */
   public int getDays() {
@@ -29,8 +31,13 @@ public class DailyRewardsCfg extends BaseCfgBean {
   }
 
   /** 返回签到奖励 */
-  public Map<Integer,Integer> getGetItem() {
+  public Map<Integer,Long> getGetItem() {
     return getItem;
+  }
+
+  /** 返回类型 */
+  public int getType() {
+    return type;
   }
 
   @Override

@@ -16,8 +16,10 @@ public class ShopProductInfo {
     public int type;
     @ProtoDesc("结束时间")
     public int endTime;
-    @ProtoDesc("原价数量")
-    public long originalCount;
+    @ProtoDesc("价值类型")
+    public int valueType;
+    @ProtoDesc("价值")
+    public long value;
     @ProtoDesc("购买类型  -1.充值  ,其他值则为道具id")
     public int payType;
     @ProtoDesc("价格")
