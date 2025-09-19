@@ -1,4 +1,4 @@
-package com.jjg.game.hall.constant;
+package com.jjg.game.core.constant;
 
 import com.jjg.game.common.constant.MessageConst;
 

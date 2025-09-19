@@ -1,6 +1,5 @@
-package com.jjg.game.hall.service;
+package com.jjg.game.core.service;
 
-import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
@@ -8,11 +7,8 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.ShopProductDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreSendMessageManager;
-import com.jjg.game.core.service.OrderService;
-import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.service.PlayerSessionService;
-import com.jjg.game.hall.pb.res.NotifyPayCallBack;
-import com.jjg.game.hall.utils.ConditionUtil;
+import com.jjg.game.core.pb.NotifyPayCallBack;
+import com.jjg.game.core.utils.ConditionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +33,7 @@ public class ShopService {
     @Autowired
     private PlayerPackService playerPackService;
     @Autowired
-    private HallPlayerService playerService;
+    private CorePlayerService playerService;
     @Autowired
     private CoreSendMessageManager sendMessageManager;
     @Autowired

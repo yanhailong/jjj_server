@@ -1,10 +1,10 @@
-package com.jjg.game.hall.pb.req;
+package com.jjg.game.core.pb;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.hall.constant.ShopConstant;
+import com.jjg.game.core.constant.ShopConstant;
 
 /**
  * @author 11
