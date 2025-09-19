@@ -1,8 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
 import javax.annotation.processing.Generated;
+import java.util.List;
 /**
  * 配置bean
  *
@@ -30,6 +29,8 @@ public class TexasCfg extends BaseCfgBean {
   protected int burnNum;
   /** 默认带入金币 */
   protected int coinsNum;
+  /** 请离房间（毫秒） */
+  protected int escTime;
   /** 游戏ID */
   protected int gameID;
   /** 保险赔率 */
@@ -38,6 +39,8 @@ public class TexasCfg extends BaseCfgBean {
   protected int pokerPool;
   /** 加注底池操作 */
   protected String pool_OpType;
+  /** 准备阶段时间（毫秒） */
+  protected int preparationTime;
   /** 加注方式 */
   protected int raiseWayType;
   /** 房间类型 */
@@ -79,6 +82,11 @@ public class TexasCfg extends BaseCfgBean {
     return coinsNum;
   }
 
+  /** 返回请离房间（毫秒） */
+  public int getEscTime() {
+    return escTime;
+  }
+
   /** 返回游戏ID */
   public int getGameID() {
     return gameID;
@@ -97,6 +105,11 @@ public class TexasCfg extends BaseCfgBean {
   /** 返回加注底池操作 */
   public String getPool_OpType() {
     return pool_OpType;
+  }
+
+  /** 返回准备阶段时间（毫秒） */
+  public int getPreparationTime() {
+    return preparationTime;
   }
 
   /** 返回加注方式 */

@@ -106,7 +106,6 @@ public class GameDataManager {
   public Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> initAllContainer() {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
-    containerMap.put(AccumulatedRewardsCfg.class, new AccumulatedRewardsCfgContainer());
     containerMap.put(ActivityConfigCfg.class, new ActivityConfigCfgContainer());
     containerMap.put(AlbumCfg.class, new AlbumCfgContainer());
     containerMap.put(AuxiliaryAwardCfg.class, new AuxiliaryAwardCfgContainer());
@@ -130,6 +129,7 @@ public class GameDataManager {
     containerMap.put(DealerFunctionCfg.class, new DealerFunctionCfgContainer());
     containerMap.put(DropDetailedCfg.class, new DropDetailedCfgContainer());
     containerMap.put(DropGroupCfg.class, new DropGroupCfgContainer());
+    containerMap.put(FistpaymentCfg.class, new FistpaymentCfgContainer());
     containerMap.put(GameFunctionCfg.class, new GameFunctionCfgContainer());
     containerMap.put(GameListCfg.class, new GameListCfgContainer());
     containerMap.put(GiftPackCfg.class, new GiftPackCfgContainer());
@@ -590,18 +590,6 @@ public class GameDataManager {
 
   // region===============cfg获取方法模板开始===================
 
-  public static AccumulatedRewardsCfg getAccumulatedRewardsCfg(int key) {
-    return getInstance().getCfgContainer(AccumulatedRewardsCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, AccumulatedRewardsCfg> getAccumulatedRewardsCfgMap() {
-    return getInstance().getCfgContainer(AccumulatedRewardsCfg.class).getCfgBeanMap();
-  }
-
-  public static List<AccumulatedRewardsCfg> getAccumulatedRewardsCfgList() {
-    return getInstance().getCfgContainer(AccumulatedRewardsCfg.class).getCfgBeanList();
-  }
-
   public static ActivityConfigCfg getActivityConfigCfg(int key) {
     return getInstance().getCfgContainer(ActivityConfigCfg.class).getCfgBeanMap().get(key);
   }
@@ -876,6 +864,18 @@ public class GameDataManager {
 
   public static List<DropGroupCfg> getDropGroupCfgList() {
     return getInstance().getCfgContainer(DropGroupCfg.class).getCfgBeanList();
+  }
+
+  public static FistpaymentCfg getFistpaymentCfg(int key) {
+    return getInstance().getCfgContainer(FistpaymentCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, FistpaymentCfg> getFistpaymentCfgMap() {
+    return getInstance().getCfgContainer(FistpaymentCfg.class).getCfgBeanMap();
+  }
+
+  public static List<FistpaymentCfg> getFistpaymentCfgList() {
+    return getInstance().getCfgContainer(FistpaymentCfg.class).getCfgBeanList();
   }
 
   public static GameFunctionCfg getGameFunctionCfg(int key) {

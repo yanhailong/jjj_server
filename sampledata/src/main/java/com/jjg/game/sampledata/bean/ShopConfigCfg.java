@@ -1,8 +1,8 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
 import javax.annotation.processing.Generated;
+import java.util.Date;
+import java.util.Map;
 /**
  * 配置bean
  *
@@ -18,10 +18,8 @@ public class ShopConfigCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "ShopConfig";
 
-  /** 金币或钻石原价数量 */
+  /** 原价值 */
   protected Map<Integer,Long> discount;
-  /** 金币或钻石售价数量 */
-  protected Map<Integer,Long> discountratio;
   /** 结束日期 */
   protected Date endTime;
   /** 道具奖励 */
@@ -36,6 +34,8 @@ public class ShopConfigCfg extends BaseCfgBean {
   protected int money;
   /** 是否开启 */
   protected boolean open;
+  /** 购买类型 */
+  protected int paytype;
   /** 图标 */
   protected String picName;
   /** 开始日期 */
@@ -43,14 +43,9 @@ public class ShopConfigCfg extends BaseCfgBean {
   /** 分类 */
   protected int type;
 
-  /** 返回金币或钻石原价数量 */
+  /** 返回原价值 */
   public Map<Integer,Long> getDiscount() {
     return discount;
-  }
-
-  /** 返回金币或钻石售价数量 */
-  public Map<Integer,Long> getDiscountratio() {
-    return discountratio;
   }
 
   /** 返回结束日期 */
@@ -86,6 +81,11 @@ public class ShopConfigCfg extends BaseCfgBean {
   /** 返回是否开启 */
   public boolean getOpen() {
     return open;
+  }
+
+  /** 返回购买类型 */
+  public int getPaytype() {
+    return paytype;
   }
 
   /** 返回图标 */
