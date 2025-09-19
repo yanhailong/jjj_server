@@ -65,11 +65,17 @@ public class SuperStarGenerateManager extends AbstractSlotsGenerateManager<Super
         if (list == null || list.isEmpty()) {
             return 0;
         }
-
+        Map<Integer, Integer> otherIconAwardInfoMap;
         int times = 0;
         for (SuperStarAwardLineInfo awardLineInfo : list) {
             times += awardLineInfo.getBaseTimes();
+            otherIconAwardInfoMap = awardLineInfo.getOtherIconAwardInfoMap();
+            //额外倍率
+            if (otherIconAwardInfoMap != null && !otherIconAwardInfoMap.isEmpty()) {
+                times += otherIconAwardInfoMap.values().stream().mapToInt(Integer::intValue).sum();
+            }
         }
+
         return times;
     }
 
