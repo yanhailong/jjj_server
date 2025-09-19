@@ -75,6 +75,7 @@ public class PlayerCheckerCategory {
                 int times = (int) Math.floor(totalFlowing / (targetFlowing * 1.0));
                 // 记录触发次数
                 param.setTriggerTimes(times);
+                // 是否需要更新进度
                 if (param.getNeedUpdateProgress()) {
                     long multi = (long) targetFlowing * times;
                     long newlyProgressFlowing = totalFlowing - multi;
@@ -154,7 +155,7 @@ public class PlayerCheckerCategory {
     }
 
     /**
-     * 针对普通房间
+     * 针对指定范围内的游戏ID进行检查
      */
     @Component
     public static class PlayerEffectiveBetInRangeGameChecker extends BaseEffectiveBetChecker {
@@ -186,7 +187,7 @@ public class PlayerCheckerCategory {
     }
 
     /**
-     * 针对普通房间
+     * 针对不在配置范围内的游戏ID检查
      */
     @Component
     public static class PlayerEffectiveBetNotInRangeGameChecker extends BaseEffectiveBetChecker {
@@ -218,7 +219,7 @@ public class PlayerCheckerCategory {
     }
 
     /**
-     * 针对普通房间
+     * 指定游戏类型检查
      */
     @Component
     public static class PlayerEffectiveGameTypeChecker extends BaseEffectiveBetChecker {
@@ -254,7 +255,7 @@ public class PlayerCheckerCategory {
     }
 
     /**
-     * 针对普通房间
+     * 指定房间类型检查
      */
     @Component
     public static class PlayerEffectiveRoomTypeChecker extends BaseEffectiveBetChecker {
