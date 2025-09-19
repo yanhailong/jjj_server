@@ -1,4 +1,4 @@
-package com.jjg.game.hall.handler;
+package com.jjg.game.core.handler;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.MessageConst;
@@ -6,18 +6,14 @@ import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.ShopConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.ShopProduct;
 import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.hall.constant.ShopConstant;
-import com.jjg.game.hall.pb.req.ReqBuyProduct;
-import com.jjg.game.hall.pb.req.ReqShop;
-import com.jjg.game.hall.pb.res.ResBuyProduct;
-import com.jjg.game.hall.pb.res.ResShop;
-import com.jjg.game.hall.pb.struct.ShopProductInfo;
-import com.jjg.game.hall.service.ShopService;
+import com.jjg.game.core.pb.*;
+import com.jjg.game.core.service.ShopService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -22,6 +22,8 @@ public class CoreStartService {
     private ConditionCheckService conditionCheckService;
     @Autowired
     private GameEventManager gameEventManager;
+    @Autowired
+    private ShopService shopService;
 
     /**
      * 启动时初始化
@@ -33,6 +35,7 @@ public class CoreStartService {
         sampleDataManager.init();
         conditionCheckService.initConditionChecker();
         gameEventManager.initEventListener();
+        shopService.init();
     }
 
     /**

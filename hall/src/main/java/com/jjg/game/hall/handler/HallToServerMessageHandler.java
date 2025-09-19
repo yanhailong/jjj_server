@@ -7,8 +7,10 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.handler.CoreToServerMessageHandler;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.core.pb.gm.NotifyShopProductChange;
 import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
 import com.jjg.game.hall.service.HallService;
+import com.jjg.game.core.service.ShopService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +23,6 @@ import org.springframework.stereotype.Component;
 public class HallToServerMessageHandler extends CoreToServerMessageHandler {
     @Autowired
     private HallService hallService;
-
     @Autowired
     private CoreLogger coreLogger;
 
@@ -36,18 +37,5 @@ public class HallToServerMessageHandler extends CoreToServerMessageHandler {
             result = BackendGMCmd.Result.FAIL;
         }
         coreLogger.gmOrder(BackendGMCmd.CHANGE_GAME_STATUS + ":" + req.cmdParam, null, result);
-    }
-
-    @Command(MessageConst.ToServer.NOTICE_SHOP_PRODUCT_CHANGE)
-    public void reqShopProductChange(ReqRefreshGameStatus req) {
-        log.info("收到商城商品变更的命令");
-        String result = BackendGMCmd.Result.SUCCESS;
-        try {
-            hallService.loadShopProducts();
-        } catch (Exception e) {
-            log.error("", e);
-            result = BackendGMCmd.Result.FAIL;
-        }
-//        coreLogger.gmOrder(BackendGMCmd.CHANGE_GAME_STATUS + ":" + req.cmdParam, null, result);
     }
 }

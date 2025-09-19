@@ -5,12 +5,15 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.Command;
+import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.data.Marquee;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.gm.NotifyCarouselUpdate;
+import com.jjg.game.core.pb.gm.NotifyShopProductChange;
 import com.jjg.game.core.pb.gm.ReqAllKickout;
+import com.jjg.game.core.service.ShopService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +29,8 @@ public class CoreToServerMessageHandler {
     private CoreMarqueeManager marqueeManager;
     @Autowired
     private ClusterSystem clusterSystem;
+    @Autowired
+    private ShopService shopService;
 
     /**
      * 其他节点推送的跑马灯信息
@@ -90,6 +95,19 @@ public class CoreToServerMessageHandler {
         } catch (Exception e) {
             log.error("", e);
         }
+    }
+
+    @Command(MessageConst.ToServer.NOTICE_SHOP_PRODUCT_CHANGE)
+    public void reqShopProductChange(NotifyShopProductChange req) {
+        log.info("收到后台发送商城商品变更的命令");
+        String result = BackendGMCmd.Result.SUCCESS;
+        try {
+            shopService.loadShopProducts();
+        } catch (Exception e) {
+            log.error("", e);
+            result = BackendGMCmd.Result.FAIL;
+        }
+//        coreLogger.gmOrder(BackendGMCmd.CHANGE_GAME_STATUS + ":" + req.cmdParam, null, result);
     }
 
 }

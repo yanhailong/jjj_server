@@ -1,4 +1,4 @@
-package com.jjg.game.hall.utils;
+package com.jjg.game.core.utils;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.core.constant.Code;

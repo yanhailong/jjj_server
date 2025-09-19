@@ -108,6 +108,7 @@ public interface MessageConst {
 
         //小游戏
         int MINIGAME = 0x28;
+
         //商城
         int SHOP_TYPE = 0x29;
     }

@@ -7,6 +7,7 @@ import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.hall.casino.manager.CasinoManager;
 import com.jjg.game.hall.listener.HallPlayerEventListener;
 import com.jjg.game.hall.service.HallService;
+import com.jjg.game.core.service.ShopService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -43,6 +44,7 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private HallPlayerEventListener hallPlayerEventListener;
     @Autowired
     private ActivityManager activityManager;
+
     private ApplicationContext context;
 
     private boolean running = false;

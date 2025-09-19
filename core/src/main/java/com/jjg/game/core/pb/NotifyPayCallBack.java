@@ -1,10 +1,10 @@
-package com.jjg.game.hall.pb.res;
+package com.jjg.game.core.pb;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.hall.constant.ShopConstant;
+import com.jjg.game.core.constant.ShopConstant;
 
 import java.util.List;
 

@@ -26,9 +26,8 @@ import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.pb.res.NotifyGameList;
 import com.jjg.game.hall.pb.struct.GameListConfig;
-import com.jjg.game.hall.pb.struct.ShopProductInfo;
 import com.jjg.game.hall.pb.struct.WarePoolInfo;
-import com.jjg.game.hall.utils.ConditionUtil;
+import com.jjg.game.core.utils.ConditionUtil;
 import com.jjg.game.hall.utils.HallTool;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -38,12 +37,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -110,8 +105,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
         //添加更新奖池的定时任务
         addUpdatePoolEvent();
-        //加载商城商品
-        loadShopProducts();
     }
 
     /**
@@ -579,47 +572,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         return new ArrayList<>(set);
     }
 
-    /**
-     * 获取商城
-     *
-     * @param player
-     * @return
-     */
-    public List<ShopProduct> getShop(Player player) {
-        if(this.shopProductMap == null || this.shopProductMap.isEmpty()) {
-            return null;
-        }
-
-        List<ShopProduct> list = new ArrayList<>();
-
-        int now = TimeHelper.nowInt();
-        for(Map.Entry<Integer,ShopProduct> en : this.shopProductMap.entrySet()){
-            ShopProduct shopProduct = en.getValue();
-            //是否开启
-            if(!shopProduct.isOpen()){
-                continue;
-            }
-
-            //检查解锁条件
-            if (ConditionUtil.checkCondition(player, shopProduct.getConditionsMap()) != Code.SUCCESS) {
-                continue;
-            }
-
-            //检查开始时间
-            if(shopProduct.getStartTime() > 0 && now < shopProduct.getStartTime()){
-                continue;
-            }
-
-            //检查开始时间
-            if(shopProduct.getEndTime() > 0 && now > shopProduct.getEndTime()){
-                continue;
-            }
-
-            list.add(shopProduct);
-        }
-        return list;
-    }
-
     /***********************************************************************************************************/
 
     @Override
@@ -782,17 +734,5 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         });
 
         this.poolMap = tmpPoolMap;
-    }
-
-    /**
-     * 加载商城商品
-     */
-    public void loadShopProducts(){
-        List<ShopProduct> all = shopProductDao.getAll();
-        if(all != null && !all.isEmpty()){
-            this.shopProductMap = all.stream()
-                    .collect(Collectors.toUnmodifiableMap(ShopProduct::getId, Function.identity()));
-            log.info("加载商城商品数量 size = {}", this.shopProductMap.size());
-        }
     }
 }
