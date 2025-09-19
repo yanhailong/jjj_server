@@ -5,8 +5,6 @@ import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
-import com.jjg.game.activity.common.message.ActivityBuilder;
-import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.sharepromote.dao.SharePromoteDao;
@@ -209,22 +207,6 @@ public class SharePromoteController extends BaseActivityController {
         }
         return typeInfo;
     }
-
-    @Override
-    public ActivityInfo buildActivityInfo(long playerId, ActivityData activityData) {
-        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-        int claimStatus = 0;
-        if (CollectionUtil.isNotEmpty(playerActivityData)) {
-            for (PlayerActivityData data : playerActivityData.values()) {
-                if (data.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                    claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
-                    break;
-                }
-            }
-        }
-        return ActivityBuilder.buildActivityInfo(activityData, claimStatus);
-    }
-
 
     @Override
     public List<BaseCfgBean> getDetailCfgBean() {

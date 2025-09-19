@@ -16,6 +16,13 @@ public interface ActivityConstant {
         int OPEN_SERVER_TYPE = 1;
     }
 
+    interface DailyLogin {
+        //连续登录详情类型
+        int CONTINUE_TYPE = 1;
+        //累计获得详情类型
+        int CUMULATIVE_TYPE = 2;
+    }
+
     interface ActivityStatus {
         //未开始
         int NOT_START = 1;
@@ -175,5 +182,23 @@ public interface ActivityConstant {
         int REQ_PLAYER_LEVEL_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x3C;
         //玩家领取等级礼包返回
         int RES_PLAYER_LEVEL_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x3D;
+
+
+        //每日签到
+        //每日签到活动信息
+        int RES_DAILY_LOGIN_TYPE_INFO = BASE_MSG_PREFIX | 0x3E;
+        //详细信息
+        int RES_DAILY_LOGIN_DETAIL_INFO = BASE_MSG_PREFIX | 0x3F;
+        //玩家领取每日签到返回
+        int RES_DAILY_LOGIN_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x40;
+
+
+        //首充
+        //响应首充活动类型信息
+        int RES_FIRST_PAYMENT_TYPE_INFO = BASE_MSG_PREFIX | 0x41;
+        //响应首充活动详细信息
+        int RES_FIRST_PAYMENT_DETAIL_INFO = BASE_MSG_PREFIX | 0x42;
+        //响应首充领取活动奖励
+        int RES_FIRST_PAYMENT_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x43;
     }
 }

@@ -5,8 +5,6 @@ import com.jjg.game.activity.activitylog.data.ScratchCardsResult;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.PlayerActivityData;
-import com.jjg.game.activity.common.message.ActivityBuilder;
-import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.common.message.res.ResActivityBuyGift;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -264,14 +262,6 @@ public class ScratchCardsController extends BaseActivityController {
             }
         }
         return cardTypeInfo;
-    }
-
-    /**
-     * 构建前端活动信息
-     */
-    @Override
-    public ActivityInfo buildActivityInfo(long playerId, ActivityData activityData) {
-        return ActivityBuilder.buildActivityInfo(activityData, ActivityConstant.ClaimStatus.CAN_CLAIM);
     }
 
     @Override

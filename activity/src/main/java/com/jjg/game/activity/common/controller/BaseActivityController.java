@@ -6,6 +6,7 @@ import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
+import com.jjg.game.activity.common.message.ActivityBuilder;
 import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -218,7 +219,9 @@ public abstract class BaseActivityController {
      * @param activityData 活动数据
      * @return 活动信息
      */
-    public abstract ActivityInfo buildActivityInfo(long playerId, ActivityData activityData);
+    public ActivityInfo buildActivityInfo(long playerId, ActivityData activityData) {
+        return ActivityBuilder.buildActivityInfo(activityData);
+    }
 
 
     /**

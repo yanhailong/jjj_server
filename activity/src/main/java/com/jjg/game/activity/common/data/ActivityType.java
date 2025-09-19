@@ -2,6 +2,8 @@ package com.jjg.game.activity.common.data;
 
 import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.common.controller.BaseActivityController;
+import com.jjg.game.activity.dailylogin.controller.DailyLoginController;
+import com.jjg.game.activity.firstpayment.controller.FirstPaymentController;
 import com.jjg.game.activity.piggybank.controller.PiggyBankController;
 import com.jjg.game.activity.privilegecard.controller.PrivilegeCardController;
 import com.jjg.game.activity.scratchcards.controller.ScratchCardsController;
@@ -27,6 +29,12 @@ public enum ActivityType {
             ActivityTargetType.NONE.getTargetKey(), true),
     //推广分享
     SHARE_PROMOTE(6, SharePromoteController.class, true, false,
+            ActivityTargetType.RECHARGE.getTargetKey(), false),
+    //每日签到
+    DAILY_LOGIN(10, DailyLoginController.class, true, false,
+            ActivityTargetType.LOGIN.getTargetKey(), false),
+    //首充
+    FIRST_PAYMENT(11, FirstPaymentController.class, false, false,
             ActivityTargetType.RECHARGE.getTargetKey(), false);
     //活动类型
     private final int type;

@@ -1004,7 +1004,8 @@ public class HallMessageHandler implements GmListener {
                 info.id = shopProduct.getId();
                 info.type = shopProduct.getType();
                 info.endTime = shopProduct.getEndTime();
-                info.originalCount = shopProduct.getOriginalCount();
+                info.valueType = shopProduct.getValueType();
+                info.value = shopProduct.getValue();
                 info.money = shopProduct.getMoney();
                 info.label1 = shopProduct.getLabel1();
                 info.label2 = shopProduct.getLabel2();
