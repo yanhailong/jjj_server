@@ -4,8 +4,6 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.PlayerActivityData;
-import com.jjg.game.activity.common.message.ActivityBuilder;
-import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.privilegecard.data.PlayerPrivilegeCard;
@@ -324,24 +322,6 @@ public class PrivilegeCardController extends BaseActivityController {
         return cardTypeInfo;
     }
 
-    /**
-     * 构建玩家活动信息
-     */
-    @Override
-    public ActivityInfo buildActivityInfo(long playerId, ActivityData activityData) {
-        Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-        int claimStatus = 0;
-        if (CollectionUtil.isNotEmpty(playerActivityData)) {
-            long timeMillis = System.currentTimeMillis();
-            for (PlayerPrivilegeCard privilegeCard : playerActivityData.values()) {
-                if (getClaimStatus(privilegeCard, timeMillis) == ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                    claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
-                    break;
-                }
-            }
-        }
-        return ActivityBuilder.buildActivityInfo(activityData, claimStatus);
-    }
 
     @Override
     public List<BaseCfgBean> getDetailCfgBean() {

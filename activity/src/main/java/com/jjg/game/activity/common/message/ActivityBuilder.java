@@ -10,7 +10,7 @@ import com.jjg.game.activity.common.message.bean.ActivityInfo;
 public class ActivityBuilder {
 
 
-    public static ActivityInfo buildActivityInfo(ActivityData data, int claimStatus) {
+    public static ActivityInfo buildActivityInfo(ActivityData data) {
         ActivityInfo activityInfo = new ActivityInfo();
         activityInfo.activityId = data.getId();
         activityInfo.activityType = data.getType().getType();

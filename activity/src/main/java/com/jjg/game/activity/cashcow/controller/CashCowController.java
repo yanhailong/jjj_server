@@ -16,8 +16,6 @@ import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
-import com.jjg.game.activity.common.message.ActivityBuilder;
-import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.listener.IGameClusterLeaderListener;
@@ -590,36 +588,6 @@ public class CashCowController extends BaseActivityController implements TimerLi
 
 
     @Override
-    public ActivityInfo buildActivityInfo(long playerId, ActivityData activityData) {
-        // 生成 ActivityInfo（用于活动红点/可领取提示）：只要有一项可以领取则标记 claimStatus 为可领取
-        long activityProgress = cashCowDao.getPlayerActivityProgress(playerId, activityData.getId());
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-        int claimStatus = 0;
-        Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-        if (CollectionUtil.isNotEmpty(baseCfgBeanMap)) {
-            // 优先判断免费领取状态
-            if (cashCowDao.getFreeRewardsStatus(playerId, activityData.getId())) {
-                claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
-                return ActivityBuilder.buildActivityInfo(activityData, claimStatus);
-            }
-            // 检查每个累计领奖 detail 是否满足可领取（进度达到 && data 标记为 CAN_CLAIM）
-            for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
-                if (cfgBean instanceof CashcowCfg cfg) {
-                    CashCowPlayerActivityData data = playerActivityData.get(cfg.getId());
-                    if (cfg.getType() == ActivityConstant.CashCow.CUMULATIVE_REWARDS_REWARD_TYPE && activityProgress >= cfg.getCondition()) {
-                        if (data != null && data.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                            claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        return ActivityBuilder.buildActivityInfo(activityData, claimStatus);
-    }
-
-
-    @Override
     public List<BaseCfgBean> getDetailCfgBean() {
         // 返回所有摇钱树的 detail 配置（用于活动系统注册）
         return new ArrayList<>(GameDataManager.getCashcowCfgList());
@@ -858,38 +826,30 @@ public class CashCowController extends BaseActivityController implements TimerLi
 
     @Override
     public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
         // 获取玩家该活动的历史数据
-        try {
-            Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-            if (CollectionUtil.isNotEmpty(playerActivityData)) {
-                boolean needRest = false;
-                Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-                Iterator<Map.Entry<Integer, CashCowPlayerActivityData>> iterator = playerActivityData.entrySet().iterator();
-                while (iterator.hasNext()) {
-                    Map.Entry<Integer, CashCowPlayerActivityData> entry = iterator.next();
-                    CashCowPlayerActivityData data = entry.getValue();
-                    // 如果期数数不一致，则需要重置
-                    if (data.getRound() != activityData.getRound()) {
-                        needRest = true;
-                        break;
-                    }
-                    BaseCfgBean baseCfgBean = baseCfgBeanMap.get(entry.getKey());
-                    if (baseCfgBean instanceof CashcowCfg cfg && cfg.getType() == ActivityConstant.CashCow.CUMULATIVE_REWARDS_REWARD_TYPE) {
-                        iterator.remove();
-                    }
+        Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+        if (CollectionUtil.isNotEmpty(playerActivityData)) {
+            boolean needRest = false;
+            Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
+            Iterator<Map.Entry<Integer, CashCowPlayerActivityData>> iterator = playerActivityData.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<Integer, CashCowPlayerActivityData> entry = iterator.next();
+                CashCowPlayerActivityData data = entry.getValue();
+                // 如果期数数不一致，则需要重置
+                if (data.getRound() != activityData.getRound()) {
+                    needRest = true;
+                    break;
                 }
-                if (needRest) {
-                    playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
-                } else {
-                    playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
+                BaseCfgBean baseCfgBean = baseCfgBeanMap.get(entry.getKey());
+                if (baseCfgBean instanceof CashcowCfg cfg && cfg.getType() == ActivityConstant.CashCow.CUMULATIVE_REWARDS_REWARD_TYPE) {
+                    iterator.remove();
                 }
             }
-        } catch (Exception e) {
-            log.error("摇钱树重置数据失败 playerId:{} activityId:{}", playerId, activityData.getId());
-        } finally {
-            redisLock.unlock(lockKey);
+            if (needRest) {
+                playerActivityDao.deletePlayerActivityData(playerId, activityData.getType(), activityData.getId());
+            } else {
+                playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
+            }
         }
         cashCowDao.delPlayerActivityProgress(playerId, activityData.getId());
     }
