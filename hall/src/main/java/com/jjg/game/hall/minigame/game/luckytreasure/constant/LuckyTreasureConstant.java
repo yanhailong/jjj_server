@@ -105,5 +105,17 @@ public interface LuckyTreasureConstant {
         int REQ_RECEIVE_LUCKY_TREASURE = BASE_MSG_MASK | 0x14;
         int RES_RECEIVE_LUCKY_TREASURE = BASE_MSG_MASK | 0x15;
 
+        /**
+         * 请求查看自己参与的所有夺宝奇兵
+         */
+        int REQ_LUCKY_TREASURE_RECORD = BASE_MSG_MASK | 0x16;
+        int RES_LUCKY_TREASURE_RECORD = BASE_MSG_MASK | 0x17;
+
+        /**
+         * 请求查看所有的开奖记录
+         */
+        int REQ_LUCKY_TREASURE_AWARD_HISTORY = BASE_MSG_MASK | 0x18;
+        int RES_LUCKY_TREASURE_AWARD_HISTORY = BASE_MSG_MASK | 0x19;
+
     }
 }

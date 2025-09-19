@@ -105,6 +105,9 @@ public interface MessageConst {
 
         //活动
         int ACTIVITY = 0x27;
+
+        //小游戏
+        int MINIGAME = 0x28;
     }
 
     interface ToClientConst {
@@ -179,6 +182,9 @@ public interface MessageConst {
         int NOTIFY_RED_DOT = BASE_MSG_PREFIX | 0x11;
         //通知道具掉落
         int NOTIFY_ITEM_DROP = BASE_MSG_PREFIX | 0x12;
+        //通知多语言提示弹窗
+        int NOTIFY_TIP = BASE_MSG_PREFIX | 0x13;
+
     }
 
     interface RoomMessage {

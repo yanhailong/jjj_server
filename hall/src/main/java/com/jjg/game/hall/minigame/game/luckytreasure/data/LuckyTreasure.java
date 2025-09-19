@@ -12,6 +12,7 @@ import java.util.Map;
  */
 @Document
 @CompoundIndex(name = "endTime_idx", def = "{'endTime': -1}")
+@CompoundIndex(name = "startTime_idx", def = "{'startTime': -1}")
 @CompoundIndex(name = "issueNumber_idx", def = "{'issueNumber': -1}")
 @CompoundIndex(name = "rewardCode_idx", def = "{'rewardCode': 1}", unique = true)
 public class LuckyTreasure {

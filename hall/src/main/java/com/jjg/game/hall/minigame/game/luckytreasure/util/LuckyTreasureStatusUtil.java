@@ -13,10 +13,26 @@ public class LuckyTreasureStatusUtil {
      * 当前状态 1=可购买,2=等待开奖,3=待领取,4=已领取,5=领奖结束(中奖未领取),6=未中奖
      */
     public static final int STATUS_CAN_BUY = 1;
+
+    /**
+     * 等待开奖
+     */
     public static final int STATUS_WAIT_DRAW = 2;
+    /**
+     * 待领取
+     */
     public static final int STATUS_WAIT_RECEIVE = 3;
+    /**
+     * 已领取
+     */
     public static final int STATUS_RECEIVED = 4;
+    /**
+     * 领奖结束
+     */
     public static final int STATUS_EXPIRED_WINNER = 5;
+    /**
+     * 未中奖
+     */
     public static final int STATUS_NOT_WINNER = 6;
 
     /**
@@ -25,8 +41,20 @@ public class LuckyTreasureStatusUtil {
     public static int calculateStatus(LuckyTreasure treasure, long playerId) {
         long currentTime = System.currentTimeMillis();
 
+        long endTime = treasure.getEndTime();
+
+        //未结束
+        if (endTime == 0) {
+            //已经卖完了
+            if (treasure.getSoldCount() >= treasure.getConfig().getTotal()) {
+                return STATUS_WAIT_DRAW;
+            } else {
+                return STATUS_CAN_BUY;
+            }
+        }
+
         // 如果还没到结束时间，可以购买
-        if (treasure.getEndTime() > 0 && currentTime < treasure.getEndTime()) {
+        if (endTime > 0 && currentTime < endTime) {
             return STATUS_CAN_BUY;
         }
 
@@ -44,7 +72,7 @@ public class LuckyTreasureStatusUtil {
                     return STATUS_RECEIVED;
                 }
                 // 检查是否超过领奖时间
-                long receiveDeadline = treasure.getEndTime() + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
+                long receiveDeadline = endTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
                 if (currentTime > receiveDeadline) {
                     return STATUS_EXPIRED_WINNER;
                 }

@@ -144,7 +144,7 @@ public class LuckyTreasureRedisDao {
             int remainingCount = treasure.getConfig().getTotal() - treasure.getSoldCount();
             if (remainingCount >= count) {
                 // 更新购买数据
-                treasure.getBuyMap().put(playerId, treasure.getBuyMap().getOrDefault(playerId, 0) + count);
+                treasure.getBuyMap().merge(playerId, count, Integer::sum);
                 treasure.setSoldCount(treasure.getSoldCount() + count);
                 int expireMinutes = treasure.getConfig().getTime() + treasure.getConfig().getCollectTime();
                 // 保存回Redis
