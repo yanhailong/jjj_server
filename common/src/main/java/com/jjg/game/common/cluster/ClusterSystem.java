@@ -287,6 +287,21 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
         return null;
     }
 
+    /**
+     * 随机切换到指定类型的节点
+     */
+    public MarsNode switchNode(PFSession pfSession, NodeType nodeType,String ip,long playerId) {
+        try {
+            MarsNode marsNode = randomMarsNode(nodeType, ip, playerId);
+            switchNode(pfSession, marsNode);
+            return marsNode;
+        } catch (Exception e) {
+            log.warn("节点切换异常", e);
+//            e.printStackTrace();
+        }
+        return null;
+    }
+
     public String getNodePath() {
         return nodeManager.getMarNodePath(nodeConfig.getType(), nodeConfig.getName());
     }

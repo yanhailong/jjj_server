@@ -185,7 +185,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
     public int exitGame(PlayerController playerController) {
         try {
             exitRoomAction(playerController.getSession(), true);
-            clusterSystem.switchNode(playerController.getSession(), NodeType.HALL);
+            clusterSystem.switchNode(playerController.getSession(), NodeType.HALL,playerController.ipAddress(), playerController.playerId());
             return Code.SUCCESS;
         } catch (Exception e) {
             log.error("退出房间异常, {}", e.getMessage(), e);
