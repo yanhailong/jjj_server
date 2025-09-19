@@ -105,8 +105,11 @@ public interface MessageConst {
 
         //活动
         int ACTIVITY = 0x27;
+
+        //小游戏
+        int MINIGAME = 0x28;
         //商城
-        int SHOP_TYPE = 0x28;
+        int SHOP_TYPE = 0x29;
     }
 
     interface ToClientConst {

@@ -8,10 +8,10 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
-import com.jjg.game.slots.game.dollarexpress.pb.PoolInfo;
-import com.jjg.game.slots.game.dollarexpress.pb.ResConfigInfo;
-import com.jjg.game.slots.game.dollarexpress.pb.ResPoolValue;
 import com.jjg.game.slots.game.superstar.data.SuperStarGameRunInfo;
+import com.jjg.game.slots.game.superstar.pb.SuperStarPoolInfo;
+import com.jjg.game.slots.game.superstar.pb.res.ResSuperStarConfigInfo;
+import com.jjg.game.slots.game.superstar.pb.res.ResSuperStarPoolValue;
 import com.jjg.game.slots.game.superstar.pb.res.ResSuperStarStartGame;
 import com.jjg.game.slots.logger.SlotsLogger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +47,7 @@ public class SuperStarSendMessageManager extends BaseSendMessageManager {
 
         SendInfo sendInfo = new SendInfo();
 
-        ResConfigInfo res = new ResConfigInfo(Code.SUCCESS);
+        ResSuperStarConfigInfo res = new ResSuperStarConfigInfo(Code.SUCCESS);
         if (config != null) {
             List<long[]> list = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
             res.stakeList = new ArrayList<>(list.size());
@@ -55,7 +55,7 @@ public class SuperStarSendMessageManager extends BaseSendMessageManager {
                 res.stakeList.add(arr[1]);
             }
 
-            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
+            res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().getFirst());
 
             //奖池信息
             if (prizePoolIdList != null && !prizePoolIdList.isEmpty()) {
@@ -65,7 +65,7 @@ public class SuperStarSendMessageManager extends BaseSendMessageManager {
                     if (poolCfg == null) {
                         continue;
                     }
-                    PoolInfo poolInfo = new PoolInfo();
+                    SuperStarPoolInfo poolInfo = new SuperStarPoolInfo();
                     poolInfo.id = poolId;
                     poolInfo.initTimes = poolCfg.getFakePoolInitTimes();
                     poolInfo.maxTimes = poolCfg.getFakePoolMax();
@@ -124,7 +124,7 @@ public class SuperStarSendMessageManager extends BaseSendMessageManager {
     public void sendPoolValue(PlayerController playerController, SuperStarGameRunInfo gameRunInfo) {
         SendInfo sendInfo = new SendInfo();
 
-        ResPoolValue res = new ResPoolValue(gameRunInfo.getCode());
+        ResSuperStarPoolValue res = new ResSuperStarPoolValue(gameRunInfo.getCode());
         if (gameRunInfo.success()) {
             res.mini = gameRunInfo.getMini();
             res.minor = gameRunInfo.getMinor();
