@@ -1,5 +1,7 @@
 package com.jjg.game.activity.common.data;
 
+import com.jjg.game.activity.constant.ActivityConstant;
+
 /**
  * @author lm
  * @date 2025/9/5 11:49
@@ -8,7 +10,7 @@ public class PlayerActivityData {
     //活动id
     private long activityId;
     //领取状态
-    private int claimStatus;
+    private int claimStatus = ActivityConstant.ClaimStatus.NOT_CLAIM;
     //参加的期数
     private long round;
 

@@ -143,7 +143,7 @@ public class GameDataManager {
     containerMap.put(DealerFunctionCfg.class, new DealerFunctionCfgContainer());
     containerMap.put(DropDetailedCfg.class, new DropDetailedCfgContainer());
     containerMap.put(DropGroupCfg.class, new DropGroupCfgContainer());
-    containerMap.put(FistpaymentCfg.class, new FistpaymentCfgContainer());
+    containerMap.put(FirstpaymentCfg.class, new FirstpaymentCfgContainer());
     containerMap.put(GameFunctionCfg.class, new GameFunctionCfgContainer());
     containerMap.put(GameListCfg.class, new GameListCfgContainer());
     containerMap.put(GiftPackCfg.class, new GiftPackCfgContainer());
@@ -880,16 +880,16 @@ public class GameDataManager {
     return getInstance().getCfgContainer(DropGroupCfg.class).getCfgBeanList();
   }
 
-  public static FistpaymentCfg getFistpaymentCfg(int key) {
-    return getInstance().getCfgContainer(FistpaymentCfg.class).getCfgBeanMap().get(key);
+  public static FirstpaymentCfg getFirstpaymentCfg(int key) {
+    return getInstance().getCfgContainer(FirstpaymentCfg.class).getCfgBeanMap().get(key);
   }
 
-  public static Map<Integer, FistpaymentCfg> getFistpaymentCfgMap() {
-    return getInstance().getCfgContainer(FistpaymentCfg.class).getCfgBeanMap();
+  public static Map<Integer, FirstpaymentCfg> getFirstpaymentCfgMap() {
+    return getInstance().getCfgContainer(FirstpaymentCfg.class).getCfgBeanMap();
   }
 
-  public static List<FistpaymentCfg> getFistpaymentCfgList() {
-    return getInstance().getCfgContainer(FistpaymentCfg.class).getCfgBeanList();
+  public static List<FirstpaymentCfg> getFirstpaymentCfgList() {
+    return getInstance().getCfgContainer(FirstpaymentCfg.class).getCfgBeanList();
   }
 
   public static GameFunctionCfg getGameFunctionCfg(int key) {

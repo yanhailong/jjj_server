@@ -1,6 +1,6 @@
 package com.jjg.game.sampledata.container;
 
-import com.jjg.game.sampledata.bean.FistpaymentCfg;
+import com.jjg.game.sampledata.bean.FirstpaymentCfg;
 
 import javax.annotation.processing.Generated;
 import java.util.ArrayList;
@@ -10,11 +10,11 @@ import java.util.List;
  * FirstPayment.xlsx配置管理容器
  *
  * @excelName FirstPayment.xlsx
- * @sheetName fistpayment
+ * @sheetName firstpayment
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class FistpaymentCfgContainer extends BaseCfgContainer<FistpaymentCfg> {
+public class FirstpaymentCfgContainer extends BaseCfgContainer<FirstpaymentCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -27,11 +27,11 @@ public class FistpaymentCfgContainer extends BaseCfgContainer<FistpaymentCfg> {
   }
 
   @Override
-  public FistpaymentCfgContainer getNewContainer(){
-    return new FistpaymentCfgContainer();
+  public FirstpaymentCfgContainer getNewContainer(){
+    return new FirstpaymentCfgContainer();
   }
 
-  public FistpaymentCfgContainer() {
+  public FirstpaymentCfgContainer() {
     super();
   }
 
@@ -43,7 +43,7 @@ public class FistpaymentCfgContainer extends BaseCfgContainer<FistpaymentCfg> {
   }
 
   @Override
-  protected FistpaymentCfg createNewBean() {
-    return new FistpaymentCfg();
+  protected FirstpaymentCfg createNewBean() {
+    return new FirstpaymentCfg();
   }
 }

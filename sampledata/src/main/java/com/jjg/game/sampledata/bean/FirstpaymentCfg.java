@@ -6,19 +6,17 @@ import java.util.Map;
  * 配置bean
  *
  * @excelName FirstPayment.xlsx
- * @sheetName fistpayment
+ * @sheetName firstpayment
  * @author Auto.Generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class FistpaymentCfg extends BaseCfgBean {
+public class FirstpaymentCfg extends BaseCfgBean {
 
   /** 配置表名 */
   public static final String EXCEL_NAME = "FirstPayment.xlsx";
   /** 配置表工作薄名 */
-  public static final String SHEET_NAME = "fistpayment";
+  public static final String SHEET_NAME = "firstpayment";
 
-  /** 激活条件 */
-  protected Map<Integer,Integer> condition;
   /** 头像框奖励 */
   protected Map<Integer,Long> getAvatarFrame;
   /** 金币奖励 */
@@ -27,11 +25,6 @@ public class FistpaymentCfg extends BaseCfgBean {
   protected Map<Integer,Long> getitem;
   /** 购买金额 */
   protected int money;
-
-  /** 返回激活条件 */
-  public Map<Integer,Integer> getCondition() {
-    return condition;
-  }
 
   /** 返回头像框奖励 */
   public Map<Integer,Long> getGetAvatarFrame() {
