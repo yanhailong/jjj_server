@@ -66,7 +66,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess, GmListener, GameEventListener,
-    ConfigExcelChangeListener, IRedDotService {
+        ConfigExcelChangeListener, IRedDotService {
     private static final Logger log = LoggerFactory.getLogger(ActivityManager.class);
     /**
      * 定时器中心，用于添加活动开始/结束的定时任务
@@ -214,7 +214,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * @param tempActivityDetailInfo 活动详情临时数据
      */
     private void loadActivityConfigByExcel(Map<Long, ActivityData> tempActivityData, long currentTime, List<Pair<Long
-        , Long>> timerList, Map<Long, Map<Integer, BaseCfgBean>> tempActivityDetailInfo) {
+            , Long>> timerList, Map<Long, Map<Integer, BaseCfgBean>> tempActivityDetailInfo) {
         List<ActivityConfigCfg> activityConfigCfgList = GameDataManager.getActivityConfigCfgList();
         for (ActivityConfigCfg activityConfigCfg : activityConfigCfgList) {
             ActivityType activityType = ActivityType.fromType(activityConfigCfg.getType());
@@ -227,7 +227,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             }
             long activityInfoId = activityConfigCfg.getId();
             Map<Integer, BaseCfgBean> loadedDetailData =
-                data.getType().getController().loadDetailData(activityDetailInfo.get(activityInfoId));
+                    data.getType().getController().loadDetailData(activityDetailInfo.get(activityInfoId));
             if (CollectionUtil.isNotEmpty(loadedDetailData)) {
                 //移除未配置在ActivityConfigCfg中的活动详情
                 Iterator<Integer> iterator = loadedDetailData.keySet().iterator();
@@ -254,7 +254,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * @param tempActivityData       临时活动数据
      */
     private void loadActivityConfigByDB(long timeMillis, List<Pair<Long, Long>> timerList, Map<Long, Map<Integer,
-        BaseCfgBean>> tempActivityDetailInfo, Map<Long, ActivityData> tempActivityData) {
+            BaseCfgBean>> tempActivityDetailInfo, Map<Long, ActivityData> tempActivityData) {
         List<ActivityData> allActivityInfos = activityDao.getAllActivityInfos();
         for (ActivityData data : allActivityInfos) {
             if (!checkActivityData(data, timeMillis, timerList)) {
@@ -263,7 +263,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             long activityInfoId = data.getId();
             //获取详细配置信息
             Map<Integer, BaseCfgBean> activityDetailInfos = activityDetailDao.getActivityDetailInfos(activityInfoId,
-                data.getType());
+                    data.getType());
             if (CollectionUtil.isNotEmpty(activityDetailInfos)) {
                 tempActivityDetailInfo.put(activityInfoId, activityDetailInfos);
             }
@@ -412,6 +412,10 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             }
             info.activityInfos.add(controller.buildActivityInfo(player.getId(), data));
         }
+        if (firstLogin) {
+            //触发登录活动
+            addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
+        }
         playerController.send(info);
     }
 
@@ -447,7 +451,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 }
                 try {
                     boolean canClaim = data.getType().getController().addPlayerProgress(playerId, data, value,
-                        additionalParameters);
+                            additionalParameters);
                     //如果进度增加后能够领取则放入
                     if (canClaim) {
                         dataArrayList.add(data);
@@ -612,7 +616,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         if ("recharge".equalsIgnoreCase(cmd)) {
             long count = Long.parseLong(gmOrders[1]);
             addPlayerActivityProgress(playerController.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), count
-                , null);
+                    , null);
             return new CommonResult<>(Code.SUCCESS);
         }
 
@@ -663,10 +667,10 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         Player player = effectiveFlowingEvent.getPlayer();
         // 检查道具掉落
         List<Map.Entry<Long, ActivityData>> activityIdList =
-            activityData.entrySet().stream()
-                .filter(entry ->
-                    !CollectionUtils.isEmpty(entry.getValue().getDropCondition()) && !CollectionUtils.isEmpty(entry.getValue().getDropId()))
-                .toList();
+                activityData.entrySet().stream()
+                        .filter(entry ->
+                                !CollectionUtils.isEmpty(entry.getValue().getDropCondition()) && !CollectionUtils.isEmpty(entry.getValue().getDropId()))
+                        .toList();
         List<ActivityItemDropInfo> itemDropInfos = new ArrayList<>();
         for (Map.Entry<Long, ActivityData> activityDataEntry : activityIdList) {
             long activityId = activityDataEntry.getKey();
@@ -678,7 +682,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             List<Integer> dropCondition = activityData.getDropCondition();
             // 条件key
             String conditionKey =
-                ConditionProgressKeyCons.BET_EFFECTIVE_FLOWING + player.getId() + StrConstant.COLON + activityId;
+                    ConditionProgressKeyCons.BET_EFFECTIVE_FLOWING + player.getId() + StrConstant.COLON + activityId;
             ConditionCfg cfg = GameDataManager.getConditionCfg(dropCondition.getFirst());
             EffectiveFlowingParam effectiveFlowingParam = new EffectiveFlowingParam(cfg.getConditionType(), null);
             effectiveFlowingParam.setFlowingValue((Long) effectiveFlowingEvent.getEventChangeValue());
@@ -688,9 +692,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             effectiveFlowingParam.setConditionCfg(dropCondition.subList(1, dropCondition.size()));
             // 检查活动进度是否达到
             boolean triggerRes =
-                conditionCheckService.isTriggerComplete(player, cfg, Collections.singletonList(effectiveFlowingParam));
+                    conditionCheckService.isTriggerComplete(player, cfg, Collections.singletonList(effectiveFlowingParam));
             log.debug("activity id: {} 参数：{} checkRes: {}",
-                activityId, JSON.toJSONString(effectiveFlowingParam), triggerRes);
+                    activityId, JSON.toJSONString(effectiveFlowingParam), triggerRes);
             if (triggerRes) {
                 // 触发次数
                 int triggerTimes = effectiveFlowingParam.getTriggerTimes();
@@ -698,11 +702,11 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 List<Item> dropItems = triggerDropItem(player, activityData, triggerTimes, effectiveFlowingEvent);
                 if (!dropItems.isEmpty()) {
                     ActivityItemDropInfo activityItemDropInfo =
-                        buildActivityDropInfo(activityData, effectiveFlowingEvent.getGameCfgId(), dropItems);
+                            buildActivityDropInfo(activityData, effectiveFlowingEvent.getGameCfgId(), dropItems);
                     itemDropInfos.add(activityItemDropInfo);
                     log.info("玩家：{} 在活动中：{} 游戏：{} 产生有效流水：{} 产出道具：{}",
-                        player.getId(), activityId, effectiveFlowingEvent.getGameCfgId(),
-                        effectiveFlowingParam.getFlowingValue(), dropItems);
+                            player.getId(), activityId, effectiveFlowingEvent.getGameCfgId(),
+                            effectiveFlowingParam.getFlowingValue(), dropItems);
                 }
             }
         }
@@ -731,12 +735,12 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             itemMap.put(dropItem.getId(), itemMap.getOrDefault(dropItem.getId(), 0L) + dropItem.getItemCount());
         }
         activityItemDropInfo.itemMap =
-            itemMap.entrySet().stream().map(item -> {
-                KVInfo kvInfo = new KVInfo();
-                kvInfo.key = item.getKey();
-                kvInfo.value = item.getValue().intValue();
-                return kvInfo;
-            }).toList();
+                itemMap.entrySet().stream().map(item -> {
+                    KVInfo kvInfo = new KVInfo();
+                    kvInfo.key = item.getKey();
+                    kvInfo.value = item.getValue().intValue();
+                    return kvInfo;
+                }).toList();
         return activityItemDropInfo;
     }
 
@@ -744,7 +748,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 触发道具掉落
      */
     private List<Item> triggerDropItem(
-        Player player, ActivityData activityData, int triggerTimes, PlayerEffectiveFlowingEvent event) {
+            Player player, ActivityData activityData, int triggerTimes, PlayerEffectiveFlowingEvent event) {
         Map<Integer, Integer> itemDropGroupCounter = dropItemDao.getItemDropGroupCounter(player.getId());
         if (itemDropGroupCounter == null) {
             itemDropGroupCounter = new HashMap<>();
@@ -763,7 +767,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             });
             // 根据分组配置，获取对应的子包组ID 分组ID <=> 道具ID
             List<Pair<Integer, Item>> randDropItems =
-                itemDropDataHolder.randDropItems(dropIdList, itemDropGroupCounter);
+                    itemDropDataHolder.randDropItems(dropIdList, itemDropGroupCounter);
             if (!CollectionUtils.isEmpty(randDropItems)) {
                 dropItems.addAll(randDropItems.stream().map(Pair::getSecond).toList());
             }
@@ -775,7 +779,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         dropItemDao.updateItemDropGroupCounter(player.getId(), itemDropGroupCounter);
         // 添加道具
         CommonResult<ItemOperationResult> result =
-            playerPackService.addItems(player.getId(), dropItems, "ACTIVITY_DROP_ITEM");
+                playerPackService.addItems(player.getId(), dropItems, "ACTIVITY_DROP_ITEM");
         if (result.success()) {
             // 记录日志
             dropItemLogger.recordDropItem(player, activityData.getId(), event.getGameCfgId(), result.data);
@@ -793,9 +797,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     public void initSampleCallbackCollector() {
         // 添加活动表监听
         addChangeSampleFileObserveWithCallBack(
-            ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this))
-            .addInitSampleFileObserveWithCallBack(
-                ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this));
+                ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this))
+                .addInitSampleFileObserveWithCallBack(
+                        ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this));
     }
 
     /**

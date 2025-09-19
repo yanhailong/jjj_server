@@ -4,8 +4,6 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.PlayerActivityData;
-import com.jjg.game.activity.common.message.ActivityBuilder;
-import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.piggybank.data.PiggyBankData;
@@ -369,27 +367,6 @@ public class PiggyBankController extends BaseActivityController {
     }
 
     /**
-     * 构建单个活动信息
-     */
-    @Override
-    public ActivityInfo buildActivityInfo(long playerId, ActivityData activityData) {
-        Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-        int claimStatus = 0;
-
-        // 判断是否有可领取奖励的子活动
-        if (CollectionUtil.isNotEmpty(playerActivityData)) {
-            for (PiggyBankData data : playerActivityData.values()) {
-                if (data.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                    claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
-                    break;
-                }
-            }
-        }
-
-        return ActivityBuilder.buildActivityInfo(activityData, claimStatus);
-    }
-
-    /**
      * 检查玩家数据并在条件满足时重置
      */
     @Override
@@ -397,45 +374,31 @@ public class PiggyBankController extends BaseActivityController {
         long timeMillis = System.currentTimeMillis();
         boolean change = false;
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
+        Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+        // 遍历所有储钱罐数据
+        for (Map.Entry<Integer, PiggyBankData> piggyBankDataEntry : playerActivityData.entrySet()) {
+            PiggyBankData piggyBankData = piggyBankDataEntry.getValue();
 
-        // 分布式锁
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-        try {
-            Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-
-            // 遍历所有储钱罐数据
-            for (Map.Entry<Integer, PiggyBankData> piggyBankDataEntry : playerActivityData.entrySet()) {
-                PiggyBankData piggyBankData = piggyBankDataEntry.getValue();
-
-                if (piggyBankData.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                    continue; // 未可领取状态跳过
-                }
-
-                BaseCfgBean baseCfgBean = baseCfgBeanMap.get(piggyBankDataEntry.getKey());
-                if (baseCfgBean instanceof PiggyBankCfg cfg) {
-                    // 判断是否到达重置时间
-                    if (piggyBankData.getFullTime() + (long) TimeHelper.ONE_DAY_OF_MILLIS * cfg.getResetime() <= timeMillis) {
-                        // 邮件发奖
-                        mailService.addCfgMail(playerId, ActivityConstant.PiggyBank.MAIL_ID, ItemUtils.buildItems(cfg.getGetitem()));
-
-                        // 重置数据
-                        resetPiggyBankData(piggyBankData);
-                        change = true;
-                    }
-                }
+            if (piggyBankData.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
+                continue; // 未可领取状态跳过
             }
 
-            // 保存数据
-            if (change) {
-                playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
+            BaseCfgBean baseCfgBean = baseCfgBeanMap.get(piggyBankDataEntry.getKey());
+            if (baseCfgBean instanceof PiggyBankCfg cfg) {
+                // 判断是否到达重置时间
+                if (piggyBankData.getFullTime() + (long) TimeHelper.ONE_DAY_OF_MILLIS * cfg.getResetime() <= timeMillis) {
+                    // 邮件发奖
+                    mailService.addCfgMail(playerId, ActivityConstant.PiggyBank.MAIL_ID, ItemUtils.buildItems(cfg.getGetitem()));
+                    // 重置数据
+                    resetPiggyBankData(piggyBankData);
+                    change = true;
+                }
             }
-        } catch (Exception e) {
-            log.error("储钱罐超时自动发奖失败 playerId:{} activityId:{}", playerId, activityData.getId(), e);
-        } finally {
-            redisLock.unlock(lockKey);
         }
-
+        // 保存数据
+        if (change) {
+            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
+        }
         // 调用父类方法
         super.checkPlayerDataAndReset(playerId, activityData);
     }

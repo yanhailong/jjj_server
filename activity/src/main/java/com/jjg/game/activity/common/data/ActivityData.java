@@ -224,7 +224,7 @@ public class ActivityData {
         }
         ActivityData data = new ActivityData();
         data.setId(cfg.getId());
-
+        data.setRound(cfg.getId());
         data.setCondition(cfg.getCondition());
         data.setDuration(cfg.getDuration());
         data.setMarquee(cfg.getMarquee());

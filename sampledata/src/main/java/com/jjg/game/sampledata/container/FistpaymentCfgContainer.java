@@ -1,10 +1,10 @@
 package com.jjg.game.sampledata.container;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.jjg.game.sampledata.bean.FistpaymentCfg;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.FistpaymentCfg;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * FirstPayment.xlsx配置管理容器
