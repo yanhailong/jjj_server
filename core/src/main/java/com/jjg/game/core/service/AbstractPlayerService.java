@@ -2,7 +2,6 @@ package com.jjg.game.core.service;
 
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
-import com.jjg.game.common.utils.ExceptionUtils;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
@@ -27,6 +26,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -826,7 +826,7 @@ public class AbstractPlayerService {
             return result;
         }
 
-        final long[] beforeCoin = {0};
+        LongRef beforeCoin = PrimitiveRef.ofLong(0);
 
         //基础经验倍率
         int baseExpProp = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_BASE_EXP_PROP).getIntValue();
@@ -860,7 +860,7 @@ public class AbstractPlayerService {
 
             @Override
             public Boolean updateDataWithRes(Player player) {
-                beforeCoin[0] = player.getGold();
+                beforeCoin.value = player.getGold();
                 long afterCoin = player.getGold() - num;
                 if (afterCoin < 0) {
                     result.code = Code.NOT_ENOUGH;
@@ -897,7 +897,7 @@ public class AbstractPlayerService {
         //记录日志
         if (p != null) {
             //TODO 后期要排除机器人的情况
-            coreLogger.useGold(p, beforeCoin[0], -num, addType, desc);
+            coreLogger.useGold(p, beforeCoin.value, -num, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
 

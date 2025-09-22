@@ -201,6 +201,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
 
         if (resultLib == null) {
             log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.playerId(), this.gameType, betValue);
+            gameRunInfo.setCode(Code.FAIL);
             return gameRunInfo;
         }
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
