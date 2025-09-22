@@ -1,7 +1,7 @@
-package com.jjg.game.hall.minigame.game.luckytreasure.dao;
+package com.jjg.game.core.dao.luckytreasure;
 
 import com.jjg.game.core.dao.MongoBaseDao;
-import com.jjg.game.hall.minigame.game.luckytreasure.data.LuckyTreasure;
+import com.jjg.game.core.data.LuckyTreasure;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;

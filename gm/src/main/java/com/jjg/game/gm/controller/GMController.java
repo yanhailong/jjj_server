@@ -16,10 +16,8 @@ import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.dao.AccountDao;
-import com.jjg.game.core.dao.MarqueeDao;
-import com.jjg.game.core.dao.OnlinePlayerDao;
-import com.jjg.game.core.dao.ShopProductDao;
+import com.jjg.game.core.dao.*;
+import com.jjg.game.core.dao.luckytreasure.LuckTreasureConfigDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
@@ -76,6 +74,8 @@ public class GMController extends AbstractController {
     private CarouselService carouselService;
     @Autowired
     private ShopProductDao shopProductDao;
+    @Autowired
+    private LuckTreasureConfigDao luckTreasureConfigDao;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -692,13 +692,13 @@ public class GMController extends AbstractController {
         log.info("收到生成结果库的请求请求 param={}", param);
         try {
             ClusterClient clusterClient = null;
-            if(StringUtils.isNotEmpty(param.nodeName())){
+            if (StringUtils.isNotEmpty(param.nodeName())) {
                 clusterClient = clusterSystem.getNodesByName(param.nodeName());
-            }else {
+            } else {
                 clusterClient = clusterSystem.randClientByType(NodeType.GAME, CoreConst.GameMajorType.SLOTS);
             }
 
-            if(clusterClient==null){
+            if (clusterClient == null) {
                 log.debug("未找到对应的游戏节点");
                 return fail("common.fail");
             }
@@ -724,13 +724,13 @@ public class GMController extends AbstractController {
     public WebResult<String> saveShopProducts(@RequestBody SaveShopProductsDto dto) {
         log.info("收到保存商品请求 param={}", dto);
         try {
-            if(dto.products() == null || dto.products().isEmpty()){
+            if (dto.products() == null || dto.products().isEmpty()) {
                 log.debug("保存的商品列表为空");
                 return fail("common.fail");
             }
 
             boolean match = dto.products().stream().anyMatch(p -> p.id() < 1);
-            if(match){
+            if (match) {
                 log.debug("商品的id不能小于1");
                 return fail("common.fail");
             }
@@ -762,7 +762,7 @@ public class GMController extends AbstractController {
     public WebResult<String> delShopProducts(@RequestBody DelShopProductsDto dto) {
         log.info("收到删除商品请求 param={}", dto);
         try {
-            if(dto.productIds() == null || dto.productIds().isEmpty()){
+            if (dto.productIds() == null || dto.productIds().isEmpty()) {
                 log.debug("删除的商品列表为空");
                 return fail("common.fail");
             }
@@ -777,6 +777,62 @@ public class GMController extends AbstractController {
             log.error("", e);
             return fail("common.exception");
         }
+    }
+
+    /**
+     * 获取夺宝奇兵所有配置
+     */
+    @RequestMapping(BackendGMCmd.LUCKY_TREASURE_CONFIG_LIST)
+    public WebResult<List<LuckyTreasureConfig>> luckyTreasureList() {
+        //只读数据库数据 更新同步到内存
+        List<LuckyTreasureConfig> configs = luckTreasureConfigDao.findAll();
+        return success("common.success", configs);
+    }
+
+    /**
+     * 新增/更新夺宝奇兵配置
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.REPLACE_LUCKY_TREASURE_CONFIG)
+    public WebResult<String> replaceLuckyTreasureConfig(LuckyTreasureConfigDto dto) {
+        LuckyTreasureConfig luckyTreasureConfig = dto.castToLuckyTreasureConfig();
+        if (luckyTreasureConfig == null) {
+            return fail("common.paramerror");
+        }
+        luckTreasureConfigDao.save(luckyTreasureConfig);
+        LuckyTreasureConfigUpdate update = new LuckyTreasureConfigUpdate();
+        update.setType(1);
+        update.getJsonList().add(JSON.toJSONString(luckyTreasureConfig));
+        //通知大厅节点
+        PFMessage pfMessage = MessageUtil.getPFMessage(update);
+        clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString())::contains);
+        return success("common.success");
+    }
+
+    /**
+     * 新增/更新夺宝奇兵配置
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.DELETE_LUCKY_TREASURE_CONFIG)
+    public WebResult<String> deleteLuckyTreasureConfig(LuckyTreasureConfigDto dto) {
+        LuckyTreasureConfig luckyTreasureConfig = dto.castToLuckyTreasureConfig();
+        if (luckyTreasureConfig == null) {
+            return fail("common.paramerror");
+        }
+        if (luckyTreasureConfig.getId() <= 0) {
+            return fail("common.paramerror");
+        }
+        //删除配置
+        luckTreasureConfigDao.deleteById(luckyTreasureConfig.getId());
+        LuckyTreasureConfigUpdate update = new LuckyTreasureConfigUpdate();
+        update.setType(2);
+        update.getJsonList().add(JSON.toJSONString(luckyTreasureConfig));
+        //通知大厅节点
+        PFMessage pfMessage = MessageUtil.getPFMessage(update);
+        clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString())::contains);
+        return success("common.success");
     }
 
     //****************************************************************************************************************/

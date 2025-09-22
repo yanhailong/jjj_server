@@ -7,14 +7,15 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.constant.LuckyTreasureConstant;
+import com.jjg.game.core.dao.luckytreasure.LuckyTreasureConfigRedisDao;
+import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
+import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
+import com.jjg.game.core.data.LuckyTreasure;
+import com.jjg.game.core.data.LuckyTreasureConfig;
+import com.jjg.game.hall.minigame.MinigameManager;
 import com.jjg.game.hall.minigame.event.MinigameReadyEvent;
 import com.jjg.game.hall.minigame.game.luckytreasure.bean.LuckyTreasureTimerEvent;
-import com.jjg.game.hall.minigame.game.luckytreasure.constant.LuckyTreasureConstant;
-import com.jjg.game.hall.minigame.game.luckytreasure.dao.LuckyTreasureConfigRedisDao;
-import com.jjg.game.hall.minigame.game.luckytreasure.dao.LuckyTreasureDao;
-import com.jjg.game.hall.minigame.game.luckytreasure.dao.LuckyTreasureRedisDao;
-import com.jjg.game.hall.minigame.game.luckytreasure.data.LuckyTreasure;
-import com.jjg.game.hall.minigame.game.luckytreasure.data.LuckyTreasureConfig;
 import com.jjg.game.hall.minigame.game.luckytreasure.util.RewardCodeGenerator;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
@@ -74,15 +75,17 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * 初始化
      */
     @EventListener(MinigameReadyEvent.class)
-    public void init() {
-        redisLock.tryLockAndRun(LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_INIT, () -> {
-            //检测服务器重启后是否有未处理数据
-            recoverUnsettledRounds();
-            //检查配置
-            ensureConfigurationLoaded();
-            //检查并启动缺失的活动
-            startMissingActivities();
-        });
+    public void init(MinigameReadyEvent event) {
+        if (event.getGameId() == LuckyTreasureConstant.Common.GAME_ID) {
+            redisLock.tryLockAndRun(LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_INIT, () -> {
+                //检测服务器重启后是否有未处理数据
+                recoverUnsettledRounds();
+                //检查配置
+                ensureConfigurationLoaded();
+                //检查并启动缺失的活动
+                startMissingActivities();
+            });
+        }
     }
 
     /**
@@ -382,10 +385,13 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * @param configId 配置ID
      */
     private void startNextRoundForConfig(int configId) {
-        List<LuckyTreasureConfig> configs = luckyTreasureConfigRedisDao.getConfigList();
-        configs.stream()
-                .filter(c -> c.getId() == configId)
-                .findFirst().ifPresent(this::startNewActivityForConfig);
+        if (isOpen()) {
+            //验证小游戏是否开启
+            List<LuckyTreasureConfig> configs = luckyTreasureConfigRedisDao.getConfigList();
+            configs.stream()
+                    .filter(c -> c.getId() == configId && c.isRepeated())
+                    .findFirst().ifPresent(this::startNewActivityForConfig);
+        }
     }
 
     /**
@@ -407,22 +413,19 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      */
     public void reward(LuckyTreasure luckyTreasure) {
         Map<Long, Integer> buyMap = luckyTreasure.getBuyMap();
+        LuckyTreasureConfig config = luckyTreasure.getConfig();
         //计算中奖玩家
-        long winnerPlayerId = randomKey(buyMap, luckyTreasure.getConfig().getTotal());
+        long winnerPlayerId = randomKey(buyMap, config.getTotal());
         //有玩家中奖
         if (winnerPlayerId > 0) {
             luckyTreasure.setAwardPlayerId(winnerPlayerId);
-            LuckyTreasureConfig config = luckyTreasure.getConfig();
             // 根据type类型处理奖励
             if (config.getType() == 1) {
                 String rewardCode = rewardCodeGenerator.generateRewardCode(luckyTreasure.getIssueNumber(), winnerPlayerId);
                 luckyTreasure.setRewardCode(rewardCode);
-                log.info("夺宝奇兵开奖完成(type=1)，期号: {}, 中奖玩家: {}, 领奖码: {}", luckyTreasure.getIssueNumber(), winnerPlayerId, rewardCode);
             }
             //标记未领取
             luckyTreasure.setReceived(false);
-        } else {
-            log.info("夺宝奇兵开奖完成，期号: {}, 无人中奖", luckyTreasure.getIssueNumber());
         }
     }
 
@@ -532,5 +535,11 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
 //        return marsCurator.isMaster();
     }
 
+    /**
+     * 检查当前游戏是否处于开启状态。
+     */
+    public boolean isOpen() {
+        return MinigameManager.getInstance().isOpenGame(LuckyTreasureConstant.Common.GAME_ID);
+    }
 
 }
