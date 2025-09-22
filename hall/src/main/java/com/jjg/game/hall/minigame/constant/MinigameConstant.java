@@ -30,6 +30,10 @@ public interface MinigameConstant {
          */
         String MINIGAME_STATUS = "minigame:status";
         /**
+         * 记录的首次开服时间
+         */
+        String MINIGAME_OPEN_SERVER_TIME_FIRST = "minigame:openServerTime:first:";
+        /**
          * 记录的开服时间 需要根据该时间计算期数以及轮询次数
          */
         String MINIGAME_OPEN_SERVER_TIME = "minigame:openServerTime";

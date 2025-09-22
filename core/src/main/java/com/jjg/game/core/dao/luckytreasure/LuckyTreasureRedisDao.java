@@ -1,7 +1,8 @@
-package com.jjg.game.hall.minigame.game.luckytreasure.dao;
+package com.jjg.game.core.dao.luckytreasure;
 
-import com.jjg.game.hall.minigame.game.luckytreasure.constant.LuckyTreasureConstant;
-import com.jjg.game.hall.minigame.game.luckytreasure.data.LuckyTreasure;
+import com.jjg.game.core.data.LuckyTreasureBuyRecord;
+import com.jjg.game.core.constant.LuckyTreasureConstant;
+import com.jjg.game.core.data.LuckyTreasure;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -37,7 +38,7 @@ public class LuckyTreasureRedisDao {
         // 直接按期号存储活动数据，实现一次查询
         String issueKey = buildIssueMappingKey(luckyTreasure.getIssueNumber());
         redisTemplate.opsForValue().set(issueKey, luckyTreasure, expireMinutes, TimeUnit.MINUTES);
-        
+
         // 同时维护configId到期号的映射，用于按配置ID查询
         String configMappingKey = buildConfigMappingKey(luckyTreasure.getConfig().getId());
         redisTemplate.opsForValue().set(configMappingKey, luckyTreasure.getIssueNumber(), expireMinutes, TimeUnit.MINUTES);
@@ -49,11 +50,11 @@ public class LuckyTreasureRedisDao {
     public LuckyTreasure getActiveRound(int configId) {
         String configMappingKey = buildConfigMappingKey(configId);
         Long issueNumber = (Long) redisTemplate.opsForValue().get(configMappingKey);
-        
+
         if (issueNumber != null) {
             return getTreasureByIssueNumber(issueNumber);
         }
-        
+
         return null;
     }
 
@@ -78,7 +79,7 @@ public class LuckyTreasureRedisDao {
     public void removeActiveRoundByIssueNumber(long issueNumber) {
         String issueKey = buildIssueMappingKey(issueNumber);
         LuckyTreasure treasure = (LuckyTreasure) redisTemplate.opsForValue().get(issueKey);
-        
+
         if (treasure != null) {
             // 删除期号Key
             redisTemplate.delete(issueKey);
@@ -137,7 +138,7 @@ public class LuckyTreasureRedisDao {
     /**
      * 购买夺宝奇兵（原子操作）
      */
-    public boolean buyTreasure(long issueNumber, long playerId, int count) {
+    public LuckyTreasure buyTreasure(long issueNumber, long playerId, int count) {
         LuckyTreasure treasure = getTreasureByIssueNumber(issueNumber);
         if (treasure != null) {
             // 检查剩余数量
@@ -146,13 +147,19 @@ public class LuckyTreasureRedisDao {
                 // 更新购买数据
                 treasure.getBuyMap().merge(playerId, count, Integer::sum);
                 treasure.setSoldCount(treasure.getSoldCount() + count);
+                //增加购买记录
+                LuckyTreasureBuyRecord buyRecord = new LuckyTreasureBuyRecord();
+                buyRecord.setBuyCount(count);
+                buyRecord.setPlayerId(playerId);
+                buyRecord.setBuyTime(System.currentTimeMillis());
+                treasure.getBuyRecordList().add(buyRecord);
                 int expireMinutes = treasure.getConfig().getTime() + treasure.getConfig().getCollectTime();
                 // 保存回Redis
                 updateActiveRound(treasure, expireMinutes);
-                return true;
+                return treasure;
             }
         }
-        return false;
+        return null;
     }
 
     /**

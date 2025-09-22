@@ -1,4 +1,4 @@
-package com.jjg.game.hall.minigame.game.luckytreasure.constant;
+package com.jjg.game.core.constant;
 
 import com.jjg.game.common.constant.MessageConst;
 

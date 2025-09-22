@@ -8,7 +8,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.hall.minigame.MinigameManager;
 import com.jjg.game.hall.minigame.constant.MinigameConstant;
-import com.jjg.game.hall.minigame.game.luckytreasure.constant.LuckyTreasureConstant;
+import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.req.*;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.res.ResBuyLuckyTreasure;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.res.ResLuckyTreasureInfo;

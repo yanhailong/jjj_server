@@ -1,12 +1,14 @@
 package com.jjg.game.hall.minigame;
 
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.hall.minigame.constant.MinigameConstant;
 import com.jjg.game.hall.minigame.event.MinigameReadyEvent;
 import com.jjg.game.sampledata.GameDataManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -24,6 +26,8 @@ public class MinigameManager {
 
     private final Logger log = LoggerFactory.getLogger(MinigameManager.class);
 
+    private static volatile MinigameManager minigameManagerInstance;
+
     private final RedisLock redisLock;
 
     private final RedisTemplate redisTemplate;
@@ -37,10 +41,29 @@ public class MinigameManager {
     }
 
     /**
+     * 获取MinigameManager的单例实例。
+     */
+    public static MinigameManager getInstance() {
+        if (minigameManagerInstance == null) {
+            synchronized (MinigameManager.class) {
+                if (minigameManagerInstance == null) {
+                    ApplicationContext context = CommonUtil.getContext();
+                    if (context == null) {
+                        throw new IllegalStateException("ApplicationContext is not available");
+                    }
+                    minigameManagerInstance = context.getBean(MinigameManager.class);
+                }
+            }
+        }
+        return minigameManagerInstance;
+    }
+
+    /**
      * 初始化
      */
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
+        long now = System.currentTimeMillis();
         redisLock.tryLockAndRun(MinigameConstant.RedisLock.MINIGAME_INIT_LOCK, () -> {
             //加载配置
             Map<Integer, Integer> entries = redisTemplate.opsForHash().entries(MinigameConstant.RedisKey.MINIGAME_CONFIG);
@@ -48,12 +71,22 @@ public class MinigameManager {
                 GameDataManager.getMiniGameListCfgList()
                         .forEach(miniGameListCfg -> entries.put(miniGameListCfg.getId(), miniGameListCfg.getStatus()));
                 redisTemplate.opsForHash().putAll(MinigameConstant.RedisKey.MINIGAME_STATUS, entries);
-                long now = System.currentTimeMillis();
-                //重置记录的开服时间
-                redisTemplate.opsForValue().set(MinigameConstant.RedisKey.MINIGAME_OPEN_SERVER_TIME, now);
-                log.info("ready to init minigame server");
-                eventPublisher.publishEvent(new MinigameReadyEvent());
             }
+            Long time = (Long) redisTemplate.opsForValue().get(MinigameConstant.RedisKey.MINIGAME_OPEN_SERVER_TIME_FIRST);
+            //记录首次开服时间
+            if (time == null || time < 0) {
+                redisTemplate.opsForValue().set(MinigameConstant.RedisKey.MINIGAME_OPEN_SERVER_TIME_FIRST, now);
+            }
+            //重置记录的开服时间
+            redisTemplate.opsForValue().set(MinigameConstant.RedisKey.MINIGAME_OPEN_SERVER_TIME, now);
+            log.info("ready to init minigame server");
+            entries.forEach((key, value) -> {
+                if (value == 0) {
+                    MinigameReadyEvent event = new MinigameReadyEvent();
+                    event.setGameId(key);
+                    eventPublisher.publishEvent(event);
+                }
+            });
         });
     }
 
@@ -80,6 +113,14 @@ public class MinigameManager {
             });
         }
         return openGameList;
+    }
+
+    /**
+     * 判断指定游戏是否开启
+     */
+    public boolean isOpenGame(int gameId) {
+        Integer status = (Integer) redisTemplate.opsForHash().get(MinigameConstant.RedisKey.MINIGAME_STATUS, gameId);
+        return status != null && status == 1;
     }
 
 }

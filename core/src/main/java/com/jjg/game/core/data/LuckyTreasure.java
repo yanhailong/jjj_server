@@ -1,10 +1,11 @@
-package com.jjg.game.hall.minigame.game.luckytreasure.data;
+package com.jjg.game.core.data;
 
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -62,6 +63,16 @@ public class LuckyTreasure {
      * 玩家是否已领奖（仅type=1时需要）
      */
     private boolean received;
+
+    /**
+     * 领奖时间
+     */
+    private long receiveTime;
+
+    /**
+     * 购买记录
+     */
+    private List<LuckyTreasureBuyRecord> buyRecordList = new ArrayList<>();
 
     public Long getIssueNumber() {
         return issueNumber;
@@ -133,5 +144,21 @@ public class LuckyTreasure {
 
     public void setReceived(boolean received) {
         this.received = received;
+    }
+
+    public long getReceiveTime() {
+        return receiveTime;
+    }
+
+    public void setReceiveTime(long receiveTime) {
+        this.receiveTime = receiveTime;
+    }
+
+    public List<LuckyTreasureBuyRecord> getBuyRecordList() {
+        return buyRecordList;
+    }
+
+    public void setBuyRecordList(List<LuckyTreasureBuyRecord> buyRecordList) {
+        this.buyRecordList = buyRecordList;
     }
 }

@@ -1,4 +1,4 @@
-package com.jjg.game.hall.minigame.game.luckytreasure.data;
+package com.jjg.game.core.data;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
@@ -68,6 +68,11 @@ public class LuckyTreasureConfig {
      * 类型
      */
     private int type;
+
+    /**
+     * 是否重复 后台修改的开关,如果false则上一期结束后不会再开下一期
+     */
+    private boolean repeated;
 
     public int getId() {
         return id;
@@ -155,5 +160,13 @@ public class LuckyTreasureConfig {
 
     public void setType(int type) {
         this.type = type;
+    }
+
+    public boolean isRepeated() {
+        return repeated;
+    }
+
+    public void setRepeated(boolean repeated) {
+        this.repeated = repeated;
     }
 }

@@ -219,5 +219,8 @@ public interface MessageConst {
         int NOTICE_GENERATE_LIB = BASE_MSG_PREFIX | 0x7;
         //通知商城商品变更
         int NOTICE_SHOP_PRODUCT_CHANGE = BASE_MSG_PREFIX | 0x8;
+
+        //通知大厅节点夺宝奇兵配置更新
+        int NOTICE_ALL_UPDATE_LUCKY_TREASURE = BASE_MSG_PREFIX | 0x9;
     }
 }
