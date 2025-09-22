@@ -5,14 +5,13 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.Command;
+import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureConfigRedisDao;
-import com.jjg.game.core.data.LuckyTreasureConfig;
 import com.jjg.game.core.data.Marquee;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
-import com.jjg.game.core.pb.gm.LuckyTreasureConfigUpdate;
 import com.jjg.game.core.pb.gm.NotifyCarouselUpdate;
 import com.jjg.game.core.pb.gm.NotifyShopProductChange;
 import com.jjg.game.core.pb.gm.ReqAllKickout;
@@ -20,8 +19,6 @@ import com.jjg.game.core.service.ShopService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.List;
 
 /**
  * @author 11
@@ -38,6 +35,8 @@ public class CoreToServerMessageHandler {
     private ShopService shopService;
     @Autowired
     private LuckyTreasureConfigRedisDao luckyTreasureConfigRedisDao;
+    @Autowired
+    private RedisLock redisLock;
 
     /**
      * 其他节点推送的跑马灯信息
@@ -115,23 +114,6 @@ public class CoreToServerMessageHandler {
             result = BackendGMCmd.Result.FAIL;
         }
 //        coreLogger.gmOrder(BackendGMCmd.CHANGE_GAME_STATUS + ":" + req.cmdParam, null, result);
-    }
-
-    /**
-     * 更新夺宝奇兵配置
-     *
-     */
-    @Command(MessageConst.ToServer.NOTICE_ALL_UPDATE_LUCKY_TREASURE)
-    public void updateLuckyTreasureConfig(LuckyTreasureConfigUpdate req) {
-        int type = req.getType();
-        List<LuckyTreasureConfig> luckyTreasureConfigs = req.getJsonList().stream().map(s -> JSON.parseObject(s, LuckyTreasureConfig.class)).toList();
-        luckyTreasureConfigs.forEach(config -> {
-            if (type == 1) {
-                luckyTreasureConfigRedisDao.replaceConfigMap(config.getId(), config);
-            } else if (type == 2) {
-                luckyTreasureConfigRedisDao.deleteConfigMap(config.getId());
-            }
-        });
     }
 
 }

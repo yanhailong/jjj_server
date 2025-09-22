@@ -90,6 +90,11 @@ public interface LuckyTreasureConstant {
          * 领取夺宝奇兵奖励锁前缀
          */
         String LUCKY_TREASURE_RECEIVE = "luckyTreasure:receive:";
+
+        /**
+         * 更新配置锁
+         */
+        String LUCKY_TREASURE_CONFIG = "luckyTreasure:config:";
     }
 
     /**
