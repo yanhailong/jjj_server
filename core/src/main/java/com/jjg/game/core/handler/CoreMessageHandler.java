@@ -141,7 +141,7 @@ public class CoreMessageHandler {
                 log.debug("收到添加经验的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), arr);
                 long num = Long.parseLong(params);
                 CommonResult<Player> result =
-                        playerService.betDeductGold(playerController.playerId(), num, true, "gmtest");
+                        playerService.betDeductGold(playerController.playerId(), num, true, true,"gmtest");
                 res.code = result.code;
                 playerController.send(res);
                 return;
@@ -208,8 +208,7 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setGold(result.data.getGold());
-        coreSendMessageManager.buildMoneyChangeMessage(
-                playerController, result.data.getGold(), result.data.getDiamond(), result.data.getVipLevel());
+        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data);
     }
 
     /**
@@ -230,8 +229,7 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setGold(result.data.getGold());
-        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data.getGold(),
-                result.data.getDiamond(), result.data.getVipLevel());
+        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data);
     }
 
     /**
@@ -252,8 +250,7 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setDiamond(result.data.getDiamond());
-        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data.getGold(),
-                result.data.getDiamond(), result.data.getVipLevel());
+        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data);
     }
 
     /**
@@ -275,8 +272,7 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setDiamond(result.data.getDiamond());
-        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data.getGold(),
-                result.data.getDiamond(), result.data.getVipLevel());
+        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data);
     }
 
     /**
@@ -298,8 +294,7 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setVipLevel(result.data.getVipLevel());
-        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data.getGold(),
-                result.data.getDiamond(), result.data.getVipLevel());
+        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data);
     }
 
     private void addItem(ResGm res, PlayerController playerController, String[] orders) throws Exception {

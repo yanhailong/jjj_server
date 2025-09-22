@@ -529,6 +529,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         int size = specialAuxiliaryInfo.getFreeGames().size();
 
+        log.debug("size = {},remain = {}", size,playerGameData.getRemainFreeCount().get());
         JSONObject jsonObject = specialAuxiliaryInfo.getFreeGames().get(size - playerGameData.getRemainFreeCount().get());
         L freeGame = JSON.parseObject(jsonObject.toJSONString(), this.libClass);
 //        DollarExpressResultLib freeGame = (DollarExpressResultLib) specialAuxiliaryInfo.getAwardInfos().get(size - playerGameData.getRemainFreeCount().get());
@@ -986,9 +987,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     protected abstract <D extends AbstractSlotsGenerateManager> D getGenerateManager();
 
-    protected T setGameDataValues(T d, SlotsPlayerGameDataDTO dto) {
-        return null;
-    }
+    protected abstract T setGameDataValues(T d, SlotsPlayerGameDataDTO dto);
 
     /**
      * 检查已离线的玩家，并且要保存数据

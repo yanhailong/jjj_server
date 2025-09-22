@@ -6,6 +6,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.ShopProductDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.pb.NotifyPayCallBack;
 import com.jjg.game.core.utils.ConditionUtil;
@@ -38,6 +39,8 @@ public class ShopService {
     private CoreSendMessageManager sendMessageManager;
     @Autowired
     private PlayerSessionService playerSessionService;
+    @Autowired
+    private CoreLogger coreLogger;
 
     //商城商品
     private Map<Integer, ShopProduct> shopProductMap;
@@ -114,6 +117,7 @@ public class ShopService {
         if(result.data.getDiamond() > 0 || result.data.getGoldNum() > 0) {
             sendMessageManager.buildMoneyChangeMessage(playerController.playerId(),playerService);
         }
+        coreLogger.order(playerController.getPlayer(),shopProduct);
         return result;
     }
 
@@ -153,6 +157,9 @@ public class ShopService {
             session.send(notify);
         }
 
+        Player player = playerService.get(order.getPlayerId());
+
+        coreLogger.order(player,shopProduct,order);
         log.debug("模拟充值回调成功 playerId = {},orderId = {}", orderId, orderId);
         return Code.SUCCESS;
     }
