@@ -6,8 +6,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.jjg.game.common.config.NodeConfig;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.RobotPlayer;
+import com.jjg.game.core.data.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -350,6 +349,23 @@ public class BaseLogger {
         return snowflakeNextId;
     }
 
+    /**
+     * 订单
+     * @param player
+     * @param shopProduct
+     */
+    public void order(Player player, ShopProduct shopProduct,Order order) {
+        order(player,shopProduct,order.getPrice(),order.getOrderStatus());
+    }
+
+    /**
+     * 订单
+     * @param player
+     * @param shopProduct
+     */
+    public void order(Player player, ShopProduct shopProduct) {
+        order(player,shopProduct,shopProduct.getMoney(),OrderStatus.SUCCESS);
+    }
 
     /***********************************************************************************************/
 
@@ -427,5 +443,31 @@ public class BaseLogger {
         json.put("safeBoxDiamondChange", SafeBoxDiamondChange);
         json.put("afterSafeBoxDiamond", afterSafeBoxDiamond);
         return json;
+    }
+
+    private void order(Player player, ShopProduct shopProduct,long price, OrderStatus orderStatus) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("nick", player.getNickName());
+            json.put("type", shopProduct.getType());
+            json.put("productId", shopProduct.getId());
+            json.put("payType", shopProduct.getPayType());
+            json.put("money", price);
+            json.put("status", orderStatus);
+
+            if(shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
+                JSONArray jsonArray = new JSONArray();
+                shopProduct.getRewardItems().forEach((k,v) -> {
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("itemId", k);
+                    jsonObject.put("count", v);
+                    jsonArray.add(jsonObject);
+                });
+                json.put("items", jsonArray);
+            }
+            sendLog("order", player, json);
+        } catch (Exception e) {
+            log.error("", e);
+        }
     }
 }

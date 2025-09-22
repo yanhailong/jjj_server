@@ -1,7 +1,7 @@
-package com.jjg.game.hall.minigame.game.luckytreasure.dao;
+package com.jjg.game.core.dao.luckytreasure;
 
 import com.jjg.game.core.dao.MongoBaseDao;
-import com.jjg.game.hall.minigame.game.luckytreasure.data.LuckyTreasureConfig;
+import com.jjg.game.core.data.LuckyTreasureConfig;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;

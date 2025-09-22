@@ -9,11 +9,11 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.hall.minigame.game.luckytreasure.bean.LuckyTreasureConsumeInfo;
-import com.jjg.game.hall.minigame.game.luckytreasure.constant.LuckyTreasureConstant;
-import com.jjg.game.hall.minigame.game.luckytreasure.dao.LuckyTreasureDao;
-import com.jjg.game.hall.minigame.game.luckytreasure.dao.LuckyTreasureRedisDao;
-import com.jjg.game.hall.minigame.game.luckytreasure.data.LuckyTreasure;
-import com.jjg.game.hall.minigame.game.luckytreasure.data.LuckyTreasureConfig;
+import com.jjg.game.core.constant.LuckyTreasureConstant;
+import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
+import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
+import com.jjg.game.core.data.LuckyTreasure;
+import com.jjg.game.core.data.LuckyTreasureConfig;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureHistory;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureInfo;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.res.ResBuyLuckyTreasure;
@@ -226,9 +226,9 @@ public class LuckyTreasureService {
             }
 
             // 执行购买
-            boolean buySuccess = luckyTreasureRedisDao.buyTreasure(latestTreasure.getIssueNumber(), player.getId(), count);
+            latestTreasure = luckyTreasureRedisDao.buyTreasure(latestTreasure.getIssueNumber(), player.getId(), count);
 
-            if (!buySuccess) {
+            if (latestTreasure == null) {
                 // 购买失败，退还道具
                 playerPackService.addItems(player.getId(), consumeMap, "luckyTreasureBuyFailedRollback");
                 TipUtils.sendTip(player.getId(), TipUtils.TipType.TOAST, 50030);
@@ -410,6 +410,14 @@ public class LuckyTreasureService {
     }
 
     /**
+     * 领取奖励
+     */
+    public boolean receive(PlayerController playerController, long issueNumber) {
+        return redisLock.tryLockAndGet(LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_RECEIVE + issueNumber,
+                () -> this.receiveReward(playerController, issueNumber));
+    }
+
+    /**
      * 执行领取奖励逻辑
      */
     public boolean receiveReward(PlayerController playerController, long issueNumber) {
@@ -436,6 +444,11 @@ public class LuckyTreasureService {
                 return false;
             }
 
+            //不是道具奖励不处理
+            if (latestTreasure.getConfig().getType() != 2) {
+                return false;
+            }
+
             // 发放奖励道具
             LuckyTreasureConfig config = latestTreasure.getConfig();
             Map<Integer, Long> rewardMap = new HashMap<>();
@@ -447,9 +460,10 @@ public class LuckyTreasureService {
             if (!addResult.success()) {
                 return false;
             }
-
             // 更新领取状态
             latestTreasure.setReceived(true);
+            //记录领奖的时间戳
+            latestTreasure.setReceiveTime(System.currentTimeMillis());
             luckyTreasureDao.save(latestTreasure);
 
             log.info("夺宝奇兵奖励领取成功, 玩家ID:{}, 期号:{}, 领奖码:{}, 道具ID:{}, 数量:{}", playerId, latestTreasure.getIssueNumber(),

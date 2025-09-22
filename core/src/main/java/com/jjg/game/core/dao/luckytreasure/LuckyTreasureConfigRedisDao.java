@@ -1,7 +1,7 @@
-package com.jjg.game.hall.minigame.game.luckytreasure.dao;
+package com.jjg.game.core.dao.luckytreasure;
 
-import com.jjg.game.hall.minigame.game.luckytreasure.constant.LuckyTreasureConstant;
-import com.jjg.game.hall.minigame.game.luckytreasure.data.LuckyTreasureConfig;
+import com.jjg.game.core.constant.LuckyTreasureConstant;
+import com.jjg.game.core.data.LuckyTreasureConfig;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -48,4 +48,14 @@ public class LuckyTreasureConfigRedisDao {
     public void deleteConfigMap() {
         redisTemplate.delete(LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_CONFIG);
     }
+
+    /**
+     * 删除Redis中存储的指定id的夺宝奇兵缓存
+     *
+     * @param id 配置id
+     */
+    public void deleteConfigMap(int id) {
+        redisTemplate.opsForHash().delete(LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_CONFIG, id);
+    }
+
 }

@@ -10,6 +10,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameDataDTO;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinGameDataDao;
@@ -252,6 +253,11 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
     @Override
     protected MahjiongWinGenerateManager getGenerateManager() {
         return this.generateManager;
+    }
+
+    @Override
+    protected MahjiongWinPlayerGameData setGameDataValues(MahjiongWinPlayerGameData d, SlotsPlayerGameDataDTO dto) {
+        return d;
     }
 
     @Override

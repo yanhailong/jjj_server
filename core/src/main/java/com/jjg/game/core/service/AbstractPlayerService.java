@@ -471,7 +471,11 @@ public class AbstractPlayerService {
     }
 
     public CommonResult<Player> betDeductGold(long playerId, long addNum, boolean effective, String addType) {
-        return betDeductGold(playerId, addNum, addType, effective, null);
+        return betDeductGold(playerId, addNum, addType, effective,false, null);
+    }
+
+    public CommonResult<Player> betDeductGold(long playerId, long addNum, boolean effective, boolean notify, String addType) {
+        return betDeductGold(playerId, addNum, addType, effective,notify, null);
     }
 
     public CommonResult<Player> deductGoldAndDiamond(long playerId, long goldNum, long diamondNum, String addType) {
@@ -814,7 +818,7 @@ public class AbstractPlayerService {
      * @return
      */
     public CommonResult<Player> betDeductGold(
-        long playerId, long num, String addType, boolean effective, String desc) {
+        long playerId, long num, String addType, boolean effective,boolean notify, String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (num < 1) {
             log.warn("押注扣除金币错误 playerId={},num={}", playerId, num);
@@ -883,9 +887,7 @@ public class AbstractPlayerService {
 
                 player = levelUp(player, cfg);
                 if (effective) {
-                    if (VipUtil.checkVipLevel(player, num)) {
-                        sendMessageManager.buildMoneyChangeMessage(player);
-                    }
+                    VipUtil.checkVipLevel(player, num);
                 }
                 log.info("玩家押注获取经验 playerId = {},addExp = {},level = {}", playerId, tmpAddExp, player.getLevel());
                 return true;
@@ -898,6 +900,11 @@ public class AbstractPlayerService {
             coreLogger.useGold(p, beforeCoin[0], -num, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
+
+            //是否通知客户端
+            if (notify) {
+                sendMessageManager.buildMoneyChangeMessage(p);
+            }
             return result;
         }
         return result;
