@@ -123,7 +123,7 @@ public class PlayerLevelPackManager implements GameEventListener {
         long currentTimeMillis = System.currentTimeMillis();
         info.detailInfo = new ArrayList<>(playerLevelPackData.size());
         for (PlayerLevelPackData data : playerLevelPackData.values()) {
-            if (data.getClaimStatus() == ActivityConstant.ClaimStatus.CLAIMED) {
+            if (data.getClaimStatus() == ActivityConstant.ClaimStatus.CLAIMED || data.getBuyEndTime() < currentTimeMillis) {
                 continue;
             }
             PlayerLevelPackCfg packCfg = GameDataManager.getPlayerLevelPackCfg(data.getId());

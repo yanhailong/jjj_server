@@ -279,7 +279,7 @@ public class ActivityMessageHandler {
      *
      * @param playerController 玩家信息
      */
-    @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_CLAIM_REWARDS)
+    @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_PACK_DETAIL_INFO)
     public void reqPlayerLevelPackDetailInfo(PlayerController playerController, ReqPlayerLevelPackDetailInfo req) {
         playerController.send(playerLevelPackManager.reqPlayerLevelPackDetailInfo(playerController, req));
     }
