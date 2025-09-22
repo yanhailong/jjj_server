@@ -39,6 +39,8 @@ public interface ActivityConstant {
         int CAN_CLAIM = 2;
         //已领取
         int CLAIMED = 3;
+        //已购买
+        int ALREADY_BUG = 4;
     }
 
     //摇钱树
@@ -86,6 +88,21 @@ public interface ActivityConstant {
         int MAX_RECODE_NUM = 20;
     }
 
+    interface OfficialAwards {
+        //统计类型充值
+        int CALCULATION_RECHARGE = 1;
+        //统计有效流水
+        int CALCULATION_EFFECTIVE_WATER_FLOW = 1;
+        // 30 官方派奖每个转盘需求积分：初、中、高
+        int NEED_POINTS = 30;
+        //31 官方派奖转盘奖池金币数量
+        int INITIAL_AMOUNT = 31;
+        //32 官方派奖：有效下注转换积分比例 ：有效下注 = X积分
+        int EFFECTIVE_WATER_FLOW_CONVERT_RATIO = 32;
+        //33 官方派奖：充值转换积分比例 ：充值金额 = X积分
+        int RECHARGE_CONVERT_RATIO = 32;
+
+    }
 
     interface MsgBean {
         int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.ACTIVITY << MessageConst.MessageCommon.RIGHT_MOVE;
@@ -200,5 +217,14 @@ public interface ActivityConstant {
         int RES_FIRST_PAYMENT_DETAIL_INFO = BASE_MSG_PREFIX | 0x42;
         //响应首充领取活动奖励
         int RES_FIRST_PAYMENT_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x43;
+
+
+        //官方派奖
+        //响应官方派奖活动详细信息
+        int RES_OFFICIAL_AWARDS_DETAIL_INFO = BASE_MSG_PREFIX | 0x44;
+        //响应官方派奖参加活动
+        int RES_OFFICIAL_AWARDS_JOIN_ACTIVITY = BASE_MSG_PREFIX | 0x45;
+        //响应官方派奖活动类型信息
+        int RES_OFFICIAL_AWARDS_TYPE_INFO = BASE_MSG_PREFIX | 0x46;
     }
 }

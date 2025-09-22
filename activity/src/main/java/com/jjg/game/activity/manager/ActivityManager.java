@@ -277,6 +277,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     @Scheduled(cron = "0 0 0/6 * * ?")
     private void saveActivity() {
         if (isExecutionNode()) {
+
             Map<Long, ActivityData> dataHashMap = new HashMap<>(activityData);
             activityDao.saveActivities(dataHashMap);
             Map<Long, Map<Integer, BaseCfgBean>> longMapHashMap = new HashMap<>(activityDetailInfo);
@@ -450,10 +451,10 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     continue;
                 }
                 try {
-                    boolean canClaim = data.getType().getController().addPlayerProgress(playerId, data, value,
+                    boolean changeStatus = data.getType().getController().addPlayerProgress(playerId, data, value,
                             additionalParameters);
                     //如果进度增加后能够领取则放入
-                    if (canClaim) {
+                    if (changeStatus) {
                         dataArrayList.add(data);
                     }
                 } catch (Exception e) {

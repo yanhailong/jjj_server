@@ -96,11 +96,10 @@ public class PiggyBankController extends BaseActivityController {
 
                 // 设置购买时间
                 piggyBankData.setBuyTime(timeMillis);
-
+                piggyBankData.setClaimStatus(ActivityConstant.ClaimStatus.ALREADY_BUG);
                 // 判断是否已满额
                 if (piggyBankData.getProgress() >= cfg.getFullup()) {
                     piggyBankData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
-                    piggyBankData.setFullTime(timeMillis);
                 }
 
                 // 保存玩家活动数据
@@ -153,7 +152,7 @@ public class PiggyBankController extends BaseActivityController {
         long activityId = activityData.getId();
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
 
-        boolean canClaim = false;
+        boolean changeStatus = false;
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
 
         // 分布式锁
@@ -182,10 +181,12 @@ public class PiggyBankController extends BaseActivityController {
                     piggyBankData.setProgress(Math.min(cfg.getFullup(), piggyBankData.getProgress() + addValue));
 
                     // 判断是否可领取奖励
-                    if (piggyBankData.getProgress() >= cfg.getFullup() && piggyBankData.getBuyTime() > 0) {
-                        piggyBankData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+                    if (piggyBankData.getProgress() >= cfg.getFullup()) {
+                        if (piggyBankData.getBuyTime() > 0) {
+                            piggyBankData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+                        }
                         piggyBankData.setFullTime(System.currentTimeMillis());
-                        canClaim = true;
+                        changeStatus = true;
                     }
                 }
             }
@@ -200,7 +201,7 @@ public class PiggyBankController extends BaseActivityController {
             redisLock.unlock(lockKey);
         }
 
-        return canClaim;
+        return changeStatus;
     }
 
     /**
@@ -332,9 +333,10 @@ public class PiggyBankController extends BaseActivityController {
             if (data instanceof PiggyBankData piggyBankData) {
                 info.claimStatus = piggyBankData.getClaimStatus();
                 info.progress = piggyBankData.getProgress();
-                if (piggyBankData.getBuyTime() == 0) {
+                if (piggyBankData.getBuyTime() == 0 && piggyBankData.getFullTime() > 0) {
                     info.remainTime = (System.currentTimeMillis() + (long) cfg.getResetime() * TimeHelper.ONE_DAY_OF_MILLIS) - piggyBankData.getFullTime();
                 }
+                info.isFull = piggyBankData.getFullTime() > 0;
             }
             return info;
         }
