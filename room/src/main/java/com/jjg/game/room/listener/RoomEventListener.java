@@ -165,7 +165,8 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                         p.setRoomCfgId(0);
                         p.setRoomId(0);
                     });
-                    // 将玩家切回到大厅
+                    // 将玩家切回到大厅, 此处不发消息是因为客户端在进入时可能还未初始化完成，收不到消息不能做处理
+                    // 但是会请求玩家当前的场景位置，如果玩家在大厅会直接切回到大厅，如果在房间则正常进入房间
                     clusterSystem.switchNode(playerController.getSession(), NodeType.HALL);
                 }
                 return;
