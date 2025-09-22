@@ -12,6 +12,7 @@ import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.RedisSerializer;
@@ -19,6 +20,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
+import java.util.concurrent.Executors;
 
 /**
  * @since 1.0
@@ -82,5 +84,23 @@ public class RedisConfig extends CachingConfigurerSupport {
         return template;
     }
 
+    /**
+     * 配置Redis消息监听容器
+     */
+    @Bean
+    public RedisMessageListenerContainer redisMessageListenerContainer(RedisConnectionFactory redisConnectionFactory) {
+        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+        
+        // 设置Redis连接工厂
+        container.setConnectionFactory(redisConnectionFactory);
+        
+        // 设置任务执行器（使用虚拟线程池）
+        container.setTaskExecutor(Executors.newVirtualThreadPerTaskExecutor());
+        
+        // 设置最大订阅连接数等待时间（毫秒）
+        container.setMaxSubscriptionRegistrationWaitingTime(5000);
+        
+        return container;
+    }
 
 }

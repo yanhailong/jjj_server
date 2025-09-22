@@ -16,6 +16,7 @@ import com.jjg.game.core.data.LuckyTreasureConfig;
 import com.jjg.game.hall.minigame.MinigameManager;
 import com.jjg.game.hall.minigame.event.MinigameReadyEvent;
 import com.jjg.game.hall.minigame.game.luckytreasure.bean.LuckyTreasureTimerEvent;
+import com.jjg.game.hall.minigame.game.luckytreasure.service.LuckyTreasureService;
 import com.jjg.game.hall.minigame.game.luckytreasure.util.RewardCodeGenerator;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
@@ -49,6 +50,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     private final MarsCurator marsCurator;
     private final TimerCenter timerCenter;
     private final RewardCodeGenerator rewardCodeGenerator;
+    private final LuckyTreasureService luckyTreasureService;
 
     /**
      * 活动定时器映射：期号 -> 定时器事件
@@ -61,6 +63,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                                 RedisLock redisLock,
                                 MarsCurator marsCurator,
                                 TimerCenter timerCenter,
+                                LuckyTreasureService luckyTreasureService,
                                 RewardCodeGenerator rewardCodeGenerator) {
         this.luckyTreasureDao = luckyTreasureDao;
         this.luckyTreasureRedisDao = luckyTreasureRedisDao;
@@ -69,6 +72,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         this.marsCurator = marsCurator;
         this.timerCenter = timerCenter;
         this.rewardCodeGenerator = rewardCodeGenerator;
+        this.luckyTreasureService = luckyTreasureService;
     }
 
     /**
@@ -85,6 +89,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 //检查并启动缺失的活动
                 startMissingActivities();
             });
+            //初始化服务
+            luckyTreasureService.init();
         }
     }
 
