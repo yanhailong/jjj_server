@@ -177,7 +177,9 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     public void startNewActivitiesIfNeeded() {
         List<LuckyTreasureConfig> configs = luckyTreasureConfigRedisDao.getConfigList();
         for (LuckyTreasureConfig config : configs) {
-            startNewActivityForConfig(config);
+            if (isOpen() && config.isRepeated() && !luckyTreasureRedisDao.hasActiveRound(config.getId())) {
+                startNewActivityForConfig(config);
+            }
         }
     }
 
@@ -198,8 +200,12 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 // 检查该配置是否已有活跃活动
                 if (!luckyTreasureRedisDao.hasActiveRound(config.getId())) {
                     log.info("检测到配置 {} 没有活跃活动，准备启动新活动", config.getId());
-                    startNewActivityForConfig(config);
-                    startedCount++;
+                    if (isOpen() && config.isRepeated()) {
+                        startNewActivityForConfig(config);
+                        startedCount++;
+                    } else {
+                        log.debug("配置 {} 未开启活动!", config.getId());
+                    }
                 } else {
                     log.debug("配置 {} 已有活跃活动，跳过", config.getId());
                 }

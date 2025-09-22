@@ -6,7 +6,6 @@ import com.jjg.game.core.data.LuckyTreasureBuyRecord;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -117,14 +116,9 @@ public class LuckyTreasureRedisDao {
      */
     public List<LuckyTreasure> getActiveTreasures() {
         List<String> keys = getAllActiveRoundKeys();
-        List<LuckyTreasure> treasures = new ArrayList<>();
-        for (String key : keys) {
-            Object obj = redisTemplate.opsForValue().get(key);
-            if (obj instanceof LuckyTreasure) {
-                treasures.add((LuckyTreasure) obj);
-            }
-        }
-        return treasures;
+        return keys.stream()
+                .map(key -> (LuckyTreasure) redisTemplate.opsForValue().get(key))
+                .toList();
     }
 
     /**

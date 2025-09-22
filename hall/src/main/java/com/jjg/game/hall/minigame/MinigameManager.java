@@ -95,7 +95,7 @@ public class MinigameManager {
      */
     public boolean isOpenGame(int gameId) {
         Integer status = (Integer) redisTemplate.opsForHash().get(MinigameConstant.RedisKey.MINIGAME_STATUS, gameId);
-        return status != null && status == 1;
+        return status != null && status == 0;
     }
 
 }
