@@ -17,7 +17,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.*;
-import com.jjg.game.core.dao.luckytreasure.LuckTreasureConfigDao;
+import com.jjg.game.core.dao.luckytreasure.LuckyTreasureConfigDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
@@ -75,7 +75,7 @@ public class GMController extends AbstractController {
     @Autowired
     private ShopProductDao shopProductDao;
     @Autowired
-    private LuckTreasureConfigDao luckTreasureConfigDao;
+    private LuckyTreasureConfigDao luckyTreasureConfigDao;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -785,7 +785,7 @@ public class GMController extends AbstractController {
     @RequestMapping(BackendGMCmd.LUCKY_TREASURE_CONFIG_LIST)
     public WebResult<List<LuckyTreasureConfig>> luckyTreasureList() {
         //只读数据库数据 更新同步到内存
-        List<LuckyTreasureConfig> configs = luckTreasureConfigDao.findAll();
+        List<LuckyTreasureConfig> configs = luckyTreasureConfigDao.findAll();
         return success("common.success", configs);
     }
 
@@ -800,7 +800,7 @@ public class GMController extends AbstractController {
         if (luckyTreasureConfig == null) {
             return fail("common.paramerror");
         }
-        luckTreasureConfigDao.save(luckyTreasureConfig);
+        luckyTreasureConfigDao.save(luckyTreasureConfig);
         LuckyTreasureConfigUpdate update = new LuckyTreasureConfigUpdate();
         update.setType(1);
         update.getJsonList().add(JSON.toJSONString(luckyTreasureConfig));
@@ -825,7 +825,7 @@ public class GMController extends AbstractController {
             return fail("common.paramerror");
         }
         //删除配置
-        luckTreasureConfigDao.deleteById(luckyTreasureConfig.getId());
+        luckyTreasureConfigDao.deleteById(luckyTreasureConfig.getId());
         LuckyTreasureConfigUpdate update = new LuckyTreasureConfigUpdate();
         update.setType(2);
         update.getJsonList().add(JSON.toJSONString(luckyTreasureConfig));
