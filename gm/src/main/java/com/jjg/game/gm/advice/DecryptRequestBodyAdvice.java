@@ -24,7 +24,7 @@ public class DecryptRequestBodyAdvice implements RequestBodyAdvice {
 
     @Override
     public boolean supports(MethodParameter methodParameter, Type targetType, Class<? extends HttpMessageConverter<?>> converterType) {
-        return true; // 全局启用，也可以判断注解开关
+        return false; // 全局启用，也可以判断注解开关
     }
 
     @Override
