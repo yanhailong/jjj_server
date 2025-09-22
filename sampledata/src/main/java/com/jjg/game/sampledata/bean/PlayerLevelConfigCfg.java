@@ -22,6 +22,8 @@ public class PlayerLevelConfigCfg extends BaseCfgBean {
   protected int blockListNum;
   /** 基础关注数量 */
   protected int friendsNum;
+  /** 道具奖励 */
+  protected Map<Integer,Long> getItem;
   /** 升级所需经验 */
   protected long levelUpExp;
   /** 额外流水系数 */
@@ -37,6 +39,11 @@ public class PlayerLevelConfigCfg extends BaseCfgBean {
   /** 返回基础关注数量 */
   public int getFriendsNum() {
     return friendsNum;
+  }
+
+  /** 返回道具奖励 */
+  public Map<Integer,Long> getGetItem() {
+    return getItem;
   }
 
   /** 返回升级所需经验 */

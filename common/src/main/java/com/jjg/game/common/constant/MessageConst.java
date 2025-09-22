@@ -187,6 +187,8 @@ public interface MessageConst {
         int NOTIFY_ITEM_DROP = BASE_MSG_PREFIX | 0x12;
         //通知多语言提示弹窗
         int NOTIFY_TIP = BASE_MSG_PREFIX | 0x13;
+        //通知玩家升级奖励
+        int NOTIFY_PLAYER_LEVEL_UP = BASE_MSG_PREFIX | 0x14;
     }
 
     interface RoomMessage {
