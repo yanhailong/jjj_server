@@ -17,4 +17,6 @@ public class PiggyBankDetailInfo extends BaseActivityDetailInfo {
     public int rechargePrice;
     @ProtoDesc("剩余时间")
     public long remainTime;
+    @ProtoDesc("是否已经满了")
+    public boolean isFull;
 }
