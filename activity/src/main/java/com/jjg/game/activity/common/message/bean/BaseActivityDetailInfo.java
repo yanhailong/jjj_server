@@ -15,7 +15,7 @@ public class BaseActivityDetailInfo {
     @ProtoDesc("详情id")
     public int detailId;
     @ProtoDesc("领取状态 1不可领取 2可领取 3已领取")
-    public int claimStatus;
+    public int claimStatus = 1;
     @ProtoDesc("奖励")
     public List<ItemInfo> rewardItems;
 }

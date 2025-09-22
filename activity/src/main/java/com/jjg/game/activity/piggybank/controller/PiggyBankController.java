@@ -332,6 +332,9 @@ public class PiggyBankController extends BaseActivityController {
             if (data instanceof PiggyBankData piggyBankData) {
                 info.claimStatus = piggyBankData.getClaimStatus();
                 info.progress = piggyBankData.getProgress();
+                if (piggyBankData.getBuyTime() == 0) {
+                    info.remainTime = (System.currentTimeMillis() + (long) cfg.getResetime() * TimeHelper.ONE_DAY_OF_MILLIS) - piggyBankData.getFullTime();
+                }
             }
             return info;
         }
@@ -378,20 +381,18 @@ public class PiggyBankController extends BaseActivityController {
         // 遍历所有储钱罐数据
         for (Map.Entry<Integer, PiggyBankData> piggyBankDataEntry : playerActivityData.entrySet()) {
             PiggyBankData piggyBankData = piggyBankDataEntry.getValue();
-
-            if (piggyBankData.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                continue; // 未可领取状态跳过
-            }
-
             BaseCfgBean baseCfgBean = baseCfgBeanMap.get(piggyBankDataEntry.getKey());
             if (baseCfgBean instanceof PiggyBankCfg cfg) {
-                // 判断是否到达重置时间
-                if (piggyBankData.getFullTime() + (long) TimeHelper.ONE_DAY_OF_MILLIS * cfg.getResetime() <= timeMillis) {
-                    // 邮件发奖
-                    mailService.addCfgMail(playerId, ActivityConstant.PiggyBank.MAIL_ID, ItemUtils.buildItems(cfg.getGetitem()));
+                long resetTime = piggyBankData.getFullTime() + (long) TimeHelper.ONE_DAY_OF_MILLIS * cfg.getResetime();
+                if (resetTime <= timeMillis) {
                     // 重置数据
                     resetPiggyBankData(piggyBankData);
                     change = true;
+                }
+                // 判断是否到达重置时间
+                if (piggyBankData.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
+                    // 邮件发奖
+                    mailService.addCfgMail(playerId, ActivityConstant.PiggyBank.MAIL_ID, ItemUtils.buildItems(cfg.getGetitem()));
                 }
             }
         }

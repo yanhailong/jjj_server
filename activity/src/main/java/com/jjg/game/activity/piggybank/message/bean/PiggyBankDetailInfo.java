@@ -15,4 +15,6 @@ public class PiggyBankDetailInfo extends BaseActivityDetailInfo {
     public long progress;
     @ProtoDesc("需要充值金额")
     public int rechargePrice;
+    @ProtoDesc("剩余时间")
+    public long remainTime;
 }
