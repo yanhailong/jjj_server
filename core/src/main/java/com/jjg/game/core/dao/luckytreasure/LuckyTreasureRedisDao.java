@@ -1,13 +1,14 @@
 package com.jjg.game.core.dao.luckytreasure;
 
-import com.jjg.game.core.data.LuckyTreasureBuyRecord;
 import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.core.data.LuckyTreasure;
+import com.jjg.game.core.data.LuckyTreasureBuyRecord;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -115,14 +116,9 @@ public class LuckyTreasureRedisDao {
      */
     public List<LuckyTreasure> getActiveTreasures() {
         List<String> keys = getAllActiveRoundKeys();
-        List<LuckyTreasure> treasures = new ArrayList<>();
-        for (String key : keys) {
-            Object obj = redisTemplate.opsForValue().get(key);
-            if (obj instanceof LuckyTreasure) {
-                treasures.add((LuckyTreasure) obj);
-            }
-        }
-        return treasures;
+        return keys.stream()
+                .map(key -> (LuckyTreasure) redisTemplate.opsForValue().get(key))
+                .toList();
     }
 
     /**
@@ -160,6 +156,29 @@ public class LuckyTreasureRedisDao {
             }
         }
         return null;
+    }
+
+    /**
+     * 记录数据变化的期号
+     *
+     * @param issueNumber 期号
+     */
+    @SuppressWarnings("unchecked")
+    public void addUpdateInfo(long issueNumber) {
+        Set<Long> issueNumberSet = (Set<Long>) redisTemplate.opsForValue().get(LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_UPDATE_INFO);
+        if (issueNumberSet == null) {
+            issueNumberSet = new HashSet<>();
+        }
+        issueNumberSet.add(issueNumber);
+        redisTemplate.opsForValue().set(LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_UPDATE_INFO, issueNumberSet);
+
+    }
+
+    /**
+     * 清除已经通知过更新的期号
+     */
+    public void removeUpdateInfo() {
+        redisTemplate.delete(LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_UPDATE_INFO);
     }
 
     /**

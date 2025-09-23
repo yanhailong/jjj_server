@@ -1,27 +1,31 @@
 package com.jjg.game.core.handler;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.baselogic.function.SystemInterfaceHolder;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.Command;
+import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.base.gameevent.GameEventManager;
+import com.jjg.game.core.base.player.IRecharge;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureConfigRedisDao;
-import com.jjg.game.core.data.LuckyTreasureConfig;
 import com.jjg.game.core.data.Marquee;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
-import com.jjg.game.core.pb.gm.LuckyTreasureConfigUpdate;
+import com.jjg.game.core.pb.NotifyRechargeServer;
 import com.jjg.game.core.pb.gm.NotifyCarouselUpdate;
 import com.jjg.game.core.pb.gm.NotifyShopProductChange;
 import com.jjg.game.core.pb.gm.ReqAllKickout;
+import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.ShopService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.List;
 
 /**
  * @author 11
@@ -37,7 +41,11 @@ public class CoreToServerMessageHandler {
     @Autowired
     private ShopService shopService;
     @Autowired
-    private LuckyTreasureConfigRedisDao luckyTreasureConfigRedisDao;
+    private CorePlayerService playerService;
+    @Autowired
+    private OrderService orderService;
+    @Autowired
+    private GameEventManager gameEventManager;
 
     /**
      * 其他节点推送的跑马灯信息
@@ -118,20 +126,18 @@ public class CoreToServerMessageHandler {
     }
 
     /**
-     * 更新夺宝奇兵配置
-     *
+     * 玩家充值成功
      */
-    @Command(MessageConst.ToServer.NOTICE_ALL_UPDATE_LUCKY_TREASURE)
-    public void updateLuckyTreasureConfig(LuckyTreasureConfigUpdate req) {
-        int type = req.getType();
-        List<LuckyTreasureConfig> luckyTreasureConfigs = req.getJsonList().stream().map(s -> JSON.parseObject(s, LuckyTreasureConfig.class)).toList();
-        luckyTreasureConfigs.forEach(config -> {
-            if (type == 1) {
-                luckyTreasureConfigRedisDao.replaceConfigMap(config.getId(), config);
-            } else if (type == 2) {
-                luckyTreasureConfigRedisDao.deleteConfigMap(config.getId());
-            }
-        });
+    @Command(MessageConst.ToServer.NOTIFY_PLAYER_RECHARGE)
+    public void notifyRecharge(NotifyRechargeServer notify) {
+        Player player = playerService.get(notify.playerId);
+        Order order = orderService.getOrder(notify.orderId);
+        ShopProduct shopProduct = shopService.getShopProduct(order.getProductId());
+
+        //接口通知
+        SystemInterfaceHolder.callGameSysAction(IRecharge.class, (f) -> f.rechargeSuccess(player,order,shopProduct));
+        //充值事件
+//        gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order.getId(), order.getRechargeType()));
     }
 
 }

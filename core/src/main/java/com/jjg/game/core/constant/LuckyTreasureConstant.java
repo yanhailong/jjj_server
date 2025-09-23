@@ -49,6 +49,17 @@ public interface LuckyTreasureConstant {
          * 期号映射key前缀
          */
         String LUCKY_TREASURE_ROUND_DATA_ISSUE = "luckyTreasure:issue:";
+
+        /**
+         * 用来同步每个节点变化的夺宝奇兵活动库存
+         */
+        String LUCKY_TREASURE_UPDATE_CHANEL = "luckyTreasure:updateInfo:chanel:";
+
+        /**
+         * 库存发生变化的期号
+         */
+        String LUCKY_TREASURE_UPDATE_INFO = "luckyTreasure:updateInfo:";
+
     }
 
     /**
@@ -79,6 +90,11 @@ public interface LuckyTreasureConstant {
          * 领取夺宝奇兵奖励锁前缀
          */
         String LUCKY_TREASURE_RECEIVE = "luckyTreasure:receive:";
+
+        /**
+         * 更新配置锁
+         */
+        String LUCKY_TREASURE_CONFIG = "luckyTreasure:config:";
     }
 
     /**
@@ -117,5 +133,9 @@ public interface LuckyTreasureConstant {
         int REQ_LUCKY_TREASURE_AWARD_HISTORY = BASE_MSG_MASK | 0x18;
         int RES_LUCKY_TREASURE_AWARD_HISTORY = BASE_MSG_MASK | 0x19;
 
+        /**
+         * 通知更新夺宝奇兵库存信息
+         */
+        int NOTIFY_LUCKY_TREASURE_UPDATE = BASE_MSG_MASK | 0x1A;
     }
 }

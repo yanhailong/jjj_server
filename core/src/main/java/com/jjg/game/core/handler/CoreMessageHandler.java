@@ -19,10 +19,8 @@ import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.manager.RedDotManager;
-import com.jjg.game.core.pb.ESceneType;
-import com.jjg.game.core.pb.ReqGm;
-import com.jjg.game.core.pb.ResConfirmPlayerScene;
-import com.jjg.game.core.pb.ResGm;
+import com.jjg.game.core.manager.SubscriptionManager;
+import com.jjg.game.core.pb.*;
 import com.jjg.game.core.pb.reddot.NotifyRedDot;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.pb.reddot.ReqRedDot;
@@ -60,6 +58,8 @@ public class CoreMessageHandler {
     private RedDotManager redDotManager;
     @Autowired
     private GameEventManager gameEventManager;
+    @Autowired
+    private SubscriptionManager subscriptionManager;
 
     /**
      *
@@ -318,7 +318,7 @@ public class CoreMessageHandler {
     }
 
     @Command(MessageConst.CoreMessage.REQ_CONFIRM_PLAYER_SCENE)
-    public void reqConfirmPlayerScene(PlayerController playerController) {
+    public void reqConfirmPlayerScene(PlayerController playerController,ReqConfirmPlayerScene req) {
         // 获取当前节点类型
         NodeType nodeType = NodeType.getNodeTypeByName(nodeConfig.getType());
         // 如果玩家在房间中
@@ -349,6 +349,22 @@ public class CoreMessageHandler {
         notifyRedDot.setRedDotList(result);
         //回复红点数据
         playerController.send(notifyRedDot);
+    }
+
+    /**
+     * 消息订阅处理
+     */
+    @Command(MessageConst.CoreMessage.REQ_SUBSCRIBE_TOPIC)
+    public void subscription(PlayerController playerController, ReqSubscription msg) {
+        String topic = msg.getTopic();
+        if (topic == null || topic.isEmpty()) {
+            return;
+        }
+        if (msg.isSubscription()) {
+            subscriptionManager.subscription(topic, playerController.playerId());
+        } else {
+            subscriptionManager.unsubscription(topic, playerController.playerId());
+        }
     }
 
 }

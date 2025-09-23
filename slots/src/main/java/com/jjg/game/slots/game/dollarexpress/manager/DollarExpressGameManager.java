@@ -661,6 +661,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         if (afterCount < 1) {
             playerGameData.setStatus(DollarExpressConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
+            playerGameData.getFreeIndex().set(0);
         }
 
         gameRunInfo.setIconArr(freeGame.getIconArr());
@@ -952,15 +953,6 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
     @Override
     protected DollarExpressGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected DollarExpressPlayerGameData setGameDataValues(DollarExpressPlayerGameData playerGameData, SlotsPlayerGameDataDTO slotsPlayerGameDataDTO) {
-        DollarExpressPlayerGameDataDTO dto = (DollarExpressPlayerGameDataDTO) slotsPlayerGameDataDTO;
-        playerGameData.setRemainFreeCount(new AtomicInteger(dto.getRemainFreeCount()));
-        playerGameData.setInvers(new AtomicBoolean(dto.isInvers()));
-        playerGameData.setAllUnLock(new AtomicBoolean(dto.isAllUnLock()));
-        return playerGameData;
     }
 
     /**

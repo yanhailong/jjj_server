@@ -189,6 +189,8 @@ public interface MessageConst {
         int NOTIFY_TIP = BASE_MSG_PREFIX | 0x13;
         //通知玩家升级奖励
         int NOTIFY_PLAYER_LEVEL_UP = BASE_MSG_PREFIX | 0x14;
+        //请求订阅消息推送主题操作
+        int REQ_SUBSCRIBE_TOPIC = BASE_MSG_PREFIX | 0x15;
     }
 
     interface RoomMessage {
@@ -222,7 +224,7 @@ public interface MessageConst {
         //通知商城商品变更
         int NOTICE_SHOP_PRODUCT_CHANGE = BASE_MSG_PREFIX | 0x8;
 
-        //通知大厅节点夺宝奇兵配置更新
-        int NOTICE_ALL_UPDATE_LUCKY_TREASURE = BASE_MSG_PREFIX | 0x9;
+        //玩家充值成功
+        int NOTIFY_PLAYER_RECHARGE = BASE_MSG_PREFIX | 0x9;
     }
 }

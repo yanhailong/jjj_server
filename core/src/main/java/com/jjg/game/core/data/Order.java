@@ -1,5 +1,6 @@
 package com.jjg.game.core.data;
 
+import com.jjg.game.core.constant.RechargeType;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -21,6 +22,8 @@ public class Order {
     private long price;
     //订单状态
     private OrderStatus orderStatus;
+    //充值类型
+    private RechargeType rechargeType;
     //创建时间
     private int createTime;
 
@@ -62,6 +65,14 @@ public class Order {
 
     public void setOrderStatus(OrderStatus orderStatus) {
         this.orderStatus = orderStatus;
+    }
+
+    public RechargeType getRechargeType() {
+        return rechargeType;
+    }
+
+    public void setRechargeType(RechargeType rechargeType) {
+        this.rechargeType = rechargeType;
     }
 
     public int getCreateTime() {
