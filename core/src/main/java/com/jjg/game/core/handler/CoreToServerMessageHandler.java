@@ -6,11 +6,13 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.Command;
+import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.base.player.IRecharge;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureConfigRedisDao;
+import com.jjg.game.core.data.Marquee;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
@@ -50,6 +52,8 @@ public class CoreToServerMessageHandler {
     private OrderService orderService;
     @Autowired
     private GameEventManager gameEventManager;
+    @Autowired
+    private RedisLock redisLock;
 
     /**
      * 其他节点推送的跑马灯信息

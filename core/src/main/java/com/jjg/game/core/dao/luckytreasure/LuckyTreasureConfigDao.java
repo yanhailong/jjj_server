@@ -13,9 +13,9 @@ import java.util.List;
  * 夺宝奇兵配置dao
  */
 @Repository
-public class LuckTreasureConfigDao extends MongoBaseDao<LuckyTreasureConfig, Integer> {
+public class LuckyTreasureConfigDao extends MongoBaseDao<LuckyTreasureConfig, Integer> {
 
-    public LuckTreasureConfigDao(MongoTemplate mongoTemplate) {
+    public LuckyTreasureConfigDao(MongoTemplate mongoTemplate) {
         super(LuckyTreasureConfig.class, mongoTemplate);
     }
 

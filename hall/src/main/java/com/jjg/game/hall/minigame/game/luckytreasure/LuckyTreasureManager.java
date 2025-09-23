@@ -8,6 +8,7 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.LuckyTreasureConstant;
+import com.jjg.game.core.dao.luckytreasure.LuckyTreasureConfigDao;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureConfigRedisDao;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
@@ -51,6 +52,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     private final TimerCenter timerCenter;
     private final RewardCodeGenerator rewardCodeGenerator;
     private final LuckyTreasureService luckyTreasureService;
+    private final MinigameManager minigameManager;
+    private final LuckyTreasureConfigDao luckyTreasureConfigDao;
 
     /**
      * 活动定时器映射：期号 -> 定时器事件
@@ -64,6 +67,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                                 MarsCurator marsCurator,
                                 TimerCenter timerCenter,
                                 LuckyTreasureService luckyTreasureService,
+                                MinigameManager minigameManager,
+                                LuckyTreasureConfigDao luckyTreasureConfigDao,
                                 RewardCodeGenerator rewardCodeGenerator) {
         this.luckyTreasureDao = luckyTreasureDao;
         this.luckyTreasureRedisDao = luckyTreasureRedisDao;
@@ -73,6 +78,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         this.timerCenter = timerCenter;
         this.rewardCodeGenerator = rewardCodeGenerator;
         this.luckyTreasureService = luckyTreasureService;
+        this.minigameManager = minigameManager;
+        this.luckyTreasureConfigDao = luckyTreasureConfigDao;
     }
 
     /**
@@ -170,7 +177,9 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     public void startNewActivitiesIfNeeded() {
         List<LuckyTreasureConfig> configs = luckyTreasureConfigRedisDao.getConfigList();
         for (LuckyTreasureConfig config : configs) {
-            startNewActivityForConfig(config);
+            if (isOpen() && config.isRepeated() && !luckyTreasureRedisDao.hasActiveRound(config.getId())) {
+                startNewActivityForConfig(config);
+            }
         }
     }
 
@@ -191,8 +200,12 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 // 检查该配置是否已有活跃活动
                 if (!luckyTreasureRedisDao.hasActiveRound(config.getId())) {
                     log.info("检测到配置 {} 没有活跃活动，准备启动新活动", config.getId());
-                    startNewActivityForConfig(config);
-                    startedCount++;
+                    if (isOpen() && config.isRepeated()) {
+                        startNewActivityForConfig(config);
+                        startedCount++;
+                    } else {
+                        log.debug("配置 {} 未开启活动!", config.getId());
+                    }
                 } else {
                     log.debug("配置 {} 已有活跃活动，跳过", config.getId());
                 }
@@ -529,7 +542,10 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         luckyTreasureConfig.setTime(cfg.getTime());
         luckyTreasureConfig.setCollectTime(cfg.getCollectime());
         luckyTreasureConfig.setConsumption(cfg.getConsumption());
-
+        //默认开启循环
+        luckyTreasureConfig.setRepeated(true);
+        //存储到数据库中
+        luckyTreasureConfigDao.save(luckyTreasureConfig);
         return luckyTreasureConfig;
     }
 
@@ -545,7 +561,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * 检查当前游戏是否处于开启状态。
      */
     public boolean isOpen() {
-        return MinigameManager.getInstance().isOpenGame(LuckyTreasureConstant.Common.GAME_ID);
+        return minigameManager.isOpenGame(LuckyTreasureConstant.Common.GAME_ID);
     }
 
 }

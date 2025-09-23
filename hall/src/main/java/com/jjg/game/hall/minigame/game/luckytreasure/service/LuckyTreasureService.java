@@ -411,6 +411,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                 pageSize = 10;
             }
             //Pageable 默认0为第一页
+            currPage -= 1;
             if (currPage < 0) {
                 currPage = 0;
             }
@@ -467,6 +468,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                 pageSize = 10;
             }
             //Pageable 默认0为第一页
+            currPage -= 1;
             if (currPage < 0) {
                 currPage = 0;
             }
