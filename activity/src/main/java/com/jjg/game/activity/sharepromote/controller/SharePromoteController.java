@@ -171,10 +171,11 @@ public class SharePromoteController extends BaseActivityController {
 
     @Override
     public SharePromoteDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
-        if (baseCfgBean instanceof SharePromoteCfg cfg) {
+        if (baseCfgBean instanceof SharePromoteCfg cfg && cfg.getType() != ActivityConstant.SharePromote.RANK_REWARDS) {
             SharePromoteDetailInfo info = new SharePromoteDetailInfo();
             info.activityId = activityId;
             info.detailId = cfg.getId();
+            info.needNum = cfg.getProportion();
             //奖励信息
             info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetitem());
             if (data != null) {
@@ -192,11 +193,10 @@ public class SharePromoteController extends BaseActivityController {
         if (CollectionUtil.isEmpty(allDetailInfo)) {
             return typeInfo;
         }
-        typeInfo.activityData = new ArrayList<>();
         for (List<BaseActivityDetailInfo> baseActivityDetailInfos : allDetailInfo.values()) {
             SharePromoteActivityInfo detailInfos = new SharePromoteActivityInfo();
             detailInfos.detailInfos = new ArrayList<>();
-            typeInfo.activityData.add(detailInfos);
+            typeInfo.activityData = detailInfos;
             for (BaseActivityDetailInfo baseActivityDetailInfo : baseActivityDetailInfos) {
                 if (baseActivityDetailInfo instanceof SharePromoteDetailInfo info) {
                     detailInfos.detailInfos.add(info);
