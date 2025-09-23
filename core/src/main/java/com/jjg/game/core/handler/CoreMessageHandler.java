@@ -11,6 +11,7 @@ import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.RechargeType;
+import com.jjg.game.core.constant.SubscriptionTopic;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
@@ -140,8 +141,7 @@ public class CoreMessageHandler {
             if ("bet".equals(cmd)) {
                 log.debug("收到添加经验的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), arr);
                 long num = Long.parseLong(params);
-                CommonResult<Player> result =
-                        playerService.betDeductGold(playerController.playerId(), num, true, true,"gmtest");
+                CommonResult<Player> result = playerService.betDeductGold(playerController.playerId(), num, true, true, "gmtest");
                 res.code = result.code;
                 playerController.send(res);
                 return;
@@ -264,8 +264,7 @@ public class CoreMessageHandler {
         }
 
         long num = Long.parseLong(params);
-        CommonResult<Player> result = playerService.gmSetDiamond(playerController.playerId(), num, "gmSetDiamond",
-                null);
+        CommonResult<Player> result = playerService.gmSetDiamond(playerController.playerId(), num, "gmSetDiamond", null);
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
@@ -289,8 +288,7 @@ public class CoreMessageHandler {
         CommonResult<Player> result = playerService.setVip(playerController.playerId(), num, "gmSetVip", null);
         if (!result.success()) {
             res.code = result.code;
-            log.debug("使用gm失败 playerId = {},order = {},code = {},params = {}", playerController.playerId(), order,
-                    result.code, params);
+            log.debug("使用gm失败 playerId = {},order = {},code = {},params = {}", playerController.playerId(), order, result.code, params);
             return;
         }
         playerController.getPlayer().setVipLevel(result.data.getVipLevel());
@@ -360,10 +358,15 @@ public class CoreMessageHandler {
         if (topic == null || topic.isEmpty()) {
             return;
         }
+        SubscriptionTopic subscriptionTopic = SubscriptionTopic.getTopic(e -> e.equals(topic));
+        if (subscriptionTopic == null) {
+            log.info("玩家[{}]订阅未知主题[{}]", playerController.playerId(), topic);
+            return;
+        }
         if (msg.isSubscription()) {
-            subscriptionManager.subscription(topic, playerController.playerId());
+            subscriptionManager.subscription(subscriptionTopic, playerController.playerId());
         } else {
-            subscriptionManager.unsubscription(topic, playerController.playerId());
+            subscriptionManager.unsubscription(subscriptionTopic, playerController.playerId());
         }
     }
 
