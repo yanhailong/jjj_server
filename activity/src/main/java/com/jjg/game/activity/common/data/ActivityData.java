@@ -238,11 +238,11 @@ public class ActivityData {
         data.setTriggerType(cfg.getTriggerType());
         // 解析时间字符串为时间戳（假设格式是 yyyy-MM-dd HH:mm:ss）
         if (StringUtils.isNotEmpty(cfg.getTime_start())) {
-            data.setTimeStart(TimeHelper.getTimestamp(cfg.getTime_start()));
+            data.setTimeStart(TimeHelper.getTimestamp(cfg.getTime_start().trim()));
         }
 
         if (StringUtils.isNotEmpty(cfg.getTime_end())) {
-            data.setTimeEnd(TimeHelper.getTimestamp(cfg.getTime_end()));
+            data.setTimeEnd(TimeHelper.getTimestamp(cfg.getTime_end().trim()));
         }
         return data;
     }

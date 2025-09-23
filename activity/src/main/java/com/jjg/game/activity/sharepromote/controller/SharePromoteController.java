@@ -176,6 +176,7 @@ public class SharePromoteController extends BaseActivityController {
             info.activityId = activityId;
             info.detailId = cfg.getId();
             info.needNum = cfg.getProportion();
+            info.proportion = cfg.getProportion();
             //奖励信息
             info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetitem());
             if (data != null) {
