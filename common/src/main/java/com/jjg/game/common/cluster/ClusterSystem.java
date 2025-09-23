@@ -1,6 +1,7 @@
 package com.jjg.game.common.cluster;
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.collection.ConcurrentHashSet;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.*;
@@ -16,6 +17,7 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.common.utils.TimeHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +50,10 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
 
     private static final AtomicBoolean created = new AtomicBoolean(false);
     public static ClusterSystem system;
+
+    //session超时时间
+    private static final int SESSION_TIME_OUT_MINUTES = 30;
+
     /**
      * 集群各个节点客户端对象
      */
@@ -68,17 +74,23 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     @Autowired
     public NodeConfig nodeConfig;
     public TimerCenter timerCenter;
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private ClusterMessageDispatcher clusterMessageDispatcher;
     /**
      * 连接通道初始化器
      */
     private ClusterConnectInitializer initializer;
-    /**
-     * 微服务消息节点索引
-     */
-    private Map<Integer, List<MarsNode>> microServiceIndexes = new HashMap<>();
     private TimerEvent<String> clusterSystemEvent;
+
+    /**
+     * 等待移除的连接Id
+     */
+    private final ConcurrentHashSet<String> deleteSet = new ConcurrentHashSet<>();
+
+    /**
+     * 定时删除session定时器
+     */
+    private TimerEvent<String> deleteTimerEvent;
 
     @Bean
     public ClusterMessageDispatcher clusterMessageDispatcher() {
@@ -93,14 +105,6 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     public ClusterConnectInitializer createClusterConnectInitializer() {
         initializer = new ClusterConnectInitializer(clusterMessageDispatcher);
         return initializer;
-    }
-
-    /**
-     * 不要暴露此接口，不应直接向外部返回sessionMap，而是提供对应的操作方法
-     */
-    @Deprecated
-    public Map<String, PFSession> sessionMap() {
-        return sessionMap;
     }
 
     /**
@@ -201,13 +205,6 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
             return null;
         }
         return sessionMap.get(sessionId);
-//        //TODO 性能
-//        for (PFSession session : sessionMap.values()) {
-//            if (session.getPlayerId() == playerId) {
-//                return session;
-//            }
-//        }
-//        return null;
     }
 
     /**
@@ -231,13 +228,22 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
 
     /**
      * 移除session
+     * <p>
+     * 不会立即移除,等待定时器删除
      */
-    public PFSession removeSession(String sessionId) {
-        PFSession pfSession = sessionMap.remove(sessionId);
-        if (pfSession != null) {
-            playerIdSessionMap.remove(pfSession.playerId);
-        }
-        return pfSession;
+    public void removeSession(String sessionId) {
+        //添加到待删除列表
+        deleteSet.add(sessionId);
+    }
+
+    /**
+     * 移除多个session
+     * <p>
+     * 不会立即移除,等待定时器删除
+     */
+    public void removeSessions(List<String> sessionIds) {
+        //添加到待删除列表
+        deleteSet.addAll(sessionIds);
     }
 
     /**
@@ -250,10 +256,8 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
                     , pfSession.playerId);
             pfSession.send2Gate(switchNodeMessage);
             removeSession(pfSession.sessionId());
-//            sessionMap.remove(pfSession.sessionId());
         } catch (Exception e) {
             log.warn("节点切换异常", e);
-//            e.printStackTrace();
         }
     }
 
@@ -290,7 +294,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     /**
      * 随机切换到指定类型的节点
      */
-    public MarsNode switchNode(PFSession pfSession, NodeType nodeType,String ip,long playerId) {
+    public MarsNode switchNode(PFSession pfSession, NodeType nodeType, String ip, long playerId) {
         try {
             MarsNode marsNode = randomMarsNode(nodeType, ip, playerId);
             switchNode(pfSession, marsNode);
@@ -640,6 +644,13 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
                     new TimerEvent<>(this, "ClusterSystem", 1).setInitTime(10).withTimeUnit(TimeUnit.MINUTES);
             timerCenter.add(clusterSystemEvent);
         }
+        //初始化删除session定时器
+        deleteTimerEvent = new TimerEvent<>(this, "deleteTimerEvent", 1).setInitTime(1).withTimeUnit(TimeUnit.SECONDS);
+        if (timerCenter != null) {
+            timerCenter.add(deleteTimerEvent);
+        } else {
+            log.warn("timerCenter is null");
+        }
     }
 
     /*@Override
@@ -683,7 +694,70 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
             if (nodeConfig.weight == 0 && sessionMap.isEmpty()) {
                 System.exit(0);
             }
+        } else if (e == deleteTimerEvent) {
+            deleteSession();
         }
+    }
+
+    /**
+     * 删除无效session
+     */
+    private void deleteSession() {
+        if (deleteSet.isEmpty()) {
+            return;
+        }
+        Set<String> temp = new HashSet<>(deleteSet);
+        deleteSet.clear();
+        temp.forEach(sessionId -> {
+            PFSession pfSession = sessionMap.remove(sessionId);
+            if (pfSession != null) {
+                playerIdSessionMap.remove(pfSession.playerId);
+            } else {
+                log.warn("移除session[{}]时,pfSession为空,无法移除玩家id到sessionId的映射", sessionId);
+            }
+        });
+        log.debug("移除 无效session {} 个", temp.size());
+    }
+
+    /**
+     * 检测活跃时间是否处于活跃中
+     *
+     * @param currentTimeMillis 当前时间戳
+     * @param activeTime        上次活跃时间戳
+     * @return true 已经不活跃了 false 活跃中
+     */
+    private boolean checkActive(long currentTimeMillis, long activeTime) {
+        return currentTimeMillis - activeTime > SESSION_TIME_OUT_MINUTES * TimeHelper.ONE_MINUTE_OF_MILLIS;
+    }
+
+    /**
+     * 检查当前的会话是否依然活跃，并移除超时或无效的会话。
+     *
+     * @param currentTimeMillis 当前时间戳，用于与会话的最后活跃时间进行比较
+     * @param keys              玩家ID列表，用于检测相关会话是否需要被移除
+     */
+    public void checkSessionActive(long currentTimeMillis, List<Long> keys) {
+        List<String> removeIds = new ArrayList<>();
+        this.sessionMap.values().forEach(pfSession -> {
+            //如果session 长时间没有活跃，检查玩家是否还在线
+            if (checkActive(currentTimeMillis, pfSession.activeTime)) {
+                if (pfSession.getReference() == null) {
+                    log.warn("移除无效session，playerId={},sessionId={}", pfSession.getPlayerId(), pfSession.sessionId());
+                    removeIds.add(pfSession.sessionId());
+                }
+            }
+        });
+        //根据被移除的PlayerSessionInfo的所有玩家id来反向检测session是否需要移除
+        keys.forEach(playerId -> {
+            PFSession pfSession = getSession(playerId);
+            if (pfSession != null) {
+                if (checkActive(currentTimeMillis, pfSession.activeTime)) {
+                    log.warn("根据被移除的playerSession检测后, 移除Cluster无效session，playerId={},sessionId={}", pfSession.getPlayerId(), pfSession.sessionId());
+                    removeIds.add(pfSession.sessionId());
+                }
+            }
+        });
+        removeSessions(removeIds);
     }
 
     /**
