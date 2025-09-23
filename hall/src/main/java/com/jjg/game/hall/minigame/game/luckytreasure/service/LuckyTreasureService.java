@@ -7,7 +7,7 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.LuckyTreasureConstant;
-import com.jjg.game.core.constant.SubscriptionConstant;
+import com.jjg.game.core.constant.SubscriptionTopic;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
 import com.jjg.game.core.data.*;
@@ -99,32 +99,25 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         updateTimer = null;
         Set<Long> updateSet = new HashSet<>(issueNumberSet);
         issueNumberSet.clear();
-        NotifyLuckyTreasureUpdate notifyLuckyTreasureUpdate = new NotifyLuckyTreasureUpdate();
-        updateSet.forEach(issueNumber -> {
-            LuckyTreasureUpdateInfo updateInfo = new LuckyTreasureUpdateInfo();
-            updateInfo.setIssueNumber(issueNumber);
-            notifyLuckyTreasureUpdate.getUpdateList().add(updateInfo);
+        //只有先将活动从redis中取出来 避免循环中从redis拉取增大开销
+        List<LuckyTreasure> luckyTreasureList = updateSet.stream().map(luckyTreasureRedisDao::getTreasureByIssueNumber).toList();
+        subscriptionManager.publish(SubscriptionTopic.TOPIC_LUCKY_TREASURE_UPDATE, (playerId) -> {
+            NotifyLuckyTreasureUpdate notifyLuckyTreasureUpdate = new NotifyLuckyTreasureUpdate();
+            luckyTreasureList.forEach(treasure -> {
+                LuckyTreasureUpdateInfo afterInfo = new LuckyTreasureUpdateInfo();
+                afterInfo.setIssueNumber(treasure.getIssueNumber());
+                afterInfo.setAlreadyBuyCount(treasure.getBuyMap().getOrDefault(playerId, 0));
+                afterInfo.setIssueNumber(treasure.getIssueNumber());
+                afterInfo.setSoldCount(treasure.getSoldCount());
+                afterInfo.setCountDown(LuckyTreasureStatusUtil.calculateCountDown(treasure));
+                afterInfo.setConfigId(treasure.getConfig().getId());
+                afterInfo.setBuyCount(treasure.getBuyMap().size());
+                afterInfo.setTotalCount(treasure.getConfig().getTotal());
+                afterInfo.setStatus(LuckyTreasureStatusUtil.calculateStatus(treasure, playerId));
+                notifyLuckyTreasureUpdate.getUpdateList().add(afterInfo);
+            });
+            return notifyLuckyTreasureUpdate;
         });
-        subscriptionManager.publish(SubscriptionConstant.Topic.TOPIC_LUCKY_TREASURE_UPDATE, notifyLuckyTreasureUpdate,
-                (playerId) -> {
-                    List<LuckyTreasureUpdateInfo> afterList = new ArrayList<>();
-                    notifyLuckyTreasureUpdate.getUpdateList().forEach(updateInfo -> {
-                        LuckyTreasure treasure = luckyTreasureRedisDao.getTreasureByIssueNumber(updateInfo.getIssueNumber());
-                        LuckyTreasureUpdateInfo afterInfo = new LuckyTreasureUpdateInfo();
-                        afterInfo.setIssueNumber(updateInfo.getIssueNumber());
-                        afterInfo.setAlreadyBuyCount(treasure.getBuyMap().getOrDefault(playerId, 0));
-                        afterInfo.setIssueNumber(treasure.getIssueNumber());
-                        afterInfo.setSoldCount(treasure.getSoldCount());
-                        afterInfo.setCountDown(LuckyTreasureStatusUtil.calculateCountDown(treasure));
-                        afterInfo.setConfigId(treasure.getConfig().getId());
-                        afterInfo.setBuyCount(treasure.getBuyMap().size());
-                        afterInfo.setTotalCount(treasure.getConfig().getTotal());
-                        afterInfo.setStatus(LuckyTreasureStatusUtil.calculateStatus(treasure, playerId));
-                        afterList.add(afterInfo);
-                    });
-                    notifyLuckyTreasureUpdate.setUpdateList(afterList);
-                    return notifyLuckyTreasureUpdate;
-                });
         log.info("延迟同步夺宝奇兵库存完毕!set={}", updateSet);
     }
 
