@@ -392,7 +392,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         }
         Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
         // 初始化摇钱树活动（首次开活动 round==0）
-        if (activityData.getRound() == 0) {
+        if (activityData.getRound() == activityId) {
             activityData.setRound(activityData.getId());
             if (CollectionUtil.isNotEmpty(baseCfgBeanMap)) {
                 // 按配置把每个非累计领奖类型的 detail 初始化奖池为配置的 initialprizepool
@@ -410,19 +410,23 @@ public class CashCowController extends BaseActivityController implements TimerLi
             GlobalConfigCfg configCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_ADD_NEXT_ROUND_PROPORTION);
             for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
                 if (cfgBean instanceof CashcowCfg cfg) {
+                    if (cfg.getType() == ActivityConstant.CashCow.CUMULATIVE_REWARDS_REWARD_TYPE) {
+                        continue;
+                    }
                     long pool = cashCowDao.getSpecifiedActivityPool(activityId, cfg.getId());
-                    if (pool == 0 && cfg.getType() != ActivityConstant.CashCow.CUMULATIVE_REWARDS_REWARD_TYPE) {
-                        // 如果上一轮奖池为 0，则初始化为配置的初始奖池
-                        cashCowDao.addActivityPool(activityId, cfg.getId(), cfg.getInitialprizepool());
-                    } else {
+                    //配置的初始奖池
+                    long nextPoll = cfg.getInitialprizepool();
+                    if (pool > 0) {
                         // 否则按配置比例计算下一轮底池（万分比）
-                        long nextPoll = BigDecimal.valueOf(pool)
+                        nextPoll += BigDecimal.valueOf(pool)
                                 .multiply(BigDecimal.valueOf(configCfg.getIntValue()))
                                 .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
                                 .longValue();
-                        cashCowDao.setActivityPool(activityId, cfg.getId(), nextPoll);
-
+                        // 如果上一轮奖池为 0，则初始化为配置的初始奖池
+                        cashCowDao.addActivityPool(activityId, cfg.getId(), cfg.getInitialprizepool());
                     }
+                    cashCowDao.setActivityPool(activityId, cfg.getId(), nextPoll);
+
                 }
             }
             // 清除在线玩家的进度，防止上一轮数据影响新一轮
