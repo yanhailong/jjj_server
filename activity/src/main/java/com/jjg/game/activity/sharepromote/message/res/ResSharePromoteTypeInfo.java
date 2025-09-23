@@ -7,8 +7,6 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
-import java.util.List;
-
 /**
  * @author lm
  * @date 2025/9/5 11:30
@@ -17,7 +15,7 @@ import java.util.List;
 @ProtoDesc("推广分享活动类型信息")
 public class ResSharePromoteTypeInfo extends AbstractResponse {
     @ProtoDesc("活动信息")
-    public List<SharePromoteActivityInfo> activityData;
+    public SharePromoteActivityInfo activityData;
 
 
     public ResSharePromoteTypeInfo(int code) {
