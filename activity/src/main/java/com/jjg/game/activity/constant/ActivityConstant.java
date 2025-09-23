@@ -92,7 +92,11 @@ public interface ActivityConstant {
         //统计类型充值
         int CALCULATION_RECHARGE = 1;
         //统计有效流水
-        int CALCULATION_EFFECTIVE_WATER_FLOW = 1;
+        int CALCULATION_EFFECTIVE_WATER_FLOW = 2;
+        //今日积分
+        int TODAY_POINTS = 1;
+        //明日积分
+        int TOMORROW_POINTS = 2;
         // 30 官方派奖每个转盘需求积分：初、中、高
         int NEED_POINTS = 30;
         //31 官方派奖转盘奖池金币数量
@@ -100,8 +104,13 @@ public interface ActivityConstant {
         //32 官方派奖：有效下注转换积分比例 ：有效下注 = X积分
         int EFFECTIVE_WATER_FLOW_CONVERT_RATIO = 32;
         //33 官方派奖：充值转换积分比例 ：充值金额 = X积分
-        int RECHARGE_CONVERT_RATIO = 32;
-
+        int RECHARGE_CONVERT_RATIO = 33;
+        //35 机器人中奖设置
+        int ROBOT_CFG = 35;
+        //最大记录数
+        int MAX_RECORD_NUM = 50;
+        //每次获取最大记录数
+        int GET_MAX_RECORD_NUM = 10;
     }
 
     interface MsgBean {
@@ -226,5 +235,9 @@ public interface ActivityConstant {
         int RES_OFFICIAL_AWARDS_JOIN_ACTIVITY = BASE_MSG_PREFIX | 0x45;
         //响应官方派奖活动类型信息
         int RES_OFFICIAL_AWARDS_TYPE_INFO = BASE_MSG_PREFIX | 0x46;
+        //请求游戏记录信息
+        int REQ_OFFICIAL_AWARDS_RECORD = BASE_MSG_PREFIX | 0x47;
+        int RES_OFFICIAL_AWARDS_RECORD = BASE_MSG_PREFIX | 0x48;
+
     }
 }

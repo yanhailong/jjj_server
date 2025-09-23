@@ -301,7 +301,7 @@ public class BaseLogger {
      * @param playerId
      * @param addType
      */
-    public void addItems(long playerId, Map<Integer, Long> map, String addType) {
+    public void addItems(long playerId, Map<Integer, Long> map, String addType, String desc) {
         try {
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
@@ -315,6 +315,7 @@ public class BaseLogger {
 
             json.put("items", jsonArray);
             json.put("addType", addType);
+            json.put("desc", desc);
             sendLog("addItems", null, json);
         } catch (Exception e) {
             log.error("", e);
@@ -351,20 +352,22 @@ public class BaseLogger {
 
     /**
      * 订单
+     *
      * @param player
      * @param shopProduct
      */
-    public void order(Player player, ShopProduct shopProduct,Order order) {
-        order(player,shopProduct,order.getPrice(),order.getOrderStatus());
+    public void order(Player player, ShopProduct shopProduct, Order order) {
+        order(player, shopProduct, order.getPrice(), order.getOrderStatus());
     }
 
     /**
      * 订单
+     *
      * @param player
      * @param shopProduct
      */
     public void order(Player player, ShopProduct shopProduct) {
-        order(player,shopProduct,shopProduct.getMoney(),OrderStatus.SUCCESS);
+        order(player, shopProduct, shopProduct.getMoney(), OrderStatus.SUCCESS);
     }
 
     /***********************************************************************************************/
@@ -445,7 +448,7 @@ public class BaseLogger {
         return json;
     }
 
-    private void order(Player player, ShopProduct shopProduct,long price, OrderStatus orderStatus) {
+    private void order(Player player, ShopProduct shopProduct, long price, OrderStatus orderStatus) {
         try {
             JSONObject json = new JSONObject();
             json.put("nick", player.getNickName());
@@ -455,9 +458,9 @@ public class BaseLogger {
             json.put("money", price);
             json.put("status", orderStatus);
 
-            if(shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
+            if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
                 JSONArray jsonArray = new JSONArray();
-                shopProduct.getRewardItems().forEach((k,v) -> {
+                shopProduct.getRewardItems().forEach((k, v) -> {
                     JSONObject jsonObject = new JSONObject();
                     jsonObject.put("itemId", k);
                     jsonObject.put("count", v);

@@ -128,7 +128,7 @@ public class ItemDropDataHolder implements ConfigExcelChangeListener {
             items.add(new Pair<>(dropGroupId, randedItem));
             // 更新掉落表次数
             itemDropGroupCounter.put(dropGroupId, usedDropGroupTimes + 1);
-            log.info("通过分组ID：{} 随机到分组详情配置：{} 随机到道具：{}", dropGroupId, itemWeightMap, randedItem);
+//            log.info("通过分组ID：{} 随机到分组详情配置：{} 随机到道具：{}", dropGroupId, itemWeightMap, randedItem);
         }
         return items;
     }

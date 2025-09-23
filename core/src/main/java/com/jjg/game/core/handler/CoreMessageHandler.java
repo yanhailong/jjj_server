@@ -316,7 +316,7 @@ public class CoreMessageHandler {
     }
 
     @Command(MessageConst.CoreMessage.REQ_CONFIRM_PLAYER_SCENE)
-    public void reqConfirmPlayerScene(PlayerController playerController) {
+    public void reqConfirmPlayerScene(PlayerController playerController,ReqConfirmPlayerScene req) {
         // 获取当前节点类型
         NodeType nodeType = NodeType.getNodeTypeByName(nodeConfig.getType());
         // 如果玩家在房间中

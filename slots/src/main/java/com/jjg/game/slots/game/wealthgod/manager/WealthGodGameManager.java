@@ -95,11 +95,6 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
         return this.generateManager;
     }
 
-    @Override
-    protected WealthGodPlayerGameData setGameDataValues(WealthGodPlayerGameData d, SlotsPlayerGameDataDTO dto) {
-        return d;
-    }
-
     /**
      * 开始游戏
      */

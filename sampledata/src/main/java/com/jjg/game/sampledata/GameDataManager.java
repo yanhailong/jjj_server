@@ -153,6 +153,7 @@ public class GameDataManager {
     containerMap.put(MailCfg.class, new MailCfgContainer());
     containerMap.put(MiniGameCfg.class, new MiniGameCfgContainer());
     containerMap.put(MiniGameListCfg.class, new MiniGameListCfgContainer());
+    containerMap.put(OfficialAwardsCfg.class, new OfficialAwardsCfgContainer());
     containerMap.put(PiggyBankCfg.class, new PiggyBankCfgContainer());
     containerMap.put(PlayerLevelConfigCfg.class, new PlayerLevelConfigCfgContainer());
     containerMap.put(PlayerLevelPackCfg.class, new PlayerLevelPackCfgContainer());
@@ -1000,6 +1001,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(MiniGameListCfg.class).getCfgBeanList();
   }
 
+  public static OfficialAwardsCfg getOfficialAwardsCfg(int key) {
+    return getInstance().getCfgContainer(OfficialAwardsCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, OfficialAwardsCfg> getOfficialAwardsCfgMap() {
+    return getInstance().getCfgContainer(OfficialAwardsCfg.class).getCfgBeanMap();
+  }
+
+  public static List<OfficialAwardsCfg> getOfficialAwardsCfgList() {
+    return getInstance().getCfgContainer(OfficialAwardsCfg.class).getCfgBeanList();
+  }
+
   public static PiggyBankCfg getPiggyBankCfg(int key) {
     return getInstance().getCfgContainer(PiggyBankCfg.class).getCfgBeanMap().get(key);
   }
@@ -1340,6 +1353,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\workspace\\gamedoc\\游戏配置表");
+    loadAllData("E:\\java\\gamedoc\\游戏配置表");
   }
 }

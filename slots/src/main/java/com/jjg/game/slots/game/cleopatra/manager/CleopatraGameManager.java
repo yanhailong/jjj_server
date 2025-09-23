@@ -178,7 +178,8 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
             //获取结果库
             CommonResult<CleopatraResultLib> libResult = normalGetLib(playerGameData, betValue, CleopatraConstant.SpecialMode.NORMAL);
             if (!libResult.success()) {
-                continue;
+                gameRunInfo.setCode(libResult.code);
+                return gameRunInfo;
             }
 
             CleopatraResultLib tmpLib = libResult.data;
@@ -285,11 +286,6 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
     @Override
     protected CleopatraGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected CleopatraPlayerGameData setGameDataValues(CleopatraPlayerGameData d, SlotsPlayerGameDataDTO dto) {
-        return d;
     }
 
     @Override

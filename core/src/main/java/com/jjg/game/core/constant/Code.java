@@ -95,6 +95,8 @@ public interface Code {
     int ALREADY_BOUND = 437;
     // 該玩家已與其他人完成綁定
     int ALREADY_OTHER_BOUND = 438;
+    // 官方派奖奖池为0了
+    int OFFICIAL_AWARDS_POOL_NULL = 439;
     // 非庄家不能修改准备金
     int CANT_EDIT_BANKER_GOLD = 49074;
     // 服务器错误

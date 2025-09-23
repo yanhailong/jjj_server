@@ -11,4 +11,8 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage
 @ProtoDesc("推广分享")
 public class SharePromoteDetailInfo extends BaseActivityDetailInfo {
+    @ProtoDesc("需要达到的人数")
+    public int needNum;
+    @ProtoDesc("收益比例")
+    public int proportion;
 }

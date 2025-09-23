@@ -224,5 +224,7 @@ public interface MessageConst {
         //通知商城商品变更
         int NOTICE_SHOP_PRODUCT_CHANGE = BASE_MSG_PREFIX | 0x8;
 
+        //玩家充值成功
+        int NOTIFY_PLAYER_RECHARGE = BASE_MSG_PREFIX | 0x9;
     }
 }

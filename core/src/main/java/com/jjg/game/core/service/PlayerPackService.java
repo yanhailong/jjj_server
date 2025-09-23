@@ -55,24 +55,38 @@ public class PlayerPackService implements IPlayerRegister {
      * 添加道具
      */
     public CommonResult<ItemOperationResult> addItem(long playerId, int id, long count, String addType) {
-        return addItems(playerId, Collections.singletonList(new Item(id, count)), addType);
+        return addItems(playerId, Collections.singletonList(new Item(id, count)), addType, null);
     }
 
     /**
      * 添加多个道具
      */
     public CommonResult<ItemOperationResult> addItems(long playerId, Map<Integer, Long> addItemMap, String addType) {
+        return addItems(playerId, addItemMap, addType, null);
+    }
+
+    /**
+     * 添加多个道具
+     */
+    public CommonResult<ItemOperationResult> addItems(long playerId, Map<Integer, Long> addItemMap, String addType, String desc) {
         List<Item> itemList = new ArrayList<>();
         for (Map.Entry<Integer, Long> entry : addItemMap.entrySet()) {
             itemList.add(new Item(entry.getKey(), entry.getValue()));
         }
-        return addItems(playerId, itemList, addType);
+        return addItems(playerId, itemList, addType, desc);
     }
 
     /**
      * 添加多个道具
      */
     public CommonResult<ItemOperationResult> addItems(long playerId, List<Item> addItemList, String addType) {
+        return addItems(playerId, addItemList, addType, null);
+    }
+
+    /**
+     * 添加多个道具
+     */
+    public CommonResult<ItemOperationResult> addItems(long playerId, List<Item> addItemList, String addType, String desc) {
         CommonResult<ItemOperationResult> result = new CommonResult<>(Code.FAIL);
         long addGold = 0;
         long addDiamond = 0;
@@ -97,7 +111,7 @@ public class PlayerPackService implements IPlayerRegister {
 
         if (addGold > 0 || addDiamond > 0) {
             CommonResult<Player> goldAndDiamond =
-                corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, null);
+                    corePlayerService.addGoldAndDiamond(playerId, addGold, addDiamond, addType, true, null);
             if (!goldAndDiamond.success()) {
                 result.code = goldAndDiamond.code;
                 return result;
@@ -163,9 +177,9 @@ public class PlayerPackService implements IPlayerRegister {
                 }
             }
             Map<Integer, Long> addTempItemMap =
-                itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getItemCount()),
-                    HashMap::putAll);
-            coreLogger.addItems(playerId, addTempItemMap, addType);
+                    itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getItemCount()),
+                            HashMap::putAll);
+            coreLogger.addItems(playerId, addTempItemMap, addType, desc);
         }
         return result;
     }
@@ -296,7 +310,7 @@ public class PlayerPackService implements IPlayerRegister {
             //扣除金币和钻石
             if (deductGoldV > 0 || deductDiamondV > 0) {
                 CommonResult<Player> removeResult =
-                    corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
+                        corePlayerService.deductGoldAndDiamond(playerId, deductGoldV, deductDiamondV, addType);
                 if (!removeResult.success()) {
                     result.code = removeResult.code;
                     return result;
@@ -395,9 +409,9 @@ public class PlayerPackService implements IPlayerRegister {
      * @return
      */
     public CommonResult<ItemOperationResult> useItem(long playerId, int useItemId, long useItemCount,
-                                      Map<Integer, Long> addItemsMap,
-                                      String addType) {
-        return useItem(playerId,null,useItemId,useItemCount,addItemsMap,addType);
+                                                     Map<Integer, Long> addItemsMap,
+                                                     String addType) {
+        return useItem(playerId, null, useItemId, useItemCount, addItemsMap, addType);
     }
 
     /**
@@ -408,8 +422,8 @@ public class PlayerPackService implements IPlayerRegister {
      * @return
      */
     public CommonResult<ItemOperationResult> useItem(long playerId, Integer girdId, int useItemId, long useItemCount,
-                                      Map<Integer, Long> addItemsMap,
-                                      String addType) {
+                                                     Map<Integer, Long> addItemsMap,
+                                                     String addType) {
         CommonResult<ItemOperationResult> result = new CommonResult<>(Code.FAIL);
 
         CommonResult<ItemOperationResult> removeResult = removeItem(playerId, girdId, useItemId, useItemCount, addType);

@@ -4,6 +4,7 @@ import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.RechargeType;
 import com.jjg.game.core.dao.ShopProductDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
@@ -81,9 +82,9 @@ public class ShopService {
      * @param playerId
      * @return
      */
-    public CommonResult<String> generateOrder(long playerId, ShopProduct shopProduct) {
+    public CommonResult<String> generateOrder(long playerId, ShopProduct shopProduct, RechargeType rechargeType) {
         CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
-        Order order = orderService.generateOrder(playerId, shopProduct.getId(),shopProduct.getMoney());
+        Order order = orderService.generateOrder(playerId, shopProduct.getId(),shopProduct.getMoney(),rechargeType);
         if(order == null) {
             log.info("玩家下单失败 playerId = {},productId = {}", playerId, shopProduct.getId());
             result.code = Code.FAIL;

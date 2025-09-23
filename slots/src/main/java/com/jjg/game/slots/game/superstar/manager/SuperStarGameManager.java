@@ -67,11 +67,6 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
         return superStarGenerateManager;
     }
 
-    @Override
-    protected SuperStarPlayerGameData setGameDataValues(SuperStarPlayerGameData d, SlotsPlayerGameDataDTO dto) {
-        return d;
-    }
-
     /**
      * 玩家离线保存gameDataDto
      *
