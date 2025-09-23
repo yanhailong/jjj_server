@@ -6,6 +6,7 @@ import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.RechargeType;
 import com.jjg.game.core.constant.ShopConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
@@ -85,7 +86,7 @@ public class ShopMessageHandler implements GmListener {
             }
 
             if(shopProduct.getPayType() < 1){  //充值
-                CommonResult<String> orderResult = shopService.generateOrder(playerController.playerId(), shopProduct);
+                CommonResult<String> orderResult = shopService.generateOrder(playerController.playerId(), shopProduct, RechargeType.SHOP);
                 if(!orderResult.success()){
                     res.code = orderResult.code;
                     playerController.send(res);

@@ -8,10 +8,9 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.slots.dao.AbstractGameDataDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameDataDTO;
+import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
 import com.jjg.game.slots.game.mahjiongwin.MahjiongWinConstant;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinGameDataDao;
 import com.jjg.game.slots.game.mahjiongwin.dao.MahjiongWinResultLibDao;
@@ -25,8 +24,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -163,7 +160,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
      * @return
      */
     private MahjiongWinGameRunInfo normal(MahjiongWinGameRunInfo gameRunInfo, MahjiongWinPlayerGameData playerGameData, long betValue) {
-        CommonResult<MahjiongWinResultLib> libResult = normalGetLib(playerGameData, betValue,MahjiongWinConstant.SpecialMode.NORMAL);
+        CommonResult<MahjiongWinResultLib> libResult = normalGetLib(playerGameData, betValue, MahjiongWinConstant.SpecialMode.NORMAL);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
@@ -173,17 +170,22 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
         //根据结果库类型不同，从不同地方获取icon
         if (resultLib.getLibTypeSet().contains(MahjiongWinConstant.SpecialMode.FREE)) {  //是否会触发免费
             playerGameData.setStatus(MahjiongWinConstant.Status.FREE);
-            int[] freeCount = new int[1];
-            //设置剩余次数
-            resultLib.getSpecialAuxiliaryInfoList().forEach(info -> info.getFreeGames().forEach(json -> {
-                Integer addFreeCount = json.getInteger("addFreeCount");
-                if (addFreeCount == null || addFreeCount < 1) {
-                    freeCount[0] = freeCount[0] + 1;
+            int againFreeCount = 0;
+            int allCount = 0;
+            for(SpecialAuxiliaryInfo info : resultLib.getSpecialAuxiliaryInfoList()){
+                for(JSONObject json : info.getFreeGames()){
+                    Integer addFreeCount = json.getInteger("addFreeCount");
+                    if(addFreeCount != null && addFreeCount > 0){
+                        againFreeCount += addFreeCount;
+                    }
                 }
-            }));
-            playerGameData.setRemainFreeCount(new AtomicInteger(freeCount[0]));
+                allCount += info.getFreeGames().size();
+            }
+            //设置添加的免费次数
+            int addCount = allCount - againFreeCount;
+            playerGameData.setRemainFreeCount(new AtomicInteger(addCount));
 
-            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(),freeCount[0]);
+            log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(), addCount);
         }
 
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));
@@ -203,7 +205,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
      * @return
      */
     private MahjiongWinGameRunInfo free(MahjiongWinGameRunInfo gameRunInfo, MahjiongWinPlayerGameData playerGameData) {
-        CommonResult<MahjiongWinResultLib> libResult = freeGetLib(playerGameData,MahjiongWinConstant.SpecialMode.FREE);
+        CommonResult<MahjiongWinResultLib> libResult = freeGetLib(playerGameData, MahjiongWinConstant.SpecialMode.FREE);
         if (!libResult.success()) {
             gameRunInfo.setCode(libResult.code);
             return gameRunInfo;
@@ -213,14 +215,15 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
         int afterCount = playerGameData.getRemainFreeCount().addAndGet(-1);
 
         MahjiongWinResultLib freeGame = libResult.data;
-        if(freeGame.getAddFreeCount() > 0){
+        if (freeGame.getAddFreeCount() > 0) {
             afterCount = playerGameData.getRemainFreeCount().addAndGet(freeGame.getAddFreeCount());
-            log.debug("添加免费次数 addFreeCount = {},afterCount = {}", freeGame.getAddFreeCount(),afterCount);
+            log.debug("添加免费次数 addFreeCount = {},afterCount = {}", freeGame.getAddFreeCount(), afterCount);
         }
 
         if (afterCount < 1) {
             playerGameData.setStatus(MahjiongWinConstant.Status.NORMAL);
             playerGameData.setFreeLib(null);
+            playerGameData.getFreeIndex().set(0);
         }
 
         gameRunInfo.setIconArr(freeGame.getIconArr());
@@ -237,11 +240,11 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
 
     @Override
     protected void offlineSaveGameDataDto(MahjiongWinPlayerGameData gameData) {
-        try{
+        try {
             MahjiongWinPlayerGameDataDTO dto = gameData.converToDto(MahjiongWinPlayerGameDataDTO.class);
             gameDataDao.saveGameData(dto);
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 
@@ -253,11 +256,6 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
     @Override
     protected MahjiongWinGenerateManager getGenerateManager() {
         return this.generateManager;
-    }
-
-    @Override
-    protected MahjiongWinPlayerGameData setGameDataValues(MahjiongWinPlayerGameData d, SlotsPlayerGameDataDTO dto) {
-        return d;
     }
 
     @Override

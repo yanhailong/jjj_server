@@ -6,9 +6,16 @@ package com.jjg.game.core.constant;
  */
 public enum RechargeType {
     /**
+     * 商城
+     */
+    SHOP(0),
+
+    /**
      * 等级礼包
      */
-    PLAYER_LEVEL_GIFT(1);
+    PLAYER_LEVEL_GIFT(1)
+
+    ;
     private final int type;
 
     RechargeType(int type) {

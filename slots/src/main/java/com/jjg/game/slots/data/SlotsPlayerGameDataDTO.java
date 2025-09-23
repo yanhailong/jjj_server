@@ -1,6 +1,10 @@
 package com.jjg.game.slots.data;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.annotation.Id;
+
+import java.lang.reflect.Constructor;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author 11
@@ -31,6 +35,8 @@ public class SlotsPlayerGameDataDTO {
     private long contribtPoolGold;
     //剩余的免费次数
     private int remainFreeCount;
+    //当前的免费游戏数组中的下标值
+    private int freeIndex;
 
     public long getPlayerId() {
         return playerId;
@@ -126,5 +132,22 @@ public class SlotsPlayerGameDataDTO {
 
     public void setRemainFreeCount(int remainFreeCount) {
         this.remainFreeCount = remainFreeCount;
+    }
+
+    public int getFreeIndex() {
+        return freeIndex;
+    }
+
+    public void setFreeIndex(int freeIndex) {
+        this.freeIndex = freeIndex;
+    }
+
+    public <T extends SlotsPlayerGameData> T converToGameData(Class<T> cla) throws Exception{
+        Constructor<T> constructor = cla.getConstructor();
+        T t = constructor.newInstance();
+        BeanUtils.copyProperties(this,t);
+        t.setRemainFreeCount(new AtomicInteger(this.remainFreeCount));
+        t.setFreeIndex(new AtomicInteger(this.freeIndex));
+        return t;
     }
 }

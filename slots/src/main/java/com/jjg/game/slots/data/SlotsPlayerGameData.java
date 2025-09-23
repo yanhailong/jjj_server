@@ -44,6 +44,9 @@ public class SlotsPlayerGameData {
     protected AtomicBoolean hasPlaySlots = new AtomicBoolean(false);
     //剩余的免费次数
     protected AtomicInteger remainFreeCount = new AtomicInteger(0);
+    //当前的免费游戏数组中的下标值
+    //比如总共中奖8次免费， 第一次应该取这8次结果中的的第一个，以此类推
+    protected AtomicInteger freeIndex = new AtomicInteger(0);
     //缓存免费的结果库
     protected Object freeLib;
     //用于测试
@@ -175,6 +178,14 @@ public class SlotsPlayerGameData {
         return this.contribtPoolGold;
     }
 
+    public AtomicInteger getFreeIndex() {
+        return freeIndex;
+    }
+
+    public void setFreeIndex(AtomicInteger freeIndex) {
+        this.freeIndex = freeIndex;
+    }
+
     public Object getFreeLib() {
         return freeLib;
     }
@@ -232,6 +243,7 @@ public class SlotsPlayerGameData {
         BeanUtils.copyProperties(this,t);
         t.setPlayerId(this.playerId());
         t.setRemainFreeCount(this.remainFreeCount.get());
+        t.setFreeIndex(this.freeIndex.get());
         return t;
     }
 }
