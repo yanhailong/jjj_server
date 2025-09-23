@@ -16,6 +16,8 @@ import com.jjg.game.activity.levelpack.manager.PlayerLevelPackManager;
 import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelClaimRewards;
 import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelPackDetailInfo;
 import com.jjg.game.activity.manager.ActivityManager;
+import com.jjg.game.activity.officialawards.controller.OfficialAwardsController;
+import com.jjg.game.activity.officialawards.message.req.ReqOfficialAwardsRecord;
 import com.jjg.game.activity.sharepromote.controller.SharePromoteController;
 import com.jjg.game.activity.sharepromote.message.req.*;
 import com.jjg.game.common.config.NodeConfig;
@@ -40,13 +42,14 @@ public class ActivityMessageHandler {
     private final SharePromoteController sharePromoteController;
     private final PlayerLevelPackManager playerLevelPackManager;
     private final NodeConfig nodeConfig;
-
-    public ActivityMessageHandler(ActivityManager activityManager, CashCowController cashCowController, SharePromoteController sharePromoteController, PlayerLevelPackManager playerLevelPackManager, NodeConfig nodeConfig) {
+    private final OfficialAwardsController officialAwardsController;
+    public ActivityMessageHandler(ActivityManager activityManager, CashCowController cashCowController, SharePromoteController sharePromoteController, PlayerLevelPackManager playerLevelPackManager, NodeConfig nodeConfig, OfficialAwardsController officialAwardsController) {
         this.activityManager = activityManager;
         this.cashCowController = cashCowController;
         this.sharePromoteController = sharePromoteController;
         this.playerLevelPackManager = playerLevelPackManager;
         this.nodeConfig = nodeConfig;
+        this.officialAwardsController = officialAwardsController;
     }
 
     /**
@@ -282,6 +285,17 @@ public class ActivityMessageHandler {
     @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_PACK_DETAIL_INFO)
     public void reqPlayerLevelPackDetailInfo(PlayerController playerController, ReqPlayerLevelPackDetailInfo req) {
         playerController.send(playerLevelPackManager.reqPlayerLevelPackDetailInfo(playerController, req));
+    }
+
+
+    /**
+     * 官方派奖 请求记录
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_PACK_DETAIL_INFO)
+    public void reqOfficialAwardsRecord(PlayerController playerController, ReqOfficialAwardsRecord req) {
+        playerController.send(officialAwardsController.reqOfficialAwardsRecord(playerController, req));
     }
 
 
