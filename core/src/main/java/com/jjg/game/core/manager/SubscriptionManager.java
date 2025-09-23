@@ -1,5 +1,6 @@
 package com.jjg.game.core.manager;
 
+import cn.hutool.core.collection.ConcurrentHashSet;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.pb.AbstractMessage;
@@ -7,11 +8,9 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.constant.SubscriptionTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.RedisCallback;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
@@ -22,12 +21,14 @@ public class SubscriptionManager implements SessionCloseListener {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final RedisTemplate<String, String> redisTemplate;
+    /**
+     * 主题 --> 玩家ID集合
+     */
+    private final ConcurrentHashMap<SubscriptionTopic, ConcurrentHashSet<Long>> topicPlayerIdMap = new ConcurrentHashMap<>();
 
     private final ClusterSystem clusterSystem;
 
-    public SubscriptionManager(RedisTemplate<String, String> redisTemplate, ClusterSystem clusterSystem) {
-        this.redisTemplate = redisTemplate;
+    public SubscriptionManager(ClusterSystem clusterSystem) {
         this.clusterSystem = clusterSystem;
     }
 
@@ -46,7 +47,7 @@ public class SubscriptionManager implements SessionCloseListener {
      * @param playerId 玩家id
      */
     public void subscription(SubscriptionTopic topic, long playerId) {
-        redisTemplate.opsForSet().add(topic.getTopic(), String.valueOf(playerId));
+        topicPlayerIdMap.computeIfAbsent(topic, k -> new ConcurrentHashSet<>()).add(playerId);
     }
 
     /**
@@ -56,21 +57,21 @@ public class SubscriptionManager implements SessionCloseListener {
      * @param playerId 玩家id
      */
     public void unsubscription(SubscriptionTopic topic, long playerId) {
-        redisTemplate.opsForSet().remove(topic.getTopic(), String.valueOf(playerId));
+        topicPlayerIdMap.computeIfAbsent(topic, k -> new ConcurrentHashSet<>()).add(playerId);
+        ConcurrentHashSet<Long> playerIds = topicPlayerIdMap.get(topic);
+        if (playerIds != null && !playerIds.isEmpty()) {
+            playerIds.remove(playerId);
+        }
     }
 
     /**
      * 批量取消订阅
      */
     public void batchUnsubscription(long playerId) {
-        redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
-            for (SubscriptionTopic topic : SubscriptionTopic.values()) {
-                connection.setCommands().sRem(topic.getTopic().getBytes(), String.valueOf(playerId).getBytes());
-            }
-            return null;
-        });
+        for (SubscriptionTopic topic : SubscriptionTopic.values()) {
+            unsubscription(topic, playerId);
+        }
     }
-
 
     /**
      * 推送消息到订阅该主题的玩家集合
@@ -79,17 +80,17 @@ public class SubscriptionManager implements SessionCloseListener {
         if (msg == null) {
             return;
         }
-        Set<String> playerIds = redisTemplate.opsForSet().members(topic.getTopic());
-        if (playerIds != null && !playerIds.isEmpty()) {
-            playerIds.forEach(playerIdStr -> {
-                try {
-                    long playerId = Long.parseLong(playerIdStr);
-                    clusterSystem.getSession(playerId).send(msg);
-                } catch (Exception e) {
-                    log.error("publish msg topic[{}] error playerId: {}", topic.getTopic(), playerIdStr, e);
+        ConcurrentHashSet<Long> playerIdSet = topicPlayerIdMap.get(topic);
+        playerIdSet.forEach(playerId -> {
+            try {
+                PFSession playerSession = clusterSystem.getSession(playerId);
+                if (playerSession != null) {
+                    playerSession.send(msg);
                 }
-            });
-        }
+            } catch (Exception e) {
+                log.error("publish msg topic[{}] error playerId: {}", topic.getTopic(), playerId, e);
+            }
+        });
     }
 
     /**
@@ -102,17 +103,20 @@ public class SubscriptionManager implements SessionCloseListener {
         if (function == null) {
             return;
         }
-        Set<String> playerIds = redisTemplate.opsForSet().members(topic.getTopic());
-        if (playerIds != null && !playerIds.isEmpty()) {
-            playerIds.forEach(playerIdStr -> {
-                try {
-                    long playerId = Long.parseLong(playerIdStr);
-                    clusterSystem.getSession(playerId).send(function.apply(playerId));
-                } catch (Exception e) {
-                    log.error("publish msg topic[{}] error playerId: {}", topic.getTopic(), playerIdStr, e);
+        ConcurrentHashSet<Long> playerIdSet = topicPlayerIdMap.get(topic);
+        playerIdSet.forEach(playerId -> {
+            try {
+                PFSession playerSession = clusterSystem.getSession(playerId);
+                if (playerSession != null) {
+                    AbstractMessage message = function.apply(playerId);
+                    if (message != null) {
+                        playerSession.send(message);
+                    }
                 }
-            });
-        }
+            } catch (Exception e) {
+                log.error("publish msg topic[{}] error playerId: {}", topic.getTopic(), playerId, e);
+            }
+        });
     }
 
 }

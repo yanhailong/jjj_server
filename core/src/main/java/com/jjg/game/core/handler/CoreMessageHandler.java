@@ -316,7 +316,7 @@ public class CoreMessageHandler {
     }
 
     @Command(MessageConst.CoreMessage.REQ_CONFIRM_PLAYER_SCENE)
-    public void reqConfirmPlayerScene(PlayerController playerController,ReqConfirmPlayerScene req) {
+    public void reqConfirmPlayerScene(PlayerController playerController, ReqConfirmPlayerScene req) {
         // 获取当前节点类型
         NodeType nodeType = NodeType.getNodeTypeByName(nodeConfig.getType());
         // 如果玩家在房间中
@@ -355,12 +355,19 @@ public class CoreMessageHandler {
     @Command(MessageConst.CoreMessage.REQ_SUBSCRIBE_TOPIC)
     public void subscription(PlayerController playerController, ReqSubscription msg) {
         String topic = msg.getTopic();
+        ResSubscription res = new ResSubscription(Code.SUCCESS);
+        res.setSubscription(msg.isSubscription());
+        res.setTopic(topic);
         if (topic == null || topic.isEmpty()) {
+            res.code = Code.PARAM_ERROR;
+            playerController.send(res);
             return;
         }
         SubscriptionTopic subscriptionTopic = SubscriptionTopic.getTopic(e -> e.equals(topic));
         if (subscriptionTopic == null) {
             log.info("玩家[{}]订阅未知主题[{}]", playerController.playerId(), topic);
+            res.code = Code.PARAM_ERROR;
+            playerController.send(res);
             return;
         }
         if (msg.isSubscription()) {
@@ -368,6 +375,7 @@ public class CoreMessageHandler {
         } else {
             subscriptionManager.unsubscription(subscriptionTopic, playerController.playerId());
         }
+        playerController.send(res);
     }
 
 }
