@@ -6,11 +6,9 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.Command;
-import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.player.IRecharge;
 import com.jjg.game.core.constant.BackendGMCmd;
-import com.jjg.game.core.dao.luckytreasure.LuckyTreasureConfigRedisDao;
 import com.jjg.game.core.data.Marquee;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
@@ -135,7 +133,7 @@ public class CoreToServerMessageHandler {
         ShopProduct shopProduct = shopService.getShopProduct(order.getProductId());
 
         //接口通知
-        SystemInterfaceHolder.callGameSysAction(IRecharge.class, (f) -> f.rechargeSuccess(player,order,shopProduct));
+        SystemInterfaceHolder.callGameSysAction(IRecharge.class, (f) -> f.rechargeSuccess(player, order, shopProduct));
         //充值事件
 //        gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order.getId(), order.getRechargeType()));
     }
