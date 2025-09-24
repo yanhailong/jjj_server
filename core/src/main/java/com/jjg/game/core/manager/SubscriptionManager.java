@@ -81,6 +81,9 @@ public class SubscriptionManager implements SessionCloseListener {
             return;
         }
         ConcurrentHashSet<Long> playerIdSet = topicPlayerIdMap.get(topic);
+        if (playerIdSet == null || playerIdSet.isEmpty()) {
+            return;
+        }
         playerIdSet.forEach(playerId -> {
             try {
                 PFSession playerSession = clusterSystem.getSession(playerId);
@@ -104,6 +107,9 @@ public class SubscriptionManager implements SessionCloseListener {
             return;
         }
         ConcurrentHashSet<Long> playerIdSet = topicPlayerIdMap.get(topic);
+        if (playerIdSet == null || playerIdSet.isEmpty()) {
+            return;
+        }
         playerIdSet.forEach(playerId -> {
             try {
                 PFSession playerSession = clusterSystem.getSession(playerId);
