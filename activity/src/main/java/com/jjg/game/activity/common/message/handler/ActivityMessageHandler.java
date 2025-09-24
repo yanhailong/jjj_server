@@ -293,7 +293,7 @@ public class ActivityMessageHandler {
      *
      * @param playerController 玩家信息
      */
-    @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_PACK_DETAIL_INFO)
+    @Command(ActivityConstant.MsgBean.REQ_OFFICIAL_AWARDS_RECORD)
     public void reqOfficialAwardsRecord(PlayerController playerController, ReqOfficialAwardsRecord req) {
         playerController.send(officialAwardsController.reqOfficialAwardsRecord(playerController, req));
     }

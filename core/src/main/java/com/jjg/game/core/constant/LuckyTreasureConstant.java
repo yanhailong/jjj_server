@@ -55,11 +55,6 @@ public interface LuckyTreasureConstant {
          */
         String LUCKY_TREASURE_UPDATE_CHANEL = "luckyTreasure:updateInfo:chanel:";
 
-        /**
-         * 库存发生变化的期号
-         */
-        String LUCKY_TREASURE_UPDATE_INFO = "luckyTreasure:updateInfo:";
-
     }
 
     /**

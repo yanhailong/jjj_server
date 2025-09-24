@@ -252,7 +252,7 @@ public class PlayerLevelPackManager implements GameEventListener {
     }
 
 
-    public Object reqPlayerLevelPackDetailInfo(PlayerController playerController, ReqPlayerLevelPackDetailInfo req) {
+    public AbstractResponse reqPlayerLevelPackDetailInfo(PlayerController playerController, ReqPlayerLevelPackDetailInfo req) {
         Map<Integer, PlayerLevelPackData> playerLevelPackData = playerLevelDao.getPlayerLevelPackData(playerController.playerId());
         return buildNotifyPlayerLevelPackDetailInfo(playerLevelPackData);
     }

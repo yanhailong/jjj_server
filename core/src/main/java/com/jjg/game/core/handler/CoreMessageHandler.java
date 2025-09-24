@@ -12,15 +12,13 @@ import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.RechargeType;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.constant.SubscriptionTopic;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.manager.SubscriptionManager;
 import com.jjg.game.core.pb.*;
-import com.jjg.game.core.pb.reddot.NotifyRedDot;
-import com.jjg.game.core.pb.reddot.RedDotDetails;
-import com.jjg.game.core.pb.reddot.ReqRedDot;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.PlayerPackService;
@@ -319,7 +317,7 @@ public class CoreMessageHandler {
     }
 
     @Command(MessageConst.CoreMessage.REQ_CONFIRM_PLAYER_SCENE)
-    public void reqConfirmPlayerScene(PlayerController playerController,ReqConfirmPlayerScene req) {
+    public void reqConfirmPlayerScene(PlayerController playerController, ReqConfirmPlayerScene req) {
         // 获取当前节点类型
         NodeType nodeType = NodeType.getNodeTypeByName(nodeConfig.getType());
         // 如果玩家在房间中
@@ -358,14 +356,27 @@ public class CoreMessageHandler {
     @Command(MessageConst.CoreMessage.REQ_SUBSCRIBE_TOPIC)
     public void subscription(PlayerController playerController, ReqSubscription msg) {
         String topic = msg.getTopic();
+        ResSubscription res = new ResSubscription(Code.SUCCESS);
+        res.setSubscription(msg.isSubscription());
+        res.setTopic(topic);
         if (topic == null || topic.isEmpty()) {
+            res.code = Code.PARAM_ERROR;
+            playerController.send(res);
+            return;
+        }
+        SubscriptionTopic subscriptionTopic = SubscriptionTopic.getTopic(e -> e.equals(topic));
+        if (subscriptionTopic == null) {
+            log.info("玩家[{}]订阅未知主题[{}]", playerController.playerId(), topic);
+            res.code = Code.PARAM_ERROR;
+            playerController.send(res);
             return;
         }
         if (msg.isSubscription()) {
-            subscriptionManager.subscription(topic, playerController.playerId());
+            subscriptionManager.subscription(subscriptionTopic, playerController.playerId());
         } else {
-            subscriptionManager.unsubscription(topic, playerController.playerId());
+            subscriptionManager.unsubscription(subscriptionTopic, playerController.playerId());
         }
+        playerController.send(res);
     }
 
 }
