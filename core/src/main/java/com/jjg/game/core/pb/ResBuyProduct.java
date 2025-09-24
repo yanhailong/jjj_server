@@ -18,6 +18,8 @@ import java.util.List;
 public class ResBuyProduct extends AbstractResponse {
     @ProtoDesc("订单id  如果是充值类，则返回订单id")
     public String orderId;
+    @ProtoDesc("商品id")
+    public int productId;
     @ProtoDesc("添加的道具信息，如果是道具兑换类，则返回添加成功的道具")
     public List<ItemInfo> items;
 

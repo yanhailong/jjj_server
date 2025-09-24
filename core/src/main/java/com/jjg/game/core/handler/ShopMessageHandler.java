@@ -93,6 +93,7 @@ public class ShopMessageHandler implements GmListener {
                     return;
                 }
                 res.orderId = orderResult.data;
+                res.productId = shopProduct.getId();
                 playerController.send(res);
                 log.debug("玩家充值下单成功 playerId = {},productId = {},orderId = {}", playerController.playerId(), req.productId, res.orderId);
             }else {  //道具兑换
@@ -112,6 +113,7 @@ public class ShopMessageHandler implements GmListener {
                         res.items.add(itemInfo);
                     });
                 }
+                res.productId = shopProduct.getId();
                 playerController.send(res);
                 log.debug("玩家道具购买成功 playerId = {},productId = {},res = {}", playerController.playerId(), req.productId, JSON.toJSONString(res));
             }

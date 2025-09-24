@@ -1,6 +1,7 @@
 package com.jjg.game.core.pb;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
@@ -14,7 +15,7 @@ import java.util.List;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SHOP_TYPE, cmd = ShopConstant.MsgBean.NOTIFY_PAY_CALLBACK,resp = true)
 @ProtoDesc("返回下单")
-public class NotifyPayCallBack {
+public class NotifyPayCallBack extends AbstractNotice {
     @ProtoDesc("订单id")
     public String orderId;
     @ProtoDesc("获得道具")

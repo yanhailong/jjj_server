@@ -756,7 +756,7 @@ public class GMController extends AbstractController {
 
             //通知大厅节点，商城商品变更
             PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyShopProductChange());
-            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString())::contains);
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString(),NodeType.GAME.toString(),NodeType.RECHARGE.toString())::contains);
 
             return success("common.success");
         } catch (Exception e) {
