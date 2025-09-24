@@ -7,7 +7,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 /**
  * 夺宝奇兵库存变化广播
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = MessageConst.ToServer.NOTIFY_LUCKY_TREASURE_UPDATE_STOCK, resp = true, toPbFile = false)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SERVER_CONST_TYPE, cmd = MessageConst.ToServer.NOTIFY_LUCKY_TREASURE_UPDATE_STOCK, resp = true, toPbFile = false)
 public class LuckyTreasureUpdateBroadcast extends AbstractMessage {
 
     /**

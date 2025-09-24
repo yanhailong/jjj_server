@@ -7,11 +7,10 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.handler.CoreToServerMessageHandler;
 import com.jjg.game.core.logger.CoreLogger;
-import com.jjg.game.core.pb.gm.NotifyShopProductChange;
+import com.jjg.game.core.pb.LuckyTreasureUpdateBroadcast;
 import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
+import com.jjg.game.hall.minigame.game.luckytreasure.service.LuckyTreasureService;
 import com.jjg.game.hall.service.HallService;
-import com.jjg.game.core.service.ShopService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,10 +20,16 @@ import org.springframework.stereotype.Component;
 @Component
 @MessageType(MessageConst.MessageTypeDef.TO_SERVER_CONST_TYPE)
 public class HallToServerMessageHandler extends CoreToServerMessageHandler {
-    @Autowired
-    private HallService hallService;
-    @Autowired
-    private CoreLogger coreLogger;
+
+    private final HallService hallService;
+    private final CoreLogger coreLogger;
+    private final LuckyTreasureService luckyTreasureService;
+
+    public HallToServerMessageHandler(LuckyTreasureService luckyTreasureService, HallService hallService, CoreLogger coreLogger) {
+        this.luckyTreasureService = luckyTreasureService;
+        this.hallService = hallService;
+        this.coreLogger = coreLogger;
+    }
 
     @Command(MessageConst.ToServer.REQ_REFRESH_GAME_STATUS)
     public void reqRefreshGameStatus(ReqRefreshGameStatus req) {
@@ -38,4 +43,13 @@ public class HallToServerMessageHandler extends CoreToServerMessageHandler {
         }
         coreLogger.gmOrder(BackendGMCmd.CHANGE_GAME_STATUS + ":" + req.cmdParam, null, result);
     }
+
+    /**
+     * 收到其他节点同步更新库存数据
+     */
+    @Command(MessageConst.ToServer.NOTIFY_LUCKY_TREASURE_UPDATE_STOCK)
+    public void handleLuckyTreasureUpdate(LuckyTreasureUpdateBroadcast message) {
+        luckyTreasureService.handleUpdateMessage(message.getIssueNumber());
+    }
+
 }
