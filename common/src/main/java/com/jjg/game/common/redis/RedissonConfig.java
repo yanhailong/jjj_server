@@ -1,8 +1,11 @@
 package com.jjg.game.common.redis;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jjg.game.common.utils.ObjectMapperUtil;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
-import org.redisson.client.codec.StringCodec;
+import org.redisson.client.codec.Codec;
+import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -32,7 +35,10 @@ public class RedissonConfig {
         config.useSingleServer().setAddress(redissonAddr);
         config.useSingleServer().setPassword(redisPassword);
         config.useSingleServer().setDatabase(redisDb);
-        config.setCodec(StringCodec.INSTANCE);
+        // 使用与RedisConfig相同的序列化方式
+        ObjectMapper mapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
+        Codec codec = new JsonJacksonCodec(mapper);
+        config.setCodec(codec);
         return Redisson.create(config);
     }
 }

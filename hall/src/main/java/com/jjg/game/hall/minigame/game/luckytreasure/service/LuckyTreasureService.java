@@ -1,6 +1,10 @@
 package com.jjg.game.hall.minigame.game.luckytreasure.service;
 
 import cn.hutool.core.collection.ConcurrentHashSet;
+import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.protostuff.MessageUtil;
+import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
@@ -12,6 +16,7 @@ import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.SubscriptionManager;
+import com.jjg.game.core.pb.LuckyTreasureUpdateBroadcast;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.hall.minigame.game.luckytreasure.bean.LuckyTreasureConsumeInfo;
@@ -20,18 +25,12 @@ import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureI
 import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureUpdateInfo;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.res.*;
 import com.jjg.game.hall.minigame.game.luckytreasure.util.LuckyTreasureStatusUtil;
-import jakarta.annotation.Nonnull;
 import org.redisson.api.RLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.redis.connection.Message;
-import org.springframework.data.redis.connection.MessageListener;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.listener.ChannelTopic;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -40,17 +39,16 @@ import java.util.*;
  * 夺宝奇兵服务类
  */
 @Service
-public class LuckyTreasureService implements TimerListener<LuckyTreasureService>, MessageListener {
+public class LuckyTreasureService implements TimerListener<LuckyTreasureService> {
     private static final Logger log = LoggerFactory.getLogger(LuckyTreasureService.class);
 
     private final LuckyTreasureDao luckyTreasureDao;
     private final LuckyTreasureRedisDao luckyTreasureRedisDao;
     private final RedisLock redisLock;
     private final PlayerPackService playerPackService;
-    private final RedisMessageListenerContainer redisMessageListenerContainer;
     private final TimerCenter timerCenter;
     private final SubscriptionManager subscriptionManager;
-    private final RedisTemplate redisTemplate;
+    private final ClusterSystem clusterSystem;
 
     /**
      * 等待通知更新的期号列表
@@ -65,10 +63,9 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
     public LuckyTreasureService(LuckyTreasureDao luckyTreasureDao,
                                 LuckyTreasureRedisDao luckyTreasureRedisDao,
                                 RedisLock redisLock,
-                                RedisMessageListenerContainer redisMessageListenerContainer,
                                 TimerCenter timerCenter,
                                 SubscriptionManager subscriptionManager,
-                                RedisTemplate redisTemplate,
+                                ClusterSystem clusterSystem,
                                 PlayerPackService playerPackService) {
         this.luckyTreasureDao = luckyTreasureDao;
         this.luckyTreasureRedisDao = luckyTreasureRedisDao;
@@ -76,17 +73,13 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         this.playerPackService = playerPackService;
         this.timerCenter = timerCenter;
         this.subscriptionManager = subscriptionManager;
-        this.redisMessageListenerContainer = redisMessageListenerContainer;
-        this.redisTemplate = redisTemplate;
+        this.clusterSystem = clusterSystem;
     }
 
     /**
      * 初始化
      */
     public void init() {
-        // 订阅数据同步频道
-        redisMessageListenerContainer.addMessageListener(this, new ChannelTopic(LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_UPDATE_CHANEL));
-        log.info("已订阅Redis频道:{}", LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_UPDATE_CHANEL);
     }
 
     /**
@@ -121,28 +114,34 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         log.info("延迟同步夺宝奇兵库存完毕!set={}", updateSet);
     }
 
-    @Override
-    public void onMessage(@Nonnull Message message, byte[] pattern) {
-        try {
-            String channel = new String(message.getChannel());
-            String body = new String(message.getBody());
-            log.debug("监听到频道:[{}]消息,body:{}", channel, body);
-            if (channel.equals(LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_UPDATE_CHANEL)) {
-                long issueNumber = Long.parseLong(body);
-                //添加到待更新列表
-                if (issueNumber > 0) {
-                    issueNumberSet.add(issueNumber);
-                    if (updateTimer == null) {
-                        updateTimer = new TimerEvent<>(this, null, 0, 1, 200, false);
-                        // 添加到定时器中心
-                        timerCenter.add(updateTimer);
-                    }
-                    log.info("收到更新通知,需要同步更新期号[{}]数据", issueNumber);
-                }
+    /**
+     * 收到其他节点广播的同步数据消息
+     */
+    public void handleUpdateMessage(long issueNumber) {
+        //添加到待更新列表
+        if (issueNumber > 0) {
+            issueNumberSet.add(issueNumber);
+            if (updateTimer == null) {
+                updateTimer = new TimerEvent<>(this, null, 0, 1, 200, false);
+                // 添加到定时器中心
+                timerCenter.add(updateTimer);
             }
-        } catch (Exception e) {
-            log.error("同步更新期号错误!msg={}", message, e);
+            log.info("收到更新通知,需要同步更新期号[{}]数据", issueNumber);
         }
+    }
+
+    /**
+     * 广播其他节点库存更新
+     *
+     * @param issueNumber 期号
+     */
+    public void broadcastUpdate(long issueNumber) {
+        LuckyTreasureUpdateBroadcast message = new LuckyTreasureUpdateBroadcast();
+        message.setIssueNumber(issueNumber);
+        PFMessage pfMessage = MessageUtil.getPFMessage(message);
+        clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString())::contains);
+        //顺便通知自己
+        handleUpdateMessage(issueNumber);
     }
 
     /**
@@ -277,8 +276,8 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                         response.setRemainingCount(remainingCount - count);
                         response.setStatus(LuckyTreasureStatusUtil.calculateStatus(latestTreasure, player.getId()));
                         result.data = response;
-                        //购买成功通知更新
-                        redisTemplate.convertAndSend(LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_UPDATE_CHANEL, latestTreasure.getIssueNumber());
+                        //购买成功通知更新 广播到所有节点
+                        broadcastUpdate(latestTreasure.getIssueNumber());
                     }
                     return result;
                 } finally {
