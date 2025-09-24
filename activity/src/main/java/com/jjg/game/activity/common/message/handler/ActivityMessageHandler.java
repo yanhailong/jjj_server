@@ -181,7 +181,7 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_BIND_PLAYER)
     public void reqSharePromoteBindPlayer(PlayerController playerController, ReqSharePromoteBindPlayer req) {
-        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.OFFICIAL_AWARDS);
+        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
         if (CollectionUtil.isEmpty(dataMap)) {
             return;
         }
@@ -198,7 +198,7 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_CLAIM_PROFIT_REWARD)
     public void reqSharePromoteClaimProfitReward(PlayerController playerController) {
-        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.OFFICIAL_AWARDS);
+        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
         if (CollectionUtil.isEmpty(dataMap)) {
             return;
         }
@@ -214,7 +214,7 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_GLOBAL_INFO)
     public void reqSharePromoteGlobalInfo(PlayerController playerController) {
-        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.OFFICIAL_AWARDS);
+        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
         if (CollectionUtil.isEmpty(dataMap)) {
             return;
         }
@@ -230,7 +230,7 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_WEEK_RANK_INFO)
     public void reqSharePromoteWeekRankInfo(PlayerController playerController, ReqSharePromoteWeekRankInfo req) {
-        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.OFFICIAL_AWARDS);
+        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
         if (CollectionUtil.isEmpty(dataMap)) {
             return;
         }
@@ -246,7 +246,7 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_SELF_RANK_INFO)
     public void reqSharePromoteSelfRankInfo(PlayerController playerController, ReqSharePromoteSelfRankInfo req) {
-        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.OFFICIAL_AWARDS);
+        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
         if (CollectionUtil.isEmpty(dataMap)) {
             return;
         }

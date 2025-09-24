@@ -118,7 +118,7 @@ public class OfficialAwardsDao {
 
     public int reduceProgress(String redisKey, int reduceValue) {
         String lockKey = "lock:" + redisKey;
-        redisLock.lock(lockKey);
+        redisLock.lock(lockKey,ActivityConstant.Common.REDIS_LOCK);
         try {
             String progress = redisTemplate.opsForValue().get(redisKey);
             int currentProgress = progress == null ? 0 : Integer.parseInt(progress);
@@ -186,7 +186,7 @@ public class OfficialAwardsDao {
      */
     public Pair<Integer, Integer> reduceTotalPool(int reduceValue) {
         String lockKey = "lock:" + TOTAL_POOL_KEY;
-        redisLock.lock(lockKey);
+        redisLock.lock(lockKey,ActivityConstant.Common.REDIS_LOCK);
         try {
             String val = redisTemplate.opsForValue().get(TOTAL_POOL_KEY);
             int current = val == null ? 0 : Integer.parseInt(val);

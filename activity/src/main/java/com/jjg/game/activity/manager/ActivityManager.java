@@ -51,6 +51,7 @@ import com.jjg.game.sampledata.bean.ActivityConfigCfg;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.ConditionCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
+import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +68,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess, GmListener, GameEventListener,
-        ConfigExcelChangeListener, IRedDotService,ActivityChangeEvent {
+        ConfigExcelChangeListener, IRedDotService, ActivityChangeEvent {
     private static final Logger log = LoggerFactory.getLogger(ActivityManager.class);
     /**
      * 定时器中心，用于添加活动开始/结束的定时任务
@@ -110,6 +111,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 活动 id -> 活动详细配置
      */
     private Map<Long, Map<Integer, BaseCfgBean>> activityDetailInfo = new ConcurrentHashMap<>();
+    private final RedissonClient redissonClient;
     // 事件类型 => 活动ID列表
     private final Map<EGameEventType, List<Integer>> eventTypeListMap = new HashMap<>();
     /**
@@ -136,7 +138,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     public ActivityManager(TimerCenter timerCenter, ActivityDao activityDao,
                            ActivityDetailDao activityDetailDao, ClusterSystem clusterSystem,
                            CoreMarqueeManager marqueeManager,
-                           MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager) {
+                           MarsCurator marsCurator, NodeConfig nodeConfig, RedissonClient redissonClient, RedDotManager redDotManager) {
         this.timerCenter = timerCenter;
         this.activityDao = activityDao;
         this.activityDetailDao = activityDetailDao;
@@ -144,6 +146,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         this.marqueeManager = marqueeManager;
         this.marsCurator = marsCurator;
         this.nodeConfig = nodeConfig;
+        this.redissonClient = redissonClient;
         this.redDotManager = redDotManager;
     }
 
@@ -174,10 +177,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         loadActivityConfigByDB(currentTime, timerList, tempActivityDetailInfo, tempActivityData);
         //从配置表加载
         loadActivityConfigByExcel(tempActivityData, currentTime, timerList, tempActivityDetailInfo);
-        //添加活动定时器
-        for (Pair<Long, Long> pair : timerList) {
-            timerCenter.add(new TimerEvent<>(this, pair.getFirst(), pair.getSecond()));
-        }
+        addActivityTimer(timerList);
         //主节点保存到redis
         if (isExecutionNode()) {
             activityDao.saveActivities(tempActivityData);
@@ -195,14 +195,45 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         //检查是否要主动开启
         for (ActivityData data : activityData.values()) {
-            //设置状态
-            if (data.getStatus() != ActivityConstant.ActivityStatus.RUNNING && data.getTimeStart() <= currentTime && currentTime <= data.getTimeEnd()) {
-                data.getType().getController().onActivityStart(data);
-                data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
-            }
-            if (data.canRun()) {
-                data.getType().getController().activityLoadCompleted(data);
-            }
+            checkActivityStatus(data, currentTime);
+        }
+    }
+
+    /**
+     * 添加活动定时器
+     *
+     * @param timerList
+     */
+    private void addActivityTimer(List<Pair<Long, Long>> timerList) {
+        //添加活动定时器
+        for (Pair<Long, Long> pair : timerList) {
+            timerCenter.add(new TimerEvent<>(this, pair.getFirst(), pair.getSecond()));
+        }
+    }
+
+    /**
+     * 移除活动定时器
+     *
+     * @param activityId 活动id
+     */
+    private void removeActivityTimer(long activityId) {
+        timerCenter.remove(this, activityId);
+    }
+
+    /**
+     * 检查活动状态并执行活动开启
+     *
+     * @param data        活动数据
+     * @param currentTime 当时间
+     */
+    private void checkActivityStatus(ActivityData data, long currentTime) {
+        //设置状态
+        if (data.getStatus() != ActivityConstant.ActivityStatus.RUNNING && data.getTimeStart() <= currentTime && currentTime <= data.getTimeEnd()) {
+            data.getType().getController().onActivityStart(data);
+            data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
+        }
+        if (data.canRun()) {
+            data.getType().getController().activityLoadCompleted(data);
         }
     }
 
@@ -561,9 +592,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             //从配置表加载
             loadActivityConfigByExcel(tempActivityData, currentTime, timerList, tempActivityDetailInfo);
             //添加活动定时器
-            for (Pair<Long, Long> pair : timerList) {
-                timerCenter.add(new TimerEvent<>(this, pair.getFirst(), pair.getSecond()));
-            }
+            addActivityTimer(timerList);
             //重新赋值到内存
             activityData = tempActivityData;
             activityDetailInfo = tempActivityDetailInfo;
@@ -576,16 +605,17 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             //检查是否要主动开启
             for (ActivityData data : activityData.values()) {
                 //设置状态
-                if (data.getStatus() != ActivityConstant.ActivityStatus.RUNNING && data.getTimeStart() <= currentTime && currentTime <= data.getTimeEnd()) {
-                    data.getType().getController().onActivityStart(data);
-                    data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
-                }
-                if (data.canRun()) {
-                    data.getType().getController().activityLoadCompleted(data);
-                }
+                checkActivityStatus(data, currentTime);
             }
             return new CommonResult<>(Code.SUCCESS);
         }
+        if ("rechargeGold".equalsIgnoreCase(cmd)) {
+            long count = Long.parseLong(gmOrders[1]);
+            addPlayerActivityProgress(playerController.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), count
+                    , null);
+            return new CommonResult<>(Code.SUCCESS);
+        }
+
         if (gmOrders.length < 3) {
             return new CommonResult<>(Code.FAIL);
         }
@@ -614,12 +644,6 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 return new CommonResult<>(Code.NOT_FOUND);
             }
             data.getType().getController().buyActivityGift(playerController.getPlayer(), data, detailId);
-            return new CommonResult<>(Code.SUCCESS);
-        }
-        if ("recharge".equalsIgnoreCase(cmd)) {
-            long count = Long.parseLong(gmOrders[1]);
-            addPlayerActivityProgress(playerController.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), count
-                    , null);
             return new CommonResult<>(Code.SUCCESS);
         }
 
@@ -858,8 +882,65 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     @Override
     public void onActivityDataChange(NotifyActivityServerChange change) {
-        //删除直接删除数据
-        //新增添加数据
-        //更新直接更新
+        long activityId = change.activityId;
+        long timeMillis = System.currentTimeMillis();
+        List<Pair<Long, Long>> timerList = new ArrayList<>(1);
+        switch (change.operationType) {
+            case UPDATE_ACTIVITY -> {
+                ActivityData newActivity = activityDao.getActivityById(activityId);
+                if (newActivity == null) {
+                    log.error("请求更新活动时 未获取到活动 activityId:{}", activityId);
+                    return;
+                }
+                if (!checkActivityData(newActivity, timeMillis, timerList)) {
+                    log.error("请求更新活动时 活动数据错误 activityId:{}", activityId);
+                    return;
+                }
+                ActivityData currentActivity = activityData.get(activityId);
+                //新增活动
+                if (currentActivity == null) {
+                    addActivityTimer(timerList);
+                    checkActivityStatus(newActivity, timeMillis);
+                    activityData.put(activityId, newActivity);
+                    Map<Long, ActivityData> typeData = activityTypeData.computeIfAbsent(newActivity.getType(), key -> new ConcurrentHashMap<>());
+                    typeData.put(newActivity.getId(), newActivity);
+                    log.info("新增活动成功 activityId:{}", activityId);
+                    return;
+                }
+                if (currentActivity.getStatus() != ActivityConstant.ActivityStatus.NOT_START) {
+                    log.error("更新活动失败 活动不处于未开始 activityId:{}", activityId);
+                    return;
+                }
+                removeActivityTimer(activityId);
+                addActivityTimer(timerList);
+                activityData.put(activityId, newActivity);
+                log.info("修改活动成功 activityId:{}", activityId);
+            }
+            case UPDATE_ACTIVITY_DETAILS -> {
+                ActivityData data = activityDao.getActivityById(activityId);
+                if (data == null || data.getStatus() != ActivityConstant.ActivityStatus.NOT_START) {
+                    log.error("请求更新活动详情失败 活动数据错误 activityId:{}", activityId);
+                    return;
+                }
+                Map<Integer, BaseCfgBean> activityDetailInfos = activityDetailDao.getActivityDetailInfos(data.getId(), data.getType());
+                activityDetailInfos.values().removeIf(baseCfgBean -> !data.getValue().contains(baseCfgBean.getId()));
+                activityDetailInfo.put(activityId, activityDetailInfos);
+                log.info("请求更新活动详情成功 活动数据错误 activityId:{}", activityId);
+            }
+            case UPDATE_ACTIVITY_OPEN -> {
+                ActivityData data = activityDao.getActivityById(activityId);
+                if (data == null) {
+                    log.error("请求更新活动开关失败 活动数据错误 activityId:{}", activityId);
+                    return;
+                }
+                activityData.put(activityId, data);
+                Map<Long, ActivityData> typeData = activityTypeData.computeIfAbsent(data.getType(), key -> new ConcurrentHashMap<>());
+                typeData.put(data.getId(), data);
+            }
+            default -> {
+            }
+        }
     }
+
+
 }
