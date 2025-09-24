@@ -240,7 +240,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
 
     @Override
     public void onActivityEnd(ActivityData activityData) {
-//        if (activityManager.isExecutionNode()) {
+        if (activityManager.isExecutionNode()) {
             //清除所有记录数据
             officialAwardsDao.deleteAllRecords();
             officialAwardsDao.deleteAllPlayerRecords();
@@ -248,7 +248,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
             officialAwardsDao.deleteAllPlayerAllProgress();
             //清除奖池信息
             officialAwardsDao.deleteTotalPool();
-//        }
+        }
     }
 
     @Override
@@ -256,7 +256,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
         if (getConversionType(activityData) == 0) {
             return;
         }
-//        if (activityManager.isExecutionNode()) {
+        if (activityManager.isExecutionNode()) {
             //设置初始奖池
             GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.OfficialAwards.INITIAL_AMOUNT);
             if (globalConfigCfg == null || globalConfigCfg.getLongValue() == 0) {
@@ -266,7 +266,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
             officialAwardsDao.setTotalPool(globalConfigCfg.getLongValue());
             //添加机器人获奖逻辑
             robotAction(activityData.getId());
-//        }
+        }
     }
 
     /**
@@ -431,15 +431,18 @@ public class OfficialAwardsController extends BaseActivityController implements 
 
     @Override
     public void isLeader() {
-//        if (activityManager.isExecutionNode()) {
+        if (activityManager.isExecutionNode()) {
             Map<Long, ActivityData> longActivityDataMap = activityManager.getActivityTypeData().get(ActivityType.OFFICIAL_AWARDS);
+            if (CollectionUtil.isEmpty(longActivityDataMap)) {
+                return;
+            }
             for (ActivityData activityData : longActivityDataMap.values()) {
                 if (activityData.canRun()) {
                     robotAction(activityData.getId());
                     break;
                 }
             }
-//        }
+        }
     }
 
     @Override
@@ -449,7 +452,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
 
     @Override
     public void onTimer(TimerEvent<Long> e) {
-//        if (activityManager.isExecutionNode()) {
+        if (activityManager.isExecutionNode()) {
             //奖池为空直接返回
             long pool = officialAwardsDao.getTotalPool();
             if (pool <= 0) {
@@ -478,7 +481,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
                     robotAction(activityId);
                 }
             }
-//        }
+        }
     }
 
     /**
