@@ -18,21 +18,28 @@ public class OfficialAwardsCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "OfficialAwards";
 
-  /** 中奖概率(万分比) */
-  protected int Probability;
+  /** 统计类型 */
+  protected int calculationType;
   /** 奖励 */
   protected List<Integer> getitem;
+  /** 中奖概率(万分比) */
+  protected int probability;
   /** 转盘类型 */
   protected int turntableType;
 
-  /** 返回中奖概率(万分比) */
-  public int getProbability() {
-    return Probability;
+  /** 返回统计类型 */
+  public int getCalculationType() {
+    return calculationType;
   }
 
   /** 返回奖励 */
   public List<Integer> getGetitem() {
     return getitem;
+  }
+
+  /** 返回中奖概率(万分比) */
+  public int getProbability() {
+    return probability;
   }
 
   /** 返回转盘类型 */

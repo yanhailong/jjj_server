@@ -21,4 +21,5 @@ public class SharePromoteRankInfo {
     public int titleId;
     @ProtoDesc("总收益")
     public long totalScore;
+
 }

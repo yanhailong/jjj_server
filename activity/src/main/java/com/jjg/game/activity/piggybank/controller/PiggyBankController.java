@@ -133,11 +133,12 @@ public class PiggyBankController extends BaseActivityController {
      * @param playerId             玩家ID
      * @param activityData         活动数据
      * @param progress             增加进度
+     * @param activityTargetKey
      * @param additionalParameters 附加参数（用于过滤非金币道具）
      * @return 是否可以领取奖励
      */
     @Override
-    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, Object additionalParameters) {
+    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
         // 如果不是金币，则不增加储钱罐进度
         if (additionalParameters instanceof Integer itemId && !itemId.equals(ItemUtils.getGoldItemId())) {
             return false;

@@ -12,6 +12,4 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_GLOBAL_INFO)
 @ProtoDesc("请求推广分享总览信息")
 public class ReqSharePromoteGlobalInfo {
-    @ProtoDesc("活动id")
-    public long activityId;
 }

@@ -43,6 +43,7 @@ import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.ActivityItemDropInfo;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.pb.NotifyItemDropInfo;
+import com.jjg.game.core.pb.activity.NotifyActivityServerChange;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
@@ -66,7 +67,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess, GmListener, GameEventListener,
-        ConfigExcelChangeListener, IRedDotService {
+        ConfigExcelChangeListener, IRedDotService,ActivityChangeEvent {
     private static final Logger log = LoggerFactory.getLogger(ActivityManager.class);
     /**
      * 定时器中心，用于添加活动开始/结束的定时任务
@@ -451,8 +452,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     continue;
                 }
                 try {
-                    boolean changeStatus = data.getType().getController().addPlayerProgress(playerId, data, value,
-                            additionalParameters);
+                    boolean changeStatus = data.getType().getController().addPlayerProgress(playerId, data, value
+                            , activityTargetKey, additionalParameters);
                     //如果进度增加后能够领取则放入
                     if (changeStatus) {
                         dataArrayList.add(data);
@@ -570,7 +571,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             //缓存为活动类型->活动数据保存
             for (ActivityData data : tempActivityData.values()) {
                 activityTypeData.computeIfAbsent(data.getType(), k -> new ConcurrentHashMap<>()).put(data.getId(),
-                    data);
+                        data);
             }
             //检查是否要主动开启
             for (ActivityData data : activityData.values()) {
@@ -853,5 +854,12 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             }
         }
         return redDotDetails;
+    }
+
+    @Override
+    public void onActivityDataChange(NotifyActivityServerChange change) {
+        //删除直接删除数据
+        //新增添加数据
+        //更新直接更新
     }
 }

@@ -92,10 +92,11 @@ public abstract class BaseActivityController {
      * @param playerId             玩家ID
      * @param activityData         活动数据
      * @param progress             要增加的进度值
+     * @param activityTargetKey    触发key
      * @param additionalParameters 额外参数，留作扩展
      * @return true 需要给前端发送数据，false 不需要给前端发送数据
      */
-    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, Object additionalParameters) {
+    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
         return false;
     }
 
