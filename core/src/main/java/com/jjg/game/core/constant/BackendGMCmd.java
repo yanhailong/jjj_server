@@ -43,6 +43,19 @@ public interface BackendGMCmd {
 
     //获取全部活动数据
     String GET_ALL_ACTIVITY_DATA = "getAllActivityData";
+
+    /**
+     * 配置相关
+     */
+    interface Config {
+        //加载配置列表
+        String GET_CONFIG_LIST = "getConfigList";
+        //覆盖配置
+        String REPLACE_CONFIG = "replaceConfig";
+        //删除配置
+        String DELETE_CONFIG = "deleteConfig";
+    }
+
     interface Result {
         String SUCCESS = "success";
         String FAIL = "fail";
