@@ -229,8 +229,12 @@ public class SharePromoteController extends BaseActivityController {
         long playerId = playerController.playerId();
         //获取玩家的推广分享数据
         SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
-        if (playerInfoData == null|| StringUtils.isEmpty(req.invitationCode)) {
+        if (playerInfoData == null) {
             res.code = Code.PARAM_ERROR;
+            return res;
+        }
+        if (StringUtils.isEmpty(req.invitationCode)) {
+            res.code = Code.CODE_ERROR;
             return res;
         }
         //绑定玩家

@@ -228,13 +228,15 @@ public class SharePromoteDao {
         try {
             String createPlayerId = getHashOperations().get(SHARE_PROMOTE_CODE, code);
             if (createPlayerId == null) return Code.CODE_ERROR;
-
+            if (playerId == Long.parseLong(createPlayerId)) {
+                return Code.BOUND_SELF;
+            }
             // 被绑定玩家是否已绑定过
             Boolean success = redisTemplate.opsForValue().setIfAbsent(
                     SHARE_PROMOTE_ALREADY_BIND_KEY.formatted(createPlayerId), getBindString(playerId));
             if (Boolean.FALSE.equals(success)) {
                 log.info("绑定失败 playerId={} 已经被绑定", playerId);
-                return Code.ALREADY_OTHER_BOUND;
+                return Code.ALREADY_BOUND;
             }
 
             String bindKey = SHARE_PROMOTE_BIND_KEY.formatted(createPlayerId);
