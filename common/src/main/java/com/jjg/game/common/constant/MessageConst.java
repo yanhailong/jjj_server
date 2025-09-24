@@ -231,5 +231,8 @@ public interface MessageConst {
 
         //活动变化
         int NOTIFY_ACTIVITY_SERVER_CHANGE = BASE_MSG_PREFIX | 0xA;
+
+        //夺宝奇兵更新库存
+        int NOTIFY_LUCKY_TREASURE_UPDATE_STOCK = BASE_MSG_PREFIX | 0xB;
     }
 }

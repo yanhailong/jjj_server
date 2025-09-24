@@ -10,6 +10,6 @@ package com.jjg.game.core.data;
  * @author lm
  * @date 2025/7/10 17:07
  */
-public record GameStatus(int gameId, int open, int status, String right_top_icon,int icon_category,int sort) {
+public record GameStatus(String name,int gameId, int open, int status, String right_top_icon,int icon_category,int sort) {
 
 }

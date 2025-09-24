@@ -713,7 +713,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             ConditionCfg cfg = GameDataManager.getConditionCfg(dropCondition.getFirst());
             EffectiveFlowingParam effectiveFlowingParam = new EffectiveFlowingParam(cfg.getConditionType(), null);
             effectiveFlowingParam.setFlowingValue((Long) effectiveFlowingEvent.getEventChangeValue());
-            effectiveFlowingParam.setGameCfgId(effectiveFlowingParam.getGameCfgId());
+            effectiveFlowingParam.setGameCfgId(effectiveFlowingEvent.getGameCfgId());
             effectiveFlowingParam.setConditionProgressKey(conditionKey);
             effectiveFlowingParam.setNeedUpdateProgress(true);
             effectiveFlowingParam.setConditionCfg(dropCondition.subList(1, dropCondition.size()));
