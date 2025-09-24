@@ -17,8 +17,10 @@ import java.util.List;
 public class ResMahjiongwinStartGame extends AbstractResponse {
     @ProtoDesc("图标id列表")
     public List<Integer> iconList;
-    @ProtoDesc("累计中奖金币")
+    @ProtoDesc("本局中奖金币")
     public long allWinGold;
+    @ProtoDesc("累计中奖金币")
+    public long totalWinGold;
     @ProtoDesc("当前状态 0.正常  1.免费")
     public int status;
     @ProtoDesc("剩余免费次数")

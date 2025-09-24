@@ -7,6 +7,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.core.base.gameevent.GameEventManager;
+import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.base.player.IRecharge;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.data.Marquee;
@@ -125,6 +126,8 @@ public class CoreToServerMessageHandler {
 
     /**
      * 玩家充值成功
+     * 充值成功后，recharge节点会通知到玩家当前所在的节点
+     * 如果玩家不在线或没找到当前所在节点，则会随机找一个大厅节点接收该消息
      */
     @Command(MessageConst.ToServer.NOTIFY_PLAYER_RECHARGE)
     public void notifyRecharge(NotifyRechargeServer notify) {
@@ -135,7 +138,9 @@ public class CoreToServerMessageHandler {
         //接口通知
         SystemInterfaceHolder.callGameSysAction(IRecharge.class, (f) -> f.rechargeSuccess(player, order, shopProduct));
         //充值事件
-//        gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order.getId(), order.getRechargeType()));
+        gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order));
+
+        log.info("充值成功，通知到玩家所在的当前节点 playerId = {},orderId = {}", player.getId(), order.getId());
     }
 
 }

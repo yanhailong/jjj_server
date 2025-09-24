@@ -26,19 +26,21 @@ public class SlotsPlayerGameDataDTO {
     //总押分
     protected long allBetScore;
     //最近一次的模式id
-    private int lastModelId;
+    protected int lastModelId;
     //最近一次所在的区间
-    private int lastSectionIndex;
+    protected int lastSectionIndex;
     //玩家累计押注金额
-    private long allBet;
+    protected long allBet;
     //玩家累计获得奖池(倍场)金额
-    private long rewardPoolGold;
+    protected long rewardPoolGold;
     //玩家奖池(倍场)累计贡献金额金额(没有减去已获得金额)
-    private long contribtPoolGold;
+    protected long contribtPoolGold;
+    //免费游戏中累计获得的金币
+    protected long freeAllWin;
     //剩余的免费次数
-    private int remainFreeCount;
+    protected int remainFreeCount;
     //当前的免费游戏数组中的下标值
-    private int freeIndex;
+    protected int freeIndex;
 
     public long getPlayerId() {
         return playerId;
@@ -126,6 +128,14 @@ public class SlotsPlayerGameDataDTO {
 
     public void setContribtPoolGold(long contribtPoolGold) {
         this.contribtPoolGold = contribtPoolGold;
+    }
+
+    public long getFreeAllWin() {
+        return freeAllWin;
+    }
+
+    public void setFreeAllWin(long freeAllWin) {
+        this.freeAllWin = freeAllWin;
     }
 
     public int getRemainFreeCount() {

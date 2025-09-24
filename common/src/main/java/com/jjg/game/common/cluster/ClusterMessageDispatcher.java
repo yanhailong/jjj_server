@@ -113,7 +113,7 @@ public class ClusterMessageDispatcher {
         int messageType = 0;
         int command = 0;
         try {
-            //log.debug("打印handle  connect={},session={},msg={}",connect,session,msg);
+//            log.debug("打印handle  connect={},session={},msg={}",connect,session,msg);
             messageType = msg.messageType;
             command = msg.cmd;
             MessageController messageController = messageControllers.get(messageType);

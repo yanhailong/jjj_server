@@ -33,6 +33,8 @@ import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.*;
+import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
+import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
 import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
@@ -1289,6 +1291,36 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param playerController
      */
     public boolean addTestIconDataIcons(PlayerController playerController, String icons) {
+        T playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            return false;
+        }
+
+        try {
+            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+            int[] initArr = new int[baseInitCfg.getRows() * baseInitCfg.getCols() + 1];
+
+            String[] splitArr = icons.split(";");
+            String[] arr2 = splitArr[0].split(",");
+            for (int i = 1; i < initArr.length; i++) {
+                initArr[i] = Integer.parseInt(arr2[i - 1]);
+            }
+
+            Constructor<L> constructor = this.libClass.getConstructor();
+            L lib = constructor.newInstance();
+            lib.addLibType(1);
+            lib.setId(RandomUtils.getUUid());
+
+
+            TestLibData testLibData = new TestLibData();
+            SlotsResultLib resultLib = getGenerateManager().checkAward(initArr,lib);
+            testLibData.setData(resultLib);
+            playerGameData.addTestIconsData(testLibData);
+            log.info("添加测试icons成功 playerId = {},icons = {}", playerController.playerId(), icons);
+            return true;
+        } catch (Exception e) {
+            log.error("", e);
+        }
         return false;
     }
 

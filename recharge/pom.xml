@@ -117,7 +117,7 @@
                     </descriptors>
                     <archive>
                         <manifest>
-                            <mainClass>com.jjg.game.hall.HallApp</mainClass>
+                            <mainClass>com.jjg.game.recharge.RechargeApp</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

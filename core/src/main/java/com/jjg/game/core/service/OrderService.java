@@ -3,6 +3,7 @@ package com.jjg.game.core.service;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.RechargeType;
 import com.jjg.game.core.dao.OrderDao;
@@ -13,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author 11
@@ -35,7 +38,7 @@ public class OrderService {
      */
     public Order generateOrder(long playerId, int productId, long price, RechargeType rechargeType) {
         for (int i = 0; i < CoreConst.Common.MONGO_TRY_COUNT; i++) {
-            String orderId = DateUtil.format(DateUtil.date(), "yyMMddHHmmssSSS") + RandomUtil.randomNumbers(4);
+            String orderId = DateUtil.format(DateUtil.date(), "yyMMddHHmmssSSS") + RandomUtils.randomMinMax(100000,999999);
             try {
                 Order order = new Order();
                 order.setId(orderId);

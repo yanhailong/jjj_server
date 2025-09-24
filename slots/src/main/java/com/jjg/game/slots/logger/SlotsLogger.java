@@ -49,7 +49,7 @@ public class SlotsLogger extends BaseLogger {
             //发送日志
             sendLog("slotsResult", player, json);
 
-            log.debug("打印游戏结果日志 json = {}", json.toJSONString());
+//            log.debug("打印游戏结果日志 json = {}", json.toJSONString());
         } catch (Exception e) {
             log.error("", e);
         }
