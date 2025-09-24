@@ -143,6 +143,8 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
                 //如果是免费模式，要累计记录中奖金额
                 if(status == MahjiongWinConstant.Status.FREE) {
                     playerGameData.setFreeAllWin(playerGameData.getFreeAllWin() + addGold);
+                }else {
+                    playerGameData.setFreeAllWin(0);
                 }
             }
 
@@ -261,7 +263,6 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
         gameRunInfo.setStatus(MahjiongWinConstant.Status.FREE);
         return gameRunInfo;
     }
-
 
     @Override
     public int getGameType() {

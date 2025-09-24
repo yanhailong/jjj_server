@@ -68,8 +68,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private TimerCenter timerCenter;
     @Autowired
     private HallPoolDao poolDao;
-    @Autowired
-    private ShopProductDao shopProductDao;
 
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
@@ -78,8 +76,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private List<GameListConfig> sortGameList;
     //游戏倍场界面的奖池
     private Map<Integer, List<WarePoolInfo>> poolMap;
-    //商城商品
-    private Map<Integer, ShopProduct> shopProductMap;
 
     public Map<Integer, GameStatus> getGameStatusesMap() {
         return gameStatusesMap;
@@ -158,14 +154,15 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         return this.poolMap.get(gameType);
     }
 
+    /**
+     * 判断是否能进入游戏
+     * @param gameType
+     * @return
+     */
     public boolean canJoinGame(int gameType) {
         GameStatus gameStatus = gameStatusesMap.get(gameType);
         if (Objects.nonNull(gameStatus)) {
             return gameStatus.open() == 1 && gameStatus.status() == 1;
-        }
-        GameListCfg gameListCfg = GameDataManager.getGameListCfg(gameType);
-        if (Objects.nonNull(gameListCfg)) {
-            return gameListCfg.getStatus() == HallCode.GAME_STATUS_OPEN;
         }
         return false;
     }
@@ -642,46 +639,25 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      */
     public List<GameListConfig> sortGameList() {
         try {
-            Map<Integer, GameStatus> gameStatusesMap = getGameStatusesMap();
+            if(this.gameStatusesMap == null || this.gameStatusesMap.isEmpty()) {
+                return null;
+            }
 
-            return GameDataManager.getGameListCfgList().stream()
-                    .map(configCfg -> {
+            return gameStatusesMap.values().stream()
+                    // 先排序：按 sort 升序，再按 gameId 升序
+                    .sorted(Comparator.comparingInt(GameStatus::sort)
+                            .thenComparingInt(GameStatus::gameId))
+
+                    // 转换 GameStatus → GameListConfig
+                    .map(gameStatus -> {
                         GameListConfig config = new GameListConfig();
-                        int gameId = configCfg.getId();
-                        int sortValue = Integer.MAX_VALUE;
-
-                        if (Objects.nonNull(gameStatusesMap)) {
-                            GameStatus gameStatus = gameStatusesMap.get(gameId);
-                            if (Objects.nonNull(gameStatus)) {
-                                config.sid = gameStatus.gameId();
-                                config.name = configCfg.getName();
-                                config.status = gameStatus.status();
-                                config.iconType = gameStatus.icon_category();
-                                config.rightTopIcon = gameStatus.right_top_icon();
-                                sortValue = gameStatus.sort();
-                            } else {
-                                config.sid = gameId;
-                                config.name = configCfg.getName();
-                                config.status = configCfg.getStatus();
-                                config.iconType = configCfg.getIconType();
-                            }
-                        } else {
-                            config.sid = gameId;
-                            config.name = configCfg.getName();
-                            config.status = configCfg.getStatus();
-                            config.iconType = configCfg.getIconType();
-                        }
-
-                        return new AbstractMap.SimpleEntry<>(config, sortValue);
+                        config.sid = gameStatus.gameId();
+                        config.status = gameStatus.status();
+                        config.iconType = gameStatus.icon_category();
+                        config.rightTopIcon = gameStatus.right_top_icon();
+                        config.name = gameStatus.name();
+                        return config;
                     })
-                    .sorted((a, b) -> {
-                        int sortCompare = Integer.compare(a.getValue(), b.getValue());
-                        if (sortCompare != 0) {
-                            return sortCompare;
-                        }
-                        return Integer.compare(a.getKey().sid, b.getKey().sid);
-                    })
-                    .map(Map.Entry::getKey)
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("", e);
