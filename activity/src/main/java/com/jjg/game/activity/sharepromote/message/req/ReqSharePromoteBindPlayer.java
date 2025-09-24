@@ -12,8 +12,6 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_BIND_PLAYER)
 @ProtoDesc("请求绑定玩家")
 public class ReqSharePromoteBindPlayer {
-    @ProtoDesc("活动id")
-    public long activityId;
     @ProtoDesc("邀请码")
     public String invitationCode;
 }

@@ -156,7 +156,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
     }
 
     @Override
-    public boolean addPlayerProgress(long playerId, ActivityData data, long progress, Object additionalParameters) {
+    public boolean addPlayerProgress(long playerId, ActivityData data, long progress, long activityTargetKey, Object additionalParameters) {
         // 当玩家发生某些行为导致个人进度增加时调用（例如玩家获得金币）
         if (notAddProgress(additionalParameters)) {
             return false;
@@ -638,7 +638,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
     /**
      * 请求摇钱树总池子（所有 detail 的总和）
      */
-    public AbstractResponse reqCashCowTotalPool(PlayerController playerController, ReqCashCowTotalPool req) {
+    public AbstractResponse reqCashCowTotalPool(ReqCashCowTotalPool req) {
         ResCashCowTotalPool res = new ResCashCowTotalPool(Code.SUCCESS);
         res.activityId = req.activityId;
         res.totalNum = cashCowDao.getActivityPool(req.activityId);

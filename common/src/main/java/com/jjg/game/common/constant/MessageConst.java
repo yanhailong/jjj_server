@@ -228,5 +228,8 @@ public interface MessageConst {
 
         //玩家充值成功
         int NOTIFY_PLAYER_RECHARGE = BASE_MSG_PREFIX | 0x9;
+
+        //活动变化
+        int NOTIFY_ACTIVITY_SERVER_CHANGE = BASE_MSG_PREFIX | 0xA;
     }
 }

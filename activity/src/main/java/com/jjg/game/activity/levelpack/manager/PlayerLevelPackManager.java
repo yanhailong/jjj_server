@@ -6,7 +6,6 @@ import com.jjg.game.activity.levelpack.dao.PlayerLevelDao;
 import com.jjg.game.activity.levelpack.data.PlayerLevelPackData;
 import com.jjg.game.activity.levelpack.message.bean.PlayerLevelPackDetailInfo;
 import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelClaimRewards;
-import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelPackDetailInfo;
 import com.jjg.game.activity.levelpack.message.res.NotifyPlayerLevelPackDetailInfo;
 import com.jjg.game.activity.levelpack.message.res.ResPlayerLevelClaimRewards;
 import com.jjg.game.common.cluster.ClusterSystem;
@@ -252,7 +251,7 @@ public class PlayerLevelPackManager implements GameEventListener {
     }
 
 
-    public AbstractResponse reqPlayerLevelPackDetailInfo(PlayerController playerController, ReqPlayerLevelPackDetailInfo req) {
+    public AbstractResponse reqPlayerLevelPackDetailInfo(PlayerController playerController) {
         Map<Integer, PlayerLevelPackData> playerLevelPackData = playerLevelDao.getPlayerLevelPackData(playerController.playerId());
         return buildNotifyPlayerLevelPackDetailInfo(playerLevelPackData);
     }

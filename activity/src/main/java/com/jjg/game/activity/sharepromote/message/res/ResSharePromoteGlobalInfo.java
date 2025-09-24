@@ -16,8 +16,6 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.RES_SHARE_PROMOTE_GLOBAL_INFO, resp = true)
 @ProtoDesc("推广分享总览信息")
 public class ResSharePromoteGlobalInfo extends AbstractResponse {
-    @ProtoDesc("活动id")
-    public long activityId;
     @ProtoDesc("昨日总收益")
     public long yesterdayIncome;
     @ProtoDesc("历史总收益")

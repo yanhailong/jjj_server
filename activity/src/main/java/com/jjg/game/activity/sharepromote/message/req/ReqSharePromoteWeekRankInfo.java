@@ -12,8 +12,6 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_WEEK_RANK_INFO)
 @ProtoDesc("请求推广分享周榜信息")
 public class ReqSharePromoteWeekRankInfo {
-    @ProtoDesc("活动id")
-    public long activityId;
     @ProtoDesc("起始索引")
     public int startIndex;
     @ProtoDesc("每页数目")

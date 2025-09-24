@@ -102,10 +102,10 @@ public class OfficialAwardsDao {
     /**
      * 获取玩家进度(type=1今日积分,2明日积分)
      */
-    public long getPlayerProgress(long playerId, int type) {
+    public int getPlayerProgress(long playerId, int type) {
         String key = String.format(PLAYER_PROGRESS_KEY, playerId, type);
         String progress = redisTemplate.opsForValue().get(key);
-        return progress == null ? 0 : Long.parseLong(progress);
+        return progress == null ? 0 : Integer.parseInt(progress);
     }
 
     /**
@@ -165,25 +165,24 @@ public class OfficialAwardsDao {
 // -------------------- 全局奖池 --------------------
 
     /**
-     * 增加奖池数量
+     * 设置奖池数量
      */
-    public long incrementTotalPool(long delta) {
-        Long increment = redisTemplate.opsForValue().increment(TOTAL_POOL_KEY, delta);
-        return increment == null ? 0 : increment;
+    public void setTotalPool(long delta) {
+        redisTemplate.opsForValue().set(TOTAL_POOL_KEY, String.valueOf(delta));
     }
 
     /**
      * 获取奖池数量
      */
-    public int getTotalPool() {
+    public long getTotalPool() {
         String value = redisTemplate.opsForValue().get(TOTAL_POOL_KEY);
-        return value == null ? 0 : Integer.parseInt(value);
+        return value == null ? 0 : Long.parseLong(value);
     }
 
     /**
-     * 扣除奖池数量（成功返回true，失败返回false）
+     * 扣除奖池数量（扣减数量 剩余数量）
      *
-     * @return 扣减数量
+     * @return 扣减数量 剩余数量
      */
     public Pair<Integer, Integer> reduceTotalPool(int reduceValue) {
         String lockKey = "lock:" + TOTAL_POOL_KEY;

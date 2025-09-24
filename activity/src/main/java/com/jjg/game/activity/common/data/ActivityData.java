@@ -82,6 +82,19 @@ public class ActivityData {
      */
     private List<Integer> dropId;
 
+    /**
+     * 活动临时数据 不存数据库
+     */
+    private transient ActivityTempData activityTempData;
+
+    public ActivityTempData getActivityTempData() {
+        return activityTempData;
+    }
+
+    public void setActivityTempData(ActivityTempData activityTempData) {
+        this.activityTempData = activityTempData;
+    }
+
     public int getStatus() {
         return status;
     }

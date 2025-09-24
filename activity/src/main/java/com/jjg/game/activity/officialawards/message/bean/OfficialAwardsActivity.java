@@ -14,4 +14,14 @@ import java.util.List;
 public class OfficialAwardsActivity {
     @ProtoDesc("活动详细信息")
     public List<OfficialAwardsDetailInfo> detailInfos;
+    @ProtoDesc("今日积分")
+    public long todayPoint;
+    @ProtoDesc("明日积分")
+    public long tomorrowPoint;
+    @ProtoDesc("总奖池")
+    public long totalPool;
+    @ProtoDesc("剩余时间")
+    public long remainTime;
+    @ProtoDesc("转换类型 1充值 2有效流水")
+    public int conversionType;
 }

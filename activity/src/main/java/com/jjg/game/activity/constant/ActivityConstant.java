@@ -90,9 +90,9 @@ public interface ActivityConstant {
 
     interface OfficialAwards {
         //统计类型充值
-        int CALCULATION_RECHARGE = 1;
+        int CALCULATION_RECHARGE = 2;
         //统计有效流水
-        int CALCULATION_EFFECTIVE_WATER_FLOW = 2;
+        int CALCULATION_EFFECTIVE_WATER_FLOW = 1;
         //今日积分
         int TODAY_POINTS = 1;
         //明日积分
@@ -235,9 +235,12 @@ public interface ActivityConstant {
         int RES_OFFICIAL_AWARDS_JOIN_ACTIVITY = BASE_MSG_PREFIX | 0x45;
         //响应官方派奖活动类型信息
         int RES_OFFICIAL_AWARDS_TYPE_INFO = BASE_MSG_PREFIX | 0x46;
-        //请求游戏记录信息
+        //请求记录信息
         int REQ_OFFICIAL_AWARDS_RECORD = BASE_MSG_PREFIX | 0x47;
         int RES_OFFICIAL_AWARDS_RECORD = BASE_MSG_PREFIX | 0x48;
+        //请求总奖池值
+        int REQ_OFFICIAL_AWARDS_TOTAL_POOL = BASE_MSG_PREFIX | 0x49;
+        int RES_OFFICIAL_AWARDS_TOTAL_POOL = BASE_MSG_PREFIX | 0x4A;
 
     }
 }

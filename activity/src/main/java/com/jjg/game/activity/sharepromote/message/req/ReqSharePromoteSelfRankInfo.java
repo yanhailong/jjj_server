@@ -12,8 +12,6 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_SELF_RANK_INFO)
 @ProtoDesc("请求推广分享我的收益排行榜信息")
 public class ReqSharePromoteSelfRankInfo {
-    @ProtoDesc("活动id")
-    public long activityId;
     @ProtoDesc("起始索引")
     public int startIndex;
     @ProtoDesc("每页数目")

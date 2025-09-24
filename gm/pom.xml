@@ -39,7 +39,11 @@
             <groupId>com.jjg.game</groupId>
             <artifactId>core</artifactId>
             <version>1.0.0-JJG-RELEASES</version>
-
+        </dependency>
+        <dependency>
+            <groupId>com.jjg.game</groupId>
+            <artifactId>activity</artifactId>
+            <version>1.0.0-JJG-RELEASES</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
