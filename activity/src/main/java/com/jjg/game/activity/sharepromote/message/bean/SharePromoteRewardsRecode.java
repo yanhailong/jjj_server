@@ -11,7 +11,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtoDesc("推广分享领取记录")
 public class SharePromoteRewardsRecode {
     @ProtoDesc("数量")
-    public String getNum;
+    public int getNum;
     @ProtoDesc("领取时间")
-    public String getTime;
+    public long getTime;
 }
