@@ -108,6 +108,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
         MahjiongWinAwardLineInfo info = new MahjiongWinAwardLineInfo();
         info.setBaseTimes(cfg.getBet());
         info.setSameIconSet(sameIconIndexSet);
+        info.setSameIcon(cfg.getElementId().getFirst() % 10);
         return info;
     }
 
@@ -198,20 +199,37 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
                 continue;
             }
 
+            //替换成wild的坐标
+            Set<Integer> replaceWildIndexs = new HashSet<>();
+
             info.getSameIconSet().forEach(index -> {
                 int columnId = index / baseInitCfg.getRows();
                 if ((index % baseInitCfg.getRows()) != 0) {
                     columnId++;
                 }
                 allSameMap.computeIfAbsent(columnId, k -> new HashSet<>()).add(index);
+
+                int icon = arr[index];
+
+                //判断消除的图标是不是金色图标
+                if (icon >= MahjiongWinConstant.BaseElement.GOLD_MIN && icon <= MahjiongWinConstant.BaseElement.GOLD_MAX) {
+                    Integer replaceIcon = this.replaceIconMap.get(icon);
+                    if (replaceIcon != null) {
+                        replaceWildIndexs.add(index);
+                    }
+                }
             });
+
+            info.setReplaceWildIndexs(replaceWildIndexs);
         }
 
+        //坐标对应添加的
         Map<Integer, Integer> addIconMap = new HashMap<>();
 
         for (Map.Entry<Integer, Set<Integer>> en : allSameMap.entrySet()) {
             int colIndex = en.getKey();
             Set<Integer> set = en.getValue();
+            //处理图标消除、下落和补充
             processIcons(colIndex, set, arr, addIconMap);
         }
 
@@ -334,6 +352,17 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
     @Override
     public void calTimes(MahjiongWinResultLib lib) throws Exception {
+        if(lib.getSpecialAuxiliaryInfoList() != null && !lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            for(SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()){
+                if(specialAuxiliaryInfo.getFreeGames() != null && !specialAuxiliaryInfo.getFreeGames().isEmpty()) {
+                    Set<Integer> libTypeSet = new HashSet<>();
+                    libTypeSet.add(MahjiongWinConstant.SpecialMode.FREE);
+                    lib.setLibTypeSet(libTypeSet);
+                    break;
+                }
+            }
+        }
+
         //中奖线
         lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
         //消除后新增图标

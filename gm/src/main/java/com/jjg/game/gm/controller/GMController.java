@@ -117,7 +117,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            boolean saved = gameStatusService.saveOrUpdateGameStatus(new GameStatus(dto.number(),
+            boolean saved = gameStatusService.saveOrUpdateGameStatus(new GameStatus(dto.name(),dto.number(),
                     dto.open(), dto.status(), dto.right_top_icon(), dto.icon_category(), dto.sort()));
 
             if (!saved) {

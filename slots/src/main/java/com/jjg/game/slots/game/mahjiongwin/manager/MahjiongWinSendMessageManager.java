@@ -144,21 +144,19 @@ public class MahjiongWinSendMessageManager extends BaseSendMessageManager {
         MahjiongWinIconInfo iconInfo = new MahjiongWinIconInfo();
 
         Set<Integer> indexSet = new HashSet<>();
+        Set<Integer> winIconSet = new HashSet<>();
+        Set<Integer> replaceWildIndexs = new HashSet<>();
+
         awardLineInfoList.forEach(info -> {
             indexSet.addAll(info.getSameIconSet());
+            winIconSet.add(info.getSameIcon());
+            replaceWildIndexs.addAll(info.getReplaceWildIndexs());
             iconInfo.win += info.getBaseTimes() * oneBetScore;
         });
 
-        List<Integer> replaceIconIndex = new ArrayList<>();
-        indexSet.forEach(index -> {
-            int icon = arr[index];
-            if(icon >= MahjiongWinConstant.BaseElement.GOLD_MIN && icon <= MahjiongWinConstant.BaseElement.GOLD_MAX){
-                replaceIconIndex.add(index);
-            }
-        });
-
         iconInfo.iconIndexs = new ArrayList<>(indexSet);
-        iconInfo.replaceWildIndexs = replaceIconIndex;
+        iconInfo.winIcons = new ArrayList<>(winIconSet);
+        iconInfo.replaceWildIndexs = new ArrayList<>(replaceWildIndexs);
         return iconInfo;
     }
 
