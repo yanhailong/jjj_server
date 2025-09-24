@@ -27,7 +27,6 @@ import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.pb.res.NotifyGameList;
 import com.jjg.game.hall.pb.struct.GameListConfig;
 import com.jjg.game.hall.pb.struct.WarePoolInfo;
-import com.jjg.game.core.utils.ConditionUtil;
 import com.jjg.game.hall.utils.HallTool;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -138,7 +137,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         NotifyGameList notify = new NotifyGameList();
         notify.gameList = this.sortGameList;
         log.debug("推送游戏列表");
-        clusterSystem.sessionMap().entrySet().forEach(en -> en.getValue().send(notify));
+//        clusterSystem.sessionMap().entrySet().forEach(en -> en.getValue().send(notify));
+        clusterSystem.broadcastToOnlinePlayer(notify);
     }
 
     public List<WareHouseConfigInfo> getWareHouseConfigByGameType(int gameType) {

@@ -11,11 +11,8 @@ import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.RechargeType;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.constant.SubscriptionTopic;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
@@ -26,6 +23,7 @@ import com.jjg.game.core.pb.reddot.NotifyRedDot;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.pb.reddot.ReqRedDot;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.PlayerPackService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +59,8 @@ public class CoreMessageHandler {
     private GameEventManager gameEventManager;
     @Autowired
     private SubscriptionManager subscriptionManager;
+    @Autowired
+    private OrderService orderService;
 
     /**
      *
@@ -141,7 +141,8 @@ public class CoreMessageHandler {
             if ("bet".equals(cmd)) {
                 log.debug("收到添加经验的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), arr);
                 long num = Long.parseLong(params);
-                CommonResult<Player> result = playerService.betDeductGold(playerController.playerId(), num, true, true, "gmtest");
+                CommonResult<Player> result =
+                        playerService.betDeductGold(playerController.playerId(), num, true, true,"gmtest");
                 res.code = result.code;
                 playerController.send(res);
                 return;
@@ -153,7 +154,8 @@ public class CoreMessageHandler {
                 //1等级礼包 测试用
                 RechargeType rechargeType = EnumUtil.getBy(RechargeType.class, e -> e.getType() == type);
                 int id = Integer.parseInt(arr[2]);
-                gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(playerController.getPlayer(), id, rechargeType));
+                Order order = orderService.generateOrder(playerController.getPlayer().getId(), id, 11, rechargeType);
+                gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(playerController.getPlayer(),order));
                 return;
             }
 
@@ -264,7 +266,8 @@ public class CoreMessageHandler {
         }
 
         long num = Long.parseLong(params);
-        CommonResult<Player> result = playerService.gmSetDiamond(playerController.playerId(), num, "gmSetDiamond", null);
+        CommonResult<Player> result = playerService.gmSetDiamond(playerController.playerId(), num, "gmSetDiamond",
+                null);
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
@@ -288,7 +291,8 @@ public class CoreMessageHandler {
         CommonResult<Player> result = playerService.setVip(playerController.playerId(), num, "gmSetVip", null);
         if (!result.success()) {
             res.code = result.code;
-            log.debug("使用gm失败 playerId = {},order = {},code = {},params = {}", playerController.playerId(), order, result.code, params);
+            log.debug("使用gm失败 playerId = {},order = {},code = {},params = {}", playerController.playerId(), order,
+                    result.code, params);
             return;
         }
         playerController.getPlayer().setVipLevel(result.data.getVipLevel());
@@ -316,7 +320,7 @@ public class CoreMessageHandler {
     }
 
     @Command(MessageConst.CoreMessage.REQ_CONFIRM_PLAYER_SCENE)
-    public void reqConfirmPlayerScene(PlayerController playerController,ReqConfirmPlayerScene req) {
+    public void reqConfirmPlayerScene(PlayerController playerController, ReqConfirmPlayerScene req) {
         // 获取当前节点类型
         NodeType nodeType = NodeType.getNodeTypeByName(nodeConfig.getType());
         // 如果玩家在房间中
@@ -355,12 +359,19 @@ public class CoreMessageHandler {
     @Command(MessageConst.CoreMessage.REQ_SUBSCRIBE_TOPIC)
     public void subscription(PlayerController playerController, ReqSubscription msg) {
         String topic = msg.getTopic();
+        ResSubscription res = new ResSubscription(Code.SUCCESS);
+        res.setSubscription(msg.isSubscription());
+        res.setTopic(topic);
         if (topic == null || topic.isEmpty()) {
+            res.code = Code.PARAM_ERROR;
+            playerController.send(res);
             return;
         }
         SubscriptionTopic subscriptionTopic = SubscriptionTopic.getTopic(e -> e.equals(topic));
         if (subscriptionTopic == null) {
             log.info("玩家[{}]订阅未知主题[{}]", playerController.playerId(), topic);
+            res.code = Code.PARAM_ERROR;
+            playerController.send(res);
             return;
         }
         if (msg.isSubscription()) {
@@ -368,6 +379,7 @@ public class CoreMessageHandler {
         } else {
             subscriptionManager.unsubscription(subscriptionTopic, playerController.playerId());
         }
+        playerController.send(res);
     }
 
 }

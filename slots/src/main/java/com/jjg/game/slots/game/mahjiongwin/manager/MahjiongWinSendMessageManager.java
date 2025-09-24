@@ -31,13 +31,15 @@ public class MahjiongWinSendMessageManager extends BaseSendMessageManager {
     private MahjiongWinGameManager gameManager;
     @Autowired
     private SlotsLogger slotsLogger;
+    @Autowired
+    private MahjiongWinGenerateManager generateManager;
 
     /**
      * 发送游戏配置
      *
      * @param playerController
      */
-    public void sendConfigMessage(PlayerController playerController) {
+    public void sendConfigMessage(PlayerController playerController,MahjiongWinGameRunInfo gameRunInfo) {
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
 
         SendInfo sendInfo = new SendInfo();
@@ -51,6 +53,28 @@ public class MahjiongWinSendMessageManager extends BaseSendMessageManager {
             }
 
             res.defaultBet = gameManager.oneLineToAllStake(config.getDefaultBet().get(0));
+            res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
+            res.status = gameRunInfo.getData().getStatus();
+            res.remainFreeCount = gameRunInfo.getData().getRemainFreeCount().get();
+
+            //连续中奖倍数信息
+            if(generateManager.getAddTimesMap() != null && !generateManager.getAddTimesMap().isEmpty()){
+                res.timesInfoList = new ArrayList<>(generateManager.getAddTimesMap().size());
+                generateManager.getAddTimesMap().forEach((k, v) -> {
+                    MahjiongwinAddTimesInfo info = new MahjiongwinAddTimesInfo();
+                    info.status = (k == MahjiongWinConstant.SpecialMode.FREE ? 1 : 0);
+                    info.times = new ArrayList<>(v.size());
+
+                    v.forEach((k1,v1) -> {
+                        KVInfo kv = new KVInfo();
+                        kv.key = k1;
+                        kv.value = v1;
+                        info.times.add(kv);
+                    });
+
+                    res.timesInfoList.add(info);
+                });
+            }
         } else {
             res.code = Code.NOT_FOUND;
             log.debug("未找到游戏配置  playerId={},roomCfgId={}", playerController.playerId(), playerController.getPlayer().getRoomCfgId());
@@ -74,10 +98,12 @@ public class MahjiongWinSendMessageManager extends BaseSendMessageManager {
         if (gameRunInfo.success()) {
             //玩家当前金币
             res.allGold = gameRunInfo.getAfterGold();
-            //总计获得金币
+            //本局获得金币
             res.allWinGold = gameRunInfo.getAllWinGold();
+            //免费游戏中累计获得金币
+            res.totalWinGold = gameRunInfo.getData().getFreeAllWin();
             //当前状态
-            res.status = gameRunInfo.getData().getStatus();
+            res.status = gameRunInfo.getStatus();
             //图标信息
             res.iconList = IntStream.range(1, 21).map(i -> gameRunInfo.getIconArr()[i]).boxed().collect(Collectors.toList());
             //剩余免费次数

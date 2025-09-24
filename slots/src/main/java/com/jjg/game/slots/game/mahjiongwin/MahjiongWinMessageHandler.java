@@ -5,6 +5,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.slots.game.dollarexpress.data.DollarExpressGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.data.MahjiongWinGameRunInfo;
 import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinGameManager;
 import com.jjg.game.slots.game.mahjiongwin.manager.MahjiongWinSendMessageManager;
@@ -39,7 +40,8 @@ public class MahjiongWinMessageHandler {
     public void reqConfigInfo(PlayerController playerController, ReqMahjiongwinEnterGame req) {
         try {
             log.info("收到玩家请求配置 playerId={}", playerController.playerId());
-            sendMessageManager.sendConfigMessage(playerController);
+            MahjiongWinGameRunInfo gameRunInfo = gameManager.enterGame(playerController);
+            sendMessageManager.sendConfigMessage(playerController,gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
         }

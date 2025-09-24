@@ -336,10 +336,10 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
     public void calTimes(MahjiongWinResultLib lib) throws Exception {
         //中奖线
         lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
+        //消除后新增图标
+        lib.addTimes(calAfterAddIcons(lib.getAddIconInfos()));
         //免费
         lib.addTimes(calFree(lib));
-        //免费
-        lib.addTimes(calAfterAddIcons(lib.getAddIconInfos()));
     }
 
     /**
@@ -348,7 +348,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
      * @param list
      * @return
      */
-    private int calLineTimes(List<MahjiongWinAwardLineInfo> list) {
+    public int calLineTimes(List<MahjiongWinAwardLineInfo> list) {
         if (list == null || list.isEmpty()) {
             return 0;
         }
@@ -392,7 +392,7 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
      * @param addIconInfos
      * @return
      */
-    private long calAfterAddIcons(List<MahjiongWinAddIconInfo> addIconInfos) {
+    public long calAfterAddIcons(List<MahjiongWinAddIconInfo> addIconInfos) {
         if (addIconInfos == null || addIconInfos.isEmpty()) {
             return 0;
         }
@@ -457,6 +457,10 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
         }
         this.addTimesMap = tmpAddTimesMap;
         this.maxWinCount = tmpMaxWinCount;
+    }
+
+    public Map<Integer, Map<Integer, Integer>> getAddTimesMap() {
+        return addTimesMap;
     }
 
     protected void printResult(int[] arr) {

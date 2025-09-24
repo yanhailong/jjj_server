@@ -5,6 +5,8 @@ import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 
 /**
  * @author 11
@@ -18,14 +20,11 @@ public abstract class AbstractGameDataDao<T extends SlotsPlayerGameDataDTO> exte
     }
 
     public T getGameDataByPlayerId(long playerId,int roomCfgId) {
-        return mongoTemplate.findById(playerId, clazz, tableName(roomCfgId));
+        Query query = new Query(Criteria.where("playerId").is(playerId).and("roomCfgId").is(roomCfgId));
+        return mongoTemplate.findOne(query, clazz);
     }
 
     public T saveGameData(T playerGameData) {
-        return mongoTemplate.save(playerGameData, tableName(playerGameData.getRoomCfgId()));
-    }
-
-    private String tableName(int roomCfgId) {
-        return clazz.getSimpleName() + "_" + roomCfgId;
+        return mongoTemplate.save(playerGameData);
     }
 }

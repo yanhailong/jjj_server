@@ -29,7 +29,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -272,27 +271,10 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     }
 
     /**
-     * 解析消费信息
-     */
-    private List<Map<Integer, Integer>> parseConsumptionInfo(List<Integer> consumption) {
-        List<Map<Integer, Integer>> result = new ArrayList<>();
-        if (consumption != null && !consumption.isEmpty()) {
-            for (int i = 0; i < consumption.size(); i += 2) {
-                if (i + 1 < consumption.size()) {
-                    Map<Integer, Integer> consumeMap = new HashMap<>();
-                    consumeMap.put(consumption.get(i), consumption.get(i + 1));
-                    result.add(consumeMap);
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
      * 保存活跃活动到Redis
      */
     private void saveActiveRoundToRedis(LuckyTreasure round) {
-        // 设置过期时间，防止Redis堆积
+        // 设置过期时间
         int expireMinutes = round.getConfig().getTime() + round.getConfig().getCollectTime() + 10;
         luckyTreasureRedisDao.saveActiveRound(round, expireMinutes);
     }
@@ -374,7 +356,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             // 从数据库获取活动数据
             LuckyTreasure round = luckyTreasureDao.findById(issueNumber).orElse(null);
             if (round == null || round.getEndTime() > 0) {
-                return; // 已经处理过了
+                return;
             }
 
             // 进行开奖

@@ -191,6 +191,8 @@ public interface MessageConst {
         int NOTIFY_PLAYER_LEVEL_UP = BASE_MSG_PREFIX | 0x14;
         //请求订阅消息推送主题操作
         int REQ_SUBSCRIBE_TOPIC = BASE_MSG_PREFIX | 0x15;
+        //请求订阅消息推送主题操作回复
+        int RES_SUBSCRIBE_TOPIC = BASE_MSG_PREFIX | 0x16;
     }
 
     interface RoomMessage {

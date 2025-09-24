@@ -157,6 +157,10 @@ public class GameDataManager {
     containerMap.put(PiggyBankCfg.class, new PiggyBankCfgContainer());
     containerMap.put(PlayerLevelConfigCfg.class, new PlayerLevelConfigCfgContainer());
     containerMap.put(PlayerLevelPackCfg.class, new PlayerLevelPackCfgContainer());
+    containerMap.put(PointsAwardRankingCfg.class, new PointsAwardRankingCfgContainer());
+    containerMap.put(PointsAwardSigninCfg.class, new PointsAwardSigninCfgContainer());
+    containerMap.put(PointsAwardTaskCfg.class, new PointsAwardTaskCfgContainer());
+    containerMap.put(PointsAwardTurntableCfg.class, new PointsAwardTurntableCfgContainer());
     containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
     containerMap.put(PoolCfg.class, new PoolCfgContainer());
     containerMap.put(PrivilegeCardCfg.class, new PrivilegeCardCfgContainer());
@@ -1049,6 +1053,54 @@ public class GameDataManager {
     return getInstance().getCfgContainer(PlayerLevelPackCfg.class).getCfgBeanList();
   }
 
+  public static PointsAwardRankingCfg getPointsAwardRankingCfg(int key) {
+    return getInstance().getCfgContainer(PointsAwardRankingCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PointsAwardRankingCfg> getPointsAwardRankingCfgMap() {
+    return getInstance().getCfgContainer(PointsAwardRankingCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PointsAwardRankingCfg> getPointsAwardRankingCfgList() {
+    return getInstance().getCfgContainer(PointsAwardRankingCfg.class).getCfgBeanList();
+  }
+
+  public static PointsAwardSigninCfg getPointsAwardSigninCfg(int key) {
+    return getInstance().getCfgContainer(PointsAwardSigninCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PointsAwardSigninCfg> getPointsAwardSigninCfgMap() {
+    return getInstance().getCfgContainer(PointsAwardSigninCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PointsAwardSigninCfg> getPointsAwardSigninCfgList() {
+    return getInstance().getCfgContainer(PointsAwardSigninCfg.class).getCfgBeanList();
+  }
+
+  public static PointsAwardTaskCfg getPointsAwardTaskCfg(int key) {
+    return getInstance().getCfgContainer(PointsAwardTaskCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PointsAwardTaskCfg> getPointsAwardTaskCfgMap() {
+    return getInstance().getCfgContainer(PointsAwardTaskCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PointsAwardTaskCfg> getPointsAwardTaskCfgList() {
+    return getInstance().getCfgContainer(PointsAwardTaskCfg.class).getCfgBeanList();
+  }
+
+  public static PointsAwardTurntableCfg getPointsAwardTurntableCfg(int key) {
+    return getInstance().getCfgContainer(PointsAwardTurntableCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PointsAwardTurntableCfg> getPointsAwardTurntableCfgMap() {
+    return getInstance().getCfgContainer(PointsAwardTurntableCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PointsAwardTurntableCfg> getPointsAwardTurntableCfgList() {
+    return getInstance().getCfgContainer(PointsAwardTurntableCfg.class).getCfgBeanList();
+  }
+
   public static PokerPoolCfg getPokerPoolCfg(int key) {
     return getInstance().getCfgContainer(PokerPoolCfg.class).getCfgBeanMap().get(key);
   }
@@ -1353,6 +1405,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("E:\\java\\gamedoc\\游戏配置表");
+    loadAllData("D:\\workspace\\gamedoc\\游戏配置表");
   }
 }

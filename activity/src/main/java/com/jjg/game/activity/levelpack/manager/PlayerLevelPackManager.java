@@ -195,8 +195,8 @@ public class PlayerLevelPackManager implements GameEventListener {
         switch (gameEvent) {
             case PlayerEventCategory.PlayerRechargeEvent event -> {
                 Player player = event.getPlayer();
-                if (event.getType() == RechargeType.PLAYER_LEVEL_GIFT) {
-                    dealRecharge(player, event.getId());
+                if (event.getOrder().getRechargeType() == RechargeType.PLAYER_LEVEL_GIFT) {
+                    dealRecharge(player, event.getOrder().getProductId());
                 }
             }
             case PlayerEvent event -> {

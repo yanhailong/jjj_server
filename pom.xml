@@ -26,5 +26,6 @@
         <module>poker</module>
         <module>sampledata</module>
         <module>activity</module>
+        <module>recharge</module>
     </modules>
 </project>

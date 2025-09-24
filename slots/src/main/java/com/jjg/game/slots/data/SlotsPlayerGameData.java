@@ -40,6 +40,8 @@ public class SlotsPlayerGameData {
     protected long rewardPoolGold;
     //玩家奖池(倍场)累计贡献金额金额(没有减去已获得金额)
     protected long contribtPoolGold;
+    //免费游戏中累计获得的金币
+    protected long freeAllWin;
     //是否玩过该slots游戏
     protected AtomicBoolean hasPlaySlots = new AtomicBoolean(false);
     //剩余的免费次数
@@ -155,6 +157,14 @@ public class SlotsPlayerGameData {
 
     public void setContribtPoolGold(long contribtPoolGold) {
         this.contribtPoolGold = contribtPoolGold;
+    }
+
+    public long getFreeAllWin() {
+        return freeAllWin;
+    }
+
+    public void setFreeAllWin(long freeAllWin) {
+        this.freeAllWin = freeAllWin;
     }
 
     public void setRemainFreeCount(AtomicInteger remainFreeCount) {

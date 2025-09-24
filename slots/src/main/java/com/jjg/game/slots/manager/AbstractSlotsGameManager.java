@@ -33,6 +33,8 @@ import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.*;
+import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
+import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
 import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
@@ -200,11 +202,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //计算出每个区间需要的条数
             Map<Integer, Map<Integer, Integer>> exceptGenCountMap = getGenerateManager().splitLibBySection(libTypeCountMap);
             //拷贝一份
-            Map<Integer, Map<Integer, Integer>> tmpExceptGenCountMap = exceptGenCountMap.entrySet().stream()
-                    .collect(Collectors.toMap(
-                            Map.Entry::getKey,
-                            e -> new HashMap<>(e.getValue())
-                    ));
+            Map<Integer, Map<Integer, Integer>> tmpExceptGenCountMap = exceptGenCountMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> new HashMap<>(e.getValue())));
 
             //记录当前生成的条数
             Map<Integer, Map<Integer, Integer>> currentGenCountMap = new HashMap<>();
@@ -529,7 +527,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         int index = playerGameData.getFreeIndex().getAndAdd(1);
         JSONObject jsonObject = specialAuxiliaryInfo.getFreeGames().get(index);
-        log.debug("获取免费游戏的下标 index = {}", index);
+        log.debug("获取免费游戏的下标 index = {},allLen = {}", index, specialAuxiliaryInfo.getFreeGames().size());
         L freeGame = JSON.parseObject(jsonObject.toJSONString(), this.libClass);
 
         if (freeGame == null) {
@@ -563,15 +561,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         Player player = result.data;
 
         Thread.ofVirtual().start(() -> {
-            activityManager.addActivityProgress(
-                    player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET),
-                    betValue, ItemUtils.getGoldItemId());
-            activityManager.addPlayerActivityProgress(player,
-                    ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue,
-                    ItemUtils.getGoldItemId());
+            activityManager.addActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
+            activityManager.addPlayerActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
             // 触发有效流水事件
-            gameEventManager.triggerEvent(
-                    new PlayerEffectiveFlowingEvent(player, gameData.getRoomCfgId(), betValue, 0));
+            gameEventManager.triggerEvent(new PlayerEffectiveFlowingEvent(player, gameData.getRoomCfgId(), betValue, 0));
         });
         BigDecimal bet = BigDecimal.valueOf(betValue);
         log.debug("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.playerId(), betValue, result.data.getGold());
@@ -1150,10 +1143,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     @Override
     public void changeSampleCallbackCollector() {
-        addChangeSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> baseRoomConfig())
-                .addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig())
-                .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig())
-        ;
+        addChangeSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> baseRoomConfig()).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig()).addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig());
     }
 
 
@@ -1216,8 +1206,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return;
         }
 
-        marqueeManager.playerWinMarquee(data.getPlayerController().getPlayer().getNickName(),
-                baseRoomCfg.getMarqueeTrigger().get(1).intValue(), baseRoomCfg.getNameid(), win);
+        marqueeManager.playerWinMarquee(data.getPlayerController().getPlayer().getNickName(), baseRoomCfg.getMarqueeTrigger().get(1).intValue(), baseRoomCfg.getNameid(), win);
     }
 
     /**
@@ -1302,6 +1291,36 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @param playerController
      */
     public boolean addTestIconDataIcons(PlayerController playerController, String icons) {
+        T playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            return false;
+        }
+
+        try {
+            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+            int[] initArr = new int[baseInitCfg.getRows() * baseInitCfg.getCols() + 1];
+
+            String[] splitArr = icons.split(";");
+            String[] arr2 = splitArr[0].split(",");
+            for (int i = 1; i < initArr.length; i++) {
+                initArr[i] = Integer.parseInt(arr2[i - 1]);
+            }
+
+            Constructor<L> constructor = this.libClass.getConstructor();
+            L lib = constructor.newInstance();
+            lib.addLibType(1);
+            lib.setId(RandomUtils.getUUid());
+
+
+            TestLibData testLibData = new TestLibData();
+            SlotsResultLib resultLib = getGenerateManager().checkAward(initArr,lib);
+            testLibData.setData(resultLib);
+            playerGameData.addTestIconsData(testLibData);
+            log.info("添加测试icons成功 playerId = {},icons = {}", playerController.playerId(), icons);
+            return true;
+        } catch (Exception e) {
+            log.error("", e);
+        }
         return false;
     }
 
