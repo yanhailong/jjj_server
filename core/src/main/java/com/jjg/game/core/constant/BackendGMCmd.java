@@ -41,7 +41,8 @@ public interface BackendGMCmd {
     //删除配置
     String DELETE_LUCKY_TREASURE_CONFIG = "deleteLuckyTreasureConfig";
 
-
+    //获取全部活动数据
+    String GET_ALL_ACTIVITY_DATA = "getAllActivityData";
     interface Result {
         String SUCCESS = "success";
         String FAIL = "fail";
