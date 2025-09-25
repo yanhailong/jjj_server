@@ -75,7 +75,6 @@ public class AccountController extends AbstractController {
                 account.setAccountType(AccountConstant.AccountType.GUEST);
                 account.setRegisterMac(dto.getMac());
                 account.setLastLoginMac(dto.getMac());
-                account.setLastLoginTime(System.currentTimeMillis());
                 account.setChannel(dto.getChannel());
                 account = accountDao.insert(account);
 
