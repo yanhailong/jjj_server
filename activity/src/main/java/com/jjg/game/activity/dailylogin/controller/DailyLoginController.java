@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author lm
@@ -65,7 +66,7 @@ public class DailyLoginController extends BaseActivityController {
     public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
         //获取配置信息
         long activityId = activityData.getId();
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
+        Map<Integer, DailyRewardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         if (CollectionUtil.isEmpty(baseCfgBeanMap)) {
             return false;
         }
@@ -76,17 +77,15 @@ public class DailyLoginController extends BaseActivityController {
         redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
             Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
-            for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
-                if (cfgBean instanceof DailyRewardsCfg cfg) {
-                    //连续奖励
-                    if ((cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE && continuousLoginDay >= cfg.getDays()) ||
-                            cfg.getType() == ActivityConstant.DailyLogin.CUMULATIVE_TYPE && cumulativeLoginDay >= cfg.getDays()) {
-                        PlayerActivityData data = playerActivityData.computeIfAbsent(cfg.getId(), key -> new PlayerActivityData(activityId, activityData.getRound()));
-                        //未领取的设置为领取
-                        if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CLAIMED) {
-                            data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
-                            change = true;
-                        }
+            for (DailyRewardsCfg cfg : baseCfgBeanMap.values()) {
+                //连续奖励
+                if ((cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE && continuousLoginDay >= cfg.getDays()) ||
+                        cfg.getType() == ActivityConstant.DailyLogin.CUMULATIVE_TYPE && cumulativeLoginDay >= cfg.getDays()) {
+                    PlayerActivityData data = playerActivityData.computeIfAbsent(cfg.getId(), key -> new PlayerActivityData(activityId, activityData.getRound()));
+                    //未领取的设置为领取
+                    if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CLAIMED) {
+                        data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+                        change = true;
                     }
                 }
             }
@@ -113,10 +112,10 @@ public class DailyLoginController extends BaseActivityController {
         long playerId = player.getId();
         long activityId = activityData.getId();
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
-        BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
-
-        if (!(baseCfgBean instanceof DailyRewardsCfg cfg)) {
+        Map<Integer, DailyRewardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        DailyRewardsCfg cfg = baseCfgBeanMap.get(detailId);
+        if (cfg == null) {
+            res.code = Code.PARAM_ERROR;
             return res;
         }
         PlayerActivityData data = null;
@@ -202,7 +201,7 @@ public class DailyLoginController extends BaseActivityController {
         long activityId = activityData.getId();
         ResDailyLoginDetailInfo detailInfo = new ResDailyLoginDetailInfo(Code.SUCCESS);
         //活动数据
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
+        Map<Integer, DailyRewardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
 
         detailInfo.detailInfo = new ArrayList<>();
@@ -246,28 +245,26 @@ public class DailyLoginController extends BaseActivityController {
         }
         //1.连续全部领取完成清理
         //2.累计全部领取完成清理
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
+        Map<Integer, DailyRewardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         //是否清理连续签到
         boolean clearContinuousDays = true;
         //是否清理累计签到
         boolean clearCumulativeDays = true;
-        for (BaseCfgBean bean : baseCfgBeanMap.values()) {
-            if (bean instanceof DailyRewardsCfg cfg) {
-                if (cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE) {
-                    PlayerActivityData data = playerActivityData.get(cfg.getId());
-                    if (data == null || data.getClaimStatus() != ActivityConstant.ClaimStatus.CLAIMED) {
-                        clearContinuousDays = false;
-                    }
+        for (DailyRewardsCfg cfg : baseCfgBeanMap.values()) {
+            if (cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE) {
+                PlayerActivityData data = playerActivityData.get(cfg.getId());
+                if (data == null || data.getClaimStatus() != ActivityConstant.ClaimStatus.CLAIMED) {
+                    clearContinuousDays = false;
                 }
-                if (cfg.getType() == ActivityConstant.DailyLogin.CUMULATIVE_TYPE) {
-                    PlayerActivityData data = playerActivityData.get(cfg.getId());
-                    if (data == null || data.getClaimStatus() != ActivityConstant.ClaimStatus.CLAIMED) {
-                        clearCumulativeDays = false;
-                    }
+            }
+            if (cfg.getType() == ActivityConstant.DailyLogin.CUMULATIVE_TYPE) {
+                PlayerActivityData data = playerActivityData.get(cfg.getId());
+                if (data == null || data.getClaimStatus() != ActivityConstant.ClaimStatus.CLAIMED) {
+                    clearCumulativeDays = false;
                 }
-                if (!clearCumulativeDays && !clearContinuousDays) {
-                    break;
-                }
+            }
+            if (!clearCumulativeDays && !clearContinuousDays) {
+                break;
             }
         }
         //获取上次领取时间
@@ -298,14 +295,13 @@ public class DailyLoginController extends BaseActivityController {
     }
 
     @Override
-    public List<BaseCfgBean> getDetailCfgBean() {
-        return new ArrayList<>(GameDataManager.getDailyRewardsCfgList());
+    public Map<Integer, DailyRewardsCfg> getDetailCfgBean(ActivityData activityData) {
+        return GameDataManager.getDailyRewardsCfgList()
+                .stream()
+                .filter(cfg -> activityData.getValue().contains(cfg.getId()))
+                .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
-    @Override
-    public Class<DailyRewardsCfg> getDetailDataClass() {
-        return DailyRewardsCfg.class;
-    }
 
     @Override
     public void onActivityEnd(ActivityData activityData) {

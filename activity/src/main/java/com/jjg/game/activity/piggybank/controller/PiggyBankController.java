@@ -34,6 +34,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * PiggyBankController
@@ -69,11 +70,10 @@ public class PiggyBankController extends BaseActivityController {
         long playerId = player.getId();
 
         // 获取活动详细配置
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-        BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
-
-        // 判断配置是否为储钱罐活动配置
-        if (baseCfgBean instanceof PiggyBankCfg cfg) {
+        Map<Integer, PiggyBankCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        PiggyBankCfg cfg = baseCfgBeanMap.get(detailId);
+        // 判断配置是否有储钱罐活动配置
+        if (cfg != null) {
             long timeMillis = System.currentTimeMillis();
             String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
 
@@ -151,7 +151,7 @@ public class PiggyBankController extends BaseActivityController {
                 .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN);
 
         long activityId = activityData.getId();
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
+        Map<Integer, PiggyBankCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
 
         boolean changeStatus = false;
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
@@ -162,33 +162,31 @@ public class PiggyBankController extends BaseActivityController {
             Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
 
             // 遍历所有储钱罐子活动
-            for (Map.Entry<Integer, BaseCfgBean> entry : baseCfgBeanMap.entrySet()) {
-                BaseCfgBean cfgBean = entry.getValue();
-                if (cfgBean instanceof PiggyBankCfg cfg) {
-                    PiggyBankData piggyBankData = playerActivityData.computeIfAbsent(entry.getKey(),
-                            key -> new PiggyBankData(activityData.getId(), activityData.getRound()));
+            for (Map.Entry<Integer, PiggyBankCfg> entry : baseCfgBeanMap.entrySet()) {
+                PiggyBankCfg cfg = entry.getValue();
+                PiggyBankData piggyBankData = playerActivityData.computeIfAbsent(entry.getKey(),
+                        key -> new PiggyBankData(activityData.getId(), activityData.getRound()));
 
-                    // 如果进度已经满了，跳过
-                    if (piggyBankData.getProgress() > cfg.getFullup()) {
-                        continue;
+                // 如果进度已经满了，跳过
+                if (piggyBankData.getProgress() > cfg.getFullup()) {
+                    continue;
+                }
+
+                // 计算加成值
+                long addValue = baseAdd.multiply(BigDecimal.valueOf(cfg.getWeight()))
+                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
+                        .longValue();
+
+                // 更新进度
+                piggyBankData.setProgress(Math.min(cfg.getFullup(), piggyBankData.getProgress() + addValue));
+
+                // 判断是否可领取奖励
+                if (piggyBankData.getProgress() >= cfg.getFullup()) {
+                    if (piggyBankData.getBuyTime() > 0) {
+                        piggyBankData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
                     }
-
-                    // 计算加成值
-                    long addValue = baseAdd.multiply(BigDecimal.valueOf(cfg.getWeight()))
-                            .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
-                            .longValue();
-
-                    // 更新进度
-                    piggyBankData.setProgress(Math.min(cfg.getFullup(), piggyBankData.getProgress() + addValue));
-
-                    // 判断是否可领取奖励
-                    if (piggyBankData.getProgress() >= cfg.getFullup()) {
-                        if (piggyBankData.getBuyTime() > 0) {
-                            piggyBankData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
-                        }
-                        piggyBankData.setFullTime(System.currentTimeMillis());
-                        changeStatus = true;
-                    }
+                    piggyBankData.setFullTime(System.currentTimeMillis());
+                    changeStatus = true;
                 }
             }
 
@@ -214,10 +212,10 @@ public class PiggyBankController extends BaseActivityController {
         long playerId = player.getId();
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
 
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-        BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
+        Map<Integer, PiggyBankCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        PiggyBankCfg cfg = baseCfgBeanMap.get(detailId);
 
-        if (baseCfgBean instanceof PiggyBankCfg cfg) {
+        if (cfg != null) {
             PiggyBankData data = null;
             CommonResult<ItemOperationResult> addedItems = null;
 
@@ -307,7 +305,7 @@ public class PiggyBankController extends BaseActivityController {
 
         // 获取活动配置与玩家数据
         ActivityData data = activityManager.getActivityData().get(activityId);
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
+        Map<Integer, PiggyBankCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, data.getType(), activityId);
 
         // 构建返回详情
@@ -379,13 +377,13 @@ public class PiggyBankController extends BaseActivityController {
     public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
         long timeMillis = System.currentTimeMillis();
         boolean change = false;
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
+        Map<Integer, PiggyBankCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         Map<Integer, PiggyBankData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
         // 遍历所有储钱罐数据
         for (Map.Entry<Integer, PiggyBankData> piggyBankDataEntry : playerActivityData.entrySet()) {
             PiggyBankData piggyBankData = piggyBankDataEntry.getValue();
-            BaseCfgBean baseCfgBean = baseCfgBeanMap.get(piggyBankDataEntry.getKey());
-            if (baseCfgBean instanceof PiggyBankCfg cfg) {
+            PiggyBankCfg cfg = baseCfgBeanMap.get(piggyBankDataEntry.getKey());
+            if (cfg != null) {
                 long resetTime = piggyBankData.getFullTime() + (long) TimeHelper.ONE_DAY_OF_MILLIS * cfg.getResetime();
                 if (resetTime <= timeMillis) {
                     // 重置数据
@@ -418,12 +416,10 @@ public class PiggyBankController extends BaseActivityController {
     }
 
     @Override
-    public List<BaseCfgBean> getDetailCfgBean() {
-        return new ArrayList<>(GameDataManager.getPiggyBankCfgList());
-    }
-
-    @Override
-    public Class<PiggyBankCfg> getDetailDataClass() {
-        return PiggyBankCfg.class;
+    public Map<Integer, PiggyBankCfg> getDetailCfgBean(ActivityData activityData) {
+        return GameDataManager.getPiggyBankCfgList()
+                .stream()
+                .filter(cfg -> activityData.getValue().contains(cfg.getId()))
+                .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 }

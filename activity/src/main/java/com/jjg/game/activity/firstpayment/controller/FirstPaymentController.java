@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author lm
@@ -50,55 +51,53 @@ public class FirstPaymentController extends BaseActivityController {
      */
     @Override
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
-        ResFirstPaymentDetailInfo res = null;
+        ResFirstPaymentDetailInfo res = new ResFirstPaymentDetailInfo(Code.SUCCESS);
         long playerId = player.getId();
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-        BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
+        Map<Integer, FirstpaymentCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        FirstpaymentCfg cfg = baseCfgBeanMap.get(detailId);
+        if (cfg == null) {
+            res.code = Code.PARAM_ERROR;
+            return res;
+        }
+        PlayerActivityData data = null;
+        CommonResult<ItemOperationResult> addedItems;
+        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
+        // 加锁，防止并发修改
+        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        try {
+            Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+            // 获取玩家首充数据，若不存在则创建
+            data = playerActivityData.computeIfAbsent(detailId, key -> new PlayerActivityData(activityData.getId(), activityData.getRound()));
 
-        if (baseCfgBean instanceof FirstpaymentCfg cfg) {
-            PlayerActivityData data = null;
-            CommonResult<ItemOperationResult> addedItems = null;
-            String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-            // 加锁，防止并发修改
-            redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            try {
-                Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-                // 获取玩家首充数据，若不存在则创建
-                data = playerActivityData.computeIfAbsent(detailId, key -> new PlayerActivityData(activityData.getId(), activityData.getRound()));
-
-                // 判断玩家是否已购买首充
-                if (data.getClaimStatus() != ActivityConstant.ClaimStatus.NOT_CLAIM) {
-                    log.error("玩家购买过 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
-                    return res;
-                }
-                // 设置购买时间
-                data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
-                // 购买奖励发放
-                if (CollectionUtil.isNotEmpty(cfg.getGetAvatarFrame())) {
-                    addedItems = playerPackService.addItems(playerId, cfg.getGetAvatarFrame(), "firstpayment");
-                    if (!addedItems.success()) {
-                        log.error("发放购买奖励失败 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
-                    }
-                }
-                // 保存玩家活动数据
-                playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
-            } catch (Exception e) {
-                log.error("玩家加入首充活动异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
-            } finally {
-                redisLock.unlock(lockKey);
+            // 判断玩家是否已购买首充
+            if (data.getClaimStatus() != ActivityConstant.ClaimStatus.NOT_CLAIM) {
+                log.error("玩家购买过 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
+                return res;
             }
+            // 设置购买时间
+            data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+            // 购买奖励发放
+            if (CollectionUtil.isNotEmpty(cfg.getGetAvatarFrame())) {
+                addedItems = playerPackService.addItems(playerId, cfg.getGetAvatarFrame(), "firstpayment");
+                if (!addedItems.success()) {
+                    log.error("发放购买奖励失败 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
+                }
+            }
+            // 保存玩家活动数据
+            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerActivityData);
+        } catch (Exception e) {
+            log.error("玩家加入首充活动异常 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId, e);
+        } finally {
+            redisLock.unlock(lockKey);
+        }
 
-            // 发送日志
+        // 发送日志
 //            activityLogger.sendFirstPaymentJoinLog(player, activityData, detailId, addedItems == null ? null : addedItems.data, cfg.getGetItem());
 
-            // 构建响应数据
-            res = new ResFirstPaymentDetailInfo(Code.SUCCESS);
-            res.detailInfo = new ArrayList<>();
-            res.detailInfo.add(buildPlayerActivityDetail(activityData.getId(), cfg, data));
-
-        } else {
-            log.error("活动配置为空 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
-        }
+        // 构建响应数据
+        res = new ResFirstPaymentDetailInfo(Code.SUCCESS);
+        res.detailInfo = new ArrayList<>();
+        res.detailInfo.add(buildPlayerActivityDetail(activityData.getId(), cfg, data));
 
         return res;
     }
@@ -116,10 +115,11 @@ public class FirstPaymentController extends BaseActivityController {
         ResFirstPaymentClaimRewards res = new ResFirstPaymentClaimRewards(Code.SUCCESS);
         long playerId = player.getId();
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-        BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
+        Map<Integer, FirstpaymentCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        FirstpaymentCfg cfg = baseCfgBeanMap.get(detailId);
 
-        if (!(baseCfgBean instanceof FirstpaymentCfg cfg)) {
+        if (cfg == null) {
+            res.code = Code.PARAM_ERROR;
             return res;
         }
 
@@ -219,7 +219,7 @@ public class FirstPaymentController extends BaseActivityController {
         long activityId = activityData.getId();
         ResFirstPaymentDetailInfo detailInfo = new ResFirstPaymentDetailInfo(Code.SUCCESS);
 
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
+        Map<Integer, FirstpaymentCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
 
         detailInfo.detailInfo = new ArrayList<>();
@@ -256,13 +256,11 @@ public class FirstPaymentController extends BaseActivityController {
 
 
     @Override
-    public List<BaseCfgBean> getDetailCfgBean() {
-        return new ArrayList<>(GameDataManager.getFirstpaymentCfgList());
-    }
-
-    @Override
-    public Class<FirstpaymentCfg> getDetailDataClass() {
-        return FirstpaymentCfg.class;
+    public Map<Integer, FirstpaymentCfg> getDetailCfgBean(ActivityData activityData) {
+        return GameDataManager.getFirstpaymentCfgList()
+                .stream()
+                .filter(cfg -> activityData.getValue().contains(cfg.getId()))
+                .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
     @Override
