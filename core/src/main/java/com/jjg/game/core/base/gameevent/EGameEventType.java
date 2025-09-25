@@ -11,7 +11,7 @@ public enum EGameEventType {
     // 玩家升级
     PLAYER_LEVEL(true, "levelID"),    // 玩家升级
     //充值
-    RECHARGE(true, ""),
+    RECHARGE(true),
     // 产生有效流水
     EFFECTIVE_FLOWING(true, "effectiveFlowing"),
     // 个人有效下注 不计算好友房
@@ -26,6 +26,8 @@ public enum EGameEventType {
     PLAY_GAMETYPE(true, "bet", "gametype"),
     // 个人有效下注 计算不在配置范围内的房间类型  Warehouse表中roomType字段值
     PLAY_ROOMTYPE(true, "bet", "roomtype"),
+    // 整点事件
+    CLOCK_EVENT(false),
     ;
 
     // 事件是否由玩家产生

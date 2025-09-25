@@ -26,6 +26,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -101,7 +104,8 @@ public class PrivilegeCardController extends BaseActivityController {
         PrivilegeCardCfg cfg = baseCfgBeanMap.get(detailId);
 
         if (cfg != null) {
-            long timeMillis = System.currentTimeMillis();
+            LocalDateTime nowMidnight = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
+            long timeMillis = TimeHelper.getTimestamp(nowMidnight);
             PlayerPrivilegeCard privilegeCard = null;
             CommonResult<ItemOperationResult> addedItems = null;
             String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
@@ -126,7 +130,7 @@ public class PrivilegeCardController extends BaseActivityController {
                 if (cfg.getDays() == -1) {
                     privilegeCard.setEndTime(-1); // 永久有效
                 } else {
-                    privilegeCard.setEndTime(timeMillis + (long) cfg.getDays() * TimeHelper.ONE_DAY_OF_MILLIS);
+                    privilegeCard.setEndTime(TimeHelper.getTimestamp(nowMidnight.plusDays(cfg.getDays())));
                 }
 
                 // 购买奖励发放

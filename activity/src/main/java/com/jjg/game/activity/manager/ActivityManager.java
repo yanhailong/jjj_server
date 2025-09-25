@@ -3,6 +3,7 @@ package com.jjg.game.activity.manager;
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.activity.common.controller.BaseActivityController;
+import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.common.data.ActivityType;
@@ -116,16 +117,21 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     private PlayerPackService playerPackService;
     @Autowired
     private DropItemLogger dropItemLogger;
+    /**
+     * 玩家获得数据dao
+     */
+    private final PlayerActivityDao playerActivityDao;
 
     public ActivityManager(TimerCenter timerCenter, ClusterSystem clusterSystem,
                            CoreMarqueeManager marqueeManager,
-                           MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager) {
+                           MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager, PlayerActivityDao playerActivityDao) {
         this.timerCenter = timerCenter;
         this.clusterSystem = clusterSystem;
         this.marqueeManager = marqueeManager;
         this.marsCurator = marsCurator;
         this.nodeConfig = nodeConfig;
         this.redDotManager = redDotManager;
+        this.playerActivityDao = playerActivityDao;
     }
 
 
@@ -339,18 +345,19 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
         NotifyActivityChange info = new NotifyActivityChange();
         info.activityInfos = new ArrayList<>();
+        Boolean checked = playerActivityDao.checkCanTargetFirstLogin(player.getId());
         for (ActivityData data : activityData.values()) {
             BaseActivityController controller = data.getType().getController();
             if (!playerCanJoinActivity(data, playerController.getPlayer())) {
                 continue;
             }
             //玩家首次登录执行
-            if (firstLogin) {
+            if (firstLogin && Boolean.TRUE.equals(checked)) {
                 controller.checkPlayerDataAndReset(player.getId(), data);
             }
             info.activityInfos.add(controller.buildActivityInfo(player.getId(), data));
         }
-        if (firstLogin) {
+        if (firstLogin && Boolean.TRUE.equals(checked)) {
             //触发登录活动
             addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
         }
@@ -553,15 +560,64 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     @Override
     public <T extends GameEvent> void handleEvent(T gameEvent) {
-        // 产生有效流水 需要检查是否能掉落道具
-        if (gameEvent instanceof PlayerEffectiveFlowingEvent playerEffectiveFlowingEvent) {
-            // 道具掉落检查
-            checkDropItem(playerEffectiveFlowingEvent);
+        switch (gameEvent) {
+            // 产生有效流水 需要检查是否能掉落道具
+            case PlayerEffectiveFlowingEvent event -> {
+                // 道具掉落检查
+                checkDropItem(event);
+            }
+            case PlayerEvent playerEvent -> {
+                if (playerEvent.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
+                    Player player = playerEvent.getPlayer();
+                    //添加其他活动进度
+                    addPlayerActivityProgress(player, ActivityTargetType.LEVEL.getTargetKey(), player.getLevel(), null);
+                }
+            }
+            case ClockEvent clockEvent -> {
+                //0点事件
+                if (clockEvent.getHour() == 0) {
+                    onZeroEvent();
+                }
+            }
+            default -> {
+            }
         }
-        if (gameEvent instanceof PlayerEvent playerEvent && playerEvent.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
-            Player player = playerEvent.getPlayer();
-            //添加其他活动进度
-            addPlayerActivityProgress(player, ActivityTargetType.LEVEL.getTargetKey(), player.getLevel(), null);
+
+    }
+
+    /**
+     * 活动0点事件处理
+     */
+    private void onZeroEvent() {
+        //获取在线玩家
+        List<Long> allPlayerIds = clusterSystem.getAllPlayerIds();
+        if (CollectionUtil.isEmpty(allPlayerIds)) {
+            return;
+        }
+        //全部活动
+        for (ActivityData data : activityData.values()) {
+            BaseActivityController controller = data.getType().getController();
+            for (Long playerId : allPlayerIds) {
+                PFSession session = clusterSystem.getSession(playerId);
+                //判断玩家是否存在
+                if (session != null && session.getReference() instanceof PlayerController playerController) {
+                    Player player = playerController.getPlayer();
+                    if (player == null) {
+                        continue;
+                    }
+                    //检查是否能参加活动
+                    if (!playerCanJoinActivity(data, player)) {
+                        continue;
+                    }
+                    //确保极限情况下登录不多次触发
+                    if (Boolean.TRUE.equals(playerActivityDao.checkCanTargetFirstLogin(playerId))) {
+                        //重置活动数据
+                        controller.checkPlayerDataAndReset(player.getId(), data);
+                        //触发登录活动
+                        addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
+                    }
+                }
+            }
         }
     }
 
