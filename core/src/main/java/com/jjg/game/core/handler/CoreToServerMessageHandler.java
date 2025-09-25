@@ -17,6 +17,7 @@ import com.jjg.game.core.data.ShopProduct;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
+import com.jjg.game.core.pb.NotifyConfigUpdate;
 import com.jjg.game.core.pb.NotifyRechargeServer;
 import com.jjg.game.core.pb.gm.NotifyCarouselUpdate;
 import com.jjg.game.core.pb.gm.NotifyShopProductChange;
@@ -143,6 +144,14 @@ public class CoreToServerMessageHandler {
         gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order));
 
         log.info("充值成功，通知到玩家所在的当前节点 playerId = {},orderId = {}", player.getId(), order.getId());
+    }
+
+    /**
+     * 配置更新
+     */
+    @Command(MessageConst.ToServer.CONFIG_UPDATE)
+    public void notifyConfigUpdate(NotifyConfigUpdate notifyConfigUpdate) {
+
     }
 
 }

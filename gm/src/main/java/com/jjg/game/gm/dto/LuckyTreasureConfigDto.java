@@ -1,7 +1,7 @@
 package com.jjg.game.gm.dto;
 
 import com.alibaba.fastjson.JSON;
-import com.jjg.game.core.data.LuckyTreasureConfig;
+import com.jjg.game.core.config.bean.LuckyTreasureConfig;
 
 import java.util.List;
 
