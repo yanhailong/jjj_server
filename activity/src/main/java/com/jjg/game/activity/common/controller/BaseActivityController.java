@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * 活动基础控制器抽象类
@@ -192,7 +191,7 @@ public abstract class BaseActivityController {
      * @param data        玩家活动数据
      * @return 活动详情对象
      */
-    public abstract BaseActivityDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data);
+    public abstract  BaseActivityDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data);
 
     /**
      * 获取指定玩家的活动详情
@@ -203,6 +202,7 @@ public abstract class BaseActivityController {
      * @return 响应对象
      */
     public abstract AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId);
+
 
     /**
      * 构建指定活动类型的响应
@@ -275,12 +275,9 @@ public abstract class BaseActivityController {
         }
 
         // 获取活动的子配置数据
-        Map<Long, Map<Integer, BaseCfgBean>> activityDetailInfo = activityManager.getActivityDetailInfo();
-
         // 遍历每个活动
         for (ActivityData activityData : activityDataMap.values()) {
-            Map<Integer, BaseCfgBean> baseCfgBeanMap = activityDetailInfo.get(activityData.getId());
-
+            Map<Integer, ? extends BaseCfgBean> baseCfgBeanMap = activityData.getType().getController().getDetailCfgBean(activityData);
             // 过滤掉不可运行、无配置、或玩家不符合条件的活动
             if (CollectionUtil.isEmpty(baseCfgBeanMap) || !activityData.canRun()
                     || CollectionUtil.isEmpty(activityData.getValue())
@@ -311,39 +308,9 @@ public abstract class BaseActivityController {
 
 
     /**
-     * 加载活动子项配置数据
-     *
-     * @param dbData 数据库中已有的子项配置
-     * @return 合并后的子项配置（配置表+数据库）
-     */
-    public Map<Integer, BaseCfgBean> loadDetailData(Map<Integer, BaseCfgBean> dbData) {
-        List<BaseCfgBean> detailCfgBean = getDetailCfgBean();
-        if (CollectionUtil.isEmpty(dbData)) {
-            // 如果数据库为空，则直接全部从配置表加载
-            return detailCfgBean
-                    .stream()
-                    .collect(Collectors.toMap(BaseCfgBean::getId, b -> b));
-        }
-        // 数据库已有的，跳过；没有的从配置表补充
-        for (BaseCfgBean baseCfgBean : detailCfgBean) {
-            int cfgBeanId = baseCfgBean.getId();
-            if (dbData.containsKey(cfgBeanId)) {
-                continue;
-            }
-            dbData.put(cfgBeanId, baseCfgBean);
-        }
-        return dbData;
-    }
-
-    /**
      * 获取活动子项配置（抽象方法，子类实现）
      */
-    public abstract List<BaseCfgBean> getDetailCfgBean();
-
-    /**
-     * 获取活动子项配置的类对象（抽象方法，子类实现）
-     */
-    public abstract Class<? extends BaseCfgBean> getDetailDataClass();
+    public abstract Map<Integer, ? extends BaseCfgBean> getDetailCfgBean(ActivityData activityData);
 
     /**
      * 返回当前活动是否有红点

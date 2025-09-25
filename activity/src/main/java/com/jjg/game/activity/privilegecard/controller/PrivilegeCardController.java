@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * PrivilegeCardController
@@ -96,10 +97,10 @@ public class PrivilegeCardController extends BaseActivityController {
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
         ResPrivilegeCardDetailInfo res = null;
         long playerId = player.getId();
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-        BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
+        Map<Integer, PrivilegeCardCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        PrivilegeCardCfg cfg = baseCfgBeanMap.get(detailId);
 
-        if (baseCfgBean instanceof PrivilegeCardCfg cfg) {
+        if (cfg != null) {
             long timeMillis = System.currentTimeMillis();
             PlayerPrivilegeCard privilegeCard = null;
             CommonResult<ItemOperationResult> addedItems = null;
@@ -173,13 +174,12 @@ public class PrivilegeCardController extends BaseActivityController {
         ResPrivilegeCardClaimRewards res = new ResPrivilegeCardClaimRewards(Code.SUCCESS);
         long playerId = player.getId();
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-        BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
-
-        if (!(baseCfgBean instanceof PrivilegeCardCfg cfg)) {
+        Map<Integer, PrivilegeCardCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        PrivilegeCardCfg cfg = baseCfgBeanMap.get(detailId);
+        if (cfg == null) {
+            res.code = Code.PARAM_ERROR;
             return res;
         }
-
         PlayerPrivilegeCard data = null;
         CommonResult<ItemOperationResult> addedItems = null;
 
@@ -284,7 +284,7 @@ public class PrivilegeCardController extends BaseActivityController {
         long activityId = activityData.getId();
         ResPrivilegeCardDetailInfo detailInfo = new ResPrivilegeCardDetailInfo(Code.SUCCESS);
 
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
+        Map<Integer, PrivilegeCardCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
 
         detailInfo.detailInfo = new ArrayList<>();
@@ -324,13 +324,11 @@ public class PrivilegeCardController extends BaseActivityController {
 
 
     @Override
-    public List<BaseCfgBean> getDetailCfgBean() {
-        return new ArrayList<>(GameDataManager.getPrivilegeCardCfgList());
-    }
-
-    @Override
-    public Class<PrivilegeCardCfg> getDetailDataClass() {
-        return PrivilegeCardCfg.class;
+    public Map<Integer, PrivilegeCardCfg> getDetailCfgBean(ActivityData activityData) {
+        return GameDataManager.getPrivilegeCardCfgList()
+                .stream()
+                .filter(cfg -> activityData.getValue().contains(cfg.getId()))
+                .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
     @Override

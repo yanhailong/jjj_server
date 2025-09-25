@@ -6,7 +6,6 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.Command;
-import com.jjg.game.core.base.gameevent.ActivityChangeEvent;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.base.player.IRecharge;
@@ -20,7 +19,6 @@ import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.NotifyConfigUpdate;
 import com.jjg.game.core.pb.NotifyRechargeServer;
-import com.jjg.game.core.pb.activity.NotifyActivityServerChange;
 import com.jjg.game.core.pb.gm.NotifyCarouselUpdate;
 import com.jjg.game.core.pb.gm.NotifyShopProductChange;
 import com.jjg.game.core.pb.gm.ReqAllKickout;
@@ -146,17 +144,6 @@ public class CoreToServerMessageHandler {
         gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order));
 
         log.info("充值成功，通知到玩家所在的当前节点 playerId = {},orderId = {}", player.getId(), order.getId());
-    }
-
-
-    /**
-     * 活动信息变化
-     */
-    @Command(MessageConst.ToServer.NOTIFY_ACTIVITY_SERVER_CHANGE)
-    public void notifyActivityServerChange(NotifyActivityServerChange notify) {
-        //活动变化事件
-        SystemInterfaceHolder.callGameSysAction(ActivityChangeEvent.class, (f) ->
-                f.onActivityDataChange(notify));
     }
 
     /**
