@@ -725,6 +725,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             //非未开始的只能修改开启关闭状态
             if (oldData != null && oldData.getStatus() != ActivityConstant.ActivityStatus.NOT_START) {
                 oldData.setOpen(activityConfigCfg.getOpen());
+                log.info("活动更新 正在进行中的活动只更新开关 activityId:{}", activityInfoId);
                 continue;
             }
             List<Pair<Long, Long>> timerList = new ArrayList<>(2);
@@ -736,6 +737,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             if (oldData != null) {
                 //移除之前的定时器
                 removeActivityTimer(oldData.getId());
+                log.info("活动更新 移除老的定时器 activityId:{}", activityInfoId);
             }
             //添加新的定时器
             addActivityTimer(timerList);
@@ -746,6 +748,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             //更新类型活动数据
             Map<Long, ActivityData> dataMap = activityTypeData.computeIfAbsent(data.getType(), key -> new ConcurrentHashMap<>());
             dataMap.put(activityInfoId, data);
+            log.info("活动更新成功 activityId:{} activityData:{}", activityInfoId, JSON.toJSONString(activityData));
         }
     }
 
