@@ -229,10 +229,13 @@ public interface MessageConst {
         //玩家充值成功
         int NOTIFY_PLAYER_RECHARGE = BASE_MSG_PREFIX | 0x9;
 
-        //活动变化
-        int NOTIFY_ACTIVITY_SERVER_CHANGE = BASE_MSG_PREFIX | 0xA;
+        //请求活动信息
+        int REQ_ACTIVITY_INFOS = BASE_MSG_PREFIX | 0xA;
 
         //夺宝奇兵更新库存
         int NOTIFY_LUCKY_TREASURE_UPDATE_STOCK = BASE_MSG_PREFIX | 0xB;
+
+        //响应活动信息
+        int RES_ACTIVITY_INFOS = BASE_MSG_PREFIX | 0xC;
     }
 }

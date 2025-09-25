@@ -1,12 +1,21 @@
 package com.jjg.game.gm.controller;
 
+import cn.hutool.core.util.RandomUtil;
+import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.core.data.WebResult;
-import com.jjg.game.gm.dto.activity.ActivityOpenChangeDto;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import com.jjg.game.core.pb.ReqActivityInfos;
+import com.jjg.game.core.utils.NodeCommunicationUtil;
+import com.jjg.game.gm.vo.ActivityInfoVo;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+import static com.jjg.game.core.constant.BackendGMCmd.GET_ALL_ACTIVITY_DATA;
 
 /**
  * @author lm
@@ -17,28 +26,31 @@ import org.springframework.web.bind.annotation.RestController;
 public class ActivityController extends AbstractController {
     private final ClusterSystem clusterSystem;
 
-    public ActivityController( ClusterSystem clusterSystem) {
+    public ActivityController(ClusterSystem clusterSystem) {
         this.clusterSystem = clusterSystem;
     }
 
     /**
      * 开启,关闭活动
      */
-    @PutMapping("changeActivityStatus")
-    public WebResult<Void> changeActivityStatus(@RequestBody ActivityOpenChangeDto changeDto) {
+    @GetMapping(GET_ALL_ACTIVITY_DATA)
+    public WebResult<List<ActivityInfoVo>> getAllActivityData() {
         try {
-//            ActivityData activity = activityDao.getActivityById(changeDto.activityId());
-//            if (activity == null) {
-//                return fail("activity.not_found");
-//            }
-//            if (activity.isOpen() == changeDto.open()) {
-//                return fail("activity.not_change");
-//            }
-//            activity.setOpen(changeDto.open());
-//            activityDao.saveActivity(activity);
-//            notifyActivityServerChange(activity.getId(), ActivityChangeEvent.ChangeType.UPDATE_ACTIVITY_OPEN);
             //通知其他服务器更新 带活动id
-            return success("common.success");
+            ReqActivityInfos infos = new ReqActivityInfos();
+            List<ClusterClient> clientList = clusterSystem.getNodesByType(NodeType.HALL);
+            if (clientList.isEmpty()) {
+                return fail("fail");
+            }
+            ClusterClient clusterClient = RandomUtil.randomEle(clientList);
+            Object jsonData = NodeCommunicationUtil.sendAndGetResult(clusterClient, infos);
+            if (!(jsonData instanceof String)) {
+                return fail("fail");
+            }
+            List<ActivityInfoVo> activityDataList = JSONObject.parseArray((String) jsonData, ActivityInfoVo.class);
+            WebResult<List<ActivityInfoVo>> success = success("common.success");
+            success.setData(activityDataList);
+            return success;
         } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
