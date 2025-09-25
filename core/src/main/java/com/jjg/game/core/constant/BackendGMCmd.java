@@ -54,6 +54,8 @@ public interface BackendGMCmd {
         String REPLACE_CONFIG = "replaceConfig";
         //删除配置
         String DELETE_CONFIG = "deleteConfig";
+        //同步配置
+        String SYNC_CONFIG = "syncConfig";
     }
 
     interface Result {

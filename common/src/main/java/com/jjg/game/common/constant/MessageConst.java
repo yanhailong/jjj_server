@@ -234,5 +234,8 @@ public interface MessageConst {
 
         //夺宝奇兵更新库存
         int NOTIFY_LUCKY_TREASURE_UPDATE_STOCK = BASE_MSG_PREFIX | 0xB;
+
+        //配置更新通知
+        int CONFIG_UPDATE = BASE_MSG_PREFIX | 0xC;
     }
 }

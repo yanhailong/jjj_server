@@ -18,6 +18,7 @@ import com.jjg.game.core.data.ShopProduct;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
+import com.jjg.game.core.pb.NotifyConfigUpdate;
 import com.jjg.game.core.pb.NotifyRechargeServer;
 import com.jjg.game.core.pb.activity.NotifyActivityServerChange;
 import com.jjg.game.core.pb.gm.NotifyCarouselUpdate;
@@ -156,6 +157,14 @@ public class CoreToServerMessageHandler {
         //活动变化事件
         SystemInterfaceHolder.callGameSysAction(ActivityChangeEvent.class, (f) ->
                 f.onActivityDataChange(notify));
+    }
+
+    /**
+     * 配置更新
+     */
+    @Command(MessageConst.ToServer.CONFIG_UPDATE)
+    public void notifyConfigUpdate(NotifyConfigUpdate notifyConfigUpdate) {
+
     }
 
 }

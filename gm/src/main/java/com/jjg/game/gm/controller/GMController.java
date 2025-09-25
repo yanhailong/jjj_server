@@ -13,17 +13,13 @@ import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
-import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.MarqueeDao;
 import com.jjg.game.core.dao.OnlinePlayerDao;
 import com.jjg.game.core.dao.ShopProductDao;
-import com.jjg.game.core.dao.luckytreasure.LuckyTreasureConfigDao;
-import com.jjg.game.core.dao.luckytreasure.LuckyTreasureConfigRedisDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
@@ -32,7 +28,10 @@ import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.service.*;
 import com.jjg.game.gm.dto.*;
-import com.jjg.game.gm.vo.*;
+import com.jjg.game.gm.vo.OnlinePlayerVo;
+import com.jjg.game.gm.vo.PageVo;
+import com.jjg.game.gm.vo.PlayerVo;
+import com.jjg.game.gm.vo.SafeVo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import org.apache.commons.lang3.StringUtils;
@@ -80,12 +79,6 @@ public class GMController extends AbstractController {
     private CarouselService carouselService;
     @Autowired
     private ShopProductDao shopProductDao;
-    @Autowired
-    private LuckyTreasureConfigDao luckyTreasureConfigDao;
-    @Autowired
-    private LuckyTreasureConfigRedisDao luckyTreasureConfigRedisDao;
-    @Autowired
-    private RedisLock redisLock;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -787,56 +780,6 @@ public class GMController extends AbstractController {
             log.error("", e);
             return fail("common.exception");
         }
-    }
-
-    /**
-     * 获取夺宝奇兵所有配置
-     */
-    @RequestMapping(BackendGMCmd.LUCKY_TREASURE_CONFIG_LIST)
-    public WebResult<List<LuckyTreasureConfig>> luckyTreasureList() {
-        //只读数据库数据 更新同步到内存
-        List<LuckyTreasureConfig> configs = luckyTreasureConfigDao.findAll();
-        return success("common.success", configs);
-    }
-
-    /**
-     * 新增/更新夺宝奇兵配置
-     *
-     * @return
-     */
-    @RequestMapping(BackendGMCmd.REPLACE_LUCKY_TREASURE_CONFIG)
-    public WebResult<String> replaceLuckyTreasureConfig(LuckyTreasureConfigDto dto) {
-        LuckyTreasureConfig luckyTreasureConfig = dto.castToLuckyTreasureConfig();
-        if (luckyTreasureConfig == null) {
-            return fail("common.paramerror");
-        }
-        redisLock.tryLockAndRun(LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_CONFIG, () -> {
-            luckyTreasureConfigDao.save(luckyTreasureConfig);
-            luckyTreasureConfigRedisDao.replaceConfigMap(luckyTreasureConfig.getId(), luckyTreasureConfig);
-        });
-        return success("common.success");
-    }
-
-    /**
-     * 新增/更新夺宝奇兵配置
-     *
-     * @return
-     */
-    @RequestMapping(BackendGMCmd.DELETE_LUCKY_TREASURE_CONFIG)
-    public WebResult<String> deleteLuckyTreasureConfig(LuckyTreasureConfigDto dto) {
-        LuckyTreasureConfig luckyTreasureConfig = dto.castToLuckyTreasureConfig();
-        if (luckyTreasureConfig == null) {
-            return fail("common.paramerror");
-        }
-        if (luckyTreasureConfig.getId() <= 0) {
-            return fail("common.paramerror");
-        }
-        redisLock.tryLockAndRun(LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_CONFIG, () -> {
-            //删除配置
-            luckyTreasureConfigDao.deleteById(luckyTreasureConfig.getId());
-            luckyTreasureConfigRedisDao.deleteConfigMap(luckyTreasureConfig.getId());
-        });
-        return success("common.success");
     }
 
     //****************************************************************************************************************/

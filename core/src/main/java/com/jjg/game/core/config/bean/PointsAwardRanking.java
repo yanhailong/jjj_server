@@ -1,9 +1,12 @@
-package com.jjg.game.core.config;
+package com.jjg.game.core.config.bean;
+
+import com.jjg.game.core.config.AbstractExcelConfig;
+import com.jjg.game.core.config.ExcelConfig;
 
 import java.util.List;
 
 /**
- * 排行榜配置
+ * 积分大奖的排行榜配置
  */
 @ExcelConfig(name = "PointsAwardRanking")
 public class PointsAwardRanking extends AbstractExcelConfig {

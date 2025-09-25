@@ -773,6 +773,21 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     public void notifyNode(PFMessage pfMessage, Predicate<String> predicate) {
         //筛选符合条件的节点
         List<ClusterClient> clientList = clusterClientMap.values().stream().filter(clusterClient -> predicate.test(clusterClient.getType())).toList();
+        sendClusterMessage(pfMessage, clientList);
+    }
+
+    /**
+     * 通知所有节点
+     */
+    public void notifyAllNode(PFMessage pfMessage) {
+        List<ClusterClient> clientList = clusterClientMap.values().stream().toList();
+        sendClusterMessage(pfMessage, clientList);
+    }
+
+    /**
+     * 向集群中的多个客户端发送消息。
+     */
+    private void sendClusterMessage(PFMessage pfMessage, List<ClusterClient> clientList) {
         if (clientList.isEmpty()) {
             return;
         }
