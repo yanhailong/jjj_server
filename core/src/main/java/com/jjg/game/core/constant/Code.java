@@ -91,10 +91,10 @@ public interface Code {
     int BANKER_CANT_BET = 435;
     // 請輸入正確的code
     int CODE_ERROR = 436;
-    // 該玩家已經與你完成綁定
-    int ALREADY_BOUND = 437;
-    // 該玩家已與其他人完成綁定
-    int ALREADY_OTHER_BOUND = 438;
+    // 不能绑定自己
+    int BOUND_SELF = 437;
+    // 該玩家已绑定
+    int ALREADY_BOUND = 438;
     // 官方派奖奖池为0了
     int OFFICIAL_AWARDS_POOL_NULL = 439;
     // 非庄家不能修改准备金

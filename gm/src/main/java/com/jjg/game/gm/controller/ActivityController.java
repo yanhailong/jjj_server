@@ -12,11 +12,12 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
+import com.jjg.game.core.base.gameevent.ActivityChangeEvent;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.data.WebResult;
 import com.jjg.game.core.pb.activity.NotifyActivityServerChange;
 import com.jjg.game.gm.dto.activity.ActivityDetailInfoDto;
-import com.jjg.game.gm.dto.activity.ActivityStatusChangeDto;
+import com.jjg.game.gm.dto.activity.ActivityOpenChangeDto;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -80,25 +81,25 @@ public class ActivityController extends AbstractController {
      * 新增活动
      */
     @PostMapping
-    public WebResult<ActivityData> createActivity(@RequestBody ActivityData activityData) {
+    public WebResult<Void> createActivity(@RequestBody ActivityData activityData) {
         try {
             if (activityData.getStatus() != 1) {
-                return fail("activity.status");
+                return fail("activity.status_error");
             }
             //开发类型时间判断
             if (activityData.getOpenType() == ActivityConstant.Common.OPEN_SERVER_TYPE) {
                 if (activityData.getDuration() <= 0 || activityData.getTimeEnd() > 0 || activityData.getTimeStart() > 0) {
-                    return fail("activity.time_end");
+                    return fail("activity.time_error");
                 }
             }
             long currentTimeMillis = System.currentTimeMillis();
             //开发类型时间判断
             if (activityData.getOpenType() == ActivityConstant.Common.LIMIT_TYPE) {
                 if (activityData.getDuration() > 0 || activityData.getTimeEnd() <= 0 || activityData.getTimeStart() <= 0) {
-                    return fail("activity.time_end");
+                    return fail("activity.time_error");
                 }
                 if (activityData.getTimeEnd() <= activityData.getTimeStart() || activityData.getTimeStart() <= currentTimeMillis || activityData.getTimeEnd() <= currentTimeMillis) {
-                    return fail("activity.time_end");
+                    return fail("activity.time_error");
                 }
             }
             ActivityData data = activityDao.getActivityById(activityData.getId());
@@ -106,11 +107,9 @@ public class ActivityController extends AbstractController {
                 return fail("activity.exist");
             }
             activityDao.saveActivity(activityData);
-            notifyActivityServerChange(activityData.getId(), 1);
+            notifyActivityServerChange(activityData.getId(), ActivityChangeEvent.ChangeType.UPDATE_ACTIVITY);
             //通知其他服务器更新 带活动id
-            WebResult<ActivityData> success = success("common.success");
-            success.setData(activityData);
-            return success;
+            return success("common.success");
         } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
@@ -121,20 +120,21 @@ public class ActivityController extends AbstractController {
      * 更新活动
      */
     @PutMapping("/{id}")
-    public WebResult<ActivityData> updateActivity(@PathVariable("id") long id,
+    public WebResult<Void> updateActivity(@PathVariable("id") long id,
                                                   @RequestBody ActivityData activityData) {
         try {
             ActivityData old = activityDao.getActivityById(id);
             if (old == null) {
                 return fail("activity.not_found");
             }
+            if (old.getStatus() != ActivityConstant.ActivityStatus.NOT_START) {
+                return fail("activity.no_editing_allowed");
+            }
             activityData.setId(id); // 保证id一致
             activityDao.saveActivity(activityData);
             //通知其他服务器更新 带活动id
-            notifyActivityServerChange(id, 1);
-            WebResult<ActivityData> success = success("common.success");
-            success.setData(activityData);
-            return success;
+            notifyActivityServerChange(id, ActivityChangeEvent.ChangeType.UPDATE_ACTIVITY);
+            return success("common.success");
         } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
@@ -145,38 +145,19 @@ public class ActivityController extends AbstractController {
      * 开启,关闭活动
      */
     @PutMapping("changeActivityStatus")
-    public WebResult<Void> changeActivityStatus(@RequestBody ActivityStatusChangeDto changeDto) {
+    public WebResult<Void> changeActivityStatus(@RequestBody ActivityOpenChangeDto changeDto) {
         try {
 
             ActivityData activity = activityDao.getActivityById(changeDto.activityId());
             if (activity == null) {
                 return fail("activity.not_found");
             }
-            if (activity.getStatus() == changeDto.status()) {
+            if (activity.isOpen() == changeDto.open()) {
                 return fail("activity.not_change");
             }
-            activity.setStatus(changeDto.status());
+            activity.setOpen(changeDto.open());
             activityDao.saveActivity(activity);
-            notifyActivityServerChange(activity.getId(), 1);
-            //通知其他服务器更新 带活动id
-            return success("common.success");
-        } catch (Exception e) {
-            log.error("", e);
-            return fail("common.exception");
-        }
-    }
-
-    /**
-     * 删除活动
-     */
-    @DeleteMapping("/{id}")
-    public WebResult<Void> deleteActivity(@PathVariable("id") long id) {
-        try {
-            boolean deleted = activityDao.deleteActivity(id);
-            if (!deleted) {
-                return fail("activity.not_found");
-            }
-            notifyActivityServerChange(id, 3);
+            notifyActivityServerChange(activity.getId(), ActivityChangeEvent.ChangeType.UPDATE_ACTIVITY_OPEN);
             //通知其他服务器更新 带活动id
             return success("common.success");
         } catch (Exception e) {
@@ -210,7 +191,7 @@ public class ActivityController extends AbstractController {
             Map<Integer, BaseCfgBean> detailMap = readValue.stream().collect(Collectors.toMap(BaseCfgBean::getId, d -> d));
             activityDetailDao.saveActivityDetails(activity.getId(), detailMap);
             //通知其他服务器更新 活动id
-            notifyActivityServerChange(activity.getId(), 2);
+            notifyActivityServerChange(activity.getId(), ActivityChangeEvent.ChangeType.UPDATE_ACTIVITY_DETAILS);
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);
@@ -218,7 +199,13 @@ public class ActivityController extends AbstractController {
         }
     }
 
-    private void notifyActivityServerChange(long activity, int type) {
+    /**
+     * 通知其他节点活动变化
+     *
+     * @param activity 活动id
+     * @param type     变化类型
+     */
+    private void notifyActivityServerChange(long activity, ActivityChangeEvent.ChangeType type) {
         List<ClusterClient> nodesByType = clusterSystem.getNodesByType(NodeType.HALL);
         nodesByType.addAll(clusterSystem.getNodesByType(NodeType.GAME));
         if (nodesByType.isEmpty()) {

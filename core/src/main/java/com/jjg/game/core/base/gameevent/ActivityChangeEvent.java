@@ -13,4 +13,14 @@ public interface ActivityChangeEvent extends IGameSysFuncInterface {
      * 当活动数据被后台修改时触发
      */
     void onActivityDataChange(NotifyActivityServerChange change);
+
+
+    enum ChangeType{
+        //更新活动开关
+        UPDATE_ACTIVITY_OPEN,
+        //更新活动
+        UPDATE_ACTIVITY,
+        //更新活动详情
+        UPDATE_ACTIVITY_DETAILS,
+    }
 }

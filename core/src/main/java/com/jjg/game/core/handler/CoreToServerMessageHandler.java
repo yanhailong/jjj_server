@@ -6,15 +6,12 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.Command;
+import com.jjg.game.core.base.gameevent.ActivityChangeEvent;
 import com.jjg.game.core.base.gameevent.GameEventManager;
+import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.base.player.IRecharge;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.data.Marquee;
-import com.jjg.game.core.data.Order;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.ShopProduct;
-import com.jjg.game.core.base.gameevent.ActivityChangeEvent;
-import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.ShopProduct;
@@ -160,6 +157,5 @@ public class CoreToServerMessageHandler {
         SystemInterfaceHolder.callGameSysAction(ActivityChangeEvent.class, (f) ->
                 f.onActivityDataChange(notify));
     }
-
 
 }

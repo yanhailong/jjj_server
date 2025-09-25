@@ -35,14 +35,11 @@ public class ActivityDao {
      * Redis Hash 存储活动配置的表名
      */
     private static final String TABLE_NAME = "activity:server";
-    /**
-     * 全局锁 key（用于批量保存）
-     */
-    private static final String ACTIVITY_ALL_LOCK = "activity:alllock";
+
     /**
      * 单个活动配置锁 key 模板
      */
-    private static final String ACTIVITY_LOCK = "activity:lock";
+    private static final String ACTIVITY_LOCK = "activity:lock:%s";
 
     private final RedisTemplate<String, ActivityData> redisTemplate;
 
@@ -54,19 +51,6 @@ public class ActivityDao {
         return redisTemplate.opsForHash();
     }
 
-    /**
-     * 生成单个活动的锁 Key
-     */
-    public String getLockKey(long activityId) {
-        return String.format(ACTIVITY_LOCK, activityId);
-    }
-
-    /**
-     * 获取全局锁 Key（批量保存时使用）
-     */
-    public String getAllLockKey() {
-        return ACTIVITY_ALL_LOCK;
-    }
 
     /**
      * 获取全部活动配置
@@ -181,11 +165,4 @@ public class ActivityDao {
         }
     }
 
-    /**
-     * 获取锁key
-     * @return 活动锁key
-     */
-    public String getLockKey() {
-        return ACTIVITY_LOCK;
-    }
 }

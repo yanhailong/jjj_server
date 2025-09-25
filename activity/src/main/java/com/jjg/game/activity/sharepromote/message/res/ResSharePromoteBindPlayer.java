@@ -13,6 +13,8 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.RES_SHARE_PROMOTE_BIND_PLAYER, resp = true)
 @ProtoDesc("绑定玩家")
 public class ResSharePromoteBindPlayer extends AbstractResponse {
+    @ProtoDesc("绑定人数")
+    public int bindNum;
 
     public ResSharePromoteBindPlayer(int code) {
         super(code);
