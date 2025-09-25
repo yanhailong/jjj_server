@@ -65,9 +65,6 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         activityManager.initData();
         minigameManager.init();
         configManager.loadAll();
-        configManager.addUpdateConfigListener(PointsAwardRanking.class, (name, state, config) -> {
-
-        });
         running = true;
     }
 
