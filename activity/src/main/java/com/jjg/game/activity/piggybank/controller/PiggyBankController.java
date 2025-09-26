@@ -272,30 +272,6 @@ public class PiggyBankController extends BaseActivityController {
     }
 
     /**
-     * 活动结束回调
-     */
-    @Override
-    public void onActivityEnd(ActivityData activityData) {
-        // 当前储钱罐活动无特殊逻辑
-    }
-
-    /**
-     * 活动开始回调
-     */
-    @Override
-    public void onActivityStart(ActivityData activityData) {
-        // 当前储钱罐活动无特殊逻辑
-    }
-
-    /**
-     * 更新活动数据（暂未实现）
-     */
-    @Override
-    public int updateActivity(String jsonData) {
-        return 0;
-    }
-
-    /**
      * 获取玩家储钱罐活动详情
      */
     @Override

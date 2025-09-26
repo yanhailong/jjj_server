@@ -335,16 +335,4 @@ public class PrivilegeCardController extends BaseActivityController {
                 .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
-    @Override
-    public void onActivityEnd(ActivityData activityData) {
-    }
-
-    @Override
-    public void onActivityStart(ActivityData activityData) {
-    }
-
-    @Override
-    public int updateActivity(String jsonData) {
-        return 0;
-    }
 }

@@ -408,26 +408,23 @@ public class CashCowController extends BaseActivityController implements TimerLi
             // 非首次开启，进入下一轮：将上一轮奖池按配置比例作为下一轮底池
             activityData.addRound();
             GlobalConfigCfg configCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.CashCow.CASH_COW_ADD_NEXT_ROUND_PROPORTION);
-            for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
-                if (cfgBean instanceof CashcowCfg cfg) {
-                    if (cfg.getType() == ActivityConstant.CashCow.CUMULATIVE_REWARDS_REWARD_TYPE) {
-                        continue;
-                    }
-                    long pool = cashCowDao.getSpecifiedActivityPool(activityId, cfg.getId());
-                    //配置的初始奖池
-                    long nextPoll = cfg.getInitialprizepool();
-                    if (pool > 0) {
-                        // 否则按配置比例计算下一轮底池（万分比）
-                        nextPoll += BigDecimal.valueOf(pool)
-                                .multiply(BigDecimal.valueOf(configCfg.getIntValue()))
-                                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
-                                .longValue();
-                        // 如果上一轮奖池为 0，则初始化为配置的初始奖池
-                        cashCowDao.addActivityPool(activityId, cfg.getId(), cfg.getInitialprizepool());
-                    }
-                    cashCowDao.setActivityPool(activityId, cfg.getId(), nextPoll);
-
+            for (CashcowCfg cfg : baseCfgBeanMap.values()) {
+                if (cfg.getType() == ActivityConstant.CashCow.CUMULATIVE_REWARDS_REWARD_TYPE) {
+                    continue;
                 }
+                long pool = cashCowDao.getSpecifiedActivityPool(activityId, cfg.getId());
+                //配置的初始奖池
+                long nextPoll = cfg.getInitialprizepool();
+                if (pool > 0) {
+                    // 否则按配置比例计算下一轮底池（万分比）
+                    nextPoll += BigDecimal.valueOf(pool)
+                            .multiply(BigDecimal.valueOf(configCfg.getIntValue()))
+                            .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
+                            .longValue();
+                    // 如果上一轮奖池为 0，则初始化为配置的初始奖池
+                    cashCowDao.addActivityPool(activityId, cfg.getId(), cfg.getInitialprizepool());
+                }
+                cashCowDao.setActivityPool(activityId, cfg.getId(), nextPoll);
             }
             // 清除在线玩家的进度，防止上一轮数据影响新一轮
             List<Long> onlinePlayerIds = activityManager.getOnlinePlayerIds();
@@ -435,8 +432,6 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 cashCowDao.delPlayerActivityProgress(onlinePlayerId, activityId);
                 playerActivityDao.deletePlayerActivityData(onlinePlayerId, activityData.getType(), activityId);
             }
-            // 修改活动状态为运行中
-            activityData.setStatus(ActivityConstant.ActivityStatus.RUNNING);
         }
     }
 

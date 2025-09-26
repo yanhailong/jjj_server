@@ -166,14 +166,18 @@ public abstract class BaseActivityController {
      *
      * @param activityData 活动数据
      */
-    public abstract void onActivityEnd(ActivityData activityData);
+    public void onActivityEnd(ActivityData activityData) {
+    }
+
 
     /**
      * 活动开始回调
      *
      * @param activityData 活动数据
      */
-    public abstract void onActivityStart(ActivityData activityData);
+    public void onActivityStart(ActivityData activityData) {
+    }
+
 
     /**
      * 后台更新活动配置数据
@@ -181,7 +185,9 @@ public abstract class BaseActivityController {
      * @param jsonData 活动配置的JSON字符串
      * @return 更新后的记录数
      */
-    public abstract int updateActivity(String jsonData);
+    public int updateActivity(String jsonData) {
+        return 0;
+    }
 
     /**
      * 构建玩家的活动详情数据
@@ -191,7 +197,7 @@ public abstract class BaseActivityController {
      * @param data        玩家活动数据
      * @return 活动详情对象
      */
-    public abstract  BaseActivityDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data);
+    public abstract BaseActivityDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data);
 
     /**
      * 获取指定玩家的活动详情
@@ -216,11 +222,10 @@ public abstract class BaseActivityController {
     /**
      * 构建玩家活动基本信息
      *
-     * @param playerId     玩家ID
      * @param activityData 活动数据
      * @return 活动信息
      */
-    public ActivityInfo buildActivityInfo(long playerId, ActivityData activityData) {
+    public ActivityInfo buildActivityInfo(ActivityData activityData) {
         return ActivityBuilder.buildActivityInfo(activityData);
     }
 

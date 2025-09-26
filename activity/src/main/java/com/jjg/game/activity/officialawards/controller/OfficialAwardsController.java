@@ -236,14 +236,25 @@ public class OfficialAwardsController extends BaseActivityController implements 
 
     @Override
     public void onActivityEnd(ActivityData activityData) {
+        clearData(activityData.getId());
+    }
+
+    /**
+     * 清除所有数据
+     */
+    private void clearData(long activityId) {
         if (activityManager.isExecutionNode()) {
             //清除所有记录数据
             officialAwardsDao.deleteAllRecords();
+            log.info("官方派奖删除所有记录成功 activityId:{}", activityId);
             officialAwardsDao.deleteAllPlayerRecords();
+            log.info("官方派奖删除所有玩家记录成功 activityId:{}", activityId);
             //清除所有玩家信息
             officialAwardsDao.deleteAllPlayerAllProgress();
+            log.info("官方派奖删除所有玩家进度成功 activityId:{}", activityId);
             //清除奖池信息
             officialAwardsDao.deleteTotalPool();
+            log.info("官方派奖删除总奖池成功 activityId:{}", activityId);
         }
     }
 
@@ -253,6 +264,8 @@ public class OfficialAwardsController extends BaseActivityController implements 
             return;
         }
         if (activityManager.isExecutionNode()) {
+            //防止未触发结束在开始时清除一次数据
+            clearData(activityData.getId());
             //设置初始奖池
             GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.OfficialAwards.INITIAL_AMOUNT);
             if (globalConfigCfg == null || globalConfigCfg.getLongValue() == 0) {

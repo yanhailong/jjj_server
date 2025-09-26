@@ -355,7 +355,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             if (firstLogin && Boolean.TRUE.equals(checked)) {
                 controller.checkPlayerDataAndReset(player.getId(), data);
             }
-            info.activityInfos.add(controller.buildActivityInfo(player.getId(), data));
+            info.activityInfos.add(controller.buildActivityInfo(data));
         }
         if (firstLogin && Boolean.TRUE.equals(checked)) {
             //触发登录活动

@@ -145,21 +145,6 @@ public class SharePromoteController extends BaseActivityController {
     }
 
     @Override
-    public void onActivityEnd(ActivityData activityData) {
-
-    }
-
-    @Override
-    public void onActivityStart(ActivityData activityData) {
-
-    }
-
-    @Override
-    public int updateActivity(String jsonData) {
-        return 0;
-    }
-
-    @Override
     public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
         long activityId = activityData.getId();
         ResSharePromoteDetailInfo detailInfo = new ResSharePromoteDetailInfo(Code.SUCCESS);

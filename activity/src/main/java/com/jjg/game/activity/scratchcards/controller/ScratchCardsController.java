@@ -161,22 +161,6 @@ public class ScratchCardsController extends BaseActivityController {
         return null;
     }
 
-    @Override
-    public void onActivityEnd(ActivityData activityData) {
-        // 活动结束逻辑，可扩展
-    }
-
-    @Override
-    public void onActivityStart(ActivityData activityData) {
-        // 活动开始逻辑，可扩展
-    }
-
-    @Override
-    public int updateActivity(String jsonData) {
-        // 可用于更新活动配置
-        return 0;
-    }
-
     /**
      * 获取玩家刮刮乐活动明细
      */
