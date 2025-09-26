@@ -22,8 +22,6 @@ public class BaseRoomCfg extends BaseCfgBean {
   protected int commissionProp;
   /** 默认押分 */
   protected List<Integer> defaultBet;
-  /** 最小准入 */
-  protected int enterLimit;
   /** 假累计奖池部分进入比率 */
   protected List<Integer> fakeCommissionProp;
   /** 假总奖池金额 */
@@ -42,12 +40,8 @@ public class BaseRoomCfg extends BaseCfgBean {
   protected List<Integer> minBankerAmount;
   /** 多语言表ID */
   protected int nameid;
-  /** 房间列表 */
-  protected List<Integer> room;
   /** 倍场名称 */
   protected int roomName;
-  /** VIP等级限制 */
-  protected int vipLvLimit;
 
   /** 返回实际押注抽水入奖池万分比 */
   public int getCommissionProp() {
@@ -57,11 +51,6 @@ public class BaseRoomCfg extends BaseCfgBean {
   /** 返回默认押分 */
   public List<Integer> getDefaultBet() {
     return defaultBet;
-  }
-
-  /** 返回最小准入 */
-  public int getEnterLimit() {
-    return enterLimit;
   }
 
   /** 返回假累计奖池部分进入比率 */
@@ -109,19 +98,9 @@ public class BaseRoomCfg extends BaseCfgBean {
     return nameid;
   }
 
-  /** 返回房间列表 */
-  public List<Integer> getRoom() {
-    return room;
-  }
-
   /** 返回倍场名称 */
   public int getRoomName() {
     return roomName;
-  }
-
-  /** 返回VIP等级限制 */
-  public int getVipLvLimit() {
-    return vipLvLimit;
   }
 
   @Override

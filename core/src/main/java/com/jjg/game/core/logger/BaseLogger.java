@@ -389,7 +389,7 @@ public class BaseLogger {
         json.put("time", System.currentTimeMillis());
         json.put("nodeName", nodeConfig.getName());
         json.put("nodeType", nodeConfig.getType());
-        /* log.info("sendLog:{}", JSON.toJSONString(json)); */
+//        log.info("sendLog:{}", JSON.toJSONString(json));
         kafkaTemplate.send(StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic.toLowerCase(),
                 JSONObject.toJSONString(json, SerializerFeature.WriteNonStringKeyAsString));
     }

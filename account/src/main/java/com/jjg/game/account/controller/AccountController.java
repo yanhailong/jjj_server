@@ -2,10 +2,12 @@ package com.jjg.game.account.controller;
 
 import com.jjg.game.account.config.AccountConfig;
 import com.jjg.game.account.constant.AccountConstant;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.account.dao.PlayerIdDao;
 import com.jjg.game.account.logger.AccountLogger;
 import com.jjg.game.account.dto.GuestLoginDto;
+import com.jjg.game.core.dao.BlackListDao;
 import com.jjg.game.core.data.Account;
 import com.jjg.game.account.vo.LoginVo;
 import com.jjg.game.core.constant.Code;
@@ -13,6 +15,7 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.WebResult;
 import io.micrometer.common.util.StringUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,7 +31,6 @@ public class AccountController extends AbstractController {
 
     @Autowired
     private AccountDao accountDao;
-
     @Autowired
     private PlayerIdDao playerIdDao;
     @Autowired
@@ -37,6 +39,8 @@ public class AccountController extends AbstractController {
     private AccountLogger accountLogger;
     @Autowired
     private AccountConfig accountConfig;
+    @Autowired
+    private BlackListDao blackListDao;
 
 
     /**
@@ -46,7 +50,7 @@ public class AccountController extends AbstractController {
      * @return
      */
     @RequestMapping("guestlogin")
-    public WebResult<LoginVo> guestLogin(@RequestBody GuestLoginDto dto) {
+    public WebResult<LoginVo> guestLogin(@RequestBody GuestLoginDto dto, HttpServletRequest request) {
         try {
             if (StringUtils.isEmpty(dto.getGuest())) {
                 log.debug("参数为空，游客登录失败");
@@ -56,6 +60,16 @@ public class AccountController extends AbstractController {
             if (dto.getGuest().length() < 5 || dto.getGuest().length() > 50) {
                 log.debug("guest长度不在范围内，游客登录失败, guest = {}", dto.getGuest());
                 return fail(Code.PARAM_ERROR);
+            }
+
+            //检查是否在黑名单中
+            String clientIp = getClientIp(request);
+            if(StringUtils.isNotEmpty(clientIp)){
+                boolean blackIp = blackListDao.blackIp(clientIp);
+                if(blackIp){
+                    log.debug("该ip已被封禁，无法登录 guest = {},ip = {}", dto.getGuest(), clientIp);
+                    return fail(Code.BAN_CAUSE_BLACK_LIST);
+                }
             }
 
             //查询该账号是否存在
@@ -93,13 +107,19 @@ public class AccountController extends AbstractController {
                     return fail(Code.BAN_ACCOUNT);
                 }
 
+                //检测黑名单
+                if(blackListDao.blackId(account.getPlayerId())){
+                    log.debug("该用户在黑名单，无法登录 guest = {},playerId = {}", dto.getGuest(), account.getPlayerId());
+                    return fail(Code.BAN_ACCOUNT);
+                }
+
                 if (!Objects.equals(dto.getMac(), account.getLastLoginMac())) {
                     accountDao.save(account);
                 }
             }
 
             //生成token
-            String token = genernateToken();
+            String token = RandomUtils.getUUid();
             //保存token，方便weboskcet连接时进行校验
             playerSessionTokenDao.save(token, GameConstant.LoginType.GUEST, account.getPlayerId());
 
@@ -114,4 +134,5 @@ public class AccountController extends AbstractController {
             return exception();
         }
     }
+
 }

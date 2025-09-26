@@ -24,11 +24,11 @@ public class RobotCfg extends BaseCfgBean {
   protected int available;
   /** 押注类行为策略ID */
   protected List<List<Integer>> betRobotID;
-  /** 对战类行为策略ID */
+  /** 对战类行为策略ID-德州 */
   protected List<List<Integer>> chessRobotID;
-  /** 每次局游戏结束时退出概率 */
+  /** 押注类-每次局游戏结束时退出概率 */
   protected int exit;
-  /** 退出房间时倍数 */
+  /** 押注类-退出房间时倍数 */
   protected int exitMultiplier;
   /** 国旗 */
   protected int flag;
@@ -64,17 +64,17 @@ public class RobotCfg extends BaseCfgBean {
     return betRobotID;
   }
 
-  /** 返回对战类行为策略ID */
+  /** 返回对战类行为策略ID-德州 */
   public List<List<Integer>> getChessRobotID() {
     return chessRobotID;
   }
 
-  /** 返回每次局游戏结束时退出概率 */
+  /** 返回押注类-每次局游戏结束时退出概率 */
   public int getExit() {
     return exit;
   }
 
-  /** 返回退出房间时倍数 */
+  /** 返回押注类-退出房间时倍数 */
   public int getExitMultiplier() {
     return exitMultiplier;
   }

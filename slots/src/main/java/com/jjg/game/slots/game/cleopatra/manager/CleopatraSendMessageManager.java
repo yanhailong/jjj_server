@@ -111,6 +111,9 @@ public class CleopatraSendMessageManager extends BaseSendMessageManager {
 
             res.rewardPoolValue = gameRunInfo.getSmallPoolGold();
             res.poolValue = gameRunInfo.getCurrentPoolValue();
+            if(lib.getPoolIconIndexSet() != null && !lib.getPoolIconIndexSet().isEmpty()) {
+                res.poolIconIndexs = new ArrayList<>(lib.getPoolIconIndexSet());
+            }
 
             slotsLogger.gameResult(playerController.getPlayer(), gameRunInfo,res);
         } else {

@@ -18,8 +18,15 @@ public class GameFunctionCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "GameFunction";
 
+  /** 开启状态 */
+  protected boolean isOpen;
   /** 解锁条件 */
   protected List<Integer> vipLevel;
+
+  /** 返回开启状态 */
+  public boolean getIsOpen() {
+    return isOpen;
+  }
 
   /** 返回解锁条件 */
   public List<Integer> getVipLevel() {

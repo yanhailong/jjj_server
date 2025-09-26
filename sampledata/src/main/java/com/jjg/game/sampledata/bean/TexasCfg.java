@@ -20,15 +20,13 @@ public class TexasCfg extends BaseCfgBean {
 
   /** 前注 */
   protected int ante;
-  /** 补齐金币 */
-  protected List<Integer> bankruptcoin;
   /** 加注大盲倍数 */
   protected List<Integer> bbAddMulti;
   /** 大盲 */
   protected int bbNum;
   /** 销牌数量 */
   protected int burnNum;
-  /** 默认带入金币 */
+  /** 默认入座金币 */
   protected int coinsNum;
   /** 请离房间（毫秒） */
   protected int escTime;
@@ -40,8 +38,6 @@ public class TexasCfg extends BaseCfgBean {
   protected int pokerPool;
   /** 加注底池操作 */
   protected String pool_OpType;
-  /** 准备阶段时间（毫秒） */
-  protected int preparationTime;
   /** 加注方式 */
   protected int raiseWayType;
   /** 房间类型 */
@@ -56,11 +52,6 @@ public class TexasCfg extends BaseCfgBean {
   /** 返回前注 */
   public int getAnte() {
     return ante;
-  }
-
-  /** 返回补齐金币 */
-  public List<Integer> getBankruptcoin() {
-    return bankruptcoin;
   }
 
   /** 返回加注大盲倍数 */
@@ -78,7 +69,7 @@ public class TexasCfg extends BaseCfgBean {
     return burnNum;
   }
 
-  /** 返回默认带入金币 */
+  /** 返回默认入座金币 */
   public int getCoinsNum() {
     return coinsNum;
   }
@@ -106,11 +97,6 @@ public class TexasCfg extends BaseCfgBean {
   /** 返回加注底池操作 */
   public String getPool_OpType() {
     return pool_OpType;
-  }
-
-  /** 返回准备阶段时间（毫秒） */
-  public int getPreparationTime() {
-    return preparationTime;
   }
 
   /** 返回加注方式 */

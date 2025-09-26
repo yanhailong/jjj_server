@@ -1,7 +1,8 @@
 package com.jjg.game.sampledata.bean;
 
+import java.util.*;
+
 import javax.annotation.processing.Generated;
-import java.util.List;
 /**
  * 配置bean
  *
@@ -23,6 +24,8 @@ public class OfficialAwardsCfg extends BaseCfgBean {
   protected List<Integer> getitem;
   /** 中奖概率(万分比) */
   protected int probability;
+  /** 奖励显示图标 */
+  protected String showicon;
   /** 转盘类型 */
   protected int turntableType;
 
@@ -39,6 +42,11 @@ public class OfficialAwardsCfg extends BaseCfgBean {
   /** 返回中奖概率(万分比) */
   public int getProbability() {
     return probability;
+  }
+
+  /** 返回奖励显示图标 */
+  public String getShowicon() {
+    return showicon;
   }
 
   /** 返回转盘类型 */
