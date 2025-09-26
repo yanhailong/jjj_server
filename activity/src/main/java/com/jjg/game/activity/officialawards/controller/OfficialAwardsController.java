@@ -279,7 +279,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
     private int getConversionType(ActivityData activityData) {
         List<Integer> valueParam = activityData.getValueParam();
         if (CollectionUtil.isNotEmpty(valueParam)) {
-            return valueParam.getFirst();
+            return valueParam.getLast();
         }
         return 0;
     }
@@ -334,11 +334,6 @@ public class OfficialAwardsController extends BaseActivityController implements 
             return info;
         }
         return null;
-    }
-
-    @Override
-    public void activityLoadCompleted(ActivityData activityData) {
-        super.activityLoadCompleted(activityData);
     }
 
     /**
