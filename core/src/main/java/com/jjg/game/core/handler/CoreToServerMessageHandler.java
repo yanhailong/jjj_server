@@ -3,7 +3,9 @@ package com.jjg.game.core.handler;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.baselogic.function.SystemInterfaceHolder;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.core.base.gameevent.GameEventManager;
@@ -20,6 +22,7 @@ import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.NotifyConfigUpdate;
 import com.jjg.game.core.pb.NotifyRechargeServer;
 import com.jjg.game.core.pb.gm.NotifyCarouselUpdate;
+import com.jjg.game.core.pb.gm.NotifyGameNodeChange;
 import com.jjg.game.core.pb.gm.NotifyShopProductChange;
 import com.jjg.game.core.pb.gm.ReqAllKickout;
 import com.jjg.game.core.service.CorePlayerService;
@@ -48,6 +51,10 @@ public class CoreToServerMessageHandler {
     private OrderService orderService;
     @Autowired
     private GameEventManager gameEventManager;
+    @Autowired
+    private NodeConfig nodeConfig;
+    @Autowired
+    private NodeManager nodeManager;
 
     /**
      * 其他节点推送的跑马灯信息
@@ -152,6 +159,32 @@ public class CoreToServerMessageHandler {
     @Command(MessageConst.ToServer.CONFIG_UPDATE)
     public void notifyConfigUpdate(NotifyConfigUpdate notifyConfigUpdate) {
 
+    }
+
+    /**
+     * 节点信息变化
+     */
+    @Command(MessageConst.ToServer.NOTIFY_GAME_NODE_CHANGE)
+    public void notifyGameNodeChange(NotifyGameNodeChange notify) {
+        log.debug("收到需要改变节点信息的消息 notify = {}", JSON.toJSONString(notify));
+        try{
+            nodeConfig.setWeight(notify.weight);
+
+            if(notify.ips != null && !notify.ips.isEmpty()){
+                nodeConfig.setWhiteIpList(notify.ips.toArray(new String[0]));
+            }else {
+                nodeConfig.setWhiteIpList(null);
+            }
+
+            if(notify.ids != null && !notify.ids.isEmpty()){
+                nodeConfig.setWhiteIdList(notify.ids.toArray(new String[0]));
+            }else {
+                nodeConfig.setWhiteIdList(null);
+            }
+            nodeManager.update();
+        }catch (Exception e){
+            log.error("", e);
+        }
     }
 
 }
