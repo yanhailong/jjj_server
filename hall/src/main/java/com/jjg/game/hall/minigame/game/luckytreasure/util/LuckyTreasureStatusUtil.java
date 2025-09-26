@@ -1,6 +1,6 @@
 package com.jjg.game.hall.minigame.game.luckytreasure.util;
 
-import com.jjg.game.hall.minigame.game.luckytreasure.data.LuckyTreasure;
+import com.jjg.game.core.data.LuckyTreasure;
 
 import java.util.concurrent.TimeUnit;
 

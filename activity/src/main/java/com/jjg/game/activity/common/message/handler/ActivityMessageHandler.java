@@ -1,5 +1,6 @@
 package com.jjg.game.activity.common.message.handler;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowFreeRewards;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowRecord;
@@ -14,8 +15,9 @@ import com.jjg.game.activity.common.message.req.ReqActivityPlayerJoin;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.levelpack.manager.PlayerLevelPackManager;
 import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelClaimRewards;
-import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelPackDetailInfo;
 import com.jjg.game.activity.manager.ActivityManager;
+import com.jjg.game.activity.officialawards.controller.OfficialAwardsController;
+import com.jjg.game.activity.officialawards.message.req.ReqOfficialAwardsRecord;
 import com.jjg.game.activity.sharepromote.controller.SharePromoteController;
 import com.jjg.game.activity.sharepromote.message.req.*;
 import com.jjg.game.common.config.NodeConfig;
@@ -27,6 +29,8 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 /**
  * @author lm
@@ -40,13 +44,15 @@ public class ActivityMessageHandler {
     private final SharePromoteController sharePromoteController;
     private final PlayerLevelPackManager playerLevelPackManager;
     private final NodeConfig nodeConfig;
+    private final OfficialAwardsController officialAwardsController;
 
-    public ActivityMessageHandler(ActivityManager activityManager, CashCowController cashCowController, SharePromoteController sharePromoteController, PlayerLevelPackManager playerLevelPackManager, NodeConfig nodeConfig) {
+    public ActivityMessageHandler(ActivityManager activityManager, CashCowController cashCowController, SharePromoteController sharePromoteController, PlayerLevelPackManager playerLevelPackManager, NodeConfig nodeConfig, OfficialAwardsController officialAwardsController) {
         this.activityManager = activityManager;
         this.cashCowController = cashCowController;
         this.sharePromoteController = sharePromoteController;
         this.playerLevelPackManager = playerLevelPackManager;
         this.nodeConfig = nodeConfig;
+        this.officialAwardsController = officialAwardsController;
     }
 
     /**
@@ -147,7 +153,7 @@ public class ActivityMessageHandler {
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.getType() == ActivityType.CASH_COW) {
             if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-                AbstractResponse res = cashCowController.reqCashCowTotalPool(playerController, req);
+                AbstractResponse res = cashCowController.reqCashCowTotalPool(req);
                 playerController.send(res);
             }
         }
@@ -175,29 +181,31 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_BIND_PLAYER)
     public void reqSharePromoteBindPlayer(PlayerController playerController, ReqSharePromoteBindPlayer req) {
-        ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null && data.getType() == ActivityType.SHARE_PROMOTE) {
-            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-                AbstractResponse res = sharePromoteController.reqSharePromoteBindPlayer(playerController, req);
-                playerController.send(res);
-            }
+        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
+        if (CollectionUtil.isEmpty(dataMap)) {
+            return;
+        }
+        ActivityData data = dataMap.values().iterator().next();
+        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
+            AbstractResponse res = sharePromoteController.reqSharePromoteBindPlayer(playerController, req);
+            playerController.send(res);
         }
     }
+
 
     /**
      * 推广分享-请求领取收益奖励
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_CLAIM_PROFIT_REWARD)
-    public void reqSharePromoteClaimProfitReward(PlayerController playerController, ReqSharePromoteClaimProfitReward req) {
-        if (serverCanClaimRewardsAndJoin()) {
+    public void reqSharePromoteClaimProfitReward(PlayerController playerController) {
+        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
+        if (CollectionUtil.isEmpty(dataMap)) {
             return;
         }
-        ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null && data.getType() == ActivityType.SHARE_PROMOTE) {
-            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-                AbstractResponse res = sharePromoteController.reqSharePromoteClaimProfitReward(playerController, req);
-                playerController.send(res);
-            }
+        ActivityData data = dataMap.values().iterator().next();
+        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
+            AbstractResponse res = sharePromoteController.reqSharePromoteClaimProfitReward(playerController);
+            playerController.send(res);
         }
     }
 
@@ -205,13 +213,15 @@ public class ActivityMessageHandler {
      * 推广分享-请求推广分享总览信息
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_GLOBAL_INFO)
-    public void reqSharePromoteGlobalInfo(PlayerController playerController, ReqSharePromoteGlobalInfo req) {
-        ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null && data.getType() == ActivityType.SHARE_PROMOTE) {
-            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-                AbstractResponse res = sharePromoteController.reqSharePromoteGlobalInfo(playerController, req);
-                playerController.send(res);
-            }
+    public void reqSharePromoteGlobalInfo(PlayerController playerController) {
+        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
+        if (CollectionUtil.isEmpty(dataMap)) {
+            return;
+        }
+        ActivityData data = dataMap.values().iterator().next();
+        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
+            AbstractResponse res = sharePromoteController.reqSharePromoteGlobalInfo(playerController, data);
+            playerController.send(res);
         }
     }
 
@@ -220,12 +230,14 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_WEEK_RANK_INFO)
     public void reqSharePromoteWeekRankInfo(PlayerController playerController, ReqSharePromoteWeekRankInfo req) {
-        ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null && data.getType() == ActivityType.SHARE_PROMOTE) {
-            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-                AbstractResponse res = sharePromoteController.reqSharePromoteWeekRankInfo(playerController, req);
-                playerController.send(res);
-            }
+        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
+        if (CollectionUtil.isEmpty(dataMap)) {
+            return;
+        }
+        ActivityData data = dataMap.values().iterator().next();
+        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
+            AbstractResponse res = sharePromoteController.reqSharePromoteWeekRankInfo(data, req);
+            playerController.send(res);
         }
     }
 
@@ -234,12 +246,14 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_SELF_RANK_INFO)
     public void reqSharePromoteSelfRankInfo(PlayerController playerController, ReqSharePromoteSelfRankInfo req) {
-        ActivityData data = activityManager.getActivityData().get(req.activityId);
-        if (data != null && data.getType() == ActivityType.SHARE_PROMOTE) {
-            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-                AbstractResponse res = sharePromoteController.reqSharePromoteSelfRankInfo(playerController, req);
-                playerController.send(res);
-            }
+        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
+        if (CollectionUtil.isEmpty(dataMap)) {
+            return;
+        }
+        ActivityData data = dataMap.values().iterator().next();
+        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
+            AbstractResponse res = sharePromoteController.reqSharePromoteSelfRankInfo(playerController, req);
+            playerController.send(res);
         }
     }
 
@@ -259,6 +273,7 @@ public class ActivityMessageHandler {
 
     /**
      * 当前服务器能否领奖
+     *
      * @return true 可以 false不行
      */
     private boolean serverCanClaimRewardsAndJoin() {
@@ -279,9 +294,44 @@ public class ActivityMessageHandler {
      *
      * @param playerController 玩家信息
      */
-    @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_CLAIM_REWARDS)
-    public void reqPlayerLevelPackDetailInfo(PlayerController playerController, ReqPlayerLevelPackDetailInfo req) {
-        playerController.send(playerLevelPackManager.reqPlayerLevelPackDetailInfo(playerController, req));
+    @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_PACK_DETAIL_INFO)
+    public void reqPlayerLevelPackDetailInfo(PlayerController playerController) {
+        playerController.send(playerLevelPackManager.reqPlayerLevelPackDetailInfo(playerController));
+    }
+
+
+    /**
+     * 官方派奖 请求记录
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(ActivityConstant.MsgBean.REQ_OFFICIAL_AWARDS_RECORD)
+    public void reqOfficialAwardsRecord(PlayerController playerController, ReqOfficialAwardsRecord req) {
+        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.OFFICIAL_AWARDS);
+        if (CollectionUtil.isEmpty(dataMap)) {
+            return;
+        }
+        ActivityData data = dataMap.values().iterator().next();
+        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
+            playerController.send(officialAwardsController.reqOfficialAwardsRecord(playerController, req));
+        }
+    }
+
+    /**
+     * 官方派奖 总奖池
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(ActivityConstant.MsgBean.REQ_OFFICIAL_AWARDS_TOTAL_POOL)
+    public void reqOfficialAwardsTotalPool(PlayerController playerController) {
+        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.OFFICIAL_AWARDS);
+        if (CollectionUtil.isEmpty(dataMap)) {
+            return;
+        }
+        ActivityData data = dataMap.values().iterator().next();
+        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
+            playerController.send(officialAwardsController.reqOfficialAwardsTotalPool());
+        }
     }
 
 

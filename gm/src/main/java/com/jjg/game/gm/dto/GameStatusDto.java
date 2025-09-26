@@ -5,6 +5,7 @@ package com.jjg.game.gm.dto;
  * @date 2025/7/10 11:04
  */
 public record GameStatusDto(
+        String name,
         int number,
         int open,
         int status,

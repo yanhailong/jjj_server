@@ -24,7 +24,7 @@ import com.jjg.game.hall.casino.pb.req.*;
 import com.jjg.game.hall.casino.pb.res.*;
 import com.jjg.game.hall.casino.service.PlayerBuildingService;
 import com.jjg.game.hall.constant.HallConstant;
-import com.jjg.game.hall.utils.ConditionUtil;
+import com.jjg.game.core.utils.ConditionUtil;
 import com.jjg.game.hall.utils.GlobalDataCache;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingFloorCfg;

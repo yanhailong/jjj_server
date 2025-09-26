@@ -26,9 +26,7 @@ import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.pb.res.NotifyGameList;
 import com.jjg.game.hall.pb.struct.GameListConfig;
-import com.jjg.game.hall.pb.struct.ShopProductInfo;
 import com.jjg.game.hall.pb.struct.WarePoolInfo;
-import com.jjg.game.hall.utils.ConditionUtil;
 import com.jjg.game.hall.utils.HallTool;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -38,12 +36,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -74,8 +68,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private TimerCenter timerCenter;
     @Autowired
     private HallPoolDao poolDao;
-    @Autowired
-    private ShopProductDao shopProductDao;
 
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
@@ -84,8 +76,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private List<GameListConfig> sortGameList;
     //游戏倍场界面的奖池
     private Map<Integer, List<WarePoolInfo>> poolMap;
-    //商城商品
-    private Map<Integer, ShopProduct> shopProductMap;
 
     public Map<Integer, GameStatus> getGameStatusesMap() {
         return gameStatusesMap;
@@ -110,8 +100,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
         //添加更新奖池的定时任务
         addUpdatePoolEvent();
-        //加载商城商品
-        loadShopProducts();
     }
 
     /**
@@ -145,7 +133,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         NotifyGameList notify = new NotifyGameList();
         notify.gameList = this.sortGameList;
         log.debug("推送游戏列表");
-        clusterSystem.sessionMap().entrySet().forEach(en -> en.getValue().send(notify));
+//        clusterSystem.sessionMap().entrySet().forEach(en -> en.getValue().send(notify));
+        clusterSystem.broadcastToOnlinePlayer(notify);
     }
 
     public List<WareHouseConfigInfo> getWareHouseConfigByGameType(int gameType) {
@@ -165,14 +154,15 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         return this.poolMap.get(gameType);
     }
 
+    /**
+     * 判断是否能进入游戏
+     * @param gameType
+     * @return
+     */
     public boolean canJoinGame(int gameType) {
         GameStatus gameStatus = gameStatusesMap.get(gameType);
         if (Objects.nonNull(gameStatus)) {
             return gameStatus.open() == 1 && gameStatus.status() == 1;
-        }
-        GameListCfg gameListCfg = GameDataManager.getGameListCfg(gameType);
-        if (Objects.nonNull(gameListCfg)) {
-            return gameListCfg.getStatus() == HallCode.GAME_STATUS_OPEN;
         }
         return false;
     }
@@ -579,47 +569,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         return new ArrayList<>(set);
     }
 
-    /**
-     * 获取商城
-     *
-     * @param player
-     * @return
-     */
-    public List<ShopProduct> getShop(Player player) {
-        if(this.shopProductMap == null || this.shopProductMap.isEmpty()) {
-            return null;
-        }
-
-        List<ShopProduct> list = new ArrayList<>();
-
-        int now = TimeHelper.nowInt();
-        for(Map.Entry<Integer,ShopProduct> en : this.shopProductMap.entrySet()){
-            ShopProduct shopProduct = en.getValue();
-            //是否开启
-            if(!shopProduct.isOpen()){
-                continue;
-            }
-
-            //检查解锁条件
-            if (ConditionUtil.checkCondition(player, shopProduct.getConditionsMap()) != Code.SUCCESS) {
-                continue;
-            }
-
-            //检查开始时间
-            if(shopProduct.getStartTime() > 0 && now < shopProduct.getStartTime()){
-                continue;
-            }
-
-            //检查开始时间
-            if(shopProduct.getEndTime() > 0 && now > shopProduct.getEndTime()){
-                continue;
-            }
-
-            list.add(shopProduct);
-        }
-        return list;
-    }
-
     /***********************************************************************************************************/
 
     @Override
@@ -690,46 +639,25 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      */
     public List<GameListConfig> sortGameList() {
         try {
-            Map<Integer, GameStatus> gameStatusesMap = getGameStatusesMap();
+            if(this.gameStatusesMap == null || this.gameStatusesMap.isEmpty()) {
+                return null;
+            }
 
-            return GameDataManager.getGameListCfgList().stream()
-                    .map(configCfg -> {
+            return gameStatusesMap.values().stream()
+                    // 先排序：按 sort 升序，再按 gameId 升序
+                    .sorted(Comparator.comparingInt(GameStatus::sort)
+                            .thenComparingInt(GameStatus::gameId))
+
+                    // 转换 GameStatus → GameListConfig
+                    .map(gameStatus -> {
                         GameListConfig config = new GameListConfig();
-                        int gameId = configCfg.getId();
-                        int sortValue = Integer.MAX_VALUE;
-
-                        if (Objects.nonNull(gameStatusesMap)) {
-                            GameStatus gameStatus = gameStatusesMap.get(gameId);
-                            if (Objects.nonNull(gameStatus)) {
-                                config.sid = gameStatus.gameId();
-                                config.name = configCfg.getName();
-                                config.status = gameStatus.status();
-                                config.iconType = gameStatus.icon_category();
-                                config.rightTopIcon = gameStatus.right_top_icon();
-                                sortValue = gameStatus.sort();
-                            } else {
-                                config.sid = gameId;
-                                config.name = configCfg.getName();
-                                config.status = configCfg.getStatus();
-                                config.iconType = configCfg.getIconType();
-                            }
-                        } else {
-                            config.sid = gameId;
-                            config.name = configCfg.getName();
-                            config.status = configCfg.getStatus();
-                            config.iconType = configCfg.getIconType();
-                        }
-
-                        return new AbstractMap.SimpleEntry<>(config, sortValue);
+                        config.sid = gameStatus.gameId();
+                        config.status = gameStatus.status();
+                        config.iconType = gameStatus.icon_category();
+                        config.rightTopIcon = gameStatus.right_top_icon();
+                        config.name = gameStatus.name();
+                        return config;
                     })
-                    .sorted((a, b) -> {
-                        int sortCompare = Integer.compare(a.getValue(), b.getValue());
-                        if (sortCompare != 0) {
-                            return sortCompare;
-                        }
-                        return Integer.compare(a.getKey().sid, b.getKey().sid);
-                    })
-                    .map(Map.Entry::getKey)
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("", e);
@@ -782,17 +710,5 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         });
 
         this.poolMap = tmpPoolMap;
-    }
-
-    /**
-     * 加载商城商品
-     */
-    public void loadShopProducts(){
-        List<ShopProduct> all = shopProductDao.getAll();
-        if(all != null && !all.isEmpty()){
-            this.shopProductMap = all.stream()
-                    .collect(Collectors.toUnmodifiableMap(ShopProduct::getId, Function.identity()));
-            log.info("加载商城商品数量 size = {}", this.shopProductMap.size());
-        }
     }
 }

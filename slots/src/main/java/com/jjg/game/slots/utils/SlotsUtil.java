@@ -78,7 +78,7 @@ public class SlotsUtil {
             return all;
         }
         BigDecimal propValue = BigDecimal.valueOf(prop);
-        BigDecimal divide = propValue.divide(TEN_THOUSAND_BIGDECIMAL, 0, BigDecimal.ROUND_HALF_UP);
+        BigDecimal divide = propValue.divide(TEN_THOUSAND_BIGDECIMAL, 4, BigDecimal.ROUND_HALF_UP);
         BigDecimal multiply = BigDecimal.valueOf(all).multiply(divide);
         return multiply.intValue();
     }
@@ -98,7 +98,7 @@ public class SlotsUtil {
             return all;
         }
         BigDecimal propValue = BigDecimal.valueOf(prop);
-        BigDecimal divide = propValue.divide(TEN_THOUSAND_BIGDECIMAL, 0, BigDecimal.ROUND_HALF_UP);
+        BigDecimal divide = propValue.divide(TEN_THOUSAND_BIGDECIMAL, 4, BigDecimal.ROUND_HALF_UP);
         BigDecimal multiply = BigDecimal.valueOf(all).multiply(divide);
         return multiply.intValue();
     }

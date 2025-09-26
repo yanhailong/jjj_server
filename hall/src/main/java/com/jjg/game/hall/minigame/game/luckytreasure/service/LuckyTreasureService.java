@@ -1,25 +1,30 @@
 package com.jjg.game.hall.minigame.game.luckytreasure.service;
 
+import cn.hutool.core.collection.ConcurrentHashSet;
+import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.protostuff.MessageUtil;
+import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.timer.TimerCenter;
+import com.jjg.game.common.timer.TimerEvent;
+import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.core.config.bean.LuckyTreasureConfig;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.constant.LuckyTreasureConstant;
+import com.jjg.game.core.constant.SubscriptionTopic;
+import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
+import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
+import com.jjg.game.core.data.*;
+import com.jjg.game.core.manager.SubscriptionManager;
+import com.jjg.game.core.pb.LuckyTreasureUpdateBroadcast;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.hall.minigame.game.luckytreasure.bean.LuckyTreasureConsumeInfo;
-import com.jjg.game.hall.minigame.game.luckytreasure.constant.LuckyTreasureConstant;
-import com.jjg.game.hall.minigame.game.luckytreasure.dao.LuckyTreasureDao;
-import com.jjg.game.hall.minigame.game.luckytreasure.dao.LuckyTreasureRedisDao;
-import com.jjg.game.hall.minigame.game.luckytreasure.data.LuckyTreasure;
-import com.jjg.game.hall.minigame.game.luckytreasure.data.LuckyTreasureConfig;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureHistory;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureInfo;
-import com.jjg.game.hall.minigame.game.luckytreasure.message.res.ResBuyLuckyTreasure;
-import com.jjg.game.hall.minigame.game.luckytreasure.message.res.ResLuckyTreasureHistory;
-import com.jjg.game.hall.minigame.game.luckytreasure.message.res.ResLuckyTreasureInfo;
-import com.jjg.game.hall.minigame.game.luckytreasure.message.res.ResLuckyTreasureRecord;
+import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureUpdateInfo;
+import com.jjg.game.hall.minigame.game.luckytreasure.message.res.*;
 import com.jjg.game.hall.minigame.game.luckytreasure.util.LuckyTreasureStatusUtil;
 import org.redisson.api.RLock;
 import org.slf4j.Logger;
@@ -35,22 +40,109 @@ import java.util.*;
  * 夺宝奇兵服务类
  */
 @Service
-public class LuckyTreasureService {
+public class LuckyTreasureService implements TimerListener<LuckyTreasureService> {
     private static final Logger log = LoggerFactory.getLogger(LuckyTreasureService.class);
 
     private final LuckyTreasureDao luckyTreasureDao;
     private final LuckyTreasureRedisDao luckyTreasureRedisDao;
     private final RedisLock redisLock;
     private final PlayerPackService playerPackService;
+    private final TimerCenter timerCenter;
+    private final SubscriptionManager subscriptionManager;
+    private final ClusterSystem clusterSystem;
+
+    /**
+     * 等待通知更新的期号列表
+     */
+    private final ConcurrentHashSet<Long> issueNumberSet = new ConcurrentHashSet<>();
+
+    /**
+     * 延迟更新定时器
+     */
+    private TimerEvent<LuckyTreasureService> updateTimer;
 
     public LuckyTreasureService(LuckyTreasureDao luckyTreasureDao,
                                 LuckyTreasureRedisDao luckyTreasureRedisDao,
                                 RedisLock redisLock,
+                                TimerCenter timerCenter,
+                                SubscriptionManager subscriptionManager,
+                                ClusterSystem clusterSystem,
                                 PlayerPackService playerPackService) {
         this.luckyTreasureDao = luckyTreasureDao;
         this.luckyTreasureRedisDao = luckyTreasureRedisDao;
         this.redisLock = redisLock;
         this.playerPackService = playerPackService;
+        this.timerCenter = timerCenter;
+        this.subscriptionManager = subscriptionManager;
+        this.clusterSystem = clusterSystem;
+    }
+
+    /**
+     * 初始化
+     */
+    public void init() {
+    }
+
+    /**
+     * 定时事件的监听方法
+     *
+     * @param e
+     */
+    @Override
+    public void onTimer(TimerEvent<LuckyTreasureService> e) {
+        updateTimer = null;
+        Set<Long> updateSet = new HashSet<>(issueNumberSet);
+        issueNumberSet.clear();
+        //只有先将活动从redis中取出来 避免循环中从redis拉取增大开销
+        List<LuckyTreasure> luckyTreasureList = updateSet.stream().map(luckyTreasureRedisDao::getTreasureByIssueNumber).toList();
+        subscriptionManager.publish(SubscriptionTopic.TOPIC_LUCKY_TREASURE_UPDATE, (playerId) -> {
+            NotifyLuckyTreasureUpdate notifyLuckyTreasureUpdate = new NotifyLuckyTreasureUpdate();
+            luckyTreasureList.forEach(treasure -> {
+                LuckyTreasureUpdateInfo afterInfo = new LuckyTreasureUpdateInfo();
+                afterInfo.setIssueNumber(treasure.getIssueNumber());
+                afterInfo.setAlreadyBuyCount(treasure.getBuyMap().getOrDefault(playerId, 0));
+                afterInfo.setIssueNumber(treasure.getIssueNumber());
+                afterInfo.setSoldCount(treasure.getSoldCount());
+                afterInfo.setCountDown(LuckyTreasureStatusUtil.calculateCountDown(treasure));
+                afterInfo.setConfigId(treasure.getConfig().getId());
+                afterInfo.setBuyCount(treasure.getBuyMap().size());
+                afterInfo.setTotalCount(treasure.getConfig().getTotal());
+                afterInfo.setStatus(LuckyTreasureStatusUtil.calculateStatus(treasure, playerId));
+                notifyLuckyTreasureUpdate.getUpdateList().add(afterInfo);
+            });
+            return notifyLuckyTreasureUpdate;
+        });
+        log.info("延迟同步夺宝奇兵库存完毕!set={}", updateSet);
+    }
+
+    /**
+     * 收到其他节点广播的同步数据消息
+     */
+    public void handleUpdateMessage(long issueNumber) {
+        //添加到待更新列表
+        if (issueNumber > 0) {
+            issueNumberSet.add(issueNumber);
+            if (updateTimer == null) {
+                updateTimer = new TimerEvent<>(this, null, 0, 1, 200, false);
+                // 添加到定时器中心
+                timerCenter.add(updateTimer);
+            }
+            log.info("收到更新通知,需要同步更新期号[{}]数据", issueNumber);
+        }
+    }
+
+    /**
+     * 广播其他节点库存更新
+     *
+     * @param issueNumber 期号
+     */
+    public void broadcastUpdate(long issueNumber) {
+        LuckyTreasureUpdateBroadcast message = new LuckyTreasureUpdateBroadcast();
+        message.setIssueNumber(issueNumber);
+        PFMessage pfMessage = MessageUtil.getPFMessage(message);
+        clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString())::contains);
+        //顺便通知自己
+        handleUpdateMessage(issueNumber);
     }
 
     /**
@@ -185,6 +277,8 @@ public class LuckyTreasureService {
                         response.setRemainingCount(remainingCount - count);
                         response.setStatus(LuckyTreasureStatusUtil.calculateStatus(latestTreasure, player.getId()));
                         result.data = response;
+                        //购买成功通知更新 广播到所有节点
+                        broadcastUpdate(latestTreasure.getIssueNumber());
                     }
                     return result;
                 } finally {
@@ -226,9 +320,9 @@ public class LuckyTreasureService {
             }
 
             // 执行购买
-            boolean buySuccess = luckyTreasureRedisDao.buyTreasure(latestTreasure.getIssueNumber(), player.getId(), count);
+            latestTreasure = luckyTreasureRedisDao.buyTreasure(latestTreasure.getIssueNumber(), player.getId(), count);
 
-            if (!buySuccess) {
+            if (latestTreasure == null) {
                 // 购买失败，退还道具
                 playerPackService.addItems(player.getId(), consumeMap, "luckyTreasureBuyFailedRollback");
                 TipUtils.sendTip(player.getId(), TipUtils.TipType.TOAST, 50030);
@@ -310,6 +404,7 @@ public class LuckyTreasureService {
                 pageSize = 10;
             }
             //Pageable 默认0为第一页
+            currPage -= 1;
             if (currPage < 0) {
                 currPage = 0;
             }
@@ -366,6 +461,7 @@ public class LuckyTreasureService {
                 pageSize = 10;
             }
             //Pageable 默认0为第一页
+            currPage -= 1;
             if (currPage < 0) {
                 currPage = 0;
             }
@@ -410,6 +506,14 @@ public class LuckyTreasureService {
     }
 
     /**
+     * 领取奖励
+     */
+    public boolean receive(PlayerController playerController, long issueNumber) {
+        return redisLock.tryLockAndGet(LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_RECEIVE + issueNumber,
+                () -> this.receiveReward(playerController, issueNumber));
+    }
+
+    /**
      * 执行领取奖励逻辑
      */
     public boolean receiveReward(PlayerController playerController, long issueNumber) {
@@ -436,6 +540,11 @@ public class LuckyTreasureService {
                 return false;
             }
 
+            //不是道具奖励不处理
+            if (latestTreasure.getConfig().getType() != 2) {
+                return false;
+            }
+
             // 发放奖励道具
             LuckyTreasureConfig config = latestTreasure.getConfig();
             Map<Integer, Long> rewardMap = new HashMap<>();
@@ -447,9 +556,10 @@ public class LuckyTreasureService {
             if (!addResult.success()) {
                 return false;
             }
-
             // 更新领取状态
             latestTreasure.setReceived(true);
+            //记录领奖的时间戳
+            latestTreasure.setReceiveTime(System.currentTimeMillis());
             luckyTreasureDao.save(latestTreasure);
 
             log.info("夺宝奇兵奖励领取成功, 玩家ID:{}, 期号:{}, 领奖码:{}, 道具ID:{}, 数量:{}", playerId, latestTreasure.getIssueNumber(),

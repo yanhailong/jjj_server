@@ -2,7 +2,6 @@ package com.jjg.game.core.service;
 
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
-import com.jjg.game.common.utils.ExceptionUtils;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
@@ -27,6 +26,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -471,7 +471,11 @@ public class AbstractPlayerService {
     }
 
     public CommonResult<Player> betDeductGold(long playerId, long addNum, boolean effective, String addType) {
-        return betDeductGold(playerId, addNum, addType, effective, null);
+        return betDeductGold(playerId, addNum, addType, effective,false, null);
+    }
+
+    public CommonResult<Player> betDeductGold(long playerId, long addNum, boolean effective, boolean notify, String addType) {
+        return betDeductGold(playerId, addNum, addType, effective,notify, null);
     }
 
     public CommonResult<Player> deductGoldAndDiamond(long playerId, long goldNum, long diamondNum, String addType) {
@@ -814,7 +818,7 @@ public class AbstractPlayerService {
      * @return
      */
     public CommonResult<Player> betDeductGold(
-        long playerId, long num, String addType, boolean effective, String desc) {
+        long playerId, long num, String addType, boolean effective,boolean notify, String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (num < 1) {
             log.warn("押注扣除金币错误 playerId={},num={}", playerId, num);
@@ -822,7 +826,7 @@ public class AbstractPlayerService {
             return result;
         }
 
-        final long[] beforeCoin = {0};
+        LongRef beforeCoin = PrimitiveRef.ofLong(0);
 
         //基础经验倍率
         int baseExpProp = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_BASE_EXP_PROP).getIntValue();
@@ -856,7 +860,7 @@ public class AbstractPlayerService {
 
             @Override
             public Boolean updateDataWithRes(Player player) {
-                beforeCoin[0] = player.getGold();
+                beforeCoin.value = player.getGold();
                 long afterCoin = player.getGold() - num;
                 if (afterCoin < 0) {
                     result.code = Code.NOT_ENOUGH;
@@ -883,9 +887,7 @@ public class AbstractPlayerService {
 
                 player = levelUp(player, cfg);
                 if (effective) {
-                    if (VipUtil.checkVipLevel(player, num)) {
-                        sendMessageManager.buildMoneyChangeMessage(player);
-                    }
+                    VipUtil.checkVipLevel(player, num);
                 }
                 log.info("玩家押注获取经验 playerId = {},addExp = {},level = {}", playerId, tmpAddExp, player.getLevel());
                 return true;
@@ -895,9 +897,14 @@ public class AbstractPlayerService {
         //记录日志
         if (p != null) {
             //TODO 后期要排除机器人的情况
-            coreLogger.useGold(p, beforeCoin[0], -num, addType, desc);
+            coreLogger.useGold(p, beforeCoin.value, -num, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
+
+            //是否通知客户端
+            if (notify) {
+                sendMessageManager.buildMoneyChangeMessage(p);
+            }
             return result;
         }
         return result;

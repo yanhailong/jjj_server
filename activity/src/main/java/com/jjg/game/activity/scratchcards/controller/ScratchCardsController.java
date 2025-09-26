@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 刮刮乐活动控制器
@@ -74,12 +75,12 @@ public class ScratchCardsController extends BaseActivityController {
         long playerId = player.getId();
 
         // 获取活动明细配置
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
+        Map<Integer, ScratchCardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
 
         // 构建权重随机器，只选择 type = ActivityConstant.ScratchCards.REWARDS_TYPE 的刮刮乐奖项
         WeightRandom<ScratchCardsCfg> random = new WeightRandom<>();
-        for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
-            if (cfgBean instanceof ScratchCardsCfg cfg && cfg.getType() == ActivityConstant.ScratchCards.REWARDS_TYPE) {
+        for (ScratchCardsCfg cfg : baseCfgBeanMap.values()) {
+            if (cfg.getType() == ActivityConstant.ScratchCards.REWARDS_TYPE) {
                 random.add(cfg, cfg.getWeight());
             }
         }
@@ -160,22 +161,6 @@ public class ScratchCardsController extends BaseActivityController {
         return null;
     }
 
-    @Override
-    public void onActivityEnd(ActivityData activityData) {
-        // 活动结束逻辑，可扩展
-    }
-
-    @Override
-    public void onActivityStart(ActivityData activityData) {
-        // 活动开始逻辑，可扩展
-    }
-
-    @Override
-    public int updateActivity(String jsonData) {
-        // 可用于更新活动配置
-        return 0;
-    }
-
     /**
      * 获取玩家刮刮乐活动明细
      */
@@ -183,7 +168,7 @@ public class ScratchCardsController extends BaseActivityController {
     public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
         long activityId = activityData.getId();
         ResScratchCardsDetailInfo detailInfo = new ResScratchCardsDetailInfo(Code.SUCCESS);
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
+        Map<Integer, ScratchCardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
 
         detailInfo.detailInfo = new ArrayList<>();
         ScratchCardsDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), null);
@@ -218,9 +203,9 @@ public class ScratchCardsController extends BaseActivityController {
         ResActivityBuyGift res = new ResActivityBuyGift(Code.SUCCESS);
         res.activityId = activityData.getId();
         long playerId = player.getId();
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-        BaseCfgBean baseCfgBean = baseCfgBeanMap.get(giftId);
-        if (baseCfgBean instanceof ScratchCardsCfg cfg && cfg.getType() == ActivityConstant.ScratchCards.GIFT_TYPE) {
+        Map<Integer, ScratchCardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        ScratchCardsCfg cfg = baseCfgBeanMap.get(giftId);
+        if (cfg.getType() == ActivityConstant.ScratchCards.GIFT_TYPE) {
             CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerId, cfg.getGetitem(), "ScratchCardsGift");
             if (!addItems.success()) {
                 log.error("刮刮乐购买礼包自动领奖失败 playerId:{} activityData:{}", playerId, activityData);
@@ -265,12 +250,10 @@ public class ScratchCardsController extends BaseActivityController {
     }
 
     @Override
-    public List<BaseCfgBean> getDetailCfgBean() {
-        return new ArrayList<>(GameDataManager.getScratchCardsCfgList());
-    }
-
-    @Override
-    public Class<ScratchCardsCfg> getDetailDataClass() {
-        return ScratchCardsCfg.class;
+    public Map<Integer, ScratchCardsCfg> getDetailCfgBean(ActivityData activityData) {
+        return GameDataManager.getScratchCardsCfgList()
+                .stream()
+                .filter(cfg -> activityData.getValue().contains(cfg.getId()))
+                .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 }

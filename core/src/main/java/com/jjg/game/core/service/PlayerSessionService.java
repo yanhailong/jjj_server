@@ -118,12 +118,13 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
 
     /**
      * 根据玩家id获取session
+     *
      * @param playerId
      * @return
      */
     public PFSession getSession(long playerId) {
         PFSession session = clusterSystem.getSession(playerId);
-        if(session == null) {
+        if (session == null) {
             session = getSession(getInfo(playerId));
         }
         return session;
@@ -186,7 +187,7 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
     /**
      * 检查当前节点的session
      */
-    public void checkSessionByNode() {
+    public List<Long> checkSessionByNode() {
         String currentNode = clusterSystem.getNodePath();
         Map<Long, PlayerSessionInfo> playerSessionInfoMap = getAll();
         List<Long> keys = new ArrayList<>();
@@ -222,6 +223,7 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
             onlinePlayerDao.delete(keys);
             //redisTemplate.opsForSet().remove(ONLINEPLAYERS, keys.toArray());
         }
+        return keys;
     }
 
     public void shutdown() {
@@ -382,28 +384,9 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
     public void onTimer(TimerEvent<String> e) {
         if (e == checkSessionEvent && marsCurator.isMaster()) {
             log.info("开始执行session检查");
-            checkSessionByNode();
-            // TODO 不能直接调用SessionMap方法
-            Iterator<Map.Entry<String, PFSession>> iterator = clusterSystem.sessionMap().entrySet().iterator();
-            // 分批处理玩家，如果在线玩家过多，会出现问题
-            while (iterator.hasNext()) {
-                Map.Entry<String, PFSession> entry = iterator.next();
-                PFSession pfSession = entry.getValue();
-                //如果session 长时间没有活跃，检查玩家是否还在线
-                if (e.getCurrentTime() - pfSession.activeTime > SESSION_TIME_OUT_MINUTES * TimeHelper.ONE_MINUTE_OF_MILLIS) {
-                    // TODO 在循环中调用数据库接口？
-                    PlayerSessionInfo ps = getInfo(pfSession.getPlayerId());
-                    if (ps == null) {
-                        log.warn("移除无效session，playerId={}", pfSession.getPlayerId());
-                        iterator.remove();
-                        //offlineCount(spiltInfo(ps.getOnlineKey()));
-                    } else if (pfSession.getReference() == null) {
-                        log.warn("移除无效session，playerId={},sessionId={}",
-                                pfSession.getPlayerId(), pfSession.sessionId());
-                        iterator.remove();
-                    }
-                }
-            }
+            List<Long> keys = checkSessionByNode();
+            //检测cluster中的session活跃情况
+            clusterSystem.checkSessionActive(e.getCurrentTime(), keys);
         } else if (e == onlineCountEvent) {
             int size = clusterSystem.clusterSessionSize();
             log.info("打印在线人数 ,size={}", size);

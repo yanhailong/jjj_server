@@ -13,6 +13,7 @@ import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.cleopatra.CleopatraConstant;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraGameDataDao;
 import com.jjg.game.slots.game.cleopatra.dao.CleopatraResultLibDao;
@@ -177,7 +178,8 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
             //获取结果库
             CommonResult<CleopatraResultLib> libResult = normalGetLib(playerGameData, betValue, CleopatraConstant.SpecialMode.NORMAL);
             if (!libResult.success()) {
-                continue;
+                gameRunInfo.setCode(libResult.code);
+                return gameRunInfo;
             }
 
             CleopatraResultLib tmpLib = libResult.data;
@@ -200,6 +202,7 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
 
         if (resultLib == null) {
             log.debug("获取的结果为空 playerId = {},gameType = {},betValue = {}", playerGameData.playerId(), this.gameType, betValue);
+            gameRunInfo.setCode(Code.FAIL);
             return gameRunInfo;
         }
         log.debug("id = {},data = {}", resultLib.getId(), JSON.toJSONString(resultLib));

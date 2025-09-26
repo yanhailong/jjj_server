@@ -21,8 +21,10 @@ public record ShopProductDto(
         int endTime,
         //奖励道具
         Map<Integer,Long> rewardItems,
-        //原价数量
-        long originalCount,
+        //价值类型
+        int valueType,
+        //价值
+        long value,
         //购买类型  -1.充值  ,其他值则为道具id
         int payType,
         //价格

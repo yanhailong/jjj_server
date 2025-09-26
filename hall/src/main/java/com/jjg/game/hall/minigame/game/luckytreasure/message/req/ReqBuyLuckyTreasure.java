@@ -4,7 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.hall.minigame.game.luckytreasure.constant.LuckyTreasureConstant;
+import com.jjg.game.core.constant.LuckyTreasureConstant;
 
 /**
  * 请求购买夺宝奇兵道具

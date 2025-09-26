@@ -17,10 +17,6 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.RES_SHARE_PROMOTE_CLAIM_REWARDS, resp = true)
 @ProtoDesc("推广分享领取活动进度奖励")
 public class ResSharePromoteClaimRewards extends AbstractResponse {
-    @ProtoDesc("活动id")
-    public long activityId;
-    @ProtoDesc("详情id")
-    public long detailId;
     @ProtoDesc("领取奖励信息")
     public List<ItemInfo> infoList;
     @ProtoDesc("详细信息")

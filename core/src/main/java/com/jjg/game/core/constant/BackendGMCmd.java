@@ -34,6 +34,29 @@ public interface BackendGMCmd {
     String SAVE_SHOP_PRODUCTS = "saveShopProducts";
     //删除商品
     String DEL_SHOP_PRODUCTS = "delShopProducts";
+    //获取夺宝奇兵配置列表
+    String LUCKY_TREASURE_CONFIG_LIST = "luckyTreasureConfigList";
+    //添加/更新配置
+    String REPLACE_LUCKY_TREASURE_CONFIG = "replaceLuckyTreasureConfig";
+    //删除配置
+    String DELETE_LUCKY_TREASURE_CONFIG = "deleteLuckyTreasureConfig";
+
+    //获取全部活动数据
+    String GET_ALL_ACTIVITY_DATA = "getAllActivityData";
+
+    /**
+     * 配置相关
+     */
+    interface Config {
+        //加载配置列表
+        String GET_CONFIG_LIST = "getConfigList";
+        //覆盖配置
+        String REPLACE_CONFIG = "replaceConfig";
+        //删除配置
+        String DELETE_CONFIG = "deleteConfig";
+        //同步配置
+        String SYNC_CONFIG = "syncConfig";
+    }
 
     interface Result {
         String SUCCESS = "success";

@@ -1,11 +1,10 @@
 package com.jjg.game.common.netty;
 
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
 import com.jjg.game.common.net.Connect;
 import com.jjg.game.common.net.ConnectListener;
 import com.jjg.game.common.net.NetAddress;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import org.slf4j.Logger;
@@ -88,6 +87,7 @@ public abstract class NettyConnect<T> extends SimpleChannelInboundHandler<T> imp
             throw new RuntimeException("发送消息出现异常", e);
         }
     }
+
 
     @Override
     public boolean isActive() {

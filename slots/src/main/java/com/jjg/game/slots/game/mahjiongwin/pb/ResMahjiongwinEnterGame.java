@@ -19,6 +19,14 @@ public class ResMahjiongwinEnterGame extends AbstractResponse {
     public List<Long> stakeList;
     @ProtoDesc("默认押注")
     public long defaultBet;
+    @ProtoDesc("连续中奖倍数信息")
+    public List<MahjiongwinAddTimesInfo> timesInfoList;
+    @ProtoDesc("累计中奖金币")
+    public long totalWinGold;
+    @ProtoDesc("当前状态 0.正常  1.免费")
+    public int status;
+    @ProtoDesc("剩余免费次数")
+    public int remainFreeCount;
 
     public ResMahjiongwinEnterGame(int code) {
         super(code);

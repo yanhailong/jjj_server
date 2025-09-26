@@ -10,7 +10,9 @@ import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.sharepromote.dao.SharePromoteDao;
 import com.jjg.game.activity.sharepromote.data.SharePromotePlayerData;
 import com.jjg.game.activity.sharepromote.message.bean.*;
-import com.jjg.game.activity.sharepromote.message.req.*;
+import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteBindPlayer;
+import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteSelfRankInfo;
+import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteWeekRankInfo;
 import com.jjg.game.activity.sharepromote.message.res.*;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
@@ -38,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author lm
@@ -65,55 +68,54 @@ public class SharePromoteController extends BaseActivityController {
         long playerId = player.getId();
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         //获取活动详情数据
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-        BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
-        if (baseCfgBean instanceof SharePromoteCfg cfg) {
-            PlayerActivityData data = null;
-            CommonResult<ItemOperationResult> addedItems;
-            redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            try {
-                //领取奖励
-                Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-                if (CollectionUtil.isEmpty(dataMap)) {
-                    res.code = Code.PARAM_ERROR;
-                    return res;
-                }
-                data = dataMap.get(detailId);
-                if (data == null) {
-                    res.code = Code.PARAM_ERROR;
-                    return res;
-                }
-                if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                    res.code = Code.REPEAT_OP;
-                    return res;
-                }
-                //发送奖励
-                addedItems = playerPackService.addItems(playerId, cfg.getGetitem(), "SharePromoteRewards");
-                if (!addedItems.success()) {
-                    res.code = Code.UNKNOWN_ERROR;
-                    return res;
-                }
-                //修改领奖状态
-                data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
-                playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
-            } catch (Exception e) {
-                log.error("领取推广分享异常 playerId:{} activityId:{}", playerId, activityData.getId(), e);
-            } finally {
-                redisLock.unlock(lockKey);
+        Map<Integer, SharePromoteCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        SharePromoteCfg cfg = baseCfgBeanMap.get(detailId);
+        if (cfg == null) {
+            res.code = Code.PARAM_ERROR;
+            return res;
+        }
+        PlayerActivityData data = null;
+        CommonResult<ItemOperationResult> addedItems;
+        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        try {
+            //领取奖励
+            Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+            if (CollectionUtil.isEmpty(dataMap)) {
+                res.code = Code.PARAM_ERROR;
+                return res;
             }
-            if (data != null) {
-                res.activityId = activityData.getId();
-                res.detailId = detailId;
-                res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
-                res.detailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, data);
-
+            data = dataMap.get(detailId);
+            if (data == null) {
+                res.code = Code.PARAM_ERROR;
+                return res;
             }
+            if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
+                res.code = Code.REPEAT_OP;
+                return res;
+            }
+            //发送奖励
+            addedItems = playerPackService.addItems(playerId, cfg.getGetitem(), "SharePromoteRewards");
+            if (!addedItems.success()) {
+                res.code = Code.UNKNOWN_ERROR;
+                return res;
+            }
+            //修改领奖状态
+            data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
+            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
+        } catch (Exception e) {
+            log.error("领取推广分享异常 playerId:{} activityId:{}", playerId, activityData.getId(), e);
+        } finally {
+            redisLock.unlock(lockKey);
+        }
+        if (data != null) {
+            res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
+            res.detailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, data);
         }
         return res;
     }
 
     @Override
-    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, Object additionalParameters) {
+    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
         //这个活动不主动刷新
         // 获取playerId绑定的玩家信息
         String bindInfo = sharePromoteDao.getBindInfo(playerId);
@@ -127,7 +129,7 @@ public class SharePromoteController extends BaseActivityController {
         //被绑定的玩家id
         long beneficiaryPlayerId = Long.parseLong(bindInfoArr[0]);
         //计算收益率
-        int proportion = getPlayerProportion(beneficiaryPlayerId, activityData.getId());
+        int proportion = getPlayerProportion(beneficiaryPlayerId, activityData);
         if (proportion == 0) {
             return false;
         }
@@ -143,25 +145,10 @@ public class SharePromoteController extends BaseActivityController {
     }
 
     @Override
-    public void onActivityEnd(ActivityData activityData) {
-
-    }
-
-    @Override
-    public void onActivityStart(ActivityData activityData) {
-
-    }
-
-    @Override
-    public int updateActivity(String jsonData) {
-        return 0;
-    }
-
-    @Override
     public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
         long activityId = activityData.getId();
         ResSharePromoteDetailInfo detailInfo = new ResSharePromoteDetailInfo(Code.SUCCESS);
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
+        Map<Integer, SharePromoteCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
 
         Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
         detailInfo.detailInfo = new ArrayList<>();
@@ -171,10 +158,12 @@ public class SharePromoteController extends BaseActivityController {
 
     @Override
     public SharePromoteDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
-        if (baseCfgBean instanceof SharePromoteCfg cfg) {
+        if (baseCfgBean instanceof SharePromoteCfg cfg && cfg.getType() != ActivityConstant.SharePromote.RANK_REWARDS) {
             SharePromoteDetailInfo info = new SharePromoteDetailInfo();
             info.activityId = activityId;
             info.detailId = cfg.getId();
+            info.needNum = cfg.getCondition();
+            info.proportion = cfg.getProportion();
             //奖励信息
             info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetitem());
             if (data != null) {
@@ -192,11 +181,10 @@ public class SharePromoteController extends BaseActivityController {
         if (CollectionUtil.isEmpty(allDetailInfo)) {
             return typeInfo;
         }
-        typeInfo.activityData = new ArrayList<>();
         for (List<BaseActivityDetailInfo> baseActivityDetailInfos : allDetailInfo.values()) {
             SharePromoteActivityInfo detailInfos = new SharePromoteActivityInfo();
             detailInfos.detailInfos = new ArrayList<>();
-            typeInfo.activityData.add(detailInfos);
+            typeInfo.activityData = detailInfos;
             for (BaseActivityDetailInfo baseActivityDetailInfo : baseActivityDetailInfos) {
                 if (baseActivityDetailInfo instanceof SharePromoteDetailInfo info) {
                     detailInfos.detailInfos.add(info);
@@ -209,14 +197,11 @@ public class SharePromoteController extends BaseActivityController {
     }
 
     @Override
-    public List<BaseCfgBean> getDetailCfgBean() {
-        return new ArrayList<>(GameDataManager.getSharePromoteCfgList());
-    }
-
-
-    @Override
-    public Class<SharePromoteCfg> getDetailDataClass() {
-        return SharePromoteCfg.class;
+    public Map<Integer, SharePromoteCfg> getDetailCfgBean(ActivityData activityData) {
+        return GameDataManager.getSharePromoteCfgList()
+                .stream()
+                .filter(cfg -> activityData.getValue().contains(cfg.getId()))
+                .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
     /**
@@ -235,27 +220,75 @@ public class SharePromoteController extends BaseActivityController {
             res.code = Code.PARAM_ERROR;
             return res;
         }
+        if (StringUtils.isEmpty(req.invitationCode)) {
+            res.code = Code.CODE_ERROR;
+            return res;
+        }
         //绑定玩家
         res.code = sharePromoteDao.bindPlayer(playerId, req.invitationCode);
         if (res.code == Code.SUCCESS) {
             //修改玩家数据
             String lock = sharePromoteDao.getLock(playerId);
-            redisLock.lock(lock);
-            playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
-            playerInfoData.setBindCount(playerInfoData.getBindCount() + 1);
-            sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
+            boolean save = false;
+            redisLock.lock(lock, ActivityConstant.Common.REDIS_LOCK);
+            try {
+                playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
+                playerInfoData.setBindCount(playerInfoData.getBindCount() + 1);
+                sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
+                save = true;
+            } catch (Exception e) {
+                log.error("推广分享绑定成功 修改数据异常 playerId:{} code:{}", playerId, req.invitationCode);
+            } finally {
+                redisLock.unlock(lock);
+            }
+            if (save) {
+                //修改活动状态
+                checkActivityStatus(playerId, playerInfoData.getBindCount());
+            }
+            res.bindNum = playerInfoData.getBindCount();
         }
         return res;
+    }
+
+    public void checkActivityStatus(long playerId, int bindNum) {
+        Map<Long, ActivityData> longActivityDataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
+        if (CollectionUtil.isEmpty(longActivityDataMap)) {
+            return;
+        }
+        ActivityData data = longActivityDataMap.values().iterator().next();
+        Map<Integer, SharePromoteCfg> beanMap = getDetailCfgBean(data);
+        if (CollectionUtil.isEmpty(beanMap)) {
+            return;
+        }
+        String lockKey = playerActivityDao.getLockKey(playerId, data.getId());
+        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        try {
+            Map<Integer, PlayerActivityData> playerActivityDataMap = playerActivityDao.getPlayerActivityData(playerId, data.getType(), data.getId());
+            for (SharePromoteCfg cfg : beanMap.values()) {
+                if (cfg.getType() != ActivityConstant.SharePromote.RANK_REWARDS && cfg.getCondition() <= bindNum) {
+                    if (playerActivityDataMap.containsKey(cfg.getId())) {
+                        continue;
+                    }
+                    PlayerActivityData playerActivityData = new PlayerActivityData(data.getId(), data.getRound());
+                    playerActivityData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+                    playerActivityDataMap.put(cfg.getId(), playerActivityData);
+                }
+            }
+            playerActivityDao.savePlayerActivityData(playerId, data.getType(), data.getId(), playerActivityDataMap);
+        } catch (Exception e) {
+            log.error("推广分享绑定玩家成功 检查玩家进度异常 playerId:{}", playerId, e);
+        } finally {
+            redisLock.unlock(lockKey);
+        }
     }
 
     /**
      * 请求领取收益奖励
      *
      * @param playerController 玩家控制器
-     * @param req              请求
      * @return 响应
      */
-    public AbstractResponse reqSharePromoteClaimProfitReward(PlayerController playerController, ReqSharePromoteClaimProfitReward req) {
+    public AbstractResponse reqSharePromoteClaimProfitReward(PlayerController playerController) {
         ResSharePromoteClaimProfitReward res = new ResSharePromoteClaimProfitReward(Code.SUCCESS);
         long playerId = playerController.playerId();
         //获取玩家收益
@@ -264,7 +297,7 @@ public class SharePromoteController extends BaseActivityController {
         SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
         if (playerIncome > 0 && playerInfoData != null) {
             String lock = sharePromoteDao.getLock(playerId);
-            redisLock.lock(lock);
+            redisLock.lock(lock, ActivityConstant.Common.REDIS_LOCK);
             int goldItemId = ItemUtils.getGoldItemId();
             try {
                 playerIncome = sharePromoteDao.getPlayerIncome(playerId);
@@ -316,18 +349,17 @@ public class SharePromoteController extends BaseActivityController {
     /**
      * 请求推广分享总览数据
      */
-    public AbstractResponse reqSharePromoteGlobalInfo(PlayerController playerController, ReqSharePromoteGlobalInfo req) {
+    public AbstractResponse reqSharePromoteGlobalInfo(PlayerController playerController, ActivityData data) {
         ResSharePromoteGlobalInfo res = new ResSharePromoteGlobalInfo(Code.SUCCESS);
-        res.activityId = req.activityId;
         long playerId = playerController.playerId();
-        res.earningsRatio = getPlayerProportion(playerId, req.activityId);
+        res.earningsRatio = getPlayerProportion(playerId, data);
         res.yesterdayIncome = sharePromoteDao.getYesterdayIncome(playerId);
         res.historyIncome = sharePromoteDao.getPlayerHistoryIncome(playerId);
         SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
         //玩家数据为null时初始化一个
         if (playerInfoData == null) {
             String lock = sharePromoteDao.getLock(playerId);
-            redisLock.lock(lock);
+            redisLock.lock(lock, ActivityConstant.Common.REDIS_LOCK);
             try {
                 playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
                 if (playerInfoData == null) {
@@ -354,8 +386,8 @@ public class SharePromoteController extends BaseActivityController {
                         continue;
                     }
                     SharePromoteRewardsRecode recode = new SharePromoteRewardsRecode();
-                    recode.getNum = split[0];
-                    recode.getTime = split[1];
+                    recode.getNum = Integer.parseInt(split[0]);
+                    recode.getTime = Long.parseLong(split[1]);
                     res.recodes.add(recode);
                 }
             }
@@ -367,19 +399,20 @@ public class SharePromoteController extends BaseActivityController {
     /**
      * 获取玩家收益
      *
-     * @param playerId   玩家id
-     * @param activityId 活动id
+     * @param playerId     玩家id
+     * @param activityData 活动数据
      * @return 玩家总收益率
      */
-    private int getPlayerProportion(long playerId, long activityId) {
+    private int getPlayerProportion(long playerId, ActivityData activityData) {
         long bindCount = sharePromoteDao.getBindCount(playerId);
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
+        Map<Integer, SharePromoteCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         int maxProportion = 0;
-        for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
-            if (cfgBean instanceof SharePromoteCfg cfg) {
-                if (bindCount >= cfg.getCondition() && maxProportion < cfg.getProportion()) {
-                    maxProportion = cfg.getProportion();
-                }
+        if (CollectionUtil.isEmpty(baseCfgBeanMap)) {
+            return 0;
+        }
+        for (SharePromoteCfg cfg : baseCfgBeanMap.values()) {
+            if (bindCount >= cfg.getCondition() && maxProportion < cfg.getProportion()) {
+                maxProportion = cfg.getProportion();
             }
         }
         return maxProportion;
@@ -391,7 +424,7 @@ public class SharePromoteController extends BaseActivityController {
     public AbstractResponse reqSharePromoteSelfRankInfo(PlayerController playerController, ReqSharePromoteSelfRankInfo req) {
         ResSharePromoteSelfRankInfo res = new ResSharePromoteSelfRankInfo(Code.SUCCESS);
         //玩家id->分数,是否还有数据
-        Pair<Map<Long, Double>, Boolean> playerIncomeRankPair = sharePromoteDao.getAllIncomeRank(playerController.playerId(), req.startIndex, Math.min(ActivityConstant.SharePromote.MAX_SIZE, req.startIndex + req.size));
+        Pair<Map<Long, Double>, Boolean> playerIncomeRankPair = sharePromoteDao.getAllIncomeRank(playerController.playerId(), req.startIndex, Math.min(ActivityConstant.SharePromote.MAX_SIZE, req.size));
         Map<Long, Double> playerIncomeRank = playerIncomeRankPair.getFirst();
         if (CollectionUtil.isNotEmpty(playerIncomeRank)) {
             res.rankInfoList = new ArrayList<>(playerIncomeRank.size());
@@ -417,15 +450,21 @@ public class SharePromoteController extends BaseActivityController {
     /**
      * 请求推广分享收益排行榜
      */
-    public AbstractResponse reqSharePromoteWeekRankInfo(PlayerController playerController, ReqSharePromoteWeekRankInfo req) {
+    public AbstractResponse reqSharePromoteWeekRankInfo(ActivityData data, ReqSharePromoteWeekRankInfo req) {
         ResSharePromoteWeekRankInfo res = new ResSharePromoteWeekRankInfo(Code.SUCCESS);
         //玩家id->分数,是否还有数据
-        Pair<Map<Long, Double>, Boolean> playerIncomeRankPair = sharePromoteDao.getAllIncomeRank(req.startIndex, Math.min(ActivityConstant.SharePromote.MAX_SIZE, req.startIndex + req.size));
+        Pair<Map<Long, Double>, Boolean> playerIncomeRankPair = sharePromoteDao.getAllIncomeRank(req.startIndex, Math.min(ActivityConstant.SharePromote.MAX_SIZE, req.size));
         Map<Long, Double> playerIncomeRank = playerIncomeRankPair.getFirst();
         if (CollectionUtil.isNotEmpty(playerIncomeRank)) {
             res.rankInfoList = new ArrayList<>(playerIncomeRank.size());
+            //奖励信息
+            Map<Integer, SharePromoteCfg> beanMap = getDetailCfgBean(data);
+            List<Pair<SharePromoteCfg, Pair<Integer, Integer>>> rewardPairList = getRewardPairList(beanMap);
+            //排行信息
+            int baseRank = req.startIndex;
             Map<Long, Player> playerMap = corePlayerService.multiGetPlayerMap(playerIncomeRank.keySet());
             for (Map.Entry<Long, Double> entry : playerIncomeRank.entrySet()) {
+                baseRank++;
                 Player player = playerMap.get(entry.getKey());
                 if (player == null) {
                     continue;
@@ -433,6 +472,8 @@ public class SharePromoteController extends BaseActivityController {
                 SharePromoteWeekRankInfo rankInfo = new SharePromoteWeekRankInfo();
                 //构建排行榜玩家基本信息
                 buildSharePromoteRankInfo(player, rankInfo, entry.getValue().longValue());
+                //构建奖励信息
+                rankInfo.itemInfos = ItemUtils.buildItemInfo(getRankRewards(rewardPairList, baseRank));
                 res.rankInfoList.add(rankInfo);
             }
             res.startIndex = req.startIndex;
@@ -440,21 +481,6 @@ public class SharePromoteController extends BaseActivityController {
         }
         //计算剩余时间
         res.remainTime = TimeHelper.getNextWeekdayEnd(DayOfWeek.MONDAY) - System.currentTimeMillis();
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(req.activityId);
-        if (CollectionUtil.isNotEmpty(baseCfgBeanMap)) {
-            res.rankRewardsInfoList = new ArrayList<>();
-            for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
-                if (cfgBean instanceof SharePromoteCfg cfg && cfg.getType() == ActivityConstant.SharePromote.RANK_REWARDS) {
-                    SharePromoteRankRewardsInfo rewardsInfo = new SharePromoteRankRewardsInfo();
-                    if (CollectionUtil.isNotEmpty(cfg.getRanking())) {
-                        rewardsInfo.minRank = cfg.getRanking().getFirst();
-                        rewardsInfo.maxRank = cfg.getRanking().getLast();
-                    }
-                    rewardsInfo.itemInfos = ItemUtils.buildItemInfo(cfg.getGetitem());
-                    res.rankRewardsInfoList.add(rewardsInfo);
-                }
-            }
-        }
         return res;
     }
 
@@ -484,16 +510,8 @@ public class SharePromoteController extends BaseActivityController {
                 log.error("存在多个开启的推广分享活动 size:{}", dataMap.size());
             }
             ActivityData activityData = data.getFirst();
-            Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-            List<Pair<SharePromoteCfg, Pair<Integer, Integer>>> rankRewardPair = new ArrayList<>();
-            if (CollectionUtil.isNotEmpty(baseCfgBeanMap)) {
-                for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
-                    if (cfgBean instanceof SharePromoteCfg cfg && cfg.getType() == 2) {
-                        rankRewardPair.add(Pair.newPair(cfg, new Pair<>(cfg.getRanking().getFirst(), cfg.getRanking().getLast())));
-                    }
-                }
-            }
-            rankRewardPair.sort(Comparator.comparingInt(p -> p.getSecond().getFirst()));
+            Map<Integer, SharePromoteCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+            List<Pair<SharePromoteCfg, Pair<Integer, Integer>>> rankRewardPair = getRewardPairList(baseCfgBeanMap);
             //发送排行榜奖励
             Pair<Map<Long, Double>, Boolean> playerIncomeRank = sharePromoteDao.getAllIncomeRank(0, 100);
             //取出数据后直接删除
@@ -506,6 +524,25 @@ public class SharePromoteController extends BaseActivityController {
             }
             log.info("推广分享周榜奖励发放完成 总发放人数 num:{}", playerIncomeRank.getFirst().size());
         }
+    }
+
+    /**
+     * 获取奖励信息
+     *
+     * @param baseCfgBeanMap 配置信息
+     * @return 奖励信息
+     */
+    private List<Pair<SharePromoteCfg, Pair<Integer, Integer>>> getRewardPairList(Map<Integer, SharePromoteCfg> baseCfgBeanMap) {
+        List<Pair<SharePromoteCfg, Pair<Integer, Integer>>> rankRewardPair = new ArrayList<>();
+        if (CollectionUtil.isNotEmpty(baseCfgBeanMap)) {
+            for (SharePromoteCfg cfg : baseCfgBeanMap.values()) {
+                if (cfg.getType() == ActivityConstant.SharePromote.RANK_REWARDS) {
+                    rankRewardPair.add(Pair.newPair(cfg, new Pair<>(cfg.getRanking().getFirst(), cfg.getRanking().getLast())));
+                }
+            }
+        }
+        rankRewardPair.sort(Comparator.comparingInt(p -> p.getSecond().getFirst()));
+        return rankRewardPair;
     }
 
     /**

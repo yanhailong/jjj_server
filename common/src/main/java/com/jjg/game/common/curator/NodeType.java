@@ -12,8 +12,10 @@ public enum NodeType {
     HALL(3),
     //游戏
     GAME(4),
-
-    GM(5);
+    //gm
+    GM(5),
+    //充值服务器
+    RECHARGE(6);
 
     NodeType(int value) {
         this.value = value;

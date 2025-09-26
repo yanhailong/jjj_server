@@ -3,8 +3,7 @@ package com.jjg.game.activity.manager;
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.activity.common.controller.BaseActivityController;
-import com.jjg.game.activity.common.dao.ActivityDao;
-import com.jjg.game.activity.common.dao.ActivityDetailDao;
+import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.common.data.ActivityType;
@@ -47,13 +46,11 @@ import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
-import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.ConditionCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
@@ -72,14 +69,6 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 定时器中心，用于添加活动开始/结束的定时任务
      */
     private final TimerCenter timerCenter;
-    /**
-     * 活动数据 DAO（活动基本信息存储）
-     */
-    private final ActivityDao activityDao;
-    /**
-     * 活动详细数据 DAO（活动子项配置存储）
-     */
-    private final ActivityDetailDao activityDetailDao;
     /**
      * 集群系统，节点间消息广播
      */
@@ -105,10 +94,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 活动类型 -> (活动 id -> 活动数据)
      */
     private Map<ActivityType, Map<Long, ActivityData>> activityTypeData = new ConcurrentHashMap<>();
-    /**
-     * 活动 id -> 活动详细配置
-     */
-    private Map<Long, Map<Integer, BaseCfgBean>> activityDetailInfo = new ConcurrentHashMap<>();
+
     // 事件类型 => 活动ID列表
     private final Map<EGameEventType, List<Integer>> eventTypeListMap = new HashMap<>();
     /**
@@ -131,28 +117,26 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     private PlayerPackService playerPackService;
     @Autowired
     private DropItemLogger dropItemLogger;
+    /**
+     * 玩家获得数据dao
+     */
+    private final PlayerActivityDao playerActivityDao;
 
-    public ActivityManager(TimerCenter timerCenter, ActivityDao activityDao,
-                           ActivityDetailDao activityDetailDao, ClusterSystem clusterSystem,
+    public ActivityManager(TimerCenter timerCenter, ClusterSystem clusterSystem,
                            CoreMarqueeManager marqueeManager,
-                           MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager) {
+                           MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager, PlayerActivityDao playerActivityDao) {
         this.timerCenter = timerCenter;
-        this.activityDao = activityDao;
-        this.activityDetailDao = activityDetailDao;
         this.clusterSystem = clusterSystem;
         this.marqueeManager = marqueeManager;
         this.marsCurator = marsCurator;
         this.nodeConfig = nodeConfig;
         this.redDotManager = redDotManager;
+        this.playerActivityDao = playerActivityDao;
     }
 
 
     public Map<Long, ActivityData> getActivityData() {
         return activityData;
-    }
-
-    public Map<Long, Map<Integer, BaseCfgBean>> getActivityDetailInfo() {
-        return activityDetailInfo;
     }
 
     public Map<ActivityType, Map<Long, ActivityData>> getActivityTypeData() {
@@ -165,28 +149,14 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     public void initData() {
         ActivityType.intialize();
         Map<Long, ActivityData> tempActivityData = new ConcurrentHashMap<>();
-        Map<Long, Map<Integer, BaseCfgBean>> tempActivityDetailInfo = new ConcurrentHashMap<>();
         //要添加定时器的列表 时间戳 活动id
         List<Pair<Long, Long>> timerList = new ArrayList<>();
         long currentTime = System.currentTimeMillis();
-        //从数据库加载
-        loadActivityConfigByDB(currentTime, timerList, tempActivityDetailInfo, tempActivityData);
         //从配置表加载
-        loadActivityConfigByExcel(tempActivityData, currentTime, timerList, tempActivityDetailInfo);
-        //添加活动定时器
-        for (Pair<Long, Long> pair : timerList) {
-            timerCenter.add(new TimerEvent<>(this, pair.getFirst(), pair.getSecond()));
-        }
-        //主节点保存到redis
-        if (isExecutionNode()) {
-            activityDao.saveActivities(tempActivityData);
-            for (Map.Entry<Long, Map<Integer, BaseCfgBean>> entry : tempActivityDetailInfo.entrySet()) {
-                activityDetailDao.saveActivityDetails(entry.getKey(), entry.getValue());
-            }
-        }
+        loadActivityConfigByExcel(tempActivityData, currentTime, timerList);
+        addActivityTimer(timerList);
         //重新赋值到内存
         activityData = tempActivityData;
-        activityDetailInfo = tempActivityDetailInfo;
         activityTypeData = new ConcurrentHashMap<>();
         //缓存为活动类型->活动数据保存
         for (ActivityData data : tempActivityData.values()) {
@@ -194,31 +164,61 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         //检查是否要主动开启
         for (ActivityData data : activityData.values()) {
-            //设置状态
-            if (data.getStatus() != ActivityConstant.ActivityStatus.RUNNING && data.getTimeStart() <= currentTime && currentTime <= data.getTimeEnd()) {
-                data.getType().getController().onActivityStart(data);
-                data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
-            }
-            if (data.canRun()) {
-                data.getType().getController().activityLoadCompleted(data);
-            }
+            checkActivityStatus(data, currentTime);
+        }
+    }
+
+    /**
+     * 添加活动定时器
+     *
+     * @param timerList 定时器列表
+     */
+    private void addActivityTimer(List<Pair<Long, Long>> timerList) {
+        //添加活动定时器
+        for (Pair<Long, Long> pair : timerList) {
+            timerCenter.add(new TimerEvent<>(this, pair.getFirst(), pair.getSecond()));
+        }
+    }
+
+    /**
+     * 移除活动定时器
+     *
+     * @param activityId 活动id
+     */
+    private void removeActivityTimer(long activityId) {
+        timerCenter.remove(this, activityId);
+    }
+
+    /**
+     * 检查活动状态并执行活动开启
+     *
+     * @param data        活动数据
+     * @param currentTime 当时间
+     */
+    private void checkActivityStatus(ActivityData data, long currentTime) {
+        //设置状态
+        if (data.getStatus() != ActivityConstant.ActivityStatus.RUNNING && data.getTimeStart() <= currentTime && currentTime <= data.getTimeEnd()) {
+            data.getType().getController().onActivityStart(data);
+            data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
+        }
+        if (data.canRun()) {
+            data.getType().getController().activityLoadCompleted(data);
         }
     }
 
     /**
      * 从excel加载活动数据
      *
-     * @param tempActivityData       活动临时数据数据
-     * @param currentTime            当前时间
-     * @param timerList              定时器列表
-     * @param tempActivityDetailInfo 活动详情临时数据
+     * @param tempActivityData 活动临时数据数据
+     * @param currentTime      当前时间
+     * @param timerList        定时器列表
      */
-    private void loadActivityConfigByExcel(Map<Long, ActivityData> tempActivityData, long currentTime, List<Pair<Long
-            , Long>> timerList, Map<Long, Map<Integer, BaseCfgBean>> tempActivityDetailInfo) {
+    private void loadActivityConfigByExcel(Map<Long, ActivityData> tempActivityData, long currentTime,
+                                           List<Pair<Long, Long>> timerList) {
         List<ActivityConfigCfg> activityConfigCfgList = GameDataManager.getActivityConfigCfgList();
         for (ActivityConfigCfg activityConfigCfg : activityConfigCfgList) {
             ActivityType activityType = ActivityType.fromType(activityConfigCfg.getType());
-            if (activityType == null || tempActivityData.containsKey((long) activityConfigCfg.getId())) {
+            if (activityType == null) {
                 continue;
             }
             ActivityData data = ActivityData.getActivityData(activityConfigCfg, activityType);
@@ -226,63 +226,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 continue;
             }
             long activityInfoId = activityConfigCfg.getId();
-            Map<Integer, BaseCfgBean> loadedDetailData =
-                    data.getType().getController().loadDetailData(activityDetailInfo.get(activityInfoId));
-            if (CollectionUtil.isNotEmpty(loadedDetailData)) {
-                //移除未配置在ActivityConfigCfg中的活动详情
-                Iterator<Integer> iterator = loadedDetailData.keySet().iterator();
-                while (iterator.hasNext()) {
-                    Integer id = iterator.next();
-                    if (data.getValue().contains(id)) {
-                        continue;
-                    }
-                    iterator.remove();
-                }
-                tempActivityDetailInfo.put(activityInfoId, loadedDetailData);
-            }
-            tempActivityDetailInfo.put(activityInfoId, loadedDetailData);
             tempActivityData.put(activityInfoId, data);
-        }
-    }
-
-    /**
-     * 从数据库加载活动数据
-     *
-     * @param timeMillis             当前时间
-     * @param timerList              定时器列表
-     * @param tempActivityDetailInfo 临时活动详情数据
-     * @param tempActivityData       临时活动数据
-     */
-    private void loadActivityConfigByDB(long timeMillis, List<Pair<Long, Long>> timerList, Map<Long, Map<Integer,
-            BaseCfgBean>> tempActivityDetailInfo, Map<Long, ActivityData> tempActivityData) {
-        List<ActivityData> allActivityInfos = activityDao.getAllActivityInfos();
-        for (ActivityData data : allActivityInfos) {
-            if (!checkActivityData(data, timeMillis, timerList)) {
-                continue;
-            }
-            long activityInfoId = data.getId();
-            //获取详细配置信息
-            Map<Integer, BaseCfgBean> activityDetailInfos = activityDetailDao.getActivityDetailInfos(activityInfoId,
-                    data.getType());
-            if (CollectionUtil.isNotEmpty(activityDetailInfos)) {
-                tempActivityDetailInfo.put(activityInfoId, activityDetailInfos);
-            }
-            tempActivityData.put(activityInfoId, data);
-        }
-    }
-
-    /**
-     * 定时更新活动数据到redis
-     */
-    @Scheduled(cron = "0 0 0/6 * * ?")
-    private void saveActivity() {
-        if (isExecutionNode()) {
-            Map<Long, ActivityData> dataHashMap = new HashMap<>(activityData);
-            activityDao.saveActivities(dataHashMap);
-            Map<Long, Map<Integer, BaseCfgBean>> longMapHashMap = new HashMap<>(activityDetailInfo);
-            for (Map.Entry<Long, Map<Integer, BaseCfgBean>> longMapEntry : longMapHashMap.entrySet()) {
-                activityDetailDao.saveActivityDetails(longMapEntry.getKey(), longMapEntry.getValue());
-            }
         }
     }
 
@@ -401,18 +345,19 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
         NotifyActivityChange info = new NotifyActivityChange();
         info.activityInfos = new ArrayList<>();
+        Boolean checked = playerActivityDao.checkCanTargetFirstLogin(player.getId());
         for (ActivityData data : activityData.values()) {
             BaseActivityController controller = data.getType().getController();
             if (!playerCanJoinActivity(data, playerController.getPlayer())) {
                 continue;
             }
             //玩家首次登录执行
-            if (firstLogin) {
+            if (firstLogin && Boolean.TRUE.equals(checked)) {
                 controller.checkPlayerDataAndReset(player.getId(), data);
             }
-            info.activityInfos.add(controller.buildActivityInfo(player.getId(), data));
+            info.activityInfos.add(controller.buildActivityInfo(data));
         }
-        if (firstLogin) {
+        if (firstLogin && Boolean.TRUE.equals(checked)) {
             //触发登录活动
             addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
         }
@@ -450,10 +395,10 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     continue;
                 }
                 try {
-                    boolean canClaim = data.getType().getController().addPlayerProgress(playerId, data, value,
-                            additionalParameters);
+                    boolean changeStatus = data.getType().getController().addPlayerProgress(playerId, data, value
+                            , activityTargetKey, additionalParameters);
                     //如果进度增加后能够领取则放入
-                    if (canClaim) {
+                    if (changeStatus) {
                         dataArrayList.add(data);
                     }
                 } catch (Exception e) {
@@ -549,40 +494,13 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
         String cmd = gmOrders[0];
-        if ("reload".equalsIgnoreCase(cmd)) {
-            Map<Long, ActivityData> tempActivityData = new ConcurrentHashMap<>();
-            Map<Long, Map<Integer, BaseCfgBean>> tempActivityDetailInfo = new ConcurrentHashMap<>();
-            //要添加定时器的列表 时间戳 活动id
-            List<Pair<Long, Long>> timerList = new ArrayList<>();
-            long currentTime = System.currentTimeMillis();
-            activityDetailInfo.clear();
-            //从配置表加载
-            loadActivityConfigByExcel(tempActivityData, currentTime, timerList, tempActivityDetailInfo);
-            //添加活动定时器
-            for (Pair<Long, Long> pair : timerList) {
-                timerCenter.add(new TimerEvent<>(this, pair.getFirst(), pair.getSecond()));
-            }
-            //重新赋值到内存
-            activityData = tempActivityData;
-            activityDetailInfo = tempActivityDetailInfo;
-            activityTypeData = new ConcurrentHashMap<>();
-            //缓存为活动类型->活动数据保存
-            for (ActivityData data : tempActivityData.values()) {
-                activityTypeData.computeIfAbsent(data.getType(), k -> new ConcurrentHashMap<>()).put(data.getId(), data);
-            }
-            //检查是否要主动开启
-            for (ActivityData data : activityData.values()) {
-                //设置状态
-                if (data.getStatus() != ActivityConstant.ActivityStatus.RUNNING && data.getTimeStart() <= currentTime && currentTime <= data.getTimeEnd()) {
-                    data.getType().getController().onActivityStart(data);
-                    data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
-                }
-                if (data.canRun()) {
-                    data.getType().getController().activityLoadCompleted(data);
-                }
-            }
+        if ("rechargeGold".equalsIgnoreCase(cmd)) {
+            long count = Long.parseLong(gmOrders[1]);
+            addPlayerActivityProgress(playerController.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), count
+                    , null);
             return new CommonResult<>(Code.SUCCESS);
         }
+
         if (gmOrders.length < 3) {
             return new CommonResult<>(Code.FAIL);
         }
@@ -611,12 +529,6 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 return new CommonResult<>(Code.NOT_FOUND);
             }
             data.getType().getController().buyActivityGift(playerController.getPlayer(), data, detailId);
-            return new CommonResult<>(Code.SUCCESS);
-        }
-        if ("recharge".equalsIgnoreCase(cmd)) {
-            long count = Long.parseLong(gmOrders[1]);
-            addPlayerActivityProgress(playerController.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), count
-                    , null);
             return new CommonResult<>(Code.SUCCESS);
         }
 
@@ -648,15 +560,64 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     @Override
     public <T extends GameEvent> void handleEvent(T gameEvent) {
-        // 产生有效流水 需要检查是否能掉落道具
-        if (gameEvent instanceof PlayerEffectiveFlowingEvent playerEffectiveFlowingEvent) {
-            // 道具掉落检查
-            checkDropItem(playerEffectiveFlowingEvent);
+        switch (gameEvent) {
+            // 产生有效流水 需要检查是否能掉落道具
+            case PlayerEffectiveFlowingEvent event -> {
+                // 道具掉落检查
+                checkDropItem(event);
+            }
+            case PlayerEvent playerEvent -> {
+                if (playerEvent.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
+                    Player player = playerEvent.getPlayer();
+                    //添加其他活动进度
+                    addPlayerActivityProgress(player, ActivityTargetType.LEVEL.getTargetKey(), player.getLevel(), null);
+                }
+            }
+            case ClockEvent clockEvent -> {
+                //0点事件
+                if (clockEvent.getHour() == 0) {
+                    onZeroEvent();
+                }
+            }
+            default -> {
+            }
         }
-        if (gameEvent instanceof PlayerEvent playerEvent && playerEvent.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
-            Player player = playerEvent.getPlayer();
-            //添加其他活动进度
-            addPlayerActivityProgress(player, ActivityTargetType.LEVEL.getTargetKey(), player.getLevel(), null);
+
+    }
+
+    /**
+     * 活动0点事件处理
+     */
+    private void onZeroEvent() {
+        //获取在线玩家
+        List<Long> allPlayerIds = clusterSystem.getAllPlayerIds();
+        if (CollectionUtil.isEmpty(allPlayerIds)) {
+            return;
+        }
+        //全部活动
+        for (ActivityData data : activityData.values()) {
+            BaseActivityController controller = data.getType().getController();
+            for (Long playerId : allPlayerIds) {
+                PFSession session = clusterSystem.getSession(playerId);
+                //判断玩家是否存在
+                if (session != null && session.getReference() instanceof PlayerController playerController) {
+                    Player player = playerController.getPlayer();
+                    if (player == null) {
+                        continue;
+                    }
+                    //检查是否能参加活动
+                    if (!playerCanJoinActivity(data, player)) {
+                        continue;
+                    }
+                    //确保极限情况下登录不多次触发
+                    if (Boolean.TRUE.equals(playerActivityDao.checkCanTargetFirstLogin(playerId))) {
+                        //重置活动数据
+                        controller.checkPlayerDataAndReset(player.getId(), data);
+                        //触发登录活动
+                        addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
+                    }
+                }
+            }
         }
     }
 
@@ -686,7 +647,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             ConditionCfg cfg = GameDataManager.getConditionCfg(dropCondition.getFirst());
             EffectiveFlowingParam effectiveFlowingParam = new EffectiveFlowingParam(cfg.getConditionType(), null);
             effectiveFlowingParam.setFlowingValue((Long) effectiveFlowingEvent.getEventChangeValue());
-            effectiveFlowingParam.setGameCfgId(effectiveFlowingParam.getGameCfgId());
+            effectiveFlowingParam.setGameCfgId(effectiveFlowingEvent.getGameCfgId());
             effectiveFlowingParam.setConditionProgressKey(conditionKey);
             effectiveFlowingParam.setNeedUpdateProgress(true);
             effectiveFlowingParam.setConditionCfg(dropCondition.subList(1, dropCondition.size()));
@@ -782,7 +743,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 playerPackService.addItems(player.getId(), dropItems, "ACTIVITY_DROP_ITEM");
         if (result.success()) {
             // 记录日志
-            dropItemLogger.recordDropItem(player, activityData.getId(), event.getGameCfgId(), result.data);
+            dropItemLogger.recordDropItem(player, activityData.getId(), event.getGameCfgId(), dropItems, result.data);
         }
         return dropItems;
     }
@@ -800,7 +761,53 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this))
                 .addInitSampleFileObserveWithCallBack(
                         ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this));
+        //活动热更
+        addChangeSampleFileObserveWithCallBack(ActivityConfigCfg.EXCEL_NAME, this::reloadConfig);
     }
+
+    /**
+     * 重载配置
+     */
+    private void reloadConfig() {
+        List<ActivityConfigCfg> activityConfigCfgList = GameDataManager.getActivityConfigCfgList();
+        long currentTime = System.currentTimeMillis();
+        for (ActivityConfigCfg activityConfigCfg : activityConfigCfgList) {
+            ActivityType activityType = ActivityType.fromType(activityConfigCfg.getType());
+            if (activityType == null) {
+                continue;
+            }
+            long activityInfoId = activityConfigCfg.getId();
+            ActivityData oldData = activityData.get(activityInfoId);
+            //非未开始的只能修改开启关闭状态
+            if (oldData != null && oldData.getStatus() != ActivityConstant.ActivityStatus.NOT_START) {
+                oldData.setOpen(activityConfigCfg.getOpen());
+                log.info("活动更新 正在进行中的活动只更新开关 activityId:{}", activityInfoId);
+                continue;
+            }
+            List<Pair<Long, Long>> timerList = new ArrayList<>(2);
+            //非未开始的 或者新增直接重新构建
+            ActivityData data = ActivityData.getActivityData(activityConfigCfg, activityType);
+            if (!checkActivityData(data, currentTime, timerList)) {
+                continue;
+            }
+            if (oldData != null) {
+                //移除之前的定时器
+                removeActivityTimer(oldData.getId());
+                log.info("活动更新 移除老的定时器 activityId:{}", activityInfoId);
+            }
+            //添加新的定时器
+            addActivityTimer(timerList);
+            //检查活动是否要立即开启
+            checkActivityStatus(data, currentTime);
+            //重新放入活动数据中
+            activityData.put(activityInfoId, data);
+            //更新类型活动数据
+            Map<Long, ActivityData> dataMap = activityTypeData.computeIfAbsent(data.getType(), key -> new ConcurrentHashMap<>());
+            dataMap.put(activityInfoId, data);
+            log.info("活动更新成功 activityId:{} activityData:{}", activityInfoId, JSON.toJSONString(activityData));
+        }
+    }
+
 
     /**
      * 获取所属模块{@link RedDotDetails.RedDotModule}
@@ -852,4 +859,5 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         return redDotDetails;
     }
+
 }

@@ -1,7 +1,7 @@
 package com.jjg.game.account.controller;
 
-import com.jjg.game.account.vo.WebResult;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.WebResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

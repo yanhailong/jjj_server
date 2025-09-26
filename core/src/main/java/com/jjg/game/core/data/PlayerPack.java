@@ -1,6 +1,7 @@
 package com.jjg.game.core.data;
 
 import com.jjg.game.core.constant.Code;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.*;
@@ -14,6 +15,7 @@ import java.util.*;
 @Document
 public class PlayerPack {
     //玩家id
+    @Id
     private long playerId;
     //道具  格子id ->道具
     private Map<Integer, Item> items = new HashMap<>();

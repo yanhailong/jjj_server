@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * 活动基础控制器抽象类
@@ -92,10 +91,11 @@ public abstract class BaseActivityController {
      * @param playerId             玩家ID
      * @param activityData         活动数据
      * @param progress             要增加的进度值
+     * @param activityTargetKey    触发key
      * @param additionalParameters 额外参数，留作扩展
      * @return true 需要给前端发送数据，false 不需要给前端发送数据
      */
-    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, Object additionalParameters) {
+    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
         return false;
     }
 
@@ -166,14 +166,18 @@ public abstract class BaseActivityController {
      *
      * @param activityData 活动数据
      */
-    public abstract void onActivityEnd(ActivityData activityData);
+    public void onActivityEnd(ActivityData activityData) {
+    }
+
 
     /**
      * 活动开始回调
      *
      * @param activityData 活动数据
      */
-    public abstract void onActivityStart(ActivityData activityData);
+    public void onActivityStart(ActivityData activityData) {
+    }
+
 
     /**
      * 后台更新活动配置数据
@@ -181,7 +185,9 @@ public abstract class BaseActivityController {
      * @param jsonData 活动配置的JSON字符串
      * @return 更新后的记录数
      */
-    public abstract int updateActivity(String jsonData);
+    public int updateActivity(String jsonData) {
+        return 0;
+    }
 
     /**
      * 构建玩家的活动详情数据
@@ -203,6 +209,7 @@ public abstract class BaseActivityController {
      */
     public abstract AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId);
 
+
     /**
      * 构建指定活动类型的响应
      *
@@ -215,11 +222,10 @@ public abstract class BaseActivityController {
     /**
      * 构建玩家活动基本信息
      *
-     * @param playerId     玩家ID
      * @param activityData 活动数据
      * @return 活动信息
      */
-    public ActivityInfo buildActivityInfo(long playerId, ActivityData activityData) {
+    public ActivityInfo buildActivityInfo(ActivityData activityData) {
         return ActivityBuilder.buildActivityInfo(activityData);
     }
 
@@ -274,12 +280,9 @@ public abstract class BaseActivityController {
         }
 
         // 获取活动的子配置数据
-        Map<Long, Map<Integer, BaseCfgBean>> activityDetailInfo = activityManager.getActivityDetailInfo();
-
         // 遍历每个活动
         for (ActivityData activityData : activityDataMap.values()) {
-            Map<Integer, BaseCfgBean> baseCfgBeanMap = activityDetailInfo.get(activityData.getId());
-
+            Map<Integer, ? extends BaseCfgBean> baseCfgBeanMap = activityData.getType().getController().getDetailCfgBean(activityData);
             // 过滤掉不可运行、无配置、或玩家不符合条件的活动
             if (CollectionUtil.isEmpty(baseCfgBeanMap) || !activityData.canRun()
                     || CollectionUtil.isEmpty(activityData.getValue())
@@ -310,39 +313,9 @@ public abstract class BaseActivityController {
 
 
     /**
-     * 加载活动子项配置数据
-     *
-     * @param dbData 数据库中已有的子项配置
-     * @return 合并后的子项配置（配置表+数据库）
-     */
-    public Map<Integer, BaseCfgBean> loadDetailData(Map<Integer, BaseCfgBean> dbData) {
-        List<BaseCfgBean> detailCfgBean = getDetailCfgBean();
-        if (CollectionUtil.isEmpty(dbData)) {
-            // 如果数据库为空，则直接全部从配置表加载
-            return detailCfgBean
-                    .stream()
-                    .collect(Collectors.toMap(BaseCfgBean::getId, b -> b));
-        }
-        // 数据库已有的，跳过；没有的从配置表补充
-        for (BaseCfgBean baseCfgBean : detailCfgBean) {
-            int cfgBeanId = baseCfgBean.getId();
-            if (dbData.containsKey(cfgBeanId)) {
-                continue;
-            }
-            dbData.put(cfgBeanId, baseCfgBean);
-        }
-        return dbData;
-    }
-
-    /**
      * 获取活动子项配置（抽象方法，子类实现）
      */
-    public abstract List<BaseCfgBean> getDetailCfgBean();
-
-    /**
-     * 获取活动子项配置的类对象（抽象方法，子类实现）
-     */
-    public abstract Class<? extends BaseCfgBean> getDetailDataClass();
+    public abstract Map<Integer, ? extends BaseCfgBean> getDetailCfgBean(ActivityData activityData);
 
     /**
      * 返回当前活动是否有红点

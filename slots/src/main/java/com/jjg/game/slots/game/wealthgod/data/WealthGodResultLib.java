@@ -2,9 +2,6 @@ package com.jjg.game.slots.game.wealthgod.data;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.slots.data.SlotsResultLib;
-import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Arrays;
@@ -16,13 +13,6 @@ import java.util.Map;
  */
 @Document
 public class WealthGodResultLib extends SlotsResultLib<WealthGodAwardLineInfo> {
-
-    private final Logger log = LoggerFactory.getLogger(WealthGodResultLib.class);
-
-    /**
-     * 有值则等待免费游戏进行处理
-     */
-    private SpecialAuxiliaryInfo waitFree;
 
     /**
      * 本次触发的jackpotId
@@ -40,14 +30,6 @@ public class WealthGodResultLib extends SlotsResultLib<WealthGodAwardLineInfo> {
      * 元图标数组
      */
     private int[] source;
-
-    public SpecialAuxiliaryInfo getWaitFree() {
-        return waitFree;
-    }
-
-    public void setWaitFree(SpecialAuxiliaryInfo waitFree) {
-        this.waitFree = waitFree;
-    }
 
     public int getJackpotId() {
         return jackpotId;
@@ -79,7 +61,6 @@ public class WealthGodResultLib extends SlotsResultLib<WealthGodAwardLineInfo> {
     public void setSource(int[] source) {
         if (source == null) {
             this.source = null;
-            log.error("source is null this={}", this);
         } else {
             this.source = Arrays.copyOf(source, source.length);
         }

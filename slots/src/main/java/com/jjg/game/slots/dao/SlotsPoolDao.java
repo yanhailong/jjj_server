@@ -65,7 +65,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
 
         //当前真奖池金额
         long poolValue = this.redisTemplate.opsForHash().increment(smallTableName(gameType), roomCfgId, value);
-        if (value > 0) {
+        if (value > 0) { //给池子加金币
             //获取假奖池金额
             Number fakePoolValue = (Number) this.redisTemplate.opsForHash().get(fakeSmallTableName(gameType), roomCfgId);
             if (fakePoolValue == null) {
@@ -89,7 +89,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
                 long afterValue = this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, addToFakeValue);
                 log.debug("添加到假奖池2 gameType = {},roomCfgId = {},addToPoolValue = {},addToFakeValue = {},afterValue = {}", gameType, roomCfgId, value, addToFakeValue, afterValue);
             }
-        } else {
+        } else {  //从池子扣除
             Number fakePoolValue = this.redisTemplate.opsForHash().increment(fakeSmallTableName(gameType), roomCfgId, value);
             log.debug("从小奖池扣除成功 gameType = {},roomCfgId = {},value = {},afterPoolValue = {},afterFakePoolValue = {}", gameType, roomCfgId, value, poolValue, fakePoolValue.longValue());
         }

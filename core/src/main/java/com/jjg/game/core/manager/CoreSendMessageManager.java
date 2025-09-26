@@ -25,16 +25,15 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
      * @param playerController
      */
     public void buildMoneyChangeMessage(PlayerController playerController) {
-        buildMoneyChangeMessage(playerController,playerController.getPlayer().getGold(),playerController.getPlayer().getDiamond(),
-                playerController.getPlayer().getVipLevel());
+        buildMoneyChangeMessage(playerController,playerController.getPlayer());
     }
 
     /**
      * 推送金币等信息变化
      * @param playerController
      */
-    public void buildMoneyChangeMessage(PlayerController playerController, long gold, long diamond, int vipLevel) {
-        buildMoneyChangeMessage(playerController.getSession(),gold,diamond,vipLevel);
+    public void buildMoneyChangeMessage(PlayerController playerController,Player player) {
+        buildMoneyChangeMessage(playerController.getSession(),player);
     }
 
     /**
@@ -45,7 +44,7 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
         if(session == null) {
             return;
         }
-        buildMoneyChangeMessage(session,player.getGold(),player.getDiamond(),player.getVipLevel());
+        buildMoneyChangeMessage(session,player);
     }
 
     /**
@@ -57,27 +56,26 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
             return;
         }
         Player player = playerService.get(playerId);
-        buildMoneyChangeMessage(session,player.getGold(),player.getDiamond(),player.getVipLevel());
+        buildMoneyChangeMessage(session,player);
     }
 
     /**
      * 推送金币等信息变化
      * @param session
-     * @param gold
-     * @param diamond
-     * @param vipLevel
      */
-    public void buildMoneyChangeMessage(PFSession session, long gold, long diamond, int vipLevel) {
+    public void buildMoneyChangeMessage(PFSession session, Player player) {
         SendInfo sendInfo = new SendInfo();
 
         NoticeBaseInfoChange notice = new NoticeBaseInfoChange();
-        notice.gold = gold;
-        notice.diamond = diamond;
-        notice.vipLevel = vipLevel;
+        notice.gold = player.getGold();
+        notice.diamond = player.getDiamond();
+        notice.vipLevel = player.getVipLevel();
+        notice.level = player.getLevel();
+        notice.levelExp = player.getExp();
         session.send(notice);
 
         sendInfo.addPlayerMsg(session.playerId, notice);
         sendInfo.getLogMessage().add(notice);
-        sendRun(session, sendInfo, "推送货币变化信息", false);
+        sendRun(session, sendInfo, "推送玩家基础信息", false);
     }
 }

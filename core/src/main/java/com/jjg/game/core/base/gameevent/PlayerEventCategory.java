@@ -1,6 +1,7 @@
 package com.jjg.game.core.base.gameevent;
 
 import com.jjg.game.core.constant.RechargeType;
+import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 
 /**
@@ -36,31 +37,20 @@ public class PlayerEventCategory {
      * 玩家充值事件
      */
     public static class PlayerRechargeEvent extends PlayerEvent {
-        // 充值id
-        private int id;
-        // 充值类型
-        private RechargeType type;
+        // 充值订单
+        private Order order;
 
-        public PlayerRechargeEvent(Player player,int id, RechargeType type) {
+        public PlayerRechargeEvent(Player player,Order order) {
             super(player, EGameEventType.RECHARGE, null, null);
-            this.id = id;
-            this.type = type;
+            this.order = order;
         }
 
-        public int getId() {
-            return id;
+        public Order getOrder() {
+            return order;
         }
 
-        public void setId(int id) {
-            this.id = id;
-        }
-
-        public RechargeType getType() {
-            return type;
-        }
-
-        public void setType(RechargeType type) {
-            this.type = type;
+        public void setOrder(Order order) {
+            this.order = order;
         }
     }
 }

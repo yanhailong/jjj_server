@@ -24,7 +24,7 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
      * @param id
      * @return
      */
-    public Order getOrderById(long id) {
+    public Order getOrderById(String id) {
         return mongoTemplate.findOne(Query.query(Criteria.where("id").is(id)), Order.class);
     }
 
@@ -36,6 +36,14 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
     public Order changeOrderSuccess(String orderId) {
         return changeOrderStatus(orderId,OrderStatus.ORDER,OrderStatus.SUCCESS);
     }
+    /**
+     * 订单置为失败状态
+     * @param orderId
+     * @return
+     */
+    public Order changeOrderFail(String orderId) {
+        return changeOrderStatus(orderId,OrderStatus.FAIL);
+    }
 
     /**
      * 修改订单状态
@@ -44,6 +52,23 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
      */
     private Order changeOrderStatus(String orderId,OrderStatus exceptStatus,OrderStatus newStatus) {
         Query query = new Query(Criteria.where("id").is(orderId).and("orderStatus").is(exceptStatus));
+        Update update = new Update();
+        update.set("orderStatus", newStatus);
+        return mongoTemplate.findAndModify(
+                query,
+                update,
+                new FindAndModifyOptions().returnNew(true), // 返回更新后的文档
+                Order.class
+        );
+    }
+
+    /**
+     * 修改订单状态
+     * @param orderId
+     * @return
+     */
+    private Order changeOrderStatus(String orderId,OrderStatus newStatus) {
+        Query query = new Query(Criteria.where("id").is(orderId));
         Update update = new Update();
         update.set("orderStatus", newStatus);
         return mongoTemplate.findAndModify(

@@ -1,11 +1,13 @@
 package com.jjg.game.slots.game.dollarexpress.data;
 
+import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.dollarexpress.pb.ResStartGame;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author 11
@@ -72,5 +74,14 @@ public class DollarExpressPlayerGameDataDTO extends SlotsPlayerGameDataDTO {
 
     public void setAllUnLock(boolean allUnLock) {
         this.allUnLock = allUnLock;
+    }
+
+    @Override
+    public <T extends SlotsPlayerGameData> T converToGameData(Class<T> cla) throws Exception {
+        T data = super.converToGameData(cla);
+        DollarExpressPlayerGameData dollarGameData = (DollarExpressPlayerGameData) data;
+        dollarGameData.setInvers(new AtomicBoolean(this.invers));
+        dollarGameData.setAllUnLock(new AtomicBoolean(this.allUnLock));
+        return data;
     }
 }

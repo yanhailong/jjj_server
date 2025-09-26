@@ -28,7 +28,10 @@ import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.service.*;
 import com.jjg.game.gm.dto.*;
-import com.jjg.game.gm.vo.*;
+import com.jjg.game.gm.vo.OnlinePlayerVo;
+import com.jjg.game.gm.vo.PageVo;
+import com.jjg.game.gm.vo.PlayerVo;
+import com.jjg.game.gm.vo.SafeVo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import org.apache.commons.lang3.StringUtils;
@@ -107,7 +110,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            boolean saved = gameStatusService.saveOrUpdateGameStatus(new GameStatus(dto.number(),
+            boolean saved = gameStatusService.saveOrUpdateGameStatus(new GameStatus(dto.name(),dto.number(),
                     dto.open(), dto.status(), dto.right_top_icon(), dto.icon_category(), dto.sort()));
 
             if (!saved) {
@@ -692,13 +695,13 @@ public class GMController extends AbstractController {
         log.info("收到生成结果库的请求请求 param={}", param);
         try {
             ClusterClient clusterClient = null;
-            if(StringUtils.isNotEmpty(param.nodeName())){
+            if (StringUtils.isNotEmpty(param.nodeName())) {
                 clusterClient = clusterSystem.getNodesByName(param.nodeName());
-            }else {
+            } else {
                 clusterClient = clusterSystem.randClientByType(NodeType.GAME, CoreConst.GameMajorType.SLOTS);
             }
 
-            if(clusterClient==null){
+            if (clusterClient == null) {
                 log.debug("未找到对应的游戏节点");
                 return fail("common.fail");
             }
@@ -724,13 +727,13 @@ public class GMController extends AbstractController {
     public WebResult<String> saveShopProducts(@RequestBody SaveShopProductsDto dto) {
         log.info("收到保存商品请求 param={}", dto);
         try {
-            if(dto.products() == null || dto.products().isEmpty()){
+            if (dto.products() == null || dto.products().isEmpty()) {
                 log.debug("保存的商品列表为空");
                 return fail("common.fail");
             }
 
             boolean match = dto.products().stream().anyMatch(p -> p.id() < 1);
-            if(match){
+            if (match) {
                 log.debug("商品的id不能小于1");
                 return fail("common.fail");
             }
@@ -746,7 +749,7 @@ public class GMController extends AbstractController {
 
             //通知大厅节点，商城商品变更
             PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyShopProductChange());
-            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString())::contains);
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString(),NodeType.GAME.toString(),NodeType.RECHARGE.toString())::contains);
 
             return success("common.success");
         } catch (Exception e) {
@@ -762,7 +765,7 @@ public class GMController extends AbstractController {
     public WebResult<String> delShopProducts(@RequestBody DelShopProductsDto dto) {
         log.info("收到删除商品请求 param={}", dto);
         try {
-            if(dto.productIds() == null || dto.productIds().isEmpty()){
+            if (dto.productIds() == null || dto.productIds().isEmpty()) {
                 log.debug("删除的商品列表为空");
                 return fail("common.fail");
             }
@@ -782,6 +785,7 @@ public class GMController extends AbstractController {
     //****************************************************************************************************************/
 
     /**
+     *
      * 检验玩家信息
      *
      */

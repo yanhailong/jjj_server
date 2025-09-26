@@ -1,5 +1,7 @@
 package com.jjg.game.activity.common.data;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
@@ -81,6 +83,22 @@ public class ActivityData {
      * 道具掉落包ID
      */
     private List<Integer> dropId;
+
+    /**
+     * 活动临时数据 不存数据库
+     */
+    @JsonIgnore
+    private ActivityTempData activityTempData;
+
+    @JsonIgnore
+    public ActivityTempData getActivityTempData() {
+        return activityTempData;
+    }
+
+    @JsonIgnore
+    public void setActivityTempData(ActivityTempData activityTempData) {
+        this.activityTempData = activityTempData;
+    }
 
     public int getStatus() {
         return status;
@@ -238,13 +256,16 @@ public class ActivityData {
         data.setTriggerType(cfg.getTriggerType());
         // 解析时间字符串为时间戳（假设格式是 yyyy-MM-dd HH:mm:ss）
         if (StringUtils.isNotEmpty(cfg.getTime_start())) {
-            data.setTimeStart(TimeHelper.getTimestamp(cfg.getTime_start()));
+            data.setTimeStart(TimeHelper.getTimestamp(cfg.getTime_start().trim()));
         }
 
         if (StringUtils.isNotEmpty(cfg.getTime_end())) {
-            data.setTimeEnd(TimeHelper.getTimestamp(cfg.getTime_end()));
+            data.setTimeEnd(TimeHelper.getTimestamp(cfg.getTime_end().trim()));
         }
         return data;
     }
 
+    public BaseActivityController getActivityController() {
+        return type.getController();
+    }
 }

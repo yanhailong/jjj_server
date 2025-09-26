@@ -6,11 +6,11 @@ import com.jjg.game.activity.levelpack.dao.PlayerLevelDao;
 import com.jjg.game.activity.levelpack.data.PlayerLevelPackData;
 import com.jjg.game.activity.levelpack.message.bean.PlayerLevelPackDetailInfo;
 import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelClaimRewards;
-import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelPackDetailInfo;
 import com.jjg.game.activity.levelpack.message.res.NotifyPlayerLevelPackDetailInfo;
 import com.jjg.game.activity.levelpack.message.res.ResPlayerLevelClaimRewards;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.*;
@@ -20,9 +20,11 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.pb.NotifyPlayerLevelUp;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.PlayerLevelConfigCfg;
 import com.jjg.game.sampledata.bean.PlayerLevelPackCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,7 +125,7 @@ public class PlayerLevelPackManager implements GameEventListener {
         long currentTimeMillis = System.currentTimeMillis();
         info.detailInfo = new ArrayList<>(playerLevelPackData.size());
         for (PlayerLevelPackData data : playerLevelPackData.values()) {
-            if (data.getClaimStatus() == ActivityConstant.ClaimStatus.CLAIMED) {
+            if (data.getClaimStatus() == ActivityConstant.ClaimStatus.CLAIMED || data.getBuyEndTime() < currentTimeMillis) {
                 continue;
             }
             PlayerLevelPackCfg packCfg = GameDataManager.getPlayerLevelPackCfg(data.getId());
@@ -193,13 +195,14 @@ public class PlayerLevelPackManager implements GameEventListener {
         switch (gameEvent) {
             case PlayerEventCategory.PlayerRechargeEvent event -> {
                 Player player = event.getPlayer();
-                if (event.getType() == RechargeType.PLAYER_LEVEL_GIFT) {
-                    dealRecharge(player, event.getId());
+                if (event.getOrder().getRechargeType() == RechargeType.PLAYER_LEVEL_GIFT) {
+                    dealRecharge(player, event.getOrder().getProductId());
                 }
             }
             case PlayerEvent event -> {
                 if (event.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
                     targetGift(event.getPlayer());
+                    levelUp(event.getPlayer());
                 }
             }
             default -> {
@@ -248,8 +251,45 @@ public class PlayerLevelPackManager implements GameEventListener {
     }
 
 
-    public Object reqPlayerLevelPackDetailInfo(PlayerController playerController, ReqPlayerLevelPackDetailInfo req) {
+    public AbstractResponse reqPlayerLevelPackDetailInfo(PlayerController playerController) {
         Map<Integer, PlayerLevelPackData> playerLevelPackData = playerLevelDao.getPlayerLevelPackData(playerController.playerId());
         return buildNotifyPlayerLevelPackDetailInfo(playerLevelPackData);
+    }
+
+    /**
+     * 玩家升级会赠送道具
+     * @param player
+     */
+    private void levelUp(Player player){
+        //获取配置
+        PlayerLevelConfigCfg playerLevelConfigCfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
+        if(playerLevelConfigCfg == null){
+            return;
+        }
+
+        //检查是否有道具配置
+        if(playerLevelConfigCfg.getGetItem() == null || playerLevelConfigCfg.getGetItem().isEmpty()){
+            return;
+        }
+
+        //添加道具
+        CommonResult<ItemOperationResult> result = playerPackService.addItems(player.getId(), playerLevelConfigCfg.getGetItem(), "playerLevelUpgrade");
+        if(!result.success()){
+            log.warn("玩家升级添加道具失败 playerId = {},level = {},code = {}",player.getId(),player.getLevel(),result.code);
+            return;
+        }
+
+        NotifyPlayerLevelUp notify = new NotifyPlayerLevelUp();
+        notify.level = player.getLevel();
+        notify.items = new ArrayList<>();
+
+        playerLevelConfigCfg.getGetItem().forEach((k,v) -> {
+            ItemInfo itemInfo = new ItemInfo();
+            itemInfo.itemId = k;
+            itemInfo.count = v;
+            notify.items.add(itemInfo);
+        });
+
+        clusterSystem.sendToPlayer(notify, player.getId());
     }
 }

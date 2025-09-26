@@ -467,7 +467,8 @@ public class MarsCurator implements TreeCacheListener {
                 return true;
             }
             String nodeType = pathArr[3];
-            if (NodeType.HALL.name().equals(nodeType) || NodeType.GATE.name().equals(nodeType) || NodeType.GM.name().equals(nodeType)) {
+            if (NodeType.HALL.name().equals(nodeType) || NodeType.GATE.name().equals(nodeType) ||
+                    NodeType.GM.name().equals(nodeType)  || NodeType.RECHARGE.name().equals(nodeType)) {
                 return true;
             }
 
@@ -480,7 +481,8 @@ public class MarsCurator implements TreeCacheListener {
                     return true;
                 }
 
-                if (NodeType.GATE.name().equals(this.nodeConfig.getType()) || NodeType.HALL.name().equals(this.nodeConfig.getType()) || NodeType.GM.name().equals(this.nodeConfig.getType())) {
+                if (NodeType.GATE.name().equals(this.nodeConfig.getType()) || NodeType.HALL.name().equals(this.nodeConfig.getType()) ||
+                        NodeType.GM.name().equals(this.nodeConfig.getType()) || NodeType.RECHARGE.name().equals(this.nodeConfig.getType())) {
                     return true;
                 }
 

@@ -34,7 +34,7 @@ public class SlotsRoomMessageHandler {
         try {
             log.debug("退出游戏 playerId = {}", playerController.playerId());
             slotsPlayerEventListener.exitGame(playerController.getSession());
-            clusterSystem.switchNode(playerController.getSession(), NodeType.HALL);
+            clusterSystem.switchNode(playerController.getSession(), NodeType.HALL, playerController.ipAddress(), playerController.playerId());
             playerController.send(new ResExitGame(Code.SUCCESS));
         } catch (Exception e) {
             log.error("玩家退出房间异常 msg: {}", e.getMessage(), e);

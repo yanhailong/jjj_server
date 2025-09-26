@@ -26,10 +26,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * PrivilegeCardController
@@ -96,11 +100,12 @@ public class PrivilegeCardController extends BaseActivityController {
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
         ResPrivilegeCardDetailInfo res = null;
         long playerId = player.getId();
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-        BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
+        Map<Integer, PrivilegeCardCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        PrivilegeCardCfg cfg = baseCfgBeanMap.get(detailId);
 
-        if (baseCfgBean instanceof PrivilegeCardCfg cfg) {
-            long timeMillis = System.currentTimeMillis();
+        if (cfg != null) {
+            LocalDateTime nowMidnight = LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT);
+            long timeMillis = TimeHelper.getTimestamp(nowMidnight);
             PlayerPrivilegeCard privilegeCard = null;
             CommonResult<ItemOperationResult> addedItems = null;
             String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
@@ -125,7 +130,7 @@ public class PrivilegeCardController extends BaseActivityController {
                 if (cfg.getDays() == -1) {
                     privilegeCard.setEndTime(-1); // 永久有效
                 } else {
-                    privilegeCard.setEndTime(timeMillis + (long) cfg.getDays() * TimeHelper.ONE_DAY_OF_MILLIS);
+                    privilegeCard.setEndTime(TimeHelper.getTimestamp(nowMidnight.plusDays(cfg.getDays())));
                 }
 
                 // 购买奖励发放
@@ -173,13 +178,12 @@ public class PrivilegeCardController extends BaseActivityController {
         ResPrivilegeCardClaimRewards res = new ResPrivilegeCardClaimRewards(Code.SUCCESS);
         long playerId = player.getId();
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-        BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
-
-        if (!(baseCfgBean instanceof PrivilegeCardCfg cfg)) {
+        Map<Integer, PrivilegeCardCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        PrivilegeCardCfg cfg = baseCfgBeanMap.get(detailId);
+        if (cfg == null) {
+            res.code = Code.PARAM_ERROR;
             return res;
         }
-
         PlayerPrivilegeCard data = null;
         CommonResult<ItemOperationResult> addedItems = null;
 
@@ -284,7 +288,7 @@ public class PrivilegeCardController extends BaseActivityController {
         long activityId = activityData.getId();
         ResPrivilegeCardDetailInfo detailInfo = new ResPrivilegeCardDetailInfo(Code.SUCCESS);
 
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
+        Map<Integer, PrivilegeCardCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
 
         detailInfo.detailInfo = new ArrayList<>();
@@ -324,25 +328,11 @@ public class PrivilegeCardController extends BaseActivityController {
 
 
     @Override
-    public List<BaseCfgBean> getDetailCfgBean() {
-        return new ArrayList<>(GameDataManager.getPrivilegeCardCfgList());
+    public Map<Integer, PrivilegeCardCfg> getDetailCfgBean(ActivityData activityData) {
+        return GameDataManager.getPrivilegeCardCfgList()
+                .stream()
+                .filter(cfg -> activityData.getValue().contains(cfg.getId()))
+                .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
-    @Override
-    public Class<PrivilegeCardCfg> getDetailDataClass() {
-        return PrivilegeCardCfg.class;
-    }
-
-    @Override
-    public void onActivityEnd(ActivityData activityData) {
-    }
-
-    @Override
-    public void onActivityStart(ActivityData activityData) {
-    }
-
-    @Override
-    public int updateActivity(String jsonData) {
-        return 0;
-    }
 }

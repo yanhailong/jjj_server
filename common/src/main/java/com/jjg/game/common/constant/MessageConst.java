@@ -108,6 +108,7 @@ public interface MessageConst {
 
         //小游戏
         int MINIGAME = 0x28;
+
         //商城
         int SHOP_TYPE = 0x29;
     }
@@ -186,6 +187,12 @@ public interface MessageConst {
         int NOTIFY_ITEM_DROP = BASE_MSG_PREFIX | 0x12;
         //通知多语言提示弹窗
         int NOTIFY_TIP = BASE_MSG_PREFIX | 0x13;
+        //通知玩家升级奖励
+        int NOTIFY_PLAYER_LEVEL_UP = BASE_MSG_PREFIX | 0x14;
+        //请求订阅消息推送主题操作
+        int REQ_SUBSCRIBE_TOPIC = BASE_MSG_PREFIX | 0x15;
+        //请求订阅消息推送主题操作回复
+        int RES_SUBSCRIBE_TOPIC = BASE_MSG_PREFIX | 0x16;
     }
 
     interface RoomMessage {
@@ -218,5 +225,20 @@ public interface MessageConst {
         int NOTICE_GENERATE_LIB = BASE_MSG_PREFIX | 0x7;
         //通知商城商品变更
         int NOTICE_SHOP_PRODUCT_CHANGE = BASE_MSG_PREFIX | 0x8;
+
+        //玩家充值成功
+        int NOTIFY_PLAYER_RECHARGE = BASE_MSG_PREFIX | 0x9;
+
+        //请求活动信息
+        int REQ_ACTIVITY_INFOS = BASE_MSG_PREFIX | 0xA;
+
+        //夺宝奇兵更新库存
+        int NOTIFY_LUCKY_TREASURE_UPDATE_STOCK = BASE_MSG_PREFIX | 0xB;
+
+        //配置更新通知
+        int CONFIG_UPDATE = BASE_MSG_PREFIX | 0xC;
+
+        //响应活动信息
+        int RES_ACTIVITY_INFOS = BASE_MSG_PREFIX | 0xD;
     }
 }

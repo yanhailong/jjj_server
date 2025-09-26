@@ -34,7 +34,7 @@ public class ClusterMessageHandler {
     public Map<String, SessionCloseListener> sessionCloseListenerMap;
     public Map<String, SessionLogoutListener> sessionLogoutListenerMap;
     public Map<String, SessionLoginListener> sessionLoginListenerMap;
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private final Logger log = LoggerFactory.getLogger(getClass());
     @Autowired
     private ClusterSystem clusterSystem;
     @Autowired
@@ -56,13 +56,14 @@ public class ClusterMessageHandler {
     public void sessionClose(SessionQuit sessionQuit) {
         String sessionId = sessionQuit.sessionId;
         log.info("用户连接退出，sessionId={}", sessionId);
-        PFSession pfSession = clusterSystem.removeSession(sessionId);
+        PFSession pfSession = clusterSystem.getSession(sessionId);
         if (sessionCloseListenerMap != null && !sessionCloseListenerMap.isEmpty() && pfSession != null) {
             for (Map.Entry<String, SessionCloseListener> en : sessionCloseListenerMap.entrySet()) {
                 en.getValue().sessionClose(pfSession);
             }
         }
-
+        //移除session
+        clusterSystem.removeSession(sessionId);
     }
 
     /**
@@ -73,7 +74,7 @@ public class ClusterMessageHandler {
     @Command(MessageConst.SessionConst.RES_NOTIFY_SESSION_VERIFYPASS)
     public void sessionVerifyPass(ResSessionVerifyPass resSessionVerifyPass) {
         if (resSessionVerifyPass.success) {
-            if (this.sessionVerifyListenerMap != null && this.sessionVerifyListenerMap.size() > 0) {
+            if (this.sessionVerifyListenerMap != null && !this.sessionVerifyListenerMap.isEmpty()) {
                 this.sessionVerifyListenerMap.forEach((k, v) -> v.userVerifyPass(resSessionVerifyPass.sessionId,
                         resSessionVerifyPass.playerId, resSessionVerifyPass.ip));
             }

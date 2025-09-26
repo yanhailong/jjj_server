@@ -1,24 +1,38 @@
 package com.jjg.game.sampledata;
 
-import com.jjg.game.sampledata.bean.*;
-import com.jjg.game.sampledata.container.*;
-import com.jjg.game.sampledata.container.BaseCfgContainer.ContainerExceptionBlocker;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.processing.Generated;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.*;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+// =================== 模板开始 ===================
+import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.container.*;
+// =================== 模板结束 ===================
+import com.jjg.game.sampledata.container.BaseCfgContainer.ContainerExceptionBlocker;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import javax.annotation.processing.Generated;
 
 /**
  * 游戏数据管理器
@@ -139,9 +153,14 @@ public class GameDataManager {
     containerMap.put(MailCfg.class, new MailCfgContainer());
     containerMap.put(MiniGameCfg.class, new MiniGameCfgContainer());
     containerMap.put(MiniGameListCfg.class, new MiniGameListCfgContainer());
+    containerMap.put(OfficialAwardsCfg.class, new OfficialAwardsCfgContainer());
     containerMap.put(PiggyBankCfg.class, new PiggyBankCfgContainer());
     containerMap.put(PlayerLevelConfigCfg.class, new PlayerLevelConfigCfgContainer());
     containerMap.put(PlayerLevelPackCfg.class, new PlayerLevelPackCfgContainer());
+    containerMap.put(PointsAwardRankingCfg.class, new PointsAwardRankingCfgContainer());
+    containerMap.put(PointsAwardSigninCfg.class, new PointsAwardSigninCfgContainer());
+    containerMap.put(PointsAwardTaskCfg.class, new PointsAwardTaskCfgContainer());
+    containerMap.put(PointsAwardTurntableCfg.class, new PointsAwardTurntableCfgContainer());
     containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
     containerMap.put(PoolCfg.class, new PoolCfgContainer());
     containerMap.put(PrivilegeCardCfg.class, new PrivilegeCardCfgContainer());
@@ -986,6 +1005,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(MiniGameListCfg.class).getCfgBeanList();
   }
 
+  public static OfficialAwardsCfg getOfficialAwardsCfg(int key) {
+    return getInstance().getCfgContainer(OfficialAwardsCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, OfficialAwardsCfg> getOfficialAwardsCfgMap() {
+    return getInstance().getCfgContainer(OfficialAwardsCfg.class).getCfgBeanMap();
+  }
+
+  public static List<OfficialAwardsCfg> getOfficialAwardsCfgList() {
+    return getInstance().getCfgContainer(OfficialAwardsCfg.class).getCfgBeanList();
+  }
+
   public static PiggyBankCfg getPiggyBankCfg(int key) {
     return getInstance().getCfgContainer(PiggyBankCfg.class).getCfgBeanMap().get(key);
   }
@@ -1020,6 +1051,54 @@ public class GameDataManager {
 
   public static List<PlayerLevelPackCfg> getPlayerLevelPackCfgList() {
     return getInstance().getCfgContainer(PlayerLevelPackCfg.class).getCfgBeanList();
+  }
+
+  public static PointsAwardRankingCfg getPointsAwardRankingCfg(int key) {
+    return getInstance().getCfgContainer(PointsAwardRankingCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PointsAwardRankingCfg> getPointsAwardRankingCfgMap() {
+    return getInstance().getCfgContainer(PointsAwardRankingCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PointsAwardRankingCfg> getPointsAwardRankingCfgList() {
+    return getInstance().getCfgContainer(PointsAwardRankingCfg.class).getCfgBeanList();
+  }
+
+  public static PointsAwardSigninCfg getPointsAwardSigninCfg(int key) {
+    return getInstance().getCfgContainer(PointsAwardSigninCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PointsAwardSigninCfg> getPointsAwardSigninCfgMap() {
+    return getInstance().getCfgContainer(PointsAwardSigninCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PointsAwardSigninCfg> getPointsAwardSigninCfgList() {
+    return getInstance().getCfgContainer(PointsAwardSigninCfg.class).getCfgBeanList();
+  }
+
+  public static PointsAwardTaskCfg getPointsAwardTaskCfg(int key) {
+    return getInstance().getCfgContainer(PointsAwardTaskCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PointsAwardTaskCfg> getPointsAwardTaskCfgMap() {
+    return getInstance().getCfgContainer(PointsAwardTaskCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PointsAwardTaskCfg> getPointsAwardTaskCfgList() {
+    return getInstance().getCfgContainer(PointsAwardTaskCfg.class).getCfgBeanList();
+  }
+
+  public static PointsAwardTurntableCfg getPointsAwardTurntableCfg(int key) {
+    return getInstance().getCfgContainer(PointsAwardTurntableCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PointsAwardTurntableCfg> getPointsAwardTurntableCfgMap() {
+    return getInstance().getCfgContainer(PointsAwardTurntableCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PointsAwardTurntableCfg> getPointsAwardTurntableCfgList() {
+    return getInstance().getCfgContainer(PointsAwardTurntableCfg.class).getCfgBeanList();
   }
 
   public static PokerPoolCfg getPokerPoolCfg(int key) {
