@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 玩家活动数据 DAO
@@ -213,4 +214,17 @@ public class PlayerActivityDao {
                     playerId, activityType, e);
         }
     }
+
+    // -------------------- 首次登录触发时间--------------------
+
+    /**
+     * 检查是否能触发首次登录 保存10s
+     * @param playerId 玩家id
+     * @return true能触发 false不能触发
+     */
+    public Boolean checkCanTargetFirstLogin(long playerId) {
+        return redisTemplate.opsForValue().setIfAbsent("acitvity:login:%d".formatted(playerId)
+                , "1", 10, TimeUnit.SECONDS);
+    }
+
 }

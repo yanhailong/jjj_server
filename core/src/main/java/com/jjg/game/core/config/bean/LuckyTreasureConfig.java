@@ -1,23 +1,15 @@
-package com.jjg.game.core.data;
+package com.jjg.game.core.config.bean;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.CompoundIndex;
-import org.springframework.data.mongodb.core.mapping.Document;
+import com.jjg.game.core.config.AbstractExcelConfig;
+import com.jjg.game.core.config.ExcelConfig;
 
 import java.util.List;
 
 /**
  * 夺宝奇兵配置类
  */
-@Document
-@CompoundIndex(name = "id_idx", def = "{'id': 1}")
-public class LuckyTreasureConfig {
-
-    /**
-     * 配置唯一id
-     */
-    @Id
-    private int id;
+@ExcelConfig(name = "MGLuckyTreasure")
+public class LuckyTreasureConfig extends AbstractExcelConfig {
 
     /**
      * 商品价值
@@ -73,14 +65,6 @@ public class LuckyTreasureConfig {
      * 是否重复 后台修改的开关,如果false则上一期结束后不会再开下一期
      */
     private boolean repeated;
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
 
     public int getBestValue() {
         return bestValue;

@@ -32,10 +32,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseCfgBean;
-import com.jjg.game.sampledata.bean.GlobalConfigCfg;
-import com.jjg.game.sampledata.bean.OfficialAwardsCfg;
-import com.jjg.game.sampledata.bean.RobotCfg;
+import com.jjg.game.sampledata.bean.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -46,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 官方派奖活动控制器
@@ -137,16 +135,14 @@ public class OfficialAwardsController extends BaseActivityController implements 
             return res;
         }
         // 获取活动明细配置
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
-        BaseCfgBean baseCfgBean = baseCfgBeanMap.get(detailId);
-        //默认初始场
-        int turntableType;
-        if (baseCfgBean instanceof OfficialAwardsCfg baseCfg) {
-            turntableType = baseCfg.getTurntableType();
-        } else {
+        Map<Integer, OfficialAwardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        OfficialAwardsCfg baseCfg = baseCfgBeanMap.get(detailId);
+        if (baseCfg == null) {
             res.code = Code.PARAM_ERROR;
             return res;
         }
+        //获取场次信息
+        int turntableType = baseCfg.getTurntableType();
         //获取消耗
         Map<Integer, Integer> needPoints = dataCache.getNeedPoints();
         if (needPoints == null || !needPoints.containsKey(turntableType)) {
@@ -191,11 +187,11 @@ public class OfficialAwardsController extends BaseActivityController implements 
      * @param turntableType  场次类型
      * @return 随机器
      */
-    private WeightRandom<OfficialAwardsCfg> getOfficialAwardsCfgWeightRandom(Map<Integer, BaseCfgBean> baseCfgBeanMap, int turntableType) {
+    private WeightRandom<OfficialAwardsCfg> getOfficialAwardsCfgWeightRandom(Map<Integer, OfficialAwardsCfg> baseCfgBeanMap, int turntableType) {
         // 构建权重随机器，只选择 type = turntableType 的官方派奖奖项
         WeightRandom<OfficialAwardsCfg> random = new WeightRandom<>();
-        for (BaseCfgBean cfgBean : baseCfgBeanMap.values()) {
-            if (cfgBean instanceof OfficialAwardsCfg cfg && cfg.getTurntableType() == turntableType) {
+        for (OfficialAwardsCfg cfg : baseCfgBeanMap.values()) {
+            if (cfg.getTurntableType() == turntableType) {
                 random.add(cfg, cfg.getProbability());
             }
         }
@@ -240,14 +236,25 @@ public class OfficialAwardsController extends BaseActivityController implements 
 
     @Override
     public void onActivityEnd(ActivityData activityData) {
+        clearData(activityData.getId());
+    }
+
+    /**
+     * 清除所有数据
+     */
+    private void clearData(long activityId) {
         if (activityManager.isExecutionNode()) {
             //清除所有记录数据
             officialAwardsDao.deleteAllRecords();
+            log.info("官方派奖删除所有记录成功 activityId:{}", activityId);
             officialAwardsDao.deleteAllPlayerRecords();
+            log.info("官方派奖删除所有玩家记录成功 activityId:{}", activityId);
             //清除所有玩家信息
             officialAwardsDao.deleteAllPlayerAllProgress();
+            log.info("官方派奖删除所有玩家进度成功 activityId:{}", activityId);
             //清除奖池信息
             officialAwardsDao.deleteTotalPool();
+            log.info("官方派奖删除总奖池成功 activityId:{}", activityId);
         }
     }
 
@@ -257,6 +264,8 @@ public class OfficialAwardsController extends BaseActivityController implements 
             return;
         }
         if (activityManager.isExecutionNode()) {
+            //防止未触发结束在开始时清除一次数据
+//            clearData(activityData.getId());
             //设置初始奖池
             GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.OfficialAwards.INITIAL_AMOUNT);
             if (globalConfigCfg == null || globalConfigCfg.getLongValue() == 0) {
@@ -279,17 +288,15 @@ public class OfficialAwardsController extends BaseActivityController implements 
         if (activityData.getActivityTempData() instanceof OfficialAwardsTempData data) {
             return data.getConversionType();
         }
-        Map<Integer, BaseCfgBean> beanMap = activityManager.getActivityDetailInfo().get(activityData.getId());
+        Map<Integer, OfficialAwardsCfg> beanMap = getDetailCfgBean(activityData);
         if (beanMap == null || beanMap.isEmpty()) {
             return 0;
         }
-        for (BaseCfgBean cfgBean : beanMap.values()) {
-            if (cfgBean instanceof OfficialAwardsCfg cfg) {
-                OfficialAwardsTempData data = new OfficialAwardsTempData();
-                data.setConversionType(cfg.getCalculationType());
-                activityData.setActivityTempData(data);
-                return data.getConversionType();
-            }
+        for (OfficialAwardsCfg cfg : beanMap.values()) {
+            OfficialAwardsTempData data = new OfficialAwardsTempData();
+            data.setConversionType(cfg.getCalculationType());
+            activityData.setActivityTempData(data);
+            return data.getConversionType();
         }
         return 0;
     }
@@ -321,7 +328,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
     public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
         long activityId = activityData.getId();
         ResOfficialAwardsDetailInfo detailInfo = new ResOfficialAwardsDetailInfo(Code.SUCCESS);
-        Map<Integer, BaseCfgBean> baseCfgBeanMap = activityManager.getActivityDetailInfo().get(activityId);
+        Map<Integer, OfficialAwardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
 
         detailInfo.detailInfo = new ArrayList<>();
         OfficialAwardsDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), null);
@@ -420,13 +427,11 @@ public class OfficialAwardsController extends BaseActivityController implements 
     }
 
     @Override
-    public List<BaseCfgBean> getDetailCfgBean() {
-        return new ArrayList<>(GameDataManager.getOfficialAwardsCfgList());
-    }
-
-    @Override
-    public Class<OfficialAwardsCfg> getDetailDataClass() {
-        return OfficialAwardsCfg.class;
+    public Map<Integer, OfficialAwardsCfg> getDetailCfgBean(ActivityData activityData) {
+        return GameDataManager.getOfficialAwardsCfgList()
+                .stream()
+                .filter(cfg -> activityData.getValue().contains(cfg.getId()))
+                .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
     @Override
@@ -464,8 +469,8 @@ public class OfficialAwardsController extends BaseActivityController implements 
                 return;
             }
             //机器人进行中奖
-            Map<Integer, BaseCfgBean> map = activityManager.getActivityDetailInfo().get(activityId);
-            Iterator<BaseCfgBean> iterator = map.values().iterator();
+            Map<Integer, OfficialAwardsCfg> map = getDetailCfgBean(activityData);
+            Iterator<OfficialAwardsCfg> iterator = map.values().iterator();
             if (!iterator.hasNext()) {
                 return;
             }

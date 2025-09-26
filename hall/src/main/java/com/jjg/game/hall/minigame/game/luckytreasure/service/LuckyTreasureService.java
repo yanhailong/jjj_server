@@ -9,6 +9,7 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.core.config.bean.LuckyTreasureConfig;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.core.constant.SubscriptionTopic;

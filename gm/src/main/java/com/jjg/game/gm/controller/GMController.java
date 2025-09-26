@@ -10,23 +10,20 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
+import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
-import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.MarqueeDao;
 import com.jjg.game.core.dao.OnlinePlayerDao;
 import com.jjg.game.core.dao.ShopProductDao;
-import com.jjg.game.core.dao.luckytreasure.LuckyTreasureConfigDao;
-import com.jjg.game.core.dao.luckytreasure.LuckyTreasureConfigRedisDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
@@ -80,12 +77,6 @@ public class GMController extends AbstractController {
     private CarouselService carouselService;
     @Autowired
     private ShopProductDao shopProductDao;
-    @Autowired
-    private LuckyTreasureConfigDao luckyTreasureConfigDao;
-    @Autowired
-    private LuckyTreasureConfigRedisDao luckyTreasureConfigRedisDao;
-    @Autowired
-    private RedisLock redisLock;
     @Autowired
     private NodeManager nodeManager;
 
@@ -792,56 +783,6 @@ public class GMController extends AbstractController {
     }
 
     /**
-     * 获取夺宝奇兵所有配置
-     */
-    @RequestMapping(BackendGMCmd.LUCKY_TREASURE_CONFIG_LIST)
-    public WebResult<List<LuckyTreasureConfig>> luckyTreasureList() {
-        //只读数据库数据 更新同步到内存
-        List<LuckyTreasureConfig> configs = luckyTreasureConfigDao.findAll();
-        return success("common.success", configs);
-    }
-
-    /**
-     * 新增/更新夺宝奇兵配置
-     *
-     * @return
-     */
-    @RequestMapping(BackendGMCmd.REPLACE_LUCKY_TREASURE_CONFIG)
-    public WebResult<String> replaceLuckyTreasureConfig(LuckyTreasureConfigDto dto) {
-        LuckyTreasureConfig luckyTreasureConfig = dto.castToLuckyTreasureConfig();
-        if (luckyTreasureConfig == null) {
-            return fail("common.paramerror");
-        }
-        redisLock.tryLockAndRun(LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_CONFIG, () -> {
-            luckyTreasureConfigDao.save(luckyTreasureConfig);
-            luckyTreasureConfigRedisDao.replaceConfigMap(luckyTreasureConfig.getId(), luckyTreasureConfig);
-        });
-        return success("common.success");
-    }
-
-    /**
-     * 新增/更新夺宝奇兵配置
-     *
-     * @return
-     */
-    @RequestMapping(BackendGMCmd.DELETE_LUCKY_TREASURE_CONFIG)
-    public WebResult<String> deleteLuckyTreasureConfig(LuckyTreasureConfigDto dto) {
-        LuckyTreasureConfig luckyTreasureConfig = dto.castToLuckyTreasureConfig();
-        if (luckyTreasureConfig == null) {
-            return fail("common.paramerror");
-        }
-        if (luckyTreasureConfig.getId() <= 0) {
-            return fail("common.paramerror");
-        }
-        redisLock.tryLockAndRun(LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_CONFIG, () -> {
-            //删除配置
-            luckyTreasureConfigDao.deleteById(luckyTreasureConfig.getId());
-            luckyTreasureConfigRedisDao.deleteConfigMap(luckyTreasureConfig.getId());
-        });
-        return success("common.success");
-    }
-
-    /**
      * 添加黑名单
      *
      * @return
@@ -903,6 +844,7 @@ public class GMController extends AbstractController {
         }
 
     }
+
 
     //****************************************************************************************************************/
 

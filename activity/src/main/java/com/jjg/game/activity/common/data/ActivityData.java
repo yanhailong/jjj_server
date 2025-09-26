@@ -1,6 +1,7 @@
 package com.jjg.game.activity.common.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
@@ -264,4 +265,7 @@ public class ActivityData {
         return data;
     }
 
+    public BaseActivityController getActivityController() {
+        return type.getController();
+    }
 }
