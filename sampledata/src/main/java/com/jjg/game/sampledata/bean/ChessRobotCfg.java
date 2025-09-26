@@ -20,28 +20,63 @@ public class ChessRobotCfg extends RobotActionCfg {
 
   /** 押注行为ID */
   protected int actionID;
-  /** 延迟押注时间 */
+  /** 德州-加注时大盲筹码倍数权重 */
+  protected Map<Integer,Integer> addBetMultiple;
+  /** 德州-【加注】权重乘值万分比 */
+  protected int addProactiveWeight;
+  /** 德州-最后一轮最大牌且加注时Allin概率万分比 */
+  protected int allinWeight;
+  /** 21点-筹码下注权重(筹码位置_权重） */
+  protected Map<Integer,Integer> blackjackBet;
+  /** 失败后行为概率,准备概率_展示牌型 */
+  protected List<Integer> continueAfterFail;
+  /** 胜利后行为概率,准备概率_展示牌型 */
+  protected List<Integer> continueAfterVictory;
+  /** 每次延迟行为时间 */
   protected List<List<Integer>> delayTime;
-  /** 失败时押注筹码 */
-  protected List<List<Integer>> failBetAction;
   /** 游戏ID */
   protected int gameID;
-  /** 获胜时押注筹码 */
-  protected List<List<Integer>> winBetAction;
+  /** 21点-【要牌】权重乘值万分比 */
+  protected int standWeight;
 
   /** 返回押注行为ID */
   public int getActionID() {
     return actionID;
   }
 
-  /** 返回延迟押注时间 */
-  public List<List<Integer>> getDelayTime() {
-    return delayTime;
+  /** 返回德州-加注时大盲筹码倍数权重 */
+  public Map<Integer,Integer> getAddBetMultiple() {
+    return addBetMultiple;
   }
 
-  /** 返回失败时押注筹码 */
-  public List<List<Integer>> getFailBetAction() {
-    return failBetAction;
+  /** 返回德州-【加注】权重乘值万分比 */
+  public int getAddProactiveWeight() {
+    return addProactiveWeight;
+  }
+
+  /** 返回德州-最后一轮最大牌且加注时Allin概率万分比 */
+  public int getAllinWeight() {
+    return allinWeight;
+  }
+
+  /** 返回21点-筹码下注权重(筹码位置_权重） */
+  public Map<Integer,Integer> getBlackjackBet() {
+    return blackjackBet;
+  }
+
+  /** 返回失败后行为概率,准备概率_展示牌型 */
+  public List<Integer> getContinueAfterFail() {
+    return continueAfterFail;
+  }
+
+  /** 返回胜利后行为概率,准备概率_展示牌型 */
+  public List<Integer> getContinueAfterVictory() {
+    return continueAfterVictory;
+  }
+
+  /** 返回每次延迟行为时间 */
+  public List<List<Integer>> getDelayTime() {
+    return delayTime;
   }
 
   /** 返回游戏ID */
@@ -49,9 +84,9 @@ public class ChessRobotCfg extends RobotActionCfg {
     return gameID;
   }
 
-  /** 返回获胜时押注筹码 */
-  public List<List<Integer>> getWinBetAction() {
-    return winBetAction;
+  /** 返回21点-【要牌】权重乘值万分比 */
+  public int getStandWeight() {
+    return standWeight;
   }
 
   @Override

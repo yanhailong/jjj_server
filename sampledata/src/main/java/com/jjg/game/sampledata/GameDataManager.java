@@ -137,7 +137,9 @@ public class GameDataManager {
     containerMap.put(BuildingFunctionCfg.class, new BuildingFunctionCfgContainer());
     containerMap.put(BuildingGainCfg.class, new BuildingGainCfgContainer());
     containerMap.put(CashcowCfg.class, new CashcowCfgContainer());
+    containerMap.put(ChessJackStrategyCfg.class, new ChessJackStrategyCfgContainer());
     containerMap.put(ChessRobotCfg.class, new ChessRobotCfgContainer());
+    containerMap.put(ChessTexasStrategyCfg.class, new ChessTexasStrategyCfgContainer());
     containerMap.put(ConditionCfg.class, new ConditionCfgContainer());
     containerMap.put(DailyRewardsCfg.class, new DailyRewardsCfgContainer());
     containerMap.put(DealerFunctionCfg.class, new DealerFunctionCfgContainer());
@@ -159,7 +161,6 @@ public class GameDataManager {
     containerMap.put(PlayerLevelPackCfg.class, new PlayerLevelPackCfgContainer());
     containerMap.put(PointsAwardRankingCfg.class, new PointsAwardRankingCfgContainer());
     containerMap.put(PointsAwardSigninCfg.class, new PointsAwardSigninCfgContainer());
-    containerMap.put(PointsAwardTaskCfg.class, new PointsAwardTaskCfgContainer());
     containerMap.put(PointsAwardTurntableCfg.class, new PointsAwardTurntableCfgContainer());
     containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
     containerMap.put(PoolCfg.class, new PoolCfgContainer());
@@ -180,6 +181,7 @@ public class GameDataManager {
     containerMap.put(SpecialPlayCfg.class, new SpecialPlayCfgContainer());
     containerMap.put(SpecialResultLibCfg.class, new SpecialResultLibCfgContainer());
     containerMap.put(StatusCfg.class, new StatusCfgContainer());
+    containerMap.put(TaskCfg.class, new TaskCfgContainer());
     containerMap.put(TexasCfg.class, new TexasCfgContainer());
     containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
@@ -813,6 +815,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(CashcowCfg.class).getCfgBeanList();
   }
 
+  public static ChessJackStrategyCfg getChessJackStrategyCfg(int key) {
+    return getInstance().getCfgContainer(ChessJackStrategyCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ChessJackStrategyCfg> getChessJackStrategyCfgMap() {
+    return getInstance().getCfgContainer(ChessJackStrategyCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ChessJackStrategyCfg> getChessJackStrategyCfgList() {
+    return getInstance().getCfgContainer(ChessJackStrategyCfg.class).getCfgBeanList();
+  }
+
   public static ChessRobotCfg getChessRobotCfg(int key) {
     return getInstance().getCfgContainer(ChessRobotCfg.class).getCfgBeanMap().get(key);
   }
@@ -823,6 +837,18 @@ public class GameDataManager {
 
   public static List<ChessRobotCfg> getChessRobotCfgList() {
     return getInstance().getCfgContainer(ChessRobotCfg.class).getCfgBeanList();
+  }
+
+  public static ChessTexasStrategyCfg getChessTexasStrategyCfg(int key) {
+    return getInstance().getCfgContainer(ChessTexasStrategyCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ChessTexasStrategyCfg> getChessTexasStrategyCfgMap() {
+    return getInstance().getCfgContainer(ChessTexasStrategyCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ChessTexasStrategyCfg> getChessTexasStrategyCfgList() {
+    return getInstance().getCfgContainer(ChessTexasStrategyCfg.class).getCfgBeanList();
   }
 
   public static ConditionCfg getConditionCfg(int key) {
@@ -1077,18 +1103,6 @@ public class GameDataManager {
     return getInstance().getCfgContainer(PointsAwardSigninCfg.class).getCfgBeanList();
   }
 
-  public static PointsAwardTaskCfg getPointsAwardTaskCfg(int key) {
-    return getInstance().getCfgContainer(PointsAwardTaskCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, PointsAwardTaskCfg> getPointsAwardTaskCfgMap() {
-    return getInstance().getCfgContainer(PointsAwardTaskCfg.class).getCfgBeanMap();
-  }
-
-  public static List<PointsAwardTaskCfg> getPointsAwardTaskCfgList() {
-    return getInstance().getCfgContainer(PointsAwardTaskCfg.class).getCfgBeanList();
-  }
-
   public static PointsAwardTurntableCfg getPointsAwardTurntableCfg(int key) {
     return getInstance().getCfgContainer(PointsAwardTurntableCfg.class).getCfgBeanMap().get(key);
   }
@@ -1327,6 +1341,18 @@ public class GameDataManager {
 
   public static List<StatusCfg> getStatusCfgList() {
     return getInstance().getCfgContainer(StatusCfg.class).getCfgBeanList();
+  }
+
+  public static TaskCfg getTaskCfg(int key) {
+    return getInstance().getCfgContainer(TaskCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, TaskCfg> getTaskCfgMap() {
+    return getInstance().getCfgContainer(TaskCfg.class).getCfgBeanMap();
+  }
+
+  public static List<TaskCfg> getTaskCfgList() {
+    return getInstance().getCfgContainer(TaskCfg.class).getCfgBeanList();
   }
 
   public static TexasCfg getTexasCfg(int key) {

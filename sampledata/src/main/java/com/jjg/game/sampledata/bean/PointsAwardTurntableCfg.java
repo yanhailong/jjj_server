@@ -19,18 +19,25 @@ public class PointsAwardTurntableCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "PointsAwardTurntable";
 
   /** 转盘奖励 */
-  protected List<Integer> getitem;
+  protected List<Integer> getItem;
   /** 转盘格子 */
   protected int grid;
+  /** 开启时间 */
+  protected String time;
 
   /** 返回转盘奖励 */
-  public List<Integer> getGetitem() {
-    return getitem;
+  public List<Integer> getGetItem() {
+    return getItem;
   }
 
   /** 返回转盘格子 */
   public int getGrid() {
     return grid;
+  }
+
+  /** 返回开启时间 */
+  public String getTime() {
+    return time;
   }
 
   @Override
