@@ -168,7 +168,7 @@ public class PiggyBankController extends BaseActivityController {
                         key -> new PiggyBankData(activityData.getId(), activityData.getRound()));
 
                 // 如果进度已经满了，跳过
-                if (piggyBankData.getProgress() > cfg.getFullup()) {
+                if (piggyBankData.getProgress() >= cfg.getFullup()) {
                     continue;
                 }
 
@@ -318,6 +318,10 @@ public class PiggyBankController extends BaseActivityController {
         return null;
     }
 
+    public static void main(String[] args) {
+        System.out.println((1758858533000L+3* TimeHelper.ONE_DAY_OF_MILLIS)-System.currentTimeMillis());;
+        System.out.println(237178397d/TimeHelper.ONE_HOUR_OF_MILLIS);
+    }
     /**
      * 根据类型构建玩家活动信息列表
      */
