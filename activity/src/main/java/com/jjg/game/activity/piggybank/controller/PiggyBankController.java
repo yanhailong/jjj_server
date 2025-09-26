@@ -309,8 +309,8 @@ public class PiggyBankController extends BaseActivityController {
                 info.claimStatus = piggyBankData.getClaimStatus();
                 info.progress = piggyBankData.getProgress();
                 if (piggyBankData.getBuyTime() == 0 && piggyBankData.getFullTime() > 0) {
-                    info.remainTime = (System.currentTimeMillis() + (long) cfg.getResetime() * TimeHelper.ONE_DAY_OF_MILLIS) - piggyBankData.getFullTime();
-                }
+                    info.remainTime = (piggyBankData.getFullTime() + (long) cfg.getResetime() * TimeHelper.ONE_DAY_OF_MILLIS) - System.currentTimeMillis();
+               }
                 info.isFull = piggyBankData.getFullTime() > 0;
             }
             return info;
