@@ -265,7 +265,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
         }
         if (activityManager.isExecutionNode()) {
             //防止未触发结束在开始时清除一次数据
-            clearData(activityData.getId());
+//            clearData(activityData.getId());
             //设置初始奖池
             GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.OfficialAwards.INITIAL_AMOUNT);
             if (globalConfigCfg == null || globalConfigCfg.getLongValue() == 0) {
