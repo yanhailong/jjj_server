@@ -20,10 +20,7 @@ import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.dao.AccountDao;
-import com.jjg.game.core.dao.MarqueeDao;
-import com.jjg.game.core.dao.OnlinePlayerDao;
-import com.jjg.game.core.dao.ShopProductDao;
+import com.jjg.game.core.dao.*;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
@@ -32,6 +29,7 @@ import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.service.*;
 import com.jjg.game.gm.dto.*;
+import com.jjg.game.gm.util.NetUtil;
 import com.jjg.game.gm.vo.*;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
@@ -43,6 +41,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.InetAddress;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -79,6 +78,8 @@ public class GMController extends AbstractController {
     private ShopProductDao shopProductDao;
     @Autowired
     private NodeManager nodeManager;
+    @Autowired
+    private BlackListDao blackListDao;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -787,10 +788,45 @@ public class GMController extends AbstractController {
      *
      * @return
      */
-    @RequestMapping(BackendGMCmd.BLACK_LIST)
-    public WebResult<String> blackList(BlackListDto dto) {
-        log.info("收到添加黑名单信息 param={}", dto);
-        return success("common.success");
+    @RequestMapping(BackendGMCmd.CHANGE_BLACK_LIST)
+    public WebResult<String> changeBlackList(@RequestBody BlackListDto dto) {
+        log.info("收到修改黑名单信息 param={}", dto);
+        try {
+            boolean none = true;
+            if(dto.ids() != null && !dto.ids().isEmpty()) {
+                if(dto.type() == 0){
+                    blackListDao.addBlackIds(dto.ids());
+                }else {
+                    blackListDao.removeBlackIds(dto.ids());
+                }
+                none = false;
+            }
+
+            if(dto.ips() != null && !dto.ips().isEmpty()) {
+                boolean match = dto.ips().stream().allMatch(NetUtil::isValidIP);
+                if(!match){
+                    log.debug("ip格式错误");
+                    return fail("common.fail");
+                }
+                if(dto.type() == 0){
+                    blackListDao.addBlackIps(dto.ips());
+                }else {
+                    blackListDao.removeBlackIps(dto.ips());
+                }
+
+                none = false;
+            }
+
+            if(none){
+                log.debug("黑名单为空...");
+                return fail("common.fail");
+            }
+
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
     }
 
     /**
@@ -816,7 +852,7 @@ public class GMController extends AbstractController {
      * @return
      */
     @RequestMapping(BackendGMCmd.CHANG_GAME_NODE_INFO)
-    public WebResult<String> changeGameServerInfo(ChangeNodeDto dto) {
+    public WebResult<String> changeGameServerInfo(@RequestBody ChangeNodeDto dto) {
         log.info("收到修改服务器列表信息 dto = {}",dto);
 
         try{
@@ -836,7 +872,7 @@ public class GMController extends AbstractController {
             notify.ids = dto.ids();
 
             PFMessage pfMessage = MessageUtil.getPFMessage(notify);
-            clusterClient.write(pfMessage);
+            clusterClient.write(new ClusterMessage(pfMessage));
             return success("common.success");
         }catch (Exception e){
             log.error("", e);
