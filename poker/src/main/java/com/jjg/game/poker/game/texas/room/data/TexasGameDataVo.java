@@ -8,12 +8,10 @@ import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.poker.game.texas.data.TexasSaveHistory;
 import com.jjg.game.poker.game.texas.message.bean.TexasHistoryRoundInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSettlementInfo;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -180,6 +178,21 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
         this.settlement = settlement;
     }
 
+    /**
+     * 获取已经坐下的玩家人数
+     */
+    public int getSeatDownNum() {
+        return (int) getSeatInfo().values()
+                .stream()
+                .filter(info -> {
+                    GamePlayer gamePlayer = getGamePlayer(info.getPlayerId());
+                    if (Objects.nonNull(gamePlayer)) {
+                        return gamePlayer.getPokerPlayerGameData().isInit() && info.isSeatDown() && info.isReady();
+                    }
+                    return false;
+                }).count();
+    }
+
     @Override
     public int getPoolId() {
         return TexasDataHelper.getPoolId(this);
@@ -194,5 +207,15 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
         this.maxBetValue = 0;
         this.roundBet.clear();
         this.settlement = 0;
+    }
+
+    /**
+     * 更新玩家操作时间
+     */
+    public void updatePlayerOperateTime(long playerId) {
+        GamePlayer gamePlayer = gamePlayerMap.get(playerId);
+        if (gamePlayer != null) {
+            gamePlayer.getPokerPlayerGameData().setPlayerLatestOperateTime(System.currentTimeMillis());
+        }
     }
 }

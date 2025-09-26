@@ -3,7 +3,7 @@ package com.jjg.game.poker.game.blackjack.gamephase;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomPlayer;
-import com.jjg.game.core.pb.NotifyTableExitRoom;
+import com.jjg.game.core.pb.NotifyExitRoom;
 import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
 import com.jjg.game.poker.game.common.PokerBuilder;
@@ -94,8 +94,8 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
                     RoomPlayer roomPlayer = gameController.getRoom().getRoomPlayers().get(info.getPlayerId());
                     if (Objects.nonNull(roomPlayer) && roomPlayer.isOnline()) {
                         log.info("玩家：{}  未押注直接踢掉", info.getPlayerId());
-                        NotifyTableExitRoom timeNoOperate = new NotifyTableExitRoom();
-                        timeNoOperate.langId = 16008;
+                        NotifyExitRoom timeNoOperate = new NotifyExitRoom();
+                        timeNoOperate.langId = gameDataVo.getRoomCfg().getEscTipText();
                         broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(), timeNoOperate));
                     } else {
                         log.info("玩家：{}  未押注离线直接踢掉退出房间", info.getPlayerId());

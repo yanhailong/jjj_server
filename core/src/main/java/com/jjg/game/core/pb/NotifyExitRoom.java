@@ -11,11 +11,11 @@ import com.jjg.game.common.proto.ProtobufMessage;
  */
 @ProtoDesc("通知房间退出的提示")
 @ProtobufMessage(
-    messageType = MessageConst.MessageTypeDef.BET_GENERAL_TYPE,
+    messageType = MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE,
     cmd = MessageConst.CoreMessage.NOTIFY_EXIT,
     resp = true
 )
-public class NotifyTableExitRoom extends AbstractNotice {
+public class NotifyExitRoom extends AbstractNotice {
     @ProtoDesc("多语言ID")
     public int langId;
 }

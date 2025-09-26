@@ -6,6 +6,10 @@ package com.jjg.game.room.data.room;
  */
 public class PokerPlayerGameData {
     /**
+     * 玩家上一次在房间主动操作并与服务端有交互的时间
+     */
+    private long playerLatestOperateTime;
+    /**
      * 加入房间的时间
      */
     private long joinTime;
@@ -15,6 +19,13 @@ public class PokerPlayerGameData {
      */
     private boolean isInit;
 
+    public long getPlayerLatestOperateTime() {
+        return playerLatestOperateTime;
+    }
+
+    public void setPlayerLatestOperateTime(long playerLatestOperateTime) {
+        this.playerLatestOperateTime = playerLatestOperateTime;
+    }
 
     public boolean isInit() {
         return isInit;

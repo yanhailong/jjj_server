@@ -27,6 +27,8 @@ public interface PokerConstant {
         int NOTIFY_PLAYER_CHANGE = BASE_MSG_PREFIX | 0x6;
         //通知结算
         int NOTIFY_SETTLEMENT_INFO = BASE_MSG_PREFIX | 0x7;
+        //通知对战类房间长时间未操作的提示
+        int NOTIFY_POKER_LONG_TIME_NO_OPERATE =  BASE_MSG_PREFIX | 0x8;
     }
 
     interface PlayerOperation {

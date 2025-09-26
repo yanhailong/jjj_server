@@ -27,6 +27,8 @@ public interface TexasConstant {
         int FIX_CHIPS = 600;
         //翻牌时间
         int FLIP_CARDS = 400;
+        //玩家不操作检查间隔
+        int PLAYER_NO_OPERATE_CHECK_INTERVAL = 1000;
     }
 
 
@@ -63,5 +65,9 @@ public interface TexasConstant {
         int REQ_TEXAS_HISTORY = BASE_MSG_PREFIX | 0x14;
         //响应德州扑克历史记录
         int REQS_TEXAS_HISTORY = BASE_MSG_PREFIX | 0x15;
+        //请求德州扑克准备
+        int REQ_TEXAS_GO_READY = BASE_MSG_PREFIX | 0x14;
+        //通知德州扑克准备
+        int NOTIFY_TEXAS_PLAYER_READY = BASE_MSG_PREFIX | 0x15;
     }
 }

@@ -10,13 +10,9 @@ import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSeatStateChange;
-import com.jjg.game.poker.game.texas.message.req.ReqTexasChangeSeatState;
-import com.jjg.game.poker.game.texas.message.req.ReqTexasChangeTable;
-import com.jjg.game.poker.game.texas.message.req.ReqTexasHistory;
-import com.jjg.game.poker.game.texas.message.req.ReqTexasShowCard;
+import com.jjg.game.poker.game.texas.message.req.*;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
-import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -57,6 +53,7 @@ public class TexasMessageHandler {
         if (gameController instanceof TexasGameController controller) {
             TexasGameDataVo gameDataVo = controller.getGameDataVo();
             NotifyTexasSeatStateChange change = new NotifyTexasSeatStateChange();
+            //获取座位信息
             SeatInfo seatInfo = null;
             for (SeatInfo tempSeatInfo : gameDataVo.getSeatInfo().values()) {
                 if (tempSeatInfo.getPlayerId() == playerId) {
@@ -68,82 +65,75 @@ public class TexasMessageHandler {
                 controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
                 return;
             }
-            if (seatInfo.getPlayerId() == playerId) {
-                GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
-                if (Objects.isNull(gamePlayer)) {
-                    change.code = Code.PARAM_ERROR;
-                    controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
-                    return;
-                }
-                //改变座位状态
-                if (reqTexasChangeSeatState.changeType == 1) {
-                    boolean state = reqTexasChangeSeatState.param == 1;
-                    if (state) {
-                        if (controller.inRunPhase()) {
-                            change.code = Code.FORBID;
-                            controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
-                            return;
-                        }
-                        boolean added = controller.addTempGoldOrOutTable(seatInfo, gamePlayer);
-                        if (!added) {
-                            change.code = Code.TEXAS_NOT_ENOUGH;
-                            controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
-                            return;
-                        }
-                        seatInfo.setSeatDown(true);
-                        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, controller);
-                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
-                        // 通知场上玩家加入 准备进入开始阶段
-                        boolean canStartGame = gameDataVo.canStartGame();
-                        if (canStartGame && controller.getCurrentGamePhase() == EGamePhase.WAIT_READY) {
-                            //尝试开启游戏
-                            controller.tryStartNextGame();
-                        }
-                    } else {
-                        //非等待 需要移除信息 判断是否需要开启下一轮和结算
-                        if (controller.inRunPhase() && seatInfo.isJoinGame()) {
-                            boolean isPlaying = seatInfo.isSeatDown() && seatInfo.isJoinGame();
-                            seatInfo.setSeatDown(false);
-                            seatInfo.setJoinGame(false);
-                            change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, controller);
-                            controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
-                            controller.runPlayerSeatChange(seatInfo, isPlaying);
-                            return;
-                        }
-                        seatInfo.setSeatDown(false);
-                        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, controller);
-                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
-                        return;
-                    }
-
-                    return;
-                } else if (reqTexasChangeSeatState.changeType == 2) {
-                    //改变座位id 当前局还未结束
-                    if (controller.inRunPhase() && seatInfo.isJoinGame() || !controller.inRunPhase() && seatInfo.isSeatDown()) {
-                        //加入游戏 禁止换座位
+            if (seatInfo.isReady()) {
+                change.code = Code.FORBID;
+                controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
+            }
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
+            if (Objects.isNull(gamePlayer)) {
+                change.code = Code.PARAM_ERROR;
+                controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
+                return;
+            }
+            //改变座位状态
+            if (reqTexasChangeSeatState.changeType == 1) {
+                boolean state = reqTexasChangeSeatState.param == 1;
+                //坐下
+                if (state) {
+                    //游戏正在进行中
+                    if (controller.inRunPhase()) {
                         change.code = Code.FORBID;
-                        gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
+                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
                         return;
                     }
-                    if (!controller.addTempGoldOrOutTable(seatInfo, gamePlayer)) {
+                    //判断货币是否能够坐下
+                    boolean added = controller.addTempGoldOrOutTable(seatInfo, gamePlayer);
+                    if (!added) {
                         change.code = Code.TEXAS_NOT_ENOUGH;
                         controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
                         return;
                     }
-                    NotifyTexasSeatStateChange notifyTexasSeatStateChange = swapSeat(controller, seatInfo, gamePlayer, reqTexasChangeSeatState.param);
-                    if (notifyTexasSeatStateChange.code == Code.SUCCESS) {
-                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSeatStateChange));
-                    } else {
-                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifyTexasSeatStateChange));
+                    seatInfo.setSeatDown(true);
+                    change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, controller);
+                    controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
+                } else {
+                    //非等待 需要移除信息 判断是否需要开启下一轮和结算
+                    if (controller.inRunPhase() && seatInfo.isJoinGame()) {
+                        boolean isPlaying = seatInfo.isSeatDown() && seatInfo.isJoinGame();
+                        seatInfo.setSeatDown(false);
+                        seatInfo.setJoinGame(false);
+                        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, controller);
+                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
+                        controller.runPlayerSeatChange(seatInfo, isPlaying);
+                        return;
                     }
-                    // 通知场上玩家加入 准备进入开始阶段
-                    boolean canStartGame = gameDataVo.canStartGame();
-                    if (canStartGame && controller.getCurrentGamePhase() == EGamePhase.WAIT_READY) {
-                        //尝试开启游戏
-                        controller.tryStartNextGame();
-                    }
+                    seatInfo.setSeatDown(false);
+                    change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, controller);
+                    controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
                     return;
                 }
+
+                return;
+            } else if (reqTexasChangeSeatState.changeType == 2) {
+                //改变座位id 当前局还未结束
+                if (controller.inRunPhase() && seatInfo.isJoinGame() || !controller.inRunPhase() && seatInfo.isSeatDown()) {
+                    //加入游戏 禁止换座位
+                    change.code = Code.FORBID;
+                    gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
+                    return;
+                }
+                if (!controller.addTempGoldOrOutTable(seatInfo, gamePlayer)) {
+                    change.code = Code.TEXAS_NOT_ENOUGH;
+                    controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
+                    return;
+                }
+                NotifyTexasSeatStateChange notifyTexasSeatStateChange = swapSeat(controller, seatInfo, gamePlayer, reqTexasChangeSeatState.param);
+                if (notifyTexasSeatStateChange.code == Code.SUCCESS) {
+                    controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSeatStateChange));
+                } else {
+                    controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifyTexasSeatStateChange));
+                }
+                return;
             }
         }
         NotifyTexasSeatStateChange change = new NotifyTexasSeatStateChange();
@@ -200,6 +190,15 @@ public class TexasMessageHandler {
                 roomManager.getGameControllerByPlayerId(playerController.playerId());
         if (gameController instanceof TexasGameController controller) {
             controller.reqTexasHistory(playerController.playerId(), req);
+        }
+    }
+
+    @Command(value = TexasConstant.MsgBean.REQ_TEXAS_GO_READY)
+    public void reqTexasGoReady(PlayerController playerController, ReqTexasGoReady req) {
+        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
+        if (gameController instanceof TexasGameController controller) {
+            controller.reqTexasGoReady(playerController.playerId());
         }
     }
 }

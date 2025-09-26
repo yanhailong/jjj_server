@@ -5,7 +5,6 @@ import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
-import com.jjg.game.poker.game.texas.data.Pot;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.poker.game.texas.message.bean.TexasHistoryPlayerInfo;
@@ -140,6 +139,7 @@ public class TexasBuilder {
         TexasPlayerInfo texasPlayerInfo = new TexasPlayerInfo();
         TexasGameDataVo gameDataVo = controller.getGameDataVo();
         texasPlayerInfo.totalBet = gameDataVo.getRoundBet().getOrDefault(seatInfo.getPlayerId(), 0L);
+        texasPlayerInfo.ready = seatInfo.isReady();
         PokerPlayerInfo playerInfo = PokerBuilder.getPokerPlayerInfo(seatInfo, controller);
         if (Objects.nonNull(playerSeatInfo)) {
             texasPlayerInfo.handCards = TexasDataHelper.getClientId(gameDataVo, playerSeatInfo.getCurrentCards());

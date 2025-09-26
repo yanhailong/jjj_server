@@ -7,7 +7,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
-import com.jjg.game.core.pb.NotifyTableExitRoom;
+import com.jjg.game.core.pb.NotifyExitRoom;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
 import com.jjg.game.room.constant.EGamePhase;
@@ -16,13 +16,14 @@ import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.TablePlayerGameData;
+import com.jjg.game.room.message.BaseRoomMessageBuilder;
 import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.message.resp.NotifyRoomLongTimeNoOperate;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.RobotCfg;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.TableMessageBuilder;
-import com.jjg.game.table.common.message.req.NotifyTableLongTimeNoOperate;
 import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 
 import java.util.ArrayList;
@@ -188,8 +189,8 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
             if (playerLatestOperateTime + exitTime < currentTime) {
                 RoomPlayer roomPlayer = roomController.getRoomPlayer(gamePlayer.getId());
                 if (roomPlayer == null || roomPlayer.isOnline()) {
-                    NotifyTableExitRoom notifyTableExitRoom =
-                            TableMessageBuilder.buildNotifyTableExitRoom(exitTipLangId);
+                    NotifyExitRoom notifyTableExitRoom =
+                            BaseRoomMessageBuilder.buildNotifyExitRoom(exitTipLangId);
                     broadcastToPlayers(RoomMessageBuilder.newBuilder()
                             .addPlayerId(entry.getKey()).setData(notifyTableExitRoom));
                 } else {
@@ -200,8 +201,8 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
             // 如果超过最大操作等待时间
             if (playerLatestOperateTime + waitTime < currentTime && !gamePlayer.getTableGameData().isHasNotifyNoOperate()) {
                 gamePlayer.getTableGameData().setHasNotifyNoOperate(true);
-                NotifyTableLongTimeNoOperate notifyTableLongTimeNoOperate =
-                        TableMessageBuilder.buildNotifyTableLongTimeNoOperate(waitTimeTipLangId);
+                NotifyRoomLongTimeNoOperate notifyTableLongTimeNoOperate =
+                        BaseRoomMessageBuilder.buildNotifyRoomLongTimeNoOperate(waitTimeTipLangId);
                 broadcastToPlayers(RoomMessageBuilder.newBuilder()
                         .addPlayerId(entry.getKey()).setData(notifyTableLongTimeNoOperate));
             }

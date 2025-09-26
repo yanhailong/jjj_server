@@ -12,6 +12,8 @@ public class SeatInfo {
     private boolean seatDown;
     //是否参与游戏
     private boolean joinGame;
+    //是否参与准备
+    private boolean ready;
     //座位id
     private int seatId;
 
@@ -45,5 +47,13 @@ public class SeatInfo {
 
     public void setSeatId(int seatId) {
         this.seatId = seatId;
+    }
+
+    public boolean isReady() {
+        return ready;
+    }
+
+    public void setReady(boolean ready) {
+        this.ready = ready;
     }
 }
