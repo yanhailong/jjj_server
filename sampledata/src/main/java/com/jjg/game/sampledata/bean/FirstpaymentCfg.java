@@ -18,6 +18,8 @@ public class FirstpaymentCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "firstpayment";
 
+  /** 超值 */
+  protected int bestValue;
   /** 头像框奖励 */
   protected Map<Integer,Long> getAvatarFrame;
   /** 金币奖励 */
@@ -26,6 +28,13 @@ public class FirstpaymentCfg extends BaseCfgBean {
   protected Map<Integer,Long> getitem;
   /** 购买金额 */
   protected int money;
+  /** 原价值 */
+  protected int wasPrice;
+
+  /** 返回超值 */
+  public int getBestValue() {
+    return bestValue;
+  }
 
   /** 返回头像框奖励 */
   public Map<Integer,Long> getGetAvatarFrame() {
@@ -45,6 +54,11 @@ public class FirstpaymentCfg extends BaseCfgBean {
   /** 返回购买金额 */
   public int getMoney() {
     return money;
+  }
+
+  /** 返回原价值 */
+  public int getWasPrice() {
+    return wasPrice;
   }
 
   @Override

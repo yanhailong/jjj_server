@@ -267,12 +267,12 @@ public class OfficialAwardsController extends BaseActivityController implements 
             //防止未触发结束在开始时清除一次数据
 //            clearData(activityData.getId());
             //设置初始奖池
-            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.OfficialAwards.INITIAL_AMOUNT);
-            if (globalConfigCfg == null || globalConfigCfg.getLongValue() == 0) {
+            List<Integer> valueParam = activityData.getValueParam();
+            if (CollectionUtil.isEmpty(valueParam) || valueParam.getFirst() == 0) {
                 log.error("官方派奖活动未配置 主奖金");
                 return;
             }
-            officialAwardsDao.setTotalPool(globalConfigCfg.getLongValue());
+            officialAwardsDao.setTotalPool(valueParam.getFirst());
             //添加机器人获奖逻辑
             robotAction(activityData.getId());
         }
@@ -346,7 +346,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
             info.activityId = activityId;
             info.detailId = cfg.getId();
             info.type = cfg.getTurntableType();
-            info.costNum = dataCache.getNeedPoints().getOrDefault(cfg.getCalculationType(), 0);
+            info.costNum = dataCache.getNeedPoints().getOrDefault(cfg.getTurntableType(), 0);
             info.rewardItems = ItemUtils.buildItemInfo(Map.of(cfg.getGetitem().getFirst(), (long) cfg.getGetitem().getLast()));
             return info;
         }

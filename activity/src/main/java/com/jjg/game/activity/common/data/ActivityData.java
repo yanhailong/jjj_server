@@ -70,6 +70,9 @@ public class ActivityData {
      */
     private List<Integer> value;
 
+    /** 值2 */
+    private List<Integer> valueParam;
+
     /**
      * 进度触发类型
      */
@@ -83,6 +86,7 @@ public class ActivityData {
      * 道具掉落包ID
      */
     private List<Integer> dropId;
+
 
     /**
      * 活动临时数据 不存数据库
@@ -122,6 +126,14 @@ public class ActivityData {
 
     public long getRound() {
         return round;
+    }
+
+    public List<Integer> getValueParam() {
+        return valueParam;
+    }
+
+    public void setValueParam(List<Integer> valueParam) {
+        this.valueParam = valueParam;
     }
 
     public Map<Integer, Integer> getCondition() {
@@ -251,6 +263,7 @@ public class ActivityData {
         data.setOpenType(cfg.getOpen_type());
         data.setType(activityType);
         data.setValue(cfg.getValue());
+        data.setValueParam(cfg.getValueParam());
         data.setDropId(cfg.getDropid());
         data.setDropCondition(cfg.getDropcondition());
         data.setTriggerType(cfg.getTriggerType());
