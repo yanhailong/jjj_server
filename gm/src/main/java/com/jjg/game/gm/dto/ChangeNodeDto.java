@@ -7,7 +7,9 @@ import java.util.List;
  * @date 2025/9/25 17:00
  */
 public record ChangeNodeDto(
+    //节点名
     String name,
+    //权重
     int weight,
     //白名单ip
     List<String> ips,

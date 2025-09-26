@@ -40,8 +40,8 @@ public interface BackendGMCmd {
     String REPLACE_LUCKY_TREASURE_CONFIG = "replaceLuckyTreasureConfig";
     //删除配置
     String DELETE_LUCKY_TREASURE_CONFIG = "deleteLuckyTreasureConfig";
-    //黑名单
-    String BLACK_LIST = "blackList";
+    //修改黑名单
+    String CHANGE_BLACK_LIST = "changeBlackList";
     //服务器节点列表
     String QUERY_GAME_SERVER_NODE_LIST = "queryGameServerNodeList";
     //修改服务器信息
