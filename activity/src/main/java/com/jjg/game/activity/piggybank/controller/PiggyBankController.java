@@ -133,7 +133,7 @@ public class PiggyBankController extends BaseActivityController {
      * @param playerId             玩家ID
      * @param activityData         活动数据
      * @param progress             增加进度
-     * @param activityTargetKey
+     * @param activityTargetKey    触发key
      * @param additionalParameters 附加参数（用于过滤非金币道具）
      * @return 是否可以领取奖励
      */

@@ -12,7 +12,6 @@ import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.officialawards.dao.OfficialAwardsDao;
 import com.jjg.game.activity.officialawards.data.OfficialAwardsRecord;
-import com.jjg.game.activity.officialawards.data.OfficialAwardsTempData;
 import com.jjg.game.activity.officialawards.message.bean.OfficialAwardsActivity;
 import com.jjg.game.activity.officialawards.message.bean.OfficialAwardsDetailInfo;
 import com.jjg.game.activity.officialawards.message.bean.OfficialAwardsShowRecord;
@@ -32,7 +31,9 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.bean.BaseCfgBean;
+import com.jjg.game.sampledata.bean.OfficialAwardsCfg;
+import com.jjg.game.sampledata.bean.RobotCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -234,28 +235,21 @@ public class OfficialAwardsController extends BaseActivityController implements 
         return null;
     }
 
-    @Override
-    public void onActivityEnd(ActivityData activityData) {
-        clearData(activityData.getId());
-    }
-
     /**
      * 清除所有数据
      */
     private void clearData(long activityId) {
-        if (activityManager.isExecutionNode()) {
-            //清除所有记录数据
-            officialAwardsDao.deleteAllRecords();
-            log.info("官方派奖删除所有记录成功 activityId:{}", activityId);
-            officialAwardsDao.deleteAllPlayerRecords();
-            log.info("官方派奖删除所有玩家记录成功 activityId:{}", activityId);
-            //清除所有玩家信息
-            officialAwardsDao.deleteAllPlayerAllProgress();
-            log.info("官方派奖删除所有玩家进度成功 activityId:{}", activityId);
-            //清除奖池信息
-            officialAwardsDao.deleteTotalPool();
-            log.info("官方派奖删除总奖池成功 activityId:{}", activityId);
-        }
+        //清除所有记录数据
+        officialAwardsDao.deleteAllRecords();
+        log.info("官方派奖删除所有记录成功 activityId:{}", activityId);
+        officialAwardsDao.deleteAllPlayerRecords();
+        log.info("官方派奖删除所有玩家记录成功 activityId:{}", activityId);
+        //清除所有玩家信息
+        officialAwardsDao.deleteAllPlayerAllProgress();
+        log.info("官方派奖删除所有玩家进度成功 activityId:{}", activityId);
+        //清除奖池信息
+        officialAwardsDao.deleteTotalPool();
+        log.info("官方派奖删除总奖池成功 activityId:{}", activityId);
     }
 
     @Override
@@ -263,19 +257,17 @@ public class OfficialAwardsController extends BaseActivityController implements 
         if (getConversionType(activityData) == 0) {
             return;
         }
-        if (activityManager.isExecutionNode()) {
-            //防止未触发结束在开始时清除一次数据
-//            clearData(activityData.getId());
-            //设置初始奖池
-            List<Integer> valueParam = activityData.getValueParam();
-            if (CollectionUtil.isEmpty(valueParam) || valueParam.getFirst() == 0) {
-                log.error("官方派奖活动未配置 主奖金");
-                return;
-            }
-            officialAwardsDao.setTotalPool(valueParam.getFirst());
-            //添加机器人获奖逻辑
-            robotAction(activityData.getId());
+        //开启时清除数据
+        clearData(activityData.getId());
+        //设置初始奖池
+        List<Integer> valueParam = activityData.getValueParam();
+        if (CollectionUtil.isEmpty(valueParam) || valueParam.getFirst() == 0) {
+            log.error("官方派奖活动未配置 主奖金");
+            return;
         }
+        officialAwardsDao.setTotalPool(valueParam.getFirst());
+        //添加机器人获奖逻辑
+        robotAction(activityData.getId());
     }
 
     /**
@@ -285,18 +277,9 @@ public class OfficialAwardsController extends BaseActivityController implements 
      * @return 本轮转换类型 1充值 2有效流水
      */
     private int getConversionType(ActivityData activityData) {
-        if (activityData.getActivityTempData() instanceof OfficialAwardsTempData data) {
-            return data.getConversionType();
-        }
-        Map<Integer, OfficialAwardsCfg> beanMap = getDetailCfgBean(activityData);
-        if (beanMap == null || beanMap.isEmpty()) {
-            return 0;
-        }
-        for (OfficialAwardsCfg cfg : beanMap.values()) {
-            OfficialAwardsTempData data = new OfficialAwardsTempData();
-            data.setConversionType(cfg.getCalculationType());
-            activityData.setActivityTempData(data);
-            return data.getConversionType();
+        List<Integer> valueParam = activityData.getValueParam();
+        if (CollectionUtil.isNotEmpty(valueParam)) {
+            return valueParam.getLast();
         }
         return 0;
     }
@@ -351,11 +334,6 @@ public class OfficialAwardsController extends BaseActivityController implements 
             return info;
         }
         return null;
-    }
-
-    @Override
-    public void activityLoadCompleted(ActivityData activityData) {
-        super.activityLoadCompleted(activityData);
     }
 
     /**
@@ -419,9 +397,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
             officialAwardsType.todayPoint = officialAwardsDao.getPlayerProgress(playerId, ActivityConstant.OfficialAwards.TODAY_POINTS);
             officialAwardsType.totalPool = officialAwardsDao.getTotalPool();
             officialAwardsType.remainTime = activityData.getTimeEnd() - System.currentTimeMillis();
-            if (activityData.getActivityTempData() instanceof OfficialAwardsTempData data) {
-                officialAwardsType.conversionType = data.getConversionType();
-            }
+            officialAwardsType.conversionType = getConversionType(activityData);
         }
         return cardTypeInfo;
     }

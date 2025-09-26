@@ -378,18 +378,13 @@ public class CashCowController extends BaseActivityController implements TimerLi
 
     @Override
     public void onActivityEnd(ActivityData activityData) {
-        // 活动结束：将状态置为已结束，并清理内存中的 timerMap（定时器可能需要在 leader 角色退出时同步移除）
-        activityData.setStatus(ActivityConstant.ActivityStatus.ENDED);
+        // 清理内存中的 timerMap（定时器可能需要在 leader 角色退出时同步移除）
         timerMap.clear();
     }
 
     @Override
     public void onActivityStart(ActivityData activityData) {
         long activityId = activityData.getId();
-        if (activityData.getStatus() == ActivityConstant.ActivityStatus.RUNNING) {
-            log.error("摇钱树开始失败 活动正在进行中 activityId:{} ", activityId);
-            return;
-        }
         Map<Integer, CashcowCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         // 初始化摇钱树活动（首次开活动 round==0）
         if (activityData.getRound() == activityId) {

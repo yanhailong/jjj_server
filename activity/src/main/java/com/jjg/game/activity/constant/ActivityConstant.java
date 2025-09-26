@@ -99,8 +99,6 @@ public interface ActivityConstant {
         int TOMORROW_POINTS = 2;
         // 30 官方派奖每个转盘需求积分：初、中、高
         int NEED_POINTS = 30;
-        //31 官方派奖转盘奖池金币数量
-        int INITIAL_AMOUNT = 31;
         //32 官方派奖：有效下注转换积分比例 ：有效下注 = X积分
         int EFFECTIVE_WATER_FLOW_CONVERT_RATIO = 32;
         //33 官方派奖：充值转换积分比例 ：充值金额 = X积分
