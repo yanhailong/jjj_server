@@ -14,7 +14,8 @@ import java.util.List;
  */
 @ProtobufMessage(
         messageType = MessageConst.MessageTypeDef.HALL_TYPE,
-        cmd = MinigameConstant.Message.RES_MINIGAME_LIST
+        cmd = MinigameConstant.Message.RES_MINIGAME_LIST,
+        resp = true
 )
 @ProtoDesc("请求开启的小游戏列表回复")
 public class ResMinigameList extends AbstractResponse {

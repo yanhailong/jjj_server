@@ -75,7 +75,7 @@ public interface ActivityConstant {
         //每次下注金币的万分比飞入储钱罐
         int INCOME_PER_TEN_THOUSAND = 26;
         //自动领取邮件id
-        int MAIL_ID = 1;
+        int MAIL_ID = 21;
     }
 
     //推广分享
@@ -86,6 +86,8 @@ public interface ActivityConstant {
         int RANK_REWARDS = 2;
         //最大记录数
         int MAX_RECODE_NUM = 20;
+        //邮件id
+        int MAIL_ID = 11;
     }
 
     interface OfficialAwards {

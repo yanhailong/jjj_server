@@ -62,6 +62,7 @@ public class ConfigManager {
 
     public ConfigManager(RedissonClient redissonClient) {
         this.redissonClient = redissonClient;
+        init();
     }
 
     /**
@@ -83,7 +84,7 @@ public class ConfigManager {
     }
 
     /**
-     * 初始化：从Redis加载所有配置到本地缓存
+     * 初始化
      */
     public void init() {
         ClassUtils.getAllClassByAnnotation(CoreConst.Common.BASE_PROJECT_PACKAGE_PATH, ExcelConfig.class)
@@ -115,6 +116,19 @@ public class ConfigManager {
             }
         }
         log.info("配置管理器初始化完成，加载了 {} 个配置类型", localCache.size());
+    }
+
+    /**
+     * 从Redis加载所有配置到本地缓存
+     */
+    public void reLoadAllConfigsFromRedis(String name) {
+        RMap<String, Map<Integer, AbstractExcelConfig>> redisMap = redissonClient.getMap(CONFIG_MAP_KEY);
+        Map<Integer, AbstractExcelConfig> excelConfigMap = redisMap.get(name);
+        log.info("收到更新配置消息!name={}", name);
+        if (excelConfigMap != null) {
+            List<AbstractExcelConfig> configList = excelConfigMap.values().stream().toList();
+            replaceConfig(name, configList);
+        }
     }
 
     /**
@@ -241,8 +255,11 @@ public class ConfigManager {
         if (clazz == null) {
             return true;
         }
-        //不处理
-        return !loadConfigSet.contains(clazz);
+        if (!loadAll) {
+            //不处理
+            return !loadConfigSet.contains(clazz);
+        }
+        return false;
     }
 
     /**
@@ -265,10 +282,12 @@ public class ConfigManager {
         try {
             configMap.getLock(name).lock();
             try {
+                Map<Integer, AbstractExcelConfig> excelConfigMap = configMap.computeIfAbsent(name, k -> new ConcurrentHashMap<>());
                 configs.forEach(config -> {
                     // 先更新Redis数据
-                    configMap.computeIfAbsent(name, k -> new ConcurrentHashMap<>()).put(config.getId(), config);
+                    excelConfigMap.put(config.getId(), config);
                 });
+                configMap.put(name, excelConfigMap);
                 log.info("批量覆盖[{}]的配置[{}]条!", name, configs.size());
             } finally {
                 configMap.getLock(name).unlock();
@@ -279,7 +298,7 @@ public class ConfigManager {
                 AbstractExcelConfig oldConfig = excelConfigMap.get(config.getId());
                 if (oldConfig != null) {
                     //配置更新
-                    if (!oldConfig.getMd5().equals(config.getMd5())) {
+                    if (!oldConfig.computeMd5().equals(config.computeMd5())) {
                         excelConfigMap.put(config.getId(), config);
                         notifyUpdateConfig(name, ConfigChangeState.UPDATE, config);
                     }
@@ -388,7 +407,7 @@ public class ConfigManager {
                     }
                     //更新
                     else {
-                        if (!oldConfig.getMd5().equals(config.getMd5())) {
+                        if (!oldConfig.computeMd5().equals(config.computeMd5())) {
                             notifyUpdateConfig(name, ConfigChangeState.UPDATE, config);
                         }
                     }
@@ -486,7 +505,7 @@ public class ConfigManager {
                     }
                     //更新
                     else {
-                        if (!oldConfig.getMd5().equals(config.getMd5())) {
+                        if (!oldConfig.computeMd5().equals(config.computeMd5())) {
                             notifyUpdateConfig(name, ConfigChangeState.UPDATE, config);
                         }
                     }

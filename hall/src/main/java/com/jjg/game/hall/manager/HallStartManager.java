@@ -3,15 +3,12 @@ package com.jjg.game.hall.manager;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.config.ConfigManager;
-import com.jjg.game.core.config.bean.PointsAwardRanking;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.hall.casino.manager.CasinoManager;
 import com.jjg.game.hall.listener.HallPlayerEventListener;
 import com.jjg.game.hall.minigame.MinigameManager;
 import com.jjg.game.hall.service.HallService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -28,7 +25,6 @@ import java.util.Collections;
  */
 @Component
 public class HallStartManager implements SmartLifecycle, ApplicationContextAware {
-    private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private MarsCoreStartService marsCoreStartService;
@@ -60,11 +56,11 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         marsCoreStartService.init(this.context, Collections.emptySet());
         coreStartService.init(this.context);
         hallService.init();
+        configManager.loadAll();
         hallPlayerEventListener.init();
         marqueeManager.init();
         activityManager.initData();
         minigameManager.init();
-        configManager.loadAll();
         running = true;
     }
 
