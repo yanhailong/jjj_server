@@ -7,6 +7,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.netty.NettyConnect;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
@@ -14,8 +15,6 @@ import com.jjg.game.common.utils.NetUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.data.Room;
-import com.jjg.game.core.data.RoomType;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.dao.RoomDao;
@@ -113,8 +112,12 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
     // 获取所有节点并发送数据到对应的节点上
     public void getAllGameNode() {
         String localIpAddress = NetUtils.getLocalIpAddress();
-        List<MarsNode> gameNodeList = nodeManager.getGameNodeList(EGameType.BACCARAT.getGameTypeId(), 0,
-            localIpAddress);
+        Pair<List<MarsNode>, Boolean> gameNodeListPair = nodeManager.getGameNodeList(EGameType.BACCARAT.getGameTypeId(), 0,
+                localIpAddress);
+        if (gameNodeListPair == null) {
+            return;
+        }
+        List<MarsNode> gameNodeList = gameNodeListPair.getFirst();
         try {
             for (MarsNode marsNode : gameNodeList) {
                 ClusterClient clusterClient = clusterSystem.getClusterByPath(marsNode.getNodePath());
