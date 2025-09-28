@@ -49,6 +49,7 @@ public abstract class AbstractCallbackController {
 
     /**
      * 检查订单
+     *
      * @param order
      * @return
      */
@@ -87,7 +88,7 @@ public abstract class AbstractCallbackController {
      * @param order
      * @return
      */
-    protected void payCallback(Order order,ShopProduct shopProduct) {
+    protected void payCallback(Order order, ShopProduct shopProduct) {
         try {
             List<ItemInfo> itemInfoList = null;
             if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
@@ -106,7 +107,7 @@ public abstract class AbstractCallbackController {
             }
 
             Player player = playerService.get(order.getPlayerId());
-            coreLogger.order(player, shopProduct);
+            coreLogger.order(player, shopProduct, order.getRechargeType());
             log.info("玩家充值成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
 
             //获取玩家session信息
@@ -128,7 +129,7 @@ public abstract class AbstractCallbackController {
      * @param itemInfoList
      */
     protected void notifyPlayerRechargeCallBack(PlayerSessionInfo info, Order order, List<ItemInfo> itemInfoList) {
-        if(info == null){
+        if (info == null) {
             return;
         }
         PFSession session = playerSessionService.getSession(info);
@@ -171,9 +172,9 @@ public abstract class AbstractCallbackController {
         PFMessage pfMessage = MessageUtil.getPFMessage(notify);
         ClusterMessage msg = new ClusterMessage(pfMessage);
         clusterClient.write(msg);
-        if(online){
+        if (online) {
             log.info("已将充值成功消息通知玩家所在节点 playerId = {},orderId = {},toNodePath = {}", order.getPlayerId(), order.getId(), clusterClient.nodeConfig.getName());
-        }else {
+        } else {
             log.info("因玩家不在线，已将充值成功消息随机通知大厅节点 playerId = {},orderId = {},toNodePath = {}", order.getPlayerId(), order.getId(), clusterClient.nodeConfig.getName());
         }
     }

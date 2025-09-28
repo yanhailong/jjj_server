@@ -172,9 +172,5 @@ public interface HallConstant {
         int REQ_VIP_CLAIM_GIFT_REWARD = BASE_MSG_PREFIX | 0X43;
         int RES_VIP_CLAIM_GIFT_REWARD = BASE_MSG_PREFIX | 0X44;
 
-
-        //请求商城
-        int REQ_SHOP = BASE_MSG_PREFIX | 0X48;
-        int RES_SHOP = BASE_MSG_PREFIX | 0X49;
     }
 }

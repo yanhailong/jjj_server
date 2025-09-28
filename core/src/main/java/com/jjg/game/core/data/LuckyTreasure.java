@@ -55,6 +55,27 @@ public class LuckyTreasure {
      */
     private long awardPlayerId;
 
+
+    /**
+     * 获奖者名字
+     */
+    private String awardPlayerNickName;
+
+    /**
+     * 获奖者头像
+     */
+    private int awardPlayerHeadImgId;
+
+    /**
+     * 头像框id
+     */
+    private int awardPlayerHeadFrameId;
+
+    /**
+     * 国旗id
+     */
+    private int awardPlayerNationalId;
+
     /**
      * 第三方领奖码
      */
@@ -161,5 +182,37 @@ public class LuckyTreasure {
 
     public void setBuyRecordList(List<LuckyTreasureBuyRecord> buyRecordList) {
         this.buyRecordList = buyRecordList;
+    }
+
+    public String getAwardPlayerNickName() {
+        return awardPlayerNickName;
+    }
+
+    public void setAwardPlayerNickName(String awardPlayerNickName) {
+        this.awardPlayerNickName = awardPlayerNickName;
+    }
+
+    public int getAwardPlayerHeadImgId() {
+        return awardPlayerHeadImgId;
+    }
+
+    public void setAwardPlayerHeadImgId(int awardPlayerHeadImgId) {
+        this.awardPlayerHeadImgId = awardPlayerHeadImgId;
+    }
+
+    public int getAwardPlayerHeadFrameId() {
+        return awardPlayerHeadFrameId;
+    }
+
+    public void setAwardPlayerHeadFrameId(int awardPlayerHeadFrameId) {
+        this.awardPlayerHeadFrameId = awardPlayerHeadFrameId;
+    }
+
+    public int getAwardPlayerNationalId() {
+        return awardPlayerNationalId;
+    }
+
+    public void setAwardPlayerNationalId(int awardPlayerNationalId) {
+        this.awardPlayerNationalId = awardPlayerNationalId;
     }
 }
