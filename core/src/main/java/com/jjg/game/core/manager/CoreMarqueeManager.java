@@ -160,7 +160,7 @@ public class CoreMarqueeManager implements TimerListener {
         if (remove == null) {
             return;
         }
-        removeFromeRedis(id);
+        removeFromRedis(id);
         addNotifyStopEvent(id);
 
         if (this.nowRunMarqueeId == id) {
@@ -204,7 +204,7 @@ public class CoreMarqueeManager implements TimerListener {
      *
      * @param id
      */
-    private void removeFromeRedis(int id) {
+    private void removeFromRedis(int id) {
         //防止在节点变更时，遗漏删除中奖的跑马灯，所以只要是主节点都可以进行删除
         if (marsCurator.isMaster()) {
             marqueeDao.removeMarquee(id);
@@ -263,7 +263,7 @@ public class CoreMarqueeManager implements TimerListener {
                     //删除过期的跑马灯
                     it.remove();
                     this.marqueeMap.remove(marquee.getId());
-                    removeFromeRedis(marquee.getId());
+                    removeFromRedis(marquee.getId());
                     if (this.nowRunMarqueeId == marquee.getId()) {
                         this.nowRunMarqueeId = 0;
                     }
@@ -299,7 +299,7 @@ public class CoreMarqueeManager implements TimerListener {
                         //删除过期的跑马灯
                         it.remove();
                         this.marqueeMap.remove(marquee.getId());
-                        removeFromeRedis(marquee.getId());
+                        removeFromRedis(marquee.getId());
                         if (this.nowRunMarqueeId == marquee.getId()) {
                             this.nowRunMarqueeId = 0;
                         }
@@ -339,7 +339,7 @@ public class CoreMarqueeManager implements TimerListener {
                         //删除过期的跑马灯
                         it.remove();
                         this.marqueeMap.remove(marquee.getId());
-                        removeFromeRedis(marquee.getId());
+                        removeFromRedis(marquee.getId());
                         if (this.nowRunMarqueeId == marquee.getId()) {
                             this.nowRunMarqueeId = 0;
                         }

@@ -75,7 +75,7 @@ public interface ActivityConstant {
         //每次下注金币的万分比飞入储钱罐
         int INCOME_PER_TEN_THOUSAND = 26;
         //自动领取邮件id
-        int MAIL_ID = 1;
+        int MAIL_ID = 21;
     }
 
     //推广分享

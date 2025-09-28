@@ -229,6 +229,15 @@ public abstract class BaseActivityController {
         return ActivityBuilder.buildActivityInfo(activityData);
     }
 
+    /**
+     * 请求数据时检查玩家的活动数据是否需要重置
+     *
+     * @param playerId     玩家ID
+     * @param activityData 活动数据
+     */
+    public Map<Integer, PlayerActivityData> checkPlayerDataAndResetOnRequest(long playerId, ActivityData activityData) {
+        return null;
+    }
 
     /**
      * 检查玩家的活动数据是否需要重置
@@ -289,10 +298,12 @@ public abstract class BaseActivityController {
                     || !checkPlayerCanJoinActivity(player, activityData)) {
                 continue;
             }
-
-            // 获取玩家该活动的数据（子项维度）
-            Map<Integer, PlayerActivityData> playerActivityDataMap = playerActivityData.getOrDefault(activityData.getId(), Map.of());
-
+            //请求时处理数据重置
+            Map<Integer, PlayerActivityData> playerActivityDataMap = checkPlayerDataAndResetOnRequest(playerId, activityData);
+            if (playerActivityDataMap == null) {
+                // 获取玩家该活动的数据（子项维度）
+                playerActivityDataMap = playerActivityData.getOrDefault(activityData.getId(), Map.of());
+            }
             // 构建活动详情列表
             List<BaseActivityDetailInfo> arrayList = new ArrayList<>();
             allDetailInfoMap.put(activityData.getId(), arrayList);
