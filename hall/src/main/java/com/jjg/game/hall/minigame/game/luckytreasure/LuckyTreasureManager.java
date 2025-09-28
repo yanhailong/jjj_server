@@ -13,11 +13,13 @@ import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
 import com.jjg.game.core.data.LuckyTreasure;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.hall.minigame.MinigameManager;
 import com.jjg.game.hall.minigame.event.MinigameReadyEvent;
 import com.jjg.game.hall.minigame.game.luckytreasure.bean.LuckyTreasureTimerEvent;
 import com.jjg.game.hall.minigame.game.luckytreasure.service.LuckyTreasureService;
 import com.jjg.game.hall.minigame.game.luckytreasure.util.RewardCodeGenerator;
+import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import org.slf4j.Logger;
@@ -49,6 +51,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     private final LuckyTreasureService luckyTreasureService;
     private final MinigameManager minigameManager;
     private final ConfigManager configManager;
+    private final HallPlayerService hallPlayerService;
 
     /**
      * 活动定时器映射：期号 -> 定时器事件
@@ -63,6 +66,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                                 TimerCenter timerCenter,
                                 LuckyTreasureService luckyTreasureService,
                                 MinigameManager minigameManager,
+                                HallPlayerService hallPlayerService,
                                 RewardCodeGenerator rewardCodeGenerator) {
         this.luckyTreasureDao = luckyTreasureDao;
         this.luckyTreasureRedisDao = luckyTreasureRedisDao;
@@ -73,6 +77,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         this.luckyTreasureService = luckyTreasureService;
         this.minigameManager = minigameManager;
         this.configManager = configManager;
+        this.hallPlayerService = hallPlayerService;
     }
 
     /**
@@ -417,6 +422,13 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         long winnerPlayerId = randomKey(buyMap, config.getTotal());
         //有玩家中奖
         if (winnerPlayerId > 0) {
+            Player player = hallPlayerService.getFromAllDB(winnerPlayerId);
+            if (player != null) {
+                luckyTreasure.setAwardPlayerHeadFrameId(player.getHeadFrameId());
+                luckyTreasure.setAwardPlayerNickName(player.getNickName());
+                luckyTreasure.setAwardPlayerHeadImgId(player.getHeadImgId());
+                luckyTreasure.setAwardPlayerNationalId(player.getNationalId());
+            }
             luckyTreasure.setAwardPlayerId(winnerPlayerId);
             // 根据type类型处理奖励
             if (config.getType() == 1) {

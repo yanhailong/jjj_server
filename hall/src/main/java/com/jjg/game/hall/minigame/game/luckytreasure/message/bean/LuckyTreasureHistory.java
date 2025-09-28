@@ -52,6 +52,58 @@ public class LuckyTreasureHistory {
     @ProtoDesc("商品名字")
     private String name;
 
+    /**
+     * 结束时间
+     */
+    @ProtoDesc("结束时间")
+    private long endTime;
+
+    /**
+     * 获奖玩家id
+     */
+    @ProtoDesc("获奖玩家id")
+    private long awardPlayerId;
+
+    /**
+     * 获奖者名字
+     */
+    @ProtoDesc("获奖者名字")
+    private String awardPlayerNickName;
+
+    /**
+     * 获奖者头像
+     */
+    @ProtoDesc("获奖者头像id")
+    private int awardPlayerHeadImgId;
+
+    /**
+     * 头像框id
+     */
+    @ProtoDesc("头像框id")
+    private int awardPlayerHeadFrameId;
+
+    /**
+     * 国旗id
+     */
+    @ProtoDesc("国旗id")
+    private int awardPlayerNationalId;
+
+    public long getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(long endTime) {
+        this.endTime = endTime;
+    }
+
+    public long getAwardPlayerId() {
+        return awardPlayerId;
+    }
+
+    public void setAwardPlayerId(long awardPlayerId) {
+        this.awardPlayerId = awardPlayerId;
+    }
+
     public long getIssueNumber() {
         return issueNumber;
     }
@@ -106,5 +158,37 @@ public class LuckyTreasureHistory {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getAwardPlayerNickName() {
+        return awardPlayerNickName;
+    }
+
+    public void setAwardPlayerNickName(String awardPlayerNickName) {
+        this.awardPlayerNickName = awardPlayerNickName;
+    }
+
+    public int getAwardPlayerHeadImgId() {
+        return awardPlayerHeadImgId;
+    }
+
+    public void setAwardPlayerHeadImgId(int awardPlayerHeadImgId) {
+        this.awardPlayerHeadImgId = awardPlayerHeadImgId;
+    }
+
+    public int getAwardPlayerHeadFrameId() {
+        return awardPlayerHeadFrameId;
+    }
+
+    public void setAwardPlayerHeadFrameId(int awardPlayerHeadFrameId) {
+        this.awardPlayerHeadFrameId = awardPlayerHeadFrameId;
+    }
+
+    public int getAwardPlayerNationalId() {
+        return awardPlayerNationalId;
+    }
+
+    public void setAwardPlayerNationalId(int awardPlayerNationalId) {
+        this.awardPlayerNationalId = awardPlayerNationalId;
     }
 }
