@@ -86,6 +86,8 @@ public interface ActivityConstant {
         int RANK_REWARDS = 2;
         //最大记录数
         int MAX_RECODE_NUM = 20;
+        //邮件id
+        int MAIL_ID = 11;
     }
 
     interface OfficialAwards {
