@@ -90,6 +90,11 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             //初始化服务
             luckyTreasureService.init();
         }
+        //监听配置文件变化 如果有新增的夺宝奇兵配置则直接开始
+        configManager.addUpdateConfigListener(LuckyTreasureConfig.class, (a, b, c) -> {
+            log.info("夺宝奇兵配置更新!检测是否需要新增!id={}",c.getId());
+            startNewActivityForConfig(c);
+        });
     }
 
     /**
