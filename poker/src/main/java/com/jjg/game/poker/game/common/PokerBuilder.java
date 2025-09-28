@@ -7,6 +7,8 @@ import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.data.room.GamePlayer;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -15,6 +17,13 @@ import java.util.Objects;
  */
 public class PokerBuilder {
     private PokerBuilder() {
+    }
+
+    /**
+     * 构建玩家基本信息
+     */
+    public static List<PokerPlayerInfo> buildPlayerInfoList(GamePlayer gamePlayer, SeatInfo seatInfo, BasePokerGameController<? extends BasePokerGameDataVo> controller) {
+        return Arrays.asList(buildPlayerInfo(gamePlayer, seatInfo, controller));
     }
 
     /**
@@ -31,16 +40,11 @@ public class PokerBuilder {
         }
         PokerPlayerInfo pokerPlayerInfo = new PokerPlayerInfo();
         pokerPlayerInfo.playerId = gamePlayer.getId();
-        pokerPlayerInfo.name = gamePlayer.getNickName();
-        pokerPlayerInfo.icon = gamePlayer.getHeadImgId();
-        pokerPlayerInfo.chipsId = gamePlayer.getChipsId();
-        pokerPlayerInfo.cardBackgroundId = gamePlayer.getCardBackgroundId();
-        pokerPlayerInfo.headFrameId = gamePlayer.getHeadFrameId();
-        pokerPlayerInfo.nationalId = gamePlayer.getNationalId();
-        pokerPlayerInfo.titleId = gamePlayer.getTitleId();
+        buildSamplePlayerInfo(gamePlayer, pokerPlayerInfo);
         if (seatInfo != null) {
             pokerPlayerInfo.seatIndex = seatInfo.getSeatId();
             pokerPlayerInfo.status = seatInfo.isSeatDown();
+            pokerPlayerInfo.ready = seatInfo.isReady();
             pokerPlayerInfo.playerStatus = seatInfo.isJoinGame();
         }
         if (gameDataVo instanceof TexasGameDataVo texasGameDataVo) {
@@ -49,6 +53,16 @@ public class PokerBuilder {
             pokerPlayerInfo.accountNumber = controller.getTransactionItemNum(gamePlayer.getId());
         }
         return pokerPlayerInfo;
+    }
+
+    private static void buildSamplePlayerInfo(GamePlayer gamePlayer, PokerPlayerInfo pokerPlayerInfo) {
+        pokerPlayerInfo.name = gamePlayer.getNickName();
+        pokerPlayerInfo.icon = gamePlayer.getHeadImgId();
+        pokerPlayerInfo.chipsId = gamePlayer.getChipsId();
+        pokerPlayerInfo.cardBackgroundId = gamePlayer.getCardBackgroundId();
+        pokerPlayerInfo.headFrameId = gamePlayer.getHeadFrameId();
+        pokerPlayerInfo.nationalId = gamePlayer.getNationalId();
+        pokerPlayerInfo.titleId = gamePlayer.getTitleId();
     }
 
 
@@ -74,13 +88,7 @@ public class PokerBuilder {
         BasePokerGameDataVo gameDataVo = controller.getGameDataVo();
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
         if (Objects.nonNull(gamePlayer)) {
-            pokerPlayerInfo.name = gamePlayer.getNickName();
-            pokerPlayerInfo.icon = gamePlayer.getHeadImgId();
-            pokerPlayerInfo.chipsId = gamePlayer.getChipsId();
-            pokerPlayerInfo.cardBackgroundId = gamePlayer.getCardBackgroundId();
-            pokerPlayerInfo.headFrameId = gamePlayer.getHeadFrameId();
-            pokerPlayerInfo.nationalId = gamePlayer.getNationalId();
-            pokerPlayerInfo.titleId = gamePlayer.getTitleId();
+            buildSamplePlayerInfo(gamePlayer, pokerPlayerInfo);
             if (gameDataVo instanceof TexasGameDataVo texasGameDataVo) {
                 pokerPlayerInfo.accountNumber = texasGameDataVo.getTempGold().getOrDefault(gamePlayer.getId(), 0L);
             } else {

@@ -338,8 +338,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //获取节点
             node = clusterSystem.getNode(playerLastGameInfo.getNodePath());
             if (node == null) {
-                node =
-                        nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
+                node = nodeManager.getGameNodeByWeight(playerLastGameInfo.getGameType(), player.getId(), player.getIp());
                 if (node == null) {
                     playerLastGameInfo.setHalfwayOffline(false);
                     playerLastGameInfo.setNodePath(null);

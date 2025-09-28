@@ -4,15 +4,11 @@ import cn.hutool.core.lang.Snowflake;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.data.DataSaveCallback;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.data.PlayerRoomData;
-import com.jjg.game.core.data.Room;
-import com.jjg.game.core.data.RoomPlayer;
-import com.jjg.game.core.data.RoomType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -148,6 +144,18 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
             .filter(r -> !(r instanceof FriendRoom))
             .filter(r -> r.getPath().equalsIgnoreCase(currentNodePath) && r.getRoomCfgId() == roomCfgId)
             .toList();
+    }
+
+    /**
+     * 获取对应当前节点所有的房间
+     */
+    public List<T> getChooseNodeRoom(String nodePath,int gameType, int roomCfgId) {
+        List<Object> rooms = redisTemplate.opsForHash().values(getTableName(gameType));
+        return rooms.stream()
+                .map(r -> (T) r)
+                .filter(r -> !(r instanceof FriendRoom) && r.getPath().equalsIgnoreCase(nodePath)
+                        && r.getRoomCfgId() == roomCfgId && r.canEnter())
+                .toList();
     }
 
     /**

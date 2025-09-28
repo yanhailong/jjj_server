@@ -3,16 +3,17 @@ package com.jjg.game.common.curator;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.monitor.FileLoader;
-import com.jjg.game.common.monitor.FileMonitor;
-import com.jjg.game.common.utils.CommonUtil;
-import org.apache.commons.lang3.StringUtils;
 import com.jjg.game.common.cluster.ClusterHelper;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.config.ZookeeperConfig;
+import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.monitor.FileLoader;
+import com.jjg.game.common.monitor.FileMonitor;
+import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.FileHelper;
 import com.jjg.game.common.utils.RandomUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -173,9 +174,12 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
     /**
      * 加载游戏节点
      */
-    public MarsNode getGameNodeByWeight(int gameType, long playerId, String ip) {
-        List<MarsNode> list = getGameNodeList(gameType, playerId, ip);
-
+    public Pair<MarsNode, Boolean> getGameNodePairByWeight(int gameType, long playerId, String ip) {
+        Pair<List<MarsNode>, Boolean> pairList = getGameNodeList(gameType, playerId, ip);
+        if (pairList == null) {
+            return null;
+        }
+        List<MarsNode> list = pairList.getFirst();
         int totalWeight = list.stream().mapToInt(m -> m.getNodeConfig().weight).sum();
         if (totalWeight <= 0) {
             log.error("所有的游戏节点权重和为0");
@@ -187,7 +191,7 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
         for (MarsNode node : list) {
             sum += node.getNodeConfig().weight;
             if (p < sum) {
-                return node;
+                return Pair.newPair(node, pairList.getSecond());
             }
         }
         log.error("逻辑应该不会到这");
@@ -195,9 +199,23 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
     }
 
     /**
-     * 获取所有的游戏节点
+     * 加载游戏节点
      */
-    public List<MarsNode> getGameNodeList(int gameType, long playerId, String ip) {
+    public MarsNode getGameNodeByWeight(int gameType, long playerId, String ip) {
+        Pair<MarsNode, Boolean> marsNodeBooleanPair = getGameNodePairByWeight(gameType, playerId, ip);
+        return marsNodeBooleanPair == null ? null : marsNodeBooleanPair.getFirst();
+    }
+
+
+    /**
+     * 获取所有的游戏节点
+     *
+     * @param gameType 游戏类型
+     * @param playerId 玩家id
+     * @param ip       ip
+     * @return 节点列表,是否是白名单
+     */
+    public Pair<List<MarsNode>, Boolean> getGameNodeList(int gameType, long playerId, String ip) {
         NodeType nodeType = NodeType.GAME;
         MarsNode marsNode = getMarNode(nodeType);
         if (marsNode == null) {
@@ -211,7 +229,7 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
         }
         List<MarsNode> list = new ArrayList<>();
         List<MarsNode> preciselist = new ArrayList<>();
-
+        boolean isWhitelist = false;
         int gameMajorType = CommonUtil.getMajorTypeByGameType(gameType);
 
         for (MarsNode node : marsNodeList) {
@@ -235,9 +253,10 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
             }
         }
         if (!preciselist.isEmpty()) {
+            isWhitelist = true;
             list = preciselist;
         }
-        return list;
+        return Pair.newPair(list, isWhitelist);
     }
 
     private boolean has(int[] arrays, int value) {

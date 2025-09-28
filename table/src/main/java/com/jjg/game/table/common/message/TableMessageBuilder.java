@@ -3,7 +3,6 @@ package com.jjg.game.table.common.message;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.pb.NotifyTableExitRoom;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -11,7 +10,6 @@ import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.table.common.TableConstant;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.bean.*;
-import com.jjg.game.table.common.message.req.NotifyTableLongTimeNoOperate;
 import com.jjg.game.table.common.message.res.NotifyPhaseChangInfo;
 import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 import com.jjg.game.table.common.message.res.RespTablePlayerInfo;
@@ -275,21 +273,5 @@ public class TableMessageBuilder {
         return tableInfoMap.values().stream().toList();
     }
 
-    /**
-     * 构建桌面长时间无操作通知
-     */
-    public static NotifyTableLongTimeNoOperate buildNotifyTableLongTimeNoOperate(int langId) {
-        NotifyTableLongTimeNoOperate notify = new NotifyTableLongTimeNoOperate();
-        notify.langId = langId;
-        return notify;
-    }
 
-    /**
-     * 构建桌面退出房间通知
-     */
-    public static NotifyTableExitRoom buildNotifyTableExitRoom(int langId) {
-        NotifyTableExitRoom notify = new NotifyTableExitRoom();
-        notify.langId = langId;
-        return notify;
-    }
 }

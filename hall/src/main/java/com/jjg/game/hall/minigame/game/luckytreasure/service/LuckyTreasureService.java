@@ -501,7 +501,11 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         history.setItemNum(config.getItemNum());
         history.setIcon(config.getDes());
         history.setName(config.getName());
-
+        history.setAwardPlayerHeadImgId(treasure.getAwardPlayerHeadImgId());
+        history.setAwardPlayerHeadFrameId(treasure.getAwardPlayerHeadFrameId());
+        history.setAwardPlayerNickName(treasure.getAwardPlayerNickName());
+        history.setAwardPlayerNationalId(treasure.getAwardPlayerNationalId());
+        history.setEndTime(treasure.getEndTime());
         return history;
     }
 

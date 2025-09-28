@@ -1,7 +1,6 @@
 package com.jjg.game.core.utils;
 
 import com.jjg.game.common.cluster.ClusterSystem;
-import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.data.NoticeTipBuilder;
 import com.jjg.game.core.data.PlayerController;
@@ -70,10 +69,7 @@ public class TipUtils {
      * @param supplier NotifyNotice构建器
      */
     public static void sendTip(long playerId, int tipType, Supplier<NoticeTip> supplier) {
-        PFSession pfSession = getClusterSystem().getSession(playerId);
-        if (pfSession != null) {
-            pfSession.send(supplier.get());
-        }
+        getClusterSystem().sendToPlayer(supplier.get(), playerId);
     }
 
     /**

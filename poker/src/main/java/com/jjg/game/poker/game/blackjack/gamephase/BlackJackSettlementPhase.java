@@ -21,6 +21,8 @@ import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.BlackjackCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 /**
@@ -234,8 +236,15 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             blackJackSettlementInfo.playerId = playerId;
             Long totalGet = playerGet.getOrDefault(playerId, 0L);
             long get = totalGet - controller.getPlayerTotalBet(playerId);
+            if (get > 0) {
+                //扣除抽水
+                get = BigDecimal.valueOf(get)
+                        .multiply(BigDecimal.valueOf(10000 - gameDataVo.getRoomCfg().getEffectiveRatio()))
+                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                totalGet = controller.getPlayerTotalBet(playerId) + get;
+            }
             gameController.addItem(playerId, totalGet, ERoomItemReason.GAME_SETTLEMENT);
-            blackJackSettlementInfo.getGold = get;
+            blackJackSettlementInfo.getGold = totalGet;
             blackJackSettlementInfo.win = get >= 0;
             blackJackSettlementInfo.currentGold = controller.getTransactionItemNum(playerId);
             settlementPlayerInfo.settlementInfos.add(settlementInfo);

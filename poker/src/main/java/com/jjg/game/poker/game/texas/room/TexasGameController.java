@@ -9,12 +9,15 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.core.pb.NotifyExitRoom;
 import com.jjg.game.poker.game.common.BasePokerGameController;
+import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
+import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerSampleCardOperation;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
@@ -26,6 +29,7 @@ import com.jjg.game.poker.game.texas.data.TexasSaveHistory;
 import com.jjg.game.poker.game.texas.gamephase.TexasPlayCardPhase;
 import com.jjg.game.poker.game.texas.gamephase.TexasProcessorHandler;
 import com.jjg.game.poker.game.texas.gamephase.TexasSettlementPhase;
+import com.jjg.game.poker.game.texas.gamephase.TexasStartGamePhase;
 import com.jjg.game.poker.game.texas.message.TexasBuilder;
 import com.jjg.game.poker.game.texas.message.bean.TexasHistory;
 import com.jjg.game.poker.game.texas.message.bean.TexasHistoryPlayerInfo;
@@ -35,13 +39,16 @@ import com.jjg.game.poker.game.texas.message.reps.*;
 import com.jjg.game.poker.game.texas.message.req.ReqTexasHistory;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.poker.game.texas.util.HandResult;
+import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.PokerPlayerGameData;
 import com.jjg.game.room.data.room.RoomDataHelper;
+import com.jjg.game.room.message.BaseRoomMessageBuilder;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import com.jjg.game.sampledata.bean.TexasCfg;
@@ -76,7 +83,8 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     @Override
     public void respRoomInitInfoAction(PlayerController playerController) {
         RepsTexasRoomBaseInfo repsTexasRoomBaseInfo = new RepsTexasRoomBaseInfo(Code.SUCCESS);
-        if (getCurrentGamePhase() != EGamePhase.WAIT_READY) {
+        repsTexasRoomBaseInfo.phase = getCurrentGamePhase();
+        if (getCurrentGamePhase() != EGamePhase.WAIT_READY && getCurrentGamePhase() != EGamePhase.START_GAME) {
             if (Objects.nonNull(gameDataVo.getPublicCards())) {
                 repsTexasRoomBaseInfo.publicCards = TexasDataHelper.getClientId(gameDataVo,
                         gameDataVo.getPublicCards());
@@ -115,6 +123,8 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         repsTexasRoomBaseInfo.SB = texasCfg.getSbNum();
         repsTexasRoomBaseInfo.BB = texasCfg.getBbNum();
         repsTexasRoomBaseInfo.operationTime = TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.PLAY_CARDS);
+        //记录操作时间
+        updatePlayerLatestOperateTime(playerController.playerId());
         //客户端初始化完成
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerController.playerId(),
                 repsTexasRoomBaseInfo));
@@ -123,16 +133,25 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     @Override
     public boolean tryStartGame() {
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
-        int total = gameDataVo.getSeatDownNum();
+        int total = gameDataVo.getSeatDownNotReadyNum();
         if (getCurrentGamePhase() == EGamePhase.WAIT_READY && roomCfg.getMinPlayer() <= total && total <= roomCfg.getMaxPlayer()) {
-            addPokerPhase(new TexasPlayCardPhase(this));
-            log.info("开启下一局 当前id{}", gameDataVo.getId());
+            addPokerPhaseTimer(new TexasStartGamePhase(this));
+            log.info("尝试开启下一局 当前id{}", gameDataVo.getId());
             nextRoundStart();
             return true;
         }
         return false;
     }
 
+    @Override
+    public boolean canExitGame(long playerId) {
+        for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
+            if (seatInfo.getPlayerId() == playerId && seatInfo.isReady()) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     @Override
     public EGameType gameControlType() {
@@ -730,5 +749,137 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         }
         texasHistory.totalPlayerBetInfo = new ArrayList<>(sendTotalPlayerBetInfo.values());
         return texasHistory;
+    }
+
+    @Override
+    public <R extends Room> void initial(R room) {
+        super.initial(room);
+        // 玩家长时间未操作检查
+        tickTaskMap.put(BaseGameTickTask.ETickTaskType.PLAYER_NO_OPERATE_CHECK,
+                new BaseGameTickTask(TexasConstant.Common.PLAYER_NO_OPERATE_CHECK_INTERVAL) {
+                    @Override
+                    public void run(long triggeredTimestamp) {
+                        checkPlayerNoOperateAlert();
+                    }
+                });
+    }
+
+    /**
+     * 更新玩家上次操作时间
+     *
+     * @param playerId 玩家id
+     */
+    public void updatePlayerLatestOperateTime(long playerId) {
+        try {
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+            gamePlayer.getPokerPlayerGameData().setPlayerLatestOperateTime(System.currentTimeMillis());
+        } catch (Exception e) {
+            log.error("更新玩家上次操作时间失败 playerId;{}", playerId, e);
+        }
+    }
+
+    /**
+     * 暂停玩家上次操作时间
+     *
+     * @param playerId 玩家id
+     */
+    public void pausePlayerLatestOperateTime(long playerId) {
+        try {
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+            gamePlayer.getPokerPlayerGameData().setPlayerLatestOperateTime(0);
+        } catch (Exception e) {
+            log.error("暂停玩家上次操作时间失败 playerId;{}", playerId, e);
+        }
+    }
+
+
+    /**
+     * 检查玩家未操作提示
+     */
+    private void checkPlayerNoOperateAlert() {
+        long currentTime = System.currentTimeMillis();
+        // 获取座位信息
+        TreeMap<Integer, SeatInfo> seatInfoTreeMap = gameDataVo.getSeatInfo();
+        if (seatInfoTreeMap.isEmpty()) {
+            return;
+        }
+        TexasCfg texasCfg = TexasDataHelper.getTexasCfg(gameDataVo);
+        // 长时间无操作退出触发时间
+        int exitTime = texasCfg.getEscTime();
+        // 长时间无操作退出提示语言ID
+        int exitTipLangId = texasCfg.getEscTipText();
+        for (SeatInfo seatInfo : seatInfoTreeMap.values()) {
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
+            if (gamePlayer == null) {
+                continue;
+            }
+            // 检查当前玩家是否能在无操作的情况下退出
+            PokerPlayerGameData pokerPlayerGameData = gamePlayer.getPokerPlayerGameData();
+            if (pokerPlayerGameData == null) {
+                continue;
+            }
+            long playerLatestOperateTime = pokerPlayerGameData.getPlayerLatestOperateTime();
+            // 暂停玩家操作时间
+            if (playerLatestOperateTime <= 0) {
+                continue;
+            }
+            // 如果超过最大退出时间
+            if (playerLatestOperateTime + exitTime < currentTime) {
+                RoomPlayer roomPlayer = roomController.getRoomPlayer(gamePlayer.getId());
+                if (roomPlayer == null || roomPlayer.isOnline()) {
+                    NotifyExitRoom notify = BaseRoomMessageBuilder.buildNotifyExitRoom(exitTipLangId);
+                    broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(gamePlayer.getId(), notify));
+                } else {
+                    roomController.getRoomManager().exitRoom(gamePlayer.getId());
+                }
+            }
+        }
+    }
+
+    /**
+     * 德州扑克请求准备
+     *
+     * @param playerId 玩家id
+     */
+    public void reqTexasGoReady(long playerId) {
+        NotifyTexasPlayerReady notify = new NotifyTexasPlayerReady();
+        TreeMap<Integer, SeatInfo> seatInfo = gameDataVo.getSeatInfo();
+        SeatInfo playerSeatInfo = null;
+        for (SeatInfo info : seatInfo.values()) {
+            if (info.getPlayerId() == playerId) {
+                playerSeatInfo = info;
+                break;
+            }
+        }
+        if (playerSeatInfo == null || !playerSeatInfo.isSeatDown() || getCurrentGamePhase() != EGamePhase.START_GAME) {
+            notify.code = Code.ERROR_REQ;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+            return;
+        }
+        if (playerSeatInfo.isReady()) {
+            notify.code = Code.REPEAT_OP;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+            return;
+        }
+        playerSeatInfo.setReady(true);
+        //暂停玩家操作时间
+        pausePlayerLatestOperateTime(playerId);
+        notify.playerId = playerId;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
+        //如果全部准备提前进入下个阶段
+        int total = gameDataVo.getSeatDownNum();
+        Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
+        if (getCurrentGamePhase() != EGamePhase.START_GAME) {
+            return;
+        }
+        if (roomCfg.getMinPlayer() <= total && total <= roomCfg.getMaxPlayer()) {
+            //进行下一个阶段
+            TexasPlayCardPhase gamePhase = new TexasPlayCardPhase(this);
+            addPokerPhase(gamePhase);
+            //通知场上信息
+            PokerBuilder.buildNotifyPhaseChange(EGamePhase.PLAY_CART, -1);
+            NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(getCurrentGamePhase(), gameDataVo.getPhaseEndTime());
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyPokerPhaseChange));
+        }
     }
 }

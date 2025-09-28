@@ -1,10 +1,13 @@
 package com.jjg.game.hall.room;
 
+import cn.hutool.core.util.RandomUtil;
+import com.jjg.game.common.baselogic.IConsoleReceiver;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.data.DataSaveCallback;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
@@ -12,10 +15,9 @@ import com.jjg.game.core.data.Room;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
-import com.jjg.game.common.baselogic.IConsoleReceiver;
+import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.match.MatchService;
-import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.apache.commons.lang3.StringUtils;
@@ -93,27 +95,55 @@ public class HallRoomService implements IConsoleReceiver {
             // 直接返回成功
             return Code.SUCCESS;
         }
-        MarsNode marsNode = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(),
+        Pair<MarsNode, Boolean> marsNodeBooleanPair = nodeManager.getGameNodePairByWeight(gameType, playerController.playerId(),
             playerController.getPlayer().getIp());
-        if (marsNode == null) {
+        if (marsNodeBooleanPair == null) {
             log.debug("加入房间时 获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
             return Code.NOT_FOUND;
+        }
+        MarsNode marsNode = marsNodeBooleanPair.getFirst();
+        //白名单
+        if (marsNodeBooleanPair.getSecond()) {
+            List<Room> chooseNodeRoom = hallRoomDao.getChooseNodeRoom(marsNode.getNodePath(), gameType, roomCfgId);
+            if (chooseNodeRoom.isEmpty()) {
+                //创建一个房间
+                long waitingRoomId = createRoom(playerController, roomCfgId, warehouseCfg, gameType, marsNode);
+                return joinRoomById(playerController, waitingRoomId, gameType);
+            }
+            //随机选取一个
+            Room room = RandomUtil.randomEle(chooseNodeRoom);
+            return joinRoomById(playerController, room.getId(), gameType);
         }
         // 获取一个等待房间，如果有空闲的话
         long waitingRoomId = matchService.getWaitingRoomId(gameType, roomCfgId);
         // 如果对应的游戏类型没有房间的话则创建一个新的房间
         if (waitingRoomId == 0) {
-            Tuple2<Integer, Integer> roomMaxLimitCfg = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
-            int maxLimit = roomMaxLimitCfg.getT2();
-            Room room = hallRoomDao.createRoom(playerController, gameType, roomCfgId, maxLimit, marsNode.getNodePath());
-            if (maxLimit != 1) {
-                // 如果房间的限制人数不止一个，则将当前房间ID挂到房间等待列表中，等待后续玩家的加入
-                matchService.addWaitingRoomId(gameType, roomCfgId, room.getId(), room.getCreateTime());
-            }
-            waitingRoomId = room.getId();
+            waitingRoomId = createRoom(playerController, roomCfgId, warehouseCfg, gameType, marsNode);
         }
         // 加入房间
         return joinRoomById(playerController, waitingRoomId, gameType);
+    }
+
+    /**
+     * 创建一个房间
+     * @param playerController 玩家控制器
+     * @param roomCfgId 房间配置id
+     * @param warehouseCfg 场次配置
+     * @param gameType 游戏类型
+     * @param marsNode 节点
+     * @return 创建的id
+     */
+    private long createRoom(PlayerController playerController, int roomCfgId, WarehouseCfg warehouseCfg, int gameType, MarsNode marsNode) {
+        long waitingRoomId;
+        Tuple2<Integer, Integer> roomMaxLimitCfg = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
+        int maxLimit = roomMaxLimitCfg.getT2();
+        Room room = hallRoomDao.createRoom(playerController, gameType, roomCfgId, maxLimit, marsNode.getNodePath());
+        if (maxLimit != 1) {
+            // 如果房间的限制人数不止一个，则将当前房间ID挂到房间等待列表中，等待后续玩家的加入
+            matchService.addWaitingRoomId(gameType, roomCfgId, room.getId(), room.getCreateTime());
+        }
+        waitingRoomId = room.getId();
+        return waitingRoomId;
     }
 
     /**

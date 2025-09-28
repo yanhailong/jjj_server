@@ -23,4 +23,7 @@ public interface RoomConstant {
     int PLAYER_SAVE_DB_TIME_MIN = 500;
     // 玩家回存数据添加timer的上限时间
     int PLAYER_SAVE_DB_TIME_MAX = 5 * 1000;
+
+
+
 }

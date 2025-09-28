@@ -1,11 +1,12 @@
 package com.jjg.game.poker.game.texas.message.reps;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.message.bean.TexasPlayerInfo;
+import com.jjg.game.room.constant.EGamePhase;
 
 import java.util.List;
 
@@ -18,6 +19,8 @@ import java.util.List;
         , cmd = TexasConstant.MsgBean.REPS_ROOM_BASE_INFO, resp = true)
 @ProtoDesc("响应房间基础信息")
 public class RepsTexasRoomBaseInfo extends AbstractResponse {
+    @ProtoDesc("阶段信息")
+    public EGamePhase phase;
     @ProtoDesc("玩家基础信息")
     public List<TexasPlayerInfo> playerInfos;
     @ProtoDesc("公牌")
@@ -44,6 +47,7 @@ public class RepsTexasRoomBaseInfo extends AbstractResponse {
     public int BB;
     @ProtoDesc("小盲")
     public int SB;
+
 
     public RepsTexasRoomBaseInfo(int code) {
         super(code);
