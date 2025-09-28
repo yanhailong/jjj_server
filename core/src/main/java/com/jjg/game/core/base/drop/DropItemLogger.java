@@ -33,8 +33,10 @@ public class DropItemLogger extends BaseLogger {
         data.put("activityId", activityId);
         data.put("gameCfgId", gameCfgId);
         data.put("itemList", itemList);
-        data.put("itemChangeBefore", result.getChangeBeforeItemNum());
-        data.put("itemChangeAfter", result.getChangeEndItemNum());
+        data.put("itemChangeBefore", JSONObject.toJSONString(result.getChangeBeforeItemNum()));
+        data.put("itemChangeAfter", JSONObject.toJSONString(result.getChangeEndItemNum()));
         sendLog(DROP_ITEM_TOPIC, player, data);
     }
+
+
 }

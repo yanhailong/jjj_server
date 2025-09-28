@@ -118,6 +118,7 @@ public class ShopService {
         if(result.data.getDiamond() > 0 || result.data.getGoldNum() > 0) {
             sendMessageManager.buildMoneyChangeMessage(playerController.playerId(),playerService);
         }
+        coreLogger.order(playerController.getPlayer(),shopProduct,RechargeType.SHOP);
         return result;
     }
 
