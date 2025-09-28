@@ -21,7 +21,9 @@ public class PointsAwardSigninCfg extends BaseCfgBean {
   /** 签到天数 */
   protected int day;
   /** 奖励 */
-  protected List<Integer> getitem;
+  protected List<Integer> getItem;
+  /** 开启时间 */
+  protected String time;
 
   /** 返回签到天数 */
   public int getDay() {
@@ -29,8 +31,13 @@ public class PointsAwardSigninCfg extends BaseCfgBean {
   }
 
   /** 返回奖励 */
-  public List<Integer> getGetitem() {
-    return getitem;
+  public List<Integer> getGetItem() {
+    return getItem;
+  }
+
+  /** 返回开启时间 */
+  public String getTime() {
+    return time;
   }
 
   @Override

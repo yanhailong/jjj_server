@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.jjg.game.common.config.NodeConfig;
+import com.jjg.game.core.constant.RechargeType;
 import com.jjg.game.core.data.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -357,7 +358,7 @@ public class BaseLogger {
      * @param shopProduct
      */
     public void order(Player player, ShopProduct shopProduct, Order order) {
-        order(player, shopProduct, order.getPrice(), order.getOrderStatus());
+        order(player, shopProduct, order.getPrice(), order.getRechargeType(),order.getOrderStatus());
     }
 
     /**
@@ -366,8 +367,8 @@ public class BaseLogger {
      * @param player
      * @param shopProduct
      */
-    public void order(Player player, ShopProduct shopProduct) {
-        order(player, shopProduct, shopProduct.getMoney(), OrderStatus.SUCCESS);
+    public void order(Player player, ShopProduct shopProduct,RechargeType rechargeType) {
+        order(player, shopProduct, shopProduct.getMoney(),rechargeType,OrderStatus.SUCCESS);
     }
 
     /***********************************************************************************************/
@@ -389,7 +390,7 @@ public class BaseLogger {
         json.put("time", System.currentTimeMillis());
         json.put("nodeName", nodeConfig.getName());
         json.put("nodeType", nodeConfig.getType());
-        /* log.info("sendLog:{}", JSON.toJSONString(json)); */
+//        log.info("sendLog:{}", JSON.toJSONString(json));
         kafkaTemplate.send(StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic.toLowerCase(),
                 JSONObject.toJSONString(json, SerializerFeature.WriteNonStringKeyAsString));
     }
@@ -448,15 +449,16 @@ public class BaseLogger {
         return json;
     }
 
-    private void order(Player player, ShopProduct shopProduct, long price, OrderStatus orderStatus) {
+    private void order(Player player, ShopProduct shopProduct, long price, RechargeType rechargeType,OrderStatus orderStatus) {
         try {
             JSONObject json = new JSONObject();
             json.put("nick", player.getNickName());
             json.put("type", shopProduct.getType());
             json.put("productId", shopProduct.getId());
+            json.put("rechargeType", rechargeType.getType());
             json.put("payType", shopProduct.getPayType());
             json.put("money", price);
-            json.put("status", orderStatus);
+            json.put("status", orderStatus.code);
 
             if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
                 JSONArray jsonArray = new JSONArray();

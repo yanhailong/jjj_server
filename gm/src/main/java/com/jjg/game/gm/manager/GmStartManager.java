@@ -2,6 +2,7 @@ package com.jjg.game.gm.manager;
 
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.service.MarsCoreStartService;
+import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.manager.SampleDataManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +29,8 @@ public class GmStartManager implements SmartLifecycle, ApplicationContextAware {
     private NodeConfig nodeConfig;
     @Autowired
     private SampleDataManager sampleDataManager;
+    @Autowired
+    private ConfigManager configManager;
 
     private ApplicationContext context;
 
@@ -42,7 +45,8 @@ public class GmStartManager implements SmartLifecycle, ApplicationContextAware {
 
         marsCoreStartService.init(this.context, Collections.emptySet());
         sampleDataManager.init();
-
+        //需要处理所有配置数据 默认加载所有
+        configManager.loadAll();
         running = true;
     }
 

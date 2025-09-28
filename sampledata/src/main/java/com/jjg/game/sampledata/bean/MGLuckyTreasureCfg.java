@@ -19,59 +19,61 @@ public class MGLuckyTreasureCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "MGLuckyTreasure";
 
   /** 商品价值 */
-  protected int BestValue;
-  /** 单份需要道具数(ID_NUM) */
-  protected List<Integer> Consumption;
-  /** 图片资源 */
-  protected String Des;
-  /** 商品ID */
-  protected int ItemId;
-  /** 商品数量 */
-  protected int ItemNum;
-  /** 总份数 */
-  protected int Total;
+  protected int bestValue;
   /** 领奖时间(分) */
-  protected int collectime;
+  protected int collecTime;
+  /** 单份道具数 */
+  protected List<Integer> consumption;
+  /** 商品图片资源 */
+  protected String des;
+  /** 开启状态 */
+  protected boolean isOpen;
+  /** 商品ID */
+  protected int itemId;
+  /** 商品数量 */
+  protected int itemNum;
   /** 商品名称 */
   protected String name;
   /** 每局抢购时间(分钟) */
   protected int time;
+  /** 总份数 */
+  protected int total;
   /** 类型 */
   protected int type;
 
   /** 返回商品价值 */
   public int getBestValue() {
-    return BestValue;
+    return bestValue;
   }
 
-  /** 返回单份需要道具数(ID_NUM) */
+  /** 返回领奖时间(分) */
+  public int getCollecTime() {
+    return collecTime;
+  }
+
+  /** 返回单份道具数 */
   public List<Integer> getConsumption() {
-    return Consumption;
+    return consumption;
   }
 
-  /** 返回图片资源 */
+  /** 返回商品图片资源 */
   public String getDes() {
-    return Des;
+    return des;
+  }
+
+  /** 返回开启状态 */
+  public boolean getIsOpen() {
+    return isOpen;
   }
 
   /** 返回商品ID */
   public int getItemId() {
-    return ItemId;
+    return itemId;
   }
 
   /** 返回商品数量 */
   public int getItemNum() {
-    return ItemNum;
-  }
-
-  /** 返回总份数 */
-  public int getTotal() {
-    return Total;
-  }
-
-  /** 返回领奖时间(分) */
-  public int getCollectime() {
-    return collectime;
+    return itemNum;
   }
 
   /** 返回商品名称 */
@@ -82,6 +84,11 @@ public class MGLuckyTreasureCfg extends BaseCfgBean {
   /** 返回每局抢购时间(分钟) */
   public int getTime() {
     return time;
+  }
+
+  /** 返回总份数 */
+  public int getTotal() {
+    return total;
   }
 
   /** 返回类型 */

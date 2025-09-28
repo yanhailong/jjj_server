@@ -240,5 +240,8 @@ public interface MessageConst {
 
         //响应活动信息
         int RES_ACTIVITY_INFOS = BASE_MSG_PREFIX | 0xD;
+
+        //节点信息变化
+        int NOTIFY_GAME_NODE_CHANGE = BASE_MSG_PREFIX | 0xE;
     }
 }

@@ -1,6 +1,5 @@
 package com.jjg.game.activity.common.message.handler;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowFreeRewards;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowRecord;
@@ -19,7 +18,9 @@ import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.activity.officialawards.controller.OfficialAwardsController;
 import com.jjg.game.activity.officialawards.message.req.ReqOfficialAwardsRecord;
 import com.jjg.game.activity.sharepromote.controller.SharePromoteController;
-import com.jjg.game.activity.sharepromote.message.req.*;
+import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteBindPlayer;
+import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteSelfRankInfo;
+import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteWeekRankInfo;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
@@ -29,8 +30,6 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
 import org.springframework.stereotype.Component;
-
-import java.util.Map;
 
 /**
  * @author lm
@@ -181,15 +180,12 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_BIND_PLAYER)
     public void reqSharePromoteBindPlayer(PlayerController playerController, ReqSharePromoteBindPlayer req) {
-        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
-        if (CollectionUtil.isEmpty(dataMap)) {
+        ActivityData activityData = activityManager.getOpenActivityData(playerController.getPlayer(), ActivityType.SHARE_PROMOTE);
+        if (activityData == null) {
             return;
         }
-        ActivityData data = dataMap.values().iterator().next();
-        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-            AbstractResponse res = sharePromoteController.reqSharePromoteBindPlayer(playerController, req);
-            playerController.send(res);
-        }
+        AbstractResponse res = sharePromoteController.reqSharePromoteBindPlayer(playerController, req);
+        playerController.send(res);
     }
 
 
@@ -198,15 +194,12 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_CLAIM_PROFIT_REWARD)
     public void reqSharePromoteClaimProfitReward(PlayerController playerController) {
-        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
-        if (CollectionUtil.isEmpty(dataMap)) {
+        ActivityData activityData = activityManager.getOpenActivityData(playerController.getPlayer(), ActivityType.SHARE_PROMOTE);
+        if (activityData == null) {
             return;
         }
-        ActivityData data = dataMap.values().iterator().next();
-        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-            AbstractResponse res = sharePromoteController.reqSharePromoteClaimProfitReward(playerController);
-            playerController.send(res);
-        }
+        AbstractResponse res = sharePromoteController.reqSharePromoteClaimProfitReward(playerController);
+        playerController.send(res);
     }
 
     /**
@@ -214,15 +207,12 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_GLOBAL_INFO)
     public void reqSharePromoteGlobalInfo(PlayerController playerController) {
-        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
-        if (CollectionUtil.isEmpty(dataMap)) {
+        ActivityData activityData = activityManager.getOpenActivityData(playerController.getPlayer(), ActivityType.SHARE_PROMOTE);
+        if (activityData == null) {
             return;
         }
-        ActivityData data = dataMap.values().iterator().next();
-        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-            AbstractResponse res = sharePromoteController.reqSharePromoteGlobalInfo(playerController, data);
-            playerController.send(res);
-        }
+        AbstractResponse res = sharePromoteController.reqSharePromoteGlobalInfo(playerController, activityData);
+        playerController.send(res);
     }
 
     /**
@@ -230,15 +220,12 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_WEEK_RANK_INFO)
     public void reqSharePromoteWeekRankInfo(PlayerController playerController, ReqSharePromoteWeekRankInfo req) {
-        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
-        if (CollectionUtil.isEmpty(dataMap)) {
+        ActivityData activityData = activityManager.getOpenActivityData(playerController.getPlayer(), ActivityType.SHARE_PROMOTE);
+        if (activityData == null) {
             return;
         }
-        ActivityData data = dataMap.values().iterator().next();
-        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-            AbstractResponse res = sharePromoteController.reqSharePromoteWeekRankInfo(data, req);
-            playerController.send(res);
-        }
+        AbstractResponse res = sharePromoteController.reqSharePromoteWeekRankInfo(activityData, req);
+        playerController.send(res);
     }
 
     /**
@@ -246,15 +233,12 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_SHARE_PROMOTE_SELF_RANK_INFO)
     public void reqSharePromoteSelfRankInfo(PlayerController playerController, ReqSharePromoteSelfRankInfo req) {
-        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
-        if (CollectionUtil.isEmpty(dataMap)) {
+        ActivityData activityData = activityManager.getOpenActivityData(playerController.getPlayer(), ActivityType.SHARE_PROMOTE);
+        if (activityData == null) {
             return;
         }
-        ActivityData data = dataMap.values().iterator().next();
-        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-            AbstractResponse res = sharePromoteController.reqSharePromoteSelfRankInfo(playerController, req);
-            playerController.send(res);
-        }
+        AbstractResponse res = sharePromoteController.reqSharePromoteSelfRankInfo(playerController, req);
+        playerController.send(res);
     }
 
 
@@ -307,14 +291,11 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_OFFICIAL_AWARDS_RECORD)
     public void reqOfficialAwardsRecord(PlayerController playerController, ReqOfficialAwardsRecord req) {
-        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.OFFICIAL_AWARDS);
-        if (CollectionUtil.isEmpty(dataMap)) {
+        ActivityData activityData = activityManager.getOpenActivityData(playerController.getPlayer(), ActivityType.OFFICIAL_AWARDS);
+        if (activityData == null) {
             return;
         }
-        ActivityData data = dataMap.values().iterator().next();
-        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-            playerController.send(officialAwardsController.reqOfficialAwardsRecord(playerController, req));
-        }
+        playerController.send(officialAwardsController.reqOfficialAwardsRecord(playerController, req));
     }
 
     /**
@@ -324,14 +305,11 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_OFFICIAL_AWARDS_TOTAL_POOL)
     public void reqOfficialAwardsTotalPool(PlayerController playerController) {
-        Map<Long, ActivityData> dataMap = activityManager.getActivityTypeData().get(ActivityType.OFFICIAL_AWARDS);
-        if (CollectionUtil.isEmpty(dataMap)) {
+        ActivityData activityData = activityManager.getOpenActivityData(playerController.getPlayer(), ActivityType.OFFICIAL_AWARDS);
+        if (activityData == null) {
             return;
         }
-        ActivityData data = dataMap.values().iterator().next();
-        if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-            playerController.send(officialAwardsController.reqOfficialAwardsTotalPool());
-        }
+        playerController.send(officialAwardsController.reqOfficialAwardsTotalPool());
     }
 
 

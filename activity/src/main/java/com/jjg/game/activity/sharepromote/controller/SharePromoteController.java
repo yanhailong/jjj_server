@@ -18,10 +18,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -519,7 +516,10 @@ public class SharePromoteController extends BaseActivityController {
             if (CollectionUtil.isNotEmpty(playerIncomeRank.getFirst())) {
                 int i = 1;
                 for (Long playerId : playerIncomeRank.getFirst().keySet()) {
-                    mailService.addCfgMail(playerId, 1, ItemUtils.buildItems(getRankRewards(rankRewardPair, i++)));
+                    List<LanguageParamData> params = new ArrayList<>(1);
+                    params.add(new LanguageParamData(0, String.valueOf(i)));
+                    mailService.addCfgMail(playerId, ActivityConstant.SharePromote.MAIL_ID,
+                            ItemUtils.buildItems(getRankRewards(rankRewardPair, i++)), params);
                 }
             }
             log.info("推广分享周榜奖励发放完成 总发放人数 num:{}", playerIncomeRank.getFirst().size());

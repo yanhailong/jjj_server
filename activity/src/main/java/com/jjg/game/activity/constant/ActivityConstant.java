@@ -75,7 +75,7 @@ public interface ActivityConstant {
         //每次下注金币的万分比飞入储钱罐
         int INCOME_PER_TEN_THOUSAND = 26;
         //自动领取邮件id
-        int MAIL_ID = 1;
+        int MAIL_ID = 21;
     }
 
     //推广分享
@@ -86,6 +86,8 @@ public interface ActivityConstant {
         int RANK_REWARDS = 2;
         //最大记录数
         int MAX_RECODE_NUM = 20;
+        //邮件id
+        int MAIL_ID = 11;
     }
 
     interface OfficialAwards {
@@ -99,8 +101,6 @@ public interface ActivityConstant {
         int TOMORROW_POINTS = 2;
         // 30 官方派奖每个转盘需求积分：初、中、高
         int NEED_POINTS = 30;
-        //31 官方派奖转盘奖池金币数量
-        int INITIAL_AMOUNT = 31;
         //32 官方派奖：有效下注转换积分比例 ：有效下注 = X积分
         int EFFECTIVE_WATER_FLOW_CONVERT_RATIO = 32;
         //33 官方派奖：充值转换积分比例 ：充值金额 = X积分

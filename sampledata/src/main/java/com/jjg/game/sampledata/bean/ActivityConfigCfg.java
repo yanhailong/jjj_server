@@ -44,6 +44,8 @@ public class ActivityConfigCfg extends BaseCfgBean {
   protected int type;
   /** 值1 */
   protected List<Integer> value;
+  /** 值2 */
+  protected List<Integer> valueParam;
 
   /** 返回解锁条件 */
   public Map<Integer,Integer> getCondition() {
@@ -108,6 +110,11 @@ public class ActivityConfigCfg extends BaseCfgBean {
   /** 返回值1 */
   public List<Integer> getValue() {
     return value;
+  }
+
+  /** 返回值2 */
+  public List<Integer> getValueParam() {
+    return valueParam;
   }
 
   @Override

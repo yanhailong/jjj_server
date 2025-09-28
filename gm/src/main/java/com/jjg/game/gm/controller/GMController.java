@@ -5,8 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.curator.MarsNode;
+import com.jjg.game.common.curator.NodeManager;
+import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.NotifyKickout;
 import com.jjg.game.common.protostuff.MessageUtil;
@@ -16,10 +20,7 @@ import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.dao.AccountDao;
-import com.jjg.game.core.dao.MarqueeDao;
-import com.jjg.game.core.dao.OnlinePlayerDao;
-import com.jjg.game.core.dao.ShopProductDao;
+import com.jjg.game.core.dao.*;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
@@ -28,10 +29,8 @@ import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.service.*;
 import com.jjg.game.gm.dto.*;
-import com.jjg.game.gm.vo.OnlinePlayerVo;
-import com.jjg.game.gm.vo.PageVo;
-import com.jjg.game.gm.vo.PlayerVo;
-import com.jjg.game.gm.vo.SafeVo;
+import com.jjg.game.gm.util.NetUtil;
+import com.jjg.game.gm.vo.*;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import org.apache.commons.lang3.StringUtils;
@@ -42,10 +41,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.net.InetAddress;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -79,6 +76,10 @@ public class GMController extends AbstractController {
     private CarouselService carouselService;
     @Autowired
     private ShopProductDao shopProductDao;
+    @Autowired
+    private NodeManager nodeManager;
+    @Autowired
+    private BlackListDao blackListDao;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -782,6 +783,105 @@ public class GMController extends AbstractController {
         }
     }
 
+    /**
+     * 添加黑名单
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.CHANGE_BLACK_LIST)
+    public WebResult<String> changeBlackList(@RequestBody BlackListDto dto) {
+        log.info("收到修改黑名单信息 param={}", dto);
+        try {
+            boolean none = true;
+            if(dto.ids() != null && !dto.ids().isEmpty()) {
+                if(dto.type() == 0){
+                    blackListDao.addBlackIds(dto.ids());
+                }else {
+                    blackListDao.removeBlackIds(dto.ids());
+                }
+                none = false;
+            }
+
+            if(dto.ips() != null && !dto.ips().isEmpty()) {
+                boolean match = dto.ips().stream().allMatch(NetUtil::isValidIP);
+                if(!match){
+                    log.debug("ip格式错误");
+                    return fail("common.fail");
+                }
+                if(dto.type() == 0){
+                    blackListDao.addBlackIps(dto.ips());
+                }else {
+                    blackListDao.removeBlackIps(dto.ips());
+                }
+
+                none = false;
+            }
+
+            if(none){
+                log.debug("黑名单为空...");
+                return fail("common.fail");
+            }
+
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 获取服务器列表
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.QUERY_GAME_SERVER_NODE_LIST)
+    public WebResult<List<GameNodeVo>> queryGameServerList() {
+        log.info("收到获取服务器列表信息 ");
+        List<GameNodeVo> nodeConfigList = new ArrayList<>();
+//        addNodeConfig(nodeConfigList, NodeType.GATE);
+        addNodeConfig(nodeConfigList, NodeType.ACCOUNT);
+        addNodeConfig(nodeConfigList, NodeType.HALL);
+        addNodeConfig(nodeConfigList, NodeType.GAME);
+        addNodeConfig(nodeConfigList, NodeType.RECHARGE);
+        return success("common.success",nodeConfigList);
+    }
+
+    /**
+     * 修改服务器信息
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.CHANG_GAME_NODE_INFO)
+    public WebResult<String> changeGameServerInfo(@RequestBody ChangeNodeDto dto) {
+        log.info("收到修改服务器列表信息 dto = {}",dto);
+
+        try{
+            if(dto.name() == null || dto.name().isEmpty()){
+                log.debug("修改服务器信息错误,节点名不能为空 dto = {}",dto);
+                return fail("common.paramerror");
+            }
+            ClusterClient clusterClient = clusterSystem.getNodesByName(dto.name());
+            if(clusterClient == null){
+                log.debug("修改服务器信息错误,未找到该节点 dto = {}",dto);
+                return fail("common.paramerror");
+            }
+
+            NotifyGameNodeChange notify = new NotifyGameNodeChange();
+            notify.weight = dto.weight();
+            notify.ips = dto.ips();
+            notify.ids = dto.ids();
+
+            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
+            clusterClient.write(new ClusterMessage(pfMessage));
+            return success("common.success");
+        }catch (Exception e){
+            log.error("", e);
+            return fail("common.exception");
+        }
+
+    }
+
+
     //****************************************************************************************************************/
 
     /**
@@ -840,5 +940,29 @@ public class GMController extends AbstractController {
         carousel.setJumpValue(dto.jumpValue());
         carousel.setSourceName(dto.sourceName());
         return carousel;
+    }
+
+    private void addNodeConfig(List<GameNodeVo> nodeList, NodeType nodeType) {
+        MarsNode marsNode = nodeManager.getMarNode(nodeType);
+        if (marsNode == null) {
+            return;
+        }
+        List<MarsNode> marsNodes = marsNode.getAllChildren();
+        for (MarsNode node : marsNodes) {
+            GameNodeVo vo = new GameNodeVo();
+            vo.setType(node.getNodeConfig().getType());
+            vo.setName(node.getNodeConfig().getName());
+            vo.setTcpAddress(node.getNodeConfig().getTcpAddress());
+            vo.setHttpAddress(node.getNodeConfig().getHttpAddress());
+            vo.setWeight(node.getNodeConfig().getWeight());
+
+            if(node.getNodeConfig().getWhiteIpList() != null && node.getNodeConfig().getWhiteIpList().length > 0){
+                vo.setWhiteIpList(Arrays.stream(node.getNodeConfig().getWhiteIpList()).toList());
+            }
+            if(node.getNodeConfig().getWhiteIdList() != null && node.getNodeConfig().getWhiteIdList().length > 0){
+                vo.setWhiteIdList(Arrays.stream(node.getNodeConfig().getWhiteIdList()).toList());
+            }
+            nodeList.add(vo);
+        }
     }
 }
