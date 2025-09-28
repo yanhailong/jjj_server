@@ -66,8 +66,8 @@ public interface TexasConstant {
         //响应德州扑克历史记录
         int REQS_TEXAS_HISTORY = BASE_MSG_PREFIX | 0x15;
         //请求德州扑克准备
-        int REQ_TEXAS_GO_READY = BASE_MSG_PREFIX | 0x14;
+        int REQ_TEXAS_GO_READY = BASE_MSG_PREFIX | 0x16;
         //通知德州扑克准备
-        int NOTIFY_TEXAS_PLAYER_READY = BASE_MSG_PREFIX | 0x15;
+        int NOTIFY_TEXAS_PLAYER_READY = BASE_MSG_PREFIX | 0x17;
     }
 }

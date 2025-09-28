@@ -15,8 +15,6 @@ import java.util.List;
 public class TexasPlayerInfo {
     @ProtoDesc("基本玩家信息")
     public PokerPlayerInfo pokerPlayerInfo;
-    @ProtoDesc("是否准备")
-    public boolean ready;
     @ProtoDesc("总押注")
     public long totalBet;
     @ProtoDesc("当前手牌")

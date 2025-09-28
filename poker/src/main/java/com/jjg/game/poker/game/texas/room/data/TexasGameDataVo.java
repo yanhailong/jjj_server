@@ -178,8 +178,14 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
         this.settlement = settlement;
     }
 
+    @Override
+    public boolean canStartGame() {
+        int seatDownNum = getSeatDownNotReadyNum();
+        return seatDownNum >= getRoomCfg().getMinPlayer() && seatDownNum <= getRoomCfg().getMaxPlayer();
+    }
+
     /**
-     * 获取已经坐下的玩家人数
+     * 获取已经坐下并准备的玩家人数
      */
     public int getSeatDownNum() {
         return (int) getSeatInfo().values()
@@ -192,6 +198,14 @@ public class TexasGameDataVo extends BasePokerGameDataVo {
                     return false;
                 }).count();
     }
+
+    /**
+     * 获取已经坐下的玩家人数
+     */
+    public int getSeatDownNotReadyNum() {
+        return super.getSeatDownNum();
+    }
+
 
     @Override
     public int getPoolId() {

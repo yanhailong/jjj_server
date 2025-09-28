@@ -13,6 +13,7 @@ import com.jjg.game.poker.game.texas.message.reps.NotifyTexasSeatStateChange;
 import com.jjg.game.poker.game.texas.message.req.*;
 import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
+import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -94,21 +95,27 @@ public class TexasMessageHandler {
                         return;
                     }
                     seatInfo.setSeatDown(true);
-                    change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, controller);
+                    change.playerChange = PokerBuilder.buildPlayerInfoList(gamePlayer, seatInfo, controller);
                     controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
+                    // 通知场上玩家加入 进入准备阶段
+                    boolean canStartGame = gameDataVo.canStartGame();
+                    if (canStartGame && controller.getCurrentGamePhase() == EGamePhase.WAIT_READY) {
+                        //尝试开启游戏
+                        controller.tryStartNextGame();
+                    }
                 } else {
                     //非等待 需要移除信息 判断是否需要开启下一轮和结算
                     if (controller.inRunPhase() && seatInfo.isJoinGame()) {
                         boolean isPlaying = seatInfo.isSeatDown() && seatInfo.isJoinGame();
                         seatInfo.setSeatDown(false);
                         seatInfo.setJoinGame(false);
-                        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, controller);
+                        change.playerChange = PokerBuilder.buildPlayerInfoList(gamePlayer, seatInfo, controller);
                         controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
                         controller.runPlayerSeatChange(seatInfo, isPlaying);
                         return;
                     }
                     seatInfo.setSeatDown(false);
-                    change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, seatInfo, controller);
+                    change.playerChange = PokerBuilder.buildPlayerInfoList(gamePlayer, seatInfo, controller);
                     controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
                     return;
                 }
@@ -132,6 +139,12 @@ public class TexasMessageHandler {
                     controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyTexasSeatStateChange));
                 } else {
                     controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notifyTexasSeatStateChange));
+                }
+                // 通知场上玩家加入 进入准备阶段
+                boolean canStartGame = gameDataVo.canStartGame();
+                if (canStartGame && controller.getCurrentGamePhase() == EGamePhase.WAIT_READY) {
+                    //尝试开启游戏
+                    controller.tryStartNextGame();
                 }
                 return;
             }
@@ -159,7 +172,7 @@ public class TexasMessageHandler {
         //换座位
         RoomPlayer roomPlayer = roomPlayers.get(seatInfo.getPlayerId());
         SeatInfo newSeatInfo = addNewSeatInfo(roomPlayer, seatInfo, srcSeatId, gameDataVo);
-        change.playerChange = PokerBuilder.buildPlayerInfo(gamePlayer, newSeatInfo, controller);
+        change.playerChange = PokerBuilder.buildPlayerInfoList(gamePlayer, newSeatInfo, controller);
         return change;
     }
 

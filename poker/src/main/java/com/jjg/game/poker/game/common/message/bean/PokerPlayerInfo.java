@@ -22,6 +22,8 @@ public class PokerPlayerInfo {
     public int seatIndex;
     @ProtoDesc("座位状态(false站起true坐下)")
     public boolean status;
+    @ProtoDesc("是否准备")
+    public boolean ready;
     @ProtoDesc("本轮操作")
     public int operationType;
     @ProtoDesc("玩家状态(true在游戏中 false不在游戏中)")
