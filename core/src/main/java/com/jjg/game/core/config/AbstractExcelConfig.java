@@ -11,7 +11,7 @@ public abstract class AbstractExcelConfig {
     /**
      * 唯一id
      */
-    private int id;
+    protected int id;
 
     public int getId() {
         return id;

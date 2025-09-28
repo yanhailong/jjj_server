@@ -92,7 +92,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         }
         //监听配置文件变化 如果有新增的夺宝奇兵配置则直接开始
         configManager.addUpdateConfigListener(LuckyTreasureConfig.class, (a, b, c) -> {
-            log.info("夺宝奇兵配置更新!检测是否需要新增!id={}",c.getId());
+            log.info("夺宝奇兵配置更新!检测是否需要新增!id={}", c.getId());
             startNewActivityForConfig(c);
         });
     }
@@ -232,7 +232,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             saveActiveRoundToRedis(newRound);
             // 添加活动结束定时器
             addActivityEndTimer(newRound);
-
+            //通知更新
+            luckyTreasureService.broadcastUpdate(newRound.getIssueNumber());
             log.info("启动新的夺宝奇兵活动，配置ID: {}, 期号: {}", config.getId(), newRound.getIssueNumber());
         });
     }
@@ -420,6 +421,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             // 根据type类型处理奖励
             if (config.getType() == 1) {
                 String rewardCode = rewardCodeGenerator.generateRewardCode(luckyTreasure.getIssueNumber(), winnerPlayerId);
+                log.info("夺宝奇兵[{}]结束,玩家[{}]中奖,生成领奖码[{}]", luckyTreasure.getIssueNumber(), winnerPlayerId, rewardCode);
                 luckyTreasure.setRewardCode(rewardCode);
             }
             //标记未领取
