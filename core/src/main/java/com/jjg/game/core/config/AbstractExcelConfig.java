@@ -11,7 +11,7 @@ public abstract class AbstractExcelConfig {
     /**
      * 唯一id
      */
-    private int id;
+    protected int id;
 
     public int getId() {
         return id;
@@ -21,11 +21,11 @@ public abstract class AbstractExcelConfig {
         this.id = id;
     }
 
-    public String toJSONString() {
+    protected String toJSONString() {
         return JSON.toJSONString(this);
     }
 
-    public String getMd5() {
+    protected String computeMd5() {
         return DigestUtils.md5Hex(toJSONString());
     }
 

@@ -1,5 +1,7 @@
 package com.jjg.game.gm.dto.config;
 
+import com.alibaba.fastjson.JSONObject;
+
 import java.util.List;
 
 /**
@@ -7,7 +9,7 @@ import java.util.List;
  */
 public record ReplaceConfigDto(
         //更新的配置信息
-        List<String> configs,
+        List<JSONObject> configs,
         //excel表名
         String name
 ) {
