@@ -210,6 +210,8 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
             long times = generateManager.calLineTimes(resultLib.getAwardLineInfoList());
             times += generateManager.calAfterAddIcons(resultLib.getAddIconInfos());
 
+            playerGameData.setFreeLib(resultLib);
+
             gameRunInfo.addBigPoolTimes(times);
             log.debug("触发免费模式  playerId = {},libId = {},status = {},addFreeCount = {},times = {}", playerGameData.playerId(), resultLib.getId(), playerGameData.getStatus(), addCount, times);
         } else {
