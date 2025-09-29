@@ -707,6 +707,12 @@ public class GMController extends AbstractController {
                 return fail("common.fail");
             }
 
+            if(NodeType.GAME.name().equals(clusterClient.nodeConfig.getType()) &&
+                    clusterClient.nodeConfig.getGameMajorTypes()[0] != CoreConst.GameMajorType.SLOTS) {
+                log.debug("只能是slots的游戏节点才需要生成结果库 param = {}", param);
+                return fail("common.fail");
+            }
+
             NotifyGenrateLib notify = new NotifyGenrateLib();
             notify.gameType = param.gameType();
             notify.count = param.count();
@@ -868,8 +874,8 @@ public class GMController extends AbstractController {
 
             NotifyGameNodeChange notify = new NotifyGameNodeChange();
             notify.weight = dto.weight();
-            notify.ips = dto.ips();
-            notify.ids = dto.ids();
+            notify.ips = dto.whiteIpList();
+            notify.ids = dto.whiteIdList();
 
             PFMessage pfMessage = MessageUtil.getPFMessage(notify);
             clusterClient.write(new ClusterMessage(pfMessage));
