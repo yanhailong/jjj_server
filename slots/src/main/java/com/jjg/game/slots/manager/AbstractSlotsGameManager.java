@@ -33,8 +33,6 @@ import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.*;
-import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
-import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
 import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
@@ -42,7 +40,6 @@ import com.jjg.game.slots.service.SlotsPlayerService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.Constructor;
@@ -448,7 +445,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setLastSectionIndex(sectionIndex);
         }
         playerGameData.setLastModelId(libCfgResult.data.getModelId());
-
+        PlayerController playerController = playerGameData.getPlayerController();
+        //获取最新的玩家
+        if (playerController != null) {
+            playerController.setPlayer(player);
+        }
         result.data = resultLib;
         return result;
     }
