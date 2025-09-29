@@ -1,5 +1,6 @@
 package com.jjg.game.room.services;
 
+import com.jjg.game.common.baselogic.ConsoleDebugger;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.timer.TimerCenter;
@@ -13,7 +14,6 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
-import com.jjg.game.common.baselogic.ConsoleDebugger;
 import com.jjg.game.core.exception.GameSampleException;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.controller.AbstractRoomController;
@@ -47,7 +47,6 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
     private RobotService robotService;
     @Autowired
     private TimerCenter timerCenter;
-
     private boolean isInitialed = false;
     @Autowired
     private NodeConfig nodeConfig;
