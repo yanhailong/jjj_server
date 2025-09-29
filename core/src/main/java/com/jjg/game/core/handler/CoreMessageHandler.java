@@ -25,6 +25,7 @@ import com.jjg.game.core.pb.reddot.ReqRedDot;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.PlayerPackService;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,7 +77,7 @@ public class CoreMessageHandler {
                 return;
             }
 
-            if (req.order.isEmpty()) {
+            if (StringUtils.isEmpty(req.order)) {
                 res.code = Code.PARAM_ERROR;
                 playerController.send(res);
                 log.debug("参数错误，使用gm失败 playerId = {},order = {}", playerController.playerId(), req.order);

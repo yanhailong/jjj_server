@@ -551,6 +551,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      */
     public List<Integer> addLikeGame(long playerId, List<Integer> gameTypes) {
         TreeSet<Integer> set = likeGameDao.addLikeGame(playerId, gameTypes);
+        if(set == null) {
+            return null;
+        }
         return new ArrayList<>(set);
     }
 

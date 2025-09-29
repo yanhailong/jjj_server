@@ -99,6 +99,10 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
      * 按游戏类型获取好友房账单历史
      */
     public List<GameBillResult> pageFriendRoomBillByGameType(long playerId, int pageIdx, int pageSize) {
+        if(pageSize < 1){
+            pageSize = 5;
+        }
+
         Aggregation aggregation =
             Aggregation.newAggregation(
                 Aggregation.match(Criteria.where("roomCreator").is(playerId)),

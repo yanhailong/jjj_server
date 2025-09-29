@@ -8,7 +8,6 @@ import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.firstpayment.message.bean.FirstPaymentActivityInfo;
 import com.jjg.game.activity.firstpayment.message.bean.FirstPaymentDetailInfo;
-import com.jjg.game.activity.firstpayment.message.res.ResFirstPaymentClaimRewards;
 import com.jjg.game.activity.firstpayment.message.res.ResFirstPaymentDetailInfo;
 import com.jjg.game.activity.firstpayment.message.res.ResFirstPaymentTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
@@ -75,10 +74,14 @@ public class FirstPaymentController extends BaseActivityController {
                 return res;
             }
             // 设置购买时间
-            data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+            data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
             // 购买奖励发放
-            if (CollectionUtil.isNotEmpty(cfg.getGetAvatarFrame())) {
-                addedItems = playerPackService.addItems(playerId, cfg.getGetAvatarFrame(), "firstpayment");
+            Map<Integer, Long> rewards = new HashMap<>(cfg.getGetAvatarFrame());
+            rewards.putAll(cfg.getGetitem());
+            rewards.putAll(cfg.getGetgold());
+            if (CollectionUtil.isNotEmpty(rewards)) {
+                //在游戏节点
+                addedItems = playerPackService.addItems(playerId, rewards, "firstpayment");
                 if (!addedItems.success()) {
                     log.error("发放购买奖励失败 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
                 }
@@ -112,71 +115,7 @@ public class FirstPaymentController extends BaseActivityController {
      */
     @Override
     public AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId) {
-        ResFirstPaymentClaimRewards res = new ResFirstPaymentClaimRewards(Code.SUCCESS);
-        long playerId = player.getId();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-        Map<Integer, FirstpaymentCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
-        FirstpaymentCfg cfg = baseCfgBeanMap.get(detailId);
-
-        if (cfg == null) {
-            res.code = Code.PARAM_ERROR;
-            return res;
-        }
-
-        PlayerActivityData data = null;
-        CommonResult<ItemOperationResult> addedItems = null;
-        Map<Integer, Long> allRewards = new HashMap<>();
-        // 加锁，保证领取操作原子性
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-        try {
-            Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-            if (CollectionUtil.isEmpty(dataMap)) {
-                res.code = Code.PARAM_ERROR;
-                return res;
-            }
-
-            data = dataMap.get(detailId);
-            if (data == null) {
-                res.code = Code.PARAM_ERROR;
-                return res;
-            }
-            if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                res.code = Code.ERROR_REQ;
-                return res;
-            }
-            allRewards.putAll(cfg.getGetitem());
-            allRewards.putAll(cfg.getGetgold());
-            // 发放每日奖励
-            addedItems = playerPackService.addItems(playerId, allRewards, "FirstPaymentRewords");
-            if (!addedItems.success()) {
-                res.code = Code.UNKNOWN_ERROR;
-                return res;
-            }
-            // 更新领取时间
-            data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
-            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
-
-        } catch (Exception e) {
-            log.error("领取每日奖励异常 playerId:{} activityId:{} detailid:{}", playerId, activityData.getId(), detailId, e);
-        } finally {
-            redisLock.unlock(lockKey);
-        }
-
-        // 构建响应数据
-        if (data != null) {
-            if (addedItems != null && addedItems.success()) {
-//                activityLogger.sendFirstPaymentRewardsLog(player, activityData, detailId, addedItems.data, cfg.getDayRebate());
-            }
-            res.activityId = activityData.getId();
-            res.detailId = detailId;
-            res.infoList = ItemUtils.buildItemInfo(allRewards);
-            BaseActivityDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, data);
-            if (baseActivityDetailInfo instanceof FirstPaymentDetailInfo info) {
-                res.detailInfo = info;
-            }
-        }
-
-        return res;
+        return null;
     }
 
     /**
@@ -196,7 +135,8 @@ public class FirstPaymentController extends BaseActivityController {
         info.activityId = activityId;
         info.detailId = baseCfgBean.getId();
         info.rechargePrice = cfg.getMoney();
-
+        info.wasPrice = cfg.getWasPrice();
+        info.bestValue = cfg.getBestValue();
         // 合并总奖励
         Map<Integer, Long> totalGetHashMap = new HashMap<>(cfg.getGetitem());
         totalGetHashMap.putAll(cfg.getGetgold());

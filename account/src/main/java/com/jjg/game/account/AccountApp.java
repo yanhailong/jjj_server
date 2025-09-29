@@ -27,7 +27,8 @@ import org.springframework.context.annotation.FilterType;
         @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.service.*"),
         @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.manager.*"),
         @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.handler.*"),
-        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.dao.room.*")
+        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.dao.room.*"),
+        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.config.*")
     })
 public class AccountApp {
 

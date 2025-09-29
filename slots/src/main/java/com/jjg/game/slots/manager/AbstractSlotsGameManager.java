@@ -58,7 +58,6 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L extends SlotsResultLib> implements TimerListener, ConfigExcelChangeListener {
     protected Logger log = LoggerFactory.getLogger(getClass());
-    ;
 
     @Autowired
     protected SlotsPlayerService slotsPlayerService;
@@ -1144,7 +1143,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     @Override
     public void changeSampleCallbackCollector() {
-        addChangeSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> baseRoomConfig()).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig()).addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig());
+        addChangeSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> {
+            baseRoomConfig();
+            calAllLineStake();
+        }).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig())
+                .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig())
+                .addChangeSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, () -> specialPlayConfig());
     }
 
 
@@ -1314,7 +1318,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
 
             TestLibData testLibData = new TestLibData();
-            SlotsResultLib resultLib = getGenerateManager().checkAward(initArr,lib);
+            SlotsResultLib resultLib = getGenerateManager().checkAward(initArr, lib);
             testLibData.setData(resultLib);
             playerGameData.addTestIconsData(testLibData);
             log.info("添加测试icons成功 playerId = {},icons = {}", playerController.playerId(), icons);
