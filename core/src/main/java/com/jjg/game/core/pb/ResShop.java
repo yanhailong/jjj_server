@@ -12,7 +12,7 @@ import java.util.List;
  * @author 11
  * @date 2025/9/17 16:10
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = ShopConstant.MsgBean.RES_SHOP,resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SHOP_TYPE, cmd = ShopConstant.MsgBean.RES_SHOP,resp = true)
 @ProtoDesc("商城返回")
 public class ResShop extends AbstractResponse {
     @ProtoDesc("商品列表")
