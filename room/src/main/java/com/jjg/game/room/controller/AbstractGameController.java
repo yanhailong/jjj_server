@@ -1,9 +1,11 @@
 package com.jjg.game.room.controller;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.ExceptionUtils;
@@ -11,8 +13,6 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
-import com.jjg.game.common.pb.AbstractMessage;
-import com.jjg.game.core.data.Room;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.room.base.BaseGameTickTask;
@@ -598,6 +598,43 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 添加金币，不要将此方法设置为public，游戏的交易道具是配置的道具ID写入
      *
+     * @param player 需要更新数据的player
+     * @param currencyMap      货币数量
+     * @param addType  添加类型
+     * @param desc     描述
+     * @param isNotify 是否通知
+     */
+    public void addCurrency(Player player, Map<Integer, Long> currencyMap, String addType, String desc, boolean isNotify) {
+        if (player == null || player.getId() <= 0 || CollectionUtil.isEmpty(currencyMap)) {
+            return;
+        }
+        long playerId = player.getId();
+        for (Map.Entry<Integer, Long> entry : currencyMap.entrySet()) {
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+            if (entry.getKey() == ItemUtils.getGoldItemId() && entry.getValue() > 0) {
+                if (addGold(playerId, entry.getValue(), addType, desc, isNotify) != Code.SUCCESS) {
+                    log.error("房间内添加金币失败 playerId:{} num:{}", playerId, entry.getValue());
+                    continue;
+                }
+                if (gamePlayer != null) {
+                    player.setGold(gamePlayer.getGold());
+                }
+            }
+            if (entry.getKey() == ItemUtils.getDiamondItemId() && entry.getValue() > 0) {
+                if (addDiamond(playerId, entry.getValue(), addType, desc, isNotify) != Code.SUCCESS) {
+                    log.error("房间内添加钻石失败 playerId:{} num:{}", playerId, entry.getValue());
+                    continue;
+                }
+                if (gamePlayer != null) {
+                    player.setDiamond(gamePlayer.getDiamond());
+                }
+            }
+        }
+    }
+
+    /**
+     * 添加金币，不要将此方法设置为public，游戏的交易道具是配置的道具ID写入
+     *
      * @param playerId 玩家ID
      * @param num      金币数量
      * @param addType  添加类型
@@ -632,8 +669,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 return Code.FAIL;
             }
         } else {
-            log.error("异常操作，不能添加非游戏好友的金币");
-            throw new RuntimeException("异常操作，不能添加非游戏好友的金币");
+            log.error("异常操作，添加金币时玩家不存在");
+            throw new RuntimeException("异常操作，添加金币时玩家不存在");
         }
         return result.code;
     }

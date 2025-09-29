@@ -5,23 +5,33 @@ import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.core.base.gameevent.CurrencyChangeEvent;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEvent;
+import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
+import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.handler.CurrentChangeEventHandler;
 import com.jjg.game.room.manager.AbstractRoomManager;
+import com.jjg.game.room.timer.RoomEventType;
+import com.jjg.game.sampledata.bean.RoomCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -30,7 +40,7 @@ import java.util.Objects;
  * @date 2025/6/18 13:28
  */
 @Component
-public class RoomEventListener implements SessionEnterListener, SessionCloseListener {
+public class RoomEventListener implements SessionEnterListener, SessionCloseListener, GameEventListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -48,7 +58,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
     public void init() {
         Map<String, IPlayerRoomEventListener> listenerMap =
-            CommonUtil.getContext().getBeansOfType(IPlayerRoomEventListener.class);
+                CommonUtil.getContext().getBeansOfType(IPlayerRoomEventListener.class);
         for (Map.Entry<String, IPlayerRoomEventListener> en : listenerMap.entrySet()) {
             int[] arr = en.getValue().getGameTypes();
             if (arr != null && arr.length > 0) {
@@ -59,7 +69,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
         }
 
         Map<String, AbstractRoomManager> roomManagerMap =
-            CommonUtil.getContext().getBeansOfType(AbstractRoomManager.class);
+                CommonUtil.getContext().getBeansOfType(AbstractRoomManager.class);
         for (Map.Entry<String, AbstractRoomManager> en : roomManagerMap.entrySet()) {
             this.roomManager = en.getValue();
             break;
@@ -75,7 +85,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
         PlayerController playerController = (PlayerController) session.getReference();
         if (playerController == null || playerController.getPlayer() == null) {
             log.warn("玩家退出游戏服务器时 playerController 为空,playerId={},sessionId={}", session.getPlayerId(),
-                session.sessionId());
+                    session.sessionId());
             return;
         }
         log.info("玩家：{} 房间开始进入session关闭流程", playerController.playerId());
@@ -115,7 +125,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             playerRoomEventListener.exit(session, playerController);
         } else {
             log.warn("玩家退出游戏服务器时未找到 playerRoomEventListener, playerId = {},gameType = {}",
-                playerController.playerId(), gameType);
+                    playerController.playerId(), gameType);
         }
 
         logger.exitGame(playerController.getPlayer());
@@ -157,7 +167,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 // 设置workId
                 session.setWorkId(player.getRoomId());
                 int code = roomManager.joinRoom(
-                    playerController, info.getGameType(), info.getRoomCfgId(), player.getRoomId());
+                        playerController, info.getGameType(), info.getRoomCfgId(), player.getRoomId());
                 if (code != Code.SUCCESS) {
                     // 加入失败,需要客户端主动确认当前玩家处于哪个场景中，ReqConfirmPlayerScene
                     playerService.doSave(playerId, p -> {
@@ -174,7 +184,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(info.getGameType());
             if (playerRoomEventListener == null) {
                 log.warn("sessionEnter时 未找到 playerRoomEventListener, playerId = {},gameType = {}",
-                    playerId, info.getGameType());
+                        playerId, info.getGameType());
                 return;
             }
             playerRoomEventListener.enter(session, playerController, info);
@@ -186,11 +196,30 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
     public int exitGame(PlayerController playerController) {
         try {
             exitRoomAction(playerController.getSession(), true);
-            clusterSystem.switchNode(playerController.getSession(), NodeType.HALL,playerController.ipAddress(), playerController.playerId());
+            clusterSystem.switchNode(playerController.getSession(), NodeType.HALL, playerController.ipAddress(), playerController.playerId());
             return Code.SUCCESS;
         } catch (Exception e) {
             log.error("退出房间异常, {}", e.getMessage(), e);
         }
         return Code.FAIL;
+    }
+
+    @Override
+    public <T extends GameEvent> void handleEvent(T gameEvent) {
+        if (gameEvent instanceof CurrencyChangeEvent event) {
+            //获取玩家所在线程
+            AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController = roomManager.getGameControllerByPlayerId(event.getPlayer().getId());
+            if (gameController == null) {
+                return;
+            }
+            CurrentChangeEventHandler handler = new CurrentChangeEventHandler(event.getPlayer(), gameController, event.getCurrencyMap());
+            //抛到对应房间线程处理
+            gameController.addGameTimeEvent(new TimerEvent<>(gameController, handler), RoomEventType.CURRENCY_CHANGE_EVENT);
+        }
+    }
+
+    @Override
+    public List<EGameEventType> needMonitorEvents() {
+        return List.of(EGameEventType.CURRENCY_CHANGE);
     }
 }

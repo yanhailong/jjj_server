@@ -28,6 +28,8 @@ public enum EGameEventType {
     PLAY_ROOMTYPE(true, "bet", "roomtype"),
     // 整点事件
     CLOCK_EVENT(false),
+    // 货币变化事件（主要用于在对战类游戏中更新游戏数据）
+    CURRENCY_CHANGE(false),
     ;
 
     // 事件是否由玩家产生
