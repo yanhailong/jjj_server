@@ -33,8 +33,6 @@ import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.dao.PlayerHistorySlotsDao;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.*;
-import com.jjg.game.slots.game.cleopatra.data.CleopatraPlayerGameData;
-import com.jjg.game.slots.game.cleopatra.data.CleopatraResultLib;
 import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.logger.SlotsLogger;
 import com.jjg.game.slots.pb.NoticeSlotsLibChange;
@@ -42,7 +40,6 @@ import com.jjg.game.slots.service.SlotsPlayerService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.Constructor;
@@ -61,7 +58,6 @@ import java.util.stream.Collectors;
  */
 public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L extends SlotsResultLib> implements TimerListener, ConfigExcelChangeListener {
     protected Logger log = LoggerFactory.getLogger(getClass());
-    ;
 
     @Autowired
     protected SlotsPlayerService slotsPlayerService;
@@ -1143,7 +1139,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     @Override
     public void changeSampleCallbackCollector() {
-        addChangeSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> baseRoomConfig()).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig()).addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig());
+        addChangeSampleFileObserveWithCallBack(BaseRoomCfg.EXCEL_NAME, () -> {
+            baseRoomConfig();
+            calAllLineStake();
+        }).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, () -> baseLineConfig())
+                .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, () -> globalConfig())
+                .addChangeSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, () -> specialPlayConfig());
     }
 
 
@@ -1313,7 +1314,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
 
             TestLibData testLibData = new TestLibData();
-            SlotsResultLib resultLib = getGenerateManager().checkAward(initArr,lib);
+            SlotsResultLib resultLib = getGenerateManager().checkAward(initArr, lib);
             testLibData.setData(resultLib);
             playerGameData.addTestIconsData(testLibData);
             log.info("添加测试icons成功 playerId = {},icons = {}", playerController.playerId(), icons);

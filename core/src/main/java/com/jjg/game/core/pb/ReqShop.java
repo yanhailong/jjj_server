@@ -10,7 +10,7 @@ import com.jjg.game.core.constant.ShopConstant;
  * @author 11
  * @date 2025/9/17 16:09
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = ShopConstant.MsgBean.REQ_SHOP)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SHOP_TYPE, cmd = ShopConstant.MsgBean.REQ_SHOP)
 @ProtoDesc("请求获取商城")
 public class ReqShop extends AbstractMessage {
 }

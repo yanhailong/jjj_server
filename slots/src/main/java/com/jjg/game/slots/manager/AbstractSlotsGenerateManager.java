@@ -1438,9 +1438,16 @@ public class AbstractSlotsGenerateManager<A extends AwardLineInfo, T extends Slo
 
     @Override
     public void changeSampleCallbackCollector() {
-        addChangeSampleFileObserveWithCallBack(BaseInitCfg.EXCEL_NAME, this::baseRollerCfg).addChangeSampleFileObserveWithCallBack(BaseElementCfg.EXCEL_NAME, this::baseElementConfig).addChangeSampleFileObserveWithCallBack(com.jjg.game.sampledata.bean.BaseElementRewardCfg.EXCEL_NAME, this::baseElementRewardConfig).addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, this::baseLineConfig)
+        addChangeSampleFileObserveWithCallBack(BaseInitCfg.EXCEL_NAME, this::baseRollerCfg)
+                .addChangeSampleFileObserveWithCallBack(BaseElementCfg.EXCEL_NAME, this::baseElementConfig)
+                .addChangeSampleFileObserveWithCallBack(BaseElementRewardCfg.EXCEL_NAME, this::baseElementRewardConfig)
+                .addChangeSampleFileObserveWithCallBack(BaseLineCfg.EXCEL_NAME, this::baseLineConfig)
 
-                .addChangeSampleFileObserveWithCallBack(SpecialModeCfg.EXCEL_NAME, this::specialModeConfig).addChangeSampleFileObserveWithCallBack(com.jjg.game.sampledata.bean.SpecialAuxiliaryCfg.EXCEL_NAME, this::specialAuxiliaryConfig).addChangeSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, this::specialGirdConfig).addChangeSampleFileObserveWithCallBack(SpecialResultLibCfg.EXCEL_NAME, this::specialResultLibConfig);
+                .addChangeSampleFileObserveWithCallBack(SpecialModeCfg.EXCEL_NAME, this::specialModeConfig)
+                .addChangeSampleFileObserveWithCallBack(SpecialAuxiliaryCfg.EXCEL_NAME, this::specialAuxiliaryConfig)
+                .addChangeSampleFileObserveWithCallBack(SpecialGirdCfg.EXCEL_NAME, this::specialGirdConfig)
+                .addChangeSampleFileObserveWithCallBack(SpecialPlayCfg.EXCEL_NAME, this::specialPlayConfig)
+                .addChangeSampleFileObserveWithCallBack(SpecialResultLibCfg.EXCEL_NAME, this::specialResultLibConfig);
     }
 
     public void setSpecialResultLibCacheData(SpecialResultLibCacheData specialResultLibCacheData) {

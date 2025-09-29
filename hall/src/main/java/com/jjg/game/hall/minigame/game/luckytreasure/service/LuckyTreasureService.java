@@ -436,7 +436,8 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             int totalPage = pagedLuckyTreasures.getTotalPages();
             ResLuckyTreasureRecord response = new ResLuckyTreasureRecord(Code.SUCCESS);
             response.setInfoList(infoList);
-            response.setCurrPage(currPage);
+            //客户端页码从1开始
+            response.setCurrPage(currPage + 1);
             response.setPageSize(pageSize);
             response.setTotalCount(totalCount);
             response.setTotalPage(totalPage);
@@ -475,7 +476,8 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
 
             ResLuckyTreasureHistory response = new ResLuckyTreasureHistory(Code.SUCCESS);
             response.setInfoList(historyList);
-            response.setCurrPage(currPage);
+            //客户端页码从1开始
+            response.setCurrPage(currPage + 1);
             response.setPageSize(pageSize);
             response.setTotalCount(finishedRecords.getTotalElements());
             response.setTotalPage(finishedRecords.getTotalPages());
