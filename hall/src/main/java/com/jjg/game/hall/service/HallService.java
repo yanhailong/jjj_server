@@ -683,6 +683,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      * 更新奖池
      */
     private void updatePoolEvent() {
+        if(this.sortGameList == null || this.sortGameList.isEmpty()) {
+            return;
+        }
         Map<Integer, List<WarePoolInfo>> tmpPoolMap = new HashMap<>();
 
         this.sortGameList.forEach(cfg -> {
