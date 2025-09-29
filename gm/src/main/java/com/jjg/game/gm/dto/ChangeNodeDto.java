@@ -12,8 +12,8 @@ public record ChangeNodeDto(
     //权重
     int weight,
     //白名单ip
-    List<String> ips,
+    List<String> whiteIpList,
     //白名单id
-    List<String> ids
+    List<String> whiteIdList
 ) {
 }

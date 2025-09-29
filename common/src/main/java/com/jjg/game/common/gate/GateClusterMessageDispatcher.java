@@ -32,9 +32,8 @@ public class GateClusterMessageDispatcher extends ClusterMessageDispatcher {
             GateSession gateSession = GateSession.getGateSessionMap().get(sessionId);
             if (gateSession != null) {
                 gateSession.onClusterReceive(connect, pfMessage);
-                return;
             } else {
-                log.warn("找不到sessionId={}的session，无法转发消息", sessionId);
+                log.warn("找不到sessionId={}的session，无法转发消息, pfMessage = {}", sessionId, pfMessage);
             }
         } else {
             // 网关消息

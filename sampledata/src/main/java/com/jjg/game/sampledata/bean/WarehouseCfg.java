@@ -36,6 +36,8 @@ public class WarehouseCfg extends BaseCfgBean {
   protected List<Integer> roomDeletion_Solution;
   /** 说明 */
   protected int roomType;
+  /** 交易项目ID */
+  protected int transactionItemId;
   /** VIP等级限制 */
   protected int vipLvLimit;
 
@@ -82,6 +84,11 @@ public class WarehouseCfg extends BaseCfgBean {
   /** 返回说明 */
   public int getRoomType() {
     return roomType;
+  }
+
+  /** 返回交易项目ID */
+  public int getTransactionItemId() {
+    return transactionItemId;
   }
 
   /** 返回VIP等级限制 */

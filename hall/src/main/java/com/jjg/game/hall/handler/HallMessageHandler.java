@@ -12,11 +12,11 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.PlayerAvatarDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.core.pb.ResShop;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.MailService;
@@ -30,7 +30,6 @@ import com.jjg.game.hall.pb.req.*;
 import com.jjg.game.hall.pb.res.*;
 import com.jjg.game.hall.pb.struct.MailInfo;
 import com.jjg.game.hall.pb.struct.PackItemInfo;
-import com.jjg.game.core.pb.ShopProductInfo;
 import com.jjg.game.hall.room.HallRoomService;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
@@ -40,6 +39,7 @@ import com.jjg.game.hall.vip.data.VipCfgCache;
 import com.jjg.game.hall.vip.pb.req.ReqVipClaimGiftReward;
 import com.jjg.game.hall.vip.pb.req.ReqVipInfo;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -758,12 +758,23 @@ public class HallMessageHandler implements GmListener {
             return new CommonResult<>(Code.NOT_FOUND);
         }
 
-        // TODO 临时代码 info.limitGoldMin != -1
+        //判断是否检查钻石余额
+        boolean checkDiamond = false;
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
+        if(warehouseCfg.getTransactionItemId() > 0){
+            ItemCfg itemCfg = GameDataManager.getItemCfg(warehouseCfg.getTransactionItemId());
+            if(itemCfg != null && itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND){
+                checkDiamond = true;
+            }
+        }
+
         Player player = hallPlayerService.get(playerController.getPlayer().getId());
-        if (info.limitGoldMin != -1 && info.limitGoldMin > player.getGold()) {
-            log.debug("玩家金币不足 playerId = {},gameType = {},roomCfgId = {},gold = {},limmitGold = {}",
+        if (warehouseCfg.getEnterLimit() != -1 &&
+                checkDiamond ? warehouseCfg.getEnterLimit() > player.getDiamond() : warehouseCfg.getEnterLimit() > player.getGold()) {
+
+            log.debug("玩家携带货币不足 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},enterLimit = {},",
                 playerController.playerId(), gameType
-                , roomCfgId, player.getGold(), info.limitGoldMin);
+                , roomCfgId, warehouseCfg.getTransactionItemId(),player.getGold(),player.getDiamond(), info.limitGoldMin);
             return new CommonResult<>(Code.NOT_ENOUGH);
         }
 
@@ -773,7 +784,6 @@ public class HallMessageHandler implements GmListener {
             return new CommonResult<>(Code.VIP_NOT_ENOUGH);
         }
 
-
         MarsNode node = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(),
             playerController.getPlayer().getIp());
         if (node == null) {
@@ -781,13 +791,13 @@ public class HallMessageHandler implements GmListener {
             return new CommonResult<>(Code.NOT_FOUND);
         }
 
-        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
-        int limitGoldMax = warehouseCfg.getEnterMax();
-//        if (limitGoldMax != -1 && limitGoldMax < playerController.getPlayer().getGold()) {
-//            log.debug("玩家金币超过房间金币限制止 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(),
-//                gameType, roomCfgId);
-//            return new CommonResult<>(Code.GOLD_TOO_MUCH);
-//        }
+        if (warehouseCfg.getEnterMax() != -1 &&
+                checkDiamond ? warehouseCfg.getEnterMax() < player.getDiamond() : warehouseCfg.getEnterMax() < player.getGold()) {
+            log.debug("玩家携带货币超过房间限制 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},enterLimit = {},",
+                    playerController.playerId(), gameType
+                    , roomCfgId, warehouseCfg.getTransactionItemId(),player.getGold(),player.getDiamond(), info.limitGoldMin);
+            return new CommonResult<>(Code.GOLD_TOO_MUCH);
+        }
         return new CommonResult<>(Code.SUCCESS, info);
     }
 

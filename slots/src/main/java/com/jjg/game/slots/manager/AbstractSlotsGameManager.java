@@ -444,7 +444,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setLastSectionIndex(sectionIndex);
         }
         playerGameData.setLastModelId(libCfgResult.data.getModelId());
-
+        PlayerController playerController = playerGameData.getPlayerController();
+        //获取最新的玩家
+        if (playerController != null) {
+            playerController.setPlayer(player);
+        }
         result.data = resultLib;
         return result;
     }

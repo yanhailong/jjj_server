@@ -6,7 +6,6 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.game.superstar.SuperStarConstant;
 import com.jjg.game.slots.game.superstar.dao.SuperStarGameDataDao;
 import com.jjg.game.slots.game.superstar.dao.SuperStarResultLibDao;
@@ -124,12 +123,6 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
     public SuperStarGameRunInfo startGame(PlayerController playerController, SuperStarPlayerGameData playerGameData, long betValue) {
         SuperStarGameRunInfo gameRunInfo = new SuperStarGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
-            //玩家当前金币
-            Player player = slotsPlayerService.get(playerGameData.playerId());
-            gameRunInfo.setAfterGold(player.getGold());
-            if (playerController != null) {
-                playerController.setPlayer(player);
-            }
             CommonResult<SuperStarResultLib> commonResult = normalGetLib(playerGameData, betValue, SuperStarConstant.Common.SPECIAL_MODE_TYPE_NORMAL);
             SuperStarResultLib resultLib = commonResult.data;
             if (resultLib == null) {
@@ -174,6 +167,12 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
             log.debug("计算出获奖倍数 times = {}", times);
             gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
+            //玩家当前金币
+            Player player = slotsPlayerService.get(playerGameData.playerId());
+            gameRunInfo.setAfterGold(player.getGold());
+            if (playerController != null) {
+                playerController.setPlayer(player);
+            }
             return gameRunInfo;
         } catch (Exception e) {
             log.error("", e);
