@@ -1,7 +1,11 @@
 package com.jjg.game.core.service;
 
+import com.jjg.game.common.config.NodeConfig;
+import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.base.gameevent.CurrencyChangeEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
@@ -12,6 +16,7 @@ import com.jjg.game.core.dao.PlayerLoginTimeDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.CoreSendMessageManager;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.VipUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PlayerLevelConfigCfg;
@@ -26,7 +31,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -56,8 +60,9 @@ public class AbstractPlayerService {
     @Autowired
     protected CoreSendMessageManager sendMessageManager;
     @Autowired
-    protected GameEventManager eventManager;
-
+    protected GameEventManager gameEventManager;
+    @Autowired
+    protected NodeConfig nodeConfig;
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
     }
@@ -258,7 +263,25 @@ public class AbstractPlayerService {
             result.code = Code.PARAM_ERROR;
             return result;
         }
-
+        //获取当前节点信息
+        NodeType nodeType = NodeType.getNodeTypeByName(nodeConfig.getType());
+        if (nodeType == NodeType.GAME && nodeConfig.getGameMajorTypes() != null && nodeConfig.getGameMajorTypes().length > 0) {
+            boolean isMemory = false;
+            for (int gameMajorType : nodeConfig.getGameMajorTypes()) {
+                if (gameMajorType == CoreConst.GameMajorType.POKER || gameMajorType == CoreConst.GameMajorType.TABLE) {
+                    isMemory = true;
+                    break;
+                }
+            }
+            if (!isMemory) {
+                Player player = getFromAllDB(playerId);
+                //游戏内修改内存中的数据并返回
+                triggerCurrencyChangeEvent(player, goldNum, diamondNum);
+                result.code = Code.SUCCESS;
+                result.data = player;
+                return result;
+            }
+        }
         final long[] beforeCoin = {0, 0};
 
         Player p = checkAndSave(playerId, new DataSaveCallback<>() {
@@ -294,6 +317,25 @@ public class AbstractPlayerService {
             return result;
         }
         return result;
+    }
+
+    /**
+     * 触发金币变化事件
+     *
+     * @param player     玩家数据
+     * @param goldNum    金币数量
+     * @param diamondNum 钻石数量
+     */
+    private void triggerCurrencyChangeEvent(Player player, long goldNum, long diamondNum) {
+        //通知房间内存中的玩家修改金币数量
+        Map<Integer, Long> currencyMap = new HashMap<>(2);
+        if (goldNum > 0) {
+            currencyMap.put(ItemUtils.getGoldItemId(), goldNum);
+        }
+        if (diamondNum > 0) {
+            currencyMap.put(ItemUtils.getDiamondItemId(), diamondNum);
+        }
+        gameEventManager.triggerEvent(new CurrencyChangeEvent(EGameEventType.CURRENCY_CHANGE, player, currencyMap));
     }
 
 
@@ -1222,7 +1264,7 @@ public class AbstractPlayerService {
         }
         // 升级需要抛升级事件
         if (player.getLevel() != oldLevel) {
-            eventManager.triggerEvent(
+            gameEventManager.triggerEvent(
                 new PlayerEvent(player, EGameEventType.PLAYER_LEVEL, oldLevel, player.getLevel()));
         }
         return player;

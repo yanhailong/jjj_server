@@ -76,16 +76,16 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
         }
         try {
             for (Method method : methods) {
-                if (!method.canAccess(gameController)) {
-                    method.setAccessible(true);
+                GameGm gameGmAnno = method.getDeclaredAnnotation(GameGm.class);
+                if (gameGmAnno == null) {
+                    continue;
                 }
                 int mode = method.getModifiers();
                 if (Modifier.isAbstract(mode)) {
                     continue;
                 }
-                GameGm gameGmAnno = method.getDeclaredAnnotation(GameGm.class);
-                if (gameGmAnno == null) {
-                    continue;
+                if (!method.canAccess(gameController)) {
+                    method.setAccessible(true);
                 }
                 if (gameGmAnno.cmd().equalsIgnoreCase(gmOrders[0])) {
                     // invoke gm

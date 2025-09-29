@@ -18,4 +18,8 @@ public class FirstPaymentDetailInfo extends BaseActivityDetailInfo {
     public List<ItemInfo> bugGet;
     @ProtoDesc("需要充值金额")
     public int rechargePrice;
+    @ProtoDesc("原价值")
+    public int wasPrice;
+    @ProtoDesc("超值")
+    public  int bestValue;
 }
