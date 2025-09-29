@@ -77,7 +77,7 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
     public Page<LuckyTreasure> findAllRewardHistory(Pageable pageable, int limit) {
         // 构建查询条件：endTime > 0 表示已结束
         Criteria criteria = Criteria.where("endTime").gt(0);
-    
+
         if (limit > 0) {
             // 当有limit限制时，先查询出限定数量的记录，然后在内存中分页
             Query limitQuery = new Query(criteria);
@@ -85,10 +85,10 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
             limitQuery.with(Sort.by("endTime").descending());
             // 只查询limit条记录
             limitQuery.limit(limit);
-        
+
             // 获取限制后的数据
             List<LuckyTreasure> limitedTreasures = mongoTemplate.find(limitQuery, LuckyTreasure.class);
-        
+
             // 在限制后的数据中进行分页
             int totalSize = limitedTreasures.size();
             int pageNumber = pageable.getPageNumber();
@@ -102,7 +102,7 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
             } else {
                 pagedTreasures = new ArrayList<>();
             }
-        
+
             // 总数就是limit限制后的数量
             return new PageImpl<>(pagedTreasures, pageable, totalSize);
         } else {
@@ -112,13 +112,13 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
             query.with(pageable.getSort().and(Sort.by("endTime").descending()));
             // 设置分页参数
             query.with(pageable);
-        
+
             // 查询数据
             List<LuckyTreasure> treasures = mongoTemplate.find(query, LuckyTreasure.class);
-        
+
             // 查询总数
             long total = mongoTemplate.count(new Query(criteria), LuckyTreasure.class);
-        
+
             return new PageImpl<>(treasures, pageable, total);
         }
     }
