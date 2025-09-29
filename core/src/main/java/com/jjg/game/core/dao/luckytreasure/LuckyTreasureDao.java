@@ -83,10 +83,6 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
         // 设置分页参数
         query.with(pageable);
 
-        if (limit > 0) {
-            query.limit(limit);
-        }
-
         // 查询数据
         List<LuckyTreasure> treasures = mongoTemplate.find(query, LuckyTreasure.class);
 
