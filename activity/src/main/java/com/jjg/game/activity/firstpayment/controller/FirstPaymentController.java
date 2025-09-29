@@ -8,6 +8,7 @@ import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.firstpayment.message.bean.FirstPaymentActivityInfo;
 import com.jjg.game.activity.firstpayment.message.bean.FirstPaymentDetailInfo;
+import com.jjg.game.activity.firstpayment.message.res.ResFirstPaymentClaimRewards;
 import com.jjg.game.activity.firstpayment.message.res.ResFirstPaymentDetailInfo;
 import com.jjg.game.activity.firstpayment.message.res.ResFirstPaymentTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
@@ -50,7 +51,7 @@ public class FirstPaymentController extends BaseActivityController {
      */
     @Override
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
-        ResFirstPaymentDetailInfo res = new ResFirstPaymentDetailInfo(Code.SUCCESS);
+        ResFirstPaymentClaimRewards res = new ResFirstPaymentClaimRewards(Code.SUCCESS);
         long playerId = player.getId();
         Map<Integer, FirstpaymentCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         FirstpaymentCfg cfg = baseCfgBeanMap.get(detailId);
@@ -58,8 +59,9 @@ public class FirstPaymentController extends BaseActivityController {
             res.code = Code.PARAM_ERROR;
             return res;
         }
-        PlayerActivityData data = null;
+        PlayerActivityData data;
         CommonResult<ItemOperationResult> addedItems;
+        Map<Integer, Long> rewards = null;
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         // 加锁，防止并发修改
         redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
@@ -76,7 +78,7 @@ public class FirstPaymentController extends BaseActivityController {
             // 设置购买时间
             data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
             // 购买奖励发放
-            Map<Integer, Long> rewards = new HashMap<>(cfg.getGetAvatarFrame());
+            rewards = new HashMap<>(cfg.getGetAvatarFrame());
             rewards.putAll(cfg.getGetitem());
             rewards.putAll(cfg.getGetgold());
             if (CollectionUtil.isNotEmpty(rewards)) {
@@ -96,12 +98,11 @@ public class FirstPaymentController extends BaseActivityController {
 
         // 发送日志
 //            activityLogger.sendFirstPaymentJoinLog(player, activityData, detailId, addedItems == null ? null : addedItems.data, cfg.getGetItem());
-
-        // 构建响应数据
-        res = new ResFirstPaymentDetailInfo(Code.SUCCESS);
-        res.detailInfo = new ArrayList<>();
-        res.detailInfo.add(buildPlayerActivityDetail(activityData.getId(), cfg, data));
-
+        if (rewards != null) {
+            res.infoList = ItemUtils.buildItemInfo(rewards);
+        }
+        res.activityId = activityData.getId();
+        res.detailId = detailId;
         return res;
     }
 

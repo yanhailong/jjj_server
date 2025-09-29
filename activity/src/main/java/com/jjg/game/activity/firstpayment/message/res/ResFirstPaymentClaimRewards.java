@@ -1,7 +1,6 @@
 package com.jjg.game.activity.firstpayment.message.res;
 
 import com.jjg.game.activity.constant.ActivityConstant;
-import com.jjg.game.activity.firstpayment.message.bean.FirstPaymentDetailInfo;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.pb.ItemInfo;
@@ -23,8 +22,6 @@ public class ResFirstPaymentClaimRewards extends AbstractResponse {
     public long detailId;
     @ProtoDesc("领取奖励信息")
     public List<ItemInfo> infoList;
-    @ProtoDesc("详细信息")
-    public FirstPaymentDetailInfo detailInfo;
 
     public ResFirstPaymentClaimRewards(int code) {
         super(code);
