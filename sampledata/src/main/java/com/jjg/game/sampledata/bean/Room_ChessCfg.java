@@ -1,8 +1,8 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
 import javax.annotation.processing.Generated;
+import java.util.List;
+import java.util.Map;
 /**
  * 配置bean
  *
@@ -20,6 +20,10 @@ public class Room_ChessCfg extends RoomCfg {
 
   /** 系统抽水 */
   protected int EffectiveRatio;
+  /** 请离房间（毫秒） */
+  protected int EscTime;
+  /** 踢出房间提示 */
+  protected int EscTipText;
   /** 机器人加入房间间隔（毫秒） */
   protected List<Integer> IntervalTime;
   /** 底注 */
@@ -52,6 +56,16 @@ public class Room_ChessCfg extends RoomCfg {
   /** 返回系统抽水 */
   public int getEffectiveRatio() {
     return EffectiveRatio;
+  }
+
+  /** 返回请离房间（毫秒） */
+  public int getEscTime() {
+    return EscTime;
+  }
+
+  /** 返回踢出房间提示 */
+  public int getEscTipText() {
+    return EscTipText;
   }
 
   /** 返回机器人加入房间间隔（毫秒） */

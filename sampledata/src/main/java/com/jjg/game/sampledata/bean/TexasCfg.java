@@ -1,8 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
 import javax.annotation.processing.Generated;
+import java.util.List;
 /**
  * 配置bean
  *
@@ -28,10 +27,6 @@ public class TexasCfg extends BaseCfgBean {
   protected int burnNum;
   /** 默认入座金币 */
   protected int coinsNum;
-  /** 请离房间（毫秒） */
-  protected int escTime;
-  /** 踢出房间提示 */
-  protected int escTipText;
   /** 游戏ID */
   protected int gameID;
   /** 保险赔率 */
@@ -74,16 +69,6 @@ public class TexasCfg extends BaseCfgBean {
   /** 返回默认入座金币 */
   public int getCoinsNum() {
     return coinsNum;
-  }
-
-  /** 返回请离房间（毫秒） */
-  public int getEscTime() {
-    return escTime;
-  }
-
-  /** 返回踢出房间提示 */
-  public int getEscTipText() {
-    return escTipText;
   }
 
   /** 返回游戏ID */
