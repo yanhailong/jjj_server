@@ -799,28 +799,37 @@ public class GMController extends AbstractController {
         log.info("收到修改黑名单信息 param={}", dto);
         try {
             boolean none = true;
-            if(dto.ids() != null && !dto.ids().isEmpty()) {
-                if(dto.type() == 0){
-                    blackListDao.addBlackIds(dto.ids());
-                }else {
-                    blackListDao.removeBlackIds(dto.ids());
+            if(dto.ids() != null) {
+                dto.ids().removeIf(Objects::isNull);
+                if(!dto.ids().isEmpty()){
+                    if(dto.type() == 0){
+                        blackListDao.addBlackIds(dto.ids());
+                    }else {
+                        blackListDao.removeBlackIds(dto.ids());
+                    }
+                    none = false;
                 }
-                none = false;
             }
 
-            if(dto.ips() != null && !dto.ips().isEmpty()) {
-                boolean match = dto.ips().stream().allMatch(NetUtil::isValidIP);
-                if(!match){
-                    log.debug("ip格式错误");
-                    return fail("common.fail");
-                }
-                if(dto.type() == 0){
-                    blackListDao.addBlackIps(dto.ips());
-                }else {
-                    blackListDao.removeBlackIps(dto.ips());
-                }
+            if(dto.ips() != null) {
+                dto.ips().removeIf(ip -> {
+                    ip = ip.trim();
+                    return StringUtils.isEmpty(ip);
+                });
+                if(!dto.ips().isEmpty()){
+                    boolean match = dto.ips().stream().allMatch(NetUtil::isValidIP);
+                    if(!match){
+                        log.debug("ip格式错误");
+                        return fail("common.fail");
+                    }
+                    if(dto.type() == 0){
+                        blackListDao.addBlackIps(dto.ips());
+                    }else {
+                        blackListDao.removeBlackIps(dto.ips());
+                    }
 
-                none = false;
+                    none = false;
+                }
             }
 
             if(none){

@@ -358,7 +358,7 @@ public class BaseLogger {
      * @param shopProduct
      */
     public void order(Player player, ShopProduct shopProduct, Order order) {
-        order(player, shopProduct, order.getPrice(), order.getRechargeType(),order.getOrderStatus());
+        order(player, shopProduct, order.getPrice(), order.getRechargeType(), order.getOrderStatus());
     }
 
     /**
@@ -367,8 +367,8 @@ public class BaseLogger {
      * @param player
      * @param shopProduct
      */
-    public void order(Player player, ShopProduct shopProduct,RechargeType rechargeType) {
-        order(player, shopProduct, shopProduct.getMoney(),rechargeType,OrderStatus.SUCCESS);
+    public void order(Player player, ShopProduct shopProduct, RechargeType rechargeType) {
+        order(player, shopProduct, shopProduct.getMoney(), rechargeType, OrderStatus.SUCCESS);
     }
 
     /***********************************************************************************************/
@@ -449,7 +449,7 @@ public class BaseLogger {
         return json;
     }
 
-    private void order(Player player, ShopProduct shopProduct, long price, RechargeType rechargeType,OrderStatus orderStatus) {
+    private void order(Player player, ShopProduct shopProduct, long price, RechargeType rechargeType, OrderStatus orderStatus) {
         try {
             JSONObject json = new JSONObject();
             json.put("nick", player.getNickName());
@@ -474,5 +474,19 @@ public class BaseLogger {
         } catch (Exception e) {
             log.error("", e);
         }
+    }
+
+    protected JSONArray mapToArray(Map map) {
+        if (map == null || map.isEmpty()) {
+            return null;
+        }
+
+        JSONArray jsonArray = new JSONArray();
+        map.forEach((k, v) -> {
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put(k + "", v);
+            jsonArray.add(jsonObject);
+        });
+        return jsonArray;
     }
 }

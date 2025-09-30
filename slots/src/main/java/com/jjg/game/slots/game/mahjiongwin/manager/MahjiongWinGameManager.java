@@ -127,6 +127,10 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
                 return gameRunInfo;
             }
 
+            if(!gameRunInfo.success()){
+                return gameRunInfo;
+            }
+
             //标准池
             if (gameRunInfo.getBigPoolTimes() > 0) {
                 long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();

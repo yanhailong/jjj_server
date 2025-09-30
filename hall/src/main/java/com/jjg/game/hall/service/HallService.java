@@ -39,6 +39,7 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author 11
@@ -646,16 +647,19 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return null;
             }
 
-            return gameStatusesMap.values().stream()
-                    // 先排序：按 sort 升序，再按 gameId 升序
+            return this.gameStatusesMap.values().stream()
+                    //1.先过滤选出上架的游戏
+                    .filter(gs -> gs.status() == 1)
+
+                    // 2.排序：按 sort 升序，再按 gameId 升序
                     .sorted(Comparator.comparingInt(GameStatus::sort)
                             .thenComparingInt(GameStatus::gameId))
 
-                    // 转换 GameStatus → GameListConfig
+                    // 3.转换 GameStatus → GameListConfig
                     .map(gameStatus -> {
                         GameListConfig config = new GameListConfig();
                         config.sid = gameStatus.gameId();
-                        config.status = gameStatus.status();
+                        config.status = gameStatus.open();
                         config.iconType = gameStatus.icon_category();
                         config.rightTopIcon = gameStatus.right_top_icon();
                         config.name = gameStatus.name();
