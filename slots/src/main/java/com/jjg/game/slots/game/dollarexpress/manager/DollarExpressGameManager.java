@@ -450,6 +450,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
                 }
             }
 
+            if(!gameRunInfo.success()){
+                return gameRunInfo;
+            }
+
             //检查是否触发投资游戏
             gameRunInfo = checkInvers(playerGameData, gameRunInfo);
 
