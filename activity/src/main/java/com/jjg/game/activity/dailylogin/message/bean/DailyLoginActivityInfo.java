@@ -16,4 +16,6 @@ public class DailyLoginActivityInfo {
     public List<DailyLoginDetailInfo> detailInfos;
     @ProtoDesc("累计天数")
     public long cumulativeDay;
+    @ProtoDesc("剩余时间")
+    public long remainTime;
 }

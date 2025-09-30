@@ -204,4 +204,23 @@ public class FirstPaymentController extends BaseActivityController {
                 .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
+    @Override
+    public boolean checkPlayerCanJoinActivity(Player player, ActivityData activityData) {
+        boolean checked = super.checkPlayerCanJoinActivity(player, activityData);
+        if (!checked) {
+            return false;
+        }
+        //已经购买不显示
+        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(player.getId(), activityData.getType(), activityData.getId());
+        if (CollectionUtil.isEmpty(playerActivityData)) {
+            return true;
+        }
+        for (PlayerActivityData data : playerActivityData.values()) {
+            if (data.getClaimStatus() == ActivityConstant.ActivityStatus.ENDED) {
+                continue;
+            }
+            return true;
+        }
+        return false;
+    }
 }

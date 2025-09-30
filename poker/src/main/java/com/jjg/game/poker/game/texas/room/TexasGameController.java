@@ -803,11 +803,10 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         if (seatInfoTreeMap.isEmpty()) {
             return;
         }
-        TexasCfg texasCfg = TexasDataHelper.getTexasCfg(gameDataVo);
         // 长时间无操作退出触发时间
-        int exitTime = texasCfg.getEscTime();
+        int exitTime = gameDataVo.getRoomCfg().getEscTime();
         // 长时间无操作退出提示语言ID
-        int exitTipLangId = texasCfg.getEscTipText();
+        int exitTipLangId = gameDataVo.getRoomCfg().getEscTipText();
         for (SeatInfo seatInfo : seatInfoTreeMap.values()) {
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
             if (gamePlayer == null) {

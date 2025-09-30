@@ -89,7 +89,9 @@ public class DailyLoginController extends BaseActivityController {
                     }
                 }
             }
-            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, playerActivityData);
+            if (change) {
+                playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, playerActivityData);
+            }
         } catch (Exception e) {
             log.error("每日签到增加进度异常 playerId:{} activityId:{}", playerId, activityId, e);
         } finally {
@@ -190,7 +192,6 @@ public class DailyLoginController extends BaseActivityController {
             info.claimStatus = data.getClaimStatus();
         }
         info.type = cfg.getType();
-        info.remainTime = TimeHelper.getNextDayRemainTime();
         return info;
     }
 
@@ -233,6 +234,7 @@ public class DailyLoginController extends BaseActivityController {
                 }
             }
             activityInfo.cumulativeDay = dailyLoginDao.getCumulativeLoginDay(entry.getKey(), playerId);
+            activityInfo.remainTime = TimeHelper.getNextDayRemainTime();
         }
         return cardTypeInfo;
     }
