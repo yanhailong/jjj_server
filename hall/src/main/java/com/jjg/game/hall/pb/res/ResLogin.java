@@ -58,12 +58,6 @@ public class ResLogin extends AbstractResponse {
     public long exp;
     @ProtoDesc("收藏游戏列表")
     public List<Integer> gameTypeList;
-    @ProtoDesc("筹码样式")
-    public int chipStyle;
-    @ProtoDesc("poker样式")
-    public int pokerStyle;
-    @ProtoDesc("大厅背景")
-    public int hallBg;
     @ProtoDesc("如果有值，表示要重连进入游戏")
     public GameWareInfo gameWareInfo;
     @ProtoDesc("轮播数据")
