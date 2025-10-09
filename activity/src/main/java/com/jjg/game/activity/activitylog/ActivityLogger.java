@@ -9,6 +9,7 @@ import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
+import com.jjg.game.sampledata.bean.PrivilegeCardCfg;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -28,9 +29,11 @@ public class ActivityLogger extends BaseLogger {
     /**
      * 每日奖金道具参加获得日志记录
      */
-    public void sendPrivilegeCardJoinLog(Player player, ActivityData activityData, int detailId, ItemOperationResult result, Map<Integer, Long> rewards) {
-        JSONObject json = buildBaseInfo(activityData, detailId);
+    public void sendPrivilegeCardJoinLog(Player player, ActivityData activityData, PrivilegeCardCfg cfg, ItemOperationResult result, Map<Integer, Long> rewards) {
+        JSONObject json = buildBaseInfo(activityData, cfg.getId());
         json.put("operation", "join");
+        json.put("subType", cfg.getType());
+        json.put("price", cfg.getPurchasecost());
         //奖励
         json.put("rewards", JSON.toJSONString(rewards));
         if (result != null) {
@@ -42,9 +45,10 @@ public class ActivityLogger extends BaseLogger {
     /**
      * 每日奖金道具领取日志记录
      */
-    public void sendPrivilegeCardRewardsLog(Player player, ActivityData activityData, int detailId, ItemOperationResult result, Map<Integer, Long> rewards) {
-        JSONObject json = buildBaseInfo(activityData, detailId);
+    public void sendPrivilegeCardRewardsLog(Player player, ActivityData activityData, PrivilegeCardCfg cfg, ItemOperationResult result, Map<Integer, Long> rewards) {
+        JSONObject json = buildBaseInfo(activityData, cfg.getId());
         json.put("operation", "rewards");
+        json.put("subType", cfg.getType());
         //奖励
         json.put("rewards", JSON.toJSONString(rewards));
         json.put("rewardsItemNum", JSON.toJSONString(result));
