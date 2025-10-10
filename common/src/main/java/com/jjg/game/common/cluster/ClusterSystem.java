@@ -797,9 +797,9 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
         clientList.forEach(clusterClient -> {
             try {
                 clusterClient.write(msg);
-                log.debug("给[{}]节点推送消息 node = {}", clusterClient.getType(), clusterClient.nodeConfig.getName());
+                log.debug("给[{}]节点推送消息 node = {},cmd = 0x{}", clusterClient.getType(), clusterClient.nodeConfig.getName(),Integer.toHexString(pfMessage.cmd));
             } catch (Exception e) {
-                log.error("推送到[{}]节点信息异常 node = {}", clusterClient.getType(), clusterClient.nodeConfig.getName(), e);
+                log.error("推送到[{}]节点信息异常 node = {},cmd = 0x{}", clusterClient.getType(), clusterClient.nodeConfig.getName(),Integer.toHexString(pfMessage.cmd), e);
             }
         });
     }

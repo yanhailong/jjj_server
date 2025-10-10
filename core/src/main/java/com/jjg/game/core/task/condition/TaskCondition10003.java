@@ -1,5 +1,6 @@
 package com.jjg.game.core.task.condition;
 
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.task.db.TaskData;
 import com.jjg.game.core.task.param.TaskConditionParam10003;
 import com.jjg.game.sampledata.bean.TaskCfg;
@@ -17,7 +18,7 @@ public class TaskCondition10003 extends AbstractTaskCondition<TaskConditionParam
      */
     @Override
     protected int getConditionId() {
-        return 10003;
+        return TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY;
     }
 
     @Override
