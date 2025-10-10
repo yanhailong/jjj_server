@@ -56,6 +56,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * @author lm
@@ -772,6 +773,19 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         if (dropItems.isEmpty()) {
             return dropItems;
         }
+
+        //将同一item.id的道具相加
+        Map<Integer, Long> mergedMap = dropItems.stream()
+                .collect(Collectors.groupingBy(
+                        Item::getId,
+                        Collectors.summingLong(Item::getItemCount)
+                ));
+
+        // 将 Map 转换回 List<Item>
+        dropItems = mergedMap.entrySet().stream()
+                .map(entry -> new Item(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
+
         // 更新道具掉落使用map
         dropItemDao.updateItemDropGroupCounter(player.getId(), itemDropGroupCounter);
         // 添加道具
