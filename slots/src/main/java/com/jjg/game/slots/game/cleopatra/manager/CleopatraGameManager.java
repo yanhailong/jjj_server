@@ -119,6 +119,10 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
 
             gameRunInfo = normal(gameRunInfo, playerGameData, betValue);
 
+            if(!gameRunInfo.success()){
+                return gameRunInfo;
+            }
+
             //标准池
             if (gameRunInfo.getBigPoolTimes() > 0) {
                 long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();

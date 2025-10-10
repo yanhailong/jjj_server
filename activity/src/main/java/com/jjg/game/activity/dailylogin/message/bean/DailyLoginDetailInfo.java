@@ -13,6 +13,5 @@ import com.jjg.game.common.proto.ProtobufMessage;
 public class DailyLoginDetailInfo extends BaseActivityDetailInfo {
     @ProtoDesc("类型 1连续 2累计")
     public int type;
-    @ProtoDesc("剩余时间")
-    public long remainTime;
+
 }

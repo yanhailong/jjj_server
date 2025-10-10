@@ -151,7 +151,7 @@ public class PrivilegeCardController extends BaseActivityController {
             }
 
             // 发送日志
-            activityLogger.sendPrivilegeCardJoinLog(player, activityData, detailId, addedItems == null ? null : addedItems.data, cfg.getGetItem());
+            activityLogger.sendPrivilegeCardJoinLog(player, activityData, cfg, addedItems == null ? null : addedItems.data, cfg.getGetItem());
 
             // 构建响应数据
             res = new ResPrivilegeCardDetailInfo(Code.SUCCESS);
@@ -229,7 +229,7 @@ public class PrivilegeCardController extends BaseActivityController {
         // 构建响应数据
         if (data != null) {
             if (addedItems != null && addedItems.success()) {
-                activityLogger.sendPrivilegeCardRewardsLog(player, activityData, detailId, addedItems.data, cfg.getDayRebate());
+                activityLogger.sendPrivilegeCardRewardsLog(player, activityData, cfg, addedItems.data, cfg.getDayRebate());
             }
             res.activityId = activityData.getId();
             res.detailId = detailId;

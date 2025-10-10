@@ -18,8 +18,10 @@ public class ShopProductInfo {
     public int endTime;
     @ProtoDesc("价值类型")
     public int valueType;
-    @ProtoDesc("价值")
+    @ProtoDesc("实际价值")
     public long value;
+    @ProtoDesc("展示价值")
+    public long showValue;
     @ProtoDesc("购买类型  -1.充值  ,其他值则为道具id")
     public int payType;
     @ProtoDesc("价格")

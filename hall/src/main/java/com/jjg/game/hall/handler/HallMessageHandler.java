@@ -769,9 +769,7 @@ public class HallMessageHandler implements GmListener {
         }
 
         Player player = hallPlayerService.get(playerController.getPlayer().getId());
-        if (warehouseCfg.getEnterLimit() != -1 &&
-                checkDiamond ? warehouseCfg.getEnterLimit() > player.getDiamond() : warehouseCfg.getEnterLimit() > player.getGold()) {
-
+        if (warehouseCfg.getEnterLimit() != -1 && (checkDiamond ? warehouseCfg.getEnterLimit() > player.getDiamond() : warehouseCfg.getEnterLimit() > player.getGold())) {
             log.debug("玩家携带货币不足 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},enterLimit = {},checkDiamond = {}",
                 playerController.playerId(), gameType
                 , roomCfgId, warehouseCfg.getTransactionItemId(),player.getGold(),player.getDiamond(), warehouseCfg.getEnterLimit(),checkDiamond);
@@ -791,16 +789,12 @@ public class HallMessageHandler implements GmListener {
             return new CommonResult<>(Code.NOT_FOUND);
         }
 
-//        boolean flag = warehouseCfg.getEnterMax() != -1;
-//        System.out.println(flag);
-//        System.out.println("111");
-//        if (flag &&
-//                checkDiamond ? warehouseCfg.getEnterMax() < player.getDiamond() : warehouseCfg.getEnterMax() < player.getGold()) {
-//            log.debug("玩家携带货币超过房间限制 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},enterMax = {},checkDiamond = {}",
-//                    playerController.playerId(), gameType
-//                    , roomCfgId, warehouseCfg.getTransactionItemId(),player.getGold(),player.getDiamond(), warehouseCfg.getEnterMax(),checkDiamond);
-//            return new CommonResult<>(Code.GOLD_TOO_MUCH);
-//        }
+        if(warehouseCfg.getEnterMax() != -1 && (checkDiamond ? warehouseCfg.getEnterMax() < player.getDiamond() : warehouseCfg.getEnterMax() < player.getGold())){
+            log.debug("玩家携带货币超过房间限制 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},enterMax = {},checkDiamond = {}",
+                    playerController.playerId(), gameType
+                    , roomCfgId, warehouseCfg.getTransactionItemId(),player.getGold(),player.getDiamond(), warehouseCfg.getEnterMax(),checkDiamond);
+            return new CommonResult<>(Code.GOLD_TOO_MUCH);
+        }
         return new CommonResult<>(Code.SUCCESS, info);
     }
 

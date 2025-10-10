@@ -1,8 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
 import javax.annotation.processing.Generated;
+import java.util.Map;
 /**
  * 配置bean
  *
@@ -40,6 +39,8 @@ public class ChessTexasStrategyCfg extends BaseCfgBean {
   protected Map<Integer,Integer> proactiveStrategy_3;
   /** 无人加注的行为权重 */
   protected Map<Integer,Integer> proactiveStrategy_4;
+  /** 牌型 */
+  protected int type;
   /** 牌值 */
   protected int value;
 
@@ -96,6 +97,11 @@ public class ChessTexasStrategyCfg extends BaseCfgBean {
   /** 返回无人加注的行为权重 */
   public Map<Integer,Integer> getProactiveStrategy_4() {
     return proactiveStrategy_4;
+  }
+
+  /** 返回牌型 */
+  public int getType() {
+    return type;
   }
 
   /** 返回牌值 */
