@@ -4,6 +4,8 @@ package com.jjg.game.room.datatrack;
 import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
+import com.jjg.game.core.constant.TaskConstant;
+import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -28,7 +30,7 @@ public class SaveLogUtil {
     private static final Logger log = LoggerFactory.getLogger(SaveLogUtil.class);
 
     public static void generalLog(Map<Long, Map<Integer, List<Integer>>> betData, Map<Long, DefaultKeyValue<Long,
-                                      Long>> playerGet, Map<Long, GamePlayer> gamePlayerMap,
+                                          Long>> playerGet, Map<Long, GamePlayer> gamePlayerMap,
                                   AbstractPhaseGameController<Room_BetCfg, ?> gameController) {
         Map<Integer, Long> areaTotalBet = new HashMap<>();
         GameDataTracker gameDataTracker = gameController.getGameDataTracker();
@@ -86,21 +88,28 @@ public class SaveLogUtil {
      * 处理有效流水
      */
     public static void dealEffectiveWaterFlow(
-        AbstractPhaseGameController<Room_BetCfg, ?> controller, GamePlayer player, long effectiveGold, long allBet) {
+            AbstractPhaseGameController<Room_BetCfg, ?> controller, GamePlayer player, long effectiveGold, long allBet) {
         ActivityManager activityManager =
-            controller.getRoomController().getRoomManager().getActivityManager();
+                controller.getRoomController().getRoomManager().getActivityManager();
         if (effectiveGold > 0) {
             activityManager.addPlayerActivityProgress(player,
-                ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveGold,
-                controller.getGameTransactionItemId());
+                    ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveGold,
+                    controller.getGameTransactionItemId());
             activityManager.addActivityProgress(player,
-                ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveGold,
-                controller.getGameTransactionItemId());
+                    ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveGold,
+                    controller.getGameTransactionItemId());
             controller.getGameEventManager().triggerEvent(
-                new PlayerEffectiveFlowingEvent(player, controller.getRoom().getRoomCfgId(), effectiveGold, 0));
+                    new PlayerEffectiveFlowingEvent(player, controller.getRoom().getRoomCfgId(), effectiveGold, 0));
+            //触发任务
+            controller.getTaskManager().trigger(player.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
+                TaskConditionParam12001 param = new TaskConditionParam12001();
+                param.setGameId(controller.getRoom().getGameType());
+                param.setAddValue(effectiveGold);
+                return param;
+            });
             log.debug("玩家：{} 在房间：{} 产生有效流水：{}", player.getId(), controller.getRoom().getRoomCfgId(), effectiveGold);
         }
         activityManager.addPlayerActivityProgress(
-            player, ActivityTargetType.BET.getTargetKey(), allBet, controller.getGameTransactionItemId());
+                player, ActivityTargetType.BET.getTargetKey(), allBet, controller.getGameTransactionItemId());
     }
 }

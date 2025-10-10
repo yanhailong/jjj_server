@@ -13,6 +13,7 @@ import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.base.player.IRecharge;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.constant.BackendGMCmd;
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.Marquee;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
@@ -29,9 +30,13 @@ import com.jjg.game.core.pb.gm.ReqAllKickout;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.ShopService;
+import com.jjg.game.core.task.manager.TaskManager;
+import com.jjg.game.core.task.param.DefaultTaskConditionParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.function.Supplier;
 
 /**
  * @author 11
@@ -58,6 +63,8 @@ public class CoreToServerMessageHandler {
     private NodeManager nodeManager;
     @Autowired
     private ConfigManager configManager;
+    @Autowired
+    private TaskManager taskManager;
 
     /**
      * 其他节点推送的跑马灯信息
@@ -152,7 +159,16 @@ public class CoreToServerMessageHandler {
         SystemInterfaceHolder.callGameSysAction(IRecharge.class, (f) -> f.rechargeSuccess(player, order, shopProduct));
         //充值事件
         gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order));
-
+        //任务条件参数
+        Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
+            DefaultTaskConditionParam param = new DefaultTaskConditionParam();
+            param.setAddValue(order.getPrice());
+            return param;
+        };
+        //单笔充值任务
+        taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
+        //累计充值任务
+        taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_SUM_PAY, paramSupplier);
         log.info("充值成功，通知到玩家所在的当前节点 playerId = {},orderId = {}", player.getId(), order.getId());
     }
 

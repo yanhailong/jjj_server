@@ -79,6 +79,11 @@ public class RedDotDetails {
          */
         @ProtoDesc("活动")
         ACTIVITY,
+        /**
+         * 任务
+         */
+        @ProtoDesc("任务")
+        TASK,
     }
 
 

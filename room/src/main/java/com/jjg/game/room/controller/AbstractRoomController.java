@@ -16,6 +16,7 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
 import com.jjg.game.core.dao.room.PlayerRoomDataDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.room.base.ERoomState;
 import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -68,6 +69,10 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     private volatile ERoomState roomState;
     // 游戏事件管理器
     private GameEventManager gameEventManager;
+    /**
+     * 任务管理器
+     */
+    private TaskManager taskManager;
 
     public AbstractRoomController(Class<? extends RoomPlayer> roomPlayerClazz, R room) {
         this.roomPlayerClazz = roomPlayerClazz;
@@ -381,6 +386,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         roomProcessor = roomManager.getProcessorExecutors().getProcessorById(room.getId());
         // 游戏事件管理器
         gameEventManager = roomManager.getGameEventManager();
+        taskManager = roomManager.getTaskManager();
         // 创建游戏控制器
         gameController = createGameController(roomCfg);
         if (gameController == null) {
@@ -715,5 +721,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     public GameEventManager getGameEventManager() {
         return gameEventManager;
+    }
+
+    public TaskManager getTaskManager() {
+        return taskManager;
     }
 }

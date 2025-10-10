@@ -19,11 +19,15 @@ import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
+import com.jjg.game.core.task.manager.TaskManager;
+import com.jjg.game.core.task.param.TaskConditionParam10001;
+import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -75,6 +79,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected ActivityManager activityManager;
     @Autowired
     protected GameEventManager gameEventManager;
+    @Autowired
+    protected TaskManager taskManager;
     //游戏类型
     protected int gameType;
     //在specualResultLib
@@ -450,6 +456,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerController.setPlayer(player);
         }
         result.data = resultLib;
+        //默认这个地方玩家spin
+        Thread.ofVirtual().start(() -> {
+            //触发下注
+            taskManager.trigger(player.getId(), TaskConstant.ConditionType.BET_COUNT, () -> {
+                TaskConditionParam10001 param = new TaskConditionParam10001();
+                param.setAddValue(betValue);
+                param.setGameId(getGameType());
+                return param;
+            });
+        });
         return result;
     }
 
@@ -565,6 +581,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             activityManager.addPlayerActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
             // 触发有效流水事件
             gameEventManager.triggerEvent(new PlayerEffectiveFlowingEvent(player, gameData.getRoomCfgId(), betValue, 0));
+            //触发任务
+            taskManager.trigger(player.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
+                TaskConditionParam12001 param = new TaskConditionParam12001();
+                param.setGameId(getGameType());
+                param.setAddValue(betValue);
+                return param;
+            });
         });
         BigDecimal bet = BigDecimal.valueOf(betValue);
         log.debug("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.playerId(), betValue, result.data.getGold());

@@ -11,6 +11,7 @@ import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.RechargeType;
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.constant.SubscriptionTopic;
 import com.jjg.game.core.listener.GmListener;
@@ -25,6 +26,8 @@ import com.jjg.game.core.pb.reddot.ReqRedDot;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.task.manager.TaskManager;
+import com.jjg.game.core.task.param.DefaultTaskConditionParam;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +37,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * @author 11
@@ -62,6 +66,8 @@ public class CoreMessageHandler {
     private SubscriptionManager subscriptionManager;
     @Autowired
     private OrderService orderService;
+    @Autowired
+    private TaskManager taskManager;
 
     /**
      *
@@ -143,7 +149,7 @@ public class CoreMessageHandler {
                 log.debug("收到添加经验的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), arr);
                 long num = Long.parseLong(params);
                 CommonResult<Player> result =
-                        playerService.betDeductGold(playerController.playerId(), num, true, true,"gmtest");
+                        playerService.betDeductGold(playerController.playerId(), num, true, true, "gmtest");
                 res.code = result.code;
                 playerController.send(res);
                 return;
@@ -155,8 +161,18 @@ public class CoreMessageHandler {
                 //1等级礼包 测试用
                 RechargeType rechargeType = EnumUtil.getBy(RechargeType.class, e -> e.getType() == type);
                 int id = Integer.parseInt(arr[2]);
-                Order order = orderService.generateOrder(playerController.getPlayer().getId(), id, 11, rechargeType);
-                gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(playerController.getPlayer(),order));
+                Order order = orderService.generateOrder(playerController.getPlayer().getId(), id, 1000, rechargeType);
+                gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(playerController.getPlayer(), order));
+                //任务条件参数
+                Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
+                    DefaultTaskConditionParam param = new DefaultTaskConditionParam();
+                    param.setAddValue(order.getPrice());
+                    return param;
+                };
+                //单笔充值任务
+                taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
+                //累计充值任务
+                taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_SUM_PAY, paramSupplier);
                 return;
             }
 

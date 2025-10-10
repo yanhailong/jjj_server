@@ -7,14 +7,19 @@ import com.jjg.game.core.base.item.EItemUseStrategy;
 import com.jjg.game.core.base.player.IPlayerRegister;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.PlayerPackDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.core.task.manager.TaskManager;
+import com.jjg.game.core.task.param.TaskConditionParam12101;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -46,6 +51,9 @@ public class PlayerPackService implements IPlayerRegister {
     private CoreLogger coreLogger;
     @Autowired
     private ClusterSystem clusterSystem;
+    @Lazy
+    @Autowired
+    private TaskManager taskManager;
 
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
@@ -306,6 +314,15 @@ public class PlayerPackService implements IPlayerRegister {
                     result.code = removeResult.code;
                     return result;
                 }
+                Thread.ofVirtual().start(() -> {
+                    //触发消耗道具任务
+                    taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> {
+                        TaskConditionParam12101 param = new TaskConditionParam12101();
+                        param.setItemId(id);
+                        param.setAddValue(count);
+                        return param;
+                    });
+                });
             }
             //扣除金币和钻石
             if (deductGoldV > 0 || deductDiamondV > 0) {
@@ -317,6 +334,26 @@ public class PlayerPackService implements IPlayerRegister {
                 }
                 result.data.setDiamond(removeResult.data.getDiamond());
                 result.data.setGoldNum(removeResult.data.getGold());
+                long finalDeductGoldV = deductGoldV;
+                long finalDeductDiamondV = deductDiamondV;
+                Thread.ofVirtual().start(() -> {
+                    //触发消耗金币任务
+                    if (finalDeductGoldV > 0) {
+                        TaskConditionParam12101 param = new TaskConditionParam12101();
+                        param.setItemId(ItemUtils.getGoldItemId());
+                        param.setAddValue(finalDeductGoldV);
+                        param.setResultValue(removeResult.data.getGold());
+                        taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> param);
+                    }
+                    //触发消耗钻石任务
+                    if (finalDeductDiamondV > 0) {
+                        TaskConditionParam12101 param = new TaskConditionParam12101();
+                        param.setItemId(ItemUtils.getDiamondItemId());
+                        param.setAddValue(finalDeductDiamondV);
+                        param.setResultValue(removeResult.data.getDiamond());
+                        taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> param);
+                    }
+                });
             }
             if (packItemList.isEmpty()) {
                 result.code = Code.SUCCESS;

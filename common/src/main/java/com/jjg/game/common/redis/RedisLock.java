@@ -280,4 +280,41 @@ public class RedisLock {
         }
         return defaultValue;
     }
+
+    /**
+     * 获取锁并执行逻辑代码，执行完毕后自动释放锁。
+     * 此方法会尝试获取锁并强制等待直到获取成功，在获取锁后执行传入的逻辑代码，完成后自动释放锁。
+     *
+     * @param key      锁的唯一标识。
+     * @param waitTime 等待锁的时间，单位为秒。
+     * @param runnable 需要执行的逻辑代码。
+     */
+    public void lockAndRun(String key, int waitTime, Runnable runnable) {
+        lock(key, waitTime);
+        try {
+            runnable.run();
+        } finally {
+            unlock(key);
+        }
+    }
+
+    /**
+     * 获取锁并执行逻辑代码，执行完毕后自动释放锁。
+     * 此方法会尝试获取锁并强制等待直到获取成功，在获取锁后执行传入的逻辑代码并返回结果，完成后自动释放锁。
+     *
+     * @param <T>      返回值类型
+     * @param key      锁的唯一标识。
+     * @param waitTime 等待锁的时间，单位为秒。
+     * @param supplier 需要执行的逻辑代码，返回一个结果。
+     * @return 执行逻辑代码后的返回结果。
+     */
+    public <T> T lockAndGet(String key, int waitTime, Supplier<T> supplier) {
+        lock(key, waitTime);
+        try {
+            return supplier.get();
+        } finally {
+            unlock(key);
+        }
+    }
+
 }
