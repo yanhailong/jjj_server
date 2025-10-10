@@ -111,6 +111,8 @@ public interface MessageConst {
 
         //商城
         int SHOP_TYPE = 0x29;
+        //任务
+        int TASK_TYPE = 0x30;
     }
 
     interface ToClientConst {

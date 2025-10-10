@@ -12,8 +12,11 @@ import com.jjg.game.common.utils.ExceptionUtils;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.task.manager.TaskManager;
+import com.jjg.game.core.task.param.TaskConditionParam10003;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
@@ -47,7 +50,7 @@ import java.util.function.Supplier;
  * @author 2CL
  */
 public abstract class AbstractGameController<RC extends RoomCfg, G extends GameDataVo<RC>> implements TimerListener<IProcessorHandler>,
-    IGameController, IGameLifeCycle {
+        IGameController, IGameLifeCycle {
     protected static final Logger log = LoggerFactory.getLogger(AbstractGameController.class);
     // 游戏配置
     protected G gameDataVo;
@@ -65,6 +68,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     protected GameDataTracker gameDataTracker;
     // 游戏事件管理器
     protected GameEventManager gameEventManager;
+    /**
+     * 任务管理器
+     */
+    protected TaskManager taskManager;
 
     public AbstractGameController(AbstractRoomController<RC, ? extends Room> roomController) {
         this.roomController = roomController;
@@ -87,15 +94,15 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     public void initialGame() {
         // 玩家数据回存检查间隔时间
         int playerSaveCheckInterval =
-            RandomUtils.randomMinMax(
-                RoomConstant.PLAYER_SAVE_CHECK_INTERVAL_MIN, RoomConstant.PLAYER_SAVE_CHECK_INTERVAL_MAX);
+                RandomUtils.randomMinMax(
+                        RoomConstant.PLAYER_SAVE_CHECK_INTERVAL_MIN, RoomConstant.PLAYER_SAVE_CHECK_INTERVAL_MAX);
         tickTaskMap.put(ETickTaskType.ROOM_PLAYER_SAVE_CHECK,
-            new BaseGameTickTask(playerSaveCheckInterval) {
-                @Override
-                public void run(long triggeredTimestamp) {
-                    checkAndSavePlayerData();
-                }
-            });
+                new BaseGameTickTask(playerSaveCheckInterval) {
+                    @Override
+                    public void run(long triggeredTimestamp) {
+                        checkAndSavePlayerData();
+                    }
+                });
         gameState = EGameState.READY;
     }
 
@@ -104,6 +111,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         gameState = EGameState.INIT_DONE;
         // 游戏事件管理器
         this.gameEventManager = roomController.getGameEventManager();
+        this.taskManager = roomController.getTaskManager();
     }
 
     /**
@@ -133,8 +141,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         // 将玩家数据复制到玩家游戏数据中
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         Player player = playerController.isRobotPlayer()
-            ? playerController.getPlayer()
-            : playerService.getOrUpdatePlayerController(playerController);
+                ? playerController.getPlayer()
+                : playerService.getOrUpdatePlayerController(playerController);
         String playerJson = JSON.toJSONString(player);
         GamePlayer gamePlayer;
         if (player instanceof RobotPlayer) {
@@ -205,11 +213,11 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         // 真人玩家进行数据回存
         gameDataVo.getGamePlayerMapExceptRobot().values().forEach(gamePlayer -> {
             int randomTime =
-                RandomUtils.randomMinMax(RoomConstant.PLAYER_SAVE_DB_TIME_MIN, RoomConstant.PLAYER_SAVE_DB_TIME_MAX);
+                    RandomUtils.randomMinMax(RoomConstant.PLAYER_SAVE_DB_TIME_MIN, RoomConstant.PLAYER_SAVE_DB_TIME_MAX);
             // 每个玩家添加随机回存time事件
             addGameTimeEvent(
-                new TimerEvent<>(this, randomTime, () -> this.directlySavePlayerData(gamePlayer)),
-                RoomEventType.ROOM_SAVE_PLAYER_DATA);
+                    new TimerEvent<>(this, randomTime, () -> this.directlySavePlayerData(gamePlayer)),
+                    RoomEventType.ROOM_SAVE_PLAYER_DATA);
         });
     }
 
@@ -225,16 +233,16 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         // 如果游戏端的更新时间和数据库中的不一致，说明玩家数据在游戏外部进行了修改，需要判断使用哪一边的数据，暂时先打日志
         if (gamePlayer.getUpdateTime() != playerUpdateTime) {
             log.error("玩家游戏数据: {} 更新时间：{} 和数据库中数据的更新时间: {} 不一致, {}",
-                gamePlayer.getId(), gamePlayer.getUpdateTime(), playerUpdateTime, gameDataVo.roomLogInfo());
+                    gamePlayer.getId(), gamePlayer.getUpdateTime(), playerUpdateTime, gameDataVo.roomLogInfo());
         } else {
             player = JSON.parseObject(JSON.toJSONString(gamePlayer), Player.class);
             Player finalPlayer = player;
             Player updatedPlayer =
-                roomController.getRoomManager().getPlayerService().doSave(player.getId(), (latestPlayer) -> {
-                    // TODO 后续换一种效率更高的复制方法
-                    //进行值复制
-                    BeanUtils.copyProperties(finalPlayer, latestPlayer);
-                });
+                    roomController.getRoomManager().getPlayerService().doSave(player.getId(), (latestPlayer) -> {
+                        // TODO 后续换一种效率更高的复制方法
+                        //进行值复制
+                        BeanUtils.copyProperties(finalPlayer, latestPlayer);
+                    });
             gamePlayer.setUpdateTime(updatedPlayer.getUpdateTime());
             log.info("回存玩家: {} 游戏数据成功", finalPlayer.getId());
         }
@@ -324,7 +332,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     public void broadcastGamePauseInfo() {
         NotifyPauseGameOnNewRound notifyPauseGameOnNewRound = new NotifyPauseGameOnNewRound();
         broadcastToPlayers(
-            RoomMessageBuilder.newBuilder().setData(notifyPauseGameOnNewRound).toAllPlayer());
+                RoomMessageBuilder.newBuilder().setData(notifyPauseGameOnNewRound).toAllPlayer());
     }
 
     @Override
@@ -359,10 +367,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      */
     public boolean isGameStarted() {
         return gameState == EGameState.STARTED ||
-            gameState == EGameState.GAMING ||
-            gameState == EGameState.PAUSING_ON_NEXT_ROUND ||
-            gameState == EGameState.ROUND_SETTLEMENT ||
-            gameState == EGameState.ROUND_OVER;
+                gameState == EGameState.GAMING ||
+                gameState == EGameState.PAUSING_ON_NEXT_ROUND ||
+                gameState == EGameState.ROUND_SETTLEMENT ||
+                gameState == EGameState.ROUND_OVER;
     }
 
     @Override
@@ -504,7 +512,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         }
         // TODO 待修改betDeductGold方法，需要调用betDeductGold扣除金币
         CommonResult<GamePlayer> result =
-            playerService.deductGold(playerId, num, deductType, desc, isNotify, supplier, beforeUpdateGold);
+                playerService.deductGold(playerId, num, deductType, desc, isNotify, supplier, beforeUpdateGold);
         if (result.data == null) {
             return Code.NOT_ENOUGH;
         }
@@ -540,7 +548,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             return Code.SUCCESS;
         }
         CommonResult<GamePlayer> result =
-            playerService.deductDiamond(playerId, num, deductType, desc, isNotify, supplier, beforeUpdateDiamond);
+                playerService.deductDiamond(playerId, num, deductType, desc, isNotify, supplier, beforeUpdateDiamond);
         if (result.data == null) {
             return Code.NOT_ENOUGH;
         }
@@ -596,13 +604,34 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     /**
+     * 触发任务的方法。用于根据指定的玩家ID、游戏类型和任务参数触发任务。
+     *
+     * @param playerId 玩家ID
+     * @param gameType 游戏类型
+     * @param winValue 增加的钱
+     * @param coinId   货币id
+     */
+    private void triggerTask(long playerId, int gameType, long winValue, int coinId) {
+        Thread.ofVirtual().start(() -> {
+            //触发任务
+            taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
+                TaskConditionParam10003 param = new TaskConditionParam10003();
+                param.setGameId(gameType);
+                param.setAddValue(winValue);
+                param.setCoinId(coinId);
+                return param;
+            });
+        });
+    }
+
+    /**
      * 添加金币，不要将此方法设置为public，游戏的交易道具是配置的道具ID写入
      *
-     * @param player 需要更新数据的player
-     * @param currencyMap      货币数量
-     * @param addType  添加类型
-     * @param desc     描述
-     * @param isNotify 是否通知
+     * @param player      需要更新数据的player
+     * @param currencyMap 货币数量
+     * @param addType     添加类型
+     * @param desc        描述
+     * @param isNotify    是否通知
      */
     public void addCurrency(Player player, Map<Integer, Long> currencyMap, String addType, String desc, boolean isNotify) {
         if (player == null || player.getId() <= 0 || CollectionUtil.isEmpty(currencyMap)) {
@@ -619,6 +648,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 if (gamePlayer != null) {
                     player.setGold(gamePlayer.getGold());
                 }
+                //触发任务
+                triggerTask(playerId, getRoom().getGameType(), entry.getValue(), ItemUtils.getGoldItemId());
             }
             if (entry.getKey() == ItemUtils.getDiamondItemId() && entry.getValue() > 0) {
                 if (addDiamond(playerId, entry.getValue(), addType, desc, isNotify) != Code.SUCCESS) {
@@ -628,6 +659,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 if (gamePlayer != null) {
                     player.setDiamond(gamePlayer.getDiamond());
                 }
+                //触发任务
+                triggerTask(playerId, getRoom().getGameType(), entry.getValue(), ItemUtils.getDiamondItemId());
             }
         }
     }
@@ -710,12 +743,16 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             }
         } else {
             log.error("异常操作，room: {} 不能添加非游戏好友: {} 的钻石：{} {}",
-                gameDataVo.roomLogInfo(), playerId, num, ExceptionUtils.currentThreadTraces());
+                    gameDataVo.roomLogInfo(), playerId, num, ExceptionUtils.currentThreadTraces());
         }
         return result.code;
     }
 
     public GameEventManager getGameEventManager() {
         return gameEventManager;
+    }
+
+    public TaskManager getTaskManager() {
+        return taskManager;
     }
 }

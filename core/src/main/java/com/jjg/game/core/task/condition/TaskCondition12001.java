@@ -1,0 +1,46 @@
+package com.jjg.game.core.task.condition;
+
+import com.jjg.game.core.task.db.TaskData;
+import com.jjg.game.core.task.param.TaskConditionParam12001;
+import com.jjg.game.sampledata.bean.TaskCfg;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+/**
+ * 有效下注
+ */
+@Component
+public class TaskCondition12001 extends AbstractTaskCondition<TaskConditionParam12001> {
+    /**
+     * 获取任务的条件ID。
+     */
+    @Override
+    protected int getConditionId() {
+        return 12001;
+    }
+
+    @Override
+    protected boolean checkAddProgress(TaskCfg taskCfg, TaskData taskData, TaskConditionParam12001 param) {
+        List<Integer> conditionId = taskCfg.getTaskConditionId();
+        int gameId = conditionId.get(1);
+        if (gameId > 0) {
+            return param.getGameId() == gameId;
+        }
+        return false;
+    }
+
+    /**
+     * 获取任务条件的比较值，用于判断任务完成条件是否达成。
+     *
+     * @param taskCfg  任务配置信息，包含任务必要的元数据。
+     * @param taskData 任务当前进度数据，包含玩家的任务状态及相关进度。
+     * @param param    任务条件参数，包含执行条件判断所需的动态数据。
+     * @return 返回用于比较的具体值，例如任务完成所需的目标数量或指标。
+     */
+    @Override
+    protected Long getCompareValue(TaskCfg taskCfg) {
+        return Long.valueOf(taskCfg.getTaskConditionId().get(2));
+    }
+
+}

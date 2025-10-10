@@ -5,9 +5,11 @@ import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomPlayer;
+import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
@@ -406,6 +408,13 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                     // 触发事件
                     gameController.getGameEventManager().triggerEvent(
                             new PlayerEffectiveFlowingEvent(gamePlayer, gameDataVo.getRoomCfg().getId(), betValue, 0));
+                    //触发任务
+                    gameController.getTaskManager().trigger(gamePlayer.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
+                        TaskConditionParam12001 param = new TaskConditionParam12001();
+                        param.setGameId(gameDataVo.getRoomCfg().getGameID());
+                        param.setAddValue(betValue);
+                        return param;
+                    });
                 });
             }
         }

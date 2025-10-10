@@ -4,6 +4,7 @@ import com.jjg.game.core.base.condition.ConditionCheckService;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.manager.SampleDataManager;
+import com.jjg.game.core.task.manager.TaskManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,8 @@ public class CoreStartService {
     private ShopService shopService;
     @Autowired
     private ConfigManager configManager;
+    @Autowired
+    private TaskManager taskManager;
 
     /**
      * 启动时初始化
@@ -40,6 +43,7 @@ public class CoreStartService {
         gameEventManager.initEventListener();
         shopService.init();
         configManager.init();
+        taskManager.init();
     }
 
     /**

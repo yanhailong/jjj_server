@@ -4,6 +4,7 @@ import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
+import com.jjg.game.core.task.manager.TaskManager;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -32,6 +33,8 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
     private SlotsFactoryManager slotsFactoryManager;
     @Autowired
     private ActivityManager activityManager;
+    @Autowired
+    private TaskManager taskManager;
     //上下文
     private ApplicationContext context;
 
@@ -49,6 +52,8 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
         this.marqueeManager.init();
         //加载活动数据
         activityManager.initData();
+        //加载任务管理器
+        taskManager.init();
         running = true;
     }
 

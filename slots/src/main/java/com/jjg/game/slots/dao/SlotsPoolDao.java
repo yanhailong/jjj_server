@@ -1,9 +1,13 @@
 package com.jjg.game.slots.dao;
 
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.AbstractPoolDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.task.manager.TaskManager;
+import com.jjg.game.core.task.param.TaskConditionParam10003;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseRoomCfg;
 import com.jjg.game.slots.service.SlotsPlayerService;
@@ -24,6 +28,8 @@ public class SlotsPoolDao extends AbstractPoolDao {
 
     @Autowired
     private SlotsPlayerService slotsPlayerService;
+    @Autowired
+    private TaskManager taskManager;
     protected BigDecimal tenThousandBigDecimal = BigDecimal.valueOf(10000);
 
     /**
@@ -127,6 +133,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
             return result;
         }
 
+        triggerTask(playerId, gameType, value);
         log.debug("从标准池扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},value = {},afterPool = {},addType = {}", playerId, gameType, roomCfgId, value, after, addType);
         return result;
     }
@@ -148,9 +155,30 @@ public class SlotsPoolDao extends AbstractPoolDao {
             addToSmallPool(gameType, roomCfgId, value);
             return result;
         }
-
+        triggerTask(playerId, gameType, poolValue);
         log.debug("从小池子扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomCfgId, value, poolValue, addType);
         return result;
+    }
+
+    /**
+     * 触发任务的方法。用于根据指定的玩家ID、游戏类型和任务参数触发任务。
+     *
+     * @param playerId 玩家ID
+     * @param gameType 游戏类型
+     * @param winValue 增加的钱
+     */
+    private void triggerTask(long playerId, int gameType, long winValue) {
+        Thread.ofVirtual().start(() -> {
+            //触发任务
+            taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
+                TaskConditionParam10003 param = new TaskConditionParam10003();
+                param.setGameId(gameType);
+                param.setAddValue(winValue);
+                //TODO:默认金币
+                param.setCoinId(ItemUtils.getGoldItemId());
+                return param;
+            });
+        });
     }
 
     /**
@@ -159,23 +187,23 @@ public class SlotsPoolDao extends AbstractPoolDao {
      * @param playerId
      * @param gameType
      * @param roomCfgId
-     * @param ratio 奖池万分比
+     * @param ratio     奖池万分比
      * @param addType
      * @return
      */
-    public CommonResult<Long> rewardByRatioFromSmallPool(long playerId, int gameType, int roomCfgId,int ratio, String addType) {
+    public CommonResult<Long> rewardByRatioFromSmallPool(long playerId, int gameType, int roomCfgId, int ratio, String addType) {
         CommonResult<Long> result = new CommonResult<>(Code.SUCCESS);
 
         Number poolValue = getSmallPoolByRoomCfgId(gameType, roomCfgId);
 
         long value = SlotsUtil.calProp(ratio, poolValue.longValue());
-        if(value < 1){
+        if (value < 1) {
             result.code = Code.FAIL;
-            log.debug("计算出的 value 小于1 playerId = {},gameType = {},roomCfgId = {}", playerId, gameType,roomCfgId);
+            log.debug("计算出的 value 小于1 playerId = {},gameType = {},roomCfgId = {}", playerId, gameType, roomCfgId);
             return result;
         }
 
-        Long afterPoolValue = addToSmallPool(gameType, roomCfgId,-value);
+        Long afterPoolValue = addToSmallPool(gameType, roomCfgId, -value);
         if (afterPoolValue == null) {
             result.code = Code.FAIL;
             return result;
@@ -185,12 +213,12 @@ public class SlotsPoolDao extends AbstractPoolDao {
         if (!addResult.success()) {  //如果失败，要把钱重新加回池子
             result.code = Code.FAIL;
             addToSmallPool(gameType, roomCfgId, value);
-            log.debug("操作失败，已将金币加回池子 playerId = {},gameType = {},roomCfgId = {}", playerId, gameType,roomCfgId);
+            log.debug("操作失败，已将金币加回池子 playerId = {},gameType = {},roomCfgId = {}", playerId, gameType, roomCfgId);
             return result;
         }
 
         result.data = value;
-        log.debug("从小池子按照百分比扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},beforeValue = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomCfgId,poolValue, value,afterPoolValue, addType);
+        log.debug("从小池子按照百分比扣除，并给玩家加钱成功 playerId = {},gameType = {},roomCfgId = {},beforeValue = {},addValue = {},afterValue = {},addType = {}", playerId, gameType, roomCfgId, poolValue, value, afterPoolValue, addType);
         return result;
     }
 }
