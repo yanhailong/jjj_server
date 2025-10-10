@@ -56,6 +56,11 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
     private final PlayerPackService playerPackService;
 
     /**
+     * 锁时间。
+     */
+    private static final int LOCK_TIME = 2000;
+
+    /**
      * 任务管理器 任务服务初始化后才赋值
      */
     private TaskManager taskManager;
@@ -139,9 +144,9 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
      */
     public void updatePlayerTaskCache(long playerId, TaskData taskData) {
         RMap<Integer, TaskData> playerTasks = getPlayerTaskMap(playerId);
-        redisLock.lockAndRun(playerTaskMapLockKey(playerId), 200, () -> {
+        redisLock.lockAndRun(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
             //同步到缓存中
-            playerTasks.put(taskData.getConfigId(), taskData);
+            playerTasks.fastPut(taskData.getConfigId(), taskData);
         });
     }
 
@@ -208,7 +213,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
             tasks = taskDataDao.findByPlayerId(playerId);
             if (tasks != null) {
                 for (TaskData taskData : tasks) {
-                    playerTasks.put(taskData.getConfigId(), taskData);
+                    playerTasks.fastPut(taskData.getConfigId(), taskData);
                 }
             }
         }
@@ -272,9 +277,9 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
         if (!deletedTasks.isEmpty()) {
             //删除数据库
             taskDataDao.deleteAllList(deletedTasks);
-            redisLock.lockAndRun(playerTaskMapLockKey(playerId), 200, () -> {
+            redisLock.lockAndRun(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
                 for (TaskData taskData : deletedTasks) {
-                    playerTasks.remove(taskData.getConfigId());
+                    playerTasks.fastRemove(taskData.getConfigId());
                     log.info("玩家[{}]任务[{}]过期!", playerId, taskData.getConfigId());
                 }
             });
@@ -325,9 +330,9 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
             //覆盖数据库数据
             taskDataDao.saveAll(receiveList);
             //覆盖缓存
-            redisLock.lockAndRun(playerTaskMapLockKey(playerId), 200, () ->
+            redisLock.lockAndRun(playerTaskMapLockKey(playerId), LOCK_TIME, () ->
                     receiveList.forEach(taskData -> {
-                        playerTasks.put(taskData.getConfigId(), taskData);
+                        playerTasks.fastPut(taskData.getConfigId(), taskData);
                         //记录领取任务日志
                         taskLogger.receiveTask(playerId, taskData.getConfigId());
                         log.info("玩家[{}]领取到[{}]任务", playerId, taskData.getConfigId());
