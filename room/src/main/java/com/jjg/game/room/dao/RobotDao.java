@@ -27,9 +27,9 @@ import java.util.*;
 public class RobotDao {
 
     // 机器人redis数据 set 键：robotIdList+房间配置ID 数据：机器人ID <=> 机器人数据
-    private final String ROBOT_ID_LIST_REDIS_KEY_PREFIX = "RobotIdList" + StrConstant.COLON;
+    private final String ROBOT_ID_LIST_REDIS_KEY_PREFIX = "RobotIdSet" + StrConstant.COLON;
     // 每个节点的所有机器人 键：servers_robot+节点路径 数据：机器人ID <=> 机器人redis数据
-    private final String SERVER_OF_ROBOT = "ClusterRobot";
+    private final String SERVER_OF_ROBOT = "ClusterRobotId";
 
 
     @Autowired
@@ -79,7 +79,6 @@ public class RobotDao {
     public void recycleRobotPlayers(Map<Long, Double> robotIds) {
         //删除记录
         String serverRobotTableName = getCurServerRobotTableName();
-        //加分数
         int batchSize = 500;
         List<Long> ids = new ArrayList<>(robotIds.keySet());
         for (int i = 0; i < ids.size(); i += batchSize) {
