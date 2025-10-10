@@ -1,5 +1,6 @@
 package com.jjg.game.core.task.condition;
 
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.task.param.DefaultTaskConditionParam;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import org.springframework.stereotype.Component;
@@ -15,7 +16,7 @@ public class TaskCondition11002 extends AbstractTaskCondition<DefaultTaskConditi
      */
     @Override
     protected int getConditionId() {
-        return 11002;
+        return TaskConstant.ConditionType.PLAYER_SUM_PAY;
     }
 
     /**
