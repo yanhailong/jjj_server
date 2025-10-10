@@ -28,7 +28,7 @@ public class MinigameLogger extends BaseLogger {
             result.put("log", jsonObject);
             sendLog("minigameLog", null, result);
         } catch (Exception e) {
-            log.error("幸运夺宝开奖日志记录失败!", e);
+            log.error("小游戏日志记录失败!", e);
         }
 
     }
