@@ -327,13 +327,12 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
     /**
      * 向该线程投递Handler(Runnable)
      */
-    public void executeHandlerImmediately(IProcessorHandler handler) {
+    public void executeHandlerImmediately(BaseHandler<?> baseHandler) {
         try {
             if (executor.isShutdown()) {
-                logger.error("线程{} 已经停止, Handler被丢弃: {}", this.name, handler.getClass().getName());
+                logger.error("线程{} 已经停止, Handler被丢弃: {}", this.name, baseHandler.getClass().getName());
                 return;
             }
-            BaseHandler<?> baseHandler = (BaseHandler<?>) handler;
             baseHandler.setTime(System.currentTimeMillis());
             baseHandler.setCreateAloneNum(createAloneNum.incrementAndGet());
             baseHandler.setAloneNum(execAloneNum.get());

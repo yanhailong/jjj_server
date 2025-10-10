@@ -50,11 +50,13 @@ public class TexasBuilder {
     }
 
     public static HandResult getTempHandType(PlayerSeatInfo info, TexasGameDataVo gameDataVo) {
-        if (Objects.isNull(gameDataVo.getPublicCards())) {
-            return null;
+        List<Integer> publicCards;
+        if (gameDataVo.getPublicCards() == null) {
+            publicCards = new ArrayList<>(info.getCurrentCards());
+        } else {
+            publicCards = new ArrayList<>(gameDataVo.getPublicCards());
+            publicCards.addAll(info.getCurrentCards());
         }
-        List<Integer> publicCards = new ArrayList<>(gameDataVo.getPublicCards());
-        publicCards.addAll(info.getCurrentCards());
         Map<Integer, PokerCard> cardListMap = TexasDataHelper.getCardListMap(TexasDataHelper.getPoolId(gameDataVo));
         return PokerHandEvaluator.evaluateBestHand(publicCards.stream().map(cardListMap::get).collect(Collectors.toList()));
     }

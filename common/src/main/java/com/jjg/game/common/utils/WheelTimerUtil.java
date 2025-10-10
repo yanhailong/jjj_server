@@ -1,0 +1,93 @@
+package com.jjg.game.common.utils;
+
+import io.netty.util.HashedWheelTimer;
+import io.netty.util.Timeout;
+import io.netty.util.TimerTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * 封装的 HashedWheelTimer 工具类
+ * 支持一次性任务 & 周期性任务
+ *
+ * @author lm
+ * @date 2025/9/29 14:29
+ */
+public class WheelTimerUtil {
+
+    private static final HashedWheelTimer TIMER;
+    private static final Logger log = LoggerFactory.getLogger(WheelTimerUtil.class);
+
+    static {
+        ThreadFactory threadFactory = new ThreadFactory() {
+            private final AtomicInteger index = new AtomicInteger(0);
+
+            @Override
+            public Thread newThread(Runnable runnable) {
+                return new Thread(runnable, "wheel-timer-" + index.getAndIncrement());
+            }
+        };
+
+        // 推荐参数：100ms 精度，1024 槽
+        TIMER = new HashedWheelTimer(
+                threadFactory,
+                100, TimeUnit.MILLISECONDS,
+                1024,
+                true,
+                1_000_000
+        );
+    }
+
+    /**
+     * 一次性延迟任务
+     */
+    public static Timeout schedule(Runnable task, long delay, TimeUnit unit) {
+        return TIMER.newTimeout(timeout -> task.run(), delay, unit);
+    }
+
+    /**
+     * 周期性任务（固定间隔）
+     *
+     * @param task         执行内容
+     * @param initialDelay 首次延迟
+     * @param period       间隔时间
+     * @param unit         时间单位
+     * @return 可用 Timeout 取消任务
+     */
+    public static Timeout scheduleAtFixedRate(Runnable task,
+                                              long initialDelay,
+                                              long period,
+                                              TimeUnit unit) {
+        // 包装一个递归任务
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run(Timeout timeout) {
+                if (timeout.isCancelled()) {
+                    return;
+                }
+                try {
+                    task.run();
+
+                } catch (Exception e) {
+                    log.error("轮询定时器异常",e);
+                } finally {
+                    // 再次调度自身
+                    TIMER.newTimeout(this, period, unit);
+                }
+            }
+        };
+        return TIMER.newTimeout(timerTask, initialDelay, unit);
+    }
+
+    /**
+     * 关闭定时器（应用退出时调用）
+     */
+    public static void stop() {
+        TIMER.stop();
+    }
+}
+

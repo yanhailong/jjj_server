@@ -6,7 +6,9 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
+import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ChessTexasStrategyCfg;
 import com.jjg.game.sampledata.bean.PokerPoolCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import org.springframework.stereotype.Component;
@@ -31,7 +33,9 @@ public class PokerDataHelper implements ConfigExcelChangeListener {
     @Override
     public void initSampleCallbackCollector() {
         addChangeSampleFileObserveWithCallBack(PokerPoolCfg.EXCEL_NAME, PokerDataHelper::initData)
-                .addInitSampleFileObserveWithCallBack(PokerPoolCfg.EXCEL_NAME, PokerDataHelper::initData);
+                .addChangeSampleFileObserveWithCallBack(ChessTexasStrategyCfg.EXCEL_NAME, TexasDataHelper::initData)
+                .addInitSampleFileObserveWithCallBack(PokerPoolCfg.EXCEL_NAME, PokerDataHelper::initData)
+                .addInitSampleFileObserveWithCallBack(ChessTexasStrategyCfg.EXCEL_NAME, TexasDataHelper::initData);
     }
 
     /**
@@ -52,6 +56,7 @@ public class PokerDataHelper implements ConfigExcelChangeListener {
             }
         }
         allCardMapListMap = mapHashMap;
+        TexasDataHelper.intiData();
     }
 
     /**
@@ -83,7 +88,7 @@ public class PokerDataHelper implements ConfigExcelChangeListener {
      * 获取牌的客户端对应的id
      *
      * @param gameDataVo 游戏数据
-     * @param cardCfgId pokerPool配置表id
+     * @param cardCfgId  pokerPool配置表id
      */
     public static List<Integer> getClientId(BasePokerGameDataVo gameDataVo, List<Integer> cardCfgId) {
         Map<Integer, PokerCard> cardMap = getCardListMap(gameDataVo.getPoolId());

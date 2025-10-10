@@ -230,7 +230,7 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         long roomId = room.getId();
         // 创建一个机器人,将机器人放入到游戏中
         PlayerController robotPlayerController =
-            robotService.getOrCreateRobotPlayerController(warehouseCfg.getId(), roomId);
+                robotService.getOrCreateRobotPlayerController(warehouseCfg.getId(), roomId, true);
         if (robotPlayerController != null) {
             // 机器人加入房间
             CommonResult<? extends Room> result = roomController.joinRoom(robotPlayerController);

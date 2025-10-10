@@ -16,7 +16,12 @@ public class PokerHandEvaluator {
 
     public static HandResult evaluateBestHand(List<Card> cards) {
         if (cards.size() < 5) {
-            return new HandResult(HandRank.HIGH_CARD, new ArrayList<>(), cards);
+            //第一轮
+            if (cards.size() == 2 && cards.getFirst().getRank() == cards.getLast().getRank()) {
+                return new HandResult(HandRank.ONE_PAIR, cards.stream().map(Card::getRank).toList(), cards);
+            }
+            return new HandResult(HandRank.HIGH_CARD, cards.stream().map(Card::getRank).sorted((o1, o2) ->
+                    -Integer.compare(o1, o2)).toList(), cards);
         }
         List<List<Card>> allCombos = combinations(cards, 5);
         HandResult best = null;

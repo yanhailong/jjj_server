@@ -17,6 +17,7 @@ import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerSettlementInfo;
+import com.jjg.game.poker.game.texas.autohandler.TexasRobotHandler;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.Pot;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
@@ -41,6 +42,7 @@ import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.manager.AbstractRoomManager;
 import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.robot.RobotUtil;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.math.BigDecimal;
@@ -78,7 +80,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                     addTimes += ADD_CARDS;
                 }
             }
-            return super.getPhaseRunTime() + FIX_CHIPS + FLIP_CARDS +
+            return super.getPhaseRunTime() + remainRound * (FIX_CHIPS) + FLIP_CARDS +
                     TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) * addTimes
                     + TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SIDE_POOL) * gameDataVo.getPool().size();
         }
@@ -97,6 +99,16 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                     default -> normalSettlement(controller);
                 }
                 addLog(controller, gameDataVo.getTexasHistory());
+                //机器人处理
+                List<PlayerSeatInfo> playerSeatInfoList = gameDataVo.getPlayerSeatInfoList();
+                for (PlayerSeatInfo playerSeatInfo : playerSeatInfoList) {
+                    GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerSeatInfo.getPlayerId());
+                    if (gamePlayer instanceof GameRobotPlayer robotPlayer && playerSeatInfo.getOperationType() == PokerConstant.PlayerOperation.DISCARD) {
+                        int chessExecutionDelay = RobotUtil.getChessExecutionDelay(robotPlayer.getActionId());
+                        TexasRobotHandler handler = new TexasRobotHandler(robotPlayer, TexasRobotHandler.SHOW_CARDS, controller);
+                        RobotUtil.schedule(gameController.getRoomController(), handler, chessExecutionDelay);
+                    }
+                }
             }
         } catch (Exception e) {
             log.error("德州扑克结算异常", e);
@@ -217,6 +229,13 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                         playerId, settlementDataMap.getOrDefault(playerId, new SettlementData())
                                 .increaseBySettlementData(new SettlementData(
                                         afterRatio, bet, totalGet, bet, roomCreatorIncome)));
+                if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+                    robotPlayer.setLastWin(1);
+                }
+            } else {
+                if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+                    robotPlayer.setLastWin(2);
+                }
             }
             pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().getOrDefault(playerId, 0L);
             pokerPlayerSettlementInfo.getGold = totalGet;
@@ -239,7 +258,6 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         int round = gameDataVo.getRound();
         int remainingRounds = TexasConstant.Common.MAX_ROUND - round;
         //发牌
-        int addTime = 0;
         Map<Long, List<TexasRoundInfo>> playerRoundInfos = new HashMap<>();
         List<TexasRoundInfo> defaultInfo = new ArrayList<>();
         //添加记录
@@ -254,7 +272,6 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             List<Integer> publicCards = gameDataVo.getPublicCards();
             if (Objects.isNull(publicCards)) {
                 //还没发三张
-                addTime += TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS) * SEND_CARD_NUM;
                 List<Integer> cardList = gameDataVo.getCards().subList(0, SEND_CARD_NUM);
                 gameDataVo.setPublicCards(new ArrayList<>(cardList));
                 texasHistory.setPreFlop(TexasDataHelper.getClientId(gameDataVo, gameDataVo.getPublicCards()));
@@ -270,7 +287,6 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                     texasHistory.setFourthCardId(TexasDataHelper.getClientCardId(gameDataVo, card));
                 }
                 tempCardList = List.of(card);
-                addTime += TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS);
             }
             List<Integer> clientId = TexasDataHelper.getClientId(gameDataVo, tempCardList);
             for (PlayerSeatInfo info : gameDataVo.getPlayerSeatInfoList()) {
@@ -290,7 +306,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
         }
         NotifyTexasSettlementInfo normalSettlementInfo = getNormalSettlementInfo(controller);
         //计算最后的结算时间
-        gameDataVo.setPhaseEndTime(gameDataVo.getPhaseEndTime() + addTime);
+        gameDataVo.setPhaseEndTime(gameDataVo.getPhaseEndTime());
         normalSettlementInfo.endTime = gameDataVo.getPhaseEndTime();
         gameDataVo.setNotifyTexasSettlementInfo(normalSettlementInfo);
         //通知

@@ -57,4 +57,8 @@ public class HandResult implements Comparable<HandResult> {
     public boolean isA2345(List<Integer> kickers) {
         return kickers.getFirst().equals(14) && kickers.contains(2);
     }
+
+    public int getMaxRank() {
+        return kickers.getFirst();
+    }
 }

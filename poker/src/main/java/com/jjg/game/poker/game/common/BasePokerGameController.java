@@ -13,15 +13,19 @@ import com.jjg.game.poker.game.common.message.reps.NotifyPokerPlayerChange;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerSampleCardOperation;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
+import com.jjg.game.poker.game.texas.autohandler.TexasRobotHandler;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
+import com.jjg.game.poker.game.texas.room.TexasGameController;
 import com.jjg.game.room.base.EGameState;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.PokerPlayerGameData;
 import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.robot.RobotUtil;
 import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomTimerEvent;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -56,18 +60,18 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     public <M extends AbstractMessage> void broadcastToPlayers(RoomMessageBuilder<M> message) {
         if (message.isToAll()) {
             Set<Long> playerIds = gameDataVo.getSeatInfo().values()
-                .stream()
-                .map(SeatInfo::getPlayerId)
-                .filter(playerId -> !playerNotInit(playerId))
-                .collect(Collectors.toSet());
+                    .stream()
+                    .map(SeatInfo::getPlayerId)
+                    .filter(playerId -> !playerNotInit(playerId))
+                    .collect(Collectors.toSet());
             message.setPlayerIds(playerIds);
             message.setToAll(false);
             roomController.broadcastToPlayers(message);
             return;
         }
         Set<Long> newSet = message.getPlayerIds().stream()
-            .filter(playerId -> !playerNotInit(playerId))
-            .collect(Collectors.toSet());
+                .filter(playerId -> !playerNotInit(playerId))
+                .collect(Collectors.toSet());
         if (!newSet.isEmpty()) {
             roomController.broadcastToPlayers(message);
         }
@@ -141,7 +145,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     @Override
     public void addGameTimeEvent(TimerEvent<IProcessorHandler> roomUpdateTimer, RoomEventType roomEventType) {
         RoomTimerEvent<IProcessorHandler, Room> timerEvent = new RoomTimerEvent<>(roomUpdateTimer,
-            roomController.getRoom(), roomEventType);
+                roomController.getRoom(), roomEventType);
         timerCenter.add(timerEvent);
         if (POKER_PLAYER_EVENT == roomEventType) {
             gameDataVo.setPlayerTimerEvent(timerEvent);
@@ -194,7 +198,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
         //通知其他玩家 玩家加入
         NotifyPokerPlayerChange playerChange = new NotifyPokerPlayerChange();
         playerChange.pokerPlayerInfo =
-            PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(playerController.playerId()), null, this);
+                PokerBuilder.buildPlayerInfo(gameDataVo.getGamePlayer(playerController.playerId()), null, this);
         playerChange.totalNum = gameDataVo.getGamePlayerMap().size();
         roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(playerChange).exceptPlayer(playerController.playerId()));
         //尝试开启游戏
@@ -291,7 +295,23 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                 }
             }
         }
+        onRobotPlayerJoinRoom(playerController, gamePlayer);
         return gamePlayer;
+    }
+
+    /**
+     * 机器人加入房间其他流程处理完毕
+     *
+     * @param playerController 玩家控制器
+     * @param gamePlayer       机器人
+     */
+    public void onRobotPlayerJoinRoom(PlayerController playerController, GamePlayer gamePlayer) {
+        if (gamePlayer instanceof GameRobotPlayer gameRobotPlayer && this instanceof TexasGameController controller) {
+            respRoomInitInfo(playerController);
+            int chessExecutionDelay = RobotUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
+            TexasRobotHandler handler = new TexasRobotHandler(gameRobotPlayer, TexasRobotHandler.GO_READY, controller, 10000);
+            RobotUtil.schedule(getRoomController(), handler, chessExecutionDelay);
+        }
     }
 
     private SeatInfo getSeatInfo(GamePlayer gamePlayer, RoomPlayer roomPlayer) {
@@ -384,8 +404,8 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
             NotifyPokerPlayerChange playerChange = new NotifyPokerPlayerChange();
             playerChange.pokerPlayerInfo = PokerBuilder.buildPlayerInfo(gamePlayer, remove, this);
             roomController.broadcastToPlayers(RoomMessageBuilder.newBuilder()
-                .toAllPlayer().exceptPlayer(playerController.playerId())
-                .setData(playerChange));
+                    .toAllPlayer().exceptPlayer(playerController.playerId())
+                    .setData(playerChange));
         }
         return super.onPlayerLeaveRoom(playerController);
     }

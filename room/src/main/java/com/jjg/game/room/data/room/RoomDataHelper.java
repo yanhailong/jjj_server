@@ -4,6 +4,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.utils.VipUtil;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.RoomCfg;
@@ -36,6 +37,9 @@ public class RoomDataHelper {
     }
 
     public static void checkPlayerVipLevel(Player player, AbstractPhaseGameController<? extends RoomCfg, ? extends GameDataVo<?>> controller, long effectiveWaterFlow) {
+        if (player instanceof GameRobotPlayer) {
+            return;
+        }
         try {
             Map<Integer, ViplevelCfg> viplevelCfgMap = RoomDataHelper.getVipLevelCfgMap();
             ViplevelCfg cfg = viplevelCfgMap.get(player.getVipLevel());

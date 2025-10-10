@@ -199,9 +199,11 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
     private BetRobotCfg getRobotBetActionCfg(GameRobotPlayer gameRobotPlayer) {
         RobotCfg robotCfg = GameDataManager.getRobotCfg((int) gameRobotPlayer.getId());
         List<List<Integer>> betRobotId = robotCfg.getBetRobotID();
-        int betActionId = RandomUtils.randomByWeightList(betRobotId);
+        if (gameRobotPlayer.getActionId() == 0) {
+            gameRobotPlayer.setActionId(RandomUtils.randomByWeightList(betRobotId));
+        }
         Integer betAction = TableSampleDataHolder.getBetActionDataCache(
-            betActionId, gameDataVo.getRoomCfg().getId());
+                gameRobotPlayer.getActionId(), gameDataVo.getRoomCfg().getId());
         if (betAction == null) {
             return null;
         }

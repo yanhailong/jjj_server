@@ -3,6 +3,7 @@ package com.jjg.game.room;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.service.MarsCoreStartService;
+import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.room.listener.RoomEventListener;
@@ -87,6 +88,8 @@ public class RoomApp implements SmartLifecycle, ApplicationContextAware {
         }
         coreStartService.shutdown();
         marsCoreStartService.shutdown();
+        //定时器停止
+        WheelTimerUtil.stop();
         running = false;
     }
 

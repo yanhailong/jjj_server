@@ -1,8 +1,8 @@
 package com.jjg.game.common.utils;
 
+import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.proto.Pair;
 
-import java.lang.reflect.Array;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.LongAdder;
@@ -395,6 +395,17 @@ public class RandomUtils {
         return nextLongInclude(rangList.get(0), rangList.get(1));
     }
 
+    /**
+     * 从权重列表中随机一个
+     */
+    public static long randomWeightList(List<List<Long>> weightList) {
+        WeightRandom<Integer> random = new WeightRandom<>();
+        for (int i = 0; i < weightList.size(); i++) {
+            random.add(i,weightList.get(i).getFirst());
+        }
+        Integer next = random.next();
+        return RandomUtil.randomLong(weightList.get(next).get(1), weightList.get(next).getLast());
+    }
 
     /**
      * 从权重列表中随机一个

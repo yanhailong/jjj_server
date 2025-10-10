@@ -434,25 +434,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 2. 客户端异常导致前端重复发送加入房间
      */
     private boolean checkCanRepeatJoinRoom(PlayerController playerController) {
-        List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =
-            new ArrayList<>(roomControllerMap.values());
-        long playerId = playerController.playerId();
-        for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
-            roomMapControllers) {
-            List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
-                new ArrayList<>(roomControllerMap.values());
-            for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : roomControllers) {
-                RoomPlayer roomPlayer = roomController.getRoom().getRoomPlayers().get(playerId);
-                if (Objects.isNull(roomPlayer)) {
-                    return true;
-                }
-                if (roomPlayer.isRobot()) {
-                    return false;
-                }
-                return !roomPlayer.isOnline();
-            }
-        }
-        return true;
+        return playerController.getScene() instanceof AbstractRoomController<?,?>;
     }
 
     /**
@@ -649,6 +631,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             if (!entry.getValue().isRobot()) {
                 if (exitNotify) {
                     PlayerController playerController = roomController.getPlayerController(entry.getKey());
+                    if (playerController == null) {
+                        log.error("解散房间时 未获取到playerController id:{}", entry.getKey());
+                        continue;
+                    }
                     playerController.send(new ResExitGame(Code.SUCCESS));
                 }
                 // 将玩家踢出房间

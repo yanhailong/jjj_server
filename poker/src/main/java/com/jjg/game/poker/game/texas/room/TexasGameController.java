@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.texas.room;
 
+import cn.hutool.core.lang.WeightRandom;
 import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.proto.Pair;
@@ -21,13 +22,14 @@ import com.jjg.game.poker.game.common.message.reps.NotifyPokerPhaseChange;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerSampleCardOperation;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
+import com.jjg.game.poker.game.texas.autohandler.TexasProcessorHandler;
+import com.jjg.game.poker.game.texas.autohandler.TexasRobotHandler;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.Pot;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.poker.game.texas.data.TexasSaveHistory;
 import com.jjg.game.poker.game.texas.gamephase.TexasPlayCardPhase;
-import com.jjg.game.poker.game.texas.gamephase.TexasProcessorHandler;
 import com.jjg.game.poker.game.texas.gamephase.TexasSettlementPhase;
 import com.jjg.game.poker.game.texas.gamephase.TexasStartGamePhase;
 import com.jjg.game.poker.game.texas.message.TexasBuilder;
@@ -50,6 +52,10 @@ import com.jjg.game.room.data.room.PokerPlayerGameData;
 import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.message.BaseRoomMessageBuilder;
 import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.robot.RobotUtil;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ChessRobotCfg;
+import com.jjg.game.sampledata.bean.RobotCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import com.jjg.game.sampledata.bean.TexasCfg;
 
@@ -214,12 +220,12 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         gameDataVo.getPool().getFirst().addEligiblePlayer(playerId);
         //添加活动进度
         final long finalBetValue = betValue;
-        Thread.ofVirtual().start(() -> {
-            ActivityManager activityManager = getRoomController().getRoomManager().getActivityManager();
-            if (!(gamePlayer instanceof GameRobotPlayer)) {
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            Thread.ofVirtual().start(() -> {
+                ActivityManager activityManager = getRoomController().getRoomManager().getActivityManager();
                 activityManager.addPlayerActivityProgress(gamePlayer, ActivityTargetType.BET.getTargetKey(), finalBetValue, getGameTransactionItemId());
-            }
-        });
+            });
+        }
         //通知
         NotifyTexasBet notifyTexasBet = new NotifyTexasBet();
         notifyTexasBet.betType = info.getOperationType();
@@ -241,6 +247,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             startNextRoundOrSettlement();
         }
     }
+
 
     public boolean isAllAllIn(long playerId) {
         for (PlayerSeatInfo seatInfo : gameDataVo.getPlayerSeatInfoList()) {
@@ -302,6 +309,11 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
             return;
         }
         sampleOperation(info, PokerConstant.PlayerOperation.DISCARD);
+        //处理机器人
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+            robotPlayer.setLastWin(2);
+        }
     }
 
     /**
@@ -452,6 +464,13 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         addPlayerTimer(new TexasProcessorHandler(nextExePlayer.getPlayerId(), gameDataVo.getId(), this,
                         gameDataVo.getTimerId()),
                 time + sendTime * sendCardNum + fixTime);
+        //机器人处理
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(nextExePlayer.getPlayerId());
+        if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+            int chessExecutionDelay = RobotUtil.getChessExecutionDelay(robotPlayer.getActionId());
+            TexasRobotHandler handler = new TexasRobotHandler(robotPlayer, TexasRobotHandler.DO_STRATEGY, this);
+            RobotUtil.schedule(getRoomController(), handler, chessExecutionDelay);
+        }
     }
 
     /**
@@ -522,6 +541,27 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         }
     }
 
+    /**
+     * 获取第一个加注的玩家
+     *
+     * @return 第一个加注的玩家
+     */
+    public PlayerSeatInfo getRaiseBetPlayer() {
+        List<PlayerSeatInfo> playerSeatInfoList = gameDataVo.getPlayerSeatInfoList();
+        int index = gameDataVo.getIndex();
+        //寻找有加注的玩家
+        if (gameDataVo.getMaxBetValue() > 0) {
+            for (int i = 1; i < playerSeatInfoList.size(); i++) {
+                int newIndex = (index + i) % playerSeatInfoList.size();
+                PlayerSeatInfo info = playerSeatInfoList.get(newIndex);
+                Long betValue = gameDataVo.getBaseBetInfo().getOrDefault(info.getPlayerId(), 0L);
+                if (betValue == gameDataVo.getMaxBetValue()) {
+                    return info;
+                }
+            }
+        }
+        return null;
+    }
 
     /**
      * 获取下一个执行的玩家Id
@@ -752,6 +792,26 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     }
 
     @Override
+    public void onPlayerJoinRoomAction(GamePlayer gamePlayer) {
+        //如果是机器人在准备等待阶段
+        if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+            RobotCfg robotCfg = GameDataManager.getRobotCfg((int) robotPlayer.getId());
+            List<List<Integer>> chessRobotID = robotCfg.getChessRobotID();
+            WeightRandom<Integer> random = new WeightRandom<>();
+            for (List<Integer> robotId : chessRobotID) {
+                random.add(robotId.getLast(), robotId.getFirst());
+            }
+            Integer strategyId = random.next();
+            for (ChessRobotCfg cfg : GameDataManager.getChessRobotCfgList()) {
+                if (cfg.getActionID() == strategyId && cfg.getGameID() == getRoom().getRoomCfgId()) {
+                    robotPlayer.setActionId(cfg.getId());
+                    break;
+                }
+            }
+        }
+    }
+
+    @Override
     public <R extends Room> void initial(R room) {
         super.initial(room);
         // 玩家长时间未操作检查
@@ -803,11 +863,11 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         if (seatInfoTreeMap.isEmpty()) {
             return;
         }
-        TexasCfg texasCfg = TexasDataHelper.getTexasCfg(gameDataVo);
+        Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         // 长时间无操作退出触发时间
-        int exitTime = texasCfg.getEscTime();
+        int exitTime = roomCfg.getEscTime();
         // 长时间无操作退出提示语言ID
-        int exitTipLangId = texasCfg.getEscTipText();
+        int exitTipLangId = roomCfg.getEscTipText();
         for (SeatInfo seatInfo : seatInfoTreeMap.values()) {
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
             if (gamePlayer == null) {
@@ -866,13 +926,14 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         pausePlayerLatestOperateTime(playerId);
         notify.playerId = playerId;
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
-        //如果全部准备提前进入下个阶段
+        //如果全部准备提前进入下个阶段最大点数
         int total = gameDataVo.getSeatDownNum();
+        int notReadyNum = gameDataVo.getSeatDownNotReadyNum();
         Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
         if (getCurrentGamePhase() != EGamePhase.START_GAME) {
             return;
         }
-        if (roomCfg.getMinPlayer() <= total && total <= roomCfg.getMaxPlayer()) {
+        if (roomCfg.getMinPlayer() <= total && total <= roomCfg.getMaxPlayer() && total == notReadyNum) {
             //进行下一个阶段
             TexasPlayCardPhase gamePhase = new TexasPlayCardPhase(this);
             addPokerPhase(gamePhase);

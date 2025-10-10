@@ -1,5 +1,6 @@
 package com.jjg.game.common.cluster;
 
+import com.google.common.hash.Hashing;
 import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.concurrent.processor.GameProcessor;
 import com.jjg.game.common.concurrent.processor.HallProcessor;
@@ -8,8 +9,6 @@ import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.utils.CommonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -123,8 +122,11 @@ public class ClusterProcessorExecutors {
      * 计算需要放入的线程ID,当前暂时通过PFSession的workId进行绑定,后续如果需要平衡负载,可通过processors中的
      * processor对象动态计算
      */
+    @SuppressWarnings("UnstableApiUsage")
     private int calcThreadId(long workId) {
-        return Math.toIntExact(workId % THREAD_POOL_NUM);
+        //高质量的均匀分布的id
+        int hash = Hashing.murmur3_32().hashLong(workId).asInt();
+        return (hash & 0x7fffffff) % THREAD_POOL_NUM;
     }
 
     /**

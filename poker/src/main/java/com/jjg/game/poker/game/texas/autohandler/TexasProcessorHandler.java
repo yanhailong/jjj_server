@@ -1,4 +1,4 @@
-package com.jjg.game.poker.game.texas.gamephase;
+package com.jjg.game.poker.game.texas.autohandler;
 
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;

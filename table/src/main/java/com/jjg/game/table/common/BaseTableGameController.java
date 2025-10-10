@@ -26,6 +26,8 @@ import com.jjg.game.table.common.data.TableGameDataVo;
 import com.jjg.game.table.common.message.TableMessageBuilder;
 import com.jjg.game.table.common.message.res.NotifyTableRoomPlayerInfoChange;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -117,7 +119,9 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     protected boolean isNeedRobotPlayerExitRoom(GameRobotPlayer gameRobotPlayer, RobotCfg robotCfg, int maxBetOnTable) {
         boolean needExit = false;
         int exitMultiplier = robotCfg.getExitMultiplier();
-        int playerMulti = (int) Math.floor(getTransactionItemNum(gameRobotPlayer.getId()) / (maxBetOnTable * 100.0));
+        int playerMulti = BigDecimal.valueOf(getTransactionItemNum(gameRobotPlayer.getId()))
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(maxBetOnTable), RoundingMode.DOWN).intValue();
         // 如果机器人当前携带的金币 / 押注游戏游戏 * 100 得出倍数小于了配置的倍数直接让机器人退出
         if (playerMulti < exitMultiplier) {
             needExit = true;
