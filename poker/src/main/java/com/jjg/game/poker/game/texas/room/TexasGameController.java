@@ -852,6 +852,10 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         }
     }
 
+    @Override
+    public boolean canJoinRobot() {
+        return true;
+    }
 
     /**
      * 检查玩家未操作提示

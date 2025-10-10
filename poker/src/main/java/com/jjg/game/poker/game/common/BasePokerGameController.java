@@ -95,6 +95,14 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     }
 
     /**
+     * 是否能加入机器人
+     * @return true 能 false不能
+     */
+    public boolean canJoinRobot(){
+        return false;
+    }
+
+    /**
      * 开启下一轮执行 还是直接结算
      */
     public abstract void startNextRoundOrSettlement();
@@ -370,8 +378,8 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     /**
      * 添加下一个玩家定时器
      *
-     * @param nextExePlayer
-     * @param sendCardNum
+     * @param nextExePlayer 下一个玩家
+     * @param sendCardNum 发牌数
      */
     public abstract void addNextTimer(PlayerSeatInfo nextExePlayer, int sendCardNum);
 

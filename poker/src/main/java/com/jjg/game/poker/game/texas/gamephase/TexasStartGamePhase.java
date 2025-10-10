@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.texas.gamephase;
 
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.gamephase.BaseStartGamePhase;
@@ -16,10 +17,7 @@ import com.jjg.game.room.robot.RobotUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ChessRobotCfg;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * @author lm
@@ -80,14 +78,31 @@ public class TexasStartGamePhase extends BaseStartGamePhase<TexasGameDataVo> {
             }
             //通知房间的人座位变化
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
-            //通知具体的人提示
-            for (Long levelSeatPlayerId : leaveSeatIds) {
-                TipUtils.sendTip(levelSeatPlayerId, TipUtils.TipType.TOAST, 300200098);
-            }
+            dealLeaveSeat(leaveSeatIds);
             TexasPlayCardPhase gamePhase = new TexasPlayCardPhase(controller);
             controller.addPokerPhase(gamePhase);
             //通知场上信息
             PokerBuilder.buildNotifyPhaseChange(EGamePhase.PLAY_CART, -1);
+        }
+    }
+
+    private void dealLeaveSeat(Set<Long> leaveSeatIds) {
+        //通知具体的人提示 机器人直接退出
+        List<PlayerController> robotPlayers = new ArrayList<>(leaveSeatIds.size());
+        for (Long levelSeatPlayerId : leaveSeatIds) {
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(levelSeatPlayerId);
+            if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+                PlayerController playerController = gameController.getRoomController().getPlayerController(robotPlayer.getId());
+                if (playerController != null) {
+                    robotPlayers.add(playerController);
+                }
+                continue;
+            }
+            TipUtils.sendTip(levelSeatPlayerId, TipUtils.TipType.TOAST, 300200098);
+        }
+        if (!robotPlayers.isEmpty()) {
+            //如果是机器人直接踢掉
+            gameController.getRoomController().getRoomManager().robotPlayerExitRoom(robotPlayers);
         }
     }
 
@@ -123,9 +138,7 @@ public class TexasStartGamePhase extends BaseStartGamePhase<TexasGameDataVo> {
             //通知房间的人座位变化
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
             //通知具体的人提示
-            for (Long levelSeatPlayerId : leaveSeatIds) {
-                TipUtils.sendTip(levelSeatPlayerId, TipUtils.TipType.TOAST, 300200098);
-            }
+            dealLeaveSeat(leaveSeatIds);
         }
     }
 }

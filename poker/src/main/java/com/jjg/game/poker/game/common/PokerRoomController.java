@@ -9,10 +9,8 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PokerRoom;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.constant.EGamePhase;
-import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
-import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.services.RobotService;
 import com.jjg.game.sampledata.GameDataManager;
@@ -50,8 +48,8 @@ public class PokerRoomController extends AbstractRoomController<Room_ChessCfg, P
             return;
         }
         //只有等待开始和准备开始时加入机器人
-        if (gameController instanceof AbstractPhaseGameController<Room_ChessCfg, ? extends GameDataVo<Room_ChessCfg>> controller) {
-            if (controller.getCurrentGamePhase() != EGamePhase.WAIT_READY && controller.getCurrentGamePhase() != EGamePhase.START_GAME) {
+        if (gameController instanceof BasePokerGameController<? extends BasePokerGameDataVo> controller) {
+            if (!controller.canJoinRobot() || controller.getCurrentGamePhase() != EGamePhase.WAIT_READY && controller.getCurrentGamePhase() != EGamePhase.START_GAME) {
                 return;
             }
         }

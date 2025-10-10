@@ -148,8 +148,13 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                                 }
                                 Integer addBet = addBetRandom.next();
                                 long addValue = gameDataVo.getMaxBetValue() - currentBet + (long) addBet * texasCfg.getBbNum();
+                                Long tempGold = gameDataVo.getTempGold().getOrDefault(robotPlayer.getId(), 0L);
                                 ReqPokerBet reqPokerBet = new ReqPokerBet();
-                                reqPokerBet.betType = PokerConstant.PlayerOperation.BET;
+                                if (addValue >= tempGold) {
+                                    reqPokerBet.betType = PokerConstant.PlayerOperation.ALL_IN;
+                                } else {
+                                    reqPokerBet.betType = PokerConstant.PlayerOperation.BET;
+                                }
                                 reqPokerBet.betValue = addValue;
                                 controller.dealBet(robotPlayer.getId(), reqPokerBet);
                             }
@@ -188,14 +193,14 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
 
         //钱不够跟注直接All
         TexasGameDataVo gameDataVo = controller.getGameDataVo();
+        long need = gameDataVo.getMaxBetValue() - gameDataVo.getBaseBetInfo().getOrDefault(robotPlayer.getId(), 0L);
         //判断是否可以跟
-        if (gameDataVo.getMaxBetValue() == 0) {
+        if (gameDataVo.getMaxBetValue() == 0 || need == 0) {
             controller.passCards(robotPlayer.getId());
             return;
         }
         ReqPokerBet reqPokerBet = new ReqPokerBet();
         reqPokerBet.betType = PokerConstant.PlayerOperation.FOLLOW_CARD;
-        long need = gameDataVo.getMaxBetValue() - gameDataVo.getBaseBetInfo().getOrDefault(robotPlayer.getId(), 0L);
 
         if (need >= gameDataVo.getTempGold().getOrDefault(robotPlayer.getId(), 0L)) {
             reqPokerBet.betType = PokerConstant.PlayerOperation.ALL_IN;
