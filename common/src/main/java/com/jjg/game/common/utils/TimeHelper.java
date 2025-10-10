@@ -784,4 +784,8 @@ public final class TimeHelper {
         return  ChronoUnit.MILLIS.between(now, nextMidnight);
     }
 
+    public static LocalDateTime getLocalDateTime(long epochMilli) {
+        return LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMilli), DEFAULT_ZONE);
+    }
+
 }

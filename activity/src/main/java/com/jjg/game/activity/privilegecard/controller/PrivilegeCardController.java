@@ -29,6 +29,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -229,7 +230,9 @@ public class PrivilegeCardController extends BaseActivityController {
         // 构建响应数据
         if (data != null) {
             if (addedItems != null && addedItems.success()) {
-                activityLogger.sendPrivilegeCardRewardsLog(player, activityData, cfg, addedItems.data, cfg.getDayRebate());
+                //计算天数
+                long remain = data.getEndTime() == -1 ? data.getEndTime() : ChronoUnit.DAYS.between(LocalDateTime.now(), TimeHelper.getLocalDateTime(data.getEndTime()));
+                activityLogger.sendPrivilegeCardRewardsLog(player, activityData, cfg, remain, addedItems.data, cfg.getDayRebate());
             }
             res.activityId = activityData.getId();
             res.detailId = detailId;
