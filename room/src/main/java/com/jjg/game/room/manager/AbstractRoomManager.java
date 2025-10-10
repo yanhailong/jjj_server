@@ -434,7 +434,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
      * 2. 客户端异常导致前端重复发送加入房间
      */
     private boolean checkCanRepeatJoinRoom(PlayerController playerController) {
-        return playerController.getScene() instanceof AbstractRoomController<?,?>;
+        return !(playerController.getScene() instanceof AbstractRoomController<?, ?>);
     }
 
     /**
