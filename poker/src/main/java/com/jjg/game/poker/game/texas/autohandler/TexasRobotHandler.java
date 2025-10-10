@@ -137,6 +137,7 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                             //大于等于【要求平均下注量百分比】，执行【跟注】行为，反之执行【加注】，
                             if (proportion >= strategyDataMap.getOrDefault(TARGET_CHIP, 0) || CollectionUtil.isEmpty(chessRobotCfg.getAddBetMultiple())) {
                                 //跟注
+                                log.debug("进行跟注");
                                 followBet(controller, robotPlayer);
                             } else {
                                 // 根据权重中随机获取【大盲】X倍的加注筹码，
@@ -150,6 +151,7 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                                 long addValue = gameDataVo.getMaxBetValue() - currentBet + (long) addBet * texasCfg.getBbNum();
                                 Long tempGold = gameDataVo.getTempGold().getOrDefault(robotPlayer.getId(), 0L);
                                 ReqPokerBet reqPokerBet = new ReqPokerBet();
+                                log.debug("尝试加注 金额:{}",addBet);
                                 if (addValue >= tempGold) {
                                     reqPokerBet.betType = PokerConstant.PlayerOperation.ALL_IN;
                                 } else {
