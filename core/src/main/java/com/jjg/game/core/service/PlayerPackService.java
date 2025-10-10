@@ -13,6 +13,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.TaskConditionParam12101;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import org.slf4j.Logger;
@@ -339,7 +340,7 @@ public class PlayerPackService implements IPlayerRegister {
                     //触发消耗金币任务
                     if (finalDeductGoldV > 0) {
                         TaskConditionParam12101 param = new TaskConditionParam12101();
-                        param.setItemId(1990000);
+                        param.setItemId(ItemUtils.getGoldItemId());
                         param.setAddValue(finalDeductGoldV);
                         param.setResultValue(removeResult.data.getGold());
                         taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> param);
@@ -347,7 +348,7 @@ public class PlayerPackService implements IPlayerRegister {
                     //触发消耗钻石任务
                     if (finalDeductDiamondV > 0) {
                         TaskConditionParam12101 param = new TaskConditionParam12101();
-                        param.setItemId(1980000);
+                        param.setItemId(ItemUtils.getDiamondItemId());
                         param.setAddValue(finalDeductDiamondV);
                         param.setResultValue(removeResult.data.getDiamond());
                         taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> param);
