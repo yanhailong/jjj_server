@@ -2,10 +2,6 @@ package com.jjg.game.hall.pointsaward.turntable;
 
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.base.gameevent.ClockEvent;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.pointsaward.PlayerPointsAwardService;
@@ -27,7 +23,7 @@ import java.util.stream.Collectors;
  * 积分大奖转盘服务
  */
 @Service
-public class PointsAwardTurntableService implements GameEventListener {
+public class PointsAwardTurntableService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -162,31 +158,14 @@ public class PointsAwardTurntableService implements GameEventListener {
     }
 
     /**
-     * 处理事件
-     *
-     * @param gameEvent 事件
+     * 配置重载
      */
-    @Override
-    public <T extends GameEvent> void handleEvent(T gameEvent) {
-        if (gameEvent instanceof ClockEvent clockEvent) {
-            int hour = clockEvent.getHour();
-            if (hour == 0) {
-                LocalDate now = LocalDate.now();
-                if (now.getMonthValue() != configDate.getMonthValue()) {
-                    //重新初始化配置
-                    initConfig();
-                }
-            }
+    public void dailyReset() {
+        LocalDate now = LocalDate.now();
+        if (now.getMonthValue() != configDate.getMonthValue()) {
+            //重新初始化配置
+            initConfig();
         }
     }
 
-    /**
-     * 需要监听的事件类型, 根据实际需要监听的类型写入，通过配置表配置或者手动配置，需尽量避免写入无关事件类型
-     *
-     * @return 事件类型列表
-     */
-    @Override
-    public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.CLOCK_EVENT);
-    }
 }

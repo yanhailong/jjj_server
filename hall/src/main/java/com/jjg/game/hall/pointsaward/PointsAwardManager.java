@@ -32,7 +32,6 @@ public class PointsAwardManager implements GameEventListener {
      * 任务服务
      */
     private final TaskService taskService;
-
     private final ClusterSystem clusterSystem;
 
     public PointsAwardManager(PointsAwardTurntableService pointsAwardTurntableService,
@@ -62,6 +61,7 @@ public class PointsAwardManager implements GameEventListener {
             int hour = clockEvent.getHour();
             if (hour == 0) {
                 pointsAwardSignInManager.daily();
+                pointsAwardTurntableService.dailyReset();
             } else if (hour == 12) {
                 //检测玩家任务
                 clusterSystem.getAllOnlinePlayerId().forEach(taskService::checkTask);
