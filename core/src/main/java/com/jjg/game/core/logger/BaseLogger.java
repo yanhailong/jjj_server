@@ -1,6 +1,7 @@
 package com.jjg.game.core.logger;
 
 import cn.hutool.core.util.IdUtil;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
@@ -394,6 +395,8 @@ public class BaseLogger {
         String msg = JSONObject.toJSONString(json, SerializerFeature.WriteNonStringKeyAsString);
 
         kafkaTemplate.send(StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic.toLowerCase(), msg);
+
+        log.debug("打印日志数据 msg = {}",msg);
     }
 
     protected void sendLog(JSONObject json) {
