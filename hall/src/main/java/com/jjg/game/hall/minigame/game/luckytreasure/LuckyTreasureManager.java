@@ -14,6 +14,7 @@ import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
 import com.jjg.game.core.data.LuckyTreasure;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.hall.logger.MinigameLogger;
 import com.jjg.game.hall.minigame.MinigameManager;
 import com.jjg.game.hall.minigame.event.MinigameReadyEvent;
 import com.jjg.game.hall.minigame.game.luckytreasure.bean.LuckyTreasureTimerEvent;
@@ -52,6 +53,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     private final MinigameManager minigameManager;
     private final ConfigManager configManager;
     private final HallPlayerService hallPlayerService;
+    private final MinigameLogger minigameLogger;
 
     /**
      * 活动定时器映射：期号 -> 定时器事件
@@ -67,6 +69,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                                 LuckyTreasureService luckyTreasureService,
                                 MinigameManager minigameManager,
                                 HallPlayerService hallPlayerService,
+                                MinigameLogger minigameLogger,
                                 RewardCodeGenerator rewardCodeGenerator) {
         this.luckyTreasureDao = luckyTreasureDao;
         this.luckyTreasureRedisDao = luckyTreasureRedisDao;
@@ -78,6 +81,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         this.minigameManager = minigameManager;
         this.configManager = configManager;
         this.hallPlayerService = hallPlayerService;
+        this.minigameLogger = minigameLogger;
     }
 
     /**
@@ -439,6 +443,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             //标记未领取
             luckyTreasure.setReceived(false);
         }
+        //记录开奖日志
+        minigameLogger.finish(luckyTreasure);
     }
 
     /**

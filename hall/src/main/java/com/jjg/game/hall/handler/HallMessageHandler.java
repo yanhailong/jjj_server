@@ -93,18 +93,21 @@ public class HallMessageHandler implements GmListener {
         try {
             if (req.gameType < 1) {
                 res.code = Code.PARAM_ERROR;
+                playerController.send(res);
                 log.debug("游戏类型错误，选择游戏失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
                 return;
             }
             //如果游戏状态下架或者已经关闭禁止进入
             if (!hallService.canJoinGame(req.gameType)) {
                 res.code = Code.FORBID;
+                playerController.send(res);
                 log.debug("游戏已关闭，选择游戏失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
                 return;
             }
             List<WareHouseConfigInfo> wareHouseConfigList = hallService.getWareHouseConfigByGameType(req.gameType);
             if (wareHouseConfigList == null || wareHouseConfigList.isEmpty()) {
                 res.code = Code.NOT_FOUND;
+                playerController.send(res);
                 log.debug("未找到对应的游戏场次配置，选择游戏失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
                 return;
             }

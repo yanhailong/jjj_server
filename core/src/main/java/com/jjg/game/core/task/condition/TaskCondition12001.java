@@ -1,5 +1,6 @@
 package com.jjg.game.core.task.condition;
 
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.task.db.TaskData;
 import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.sampledata.bean.TaskCfg;
@@ -17,7 +18,7 @@ public class TaskCondition12001 extends AbstractTaskCondition<TaskConditionParam
      */
     @Override
     protected int getConditionId() {
-        return 12001;
+        return TaskConstant.ConditionType.PLAYER_BET_ALL;
     }
 
     @Override
@@ -34,8 +35,6 @@ public class TaskCondition12001 extends AbstractTaskCondition<TaskConditionParam
      * 获取任务条件的比较值，用于判断任务完成条件是否达成。
      *
      * @param taskCfg  任务配置信息，包含任务必要的元数据。
-     * @param taskData 任务当前进度数据，包含玩家的任务状态及相关进度。
-     * @param param    任务条件参数，包含执行条件判断所需的动态数据。
      * @return 返回用于比较的具体值，例如任务完成所需的目标数量或指标。
      */
     @Override

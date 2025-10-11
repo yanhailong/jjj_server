@@ -45,10 +45,11 @@ public class ActivityLogger extends BaseLogger {
     /**
      * 每日奖金道具领取日志记录
      */
-    public void sendPrivilegeCardRewardsLog(Player player, ActivityData activityData, PrivilegeCardCfg cfg, ItemOperationResult result, Map<Integer, Long> rewards) {
+    public void sendPrivilegeCardRewardsLog(Player player, ActivityData activityData, PrivilegeCardCfg cfg, long remain, ItemOperationResult result, Map<Integer, Long> rewards) {
         JSONObject json = buildBaseInfo(activityData, cfg.getId());
         json.put("operation", "rewards");
         json.put("subType", cfg.getType());
+        json.put("remainingDays", remain);
         //奖励
         json.put("rewards", JSON.toJSONString(rewards));
         json.put("rewardsItemNum", JSON.toJSONString(result));
