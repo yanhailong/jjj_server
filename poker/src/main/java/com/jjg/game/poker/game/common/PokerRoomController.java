@@ -8,7 +8,6 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PokerRoom;
 import com.jjg.game.core.data.RoomPlayer;
-import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -49,7 +48,7 @@ public class PokerRoomController extends AbstractRoomController<Room_ChessCfg, P
         }
         //只有等待开始和准备开始时加入机器人
         if (gameController instanceof BasePokerGameController<? extends BasePokerGameDataVo> controller) {
-            if (!controller.canJoinRobot() || controller.getCurrentGamePhase() != EGamePhase.WAIT_READY && controller.getCurrentGamePhase() != EGamePhase.START_GAME) {
+            if (!controller.canJoinRobot()) {
                 return;
             }
         }

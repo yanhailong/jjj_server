@@ -1,4 +1,4 @@
-package com.jjg.game.poker.game.blackjack.gamephase;
+package com.jjg.game.poker.game.blackjack.autohandler;
 
 import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;

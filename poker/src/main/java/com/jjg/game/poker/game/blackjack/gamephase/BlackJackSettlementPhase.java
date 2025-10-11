@@ -17,6 +17,7 @@ import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerSettlementInfo;
 import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.BlackjackCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -242,6 +243,13 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                         .multiply(BigDecimal.valueOf(10000 - gameDataVo.getRoomCfg().getEffectiveRatio()))
                         .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
                 totalGet = controller.getPlayerTotalBet(playerId) + get;
+                if (gameDataVo.getGamePlayer(playerId) instanceof GameRobotPlayer robotPlayer) {
+                    robotPlayer.setLastWin(1);
+                }
+            } else {
+                if (gameDataVo.getGamePlayer(playerId) instanceof GameRobotPlayer robotPlayer) {
+                    robotPlayer.setLastWin(2);
+                }
             }
             gameController.addItem(playerId, totalGet, ERoomItemReason.GAME_SETTLEMENT);
             blackJackSettlementInfo.getGold = totalGet;

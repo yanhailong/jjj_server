@@ -1,6 +1,5 @@
 package com.jjg.game.poker.game.texas.room;
 
-import cn.hutool.core.lang.WeightRandom;
 import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.proto.Pair;
@@ -53,9 +52,6 @@ import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.message.BaseRoomMessageBuilder;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.robot.RobotUtil;
-import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.ChessRobotCfg;
-import com.jjg.game.sampledata.bean.RobotCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 import com.jjg.game.sampledata.bean.TexasCfg;
 
@@ -332,6 +328,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                 .anyMatch(info -> info.getOperationType() == PokerConstant.PlayerOperation.ALL_IN);
     }
 
+
     /**
      * 开启下一轮还是进行结算
      */
@@ -426,6 +423,24 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
         //如果在游戏中删除数据
         gameDataVo.getTempGold().remove(remove.getPlayerId());
+        canStartNextPhase();
+    }
+
+    private void canStartNextPhase() {
+        int total = gameDataVo.getSeatDownNum();
+        int notReadyNum = gameDataVo.getSeatDownNotReadyNum();
+        if (getCurrentGamePhase() != EGamePhase.START_GAME || gameDataVo.isPhaseEnd()) {
+            return;
+        }
+        if (gameDataVo.canStartGame() && total == notReadyNum) {
+            //进行下一个阶段
+            TexasPlayCardPhase gamePhase = new TexasPlayCardPhase(this);
+            addPokerPhase(gamePhase);
+            //通知场上信息
+            PokerBuilder.buildNotifyPhaseChange(EGamePhase.PLAY_CART, -1);
+            NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(getCurrentGamePhase(), gameDataVo.getPhaseEndTime());
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyPokerPhaseChange));
+        }
     }
 
     @Override
@@ -791,25 +806,6 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         return texasHistory;
     }
 
-    @Override
-    public void onPlayerJoinRoomAction(GamePlayer gamePlayer) {
-        //如果是机器人在准备等待阶段
-        if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
-            RobotCfg robotCfg = GameDataManager.getRobotCfg((int) robotPlayer.getId());
-            List<List<Integer>> chessRobotID = robotCfg.getChessRobotID();
-            WeightRandom<Integer> random = new WeightRandom<>();
-            for (List<Integer> robotId : chessRobotID) {
-                random.add(robotId.getLast(), robotId.getFirst());
-            }
-            Integer strategyId = random.next();
-            for (ChessRobotCfg cfg : GameDataManager.getChessRobotCfgList()) {
-                if (cfg.getActionID() == strategyId && cfg.getGameID() == getRoom().getRoomCfgId()) {
-                    robotPlayer.setActionId(cfg.getId());
-                    break;
-                }
-            }
-        }
-    }
 
     @Override
     public <R extends Room> void initial(R room) {
@@ -854,7 +850,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
 
     @Override
     public boolean canJoinRobot() {
-        return true;
+        return getCurrentGamePhase() != EGamePhase.WAIT_READY && getCurrentGamePhase() != EGamePhase.START_GAME;
     }
 
     /**
@@ -931,20 +927,6 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         notify.playerId = playerId;
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notify));
         //如果全部准备提前进入下个阶段最大点数
-        int total = gameDataVo.getSeatDownNum();
-        int notReadyNum = gameDataVo.getSeatDownNotReadyNum();
-        Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
-        if (getCurrentGamePhase() != EGamePhase.START_GAME) {
-            return;
-        }
-        if (roomCfg.getMinPlayer() <= total && total <= roomCfg.getMaxPlayer() && total == notReadyNum) {
-            //进行下一个阶段
-            TexasPlayCardPhase gamePhase = new TexasPlayCardPhase(this);
-            addPokerPhase(gamePhase);
-            //通知场上信息
-            PokerBuilder.buildNotifyPhaseChange(EGamePhase.PLAY_CART, -1);
-            NotifyPokerPhaseChange notifyPokerPhaseChange = PokerBuilder.buildNotifyPhaseChange(getCurrentGamePhase(), gameDataVo.getPhaseEndTime());
-            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notifyPokerPhaseChange));
-        }
+        canStartNextPhase();
     }
 }
