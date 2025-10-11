@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * 玩家积分大奖积分服务
@@ -141,6 +142,89 @@ public class PlayerPointsAwardService implements IPlayerLoginSuccess {
     }
 
     /**
+     * 条件更新：在同一写锁内进行条件校验与数据更新，可选积分增量。
+     *
+     * @param playerId    玩家ID
+     * @param guard       条件判断，返回false则不更新
+     * @param pointsDelta 增加的积分（>=0），为0表示不变更积分
+     * @param mutator     数据修改操作（请勿直接修改积分字段）
+     * @return true 表示执行并持久化成功；false 表示条件不满足或执行失败
+     */
+    public boolean updateWithLockIf(long playerId, Predicate<PointsAwardData> guard, int pointsDelta, Consumer<PointsAwardData> mutator) {
+        PointsAwardData awardData = redisLock.lockAndGet(lockKey(playerId), LOCK_LEASE_MILLIS, () -> {
+            PointsAwardData data = loadData(playerId);
+            try {
+                if (guard != null && !guard.test(data)) {
+                    return null;
+                }
+                // 处理积分：保持以原子计数为来源，必要时做溢出防护
+                RAtomicLong counter = redissonClient.getAtomicLong(atomicKey(playerId));
+                long pointsVal;
+                if (pointsDelta > 0) {
+                    long before = counter.get();
+                    long newVal;
+                    newVal = getNewVal(pointsDelta, counter, before);
+                    pointsVal = newVal;
+                } else {
+                    pointsVal = counter.get();
+                }
+                // 覆盖最新积分
+                data.setPoints(pointsVal);
+                if (mutator != null) {
+                    mutator.accept(data);
+                }
+                getCacheMap().fastPut(playerId, data);
+                return data;
+            } catch (Exception e) {
+                log.error("updateWithLockIf 条件更新失败! playerId = [{}]", playerId, e);
+            }
+            return null;
+        });
+        if (awardData != null) {
+            pointsAwardDataDao.save(awardData);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 计算新的值。如果当前值接近 Long.MAX_VALUE 并且加上 pointsDelta 会导致溢出，
+     * 则将值设置为 Long.MAX_VALUE。否则，增加当前值并返回新的值。
+     *
+     * @param pointsDelta 要增加的点数。
+     * @param counter     用于存储计数的 RAtomicLong 对象。
+     * @param before      操作前的值。
+     * @return 增加后的新值。如果溢出，将返回 Long.MAX_VALUE。
+     */
+    private long getNewVal(int pointsDelta, RAtomicLong counter, long before) {
+        long newVal;
+        if (Long.MAX_VALUE - before < (long) pointsDelta) {
+            long target = Long.MAX_VALUE;
+            while (true) {
+                long curr = counter.get();
+                if (curr == target) {
+                    newVal = curr;
+                    break;
+                }
+                if (counter.compareAndSet(curr, target)) {
+                    newVal = target;
+                    break;
+                }
+            }
+        } else {
+            newVal = counter.addAndGet(pointsDelta);
+        }
+        return newVal;
+    }
+
+    /**
+     * 条件更新（不增加积分）。
+     */
+    public boolean updateWithLockIf(long playerId, Predicate<PointsAwardData> guard, Consumer<PointsAwardData> mutator) {
+        return updateWithLockIf(playerId, guard, 0, mutator);
+    }
+
+    /**
      * 添加积分
      *
      * @param playerId    玩家id
@@ -154,27 +238,8 @@ public class PlayerPointsAwardService implements IPlayerLoginSuccess {
         RAtomicLong counter = redissonClient.getAtomicLong(atomicKey(playerId));
         long newVal;
         try {
-            //如果接近 Long.MAX_VALUE，截断为最大值
             long before = counter.get();
-            if (Long.MAX_VALUE - before < (long) pointsAward) {
-                // 将值设置为 Long.MAX_VALUE
-                long target = Long.MAX_VALUE;
-                //可能存在并发修改
-                while (true) {
-                    long curr = counter.get();
-                    if (curr == target) {
-                        newVal = curr;
-                        break;
-                    }
-                    //修改玩家积分 只有获取到最新的积分才覆盖避免并发修改
-                    if (counter.compareAndSet(curr, target)) {
-                        newVal = target;
-                        break;
-                    }
-                }
-            } else {
-                newVal = counter.addAndGet(pointsAward);
-            }
+            newVal = getNewVal(pointsAward, counter, before);
         } catch (Exception e) {
             log.error("add 玩家积分更新失败!playerId = [{}],pointsAward = [{}]", playerId, pointsAward, e);
             return;

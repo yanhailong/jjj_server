@@ -5,7 +5,6 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.pointsaward.PlayerPointsAwardService;
-import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.db.PointsAwardData;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardSignInConfig;
 import com.jjg.game.sampledata.bean.PointsAwardSigninCfg;
@@ -18,6 +17,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * 签到服务
@@ -141,28 +141,33 @@ public class PointsAwardSignInService {
         if (signInCfg == null) {
             return false;
         }
-        boolean flag = redisLock.tryLockAndGet(PointsAwardConstant.RedisLockKey.POINTS_AWARD_SING_IN_LOCK, () -> {
-            //获取当前签到天数
-            int signCount = getSignCount(playerId);
-            return signCount < manager.getSignInMaxCount();
-        });
-        if (flag) {
-            Consumer<PointsAwardData> mutator = playerData -> {
-                playerData.setSignInCount(playerData.getSignInCount() + 1);
-                playerData.setLastSignInTime(System.currentTimeMillis());
-            };
-            if (signInCfg.getIntegralNum() > 0) {
-                //增加积分
-                pointsAwardService.add(playerId, signInCfg.getIntegralNum(), mutator);
-            } else {
-                pointsAwardService.updateWithLock(playerId, mutator);
+        // 在数据写锁内进行最终校验与更新，避免校验结果过时
+        Predicate<PointsAwardData> guard = playerData -> {
+            if (playerData == null) {
+                return false;
             }
+            long lastSignInTime = playerData.getLastSignInTime();
+            if (lastSignInTime > 0) {
+                LocalDate dateTime = LocalDate.ofInstant(Instant.ofEpochMilli(lastSignInTime), ZoneId.systemDefault());
+                if (dateTime.isEqual(LocalDate.now())) {
+                    return false;
+                }
+            }
+            int signCount = playerData.getSignInCount();
+            return signCount < manager.getSignInMaxCount();
+        };
+        Consumer<PointsAwardData> mutator = playerData -> {
+            playerData.setSignInCount(playerData.getSignInCount() + 1);
+            playerData.setLastSignInTime(System.currentTimeMillis());
+        };
+        boolean success = pointsAwardService.updateWithLockIf(playerId, guard, signInCfg.getIntegralNum(), mutator);
+        if (success) {
             //发送道具奖励
             if (signInCfg.getGetItem() != null && !signInCfg.getGetItem().isEmpty()) {
                 playerPackService.addItems(playerId, ItemUtils.buildItems(signInCfg.getGetItem()), "积分大奖签到奖励");
             }
         }
-        return flag;
+        return success;
     }
 
 }
