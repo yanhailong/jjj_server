@@ -134,10 +134,10 @@ public class PointsAwardTurntableService {
         if (!selectedIds.iterator().hasNext()) {
             return selectedId;
         }
-        selectedId = selectedIds.iterator().next();
         //在扣除积分
         boolean deduct = pointsAwardService.deduct(playerId, consume, null);
         if (deduct) {
+            selectedId = selectedIds.iterator().next();
             //发送奖励
             PointsAwardTurntableCfg awardTurntableCfg = getCfg(selectedId);
             if (awardTurntableCfg != null) {
