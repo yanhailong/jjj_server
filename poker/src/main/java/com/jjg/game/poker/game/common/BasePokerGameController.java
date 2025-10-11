@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.common;
 
+import cn.hutool.core.lang.WeightRandom;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.timer.TimerEvent;
@@ -7,6 +8,8 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
+import com.jjg.game.poker.game.blackjack.autohandler.BlackJackRobotHandler;
+import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerPlayerChange;
@@ -28,6 +31,9 @@ import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.robot.RobotUtil;
 import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomTimerEvent;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ChessRobotCfg;
+import com.jjg.game.sampledata.bean.RobotCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.*;
@@ -96,9 +102,10 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
 
     /**
      * 是否能加入机器人
+     *
      * @return true 能 false不能
      */
-    public boolean canJoinRobot(){
+    public boolean canJoinRobot() {
         return false;
     }
 
@@ -314,11 +321,24 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
      * @param gamePlayer       机器人
      */
     public void onRobotPlayerJoinRoom(PlayerController playerController, GamePlayer gamePlayer) {
-        if (gamePlayer instanceof GameRobotPlayer gameRobotPlayer && this instanceof TexasGameController controller) {
-            respRoomInitInfo(playerController);
-            int chessExecutionDelay = RobotUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
-            TexasRobotHandler handler = new TexasRobotHandler(gameRobotPlayer, TexasRobotHandler.GO_READY, controller, 10000);
-            RobotUtil.schedule(getRoomController(), handler, chessExecutionDelay);
+        if (gamePlayer instanceof GameRobotPlayer gameRobotPlayer) {
+            switch (this) {
+                case TexasGameController controller->{
+                    respRoomInitInfo(playerController);
+                    int chessExecutionDelay = RobotUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
+                    TexasRobotHandler handler = new TexasRobotHandler(gameRobotPlayer, TexasRobotHandler.GO_READY, controller, 10000);
+                    RobotUtil.schedule(getRoomController(), handler, chessExecutionDelay);
+                }
+                case BlackJackGameController controller->{
+                    respRoomInitInfo(playerController);
+                    int chessExecutionDelay = RobotUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
+                    BlackJackRobotHandler handler = new BlackJackRobotHandler(gameRobotPlayer, BlackJackRobotHandler.BET, controller, 10000);
+                    RobotUtil.schedule(getRoomController(), handler, chessExecutionDelay);
+                }
+                default -> {
+                }
+            }
+ 
         }
     }
 
@@ -332,7 +352,21 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     }
 
     public void onPlayerJoinRoomAction(GamePlayer gamePlayer) {
-
+        if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+            RobotCfg robotCfg = GameDataManager.getRobotCfg((int) robotPlayer.getId());
+            List<List<Integer>> chessRobotID = robotCfg.getChessRobotID();
+            WeightRandom<Integer> random = new WeightRandom<>();
+            for (List<Integer> robotId : chessRobotID) {
+                random.add(robotId.getLast(), robotId.getFirst());
+            }
+            Integer strategyId = random.next();
+            for (ChessRobotCfg cfg : GameDataManager.getChessRobotCfgList()) {
+                if (cfg.getActionID() == strategyId && cfg.getGameID() == getRoom().getRoomCfgId()) {
+                    robotPlayer.setActionId(cfg.getId());
+                    break;
+                }
+            }
+        }
     }
 
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
@@ -379,7 +413,7 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
      * 添加下一个玩家定时器
      *
      * @param nextExePlayer 下一个玩家
-     * @param sendCardNum 发牌数
+     * @param sendCardNum   发牌数
      */
     public abstract void addNextTimer(PlayerSeatInfo nextExePlayer, int sendCardNum);
 

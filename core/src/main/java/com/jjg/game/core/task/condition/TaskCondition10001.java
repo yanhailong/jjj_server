@@ -1,5 +1,6 @@
 package com.jjg.game.core.task.condition;
 
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.task.db.TaskData;
 import com.jjg.game.core.task.param.TaskConditionParam10001;
 import com.jjg.game.sampledata.bean.TaskCfg;
@@ -18,7 +19,7 @@ public class TaskCondition10001 extends AbstractTaskCondition<TaskConditionParam
      */
     @Override
     protected int getConditionId() {
-        return 10001;
+        return TaskConstant.ConditionType.BET_COUNT;
     }
 
     @Override

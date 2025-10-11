@@ -383,6 +383,7 @@ public class BaseLogger {
         if (player != null) {
             json.put("playerId", player.getId());
             json.put("gameType", player.getGameType());
+            json.put("playerName", player.getNickName());
             json.put("roomCfgId", player.getRoomCfgId());
         }
 
