@@ -14,8 +14,6 @@ import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.robot.RobotUtil;
-import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.ChessRobotCfg;
 
 import java.util.*;
 
@@ -32,27 +30,14 @@ public class TexasStartGamePhase extends BaseStartGamePhase<TexasGameDataVo> {
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
+        robotAction();
+    }
+
+    @Override
+    public void robotPhaseScheduleAction(GameRobotPlayer robotPlayer, int chessExecutionDelay, int pro) {
         if (gameController instanceof TexasGameController controller) {
-            //获取机器人 并进行准备
-            for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
-                if (!seatInfo.isSeatDown()) {
-                    continue;
-                }
-                GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
-                if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
-                    ChessRobotCfg chessRobotCfg = GameDataManager.getChessRobotCfg(robotPlayer.getActionId());
-                    int chessExecutionDelay = RobotUtil.getChessExecutionDelay(robotPlayer.getActionId());
-                    int pro;
-                    if (robotPlayer.getLastWin() == 0) {
-                        //刚刚加入房间
-                        pro = 10000;
-                    } else {
-                        pro = robotPlayer.getLastWin() == 1 ? chessRobotCfg.getContinueAfterVictory().getFirst() : chessRobotCfg.getContinueAfterFail().getFirst();
-                    }
-                    TexasRobotHandler handler = new TexasRobotHandler(robotPlayer, TexasRobotHandler.GO_READY, controller, pro);
-                    RobotUtil.schedule(controller.getRoomController(), handler, chessExecutionDelay);
-                }
-            }
+            TexasRobotHandler handler = new TexasRobotHandler(robotPlayer, TexasRobotHandler.GO_READY, controller, pro);
+            RobotUtil.schedule(controller.getRoomController(), handler, chessExecutionDelay);
         }
     }
 

@@ -310,7 +310,7 @@ public class RandomUtils {
      * @return
      */
     public static <T> Set<T> getRandomByWeight(
-        Map<T, Integer> weightMap, int count, boolean checkZeroId) {
+            Map<T, Integer> weightMap, int count, boolean checkZeroId) {
         int totalWeight = 0;
         for (Integer val : weightMap.values()) {
             totalWeight += val;
@@ -327,7 +327,7 @@ public class RandomUtils {
      * @return
      */
     public static Set<Integer> getRandomByWeight(
-        int weight, Map<Integer, Integer> weightMap, int count) {
+            int weight, Map<Integer, Integer> weightMap, int count) {
         return getRandomByWeight(weight, weightMap, count, true);
     }
 
@@ -341,7 +341,7 @@ public class RandomUtils {
      * @return
      */
     public static <T> Set<T> getRandomByWeight(
-        int weight, Map<T, Integer> weightMap, int count, boolean checkZeroId) {
+            int weight, Map<T, Integer> weightMap, int count, boolean checkZeroId) {
         Map<T, Integer> map = new HashMap<>(weightMap);
         Set<T> resultSet = new HashSet<>();
         for (int i = 1; i <= count; i++) {
@@ -401,7 +401,7 @@ public class RandomUtils {
     public static long randomWeightList(List<List<Long>> weightList) {
         WeightRandom<Integer> random = new WeightRandom<>();
         for (int i = 0; i < weightList.size(); i++) {
-            random.add(i,weightList.get(i).getFirst());
+            random.add(i, weightList.get(i).getFirst());
         }
         Integer next = random.next();
         return RandomUtil.randomLong(weightList.get(next).get(1), weightList.get(next).getLast());
@@ -515,6 +515,20 @@ public class RandomUtils {
             PrimitiveArrayUtil.swap(range, i, random);
         }
         return range;
+    }
+
+    /**
+     * 通过权重随机
+     *
+     * @param weightMap 权重map
+     * @return 随机值
+     */
+    public static Integer randomByWeight(final Map<Integer, Integer> weightMap) {
+        WeightRandom<Integer> random = new WeightRandom<>();
+        for (Map.Entry<Integer, Integer> entry : weightMap.entrySet()) {
+            random.add(entry.getKey(), entry.getValue());
+        }
+        return random.next();
     }
 
 }

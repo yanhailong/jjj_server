@@ -4,10 +4,12 @@ import cn.hutool.core.lang.generator.SnowflakeGenerator;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.utils.PokerCardUtils;
+import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
 import com.jjg.game.poker.game.texas.data.TexasDataHelper;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ChessJackStrategyCfg;
 import com.jjg.game.sampledata.bean.ChessTexasStrategyCfg;
 import com.jjg.game.sampledata.bean.PokerPoolCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -34,7 +36,9 @@ public class PokerDataHelper implements ConfigExcelChangeListener {
     public void initSampleCallbackCollector() {
         addChangeSampleFileObserveWithCallBack(PokerPoolCfg.EXCEL_NAME, PokerDataHelper::initData)
                 .addChangeSampleFileObserveWithCallBack(ChessTexasStrategyCfg.EXCEL_NAME, TexasDataHelper::initData)
+                .addChangeSampleFileObserveWithCallBack(ChessJackStrategyCfg.EXCEL_NAME, BlackJackDataHelper::initData)
                 .addInitSampleFileObserveWithCallBack(PokerPoolCfg.EXCEL_NAME, PokerDataHelper::initData)
+                .addInitSampleFileObserveWithCallBack(ChessJackStrategyCfg.EXCEL_NAME, BlackJackDataHelper::initData)
                 .addInitSampleFileObserveWithCallBack(ChessTexasStrategyCfg.EXCEL_NAME, TexasDataHelper::initData);
     }
 
@@ -57,6 +61,7 @@ public class PokerDataHelper implements ConfigExcelChangeListener {
         }
         allCardMapListMap = mapHashMap;
         TexasDataHelper.intiData();
+        BlackJackDataHelper.initData();
     }
 
     /**

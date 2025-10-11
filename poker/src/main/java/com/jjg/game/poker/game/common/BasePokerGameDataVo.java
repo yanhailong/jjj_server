@@ -143,6 +143,18 @@ public abstract class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
         return playerSeatInfoList.get(index);
     }
 
+    /**
+     * 阶段是否正在结束处理中
+     *
+     * @return true 是 false否
+     */
+    public boolean isPhaseEnd() {
+        return getPhaseEndTime() < System.currentTimeMillis() + 500;
+    }
+
+    /**
+     * 是否能开启游戏
+     */
     public boolean canStartGame() {
         int seatDownNum = getSeatDownNum();
         return seatDownNum >= getRoomCfg().getMinPlayer() && seatDownNum <= getRoomCfg().getMaxPlayer();
@@ -179,7 +191,7 @@ public abstract class BasePokerGameDataVo extends GameDataVo<Room_ChessCfg> {
     }
 
     public long getPlayerGameNnm() {
-        return playerSeatInfoList.stream().filter(info->!info.isDelState()).count();
+        return playerSeatInfoList.stream().filter(info -> !info.isDelState()).count();
     }
 
     public abstract int getPoolId();

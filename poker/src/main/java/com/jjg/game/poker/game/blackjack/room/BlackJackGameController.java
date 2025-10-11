@@ -7,10 +7,15 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.poker.game.blackjack.autohandler.BlackJackACEProcessorHandler;
+import com.jjg.game.poker.game.blackjack.autohandler.BlackJackProcessorHandler;
+import com.jjg.game.poker.game.blackjack.autohandler.BlackJackRobotHandler;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
 import com.jjg.game.poker.game.blackjack.data.BlackJackBuilder;
 import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
-import com.jjg.game.poker.game.blackjack.gamephase.*;
+import com.jjg.game.poker.game.blackjack.gamephase.BlackJackBetPhase;
+import com.jjg.game.poker.game.blackjack.gamephase.BlackJackPlayCardPhase;
+import com.jjg.game.poker.game.blackjack.gamephase.BlackJackSettlementPhase;
 import com.jjg.game.poker.game.blackjack.message.resp.*;
 import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
 import com.jjg.game.poker.game.common.BasePokerGameController;
@@ -27,9 +32,11 @@ import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.robot.RobotUtil;
 import com.jjg.game.sampledata.bean.BlackjackCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
@@ -57,6 +64,11 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         } else {
             addPokerPhaseTimer(new BlackJackSettlementPhase(this));
         }
+    }
+
+    @Override
+    public boolean canJoinRobot() {
+        return getCurrentGamePhase() == EGamePhase.BET;
     }
 
     @Override
@@ -295,12 +307,16 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
 
     @Override
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
-        //下注阶段离开
-        if (getCurrentGamePhase() == EGamePhase.BET) {
+        canStartNextPhase();
+    }
+
+    public void canStartNextPhase() {
+        //下注阶段离开，并且离开时间在阶段结束时间大于500ms
+        if (getCurrentGamePhase() == EGamePhase.BET && !gameDataVo.isPhaseEnd()) {
             Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
             if (CollectionUtil.isNotEmpty(baseBetInfo)) {
                 //如果全部押注完成 进入下一阶段
-                if (isAllOver(baseBetInfo.keySet())) {
+                if (gameDataVo.canStartGame() && isAllOver(baseBetInfo.keySet())) {
                     genPlayerSeatInfoList(gameDataVo.getSeatInfo(), gameDataVo.getPlayerSeatInfoList());
                     removePokerPhaseTimer();
                     BlackJackPlayCardPhase gamePhase = new BlackJackPlayCardPhase(this);
@@ -422,12 +438,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         jackBetResult.betValue = betValue;
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(jackBetResult));
         //如果全部押注完成 进入下一阶段
-        if (isAllOver(baseBetInfo.keySet())) {
-            genPlayerSeatInfoList(gameDataVo.getSeatInfo(), gameDataVo.getPlayerSeatInfoList());
-            removePokerPhaseTimer();
-            BlackJackPlayCardPhase gamePhase = new BlackJackPlayCardPhase(this);
-            addPokerPhase(gamePhase);
-        }
+        canStartNextPhase();
     }
 
     public void addNextTimer(PlayerSeatInfo nextExePlayer, int sendCardNum) {
@@ -439,6 +450,13 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         int sendTime = PokerDataHelper.getExecutionTime(gameDataVo, PokerPhase.SEND_CARDS);
         addPlayerTimer(new BlackJackProcessorHandler(nextExePlayer.getPlayerId(), gameDataVo.getId(), this),
                 time + sendTime * sendCardNum + times);
+        //机器人处理
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(nextExePlayer.getPlayerId());
+        if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+            int chessExecutionDelay = RobotUtil.getChessExecutionDelay(robotPlayer.getActionId());
+            BlackJackRobotHandler handler = new BlackJackRobotHandler(robotPlayer, BlackJackRobotHandler.DO_STRATEGY, this);
+            RobotUtil.schedule(getRoomController(), handler, chessExecutionDelay);
+        }
     }
 
     public void addACETimer(int sendCardNum) {

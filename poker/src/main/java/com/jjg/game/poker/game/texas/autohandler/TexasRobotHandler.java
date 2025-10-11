@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.texas.autohandler;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.WeightRandom;
 import cn.hutool.core.util.RandomUtil;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
@@ -143,11 +144,7 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                                 // 根据权重中随机获取【大盲】X倍的加注筹码，
                                 // 在ChessRobot表中【addBetMultiple 加注时大盲倍数】字段根据权重取大盲倍数。当携带的筹码不足时，执行【All in】
                                 //加注
-                                WeightRandom<Integer> addBetRandom = new WeightRandom<>();
-                                for (Map.Entry<Integer, Integer> entry : chessRobotCfg.getAddBetMultiple().entrySet()) {
-                                    addBetRandom.add(entry.getKey(), entry.getValue());
-                                }
-                                Integer addBet = addBetRandom.next();
+                                Integer addBet = RandomUtils.randomByWeight(chessRobotCfg.getAddBetMultiple());
                                 long addValue = gameDataVo.getMaxBetValue() - currentBet + (long) addBet * texasCfg.getBbNum();
                                 Long tempGold = gameDataVo.getTempGold().getOrDefault(robotPlayer.getId(), 0L);
                                 ReqPokerBet reqPokerBet = new ReqPokerBet();
