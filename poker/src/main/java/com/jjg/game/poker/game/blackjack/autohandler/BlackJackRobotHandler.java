@@ -109,6 +109,9 @@ public class BlackJackRobotHandler extends BasePokerRobotProcessorHandler<BlackJ
                         hashMap.remove(DOUBLE_BET);
                         hashMap.remove(CUT_CARD);
                     }
+                    if (playerSeatInfo.getCurrentCards().size() != gameDataVo.getRoomCfg().getHandPoker()) {
+                        hashMap.remove(DOUBLE_BET);
+                    }
                     if (!canCutCard(gameDataVo, playerSeatInfo)) {
                         hashMap.remove(CUT_CARD);
                     }
