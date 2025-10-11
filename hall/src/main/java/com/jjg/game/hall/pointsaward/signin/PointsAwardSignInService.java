@@ -1,7 +1,6 @@
 package com.jjg.game.hall.pointsaward.signin;
 
 import com.jjg.game.common.cluster.ClusterSystem;
-import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.pointsaward.PlayerPointsAwardService;
@@ -26,7 +25,6 @@ import java.util.function.Predicate;
 public class PointsAwardSignInService {
 
     private final PlayerPointsAwardService pointsAwardService;
-    private final RedisLock redisLock;
     private final ClusterSystem clusterSystem;
     private final PlayerPackService playerPackService;
 
@@ -37,12 +35,10 @@ public class PointsAwardSignInService {
 
     public PointsAwardSignInService(PlayerPointsAwardService pointsAwardService,
                                     PlayerPackService playerPackService,
-                                    ClusterSystem clusterSystem,
-                                    RedisLock redisLock) {
+                                    ClusterSystem clusterSystem) {
         this.pointsAwardService = pointsAwardService;
         this.playerPackService = playerPackService;
         this.clusterSystem = clusterSystem;
-        this.redisLock = redisLock;
     }
 
     public void init(PointsAwardSignInManager manager) {
@@ -79,8 +75,6 @@ public class PointsAwardSignInService {
 
     /**
      * 检测签到数据
-     *
-     * @param playerId
      */
     public void check(long playerId) {
         pointsAwardService.updateWithLock(playerId, playerData -> {

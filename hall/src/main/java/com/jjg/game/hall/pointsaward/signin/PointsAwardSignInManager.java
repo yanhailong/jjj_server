@@ -1,10 +1,6 @@
 package com.jjg.game.hall.pointsaward.signin;
 
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.base.gameevent.ClockEvent;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PointsAwardSigninCfg;
 import org.slf4j.Logger;
@@ -21,7 +17,7 @@ import java.util.TreeMap;
  * 积分大奖的签到活动
  */
 @Component
-public class PointsAwardSignInManager implements GameEventListener {
+public class PointsAwardSignInManager {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -112,31 +108,6 @@ public class PointsAwardSignInManager implements GameEventListener {
      */
     public void daily() {
         checkMonth();
-    }
-
-    /**
-     * 处理事件
-     *
-     * @param gameEvent 事件
-     */
-    @Override
-    public <T extends GameEvent> void handleEvent(T gameEvent) {
-        if (gameEvent instanceof ClockEvent clockEvent) {
-            int hour = clockEvent.getHour();
-            if (hour == 0) {
-                daily();
-            }
-        }
-    }
-
-    /**
-     * 需要监听的事件类型, 根据实际需要监听的类型写入，通过配置表配置或者手动配置，需尽量避免写入无关事件类型
-     *
-     * @return 事件类型列表
-     */
-    @Override
-    public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.CLOCK_EVENT);
     }
 
     /**
