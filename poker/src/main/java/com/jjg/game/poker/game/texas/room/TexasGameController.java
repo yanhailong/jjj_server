@@ -850,7 +850,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
 
     @Override
     public boolean canJoinRobot() {
-        return getCurrentGamePhase() != EGamePhase.WAIT_READY && getCurrentGamePhase() != EGamePhase.START_GAME;
+        return getCurrentGamePhase() == EGamePhase.WAIT_READY || getCurrentGamePhase() == EGamePhase.START_GAME;
     }
 
     /**

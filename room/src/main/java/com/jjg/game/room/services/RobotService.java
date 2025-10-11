@@ -171,6 +171,12 @@ public class RobotService implements IRoomStartListener {
             log.error("配置表中找不到机器人ID：{}， 但在机器人池中还是存在此ID", robotPlayerId);
             return null;
         }
+        robotPlayer.setLevel(robotCfg.getPlayerLevel());
+        robotPlayer.setVipLevel(robotCfg.getVipLevel());
+        robotPlayer.setGender((byte) robotCfg.getGender());
+        robotPlayer.setHeadFrameId(robotCfg.getFrame());
+        robotPlayer.setNationalId(robotCfg.getFlag());
+        robotPlayer.setHeadImgId(robotCfg.getPicture());
         robotPlayer.setRoomId(roomId);
         robotPlayer.setRoomCfgId(roomCfg.getId());
         robotPlayer.setNickName(robotCfg.getName());
