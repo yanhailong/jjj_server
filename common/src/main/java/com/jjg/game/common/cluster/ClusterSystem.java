@@ -217,7 +217,6 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     }
 
 
-
     /**
      * 添加session
      */
@@ -797,11 +796,18 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
         clientList.forEach(clusterClient -> {
             try {
                 clusterClient.write(msg);
-                log.debug("给[{}]节点推送消息 node = {},cmd = 0x{}", clusterClient.getType(), clusterClient.nodeConfig.getName(),Integer.toHexString(pfMessage.cmd));
+                log.debug("给[{}]节点推送消息 node = {},cmd = 0x{}", clusterClient.getType(), clusterClient.nodeConfig.getName(), Integer.toHexString(pfMessage.cmd));
             } catch (Exception e) {
-                log.error("推送到[{}]节点信息异常 node = {},cmd = 0x{}", clusterClient.getType(), clusterClient.nodeConfig.getName(),Integer.toHexString(pfMessage.cmd), e);
+                log.error("推送到[{}]节点信息异常 node = {},cmd = 0x{}", clusterClient.getType(), clusterClient.nodeConfig.getName(), Integer.toHexString(pfMessage.cmd), e);
             }
         });
+    }
+
+    /**
+     * 获取当前节点所有的在线玩家id
+     */
+    public Set<Long> getAllOnlinePlayerId() {
+        return playerIdSessionMap.keySet();
     }
 
 }

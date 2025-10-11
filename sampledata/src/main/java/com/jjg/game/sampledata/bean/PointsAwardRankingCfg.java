@@ -20,7 +20,7 @@ public class PointsAwardRankingCfg extends BaseCfgBean {
 
   /** 奖励类型 */
   protected int awardType;
-  /** 排名奖励 */
+  /** 排名道具奖励 */
   protected List<String> getItem;
   /** 奖励价值 */
   protected long price;
@@ -36,7 +36,7 @@ public class PointsAwardRankingCfg extends BaseCfgBean {
     return awardType;
   }
 
-  /** 返回排名奖励 */
+  /** 返回排名道具奖励 */
   public List<String> getGetItem() {
     return getItem;
   }

@@ -20,8 +20,12 @@ public class PointsAwardSigninCfg extends BaseCfgBean {
 
   /** 签到天数 */
   protected int day;
-  /** 奖励 */
+  /** 道具奖励 */
   protected List<Integer> getItem;
+  /** 积分ICON */
+  protected String integralIcon;
+  /** 积分奖励 */
+  protected int integralNum;
   /** 开启时间 */
   protected String time;
 
@@ -30,9 +34,19 @@ public class PointsAwardSigninCfg extends BaseCfgBean {
     return day;
   }
 
-  /** 返回奖励 */
+  /** 返回道具奖励 */
   public List<Integer> getGetItem() {
     return getItem;
+  }
+
+  /** 返回积分ICON */
+  public String getIntegralIcon() {
+    return integralIcon;
+  }
+
+  /** 返回积分奖励 */
+  public int getIntegralNum() {
+    return integralNum;
   }
 
   /** 返回开启时间 */
