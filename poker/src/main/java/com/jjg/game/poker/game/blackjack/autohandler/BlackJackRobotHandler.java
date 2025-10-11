@@ -10,6 +10,7 @@ import com.jjg.game.poker.game.blackjack.room.data.BlackJackGameDataVo;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
+import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.gamephase.BasePokerRobotProcessorHandler;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
@@ -25,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -107,9 +109,7 @@ public class BlackJackRobotHandler extends BasePokerRobotProcessorHandler<BlackJ
                         hashMap.remove(DOUBLE_BET);
                         hashMap.remove(CUT_CARD);
                     }
-                    Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
-                    //只能分一次牌并且只能在发牌时分牌
-                    if (playerSeatInfo.getCurrentCards().size() != roomCfg.getHandPoker() || playerSeatInfo.getCardIndex() != 0 || playerSeatInfo.getCards().size() != 1) {
+                    if (!canCutCard(gameDataVo, playerSeatInfo)) {
                         hashMap.remove(CUT_CARD);
                     }
                     //行为权重随机
@@ -141,6 +141,23 @@ public class BlackJackRobotHandler extends BasePokerRobotProcessorHandler<BlackJ
                 }
             }
         }
+    }
+
+    /**
+     * 是否能分牌
+     */
+    private boolean canCutCard(BlackJackGameDataVo gameDataVo, PlayerSeatInfo playerSeatInfo) {
+        Room_ChessCfg roomCfg = gameDataVo.getRoomCfg();
+        //只能分一次牌并且只能在发牌时分牌
+        if (playerSeatInfo.getCurrentCards().size() != roomCfg.getHandPoker() || playerSeatInfo.getCardIndex() != 0 || playerSeatInfo.getCards().size() != 1) {
+            return false;
+        }
+        List<Integer> cards = playerSeatInfo.getCurrentCards();
+        Map<Integer, PokerCard> cardListMap = BlackJackDataHelper.getCardListMap(BlackJackDataHelper.getPoolId(gameDataVo));
+        int firstCard = cardListMap.get(cards.get(0)).getRank();
+        int secondCard = cardListMap.get(cards.get(1)).getRank();
+        //判断是否能分牌
+        return firstCard == secondCard;
     }
 
 

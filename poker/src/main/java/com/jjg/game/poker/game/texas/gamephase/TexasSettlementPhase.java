@@ -1,16 +1,12 @@
 package com.jjg.game.poker.game.texas.gamephase;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.Card;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.task.param.TaskConditionParam12001;
-import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
 import com.jjg.game.poker.game.common.constant.PokerPhase;
@@ -42,7 +38,6 @@ import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.data.room.SimplePlayerInfo;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
-import com.jjg.game.room.manager.AbstractRoomManager;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.robot.RobotUtil;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -426,32 +421,10 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
 
     @Override
     public void phaseFinishDoAction() {
-        if (gameController instanceof BasePokerGameController<TexasGameDataVo> controller) {
-            try {
-                //踢未在线的玩家
-                Map<Long, RoomPlayer> roomPlayers = controller.getRoom().getRoomPlayers();
-                if (CollectionUtil.isNotEmpty(roomPlayers)) {
-                    AbstractRoomManager roomManager = controller.getRoomController().getRoomManager();
-                    Map<Long, PlayerController> playerControllers =
-                            controller.getRoomController().getPlayerControllers();
-                    for (RoomPlayer roomPlayer : roomPlayers.values()) {
-                        if (!roomPlayer.isOnline()) {
-                            PlayerController playerController = playerControllers.get(roomPlayer.getPlayerId());
-                            if (Objects.nonNull(playerController)) {
-                                roomManager.exitRoom(playerController);
-                                log.info("德州掉线玩家直接踢掉 玩家id:{}", roomPlayer.getPlayerId());
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.error("德州结算踢不在线人异常", e);
-            }
-            //设置为等待阶段
-            gameDataVo.getTexasHistoryList().add(gameDataVo.getTexasHistory());
-            //结算后更新玩家信息
-            updatePlayerData();
-        }
+        //设置为等待阶段
+        gameDataVo.getTexasHistoryList().add(gameDataVo.getTexasHistory());
+        //结算后更新玩家信息
+        updatePlayerData();
     }
 
     /**
