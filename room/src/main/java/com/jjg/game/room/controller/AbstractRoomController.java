@@ -579,6 +579,10 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         }
         Set<Long> exceptPlayerIds = roomMessageBuilder.getExceptPlayers();
         for (Long roomPlayerId : playerIds) {
+            RoomPlayer roomPlayer = getRoomPlayer(roomPlayerId);
+            if (roomPlayer == null || !roomPlayer.isOnline()) {
+                continue;
+            }
             // 如果有不需要发送消息的玩家
             if (!exceptPlayerIds.isEmpty() && exceptPlayerIds.contains(roomPlayerId)) {
                 continue;
@@ -588,6 +592,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             if (playerIsOnline) {
                 playerIsOnline = playerController.isOnline();
             }
+
             // 需要玩家在线并且不是机器人，则发送数据
             if (playerIsOnline && !(playerController.getPlayer() instanceof RobotPlayer)) {
                 playerController.send(message);
