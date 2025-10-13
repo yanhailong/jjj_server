@@ -110,6 +110,10 @@ public class CoreMessageHandler {
             String cmd = arr[0];
             String params = arr[1];
 
+            if("init".equals(cmd)) {
+                return;
+            }
+
             if ("addGold".equalsIgnoreCase(cmd)) {
                 addGold(res, playerController, req.order, params);
                 return;
@@ -210,6 +214,29 @@ public class CoreMessageHandler {
     }
 
     /**
+     * gm玩家初始化
+     */
+    private void init(ResGm res, PlayerController playerController, String order, String params) throws Exception {
+        if (params == null || params.isEmpty()) {
+            res.code = Code.PARAM_ERROR;
+            log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(), order);
+            return;
+        }
+
+//        playerService.gmSetGoldAndDiamond(playerController.playerId(),)
+
+        long num = Long.parseLong(params);
+        CommonResult<Player> result = playerService.addGold(playerController.playerId(), num, "gmAddGold", null);
+        if (!result.success()) {
+            res.code = result.code;
+            log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
+            return;
+        }
+        playerController.getPlayer().setGold(result.data.getGold());
+        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data);
+    }
+
+    /**
      * gm修改金币
      */
     private void addGold(ResGm res, PlayerController playerController, String order, String params) throws Exception {
@@ -241,14 +268,14 @@ public class CoreMessageHandler {
         }
 
         long num = Long.parseLong(params);
-        CommonResult<Player> result = playerService.gmSetGold(playerController.playerId(), num, "gmSetGold", null);
-        if (!result.success()) {
-            res.code = result.code;
-            log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
-            return;
-        }
-        playerController.getPlayer().setGold(result.data.getGold());
-        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data);
+//        CommonResult<Player> result = playerService.gmSetGold(playerController.playerId(), num, "gmSetGold", null);
+//        if (!result.success()) {
+//            res.code = result.code;
+//            log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
+//            return;
+//        }
+//        playerController.getPlayer().setGold(result.data.getGold());
+//        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data);
     }
 
     /**

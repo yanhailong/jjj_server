@@ -24,4 +24,10 @@ public class TimerManager {
     public void onZeroClick() {
         gameEventManager.triggerEvent(new ClockEvent(EGameEventType.CLOCK_EVENT, 0));
     }
+
+    @Scheduled(cron = "0 0 12 * * *")
+    public void halfDay() {
+        gameEventManager.triggerEvent(new ClockEvent(EGameEventType.CLOCK_EVENT, 12));
+    }
+
 }

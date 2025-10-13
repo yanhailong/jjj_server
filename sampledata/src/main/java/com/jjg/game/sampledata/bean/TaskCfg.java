@@ -18,8 +18,12 @@ public class TaskCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "task";
 
-  /** 奖励 */
+  /** 道具奖励 */
   protected List<Integer> getItem;
+  /** 积分ICON */
+  protected String integralIcon;
+  /** 积分奖励 */
+  protected int integralNum;
   /** 按钮跳转类型 */
   protected List<Integer> jumpType;
   /** 任务条件 */
@@ -31,9 +35,19 @@ public class TaskCfg extends BaseCfgBean {
   /** 开启时间 */
   protected String time;
 
-  /** 返回奖励 */
+  /** 返回道具奖励 */
   public List<Integer> getGetItem() {
     return getItem;
+  }
+
+  /** 返回积分ICON */
+  public String getIntegralIcon() {
+    return integralIcon;
+  }
+
+  /** 返回积分奖励 */
+  public int getIntegralNum() {
+    return integralNum;
   }
 
   /** 返回按钮跳转类型 */

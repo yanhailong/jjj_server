@@ -8,6 +8,7 @@ import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.hall.casino.manager.CasinoManager;
 import com.jjg.game.hall.listener.HallPlayerEventListener;
 import com.jjg.game.hall.minigame.MinigameManager;
+import com.jjg.game.hall.pointsaward.PointsAwardManager;
 import com.jjg.game.hall.service.HallService;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +47,8 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private MinigameManager minigameManager;
     @Autowired
     private ConfigManager configManager;
+    @Autowired
+    private PointsAwardManager pointsAwardManager;
 
     private ApplicationContext context;
 
@@ -61,6 +64,7 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         marqueeManager.init();
         activityManager.initData();
         minigameManager.init();
+        pointsAwardManager.init();
         running = true;
     }
 
