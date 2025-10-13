@@ -153,6 +153,7 @@ public class GameDataManager {
     containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
     containerMap.put(GrowthFundCfg.class, new GrowthFundCfgContainer());
     containerMap.put(ItemCfg.class, new ItemCfgContainer());
+    containerMap.put(JumpDataCfg.class, new JumpDataCfgContainer());
     containerMap.put(MGLuckyTreasureCfg.class, new MGLuckyTreasureCfgContainer());
     containerMap.put(MailCfg.class, new MailCfgContainer());
     containerMap.put(MiniGameCfg.class, new MiniGameCfgContainer());
@@ -1009,6 +1010,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(ItemCfg.class).getCfgBeanList();
   }
 
+  public static JumpDataCfg getJumpDataCfg(int key) {
+    return getInstance().getCfgContainer(JumpDataCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, JumpDataCfg> getJumpDataCfgMap() {
+    return getInstance().getCfgContainer(JumpDataCfg.class).getCfgBeanMap();
+  }
+
+  public static List<JumpDataCfg> getJumpDataCfgList() {
+    return getInstance().getCfgContainer(JumpDataCfg.class).getCfgBeanList();
+  }
+
   public static MGLuckyTreasureCfg getMGLuckyTreasureCfg(int key) {
     return getInstance().getCfgContainer(MGLuckyTreasureCfg.class).getCfgBeanMap().get(key);
   }
@@ -1457,6 +1470,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("E:\\java\\gamedoc\\游戏配置表");
+    loadAllData("D:\\workspace\\gamedoc\\游戏配置表");
   }
 }
