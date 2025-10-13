@@ -103,7 +103,7 @@ public class GrowthFundController extends BaseActivityController {
     }
 
     @Override
-    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
+    public boolean addPlayerProgress(Player player, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
         boolean change = false;
         if (additionalParameters instanceof Integer level) {
             long activityId = activityData.getId();
@@ -112,12 +112,13 @@ public class GrowthFundController extends BaseActivityController {
             if (CollectionUtil.isEmpty(baseCfgBeanMap)) {
                 return false;
             }
+            long playerId = player.getId();
             //加锁前检查是否已经触发完
             Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
             if (playerActivityData.size() == baseCfgBeanMap.size()) {
                 return false;
             }
-            long count = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(playerId));
+            long count = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player));
             String lockKey = playerActivityDao.getLockKey(playerId, activityId);
             redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
@@ -141,7 +142,7 @@ public class GrowthFundController extends BaseActivityController {
                     playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, playerActivityData);
                 }
             } catch (Exception e) {
-                log.error("成长基金增加进度异常 playerId:{} activityId:{}", playerId, activityId, e);
+                log.error("成长基金增加进度异常 playerId:{} activityId:{}", player, activityId, e);
             } finally {
                 redisLock.unlock(lockKey);
             }

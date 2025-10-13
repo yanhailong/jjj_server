@@ -70,7 +70,8 @@ public class OfficialAwardsController extends BaseActivityController implements 
     }
 
     @Override
-    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
+    public boolean addPlayerProgress(Player player, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
+        long playerId = player.getId();
         //转换比例
         Pair<Integer, Integer> pair = dataCache.getRechargeConvertRatio();
         //计算增加的积分值

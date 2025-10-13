@@ -63,13 +63,14 @@ public class DailyLoginController extends BaseActivityController {
     }
 
     @Override
-    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
+    public boolean addPlayerProgress(Player player, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
         //获取配置信息
         long activityId = activityData.getId();
         Map<Integer, DailyRewardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         if (CollectionUtil.isEmpty(baseCfgBeanMap)) {
             return false;
         }
+        long playerId = player.getId();
         long continuousLoginDay = dailyLoginDao.getContinuousLoginDay(activityId, playerId);
         long cumulativeLoginDay = dailyLoginDao.getCumulativeLoginDay(activityId, playerId);
         boolean change = false;
@@ -93,7 +94,7 @@ public class DailyLoginController extends BaseActivityController {
                 playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, playerActivityData);
             }
         } catch (Exception e) {
-            log.error("每日签到增加进度异常 playerId:{} activityId:{}", playerId, activityId, e);
+            log.error("每日签到增加进度异常 playerId:{} activityId:{}", player, activityId, e);
         } finally {
             redisLock.unlock(lockKey);
         }

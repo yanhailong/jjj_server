@@ -1,7 +1,8 @@
 package com.jjg.game.sampledata.bean;
 
+import java.util.*;
+
 import javax.annotation.processing.Generated;
-import java.util.Map;
 /**
  * 配置bean
  *
@@ -17,14 +18,14 @@ public class GrowthFundCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "GrowthFund";
 
-  /** 免费道具奖励 */
+  /** 道具奖励 */
   protected Map<Integer,Long> getItem;
   /** 达成条件(角色等级) */
   protected int level;
   /** 类型 1免费 2付费 */
   protected int type;
 
-  /** 返回免费道具奖励 */
+  /** 返回道具奖励 */
   public Map<Integer,Long> getGetItem() {
     return getItem;
   }

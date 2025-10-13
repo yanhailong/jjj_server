@@ -1,10 +1,10 @@
 package com.jjg.game.sampledata.container;
 
-import com.jjg.game.sampledata.bean.DailyRechargeCfg;
-
-import javax.annotation.processing.Generated;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.annotation.processing.Generated;
+import com.jjg.game.sampledata.bean.DailyRechargeCfg;
 
 /**
  * DailyRecharge.xlsx配置管理容器
