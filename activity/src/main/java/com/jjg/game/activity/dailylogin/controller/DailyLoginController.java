@@ -3,6 +3,7 @@ package com.jjg.game.activity.dailylogin.controller;
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
+import com.jjg.game.activity.common.data.ClaimRewardsResult;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -16,8 +17,6 @@ import com.jjg.game.activity.privilegecard.data.PlayerPrivilegeCard;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -114,59 +113,26 @@ public class DailyLoginController extends BaseActivityController {
         ResDailyLoginClaimRewards res = new ResDailyLoginClaimRewards(Code.SUCCESS);
         long playerId = player.getId();
         long activityId = activityData.getId();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         Map<Integer, DailyRewardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         DailyRewardsCfg cfg = baseCfgBeanMap.get(detailId);
-        if (cfg == null) {
+        if (cfg == null || CollectionUtil.isEmpty(cfg.getGetItem())) {
             res.code = Code.PARAM_ERROR;
             return res;
         }
-        PlayerActivityData data = null;
-        CommonResult<ItemOperationResult> addedItems = null;
-        // 加锁，保证领取操作原子性
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-        try {
-            Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
-            if (CollectionUtil.isEmpty(dataMap)) {
-                res.code = Code.PARAM_ERROR;
-                return res;
-            }
-            data = dataMap.get(detailId);
-            if (data == null) {
-                res.code = Code.PARAM_ERROR;
-                return res;
-            }
-            if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                res.code = Code.REPEAT_OP;
-                return res;
-            }
-            // 发放每日奖励
-            addedItems = playerPackService.addItems(playerId, cfg.getGetItem(), "DailyLoginRewords");
-            if (!addedItems.success()) {
-                res.code = Code.UNKNOWN_ERROR;
-                return res;
-            }
-            // 更新领取时间
-            data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
-            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, dataMap);
+        ClaimRewardsResult result = claimActivityRewards(playerId, activityData, detailId, "DailyLogin", cfg.getGetItem());
+        if (result != null) {
             dailyLoginDao.updateClaimTime(activityId, playerId);
             dailyLoginDao.addContinuousLoginDay(activityId, playerId);
             dailyLoginDao.addCumulativeLoginDay(activityId, playerId);
-        } catch (Exception e) {
-            log.error("领取每日签到异常 playerId:{} activityId:{} detailid:{}", playerId, activityId, detailId, e);
-        } finally {
-            redisLock.unlock(lockKey);
-        }
-        // 构建响应数据
-        if (data != null) {
-            if (addedItems != null && addedItems.success()) {
-                //TODO 日志
-            }
+            //TODO 日志
+
+            // 构建响应数据
             res.activityId = activityId;
             res.detailId = detailId;
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetItem());
-            res.detailInfo = buildPlayerActivityDetail(activityId, cfg, data);
+            res.detailInfo = buildPlayerActivityDetail(activityId, cfg, result.playerActivityData());
         }
+
         return res;
     }
 

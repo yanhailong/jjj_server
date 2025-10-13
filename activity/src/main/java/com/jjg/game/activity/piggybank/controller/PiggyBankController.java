@@ -210,64 +210,63 @@ public class PiggyBankController extends BaseActivityController {
     public AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId) {
         ResPiggyBankClaimRewards res = new ResPiggyBankClaimRewards(Code.SUCCESS);
         long playerId = player.getId();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
 
         Map<Integer, PiggyBankCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         PiggyBankCfg cfg = baseCfgBeanMap.get(detailId);
+        if (cfg == null || CollectionUtil.isEmpty(cfg.getGetitem())) {
+            res.code = Code.SAMPLE_ERROR;
+            return res;
+        }
+        PiggyBankData data = null;
+        CommonResult<ItemOperationResult> addedItems = null;
 
-        if (cfg != null) {
-            PiggyBankData data = null;
-            CommonResult<ItemOperationResult> addedItems = null;
+        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
+        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        try {
+            // 获取玩家储钱罐数据
+            Map<Integer, PiggyBankData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+            data = dataMap.get(detailId);
 
-            redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-            try {
-                // 获取玩家储钱罐数据
-                Map<Integer, PiggyBankData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-                data = dataMap.get(detailId);
-
-                // 数据不存在，返回参数错误
-                if (data == null) {
-                    res.code = Code.PARAM_ERROR;
-                    return res;
-                }
-
-                // 如果不能领取，返回请求错误
-                if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                    res.code = Code.ERROR_REQ;
-                    return res;
-                }
-
-                // 添加奖励到背包
-                addedItems = playerPackService.addItems(playerId, cfg.getGetitem(), "privilegeCardRewords");
-                if (!addedItems.success()) {
-                    res.code = Code.UNKNOWN_ERROR;
-                    return res;
-                }
-
-                // 重置储钱罐数据
-                resetPiggyBankData(data);
-
-                // 保存数据
-                playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
-            } catch (Exception e) {
-                log.error("领取每日奖金异常 playerId:{} activityId:{}", playerId, activityData.getId(), e);
-            } finally {
-                redisLock.unlock(lockKey);
+            // 数据不存在，返回参数错误
+            if (data == null) {
+                res.code = Code.PARAM_ERROR;
+                return res;
             }
 
-            // 记录日志
-            if (data != null && addedItems != null && addedItems.success()) {
-                activityLogger.sendPiggyBankRewards(player, activityData, data, cfg.getWeight(), cfg.getName(),
-                        addedItems.data, cfg.getGetitem());
+            // 如果不能领取，返回请求错误
+            if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
+                res.code = Code.ERROR_REQ;
+                return res;
             }
 
-            // 构建响应
-            res.activityId = activityData.getId();
-            res.detailId = detailId;
-            res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
-            res.detailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, data);
+            // 添加奖励到背包
+            addedItems = playerPackService.addItems(playerId, cfg.getGetitem(), "privilegeCardRewords");
+            if (!addedItems.success()) {
+                res.code = Code.UNKNOWN_ERROR;
+                return res;
+            }
+
+            // 重置储钱罐数据
+            resetPiggyBankData(data);
+
+            // 保存数据
+            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
+        } catch (Exception e) {
+            log.error("领取每日奖金异常 playerId:{} activityId:{}", playerId, activityData.getId(), e);
+        } finally {
+            redisLock.unlock(lockKey);
         }
 
+        // 记录日志
+        if (data != null && addedItems != null && addedItems.success()) {
+            activityLogger.sendPiggyBankRewards(player, activityData, data, cfg.getWeight(), cfg.getName(),
+                    addedItems.data, cfg.getGetitem());
+        }
+        // 构建响应
+        res.activityId = activityData.getId();
+        res.detailId = detailId;
+        res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
+        res.detailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, data);
         return res;
     }
 

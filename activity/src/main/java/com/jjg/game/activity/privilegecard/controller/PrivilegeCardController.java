@@ -181,7 +181,7 @@ public class PrivilegeCardController extends BaseActivityController {
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         Map<Integer, PrivilegeCardCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         PrivilegeCardCfg cfg = baseCfgBeanMap.get(detailId);
-        if (cfg == null) {
+        if (cfg == null || CollectionUtil.isEmpty(cfg.getDayRebate())) {
             res.code = Code.PARAM_ERROR;
             return res;
         }
@@ -228,21 +228,15 @@ public class PrivilegeCardController extends BaseActivityController {
         }
 
         // 构建响应数据
-        if (data != null) {
-            if (addedItems != null && addedItems.success()) {
-                //计算天数
-                long remain = data.getEndTime() == -1 ? data.getEndTime() : ChronoUnit.DAYS.between(LocalDateTime.now(), TimeHelper.getLocalDateTime(data.getEndTime()));
-                activityLogger.sendPrivilegeCardRewardsLog(player, activityData, cfg, remain, addedItems.data, cfg.getDayRebate());
-            }
-            res.activityId = activityData.getId();
-            res.detailId = detailId;
-            res.infoList = ItemUtils.buildItemInfo(cfg.getDayRebate());
-            BaseActivityDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, data);
-            if (baseActivityDetailInfo instanceof PrivilegeCardDetailInfo info) {
-                res.detailInfo = info;
-            }
+        if (data != null && addedItems != null && addedItems.success()) {
+            //计算天数
+            long remain = data.getEndTime() == -1 ? data.getEndTime() : ChronoUnit.DAYS.between(LocalDateTime.now(), TimeHelper.getLocalDateTime(data.getEndTime()));
+            activityLogger.sendPrivilegeCardRewardsLog(player, activityData, cfg, remain, addedItems.data, cfg.getDayRebate());
         }
-
+        res.activityId = activityData.getId();
+        res.detailId = detailId;
+        res.infoList = ItemUtils.buildItemInfo(cfg.getDayRebate());
+        res.detailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, data);
         return res;
     }
 

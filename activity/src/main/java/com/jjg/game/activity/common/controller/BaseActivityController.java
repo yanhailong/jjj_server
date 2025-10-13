@@ -5,6 +5,7 @@ import com.jjg.game.activity.activitylog.ActivityLogger;
 import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;
+import com.jjg.game.activity.common.data.ClaimRewardsResult;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.ActivityBuilder;
 import com.jjg.game.activity.common.message.bean.ActivityInfo;
@@ -14,10 +15,16 @@ import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.condition.ConditionCheckService;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
@@ -42,6 +49,7 @@ import java.util.Map;
  */
 public abstract class BaseActivityController {
 
+    private final Logger log = LoggerFactory.getLogger(BaseActivityController.class);
     /**
      * 玩家活动数据访问对象
      */
@@ -344,5 +352,52 @@ public abstract class BaseActivityController {
             }
         }
         return false;
+    }
+
+    /**
+     * 通用活动领取奖励
+     *
+     * @param playerId     玩家id
+     * @param activityData 活动数据
+     * @param detailId     活动详情id
+     * @param getItem      获得道具
+     * @return 最新玩家活动数据,添加道具结果
+     */
+    public ClaimRewardsResult claimActivityRewards(long playerId, ActivityData activityData, int detailId,String addType, Map<Integer, Long> getItem) {
+        long activityId = activityData.getId();
+        PlayerActivityData data;
+        CommonResult<ItemOperationResult> addedItems;
+        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
+        // 加锁，保证领取操作原子性
+        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        try {
+            Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
+            if (CollectionUtil.isEmpty(dataMap)) {
+                TipUtils.sendTip(playerId, TipUtils.TipType.TOAST, Code.PARAM_ERROR);
+                return null;
+            }
+            data = dataMap.get(detailId);
+            if (data == null) {
+                TipUtils.sendTip(playerId, TipUtils.TipType.TOAST, Code.PARAM_ERROR);
+                return null;
+            }
+            if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
+                TipUtils.sendTip(playerId, TipUtils.TipType.TOAST, Code.REPEAT_OP);
+                return null;
+            }
+            // 发放奖励
+            addedItems = playerPackService.addItems(playerId, getItem, addType);
+            if (!addedItems.success()) {
+                return null;
+            }
+            data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
+            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, dataMap);
+            return new ClaimRewardsResult(data, addedItems.data);
+        } catch (Exception e) {
+            log.error("活动领取异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
+        } finally {
+            redisLock.unlock(lockKey);
+        }
+        return null;
     }
 }
