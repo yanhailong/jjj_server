@@ -65,7 +65,6 @@ public class SharePromoteController extends BaseActivityController {
     public AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId) {
         ResSharePromoteClaimRewards res = new ResSharePromoteClaimRewards(Code.SUCCESS);
         long playerId = player.getId();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         //获取活动详情数据
         Map<Integer, SharePromoteCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         SharePromoteCfg cfg = baseCfgBeanMap.get(detailId);
