@@ -18,8 +18,8 @@ public class ResOfficialAwardsJoinActivity extends AbstractResponse {
     public ItemInfo infoList;
     @ProtoDesc("奖励id")
     public int rewardDetailId;
-    @ProtoDesc("今日积分")
-    public int todayPoint;
+    @ProtoDesc("剩余积分")
+    public int remainPoint;
     @ProtoDesc("总奖池")
     public int totalPool;
     public ResOfficialAwardsJoinActivity(int code) {

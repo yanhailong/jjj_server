@@ -10,6 +10,7 @@ import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.res.NotifyActivityChange;
 import com.jjg.game.activity.constant.ActivityConstant;
+import com.jjg.game.activity.util.CronUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.StrConstant;
@@ -54,6 +55,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -221,8 +223,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             if (activityType == null) {
                 continue;
             }
-            ActivityData data = ActivityData.getActivityData(activityConfigCfg, activityType);
-            checkActivityData(data, currentTime, timerList);
+            ActivityData data = ActivityData.getActivityData(activityConfigCfg, activityType, startServerTime);
+            checkActivityTimer(data, currentTime, timerList);
             long activityInfoId = activityConfigCfg.getId();
             tempActivityData.put(activityInfoId, data);
         }
@@ -236,23 +238,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * @param timeMillis 当前时间
      * @param timerList  需要添加定时器的timer列表
      */
-    public void checkActivityData(ActivityData data, long timeMillis, List<Pair<Long, Long>> timerList) {
-        if (!data.isOpen() || data.getStatus() == ActivityConstant.ActivityStatus.ENDED) {
-            return;
-        }
-        //通过活动类型判断
-        if (data.getOpenType() == ActivityConstant.Common.OPEN_SERVER_TYPE) {
-            //开服 开始时间戳为0设置为开服时间，结束时间戳为持续时间的时间戳 添加结束时间
-            if (data.getTimeEnd() < timeMillis) {
-                long timestampByDay = TimeHelper.getTimestampByDay(startServerTime, data.getDuration());
-                data.setTimeStart(startServerTime);
-                data.setTimeEnd(timestampByDay);
-            }
-        } else if (data.getOpenType() == ActivityConstant.Common.LIMIT_TYPE && timeMillis > data.getTimeEnd()) {
-            return;
-        }
-        //当前时间大于结束直接不添加到活动中
-        if (data.getTimeEnd() < timeMillis) {
+    public void checkActivityTimer(ActivityData data, long timeMillis, List<Pair<Long, Long>> timerList) {
+        //定时器添加判断
+        if (!data.isOpen() || data.getStatus() == ActivityConstant.ActivityStatus.ENDED || data.getTimeEnd() < timeMillis) {
             return;
         }
         long activityInfoId = data.getId();
@@ -302,28 +290,53 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         //活动结束
         if (data.getStatus() == ActivityConstant.ActivityStatus.RUNNING && timeMillis >= data.getTimeEnd()) {
-            //限时活动
-            if (data.getOpenType() == ActivityConstant.Common.LIMIT_TYPE) {
-                data.setStatus(ActivityConstant.ActivityStatus.ENDED);
-                //活动结束执行
-                if (isExecutionNode()) {
-                    data.getType().getController().onActivityEnd(data);
-                }
-                //推送活动变化
-                notifyNodeActivityChange(data);
-            } else if (data.getOpenType() == ActivityConstant.Common.OPEN_SERVER_TYPE) {
-                //开发活动
-                //修改轮数
-                data.addRound();
-                data.setTimeStart(data.getTimeEnd());
-                //计算结束时间
-                long timestampByDay = TimeHelper.getTimestampByDay(startServerTime, data.getDuration());
-                data.setTimeEnd(timestampByDay);
-                if (isExecutionNode()) {
+            switch (data.getOpenType()) {
+                case ActivityConstant.Common.LIMIT_TYPE -> {
+                    data.setStatus(ActivityConstant.ActivityStatus.ENDED);
                     //活动结束执行
-                    data.getType().getController().onActivityEnd(data);
+                    if (isExecutionNode()) {
+                        data.getType().getController().onActivityEnd(data);
+                    }
+                    //推送活动变化
+                    notifyNodeActivityChange(data);
                 }
-                notifyNodeActivityChange(data);
+                case ActivityConstant.Common.OPEN_SERVER_TYPE -> {
+                    data.setTimeStart(data.getTimeEnd());
+                    //计算结束时间
+                    long timestampByDay = TimeHelper.getTimestampByDay(data.getTimeStart(), data.getDuration());
+                    data.setTimeEnd(timestampByDay);
+                    if (isExecutionNode()) {
+                        //活动结束执行
+                        data.getType().getController().onActivityEnd(data);
+                    }
+                    notifyNodeActivityChange(data);
+                    //修改轮数
+                    data.addRound();
+                    //添加到定时器
+                    addActivityTimer(List.of(Pair.newPair(data.getTimeEnd(), activityId)));
+                }
+                case ActivityConstant.Common.CYCLE_SERVER_TYPE -> {
+                    data.setStatus(ActivityConstant.ActivityStatus.ENDED);
+                    //活动结束执行
+                    if (isExecutionNode()) {
+                        data.getType().getController().onActivityEnd(data);
+                    }
+                    //推送活动变化
+                    notifyNodeActivityChange(data);
+                    data.addRound();
+                    //重新计算时间并添加到定时器
+                    Pair<LocalDateTime, LocalDateTime> nextOpenTime = CronUtil.getNextOpenTime(data.getTimeStartCorn(), data.getTimeEndCorn(), LocalDateTime.now());
+                    if (nextOpenTime != null) {
+                        //设置下一轮的开始时间
+                        data.setTimeStart(TimeHelper.getTimestamp(nextOpenTime.getFirst()));
+                        //设置下一轮的结束
+                        data.setTimeEnd(TimeHelper.getTimestamp(nextOpenTime.getFirst()));
+                        //设置定时器
+                        addActivityTimer(List.of(Pair.newPair(data.getTimeEnd(), activityId),
+                                Pair.newPair(data.getTimeStart(), activityId)));
+                        data.setStatus(ActivityConstant.ActivityStatus.NOT_START);
+                    }
+                }
             }
         }
 
@@ -836,8 +849,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             }
             List<Pair<Long, Long>> timerList = new ArrayList<>(2);
             //非未开始的 或者新增直接重新构建
-            ActivityData data = ActivityData.getActivityData(activityConfigCfg, activityType);
-            checkActivityData(data, currentTime, timerList);
+            ActivityData data = ActivityData.getActivityData(activityConfigCfg, activityType, startServerTime);
+            checkActivityTimer(data, currentTime, timerList);
             if (oldData != null) {
                 //移除之前的定时器
                 removeActivityTimer(oldData.getId());

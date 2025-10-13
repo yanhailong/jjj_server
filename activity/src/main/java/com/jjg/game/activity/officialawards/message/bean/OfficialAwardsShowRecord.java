@@ -16,8 +16,6 @@ public class OfficialAwardsShowRecord {
     public long recordTime;
     @ProtoDesc("昵称")
     public String name;
-    @ProtoDesc("类型")
-    public int type;
     @ProtoDesc("获奖数量")
     public long num;
 }

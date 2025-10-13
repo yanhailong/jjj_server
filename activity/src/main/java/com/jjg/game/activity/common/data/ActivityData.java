@@ -1,11 +1,14 @@
 package com.jjg.game.activity.common.data;
 
-import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.constant.ActivityConstant;
+import com.jjg.game.activity.util.CronUtil;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
 import org.apache.commons.lang3.StringUtils;
 
+import java.time.LocalDateTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Map;
 
@@ -69,7 +72,9 @@ public class ActivityData {
      */
     private List<Integer> value;
 
-    /** 值2 */
+    /**
+     * 值2
+     */
     private List<Integer> valueParam;
 
     /**
@@ -86,6 +91,31 @@ public class ActivityData {
      */
     private List<Integer> dropId;
 
+    /**
+     * 执行的开始corn表达式
+     */
+    private String timeStartCorn;
+
+    /**
+     * 执行的结束corn表达式
+     */
+    private String timeEndCorn;
+
+    public String getTimeStartCorn() {
+        return timeStartCorn;
+    }
+
+    public void setTimeStartCorn(String timeStartCorn) {
+        this.timeStartCorn = timeStartCorn;
+    }
+
+    public String getTimeEndCorn() {
+        return timeEndCorn;
+    }
+
+    public void setTimeEndCorn(String timeEndCorn) {
+        this.timeEndCorn = timeEndCorn;
+    }
 
     public int getStatus() {
         return status;
@@ -231,7 +261,7 @@ public class ActivityData {
         return isOpen() && status == ActivityConstant.ActivityStatus.RUNNING;
     }
 
-    public static ActivityData getActivityData(ActivityConfigCfg cfg, ActivityType activityType) {
+    public static ActivityData getActivityData(ActivityConfigCfg cfg, ActivityType activityType, long startServerTime) {
         if (cfg == null) {
             return null;
         }
@@ -250,18 +280,48 @@ public class ActivityData {
         data.setDropId(cfg.getDropid());
         data.setDropCondition(cfg.getDropcondition());
         data.setTriggerType(cfg.getTriggerType());
-        // 解析时间字符串为时间戳（假设格式是 yyyy-MM-dd HH:mm:ss）
-        if (StringUtils.isNotEmpty(cfg.getTime_start())) {
-            data.setTimeStart(TimeHelper.getTimestamp(cfg.getTime_start().trim()));
-        }
-
-        if (StringUtils.isNotEmpty(cfg.getTime_end())) {
-            data.setTimeEnd(TimeHelper.getTimestamp(cfg.getTime_end().trim()));
+        long currentTimeMillis = System.currentTimeMillis();
+        switch (data.getOpenType()) {
+            case ActivityConstant.Common.CYCLE_SERVER_TYPE -> {
+                //循环设置cron
+                data.setTimeStartCorn(cfg.getTime_start());
+                data.setTimeEndCorn(cfg.getTime_end());
+                LocalDateTime offset = LocalDateTime.now();
+                if (activityType == ActivityType.OFFICIAL_AWARDS) {
+                    offset = offset.with(TemporalAdjusters.firstDayOfMonth());
+                }
+                do {
+                    //获取下次执行时间
+                    Pair<LocalDateTime, LocalDateTime> nextOpenTime = CronUtil.getNextOpenTime(data.getTimeStartCorn(), data.getTimeEndCorn(), offset);
+                    if (nextOpenTime != null) {
+                        data.setTimeStart(TimeHelper.getTimestamp(nextOpenTime.getFirst()));
+                        data.setTimeEnd(TimeHelper.getTimestamp(nextOpenTime.getSecond()));
+                    }
+                } while (currentTimeMillis >= data.getTimeEnd());
+            }
+            case ActivityConstant.Common.LIMIT_TYPE -> {
+                // 解析时间字符串为时间戳（假设格式是 yyyy-MM-dd HH:mm:ss）
+                if (StringUtils.isNotEmpty(cfg.getTime_start())) {
+                    data.setTimeStart(TimeHelper.getTimestamp(cfg.getTime_start().trim()));
+                }
+                // 解析时间字符串为时间戳（假设格式是 yyyy-MM-dd HH:mm:ss）
+                if (StringUtils.isNotEmpty(cfg.getTime_end())) {
+                    data.setTimeEnd(TimeHelper.getTimestamp(cfg.getTime_end().trim()));
+                }
+            }
+            case ActivityConstant.Common.OPEN_SERVER_TYPE -> {
+                //开服 开始时间戳为0设置为开服时间，结束时间戳为持续时间的时间戳 添加结束时间
+                data.setTimeEnd(startServerTime);
+                data.setTimeStart(startServerTime);
+                if (data.getTimeEnd() < currentTimeMillis) {
+                    do {
+                        long timestampByDay = TimeHelper.getTimestampByDay(data.getTimeStart(), data.getDuration());
+                        data.setTimeStart(data.getTimeEnd());
+                        data.setTimeEnd(timestampByDay);
+                    }while (currentTimeMillis >= data.getTimeEnd());
+                }
+            }
         }
         return data;
-    }
-
-    public BaseActivityController getActivityController() {
-        return type.getController();
     }
 }

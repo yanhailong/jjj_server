@@ -25,8 +25,8 @@ public class OfficialAwardsDao {
     // -------------------- Redis Key 定义 --------------------
     private final String FUNCTION_NAME = "officialawards";
     private final String PREFIX = "activity:" + FUNCTION_NAME;
-    // 玩家进度 key: 玩家id:类型(1今日积分 2明日积分)
-    private final String PLAYER_PROGRESS_KEY = PREFIX + ":player:%d:%d";
+    // 玩家进度 key: 玩家id
+    private final String PLAYER_PROGRESS_KEY = PREFIX + ":player:%d";
     private final String TOTAL_POOL_KEY = PREFIX + ":pool";
     private final RedisTemplate<String, String> redisTemplate;
     private final RecordDao recordDao;
@@ -100,10 +100,10 @@ public class OfficialAwardsDao {
     }
 
     /**
-     * 获取玩家进度(type=1今日积分,2明日积分)
+     * 获取玩家进度
      */
-    public int getPlayerProgress(long playerId, int type) {
-        String key = String.format(PLAYER_PROGRESS_KEY, playerId, type);
+    public int getPlayerProgress(long playerId) {
+        String key = String.format(PLAYER_PROGRESS_KEY, playerId);
         String progress = redisTemplate.opsForValue().get(key);
         return progress == null ? 0 : Integer.parseInt(progress);
     }
@@ -111,14 +111,14 @@ public class OfficialAwardsDao {
     /**
      * 扣除玩家进度
      */
-    public int reducePlayerProgress(long playerId, int type, int reduceValue) {
-        String key = String.format(PLAYER_PROGRESS_KEY, playerId, type);
+    public int reducePlayerProgress(long playerId, int reduceValue) {
+        String key = String.format(PLAYER_PROGRESS_KEY, playerId);
         return reduceProgress(key, reduceValue);
     }
 
     public int reduceProgress(String redisKey, int reduceValue) {
         String lockKey = "lock:" + redisKey;
-        redisLock.lock(lockKey,ActivityConstant.Common.REDIS_LOCK);
+        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
             String progress = redisTemplate.opsForValue().get(redisKey);
             int currentProgress = progress == null ? 0 : Integer.parseInt(progress);
@@ -140,18 +140,17 @@ public class OfficialAwardsDao {
      * 删除玩家进度
      *
      * @param playerId 玩家id
-     * @param type     类型
      */
-    public void deletePlayerProgress(long playerId, int type) {
-        String key = String.format(PLAYER_PROGRESS_KEY, playerId, type);
+    public void deletePlayerProgress(long playerId) {
+        String key = String.format(PLAYER_PROGRESS_KEY, playerId);
         redisTemplate.delete(key);
     }
 
     /**
      * 玩家进度自增 (积分累加)
      */
-    public int incrementPlayerProgress(long playerId, int type, long delta) {
-        String key = String.format(PLAYER_PROGRESS_KEY, playerId, type);
+    public int incrementPlayerProgress(long playerId, long delta) {
+        String key = String.format(PLAYER_PROGRESS_KEY, playerId);
         Long increment = redisTemplate.opsForValue().increment(key, delta);
         return increment == null ? 0 : increment.intValue();
     }
@@ -186,7 +185,7 @@ public class OfficialAwardsDao {
      */
     public Pair<Integer, Integer> reduceTotalPool(int reduceValue) {
         String lockKey = "lock:" + TOTAL_POOL_KEY;
-        redisLock.lock(lockKey,ActivityConstant.Common.REDIS_LOCK);
+        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
             String val = redisTemplate.opsForValue().get(TOTAL_POOL_KEY);
             int current = val == null ? 0 : Integer.parseInt(val);
