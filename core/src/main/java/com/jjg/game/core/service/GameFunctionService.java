@@ -93,6 +93,11 @@ public class GameFunctionService implements GameEventListener {
         if (functionCfg == null) {
             return false;
         }
+
+        if(!functionCfg.getIsOpen()){
+            return false;
+        }
+
         List<Integer> conditionTypes = functionCfg.getVipLevel();
         ConditionCfg conditionCfg = GameDataManager.getConditionCfg(conditionTypes.getFirst());
         if (conditionCfg == null) {
@@ -112,6 +117,9 @@ public class GameFunctionService implements GameEventListener {
         List<EGameEventType> needMonitorEvents = new ArrayList<>();
         List<GameFunctionCfg> functionCfg = GameDataManager.getGameFunctionCfgList();
         for (GameFunctionCfg gameFunctionCfg : functionCfg) {
+            if(!gameFunctionCfg.getIsOpen()){
+                continue;
+            }
             // 条件类型
             List<Integer> conditionTypes = gameFunctionCfg.getVipLevel();
             ConditionCfg conditionCfg = GameDataManager.getConditionCfg(conditionTypes.getFirst());

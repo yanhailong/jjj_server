@@ -1,5 +1,6 @@
 package com.jjg.game.common.redis;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.utils.ObjectMapperUtil;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -72,6 +73,8 @@ public class RedisConfig implements CachingConfigurer {
     public CacheManager cacheManager(RedisConnectionFactory factory) {
         // 使用项目统一的ObjectMapper配置
         ObjectMapper mapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);  // 忽略未知字段
+
         RedisSerializer<String> redisSerializer = new StringRedisSerializer();
         Jackson2JsonRedisSerializer<Object> jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer<>(mapper, Object.class);
 
@@ -99,6 +102,7 @@ public class RedisConfig implements CachingConfigurer {
     @Bean("redisTemplate")
     public <T> RedisTemplate<String, T> redisTemplate(RedisConnectionFactory factory) {
         ObjectMapper mapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);  // 忽略未知字段
 
         RedisTemplate<String, T> template = new RedisTemplate<>();
         Jackson2JsonRedisSerializer<Object> jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer<>(mapper, Object.class);

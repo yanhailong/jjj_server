@@ -80,8 +80,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     @Autowired
     private HallRoomDao hallRoomDao;
     @Autowired
-    private PlayerPackService playerPackService;
-    @Autowired
     private CarouselService carouselService;
     @Autowired
     private FriendRoomServices friendRoomServices;

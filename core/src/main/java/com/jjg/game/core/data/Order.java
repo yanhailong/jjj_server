@@ -16,6 +16,12 @@ public class Order {
     private String id;
     //玩家id
     private long playerId;
+    //玩家渠道
+    private int playerChannel;
+    //支付渠道
+    private int payChannel;
+    //支付方式
+    private int payType;
     //商品id
     private int productId;
     //价格
@@ -26,6 +32,8 @@ public class Order {
     private RechargeType rechargeType;
     //创建时间
     private int createTime;
+    //更新时间
+    private int updateTime;
 
     public String getId() {
         return id;
@@ -41,6 +49,30 @@ public class Order {
 
     public void setPlayerId(long playerId) {
         this.playerId = playerId;
+    }
+
+    public int getPlayerChannel() {
+        return playerChannel;
+    }
+
+    public void setPlayerChannel(int playerChannel) {
+        this.playerChannel = playerChannel;
+    }
+
+    public int getPayChannel() {
+        return payChannel;
+    }
+
+    public void setPayChannel(int payChannel) {
+        this.payChannel = payChannel;
+    }
+
+    public int getPayType() {
+        return payType;
+    }
+
+    public void setPayType(int payType) {
+        this.payType = payType;
     }
 
     public int getProductId() {
@@ -81,5 +113,13 @@ public class Order {
 
     public void setCreateTime(int createTime) {
         this.createTime = createTime;
+    }
+
+    public int getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(int updateTime) {
+        this.updateTime = updateTime;
     }
 }

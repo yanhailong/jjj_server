@@ -11,6 +11,7 @@ import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.base.player.IRecharge;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.RechargeType;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.pb.NotifyPayCallBack;
@@ -107,7 +108,10 @@ public abstract class AbstractCallbackController {
             }
 
             Player player = playerService.get(order.getPlayerId());
-            coreLogger.order(player, shopProduct, order.getRechargeType());
+            coreLogger.order(player, order);
+            if(order.getRechargeType() == RechargeType.SHOP){
+                coreLogger.shop(player, order);
+            }
             log.info("玩家充值成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
 
             //获取玩家session信息

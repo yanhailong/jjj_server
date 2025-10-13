@@ -9,6 +9,7 @@ import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.core.constant.RechargeType;
 import com.jjg.game.core.data.*;
 import org.apache.commons.lang3.StringUtils;
+import org.aspectj.weaver.ast.Or;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +44,6 @@ public class BaseLogger {
             log.error("", e);
         }
     }
-
 
     public void gmOrder(String order, Long playerId, String result) {
         try {
@@ -355,20 +355,32 @@ public class BaseLogger {
      * 订单
      *
      * @param player
-     * @param shopProduct
+     * @param order
      */
-    public void order(Player player, ShopProduct shopProduct, Order order) {
-        order(player, shopProduct, order.getPrice(), order.getRechargeType(), order.getOrderStatus());
+    public void order(Player player, Order order) {
+        order(player, order.getId(), order.getId(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), order.getPrice(), order.getCreateTime(), order.getUpdateTime(),
+                order.getOrderStatus(), order.getPayType());
     }
 
     /**
-     * 订单
+     * 商城法币购买
      *
+     * @param player
+     * @param order
+     */
+    public void shop(Player player, Order order) {
+        shop(player, order.getId(), order.getId(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), order.getPrice(), order.getCreateTime(), order.getUpdateTime(),
+                order.getOrderStatus(), order.getPayType());
+    }
+
+    /**
+     * 商城
      * @param player
      * @param shopProduct
      */
-    public void order(Player player, ShopProduct shopProduct, RechargeType rechargeType) {
-        order(player, shopProduct, shopProduct.getMoney(), rechargeType, OrderStatus.SUCCESS);
+    public void shop(Player player, ShopProduct shopProduct,int registerChannel) {
+        long now = System.currentTimeMillis();
+        shop(player,null,null,registerChannel,player.getChannel().getValue(),RechargeType.SHOP,shopProduct.getMoney(),now,now,OrderStatus.SUCCESS,shopProduct.getPayType());
     }
 
     /***********************************************************************************************/
@@ -396,7 +408,7 @@ public class BaseLogger {
 
         kafkaTemplate.send(StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic.toLowerCase(), msg);
 
-        log.debug("打印日志数据 msg = {}",msg);
+        log.debug("打印日志数据 msg = {}", msg);
     }
 
     protected void sendLog(JSONObject json) {
@@ -453,28 +465,45 @@ public class BaseLogger {
         return json;
     }
 
-    private void order(Player player, ShopProduct shopProduct, long price, RechargeType rechargeType, OrderStatus orderStatus) {
+    public void order(Player player, String orderId, String merchantOrderId, int playerChannel, int payChannel, RechargeType rechargeType,
+                      long price, long createTime, long updateTime, OrderStatus orderStatus, int payType) {
         try {
             JSONObject json = new JSONObject();
+            json.put("orderId", orderId);
+            json.put("merchantOrderId", merchantOrderId);
             json.put("nick", player.getNickName());
-            json.put("type", shopProduct.getType());
-            json.put("productId", shopProduct.getId());
+            json.put("playerChannel", playerChannel);
+            json.put("payChannel", payChannel);
             json.put("rechargeType", rechargeType.getType());
-            json.put("payType", shopProduct.getPayType());
             json.put("money", price);
+            json.put("createTime", createTime);
+            json.put("updateTime", updateTime);
             json.put("status", orderStatus.code);
+            json.put("payType", payType);
 
-            if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
-                JSONArray jsonArray = new JSONArray();
-                shopProduct.getRewardItems().forEach((k, v) -> {
-                    JSONObject jsonObject = new JSONObject();
-                    jsonObject.put("itemId", k);
-                    jsonObject.put("count", v);
-                    jsonArray.add(jsonObject);
-                });
-                json.put("items", jsonArray);
-            }
             sendLog("order", player, json);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    public void shop(Player player, String orderId, String merchantOrderId, int playerChannel, int payChannel, RechargeType rechargeType,
+                      long price, long createTime, long updateTime, OrderStatus orderStatus, int payType) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("orderId", orderId);
+            json.put("merchantOrderId", merchantOrderId);
+            json.put("nick", player.getNickName());
+            json.put("playerChannel", playerChannel);
+            json.put("payChannel", payChannel);
+            json.put("rechargeType", rechargeType.getType());
+            json.put("money", price);
+            json.put("createTime", createTime);
+            json.put("updateTime", updateTime);
+            json.put("status", orderStatus.code);
+            json.put("payType", payType);
+
+            sendLog("shop", player, json);
         } catch (Exception e) {
             log.error("", e);
         }
