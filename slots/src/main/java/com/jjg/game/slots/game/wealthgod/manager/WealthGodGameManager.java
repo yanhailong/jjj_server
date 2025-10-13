@@ -8,11 +8,11 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
+import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
-import com.jjg.game.slots.data.SlotsPlayerGameDataDTO;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
-import com.jjg.game.slots.game.dollarexpress.data.DollarExpressPlayerGameDataDTO;
 import com.jjg.game.slots.game.wealthgod.WealthGodConstant;
 import com.jjg.game.slots.game.wealthgod.dao.WealthGodGameDataDao;
 import com.jjg.game.slots.game.wealthgod.dao.WealthGodResultLibDao;
@@ -67,11 +67,11 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
      */
     @Override
     protected void offlineSaveGameDataDto(WealthGodPlayerGameData gameData) {
-        try{
+        try {
             WealthGodPlayerGameDataDTO dto = gameData.converToDto(WealthGodPlayerGameDataDTO.class);
             gameDataDao.saveGameData(dto);
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 
@@ -196,7 +196,17 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             List<WealthGodResultLineInfo> resultLineInfos = awardLineInfoList.stream().map(lineInfo -> {
                 WealthGodResultLineInfo resultLineInfo = new WealthGodResultLineInfo();
                 resultLineInfo.id = lineInfo.getLineId();
-                resultLineInfo.iconIndex = getIconIndexsByLineId(lineInfo.getLineId()).subList(0, lineInfo.getSameCount());
+                BaseLineCfg baseLineCfg = this.lineCfgMap.get(lineInfo.getLineId());
+                int direction = baseLineCfg.getDirection().getFirst();
+                List<Integer> indexList = baseLineCfg.getPosLocation();
+                if (direction == SlotsConst.BaseLine.DIRECTION_LEFT) {
+                    resultLineInfo.iconIndex = indexList.subList(0, lineInfo.getSameCount());
+                }
+                //反向
+                else if (direction == SlotsConst.BaseLine.DIRECTION_RIGHT) {
+                    resultLineInfo.iconIndex = indexList.subList(indexList.size() - lineInfo.getSameCount(), indexList.size());
+                }
+                resultLineInfo.direction = direction;
                 resultLineInfo.winGold = oneBetScore * lineInfo.getBaseTimes();
                 resultLineInfo.times = lineInfo.getBaseTimes();
                 return resultLineInfo;
