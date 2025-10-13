@@ -184,7 +184,7 @@ public class ActivityMessageHandler {
         if (activityData == null) {
             return;
         }
-        AbstractResponse res = sharePromoteController.reqSharePromoteBindPlayer(playerController, req);
+        AbstractResponse res = sharePromoteController.reqSharePromoteBindPlayer(playerController, activityData, req);
         playerController.send(res);
     }
 
@@ -198,7 +198,7 @@ public class ActivityMessageHandler {
         if (activityData == null) {
             return;
         }
-        AbstractResponse res = sharePromoteController.reqSharePromoteClaimProfitReward(playerController);
+        AbstractResponse res = sharePromoteController.reqSharePromoteClaimProfitReward(playerController, activityData);
         playerController.send(res);
     }
 

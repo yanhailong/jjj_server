@@ -77,4 +77,55 @@ public class ItemUtils {
         return itemInfo.getOrDefault(goldItemId, 0L);
     }
 
+    /**
+     * 构建道具列表
+     *
+     * @param itemInfo 输入的道具信息列表，按顺序包含道具ID和对应数量，每两个整数为一个完整的道具信息。
+     *                 若列表为空或长度不是偶数，将返回空的道具列表。
+     * @return 返回构建的道具信息列表，每个道具信息包含道具ID和对应数量。
+     */
+    public static List<ItemInfo> buildItemInfos(List<Integer> itemInfo) {
+        List<ItemInfo> items = new ArrayList<>();
+        if (itemInfo == null || itemInfo.isEmpty()) {
+            return items;
+        }
+        if (itemInfo.size() % 2 != 0) {
+            return items;
+        }
+        for (int i = 0; i < itemInfo.size(); i += 2) {
+            ItemInfo item = new ItemInfo();
+            item.itemId = itemInfo.get(i);
+            item.count = itemInfo.get(i + 1);
+            items.add(item);
+        }
+        return items;
+    }
+
+    /**
+     * 根据输入的道具信息列表构建道具列表。
+     * <p>
+     * 道具信息列表中每两个整数为一组，分别表示道具ID和对应的数量。
+     * 如果输入的列表为空或长度不是偶数，则返回空的道具列表。
+     *
+     * @param itemInfo 输入的道具信息列表，按顺序包含道具ID和对应的数量。
+     * @return 构建的道具列表，其中每个道具包含道具ID和对应数量。
+     */
+    public static List<Item> buildItems(List<Integer> itemInfo) {
+        List<Item> items = new ArrayList<>();
+        if (itemInfo == null || itemInfo.isEmpty()) {
+            return items;
+        }
+        if (itemInfo.size() % 2 != 0) {
+            return items;
+        }
+        for (int i = 0; i < itemInfo.size(); i += 2) {
+            Item item = new Item();
+            item.setId(itemInfo.get(i));
+            item.setItemCount(itemInfo.get(i + 1));
+            items.add(item);
+        }
+        return items;
+    }
+
+
 }

@@ -130,7 +130,7 @@ public class PiggyBankController extends BaseActivityController {
     /**
      * 添加玩家活动进度
      *
-     * @param playerId             玩家ID
+     * @param player               玩家ID
      * @param activityData         活动数据
      * @param progress             增加进度
      * @param activityTargetKey    触发key
@@ -138,12 +138,12 @@ public class PiggyBankController extends BaseActivityController {
      * @return 是否可以领取奖励
      */
     @Override
-    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
+    public boolean addPlayerProgress(Player player, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
         // 如果不是金币，则不增加储钱罐进度
         if (additionalParameters instanceof Integer itemId && !itemId.equals(ItemUtils.getGoldItemId())) {
             return false;
         }
-
+        long playerId = player.getId();
         // 获取全局配置，计算每万元金币进度
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.PiggyBank.INCOME_PER_TEN_THOUSAND);
         BigDecimal baseAdd = BigDecimal.valueOf(progress)
@@ -194,7 +194,7 @@ public class PiggyBankController extends BaseActivityController {
                 playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, playerActivityData);
             }
         } catch (Exception e) {
-            log.error("储钱罐添加玩家进度异常 playerId:{}  activityId:{} ", playerId, activityData.getId(), e);
+            log.error("储钱罐添加玩家进度异常 playerId:{}  activityId:{} ", player, activityData.getId(), e);
         } finally {
             redisLock.unlock(lockKey);
         }
@@ -354,8 +354,8 @@ public class PiggyBankController extends BaseActivityController {
      * 检查玩家数据并在条件满足时重置
      */
     @Override
-    public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
-        super.checkPlayerDataAndReset(playerId, activityData);
+    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
+        super.checkPlayerDataAndResetOnLogin(playerId, activityData);
         resetData(playerId, activityData);
     }
 

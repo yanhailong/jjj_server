@@ -88,14 +88,14 @@ public abstract class BaseActivityController {
     /**
      * 增加玩家的活动进度
      *
-     * @param playerId             玩家ID
+     * @param player               玩家数据
      * @param activityData         活动数据
      * @param progress             要增加的进度值
      * @param activityTargetKey    触发key
      * @param additionalParameters 额外参数，留作扩展
      * @return true 需要给前端发送数据，false 不需要给前端发送数据
      */
-    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
+    public boolean addPlayerProgress(Player player, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
         return false;
     }
 
@@ -240,12 +240,12 @@ public abstract class BaseActivityController {
     }
 
     /**
-     * 检查玩家的活动数据是否需要重置
+     * 首次登录检查玩家的活动数据是否需要重置
      *
      * @param playerId     玩家ID
      * @param activityData 活动数据
      */
-    public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
+    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
         // 限时活动（openType=2）不需要重置
         if (activityData.getOpenType() == ActivityConstant.Common.LIMIT_TYPE) {
             return;
@@ -293,9 +293,9 @@ public abstract class BaseActivityController {
         for (ActivityData activityData : activityDataMap.values()) {
             Map<Integer, ? extends BaseCfgBean> baseCfgBeanMap = activityData.getType().getController().getDetailCfgBean(activityData);
             // 过滤掉不可运行、无配置、或玩家不符合条件的活动
-            if (CollectionUtil.isEmpty(baseCfgBeanMap) || !activityData.canRun()
+            if (!activityData.getType().isShowInNotOpen() && (CollectionUtil.isEmpty(baseCfgBeanMap) || !activityData.canRun()
                     || CollectionUtil.isEmpty(activityData.getValue())
-                    || !checkPlayerCanJoinActivity(player, activityData)) {
+                    || !checkPlayerCanJoinActivity(player, activityData))) {
                 continue;
             }
             //请求时处理数据重置

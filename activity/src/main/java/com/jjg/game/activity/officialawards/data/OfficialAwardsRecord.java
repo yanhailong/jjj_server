@@ -9,8 +9,6 @@ public class OfficialAwardsRecord {
     private String name;
     //创建时间
     private long createTime;
-    //转盘类型
-    private int type;
     //奖金数量
     private long getNum;
 
@@ -29,14 +27,6 @@ public class OfficialAwardsRecord {
         this.createTime = createTime;
     }
 
-    public int getType() {
-        return type;
-    }
-
-    public void setType(int type) {
-        this.type = type;
-    }
-
     public long getGetNum() {
         return getNum;
     }
@@ -48,8 +38,8 @@ public class OfficialAwardsRecord {
     @Override
     public String toString() {
         return "OfficialAwardsRecord{" +
+                "name='" + name + '\'' +
                 ", createTime=" + createTime +
-                ", type=" + type +
                 ", getNum=" + getNum +
                 '}';
     }

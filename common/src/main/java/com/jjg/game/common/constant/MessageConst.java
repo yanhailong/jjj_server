@@ -113,6 +113,8 @@ public interface MessageConst {
         int SHOP_TYPE = 0x29;
         //任务
         int TASK_TYPE = 0x30;
+        //积分大奖
+        int POINTS_AWARD = 0x31;
     }
 
     interface ToClientConst {

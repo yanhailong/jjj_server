@@ -117,6 +117,7 @@ public class SharePromoteDao {
      * 2. 历史总收益
      * 3. 当日收益
      * 4. 来源排行榜
+     *
      */
     public void addPlayerIncome(long sourcePlayerId, long beneficiaryPlayerId, long addValue) {
         if (addValue <= 0) return;

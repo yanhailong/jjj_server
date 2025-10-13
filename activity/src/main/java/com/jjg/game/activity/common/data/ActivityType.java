@@ -4,6 +4,7 @@ import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.dailylogin.controller.DailyLoginController;
 import com.jjg.game.activity.firstpayment.controller.FirstPaymentController;
+import com.jjg.game.activity.growthfund.controller.GrowthFundController;
 import com.jjg.game.activity.officialawards.controller.OfficialAwardsController;
 import com.jjg.game.activity.piggybank.controller.PiggyBankController;
 import com.jjg.game.activity.privilegecard.controller.PrivilegeCardController;
@@ -18,28 +19,31 @@ import com.jjg.game.common.utils.CommonUtil;
 public enum ActivityType {
     //每日奖金
     PRIVILEGE_CARD(2, PrivilegeCardController.class, false, false,
-            ActivityTargetType.LOGIN.getTargetKey(), false),
+            ActivityTargetType.LOGIN.getTargetKey(), false, false),
     //摇钱树
     CASH_COW(3, CashCowController.class, true, true,
-            ActivityTargetType.EFFECTIVE_BET.getTargetKey(), true),
+            ActivityTargetType.EFFECTIVE_BET.getTargetKey(), true, false),
     //储钱罐
     PIGGY_BANK(4, PiggyBankController.class, true, false,
-            ActivityTargetType.BET.getTargetKey(), false),
+            ActivityTargetType.BET.getTargetKey(), false, false),
     //刮刮乐
     SCRATCH_CARDS(5, ScratchCardsController.class, false, false,
-            ActivityTargetType.NONE.getTargetKey(), true),
+            ActivityTargetType.NONE.getTargetKey(), true, false),
     //推广分享
     SHARE_PROMOTE(6, SharePromoteController.class, true, false,
-            ActivityTargetType.RECHARGE.getTargetKey(), false),
+            ActivityTargetType.RECHARGE.getTargetKey(), false, false),
     //官方派奖
     OFFICIAL_AWARDS(9, OfficialAwardsController.class, true, false,
-            ActivityTargetType.getTagetKey(ActivityTargetType.RECHARGE, ActivityTargetType.EFFECTIVE_BET), true),
+            ActivityTargetType.getTagetKey(ActivityTargetType.RECHARGE), true, true),
     //每日签到
     DAILY_LOGIN(10, DailyLoginController.class, true, false,
-            ActivityTargetType.LOGIN.getTargetKey(), false),
+            ActivityTargetType.LOGIN.getTargetKey(), false, false),
     //首充
     FIRST_PAYMENT(11, FirstPaymentController.class, false, false,
-            ActivityTargetType.RECHARGE.getTargetKey(), false);;
+            ActivityTargetType.RECHARGE.getTargetKey(), false, false),
+    //成长基金
+    GROWTH_FUND(15, GrowthFundController.class, true, false,
+            ActivityTargetType.LEVEL.getTargetKey(), true, false);
     //活动类型
     private final int type;
     //活动控制器的class
@@ -54,14 +58,21 @@ public enum ActivityType {
     private final long targetKey;
     //是否能主动参加活动
     private final boolean canInitiativeJoin;
+    //活动未开始是否显示
+    private final boolean showInNotOpen;
 
-    ActivityType(int type, Class<? extends BaseActivityController> className, boolean canAddPlayerProgress, boolean canAddActivityProgress, long targetKey, boolean canInitiativeJoin) {
+    ActivityType(int type, Class<? extends BaseActivityController> className, boolean canAddPlayerProgress, boolean canAddActivityProgress, long targetKey, boolean canInitiativeJoin, boolean showInNotOpen) {
         this.type = type;
         this.className = className;
         this.canAddPlayerProgress = canAddPlayerProgress;
         this.canAddActivityProgress = canAddActivityProgress;
         this.targetKey = targetKey;
         this.canInitiativeJoin = canInitiativeJoin;
+        this.showInNotOpen = showInNotOpen;
+    }
+
+    public boolean isShowInNotOpen() {
+        return showInNotOpen;
     }
 
     public Class<? extends BaseActivityController> getClassName() {

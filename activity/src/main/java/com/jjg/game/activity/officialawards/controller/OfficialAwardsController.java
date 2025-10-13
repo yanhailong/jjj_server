@@ -5,7 +5,6 @@ import cn.hutool.core.lang.WeightRandom;
 import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
-import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
@@ -15,8 +14,10 @@ import com.jjg.game.activity.officialawards.data.OfficialAwardsRecord;
 import com.jjg.game.activity.officialawards.message.bean.OfficialAwardsActivity;
 import com.jjg.game.activity.officialawards.message.bean.OfficialAwardsDetailInfo;
 import com.jjg.game.activity.officialawards.message.bean.OfficialAwardsShowRecord;
+import com.jjg.game.activity.officialawards.message.bean.OfficialAwardsStartInfo;
 import com.jjg.game.activity.officialawards.message.req.ReqOfficialAwardsRecord;
 import com.jjg.game.activity.officialawards.message.res.*;
+import com.jjg.game.activity.util.CronUtil;
 import com.jjg.game.activity.util.DataCache;
 import com.jjg.game.common.listener.IGameClusterLeaderListener;
 import com.jjg.game.common.pb.AbstractResponse;
@@ -24,6 +25,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
@@ -31,6 +33,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ActivityConfigCfg;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.OfficialAwardsCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
@@ -40,8 +43,8 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -67,54 +70,18 @@ public class OfficialAwardsController extends BaseActivityController implements 
     }
 
     @Override
-    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
-        int conversionType = getConversionType(activityData);
-        if (conversionType == 0) {
-            return false;
-        }
-        if (activityTargetKey == ActivityTargetType.RECHARGE.getTargetKey()
-                && conversionType != ActivityConstant.OfficialAwards.CALCULATION_RECHARGE) {
-            return false;
-        }
-        if (activityTargetKey == ActivityTargetType.EFFECTIVE_BET.getTargetKey()
-                && conversionType != ActivityConstant.OfficialAwards.CALCULATION_EFFECTIVE_WATER_FLOW) {
-            return false;
-        }
-        //获取本轮的参加类型
-        int addValue = getAddValue(progress, conversionType);
-        if (addValue > 0) {
-            officialAwardsDao.incrementPlayerProgress(playerId, ActivityConstant.OfficialAwards.TOMORROW_POINTS, addValue);
-        }
-        return false;
-    }
-
-    private int getAddValue(long progress, int conversionType) {
-        Pair<Integer, Integer> pair = null;
-        //充值类型
-        if (conversionType == ActivityConstant.OfficialAwards.CALCULATION_RECHARGE) {
-            pair = dataCache.getRechargeConvertRatio();
-        } else if (conversionType == ActivityConstant.OfficialAwards.CALCULATION_EFFECTIVE_WATER_FLOW) {
-            //有效下注类型
-            pair = dataCache.getEffectiveWaterFlowConvertRatio();
-        }
-        if (pair == null) {
-            return 0;
-        }
-        return BigDecimal.valueOf(progress).multiply(BigDecimal.valueOf(pair.getSecond()))
+    public boolean addPlayerProgress(Player player, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
+        long playerId = player.getId();
+        //转换比例
+        Pair<Integer, Integer> pair = dataCache.getRechargeConvertRatio();
+        //计算增加的积分值
+        int addValue = BigDecimal.valueOf(progress).multiply(BigDecimal.valueOf(pair.getSecond()))
                 .divide(BigDecimal.valueOf(pair.getFirst()), RoundingMode.DOWN)
                 .intValue();
-    }
-
-    @Override
-    public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
-        int playerProgress = officialAwardsDao.getPlayerProgress(playerId, ActivityConstant.OfficialAwards.TOMORROW_POINTS);
-        if (playerProgress > 0) {
-            officialAwardsDao.deletePlayerProgress(playerId, ActivityConstant.OfficialAwards.TODAY_POINTS);
-            //设置今日积分
-            officialAwardsDao.incrementPlayerProgress(playerId, ActivityConstant.OfficialAwards.TODAY_POINTS, playerProgress);
-            //设置明天积分
-            officialAwardsDao.deletePlayerProgress(playerId, ActivityConstant.OfficialAwards.TOMORROW_POINTS);
+        if (addValue > 0) {
+            officialAwardsDao.incrementPlayerProgress(playerId, addValue);
         }
+        return false;
     }
 
     /**
@@ -137,45 +104,43 @@ public class OfficialAwardsController extends BaseActivityController implements 
         }
         // 获取活动明细配置
         Map<Integer, OfficialAwardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
-        OfficialAwardsCfg baseCfg = baseCfgBeanMap.get(detailId);
-        if (baseCfg == null) {
-            res.code = Code.PARAM_ERROR;
-            return res;
-        }
-        //获取场次信息
-        int turntableType = baseCfg.getTurntableType();
         //获取消耗
-        Map<Integer, Integer> needPoints = dataCache.getNeedPoints();
-        if (needPoints == null || !needPoints.containsKey(turntableType)) {
-            res.code = Code.SAMPLE_ERROR;
-            return res;
-        }
-        int costPoint = needPoints.get(turntableType);
+        int needPoints = activityData.getValueParam().getLast() * times;
         //扣减积分
-        int remainPoint = officialAwardsDao.reducePlayerProgress(playerId, ActivityConstant.OfficialAwards.TODAY_POINTS, costPoint);
+        int remainPoint = officialAwardsDao.reducePlayerProgress(playerId, needPoints);
         if (remainPoint < 0) {
             res.code = Code.NOT_ENOUGH;
             return res;
         }
-        WeightRandom<OfficialAwardsCfg> random = getOfficialAwardsCfgWeightRandom(baseCfgBeanMap, turntableType);
-        //获取随机奖励
-        OfficialAwardsCfg cfg = random.next();
-        Integer getNum = cfg.getGetitem().getLast();
-        Pair<Integer, Integer> reducedPair = officialAwardsDao.reduceTotalPool(getNum);
-        if (reducedPair.getFirst() < 1) {
+        List<Integer> getRewards = new ArrayList<>();
+        Pair<Integer, Integer> reducedPair = new Pair<>(0, 0);
+        OfficialAwardsCfg cfg = null;
+        for (int i = 0; i < times; i++) {
+            WeightRandom<OfficialAwardsCfg> random = getOfficialAwardsCfgWeightRandom(baseCfgBeanMap);
+            //获取随机奖励
+            cfg = random.next();
+            Integer getNum = cfg.getGetitem().getLast();
+            reducedPair = officialAwardsDao.reduceTotalPool(getNum);
+            if (reducedPair.getFirst() < 1) {
+                break;
+            }
+            getRewards.add(getNum);
+        }
+        if (cfg == null || getRewards.isEmpty()) {
             //奖池不足
             res.code = Code.OFFICIAL_AWARDS_POOL_NULL;
             return res;
         }
+        int totalGet = getRewards.stream().mapToInt(Integer::intValue).sum();
         //添加道具
-        CommonResult<ItemOperationResult> addResult = playerPackService.addItem(playerId, cfg.getGetitem().getFirst(), getNum, "officialAwards");
+        CommonResult<ItemOperationResult> addResult = playerPackService.addItem(playerId, cfg.getGetitem().getFirst(), totalGet, "officialAwards");
         if (!addResult.success()) {
-            log.error("官方派奖玩家参加活动发奖失败 playerId:{} get:{}", playerId, getNum);
+            log.error("官方派奖玩家参加活动发奖失败 playerId:{} get:{}", playerId, totalGet);
             return res;
         }
-        addPlayerRecord(player, cfg, getNum);
-        res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem().getFirst(), getNum);
-        res.todayPoint = remainPoint;
+        addPlayerRecord(player, getRewards);
+        res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem().getFirst(), totalGet);
+        res.remainPoint = remainPoint;
         res.totalPool = reducedPair.getSecond();
         res.rewardDetailId = cfg.getId();
         return res;
@@ -185,16 +150,13 @@ public class OfficialAwardsController extends BaseActivityController implements 
      * 获取本轮配置的随机器
      *
      * @param baseCfgBeanMap 本轮配置
-     * @param turntableType  场次类型
      * @return 随机器
      */
-    private WeightRandom<OfficialAwardsCfg> getOfficialAwardsCfgWeightRandom(Map<Integer, OfficialAwardsCfg> baseCfgBeanMap, int turntableType) {
-        // 构建权重随机器，只选择 type = turntableType 的官方派奖奖项
+    private WeightRandom<OfficialAwardsCfg> getOfficialAwardsCfgWeightRandom(Map<Integer, OfficialAwardsCfg> baseCfgBeanMap) {
+        // 构建权重随机器
         WeightRandom<OfficialAwardsCfg> random = new WeightRandom<>();
         for (OfficialAwardsCfg cfg : baseCfgBeanMap.values()) {
-            if (cfg.getTurntableType() == turntableType) {
-                random.add(cfg, cfg.getProbability());
-            }
+            random.add(cfg, cfg.getProbability());
         }
         return random;
     }
@@ -202,12 +164,11 @@ public class OfficialAwardsController extends BaseActivityController implements 
     /**
      * 添加机器人记录
      */
-    private void addRobotRecord(OfficialAwardsCfg cfg, long robotGet) {
+    private void addRobotRecord(long robotGet) {
         RobotCfg robotCfg = RandomUtil.randomEle(GameDataManager.getRobotCfgList());
         OfficialAwardsRecord officialAwardsRecord = new OfficialAwardsRecord();
         officialAwardsRecord.setName(robotCfg.getName());
         officialAwardsRecord.setCreateTime(System.currentTimeMillis());
-        officialAwardsRecord.setType(cfg.getTurntableType());
         officialAwardsRecord.setGetNum(robotGet);
         //添加记录
         officialAwardsDao.savePlayerRecord(0, officialAwardsRecord);
@@ -216,14 +177,15 @@ public class OfficialAwardsController extends BaseActivityController implements 
     /**
      * 添加玩家记录
      */
-    private void addPlayerRecord(Player player, OfficialAwardsCfg cfg, long playerGet) {
-        OfficialAwardsRecord officialAwardsRecord = new OfficialAwardsRecord();
-        officialAwardsRecord.setName(player.getNickName());
-        officialAwardsRecord.setCreateTime(System.currentTimeMillis());
-        officialAwardsRecord.setType(cfg.getTurntableType());
-        officialAwardsRecord.setGetNum(playerGet);
-        //添加记录
-        officialAwardsDao.savePlayerRecord(player.getId(), officialAwardsRecord);
+    private void addPlayerRecord(Player player, List<Integer> playerGetList) {
+        for (Integer playerGet : playerGetList) {
+            OfficialAwardsRecord officialAwardsRecord = new OfficialAwardsRecord();
+            officialAwardsRecord.setName(player.getNickName());
+            officialAwardsRecord.setCreateTime(System.currentTimeMillis());
+            officialAwardsRecord.setGetNum(playerGet);
+            //添加记录
+            officialAwardsDao.savePlayerRecord(player.getId(), officialAwardsRecord);
+        }
     }
 
 
@@ -254,9 +216,6 @@ public class OfficialAwardsController extends BaseActivityController implements 
 
     @Override
     public void onActivityStart(ActivityData activityData) {
-        if (getConversionType(activityData) == 0) {
-            return;
-        }
         //开启时清除数据
         clearData(activityData.getId());
         //设置初始奖池
@@ -270,18 +229,9 @@ public class OfficialAwardsController extends BaseActivityController implements 
         robotAction(activityData.getId());
     }
 
-    /**
-     * 获取本轮转换类型
-     *
-     * @param activityData 活动数据
-     * @return 本轮转换类型 1充值 2有效流水
-     */
-    private int getConversionType(ActivityData activityData) {
-        List<Integer> valueParam = activityData.getValueParam();
-        if (CollectionUtil.isNotEmpty(valueParam)) {
-            return valueParam.getLast();
-        }
-        return 0;
+    @Override
+    public void onActivityEnd(ActivityData activityData) {
+        clearData(activityData.getId());
     }
 
     /**
@@ -328,8 +278,6 @@ public class OfficialAwardsController extends BaseActivityController implements 
             OfficialAwardsDetailInfo info = new OfficialAwardsDetailInfo();
             info.activityId = activityId;
             info.detailId = cfg.getId();
-            info.type = cfg.getTurntableType();
-            info.costNum = dataCache.getNeedPoints().getOrDefault(cfg.getTurntableType(), 0);
             info.rewardItems = ItemUtils.buildItemInfo(Map.of(cfg.getGetitem().getFirst(), (long) cfg.getGetitem().getLast()));
             return info;
         }
@@ -362,7 +310,6 @@ public class OfficialAwardsController extends BaseActivityController implements 
                 showRecord.recordTime = record.getCreateTime();
                 showRecord.name = record.getName();
                 showRecord.num = record.getGetNum();
-                showRecord.type = record.getType();
                 res.recordList.add(showRecord);
             }
             // 是否还有下一页（由 DAO 返回的布尔值）
@@ -393,13 +340,41 @@ public class OfficialAwardsController extends BaseActivityController implements 
                 }
             }
             ActivityData activityData = activityManager.getActivityData().get(entry.getKey());
-            officialAwardsType.tomorrowPoint = officialAwardsDao.getPlayerProgress(playerId, ActivityConstant.OfficialAwards.TOMORROW_POINTS);
-            officialAwardsType.todayPoint = officialAwardsDao.getPlayerProgress(playerId, ActivityConstant.OfficialAwards.TODAY_POINTS);
             officialAwardsType.totalPool = officialAwardsDao.getTotalPool();
             officialAwardsType.remainTime = activityData.getTimeEnd() - System.currentTimeMillis();
-            officialAwardsType.conversionType = getConversionType(activityData);
+            officialAwardsType.costPoint = activityData.getValueParam().getLast();
+            officialAwardsType.remainPoints = officialAwardsDao.getPlayerProgress(playerId);
+            officialAwardsType.activityState = activityData.getStatus();
+            officialAwardsType.startInfos = getOfficialAwardsStartInfo(activityData);
         }
         return cardTypeInfo;
+    }
+
+    public List<OfficialAwardsStartInfo> getOfficialAwardsStartInfo(ActivityData activityData) {
+        ActivityConfigCfg cfg = GameDataManager.getActivityConfigCfg((int) activityData.getId());
+        List<OfficialAwardsStartInfo> infos = new ArrayList<>();
+        if (cfg == null) {
+            return infos;
+        }
+
+        LocalDateTime offset = LocalDateTime.now();
+        int findTimes = 3;
+        if (activityData.canRun()) {
+            offset = TimeHelper.getLocalDateTime(activityData.getTimeEnd());
+            findTimes = 2;
+        }
+        for (int i = 0; i < findTimes; i++) {
+            Pair<LocalDateTime, LocalDateTime> nextOpenTime = CronUtil.getNextOpenTime(cfg.getTime_start(), cfg.getTime_end(), offset);
+            if (nextOpenTime == null) {
+                continue;
+            }
+            offset = nextOpenTime.getSecond();
+            OfficialAwardsStartInfo officialAwardsStartInfo = new OfficialAwardsStartInfo();
+            officialAwardsStartInfo.startTime = TimeHelper.getTimestamp(nextOpenTime.getFirst());
+            officialAwardsStartInfo.number = nextOpenTime.getFirst().getDayOfMonth();
+            infos.add(officialAwardsStartInfo);
+        }
+        return infos;
     }
 
     @Override
@@ -446,21 +421,14 @@ public class OfficialAwardsController extends BaseActivityController implements 
             }
             //机器人进行中奖
             Map<Integer, OfficialAwardsCfg> map = getDetailCfgBean(activityData);
-            Iterator<OfficialAwardsCfg> iterator = map.values().iterator();
-            if (!iterator.hasNext()) {
-                return;
+            WeightRandom<OfficialAwardsCfg> random = getOfficialAwardsCfgWeightRandom(map);
+            OfficialAwardsCfg next = random.next();
+            Pair<Integer, Integer> pair = officialAwardsDao.reduceTotalPool(next.getGetitem().getLast());
+            if (pair.getFirst() > 0) {
+                addRobotRecord(pair.getFirst());
             }
-            BaseCfgBean bean = iterator.next();
-            if (bean instanceof OfficialAwardsCfg cfg) {
-                WeightRandom<OfficialAwardsCfg> random = getOfficialAwardsCfgWeightRandom(map, cfg.getTurntableType());
-                OfficialAwardsCfg next = random.next();
-                Pair<Integer, Integer> pair = officialAwardsDao.reduceTotalPool(next.getGetitem().getLast());
-                if (pair.getFirst() > 0) {
-                    addRobotRecord(next, pair.getFirst());
-                }
-                if (pair.getSecond() > 0) {
-                    robotAction(activityId);
-                }
+            if (pair.getSecond() > 0) {
+                robotAction(activityId);
             }
         }
     }

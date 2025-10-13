@@ -14,6 +14,8 @@ public interface ActivityConstant {
         int LIMIT_TYPE = 2;
         //开服活动类型
         int OPEN_SERVER_TYPE = 1;
+        //循环活动类型
+        int CYCLE_SERVER_TYPE = 3;
     }
 
     interface DailyLogin {
@@ -91,16 +93,6 @@ public interface ActivityConstant {
     }
 
     interface OfficialAwards {
-        //统计类型充值
-        int CALCULATION_RECHARGE = 2;
-        //统计有效流水
-        int CALCULATION_EFFECTIVE_WATER_FLOW = 1;
-        //今日积分
-        int TODAY_POINTS = 1;
-        //明日积分
-        int TOMORROW_POINTS = 2;
-        // 30 官方派奖每个转盘需求积分：初、中、高
-        int NEED_POINTS = 30;
         //32 官方派奖：有效下注转换积分比例 ：有效下注 = X积分
         int EFFECTIVE_WATER_FLOW_CONVERT_RATIO = 32;
         //33 官方派奖：充值转换积分比例 ：充值金额 = X积分
@@ -111,6 +103,12 @@ public interface ActivityConstant {
         int MAX_RECORD_NUM = 50;
         //每次获取最大记录数
         int GET_MAX_RECORD_NUM = 10;
+    }
+
+    //成长基金
+    interface GrowthFund {
+        int FREE = 1;
+        int Charge = 2;
     }
 
     interface MsgBean {
@@ -241,6 +239,15 @@ public interface ActivityConstant {
         //请求总奖池值
         int REQ_OFFICIAL_AWARDS_TOTAL_POOL = BASE_MSG_PREFIX | 0x49;
         int RES_OFFICIAL_AWARDS_TOTAL_POOL = BASE_MSG_PREFIX | 0x4A;
+
+        //成长基金
+        //成长基金活动信息
+        int RES_GROWTH_FUND_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x4B;
+        //详细信息
+        int RES_GROWTH_FUND_DETAIL_INFO = BASE_MSG_PREFIX | 0x4C;
+        //玩家领取返回
+        int RES_GROWTH_FUND_TYPE_INFO = BASE_MSG_PREFIX | 0x4D;
+
 
     }
 }

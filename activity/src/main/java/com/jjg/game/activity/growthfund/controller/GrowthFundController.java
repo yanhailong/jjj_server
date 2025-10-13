@@ -1,0 +1,319 @@
+package com.jjg.game.activity.growthfund.controller;
+
+import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.activity.common.controller.BaseActivityController;
+import com.jjg.game.activity.common.data.ActivityData;
+import com.jjg.game.activity.common.data.PlayerActivityData;
+import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
+import com.jjg.game.activity.constant.ActivityConstant;
+import com.jjg.game.activity.growthfund.message.bean.GrowthFundActivityInfo;
+import com.jjg.game.activity.growthfund.message.bean.GrowthFundDetailInfo;
+import com.jjg.game.activity.growthfund.message.res.ResGrowthFundClaimRewards;
+import com.jjg.game.activity.growthfund.message.res.ResGrowthFundDetailInfo;
+import com.jjg.game.activity.growthfund.message.res.ResGrowthFundTypeInfo;
+import com.jjg.game.activity.privilegecard.data.PlayerPrivilegeCard;
+import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.dao.CountDao;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ItemOperationResult;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BaseCfgBean;
+import com.jjg.game.sampledata.bean.GrowthFundCfg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * @author lm
+ * @date 2025/9/3
+ */
+@Component
+public class GrowthFundController extends BaseActivityController {
+
+    private final Logger log = LoggerFactory.getLogger(GrowthFundController.class);
+    private final CountDao countDao;
+
+    public GrowthFundController(CountDao countDao) {
+        this.countDao = countDao;
+    }
+
+    /**
+     * 玩家加入成长基金活动
+     *
+     * @param player       玩家对象
+     * @param activityData 活动数据
+     * @param detailId     活动明细ID
+     * @param times        加入次数（暂未使用）
+     * @return 返回玩家特权卡活动详情
+     */
+    @Override
+    public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
+        long playerId = player.getId();
+        long activityId = activityData.getId();
+        countDao.incr(String.valueOf(activityId), String.valueOf(playerId));
+        //获取最新的玩家等级数据
+        Player newPlayer = corePlayerService.get(playerId);
+        int level = newPlayer.getLevel();
+        //获取配置信息
+        Map<Integer, GrowthFundCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        //需要更新的详情信息
+        Set<GrowthFundCfg> updateDetailId = new HashSet<>();
+        Map<Integer, PlayerActivityData> playerActivityData = null;
+        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
+        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        try {
+            playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
+            //触发需要购买的奖励
+            for (GrowthFundCfg cfg : baseCfgBeanMap.values()) {
+                //等级不够 和 不需要支付的跳过
+                if (cfg.getLevel() > level && cfg.getType() == ActivityConstant.GrowthFund.Charge) {
+                    continue;
+                }
+                //判断是否能触发
+                PlayerActivityData data = playerActivityData.computeIfAbsent(cfg.getId(), key -> new PlayerActivityData(activityId, activityData.getRound()));
+                //不可领取的设置为领取
+                if (data.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
+                    data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+                    updateDetailId.add(cfg);
+                }
+            }
+            if (!updateDetailId.isEmpty()) {
+                playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, playerActivityData);
+            }
+        } catch (Exception e) {
+            log.error("成长基金购买增加进度异常 playerId:{} activityId:{}", playerId, activityId, e);
+        } finally {
+            redisLock.unlock(lockKey);
+        }
+        if (!updateDetailId.isEmpty()) {
+            ResGrowthFundDetailInfo info = new ResGrowthFundDetailInfo(Code.SUCCESS);
+            info.detailInfo = new ArrayList<>(updateDetailId.size());
+            for (GrowthFundCfg cfg : updateDetailId) {
+                info.detailInfo.add(buildPlayerActivityDetail(activityId, cfg, playerActivityData.get(cfg.getId())));
+            }
+            return info;
+        }
+        return null;
+    }
+
+    @Override
+    public boolean addPlayerProgress(Player player, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
+        boolean change = false;
+        if (additionalParameters instanceof Integer level) {
+            long activityId = activityData.getId();
+            //获取配置信息
+            Map<Integer, GrowthFundCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+            if (CollectionUtil.isEmpty(baseCfgBeanMap)) {
+                return false;
+            }
+            long playerId = player.getId();
+            //加锁前检查是否已经触发完
+            Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
+            if (playerActivityData.size() == baseCfgBeanMap.size()) {
+                return false;
+            }
+            long count = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player));
+            String lockKey = playerActivityDao.getLockKey(playerId, activityId);
+            redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            try {
+                playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
+                for (GrowthFundCfg cfg : baseCfgBeanMap.values()) {
+                    //等级不够的跳过
+                    if (cfg.getLevel() > level) {
+                        continue;
+                    }
+                    //判断是否能触发
+                    if (cfg.getLevel() == ActivityConstant.GrowthFund.FREE || cfg.getType() == ActivityConstant.GrowthFund.Charge && count > 0) {
+                        PlayerActivityData data = playerActivityData.computeIfAbsent(cfg.getId(), key -> new PlayerActivityData(activityId, activityData.getRound()));
+                        //不可领取的设置为领取
+                        if (data.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
+                            data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+                            change = true;
+                        }
+                    }
+                }
+                if (change) {
+                    playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, playerActivityData);
+                }
+            } catch (Exception e) {
+                log.error("成长基金增加进度异常 playerId:{} activityId:{}", player, activityId, e);
+            } finally {
+                redisLock.unlock(lockKey);
+            }
+        }
+        return change;
+    }
+
+    /**
+     * 玩家每日特权奖励
+     *
+     * @param player       玩家对象
+     * @param activityData 活动数据
+     * @param detailId     活动明细ID
+     * @return 返回领取奖励结果
+     */
+    @Override
+    public AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId) {
+        ResGrowthFundClaimRewards res = new ResGrowthFundClaimRewards(Code.SUCCESS);
+        long playerId = player.getId();
+        long activityId = activityData.getId();
+        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
+        Map<Integer, GrowthFundCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        GrowthFundCfg cfg = baseCfgBeanMap.get(detailId);
+        if (cfg == null) {
+            res.code = Code.PARAM_ERROR;
+            return res;
+        }
+        PlayerActivityData data = null;
+        CommonResult<ItemOperationResult> addedItems = null;
+        // 加锁，保证领取操作原子性
+        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        try {
+            Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
+            if (CollectionUtil.isEmpty(dataMap)) {
+                res.code = Code.PARAM_ERROR;
+                return res;
+            }
+            data = dataMap.get(detailId);
+            if (data == null) {
+                res.code = Code.PARAM_ERROR;
+                return res;
+            }
+            if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
+                res.code = Code.REPEAT_OP;
+                return res;
+            }
+            // 发放奖励
+            addedItems = playerPackService.addItems(playerId, cfg.getGetItem(), "GrowthFundRewords");
+            if (!addedItems.success()) {
+                res.code = Code.UNKNOWN_ERROR;
+                return res;
+            }
+            data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
+            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, dataMap);
+        } catch (Exception e) {
+            log.error("领取成长基金异常 playerId:{} activityId:{} detailid:{}", playerId, activityId, detailId, e);
+        } finally {
+            redisLock.unlock(lockKey);
+        }
+        // 构建响应数据
+        if (data != null) {
+            if (addedItems != null && addedItems.success()) {
+                //TODO 日志
+            }
+            res.activityId = activityId;
+            res.detailId = detailId;
+            res.infoList = ItemUtils.buildItemInfo(cfg.getGetItem());
+            res.detailInfo = buildPlayerActivityDetail(activityId, cfg, data);
+        }
+        return res;
+    }
+
+    /**
+     * 构建成长基金活动详情
+     *
+     * @param activityId  活动ID
+     * @param baseCfgBean 活动配置
+     * @param data        玩家特权卡数据
+     * @return 返回特权卡详情信息
+     */
+    @Override
+    public GrowthFundDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+        if (!(baseCfgBean instanceof GrowthFundCfg cfg)) {
+            return null;
+        }
+        GrowthFundDetailInfo info = new GrowthFundDetailInfo();
+        info.activityId = activityId;
+        info.detailId = baseCfgBean.getId();
+        info.type = cfg.getType();
+        info.needLevel = cfg.getLevel();
+        // 奖励信息
+        info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetItem());
+        if (data != null) {
+            info.claimStatus = data.getClaimStatus();
+        }
+        return info;
+    }
+
+    /**
+     * 获取玩家成长基金活动明细
+     */
+    @Override
+    public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
+        long activityId = activityData.getId();
+        ResGrowthFundDetailInfo detailInfo = new ResGrowthFundDetailInfo(Code.SUCCESS);
+        //活动数据
+        Map<Integer, GrowthFundCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
+        Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
+        detailInfo.detailInfo = new ArrayList<>();
+        detailInfo.detailInfo.add(buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
+        return detailInfo;
+    }
+
+    /**
+     * 构建活动类型信息
+     */
+    @Override
+    public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
+        ResGrowthFundTypeInfo cardTypeInfo = new ResGrowthFundTypeInfo(Code.SUCCESS);
+        if (CollectionUtil.isEmpty(allDetailInfo)) {
+            return cardTypeInfo;
+        }
+        cardTypeInfo.activityData = new ArrayList<>();
+        for (Map.Entry<Long, List<BaseActivityDetailInfo>> entry : allDetailInfo.entrySet()) {
+            GrowthFundActivityInfo activityInfo = new GrowthFundActivityInfo();
+            activityInfo.detailInfos = new ArrayList<>();
+            cardTypeInfo.activityData.add(activityInfo);
+            for (BaseActivityDetailInfo baseActivityDetailInfo : entry.getValue()) {
+                if (baseActivityDetailInfo instanceof GrowthFundDetailInfo info) {
+                    activityInfo.detailInfos.add(info);
+                }
+            }
+            ActivityData activityData = activityManager.getActivityData().get(entry.getKey());
+            if (activityData != null && activityData.getValueParam().size() >= 3) {
+                activityInfo.sellingPrice = activityData.getValueParam().getFirst();
+                activityInfo.originalPrice = activityData.getValueParam().get(1);
+                activityInfo.totalGet = activityData.getValueParam().getLast();
+            }
+        }
+        return cardTypeInfo;
+    }
+
+    @Override
+    public Map<Integer, GrowthFundCfg> getDetailCfgBean(ActivityData activityData) {
+        return GameDataManager.getGrowthFundCfgList()
+                .stream()
+                .filter(cfg -> activityData.getValue().contains(cfg.getId()))
+                .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
+    }
+
+    @Override
+    public boolean checkPlayerCanJoinActivity(Player player, ActivityData activityData) {
+        boolean checked = super.checkPlayerCanJoinActivity(player, activityData);
+        if (!checked) {
+            return false;
+        }
+        //已经购买不显示
+        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(player.getId(), activityData.getType(), activityData.getId());
+        if (CollectionUtil.isEmpty(playerActivityData)) {
+            return true;
+        }
+        //全部领取不显示
+        Map<Integer, GrowthFundCfg> detailCfgBean = getDetailCfgBean(activityData);
+        if (detailCfgBean.size() == playerActivityData.size()) {
+            for (PlayerActivityData data : playerActivityData.values()) {
+                if (data.getClaimStatus() == ActivityConstant.ActivityStatus.ENDED) {
+                    continue;
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+}

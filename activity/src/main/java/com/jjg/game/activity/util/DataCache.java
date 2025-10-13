@@ -11,9 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * @author lm
  * @date 2025/9/22 19:34
@@ -25,8 +22,6 @@ public class DataCache implements ConfigExcelChangeListener {
     private Pair<Integer, Integer> effectiveWaterFlowConvertRatio;
     //33 官方派奖：充值转换积分比例 ：充值金额 = X积分
     private Pair<Integer, Integer> rechargeConvertRatio;
-    // 30 官方派奖每个转盘需求积分：初、中、高
-    private Map<Integer, Integer> needPoints;
     //官方派奖机器人中奖配置 毫秒数->权重
     private WeightRandom<Integer> robotRandom;
 
@@ -50,21 +45,6 @@ public class DataCache implements ConfigExcelChangeListener {
         } catch (Exception e) {
             log.error("init cacheData error!", e);
 
-        }
-        try {
-            globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.OfficialAwards.NEED_POINTS);
-            if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
-                String[] split = StringUtils.split(globalConfigCfg.getValue(), "_");
-                Map<Integer, Integer> hashMap = new HashMap<>();
-                for (int i = 0; i < split.length; i++) {
-                    hashMap.put(i + 1, Integer.parseInt(split[i]));
-                }
-                if (!hashMap.isEmpty()) {
-                    needPoints = hashMap;
-                }
-            }
-        } catch (Exception e) {
-            log.error("init cacheData error!", e);
         }
 
         globalConfigCfg = GameDataManager.getGlobalConfigCfg(ActivityConstant.OfficialAwards.ROBOT_CFG);
@@ -93,11 +73,6 @@ public class DataCache implements ConfigExcelChangeListener {
         }
         return null;
     }
-
-    public Map<Integer, Integer> getNeedPoints() {
-        return needPoints;
-    }
-
     public Pair<Integer, Integer> getEffectiveWaterFlowConvertRatio() {
         return effectiveWaterFlowConvertRatio;
     }

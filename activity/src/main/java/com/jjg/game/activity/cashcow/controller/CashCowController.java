@@ -155,11 +155,12 @@ public class CashCowController extends BaseActivityController implements TimerLi
     }
 
     @Override
-    public boolean addPlayerProgress(long playerId, ActivityData data, long progress, long activityTargetKey, Object additionalParameters) {
+    public boolean addPlayerProgress(Player player, ActivityData data, long progress, long activityTargetKey, Object additionalParameters) {
         // 当玩家发生某些行为导致个人进度增加时调用（例如玩家获得金币）
         if (notAddProgress(additionalParameters)) {
             return false;
         }
+        long playerId = player.getId();
         // 将玩家的个人进度累加到玩家活动表（返回实际新增进度值或其他业务含义，具体实现见 DAO）
         long added = cashCowDao.addPlayerActivityProgress(playerId, data.getId(), progress);
 
@@ -189,7 +190,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             // 持久化玩家活动数据
             playerActivityDao.savePlayerActivityData(playerId, data.getType(), data.getId(), playerActivityData);
         } catch (Exception e) {
-            log.error("摇钱树增加玩家个人进度失败 playerId:{} addVelue:{}", playerId, progress);
+            log.error("摇钱树增加玩家个人进度失败 playerId:{} addValue:{}", player, progress);
         } finally {
             redisLock.unlock(lockKey);
         }
@@ -814,7 +815,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
     }
 
     @Override
-    public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
+    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
         // 获取玩家该活动的历史数据
         Map<Integer, CashCowPlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
         if (CollectionUtil.isNotEmpty(playerActivityData)) {
