@@ -399,7 +399,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             }
             //玩家首次登录执行
             if (firstLogin && Boolean.TRUE.equals(checked)) {
-                controller.checkPlayerDataAndReset(player.getId(), data);
+                controller.checkPlayerDataAndResetOnLogin(player.getId(), data);
             }
             info.activityInfos.add(controller.buildActivityInfo(data));
         }
@@ -616,7 +616,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 if (playerEvent.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
                     Player player = playerEvent.getPlayer();
                     //添加其他活动进度
-                    addPlayerActivityProgress(player, ActivityTargetType.LEVEL.getTargetKey(), player.getLevel(), null);
+                    addPlayerActivityProgress(player, ActivityTargetType.LEVEL.getTargetKey(), player.getLevel(), playerEvent.getNewlyValue());
                 }
             }
             case ClockEvent clockEvent -> {
@@ -662,7 +662,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                         continue;
                     }
                     //重置活动数据
-                    controller.checkPlayerDataAndReset(player.getId(), data);
+                    controller.checkPlayerDataAndResetOnLogin(player.getId(), data);
                 }
                 //触发登录活动
                 addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);

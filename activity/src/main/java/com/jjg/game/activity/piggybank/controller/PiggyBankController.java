@@ -354,8 +354,8 @@ public class PiggyBankController extends BaseActivityController {
      * 检查玩家数据并在条件满足时重置
      */
     @Override
-    public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
-        super.checkPlayerDataAndReset(playerId, activityData);
+    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
+        super.checkPlayerDataAndResetOnLogin(playerId, activityData);
         resetData(playerId, activityData);
     }
 

@@ -240,8 +240,8 @@ public class DailyLoginController extends BaseActivityController {
     }
 
     @Override
-    public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
-        super.checkPlayerDataAndReset(playerId, activityData);
+    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
+        super.checkPlayerDataAndResetOnLogin(playerId, activityData);
         Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
         if (CollectionUtil.isEmpty(playerActivityData)) {
             return;

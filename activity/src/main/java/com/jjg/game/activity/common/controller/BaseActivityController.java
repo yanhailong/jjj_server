@@ -240,12 +240,12 @@ public abstract class BaseActivityController {
     }
 
     /**
-     * 检查玩家的活动数据是否需要重置
+     * 首次登录检查玩家的活动数据是否需要重置
      *
      * @param playerId     玩家ID
      * @param activityData 活动数据
      */
-    public void checkPlayerDataAndReset(long playerId, ActivityData activityData) {
+    public void checkPlayerDataAndResetOnLogin(long playerId, ActivityData activityData) {
         // 限时活动（openType=2）不需要重置
         if (activityData.getOpenType() == ActivityConstant.Common.LIMIT_TYPE) {
             return;
