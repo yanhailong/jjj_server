@@ -486,7 +486,7 @@ public class FriendRoomServices {
             }
 
             @Override
-            public Boolean updateDataWithRes(FriendRoom dataEntity) {
+            public boolean updateDataWithRes(FriendRoom dataEntity) {
                 dataEntity.setPredictCostGoldNum(friendRoom.getPredictCostGoldNum());
                 dataEntity.setOverdueTime(finalOverdueTime);
                 return true;
@@ -889,7 +889,7 @@ public class FriendRoomServices {
                 }
 
                 @Override
-                public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                public boolean updateDataWithRes(FriendRoom dataEntity) {
                     if (!StringUtils.isEmpty(updateFriendRoom.roomAliasName)) {
                         dataEntity.setAliasName(updateFriendRoom.roomAliasName);
                     }
@@ -1173,7 +1173,7 @@ public class FriendRoomServices {
                     }
 
                     @Override
-                    public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                    public boolean updateDataWithRes(FriendRoom dataEntity) {
                         dataEntity.setStatus(1);
                         // 不能在此处设置暂停时间
                         // dataEntity.setPauseTime(0);
@@ -1201,7 +1201,7 @@ public class FriendRoomServices {
                     }
 
                     @Override
-                    public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                    public boolean updateDataWithRes(FriendRoom dataEntity) {
                         dataEntity.setStatus(2);
                         dataEntity.setPauseTime(System.currentTimeMillis());
                         return true;
@@ -1223,7 +1223,7 @@ public class FriendRoomServices {
                         }
 
                         @Override
-                        public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                        public boolean updateDataWithRes(FriendRoom dataEntity) {
                             dataEntity.setStatus(3);
                             dataEntity.setPauseTime(System.currentTimeMillis());
                             return true;

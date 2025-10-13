@@ -48,7 +48,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             }
 
             @Override
-            public Boolean updateDataWithRes(FriendRoom dataEntity) {
+            public boolean updateDataWithRes(FriendRoom dataEntity) {
                 dataEntity.setInGaming(true);
                 return true;
             }
@@ -96,7 +96,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                 }
 
                 @Override
-                public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                public boolean updateDataWithRes(FriendRoom dataEntity) {
                     if (dataEntity.getPauseTime() != 0) {
                         // 动态加上时间
                         long resetTime = dataEntity.getOverdueTime() - dataEntity.getPauseTime();
@@ -143,7 +143,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             }
 
             @Override
-            public Boolean updateDataWithRes(FriendRoom dataEntity) {
+            public boolean updateDataWithRes(FriendRoom dataEntity) {
                 dataEntity.setPredictCostGoldNum(dataEntity.getPredictCostGoldNum() + addPredicateGold);
                 return true;
             }
@@ -298,7 +298,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                 }
 
                 @Override
-                public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                public boolean updateDataWithRes(FriendRoom dataEntity) {
                     dataEntity.setOverdueTime(finalOverdueTime);
                     // TODO日志
                     dataEntity.setPredictCostGoldNum(dataEntity.getPredictCostGoldNum());
@@ -409,7 +409,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                 }
 
                 @Override
-                public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                public boolean updateDataWithRes(FriendRoom dataEntity) {
                     dataEntity.cancelApplyBanker(playerId);
                     return true;
                 }
@@ -444,7 +444,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                 }
 
                 @Override
-                public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                public boolean updateDataWithRes(FriendRoom dataEntity) {
                     return dataEntity.removeBanker() != null;
                 }
             });
@@ -555,7 +555,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                     }
 
                     @Override
-                    public Boolean updateDataWithRes(FriendRoom dataEntity) {
+                    public boolean updateDataWithRes(FriendRoom dataEntity) {
                         dataEntity.addBankerSupply(playerId, predictCostGold);
                         return true;
                     }
@@ -577,7 +577,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             }
 
             @Override
-            public Boolean updateDataWithRes(FriendRoom dataEntity) {
+            public boolean updateDataWithRes(FriendRoom dataEntity) {
                 dataEntity.deductBankerPredicateItem(Math.abs(bankerFlowing));
                 return true;
             }

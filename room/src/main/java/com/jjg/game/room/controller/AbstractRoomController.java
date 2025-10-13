@@ -226,7 +226,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                     }
 
                     @Override
-                    public Boolean updateDataWithRes(Room room) {
+                    public boolean updateDataWithRes(Room room) {
                         try {
                             if (room == null) {
                                 log.error("检查房间：{} 是否可以加入时, 房间为空，player: {}",
