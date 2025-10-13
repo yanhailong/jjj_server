@@ -493,6 +493,7 @@ public class BaseLogger {
             JSONObject json = new JSONObject();
             json.put("orderId", orderId);
             json.put("merchantOrderId", merchantOrderId);
+            json.put("hopProductType", orderId);
             json.put("nick", player.getNickName());
             json.put("playerChannel", playerChannel);
             json.put("payChannel", payChannel);

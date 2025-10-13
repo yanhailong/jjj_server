@@ -6,7 +6,10 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.jjg.game.account.config.AccountConfig;
 import com.jjg.game.account.constant.AccountConstant;
+import com.jjg.game.account.data.GoogleUserInfo;
 import com.jjg.game.account.dto.OAuthLoginDto;
+import com.jjg.game.account.service.HttpService;
+import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.account.dao.PlayerIdDao;
@@ -22,6 +25,8 @@ import com.jjg.game.core.data.ChannelType;
 import com.jjg.game.core.data.WebResult;
 import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import org.redisson.RedissonLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -48,8 +53,10 @@ public class AccountController extends AbstractController {
     private AccountConfig accountConfig;
     @Autowired
     private BlackListDao blackListDao;
-
-    private static final String CLIENT_ID = "your-google-client-id.apps.googleusercontent.com";
+    @Autowired
+    private HttpService httpService;
+    @Autowired
+    private RedissonClient redissonClient;
 
 
     /**
@@ -81,6 +88,10 @@ public class AccountController extends AbstractController {
                 }
             }
 
+//            redisLock.lock("guestlogin", GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+//            try(RedissonLock redissonLock = (RedissonLock) redissonClient.getLock("guest_login:" + guestKey)){
+//
+//            }
             //查询该账号是否存在
             Account account = accountDao.queryAccountByGuest(dto.getGuest());
 
@@ -188,7 +199,11 @@ public class AccountController extends AbstractController {
 //            String email = payload.getEmail();
 //            String name = (String) payload.get("name");
 
-
+            GoogleUserInfo googleUserInfo = httpService.verifyGoogleToken(dto.getToken());
+            if(googleUserInfo == null){
+                log.debug("token校验失败, 登录失败 = {},ip = {}", dto.getToken(), clientIp);
+                return fail(Code.BAN_CAUSE_BLACK_LIST);
+            }
 
             LoginVo vo = new LoginVo();
             return success(vo);

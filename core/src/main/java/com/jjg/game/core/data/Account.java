@@ -37,8 +37,8 @@ public class Account {
     private int status;
     //渠道
     private ChannelType channel;
-    //渠道账号id
-    private Map<ChannelType, String> channelAccounts;
+    //谷歌平台用户id
+    private String googleUserId;
 
 
     public long getPlayerId() {
@@ -137,11 +137,11 @@ public class Account {
         this.channel = channel;
     }
 
-    public Map<ChannelType, String> getChannelAccounts() {
-        return channelAccounts;
+    public String getGoogleUserId() {
+        return googleUserId;
     }
 
-    public void setChannelAccounts(Map<ChannelType, String> channelAccounts) {
-        this.channelAccounts = channelAccounts;
+    public void setGoogleUserId(String googleUserId) {
+        this.googleUserId = googleUserId;
     }
 }
