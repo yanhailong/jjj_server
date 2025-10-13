@@ -1,9 +1,11 @@
 package com.jjg.game.activity.sharepromote.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.activity.activitylog.data.SharePromoteWeekRank;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;
+import com.jjg.game.activity.common.data.ClaimRewardsResult;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -63,57 +65,31 @@ public class SharePromoteController extends BaseActivityController {
     public AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId) {
         ResSharePromoteClaimRewards res = new ResSharePromoteClaimRewards(Code.SUCCESS);
         long playerId = player.getId();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         //获取活动详情数据
         Map<Integer, SharePromoteCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         SharePromoteCfg cfg = baseCfgBeanMap.get(detailId);
-        if (cfg == null) {
-            res.code = Code.PARAM_ERROR;
+        if (cfg == null || CollectionUtil.isEmpty(cfg.getGetitem())) {
+            res.code = Code.SAMPLE_ERROR;
             return res;
         }
-        PlayerActivityData data = null;
-        CommonResult<ItemOperationResult> addedItems;
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-        try {
-            //领取奖励
-            Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
-            if (CollectionUtil.isEmpty(dataMap)) {
-                res.code = Code.PARAM_ERROR;
-                return res;
+        ClaimRewardsResult claimRewardsResult = claimActivityRewards(playerId, activityData, detailId, "", cfg.getGetitem());
+        if (claimRewardsResult != null) {
+            //发送日志
+            Long add = cfg.getGetitem().getOrDefault(ItemUtils.getGoldItemId(), 0L);
+            if (add > 0) {
+                activityLogger.sendSharePromoteAddRewards(player, activityData, 4, 0, 0, add, 0,
+                        claimRewardsResult.itemOperationResult().getGoldNum());
             }
-            data = dataMap.get(detailId);
-            if (data == null) {
-                res.code = Code.PARAM_ERROR;
-                return res;
-            }
-            if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                res.code = Code.REPEAT_OP;
-                return res;
-            }
-            //发送奖励
-            addedItems = playerPackService.addItems(playerId, cfg.getGetitem(), "SharePromoteRewards");
-            if (!addedItems.success()) {
-                res.code = Code.UNKNOWN_ERROR;
-                return res;
-            }
-            //修改领奖状态
-            data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
-            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
-        } catch (Exception e) {
-            log.error("领取推广分享异常 playerId:{} activityId:{}", playerId, activityData.getId(), e);
-        } finally {
-            redisLock.unlock(lockKey);
-        }
-        if (data != null) {
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
-            res.detailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, data);
+            res.detailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, claimRewardsResult.playerActivityData());
         }
         return res;
     }
 
     @Override
-    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
+    public boolean addPlayerProgress(Player player, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
         //这个活动不主动刷新
+        long playerId = player.getId();
         // 获取playerId绑定的玩家信息
         String bindInfo = sharePromoteDao.getBindInfo(playerId);
         if (StringUtils.isEmpty(bindInfo)) {
@@ -138,6 +114,13 @@ public class SharePromoteController extends BaseActivityController {
         //计算本次添加的进度
         long addValue = BigDecimal.valueOf(progress).multiply(BigDecimal.valueOf(proportion)).divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
         sharePromoteDao.addPlayerIncome(playerId, beneficiaryPlayerId, addValue);
+        if (addValue > 0) {
+            Player beneficiaryPlayer = corePlayerService.get(beneficiaryPlayerId);
+            //发送日志
+            activityLogger.sendSharePromoteAddRewards(beneficiaryPlayer, activityData, 1,
+                    addValue, 0, 0, 0);
+            activityLogger.sendSharePromoteSubordinateRecharge(player, activityData, progress, addValue);
+        }
         return false;
     }
 
@@ -205,10 +188,11 @@ public class SharePromoteController extends BaseActivityController {
      * 请求绑定玩家
      *
      * @param playerController 玩家控制器
+     * @param activityData     活动数据
      * @param req              请求
      * @return 响应
      */
-    public AbstractResponse reqSharePromoteBindPlayer(PlayerController playerController, ReqSharePromoteBindPlayer req) {
+    public AbstractResponse reqSharePromoteBindPlayer(PlayerController playerController, ActivityData activityData, ReqSharePromoteBindPlayer req) {
         ResSharePromoteBindPlayer res = new ResSharePromoteBindPlayer(Code.SUCCESS);
         long playerId = playerController.playerId();
         //获取玩家的推广分享数据
@@ -221,6 +205,8 @@ public class SharePromoteController extends BaseActivityController {
             res.code = Code.CODE_ERROR;
             return res;
         }
+        //绑定之前的收益率
+        int bindBefore = getPlayerProportion(playerId, activityData);
         //绑定玩家
         res.code = sharePromoteDao.bindPlayer(playerId, req.invitationCode);
         if (res.code == Code.SUCCESS) {
@@ -239,15 +225,18 @@ public class SharePromoteController extends BaseActivityController {
                 redisLock.unlock(lock);
             }
             if (save) {
+                //发送日志
+                activityLogger.sendSharePromoteAddRewards(playerController.getPlayer(), activityData, 2,
+                        2, 1, 0, 0);
                 //修改活动状态
-                checkActivityStatus(playerId, playerInfoData.getBindCount());
+                checkActivityStatus(playerController.getPlayer(), activityData, playerInfoData.getBindCount(), bindBefore);
             }
             res.bindNum = playerInfoData.getBindCount();
         }
         return res;
     }
 
-    public void checkActivityStatus(long playerId, int bindNum) {
+    public void checkActivityStatus(Player player, ActivityData activityData, int bindNum, int bindBefore) {
         Map<Long, ActivityData> longActivityDataMap = activityManager.getActivityTypeData().get(ActivityType.SHARE_PROMOTE);
         if (CollectionUtil.isEmpty(longActivityDataMap)) {
             return;
@@ -257,6 +246,8 @@ public class SharePromoteController extends BaseActivityController {
         if (CollectionUtil.isEmpty(beanMap)) {
             return;
         }
+        boolean changed = false;
+        long playerId = player.getId();
         String lockKey = playerActivityDao.getLockKey(playerId, data.getId());
         redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
@@ -269,9 +260,17 @@ public class SharePromoteController extends BaseActivityController {
                     PlayerActivityData playerActivityData = new PlayerActivityData(data.getId(), data.getRound());
                     playerActivityData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
                     playerActivityDataMap.put(cfg.getId(), playerActivityData);
+                    changed = true;
+                    //发送日志
+                    Long addValue = cfg.getGetitem().get(ItemUtils.getGoldItemId());
+                    if (addValue > 0) {
+                        activityLogger.sendSharePromoteAddRewards(player, activityData, 5, addValue, 0, 0, getPlayerProportion(playerId, activityData) - bindBefore);
+                    }
                 }
             }
-            playerActivityDao.savePlayerActivityData(playerId, data.getType(), data.getId(), playerActivityDataMap);
+            if (changed) {
+                playerActivityDao.savePlayerActivityData(playerId, data.getType(), data.getId(), playerActivityDataMap);
+            }
         } catch (Exception e) {
             log.error("推广分享绑定玩家成功 检查玩家进度异常 playerId:{}", playerId, e);
         } finally {
@@ -283,9 +282,10 @@ public class SharePromoteController extends BaseActivityController {
      * 请求领取收益奖励
      *
      * @param playerController 玩家控制器
+     * @param activityData     活动数据
      * @return 响应
      */
-    public AbstractResponse reqSharePromoteClaimProfitReward(PlayerController playerController) {
+    public AbstractResponse reqSharePromoteClaimProfitReward(PlayerController playerController, ActivityData activityData) {
         ResSharePromoteClaimProfitReward res = new ResSharePromoteClaimProfitReward(Code.SUCCESS);
         long playerId = playerController.playerId();
         //获取玩家收益
@@ -322,6 +322,10 @@ public class SharePromoteController extends BaseActivityController {
                 sharePromoteDao.savePlayerInfoData(playerId, playerInfoData);
                 //更新排行榜
                 sharePromoteDao.updateRankScore(playerId, playerIncome);
+                if (addedItem.data != null) {
+                    //添加日志
+                    activityLogger.sendSharePromoteAddRewards(playerController.getPlayer(), activityData, 3, 0, 0, playerIncome, 0, addedItem.data.getGoldNum());
+                }
             } catch (Exception e) {
                 log.error("玩家领取收益奖励异常 playerId={}", playerId, e);
                 res.code = Code.EXCEPTION;
@@ -514,13 +518,33 @@ public class SharePromoteController extends BaseActivityController {
             //取出数据后直接删除
             sharePromoteDao.deleteRank();
             if (CollectionUtil.isNotEmpty(playerIncomeRank.getFirst())) {
+                //日志
+                List<SharePromoteWeekRank> logList = new ArrayList<>(playerIncomeRank.getFirst().size());
+                Map<Long, Player> playerMap = corePlayerService.multiGetPlayerMap(playerIncomeRank.getFirst().keySet());
                 int i = 1;
-                for (Long playerId : playerIncomeRank.getFirst().keySet()) {
+                for (Map.Entry<Long, Double> entry : playerIncomeRank.getFirst().entrySet()) {
+                    SharePromoteWeekRank rankInfo = new SharePromoteWeekRank();
+                    Long playerId = entry.getKey();
+                    rankInfo.setRank(i);
+                    //邮件参数构建
                     List<LanguageParamData> params = new ArrayList<>(1);
                     params.add(new LanguageParamData(0, String.valueOf(i)));
-                    mailService.addCfgMail(playerId, ActivityConstant.SharePromote.MAIL_ID,
-                            ItemUtils.buildItems(getRankRewards(rankRewardPair, i++)), params);
+                    //构建奖励
+                    Map<Integer, Long> rankRewards = getRankRewards(rankRewardPair, i++);
+                    List<Item> getItems = ItemUtils.buildItems(rankRewards);
+                    //发送奖励邮件
+                    mailService.addCfgMail(playerId, ActivityConstant.SharePromote.MAIL_ID, getItems, params);
+                    Player player = playerMap.get(playerId);
+                    if (player == null) {
+                        continue;
+                    }
+                    rankInfo.setPlayerId(playerId);
+                    rankInfo.setName(player.getNickName());
+                    rankInfo.setTotalScore(entry.getValue().longValue());
+                    rankInfo.setRewards(rankRewards);
+                    logList.add(rankInfo);
                 }
+                activityLogger.sendSharePromoteRankRewards(activityData, logList);
             }
             log.info("推广分享周榜奖励发放完成 总发放人数 num:{}", playerIncomeRank.getFirst().size());
         }

@@ -103,17 +103,21 @@ spring:
   mongodb:
    uri: mongodb://admin:jjg123456@192.168.3.31:27017/vegasnight_game_dev?authSource=admin
  kafka:
-  bootstrap-servers: 192.168.3.31:9092
-  producer:
-   key-serializer: org.apache.kafka.common.serialization.StringSerializer
-   value-serializer: org.apache.kafka.common.serialization.StringSerializer
-   acks: all           # 消息确认模式（all表示所有副本确认）
-   enable-idempotence: true    # 启用幂等性（防重复）
-   retries: 3          # 发送失败重试次数
-   batch-size: 16384   # 16KB批量发送（减少网络请求）
-   compression-type: gzip  # 启用GZIP压缩减少带宽占用
-   max-request-size: 1048576  # 单条消息最大1MB
-   linger-ms: 50
+   bootstrap-servers: 192.168.3.31:9092
+   producer:
+     key-serializer: org.apache.kafka.common.serialization.StringSerializer
+     value-serializer: org.apache.kafka.common.serialization.StringSerializer
+     acks: 1  #leader 写入成功即返回确认
+     enable-idempotence: true  #启用幂等性，确保消息不会重复发送（即使重试）
+     retries: 3  #发送失败时的重试次数
+     batch-size: 16384  #批次大小（16KB），Producer 会累积消息到这个大小后批量发送
+     compression-type: gzip
+     max-request-size: 1048576
+     linger-ms: 50  #批次等待时间（50ms），即使未达到 batch-size也会在等待这个时间后发送
+     request.timeout.ms: 30000    # 单次请求 30s 超时
+     retry.backoff.ms: 500        # 重试间隔 500ms
+     delivery.timeout.ms: 120000  # 总超时 2 分钟
+     max.in.flight.requests.per.connection: 1  #每个连接的最大未确认请求数,设为 1 可保证消息顺序（即使重试）
 ```
 
 启动新节点修改内容如下：

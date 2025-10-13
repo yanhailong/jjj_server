@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.GrowthFundCfg;
+import com.jjg.game.sampledata.bean.JumpDataCfg;
 
 /**
- * GrowthFund.xlsx配置管理容器
+ * jumpData.xlsx配置管理容器
  *
- * @excelName GrowthFund.xlsx
- * @sheetName GrowthFund
+ * @excelName jumpData.xlsx
+ * @sheetName jumpData
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class GrowthFundCfgContainer extends BaseCfgContainer<GrowthFundCfg> {
+public class JumpDataCfgContainer extends BaseCfgContainer<JumpDataCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -27,23 +27,23 @@ public class GrowthFundCfgContainer extends BaseCfgContainer<GrowthFundCfg> {
   }
 
   @Override
-  public GrowthFundCfgContainer getNewContainer(){
-    return new GrowthFundCfgContainer();
+  public JumpDataCfgContainer getNewContainer(){
+    return new JumpDataCfgContainer();
   }
 
-  public GrowthFundCfgContainer() {
+  public JumpDataCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("GrowthFund.xlsx");
+    excelNameList.add("jumpData.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected GrowthFundCfg createNewBean() {
-    return new GrowthFundCfg();
+  protected JumpDataCfg createNewBean() {
+    return new JumpDataCfg();
   }
 }

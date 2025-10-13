@@ -66,6 +66,8 @@ public class Player {
     private long updateTime;
     //好友房邀请码
     private int friendRoomInvitationCode;
+    //登录渠道
+    private ChannelType channel;
 
     public long getId() {
         return id;
@@ -284,6 +286,14 @@ public class Player {
 
     public void setFriendRoomInvitationCode(int friendRoomInvitationCode) {
         this.friendRoomInvitationCode = friendRoomInvitationCode;
+    }
+
+    public ChannelType getChannel() {
+        return channel;
+    }
+
+    public void setChannel(ChannelType channel) {
+        this.channel = channel;
     }
 
     @Override

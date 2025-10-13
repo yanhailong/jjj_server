@@ -3,6 +3,7 @@ package com.jjg.game.activity.growthfund.controller;
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
+import com.jjg.game.activity.common.data.ClaimRewardsResult;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -11,14 +12,12 @@ import com.jjg.game.activity.growthfund.message.bean.GrowthFundDetailInfo;
 import com.jjg.game.activity.growthfund.message.res.ResGrowthFundClaimRewards;
 import com.jjg.game.activity.growthfund.message.res.ResGrowthFundDetailInfo;
 import com.jjg.game.activity.growthfund.message.res.ResGrowthFundTypeInfo;
-import com.jjg.game.activity.privilegecard.data.PlayerPrivilegeCard;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.GrowthFundCfg;
@@ -103,7 +102,7 @@ public class GrowthFundController extends BaseActivityController {
     }
 
     @Override
-    public boolean addPlayerProgress(long playerId, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
+    public boolean addPlayerProgress(Player player, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
         boolean change = false;
         if (additionalParameters instanceof Integer level) {
             long activityId = activityData.getId();
@@ -112,12 +111,13 @@ public class GrowthFundController extends BaseActivityController {
             if (CollectionUtil.isEmpty(baseCfgBeanMap)) {
                 return false;
             }
+            long playerId = player.getId();
             //加锁前检查是否已经触发完
             Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
             if (playerActivityData.size() == baseCfgBeanMap.size()) {
                 return false;
             }
-            long count = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(playerId));
+            long count = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player));
             String lockKey = playerActivityDao.getLockKey(playerId, activityId);
             redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
@@ -141,7 +141,7 @@ public class GrowthFundController extends BaseActivityController {
                     playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, playerActivityData);
                 }
             } catch (Exception e) {
-                log.error("成长基金增加进度异常 playerId:{} activityId:{}", playerId, activityId, e);
+                log.error("成长基金增加进度异常 playerId:{} activityId:{}", player, activityId, e);
             } finally {
                 redisLock.unlock(lockKey);
             }
@@ -159,59 +159,25 @@ public class GrowthFundController extends BaseActivityController {
      */
     @Override
     public AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId) {
-        ResGrowthFundClaimRewards res = new ResGrowthFundClaimRewards(Code.SUCCESS);
         long playerId = player.getId();
         long activityId = activityData.getId();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         Map<Integer, GrowthFundCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         GrowthFundCfg cfg = baseCfgBeanMap.get(detailId);
-        if (cfg == null) {
-            res.code = Code.PARAM_ERROR;
-            return res;
+        if (cfg == null || CollectionUtil.isEmpty(cfg.getGetItem())) {
+            TipUtils.sendTip(playerId, TipUtils.TipType.TOAST, Code.SAMPLE_ERROR);
+            return null;
         }
-        PlayerActivityData data = null;
-        CommonResult<ItemOperationResult> addedItems = null;
-        // 加锁，保证领取操作原子性
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-        try {
-            Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
-            if (CollectionUtil.isEmpty(dataMap)) {
-                res.code = Code.PARAM_ERROR;
-                return res;
-            }
-            data = dataMap.get(detailId);
-            if (data == null) {
-                res.code = Code.PARAM_ERROR;
-                return res;
-            }
-            if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                res.code = Code.REPEAT_OP;
-                return res;
-            }
-            // 发放奖励
-            addedItems = playerPackService.addItems(playerId, cfg.getGetItem(), "GrowthFundRewords");
-            if (!addedItems.success()) {
-                res.code = Code.UNKNOWN_ERROR;
-                return res;
-            }
-            data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
-            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, dataMap);
-        } catch (Exception e) {
-            log.error("领取成长基金异常 playerId:{} activityId:{} detailid:{}", playerId, activityId, detailId, e);
-        } finally {
-            redisLock.unlock(lockKey);
-        }
+        ClaimRewardsResult claimRewardsResult = claimActivityRewards(playerId, activityData, detailId, "GrowthFund", cfg.getGetItem());
         // 构建响应数据
-        if (data != null) {
-            if (addedItems != null && addedItems.success()) {
-                //TODO 日志
-            }
+        if (claimRewardsResult != null) {
+            ResGrowthFundClaimRewards res = new ResGrowthFundClaimRewards(Code.SUCCESS);
             res.activityId = activityId;
             res.detailId = detailId;
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetItem());
-            res.detailInfo = buildPlayerActivityDetail(activityId, cfg, data);
+            res.detailInfo = buildPlayerActivityDetail(activityId, cfg, claimRewardsResult.playerActivityData());
+            return res;
         }
-        return res;
+        return null;
     }
 
     /**
@@ -249,7 +215,7 @@ public class GrowthFundController extends BaseActivityController {
         ResGrowthFundDetailInfo detailInfo = new ResGrowthFundDetailInfo(Code.SUCCESS);
         //活动数据
         Map<Integer, GrowthFundCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
-        Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
+        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
         detailInfo.detailInfo = new ArrayList<>();
         detailInfo.detailInfo.add(buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
         return detailInfo;

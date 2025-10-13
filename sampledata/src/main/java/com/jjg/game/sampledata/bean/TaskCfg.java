@@ -25,7 +25,9 @@ public class TaskCfg extends BaseCfgBean {
   /** 积分奖励 */
   protected int integralNum;
   /** 按钮跳转类型 */
-  protected List<Integer> jumpType;
+  protected int jumpType;
+  /** 任务描述 */
+  protected int language;
   /** 任务条件 */
   protected List<Integer> taskConditionId;
   /** 任务图标 */
@@ -51,8 +53,13 @@ public class TaskCfg extends BaseCfgBean {
   }
 
   /** 返回按钮跳转类型 */
-  public List<Integer> getJumpType() {
+  public int getJumpType() {
     return jumpType;
+  }
+
+  /** 返回任务描述 */
+  public int getLanguage() {
+    return language;
   }
 
   /** 返回任务条件 */

@@ -429,15 +429,15 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
      */
     private List<TaskJump> taskJump(TaskCfg taskCfg) {
         List<TaskJump> jumps = new ArrayList<>();
-        List<Integer> jumpType = taskCfg.getJumpType();
-        if (jumpType != null && !jumpType.isEmpty()) {
-            for (int i = 0; i < jumpType.size(); i += 2) {
-                TaskJump jump = new TaskJump();
-                jump.setType(jumpType.get(i));
-                jump.setValue(jumpType.get(i + 1));
-                jumps.add(jump);
-            }
-        }
+//        List<Integer> jumpType = taskCfg.getJumpType();
+//        if (jumpType != null && !jumpType.isEmpty()) {
+//            for (int i = 0; i < jumpType.size(); i += 2) {
+//                TaskJump jump = new TaskJump();
+//                jump.setType(jumpType.get(i));
+//                jump.setValue(jumpType.get(i + 1));
+//                jumps.add(jump);
+//            }
+//        }
         return jumps;
     }
 

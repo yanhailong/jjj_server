@@ -441,7 +441,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     continue;
                 }
                 try {
-                    boolean changeStatus = data.getType().getController().addPlayerProgress(playerId, data, value
+                    boolean changeStatus = data.getType().getController().addPlayerProgress(player, data, value
                             , activityTargetKey, additionalParameters);
                     //如果进度增加后能够领取则放入
                     if (changeStatus) {

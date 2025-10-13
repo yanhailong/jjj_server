@@ -15,6 +15,7 @@ import com.jjg.game.activity.cashcow.message.res.*;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityType;
+import com.jjg.game.activity.common.data.ClaimRewardsResult;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -155,11 +156,12 @@ public class CashCowController extends BaseActivityController implements TimerLi
     }
 
     @Override
-    public boolean addPlayerProgress(long playerId, ActivityData data, long progress, long activityTargetKey, Object additionalParameters) {
+    public boolean addPlayerProgress(Player player, ActivityData data, long progress, long activityTargetKey, Object additionalParameters) {
         // 当玩家发生某些行为导致个人进度增加时调用（例如玩家获得金币）
         if (notAddProgress(additionalParameters)) {
             return false;
         }
+        long playerId = player.getId();
         // 将玩家的个人进度累加到玩家活动表（返回实际新增进度值或其他业务含义，具体实现见 DAO）
         long added = cashCowDao.addPlayerActivityProgress(playerId, data.getId(), progress);
 
@@ -189,7 +191,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             // 持久化玩家活动数据
             playerActivityDao.savePlayerActivityData(playerId, data.getType(), data.getId(), playerActivityData);
         } catch (Exception e) {
-            log.error("摇钱树增加玩家个人进度失败 playerId:{} addVelue:{}", playerId, progress);
+            log.error("摇钱树增加玩家个人进度失败 playerId:{} addValue:{}", player, progress);
         } finally {
             redisLock.unlock(lockKey);
         }
@@ -308,10 +310,9 @@ public class CashCowController extends BaseActivityController implements TimerLi
         ResCashCowClaimRewards res = new ResCashCowClaimRewards(Code.SUCCESS);
         long activityId = activityData.getId();
         long playerId = player.getId();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         Map<Integer, CashcowCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         CashcowCfg cfg = baseCfgBeanMap.get(detailId);
-        if (cfg == null) {
+        if (cfg == null || CollectionUtil.isEmpty(cfg.getRewards())) {
             res.code = Code.PARAM_ERROR;
             return res;
         }
@@ -326,51 +327,16 @@ public class CashCowController extends BaseActivityController implements TimerLi
             res.code = Code.PARAM_ERROR;
             return res;
         }
-        CashCowPlayerActivityData data = null;
-        CommonResult<ItemOperationResult> addedItems = null;
-        boolean send = false;
-        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
-        try {
-            // 获取玩家当前 detail 数据
-            Map<Integer, CashCowPlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
-            if (CollectionUtil.isEmpty(dataMap)) {
-                res.code = Code.PARAM_ERROR;
-                return res;
-            }
-            data = dataMap.computeIfAbsent(detailId, key -> new CashCowPlayerActivityData(activityId, activityData.getRound()));
-            // 如果已领取过则返回重复操作
-            if (data.getClaimStatus() == ActivityConstant.ClaimStatus.CLAIMED) {
-                res.code = Code.REPEAT_OP;
-                return res;
-            }
-            // 发放配置的奖励（addItems 负责实际发放到玩家包）
-            addedItems = playerPackService.addItems(playerId, cfg.getRewards(), "CashCowRewords");
-            if (!addedItems.success()) {
-                // 发放失败（例如背包已满/服务器错误）
-                res.code = Code.UNKNOWN_ERROR;
-                return res;
-            }
-            // 标记为已领取并持久化
-            data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
-            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, dataMap);
-            send = true;
-        } catch (Exception e) {
-            log.error("领取摇钱树累计奖励异常 playerId:{} activityId:{}", playerId, activityId, e);
-        } finally {
-            redisLock.unlock(lockKey);
-        }
-        if (send) {
+        ClaimRewardsResult claimRewardsResult = claimActivityRewards(playerId, activityData, detailId, "CashCowRewords", cfg.getRewards());
+        if (claimRewardsResult != null) {
             // 记录日志并构建返回值
-            if (addedItems.success()) {
-                activityLogger.sendCashCowRewards(player, activityData, detailId, addedItems.data, activityProgress, cfg.getRewards());
+            if (claimRewardsResult.itemOperationResult() != null) {
+                activityLogger.sendCashCowRewards(player, activityData, detailId, claimRewardsResult.itemOperationResult(), activityProgress, cfg.getRewards());
             }
             res.activityId = activityId;
             res.detailId = detailId;
             res.infoList = ItemUtils.buildItemInfo(cfg.getRewards());
-            BaseActivityDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityId, cfg, data);
-            if (baseActivityDetailInfo instanceof CashCowDetailInfo info) {
-                res.detailInfo = info;
-            }
+            res.detailInfo = buildPlayerActivityDetail(activityId, cfg, claimRewardsResult.playerActivityData());
         }
         // 返回响应
         return res;
