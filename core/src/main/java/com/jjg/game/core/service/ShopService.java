@@ -5,6 +5,7 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.RechargeType;
+import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.ShopProductDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
@@ -42,6 +43,8 @@ public class ShopService {
     private PlayerSessionService playerSessionService;
     @Autowired
     private CoreLogger coreLogger;
+    @Autowired
+    private AccountDao accountDao;
 
     //商城商品
     private Map<Integer, ShopProduct> shopProductMap;
@@ -79,14 +82,14 @@ public class ShopService {
     /**
      * 下单
      *
-     * @param playerId
+     * @param player
      * @return
      */
-    public CommonResult<String> generateOrder(long playerId, ShopProduct shopProduct, RechargeType rechargeType) {
+    public CommonResult<String> generateOrder(Player player, ShopProduct shopProduct, RechargeType rechargeType) {
         CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
-        Order order = orderService.generateOrder(playerId, shopProduct.getId(),shopProduct.getMoney(),rechargeType);
+        Order order = orderService.generateOrder(player, shopProduct.getId(),shopProduct.getMoney(),rechargeType);
         if(order == null) {
-            log.info("玩家下单失败 playerId = {},productId = {}", playerId, shopProduct.getId());
+            log.info("玩家下单失败 playerId = {},productId = {}", player.getId(), shopProduct.getId());
             result.code = Code.FAIL;
             return result;
         }
@@ -118,51 +121,9 @@ public class ShopService {
         if(result.data.getDiamond() > 0 || result.data.getGoldNum() > 0) {
             sendMessageManager.buildMoneyChangeMessage(playerController.playerId(),playerService);
         }
-        coreLogger.order(playerController.getPlayer(),shopProduct,RechargeType.SHOP);
+        Account account = accountDao.queryAccountByPlayerId(playerController.playerId());
+        coreLogger.shop(playerController.getPlayer(),shopProduct,account.getChannel().getValue());
         return result;
-    }
-
-    /**
-     * 充值回调(暂时这么写)
-     * @param orderId
-     */
-    public int payCallback(String orderId){
-        Order order = orderService.orderSuccess(orderId);
-        if(order == null) {
-            log.debug("修改订单状态失败 orderId = {}", orderId);
-            return Code.FAIL;
-        }
-
-        //获取商品信息
-        ShopProduct shopProduct = this.shopProductMap.get(order.getProductId());
-
-        List<ItemInfo> items = new ArrayList<>();
-        //添加道具
-        if(shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()){
-            //添加道具
-            playerPackService.addItems(order.getPlayerId(), shopProduct.getRewardItems(), "payCallback");
-
-            shopProduct.getRewardItems().forEach((k,v) -> {
-                ItemInfo itemInfo = new ItemInfo();
-                itemInfo.itemId = k;
-                itemInfo.count = v;
-                items.add(itemInfo);
-            });
-        }
-
-        PFSession session = playerSessionService.getSession(order.getPlayerId());
-        if(session != null) {
-            NotifyPayCallBack notify = new NotifyPayCallBack();
-            notify.orderId = orderId;
-            notify.items = items;
-            session.send(notify);
-        }
-
-        Player player = playerService.get(order.getPlayerId());
-
-        coreLogger.order(player,shopProduct,order);
-        log.debug("模拟充值回调成功 playerId = {},orderId = {}", orderId, orderId);
-        return Code.SUCCESS;
     }
 
     /**

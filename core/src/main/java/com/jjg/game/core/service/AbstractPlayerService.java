@@ -163,7 +163,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player player) {
+            public boolean updateDataWithRes(Player player) {
                 longRef.value = player.getDiamond();
                 player.setDiamond(Math.min(Long.MAX_VALUE, player.getDiamond() + addNum));
                 return true;
@@ -229,7 +229,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player player) {
+            public boolean updateDataWithRes(Player player) {
                 beforeCoin[0] = player.getSafeBoxDiamond();
                 player.setSafeBoxDiamond(Math.min(Long.MAX_VALUE, player.getSafeBoxDiamond() + addNum));
                 return true;
@@ -291,7 +291,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player player) {
+            public boolean updateDataWithRes(Player player) {
                 beforeCoin[0] = player.getGold();
                 beforeCoin[1] = player.getDiamond();
                 player.setGold(player.getGold() + goldNum);
@@ -352,7 +352,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player player) {
+            public boolean updateDataWithRes(Player player) {
                 beforeUpdateGold.value = player.getDiamond();
                 long afterCoin = player.getDiamond() - deductNum;
                 if (afterCoin < 0) {
@@ -427,7 +427,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player player) {
+            public boolean updateDataWithRes(Player player) {
                 beforeCoin[0] = player.getSafeBoxDiamond();
                 long afterCoin = player.getSafeBoxDiamond() - num;
                 if (afterCoin < 0) {
@@ -475,7 +475,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player player) {
+            public boolean updateDataWithRes(Player player) {
                 beforeLevel[0] = player.getVipLevel();
                 player.setVipLevel(vipLevel);
                 return true;
@@ -572,7 +572,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player player) {
+            public boolean updateDataWithRes(Player player) {
                 playerBeforeGoldRef.value = player.getGold();
                 player.setGold(Math.min(Long.MAX_VALUE, player.getGold() + addNum));
                 return true;
@@ -651,7 +651,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player player) {
+            public boolean updateDataWithRes(Player player) {
                 beforeCoin[0] = player.getSafeBoxGold();
                 player.setSafeBoxGold(Math.min(Long.MAX_VALUE, player.getSafeBoxGold() + addNum));
                 return true;
@@ -685,7 +685,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player player) {
+            public boolean updateDataWithRes(Player player) {
                 ref.value = player.getGold();
                 long afterCoin = player.getGold() - num;
                 if (afterCoin < 0) {
@@ -759,7 +759,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player player) {
+            public boolean updateDataWithRes(Player player) {
                 beforeCoin[0] = player.getSafeBoxGold();
                 long afterCoin = player.getSafeBoxGold() - num;
                 if (afterCoin < 0) {
@@ -808,7 +808,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player player) {
+            public boolean updateDataWithRes(Player player) {
                 beforeCoin[0] = player.getGold();
                 beforeCoin[1] = player.getDiamond();
                 long afterGold = player.getGold() - goldNum;
@@ -902,7 +902,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player player) {
+            public boolean updateDataWithRes(Player player) {
                 beforeCoin.value = player.getGold();
                 long afterCoin = player.getGold() - num;
                 if (afterCoin < 0) {
@@ -1065,7 +1065,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player dataEntity) {
+            public boolean updateDataWithRes(Player dataEntity) {
                 if (dataEntity.getGold() < gold) {
                     result.code = Code.NOT_ENOUGH;
                     log.debug("携带金币不足，存入保险箱失败 playerId={},gold={},inSafeBoxGold = {}", playerId, dataEntity.getGold()
@@ -1113,7 +1113,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player dataEntity) {
+            public boolean updateDataWithRes(Player dataEntity) {
                 if (dataEntity.getDiamond() < diamond) {
                     result.code = Code.NOT_ENOUGH;
                     log.debug("携带钻石不足，存入保险箱失败 playerId={},diamond={},inSafeBoxDiamond = {}", playerId,
@@ -1161,7 +1161,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player dataEntity) {
+            public boolean updateDataWithRes(Player dataEntity) {
                 if (dataEntity.getSafeBoxGold() < gold) {
                     result.code = Code.NOT_ENOUGH;
                     log.debug("保险箱金币不足，取出失败 playerId={},safeBoxGold={},outFromSafeBoxGold = {}", playerId,
@@ -1210,7 +1210,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player dataEntity) {
+            public boolean updateDataWithRes(Player dataEntity) {
                 if (dataEntity.getSafeBoxDiamond() < diamond) {
                     result.code = Code.NOT_ENOUGH;
                     log.debug("保险箱钻石不足，取出失败 playerId={},safeBoxDiamond={},outFromSafeBoxDiamond = {}", playerId,
@@ -1342,7 +1342,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player player) {
+            public boolean updateDataWithRes(Player player) {
                 beforeCoin[0] = player.getGold();
                 beforeCoin[1] = player.getDiamond();
 
@@ -1384,7 +1384,7 @@ public class AbstractPlayerService {
             }
 
             @Override
-            public Boolean updateDataWithRes(Player player) {
+            public boolean updateDataWithRes(Player player) {
                 beforeCoin[0] = player.getDiamond();
 
                 if (num >= 0) {

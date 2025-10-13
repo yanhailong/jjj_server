@@ -235,7 +235,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 }
 
                 @Override
-                public Boolean updateDataWithRes(Room dataEntity) {
+                public boolean updateDataWithRes(Room dataEntity) {
                     dataEntity.removeAllRobotPlayer();
                     return true;
                 }
@@ -279,7 +279,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 }
 
                 @Override
-                public Boolean updateDataWithRes(Room dataEntity) {
+                public boolean updateDataWithRes(Room dataEntity) {
                     dataEntity.removeAllRobotPlayer();
                     return true;
                 }
@@ -423,7 +423,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             }
 
             @Override
-            public Boolean updateDataWithRes(Room dataEntity) {
+            public boolean updateDataWithRes(Room dataEntity) {
                 dataEntity.setPath(node.getNodePath());
                 return true;
             }
@@ -676,7 +676,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             }
 
             @Override
-            public Boolean updateDataWithRes(FriendRoom dataEntity) {
+            public boolean updateDataWithRes(FriendRoom dataEntity) {
                 // 全量回存房间数据
                 BeanUtils.copyProperties(room, dataEntity);
                 // 需要将房间路径设置为空，避免出现进入维护的节点

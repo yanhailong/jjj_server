@@ -3,6 +3,8 @@ package com.jjg.game.core.data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Map;
+
 /**
  * 玩家的账号信息
  *
@@ -34,7 +36,9 @@ public class Account {
     //当前状态
     private int status;
     //渠道
-    private int channel;
+    private ChannelType channel;
+    //谷歌平台用户id
+    private String googleUserId;
 
 
     public long getPlayerId() {
@@ -125,11 +129,19 @@ public class Account {
         this.status = status;
     }
 
-    public int getChannel() {
+    public ChannelType getChannel() {
         return channel;
     }
 
-    public void setChannel(int channel) {
+    public void setChannel(ChannelType channel) {
         this.channel = channel;
+    }
+
+    public String getGoogleUserId() {
+        return googleUserId;
+    }
+
+    public void setGoogleUserId(String googleUserId) {
+        this.googleUserId = googleUserId;
     }
 }

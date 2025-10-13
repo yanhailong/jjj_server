@@ -1,5 +1,6 @@
 package com.jjg.game.recharge.controller;
 
+import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,11 +24,14 @@ public class GoogleCallbackController extends AbstractCallbackController{
      * @return
      */
     @RequestMapping("callback")
-    public boolean callback(@RequestParam Map<String,String> map) {
+    public String callback(@RequestParam Map<String,String> map) {
         //TODO 进行校验
 
 //        payCallback(order);
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("code", 200);
+        jsonObject.put("msg", "谷歌支付回调成功");
 
-        return true;
+        return jsonObject.toJSONString();
     }
 }

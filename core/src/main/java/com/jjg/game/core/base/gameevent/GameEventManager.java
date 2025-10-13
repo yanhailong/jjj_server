@@ -5,8 +5,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * 游戏事件管理器
@@ -60,14 +65,16 @@ public class GameEventManager {
             return;
         }
         // 处理事件
-        for (GameEventListener eventListener : eventListeners) {
-            try {
-                log.debug("listener: {} 响应事件：{}", eventListener.getClass().getName(), gameEventType);
-                //避免其中某个服务在处理事件耗时太久导致事件触发出现延迟
-                Thread.ofVirtual().start(() -> eventListener.handleEvent(gameEvent));
-            } catch (Exception exception) {
-                log.error("listener: {} 触发事件：{} 时出现异常：{}",
-                        eventListener.getClass().getName(), gameEventType, exception.getMessage(), exception);
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (GameEventListener eventListener : eventListeners) {
+                try {
+                    log.debug("listener: {} 响应事件：{}", eventListener.getClass().getName(), gameEventType);
+                    //避免其中某个服务在处理事件耗时太久导致事件触发出现延迟
+                    executor.submit(() -> eventListener.handleEvent(gameEvent));
+                } catch (Exception exception) {
+                    log.error("listener: {} 触发事件：{} 时出现异常：{}",
+                            eventListener.getClass().getName(), gameEventType, exception.getMessage(), exception);
+                }
             }
         }
     }

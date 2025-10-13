@@ -6,9 +6,12 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.RechargeType;
+import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.OrderDao;
+import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.OrderStatus;
+import com.jjg.game.core.data.Player;
 import com.mongodb.DuplicateKeyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +30,13 @@ public class OrderService {
 
     @Autowired
     private OrderDao orderDao;
+    @Autowired
+    private AccountDao accountDao;
+
+    public Order generateOrder(Player player , int productId, long price, RechargeType rechargeType){
+        Account account = accountDao.queryAccountByPlayerId(player.getId());
+        return generateOrder(player.getId(),account.getChannel().getValue(),productId, price, rechargeType);
+    }
 
     /**
      * 生成订单
@@ -36,13 +46,14 @@ public class OrderService {
      * @param price
      * @return
      */
-    public Order generateOrder(long playerId, int productId, long price, RechargeType rechargeType) {
+    public Order generateOrder(long playerId,int registerChannel, int productId, long price, RechargeType rechargeType) {
         for (int i = 0; i < CoreConst.Common.MONGO_TRY_COUNT; i++) {
             String orderId = DateUtil.format(DateUtil.date(), "yyMMddHHmmssSSS") + RandomUtils.randomMinMax(100000,999999);
             try {
                 Order order = new Order();
                 order.setId(orderId);
                 order.setPlayerId(playerId);
+                order.setPlayerChannel(registerChannel);
                 order.setProductId(productId);
                 order.setPrice(price);
 

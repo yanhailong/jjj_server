@@ -1,7 +1,15 @@
 package com.jjg.game.account.controller;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.jjg.game.account.config.AccountConfig;
 import com.jjg.game.account.constant.AccountConstant;
+import com.jjg.game.account.data.GoogleUserInfo;
+import com.jjg.game.account.dto.OAuthLoginDto;
+import com.jjg.game.account.service.HttpService;
+import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.account.dao.PlayerIdDao;
@@ -13,12 +21,16 @@ import com.jjg.game.account.vo.LoginVo;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
+import com.jjg.game.core.data.ChannelType;
 import com.jjg.game.core.data.WebResult;
 import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import org.redisson.RedissonLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.Objects;
 
 /**
@@ -41,6 +53,10 @@ public class AccountController extends AbstractController {
     private AccountConfig accountConfig;
     @Autowired
     private BlackListDao blackListDao;
+    @Autowired
+    private HttpService httpService;
+    @Autowired
+    private RedissonClient redissonClient;
 
 
     /**
@@ -72,6 +88,10 @@ public class AccountController extends AbstractController {
                 }
             }
 
+//            redisLock.lock("guestlogin", GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+//            try(RedissonLock redissonLock = (RedissonLock) redissonClient.getLock("guest_login:" + guestKey)){
+//
+//            }
             //查询该账号是否存在
             Account account = accountDao.queryAccountByGuest(dto.getGuest());
 
@@ -89,7 +109,7 @@ public class AccountController extends AbstractController {
                 account.setAccountType(AccountConstant.AccountType.GUEST);
                 account.setRegisterMac(dto.getMac());
                 account.setLastLoginMac(dto.getMac());
-                account.setChannel(dto.getChannel());
+                account.setChannel(ChannelType.valueOf(dto.getChannel()));
                 account = accountDao.insert(account);
 
                 accountLogger.register(dto.getGuest(), GameConstant.LoginType.GUEST, playerId);
@@ -134,4 +154,62 @@ public class AccountController extends AbstractController {
         }
     }
 
+    /**
+     * 谷歌登录
+     */
+    @RequestMapping("googlelogin")
+    public WebResult<LoginVo> googleLogin(@RequestBody OAuthLoginDto dto, HttpServletRequest request) {
+        try {
+            if (StringUtils.isEmpty(dto.getToken())) {
+                log.debug("参数为空，谷歌登录失败");
+                return fail(Code.PARAM_ERROR);
+            }
+
+            if (dto.getToken().length() < 5 || dto.getToken().length() > 50) {
+                log.debug("guest长度不在范围内，谷歌登录失败, guest = {}", dto.getToken());
+                return fail(Code.PARAM_ERROR);
+            }
+
+            //检查是否在黑名单中
+            String clientIp = getClientIp(request);
+            if(StringUtils.isNotEmpty(clientIp)){
+                boolean blackIp = blackListDao.blackIp(clientIp);
+                if(blackIp){
+                    log.debug("该ip已被封禁，无法登录 token = {},ip = {}", dto.getToken(), clientIp);
+                    return fail(Code.BAN_CAUSE_BLACK_LIST);
+                }
+            }
+
+//            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+//                    new NetHttpTransport(),
+//                    new GsonFactory())
+//                    .setAudience(Collections.singletonList(CLIENT_ID))
+//                    .build();
+//
+//            // 验证ID Token
+//            GoogleIdToken idToken = verifier.verify(dto.getToken());
+//            if (idToken == null) {
+//                log.debug("token无效，谷歌登录失败, guest = {}", dto.getToken());
+//                return fail(Code.PARAM_ERROR);
+//            }
+//
+//            // 提取用户信息
+//            GoogleIdToken.Payload payload = idToken.getPayload();
+//            String userId = payload.getSubject();
+//            String email = payload.getEmail();
+//            String name = (String) payload.get("name");
+
+            GoogleUserInfo googleUserInfo = httpService.verifyGoogleToken(dto.getToken());
+            if(googleUserInfo == null){
+                log.debug("token校验失败, 登录失败 = {},ip = {}", dto.getToken(), clientIp);
+                return fail(Code.BAN_CAUSE_BLACK_LIST);
+            }
+
+            LoginVo vo = new LoginVo();
+            return success(vo);
+        } catch (Exception e) {
+            log.error("第三方登录异常", e);
+            return exception();
+        }
+    }
 }

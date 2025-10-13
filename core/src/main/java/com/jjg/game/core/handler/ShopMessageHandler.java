@@ -29,7 +29,7 @@ import java.util.List;
  */
 @Component
 @MessageType(MessageConst.MessageTypeDef.SHOP_TYPE)
-public class ShopMessageHandler implements GmListener {
+public class ShopMessageHandler {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -42,7 +42,7 @@ public class ShopMessageHandler implements GmListener {
     public void reqShop(PlayerController playerController, ReqShop req) {
         ResShop res = new ResShop(Code.SUCCESS);
         List<ShopProduct> shopProductList = shopService.getShop(playerController.getPlayer());
-        if(shopProductList != null && !shopProductList.isEmpty()) {
+        if (shopProductList != null && !shopProductList.isEmpty()) {
             res.shopProductInfoList = new ArrayList<>(shopProductList.size());
             shopProductList.forEach((shopProduct) -> {
                 ShopProductInfo info = new ShopProductInfo();
@@ -52,14 +52,14 @@ public class ShopMessageHandler implements GmListener {
                 info.valueType = shopProduct.getValueType();
                 info.showValue = shopProduct.getValue();
 
-                if(shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()){
+                if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
                     Long show = shopProduct.getRewardItems().get(shopProduct.getValueType());
-                    if(show != null){
+                    if (show != null) {
                         info.value = show;
                     }
                 }
 
-                if(info.value < 1){
+                if (info.value < 1) {
                     info.value = shopProduct.getValue();
                 }
 
@@ -80,9 +80,9 @@ public class ShopMessageHandler implements GmListener {
     @Command(ShopConstant.MsgBean.REQ_BUY_PRODUCT)
     public void reqBuyProduct(PlayerController playerController, ReqBuyProduct req) {
         ResBuyProduct res = new ResBuyProduct(Code.SUCCESS);
-        try{
+        try {
             ShopProduct shopProduct = shopService.getShopProduct(req.productId);
-            if(shopProduct == null) {
+            if (shopProduct == null) {
                 res.code = Code.NOT_FOUND;
                 playerController.send(res);
                 log.debug("获取商品信息失败 playerId = {},productId = {}", playerController.playerId(), req.productId);
@@ -90,16 +90,16 @@ public class ShopMessageHandler implements GmListener {
             }
 
             //检查是否开启
-            if(!shopService.checkProductOpen(playerController.getPlayer(), shopProduct)){
+            if (!shopService.checkProductOpen(playerController.getPlayer(), shopProduct)) {
                 log.debug("商品未开启，或者玩家未达到开启条件 playerId = {},productId = {}", playerController.playerId(), req.productId);
                 res.code = Code.FORBID;
                 playerController.send(res);
                 return;
             }
 
-            if(shopProduct.getPayType() < 1){  //充值
-                CommonResult<String> orderResult = shopService.generateOrder(playerController.playerId(), shopProduct, RechargeType.SHOP);
-                if(!orderResult.success()){
+            if (shopProduct.getPayType() < 1) {  //充值
+                CommonResult<String> orderResult = shopService.generateOrder(playerController.getPlayer(), shopProduct, RechargeType.SHOP);
+                if (!orderResult.success()) {
                     res.code = orderResult.code;
                     playerController.send(res);
                     return;
@@ -108,17 +108,17 @@ public class ShopMessageHandler implements GmListener {
                 res.productId = shopProduct.getId();
                 playerController.send(res);
                 log.debug("玩家充值下单成功 playerId = {},productId = {},orderId = {}", playerController.playerId(), req.productId, res.orderId);
-            }else {  //道具兑换
+            } else {  //道具兑换
                 CommonResult<ItemOperationResult> exchangeResult = shopService.exchange(playerController, shopProduct);
-                if(!exchangeResult.success()){
+                if (!exchangeResult.success()) {
                     res.code = exchangeResult.code;
                     playerController.send(res);
                     return;
                 }
 
-                if(shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()){
+                if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
                     res.items = new ArrayList<>(shopProduct.getRewardItems().size());
-                    shopProduct.getRewardItems().forEach((k,v) -> {
+                    shopProduct.getRewardItems().forEach((k, v) -> {
                         ItemInfo itemInfo = new ItemInfo();
                         itemInfo.itemId = k;
                         itemInfo.count = v;
@@ -129,25 +129,8 @@ public class ShopMessageHandler implements GmListener {
                 playerController.send(res);
                 log.debug("玩家道具购买成功 playerId = {},productId = {},res = {}", playerController.playerId(), req.productId, JSON.toJSONString(res));
             }
-        }catch (Exception e) {
-            log.error("",e);
-        }
-    }
-
-    @Override
-    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
-        CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
-        try {
-            if ("payCallback".equalsIgnoreCase(gmOrders[0])) {
-                log.debug("收到充值回调的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), gmOrders);
-                res.code = shopService.payCallback(gmOrders[1]);
-            } else {
-                res.code = Code.NOT_FOUND;
-            }
         } catch (Exception e) {
             log.error("", e);
-            res.code = Code.EXCEPTION;
         }
-        return res;
     }
 }
