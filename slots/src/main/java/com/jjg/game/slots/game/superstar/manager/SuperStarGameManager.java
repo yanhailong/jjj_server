@@ -73,11 +73,11 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
      */
     @Override
     protected void offlineSaveGameDataDto(SuperStarPlayerGameData gameData) {
-        try{
+        try {
             SuperStarPlayerGameDataDTO dto = gameData.converToDto(SuperStarPlayerGameDataDTO.class);
             gameDataDao.saveGameData(dto);
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 
@@ -198,6 +198,7 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
                 return resultLineInfo;
             }).toList();
             spinInfo.setResultLineInfoList(resultLineInfos);
+            spinInfo.setJackpotId(resultLib.getJackpotId());
         }
         List<Integer> iconList = Arrays.stream(resultLib.getIconArr())
                 .filter(v -> v != 0)
