@@ -103,20 +103,24 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
             }
 
             //是否触发小游戏
-            if (cfg.getFeatureTriggerId() == null || cfg.getFeatureTriggerId().isEmpty()) {
-                continue;
+            if (cfg.getFeatureTriggerId() != null || !cfg.getFeatureTriggerId().isEmpty()) {
+                conditionIconsMap.forEach((k, v) -> {
+                    for (int i = 0; i < v; i++) {
+                        cfg.getFeatureTriggerId().forEach(miniGameId -> lib.getLibTypeSet().forEach(libType -> {
+                            SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(lib, libType, arr, miniGameId, lib.getSpecialGirdInfoList());
+                            if (specialAuxiliaryInfo != null) {
+                                specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
+                            }
+                        }));
+                    }
+                });
             }
 
-            conditionIconsMap.forEach((k, v) -> {
-                for (int i = 0; i < v; i++) {
-                    cfg.getFeatureTriggerId().forEach(miniGameId -> lib.getLibTypeSet().forEach(libType -> {
-                        SpecialAuxiliaryInfo specialAuxiliaryInfo = triggerMiniGame(lib, libType, arr, miniGameId, lib.getSpecialGirdInfoList());
-                        if (specialAuxiliaryInfo != null) {
-                            specialAuxiliaryInfoList.add(specialAuxiliaryInfo);
-                        }
-                    }));
-                }
-            });
+            //触发jackpot
+            if (cfg.getJackpotID() > 0) {
+                lib.setJackpotId(cfg.getJackpotID());
+            }
+
         }
         return specialAuxiliaryInfoList;
     }
