@@ -361,7 +361,6 @@ public class OfficialAwardsController extends BaseActivityController implements 
         int findTimes = 3;
         if (activityData.canRun()) {
             offset = TimeHelper.getLocalDateTime(activityData.getTimeEnd());
-            findTimes = 2;
         }
         for (int i = 0; i < findTimes; i++) {
             Pair<LocalDateTime, LocalDateTime> nextOpenTime = CronUtil.getNextOpenTime(cfg.getTime_start(), cfg.getTime_end(), offset);
