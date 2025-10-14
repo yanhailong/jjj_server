@@ -246,7 +246,7 @@ public class ActivityLogger extends BaseLogger {
                 json.put("remainGold", remainGold);
             }
             if (superiorId > 0) {
-                json.put("superiorId", remainGold);
+                json.put("superiorId", superiorId);
             }
             if(bindType > 0) {
                 json.put("bindType", bindType);
