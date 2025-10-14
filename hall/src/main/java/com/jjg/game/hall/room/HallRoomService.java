@@ -219,7 +219,7 @@ public class HallRoomService implements IConsoleReceiver {
             }
 
             @Override
-            public Boolean updateDataWithRes(Room dataEntity) {
+            public boolean updateDataWithRes(Room dataEntity) {
                 // 需要将房间的节点路径进行更新
                 dataEntity.setPath(marsCurator.getNodePath());
                 return true;

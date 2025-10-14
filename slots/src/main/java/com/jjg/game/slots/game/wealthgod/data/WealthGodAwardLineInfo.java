@@ -48,9 +48,10 @@ public class WealthGodAwardLineInfo extends AwardLineInfo {
 
     @Override
     public String toString() {
-        return
-                "[sameCount=" + sameCount +
-                        ", lineId=" + lineId +
-                        ']';
+        return "WealthGodAwardLineInfo{" +
+                "sameCount=" + sameCount +
+                ", lineId=" + lineId +
+                ", baseTimes=" + baseTimes +
+                '}';
     }
 }

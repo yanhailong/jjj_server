@@ -55,13 +55,17 @@ public class RobotService implements IRoomStartListener {
      */
     public RobotPlayer getOrCreateRobotPlayerForce(int roomCfgId, long roomId) {
         String lockKey = robotDao.getLockRobotTableName();
+        boolean locked = false;
         try {
-            if (redisLock.tryLock(lockKey, MAX_WAIT_TIME)) {
+            locked = redisLock.tryLock(lockKey, MAX_WAIT_TIME);
+            if (locked) {
                 return getRobotPlayer(roomCfgId, roomId);
             }
         } catch (InterruptedException ignored) {
         } finally {
-            redisLock.tryUnlock(lockKey);
+            if (locked) {
+                redisLock.tryUnlock(lockKey);
+            }
         }
         return null;
     }
@@ -98,6 +102,10 @@ public class RobotService implements IRoomStartListener {
         long maxGetCount = (robotDao.getAvailableNum() / size) + 1;
         for (int i = 0; i < maxGetCount; i++) {
             List<ScoredEntry<Long>> canUseRobotIds = robotDao.getCanUseRobotIds(warehouseCfg.getEnterLimit(), i * size, size);
+            //没有比限制大的直接返回
+            if (canUseRobotIds.isEmpty()) {
+                return null;
+            }
             Collections.shuffle(canUseRobotIds);
             for (ScoredEntry<Long> robotId : canUseRobotIds) {
                 // 创建一个机器人
@@ -218,13 +226,17 @@ public class RobotService implements IRoomStartListener {
      */
     public void recycleRobotPlayer(Long robotId) {
         String lockKey = robotDao.getLockRobotTableName();
+        boolean locked = false;
         try {
-            if (redisLock.tryLock(lockKey, MAX_WAIT_TIME)) {
+            locked = redisLock.tryLock(lockKey, MAX_WAIT_TIME);
+            if (locked) {
                 robotDao.recycleRobotPlayers(Map.of(robotId, getRobotRealMoney(robotId)));
             }
         } catch (InterruptedException ignored) {
         } finally {
-            redisLock.tryUnlock(lockKey);
+            if (locked) {
+                redisLock.tryUnlock(lockKey);
+            }
         }
     }
 
@@ -235,13 +247,17 @@ public class RobotService implements IRoomStartListener {
     public void recycleRobotPlayers(List<Long> robotIds) {
         String lockKey = robotDao.getLockRobotTableName();
         Map<Long, Double> collect = getRobotRealMoney(robotIds.stream());
+        boolean locked = false;
         try {
-            if (redisLock.tryLock(lockKey, MAX_WAIT_TIME)) {
+            locked = redisLock.tryLock(lockKey, MAX_WAIT_TIME);
+            if (locked) {
                 robotDao.recycleRobotPlayers(collect);
             }
         } catch (InterruptedException ignored) {
         } finally {
-            redisLock.tryUnlock(lockKey);
+            if (locked) {
+                redisLock.tryUnlock(lockKey);
+            }
         }
     }
 
@@ -257,8 +273,10 @@ public class RobotService implements IRoomStartListener {
     public void deleteServerAllRobot() {
         String nodePath = nodeManager.getNodePath();
         String lockKey = robotDao.getLockRobotTableName();
+        boolean locked = false;
         try {
-            if (redisLock.tryLock(lockKey, MAX_WAIT_TIME)) {
+            locked = redisLock.tryLock(lockKey, MAX_WAIT_TIME);
+            if (locked) {
                 //
                 Set<Long> allRobots = robotDao.getCurServerRobotPlayers();
                 if (allRobots == null || allRobots.isEmpty()) {
@@ -273,7 +291,9 @@ public class RobotService implements IRoomStartListener {
             }
         } catch (InterruptedException ignored) {
         } finally {
-            redisLock.tryUnlock(lockKey);
+            if (locked) {
+                redisLock.tryUnlock(lockKey);
+            }
         }
     }
 
@@ -316,8 +336,10 @@ public class RobotService implements IRoomStartListener {
                         .collect(Collectors.toMap(cfg -> (long) cfg.getId(),
                                 this::getRobotRealMoney));
         String lockKey = robotDao.getLockRobotTableName();
+        boolean locked = false;
         try {
-            if (redisLock.tryLock(lockKey, MAX_WAIT_TIME)) {
+            locked = redisLock.tryLock(lockKey, MAX_WAIT_TIME);
+            if (locked) {
                 // 获取所有在使用的机器人表
                 List<Long> databaseAllRobot = robotDao.getAllUsedRobot();
                 // 移除所有数据库中的机器人ID
@@ -332,7 +354,9 @@ public class RobotService implements IRoomStartListener {
             }
         } catch (InterruptedException ignored) {
         } finally {
-            redisLock.tryUnlock(lockKey);
+            if (locked) {
+                redisLock.tryUnlock(lockKey);
+            }
         }
     }
 

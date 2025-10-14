@@ -68,12 +68,11 @@ public class VipUtil {
      *
      * @param player 玩家信息
      * @param num    数量
-     * @return ture 等级变化 false 等级没变化
      */
-    public static boolean checkVipLevel(Player player, long num) {
+    public static void checkVipLevel(Player player, long num) {
         Map<Integer, ViplevelCfg> viplevelCfgMap = GameDataManager.getViplevelCfgList()
                 .stream()
                 .collect(Collectors.toMap(ViplevelCfg::getViplevel, cfg -> cfg));
-        return bettingCheckVipLevel(player, viplevelCfgMap, num);
+        bettingCheckVipLevel(player, viplevelCfgMap, num);
     }
 }

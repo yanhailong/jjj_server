@@ -226,7 +226,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                     }
 
                     @Override
-                    public Boolean updateDataWithRes(Room room) {
+                    public boolean updateDataWithRes(Room room) {
                         try {
                             if (room == null) {
                                 log.error("检查房间：{} 是否可以加入时, 房间为空，player: {}",
@@ -423,45 +423,45 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      * 检查机器人添加逻辑
      */
     protected void checkRobotJoinRoom() {
-        // 创建人数达到上限
-        if (room.getRoomPlayers() != null && room.getRoomPlayers().size() >= room.getMaxLimit()) {
-            return;
-        }
-        if (robotLastCreatedTime > System.currentTimeMillis()) {
-            return;
-        }
-        List<Integer> robotIntervalTime = roomCfg.getIntervalTime();
-        int randomTime;
-        if (robotIntervalTime == null || robotIntervalTime.size() < 2) {
-            randomTime = 1500;
-        } else {
-            // 毫秒
-            randomTime = RandomUtils.randomMinMax(robotIntervalTime.get(0), robotIntervalTime.get(1));
-        }
-        // 机器人创建时间更新
-        robotLastCreatedTime = System.currentTimeMillis() + randomTime;
-        int roomCfgId = roomCfg.getId();
-        long robotCreateStartTime = System.currentTimeMillis();
-        RobotService robotService = roomManager.getRobotService();
-        // 如果房间的
-        if (!robotService.checkCanCreateRobot(roomCfgId, room)) {
-            return;
-        }
-        // 创建一个机器人
-        PlayerController robotPlayerController =
-                robotService.getOrCreateRobotPlayerController(roomCfgId, room.getId());
-        if (System.currentTimeMillis() - robotCreateStartTime >= 200) {
-            log.debug("机器人创建超时，花费时间：{}", System.currentTimeMillis() - robotCreateStartTime);
-        }
-        if (robotPlayerController == null) {
-            // 返回
-            return;
-        }
         BaseFuncProcessor baseFuncProcessor = getRoomProcessor();
         // 必须在房间线程中执行
         baseFuncProcessor.executeHandler(new BaseHandler<String>() {
             @Override
             public void action() {
+                // 创建人数达到上限
+                if (room.getRoomPlayers() != null && room.getRoomPlayers().size() >= room.getMaxLimit()) {
+                    return;
+                }
+                if (robotLastCreatedTime > System.currentTimeMillis()) {
+                    return;
+                }
+                List<Integer> robotIntervalTime = roomCfg.getIntervalTime();
+                int randomTime;
+                if (robotIntervalTime == null || robotIntervalTime.size() < 2) {
+                    randomTime = 1500;
+                } else {
+                    // 毫秒
+                    randomTime = RandomUtils.randomMinMax(robotIntervalTime.get(0), robotIntervalTime.get(1));
+                }
+                // 机器人创建时间更新
+                robotLastCreatedTime = System.currentTimeMillis() + randomTime;
+                int roomCfgId = roomCfg.getId();
+                long robotCreateStartTime = System.currentTimeMillis();
+                RobotService robotService = roomManager.getRobotService();
+                // 如果房间的
+                if (!robotService.checkCanCreateRobot(roomCfgId, room)) {
+                    return;
+                }
+                // 创建一个机器人
+                PlayerController robotPlayerController =
+                        robotService.getOrCreateRobotPlayerController(roomCfgId, room.getId());
+                if (System.currentTimeMillis() - robotCreateStartTime >= 200) {
+                    log.debug("机器人创建超时，花费时间：{}", System.currentTimeMillis() - robotCreateStartTime);
+                }
+                if (robotPlayerController == null) {
+                    // 返回
+                    return;
+                }
                 // 将机器人加入房间中
                 int code = roomManager.joinRoom(robotPlayerController, room.getGameType(), roomCfgId, room.getId());
                 // 如果加入失败则走一次退出房间逻辑

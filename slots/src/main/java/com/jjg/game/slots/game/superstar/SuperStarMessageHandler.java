@@ -5,16 +5,19 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.slots.game.dollarexpress.pb.*;
 import com.jjg.game.slots.game.superstar.data.SuperStarGameRunInfo;
 import com.jjg.game.slots.game.superstar.manager.SuperStarGameManager;
 import com.jjg.game.slots.game.superstar.manager.SuperStarSendMessageManager;
+import com.jjg.game.slots.game.superstar.pb.req.ReqSuperStarConfigInfo;
+import com.jjg.game.slots.game.superstar.pb.req.ReqSuperStarPoolValue;
+import com.jjg.game.slots.game.superstar.pb.req.ReqSuperStarStartGame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
+ *
  */
 @Component
 @MessageType(MessageConst.MessageTypeDef.SUPER_STAR_TYPE)
@@ -34,7 +37,7 @@ public class SuperStarMessageHandler {
      * @param req
      */
     @Command(SuperStarConstant.MsgBean.REQ_CONFIG_INFO)
-    public void reqConfigInfo(PlayerController playerController, ReqConfigInfo req) {
+    public void reqConfigInfo(PlayerController playerController, ReqSuperStarConfigInfo req) {
         try {
             log.info("收到玩家请求配置 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             sendMessageManager.sendConfigMessage(playerController);
@@ -50,10 +53,10 @@ public class SuperStarMessageHandler {
      * @param req
      */
     @Command(SuperStarConstant.MsgBean.REQ_START_GAME)
-    public void reqStartGame(PlayerController playerController, ReqStartGame req) {
+    public void reqStartGame(PlayerController playerController, ReqSuperStarStartGame req) {
         try {
             log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            SuperStarGameRunInfo gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeVlue);
+            SuperStarGameRunInfo gameRunInfo = this.gameManager.playerStartGame(playerController, req.stakeValue);
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
@@ -67,10 +70,10 @@ public class SuperStarMessageHandler {
      * @param req
      */
     @Command(SuperStarConstant.MsgBean.REQ_POOL_VALUE)
-    public void reqPoolValue(PlayerController playerController, ReqPoolValue req) {
+    public void reqPoolValue(PlayerController playerController, ReqSuperStarPoolValue req) {
         try {
             log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            SuperStarGameRunInfo gameRunInfo = gameManager.getPoolValue(playerController, req.stakeVlue);
+            SuperStarGameRunInfo gameRunInfo = gameManager.getPoolValue(playerController, req.stakeValue);
             sendMessageManager.sendPoolValue(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);
