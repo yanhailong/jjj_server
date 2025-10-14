@@ -6,7 +6,6 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.SendInfo;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.service.AbstractPlayerService;
-import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -22,7 +21,7 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
 
     /**
      * 推送金币等信息变化
-     * @param playerController
+     * @param playerController 玩家控制器
      */
     public void buildMoneyChangeMessage(PlayerController playerController) {
         buildMoneyChangeMessage(playerController,playerController.getPlayer());
@@ -30,7 +29,7 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
 
     /**
      * 推送金币等信息变化
-     * @param playerController
+     * @param playerController 玩家控制器
      */
     public void buildMoneyChangeMessage(PlayerController playerController,Player player) {
         buildMoneyChangeMessage(playerController.getSession(),player);
@@ -61,7 +60,8 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
 
     /**
      * 推送金币等信息变化
-     * @param session
+     * @param session 玩家连接session
+     * @param player 玩家信息
      */
     public void buildMoneyChangeMessage(PFSession session, Player player) {
         SendInfo sendInfo = new SendInfo();
@@ -72,7 +72,6 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
         notice.vipLevel = player.getVipLevel();
         notice.level = player.getLevel();
         notice.levelExp = player.getExp();
-        session.send(notice);
 
         sendInfo.addPlayerMsg(session.playerId, notice);
         sendInfo.getLogMessage().add(notice);
