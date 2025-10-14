@@ -47,8 +47,10 @@ public class RoomDataHelper {
                 if (VipUtil.bettingCheckVipLevel(player, viplevelCfgMap, effectiveWaterFlow)) {
                     NoticeBaseInfoChange noticeBaseInfoChange = new NoticeBaseInfoChange();
                     noticeBaseInfoChange.gold = player.getGold();
+                    noticeBaseInfoChange.diamond =  player.getDiamond();
+                    noticeBaseInfoChange.level = player.getLevel();
+                    noticeBaseInfoChange.levelExp = player.getExp();
                     noticeBaseInfoChange.vipLevel = player.getVipLevel();
-                    noticeBaseInfoChange.diamond = player.getDiamond();
                     controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(player.getId(), noticeBaseInfoChange));
                 }
             }
