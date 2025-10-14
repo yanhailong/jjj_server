@@ -12,15 +12,4 @@ public class AccountConstant {
         //认证用户
         public static final int VERIFIED = 1;
     }
-
-    public class LoginType{
-        //游客
-        public static final int GUEST = 0;
-        //认证用户
-        public static final int GOOGLE = 1;
-        //认证用户
-        public static final int IOS = 2;
-        //认证用户
-        public static final int PHONE = 2;
-    }
 }

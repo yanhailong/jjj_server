@@ -85,10 +85,10 @@ public class ShopService {
      * @param player
      * @return
      */
-    public CommonResult<String> generateOrder(Player player, ShopProduct shopProduct, RechargeType rechargeType) {
+    public CommonResult<String> generateOrder(Player player, ShopProduct shopProduct, RechargeType rechargeType, PayType payType) {
         CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
-        Order order = orderService.generateOrder(player, shopProduct.getId(),shopProduct.getMoney(),rechargeType);
-        if(order == null) {
+        Order order = orderService.generateOrder(player, payType, shopProduct.getId(), shopProduct.getMoney(), rechargeType);
+        if (order == null) {
             log.info("玩家下单失败 playerId = {},productId = {}", player.getId(), shopProduct.getId());
             result.code = Code.FAIL;
             return result;
@@ -104,25 +104,25 @@ public class ShopService {
      * @return
      */
     public CommonResult<ItemOperationResult> exchange(PlayerController playerController, ShopProduct shopProduct) {
-        Map<Integer,Long> addItemMap;
+        Map<Integer, Long> addItemMap;
         //添加商品
-        if(shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()){
+        if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
             addItemMap = shopProduct.getRewardItems();
-        }else {
+        } else {
             addItemMap = Collections.emptyMap();
         }
 
-        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(),shopProduct.getPayType(), shopProduct.getMoney(),addItemMap,"exchange");
-        if(!result.success()){
+        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(), shopProduct.getPayType(), shopProduct.getMoney(), addItemMap, "exchange");
+        if (!result.success()) {
             return result;
         }
 
         //如果钻石或金币有变化，则要
-        if(result.data.getDiamond() > 0 || result.data.getGoldNum() > 0) {
-            sendMessageManager.buildMoneyChangeMessage(playerController.playerId(),playerService);
+        if (result.data.getDiamond() > 0 || result.data.getGoldNum() > 0) {
+            sendMessageManager.buildMoneyChangeMessage(playerController.playerId(), playerService);
         }
         Account account = accountDao.queryAccountByPlayerId(playerController.playerId());
-        coreLogger.shop(playerController.getPlayer(),shopProduct,account.getChannel().getValue());
+        coreLogger.shop(playerController.getPlayer(), shopProduct, account.getChannel().getValue());
         return result;
     }
 
@@ -140,11 +140,12 @@ public class ShopService {
 
     /**
      * 通过商品id获取商品信息
+     *
      * @param productId
      * @return
      */
     public ShopProduct getShopProduct(int productId) {
-        if(this.shopProductMap == null || this.shopProductMap.isEmpty()) {
+        if (this.shopProductMap == null || this.shopProductMap.isEmpty()) {
             return null;
         }
         return this.shopProductMap.get(productId);

@@ -1,16 +1,24 @@
 package com.jjg.game.account.service;
 
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jjg.game.account.data.AppleUserInfo;
+import com.jjg.game.account.data.FacebookUserInfo;
 import com.jjg.game.account.data.GoogleUserInfo;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.GoogleInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+
 
 /**
  * @author 11
@@ -23,47 +31,46 @@ public class HttpService {
     @Autowired
     private GoogleInfo googleInfo;
 
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * 验证google token
+     *
      * @param token
      * @return
      */
-    public GoogleUserInfo verifyGoogleToken(String token) {
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> entity = new HttpEntity<>(headers);
+    public CommonResult<GoogleUserInfo> verifyGoogleToken(String token) {
+        CommonResult<GoogleUserInfo> result = new CommonResult<>(Code.SUCCESS);
 
         try {
-            // 调用Google验证接口
-            ResponseEntity<String> response = restTemplate.exchange(
-                    googleInfo.getVerifyUrl() + token,
-                    HttpMethod.GET,
-                    entity,
-                    String.class
-            );
+            HttpRequest httpRequest = HttpRequest.get(googleInfo.getVerifyUrl() + token).timeout(30000);
+            httpRequest.setProxy(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("192.168.3.46", 32649)));
 
-            if (response.getStatusCode() != HttpStatus.OK) {
-                return null; // 接口返回非200，直接失败
-            }
+            HttpResponse resp = httpRequest.execute();
+            String body = resp.body();
 
             // 解析返回的JSON
-            JsonNode jsonNode = objectMapper.readTree(response.getBody());
+            JsonNode jsonNode = objectMapper.readTree(body);
+
+            if (!resp.isOk()) {
+                result.code = Code.FAIL;
+                log.warn("验证google token失败 token = {},error = {}", token, jsonNode.get("error").asText());
+                return result;
+            }
 
             // 1. 校验iss（签发者）
             String iss = jsonNode.get("iss").asText();
             if (!"https://accounts.google.com".equals(iss) && !"accounts.google.com".equals(iss)) {
-                System.out.println("无效的签发者：" + iss);
-                return null;
+                result.code = Code.FAIL;
+                log.warn("无效的签发者 token = {},iss = {}", token, iss);
+                return result;
             }
 
             // 2. 校验aud（受众）
             String aud = jsonNode.get("aud").asText();
             if (!googleInfo.getClientId().equals(aud)) {
-                System.out.println("无效的受众：" + aud);
+                result.code = Code.FAIL;
+                log.warn("无效的受众 token = {},aud = {}", token, aud);
                 return null;
             }
 
@@ -71,29 +78,57 @@ public class HttpService {
             int exp = jsonNode.get("exp").asInt();
             int currentTime = TimeHelper.nowInt(); // 当前时间戳（秒级）
             if (currentTime > exp) {
-                System.out.println("Token已过期");
+                result.code = Code.FAIL;
+                log.warn("Token已过期 token = {},exp = {}", token, exp);
                 return null;
             }
 
             // 4. 校验iat（签发时间，可选但建议）
             long iat = jsonNode.get("iat").asLong();
             if (currentTime < iat) { // 签发时间不能晚于当前时间（防止未来的Token）
-                System.out.println("Token签发时间异常");
+                result.code = Code.FAIL;
+                log.warn("Token签发时间异常 token = {},iat = {}", token, iat);
                 return null;
             }
 
             // 5. 校验sub不为空（可选）
             if (jsonNode.get("sub") == null || jsonNode.get("sub").asText().isEmpty()) {
-                System.out.println("用户ID为空");
+                result.code = Code.FAIL;
+                log.warn("用户ID为空 token = {}", token);
                 return null;
             }
 
             // 将JSON转换为用户信息实体类
-            GoogleUserInfo userInfo = objectMapper.treeToValue(jsonNode, GoogleUserInfo.class);
-            return userInfo;
+            GoogleUserInfo userInfo = new GoogleUserInfo();
+            userInfo.setUserId(jsonNode.get("sub").asText());
+            userInfo.setEmail(jsonNode.get("email").asText());
+            userInfo.setEmailVerified(jsonNode.get("email_verified").asBoolean());
+            result.data = userInfo;
+            return result;
         } catch (Exception e) {
-            log.error("",e);
+            log.error("", e);
+            result.code = Code.EXCEPTION;
         }
+        return result;
+    }
+
+    /**
+     * 验证apple token
+     *
+     * @param token
+     * @return
+     */
+    public CommonResult<AppleUserInfo> verifyAppleToken(String token) {
+        return null;
+    }
+
+    /**
+     * 验证facebook token
+     *
+     * @param token
+     * @return
+     */
+    public CommonResult<FacebookUserInfo> verifyFacebookToken(String token) {
         return null;
     }
 }

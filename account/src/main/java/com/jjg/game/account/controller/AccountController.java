@@ -1,37 +1,24 @@
 package com.jjg.game.account.controller;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
 import com.jjg.game.account.config.AccountConfig;
-import com.jjg.game.account.constant.AccountConstant;
-import com.jjg.game.account.data.GoogleUserInfo;
+import com.jjg.game.account.data.*;
 import com.jjg.game.account.dto.OAuthLoginDto;
+import com.jjg.game.account.service.AccountService;
 import com.jjg.game.account.service.HttpService;
-import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.core.dao.AccountDao;
-import com.jjg.game.account.dao.PlayerIdDao;
-import com.jjg.game.account.logger.AccountLogger;
 import com.jjg.game.account.dto.GuestLoginDto;
 import com.jjg.game.core.dao.BlackListDao;
 import com.jjg.game.core.data.Account;
 import com.jjg.game.account.vo.LoginVo;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
-import com.jjg.game.core.data.ChannelType;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.WebResult;
 import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
-import org.redisson.RedissonLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
-import java.util.Objects;
 
 /**
  * @author 11
@@ -42,13 +29,7 @@ import java.util.Objects;
 public class AccountController extends AbstractController {
 
     @Autowired
-    private AccountDao accountDao;
-    @Autowired
-    private PlayerIdDao playerIdDao;
-    @Autowired
     private PlayerSessionTokenDao playerSessionTokenDao;
-    @Autowired
-    private AccountLogger accountLogger;
     @Autowired
     private AccountConfig accountConfig;
     @Autowired
@@ -56,7 +37,7 @@ public class AccountController extends AbstractController {
     @Autowired
     private HttpService httpService;
     @Autowired
-    private RedissonClient redissonClient;
+    private AccountService accountService;
 
 
     /**
@@ -67,91 +48,37 @@ public class AccountController extends AbstractController {
      */
     @RequestMapping("guestlogin")
     public WebResult<LoginVo> guestLogin(@RequestBody GuestLoginDto dto, HttpServletRequest request) {
-        try {
-            if (StringUtils.isEmpty(dto.getGuest())) {
-                log.debug("参数为空，游客登录失败");
-                return fail(Code.PARAM_ERROR);
-            }
-
-            if (dto.getGuest().length() < 5 || dto.getGuest().length() > 50) {
-                log.debug("guest长度不在范围内，游客登录失败, guest = {}", dto.getGuest());
-                return fail(Code.PARAM_ERROR);
-            }
-
-            //检查是否在黑名单中
-            String clientIp = getClientIp(request);
-            if(StringUtils.isNotEmpty(clientIp)){
-                boolean blackIp = blackListDao.blackIp(clientIp);
-                if(blackIp){
-                    log.debug("该ip已被封禁，无法登录 guest = {},ip = {}", dto.getGuest(), clientIp);
-                    return fail(Code.BAN_CAUSE_BLACK_LIST);
-                }
-            }
-
-//            redisLock.lock("guestlogin", GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-//            try(RedissonLock redissonLock = (RedissonLock) redissonClient.getLock("guest_login:" + guestKey)){
-//
-//            }
-            //查询该账号是否存在
-            Account account = accountDao.queryAccountByGuest(dto.getGuest());
-
-            if (account == null) {
-                //注册新账号
-                long playerId = playerIdDao.getNewId();
-                // 如果player获取为0，则需要中断流程
-                if (playerId <= 0) {
-                    log.warn("创建新的账号，从数据库中获取玩家ID失败 gust：{}", dto.getGuest());
-                    return fail(Code.FAIL);
-                }
-                account = new Account();
-                account.setPlayerId(playerId);
-                account.setGuest(dto.getGuest());
-                account.setAccountType(AccountConstant.AccountType.GUEST);
-                account.setRegisterMac(dto.getMac());
-                account.setLastLoginMac(dto.getMac());
-                account.setChannel(ChannelType.valueOf(dto.getChannel()));
-                account = accountDao.insert(account);
-
-                accountLogger.register(dto.getGuest(), GameConstant.LoginType.GUEST, playerId);
-                log.debug("创建新的游客账号 guest = {},playerId = {}", dto.getGuest(), playerId);
-            } else {
-                //如果不为空，要检测是否已经认证
-                if (account.getAccountType() != AccountConstant.AccountType.GUEST) {
-                    log.debug("该用户已经认证，无法使用游客登录 guest = {},playerId = {}", dto.getGuest(), account.getPlayerId());
-                    return fail(Code.PARAM_ERROR);
-                }
-
-                if (account.getStatus() == GameConstant.AccountStatus.BAN) {
-                    log.debug("该用户已被封号，无法登录 guest = {},playerId = {}", dto.getGuest(), account.getPlayerId());
-                    return fail(Code.BAN_ACCOUNT);
-                }
-
-                //检测黑名单
-                if(blackListDao.blackId(account.getPlayerId())){
-                    log.debug("该用户在黑名单，无法登录 guest = {},playerId = {}", dto.getGuest(), account.getPlayerId());
-                    return fail(Code.BAN_ACCOUNT);
-                }
-
-                if (!Objects.equals(dto.getMac(), account.getLastLoginMac())) {
-                    accountDao.save(account);
-                }
-            }
-
-            //生成token
-            String token = RandomUtils.getUUid();
-            //保存token，方便weboskcet连接时进行校验
-            playerSessionTokenDao.save(token, GameConstant.LoginType.GUEST, account.getPlayerId());
-
-            LoginVo vo = new LoginVo();
-            vo.setToken(token);
-            vo.setGameserver(accountConfig.getGameserver());
-            vo.setPlayerId(account.getPlayerId());
-            log.info("游客获取token成功 guest = {},playerId = {}", dto.getGuest(), account.getPlayerId());
-            return success(vo);
-        } catch (Exception e) {
-            log.error("", e);
-            return exception();
+        if (StringUtils.isEmpty(dto.getGuest())) {
+            log.debug("参数为空，游客登录失败");
+            return fail(Code.PARAM_ERROR);
         }
+
+        if (dto.getGuest().length() < 5 || dto.getGuest().length() > 50) {
+            log.debug("guest长度不在范围内，游客登录失败, guest = {}", dto.getGuest());
+            return fail(Code.PARAM_ERROR);
+        }
+
+        //检查是否在黑名单中
+        String clientIp = getClientIp(request);
+        if (StringUtils.isNotEmpty(clientIp)) {
+            boolean blackIp = blackListDao.blackIp(clientIp);
+            if (blackIp) {
+                log.debug("该ip已被封禁，无法登录 guest = {},ip = {}", dto.getGuest(), clientIp);
+                return fail(Code.BAN_CAUSE_BLACK_LIST);
+            }
+        }
+
+        //登录逻辑
+        CommonResult<Account> accountResult = accountService.login(LoginType.GUEST, new GuestUserInfo(dto.getGuest()), dto.getMac(), dto.getChannel());
+        if (!accountResult.success()) {
+            return fail(accountResult.code);
+        }
+
+        //组装返回结果
+        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.GUEST, accountResult.data);
+
+        log.info("游客获取token成功 guest = {},playerId = {},token = {}", dto.getGuest(), accountResult.data.getPlayerId(),loginVoWebResult.getData().getToken());
+        return loginVoWebResult;
     }
 
     /**
@@ -165,21 +92,22 @@ public class AccountController extends AbstractController {
                 return fail(Code.PARAM_ERROR);
             }
 
-            if (dto.getToken().length() < 5 || dto.getToken().length() > 50) {
-                log.debug("guest长度不在范围内，谷歌登录失败, guest = {}", dto.getToken());
-                return fail(Code.PARAM_ERROR);
-            }
+//            if (dto.getToken().length() < 5 || dto.getToken().length() > 50) {
+//                log.debug("token 长度不在范围内，谷歌登录失败, token = {}", dto.getToken());
+//                return fail(Code.PARAM_ERROR);
+//            }
 
             //检查是否在黑名单中
             String clientIp = getClientIp(request);
-            if(StringUtils.isNotEmpty(clientIp)){
+            if (StringUtils.isNotEmpty(clientIp)) {
                 boolean blackIp = blackListDao.blackIp(clientIp);
-                if(blackIp){
+                if (blackIp) {
                     log.debug("该ip已被封禁，无法登录 token = {},ip = {}", dto.getToken(), clientIp);
                     return fail(Code.BAN_CAUSE_BLACK_LIST);
                 }
             }
 
+            //高并发情况下，采用本地校验
 //            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
 //                    new NetHttpTransport(),
 //                    new GsonFactory())
@@ -199,17 +127,142 @@ public class AccountController extends AbstractController {
 //            String email = payload.getEmail();
 //            String name = (String) payload.get("name");
 
-            GoogleUserInfo googleUserInfo = httpService.verifyGoogleToken(dto.getToken());
-            if(googleUserInfo == null){
-                log.debug("token校验失败, 登录失败 = {},ip = {}", dto.getToken(), clientIp);
+            CommonResult<GoogleUserInfo> userInfoResult = httpService.verifyGoogleToken(dto.getToken());
+            if (!userInfoResult.success()) {
+                return fail(userInfoResult.code);
+            }
+
+            //登录逻辑
+            CommonResult<Account> accountResult = accountService.login(LoginType.GOOGLE, userInfoResult.data, dto.getMac(), dto.getChannel());
+            if (!accountResult.success()) {
+                return fail(accountResult.code);
+            }
+
+            //组装返回结果
+            WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.GOOGLE, accountResult.data);
+
+            log.info("谷歌登录获取 token成功 playerId = {},token = {}", accountResult.data.getPlayerId(),loginVoWebResult.getData().getToken());
+            return loginVoWebResult;
+        } catch (Exception e) {
+            log.error("谷歌登录异常", e);
+            return exception();
+        }
+    }
+
+    /**
+     * 苹果登录
+     */
+    @RequestMapping("applelogin")
+    public WebResult<LoginVo> appleLogin(@RequestBody OAuthLoginDto dto, HttpServletRequest request) {
+        try {
+            if (StringUtils.isEmpty(dto.getToken())) {
+                log.debug("参数为空，apple登录失败");
+                return fail(Code.PARAM_ERROR);
+            }
+
+            if (dto.getToken().length() < 5 || dto.getToken().length() > 50) {
+                log.debug("token 长度不在范围内，apple登录失败, token = {}", dto.getToken());
+                return fail(Code.PARAM_ERROR);
+            }
+
+            //检查是否在黑名单中
+            String clientIp = getClientIp(request);
+            if (StringUtils.isNotEmpty(clientIp)) {
+                boolean blackIp = blackListDao.blackIp(clientIp);
+                if (blackIp) {
+                    log.debug("该ip已被封禁，无法登录 token = {},ip = {}", dto.getToken(), clientIp);
+                    return fail(Code.BAN_CAUSE_BLACK_LIST);
+                }
+            }
+
+            CommonResult<AppleUserInfo> userInfoResult = httpService.verifyAppleToken(dto.getToken());
+            if (!userInfoResult.success()) {
+                log.debug("token校验失败, 登录失败 = {},ip = {},code = {}", dto.getToken(), clientIp,userInfoResult.code);
                 return fail(Code.BAN_CAUSE_BLACK_LIST);
             }
 
-            LoginVo vo = new LoginVo();
-            return success(vo);
+            //登录逻辑
+            CommonResult<Account> accountResult = accountService.login(LoginType.APPLE, userInfoResult.data, dto.getMac(), dto.getChannel());
+            if (!accountResult.success()) {
+                return fail(accountResult.code);
+            }
+
+            //组装返回结果
+            WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.APPLE, accountResult.data);
+
+            log.info("apple登录获取 token成功 playerId = {},token = {}", accountResult.data.getPlayerId(),loginVoWebResult.getData().getToken());
+            return loginVoWebResult;
         } catch (Exception e) {
             log.error("第三方登录异常", e);
             return exception();
         }
+    }
+
+    /**
+     * 苹果登录
+     */
+    @RequestMapping("facebooklogin")
+    public WebResult<LoginVo> facebookLogin(@RequestBody OAuthLoginDto dto, HttpServletRequest request) {
+        try {
+            if (StringUtils.isEmpty(dto.getToken())) {
+                log.debug("参数为空，facebook登录失败");
+                return fail(Code.PARAM_ERROR);
+            }
+
+            if (dto.getToken().length() < 5 || dto.getToken().length() > 50) {
+                log.debug("token 长度不在范围内，facebook登录失败, token = {}", dto.getToken());
+                return fail(Code.PARAM_ERROR);
+            }
+
+            //检查是否在黑名单中
+            String clientIp = getClientIp(request);
+            if (StringUtils.isNotEmpty(clientIp)) {
+                boolean blackIp = blackListDao.blackIp(clientIp);
+                if (blackIp) {
+                    log.debug("该ip已被封禁，无法登录 token = {},ip = {}", dto.getToken(), clientIp);
+                    return fail(Code.BAN_CAUSE_BLACK_LIST);
+                }
+            }
+
+            CommonResult<FacebookUserInfo> userInfoResult = httpService.verifyFacebookToken(dto.getToken());
+            if (userInfoResult == null) {
+                log.debug("token校验失败, 登录失败 = {},ip = {}", dto.getToken(), clientIp);
+                return fail(Code.BAN_CAUSE_BLACK_LIST);
+            }
+
+            //登录逻辑
+            CommonResult<Account> accountResult = accountService.login(LoginType.FACEBOOK, userInfoResult.data, dto.getMac(), dto.getChannel());
+            if (!accountResult.success()) {
+                return fail(accountResult.code);
+            }
+
+            //组装返回结果
+            WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.FACEBOOK, accountResult.data);
+
+            log.info("apple登录获取 token成功 playerId = {},token = {}", accountResult.data.getPlayerId(),loginVoWebResult.getData().getToken());
+            return loginVoWebResult;
+        } catch (Exception e) {
+            log.error("facebook登录异常", e);
+            return exception();
+        }
+    }
+
+    /**
+     * 组装登录返回结果
+     * @param loginType
+     * @param account
+     * @return
+     */
+    private WebResult<LoginVo> loginResult(LoginType loginType,Account account) {
+        //生成token
+        String token = RandomUtils.getUUid();
+        //保存token，方便weboskcet连接时进行校验
+        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId());
+
+        LoginVo vo = new LoginVo();
+        vo.setToken(token);
+        vo.setGameserver(accountConfig.getGameserver());
+        vo.setPlayerId(account.getPlayerId());
+        return success(vo);
     }
 }
