@@ -19,4 +19,9 @@ public class WealthGodResultLineInfo {
     public int times;
     @ProtoDesc("中奖金币")
     public long winGold;
+    /**
+     * 表示中奖线的方向。
+     */
+    @ProtoDesc("表示中奖线的方向 1=从左到右 2=从右到左")
+    public int direction;
 }

@@ -69,6 +69,7 @@ public class TexasMessageHandler {
             if (seatInfo.isReady()) {
                 change.code = Code.FORBID;
                 controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
+                return;
             }
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
             if (Objects.isNull(gamePlayer)) {
