@@ -78,7 +78,7 @@ public class SharePromoteController extends BaseActivityController {
             Long add = cfg.getGetitem().getOrDefault(ItemUtils.getGoldItemId(), 0L);
             if (add > 0) {
                 activityLogger.sendSharePromoteAddRewards(player, activityData, 4, 0, 0, add, 0,
-                        claimRewardsResult.itemOperationResult().getGoldNum(), 0);
+                        claimRewardsResult.itemOperationResult().getGoldNum(), 0, 0);
             }
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
             res.detailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, claimRewardsResult.playerActivityData());
@@ -227,7 +227,7 @@ public class SharePromoteController extends BaseActivityController {
             if (save) {
                 //发送日志
                 activityLogger.sendSharePromoteAddRewards(playerController.getPlayer(), activityData, 2,
-                        2, 1, 0, 0, 0, playerId);
+                        0, 1, 0, 0, 0, playerId, 1);
                 //修改活动状态
                 checkActivityStatus(playerController.getPlayer(), activityData, playerInfoData.getBindCount(), bindBefore);
             }
@@ -325,7 +325,7 @@ public class SharePromoteController extends BaseActivityController {
                 if (addedItem.data != null) {
                     //添加日志
                     activityLogger.sendSharePromoteAddRewards(playerController.getPlayer(), activityData, 3, 0, 0, playerIncome,
-                            0, addedItem.data.getGoldNum(), 0);
+                            0, addedItem.data.getGoldNum(), 0, 0);
                 }
             } catch (Exception e) {
                 log.error("玩家领取收益奖励异常 playerId={}", playerId, e);
