@@ -88,7 +88,7 @@ public class AccountService {
         CommonResult<Account> result = new CommonResult<>(Code.SUCCESS);
         //要加锁，防止重复创建账号
         String lockKey = getLockKey(loginType, channelUserInfo);
-        redisLock.lock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+//        redisLock.lock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         try {
             //查询该账号是否存在
             Account account = getAccountByLoginType(loginType, channelUserInfo);
@@ -119,7 +119,7 @@ public class AccountService {
         } catch (Exception e) {
             log.error("", e);
         } finally {
-            redisLock.unlock(lockKey);
+//            redisLock.unlock(lockKey);
         }
         result.code = Code.FAIL;
         return result;

@@ -71,7 +71,7 @@ public class HttpService {
             if (!googleInfo.getClientId().equals(aud)) {
                 result.code = Code.FAIL;
                 log.warn("无效的受众 token = {},aud = {}", token, aud);
-                return null;
+                return result;
             }
 
             // 3. 校验exp（过期时间）
@@ -80,7 +80,7 @@ public class HttpService {
             if (currentTime > exp) {
                 result.code = Code.FAIL;
                 log.warn("Token已过期 token = {},exp = {}", token, exp);
-                return null;
+                return result;
             }
 
             // 4. 校验iat（签发时间，可选但建议）
@@ -88,14 +88,14 @@ public class HttpService {
             if (currentTime < iat) { // 签发时间不能晚于当前时间（防止未来的Token）
                 result.code = Code.FAIL;
                 log.warn("Token签发时间异常 token = {},iat = {}", token, iat);
-                return null;
+                return result;
             }
 
             // 5. 校验sub不为空（可选）
             if (jsonNode.get("sub") == null || jsonNode.get("sub").asText().isEmpty()) {
                 result.code = Code.FAIL;
                 log.warn("用户ID为空 token = {}", token);
-                return null;
+                return result;
             }
 
             // 将JSON转换为用户信息实体类
