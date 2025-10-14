@@ -9,6 +9,7 @@ public enum LoginType {
     GOOGLE(2),
     APPLE(3),
     FACEBOOK(4),
+    PHONE(5)
 
     ;
 
@@ -20,5 +21,28 @@ public enum LoginType {
 
     public int getValue() {
         return value;
+    }
+
+    public static LoginType valueOf(int value) {
+        switch (value) {
+            case 1 -> {
+                return GUEST;
+            }
+            case 2 -> {
+                return GOOGLE;
+            }
+            case 3 -> {
+                return APPLE;
+            }
+            case 4 -> {
+                return FACEBOOK;
+            }
+            case 5 -> {
+                return PHONE;
+            }
+            default -> {
+                return null;
+            }
+        }
     }
 }
