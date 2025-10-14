@@ -503,6 +503,11 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 return null;
             }
             gamePlayer.setGold(afterCoin);
+            if (gamePlayer instanceof GameRobotPlayer) {
+                return gamePlayer;
+            }
+            ExperienceBonusParam expParam = playerService.getExpParam(playerId, num);
+            playerService.onBetDeductGoldAfter(gamePlayer, expParam, false, num);
             return gamePlayer;
         };
         // 机器人直接扣除
@@ -510,7 +515,6 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             supplier.get();
             return Code.SUCCESS;
         }
-        // TODO 待修改betDeductGold方法，需要调用betDeductGold扣除金币
         CommonResult<GamePlayer> result =
                 playerService.deductGold(playerId, num, deductType, desc, isNotify, supplier, beforeUpdateGold);
         if (result.data == null) {

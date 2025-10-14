@@ -201,10 +201,11 @@ public class ActivityLogger extends BaseLogger {
 
     /**
      * 分享推广充值下级日志
-     * @param player 玩家信息
-     * @param activityData 活动数据
+     *
+     * @param player         玩家信息
+     * @param activityData   活动数据
      * @param rechargeAmount 充值金额
-     * @param totalAdd 增加的金币
+     * @param totalAdd       增加的金币
      */
     public void sendSharePromoteSubordinateRecharge(Player player, ActivityData activityData, long rechargeAmount, long totalAdd) {
         try {
@@ -224,15 +225,16 @@ public class ActivityLogger extends BaseLogger {
      *
      * @param player       玩家数据
      * @param activityData 活动数据
-     * @param logType         类型 (1.下级充值 2绑定玩家 3.分享收益领取 4.人数收益领取 5.人数变化)
+     * @param logType      类型 (1.下级充值 2绑定玩家 3.分享收益领取 4.人数收益领取 5.人数变化)
      * @param totalGoldAdd 总收益增加
      * @param addBindNum   绑定人数增加
      * @param addGold      领取金币增加
      * @param sharingRatio 当前分享比例
      * @param remainGold   账户余数
+     * @param superiorId   上级id
      */
     public void sendSharePromoteAddRewards(Player player, ActivityData activityData, int logType, long totalGoldAdd, int addBindNum
-            , long addGold, int sharingRatio, long remainGold) {
+            , long addGold, int sharingRatio, long remainGold, long superiorId) {
         try {
             JSONObject json = buildBaseInfo(activityData, 0);
             json.put("operation", "addRewards");
@@ -243,6 +245,9 @@ public class ActivityLogger extends BaseLogger {
             json.put("logType", logType);
             if (remainGold > 0) {
                 json.put("remainGold", remainGold);
+            }
+            if (superiorId > 0) {
+                json.put("superiorId", remainGold);
             }
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
@@ -263,7 +268,7 @@ public class ActivityLogger extends BaseLogger {
      */
     public void sendSharePromoteAddRewards(Player player, ActivityData activityData, int type, long totalGoldAdd, int addBindNum
             , long addGold, int sharingRatio) {
-        sendSharePromoteAddRewards(player, activityData, type, totalGoldAdd, addBindNum, addGold, sharingRatio, 0);
+        sendSharePromoteAddRewards(player, activityData, type, totalGoldAdd, addBindNum, addGold, sharingRatio, 0, 0);
     }
 
     /**

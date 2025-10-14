@@ -302,7 +302,6 @@ public class AbstractPlayerService {
 
         //记录日志
         if (p != null) {
-            //TODO 后期要排除机器人的情况
             if (goldNum > 0) {
                 coreLogger.useGold(p, beforeCoin[0], goldNum, addType, desc);
             }
@@ -723,7 +722,6 @@ public class AbstractPlayerService {
                 // 推送金币变化消息
                 sendMessageManager.buildMoneyChangeMessage(p);
             }
-            //TODO 后期要排除机器人的情况
             coreLogger.useGold(p, beforeUpdateGold.value, -num, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
@@ -833,7 +831,6 @@ public class AbstractPlayerService {
 
         //记录日志
         if (p != null) {
-            //TODO 后期要排除机器人的情况
             if (goldNum > 0) {
                 coreLogger.useGold(p, beforeCoin[0], -goldNum, addType, desc);
             }
@@ -852,12 +849,14 @@ public class AbstractPlayerService {
     }
 
     /**
-     * 押注扣除金币
+     * 押注扣除金币更新内存中的值
      *
-     * @param playerId
-     * @param addType
-     * @param desc
+     * @param playerId 玩家id
+     * @param addType  扣除类型
+     * @param desc 描述
      * @param effective ture 是有效流水
+     * @param notify 是否通知前端
+     * @param num 扣除数量
      * @return
      */
     public CommonResult<Player> betDeductGold(
@@ -870,7 +869,81 @@ public class AbstractPlayerService {
         }
 
         LongRef beforeCoin = PrimitiveRef.ofLong(0);
+        //获取经验加成参数
+        ExperienceBonusParam experienceBonusParam = getExpParam(playerId, num);
+        Player p = checkAndSave(playerId, new DataSaveCallback<>() {
+            @Override
+            public void updateData(Player dataEntity) {
+            }
 
+            @Override
+            public boolean updateDataWithRes(Player player) {
+                beforeCoin.value = player.getGold();
+                long afterCoin = player.getGold() - num;
+                if (afterCoin < 0) {
+                    result.code = Code.NOT_ENOUGH;
+                    return false;
+                }
+                player.setGold(afterCoin);
+                onBetDeductGoldAfter(player, experienceBonusParam, effective, num);
+                return true;
+            }
+        });
+        //记录日志
+        if (p != null) {
+            coreLogger.useGold(p, beforeCoin.value, -num, addType, desc);
+            result.code = Code.SUCCESS;
+            result.data = p;
+            //是否通知客户端
+            if (notify) {
+                sendMessageManager.buildMoneyChangeMessage(p);
+            }
+            return result;
+        }
+        return result;
+    }
+
+    /**
+     * 押注扣除金币后操作
+     *
+     * @param player               玩家数据
+     * @param experienceBonusParam 经验加成参数
+     * @param effective            是否是游戏流水
+     * @param num                  扣除数量
+     */
+    public void onBetDeductGoldAfter(Player player, ExperienceBonusParam experienceBonusParam, boolean effective, long num) {
+        //获取当前等级升级需要的经验
+        PlayerLevelConfigCfg cfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
+        if (cfg == null) {
+            //增加经验
+            player.setExp(player.getExp() + experienceBonusParam.addExp());
+            log.debug("获取等级经验配置失败 playerId={},level={}", player.getId(), player.getLevel());
+            return;
+        }
+        long tmpAddExp = experienceBonusParam.addExp();
+        //检查配置中，是否有额外的流水系数
+        if (cfg.getProp() > 0) {
+            BigDecimal tmpStatementProp = playerBuffService.calProp(experienceBonusParam.statementProp(), cfg.getProp());
+            tmpAddExp = experienceBonusParam.value().multiply(tmpStatementProp).multiply(experienceBonusParam.expProp()).longValue();
+        }
+        //增加经验
+        player.setExp(player.getExp() + tmpAddExp);
+
+        player = levelUp(player, cfg);
+        if (effective) {
+            VipUtil.checkVipLevel(player, num);
+        }
+        log.info("玩家押注获取经验 playerId = {},addExp = {},level = {}", player.getId(), tmpAddExp, player.getLevel());
+    }
+
+    /**
+     * 获取玩家经验参数
+     *
+     * @param playerId 玩家id
+     * @param num      扣除金币数量
+     * @return 经验参数
+     */
+    public ExperienceBonusParam getExpParam(long playerId, long num) {
         //基础经验倍率
         int baseExpProp = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.ID_BASE_EXP_PROP).getIntValue();
         //基础流水倍率
@@ -894,64 +967,10 @@ public class AbstractPlayerService {
         BigDecimal statement = value.multiply(statementProp);
         //计算应该增加的经验
         long addExp = statement.multiply(expProp).longValue();
-
-        final BigDecimal finalStatementProp = statementProp;
-        Player p = checkAndSave(playerId, new DataSaveCallback<>() {
-            @Override
-            public void updateData(Player dataEntity) {
-            }
-
-            @Override
-            public boolean updateDataWithRes(Player player) {
-                beforeCoin.value = player.getGold();
-                long afterCoin = player.getGold() - num;
-                if (afterCoin < 0) {
-                    result.code = Code.NOT_ENOUGH;
-                    return false;
-                }
-                player.setGold(afterCoin);
-                //获取当前等级升级需要的经验
-                PlayerLevelConfigCfg cfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
-                if (cfg == null) {
-                    //增加经验
-                    player.setExp(player.getExp() + addExp);
-                    log.debug("获取等级经验配置失败 playerId={},level={}", playerId, player.getLevel());
-                    return true;
-                }
-
-                long tmpAddExp = addExp;
-                //检查配置中，是否有额外的流水系数
-                if (cfg.getProp() > 0) {
-                    BigDecimal tmpStatementProp = playerBuffService.calProp(finalStatementProp, cfg.getProp());
-                    tmpAddExp = value.multiply(tmpStatementProp).multiply(expProp).longValue();
-                }
-                //增加经验
-                player.setExp(player.getExp() + tmpAddExp);
-
-                player = levelUp(player, cfg);
-                if (effective) {
-                    VipUtil.checkVipLevel(player, num);
-                }
-                log.info("玩家押注获取经验 playerId = {},addExp = {},level = {}", playerId, tmpAddExp, player.getLevel());
-                return true;
-            }
-        });
-
-        //记录日志
-        if (p != null) {
-            //TODO 后期要排除机器人的情况
-            coreLogger.useGold(p, beforeCoin.value, -num, addType, desc);
-            result.code = Code.SUCCESS;
-            result.data = p;
-
-            //是否通知客户端
-            if (notify) {
-                sendMessageManager.buildMoneyChangeMessage(p);
-            }
-            return result;
-        }
-        return result;
+        return new ExperienceBonusParam(expProp, statementProp, value, addExp);
     }
+
+
 
     /**
      * 通过玩家ID获取玩家对象
@@ -1334,7 +1353,7 @@ public class AbstractPlayerService {
             return result;
         }
 
-        final long[] beforeCoin = {0,0};
+        final long[] beforeCoin = {0, 0};
 
         Player p = checkAndSave(playerId, new DataSaveCallback<>() {
             @Override

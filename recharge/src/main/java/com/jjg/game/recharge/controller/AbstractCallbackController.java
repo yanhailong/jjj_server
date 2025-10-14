@@ -109,8 +109,8 @@ public abstract class AbstractCallbackController {
 
             Player player = playerService.get(order.getPlayerId());
             coreLogger.order(player, order);
-            if(order.getRechargeType() == RechargeType.SHOP){
-                coreLogger.shop(player, order);
+            if (order.getRechargeType() == RechargeType.SHOP) {
+                coreLogger.shop(player, order, shopProduct);
             }
             log.info("玩家充值成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
 

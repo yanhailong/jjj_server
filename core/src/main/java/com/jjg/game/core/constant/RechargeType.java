@@ -8,12 +8,12 @@ public enum RechargeType {
     /**
      * 商城
      */
-    SHOP(0),
+    SHOP(1),
 
     /**
      * 等级礼包
      */
-    PLAYER_LEVEL_GIFT(1)
+    PLAYER_LEVEL_GIFT(2)
 
     ;
     private final int type;

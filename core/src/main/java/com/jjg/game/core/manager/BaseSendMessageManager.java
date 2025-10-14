@@ -31,13 +31,9 @@ public class BaseSendMessageManager {
         }
 
         //单独发给用户的消息
-        sendInfo.getSendMess().entrySet().stream().forEach(en -> {
-            en.getValue().forEach(msg -> {
-                session.send(msg);
-            });
-        });
+        sendInfo.getSendMess().forEach((key, value) -> value.forEach(session::send));
 
-        if(sendInfo.getLogMessage().size() > 0){
+        if(!sendInfo.getLogMessage().isEmpty()){
             logOut(session.playerId,logDescribe, sendInfo.getLogMessage(), debug);
         }
     }

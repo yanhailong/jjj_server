@@ -1,7 +1,6 @@
 package com.jjg.game.core.logger;
 
 import cn.hutool.core.util.IdUtil;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
@@ -9,7 +8,6 @@ import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.core.constant.RechargeType;
 import com.jjg.game.core.data.*;
 import org.apache.commons.lang3.StringUtils;
-import org.aspectj.weaver.ast.Or;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,8 +72,8 @@ public class BaseLogger {
         try {
             JSONObject json = new JSONObject();
 
-            json = addGoldChange(json, beforeGold, gold, player.getGold());
-            json = addSafeBoxGoldChange(json, player.getSafeBoxGold(), 0, player.getSafeBoxGold());
+            addGoldChange(json, beforeGold, gold, player.getGold());
+            addSafeBoxGoldChange(json, player.getSafeBoxGold(), 0, player.getSafeBoxGold());
 
             json.put("addType", addType);
             json.put("desc", desc);
@@ -368,19 +366,20 @@ public class BaseLogger {
      * @param player
      * @param order
      */
-    public void shop(Player player, Order order) {
-        shop(player, order.getId(), order.getId(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), order.getPrice(), order.getCreateTime(), order.getUpdateTime(),
+    public void shop(Player player, Order order, ShopProduct shopProduct) {
+        shop(player, order.getId(), order.getId(), shopProduct.getType(), order.getPlayerChannel(), order.getPayChannel() , order.getRechargeType(), order.getPrice(), order.getCreateTime(), order.getUpdateTime(),
                 order.getOrderStatus(), order.getPayType());
     }
 
     /**
      * 商城
+     *
      * @param player
      * @param shopProduct
      */
-    public void shop(Player player, ShopProduct shopProduct,int registerChannel) {
+    public void shop(Player player, ShopProduct shopProduct, int registerChannel) {
         long now = System.currentTimeMillis();
-        shop(player,null,null,registerChannel,player.getChannel().getValue(),RechargeType.SHOP,shopProduct.getMoney(),now,now,OrderStatus.SUCCESS,shopProduct.getPayType());
+        shop(player, null, null, shopProduct.getType(), registerChannel, player.getChannel().getValue(), RechargeType.SHOP, shopProduct.getMoney(), now, now, OrderStatus.SUCCESS, shopProduct.getPayType());
     }
 
     /***********************************************************************************************/
@@ -487,13 +486,13 @@ public class BaseLogger {
         }
     }
 
-    public void shop(Player player, String orderId, String merchantOrderId, int playerChannel, int payChannel, RechargeType rechargeType,
-                      long price, long createTime, long updateTime, OrderStatus orderStatus, int payType) {
+    public void shop(Player player, String orderId, String merchantOrderId, int shopProductType, int playerChannel, int payChannel, RechargeType rechargeType,
+                     long price, long createTime, long updateTime, OrderStatus orderStatus, int payType) {
         try {
             JSONObject json = new JSONObject();
             json.put("orderId", orderId);
             json.put("merchantOrderId", merchantOrderId);
-            json.put("hopProductType", orderId);
+            json.put("shopProductType", shopProductType);
             json.put("nick", player.getNickName());
             json.put("playerChannel", playerChannel);
             json.put("payChannel", payChannel);

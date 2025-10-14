@@ -8,10 +8,7 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.RechargeType;
 import com.jjg.game.core.constant.ShopConstant;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.ShopProduct;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.pb.*;
 import com.jjg.game.core.service.ShopService;
@@ -98,7 +95,7 @@ public class ShopMessageHandler {
             }
 
             if (shopProduct.getPayType() < 1) {  //充值
-                CommonResult<String> orderResult = shopService.generateOrder(playerController.getPlayer(), shopProduct, RechargeType.SHOP);
+                CommonResult<String> orderResult = shopService.generateOrder(playerController.getPlayer(), shopProduct, RechargeType.SHOP, PayType.GOOGLE);
                 if (!orderResult.success()) {
                     res.code = orderResult.code;
                     playerController.send(res);
