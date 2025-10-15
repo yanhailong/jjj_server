@@ -146,6 +146,7 @@ public class PointsAwardMessageHandler {
     public void point(PlayerController playerController, ReqPlayerPoint message) {
         NotifySyncPlayerPoint res = new NotifySyncPlayerPoint();
         res.setPoint(pointsAwardService.getPoints(playerController.playerId()));
+        res.setRank(pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerController.playerId()));
         playerController.send(res);
     }
 
