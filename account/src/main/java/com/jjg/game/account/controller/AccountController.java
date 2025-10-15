@@ -54,6 +54,7 @@ public class AccountController extends AbstractController {
     @RequestMapping("login")
     public WebResult<LoginVo> login(@RequestBody LoginDto dto, HttpServletRequest request) {
         try {
+            log.debug("收到登录消息 dto = {}", JSONObject.toJSONString(dto));
             if (StringUtils.isEmpty(dto.getData())) {
                 log.debug("参数为空，登录失败 dto = {}", JSONObject.toJSONString(dto));
                 return fail(Code.PARAM_ERROR);
