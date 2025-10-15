@@ -31,6 +31,13 @@ public class WealthGodResultLib extends SlotsResultLib<WealthGodAwardLineInfo> {
      */
     private int[] source;
 
+    /**
+     * 用于存储图标变更的映射关系。记录从头到尾的所有图标变化信息
+     * k=index
+     * v=变化后的icon
+     */
+    private Map<Integer, Integer> allIconChangeMap;
+
     public int getJackpotId() {
         return jackpotId;
     }
@@ -52,6 +59,7 @@ public class WealthGodResultLib extends SlotsResultLib<WealthGodAwardLineInfo> {
             this.iconChangeMap = new HashMap<>();
         }
         this.iconChangeMap.put(index, icon);
+        addAllIconChange(index, icon);
     }
 
     public int[] getSource() {
@@ -64,6 +72,21 @@ public class WealthGodResultLib extends SlotsResultLib<WealthGodAwardLineInfo> {
         } else {
             this.source = Arrays.copyOf(source, source.length);
         }
+    }
+
+    public void addAllIconChange(int index, int icon) {
+        if (this.allIconChangeMap == null) {
+            this.allIconChangeMap = new HashMap<>();
+        }
+        this.allIconChangeMap.put(index, icon);
+    }
+
+    public Map<Integer, Integer> getAllIconChangeMap() {
+        return allIconChangeMap;
+    }
+
+    public void setAllIconChangeMap(Map<Integer, Integer> allIconChangeMap) {
+        this.allIconChangeMap = allIconChangeMap;
     }
 
     @Override

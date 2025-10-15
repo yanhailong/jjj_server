@@ -345,10 +345,13 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
                 return null;
             }
 
-            Map<Integer, Integer> changeMap = oldLib.getIconChangeMap();
+            Map<Integer, Integer> changeMap = oldLib.getAllIconChangeMap();
             //还原之前已经是wild的图标
             if (changeMap != null && !changeMap.isEmpty()) {
-                changeMap.forEach((index, icon) -> arr[index] = icon);
+                changeMap.forEach((index, icon) -> {
+                    arr[index] = icon;
+                    lib.addAllIconChange(index, icon);
+                });
             }
             log.debug("生成免费游戏图标 arr = {}", Arrays.toString(arr));
             //修改格子策略组
