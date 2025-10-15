@@ -18,7 +18,19 @@ import java.util.List;
         resp = true
 )
 @ProtoDesc("请求转盘数据回复")
-public class ResPointAwardTurntableConfig extends AbstractResponse {
+public class ResPointsAwardTurntableConfig extends AbstractResponse {
+
+    /**
+     * 当前旋转次数
+     */
+    @ProtoDesc("当前旋转次数")
+    private int count;
+
+    /**
+     * 最大旋转次数
+     */
+    @ProtoDesc("最大旋转次数")
+    private int maxCount;
 
     /**
      * 转盘配置
@@ -26,7 +38,7 @@ public class ResPointAwardTurntableConfig extends AbstractResponse {
     @ProtoDesc("转盘配置")
     private List<PointsAwardTurntableConfig> configList;
 
-    public ResPointAwardTurntableConfig(int code) {
+    public ResPointsAwardTurntableConfig(int code) {
         super(code);
     }
 
@@ -36,5 +48,21 @@ public class ResPointAwardTurntableConfig extends AbstractResponse {
 
     public void setConfigList(List<PointsAwardTurntableConfig> configList) {
         this.configList = configList;
+    }
+
+    public int getCount() {
+        return count;
+    }
+
+    public void setCount(int count) {
+        this.count = count;
+    }
+
+    public int getMaxCount() {
+        return maxCount;
+    }
+
+    public void setMaxCount(int maxCount) {
+        this.maxCount = maxCount;
     }
 }

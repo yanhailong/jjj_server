@@ -15,7 +15,19 @@ import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
         resp = true
 )
 @ProtoDesc("请求转盘旋转回复")
-public class ResPointAwardTurntableSpin extends AbstractResponse {
+public class ResPointsAwardTurntableSpin extends AbstractResponse {
+
+    /**
+     * 当前旋转次数
+     */
+    @ProtoDesc("当前旋转次数")
+    private int count;
+
+    /**
+     * 最大旋转次数
+     */
+    @ProtoDesc("最大旋转次数")
+    private int maxCount;
 
     /**
      * 中奖id
@@ -23,7 +35,7 @@ public class ResPointAwardTurntableSpin extends AbstractResponse {
     @ProtoDesc("中奖id")
     private int gridId;
 
-    public ResPointAwardTurntableSpin(int code) {
+    public ResPointsAwardTurntableSpin(int code) {
         super(code);
     }
 
@@ -33,5 +45,21 @@ public class ResPointAwardTurntableSpin extends AbstractResponse {
 
     public void setGridId(int gridId) {
         this.gridId = gridId;
+    }
+
+    public int getCount() {
+        return count;
+    }
+
+    public void setCount(int count) {
+        this.count = count;
+    }
+
+    public int getMaxCount() {
+        return maxCount;
+    }
+
+    public void setMaxCount(int maxCount) {
+        this.maxCount = maxCount;
     }
 }

@@ -7,12 +7,12 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 
 /**
- * 请求转盘旋转
+ * 请求获取积分大奖的积分
  */
 @ProtobufMessage(
         messageType = MessageConst.MessageTypeDef.HALL_TYPE,
-        cmd = PointsAwardConstant.Message.REQ_TURNTABLE
+        cmd = PointsAwardConstant.Message.REQ_POINT
 )
-@ProtoDesc("请求转盘旋转")
-public class ReqPointAwardTurntableSpin extends AbstractMessage {
+@ProtoDesc("请求获取积分大奖的积分")
+public class ReqPlayerPoint extends AbstractMessage {
 }

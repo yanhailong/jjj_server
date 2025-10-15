@@ -21,6 +21,8 @@ import java.util.List;
 public class RepsTexasRoomBaseInfo extends AbstractResponse {
     @ProtoDesc("阶段信息")
     public EGamePhase phase;
+    @ProtoDesc("阶段结束时间")
+    public long phaseEndTime;
     @ProtoDesc("玩家基础信息")
     public List<TexasPlayerInfo> playerInfos;
     @ProtoDesc("公牌")

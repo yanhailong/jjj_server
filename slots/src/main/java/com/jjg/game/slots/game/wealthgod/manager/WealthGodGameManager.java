@@ -2,17 +2,21 @@ package com.jjg.game.slots.game.wealthgod.manager;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BaseInitCfg;
 import com.jjg.game.sampledata.bean.BaseLineCfg;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.data.SlotsResultLib;
 import com.jjg.game.slots.data.SpecialAuxiliaryInfo;
+import com.jjg.game.slots.game.dollarexpress.data.TestLibData;
 import com.jjg.game.slots.game.wealthgod.WealthGodConstant;
 import com.jjg.game.slots.game.wealthgod.dao.WealthGodGameDataDao;
 import com.jjg.game.slots.game.wealthgod.dao.WealthGodResultLibDao;
@@ -25,10 +29,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Constructor;
+import java.util.*;
 
 /**
  *
@@ -275,5 +277,44 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
         //房间配置id
         int roomCfgId = player.getRoomCfgId();
         return getPoolValueByRoomCfgId(roomCfgId);
+    }
+
+    /**
+     * 添加测试icons
+     *
+     * @param playerController
+     */
+    public boolean addTestIconDataIcons(PlayerController playerController, String icons) {
+        WealthGodPlayerGameData playerGameData = getPlayerGameData(playerController);
+        if (playerGameData == null) {
+            return false;
+        }
+
+        try {
+            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+            int[] initArr = new int[baseInitCfg.getRows() * baseInitCfg.getCols() + 1];
+
+            String[] splitArr = icons.split(";");
+            String[] arr2 = splitArr[0].split(",");
+            for (int i = 1; i < initArr.length; i++) {
+                initArr[i] = Integer.parseInt(arr2[i - 1]);
+            }
+
+            Constructor<WealthGodResultLib> constructor = this.libClass.getConstructor();
+            WealthGodResultLib lib = constructor.newInstance();
+            lib.addLibType(1);
+            lib.setId(RandomUtils.getUUid());
+            lib.setSource(initArr);
+
+            TestLibData testLibData = new TestLibData();
+            SlotsResultLib resultLib = getGenerateManager().checkAward(initArr, lib);
+            testLibData.setData(resultLib);
+            playerGameData.addTestIconsData(testLibData);
+            log.info("添加测试icons成功 playerId = {},icons = {}", playerController.playerId(), icons);
+            return true;
+        } catch (Exception e) {
+            log.error("", e);
+        }
+        return false;
     }
 }

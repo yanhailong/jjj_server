@@ -21,6 +21,7 @@ import com.jjg.game.room.base.ERoomState;
 import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayFlowPojo;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.manager.AbstractRoomManager;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.services.RobotService;
@@ -34,6 +35,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -128,7 +130,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             //如果不在房间
             if (roomPlayer == null) {
                 // 检查加入逻辑
-                CommonResult<? extends Room> doResult = checkRoomCanJoin(playerController);
+                CommonResult<R> doResult = checkRoomCanJoin(playerController);
                 if (!doResult.success()) {
                     if (!playerController.isRobotPlayer()) {
                         log.warn("加入房间失败 gameType = {},roomId = {},playerId = {} 加入结果：{}",
@@ -140,10 +142,10 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                     result.code = doResult.code;
                     return result;
                 }
-                this.room = (R) doResult.data;
+                this.room = doResult.data;
                 // 此时游戏可能还未开始，需要游戏判断加入时逻辑
             } else if (!roomPlayer.isOnline()) {
-                roomPlayer.setOnline(true);
+                updateRoomPlayer(room.getGameType(), room.getId(), playerController.playerId(), (newRoomPlayer) -> newRoomPlayer.setOnline(true));
                 reconnect = true;
             } else {
                 log.error("玩家已经在房间中 roomId = {},playerId = {}", room.getId(), playerController.playerId());
@@ -205,13 +207,43 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                     room.getGameType(), room.getRoomCfgId(), room.getId(), room.getCreateTime());
         }
     }
+    /**
+     * 更新房间玩家信息
+     *
+     * @param gameType       游戏类型
+     * @param roomId         房间id
+     * @param playerId       玩家id
+     * @param updateFunction 更新函数
+     */
+    public void updateRoomPlayer(int gameType, long roomId, long playerId, Consumer<RoomPlayer> updateFunction) {
+        R r = roomDao.updateRoomPlayer(gameType, roomId, playerId, updateFunction);
+        if (r != null) {
+            setRoom(r);
+        }
+    }
+
+    /**
+     * 更新房间内的座位信息
+     *
+     * @param gamePlayer     游戏玩家数据
+     * @param newSitIndex    新座位id
+     * @param forcedExchange 是否强制交换
+     */
+    public boolean updateRoomPlayerSitInfo(GamePlayer gamePlayer, int newSitIndex, boolean forcedExchange) {
+        R r = roomDao.updateRoomPlayerSitInfo(gamePlayer.getGameType(), gamePlayer.getRoomId(), gamePlayer.getId(), newSitIndex, forcedExchange);
+        if (r != null) {
+            setRoom(r);
+            return true;
+        }
+        return false;
+    }
 
     /**
      * 检查房间的加入逻辑
      *
      * @param playerController 玩家控制器
      */
-    protected CommonResult<? extends Room> checkRoomCanJoin(PlayerController playerController) {
+    protected CommonResult<R> checkRoomCanJoin(PlayerController playerController) {
         R thatRoom = this.room;
         // 房间处于销毁流程中，不能加入
         if (roomState == ERoomState.ROOM_DESTROYING || roomState == ERoomState.ROOM_DESTROYED) {
@@ -730,5 +762,12 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
 
     public TaskManager getTaskManager() {
         return taskManager;
+    }
+
+    /**
+     * 加入房间成功之后,可以更新房间数据
+     */
+    public void onJoinRoomSuccessAfter(PlayerController playerController) {
+        gameController.onJoinRoomSuccessAfter(playerController);
     }
 }
