@@ -185,11 +185,6 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                 }
                 int point = BlackJackDataHelper.getTotalPoint(card);
                 if (point > BlackJackConstant.Common.PERFECT_POINT) {
-                    if (boom) {
-                        playerGet.merge(playerId, BlackJackDataHelper.getGetWinValue(betValue, blackjackCfg.getDraw()), Long::sum);
-                        settlementInfo.cardGroupState.add(2);
-                        continue;
-                    }
                     settlementInfo.cardGroupState.add(0);
                     continue;
                 }
