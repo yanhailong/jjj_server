@@ -90,6 +90,8 @@ public interface ActivityConstant {
         int MAX_RECODE_NUM = 20;
         //邮件id
         int MAIL_ID = 11;
+        //10分钟最大输入错误邀请码次数
+        int MAX_ERROR_TIMES = 3;
     }
 
     interface OfficialAwards {

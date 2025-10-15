@@ -14,10 +14,8 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * SharePromoteDao
@@ -40,10 +38,11 @@ public class SharePromoteDao {
     private final Logger log = LoggerFactory.getLogger(SharePromoteDao.class);
 
     // 随机码生成配置
-    private final String CHAR_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private final SecureRandom RANDOM = new SecureRandom();
-    private final int CODE_LENGTH = 12;
-
+    private final int CODE_LENGTH = 6;
+    private static final String DIGITS = "0123456789";
+    private static final String LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
+    private static final String UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     // Redis 模板
     private final RedisTemplate<String, String> redisTemplate;
     private final RedisTemplate<String, SharePromotePlayerData> playerDataRedisTemplate;
@@ -58,6 +57,7 @@ public class SharePromoteDao {
     private final String SHARE_PROMOTE_REWARDS_HISTORY_INCOME = "activity:sharepromote:historyincome:%d"; // 玩家历史总收益
     private final String SHARE_PROMOTE_PLAYER_INFO = "activity:sharepromote:player:%d";           // 玩家信息
     private final String SHARE_PROMOTE_LOCK = "activity:sharepromote:lock:%d";                    // 玩家操作锁
+    private final String SHARE_PROMOTE_ERROR_CODE_TIME = "activity:sharepromote:errorcodetime:%d";                    // 玩家邀请码输入错误下次能输入时间
 
     public SharePromoteDao(RedisTemplate<String, String> redisTemplate, RedisTemplate<String, SharePromotePlayerData> playerDataRedisTemplate) {
         this.redisTemplate = redisTemplate;
@@ -219,6 +219,31 @@ public class SharePromoteDao {
     }
 
     /**
+     * 玩家输入错误邀请码进行计时
+     * @param playerId 玩家id
+     */
+    private void addPlayerCodeErrorPrint(long playerId) {
+        String key = SHARE_PROMOTE_ERROR_CODE_TIME.formatted(playerId);
+        // 自增 Hash 字段
+        Long count = redisTemplate.opsForValue().increment(key, 1);
+        if (count != null && count == 1) {
+            // 设置 key 过期
+            redisTemplate.expire(key, 10, TimeUnit.SECONDS);
+        }
+    }
+
+    /**
+     * 获取玩家输入错误邀请码的次数
+     *
+     * @param playerId 玩家id
+     */
+    public int getPlayerCodeErrorPrint(long playerId) {
+        String key = SHARE_PROMOTE_ERROR_CODE_TIME.formatted(playerId);
+        String string = redisTemplate.opsForValue().get(key);
+        return string == null ? 0 : Integer.parseInt(string);
+    }
+
+    /**
      * 玩家绑定推广码
      *
      * @param playerId 请求绑定的玩家
@@ -228,7 +253,10 @@ public class SharePromoteDao {
     public int bindPlayer(long playerId, String code) {
         try {
             String createPlayerId = getHashOperations().get(SHARE_PROMOTE_CODE, code);
-            if (createPlayerId == null) return Code.CODE_ERROR;
+            if (createPlayerId == null) {
+                addPlayerCodeErrorPrint(playerId);
+                return Code.CODE_ERROR;
+            }
             if (playerId == Long.parseLong(createPlayerId)) {
                 return Code.BOUND_SELF;
             }
@@ -278,7 +306,7 @@ public class SharePromoteDao {
 
     /**
      * 生成全局唯一邀请码
-     * 12位随机大小写字母 + 数字
+     * 6位随机大小写字母 + 数字
      */
     public String generateUniqueCode(long playerId) {
         String code;
@@ -310,13 +338,25 @@ public class SharePromoteDao {
     }
 
     /**
-     * 生成随机 12 位码
+     * 生成随机 6 位码
      */
     private String generateCode() {
-        StringBuilder sb = new StringBuilder(CODE_LENGTH);
-        for (int i = 0; i < CODE_LENGTH; i++) {
-            int index = RANDOM.nextInt(CHAR_POOL.length());
-            sb.append(CHAR_POOL.charAt(index));
+        List<Character> captcha = new ArrayList<>();
+        // 1️⃣ 每类字符至少一个
+        captcha.add(DIGITS.charAt(RANDOM.nextInt(DIGITS.length())));
+        captcha.add(LOWERCASE.charAt(RANDOM.nextInt(LOWERCASE.length())));
+        captcha.add(UPPERCASE.charAt(RANDOM.nextInt(UPPERCASE.length())));
+        // 2️⃣ 剩余长度随机补充
+        String allChars = DIGITS + LOWERCASE + UPPERCASE;
+        for (int i = 3; i < CODE_LENGTH; i++) {
+            captcha.add(allChars.charAt(RANDOM.nextInt(allChars.length())));
+        }
+        // 3️⃣ 打乱顺序
+        Collections.shuffle(captcha, RANDOM);
+        // 4️⃣ 拼成字符串
+        StringBuilder sb = new StringBuilder();
+        for (char c : captcha) {
+            sb.append(c);
         }
         return sb.toString();
     }

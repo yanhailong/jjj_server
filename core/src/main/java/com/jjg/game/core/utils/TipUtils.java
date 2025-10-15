@@ -108,4 +108,15 @@ public class TipUtils {
         sendTip(playerId, tipType, () -> notice);
     }
 
+    /**
+     * 发送Toast提示消息给指定玩家ID
+     *
+     * @param playerId   玩家ID
+     * @param languageId 多语言ID
+     */
+    public static void sendToastTip(long playerId, long languageId) {
+        NoticeTip notice = NoticeTipBuilder.builder().languageId(languageId).build();
+        sendTip(playerId, TipType.TOAST, () -> notice);
+    }
+
 }
