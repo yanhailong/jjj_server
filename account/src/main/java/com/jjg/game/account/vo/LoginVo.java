@@ -6,7 +6,7 @@ package com.jjg.game.account.vo;
  */
 public class LoginVo {
     private String token;
-    private String gameserver;
+//    private String gameserver;
     private long playerId;
 
 
@@ -17,14 +17,14 @@ public class LoginVo {
     public void setToken(String token) {
         this.token = token;
     }
-
-    public String getGameserver() {
-        return gameserver;
-    }
-
-    public void setGameserver(String gameserver) {
-        this.gameserver = gameserver;
-    }
+//
+//    public String getGameserver() {
+//        return gameserver;
+//    }
+//
+//    public void setGameserver(String gameserver) {
+//        this.gameserver = gameserver;
+//    }
 
     public long getPlayerId() {
         return playerId;

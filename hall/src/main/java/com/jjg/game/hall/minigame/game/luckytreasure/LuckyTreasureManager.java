@@ -488,8 +488,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * 判断当前节点是否为主节点
      */
     private boolean isCurrentNodeMaster() {
-        return true;
-//        return marsCurator.isMaster();
+//        return true;
+        return marsCurator.isMaster();
     }
 
     /**

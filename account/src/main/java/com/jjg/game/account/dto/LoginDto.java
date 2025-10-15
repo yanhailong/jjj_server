@@ -5,8 +5,30 @@ package com.jjg.game.account.dto;
  * @date 2025/9/12 10:26
  */
 public class LoginDto {
+    //登录类型
+    private int loginType;
+    //数据
+    private String data;
+    //mac地址
     private String mac;
+    //渠道
     private int channel;
+
+    public int getLoginType() {
+        return loginType;
+    }
+
+    public void setLoginType(int loginType) {
+        this.loginType = loginType;
+    }
+
+    public String getData() {
+        return data;
+    }
+
+    public void setData(String data) {
+        this.data = data;
+    }
 
     public String getMac() {
         return mac;

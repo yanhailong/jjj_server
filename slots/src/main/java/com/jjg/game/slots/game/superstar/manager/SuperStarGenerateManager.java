@@ -16,6 +16,7 @@ import com.jjg.game.slots.manager.AbstractSlotsGenerateManager;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,11 +44,6 @@ public class SuperStarGenerateManager extends AbstractSlotsGenerateManager<Super
                 int addTimes = otherIconList.get(2);
                 awardLineInfo.addSpecialAwardInfo(iconId, addTimes);
             }
-        }
-        int jackpotId = rewardCfg.getJackpotID();
-        //触发jackpot
-        if (jackpotId > 0) {
-            awardLineInfo.setJackpotId(jackpotId);
         }
         return awardLineInfo;
     }
@@ -100,22 +96,53 @@ public class SuperStarGenerateManager extends AbstractSlotsGenerateManager<Super
         return times;
     }
 
-    @Override
-    protected SuperStarAwardLineInfo addDispersionLineCountAwardInfo(Map<Integer, Integer> countMap, BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int icon, int count) {
+    /**
+     * 检查连线_分散_数量
+     *
+     * @param lib
+     * @return
+     */
+    protected List<SuperStarAwardLineInfo> lineDispersionCount(SuperStarResultLib lib) {
+        int[] arr = lib.getIconArr();
+        //获取连线_分散_数量的配置
+        Map<Integer, BaseElementRewardCfg> dispersionLineCountCfgMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE);
+        if (dispersionLineCountCfgMap == null || dispersionLineCountCfgMap.isEmpty()) {
+            return null;
+        }
+        List<SuperStarAwardLineInfo> resultList = new ArrayList<>();
+        log.debug("开始检测 连线_分散_数量");
+        //遍历所有中奖线配置
+        GameDataManager.getBaseLineCfgList().stream()
+                .filter(cfg -> cfg.getGameType() == this.gameType)
+                .forEach(baseLineCfg -> {
+                    List<Integer> posLocation = baseLineCfg.getPosLocation();
+                    //k:图标id -> v:图标数量
+                    Map<Integer, Integer> countMap = new HashMap<>();
+                    posLocation.forEach(location -> {
+                        int icon = arr[location];
+                        countMap.merge(icon, 1, Integer::sum);
+                    });
+                    //根据图标id和数量查看奖励配置是否存在
+                    countMap.forEach((icon, count) -> dispersionLineCountCfgMap.values().stream()
+                            .filter(cfg -> cfg.getElementId().contains(icon) && cfg.getRewardNum() == count)
+                            .forEach(cfg -> {
+                                SuperStarAwardLineInfo rewardInfo = addDispersionLineCountAwardInfo(lib, baseLineCfg, cfg, count);
+                                resultList.add(rewardInfo);
+                            }));
+                });
+        return resultList;
+    }
+
+    private SuperStarAwardLineInfo addDispersionLineCountAwardInfo(SuperStarResultLib lib, BaseLineCfg baseLineCfg, BaseElementRewardCfg rewardCfg, int count) {
         SuperStarAwardLineInfo awardLineInfo = new SuperStarAwardLineInfo();
         awardLineInfo.setSameCount(count);
         awardLineInfo.setLineId(baseLineCfg.getLineId());
         awardLineInfo.setBaseTimes(rewardCfg.getBet());
-        //出现其他图案的额外倍数
-//        for (List<Integer> otherIconList : rewardCfg.getBetTimes()) {
-//            int iconId = otherIconList.get(0);
-//            //该元素在这条线上出现的次数
-//            long showCount = countMap.getOrDefault(iconId, 0);
-//            if (showCount == otherIconList.get(1)) {
-//                int addTimes = otherIconList.get(2);
-//                awardLineInfo.addSpecialAwardInfo(iconId, addTimes);
-//            }
-//        }
+        int jackpotId = rewardCfg.getJackpotID();
+        //触发jackpot
+        if (jackpotId > 0) {
+            lib.setJackpotId(jackpotId);
+        }
         return awardLineInfo;
     }
 

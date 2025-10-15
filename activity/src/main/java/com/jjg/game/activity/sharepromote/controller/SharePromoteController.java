@@ -119,7 +119,7 @@ public class SharePromoteController extends BaseActivityController {
             //发送日志
             activityLogger.sendSharePromoteAddRewards(beneficiaryPlayer, activityData, 1,
                     addValue, 0, 0, 0);
-            activityLogger.sendSharePromoteSubordinateRecharge(player, activityData, progress, addValue);
+            activityLogger.sendSharePromoteSubordinateRecharge(player, activityData, beneficiaryPlayerId, progress, addValue);
         }
         return false;
     }
@@ -227,7 +227,7 @@ public class SharePromoteController extends BaseActivityController {
             if (save) {
                 //发送日志
                 activityLogger.sendSharePromoteAddRewards(playerController.getPlayer(), activityData, 2,
-                        2, 1, 0, 0, 0, playerId);
+                        0, 1, 0, 0, 0, 1);
                 //修改活动状态
                 checkActivityStatus(playerController.getPlayer(), activityData, playerInfoData.getBindCount(), bindBefore);
             }
