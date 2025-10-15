@@ -282,16 +282,24 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     @Override
     public final GamePlayer onPlayerJoinRoom(PlayerController playerController, boolean gameStartStatus) {
         GamePlayer gamePlayer = super.onPlayerJoinRoom(playerController, gameStartStatus);
-        RoomPlayer roomPlayer = getRoom().getRoomPlayers().get(gamePlayer.getId());
         PokerPlayerGameData pokerPlayerGameData = new PokerPlayerGameData();
         pokerPlayerGameData.setJoinTime(System.currentTimeMillis());
         gamePlayer.setPokerPlayerGameData(pokerPlayerGameData);
+        return gamePlayer;
+    }
+
+    @Override
+    public final void onJoinRoomSuccessAfter(PlayerController playerController) {
+        GamePlayer gamePlayer = getGamePlayer(playerController.playerId());
+        RoomPlayer roomPlayer = getRoom().getRoomPlayers().get(playerController.playerId());
         //存放座位信息 如果座位有人了随便找一个 找不到
         Map<Integer, SeatInfo> seatInfoList = gameDataVo.getSeatInfo();
         int seatDown = isSeatDown(seatInfoList, playerController.playerId());
         if (seatDown != -1) {
-            roomPlayer.setSit(seatDown);
-            return gamePlayer;
+            if (seatDown != roomPlayer.getSit()) {
+                roomController.updateRoomPlayerSitInfo(gamePlayer, seatDown, false);
+            }
+            return;
         }
         try {
             onPlayerJoinRoomAction(gamePlayer);
@@ -306,12 +314,12 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                 if (!seatInfoList.containsKey(i)) {
                     roomPlayer.setSit(i);
                     seatInfoList.put(roomPlayer.getSit(), getSeatInfo(gamePlayer, roomPlayer));
+                    roomController.updateRoomPlayerSitInfo(gamePlayer, roomPlayer.getSit(), false);
                     break;
                 }
             }
         }
         onRobotPlayerJoinRoom(playerController, gamePlayer);
-        return gamePlayer;
     }
 
     /**
@@ -322,14 +330,27 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
      */
     public void onRobotPlayerJoinRoom(PlayerController playerController, GamePlayer gamePlayer) {
         if (gamePlayer instanceof GameRobotPlayer gameRobotPlayer) {
+            RobotCfg robotCfg = GameDataManager.getRobotCfg((int) gameRobotPlayer.getId());
+            List<List<Integer>> chessRobotID = robotCfg.getChessRobotID();
+            WeightRandom<Integer> random = new WeightRandom<>();
+            for (List<Integer> robotId : chessRobotID) {
+                random.add(robotId.getLast(), robotId.getFirst());
+            }
+            Integer strategyId = random.next();
+            for (ChessRobotCfg cfg : GameDataManager.getChessRobotCfgList()) {
+                if (cfg.getActionID() == strategyId && cfg.getGameID() == getRoom().getRoomCfgId()) {
+                    gameRobotPlayer.setActionId(cfg.getId());
+                    break;
+                }
+            }
             switch (this) {
-                case TexasGameController controller->{
+                case TexasGameController controller -> {
                     respRoomInitInfo(playerController);
                     int chessExecutionDelay = RobotUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
                     TexasRobotHandler handler = new TexasRobotHandler(gameRobotPlayer, TexasRobotHandler.GO_READY, controller, 10000);
                     RobotUtil.schedule(getRoomController(), handler, chessExecutionDelay);
                 }
-                case BlackJackGameController controller->{
+                case BlackJackGameController controller -> {
                     respRoomInitInfo(playerController);
                     int chessExecutionDelay = RobotUtil.getChessExecutionDelay(gameRobotPlayer.getActionId());
                     BlackJackRobotHandler handler = new BlackJackRobotHandler(gameRobotPlayer, BlackJackRobotHandler.BET, controller, 10000);
@@ -338,7 +359,6 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                 default -> {
                 }
             }
- 
         }
     }
 
@@ -352,21 +372,6 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
     }
 
     public void onPlayerJoinRoomAction(GamePlayer gamePlayer) {
-        if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
-            RobotCfg robotCfg = GameDataManager.getRobotCfg((int) robotPlayer.getId());
-            List<List<Integer>> chessRobotID = robotCfg.getChessRobotID();
-            WeightRandom<Integer> random = new WeightRandom<>();
-            for (List<Integer> robotId : chessRobotID) {
-                random.add(robotId.getLast(), robotId.getFirst());
-            }
-            Integer strategyId = random.next();
-            for (ChessRobotCfg cfg : GameDataManager.getChessRobotCfgList()) {
-                if (cfg.getActionID() == strategyId && cfg.getGameID() == getRoom().getRoomCfgId()) {
-                    robotPlayer.setActionId(cfg.getId());
-                    break;
-                }
-            }
-        }
     }
 
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {

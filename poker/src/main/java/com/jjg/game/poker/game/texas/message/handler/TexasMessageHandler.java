@@ -23,8 +23,8 @@ import com.jjg.game.sampledata.bean.RoomCfg;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /**
  * @author lm
@@ -55,12 +55,8 @@ public class TexasMessageHandler {
             TexasGameDataVo gameDataVo = controller.getGameDataVo();
             NotifyTexasSeatStateChange change = new NotifyTexasSeatStateChange();
             //获取座位信息
-            SeatInfo seatInfo = null;
-            for (SeatInfo tempSeatInfo : gameDataVo.getSeatInfo().values()) {
-                if (tempSeatInfo.getPlayerId() == playerId) {
-                    seatInfo = tempSeatInfo;
-                }
-            }
+            RoomPlayer roomPlayer = controller.getRoomController().getRoomPlayer(playerId);
+            SeatInfo seatInfo = gameDataVo.getSeatInfo().get(roomPlayer.getSit());
             if (Objects.isNull(seatInfo) || seatInfo.getPlayerId() != playerId) {
                 change.code = Code.PARAM_ERROR;
                 controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
@@ -82,10 +78,8 @@ public class TexasMessageHandler {
                 boolean state = reqTexasChangeSeatState.param == 1;
                 //坐下
                 if (state) {
-                    //游戏正在进行中
-                    if (controller.inRunPhase()) {
-                        change.code = Code.FORBID;
-                        controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
+                    //已经坐下不处理
+                    if (seatInfo.isSeatDown()) {
                         return;
                     }
                     //判断货币是否能够坐下
@@ -120,7 +114,6 @@ public class TexasMessageHandler {
                     controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(change));
                     return;
                 }
-
                 return;
             } else if (reqTexasChangeSeatState.changeType == 2) {
                 //改变座位id 当前局还未结束
@@ -158,33 +151,44 @@ public class TexasMessageHandler {
     public NotifyTexasSeatStateChange swapSeat(TexasGameController controller, SeatInfo seatInfo, GamePlayer gamePlayer, int srcSeatId) {
         TexasGameDataVo gameDataVo = controller.getGameDataVo();
         NotifyTexasSeatStateChange change = new NotifyTexasSeatStateChange();
-        Map<Long, RoomPlayer> roomPlayers = controller.getRoom().getRoomPlayers();
         //如果有人交换位置
         //判断目标座位是否有人
-        SeatInfo srcSeatInfo = gameDataVo.getSeatInfo().get(srcSeatId);
+        TreeMap<Integer, SeatInfo> seatInfoTreeMap = gameDataVo.getSeatInfo();
+        SeatInfo srcSeatInfo = seatInfoTreeMap.get(srcSeatId);
         if (Objects.nonNull(srcSeatInfo)) {
             if (srcSeatInfo.isSeatDown()) {
                 change.code = Code.FORBID;
                 return change;
             }
-            RoomPlayer roomPlayer = roomPlayers.get(srcSeatInfo.getPlayerId());
-            addNewSeatInfo(roomPlayer, srcSeatInfo, seatInfo.getSeatId(), gameDataVo);
         }
-        //换座位
-        RoomPlayer roomPlayer = roomPlayers.get(seatInfo.getPlayerId());
-        SeatInfo newSeatInfo = addNewSeatInfo(roomPlayer, seatInfo, srcSeatId, gameDataVo);
-        change.playerChange = PokerBuilder.buildPlayerInfoList(gamePlayer, newSeatInfo, controller);
+        if (!controller.getRoomController().updateRoomPlayerSitInfo(gamePlayer, srcSeatId, true)) {
+            change.code = Code.UNKNOWN_ERROR;
+            return change;
+        }
+        //交换
+        if (srcSeatInfo == null) {
+            seatInfoTreeMap.remove(seatInfo.getSeatId());
+            seatInfo.setSeatId(srcSeatId);
+            seatInfo.setSeatDown(true);
+            seatInfoTreeMap.put(srcSeatId, seatInfo);
+        } else {
+            //交换座位
+            //设置目标的座位
+            srcSeatInfo.setSeatId(seatInfo.getSeatId());
+            seatInfoTreeMap.put(srcSeatInfo.getSeatId(), srcSeatInfo);
+            //设置要交换的座位
+            seatInfo.setSeatId(srcSeatId);
+            seatInfo.setSeatDown(true);
+            seatInfoTreeMap.put(seatInfo.getSeatId(), seatInfo);
+        }
+        change.playerChange = PokerBuilder.buildPlayerInfoList(gamePlayer, seatInfo, controller);
         return change;
     }
 
-    private static SeatInfo addNewSeatInfo(RoomPlayer roomPlayer, SeatInfo seatInfo, int srcSeatId, TexasGameDataVo gameDataVo) {
-        roomPlayer.setSit(srcSeatId);
-        gameDataVo.getSeatInfo().remove(seatInfo.getSeatId());
-        SeatInfo newSeatInfo = new SeatInfo();
-        newSeatInfo.setPlayerId(seatInfo.getPlayerId());
-        newSeatInfo.setJoinGame(seatInfo.isJoinGame());
+    private static SeatInfo addNewSeatInfo(SeatInfo seatInfo, int srcSeatId, boolean seatDown, TexasGameDataVo gameDataVo) {
+        SeatInfo newSeatInfo = gameDataVo.getSeatInfo().remove(seatInfo.getSeatId());
         newSeatInfo.setSeatId(srcSeatId);
-        newSeatInfo.setSeatDown(true);
+        newSeatInfo.setSeatDown(seatDown);
         gameDataVo.getSeatInfo().put(srcSeatId, newSeatInfo);
         return newSeatInfo;
     }

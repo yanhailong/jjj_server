@@ -377,7 +377,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 roomController = createRoomController(room, roomCfg);
                 registerRoomController(gameType, roomId, roomController);
             }
-
             //roomController不为空，那么room就是在本节点
             CommonResult<R> addResult = roomController.joinRoom(playerController);
             if (!addResult.success()) {
@@ -385,6 +384,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             }
             R room = addResult.data;
             roomController.setRoom(room);
+            //加入成功后还需要更新房间信息
+            roomController.onJoinRoomSuccessAfter(playerController);
             boolean isRobot = playerController.getPlayer() instanceof RobotPlayer;
             if (!isRobot) {
                 playerController.setPlayer(playerService.doSave(playerController.playerId(), p -> p.setRoomId(roomId)));
@@ -465,9 +466,11 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                         playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
                 return;
             }
-            roomPlayer.setOnline(false);
             // 房间断线逻辑
             roomController.disconnected(playerController);
+            //更新在线状态
+            roomController.updateRoomPlayer(playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId(),
+                    (newRoomPlayer) -> newRoomPlayer.setOnline(false));
         } catch (Exception e) {
             log.error("掉线退出时异常：{}", e.getMessage(), e);
         }
@@ -734,7 +737,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         if (tempMap == null || tempMap.isEmpty()) {
             return null;
         }
-
         return (AbstractRoomController<RC, R>) tempMap.get(roomId);
     }
 
@@ -745,7 +747,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
             int gameType, long roomId, AbstractRoomController<RC, R> roomController) {
         this.roomControllerMap
                 .computeIfAbsent(gameType, k -> new ConcurrentHashMap<>())
-                .computeIfAbsent(roomId, k -> roomController);
+                .putIfAbsent(roomId, roomController);
     }
 
     /**

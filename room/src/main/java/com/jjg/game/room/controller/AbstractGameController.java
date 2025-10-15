@@ -759,4 +759,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     public TaskManager getTaskManager() {
         return taskManager;
     }
+
+    public void onJoinRoomSuccessAfter(PlayerController playerController) {
+    }
 }

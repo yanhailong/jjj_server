@@ -86,6 +86,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     public void respRoomInitInfoAction(PlayerController playerController) {
         RepsTexasRoomBaseInfo repsTexasRoomBaseInfo = new RepsTexasRoomBaseInfo(Code.SUCCESS);
         repsTexasRoomBaseInfo.phase = getCurrentGamePhase();
+        repsTexasRoomBaseInfo.phaseEndTime= gameDataVo.getPhaseEndTime();
         if (getCurrentGamePhase() != EGamePhase.WAIT_READY && getCurrentGamePhase() != EGamePhase.START_GAME) {
             if (Objects.nonNull(gameDataVo.getPublicCards())) {
                 repsTexasRoomBaseInfo.publicCards = TexasDataHelper.getClientId(gameDataVo,
