@@ -296,6 +296,7 @@ public class ActivityData {
                     if (nextOpenTime != null) {
                         data.setTimeStart(TimeHelper.getTimestamp(nextOpenTime.getFirst()));
                         data.setTimeEnd(TimeHelper.getTimestamp(nextOpenTime.getSecond()));
+                        offset =  nextOpenTime.getSecond();
                     }
                 } while (currentTimeMillis >= data.getTimeEnd());
             }
