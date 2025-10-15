@@ -1,8 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
 import javax.annotation.processing.Generated;
+import java.util.List;
 /**
  * 配置bean
  *
@@ -36,6 +35,8 @@ public class Room_BetCfg extends RoomCfg {
   protected int WaitTime;
   /** 中奖时扣除比例万分比 */
   protected int WinRatio;
+  /** 是否允许庄家参与游戏 */
+  protected int bankerBets;
   /** 押分筹码列表 */
   protected List<Integer> betList;
   /** 游戏ID */
@@ -100,6 +101,11 @@ public class Room_BetCfg extends RoomCfg {
   /** 返回中奖时扣除比例万分比 */
   public int getWinRatio() {
     return WinRatio;
+  }
+
+  /** 返回是否允许庄家参与游戏 */
+  public int getBankerBets() {
+    return bankerBets;
   }
 
   /** 返回押分筹码列表 */
