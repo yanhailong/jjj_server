@@ -39,6 +39,12 @@ public class ResLoadLeaderboard extends AbstractResponse {
     @ProtoDesc("排行数据")
     private PointsAwardLeaderboardData rankingData;
 
+    /**
+     * 玩家自己的名次 -1未上榜
+     */
+    @ProtoDesc("玩家自己的名次  -1未上榜")
+    private int selfIndex;
+
     public ResLoadLeaderboard(int code) {
         super(code);
     }
@@ -65,5 +71,13 @@ public class ResLoadLeaderboard extends AbstractResponse {
 
     public void setRankingData(PointsAwardLeaderboardData rankingData) {
         this.rankingData = rankingData;
+    }
+
+    public int getSelfIndex() {
+        return selfIndex;
+    }
+
+    public void setSelfIndex(int selfIndex) {
+        this.selfIndex = selfIndex;
     }
 }

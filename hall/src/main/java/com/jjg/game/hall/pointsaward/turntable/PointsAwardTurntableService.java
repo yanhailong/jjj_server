@@ -2,6 +2,7 @@ package com.jjg.game.hall.pointsaward.turntable;
 
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.data.Order;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.pointsaward.PointsAwardService;
@@ -12,6 +13,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.PointsAwardTurntableCfg;
 import org.redisson.api.RDeque;
+import org.redisson.api.RLock;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.*;
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -50,6 +53,10 @@ public class PointsAwardTurntableService {
      * 通过充值增加的转盘次数
      */
     private RMap<Long, Integer> addCountMap;
+    /**
+     * 玩家累计充值金额
+     */
+    private RMap<Long, Long> rechargeMap;
 
     public PointsAwardTurntableService(PointsAwardService pointsAwardService,
                                        PlayerPackService playerPackService,
@@ -61,12 +68,21 @@ public class PointsAwardTurntableService {
 
     public void init() {
         initConfig();
+        initMap();
+    }
+
+    public void initMap() {
+        //0点过期
+        Duration nextTime = getNextTime();
         countMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_COUNT);
+        countMap.clear();
+        countMap.expire(nextTime);
         addCountMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_ADD_COUNT);
-        if (countMap != null) {
-            countMap.expire(getNextTime());
-            addCountMap.expire(getNextTime());
-        }
+        addCountMap.clear();
+        addCountMap.expire(nextTime);
+        rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_PLAYER_RECHARGE);
+        rechargeMap.clear();
+        rechargeMap.expire(nextTime);
     }
 
     /**
@@ -78,6 +94,8 @@ public class PointsAwardTurntableService {
             //重新初始化配置
             initConfig();
         }
+        //重置数据
+        initMap();
     }
 
     /**
@@ -270,4 +288,49 @@ public class PointsAwardTurntableService {
         return maxCount + addCount;
     }
 
+    /**
+     * 增加玩家转盘次数
+     *
+     * @param playerId 玩家id
+     * @param count    增加次数
+     */
+    public void addCount(long playerId, int count) {
+        RLock lock = addCountMap.getReadWriteLock(playerId).writeLock();
+        if (lock.tryLock()) {
+            addCountMap.put(playerId, addCountMap.getOrDefault(playerId, 0) + count);
+            lock.unlock();
+        }
+    }
+
+    /**
+     * 玩家累计充值金额
+     *
+     * @param playerId 玩家id
+     */
+    public long getRecharge(long playerId) {
+        return rechargeMap.getOrDefault(playerId, 0L);
+    }
+
+    /**
+     * 玩家充值
+     *
+     * @param order 订单信息
+     */
+    public void recharge(Order order) {
+        long playerId = order.getPlayerId();
+        long price = order.getPrice();
+        BiConsumer<Long, Long> success = (rechargePlayerId, result) -> {
+            //TODO:根据配置计算增加多少次
+            addCount(rechargePlayerId, 1);
+        };
+        RLock lock = rechargeMap.getReadWriteLock(playerId).writeLock();
+        if (lock.tryLock()) {
+            long resultValue = getRecharge(playerId) + price;
+            //增加玩家充值金额
+            rechargeMap.put(playerId, resultValue);
+            lock.unlock();
+            //增加转盘次数
+            success.accept(playerId, resultValue);
+        }
+    }
 }

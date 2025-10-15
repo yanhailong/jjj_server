@@ -118,11 +118,15 @@ public class PointsAwardLeaderboardManager {
         String name = null;
         LocalDate date = LocalDate.ofInstant(Instant.ofEpochMilli(endTime), ZoneId.systemDefault());
         if (rankType == PointsAwardConstant.Leaderboard.AM) {
-            name = date + PointsAwardConstant.Leaderboard.RANK_NAME_AM;
+            name = date + PointsAwardConstant.Leaderboard.NAME + PointsAwardConstant.Leaderboard.RANK_NAME_AM;
         } else if (rankType == PointsAwardConstant.Leaderboard.PM) {
-            name = date + PointsAwardConstant.Leaderboard.RANK_NAME_PM;
+            name = date + PointsAwardConstant.Leaderboard.NAME + PointsAwardConstant.Leaderboard.RANK_NAME_PM;
         } else if (rankType == PointsAwardConstant.Leaderboard.TYPE_MONTH) {
-            name = date.toString();
+            // 本月第一天
+            LocalDate firstDay = date.withDayOfMonth(1);
+            // 本月最后一天
+            LocalDate lastDay = date.withDayOfMonth(date.lengthOfMonth());
+            name = firstDay + PointsAwardConstant.Leaderboard.NAME + lastDay;
         }
         return name;
     }

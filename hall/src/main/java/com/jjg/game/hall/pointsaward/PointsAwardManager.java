@@ -1,10 +1,7 @@
 package com.jjg.game.hall.pointsaward;
 
 import com.jjg.game.common.cluster.ClusterSystem;
-import com.jjg.game.core.base.gameevent.ClockEvent;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
+import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.task.service.TaskService;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardManager;
 import com.jjg.game.hall.pointsaward.signin.PointsAwardSignInManager;
@@ -77,6 +74,10 @@ public class PointsAwardManager implements GameEventListener {
             }
             pointsAwardLeaderboardManager.clock(hour);
         }
+        //玩家充值事件
+        else if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent rechargeEvent) {
+            pointsAwardTurntableService.recharge(rechargeEvent.getOrder());
+        }
     }
 
     /**
@@ -86,6 +87,6 @@ public class PointsAwardManager implements GameEventListener {
      */
     @Override
     public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.CLOCK_EVENT);
+        return List.of(EGameEventType.CLOCK_EVENT, EGameEventType.RECHARGE);
     }
 }
