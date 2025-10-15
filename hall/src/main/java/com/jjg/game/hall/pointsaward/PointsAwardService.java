@@ -3,10 +3,6 @@ package com.jjg.game.hall.pointsaward;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
-import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.core.base.player.IPlayerLoginSuccess;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
 import com.jjg.game.hall.pointsaward.pb.res.NotifySyncPlayerPoint;
@@ -22,11 +18,9 @@ import java.util.function.Supplier;
 
 /**
  * 积分大奖积分服务
- * <p>
- * <span style="color:red">修改积分值,只能通过{@link PointsAwardService#add(long, int)}或者{@link PointsAwardService#deduct(long, int, java.util.function.Predicate)}</span>
  */
 @Service
-public class PointsAwardService implements IPlayerLoginSuccess {
+public class PointsAwardService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -34,8 +28,6 @@ public class PointsAwardService implements IPlayerLoginSuccess {
     private final PointsAwardLeaderboardService leaderboardService;
     private final RedisLock redisLock;
     private final ClusterSystem clusterSystem;
-
-    // 锁持有时间使用常量集中管理
 
     public PointsAwardService(RedissonClient redissonClient,
                               @Lazy ClusterSystem clusterSystem,
@@ -45,20 +37,6 @@ public class PointsAwardService implements IPlayerLoginSuccess {
         this.clusterSystem = clusterSystem;
         this.leaderboardService = leaderboardService;
         this.redisLock = redisLock;
-    }
-
-    /**
-     * 玩家登录成功事件
-     *
-     * @param playerController 玩家信息
-     * @param player
-     * @param firstLogin       是否是首次登录
-     * @return true 继续执行 false终止执行
-     */
-    @Override
-    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
-        int randomNumInt100 = RandomUtils.getRandomNumInt10000();
-        add(playerController.playerId(), randomNumInt100);
     }
 
     /**
