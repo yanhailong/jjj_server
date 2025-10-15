@@ -21,8 +21,6 @@ import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.DefaultTaskConditionParam;
 import com.jjg.game.core.task.pb.Task;
 import com.jjg.game.core.task.pb.TaskCondition;
-import com.jjg.game.core.task.pb.TaskJump;
-import com.jjg.game.core.task.pb.TaskReward;
 import com.jjg.game.core.task.pb.res.NotifyUpdateTask;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.TaskCfg;
@@ -375,14 +373,8 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
     public Task assembleTask(TaskData taskData, TaskCfg config) {
         Task task = new Task();
         task.setConfigId(config.getId());
-        //任务奖励
-        task.setRewards(taskRewards(config));
-        //任务跳转类型
-        task.setJumps(taskJump(config));
         //任务状态
         task.setStatus(taskData.getStatus());
-        //图标
-        task.setTaskIcon(config.getTaskIcon());
         //任务条件
         task.setConditions(assembleTaskConditions(taskData, config));
         return task;
@@ -399,46 +391,6 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
         if (pfSession != null) {
             pfSession.send(updateTask);
         }
-    }
-
-    /**
-     * 任务奖励
-     *
-     * @param taskCfg 任务配置
-     * @return 任务奖励消息体
-     */
-    private List<TaskReward> taskRewards(TaskCfg taskCfg) {
-        List<TaskReward> rewards = new ArrayList<>();
-        List<Integer> getItem = taskCfg.getGetItem();
-        if (getItem != null && !getItem.isEmpty()) {
-            for (int i = 0; i < getItem.size(); i += 2) {
-                TaskReward reward = new TaskReward();
-                reward.setItemId(getItem.get(i));
-                reward.setItemNum(getItem.get(i + 1));
-                rewards.add(reward);
-            }
-        }
-        return rewards;
-    }
-
-    /**
-     * 任务跳转
-     *
-     * @param taskCfg 任务配置
-     * @return 任务跳转消息体
-     */
-    private List<TaskJump> taskJump(TaskCfg taskCfg) {
-        List<TaskJump> jumps = new ArrayList<>();
-//        List<Integer> jumpType = taskCfg.getJumpType();
-//        if (jumpType != null && !jumpType.isEmpty()) {
-//            for (int i = 0; i < jumpType.size(); i += 2) {
-//                TaskJump jump = new TaskJump();
-//                jump.setType(jumpType.get(i));
-//                jump.setValue(jumpType.get(i + 1));
-//                jumps.add(jump);
-//            }
-//        }
-        return jumps;
     }
 
     /**
