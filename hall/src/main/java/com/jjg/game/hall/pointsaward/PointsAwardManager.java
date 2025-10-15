@@ -6,6 +6,7 @@ import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.task.service.TaskService;
+import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardManager;
 import com.jjg.game.hall.pointsaward.signin.PointsAwardSignInManager;
 import com.jjg.game.hall.pointsaward.turntable.PointsAwardTurntableService;
 import org.springframework.stereotype.Component;
@@ -29,6 +30,11 @@ public class PointsAwardManager implements GameEventListener {
     private final PointsAwardSignInManager pointsAwardSignInManager;
 
     /**
+     * 排行榜管理器
+     */
+    private final PointsAwardLeaderboardManager pointsAwardLeaderboardManager;
+
+    /**
      * 任务服务
      */
     private final TaskService taskService;
@@ -37,16 +43,19 @@ public class PointsAwardManager implements GameEventListener {
     public PointsAwardManager(PointsAwardTurntableService pointsAwardTurntableService,
                               PointsAwardSignInManager pointsAwardSignInManager,
                               ClusterSystem clusterSystem,
+                              PointsAwardLeaderboardManager pointsAwardLeaderboardManager,
                               TaskService taskService) {
         this.pointsAwardTurntableService = pointsAwardTurntableService;
         this.pointsAwardSignInManager = pointsAwardSignInManager;
         this.taskService = taskService;
+        this.pointsAwardLeaderboardManager = pointsAwardLeaderboardManager;
         this.clusterSystem = clusterSystem;
     }
 
     public void init() {
         pointsAwardSignInManager.init();
         pointsAwardTurntableService.init();
+        pointsAwardLeaderboardManager.init();
     }
 
 
@@ -66,6 +75,7 @@ public class PointsAwardManager implements GameEventListener {
                 //检测玩家任务
                 clusterSystem.getAllOnlinePlayerId().forEach(taskService::checkTask);
             }
+            pointsAwardLeaderboardManager.clock(hour);
         }
     }
 

@@ -6,13 +6,10 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 
-/**
- * 请求转盘数据
- */
 @ProtobufMessage(
         messageType = MessageConst.MessageTypeDef.HALL_TYPE,
-        cmd = PointsAwardConstant.Message.REQ_TURNTABLE_CONFIG
+        cmd = PointsAwardConstant.Message.REQ_TURNTABLE_HISTORY
 )
-@ProtoDesc("请求转盘数据")
-public class ReqPointAwardTurntableConfig extends AbstractMessage {
+@ProtoDesc("请求转盘历史记录")
+public class ReqPointsAwardTurntableHistory extends AbstractMessage {
 }

@@ -57,6 +57,19 @@ public class ItemUtils {
         return items;
     }
 
+    public static List<Item> buildItemsByStrList(List<String> itemList) {
+        List<Item> items = new ArrayList<>();
+        for (int i = 0; i < itemList.size(); i += 2) {
+            Item item = new Item();
+            int id = Integer.parseInt(itemList.get(i));
+            long count = Long.parseLong(itemList.get(i + 1));
+            item.setId(id);
+            item.setItemCount(count);
+            items.add(item);
+        }
+        return items;
+    }
+
 
     public static ItemInfo buildItemInfo(int itemId, long count) {
         ItemInfo info = new ItemInfo();
