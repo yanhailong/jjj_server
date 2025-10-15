@@ -1,5 +1,6 @@
 package com.jjg.game.core.dao.room;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.Snowflake;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
@@ -20,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -188,8 +190,9 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
      * 保存方法
      */
     public CommonResult<T> doSave(T room, DataSaveCallback<T> roomCallback) {
-        return (CommonResult<T>) doSave(room.getGameType(), room.getId(), roomCallback);
+        return doSave(room.getGameType(), room.getId(), roomCallback);
     }
+
 
     /**
      * 保存方法
@@ -200,8 +203,8 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         try {
             T room = getRoom(gameType, roomId);
-            Boolean updateDataWithRes = roomCallback.updateDataWithRes(room);
-            if (updateDataWithRes != null && updateDataWithRes) {
+            boolean updateDataWithRes = roomCallback.updateDataWithRes(room);
+            if (updateDataWithRes) {
                 saveRoom(room);
                 result.data = room;
             } else {
@@ -257,6 +260,107 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
             return null;
         } catch (Exception e) {
             log.warn("从房间移除玩家数据异常,gameType = {},roomId = {},playerId = {}", gameType, roomId, playerId, e);
+        } finally {
+            redisLock.unlock(key);
+        }
+        return null;
+    }
+
+    /**
+     * 更新房间玩家信息
+     *
+     * @param gameType       游戏类型
+     * @param roomId         房间id
+     * @param playerId       玩家id
+     * @param updateFunction 更新函数
+     * @return 更新后的房间数据
+     */
+    public T updateRoomPlayer(int gameType, long roomId, long playerId, Consumer<RoomPlayer> updateFunction) {
+        String key = getLockName(gameType, roomId);
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            T room = getRoom(gameType, roomId);
+            if (room != null) {
+                Map<Long, RoomPlayer> roomPlayers = room.getRoomPlayers();
+                if (CollectionUtil.isEmpty(roomPlayers)) {
+                    return null;
+                }
+                RoomPlayer roomPlayer = roomPlayers.get(playerId);
+                if (roomPlayer == null) {
+                    return null;
+                }
+                updateFunction.accept(roomPlayer);
+                saveRoom(room);
+                return room;
+            }
+            return null;
+        } catch (Exception e) {
+            log.warn("房间更新玩家数据异常,gameType = {},roomId = {},playerId = {}", gameType, roomId, playerId, e);
+        } finally {
+            redisLock.unlock(key);
+        }
+        return null;
+    }
+
+    /**
+     * 更新房间内的座位信息
+     *
+     * @param gameType       房间类型
+     * @param roomId         房间id
+     * @param playerId       玩家id
+     * @param newSitIndex    新座位id
+     * @param forcedExchange 是否强制交换
+     * @return 更新后的房间信息
+     */
+    public T updateRoomPlayerSitInfo(int gameType, long roomId, long playerId, int newSitIndex, boolean forcedExchange) {
+        String key = getLockName(gameType, roomId);
+        redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
+        try {
+            T room = getRoom(gameType, roomId);
+            if (room != null) {
+                Map<Long, RoomPlayer> roomPlayers = room.getRoomPlayers();
+                if (CollectionUtil.isEmpty(roomPlayers)) {
+                    return null;
+                }
+                RoomPlayer roomPlayer = roomPlayers.get(playerId);
+                if (roomPlayer == null) {
+                    return null;
+                }
+                Map<Integer, Long> playerSits = room.getPlayerSits();
+                if (CollectionUtil.isEmpty(playerSits)) {
+                    return null;
+                }
+                Long oldPlayerId = playerSits.get(roomPlayer.getSit());
+                if (!oldPlayerId.equals(playerId)) {
+                    log.error("player:{} 更新玩家座位时 老座位不是对应玩家", playerId);
+                    return null;
+                }
+                Long newSitId = playerSits.get(newSitIndex);
+                if (newSitId != null && !forcedExchange) {
+                    log.error("player:{} 更新玩家座位时 新座位有玩家", playerId);
+                    return null;
+                }
+                //交换
+                RoomPlayer roomPlayerNew = roomPlayers.get(newSitId);
+                if (roomPlayerNew == null) {
+                    playerSits.remove(roomPlayer.getSit());
+                    roomPlayer.setSit(newSitIndex);
+                    playerSits.put(newSitIndex, roomPlayer.getPlayerId());
+                } else {
+                    //交换座位
+                    //设置目标的座位
+                    roomPlayerNew.setSit(roomPlayer.getSit());
+                    playerSits.put(roomPlayerNew.getSit(), roomPlayerNew.getPlayerId());
+                    //设置要交换的座位
+                    roomPlayer.setSit(newSitIndex);
+                    playerSits.put(roomPlayer.getSit(), roomPlayer.getPlayerId());
+                }
+                saveRoom(room);
+                return room;
+            }
+            return null;
+        } catch (Exception e) {
+            log.warn("房间更新玩家数据异常,gameType = {},roomId = {},playerId = {}", gameType, roomId, playerId, e);
         } finally {
             redisLock.unlock(key);
         }

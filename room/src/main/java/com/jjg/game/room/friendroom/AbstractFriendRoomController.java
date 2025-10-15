@@ -167,7 +167,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     }
 
     @Override
-    protected CommonResult<? extends Room> checkRoomCanJoin(PlayerController playerController) {
+    protected CommonResult<R> checkRoomCanJoin(PlayerController playerController) {
         // 房间不为运行状态不能加入,暂停可以加入
         if (room.getStatus() != 1 && room.getStatus() != 2) {
             log.debug("玩家：{} 不能进入房间：{} 当前状态：{}", playerController.playerId(), room.getId(), room.getStatus());
