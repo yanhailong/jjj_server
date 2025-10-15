@@ -71,22 +71,21 @@ public class AbstractPlayerService {
     public Player checkAndSave(long playerId, DataSaveCallback<Player> cbk) {
         String key = getLockKey(playerId);
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-        try {
+        try{
             Player player = get(playerId);
             if (player == null || player instanceof RobotPlayer) {
                 return null;
             }
-
             //如果执行失败
-            if (!(boolean) cbk.updateDataWithRes(player)) {
+            if (!cbk.updateDataWithRes(player)) {
                 return null;
             }
             player.setUpdateTime(System.currentTimeMillis());
             redisTemplate.opsForHash().put(tableName, playerId, player);
             return player;
-        } catch (Exception e) {
+        }catch (Exception e){
             log.error("保存player失败 playerId={}", playerId, e);
-        } finally {
+        }finally {
             redisLock.unlock(key);
         }
         return null;
@@ -316,6 +315,7 @@ public class AbstractPlayerService {
             }
             return result;
         }
+        System.out.println(2222);
         return result;
     }
 
@@ -851,12 +851,12 @@ public class AbstractPlayerService {
     /**
      * 押注扣除金币更新内存中的值
      *
-     * @param playerId 玩家id
-     * @param addType  扣除类型
-     * @param desc 描述
+     * @param playerId  玩家id
+     * @param addType   扣除类型
+     * @param desc      描述
      * @param effective ture 是有效流水
-     * @param notify 是否通知前端
-     * @param num 扣除数量
+     * @param notify    是否通知前端
+     * @param num       扣除数量
      * @return
      */
     public CommonResult<Player> betDeductGold(
@@ -969,7 +969,6 @@ public class AbstractPlayerService {
         long addExp = statement.multiply(expProp).longValue();
         return new ExperienceBonusParam(expProp, statementProp, value, addExp);
     }
-
 
 
     /**
@@ -1266,7 +1265,7 @@ public class AbstractPlayerService {
         if (cfg.getLevelUpExp() < 1) {
             return player;
         }
-        long oldLevel = player.getLevel();
+        int oldLevel = player.getLevel();
         int maxLevel = GameDataManager.getPlayerLevelConfigCfgList().size();
         for (int i = 0; i < maxLevel; i++) {
             //判断经验是否足够升级

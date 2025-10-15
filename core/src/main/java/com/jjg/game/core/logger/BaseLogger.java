@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.jjg.game.common.config.NodeConfig;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.core.constant.RechargeType;
 import com.jjg.game.core.data.*;
 import org.apache.commons.lang3.StringUtils;
@@ -13,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -228,6 +230,38 @@ public class BaseLogger {
             json.put("addType", addType);
             json.put("desc", desc);
             sendLog("vipLevelChange", player, json);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * vip等级变化
+     *
+     * @param player
+     * @param beforeLevel
+     * @param level
+     */
+    public void level(Player player, int beforeLevel, int level, List<ItemInfo> items) {
+        if (player instanceof RobotPlayer) {
+            return;
+        }
+        try {
+            JSONObject json = new JSONObject();
+            json.put("beforeLevel", beforeLevel);
+            json.put("currentLevel", level);
+
+            if(items != null && !items.isEmpty()) {
+                JSONArray jsonArray = new JSONArray();
+                items.forEach(item -> {
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("itemId",item.itemId);
+                    jsonObject.put("count",item.count);
+                    jsonArray.add(jsonObject);
+                });
+                json.put("items", jsonArray);
+            }
+            sendLog("levelChange", player, json);
         } catch (Exception e) {
             log.error("", e);
         }
