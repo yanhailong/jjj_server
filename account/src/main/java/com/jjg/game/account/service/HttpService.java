@@ -16,9 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-
 
 /**
  * @author 11
@@ -44,7 +41,7 @@ public class HttpService {
 
         try {
             HttpRequest httpRequest = HttpRequest.get(googleInfo.getVerifyUrl() + token).timeout(30000);
-            httpRequest.setProxy(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("192.168.3.46", 32649)));
+//            httpRequest.setProxy(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("192.168.3.46", 32649)));
 
             HttpResponse resp = httpRequest.execute();
             String body = resp.body();

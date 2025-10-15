@@ -206,7 +206,9 @@ public class RedisLock {
      */
     public void unlock(String key) {
         RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
-        redissonLock.unlock();
+        if(redissonLock.isHeldByCurrentThread()) {
+            redissonLock.unlock();
+        }
     }
 
     /**
@@ -317,4 +319,29 @@ public class RedisLock {
         }
     }
 
+    /**
+     * 执行带锁的逻辑（自动释放）
+     * @param key 锁键
+     * @param waitTime 等待时间
+     * @param timeUnit 时间单位
+     * @param action 业务逻辑
+     * @param <T> 返回值类型
+     * @return 业务结果（失败返回 null）
+     */
+    public <T> T executeWithLock(String key, long waitTime, TimeUnit timeUnit, Supplier<T> action) {
+        RLock lock = redissonClient.getLock(getKey(key));
+        try {
+            if (lock.tryLock(waitTime, timeUnit)) {
+                try {
+                    return action.get();
+                } finally {
+                    lock.unlock();
+                }
+            }
+            return null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        }
+    }
 }

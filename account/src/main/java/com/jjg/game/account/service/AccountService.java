@@ -1,5 +1,6 @@
 package com.jjg.game.account.service;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.account.constant.AccountConstant;
 import com.jjg.game.account.dao.PlayerIdDao;
 import com.jjg.game.account.data.ChannelUserInfo;
@@ -20,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author 11
@@ -88,8 +90,7 @@ public class AccountService {
         CommonResult<Account> result = new CommonResult<>(Code.SUCCESS);
         //要加锁，防止重复创建账号
         String lockKey = getLockKey(loginType, channelUserInfo);
-//        redisLock.lock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-        try {
+        redisLock.executeWithLock(lockKey,GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES, TimeUnit.MILLISECONDS,()->{
             //查询该账号是否存在
             Account account = getAccountByLoginType(loginType, channelUserInfo);
             if (account == null) {
@@ -116,12 +117,7 @@ public class AccountService {
 
             result.data = account;
             return result;
-        } catch (Exception e) {
-            log.error("", e);
-        } finally {
-//            redisLock.unlock(lockKey);
-        }
-        result.code = Code.FAIL;
+        });
         return result;
     }
 

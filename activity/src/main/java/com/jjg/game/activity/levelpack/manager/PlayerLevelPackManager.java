@@ -1,6 +1,8 @@
 package com.jjg.game.activity.levelpack.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.levelpack.dao.PlayerLevelDao;
 import com.jjg.game.activity.levelpack.data.PlayerLevelPackData;
@@ -20,6 +22,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.pb.NotifyPlayerLevelUp;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
@@ -31,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -46,14 +50,18 @@ public class PlayerLevelPackManager implements GameEventListener {
     private final PlayerLevelDao playerLevelDao;
     private final ClusterSystem clusterSystem;
     private final PlayerPackService playerPackService;
+    private final CoreLogger coreLogger;
+
     //redis持有锁时间
     private final int REDIS_LOCK_TIME = 200;
 
-    public PlayerLevelPackManager(RedisLock redisLock, PlayerLevelDao playerLevelDao, ClusterSystem clusterSystem, PlayerPackService playerPackService) {
+    public PlayerLevelPackManager(RedisLock redisLock, PlayerLevelDao playerLevelDao, ClusterSystem clusterSystem,
+                                  PlayerPackService playerPackService, CoreLogger coreLogger) {
         this.redisLock = redisLock;
         this.playerLevelDao = playerLevelDao;
         this.clusterSystem = clusterSystem;
         this.playerPackService = playerPackService;
+        this.coreLogger = coreLogger;
     }
 
     /**
@@ -202,7 +210,7 @@ public class PlayerLevelPackManager implements GameEventListener {
             case PlayerEvent event -> {
                 if (event.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
                     targetGift(event.getPlayer());
-                    levelUp(event.getPlayer());
+                    levelUp(event.getPlayer(), (int) event.getEventChangeValue());
                 }
             }
             default -> {
@@ -258,38 +266,49 @@ public class PlayerLevelPackManager implements GameEventListener {
 
     /**
      * 玩家升级会赠送道具
+     *
      * @param player
      */
-    private void levelUp(Player player){
-        //获取配置
-        PlayerLevelConfigCfg playerLevelConfigCfg = GameDataManager.getPlayerLevelConfigCfg(player.getLevel());
-        if(playerLevelConfigCfg == null){
-            return;
+    private void levelUp(Player player, int oldLevel) {
+        Map<Integer,Long> addItemsMap = new HashMap<>();
+        for (int i = oldLevel + 1; i <= player.getLevel(); i++) {
+            //获取配置
+            PlayerLevelConfigCfg playerLevelConfigCfg = GameDataManager.getPlayerLevelConfigCfg(i);
+            if(playerLevelConfigCfg == null){
+                continue;
+            }
+            //检查是否有道具配置
+            if (playerLevelConfigCfg.getGetItem() == null || playerLevelConfigCfg.getGetItem().isEmpty()) {
+                continue;
+            }
+            addItemsMap.putAll(playerLevelConfigCfg.getGetItem());
         }
 
-        //检查是否有道具配置
-        if(playerLevelConfigCfg.getGetItem() == null || playerLevelConfigCfg.getGetItem().isEmpty()){
-            return;
+        List<ItemInfo> items = null;
+        if(!addItemsMap.isEmpty()){
+            //添加道具
+            CommonResult<ItemOperationResult> result = playerPackService.addItems(player.getId(), addItemsMap, "playerLevelUpgrade");
+            if(!result.success()){
+                log.warn("玩家升级添加道具失败 playerId = {},level = {},code = {}", player.getId(), player.getLevel(), result.code);
+            }else {
+                NotifyPlayerLevelUp notify = new NotifyPlayerLevelUp();
+                notify.level = player.getLevel();
+
+                items = new ArrayList<>();
+
+                for (Map.Entry<Integer, Long> en : addItemsMap.entrySet()) {
+                    ItemInfo itemInfo = new ItemInfo();
+
+                    itemInfo.itemId = en.getKey();
+                    itemInfo.count = en.getValue();
+
+                    items.add(itemInfo);
+                }
+                notify.items = items;
+
+                clusterSystem.sendToPlayer(notify, player.getId());
+            }
         }
-
-        //添加道具
-        CommonResult<ItemOperationResult> result = playerPackService.addItems(player.getId(), playerLevelConfigCfg.getGetItem(), "playerLevelUpgrade");
-        if(!result.success()){
-            log.warn("玩家升级添加道具失败 playerId = {},level = {},code = {}",player.getId(),player.getLevel(),result.code);
-            return;
-        }
-
-        NotifyPlayerLevelUp notify = new NotifyPlayerLevelUp();
-        notify.level = player.getLevel();
-        notify.items = new ArrayList<>();
-
-        playerLevelConfigCfg.getGetItem().forEach((k,v) -> {
-            ItemInfo itemInfo = new ItemInfo();
-            itemInfo.itemId = k;
-            itemInfo.count = v;
-            notify.items.add(itemInfo);
-        });
-
-        clusterSystem.sendToPlayer(notify, player.getId());
+        coreLogger.level(player, oldLevel, player.getLevel(), items);
     }
 }
