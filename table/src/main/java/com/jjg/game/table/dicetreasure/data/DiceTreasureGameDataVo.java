@@ -41,7 +41,7 @@ public class DiceTreasureGameDataVo extends TableGameDataVo {
         // 覆盖
         if (deleteType == 0) {
             if (winAreaCfgIdHistory.size() >= recordsNum) {
-                winAreaCfgIdHistory.remove(0);
+                winAreaCfgIdHistory.removeFirst();
             }
         } else {
             winAreaCfgIdHistory.clear();

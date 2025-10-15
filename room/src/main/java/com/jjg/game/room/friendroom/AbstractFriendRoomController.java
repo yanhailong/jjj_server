@@ -360,10 +360,12 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             // 重复上庄
             return Code.REPEAT_OP;
         }
-        // 房主不能成为庄家
-        long roomCreator = room.getCreator();
-        if (roomCreator == playerId) {
-            return Code.ROOM_CREATOR_CANT_BE_BANKER;
+        if (roomCfg.getBankerBets() == 0) {
+            // 房主不能成为庄家
+            long roomCreator = room.getCreator();
+            if (roomCreator == playerId) {
+                return Code.ROOM_CREATOR_CANT_BE_BANKER;
+            }
         }
         int addRes = addBankerPredicateGold(playerId, predictCostGold);
         // 如果申请成功，且当前游戏处于暂停状态，需要继续游戏
