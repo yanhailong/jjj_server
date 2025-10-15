@@ -40,6 +40,10 @@ public interface PointsAwardConstant {
          */
         String TURNTABLE_ADD_COUNT = "turntableAddCount:";
         /**
+         * 转盘记录玩家的累计充值金额
+         */
+        String TURNTABLE_PLAYER_RECHARGE = "turntablePlayerRecharge:";
+        /**
          * 玩家的排行榜历史记录
          */
         String POINTS_AWARD_PLAYER_RANKING_HISTORY = "pointsAwardPlayerRankingHistory:";
@@ -69,6 +73,12 @@ public interface PointsAwardConstant {
      * 排行榜相关常量
      */
     interface Leaderboard {
+
+        /**
+         * 排行榜名字连接符
+         */
+        String NAME = "-";
+
         /**
          * 奖励类型
          */

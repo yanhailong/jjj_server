@@ -157,10 +157,13 @@ public class PointsAwardMessageHandler {
         int type = message.getType();
         int count = message.getCount();
         PointsAwardLeaderboardData pointsAwardData = pointsAwardLeaderboardService.getData(type, count);
+        //自己在排行榜上的名次 -1表示未上榜
+        int rank = pointsAwardLeaderboardService.getRank(type, playerController.playerId());
         ResLoadLeaderboard res = new ResLoadLeaderboard(Code.SUCCESS);
         res.setCount(count);
         res.setType(type);
         res.setRankingData(pointsAwardData);
+        res.setSelfIndex(rank);
         playerController.send(res);
     }
 
