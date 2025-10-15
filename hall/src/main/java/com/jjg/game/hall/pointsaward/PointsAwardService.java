@@ -253,6 +253,7 @@ public class PointsAwardService {
     public void noticeSyncPoints(long player, long points) {
         NotifySyncPlayerPoint syncPlayerPoint = new NotifySyncPlayerPoint();
         syncPlayerPoint.setPoint(points);
+        syncPlayerPoint.setRank(leaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, player));
         PFSession pfSession = clusterSystem.getSession(player);
         if (pfSession != null) {
             pfSession.send(syncPlayerPoint);

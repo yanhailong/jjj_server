@@ -19,11 +19,25 @@ public class NotifySyncPlayerPoint extends AbstractNotice {
     @ProtoDesc("当前积分")
     private long point;
 
+    /**
+     * 默认返回月榜排名
+     */
+    @ProtoDesc("默认返回月榜排名 -1未入榜")
+    private int rank;
+
     public long getPoint() {
         return point;
     }
 
     public void setPoint(long point) {
         this.point = point;
+    }
+
+    public int getRank() {
+        return rank;
+    }
+
+    public void setRank(int rank) {
+        this.rank = rank;
     }
 }
