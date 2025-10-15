@@ -124,8 +124,8 @@ public class DailyLoginController extends BaseActivityController {
             dailyLoginDao.updateClaimTime(activityId, playerId);
             dailyLoginDao.addContinuousLoginDay(activityId, playerId);
             dailyLoginDao.addCumulativeLoginDay(activityId, playerId);
-            //TODO 日志
-
+            //日志
+            activityLogger.sendDailyLoginRewards(player, activityData, detailId, cfg.getType(), cfg.getGetItem(), result.itemOperationResult());
             // 构建响应数据
             res.activityId = activityId;
             res.detailId = detailId;

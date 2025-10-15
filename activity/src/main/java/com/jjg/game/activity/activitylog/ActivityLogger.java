@@ -287,4 +287,27 @@ public class ActivityLogger extends BaseLogger {
             log.error("sendSharePromoteRankRewards error:", e);
         }
     }
+
+    /**
+     * 每日签到奖励领取日志
+     *
+     * @param player       玩家数据
+     * @param activityData 活动数据
+     * @param detailId     详情ID
+     * @param signType     签到类型
+     * @param rewards      奖励
+     * @param result       领取奖励后的道具数量
+     */
+    public void sendDailyLoginRewards(Player player, ActivityData activityData, int detailId, long signType,
+                                      Map<Integer, Long> rewards, ItemOperationResult result) {
+        try {
+            JSONObject json = buildBaseInfo(activityData, detailId);
+            json.put("signType", signType);
+            json.put("rewards", JSON.toJSONString(rewards));
+            json.put("result", JSON.toJSONString(result));
+            sendLog(TOPIC, player, json);
+        } catch (Exception e) {
+            log.error("sendDailyLoginRewards error:", e);
+        }
+    }
 }
