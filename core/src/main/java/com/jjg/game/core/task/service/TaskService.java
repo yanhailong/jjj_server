@@ -2,16 +2,20 @@ package com.jjg.game.core.task.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.TaskConstant;
+import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.logger.TaskLogger;
 import com.jjg.game.core.manager.RedDotManager;
+import com.jjg.game.core.pb.NotifyPointsUpdate;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.task.condition.AbstractTaskCondition;
@@ -22,6 +26,7 @@ import com.jjg.game.core.task.param.DefaultTaskConditionParam;
 import com.jjg.game.core.task.pb.Task;
 import com.jjg.game.core.task.pb.TaskCondition;
 import com.jjg.game.core.task.pb.res.NotifyUpdateTask;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import org.redisson.api.RMap;
@@ -552,16 +557,32 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
         if (!getItem.isEmpty()) {
             taskData.setRewardTime(System.currentTimeMillis());
             taskData.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
-            Map<Integer, Long> item = new HashMap<>();
-            for (int i = 0; i < getItem.size(); i += 2) {
-                item.put(getItem.get(i), Long.valueOf(getItem.get(i + 1)));
-            }
-            playerPackService.addItems(playerId, item, "taskAward");
+            List<Item> itemList = ItemUtils.buildItems(getItem);
+            playerPackService.addItems(playerId, itemList, "taskAward");
             //记录日志
-            taskLogger.receiveTaskAward(playerId, taskId, item);
+            taskLogger.receiveTaskAward(playerId, taskId, itemList);
+        }
+        //如果有积分奖励通知大厅
+        if (taskCfg.getIntegralNum() > 0) {
+            addPlayerPoints(playerId, taskCfg.getIntegralNum(), true);
         }
         updateRedDot(playerId, taskCfg.getTaskType());
         return true;
+    }
+
+    /**
+     * 增加玩家积分
+     *
+     * @param playerId 玩家id
+     * @param value    变化值
+     * @param flag     变化 true增加 false扣除
+     */
+    public void addPlayerPoints(long playerId, int value, boolean flag) {
+        NotifyPointsUpdate notifyPointsUpdate = new NotifyPointsUpdate();
+        notifyPointsUpdate.setFlag(flag);
+        notifyPointsUpdate.setPlayerId(playerId);
+        notifyPointsUpdate.setValue(value);
+        clusterSystem.notifyNode(MessageUtil.getPFMessage(notifyPointsUpdate), Set.of(NodeType.HALL.toString())::contains);
     }
 
 }

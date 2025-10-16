@@ -25,6 +25,12 @@ public class NotifySyncPlayerPoint extends AbstractNotice {
     @ProtoDesc("默认返回月榜排名 -1未入榜")
     private int rank;
 
+    /**
+     * 更新状态 1=请求 2=主推
+     */
+    @ProtoDesc("更新状态 1=请求 2=主推")
+    private int state;
+
     public long getPoint() {
         return point;
     }
@@ -39,5 +45,13 @@ public class NotifySyncPlayerPoint extends AbstractNotice {
 
     public void setRank(int rank) {
         this.rank = rank;
+    }
+
+    public int getState() {
+        return state;
+    }
+
+    public void setState(int state) {
+        this.state = state;
     }
 }

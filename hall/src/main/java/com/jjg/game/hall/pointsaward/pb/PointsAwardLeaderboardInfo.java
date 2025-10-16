@@ -11,6 +11,12 @@ import com.jjg.game.common.proto.ProtobufMessage;
 public class PointsAwardLeaderboardInfo {
 
     /**
+     * 名次对应的配置id
+     */
+    @ProtoDesc("名次对应的配置id")
+    private int configId;
+
+    /**
      * 玩家id
      */
     @ProtoDesc("玩家id")
@@ -134,5 +140,13 @@ public class PointsAwardLeaderboardInfo {
 
     public void setTitleId(int titleId) {
         this.titleId = titleId;
+    }
+
+    public int getConfigId() {
+        return configId;
+    }
+
+    public void setConfigId(int configId) {
+        this.configId = configId;
     }
 }

@@ -13,7 +13,21 @@ import com.jjg.game.core.constant.TaskConstant;
 @ProtoDesc("请求领取任务奖励回复")
 public class ResReceiveTaskAward extends AbstractResponse {
 
+    /**
+     * 任务id
+     */
+    @ProtoDesc("任务id")
+    private int taskId;
+
     public ResReceiveTaskAward(int code) {
         super(code);
+    }
+
+    public int getTaskId() {
+        return taskId;
+    }
+
+    public void setTaskId(int taskId) {
+        this.taskId = taskId;
     }
 }

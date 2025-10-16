@@ -66,7 +66,10 @@ public interface PointsAwardConstant {
          * 积分大奖排行榜更新锁
          */
         String POINTS_AWARD_RANKING_LOCK = "pointsAwardRankingLock:";
-
+        /**
+         * 玩家积分大奖数据初始化锁
+         */
+        String POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT = "pointsAwardDataLock:turntable:init";
     }
 
     /**
@@ -200,6 +203,11 @@ public interface PointsAwardConstant {
         int REQ_LOAD_LEADERBOARD_HISTORY = BASE_MSG_PREFIX | 0x15;
         //请求排行记录回复
         int RES_LOAD_LEADERBOARD_HISTORY = BASE_MSG_PREFIX | 0x16;
+
+        //请求装盘充值情况
+        int REQ_TURNTABLE_RECHARGE_INFO = BASE_MSG_PREFIX | 0x17;
+        //请求装盘充值情况回复
+        int RES_TURNTABLE_RECHARGE_INFO = BASE_MSG_PREFIX | 0x18;
 
     }
 

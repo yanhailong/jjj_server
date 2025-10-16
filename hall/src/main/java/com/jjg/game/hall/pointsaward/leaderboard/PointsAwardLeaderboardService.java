@@ -25,6 +25,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 使用 Redisson 实现的分布式排行榜服务
@@ -143,6 +144,7 @@ public class PointsAwardLeaderboardService {
         }
         Collection<ScoredEntry<Long>> entries = s.entryRangeReversed(0, size - 1);
         List<PointsAwardLeaderboardInfo> ret = new ArrayList<>(entries.size());
+        Map<Integer, PointsAwardRankingCfg> rankingCfgMap = manager.getRankingCfgMap(type);
         int rank = 1;
         for (ScoredEntry<Long> e : entries) {
             PointsAwardLeaderboardInfo info = new PointsAwardLeaderboardInfo();
@@ -156,6 +158,8 @@ public class PointsAwardLeaderboardService {
             info.setNickName(player.getNickName());
             info.setNationalId(player.getNationalId());
             info.setTitleId(player.getTitleId());
+            PointsAwardRankingCfg rankingCfg = rankingCfgMap.get(rank);
+            info.setConfigId(rankingCfg.getId());
             ret.add(info);
         }
         return ret;

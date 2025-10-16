@@ -70,6 +70,7 @@ public class TaskMessageHandler {
         boolean isSuccess = taskService.receiveTask(player.getId(), taskId);
         int code = isSuccess ? Code.SUCCESS : Code.FAIL;
         ResReceiveTaskAward resReceiveTaskAward = new ResReceiveTaskAward(code);
+        resReceiveTaskAward.setTaskId(taskId);
         playerController.send(resReceiveTaskAward);
     }
 

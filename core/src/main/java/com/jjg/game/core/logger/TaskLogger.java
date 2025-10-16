@@ -1,10 +1,11 @@
 package com.jjg.game.core.logger;
 
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.core.data.Item;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.Map;
+import java.util.List;
 
 /**
  * 任务日志
@@ -40,13 +41,13 @@ public class TaskLogger extends BaseLogger {
     /**
      * 任务奖励领取
      */
-    public void receiveTaskAward(long playerId, int configId, Map<Integer, Long> item) {
+    public void receiveTaskAward(long playerId, int configId, List<Item> itemList) {
         JSONObject log = new JSONObject();
         log.put("playerId", playerId);
         log.put("taskConfigId", configId);
         log.put("time", LocalDateTime.now());
-        if (item != null) {
-            log.put("item", item);
+        if (itemList != null) {
+            log.put("item", itemList);
         }
         sendLog("receiveTaskAward", null, log);
     }

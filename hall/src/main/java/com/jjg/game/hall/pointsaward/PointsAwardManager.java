@@ -35,21 +35,26 @@ public class PointsAwardManager implements GameEventListener {
      * 任务服务
      */
     private final TaskService taskService;
+    private final PointsAwardService pointsAwardService;
+
     private final ClusterSystem clusterSystem;
 
     public PointsAwardManager(PointsAwardTurntableService pointsAwardTurntableService,
                               PointsAwardSignInManager pointsAwardSignInManager,
                               ClusterSystem clusterSystem,
+                              PointsAwardService pointsAwardService,
                               PointsAwardLeaderboardManager pointsAwardLeaderboardManager,
                               TaskService taskService) {
         this.pointsAwardTurntableService = pointsAwardTurntableService;
         this.pointsAwardSignInManager = pointsAwardSignInManager;
         this.taskService = taskService;
+        this.pointsAwardService = pointsAwardService;
         this.pointsAwardLeaderboardManager = pointsAwardLeaderboardManager;
         this.clusterSystem = clusterSystem;
     }
 
     public void init() {
+        pointsAwardService.init();
         pointsAwardSignInManager.init();
         pointsAwardTurntableService.init();
         pointsAwardLeaderboardManager.init();
@@ -68,6 +73,7 @@ public class PointsAwardManager implements GameEventListener {
             if (hour == 0) {
                 pointsAwardSignInManager.daily();
                 pointsAwardTurntableService.dailyReset();
+                pointsAwardService.daily();
             } else if (hour == 12) {
                 //检测玩家任务
                 clusterSystem.getAllOnlinePlayerId().forEach(taskService::checkTask);
@@ -76,6 +82,7 @@ public class PointsAwardManager implements GameEventListener {
         }
         //玩家充值事件
         else if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent rechargeEvent) {
+            pointsAwardService.recharge(rechargeEvent.getOrder());
             pointsAwardTurntableService.recharge(rechargeEvent.getOrder());
         }
     }

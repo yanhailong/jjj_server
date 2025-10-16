@@ -1,19 +1,22 @@
 package com.jjg.game.hall.pointsaward;
 
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.data.Order;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
 import com.jjg.game.hall.pointsaward.pb.res.NotifySyncPlayerPoint;
 import org.redisson.api.RAtomicLong;
+import org.redisson.api.RLock;
+import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -28,15 +31,52 @@ public class PointsAwardService {
     private final PointsAwardLeaderboardService leaderboardService;
     private final RedisLock redisLock;
     private final ClusterSystem clusterSystem;
+    private final MarsCurator marsCurator;
+
+    /**
+     * 玩家累计充值金额
+     */
+    private RMap<Long, Long> rechargeMap;
 
     public PointsAwardService(RedissonClient redissonClient,
                               @Lazy ClusterSystem clusterSystem,
                               PointsAwardLeaderboardService leaderboardService,
+                              MarsCurator marsCurator,
                               RedisLock redisLock) {
         this.redissonClient = redissonClient;
         this.clusterSystem = clusterSystem;
         this.leaderboardService = leaderboardService;
+        this.marsCurator = marsCurator;
         this.redisLock = redisLock;
+    }
+
+    /**
+     * 初始化
+     */
+    public void init() {
+        if (marsCurator.isMaster()) {
+            // 初始化充值数据记录map
+            redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
+                    () -> rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_COUNT));
+            log.info("初始化充值数据记录map完成");
+        }
+    }
+
+    /**
+     * 跨天
+     */
+    public void daily() {
+        if (marsCurator.isMaster()) {
+            // 初始化充值数据记录map
+            redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
+                    () -> {
+                        rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_COUNT);
+                        if (rechargeMap != null) {
+                            rechargeMap.clear();
+                        }
+                    });
+            log.info("充值数据记录map清除完成");
+        }
     }
 
     /**
@@ -148,7 +188,7 @@ public class PointsAwardService {
      * @param playerId    玩家id
      * @param pointsAward 扣除的积分 只支持正数
      */
-    public boolean deduct(long playerId, int pointsAward, Predicate<Long> guard) {
+    public boolean deduct(long playerId, int pointsAward) {
         if (pointsAward <= 0) {
             return false;
         }
@@ -253,10 +293,37 @@ public class PointsAwardService {
     public void noticeSyncPoints(long player, long points) {
         NotifySyncPlayerPoint syncPlayerPoint = new NotifySyncPlayerPoint();
         syncPlayerPoint.setPoint(points);
+        syncPlayerPoint.setState(2);
         syncPlayerPoint.setRank(leaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, player));
         PFSession pfSession = clusterSystem.getSession(player);
         if (pfSession != null) {
             pfSession.send(syncPlayerPoint);
+        }
+    }
+
+    /**
+     * 玩家累计充值金额
+     *
+     * @param playerId 玩家id
+     */
+    public long getRecharge(long playerId) {
+        return rechargeMap.getOrDefault(playerId, 0L);
+    }
+
+    /**
+     * 玩家充值
+     *
+     * @param order 订单信息
+     */
+    public void recharge(Order order) {
+        long playerId = order.getPlayerId();
+        long price = order.getPrice();
+        RLock lock = rechargeMap.getReadWriteLock(playerId).writeLock();
+        if (lock.tryLock()) {
+            long resultValue = getRecharge(playerId) + price;
+            //增加玩家充值金额
+            rechargeMap.put(playerId, resultValue);
+            lock.unlock();
         }
     }
 

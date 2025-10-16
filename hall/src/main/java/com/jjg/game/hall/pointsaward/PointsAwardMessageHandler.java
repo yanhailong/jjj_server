@@ -147,6 +147,7 @@ public class PointsAwardMessageHandler {
         NotifySyncPlayerPoint res = new NotifySyncPlayerPoint();
         res.setPoint(pointsAwardService.getPoints(playerController.playerId()));
         res.setRank(pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerController.playerId()));
+        res.setState(1);
         playerController.send(res);
     }
 
@@ -177,6 +178,19 @@ public class PointsAwardMessageHandler {
         int pageSize = message.getPageSize();
         ResLoadLeaderboardHistory history = pointsAwardLeaderboardService.getHistory(playerController.playerId(), pageIndex, pageSize);
         playerController.send(history);
+    }
+
+    /**
+     * 请求转盘充值信息
+     */
+    @Command(PointsAwardConstant.Message.REQ_TURNTABLE_RECHARGE_INFO)
+    public void turntableRechargeInfo(PlayerController playerController, ReqTurntableRechargeInfo msg) {
+        long recharge = pointsAwardService.getRecharge(playerController.playerId());
+        int addCount = pointsAwardTurntableService.getAddCount(playerController.playerId());
+        ResTurntableRechargeInfo res = new ResTurntableRechargeInfo(Code.SUCCESS);
+        res.setAddCount(addCount);
+        res.setRechargeValue(recharge);
+        playerController.send(res);
     }
 
 }
