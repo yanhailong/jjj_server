@@ -37,13 +37,15 @@ import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.data.room.GamePlayer;
-import com.jjg.game.room.data.room.RoomDataHelper;
 import com.jjg.game.room.datatrack.RoomDataTrackLogger;
 import com.jjg.game.room.friendroom.AbstractFriendRoomController;
 import com.jjg.game.room.services.RobotService;
 import com.jjg.game.room.timer.RoomTimerCenter;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sampledata.bean.RoomCfg;
+import com.jjg.game.sampledata.bean.Room_BetCfg;
+import com.jjg.game.sampledata.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 import jakarta.annotation.PostConstruct;
 import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
@@ -763,6 +765,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         for (Class<? extends AbstractRoomController> controllerClazz : this.roomControllerClazz) {
             // 获取房间控制器上的房间数据类型
             Set<Class<Object>> roomDataClasses = ReflectUtils.getClassSuperActualType(controllerClazz);
+            if (roomDataClasses == null) {
+                continue;
+            }
             Class<? extends Room> roomDataClass = null;
             for (Class<?> clazz : roomDataClasses) {
                 if (Room.class.isAssignableFrom(clazz)) {
@@ -954,9 +959,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
     @Override
     public void changeSampleCallbackCollector() {
-        addInitSampleFileObserveWithCallBack(ViplevelCfg.EXCEL_NAME, RoomDataHelper::initVipLevelCfg)
-                .addChangeSampleFileObserveWithCallBack(ViplevelCfg.EXCEL_NAME, RoomDataHelper::initVipLevelCfg)
-                .addChangeSampleFileObserveWithCallBack(Room_BetCfg.EXCEL_NAME, this::reloadRoomCfgRef)
+                addChangeSampleFileObserveWithCallBack(Room_BetCfg.EXCEL_NAME, this::reloadRoomCfgRef)
                 .addChangeSampleFileObserveWithCallBack(Room_ChessCfg.EXCEL_NAME, this::reloadRoomCfgRef);
     }
 
