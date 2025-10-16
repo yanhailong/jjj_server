@@ -14,9 +14,9 @@ import com.jjg.game.core.logger.TaskLogger;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.task.condition.AbstractTaskCondition;
 import com.jjg.game.core.task.db.TaskData;
 import com.jjg.game.core.task.db.TaskDataDao;
-import com.jjg.game.core.task.condition.AbstractTaskCondition;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.DefaultTaskConditionParam;
 import com.jjg.game.core.task.pb.Task;
@@ -312,14 +312,24 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
         //检测是否有新任务
         if (!taskCfgList.isEmpty()) {
             taskCfgList.forEach(taskCfg -> {
-                //不重复领取任务
-                if (!playerTasks.containsKey(taskCfg.getId())) {
-                    TaskData taskData = new TaskData();
-                    taskData.setConfigId(taskCfg.getId());
-                    taskData.setStatus(TaskConstant.TaskStatus.STATUS_IN_PROGRESS);
-                    taskData.setCreateTime(System.currentTimeMillis());
-                    taskData.setPlayerId(playerId);
-                    receiveList.add(taskData);
+                List<Integer> taskCfgTaskConditionId = taskCfg.getTaskConditionId();
+                if (taskCfgTaskConditionId != null && !taskCfgTaskConditionId.isEmpty()) {
+                    int conditionId = taskCfgTaskConditionId.getFirst();
+                    AbstractTaskCondition<DefaultTaskConditionParam> abstractTaskCondition = taskManager.getTaskCondition(conditionId);
+                    //有处理器才给玩家领取任务
+                    if (abstractTaskCondition != null) {
+                        //不重复领取任务
+                        if (!playerTasks.containsKey(taskCfg.getId())) {
+                            TaskData taskData = new TaskData();
+                            taskData.setConfigId(taskCfg.getId());
+                            taskData.setStatus(TaskConstant.TaskStatus.STATUS_IN_PROGRESS);
+                            taskData.setCreateTime(System.currentTimeMillis());
+                            taskData.setPlayerId(playerId);
+                            receiveList.add(taskData);
+                        }
+                    } else {
+                        log.warn("配置任务[{}],条件[{}]没有处理器!", taskCfg.getId(), conditionId);
+                    }
                 }
             });
         }
@@ -353,14 +363,24 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
      */
     public List<TaskCondition> assembleTaskConditions(TaskData taskData, TaskCfg taskCfg) {
         List<TaskCondition> conditions = new ArrayList<>();
-        //任务进度
         Map<Integer, Long> taskDataProgress = taskData.getProgress();
-        taskDataProgress.forEach((taskId, progress) -> {
-            AbstractTaskCondition<DefaultTaskConditionParam> taskCondition = taskManager.getTaskCondition(taskId);
+        // 判断进度是否为空，统一处理
+        if (taskDataProgress == null || taskDataProgress.isEmpty()) {
+            addTaskConditionToList(taskCfg.getTaskConditionId().getFirst(), taskData, taskCfg, conditions);
+        } else {
+            taskDataProgress.forEach((taskId, progress) -> addTaskConditionToList(taskId, taskData, taskCfg, conditions));
+        }
+        return conditions;
+    }
+
+    private void addTaskConditionToList(int conditionId, TaskData taskData, TaskCfg taskCfg, List<TaskCondition> conditions) {
+        AbstractTaskCondition<DefaultTaskConditionParam> taskCondition = taskManager.getTaskCondition(conditionId);
+        if (taskCondition != null) {
             TaskCondition condition = taskCondition.assembleTaskCondition(taskData, taskCfg);
             conditions.add(condition);
-        });
-        return conditions;
+        } else {
+            log.warn("任务[{}]条件[{}]找不到条件处理器!", taskData.getConfigId(), conditionId);
+        }
     }
 
     /**
