@@ -5,11 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
-import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.MarsNode;
-import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.NotifyKickout;
@@ -28,6 +26,7 @@ import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.service.*;
+import com.jjg.game.core.utils.MessageBuildUtil;
 import com.jjg.game.gm.dto.*;
 import com.jjg.game.gm.util.NetUtil;
 import com.jjg.game.gm.vo.*;
@@ -41,7 +40,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.net.InetAddress;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -455,10 +453,7 @@ public class GMController extends AbstractController {
             if (dto.operator_type() == 1) {  //如果是账户修改，则要进行通知
                 PFSession session = playerSessionService.getSession(dto.playerId());
                 if (session != null) {
-                    NoticeBaseInfoChange notice = new NoticeBaseInfoChange();
-                    notice.gold = result.data.getGold();
-                    notice.diamond = result.data.getDiamond();
-                    notice.vipLevel = result.data.getVipLevel();
+                    NoticeBaseInfoChange notice = MessageBuildUtil.buildNoticeBaseInfoChange(result.data);
                     session.send(notice);
                 }
             }

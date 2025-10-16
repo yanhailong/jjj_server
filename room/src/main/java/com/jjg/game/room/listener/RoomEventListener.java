@@ -1,5 +1,6 @@
 package com.jjg.game.room.listener;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.listener.SessionCloseListener;
@@ -7,10 +8,7 @@ import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.utils.CommonUtil;
-import com.jjg.game.core.base.gameevent.CurrencyChangeEvent;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.GameEvent;
-import com.jjg.game.core.base.gameevent.GameEventListener;
+import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -22,6 +20,7 @@ import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.handler.CurrentChangeEventHandler;
+import com.jjg.game.room.handler.PlayerRechargeEventHandler;
 import com.jjg.game.room.manager.AbstractRoomManager;
 import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.sampledata.bean.RoomCfg;
@@ -210,16 +209,29 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             //获取玩家所在线程
             AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController = roomManager.getGameControllerByPlayerId(event.getPlayer().getId());
             if (gameController == null) {
+                log.error("货币变化日志找不到玩家所在房间 playerId:{} changeValue:{}", event.getPlayer().getId(), JSON.toJSONString(event.getCurrencyMap()));
                 return;
             }
             CurrentChangeEventHandler handler = new CurrentChangeEventHandler(event.getPlayer(), gameController, event.getCurrencyMap());
             //抛到对应房间线程处理
             gameController.addGameTimeEvent(new TimerEvent<>(gameController, handler), RoomEventType.CURRENCY_CHANGE_EVENT);
         }
+
+        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
+            //获取玩家所在线程
+            AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController = roomManager.getGameControllerByPlayerId(event.getPlayer().getId());
+            if (gameController == null) {
+                log.error("玩家充值事件找不到玩家所在房间 playerId:{} order:{}", event.getPlayer().getId(), JSON.toJSONString(event.getOrder()));
+                return;
+            }
+            PlayerRechargeEventHandler handler = new PlayerRechargeEventHandler(event.getPlayer(), gameController, event.getOrder());
+            //抛到对应房间线程处理
+            gameController.addGameTimeEvent(new TimerEvent<>(gameController, handler), RoomEventType.PLAYER_RECHARGE_EVENT);
+        }
     }
 
     @Override
     public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.CURRENCY_CHANGE);
+        return List.of(EGameEventType.CURRENCY_CHANGE, EGameEventType.RECHARGE);
     }
 }

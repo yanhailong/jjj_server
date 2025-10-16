@@ -206,6 +206,23 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
         return marsNodeBooleanPair == null ? null : marsNodeBooleanPair.getFirst();
     }
 
+    /**
+     * 返回当前节点玩家数据是否在内存中
+     *
+     * @return ture 玩家数据在内存中 false玩家数据不在内存中
+     */
+    public boolean isPlayerDataInMemoryNode() {
+        NodeType nodeType = NodeType.getNodeTypeByName(nodeConfig.getType());
+        if (nodeType == NodeType.GAME && nodeConfig.getGameMajorTypes() != null) {
+            for (int gameMajorType : nodeConfig.getGameMajorTypes()) {
+                if (gameMajorType == CoreConst.GameMajorType.POKER || gameMajorType == CoreConst.GameMajorType.TABLE) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 
     /**
      * 获取所有的游戏节点
