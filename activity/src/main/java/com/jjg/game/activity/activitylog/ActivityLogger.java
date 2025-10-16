@@ -344,6 +344,7 @@ public class ActivityLogger extends BaseLogger {
         try {
             JSONObject json = new JSONObject();
             json.put("operator", 1);
+            json.put("type", -1);
             json.put("level", cfg.getPlayerlevel());
             json.put("money", cfg.getPay());
             json.put("rewards", JSON.toJSONString(cfg.getLevelRewards(), SerializerFeature.WriteNonStringKeyAsString));
@@ -364,6 +365,7 @@ public class ActivityLogger extends BaseLogger {
         try {
             JSONObject json = new JSONObject();
             json.put("operator", 2);
+            json.put("type", -1);
             json.put("level", cfg.getPlayerlevel());
             json.put("money", cfg.getPay());
             json.put("remain", JSON.toJSONString(data));
