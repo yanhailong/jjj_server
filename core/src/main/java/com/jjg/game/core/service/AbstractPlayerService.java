@@ -1395,9 +1395,7 @@ public class AbstractPlayerService {
                 beforeCoin[0] = player.getDiamond();
 
                 if (num >= 0) {
-                    player.setDiamond(Math.min(Long.MAX_VALUE, num));
-                } else {
-                    player.setDiamond(Math.max(Long.MIN_VALUE, num));
+                    player.setDiamond(num);
                 }
                 return true;
             }

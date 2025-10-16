@@ -40,7 +40,7 @@ import java.util.Objects;
  */
 @Component
 public class RoomEventListener implements SessionEnterListener, SessionCloseListener, GameEventListener {
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private CorePlayerService playerService;
@@ -53,14 +53,14 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
     private AbstractRoomManager roomManager;
 
-    private Map<Integer, IPlayerRoomEventListener> roomListenerMap = new HashMap<>();
+    private final Map<Integer, IPlayerRoomEventListener> roomListenerMap = new HashMap<>();
 
     public void init() {
         Map<String, IPlayerRoomEventListener> listenerMap =
                 CommonUtil.getContext().getBeansOfType(IPlayerRoomEventListener.class);
         for (Map.Entry<String, IPlayerRoomEventListener> en : listenerMap.entrySet()) {
             int[] arr = en.getValue().getGameTypes();
-            if (arr != null && arr.length > 0) {
+            if (arr != null) {
                 for (int gameType : arr) {
                     roomListenerMap.put(gameType, en.getValue());
                 }

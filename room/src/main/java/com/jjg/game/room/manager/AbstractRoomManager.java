@@ -765,6 +765,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         for (Class<? extends AbstractRoomController> controllerClazz : this.roomControllerClazz) {
             // 获取房间控制器上的房间数据类型
             Set<Class<Object>> roomDataClasses = ReflectUtils.getClassSuperActualType(controllerClazz);
+            if (roomDataClasses == null) {
+                continue;
+            }
             Class<? extends Room> roomDataClass = null;
             for (Class<?> clazz : roomDataClasses) {
                 if (Room.class.isAssignableFrom(clazz)) {

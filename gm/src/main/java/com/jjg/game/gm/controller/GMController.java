@@ -574,9 +574,7 @@ public class GMController extends AbstractController {
             }
 
             List<Long> playerIds = new ArrayList<>();
-            list.forEach(onlinePlayer -> {
-                playerIds.add(onlinePlayer.getPlayerId());
-            });
+            list.forEach(onlinePlayer -> playerIds.add(onlinePlayer.getPlayerId()));
 
             //从redis获取玩家最新信息
             Map<Long, Player> playerMap = playerService.multiGetPlayerMap(playerIds);
@@ -690,7 +688,7 @@ public class GMController extends AbstractController {
     public WebResult<String> generateLib(@RequestBody GenerateLibDto param) {
         log.info("收到生成结果库的请求请求 param={}", param);
         try {
-            ClusterClient clusterClient = null;
+            ClusterClient clusterClient;
             if (StringUtils.isNotEmpty(param.nodeName())) {
                 clusterClient = clusterSystem.getNodesByName(param.nodeName());
             } else {
@@ -930,9 +928,7 @@ public class GMController extends AbstractController {
 
         //检查手机号
         if (StringUtils.isNotEmpty(dto.mobile())) {
-            if (!dto.mobile().equals(account.getPhoneNumber())) {
-                return false;
-            }
+            return dto.mobile().equals(account.getPhoneNumber());
         }
         return true;
     }

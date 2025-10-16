@@ -21,6 +21,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -120,15 +121,13 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
 
     private void register() {
         try {
-            StringBuilder sb = new StringBuilder(CoreConst.Common.SEPARATOR);
-            sb.append(nodeConfig.getParentPath()).append(CoreConst.Common.SEPARATOR)
-                .append(nodeConfig.getType()).append(CoreConst.Common.SEPARATOR)
-                .append(nodeConfig.getName());
-            String path = sb.toString();
+            String path = CoreConst.Common.SEPARATOR + nodeConfig.getParentPath() + CoreConst.Common.SEPARATOR +
+                    nodeConfig.getType() + CoreConst.Common.SEPARATOR +
+                    nodeConfig.getName();
             log.info("node register,path is {}", path);
 
             String nc = JSON.toJSONString(nodeConfig, true);
-            nodePath = marsCurator.addPath(path, nc.getBytes("UTF-8"), false);
+            nodePath = marsCurator.addPath(path, nc.getBytes(StandardCharsets.UTF_8), false);
         } catch (Exception e) {
             log.warn("node register fail.", e);
         }
@@ -145,7 +144,7 @@ public class NodeManager implements MarsCuratorListener, MarsNodeListener, FileL
             log.info("node update,path is {}", path);
 
             String nc = JSON.toJSONString(nodeConfig, true);
-            nodePath = marsCurator.updatePath(path, nc.getBytes("UTF-8"), false);
+            nodePath = marsCurator.updatePath(path, nc.getBytes(StandardCharsets.UTF_8), false);
             //marsCurator.addMarsNodeListener(path, this);
         } catch (Exception e) {
             log.warn("node update fail.", e);
