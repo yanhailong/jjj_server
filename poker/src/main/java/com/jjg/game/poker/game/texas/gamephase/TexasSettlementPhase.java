@@ -215,8 +215,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 //扣税
                 Long bet = baseBetInfo.getOrDefault(playerId, 0L);
                 long afterRatio = BigDecimal.valueOf(totalGet - bet)
-                        .multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getEffectiveRatio()))
-                                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)).longValue();
+                        .multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getEffectiveRatio())))
+                                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
                 long roomCreatorIncome = calcRoomCreatorIncome(totalGet - bet);
                 totalGet = bet + afterRatio - roomCreatorIncome;
                 //增加金币
