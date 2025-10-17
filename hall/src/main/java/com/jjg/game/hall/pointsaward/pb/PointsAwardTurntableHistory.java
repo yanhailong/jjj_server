@@ -1,7 +1,11 @@
 package com.jjg.game.hall.pointsaward.pb;
 
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 转盘历史记录
@@ -21,6 +25,18 @@ public class PointsAwardTurntableHistory {
      */
     @ProtoDesc("奖励id")
     private int awardId;
+
+    /**
+     * 奖励道具
+     */
+    @ProtoDesc("奖励道具")
+    private List<ItemInfo> itemInfoList = new ArrayList<>();
+
+    /**
+     * 奖励积分数量
+     */
+    @ProtoDesc("奖励积分数量")
+    private int integralNum;
 
     /**
      * 时间
@@ -52,4 +68,19 @@ public class PointsAwardTurntableHistory {
         this.time = time;
     }
 
+    public List<ItemInfo> getItemInfoList() {
+        return itemInfoList;
+    }
+
+    public void setItemInfoList(List<ItemInfo> itemInfoList) {
+        this.itemInfoList = itemInfoList;
+    }
+
+    public int getIntegralNum() {
+        return integralNum;
+    }
+
+    public void setIntegralNum(int integralNum) {
+        this.integralNum = integralNum;
+    }
 }

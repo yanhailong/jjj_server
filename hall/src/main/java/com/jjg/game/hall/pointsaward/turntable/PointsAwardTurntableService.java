@@ -250,6 +250,8 @@ public class PointsAwardTurntableService {
                 history.setPlayerId(playerId);
                 history.setAwardId(selectedId);
                 history.setTime(System.currentTimeMillis());
+                history.setIntegralNum(integralPoints);
+                history.getItemInfoList().addAll(ItemUtils.buildItemInfos(awardTurntableCfg.getGetItem()));
                 addHistory(history);
                 //增加玩家转盘次数
                 countMap.put(playerId, countMap.getOrDefault(playerId, 0) + 1);
