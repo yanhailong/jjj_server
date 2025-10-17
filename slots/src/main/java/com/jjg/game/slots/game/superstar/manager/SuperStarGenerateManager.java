@@ -141,6 +141,7 @@ public class SuperStarGenerateManager extends AbstractSlotsGenerateManager<Super
         int jackpotId = rewardCfg.getJackpotID();
         //触发jackpot
         if (jackpotId > 0) {
+            awardLineInfo.setJackpotId(jackpotId);
             lib.setJackpotId(jackpotId);
         }
         return awardLineInfo;
