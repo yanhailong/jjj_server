@@ -49,6 +49,10 @@ public class RepsTexasRoomBaseInfo extends AbstractResponse {
     public int BB;
     @ProtoDesc("小盲")
     public int SB;
+    @ProtoDesc("场次类型")
+    public int wareType;
+    @ProtoDesc("最大人数")
+    public int maxPlayerNum;
 
 
     public RepsTexasRoomBaseInfo(int code) {
