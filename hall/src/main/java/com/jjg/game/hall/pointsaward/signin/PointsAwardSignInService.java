@@ -256,6 +256,8 @@ public class PointsAwardSignInService implements IRedDotService {
 
     /**
      * 检测当天能否签到
+     *
+     * @return true 可以签到
      */
     public boolean checkCanSign(long playerId) {
         Long time = getDateMap().get(playerId);
@@ -264,7 +266,7 @@ public class PointsAwardSignInService implements IRedDotService {
         }
         LocalDate now = LocalDate.now();
         LocalDate dateTime = LocalDate.ofInstant(Instant.ofEpochMilli(time), ZoneId.systemDefault());
-        return dateTime.isEqual(now);
+        return !dateTime.isEqual(now);
     }
 
     @Override

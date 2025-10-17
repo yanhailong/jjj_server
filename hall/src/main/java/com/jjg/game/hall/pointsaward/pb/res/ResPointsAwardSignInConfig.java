@@ -35,9 +35,9 @@ public class ResPointsAwardSignInConfig extends AbstractResponse {
     private List<PointsAwardSignInConfig> configList = new ArrayList<>();
 
     /**
-     * 今天能否签到
+     * 今天能否签到 true 可以签到
      */
-    @ProtoDesc("今天能否签到")
+    @ProtoDesc("今天能否签到 true 可以签到")
     private boolean sign;
 
     public ResPointsAwardSignInConfig(int code) {
