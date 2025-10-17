@@ -1,6 +1,7 @@
 package com.jjg.game.hall.pointsaward.leaderboard;
 
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.utils.PageUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
@@ -160,6 +161,7 @@ public class PointsAwardLeaderboardService {
             info.setTitleId(player.getTitleId());
             PointsAwardRankingCfg rankingCfg = rankingCfgMap.get(rank);
             info.setConfigId(rankingCfg.getId());
+            info.setLevel(player.getLevel());
             ret.add(info);
         }
         return ret;
@@ -215,24 +217,28 @@ public class PointsAwardLeaderboardService {
         history.setRankName(rankName);
         dequeHistory.addFirst(history);
         //只保留一定条数
-        if (dequeHistory.size() > PointsAwardConstant.Leaderboard.MAX_HISTORY_SIZE) {
+        if (dequeHistory.size() > PointsAwardConstant.Leaderboard.PLAYER_MAX_HISTORY_SIZE) {
             dequeHistory.removeLast();
         }
     }
 
     /**
-     * 获取排行数据
+     * 获取积分奖励排行榜数据。
      *
-     * @param type  排行榜类型
-     * @param count 数据条数
+     * @param type      排行榜类型
+     * @param pageIndex 页码，从1开始
+     * @param pageSize  每页显示的数据数量
+     * @return 分页后的积分奖励排行榜数据
      */
-    public PointsAwardLeaderboardData getData(int type, int count) {
-        List<PointsAwardLeaderboardInfo> rankingInfos = topN(type, count);
+    public PageUtils.PageResult<PointsAwardLeaderboardData> getData(int type, int pageIndex, int pageSize) {
+        List<PointsAwardLeaderboardInfo> rankingInfos = topN(type, PointsAwardConstant.Leaderboard.MAX_RANK_SIZE);
         PointsAwardLeaderboardData data = new PointsAwardLeaderboardData();
         data.setRankType(type);
         data.setRankingInfoList(rankingInfos);
         data.setName(manager.buildName(type, System.currentTimeMillis()));
-        return data;
+        List<PointsAwardLeaderboardData> list = manager.getRankingHistory(type);
+        list.addFirst(data);
+        return PageUtils.page(list, pageIndex, pageSize);
     }
 
     public ResLoadLeaderboardHistory getHistory(long playerId, int pageIndex, int pageSize) {
@@ -249,21 +255,15 @@ public class PointsAwardLeaderboardService {
         ResLoadLeaderboardHistory response = new ResLoadLeaderboardHistory(Code.SUCCESS);
         RDeque<PointsAwardLeaderboardHistory> dequeHistory = redissonClient.getDeque(historyKey(playerId));
         List<PointsAwardLeaderboardHistory> historyList = dequeHistory.readAll();
-        // 分页处理
-        int totalCount = historyList.size();
-        int totalPage = (totalCount + pageSize - 1) / pageSize;
-        int startIndex = (pageIndex - 1) * pageSize;
-        int endIndex = Math.min(startIndex + pageSize, totalCount);
 
-        List<PointsAwardLeaderboardHistory> histories = historyList.subList(startIndex, endIndex);
+        PageUtils.PageResult<PointsAwardLeaderboardHistory> pageResult = PageUtils.page(historyList, pageIndex, pageSize);
 
         response.setPageIndex(pageIndex);
         response.setPageSize(pageSize);
-        response.setTotalCount(totalCount);
-        response.setTotalPage(totalPage);
-        response.setHistoryList(histories);
+        response.setTotalCount(pageResult.getTotalCount());
+        response.setTotalPage(pageResult.getMaxPageIndex());
+        response.setHistoryList(pageResult.getData());
         return response;
-
     }
 
 }

@@ -7,6 +7,9 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardData;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 请求加载排行数据回返
  */
@@ -28,16 +31,34 @@ public class ResLoadLeaderboard extends AbstractResponse {
     private int type;
 
     /**
-     * 加载条数
+     * 当前页码
      */
-    @ProtoDesc("加载条数")
-    private int count;
+    @ProtoDesc("当前页码")
+    private int pageIndex;
+
+    /**
+     * 每页条数
+     */
+    @ProtoDesc("每页条数")
+    private int pageSize;
+
+    /**
+     * 最大页码
+     */
+    @ProtoDesc("最大页码")
+    private int maxPageIndex;
+
+    /**
+     * 最大条数
+     */
+    @ProtoDesc("最大条数")
+    private int totalCount;
 
     /**
      * 排行数据
      */
     @ProtoDesc("排行数据")
-    private PointsAwardLeaderboardData rankingData;
+    private List<PointsAwardLeaderboardData> dataList = new ArrayList<>();
 
     /**
      * 玩家自己的名次 -1未上榜
@@ -57,27 +78,51 @@ public class ResLoadLeaderboard extends AbstractResponse {
         this.type = type;
     }
 
-    public int getCount() {
-        return count;
-    }
-
-    public void setCount(int count) {
-        this.count = count;
-    }
-
-    public PointsAwardLeaderboardData getRankingData() {
-        return rankingData;
-    }
-
-    public void setRankingData(PointsAwardLeaderboardData rankingData) {
-        this.rankingData = rankingData;
-    }
-
     public int getSelfIndex() {
         return selfIndex;
     }
 
     public void setSelfIndex(int selfIndex) {
         this.selfIndex = selfIndex;
+    }
+
+    public int getPageIndex() {
+        return pageIndex;
+    }
+
+    public void setPageIndex(int pageIndex) {
+        this.pageIndex = pageIndex;
+    }
+
+    public int getPageSize() {
+        return pageSize;
+    }
+
+    public void setPageSize(int pageSize) {
+        this.pageSize = pageSize;
+    }
+
+    public int getMaxPageIndex() {
+        return maxPageIndex;
+    }
+
+    public void setMaxPageIndex(int maxPageIndex) {
+        this.maxPageIndex = maxPageIndex;
+    }
+
+    public int getTotalCount() {
+        return totalCount;
+    }
+
+    public void setTotalCount(int totalCount) {
+        this.totalCount = totalCount;
+    }
+
+    public List<PointsAwardLeaderboardData> getDataList() {
+        return dataList;
+    }
+
+    public void setDataList(List<PointsAwardLeaderboardData> dataList) {
+        this.dataList = dataList;
     }
 }

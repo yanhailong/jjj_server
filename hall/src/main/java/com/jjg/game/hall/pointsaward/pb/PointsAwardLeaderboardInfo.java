@@ -70,6 +70,12 @@ public class PointsAwardLeaderboardInfo {
     @ProtoDesc("称号id")
     private int titleId;
 
+    /**
+     * 玩家等级
+     */
+    @ProtoDesc("玩家等级")
+    private int level;
+
     public long getPlayerId() {
         return playerId;
     }
@@ -148,5 +154,13 @@ public class PointsAwardLeaderboardInfo {
 
     public void setConfigId(int configId) {
         this.configId = configId;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public void setLevel(int level) {
+        this.level = level;
     }
 }

@@ -24,6 +24,12 @@ public class ResTurntableRechargeInfo extends AbstractResponse {
     private long rechargeValue;
 
     /**
+     * 配置的金额
+     */
+    @ProtoDesc("配置的金额,每充值达到这个值就增加一次转盘次数")
+    private int configValue;
+
+    /**
      * 增加的转盘次数
      */
     @ProtoDesc("增加的转盘次数")
@@ -47,5 +53,13 @@ public class ResTurntableRechargeInfo extends AbstractResponse {
 
     public void setAddCount(int addCount) {
         this.addCount = addCount;
+    }
+
+    public int getConfigValue() {
+        return configValue;
+    }
+
+    public void setConfigValue(int configValue) {
+        this.configValue = configValue;
     }
 }

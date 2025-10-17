@@ -333,18 +333,25 @@ public class PointsAwardTurntableService {
     }
 
     /**
+     * 获取配置的金额
+     */
+    public int getRechargeCheckValue() {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(44);
+        if (globalConfigCfg == null) {
+            return 0;
+        }
+        //每充值这么多就奖励一次
+        return globalConfigCfg.getIntValue();
+    }
+
+    /**
      * 玩家充值
      *
      * @param order 订单信息
      */
     public void recharge(Order order) {
         long playerId = order.getPlayerId();
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(44);
-        if (globalConfigCfg == null) {
-            return;
-        }
-        //每充值这么多就奖励一次
-        int checkValue = globalConfigCfg.getIntValue();
+        int checkValue = getRechargeCheckValue();
         long recharge = pointsAwardService.getRecharge(playerId);
         if (recharge <= 0 || recharge < checkValue) {
             return;
