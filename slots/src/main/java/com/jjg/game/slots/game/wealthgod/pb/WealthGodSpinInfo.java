@@ -19,7 +19,7 @@ public class WealthGodSpinInfo {
      * 总的中奖倍率
      */
     @ProtoDesc("总的中奖倍率")
-    public int times;
+    public long times;
 
     @ProtoDesc("大奖展示  1.sweet   2.big   3.mega  4.epic  5.legendary")
     public long bigWinShow;
@@ -62,11 +62,11 @@ public class WealthGodSpinInfo {
         this.bigWinShow = bigWinShow;
     }
 
-    public int getTimes() {
+    public long getTimes() {
         return times;
     }
 
-    public void setTimes(int times) {
+    public void setTimes(long times) {
         this.times = times;
     }
 }
