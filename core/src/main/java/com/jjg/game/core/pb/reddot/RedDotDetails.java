@@ -84,6 +84,11 @@ public class RedDotDetails {
          */
         @ProtoDesc("任务")
         TASK,
+        /**
+         * 积分大奖
+         */
+        @ProtoDesc("积分大奖")
+        POINTS_AWARD,
     }
 
 

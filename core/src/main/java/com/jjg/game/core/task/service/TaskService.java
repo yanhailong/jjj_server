@@ -192,6 +192,8 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
                             taskLogger.completeTask(playerId, taskData.getConfigId());
                             log.info("玩家[{}]完成任务[{}]", playerId, taskData.getConfigId());
                         }
+                        //任务条件完成了 通知红点
+                        redDotManager.updateRedDot(this, taskCfg.getTaskType(), playerId);
                     }
                     updatePlayerTaskCache(playerId, taskData);
                     //更新到数据库中
@@ -355,7 +357,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
         }
         if (noticeRedDot) {
             //更新红点信息
-            updateRedDot(playerId, 0);
+            redDotManager.updateRedDot(this, 0, playerId);
         }
     }
 
@@ -440,66 +442,33 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
         RMap<Integer, TaskData> playerTasks = getPlayerTaskMap(playerId);
         Collection<TaskData> tasks = playerTasks.values();
         if (!tasks.isEmpty()) {
-            //更新积分大奖任务
-            if (submodule == TaskConstant.RedDotModule.POINTS_AWARD) {
-                RedDotDetails details = pointsAward(tasks);
-                if (details != null) {
-                    redDotList.add(details);
-                }
+            List<TaskData> pointAwardTasks;
+            if (submodule == 0) {
+                pointAwardTasks = tasks.stream().toList();
+            } else {
+                //筛选任务
+                pointAwardTasks = tasks.stream()
+                        .filter(taskData -> {
+                            TaskCfg taskCfg = GameDataManager.getTaskCfg(taskData.getConfigId());
+                            return taskCfg.getTaskType() == submodule;
+                        })
+                        .toList();
             }
-            //所有任务系统红点
-            else {
-                RedDotDetails details = pointsAward(tasks);
-                if (details != null) {
-                    redDotList.add(details);
-                }
+            if (!pointAwardTasks.isEmpty()) {
+                RedDotDetails redDotDetails = new RedDotDetails();
+                redDotDetails.setRedDotType(RedDotDetails.RedDotType.COUNT);
+                redDotDetails.setRedDotModule(RedDotDetails.RedDotModule.TASK);
+                //红点子模块
+                redDotDetails.setRedDotSubmodule(submodule);
+                List<Integer> taskIds = tasks.stream().map(TaskData::getConfigId).toList();
+                redDotDetails.setCount(taskIds.size());
+                JSONObject extra = new JSONObject();
+                extra.put("taskIds", taskIds);
+                redDotDetails.setExtra(extra.toJSONString());
+                redDotList.add(redDotDetails);
             }
         }
         return redDotList;
-    }
-
-    /**
-     * 积分大奖红点信息
-     *
-     * @param tasks 所有任务
-     */
-    public RedDotDetails pointsAward(Collection<TaskData> tasks) {
-        //积分大奖任务
-        List<TaskData> pointAwardTasks = tasks.stream()
-                .filter(taskData -> {
-                    TaskCfg taskCfg = GameDataManager.getTaskCfg(taskData.getConfigId());
-                    return taskCfg.getTaskType() == TaskConstant.TaskType.POINTS_AWARD;
-                })
-                .toList();
-        if (!pointAwardTasks.isEmpty()) {
-            RedDotDetails redDotDetails = new RedDotDetails();
-            redDotDetails.setRedDotType(RedDotDetails.RedDotType.COUNT);
-            redDotDetails.setRedDotModule(RedDotDetails.RedDotModule.TASK);
-            //红点子模块
-            redDotDetails.setRedDotSubmodule(TaskConstant.RedDotModule.POINTS_AWARD);
-            List<Integer> taskIds = tasks.stream().map(TaskData::getConfigId).toList();
-            redDotDetails.setCount(taskIds.size());
-            JSONObject extra = new JSONObject();
-            extra.put("taskIds", taskIds);
-            redDotDetails.setExtra(extra.toJSONString());
-            return redDotDetails;
-        }
-        return null;
-    }
-
-    /**
-     * 更新任务红点信息
-     *
-     * @param playerId 玩家id
-     */
-    public void updateRedDot(long playerId, int submodule) {
-        List<RedDotDetails> redDotDetails;
-        if (submodule > 0) {
-            redDotDetails = initialize(playerId, submodule);
-        } else {
-            redDotDetails = initialize(playerId, 0);
-        }
-        redDotManager.updateRedDot(redDotDetails, playerId);
     }
 
     /**
@@ -566,7 +535,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
         if (taskCfg.getIntegralNum() > 0) {
             addPlayerPoints(playerId, taskCfg.getIntegralNum(), true);
         }
-        updateRedDot(playerId, taskCfg.getTaskType());
+        redDotManager.updateRedDot(this, taskCfg.getTaskType(), playerId);
         return true;
     }
 

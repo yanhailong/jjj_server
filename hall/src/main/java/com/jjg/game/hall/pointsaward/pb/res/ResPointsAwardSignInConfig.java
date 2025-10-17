@@ -34,6 +34,12 @@ public class ResPointsAwardSignInConfig extends AbstractResponse {
     @ProtoDesc("配置数据,条数等于本月天数")
     private List<PointsAwardSignInConfig> configList = new ArrayList<>();
 
+    /**
+     * 今天能否签到
+     */
+    @ProtoDesc("今天能否签到")
+    private boolean sign;
+
     public ResPointsAwardSignInConfig(int code) {
         super(code);
     }
@@ -52,5 +58,13 @@ public class ResPointsAwardSignInConfig extends AbstractResponse {
 
     public void setCount(int count) {
         this.count = count;
+    }
+
+    public boolean isSign() {
+        return sign;
+    }
+
+    public void setSign(boolean sign) {
+        this.sign = sign;
     }
 }

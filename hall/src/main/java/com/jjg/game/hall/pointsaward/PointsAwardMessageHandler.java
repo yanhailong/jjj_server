@@ -71,6 +71,8 @@ public class PointsAwardMessageHandler {
             int signCount = pointsAwardSignInService.getSignCount(playerController.playerId());
             res.setConfigList(configList);
             res.setCount(signCount);
+            boolean canSign = pointsAwardSignInService.checkCanSign(playerController.playerId());
+            res.setSign(canSign);
         } catch (Exception e) {
             log.error("积分大奖获取签到配置失败!playerId = [{}]", playerController.playerId(), e);
             res.code = Code.EXCEPTION;

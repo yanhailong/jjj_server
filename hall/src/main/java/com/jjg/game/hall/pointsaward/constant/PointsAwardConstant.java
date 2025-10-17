@@ -159,6 +159,17 @@ public interface PointsAwardConstant {
     }
 
     /**
+     * 红点子模块
+     */
+    interface RedDotSubModule {
+        /**
+         * 签到
+         */
+        int SIGN_IN = 1;
+
+    }
+
+    /**
      * 协议
      */
     interface Message {

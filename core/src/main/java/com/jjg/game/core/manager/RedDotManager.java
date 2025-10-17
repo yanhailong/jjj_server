@@ -146,5 +146,20 @@ public class RedDotManager {
         updateRedDot(list, playerId);
     }
 
+    /**
+     * 通知客户端刷新红点数据
+     *
+     * @param redDotService 红点服务
+     * @param submodule     子模块
+     * @param playerId      玩家id 如果参数<=0则广播给所有在线玩家
+     */
+    public void updateRedDot(IRedDotService redDotService, int submodule, long playerId) {
+        if (redDotService == null) {
+            return;
+        }
+        List<RedDotDetails> details = redDotService.initialize(playerId, submodule);
+        updateRedDot(details, playerId);
+    }
+
 }
 
