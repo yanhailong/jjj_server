@@ -33,7 +33,8 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
     @Override
     public void calTimes(WealthGodResultLib lib) throws Exception {
         lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
-        lib.addTimes(calFree(lib));
+//        lib.addTimes(calFree(lib));
+        calFree(lib);
     }
 
     /**
@@ -52,28 +53,28 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
     }
 
     /**
-     * 计算免费游戏的总倍数
+     * 计算免费游戏的倍数
+     * 新逻辑：为每次旋转单独记录倍数，不再累加到外层总倍数
+     * 这样可以清晰地看到每次旋转（包括嵌套免费游戏）的具体倍数贡献
      */
-    private long calFree(WealthGodResultLib lib) throws Exception {
+    private void calFree(WealthGodResultLib lib) throws Exception {
         if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
-            return 0;
+            return;
         }
-        long times = 0;
         for (SpecialAuxiliaryInfo specialAuxiliaryInfo : lib.getSpecialAuxiliaryInfoList()) {
             if (specialAuxiliaryInfo.getFreeGames() == null || specialAuxiliaryInfo.getFreeGames().isEmpty()) {
                 continue;
             }
             for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
                 WealthGodResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), WealthGodResultLib.class);
-                // 只计算中奖线倍数，避免递归调用calTimes导致重复计算
+                // 计算当前免费游戏旋转的中奖线倍数
                 long freeLineTimes = calLineTimes(tmpLib.getAwardLineInfoList());
-                // 递归计算嵌套的免费游戏倍数
-                long nestedFreeTimes = calFree(tmpLib);
-                long totalFreeTimes = freeLineTimes + nestedFreeTimes;
-                times += totalFreeTimes;
+                // 直接设置该次旋转的倍数，不累加到外层
+                tmpLib.setTimes(freeLineTimes);
+                // 递归处理嵌套的免费游戏，为每层都单独记录倍数
+                calFree(tmpLib);
             }
         }
-        return times;
     }
 
     @Override

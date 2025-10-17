@@ -65,8 +65,6 @@ public class WealthGodSendMessageManager extends BaseSendMessageManager {
             res.allGold = gameRunInfo.getAfterGold();
             //总计获得金币
             res.allWinGold = gameRunInfo.getAllWinGold();
-            //大奖展示id
-            res.bigWinShow = gameRunInfo.getBigShowId();
             //等级信息
             res.level = playerController.getPlayer().getLevel();
             res.exp = playerController.getPlayer().getExp();
