@@ -90,6 +90,18 @@ public class PointsAwardLeaderboardHistory {
     @ProtoDesc("排行榜名字")
     private String rankName;
 
+    /**
+     * 图片资源
+     */
+    @ProtoDesc("图片资源")
+    private String picRes;
+
+    /**
+     * 奖励类型
+     */
+    @ProtoDesc("奖励类型")
+    private int awardType;
+
     public long getPlayerId() {
         return playerId;
     }
@@ -192,5 +204,21 @@ public class PointsAwardLeaderboardHistory {
 
     public void setRankName(String rankName) {
         this.rankName = rankName;
+    }
+
+    public String getPicRes() {
+        return picRes;
+    }
+
+    public void setPicRes(String picRes) {
+        this.picRes = picRes;
+    }
+
+    public int getAwardType() {
+        return awardType;
+    }
+
+    public void setAwardType(int awardType) {
+        this.awardType = awardType;
     }
 }

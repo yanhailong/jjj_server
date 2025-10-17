@@ -22,6 +22,8 @@ public class PointsAwardRankingCfg extends BaseCfgBean {
   protected int awardType;
   /** 排名道具奖励 */
   protected List<String> getItem;
+  /** 图片资源 */
+  protected String picRes;
   /** 奖励价值 */
   protected long price;
   /** 排名名次 */
@@ -39,6 +41,11 @@ public class PointsAwardRankingCfg extends BaseCfgBean {
   /** 返回排名道具奖励 */
   public List<String> getGetItem() {
     return getItem;
+  }
+
+  /** 返回图片资源 */
+  public String getPicRes() {
+    return picRes;
   }
 
   /** 返回奖励价值 */

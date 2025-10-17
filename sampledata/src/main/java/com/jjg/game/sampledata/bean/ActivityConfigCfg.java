@@ -20,10 +20,8 @@ public class ActivityConfigCfg extends BaseCfgBean {
 
   /** 解锁条件 */
   protected Map<Integer,Integer> condition;
-  /** 掉落条件 */
-  protected List<Integer> dropcondition;
-  /** 道具掉落包ID */
-  protected List<Integer> dropid;
+  /** 掉落id */
+  protected List<Integer> dropConfigId;
   /** 活动持续时间(天) */
   protected int duration;
   /** 跑马灯通知 */
@@ -38,8 +36,6 @@ public class ActivityConfigCfg extends BaseCfgBean {
   protected String time_end;
   /** 开始时间 */
   protected String time_start;
-  /** 进度触发类型 */
-  protected Map<Integer,Integer> triggerType;
   /** 类型ID */
   protected int type;
   /** 值1 */
@@ -52,14 +48,9 @@ public class ActivityConfigCfg extends BaseCfgBean {
     return condition;
   }
 
-  /** 返回掉落条件 */
-  public List<Integer> getDropcondition() {
-    return dropcondition;
-  }
-
-  /** 返回道具掉落包ID */
-  public List<Integer> getDropid() {
-    return dropid;
+  /** 返回掉落id */
+  public List<Integer> getDropConfigId() {
+    return dropConfigId;
   }
 
   /** 返回活动持续时间(天) */
@@ -95,11 +86,6 @@ public class ActivityConfigCfg extends BaseCfgBean {
   /** 返回开始时间 */
   public String getTime_start() {
     return time_start;
-  }
-
-  /** 返回进度触发类型 */
-  public Map<Integer,Integer> getTriggerType() {
-    return triggerType;
   }
 
   /** 返回类型ID */

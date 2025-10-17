@@ -215,6 +215,8 @@ public class PointsAwardLeaderboardService {
         history.setPrice(cfg.getPrice());
         history.setCode(code);
         history.setRankName(rankName);
+        history.setPicRes(cfg.getPicRes());
+        history.setAwardType(cfg.getAwardType());
         dequeHistory.addFirst(history);
         //只保留一定条数
         if (dequeHistory.size() > PointsAwardConstant.Leaderboard.PLAYER_MAX_HISTORY_SIZE) {

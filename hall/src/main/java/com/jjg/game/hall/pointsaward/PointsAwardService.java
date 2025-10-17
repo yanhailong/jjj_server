@@ -32,6 +32,7 @@ public class PointsAwardService {
     private final RedisLock redisLock;
     private final ClusterSystem clusterSystem;
     private final MarsCurator marsCurator;
+    private final PointsAwardLogger pointsAwardLogger;
 
     /**
      * 玩家累计充值金额
@@ -42,12 +43,14 @@ public class PointsAwardService {
                               @Lazy ClusterSystem clusterSystem,
                               PointsAwardLeaderboardService leaderboardService,
                               MarsCurator marsCurator,
-                              RedisLock redisLock) {
+                              RedisLock redisLock,
+                              PointsAwardLogger pointsAwardLogger) {
         this.redissonClient = redissonClient;
         this.clusterSystem = clusterSystem;
         this.leaderboardService = leaderboardService;
         this.marsCurator = marsCurator;
         this.redisLock = redisLock;
+        this.pointsAwardLogger = pointsAwardLogger;
     }
 
     /**
@@ -120,8 +123,8 @@ public class PointsAwardService {
         if (pointsAward <= 0) {
             return;
         }
+        RAtomicLong counter = redissonClient.getAtomicLong(atomicKey(playerId));
         try {
-            RAtomicLong counter = redissonClient.getAtomicLong(atomicKey(playerId));
             long currentPoints = counter.get();
             updatePointsWithOverflowProtection(counter, currentPoints, pointsAward);
             //通知玩家同步分数
@@ -131,6 +134,8 @@ public class PointsAwardService {
         }
         // 排行榜更新
         updateLeaderboards(playerId, pointsAward);
+        //记录日志
+        pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, true, counter.get());
     }
 
     /**
@@ -226,6 +231,8 @@ public class PointsAwardService {
                 if (counter.compareAndSet(curr, next)) {
                     //通知玩家同步分数
                     noticeSyncPoints(playerId, next);
+                    //记录日志
+                    pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, false, next);
                     return true;
                 }
             }
