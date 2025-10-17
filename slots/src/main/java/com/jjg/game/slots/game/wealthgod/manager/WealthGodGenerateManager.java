@@ -65,8 +65,12 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
             }
             for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
                 WealthGodResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), WealthGodResultLib.class);
-                calTimes(tmpLib);
-                times += tmpLib.getTimes();
+                // 只计算中奖线倍数，避免递归调用calTimes导致重复计算
+                long freeLineTimes = calLineTimes(tmpLib.getAwardLineInfoList());
+                // 递归计算嵌套的免费游戏倍数
+                long nestedFreeTimes = calFree(tmpLib);
+                long totalFreeTimes = freeLineTimes + nestedFreeTimes;
+                times += totalFreeTimes;
             }
         }
         return times;
@@ -441,7 +445,7 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
     /**
      * 替换财神图标为wild
      */
-    private int[] replaceWealthGod(WealthGodResultLib lib, int[] param) {
+    public int[] replaceWealthGod(WealthGodResultLib lib, int[] param) {
         int[] arr = Arrays.copyOf(param, param.length);
 
         //获取全局分散图案的配置

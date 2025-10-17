@@ -30,7 +30,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Constructor;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -305,9 +308,10 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             lib.addLibType(1);
             lib.setId(RandomUtils.getUUid());
             lib.setSource(initArr);
-
+            //替换财神图标
+            int[] replaceArr = generateManager.replaceWealthGod(lib, initArr);
             TestLibData testLibData = new TestLibData();
-            SlotsResultLib resultLib = getGenerateManager().checkAward(initArr, lib);
+            SlotsResultLib resultLib = getGenerateManager().checkAward(replaceArr, lib);
             testLibData.setData(resultLib);
             playerGameData.addTestIconsData(testLibData);
             log.info("添加测试icons成功 playerId = {},icons = {}", playerController.playerId(), icons);
