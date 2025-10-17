@@ -15,6 +15,15 @@ public class WealthGodSpinInfo {
     @ProtoDesc("图标id列表")
     public List<Integer> iconList;
 
+    /**
+     * 总的中奖倍率
+     */
+    @ProtoDesc("总的中奖倍率")
+    public int times;
+
+    @ProtoDesc("大奖展示  1.sweet   2.big   3.mega  4.epic  5.legendary")
+    public long bigWinShow;
+
     @ProtoDesc("中奖信息")
     public List<WealthGodResultLineInfo> resultLineInfoList;
 
@@ -45,4 +54,19 @@ public class WealthGodSpinInfo {
         this.iconChangeInfoList = iconChangeInfoList;
     }
 
+    public long getBigWinShow() {
+        return bigWinShow;
+    }
+
+    public void setBigWinShow(long bigWinShow) {
+        this.bigWinShow = bigWinShow;
+    }
+
+    public int getTimes() {
+        return times;
+    }
+
+    public void setTimes(int times) {
+        this.times = times;
+    }
 }

@@ -180,7 +180,6 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             //添加大奖展示id
             int times = (int) (gameRunInfo.getAllWinGold() / betValue);
             log.debug("计算出获奖倍数 times = {}", times);
-            gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             return gameRunInfo;
         } catch (Exception e) {
@@ -237,6 +236,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             //记录图标变化
             spinInfo.setIconChangeInfoList(iconChangeInfoList);
         }
+        spinInfo.setBigWinShow(getBigShowIdByTimes(spinInfo.getTimes()));
         resultList.add(spinInfo);
         List<SpecialAuxiliaryInfo> specialAuxiliaryInfos = resultLib.getSpecialAuxiliaryInfoList();
         if (specialAuxiliaryInfos != null && !specialAuxiliaryInfos.isEmpty()) {
