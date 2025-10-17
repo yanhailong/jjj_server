@@ -3,6 +3,7 @@ package com.jjg.game.hall.pointsaward.turntable;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
@@ -240,7 +241,7 @@ public class PointsAwardTurntableService {
                 int integralPoints = awardTurntableCfg.getIntegralNum();
                 // 积分奖励（内部自带锁，与扣费不再嵌套）
                 if (integralPoints > 0) {
-                    pointsAwardService.add(playerId, integralPoints);
+                    pointsAwardService.add(playerId, integralPoints, PointsAwardType.TURNTABLE);
                 }
                 // 道具奖励
                 if (awardTurntableCfg.getGetItem() != null && !awardTurntableCfg.getGetItem().isEmpty()) {
@@ -259,7 +260,7 @@ public class PointsAwardTurntableService {
                 log.warn("玩家[{}]积分大奖转盘奖励发送失败!中奖id[{}]配置不存在!", playerId, selectedId);
             }
             return selectedId;
-        }, -1);
+        }, -1, PointsAwardType.TURNTABLE);
     }
 
     public String historyKey(long playerId) {

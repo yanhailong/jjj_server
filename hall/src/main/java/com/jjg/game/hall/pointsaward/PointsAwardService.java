@@ -99,12 +99,12 @@ public class PointsAwardService {
      * @param playerId    玩家id
      * @param pointsAward 增加的积分
      */
-    public void add(long playerId, int pointsAward) {
+    public void add(long playerId, int pointsAward, int type) {
         if (pointsAward <= 0) {
             return;
         }
         try {
-            redisLock.lockAndRun(lockKey(playerId), PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, () -> addWithoutLock(playerId, pointsAward));
+            redisLock.lockAndRun(lockKey(playerId), PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, () -> addWithoutLock(playerId, pointsAward, type));
         } catch (Exception e) {
             log.error("add 玩家积分更新失败!playerId = [{}],pointsAward = [{}]", playerId, pointsAward, e);
         }
@@ -116,7 +116,7 @@ public class PointsAwardService {
      * @param playerId    玩家id
      * @param pointsAward 增加的积分
      */
-    public void addWithoutLock(long playerId, int pointsAward) {
+    public void addWithoutLock(long playerId, int pointsAward, int type) {
         if (pointsAward <= 0) {
             return;
         }
@@ -188,13 +188,13 @@ public class PointsAwardService {
      * @param playerId    玩家id
      * @param pointsAward 扣除的积分 只支持正数
      */
-    public boolean deduct(long playerId, int pointsAward) {
+    public boolean deduct(long playerId, int pointsAward, int type) {
         if (pointsAward <= 0) {
             return false;
         }
         try {
             // 使用分布式锁，确保判断与扣减原子执行
-            return redisLock.lockAndGet(lockKey(playerId), PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, () -> deductWithoutLock(playerId, pointsAward));
+            return redisLock.lockAndGet(lockKey(playerId), PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, () -> deductWithoutLock(playerId, pointsAward, type));
         } catch (Exception e) {
             log.error("deduct 玩家积分扣减失败!playerId = [{}],pointsAward = [{}]", playerId, pointsAward, e);
             return false;
@@ -211,7 +211,7 @@ public class PointsAwardService {
      * @param pointsAward 扣除的积分 只支持正数
      * @return true 扣减成功；false 扣减失败（余额不足或 CAS 冲突未能成功）
      */
-    public boolean deductWithoutLock(long playerId, int pointsAward) {
+    public boolean deductWithoutLock(long playerId, int pointsAward, int type) {
         if (pointsAward <= 0) {
             return false;
         }
@@ -243,11 +243,11 @@ public class PointsAwardService {
      * @param supplier    外部验证逻辑
      * @param success     验证通过并且扣除成功后执行的逻辑
      */
-    public <T> T deduct(long playerId, int pointsAward, Supplier<Boolean> supplier, Supplier<T> success, T defaultValue) {
+    public <T> T deduct(long playerId, int pointsAward, Supplier<Boolean> supplier, Supplier<T> success, T defaultValue, int type) {
         return lockAndGet(playerId, () -> {
             boolean result = supplier.get();
             if (result) {
-                boolean deducted = deductWithoutLock(playerId, pointsAward);
+                boolean deducted = deductWithoutLock(playerId, pointsAward, type);
                 if (deducted) {
                     return success.get();
                 }

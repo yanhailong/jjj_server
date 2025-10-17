@@ -9,6 +9,7 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
+import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
@@ -551,6 +552,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
         notifyPointsUpdate.setFlag(flag);
         notifyPointsUpdate.setPlayerId(playerId);
         notifyPointsUpdate.setValue(value);
+        notifyPointsUpdate.setType(PointsAwardType.TASK);
         clusterSystem.notifyNode(MessageUtil.getPFMessage(notifyPointsUpdate), Set.of(NodeType.HALL.toString())::contains);
     }
 

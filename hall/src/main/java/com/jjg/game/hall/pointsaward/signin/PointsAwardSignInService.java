@@ -3,6 +3,7 @@ package com.jjg.game.hall.pointsaward.signin;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.reddot.IRedDotService;
+import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerPackService;
@@ -242,7 +243,7 @@ public class PointsAwardSignInService implements IRedDotService {
         }, false);
         if (success) {
             if (signInCfg.getIntegralNum() > 0) {
-                pointsAwardService.add(playerId, signInCfg.getIntegralNum());
+                pointsAwardService.add(playerId, signInCfg.getIntegralNum(), PointsAwardType.SIGN);
             }
             //发送道具奖励
             if (signInCfg.getGetItem() != null && !signInCfg.getGetItem().isEmpty()) {
