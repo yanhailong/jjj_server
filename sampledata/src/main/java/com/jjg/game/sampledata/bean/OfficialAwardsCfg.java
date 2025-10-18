@@ -24,8 +24,8 @@ public class OfficialAwardsCfg extends BaseCfgBean {
   protected int probability;
   /** 奖励显示图标 */
   protected String showicon;
-  /** 转盘类型 */
-  protected int turntableType;
+  /** 开始日期 */
+  protected int starDate;
 
   /** 返回奖励 */
   public List<Integer> getGetitem() {
@@ -42,9 +42,9 @@ public class OfficialAwardsCfg extends BaseCfgBean {
     return showicon;
   }
 
-  /** 返回转盘类型 */
-  public int getTurntableType() {
-    return turntableType;
+  /** 返回开始日期 */
+  public int getStarDate() {
+    return starDate;
   }
 
   @Override
