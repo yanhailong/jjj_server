@@ -65,7 +65,6 @@ public interface PointsAwardConstant {
          * 玩家签到锁
          */
         String POINTS_AWARD_SING_IN_LOCK = "pointsAwardSignInLock:";
-
         /**
          * 积分大奖排行榜更新锁
          */
@@ -74,6 +73,10 @@ public interface PointsAwardConstant {
          * 玩家积分大奖数据初始化锁
          */
         String POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT = "pointsAwardDataLock:turntable:init";
+        /**
+         * 玩家排行榜奖励和历史记录锁
+         */
+        String PLAYER_RANKING_AWARD_LOCK = "playerRankingAwardLock:";
     }
 
     /**
