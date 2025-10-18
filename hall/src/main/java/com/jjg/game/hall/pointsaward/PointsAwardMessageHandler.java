@@ -9,6 +9,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.req.ReqLuckyTreasureHistory;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
+import com.jjg.game.hall.pointsaward.pb.PointsAwardLadderRewardsInfo;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardData;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardSignInConfig;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardTurntableConfig;
@@ -197,6 +198,34 @@ public class PointsAwardMessageHandler {
         res.setAddCount(addCount);
         res.setRechargeValue(recharge);
         res.setConfigValue(checkValue);
+        playerController.send(res);
+    }
+
+    /**
+     * 处理玩家积分大奖阶梯奖励信息的请求。
+     */
+    @Command(PointsAwardConstant.Message.REQ_POINTS_AWARD_LADDER_REWARD)
+    public void ladderReceiveInfo(PlayerController playerController, ReqPointsAwardLadderRewards msg) {
+        ResPointsAwardLadderRewards res = new ResPointsAwardLadderRewards(Code.SUCCESS);
+        long points = pointsAwardService.getPoints(playerController.playerId());
+        List<PointsAwardLadderRewardsInfo> configInfoList = pointsAwardService.getLadderConfigInfoList(playerController.playerId());
+        res.setTotalPoints(points);
+        res.setLadderRewardsList(configInfoList);
+        playerController.send(res);
+    }
+
+    /**
+     * 领取积分大奖阶梯奖励
+     */
+    @Command(PointsAwardConstant.Message.REQ_RECEIVE_POINTS_AWARD_LADDER_REWARD)
+    public void receiveLadderAward(PlayerController playerController, ReqReceivePointsAwardLadderRewards msg) {
+        long points = msg.getPoints();
+        boolean flag = pointsAwardService.receiveLader(points, playerController.playerId());
+        ResReceivePointsAwardLadderRewards res = new ResReceivePointsAwardLadderRewards(Code.SUCCESS);
+        res.setPoints(points);
+        if (!flag) {
+            res.code = Code.SAMPLE_ERROR;
+        }
         playerController.send(res);
     }
 

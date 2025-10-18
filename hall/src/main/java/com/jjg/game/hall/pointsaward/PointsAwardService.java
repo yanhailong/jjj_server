@@ -5,19 +5,25 @@ import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.data.Order;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
+import com.jjg.game.hall.pointsaward.pb.PointsAwardLadderRewardsInfo;
 import com.jjg.game.hall.pointsaward.pb.res.NotifySyncPlayerPoint;
-import org.redisson.api.RAtomicLong;
-import org.redisson.api.RLock;
-import org.redisson.api.RMap;
-import org.redisson.api.RedissonClient;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
+import org.redisson.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * 积分大奖积分服务
@@ -33,6 +39,7 @@ public class PointsAwardService {
     private final ClusterSystem clusterSystem;
     private final MarsCurator marsCurator;
     private final PointsAwardLogger pointsAwardLogger;
+    private final PlayerPackService playerPackService;
 
     /**
      * 玩家累计充值金额
@@ -44,13 +51,14 @@ public class PointsAwardService {
                               PointsAwardLeaderboardService leaderboardService,
                               MarsCurator marsCurator,
                               RedisLock redisLock,
-                              PointsAwardLogger pointsAwardLogger) {
+                              PointsAwardLogger pointsAwardLogger, PlayerPackService playerPackService) {
         this.redissonClient = redissonClient;
         this.clusterSystem = clusterSystem;
         this.leaderboardService = leaderboardService;
         this.marsCurator = marsCurator;
         this.redisLock = redisLock;
         this.pointsAwardLogger = pointsAwardLogger;
+        this.playerPackService = playerPackService;
     }
 
     /**
@@ -332,6 +340,91 @@ public class PointsAwardService {
             rechargeMap.put(playerId, resultValue);
             lock.unlock();
         }
+    }
+
+    /**
+     * 获取玩家已经领取的阶梯奖励列表
+     */
+    public RSet<Long> getLadderReceiveSet(long playerId) {
+        return redissonClient.getSet(PointsAwardConstant.RedisKey.POINTS_AWARD_LADDER_REWARDS_RECEIVE + playerId);
+    }
+
+    /**
+     * 获取配置的阶梯奖励
+     */
+    public List<PointsAwardLadderRewardsInfo> getLadderConfigInfoList(long playerId) {
+        List<PointsAwardLadderRewardsInfo> resultList = new ArrayList<>();
+        GlobalConfigCfg configCfg = GameDataManager.getGlobalConfigCfg(45);
+        if (configCfg == null) {
+            return resultList;
+        }
+        String configStr = configCfg.getValue();
+        if (configStr == null) {
+            return resultList;
+        }
+        String[] configs = configStr.split("\\|");
+        RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
+        RLock rLock = rewardReceiveSet.getReadWriteLock(playerId).readLock();
+        try {
+            if (rLock.tryLock()) {
+                for (String config : configs) {
+                    String[] configArray = config.split("_");
+                    if (configArray.length < 3) {
+                        continue;
+                    }
+                    PointsAwardLadderRewardsInfo pointsAwardLadderRewardsInfo = buildRewardInfoFromConfig(configArray, rewardReceiveSet);
+                    resultList.add(pointsAwardLadderRewardsInfo);
+                }
+            }
+        } finally {
+            rLock.unlock();
+        }
+        return resultList;
+    }
+
+    private PointsAwardLadderRewardsInfo buildRewardInfoFromConfig(String[] configArray, RSet<Long> rewardReceiveSet) {
+        int points = Integer.parseInt(configArray[0]);
+        int rewardId = Integer.parseInt(configArray[1]);
+        int count = Integer.parseInt(configArray[2]);
+        PointsAwardLadderRewardsInfo pointsAwardLadderRewardsInfo = new PointsAwardLadderRewardsInfo();
+        pointsAwardLadderRewardsInfo.setPoints(points);
+        pointsAwardLadderRewardsInfo.setItemId(rewardId);
+        pointsAwardLadderRewardsInfo.setItemNum(count);
+        //已经领取过了
+        if (rewardReceiveSet.contains(pointsAwardLadderRewardsInfo.getPoints())) {
+            pointsAwardLadderRewardsInfo.setReceive(true);
+        }
+        return pointsAwardLadderRewardsInfo;
+    }
+
+    /**
+     * 玩家领取积分阶梯奖励
+     */
+    public boolean receiveLader(long points, long playerId) {
+        List<PointsAwardLadderRewardsInfo> configInfoList = getLadderConfigInfoList(playerId);
+        Map<Long, PointsAwardLadderRewardsInfo> collect = configInfoList.stream()
+                .collect(Collectors.toMap(PointsAwardLadderRewardsInfo::getPoints, Function.identity(), (oldValue, newValue) -> newValue));
+        PointsAwardLadderRewardsInfo info = collect.get(points);
+        if (info == null) {
+            return false;
+        }
+        RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
+        RLock rLock = rewardReceiveSet.getReadWriteLock(playerId).writeLock();
+        try {
+            if (rLock.tryLock()) {
+                //已经领取过了
+                if (rewardReceiveSet.contains(info.getPoints())) {
+                    return false;
+                }
+                //奖励道具
+                playerPackService.addItem(playerId, info.getItemId(), info.getItemNum(), "POINTS_AWARD_LADDER_REWARDS");
+                rewardReceiveSet.add(info.getPoints());
+                return true;
+            }
+        } finally {
+            rLock.unlock();
+        }
+        return false;
     }
 
 }
