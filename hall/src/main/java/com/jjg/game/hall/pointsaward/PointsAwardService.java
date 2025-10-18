@@ -65,12 +65,10 @@ public class PointsAwardService {
      * 初始化
      */
     public void init() {
-        if (marsCurator.isMaster()) {
-            // 初始化充值数据记录map
-            redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
-                    () -> rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_COUNT));
-            log.info("初始化充值数据记录map完成");
-        }
+        // 初始化充值数据记录map
+        redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
+                () -> rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_COUNT));
+        log.info("初始化充值数据记录map完成");
     }
 
     /**
