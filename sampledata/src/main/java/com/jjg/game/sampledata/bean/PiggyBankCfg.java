@@ -18,32 +18,34 @@ public class PiggyBankCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "PiggyBank";
 
+  /** 初始金币 */
+  protected int baseGold;
   /** 罐子存储上限 */
-  protected long fullup;
+  protected long fullUp;
   /** 奖励1 */
-  protected Map<Integer,Long> getitem;
-  /** 罐子类型 */
-  protected int name;
+  protected Map<Integer,Long> getItem;
   /** 购买金额 */
   protected int pay;
   /** 重置时间(天) */
-  protected int resetime;
+  protected int reseTime;
+  /** 罐子类型 */
+  protected int type;
   /** 万分比 */
   protected int weight;
 
+  /** 返回初始金币 */
+  public int getBaseGold() {
+    return baseGold;
+  }
+
   /** 返回罐子存储上限 */
-  public long getFullup() {
-    return fullup;
+  public long getFullUp() {
+    return fullUp;
   }
 
   /** 返回奖励1 */
-  public Map<Integer,Long> getGetitem() {
-    return getitem;
-  }
-
-  /** 返回罐子类型 */
-  public int getName() {
-    return name;
+  public Map<Integer,Long> getGetItem() {
+    return getItem;
   }
 
   /** 返回购买金额 */
@@ -52,8 +54,13 @@ public class PiggyBankCfg extends BaseCfgBean {
   }
 
   /** 返回重置时间(天) */
-  public int getResetime() {
-    return resetime;
+  public int getReseTime() {
+    return reseTime;
+  }
+
+  /** 返回罐子类型 */
+  public int getType() {
+    return type;
   }
 
   /** 返回万分比 */

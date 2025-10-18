@@ -228,7 +228,7 @@ public class SharePromoteDao {
         Long count = redisTemplate.opsForValue().increment(key, 1);
         if (count != null && count == 1) {
             // 设置 key 过期
-            redisTemplate.expire(key, 10, TimeUnit.SECONDS);
+            redisTemplate.expire(key, 10, TimeUnit.MINUTES);
         }
     }
 
