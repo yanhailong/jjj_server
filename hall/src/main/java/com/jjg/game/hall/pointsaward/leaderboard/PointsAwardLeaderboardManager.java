@@ -357,9 +357,11 @@ public class PointsAwardLeaderboardManager {
         }
         try {
             RDeque<PointsAwardLeaderboardData> rankingHistoryDeque = rankingHistoryMap.get(data.getRankType());
-            rankingHistoryDeque.addFirst(data);
-            if (rankingHistoryDeque.size() > PointsAwardConstant.Leaderboard.MAX_HISTORY_SIZE) {
-                rankingHistoryDeque.removeLast();
+            if (rankingHistoryDeque != null) {
+                rankingHistoryDeque.addFirst(data);
+                if (rankingHistoryDeque.size() > PointsAwardConstant.Leaderboard.MAX_HISTORY_SIZE) {
+                    rankingHistoryDeque.removeLast();
+                }
             }
         } finally {
             rLock.unlock();
