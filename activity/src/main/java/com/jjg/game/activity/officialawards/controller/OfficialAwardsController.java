@@ -381,7 +381,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
         LocalDateTime localDateTime = TimeHelper.getLocalDateTime(activityData.getTimeStart());
         return GameDataManager.getOfficialAwardsCfgList()
                 .stream()
-                .filter(cfg -> activityData.getValue().contains(cfg.getId()) && localDateTime.getDayOfMonth() == cfg.getStarDate())
+                .filter(cfg -> activityData.getValue().contains(cfg.getId()))
                 .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 

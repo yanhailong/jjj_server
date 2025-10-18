@@ -3,6 +3,7 @@ package com.jjg.game.core.utils;
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.curator.NodeManager;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
@@ -10,6 +11,7 @@ import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.sampledata.GameDataManager;
@@ -18,6 +20,7 @@ import com.jjg.game.sampledata.bean.ViplevelCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -36,7 +39,7 @@ import java.util.stream.Collectors;
  */
 @Component
 public class VipUtil implements GameEventListener, ConfigExcelChangeListener {
-    private final Logger log = LoggerFactory.getLogger(VipUtil.class);
+    private static final Logger log = LoggerFactory.getLogger(VipUtil.class);
     //节点管理
     private final NodeManager nodeManager;
     private final CoreSendMessageManager sendMessageManager;
@@ -146,6 +149,13 @@ public class VipUtil implements GameEventListener, ConfigExcelChangeListener {
         if (chenge || newExp != player.getVipExp()) {
             player.setVipExp(newExp);
             player.setVipLevel(newLv);
+            //发送日志
+            try {
+                CoreLogger bean = CommonUtil.getContext().getBean(CoreLogger.class);
+                bean.sendVipLog(player, recharge ? 8 : 6, null, null, addValue);
+            } catch (BeansException e) {
+                log.error("发送日志失败 playerId:{} addValue:{}", player.getId(), addValue, e);
+            }
         }
         return chenge;
     }
