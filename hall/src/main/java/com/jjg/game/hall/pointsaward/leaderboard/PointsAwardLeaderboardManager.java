@@ -215,6 +215,7 @@ public class PointsAwardLeaderboardManager {
             PointsAwardRankingCfg cfg = cfgMap.get(rank);
             //发奖
             if (cfg != null) {
+
                 List<String> awardItems = cfg.getGetItem();
                 String code = null;
                 //有奖励才发奖

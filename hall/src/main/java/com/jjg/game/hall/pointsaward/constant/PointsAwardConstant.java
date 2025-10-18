@@ -47,6 +47,10 @@ public interface PointsAwardConstant {
          * 所有排行榜的历史记录
          */
         String POINTS_AWARD_RANKING_HISTORY = "pointsAwardRankingHistory:";
+        /**
+         * 积分大奖积分阶梯奖励领取记录
+         */
+        String POINTS_AWARD_LADDER_REWARDS_RECEIVE = "pointsAwardLadderRewardsReceive:";
     }
 
     /**
@@ -223,6 +227,17 @@ public interface PointsAwardConstant {
         int REQ_TURNTABLE_RECHARGE_INFO = BASE_MSG_PREFIX | 0x17;
         //请求装盘充值情况回复
         int RES_TURNTABLE_RECHARGE_INFO = BASE_MSG_PREFIX | 0x18;
+
+        //请求积分大奖积分的阶梯奖励
+        int REQ_POINTS_AWARD_LADDER_REWARD = BASE_MSG_PREFIX | 0x19;
+        //请求积分大奖积分的阶梯奖励回复
+        int RES_POINTS_AWARD_LADDER_REWARD = BASE_MSG_PREFIX | 0x20;
+
+        //请求领取积分大奖积分的阶梯奖励
+        int REQ_RECEIVE_POINTS_AWARD_LADDER_REWARD = BASE_MSG_PREFIX | 0x2a;
+        //请求领取积分大奖积分的阶梯奖励回复
+        int RES_RECEIVE_POINTS_AWARD_LADDER_REWARD = BASE_MSG_PREFIX | 0x2b;
+
 
     }
 
