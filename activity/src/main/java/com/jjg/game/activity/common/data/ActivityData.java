@@ -277,9 +277,9 @@ public class ActivityData {
         data.setType(activityType);
         data.setValue(cfg.getValue());
         data.setValueParam(cfg.getValueParam());
-        data.setDropId(cfg.getDropid());
-        data.setDropCondition(cfg.getDropcondition());
-        data.setTriggerType(cfg.getTriggerType());
+//        data.setDropId(cfg.getDropid());
+//        data.setDropCondition(cfg.getDropcondition());
+//        data.setTriggerType(cfg.getTriggerType());
         long currentTimeMillis = System.currentTimeMillis();
         switch (data.getOpenType()) {
             case ActivityConstant.Common.CYCLE_SERVER_TYPE -> {
