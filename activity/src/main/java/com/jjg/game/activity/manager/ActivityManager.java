@@ -24,7 +24,7 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.ConditionType;
-import com.jjg.game.core.base.condition.check.record.PlayerEffectiveDropParam;
+import com.jjg.game.core.base.condition.check.record.PlayerEffectiveParam;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
@@ -682,7 +682,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         List<ActivityItemDropInfo> itemDropInfos = new ArrayList<>();
         //只支持有效流水下注
-        PlayerEffectiveDropParam param = new PlayerEffectiveDropParam();
+        PlayerEffectiveParam param = new PlayerEffectiveParam();
         param.setPlayerId(player.getId());
         param.setGameId(gameCfgId);
         param.setGameType(warehouseCfg.getGameType());

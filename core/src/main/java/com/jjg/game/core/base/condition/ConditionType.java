@@ -41,7 +41,13 @@ public enum ConditionType {
     PLAY_USE_ITEM(12101, new PlayUseItemCheck()),
     ;
 
+    /**
+     * 具体条件检查类
+     */
     private final ConditionCheck conditionCheck;
+    /**
+     * condition.xlsx 表id
+     */
     private final int id;
 
     ConditionType(int id, ConditionCheck conditionCheck) {
@@ -78,6 +84,9 @@ public enum ConditionType {
         return id;
     }
 
+    /**
+     * 初始化数据主要是为了装载dao
+     */
     public static void initData() {
         CountDao countDao = CommonUtil.getContext().getBean(CountDao.class);
         for (ConditionType conditionType : values()) {
@@ -87,6 +96,9 @@ public enum ConditionType {
         }
     }
 
+    /**
+     * 条件功能枚举
+     */
     public enum FunctionType {
         //活动
         ACTIVITY

@@ -1,8 +1,8 @@
 package com.jjg.game.core.base.condition.check;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.jjg.game.core.base.condition.check.record.PlayerEffectiveDropCondition;
-import com.jjg.game.core.base.condition.check.record.PlayerEffectiveDropParam;
+import com.jjg.game.core.base.condition.check.record.PlayerEffectiveCondition;
+import com.jjg.game.core.base.condition.check.record.PlayerEffectiveParam;
 
 import java.util.List;
 
@@ -16,7 +16,7 @@ public class PlayerEffectiveBetAllCheck extends BaseCheck {
 
     @Override
     public long addProgress(Object paramObject, Object conditionObject) {
-        if (paramObject instanceof PlayerEffectiveDropParam param && conditionObject instanceof PlayerEffectiveDropCondition condition) {
+        if (paramObject instanceof PlayerEffectiveParam param && conditionObject instanceof PlayerEffectiveCondition condition) {
             if (CollectionUtil.isEmpty(param.getParamList())) {
                 return 0;
             }
@@ -30,11 +30,11 @@ public class PlayerEffectiveBetAllCheck extends BaseCheck {
     }
 
     @Override
-    public PlayerEffectiveDropCondition analysisCondition(List<Integer> condition) {
+    public PlayerEffectiveCondition analysisCondition(List<Integer> condition) {
         if (condition.size() < 2) {
             return null;
         }
-        PlayerEffectiveDropCondition sampleCondition = new PlayerEffectiveDropCondition();
+        PlayerEffectiveCondition sampleCondition = new PlayerEffectiveCondition();
         if (condition.getFirst() > 0) {
             sampleCondition.setRoomTypeIds(List.of(condition.getFirst()));
         }

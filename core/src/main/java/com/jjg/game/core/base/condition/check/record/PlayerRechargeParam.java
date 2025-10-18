@@ -7,7 +7,13 @@ import java.math.BigDecimal;
  * @date 2025/10/17 09:48
  */
 public class PlayerRechargeParam extends BaseCheckParam {
+    /**
+     * 渠道id
+     */
     private int channelId;
+    /**
+     * 充值金额
+     */
     private BigDecimal amount;
 
     public int getChannelId() {

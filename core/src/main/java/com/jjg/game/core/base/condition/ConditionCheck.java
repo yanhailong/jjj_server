@@ -32,10 +32,24 @@ public interface ConditionCheck {
         return 0;
     }
 
-    default void clearProgress(Object param) {
+    /**
+     * 清理进度
+     * @param checkParam 添加参数
+     */
+    default void clearProgress(Object checkParam) {
     }
 
+    /**
+     * 获取进度
+     * @param param 添加参数
+     * @return 当前进度
+     */
     long getProgress(Object param);
 
+    /**
+     * 解析条件
+     * @param condition 条件限制列表
+     * @return 条件参数
+     */
     Object analysisCondition(List<Integer> condition);
 }

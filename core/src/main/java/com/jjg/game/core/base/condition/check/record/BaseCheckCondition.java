@@ -5,7 +5,13 @@ package com.jjg.game.core.base.condition.check.record;
  * @date 2025/10/17 10:56
  */
 public abstract class BaseCheckCondition {
+    /**
+     * 条件达到次数
+     */
     private int achievedTimes;
+    /**
+     * 条件达到最低值
+     */
     private long minAchievedValue;
 
     public int getAchievedTimes() {

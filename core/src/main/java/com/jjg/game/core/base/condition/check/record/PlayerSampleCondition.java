@@ -7,7 +7,13 @@ import java.util.List;
  * @date 2025/10/16 18:03
  */
 public class PlayerSampleCondition extends BaseCheckCondition {
+    /**
+     * id列表 具体内容看使用类
+     */
     private List<Integer> ids;
+    /**
+     * 道具id
+     */
     private int itemId;
 
     public List<Integer> getIds() {

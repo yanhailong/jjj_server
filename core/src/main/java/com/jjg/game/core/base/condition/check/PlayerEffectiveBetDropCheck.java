@@ -5,8 +5,8 @@ import cn.hutool.core.util.EnumUtil;
 import com.jjg.game.core.base.condition.ConditionType;
 import com.jjg.game.core.base.condition.check.record.BaseCheckCondition;
 import com.jjg.game.core.base.condition.check.record.BaseCheckParam;
-import com.jjg.game.core.base.condition.check.record.PlayerEffectiveDropCondition;
-import com.jjg.game.core.base.condition.check.record.PlayerEffectiveDropParam;
+import com.jjg.game.core.base.condition.check.record.PlayerEffectiveCondition;
+import com.jjg.game.core.base.condition.check.record.PlayerEffectiveParam;
 
 import java.util.List;
 
@@ -28,7 +28,7 @@ public class PlayerEffectiveBetDropCheck extends BaseCheck {
 
     @Override
     public long addProgress(Object paramObject, Object conditionObject) {
-        if (paramObject instanceof PlayerEffectiveDropParam param && conditionObject instanceof PlayerEffectiveDropCondition condition) {
+        if (paramObject instanceof PlayerEffectiveParam param && conditionObject instanceof PlayerEffectiveCondition condition) {
             if (CollectionUtil.isEmpty(param.getParamList())) {
                 return 0;
             }
@@ -55,7 +55,7 @@ public class PlayerEffectiveBetDropCheck extends BaseCheck {
     }
 
     @Override
-    public PlayerEffectiveDropCondition analysisCondition(List<Integer> condition) {
+    public PlayerEffectiveCondition analysisCondition(List<Integer> condition) {
         if (condition.size() < 2) {
             return null;
         }
@@ -63,7 +63,7 @@ public class PlayerEffectiveBetDropCheck extends BaseCheck {
         if (type == null) {
             return null;
         }
-        PlayerEffectiveDropCondition dropCondition = new PlayerEffectiveDropCondition();
+        PlayerEffectiveCondition dropCondition = new PlayerEffectiveCondition();
         dropCondition.setMinAchievedValue(condition.get(1));
         List<Integer> list = List.copyOf(condition.subList(2, condition.size()));
         switch (type) {

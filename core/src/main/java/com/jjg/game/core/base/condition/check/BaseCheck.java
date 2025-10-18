@@ -6,11 +6,14 @@ import com.jjg.game.core.base.condition.check.record.BaseCheckParam;
 import com.jjg.game.core.dao.CountDao;
 
 /**
+ * 基础检查基类
  * @author lm
  * @date 2025/10/16 18:26
  */
 public abstract class BaseCheck implements ConditionCheck {
-
+    /**
+     * 计数dao
+     */
     protected CountDao countDao;
 
     public CountDao getCountDao() {
@@ -26,8 +29,8 @@ public abstract class BaseCheck implements ConditionCheck {
     }
 
     @Override
-    public void clearProgress(Object objectParam) {
-        if (objectParam instanceof BaseCheckParam param) {
+    public void clearProgress(Object checkParam) {
+        if (checkParam instanceof BaseCheckParam param) {
             countDao.reset(param.getFunction(), getCustomId(param.getPlayerId()));
         }
     }

@@ -7,7 +7,13 @@ import java.util.List;
  * @date 2025/10/16 18:02
  */
 public class PlayerSampleParam extends BaseCheckParam {
+    /**
+     * id 具体内容看使用类
+     */
     private int id;
+    /**
+     * 参数列表 具体内容看使用类
+     */
     private List<Long> paramList;
 
     public int getId() {
