@@ -32,9 +32,7 @@ public class ConditionManager {
             return 0;
         }
         //解析条件
-        List<Integer> conditionCfg = new ArrayList<>(Arrays.stream(StringUtils.split(condition, "_"))
-                .map(Integer::parseInt)
-                .toList());
+        List<Integer> conditionCfg = getConditionCfgList(condition);
         if (conditionCfg.size() < 2) {
             return 0;
         }
@@ -59,9 +57,7 @@ public class ConditionManager {
         if (StringUtils.isEmpty(condition) || param == null || player == null) {
             return 0;
         }
-        List<Integer> conditionCfg = new ArrayList<>(Arrays.stream(StringUtils.split(condition, "_"))
-                .map(Integer::parseInt)
-                .toList());
+        List<Integer> conditionCfg = getConditionCfgList(condition);
         if (conditionCfg.isEmpty()) {
             return 0;
         }
@@ -75,6 +71,18 @@ public class ConditionManager {
             type.getConditionCheck().clearProgress(param);
         }
         return result;
+    }
+
+    /**
+     * 获取解析后的条件限制列表
+     *
+     * @param condition 条件限制字符串
+     * @return 解析后的条件限制列表
+     */
+    private List<Integer> getConditionCfgList(String condition) {
+        return new ArrayList<>(Arrays.stream(StringUtils.split(condition, "_"))
+                .map(Integer::parseInt)
+                .toList());
     }
 
     /**
@@ -139,10 +147,14 @@ public class ConditionManager {
         return check.reduceProgress(checkParam, object, times);
     }
 
-    private static Pair<List<Integer>, ConditionType> getConditionCfg(String condition) {
-        List<Integer> conditionCfg = new ArrayList<>(Arrays.stream(StringUtils.split(condition, "_"))
-                .map(Integer::parseInt)
-                .toList());
+    /**
+     * 获取解析后的条件限制列表和条件类型
+     *
+     * @param condition 条件限制字符串
+     * @return 解析后的条件限制列表和条件类型
+     */
+    private Pair<List<Integer>, ConditionType> getConditionCfg(String condition) {
+        List<Integer> conditionCfg = getConditionCfgList(condition);
         if (conditionCfg.isEmpty()) {
             return null;
         }
