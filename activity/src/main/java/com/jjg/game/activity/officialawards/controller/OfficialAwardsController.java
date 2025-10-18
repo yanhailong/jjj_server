@@ -378,9 +378,10 @@ public class OfficialAwardsController extends BaseActivityController implements 
 
     @Override
     public Map<Integer, OfficialAwardsCfg> getDetailCfgBean(ActivityData activityData) {
+        LocalDateTime localDateTime = TimeHelper.getLocalDateTime(activityData.getTimeStart());
         return GameDataManager.getOfficialAwardsCfgList()
                 .stream()
-                .filter(cfg -> activityData.getValue().contains(cfg.getId()))
+                .filter(cfg -> activityData.getValue().contains(cfg.getId()) && localDateTime.getDayOfMonth() == cfg.getStarDate())
                 .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 

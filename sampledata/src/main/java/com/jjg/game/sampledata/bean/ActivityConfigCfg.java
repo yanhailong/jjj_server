@@ -19,9 +19,9 @@ public class ActivityConfigCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "ActivityConfig";
 
   /** 解锁条件 */
-  protected Map<Integer,Integer> condition;
+  protected String condition;
   /** 掉落id */
-  protected List<Integer> dropConfigId;
+  protected int dropConfigId;
   /** 活动持续时间(天) */
   protected int duration;
   /** 跑马灯通知 */
@@ -44,12 +44,12 @@ public class ActivityConfigCfg extends BaseCfgBean {
   protected List<Integer> valueParam;
 
   /** 返回解锁条件 */
-  public Map<Integer,Integer> getCondition() {
+  public String getCondition() {
     return condition;
   }
 
   /** 返回掉落id */
-  public List<Integer> getDropConfigId() {
+  public int getDropConfigId() {
     return dropConfigId;
   }
 

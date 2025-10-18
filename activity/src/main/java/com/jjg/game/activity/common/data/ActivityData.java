@@ -10,7 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author lm
@@ -34,7 +33,7 @@ public class ActivityData {
     /**
      * 解锁条件
      */
-    private Map<Integer, Integer> condition;
+    private String condition;
     /**
      * 活动持续时间(天)
      */
@@ -78,18 +77,9 @@ public class ActivityData {
     private List<Integer> valueParam;
 
     /**
-     * 进度触发类型
-     */
-    private Map<Integer, Integer> triggerType;
-
-    /**
-     * 掉落条件
-     */
-    private List<Integer> dropCondition;
-    /**
      * 道具掉落包ID
      */
-    private List<Integer> dropId;
+    private Integer dropId;
 
     /**
      * 执行的开始corn表达式
@@ -147,14 +137,6 @@ public class ActivityData {
 
     public void setValueParam(List<Integer> valueParam) {
         this.valueParam = valueParam;
-    }
-
-    public Map<Integer, Integer> getCondition() {
-        return condition;
-    }
-
-    public void setCondition(Map<Integer, Integer> condition) {
-        this.condition = condition;
     }
 
     public int getDuration() {
@@ -233,28 +215,20 @@ public class ActivityData {
         this.round++;
     }
 
-    public Map<Integer, Integer> getTriggerType() {
-        return triggerType;
-    }
-
-    public void setTriggerType(Map<Integer, Integer> triggerType) {
-        this.triggerType = triggerType;
-    }
-
-    public List<Integer> getDropCondition() {
-        return dropCondition;
-    }
-
-    public void setDropCondition(List<Integer> dropCondition) {
-        this.dropCondition = dropCondition;
-    }
-
-    public List<Integer> getDropId() {
+    public Integer getDropId() {
         return dropId;
     }
 
-    public void setDropId(List<Integer> dropId) {
+    public void setDropId(Integer dropId) {
         this.dropId = dropId;
+    }
+
+    public String getCondition() {
+        return condition;
+    }
+
+    public void setCondition(String condition) {
+        this.condition = condition;
     }
 
     public boolean canRun() {
@@ -277,9 +251,7 @@ public class ActivityData {
         data.setType(activityType);
         data.setValue(cfg.getValue());
         data.setValueParam(cfg.getValueParam());
-//        data.setDropId(cfg.getDropid());
-//        data.setDropCondition(cfg.getDropcondition());
-//        data.setTriggerType(cfg.getTriggerType());
+        data.setDropId(cfg.getDropConfigId());
         long currentTimeMillis = System.currentTimeMillis();
         switch (data.getOpenType()) {
             case ActivityConstant.Common.CYCLE_SERVER_TYPE -> {
