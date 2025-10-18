@@ -108,6 +108,7 @@ public class PointsAwardSignInManager {
      */
     public void daily() {
         checkMonth();
+        pointsAwardSignInService.daily();
     }
 
     /**

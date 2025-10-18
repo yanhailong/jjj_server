@@ -10,8 +10,7 @@ import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardData;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PointsAwardRankingCfg;
-import org.redisson.api.RBucket;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -147,6 +146,8 @@ public class PointsAwardLeaderboardManager {
         });
         //发奖
         sendAward(rankingData);
+        //记录排行榜历史记录
+        addHistory(rankingData);
     }
 
     /**
@@ -340,6 +341,43 @@ public class PointsAwardLeaderboardManager {
                 }
             }
         });
+    }
+
+    /**
+     * 添加排行榜历史记录
+     *
+     * @param data 排行数据
+     */
+    public void addHistory(PointsAwardLeaderboardData data) {
+        RMap<Integer, RDeque<PointsAwardLeaderboardData>> rankingHistoryMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_HISTORY + data.getRankType());
+        RLock rLock = rankingHistoryMap.getReadWriteLock(data.getRankType()).writeLock();
+        boolean tryLock = rLock.tryLock();
+        if (!tryLock) {
+            return;
+        }
+        try {
+            RDeque<PointsAwardLeaderboardData> rankingHistoryDeque = rankingHistoryMap.get(data.getRankType());
+            rankingHistoryDeque.addFirst(data);
+            if (rankingHistoryDeque.size() > PointsAwardConstant.Leaderboard.MAX_HISTORY_SIZE) {
+                rankingHistoryDeque.removeLast();
+            }
+        } finally {
+            rLock.unlock();
+        }
+    }
+
+    /**
+     * 获取排行榜所有历史记录
+     *
+     * @param rankType 排行榜类型
+     */
+    public List<PointsAwardLeaderboardData> getRankingHistory(int rankType) {
+        RMap<Integer, RDeque<PointsAwardLeaderboardData>> rankingHistoryMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_HISTORY + rankType);
+        if (!rankingHistoryMap.containsKey(rankType)) {
+            return new ArrayList<>();
+        }
+        RDeque<PointsAwardLeaderboardData> rankingHistory = rankingHistoryMap.get(rankType);
+        return rankingHistory.readAll();
     }
 
 }

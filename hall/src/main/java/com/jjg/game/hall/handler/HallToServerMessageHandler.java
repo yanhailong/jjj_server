@@ -107,10 +107,11 @@ public class HallToServerMessageHandler extends CoreToServerMessageHandler {
             return;
         }
         int value = message.getValue();
+        int type = message.getType();
         if (message.isFlag()) {
-            pointsAwardService.add(playerId, value);
+            pointsAwardService.add(playerId, value, type);
         } else {
-            pointsAwardService.deduct(playerId, value);
+            pointsAwardService.deduct(playerId, value, type);
         }
     }
 }

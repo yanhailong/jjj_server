@@ -31,6 +31,12 @@ public class NotifyPointsUpdate extends AbstractNotice {
     @ProtoDesc("变化的值")
     private int value;
 
+    /**
+     * 获取途径
+     */
+    @ProtoDesc("获取途径")
+    private int type;
+
     public long getPlayerId() {
         return playerId;
     }
@@ -53,5 +59,13 @@ public class NotifyPointsUpdate extends AbstractNotice {
 
     public void setValue(int value) {
         this.value = value;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
     }
 }

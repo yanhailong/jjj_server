@@ -325,9 +325,9 @@ public class ActivityLogger extends BaseLogger {
     public void sendFirstPaymentJoinLog(Player player, ActivityData activityData, FirstpaymentCfg cfg, ItemOperationResult data, Map<Integer, Long> rewards) {
         try {
             JSONObject json = buildBaseInfo(activityData, cfg.getId());
-            json.put("rewards", JSON.toJSONString(rewards));
+            json.put("rewards", JSON.toJSONString(rewards, SerializerFeature.WriteNonStringKeyAsString));
             json.put("money", cfg.getMoney());
-            json.put("remain", JSON.toJSONString(data));
+            json.put("remain", JSON.toJSONString(data, SerializerFeature.WriteNonStringKeyAsString));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendDailyLoginRewards error:", e);
@@ -344,6 +344,7 @@ public class ActivityLogger extends BaseLogger {
         try {
             JSONObject json = new JSONObject();
             json.put("operator", 1);
+            json.put("type", -1);
             json.put("level", cfg.getPlayerlevel());
             json.put("money", cfg.getPay());
             json.put("rewards", JSON.toJSONString(cfg.getLevelRewards(), SerializerFeature.WriteNonStringKeyAsString));
@@ -364,6 +365,7 @@ public class ActivityLogger extends BaseLogger {
         try {
             JSONObject json = new JSONObject();
             json.put("operator", 2);
+            json.put("type", -1);
             json.put("level", cfg.getPlayerlevel());
             json.put("money", cfg.getPay());
             json.put("remain", JSON.toJSONString(data));

@@ -40,13 +40,13 @@ public interface PointsAwardConstant {
          */
         String TURNTABLE_ADD_COUNT = "turntableAddCount:";
         /**
-         * 转盘记录玩家的累计充值金额
-         */
-        String TURNTABLE_PLAYER_RECHARGE = "turntablePlayerRecharge:";
-        /**
          * 玩家的排行榜历史记录
          */
         String POINTS_AWARD_PLAYER_RANKING_HISTORY = "pointsAwardPlayerRankingHistory:";
+        /**
+         * 所有排行榜的历史记录
+         */
+        String POINTS_AWARD_RANKING_HISTORY = "pointsAwardRankingHistory:";
     }
 
     /**
@@ -135,6 +135,10 @@ public interface PointsAwardConstant {
         /**
          * 玩家最大历史记录保留条数
          */
+        int PLAYER_MAX_HISTORY_SIZE = 100;
+        /**
+         * 排行榜最大历史记录
+         */
         int MAX_HISTORY_SIZE = 100;
     }
 
@@ -156,6 +160,17 @@ public interface PointsAwardConstant {
          * 转盘历史记录最大条数  策划要求写死
          */
         int HISTORY_MAX_SIZE = 50;
+    }
+
+    /**
+     * 红点子模块
+     */
+    interface RedDotSubModule {
+        /**
+         * 签到
+         */
+        int SIGN_IN = 1;
+
     }
 
     /**

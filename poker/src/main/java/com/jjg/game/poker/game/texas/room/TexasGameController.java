@@ -86,7 +86,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     public void respRoomInitInfoAction(PlayerController playerController) {
         RepsTexasRoomBaseInfo repsTexasRoomBaseInfo = new RepsTexasRoomBaseInfo(Code.SUCCESS);
         repsTexasRoomBaseInfo.phase = getCurrentGamePhase();
-        repsTexasRoomBaseInfo.phaseEndTime= gameDataVo.getPhaseEndTime();
+        repsTexasRoomBaseInfo.phaseEndTime = gameDataVo.getPhaseEndTime();
         if (getCurrentGamePhase() != EGamePhase.WAIT_READY && getCurrentGamePhase() != EGamePhase.START_GAME) {
             if (Objects.nonNull(gameDataVo.getPublicCards())) {
                 repsTexasRoomBaseInfo.publicCards = TexasDataHelper.getClientId(gameDataVo,
@@ -124,6 +124,8 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         repsTexasRoomBaseInfo.operationTime = TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.PLAY_CARDS);
         TexasCfg texasCfg = TexasDataHelper.getTexasCfg(gameDataVo);
         repsTexasRoomBaseInfo.SB = texasCfg.getSbNum();
+        repsTexasRoomBaseInfo.wareType = texasCfg.getRoomID();
+        repsTexasRoomBaseInfo.maxPlayerNum = gameDataVo.getRoomCfg().getMaxPlayer();
         repsTexasRoomBaseInfo.BB = texasCfg.getBbNum();
         repsTexasRoomBaseInfo.operationTime = TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.PLAY_CARDS);
         //记录操作时间
@@ -733,8 +735,8 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         boolean changed =
                 roomController.getRoomManager().changeRoom(
                         playerController, room.getId(), room.getGameType(), room.getRoomCfgId());
-        RepsTexasRoomBaseInfo repsTexasRoomBaseInfo = new RepsTexasRoomBaseInfo(changed ? Code.SUCCESS : Code.FAIL);
-        playerController.send(repsTexasRoomBaseInfo);
+        RepsTexasChangTable res = new RepsTexasChangTable(changed ? Code.SUCCESS : Code.FAIL);
+        playerController.send(res);
     }
 
     /**

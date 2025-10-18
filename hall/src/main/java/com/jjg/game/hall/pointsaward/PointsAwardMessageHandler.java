@@ -3,6 +3,7 @@ package com.jjg.game.hall.pointsaward;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.common.utils.PageUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.req.ReqLuckyTreasureHistory;
@@ -71,6 +72,8 @@ public class PointsAwardMessageHandler {
             int signCount = pointsAwardSignInService.getSignCount(playerController.playerId());
             res.setConfigList(configList);
             res.setCount(signCount);
+            boolean canSign = pointsAwardSignInService.checkCanSign(playerController.playerId());
+            res.setSign(canSign);
         } catch (Exception e) {
             log.error("积分大奖获取签到配置失败!playerId = [{}]", playerController.playerId(), e);
             res.code = Code.EXCEPTION;
@@ -157,14 +160,16 @@ public class PointsAwardMessageHandler {
     @Command(PointsAwardConstant.Message.REQ_LOAD_LEADERBOARD)
     public void loadLeaderboard(PlayerController playerController, ReqLoadLeaderboard message) {
         int type = message.getType();
-        int count = message.getCount();
-        PointsAwardLeaderboardData pointsAwardData = pointsAwardLeaderboardService.getData(type, count);
+        PageUtils.PageResult<PointsAwardLeaderboardData> pageResult = pointsAwardLeaderboardService.getData(type, message.getPageIndex(), message.getPageSize());
         //自己在排行榜上的名次 -1表示未上榜
         int rank = pointsAwardLeaderboardService.getRank(type, playerController.playerId());
         ResLoadLeaderboard res = new ResLoadLeaderboard(Code.SUCCESS);
-        res.setCount(count);
         res.setType(type);
-        res.setRankingData(pointsAwardData);
+        res.setDataList(pageResult.getData());
+        res.setTotalCount(pageResult.getTotalCount());
+        res.setPageIndex(pageResult.getPageIndex());
+        res.setPageSize(pageResult.getPageSize());
+        res.setMaxPageIndex(pageResult.getMaxPageIndex());
         res.setSelfIndex(rank);
         playerController.send(res);
     }
@@ -187,9 +192,11 @@ public class PointsAwardMessageHandler {
     public void turntableRechargeInfo(PlayerController playerController, ReqTurntableRechargeInfo msg) {
         long recharge = pointsAwardService.getRecharge(playerController.playerId());
         int addCount = pointsAwardTurntableService.getAddCount(playerController.playerId());
+        int checkValue = pointsAwardTurntableService.getRechargeCheckValue();
         ResTurntableRechargeInfo res = new ResTurntableRechargeInfo(Code.SUCCESS);
         res.setAddCount(addCount);
         res.setRechargeValue(recharge);
+        res.setConfigValue(checkValue);
         playerController.send(res);
     }
 

@@ -3,6 +3,7 @@ package com.jjg.game.hall.pointsaward.turntable;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
@@ -240,7 +241,7 @@ public class PointsAwardTurntableService {
                 int integralPoints = awardTurntableCfg.getIntegralNum();
                 // 积分奖励（内部自带锁，与扣费不再嵌套）
                 if (integralPoints > 0) {
-                    pointsAwardService.add(playerId, integralPoints);
+                    pointsAwardService.add(playerId, integralPoints, PointsAwardType.TURNTABLE);
                 }
                 // 道具奖励
                 if (awardTurntableCfg.getGetItem() != null && !awardTurntableCfg.getGetItem().isEmpty()) {
@@ -250,6 +251,8 @@ public class PointsAwardTurntableService {
                 history.setPlayerId(playerId);
                 history.setAwardId(selectedId);
                 history.setTime(System.currentTimeMillis());
+                history.setIntegralNum(integralPoints);
+                history.getItemInfoList().addAll(ItemUtils.buildItemInfos(awardTurntableCfg.getGetItem()));
                 addHistory(history);
                 //增加玩家转盘次数
                 countMap.put(playerId, countMap.getOrDefault(playerId, 0) + 1);
@@ -257,7 +260,7 @@ public class PointsAwardTurntableService {
                 log.warn("玩家[{}]积分大奖转盘奖励发送失败!中奖id[{}]配置不存在!", playerId, selectedId);
             }
             return selectedId;
-        }, -1);
+        }, -1, PointsAwardType.TURNTABLE);
     }
 
     public String historyKey(long playerId) {
@@ -330,18 +333,25 @@ public class PointsAwardTurntableService {
     }
 
     /**
+     * 获取配置的金额
+     */
+    public int getRechargeCheckValue() {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(44);
+        if (globalConfigCfg == null) {
+            return 0;
+        }
+        //每充值这么多就奖励一次
+        return globalConfigCfg.getIntValue();
+    }
+
+    /**
      * 玩家充值
      *
      * @param order 订单信息
      */
     public void recharge(Order order) {
         long playerId = order.getPlayerId();
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(44);
-        if (globalConfigCfg == null) {
-            return;
-        }
-        //每充值这么多就奖励一次
-        int checkValue = globalConfigCfg.getIntValue();
+        int checkValue = getRechargeCheckValue();
         long recharge = pointsAwardService.getRecharge(playerId);
         if (recharge <= 0 || recharge < checkValue) {
             return;

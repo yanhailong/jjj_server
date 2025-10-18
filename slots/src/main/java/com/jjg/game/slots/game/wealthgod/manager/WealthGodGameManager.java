@@ -30,7 +30,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Constructor;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -132,11 +135,11 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             gameRunInfo.setStake(betValue);
             //所有的spin数据
             List<WealthGodSpinInfo> infoList = new ArrayList<>();
-            respinAnalysis(resultLib, playerGameData.getOneBetScore(), infoList);
+            respinAnalysis(resultLib, playerGameData.getOneBetScore(), infoList, betValue, gameRunInfo);
             gameRunInfo.setSpinInfo(infoList);
             //记录奖池id
             gameRunInfo.setJackpotId(resultLib.getJackpotId());
-            gameRunInfo.addBigPoolTimes(resultLib.getTimes());
+
             //房间配置id
             int roomCfgId = player.getRoomCfgId();
             long addGold = 0;
@@ -174,10 +177,6 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             if (playerController != null) {
                 playerController.setPlayer(player);
             }
-            //添加大奖展示id
-            int times = (int) (gameRunInfo.getAllWinGold() / betValue);
-            log.debug("计算出获奖倍数 times = {}", times);
-            gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             return gameRunInfo;
         } catch (Exception e) {
@@ -190,7 +189,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
     /**
      * 重转数据解析
      */
-    public void respinAnalysis(WealthGodResultLib resultLib, long oneBetScore, List<WealthGodSpinInfo> resultList) {
+    public void respinAnalysis(WealthGodResultLib resultLib, long oneBetScore, List<WealthGodSpinInfo> resultList, long betValue, WealthGodGameRunInfo gameRunInfo) {
         WealthGodSpinInfo spinInfo = new WealthGodSpinInfo();
         //记录中奖信息
         List<WealthGodAwardLineInfo> awardLineInfoList = resultLib.getAwardLineInfoList();
@@ -234,6 +233,18 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             //记录图标变化
             spinInfo.setIconChangeInfoList(iconChangeInfoList);
         }
+
+        long resultLibTimes = resultLib.getTimes();
+
+        long allWinGold = oneBetScore * resultLibTimes;
+        //添加大奖展示id
+        int times = (int) (allWinGold / betValue);
+        log.debug("计算出获奖倍数 times = {}", times);
+        spinInfo.setBigWinShow(getBigShowIdByTimes(times));
+        spinInfo.setTimes(resultLibTimes);
+        if (resultLibTimes > 0) {
+            gameRunInfo.addBigPoolTimes(resultLibTimes);
+        }
         resultList.add(spinInfo);
         List<SpecialAuxiliaryInfo> specialAuxiliaryInfos = resultLib.getSpecialAuxiliaryInfoList();
         if (specialAuxiliaryInfos != null && !specialAuxiliaryInfos.isEmpty()) {
@@ -243,7 +254,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
                 JSONObject gamesFirst = freeGames.getFirst();
                 WealthGodResultLib temp = JSONObject.parseObject(gamesFirst.toJSONString(), WealthGodResultLib.class);
                 if (temp != null) {
-                    respinAnalysis(temp, oneBetScore, resultList);
+                    respinAnalysis(temp, oneBetScore, resultList, betValue, gameRunInfo);
                 }
             }
         }
@@ -305,9 +316,10 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             lib.addLibType(1);
             lib.setId(RandomUtils.getUUid());
             lib.setSource(initArr);
-
+            //替换财神图标
+            int[] replaceArr = generateManager.replaceWealthGod(lib, initArr);
             TestLibData testLibData = new TestLibData();
-            SlotsResultLib resultLib = getGenerateManager().checkAward(initArr, lib);
+            SlotsResultLib resultLib = getGenerateManager().checkAward(replaceArr, lib);
             testLibData.setData(resultLib);
             playerGameData.addTestIconsData(testLibData);
             log.info("添加测试icons成功 playerId = {},icons = {}", playerController.playerId(), icons);
