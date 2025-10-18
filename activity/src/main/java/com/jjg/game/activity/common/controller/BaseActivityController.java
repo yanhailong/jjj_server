@@ -14,11 +14,11 @@ import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.redis.RedisLock;
-import com.jjg.game.core.base.condition.ConditionCheckService;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.TipUtils;
@@ -84,7 +84,7 @@ public abstract class BaseActivityController {
      * 条件检查服务，用于判断玩家是否符合参与条件
      */
     @Autowired
-    protected ConditionCheckService conditionCheckService;
+    protected ConditionManager conditionManager;
 
     /**
      * 活动日志记录器，用于追踪活动行为
@@ -134,7 +134,7 @@ public abstract class BaseActivityController {
      */
     public boolean checkPlayerCanJoinActivity(Player player, ActivityData activityData) {
         // 调用条件检查服务，验证触发条件是否完成
-        return conditionCheckService.isTriggerComplete(player, activityData.getCondition());
+        return conditionManager.isAchievement(player, player, activityData.getCondition());
     }
 
 

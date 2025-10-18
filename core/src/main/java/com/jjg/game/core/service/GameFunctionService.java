@@ -2,13 +2,12 @@ package com.jjg.game.core.service;
 
 import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.protostuff.PFSession;
-import com.jjg.game.core.base.condition.CheckerParam;
-import com.jjg.game.core.base.condition.ConditionCheckService;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.pb.NotifyOpenFunction;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
@@ -18,7 +17,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 游戏功能服务
@@ -32,7 +34,7 @@ public class GameFunctionService implements GameEventListener {
      * 条件检查服务
      */
     @Autowired
-    private ConditionCheckService conditionCheckService;
+    private ConditionManager conditionManager;
     @Autowired
     private PlayerSessionService playerSessionService;
 
@@ -94,22 +96,14 @@ public class GameFunctionService implements GameEventListener {
             return false;
         }
 
-        if(!functionCfg.getIsOpen()){
+        if (!functionCfg.getIsOpen()) {
             return false;
         }
 
         List<Integer> conditionTypes = functionCfg.getVipLevel();
-        ConditionCfg conditionCfg = GameDataManager.getConditionCfg(conditionTypes.getFirst());
-        if (conditionCfg == null) {
-            return false;
-        }
-        List<Object> params =
-            conditionTypes.subList(1, conditionTypes.size()).stream().map(a -> (Object) a).toList();
-        List<CheckerParam> checkerParams =
-            Collections.singletonList(
-                new CheckerParam(new HashSet<>(conditionCfg.getConditionType()), params));
+        List<Integer> conditionCfg = new ArrayList<>(conditionTypes);
         // 检查是否触发成功
-        return conditionCheckService.isTriggerComplete(player, conditionCfg, checkerParams);
+        return conditionManager.isAchievement(player, player, conditionCfg);
     }
 
     @Override
@@ -117,7 +111,7 @@ public class GameFunctionService implements GameEventListener {
         List<EGameEventType> needMonitorEvents = new ArrayList<>();
         List<GameFunctionCfg> functionCfg = GameDataManager.getGameFunctionCfgList();
         for (GameFunctionCfg gameFunctionCfg : functionCfg) {
-            if(!gameFunctionCfg.getIsOpen()){
+            if (!gameFunctionCfg.getIsOpen()) {
                 continue;
             }
             // 条件类型

@@ -1,0 +1,87 @@
+package com.jjg.game.core.base.condition.check;
+
+import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.util.EnumUtil;
+import com.jjg.game.core.base.condition.ConditionType;
+import com.jjg.game.core.base.condition.check.record.BaseCheckCondition;
+import com.jjg.game.core.base.condition.check.record.BaseCheckParam;
+import com.jjg.game.core.base.condition.check.record.PlayerEffectiveDropCondition;
+import com.jjg.game.core.base.condition.check.record.PlayerEffectiveDropParam;
+
+import java.util.List;
+
+/**
+ * 12003_每累计达到有效流水时触发|指定范围内游戏可多个游戏_指定范围内游戏可多个游戏
+ * 12004_每累计达到有效流水时触发|排除指定范围内游戏可多个游戏
+ * 12005_每累计达到有效流水时触发|指定范围内游戏类型可多个类型
+ * 12005_每累计达到有效流水时触发|指定倍场游戏类型可多个倍场
+ *
+ * @author lm
+ * @date 2025/10/17 10:11
+ */
+public class PlayerEffectiveBetDropCheck extends BaseCheck {
+    private final int conditionTypeId;
+
+    public PlayerEffectiveBetDropCheck(int conditionTypeId) {
+        this.conditionTypeId = conditionTypeId;
+    }
+
+    @Override
+    public long addProgress(Object paramObject, Object conditionObject) {
+        if (paramObject instanceof PlayerEffectiveDropParam param && conditionObject instanceof PlayerEffectiveDropCondition condition) {
+            if (CollectionUtil.isEmpty(param.getParamList())) {
+                return 0;
+            }
+            //条件检查
+            if ((CollectionUtil.isNotEmpty(condition.getRoomTypeIds()) && !condition.getRoomTypeIds().contains(param.getRoomType()))
+                    || (CollectionUtil.isNotEmpty(condition.getExclusionGameIds()) && condition.getExclusionGameIds().contains(param.getGameId()))
+                    || (CollectionUtil.isNotEmpty(condition.getGameType()) && condition.getGameType().contains(param.getGameType()))
+                    || (CollectionUtil.isNotEmpty(condition.getGameIds()) && !condition.getGameIds().contains(param.getGameId()))) {
+                return 0;
+            }
+            long progress = countDao.incrBy(param.getFunction(), getCustomId(param.getPlayerId()), param.getParamList().getFirst());
+            return (int) (progress / condition.getMinAchievedValue());
+        }
+        return 0;
+    }
+
+    @Override
+    public long reduceProgress(Object param, Object condition, long times) {
+        if (param instanceof BaseCheckParam checkParam && condition instanceof BaseCheckCondition baseCheckCondition) {
+            return countDao.incrBy(checkParam.getFunction(), getCustomId(checkParam.getPlayerId()),
+                    -baseCheckCondition.getMinAchievedValue() * times);
+        }
+        return 0;
+    }
+
+    @Override
+    public PlayerEffectiveDropCondition analysisCondition(List<Integer> condition) {
+        if (condition.size() < 2) {
+            return null;
+        }
+        ConditionType type = EnumUtil.getBy(ConditionType.class, (t) -> t.getId() == conditionTypeId);
+        if (type == null) {
+            return null;
+        }
+        PlayerEffectiveDropCondition dropCondition = new PlayerEffectiveDropCondition();
+        dropCondition.setMinAchievedValue(condition.get(1));
+        List<Integer> list = List.copyOf(condition.subList(2, condition.size()));
+        switch (type) {
+            case PLAY_GAME -> dropCondition.setGameIds(list);
+            case NOT_PLAY_GAME -> dropCondition.setExclusionGameIds(list);
+            case PLAY_GAME_TYPE -> dropCondition.setGameType(list);
+            case PLAY_ROOM_TYPE -> dropCondition.setRoomTypeIds(list);
+        }
+        return dropCondition;
+    }
+
+    @Override
+    public String getCustomId(long playerId) {
+        return getClass().getSimpleName() + conditionTypeId + playerId;
+    }
+
+    @Override
+    public Achieved getAchievedType() {
+        return Achieved.PROGRESS;
+    }
+}

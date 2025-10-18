@@ -144,6 +144,7 @@ public class GameDataManager {
     containerMap.put(DailyRechargeCfg.class, new DailyRechargeCfgContainer());
     containerMap.put(DailyRewardsCfg.class, new DailyRewardsCfgContainer());
     containerMap.put(DealerFunctionCfg.class, new DealerFunctionCfgContainer());
+    containerMap.put(DropConfigCfg.class, new DropConfigCfgContainer());
     containerMap.put(DropDetailedCfg.class, new DropDetailedCfgContainer());
     containerMap.put(DropGroupCfg.class, new DropGroupCfgContainer());
     containerMap.put(FirstpaymentCfg.class, new FirstpaymentCfgContainer());
@@ -902,6 +903,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(DealerFunctionCfg.class).getCfgBeanList();
   }
 
+  public static DropConfigCfg getDropConfigCfg(int key) {
+    return getInstance().getCfgContainer(DropConfigCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, DropConfigCfg> getDropConfigCfgMap() {
+    return getInstance().getCfgContainer(DropConfigCfg.class).getCfgBeanMap();
+  }
+
+  public static List<DropConfigCfg> getDropConfigCfgList() {
+    return getInstance().getCfgContainer(DropConfigCfg.class).getCfgBeanList();
+  }
+
   public static DropDetailedCfg getDropDetailedCfg(int key) {
     return getInstance().getCfgContainer(DropDetailedCfg.class).getCfgBeanMap().get(key);
   }
@@ -1470,6 +1483,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\workspace\\gamedoc\\游戏配置表");
+    loadAllData("E:\\java\\gamedoc\\游戏配置表");
   }
 }

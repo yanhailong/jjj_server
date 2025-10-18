@@ -1,6 +1,5 @@
 package com.jjg.game.core.service;
 
-import com.jjg.game.core.base.condition.ConditionCheckService;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.manager.SampleDataManager;
@@ -21,8 +20,6 @@ public class CoreStartService {
     @Autowired
     private SampleDataManager sampleDataManager;
     @Autowired
-    private ConditionCheckService conditionCheckService;
-    @Autowired
     private GameEventManager gameEventManager;
     @Autowired
     private ShopService shopService;
@@ -39,7 +36,6 @@ public class CoreStartService {
     public void init(ApplicationContext context) {
         playerSessionService.init();
         sampleDataManager.init();
-        conditionCheckService.initConditionChecker();
         gameEventManager.initEventListener();
         shopService.init();
         configManager.init();
