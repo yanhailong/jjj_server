@@ -197,6 +197,11 @@ public interface MessageConst {
         int REQ_SUBSCRIBE_TOPIC = BASE_MSG_PREFIX | 0x15;
         //请求订阅消息推送主题操作回复
         int RES_SUBSCRIBE_TOPIC = BASE_MSG_PREFIX | 0x16;
+
+        //请求预下单
+        int REQ_GENERATE_ORDER = BASE_MSG_PREFIX | 0x17;
+        //返回预下单
+        int RES_GENERATE_ORDER = BASE_MSG_PREFIX | 0x18;
     }
 
     interface RoomMessage {

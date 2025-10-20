@@ -12,4 +12,6 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.REQ_OFFICIAL_AWARDS_TOTAL_POOL)
 @ProtoDesc("官方派奖请求总奖池")
 public class ReqOfficialAwardsTotalPool {
+    @ProtoDesc("活动id")
+    public long activityId;
 }

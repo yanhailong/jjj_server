@@ -157,7 +157,7 @@ public class PrivilegeCardController extends BaseActivityController {
             // 构建响应数据
             res = new ResPrivilegeCardDetailInfo(Code.SUCCESS);
             res.detailInfo = new ArrayList<>();
-            res.detailInfo.add(buildPlayerActivityDetail(activityData.getId(), cfg, privilegeCard));
+            res.detailInfo.add(buildPlayerActivityDetail(activityData, cfg, privilegeCard));
 
         } else {
             log.error("活动配置为空 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
@@ -236,26 +236,26 @@ public class PrivilegeCardController extends BaseActivityController {
         res.activityId = activityData.getId();
         res.detailId = detailId;
         res.infoList = ItemUtils.buildItemInfo(cfg.getDayRebate());
-        res.detailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, data);
+        res.detailInfo = buildPlayerActivityDetail(activityData, cfg, data);
         return res;
     }
 
     /**
      * 构建玩家特权卡活动详情
      *
-     * @param activityId  活动ID
-     * @param baseCfgBean 活动配置
-     * @param data        玩家特权卡数据
+     * @param activityData 活动ID
+     * @param baseCfgBean  活动配置
+     * @param data         玩家特权卡数据
      * @return 返回特权卡详情信息
      */
     @Override
-    public PrivilegeCardDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public PrivilegeCardDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (!(baseCfgBean instanceof PrivilegeCardCfg cfg)) {
             return null;
         }
 
         PrivilegeCardDetailInfo info = new PrivilegeCardDetailInfo();
-        info.activityId = activityId;
+        info.activityId = activityData.getId();
         info.detailId = baseCfgBean.getId();
         info.rechargePrice = cfg.getPurchasecost();
 
@@ -289,7 +289,7 @@ public class PrivilegeCardController extends BaseActivityController {
         Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
 
         detailInfo.detailInfo = new ArrayList<>();
-        BaseActivityDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId));
+        BaseActivityDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId));
         if (baseActivityDetailInfo instanceof PrivilegeCardDetailInfo cardDetailInfo) {
             detailInfo.detailInfo.add(cardDetailInfo);
         }

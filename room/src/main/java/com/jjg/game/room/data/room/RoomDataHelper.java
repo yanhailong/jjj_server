@@ -3,7 +3,7 @@ package com.jjg.game.room.data.room;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.utils.MessageBuildUtil;
-import com.jjg.game.core.utils.VipUtil;
+import com.jjg.game.core.manager.VipCheckManager;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
@@ -27,10 +27,10 @@ public class RoomDataHelper {
             return;
         }
         try {
-            Map<Integer, ViplevelCfg> viplevelCfgMap = VipUtil.getVipLevelCfgMap();
+            Map<Integer, ViplevelCfg> viplevelCfgMap = VipCheckManager.getVipLevelCfgMap();
             ViplevelCfg cfg = viplevelCfgMap.get(player.getVipLevel());
             if (Objects.nonNull(cfg) && cfg.getEffectiveBetting() > 0) {
-                if (VipUtil.bettingCheckVipLevel(player, effectiveWaterFlow)) {
+                if (VipCheckManager.bettingCheckVipLevel(player, effectiveWaterFlow)) {
                     NoticeBaseInfoChange notice = MessageBuildUtil.buildNoticeBaseInfoChange(player);
                     controller.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(player.getId(), notice));
                 }

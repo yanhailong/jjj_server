@@ -7,7 +7,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.pb.ItemInfo;
-import com.jjg.game.core.constant.RechargeType;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.data.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;

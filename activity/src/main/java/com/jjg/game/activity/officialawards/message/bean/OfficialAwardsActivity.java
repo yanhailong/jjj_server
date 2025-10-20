@@ -23,7 +23,9 @@ public class OfficialAwardsActivity {
     @ProtoDesc("单次消耗积分")
     public int costPoint;
     @ProtoDesc("开始时间")
-    public List<OfficialAwardsStartInfo> startInfos;
+    public OfficialAwardsStartInfo startInfos;
     @ProtoDesc("活动状态 1未开始 2进行中 3已结束")
     public int activityState;
+    @ProtoDesc("转盘类型")
+    public int turntableType;
 }

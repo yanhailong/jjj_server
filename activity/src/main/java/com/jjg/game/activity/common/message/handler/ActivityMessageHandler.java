@@ -17,6 +17,7 @@ import com.jjg.game.activity.levelpack.message.req.ReqPlayerLevelClaimRewards;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.activity.officialawards.controller.OfficialAwardsController;
 import com.jjg.game.activity.officialawards.message.req.ReqOfficialAwardsRecord;
+import com.jjg.game.activity.officialawards.message.req.ReqOfficialAwardsTotalPool;
 import com.jjg.game.activity.sharepromote.controller.SharePromoteController;
 import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteBindPlayer;
 import com.jjg.game.activity.sharepromote.message.req.ReqSharePromoteSelfRankInfo;
@@ -291,11 +292,12 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_OFFICIAL_AWARDS_RECORD)
     public void reqOfficialAwardsRecord(PlayerController playerController, ReqOfficialAwardsRecord req) {
-        ActivityData activityData = activityManager.getOpenActivityData(playerController.getPlayer(), ActivityType.OFFICIAL_AWARDS);
-        if (activityData == null) {
-            return;
+        ActivityData data = activityManager.getActivityData().get(req.activityId);
+        if (data != null && data.getType() == ActivityType.OFFICIAL_AWARDS) {
+            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
+                playerController.send(officialAwardsController.reqOfficialAwardsRecord(playerController, req));
+            }
         }
-        playerController.send(officialAwardsController.reqOfficialAwardsRecord(playerController, req));
     }
 
     /**
@@ -304,12 +306,13 @@ public class ActivityMessageHandler {
      * @param playerController 玩家信息
      */
     @Command(ActivityConstant.MsgBean.REQ_OFFICIAL_AWARDS_TOTAL_POOL)
-    public void reqOfficialAwardsTotalPool(PlayerController playerController) {
-        ActivityData activityData = activityManager.getOpenActivityData(playerController.getPlayer(), ActivityType.OFFICIAL_AWARDS);
-        if (activityData == null) {
-            return;
+    public void reqOfficialAwardsTotalPool(PlayerController playerController, ReqOfficialAwardsTotalPool req) {
+        ActivityData data = activityManager.getActivityData().get(req.activityId);
+        if (data != null && data.getType() == ActivityType.OFFICIAL_AWARDS) {
+            if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
+                playerController.send(officialAwardsController.reqOfficialAwardsTotalPool(req));
+            }
         }
-        playerController.send(officialAwardsController.reqOfficialAwardsTotalPool());
     }
 
 

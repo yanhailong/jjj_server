@@ -111,6 +111,12 @@
             </exclusions>
         </dependency>
 
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.20.0</version>
+        </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.sqids/sqids -->
         <dependency>
             <groupId>org.sqids</groupId>

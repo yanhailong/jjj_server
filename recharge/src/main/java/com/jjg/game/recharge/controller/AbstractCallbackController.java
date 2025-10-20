@@ -4,15 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
-import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.PFSession;
-import com.jjg.game.core.base.player.IRecharge;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.RechargeType;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.pb.NotifyPayCallBack;
@@ -77,7 +75,7 @@ public abstract class AbstractCallbackController {
         }
 
         //获取商品
-        ShopProduct shopProduct = shopService.getShopProduct(order.getProductId());
+        ShopProduct shopProduct = shopService.getShopProduct(Integer.parseInt(order.getProductId()));
         if (shopProduct == null) {
             //TODO 记录下来，检查该订单
             log.debug("未找到该商品 orderId = {},productId = {}", order.getId(), order.getProductId());
@@ -119,7 +117,7 @@ public abstract class AbstractCallbackController {
      * @param order
      */
     private void handleShopOrder(Player player,PlayerSessionInfo info,Order order) {
-        ShopProduct shopProduct = shopService.getShopProduct(order.getProductId());
+        ShopProduct shopProduct = shopService.getShopProduct(Integer.parseInt(order.getProductId()));
         if(shopProduct == null){
             return;
         }

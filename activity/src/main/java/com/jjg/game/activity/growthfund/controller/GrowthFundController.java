@@ -94,7 +94,7 @@ public class GrowthFundController extends BaseActivityController {
             ResGrowthFundDetailInfo info = new ResGrowthFundDetailInfo(Code.SUCCESS);
             info.detailInfo = new ArrayList<>(updateDetailId.size());
             for (GrowthFundCfg cfg : updateDetailId) {
-                info.detailInfo.add(buildPlayerActivityDetail(activityId, cfg, playerActivityData.get(cfg.getId())));
+                info.detailInfo.add(buildPlayerActivityDetail(activityData, cfg, playerActivityData.get(cfg.getId())));
             }
             return info;
         }
@@ -174,7 +174,7 @@ public class GrowthFundController extends BaseActivityController {
             res.activityId = activityId;
             res.detailId = detailId;
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetItem());
-            res.detailInfo = buildPlayerActivityDetail(activityId, cfg, claimRewardsResult.playerActivityData());
+            res.detailInfo = buildPlayerActivityDetail(activityData, cfg, claimRewardsResult.playerActivityData());
             return res;
         }
         return null;
@@ -183,18 +183,18 @@ public class GrowthFundController extends BaseActivityController {
     /**
      * 构建成长基金活动详情
      *
-     * @param activityId  活动ID
-     * @param baseCfgBean 活动配置
-     * @param data        玩家特权卡数据
+     * @param activityData 活动ID
+     * @param baseCfgBean  活动配置
+     * @param data         玩家特权卡数据
      * @return 返回特权卡详情信息
      */
     @Override
-    public GrowthFundDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public GrowthFundDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (!(baseCfgBean instanceof GrowthFundCfg cfg)) {
             return null;
         }
         GrowthFundDetailInfo info = new GrowthFundDetailInfo();
-        info.activityId = activityId;
+        info.activityId = activityData.getId();
         info.detailId = baseCfgBean.getId();
         info.type = cfg.getType();
         info.needLevel = cfg.getLevel();
@@ -217,7 +217,7 @@ public class GrowthFundController extends BaseActivityController {
         Map<Integer, GrowthFundCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
         detailInfo.detailInfo = new ArrayList<>();
-        detailInfo.detailInfo.add(buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
+        detailInfo.detailInfo.add(buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
         return detailInfo;
     }
 

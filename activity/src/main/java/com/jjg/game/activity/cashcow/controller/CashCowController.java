@@ -336,7 +336,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             res.activityId = activityId;
             res.detailId = detailId;
             res.infoList = ItemUtils.buildItemInfo(cfg.getRewards());
-            res.detailInfo = buildPlayerActivityDetail(activityId, cfg, claimRewardsResult.playerActivityData());
+            res.detailInfo = buildPlayerActivityDetail(activityData, cfg, claimRewardsResult.playerActivityData());
         }
         // 返回响应
         return res;
@@ -463,18 +463,18 @@ public class CashCowController extends BaseActivityController implements TimerLi
         detailInfo.detailInfo = new ArrayList<>();
         CashcowCfg cfg = baseCfgBeanMap.get(detailId);
         if (cfg != null) {
-            CashCowDetailInfo cardDetailInfo = buildPlayerActivityDetail(activityId, cfg, playerActivityData.get(detailId));
+            CashCowDetailInfo cardDetailInfo = buildPlayerActivityDetail(data, cfg, playerActivityData.get(detailId));
             detailInfo.detailInfo.add(cardDetailInfo);
         }
         return detailInfo;
     }
 
     @Override
-    public CashCowDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public CashCowDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         // 将配置与玩家数据组合成客户端所需的 detailInfo DTO
         if (baseCfgBean instanceof CashcowCfg cfg) {
             CashCowDetailInfo info = new CashCowDetailInfo();
-            info.activityId = activityId;
+            info.activityId = activityData.getId();
             info.detailId = baseCfgBean.getId();
             info.type = cfg.getType();
             // 如果是累计奖励类型，返回所需进度、奖励项和领取状态
@@ -487,7 +487,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             } else {
                 // 抽奖类型：返回消耗道具信息和当前奖池
                 info.costItems = ItemUtils.buildItemInfo(cfg.getNeedItem());
-                info.pool = cashCowDao.getSpecifiedActivityPool(activityId, baseCfgBean.getId());
+                info.pool = cashCowDao.getSpecifiedActivityPool(activityData.getId(), baseCfgBean.getId());
             }
             return info;
         }

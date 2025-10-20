@@ -16,6 +16,7 @@ import com.jjg.game.activity.officialawards.message.bean.OfficialAwardsDetailInf
 import com.jjg.game.activity.officialawards.message.bean.OfficialAwardsShowRecord;
 import com.jjg.game.activity.officialawards.message.bean.OfficialAwardsStartInfo;
 import com.jjg.game.activity.officialawards.message.req.ReqOfficialAwardsRecord;
+import com.jjg.game.activity.officialawards.message.req.ReqOfficialAwardsTotalPool;
 import com.jjg.game.activity.officialawards.message.res.*;
 import com.jjg.game.activity.util.CronUtil;
 import com.jjg.game.activity.util.DataCache;
@@ -33,7 +34,6 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.ActivityConfigCfg;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.OfficialAwardsCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
@@ -97,7 +97,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
         ResOfficialAwardsJoinActivity res = new ResOfficialAwardsJoinActivity(Code.SUCCESS);
         long playerId = player.getId();
-        long pool = officialAwardsDao.getTotalPool();
+        long pool = officialAwardsDao.getTotalPool(activityData.getId());
         if (pool <= 0) {
             res.code = Code.OFFICIAL_AWARDS_POOL_NULL;
             return res;
@@ -120,7 +120,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
             //获取随机奖励
             cfg = random.next();
             Integer getNum = cfg.getGetitem().getLast();
-            reducedPair = officialAwardsDao.reduceTotalPool(getNum);
+            reducedPair = officialAwardsDao.reduceTotalPool(activityData.getId(), getNum);
             if (reducedPair.getFirst() < 1) {
                 break;
             }
@@ -138,7 +138,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
             log.error("官方派奖玩家参加活动发奖失败 playerId:{} get:{}", playerId, totalGet);
             return res;
         }
-        addPlayerRecord(player, getRewards);
+        addPlayerRecord(player, activityData.getId(), getRewards);
         res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem().getFirst(), totalGet);
         res.remainPoint = remainPoint;
         res.totalPool = reducedPair.getSecond();
@@ -164,27 +164,27 @@ public class OfficialAwardsController extends BaseActivityController implements 
     /**
      * 添加机器人记录
      */
-    private void addRobotRecord(long robotGet) {
+    private void addRobotRecord(long activityId, long robotGet) {
         RobotCfg robotCfg = RandomUtil.randomEle(GameDataManager.getRobotCfgList());
         OfficialAwardsRecord officialAwardsRecord = new OfficialAwardsRecord();
         officialAwardsRecord.setName(robotCfg.getName());
         officialAwardsRecord.setCreateTime(System.currentTimeMillis());
         officialAwardsRecord.setGetNum(robotGet);
         //添加记录
-        officialAwardsDao.savePlayerRecord(0, officialAwardsRecord);
+        officialAwardsDao.savePlayerRecord(0, activityId, officialAwardsRecord);
     }
 
     /**
      * 添加玩家记录
      */
-    private void addPlayerRecord(Player player, List<Integer> playerGetList) {
+    private void addPlayerRecord(Player player, long activityId, List<Integer> playerGetList) {
         for (Integer playerGet : playerGetList) {
             OfficialAwardsRecord officialAwardsRecord = new OfficialAwardsRecord();
             officialAwardsRecord.setName(player.getNickName());
             officialAwardsRecord.setCreateTime(System.currentTimeMillis());
             officialAwardsRecord.setGetNum(playerGet);
             //添加记录
-            officialAwardsDao.savePlayerRecord(player.getId(), officialAwardsRecord);
+            officialAwardsDao.savePlayerRecord(player.getId(), activityId, officialAwardsRecord);
         }
     }
 
@@ -202,15 +202,12 @@ public class OfficialAwardsController extends BaseActivityController implements 
      */
     private void clearData(long activityId) {
         //清除所有记录数据
-        officialAwardsDao.deleteAllRecords();
+        officialAwardsDao.deleteAllRecords(activityId);
         log.info("官方派奖删除所有记录成功 activityId:{}", activityId);
-        officialAwardsDao.deleteAllPlayerRecords();
+        officialAwardsDao.deleteAllPlayerRecords(activityId);
         log.info("官方派奖删除所有玩家记录成功 activityId:{}", activityId);
-        //清除所有玩家信息
-        officialAwardsDao.deleteAllPlayerAllProgress();
-        log.info("官方派奖删除所有玩家进度成功 activityId:{}", activityId);
         //清除奖池信息
-        officialAwardsDao.deleteTotalPool();
+        officialAwardsDao.deleteTotalPool(activityId);
         log.info("官方派奖删除总奖池成功 activityId:{}", activityId);
     }
 
@@ -224,7 +221,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
             log.error("官方派奖活动未配置 主奖金");
             return;
         }
-        officialAwardsDao.setTotalPool(valueParam.getFirst());
+        officialAwardsDao.setTotalPool(activityData.getId(), valueParam.getFirst());
         //添加机器人获奖逻辑
         robotAction(activityData.getId());
     }
@@ -264,7 +261,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
         Map<Integer, OfficialAwardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
 
         detailInfo.detailInfo = new ArrayList<>();
-        OfficialAwardsDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), null);
+        OfficialAwardsDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), null);
         detailInfo.detailInfo.add(baseActivityDetailInfo);
         return detailInfo;
     }
@@ -273,10 +270,10 @@ public class OfficialAwardsController extends BaseActivityController implements 
      * 构建玩家官方派奖活动明细信息
      */
     @Override
-    public OfficialAwardsDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
-        if (baseCfgBean instanceof OfficialAwardsCfg cfg) {
+    public OfficialAwardsDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+        if (baseCfgBean instanceof OfficialAwardsCfg cfg && activityData.canRun()) {
             OfficialAwardsDetailInfo info = new OfficialAwardsDetailInfo();
-            info.activityId = activityId;
+            info.activityId = activityData.getId();
             info.detailId = cfg.getId();
             info.rewardItems = ItemUtils.buildItemInfo(Map.of(cfg.getGetitem().getFirst(), (long) cfg.getGetitem().getLast()));
             return info;
@@ -297,10 +294,10 @@ public class OfficialAwardsController extends BaseActivityController implements 
         Pair<Boolean, List<OfficialAwardsRecord>> playerRecordActivities = null;
         // type == 1：个人记录，type == 2：全局记录
         if (req.type == 1) {
-            playerRecordActivities = officialAwardsDao.getPlayerRecord(playerController.playerId(),
+            playerRecordActivities = officialAwardsDao.getPlayerRecord(playerController.playerId(), req.activityId,
                     req.startIndex, req.startIndex + Math.min(req.size, ActivityConstant.OfficialAwards.GET_MAX_RECORD_NUM));
         } else if (req.type == 2) {
-            playerRecordActivities = officialAwardsDao.getAllRecords(req.startIndex, req.startIndex +
+            playerRecordActivities = officialAwardsDao.getAllRecords(req.activityId, req.startIndex, req.startIndex +
                     Math.min(req.size, ActivityConstant.OfficialAwards.GET_MAX_RECORD_NUM));
         }
         if (playerRecordActivities != null && CollectionUtil.isNotEmpty(playerRecordActivities.getSecond())) {
@@ -331,54 +328,47 @@ public class OfficialAwardsController extends BaseActivityController implements 
         cardTypeInfo.activityData = new ArrayList<>();
         for (Map.Entry<Long, List<BaseActivityDetailInfo>> entry : allDetailInfo.entrySet()) {
             List<BaseActivityDetailInfo> baseActivityDetailInfos = entry.getValue();
-            OfficialAwardsActivity officialAwardsType = new OfficialAwardsActivity();
-            officialAwardsType.detailInfos = new ArrayList<>();
-            cardTypeInfo.activityData.add(officialAwardsType);
+            OfficialAwardsActivity officialAwardsActivity = new OfficialAwardsActivity();
+            officialAwardsActivity.detailInfos = new ArrayList<>();
+            cardTypeInfo.activityData.add(officialAwardsActivity);
             for (BaseActivityDetailInfo baseActivityDetailInfo : baseActivityDetailInfos) {
                 if (baseActivityDetailInfo instanceof OfficialAwardsDetailInfo info) {
-                    officialAwardsType.detailInfos.add(info);
+                    officialAwardsActivity.detailInfos.add(info);
                 }
             }
             ActivityData activityData = activityManager.getActivityData().get(entry.getKey());
-            officialAwardsType.totalPool = officialAwardsDao.getTotalPool();
-            officialAwardsType.remainTime = activityData.getTimeEnd() - System.currentTimeMillis();
-            officialAwardsType.costPoint = activityData.getValueParam().getLast();
-            officialAwardsType.remainPoints = officialAwardsDao.getPlayerProgress(playerId);
-            officialAwardsType.activityState = activityData.getStatus();
-            officialAwardsType.startInfos = getOfficialAwardsStartInfo(activityData);
+            officialAwardsActivity.totalPool = officialAwardsDao.getTotalPool(activityData.getId());
+            if (activityData.getValueParam().size() >= 3) {
+                officialAwardsActivity.costPoint = activityData.getValueParam().get(1);
+                officialAwardsActivity.turntableType = activityData.getValueParam().getLast();
+            }
+            if (!activityData.canRun()) {
+                officialAwardsActivity.remainTime = activityData.getTimeEnd() - System.currentTimeMillis();
+                officialAwardsActivity.startInfos = getOfficialAwardsStartInfo(activityData);
+            }
+            officialAwardsActivity.remainPoints = officialAwardsDao.getPlayerProgress(playerId);
+            officialAwardsActivity.activityState = activityData.getStatus();
         }
         return cardTypeInfo;
     }
 
-    public List<OfficialAwardsStartInfo> getOfficialAwardsStartInfo(ActivityData activityData) {
-        ActivityConfigCfg cfg = GameDataManager.getActivityConfigCfg((int) activityData.getId());
-        List<OfficialAwardsStartInfo> infos = new ArrayList<>();
-        if (cfg == null) {
-            return infos;
-        }
-
+    public OfficialAwardsStartInfo getOfficialAwardsStartInfo(ActivityData activityData) {
         LocalDateTime offset = LocalDateTime.now();
-        int findTimes = 3;
         if (activityData.canRun()) {
             offset = TimeHelper.getLocalDateTime(activityData.getTimeEnd());
         }
-        for (int i = 0; i < findTimes; i++) {
-            Pair<LocalDateTime, LocalDateTime> nextOpenTime = CronUtil.getNextOpenTime(cfg.getTime_start(), cfg.getTime_end(), offset);
-            if (nextOpenTime == null) {
-                continue;
-            }
-            offset = nextOpenTime.getSecond();
-            OfficialAwardsStartInfo officialAwardsStartInfo = new OfficialAwardsStartInfo();
-            officialAwardsStartInfo.startTime = TimeHelper.getTimestamp(nextOpenTime.getFirst());
-            officialAwardsStartInfo.number = nextOpenTime.getFirst().getDayOfMonth();
-            infos.add(officialAwardsStartInfo);
+        Pair<LocalDateTime, LocalDateTime> nextOpenTime = CronUtil.getNextOpenTime(activityData.getTimeStartCorn(), activityData.getTimeEndCorn(), offset);
+        if (nextOpenTime == null) {
+            return null;
         }
-        return infos;
+        OfficialAwardsStartInfo officialAwardsStartInfo = new OfficialAwardsStartInfo();
+        officialAwardsStartInfo.startTime = TimeHelper.getTimestamp(nextOpenTime.getFirst());
+        officialAwardsStartInfo.number = nextOpenTime.getFirst().getDayOfMonth();
+        return officialAwardsStartInfo;
     }
 
     @Override
     public Map<Integer, OfficialAwardsCfg> getDetailCfgBean(ActivityData activityData) {
-        LocalDateTime localDateTime = TimeHelper.getLocalDateTime(activityData.getTimeStart());
         return GameDataManager.getOfficialAwardsCfgList()
                 .stream()
                 .filter(cfg -> activityData.getValue().contains(cfg.getId()))
@@ -409,23 +399,23 @@ public class OfficialAwardsController extends BaseActivityController implements 
     @Override
     public void onTimer(TimerEvent<Long> e) {
         if (activityManager.isExecutionNode()) {
-            //奖池为空直接返回
-            long pool = officialAwardsDao.getTotalPool();
-            if (pool <= 0) {
-                return;
-            }
             Long activityId = e.getParameter();
             ActivityData activityData = activityManager.getActivityData().get(activityId);
             if (!activityData.canRun()) {
+                return;
+            }
+            //奖池为空直接返回
+            long pool = officialAwardsDao.getTotalPool(activityData.getId());
+            if (pool <= 0) {
                 return;
             }
             //机器人进行中奖
             Map<Integer, OfficialAwardsCfg> map = getDetailCfgBean(activityData);
             WeightRandom<OfficialAwardsCfg> random = getOfficialAwardsCfgWeightRandom(map);
             OfficialAwardsCfg next = random.next();
-            Pair<Integer, Integer> pair = officialAwardsDao.reduceTotalPool(next.getGetitem().getLast());
+            Pair<Integer, Integer> pair = officialAwardsDao.reduceTotalPool(activityData.getId(), next.getGetitem().getLast());
             if (pair.getFirst() > 0) {
-                addRobotRecord(pair.getFirst());
+                addRobotRecord(activityData.getId(), pair.getFirst());
             }
             if (pair.getSecond() > 0) {
                 robotAction(activityId);
@@ -436,9 +426,9 @@ public class OfficialAwardsController extends BaseActivityController implements 
     /**
      * 请求官方派奖总奖池
      */
-    public AbstractResponse reqOfficialAwardsTotalPool() {
+    public AbstractResponse reqOfficialAwardsTotalPool(ReqOfficialAwardsTotalPool req) {
         ResOfficialAwardsTotalPool resOfficialAwardsTotalPool = new ResOfficialAwardsTotalPool(Code.SUCCESS);
-        resOfficialAwardsTotalPool.totalPool = officialAwardsDao.getTotalPool();
+        resOfficialAwardsTotalPool.totalPool = officialAwardsDao.getTotalPool(req.activityId);
         return resOfficialAwardsTotalPool;
     }
 }

@@ -1,4 +1,4 @@
-package com.jjg.game.core.utils;
+package com.jjg.game.core.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
@@ -12,7 +12,6 @@ import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.logger.CoreLogger;
-import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
@@ -38,8 +37,8 @@ import java.util.stream.Collectors;
  * @date 2025/8/29 10:52
  */
 @Component
-public class VipUtil implements GameEventListener, ConfigExcelChangeListener {
-    private static final Logger log = LoggerFactory.getLogger(VipUtil.class);
+public class VipCheckManager implements GameEventListener, ConfigExcelChangeListener {
+    private static final Logger log = LoggerFactory.getLogger(VipCheckManager.class);
     //节点管理
     private final NodeManager nodeManager;
     private final CoreSendMessageManager sendMessageManager;
@@ -47,7 +46,7 @@ public class VipUtil implements GameEventListener, ConfigExcelChangeListener {
     // vip配置缓存
     private static Map<Integer, ViplevelCfg> VIP_LEVEL_CFG_MAP = new HashMap<>();
 
-    public VipUtil(NodeManager nodeManager, CoreSendMessageManager sendMessageManager, CorePlayerService playerService) {
+    public VipCheckManager(NodeManager nodeManager, CoreSendMessageManager sendMessageManager, CorePlayerService playerService) {
         this.nodeManager = nodeManager;
         this.sendMessageManager = sendMessageManager;
         this.playerService = playerService;

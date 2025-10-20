@@ -27,7 +27,7 @@ public class OfficialAwardsDao {
     private final String PREFIX = "activity:" + FUNCTION_NAME;
     // 玩家进度 key: 玩家id
     private final String PLAYER_PROGRESS_KEY = PREFIX + ":player:%d";
-    private final String TOTAL_POOL_KEY = PREFIX + ":pool";
+    private final String TOTAL_POOL_KEY = PREFIX + ":pool:%s";
     private final RedisTemplate<String, String> redisTemplate;
     private final RecordDao recordDao;
     private final RedisLock redisLock;
@@ -45,24 +45,24 @@ public class OfficialAwardsDao {
     /**
      * 保存玩家记录
      */
-    public void savePlayerRecord(long playerId, OfficialAwardsRecord record) {
-        recordDao.addRecord(FUNCTION_NAME, 0, playerId, record, ActivityConstant.OfficialAwards.MAX_RECORD_NUM, true);
+    public void savePlayerRecord(long playerId, long activityId, OfficialAwardsRecord record) {
+        recordDao.addRecord(FUNCTION_NAME, activityId, playerId, record, ActivityConstant.OfficialAwards.MAX_RECORD_NUM, true);
     }
 
 
     /**
      * 获取玩家记录
      */
-    public Pair<Boolean, List<OfficialAwardsRecord>> getPlayerRecord(long playerId, int start, int end) {
+    public Pair<Boolean, List<OfficialAwardsRecord>> getPlayerRecord(long playerId, long activityId, int start, int end) {
         int mined = Math.min(ActivityConstant.OfficialAwards.GET_MAX_RECORD_NUM, end);
-        return recordDao.getPlayerRecords(FUNCTION_NAME, 0, playerId, start, mined, OfficialAwardsRecord.class);
+        return recordDao.getPlayerRecords(FUNCTION_NAME, activityId, playerId, start, mined, OfficialAwardsRecord.class);
     }
 
     /**
      * 删除活动所有玩家记录
      */
-    public void deleteAllPlayerRecords() {
-        recordDao.deleteAllPlayerRecords(FUNCTION_NAME, 0);
+    public void deleteAllPlayerRecords(long activityId) {
+        recordDao.deleteAllPlayerRecords(FUNCTION_NAME, activityId);
     }
 
     // -------------------- 全部玩家记录 --------------------
@@ -70,34 +70,20 @@ public class OfficialAwardsDao {
     /**
      * 获取活动全部玩家记录
      */
-    public Pair<Boolean, List<OfficialAwardsRecord>> getAllRecords(int start, int end) {
+    public Pair<Boolean, List<OfficialAwardsRecord>> getAllRecords(long activityId,int start, int end) {
         int mined = Math.min(ActivityConstant.OfficialAwards.GET_MAX_RECORD_NUM, end);
-        return recordDao.getRecords(FUNCTION_NAME, 0, start, mined, OfficialAwardsRecord.class);
-    }
-
-    /**
-     * 删除活动玩家记录
-     */
-    public void deletePlayerRecords(long playerId) {
-        recordDao.deletePlayerRecords(FUNCTION_NAME, 0, playerId);
+        return recordDao.getRecords(FUNCTION_NAME, activityId, start, mined, OfficialAwardsRecord.class);
     }
 
     /**
      * 删除活动所有全局记录
      */
-    public void deleteAllRecords() {
-        recordDao.deleteAllRecords(FUNCTION_NAME, 0);
+    public void deleteAllRecords(long activityId) {
+        recordDao.deleteAllRecords(FUNCTION_NAME, activityId);
     }
 
     // -------------------- 进度 --------------------
 
-    /**
-     * 保存玩家进度 (type=1今日积分,2明日积分)
-     */
-    public void savePlayerProgress(long playerId, int type, long setValue) {
-        String key = String.format(PLAYER_PROGRESS_KEY, playerId, type);
-        redisTemplate.opsForValue().set(key, String.valueOf(setValue));
-    }
 
     /**
      * 获取玩家进度
@@ -166,15 +152,15 @@ public class OfficialAwardsDao {
     /**
      * 设置奖池数量
      */
-    public void setTotalPool(long delta) {
-        redisTemplate.opsForValue().set(TOTAL_POOL_KEY, String.valueOf(delta));
+    public void setTotalPool(long activityId, long delta) {
+        redisTemplate.opsForValue().set(TOTAL_POOL_KEY.formatted(activityId), String.valueOf(delta));
     }
 
     /**
      * 获取奖池数量
      */
-    public long getTotalPool() {
-        String value = redisTemplate.opsForValue().get(TOTAL_POOL_KEY);
+    public long getTotalPool(long activityId) {
+        String value = redisTemplate.opsForValue().get(TOTAL_POOL_KEY.formatted(activityId));
         return value == null ? 0 : Long.parseLong(value);
     }
 
@@ -183,18 +169,19 @@ public class OfficialAwardsDao {
      *
      * @return 扣减数量 剩余数量
      */
-    public Pair<Integer, Integer> reduceTotalPool(int reduceValue) {
-        String lockKey = "lock:" + TOTAL_POOL_KEY;
+    public Pair<Integer, Integer> reduceTotalPool(long activityId, int reduceValue) {
+        String key = TOTAL_POOL_KEY.formatted(activityId);
+        String lockKey = "lock:" + key;
         redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
-            String val = redisTemplate.opsForValue().get(TOTAL_POOL_KEY);
+            String val = redisTemplate.opsForValue().get(key);
             int current = val == null ? 0 : Integer.parseInt(val);
             if (current == 0) {
                 return null;
             }
             reduceValue = Math.min(reduceValue, current);
             int remain = current - reduceValue;
-            redisTemplate.opsForValue().set(TOTAL_POOL_KEY, String.valueOf(remain));
+            redisTemplate.opsForValue().set(key, String.valueOf(remain));
             return Pair.newPair(reduceValue, remain);
         } catch (Exception e) {
             log.error("reduce total pool error", e);
@@ -207,7 +194,7 @@ public class OfficialAwardsDao {
     /**
      * 删除奖池
      */
-    public void deleteTotalPool() {
-        redisTemplate.delete(TOTAL_POOL_KEY);
+    public void deleteTotalPool(long activityId) {
+        redisTemplate.delete(TOTAL_POOL_KEY.formatted(activityId));
     }
 }

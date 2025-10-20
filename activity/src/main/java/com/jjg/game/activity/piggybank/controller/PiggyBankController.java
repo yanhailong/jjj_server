@@ -114,7 +114,7 @@ public class PiggyBankController extends BaseActivityController {
             // 构建响应
             res = new ResPiggyBankDetailInfo(Code.SUCCESS);
             res.detailInfo = new ArrayList<>();
-            res.detailInfo.add(buildPlayerActivityDetail(activityData.getId(), cfg, piggyBankData));
+            res.detailInfo.add(buildPlayerActivityDetail(activityData, cfg, piggyBankData));
         } else {
             // 配置错误
             log.error("玩家参加活动失败 活动配置为空playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
@@ -230,7 +230,7 @@ public class PiggyBankController extends BaseActivityController {
             } else {
                 //基础金币加进度
                 long gold = cfg.getBaseGold() + data.getProgress();
-                rewards = Map.of(ItemUtils.getGoldItemId(),gold);
+                rewards = Map.of(ItemUtils.getGoldItemId(), gold);
             }
             // 如果不能领取，返回请求错误
             if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
@@ -262,7 +262,7 @@ public class PiggyBankController extends BaseActivityController {
         res.activityId = activityData.getId();
         res.detailId = detailId;
         res.infoList = ItemUtils.buildItemInfo(rewards);
-        res.detailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, data);
+        res.detailInfo = buildPlayerActivityDetail(activityData, cfg, data);
         return res;
     }
 
@@ -281,7 +281,7 @@ public class PiggyBankController extends BaseActivityController {
 
         // 构建返回详情
         detailInfo.detailInfo = new ArrayList<>();
-        PiggyBankDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId));
+        PiggyBankDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId));
         detailInfo.detailInfo.add(baseActivityDetailInfo);
 
         return detailInfo;
@@ -291,10 +291,10 @@ public class PiggyBankController extends BaseActivityController {
      * 构建玩家储钱罐活动详情
      */
     @Override
-    public PiggyBankDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public PiggyBankDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (baseCfgBean instanceof PiggyBankCfg cfg) {
             PiggyBankDetailInfo info = new PiggyBankDetailInfo();
-            info.activityId = activityId;
+            info.activityId = activityData.getId();
             info.detailId = baseCfgBean.getId();
             info.rechargePrice = cfg.getPay(); // 充值金额
             info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetItem()); // 奖励道具

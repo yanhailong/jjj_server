@@ -1,6 +1,6 @@
 package com.jjg.game.core.data;
 
-import com.jjg.game.core.constant.RechargeType;
+import com.jjg.game.core.pb.RechargeType;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -23,7 +23,7 @@ public class Order {
     //支付方式
     private int payType;
     //商品id
-    private int productId;
+    private String productId;
     //价格
     private long price;
     //订单状态
@@ -75,11 +75,11 @@ public class Order {
         this.payType = payType;
     }
 
-    public int getProductId() {
+    public String getProductId() {
         return productId;
     }
 
-    public void setProductId(int productId) {
+    public void setProductId(String productId) {
         this.productId = productId;
     }
 
