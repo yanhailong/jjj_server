@@ -41,7 +41,7 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
         this.playerId = playerId;
     }
 
-    public boolean success(){
+    public boolean success() {
         return this.code == Code.SUCCESS;
     }
 

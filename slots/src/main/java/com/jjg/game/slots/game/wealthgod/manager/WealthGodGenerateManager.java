@@ -30,13 +30,6 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
         return awardLineInfo;
     }
 
-    @Override
-    public void calTimes(WealthGodResultLib lib) throws Exception {
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
-//        lib.addTimes(calFree(lib));
-        calFree(lib);
-    }
-
     /**
      * 计算中奖线的倍数
      */
