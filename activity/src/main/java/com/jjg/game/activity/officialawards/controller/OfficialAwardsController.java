@@ -342,7 +342,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
                 officialAwardsActivity.costPoint = activityData.getValueParam().get(1);
                 officialAwardsActivity.turntableType = activityData.getValueParam().getLast();
             }
-            if (!activityData.canRun()) {
+            if (activityData.canRun()) {
                 officialAwardsActivity.remainTime = activityData.getTimeEnd() - System.currentTimeMillis();
             }
             officialAwardsActivity.startInfos = getOfficialAwardsStartInfo(activityData);
