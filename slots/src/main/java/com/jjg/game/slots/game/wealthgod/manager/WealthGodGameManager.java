@@ -30,10 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Constructor;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  *
@@ -60,11 +57,11 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
         log.info("启动财神游戏管理器...");
         super.init();
         addUpdatePoolEvent();
-//        Map<Integer, Integer> countMap = new HashMap<>();
-//        countMap.put(1, 5000);
-//        countMap.put(2, 5000);
-//        countMap.put(3, 5000);
-//        addGenerateLibEvent(countMap);
+        Map<Integer, Integer> countMap = new HashMap<>();
+        countMap.put(1, 5000);
+        countMap.put(2, 5000);
+        countMap.put(3, 5000);
+        addGenerateLibEvent(countMap);
     }
 
     /**
