@@ -44,6 +44,7 @@ import com.jjg.game.core.pb.ActivityItemDropInfo;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.pb.NotifyItemDropInfo;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
 import com.jjg.game.sampledata.bean.DropConfigCfg;
@@ -114,7 +115,11 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 玩家获得数据dao
      */
     private final PlayerActivityDao playerActivityDao;
+    /**
+     * 掉落管理器
+     */
     private final DropItemManager dropItemManager;
+
 
     public ActivityManager(TimerCenter timerCenter, ClusterSystem clusterSystem,
                            CoreMarqueeManager marqueeManager,
@@ -765,8 +770,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     @Override
     public List<EGameEventType> needMonitorEvents() {
-        // 全监听
-        return Arrays.stream(EGameEventType.values()).toList();
+        return List.of(EGameEventType.PLAYER_LEVEL, EGameEventType.CLOCK_EVENT, EGameEventType.EFFECTIVE_FLOWING);
     }
 
     @Override

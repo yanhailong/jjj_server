@@ -84,8 +84,9 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
     /**
      * 获取玩家的赌场信息
      *
-     * @param playerId
-     * @return
+     * @param playerId 玩家id
+     * @param casinoId 赌场id
+     * @return 赌场信息
      */
     public CasinoInfo getCasinoInfo(long playerId, int casinoId) {
         Map<Integer, PlayerBuilding> playerBuildingMap = dataMap.get(playerId);

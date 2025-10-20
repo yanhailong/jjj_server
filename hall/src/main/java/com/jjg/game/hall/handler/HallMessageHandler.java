@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
@@ -809,7 +810,9 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_BUY_CLAIM_ALL_REWARDS)
     public void reqCasinoBuyClaimAllRewards(PlayerController playerController, ReqCasinoBuyClaimAllRewards req) {
-        playerController.send(casinoManager.reqCasinoBuyClaimAllRewards(playerController, req));
+        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+            playerController.send(casinoManager.reqCasinoBuyClaimAllRewards(playerController, req));
+        }
     }
 
     /**
@@ -819,7 +822,9 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_INFO)
     public void reqCasinoInfo(PlayerController playerController, ReqCasinoInfo req) {
-        playerController.send(casinoManager.reqCasinoInfo(playerController, req));
+        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+            playerController.send(casinoManager.reqCasinoInfo(playerController, req));
+        }
     }
 
     /**
@@ -829,7 +834,9 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_CLAIM_ALL_REWARDS)
     public void reqCasinoClaimAllRewards(PlayerController playerController, ReqCasinoClaimAllRewards req) {
-        playerController.send(casinoManager.reqCasinoClaimAllRewards(playerController, req));
+        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+            playerController.send(casinoManager.reqCasinoClaimAllRewards(playerController, req));
+        }
     }
 
     /**
@@ -839,7 +846,9 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_CLAIM_REWARDS)
     public void reqCasinoClaimRewards(PlayerController playerController, ReqCasinoClaimRewards req) {
-        playerController.send(casinoManager.reqCasinoClaimRewards(playerController, req));
+        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+            playerController.send(casinoManager.reqCasinoClaimRewards(playerController, req));
+        }
     }
 
     /**
@@ -849,7 +858,9 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_EMPLOY_STAFF)
     public void reqCasinoEmployStaff(PlayerController playerController, ReqCasinoEmployStaff req) {
-        playerController.send(casinoManager.reqCasinoEmployStaff(playerController, req));
+        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+            playerController.send(casinoManager.reqCasinoEmployStaff(playerController, req));
+        }
     }
 
     /**
@@ -859,7 +870,9 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_FLOOR_OPERATION)
     public void reqCasinoFloorOperation(PlayerController playerController, ReqCasinoFloorOperation req) {
-        playerController.send(casinoManager.reqCasinoFloorOperation(playerController, req));
+        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+            playerController.send(casinoManager.reqCasinoFloorOperation(playerController, req));
+        }
     }
 
     /**
@@ -869,7 +882,9 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_UPGRADE_MACHINE)
     public void reqCasinoUpgradeMachine(PlayerController playerController, ReqCasinoUpgradeMachine req) {
-        playerController.send(casinoManager.reqCasinoUpgradeMachine(playerController, req));
+        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+            playerController.send(casinoManager.reqCasinoUpgradeMachine(playerController, req));
+        }
     }
 
     /**
@@ -879,7 +894,9 @@ public class HallMessageHandler implements GmListener {
      */
     @Command(HallConstant.MsgBean.REQ_CASINO_EXIT)
     public void reqCasinoExit(PlayerController playerController, ReqCasinoExit req) {
-        playerController.send(casinoManager.reqCasinoExit(playerController.getPlayer(), req));
+        if (gameFunctionService.checkGameFunctionOpen(playerController.getPlayer(), EFunctionType.MY_CASINO)) {
+            playerController.send(casinoManager.reqCasinoExit(playerController.getPlayer(), req));
+        }
     }
 
     /**
