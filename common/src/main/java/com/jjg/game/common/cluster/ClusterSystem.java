@@ -788,7 +788,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     /**
      * 向集群中的多个客户端发送消息。
      */
-    private void sendClusterMessage(PFMessage pfMessage, List<ClusterClient> clientList) {
+    public void sendClusterMessage(PFMessage pfMessage, List<ClusterClient> clientList) {
         if (clientList.isEmpty()) {
             return;
         }

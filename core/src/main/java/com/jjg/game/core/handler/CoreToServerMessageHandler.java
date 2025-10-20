@@ -18,15 +18,13 @@ import com.jjg.game.core.data.Marquee;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.ShopProduct;
+import com.jjg.game.core.manager.AmazonBucketManager;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.NotifyConfigUpdate;
 import com.jjg.game.core.pb.NotifyRechargeServer;
-import com.jjg.game.core.pb.gm.NotifyCarouselUpdate;
-import com.jjg.game.core.pb.gm.NotifyGameNodeChange;
-import com.jjg.game.core.pb.gm.NotifyShopProductChange;
-import com.jjg.game.core.pb.gm.ReqAllKickout;
+import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.ShopService;
@@ -65,6 +63,8 @@ public class CoreToServerMessageHandler {
     private ConfigManager configManager;
     @Autowired
     private TaskManager taskManager;
+    @Autowired
+    private AmazonBucketManager amazonBucketManager;
 
     /**
      * 其他节点推送的跑马灯信息
@@ -202,6 +202,19 @@ public class CoreToServerMessageHandler {
                 nodeConfig.setWhiteIdList(null);
             }
             nodeManager.update();
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 配置表变化
+     */
+    @Command(MessageConst.ToServer.NOTIFY_EXCEL_CHANGE)
+    public void notifyExcelChange(NotifyExcelChange notify) {
+        log.debug("收到需要更新配置表的消息 notify = {}", JSON.toJSONString(notify));
+        try {
+            amazonBucketManager.dowmloadFiles(notify.nameList);
         } catch (Exception e) {
             log.error("", e);
         }

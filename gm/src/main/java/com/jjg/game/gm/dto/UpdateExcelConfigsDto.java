@@ -7,6 +7,6 @@ import java.util.List;
  * @date 2025/10/20 15:10
  */
 public record UpdateExcelConfigsDto(
-    List<String> list
+    List<String> nameList
 ) {
 }
