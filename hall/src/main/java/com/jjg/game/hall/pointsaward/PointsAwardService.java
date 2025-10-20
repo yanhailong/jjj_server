@@ -67,7 +67,7 @@ public class PointsAwardService {
     public void init() {
         // 初始化充值数据记录map
         redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
-                () -> rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_COUNT));
+                () -> rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RECHARGE));
         log.info("初始化充值数据记录map完成");
     }
 
@@ -79,7 +79,7 @@ public class PointsAwardService {
             // 初始化充值数据记录map
             redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
                     () -> {
-                        rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_COUNT);
+                        rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RECHARGE);
                         if (rechargeMap != null) {
                             rechargeMap.clear();
                         }
