@@ -29,6 +29,9 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
     //触发普通二选一，最少需要allboard个数
     private int allBoardMinCount = Integer.MAX_VALUE;
 
+    //trainId -> auxiliaryId
+    private Map<Integer, Integer> trainIdToAuxiliaryMap = null;
+
     @Override
     protected List<SpecialAuxiliaryInfo> assignPattern(DollarExpressResultLib lib) {
         //获取指定图案的配置
@@ -273,6 +276,7 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             throw new IllegalArgumentException("检查结果有错误");
         }
 
+        sortTrain(lib);
         //中奖线
         lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
         //普通火车
@@ -327,6 +331,51 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
             return false;
         }
         return true;
+    }
+
+    /**
+     * 火车排序
+     *
+     * @param lib
+     * @return
+     */
+    private void sortTrain(DollarExpressResultLib lib) {
+        if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
+            return;
+        }
+
+        //根据火车出现的顺序，排列auxiliaryId的顺序
+        List<Integer> auxiliaryIdList = new ArrayList<>();
+        for (int i = 1; i < lib.getIconArr().length; i++) {
+            int icon = lib.getIconArr()[i];
+            if (trainId(icon)) {
+                System.out.println(icon);
+                auxiliaryIdList.add(this.trainIdToAuxiliaryMap.get(icon));
+            }
+        }
+
+        if (auxiliaryIdList.isEmpty()) {
+            return;
+        }
+
+        //将specialAuxiliaryInfoList转化成map映射
+        Map<Integer, SpecialAuxiliaryInfo> tmpAuxiliaryMap = new HashMap<>();
+        lib.getSpecialAuxiliaryInfoList().forEach(specialAuxiliaryInfo -> {
+            tmpAuxiliaryMap.put(specialAuxiliaryInfo.getCfgId(), specialAuxiliaryInfo);
+        });
+
+        //根据顺序重新放入新的list
+        List<SpecialAuxiliaryInfo> sortList = new ArrayList<>();
+        for (int auxiliaryId : auxiliaryIdList) {
+            sortList.add(tmpAuxiliaryMap.remove(auxiliaryId));
+        }
+
+        //将剩余的 SpecialAuxiliaryInfo 放入sortList中
+        if(!tmpAuxiliaryMap.isEmpty()){
+            tmpAuxiliaryMap.forEach((k,v) -> sortList.add(v));
+        }
+
+        lib.setSpecialAuxiliaryInfoList(sortList);
     }
 
     /**
@@ -683,25 +732,31 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
     @Override
     protected void baseElementRewardConfig() {
         super.baseElementRewardConfig();
-        if (this.baseElementRewardCfgMap == null || this.baseElementRewardCfgMap.isEmpty()) {
-            return;
+
+        //火车id与specialAuxiliary id对应
+        Map<Integer, BaseElementRewardCfg> typeAssignTmpMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_ASSIGN);
+        if (typeAssignTmpMap != null && !typeAssignTmpMap.isEmpty()) {
+            Map<Integer, Integer> tmpTrainIdToAuxiliaryMap = new HashMap<>();
+            typeAssignTmpMap.forEach((k, v) -> {
+                tmpTrainIdToAuxiliaryMap.put(v.getElementId().get(0), v.getFeatureTriggerId().get(0));
+            });
+            this.trainIdToAuxiliaryMap = tmpTrainIdToAuxiliaryMap;
         }
 
-        Map<Integer, BaseElementRewardCfg> tmpMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE_GLOBAL);
-        if (tmpMap == null || tmpMap.isEmpty()) {
-            return;
-        }
-
-        int tmpAllBoardMinCount = Integer.MAX_VALUE;
-        for (Map.Entry<Integer, BaseElementRewardCfg> en : tmpMap.entrySet()) {
-            BaseElementRewardCfg cfg = en.getValue();
-            if (cfg.getElementId().contains(DollarExpressConstant.BaseElement.ID_ALL_ABOARD)) {
-                if (cfg.getRewardNum() < tmpAllBoardMinCount) {
-                    tmpAllBoardMinCount = cfg.getRewardNum();
+        //触发普通二选一，最少需要allboard个数
+        Map<Integer, BaseElementRewardCfg> typeGolbalTmpMap = this.baseElementRewardCfgMap.get(SlotsConst.BaseElementReward.LINE_TYPE_DISPERSE_GLOBAL);
+        if (typeGolbalTmpMap != null && !typeGolbalTmpMap.isEmpty()) {
+            int tmpAllBoardMinCount = Integer.MAX_VALUE;
+            for (Map.Entry<Integer, BaseElementRewardCfg> en : typeGolbalTmpMap.entrySet()) {
+                BaseElementRewardCfg cfg = en.getValue();
+                if (cfg.getElementId().contains(DollarExpressConstant.BaseElement.ID_ALL_ABOARD)) {
+                    if (cfg.getRewardNum() < tmpAllBoardMinCount) {
+                        tmpAllBoardMinCount = cfg.getRewardNum();
+                    }
                 }
             }
+            this.allBoardMinCount = tmpAllBoardMinCount;
         }
-        this.allBoardMinCount = tmpAllBoardMinCount;
     }
 
     @Override

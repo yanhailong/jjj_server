@@ -1,5 +1,6 @@
 package com.jjg.game.recharge.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterSystem;
@@ -47,6 +48,10 @@ public abstract class AbstractCallbackController {
     protected ClusterSystem clusterSystem;
     @Autowired
     protected CoreLogger coreLogger;
+    @Autowired
+    protected ThirdServiceInfo thirdServiceInfo;
+
+    protected final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * 检查订单
@@ -89,40 +94,54 @@ public abstract class AbstractCallbackController {
      * @param order
      * @return
      */
-    protected void payCallback(Order order, ShopProduct shopProduct) {
+    protected void payCallback(Order order) {
         try {
-            List<ItemInfo> itemInfoList = null;
-            if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
-                CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(order.getPlayerId(), shopProduct.getRewardItems(), "recharge", order.getId());
-                if (!addItemsResult.success()) {
-                    log.warn("支付成功，但是添加道具失败 playerId = {},orderId = {},productId = {},code = {}", order.getPlayerId(), order.getId(), shopProduct.getId(), addItemsResult.code);
-                }
-
-                itemInfoList = new ArrayList<>();
-                for (Map.Entry<Integer, Long> en : shopProduct.getRewardItems().entrySet()) {
-                    ItemInfo itemInfo = new ItemInfo();
-                    itemInfo.itemId = en.getKey();
-                    itemInfo.count = en.getValue();
-                    itemInfoList.add(itemInfo);
-                }
-            }
-
             Player player = playerService.get(order.getPlayerId());
-            coreLogger.order(player, order);
-            if (order.getRechargeType() == RechargeType.SHOP) {
-                coreLogger.shop(player, order, shopProduct);
-            }
-            log.info("玩家充值成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
-
             //获取玩家session信息
             PlayerSessionInfo info = playerSessionService.getInfo(order.getPlayerId());
-            //通知玩家充值成功
-            notifyPlayerRechargeCallBack(info, order, itemInfoList);
+            //处理商城订单
+            if(order.getRechargeType() == RechargeType.SHOP){
+                handleShopOrder(player,info,order);
+            }
+
+            coreLogger.order(player, order);
+            log.info("玩家充值成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
             //将充值成功消息通知玩家所在节点
             notifyPlayerCurrentNode(info, order);
         } catch (Exception e) {
             log.error("", e);
         }
+    }
+
+    /**
+     * 处理商城订单
+     * @param info
+     * @param order
+     */
+    private void handleShopOrder(Player player,PlayerSessionInfo info,Order order) {
+        ShopProduct shopProduct = shopService.getShopProduct(order.getProductId());
+        if(shopProduct == null){
+            return;
+        }
+
+        List<ItemInfo> itemInfoList = null;
+        if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
+            CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(order.getPlayerId(), shopProduct.getRewardItems(), "recharge", order.getId());
+            if (!addItemsResult.success()) {
+                log.warn("支付成功，但是添加道具失败 playerId = {},orderId = {},productId = {},code = {}", order.getPlayerId(), order.getId(), shopProduct.getId(), addItemsResult.code);
+            }
+
+            itemInfoList = new ArrayList<>();
+            for (Map.Entry<Integer, Long> en : shopProduct.getRewardItems().entrySet()) {
+                ItemInfo itemInfo = new ItemInfo();
+                itemInfo.itemId = en.getKey();
+                itemInfo.count = en.getValue();
+                itemInfoList.add(itemInfo);
+            }
+        }
+        coreLogger.shop(player, order, shopProduct);
+        //通知玩家充值成功
+        notifyPlayerRechargeCallBack(info, order, itemInfoList);
     }
 
     /**
@@ -181,5 +200,20 @@ public abstract class AbstractCallbackController {
         } else {
             log.info("因玩家不在线，已将充值成功消息随机通知大厅节点 playerId = {},orderId = {},toNodePath = {}", order.getPlayerId(), order.getId(), clusterClient.nodeConfig.getName());
         }
+    }
+
+    /**
+     * 失败订单处理
+     * @param orderId
+     * @param desc
+     */
+    protected void failOrder(String orderId,String desc) {
+        Order order = orderService.orderFail(orderId);
+        if (order == null) {
+            return;
+        }
+
+        Player player = playerService.get(order.getPlayerId());
+        coreLogger.order(player,order,desc);
     }
 }

@@ -265,9 +265,9 @@ public class HallMessageHandler implements GmListener {
         ResVerCode res = new ResVerCode(HallCode.SUCCESS);
         try {
             CommonResult<Integer> result = null;
-            if (req.type == HallConstant.VerCode.TYPE_BIND_PHONE) {
+            if (req.type == VerCodeType.SMS_BIND_PHONE.getValue()) {
                 result = hallService.bindPhone(playerController.playerId(), req.data);
-            } else if (req.type == HallConstant.VerCode.TYPE_BIND_EMAIL) {
+            } else if (req.type == VerCodeType.MAIL_BIND_MAIL.getValue()) {
                 result = hallService.bindEmail(playerController.playerId(), req.data);
             } else {
                 log.debug("没有该类型的验证码 playerId = {},verCodeType = {},data = {}", playerController.playerId(), req.type
