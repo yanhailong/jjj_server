@@ -38,8 +38,8 @@ import java.util.stream.Collectors;
  * @date 2025/8/29 10:52
  */
 @Component
-public class VipUtil implements GameEventListener, ConfigExcelChangeListener {
-    private static final Logger log = LoggerFactory.getLogger(VipUtil.class);
+public class VipManager implements GameEventListener, ConfigExcelChangeListener {
+    private static final Logger log = LoggerFactory.getLogger(VipManager.class);
     //节点管理
     private final NodeManager nodeManager;
     private final CoreSendMessageManager sendMessageManager;
@@ -47,7 +47,7 @@ public class VipUtil implements GameEventListener, ConfigExcelChangeListener {
     // vip配置缓存
     private static Map<Integer, ViplevelCfg> VIP_LEVEL_CFG_MAP = new HashMap<>();
 
-    public VipUtil(NodeManager nodeManager, CoreSendMessageManager sendMessageManager, CorePlayerService playerService) {
+    public VipManager(NodeManager nodeManager, CoreSendMessageManager sendMessageManager, CorePlayerService playerService) {
         this.nodeManager = nodeManager;
         this.sendMessageManager = sendMessageManager;
         this.playerService = playerService;
