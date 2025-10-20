@@ -123,18 +123,18 @@ public class FirstPaymentController extends BaseActivityController {
     /**
      * 构建玩家首充活动详情
      *
-     * @param activityId  活动ID
-     * @param baseCfgBean 活动配置
-     * @param data        玩家首充数据
+     * @param activityData 活动ID
+     * @param baseCfgBean  活动配置
+     * @param data         玩家首充数据
      * @return 返回首充详情信息
      */
     @Override
-    public FirstPaymentDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public FirstPaymentDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (!(baseCfgBean instanceof FirstpaymentCfg cfg)) {
             return null;
         }
         FirstPaymentDetailInfo info = new FirstPaymentDetailInfo();
-        info.activityId = activityId;
+        info.activityId = activityData.getId();
         info.detailId = baseCfgBean.getId();
         info.rechargePrice = cfg.getMoney();
         info.wasPrice = cfg.getWasPrice();
@@ -165,7 +165,7 @@ public class FirstPaymentController extends BaseActivityController {
         Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
 
         detailInfo.detailInfo = new ArrayList<>();
-        detailInfo.detailInfo.add(buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
+        detailInfo.detailInfo.add(buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
 
         return detailInfo;
     }

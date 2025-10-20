@@ -12,6 +12,8 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.REQ_OFFICIAL_AWARDS_RECORD)
 @ProtoDesc("官方派奖请求记录")
 public class ReqOfficialAwardsRecord {
+    @ProtoDesc("活动id")
+    public long activityId;
     @ProtoDesc("类型 1个人记录 2全部记录")
     public int type;
     @ProtoDesc("起始索引")

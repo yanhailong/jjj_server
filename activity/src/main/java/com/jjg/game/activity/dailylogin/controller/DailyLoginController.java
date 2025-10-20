@@ -132,7 +132,7 @@ public class DailyLoginController extends BaseActivityController {
             res.activityId = activityId;
             res.detailId = detailId;
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetItem());
-            res.detailInfo = buildPlayerActivityDetail(activityId, cfg, result.playerActivityData());
+            res.detailInfo = buildPlayerActivityDetail(activityData, cfg, result.playerActivityData());
         }
 
         return res;
@@ -141,18 +141,18 @@ public class DailyLoginController extends BaseActivityController {
     /**
      * 构建每日签到活动详情
      *
-     * @param activityId  活动ID
-     * @param baseCfgBean 活动配置
-     * @param data        玩家特权卡数据
+     * @param activityData 活动ID
+     * @param baseCfgBean  活动配置
+     * @param data         玩家特权卡数据
      * @return 返回特权卡详情信息
      */
     @Override
-    public DailyLoginDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public DailyLoginDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (!(baseCfgBean instanceof DailyRewardsCfg cfg)) {
             return null;
         }
         DailyLoginDetailInfo info = new DailyLoginDetailInfo();
-        info.activityId = activityId;
+        info.activityId = activityData.getId();
         info.detailId = baseCfgBean.getId();
 
         // 奖励信息
@@ -176,7 +176,7 @@ public class DailyLoginController extends BaseActivityController {
         Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
 
         detailInfo.detailInfo = new ArrayList<>();
-        detailInfo.detailInfo.add(buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
+        detailInfo.detailInfo.add(buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
 
         return detailInfo;
     }

@@ -183,7 +183,7 @@ public class ScratchCardsController extends BaseActivityController {
         Map<Integer, ScratchCardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
 
         detailInfo.detailInfo = new ArrayList<>();
-        ScratchCardsDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), null);
+        ScratchCardsDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), null);
         detailInfo.detailInfo.add(baseActivityDetailInfo);
         return detailInfo;
     }
@@ -192,10 +192,10 @@ public class ScratchCardsController extends BaseActivityController {
      * 构建玩家刮刮乐活动明细信息
      */
     @Override
-    public ScratchCardsDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public ScratchCardsDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (baseCfgBean instanceof ScratchCardsCfg cfg) {
             ScratchCardsDetailInfo info = new ScratchCardsDetailInfo();
-            info.activityId = activityId;
+            info.activityId = activityData.getId();
             info.detailId = cfg.getId();
             info.type = cfg.getType();
             info.buyPrice = cfg.getCost();

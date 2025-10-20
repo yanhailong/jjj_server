@@ -44,7 +44,6 @@ import com.jjg.game.core.pb.ActivityItemDropInfo;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.pb.NotifyItemDropInfo;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
-import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
 import com.jjg.game.sampledata.bean.DropConfigCfg;

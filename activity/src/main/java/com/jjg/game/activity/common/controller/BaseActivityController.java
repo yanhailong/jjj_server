@@ -200,12 +200,12 @@ public abstract class BaseActivityController {
     /**
      * 构建玩家的活动详情数据
      *
-     * @param activityId  活动ID
-     * @param baseCfgBean 配置数据
-     * @param data        玩家活动数据
+     * @param activityData 活动ID
+     * @param baseCfgBean  配置数据
+     * @param data         玩家活动数据
      * @return 活动详情对象
      */
-    public abstract BaseActivityDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data);
+    public abstract BaseActivityDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data);
 
     /**
      * 获取指定玩家的活动详情
@@ -321,7 +321,7 @@ public abstract class BaseActivityController {
                 if (baseCfgBean == null) {
                     continue;
                 }
-                BaseActivityDetailInfo detail = buildPlayerActivityDetail(activityData.getId(), baseCfgBean, playerActivityDataMap.get(id));
+                BaseActivityDetailInfo detail = buildPlayerActivityDetail(activityData, baseCfgBean, playerActivityDataMap.get(id));
                 if (detail != null) {
                     arrayList.add(detail);
                 }

@@ -82,7 +82,7 @@ public class SharePromoteController extends BaseActivityController {
                         claimRewardsResult.itemOperationResult().getGoldNum(), 0);
             }
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
-            res.detailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, claimRewardsResult.playerActivityData());
+            res.detailInfo = buildPlayerActivityDetail(activityData, cfg, claimRewardsResult.playerActivityData());
         }
         return res;
     }
@@ -133,15 +133,15 @@ public class SharePromoteController extends BaseActivityController {
 
         Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
         detailInfo.detailInfo = new ArrayList<>();
-        detailInfo.detailInfo.add(buildPlayerActivityDetail(activityId, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
+        detailInfo.detailInfo.add(buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
         return detailInfo;
     }
 
     @Override
-    public SharePromoteDetailInfo buildPlayerActivityDetail(long activityId, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public SharePromoteDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (baseCfgBean instanceof SharePromoteCfg cfg && cfg.getType() != ActivityConstant.SharePromote.RANK_REWARDS) {
             SharePromoteDetailInfo info = new SharePromoteDetailInfo();
-            info.activityId = activityId;
+            info.activityId = activityData.getId();
             info.detailId = cfg.getId();
             info.needNum = cfg.getCondition();
             info.proportion = cfg.getProportion();
