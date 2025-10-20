@@ -344,8 +344,8 @@ public class OfficialAwardsController extends BaseActivityController implements 
             }
             if (!activityData.canRun()) {
                 officialAwardsActivity.remainTime = activityData.getTimeEnd() - System.currentTimeMillis();
-                officialAwardsActivity.startInfos = getOfficialAwardsStartInfo(activityData);
             }
+            officialAwardsActivity.startInfos = getOfficialAwardsStartInfo(activityData);
             officialAwardsActivity.remainPoints = officialAwardsDao.getPlayerProgress(playerId);
             officialAwardsActivity.activityState = activityData.getStatus();
         }
