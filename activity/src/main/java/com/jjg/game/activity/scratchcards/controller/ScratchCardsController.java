@@ -10,6 +10,7 @@ import com.jjg.game.activity.common.message.res.ResActivityBuyGift;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.scratchcards.message.bean.ScratchCardsActivity;
 import com.jjg.game.activity.scratchcards.message.bean.ScratchCardsDetailInfo;
+import com.jjg.game.activity.scratchcards.message.bean.ScratchCardsRewardsInfo;
 import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsDetailInfo;
 import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsJoinActivity;
 import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsTypeInfo;
@@ -97,10 +98,12 @@ public class ScratchCardsController extends BaseActivityController {
         }
 
         // 初始化奖励记录
-        ScratchCardsCfg max7 = null; // 最大 iconNum 的奖励
         Map<Integer, Long> rewards = new HashMap<>(); // 奖励总表
         List<ScratchCardsResult> scratchCardsResults = new ArrayList<>(); // 每次抽奖结果
-
+        //奖励分类结果
+        Map<Integer, Map<Integer, Long>> rewardsClassification = new HashMap<>();
+        //触发次数map
+        Map<Integer, Integer> timesMap = new HashMap<>();
         // 循环执行抽奖
         for (int i = 0; i < times; i++) {
             ScratchCardsCfg rewardCfg = random.next();
@@ -115,27 +118,36 @@ public class ScratchCardsController extends BaseActivityController {
             // 构建每次刮刮乐结果
             ScratchCardsResult scratchCardsResult = new ScratchCardsResult(rewardCfg.getIconNum(), rewardCfg.getGetitem(), rewardCfg.getId());
             scratchCardsResults.add(scratchCardsResult);
-
-            // 记录最大 iconNum 奖励
-            if (max7 == null || max7.getIconNum() < rewardCfg.getIconNum()) {
-                max7 = rewardCfg;
+            //构建分类结果
+            Map<Integer, Long> map = rewardsClassification.get(rewardCfg.getIconNum());
+            if (map == null && CollectionUtil.isNotEmpty(rewardCfg.getGetitem())) {
+                HashMap<Integer, Long> temp = new HashMap<>();
+                rewardsClassification.put(rewardCfg.getIconNum(), temp);
+                rewardCfg.getGetitem().forEach((key, value) -> temp.merge(key, value, Long::sum));
             }
+            timesMap.compute(rewardCfg.getIconNum(), (k, hasTimes) -> hasTimes == null ? 1 : hasTimes + 1);
         }
 
         // 发放奖励道具
-        CommonResult<ItemOperationResult> commonResult = null;
+        CommonResult<ItemOperationResult> commonResult;
         if (CollectionUtil.isNotEmpty(rewards)) {
+            res.rewardsInfo = new ArrayList<>();
+            //构建记录
+            for (Map.Entry<Integer, Map<Integer, Long>> entry : rewardsClassification.entrySet()) {
+                ScratchCardsRewardsInfo info = new ScratchCardsRewardsInfo();
+                info.numOf7 = entry.getKey();
+                info.infoList = ItemUtils.buildItemInfo(entry.getValue());
+                info.times = timesMap.get(entry.getKey());
+                res.rewardsInfo.add(info);
+            }
             commonResult = playerPackService.addItems(playerId, rewards, "ScratchCardsJoin");
             if (!commonResult.success()) {
                 log.error("刮刮乐添加道具失败 playerId={}", playerId);
+                return res;
             }
-            res.numOf7 = max7.getIconNum();
-            res.infoList = ItemUtils.buildItemInfo(rewards);
+            // 记录日志
+            activityLogger.sendScratchCardsJoin(player, activityData, costItem, times, removedItem.data, commonResult.data, rewards, scratchCardsResults);
         }
-
-        // 记录日志
-        activityLogger.sendScratchCardsJoin(player, activityData, costItem, times, removedItem.data, commonResult == null ? null : commonResult.data, rewards, scratchCardsResults);
-
         return res;
     }
 
@@ -256,4 +268,5 @@ public class ScratchCardsController extends BaseActivityController {
                 .filter(cfg -> activityData.getValue().contains(cfg.getId()))
                 .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
+
 }

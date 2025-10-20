@@ -19,4 +19,6 @@ public class PiggyBankDetailInfo extends BaseActivityDetailInfo {
     public long remainTime;
     @ProtoDesc("是否已经满了")
     public boolean isFull;
+    @ProtoDesc("初始金币")
+    public long baseValue;
 }

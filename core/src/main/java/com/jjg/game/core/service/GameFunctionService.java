@@ -9,12 +9,12 @@ import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.pb.NotifyOpenFunction;
+import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
 import com.jjg.game.sampledata.bean.GameFunctionCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -33,12 +33,15 @@ public class GameFunctionService implements GameEventListener {
     /**
      * 条件检查服务
      */
-    @Autowired
-    private ConditionManager conditionManager;
-    @Autowired
-    private PlayerSessionService playerSessionService;
+    private final ConditionManager conditionManager;
+    private final PlayerSessionService playerSessionService;
 
     private static final Logger log = LoggerFactory.getLogger(GameFunctionService.class);
+
+    public GameFunctionService(ConditionManager conditionManager, PlayerSessionService playerSessionService) {
+        this.conditionManager = conditionManager;
+        this.playerSessionService = playerSessionService;
+    }
 
     /**
      * 游戏类型缓存功能配置
@@ -51,7 +54,7 @@ public class GameFunctionService implements GameEventListener {
     public List<Integer> getOpenedFuncIdList(Player player) {
         List<Integer> functionIdList = new ArrayList<>();
         for (GameFunctionCfg functionCfg : GameDataManager.getGameFunctionCfgList()) {
-            if (checkGameFunctionOpen(player, functionCfg)) {
+            if (checkGameFunctionOpen(player, functionCfg, false)) {
                 functionIdList.add(functionCfg.getId());
             }
         }
@@ -67,7 +70,7 @@ public class GameFunctionService implements GameEventListener {
         }
         List<Integer> functionIdList = new ArrayList<>();
         for (GameFunctionCfg gameFunctionCfg : gameFunctionCfgs) {
-            if (checkGameFunctionOpen(player, gameFunctionCfg)) {
+            if (checkGameFunctionOpen(player, gameFunctionCfg, false)) {
                 functionIdList.add(gameFunctionCfg.getId());
             }
         }
@@ -85,13 +88,13 @@ public class GameFunctionService implements GameEventListener {
      * 检查游戏功能开放，应该根据功能的整个协议蔟去拦截整个功能
      */
     public boolean checkGameFunctionOpen(Player player, EFunctionType eFunctionType) {
-        return checkGameFunctionOpen(player, GameDataManager.getGameFunctionCfg(eFunctionType.getFunctionId()));
+        return checkGameFunctionOpen(player, GameDataManager.getGameFunctionCfg(eFunctionType.getFunctionId()), true);
     }
 
     /**
      * 检查游戏功能开放
      */
-    public boolean checkGameFunctionOpen(Player player, GameFunctionCfg functionCfg) {
+    public boolean checkGameFunctionOpen(Player player, GameFunctionCfg functionCfg, boolean notify) {
         if (functionCfg == null) {
             return false;
         }
@@ -103,7 +106,11 @@ public class GameFunctionService implements GameEventListener {
         List<Integer> conditionTypes = functionCfg.getVipLevel();
         List<Integer> conditionCfg = new ArrayList<>(conditionTypes);
         // 检查是否触发成功
-        return conditionManager.isAchievement(player, player, conditionCfg);
+        boolean achievement = conditionManager.isAchievement(player, player, conditionCfg);
+        if (notify) {
+            TipUtils.sendToastTip(player.getId(), 16030);
+        }
+        return achievement;
     }
 
     @Override
