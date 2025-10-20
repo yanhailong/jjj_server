@@ -15,7 +15,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.utils.ItemUtils;
-import com.jjg.game.core.utils.VipUtil;
+import com.jjg.game.core.utils.VipManager;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PlayerLevelConfigCfg;
 import org.apache.kafka.common.utils.PrimitiveRef;
@@ -920,7 +920,7 @@ public class AbstractPlayerService {
 
         player = levelUp(player, cfg);
         if (effective) {
-            VipUtil.checkVipLevel(player, num);
+            VipManager.checkVipLevel(player, num);
         }
         log.info("玩家押注获取经验 playerId = {},addExp = {},level = {}", player.getId(), tmpAddExp, player.getLevel());
     }

@@ -30,10 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Constructor;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  *
@@ -194,7 +191,9 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
         //记录中奖信息
         List<WealthGodAwardLineInfo> awardLineInfoList = resultLib.getAwardLineInfoList();
         if (awardLineInfoList != null && !awardLineInfoList.isEmpty()) {
-            List<WealthGodResultLineInfo> resultLineInfos = awardLineInfoList.stream().map(lineInfo -> {
+            List<WealthGodResultLineInfo> resultLineInfos = new ArrayList<>();
+            long totalTimes = 0;
+            for (WealthGodAwardLineInfo lineInfo : awardLineInfoList) {
                 WealthGodResultLineInfo resultLineInfo = new WealthGodResultLineInfo();
                 resultLineInfo.id = lineInfo.getLineId();
                 BaseLineCfg baseLineCfg = this.lineCfgMap.get(lineInfo.getLineId());
@@ -210,9 +209,11 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
                 resultLineInfo.direction = direction;
                 resultLineInfo.winGold = oneBetScore * lineInfo.getBaseTimes();
                 resultLineInfo.times = lineInfo.getBaseTimes();
-                return resultLineInfo;
-            }).toList();
+                resultLineInfos.add(resultLineInfo);
+                totalTimes += lineInfo.getBaseTimes();
+            }
             spinInfo.setResultLineInfoList(resultLineInfos);
+            spinInfo.setTimes(totalTimes);
         }
         List<Integer> iconList = Arrays.stream(resultLib.getSource())
                 .filter(v -> v != 0)
@@ -233,15 +234,13 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             //记录图标变化
             spinInfo.setIconChangeInfoList(iconChangeInfoList);
         }
-
-        long resultLibTimes = resultLib.getTimes();
-
+        //使用本次计算的 不在从结果集中直接获取
+        long resultLibTimes = spinInfo.getTimes();
         long allWinGold = oneBetScore * resultLibTimes;
         //添加大奖展示id
         int times = (int) (allWinGold / betValue);
         log.debug("计算出获奖倍数 times = {}", times);
         spinInfo.setBigWinShow(getBigShowIdByTimes(times));
-        spinInfo.setTimes(resultLibTimes);
         if (resultLibTimes > 0) {
             gameRunInfo.addBigPoolTimes(resultLibTimes);
         }

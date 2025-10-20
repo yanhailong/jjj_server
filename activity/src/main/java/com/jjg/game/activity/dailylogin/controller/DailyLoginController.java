@@ -121,9 +121,11 @@ public class DailyLoginController extends BaseActivityController {
         }
         ClaimRewardsResult result = claimActivityRewards(playerId, activityData, detailId, "DailyLogin", cfg.getGetItem());
         if (result != null) {
-            dailyLoginDao.updateClaimTime(activityId, playerId);
-            dailyLoginDao.addContinuousLoginDay(activityId, playerId);
-            dailyLoginDao.addCumulativeLoginDay(activityId, playerId);
+            if (cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE) {
+                dailyLoginDao.updateClaimTime(activityId, playerId);
+                dailyLoginDao.addContinuousLoginDay(activityId, playerId);
+                dailyLoginDao.addCumulativeLoginDay(activityId, playerId);
+            }
             //日志
             activityLogger.sendDailyLoginRewards(player, activityData, detailId, cfg.getType(), cfg.getGetItem(), result.itemOperationResult());
             // 构建响应数据

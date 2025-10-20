@@ -4,6 +4,9 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.base.drop.DropItemDao;
 import com.jjg.game.core.base.drop.DropItemLogger;
 import com.jjg.game.core.base.drop.ItemDropDataHolder;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEvent;
+import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
@@ -25,7 +28,7 @@ import java.util.stream.Collectors;
  * @date 2025/10/16 15:45
  */
 @Component
-public class DropItemManager {
+public class DropItemManager implements GameEventListener {
 
     private final Logger log = LoggerFactory.getLogger(DropItemManager.class);
     private final DropItemDao dropItemDao;
@@ -100,4 +103,13 @@ public class DropItemManager {
         return dropItems;
     }
 
+    @Override
+    public <T extends GameEvent> void handleEvent(T gameEvent) {
+
+    }
+
+    @Override
+    public List<EGameEventType> needMonitorEvents() {
+        return List.of(EGameEventType.EFFECTIVE_FLOWING);
+    }
 }

@@ -51,6 +51,10 @@ public interface PointsAwardConstant {
          * 积分大奖积分阶梯奖励领取记录
          */
         String POINTS_AWARD_LADDER_REWARDS_RECEIVE = "pointsAwardLadderRewardsReceive:";
+        /**
+         * 玩家积分大奖累计充值金额记录
+         */
+        String POINTS_AWARD_RECHARGE = "pointsAwardRecharge:";
     }
 
     /**
