@@ -39,6 +39,10 @@ public class Account {
     private ChannelType channel;
     //谷歌平台用户id
     private String googleUserId;
+    //谷歌平台用户id
+    private String appleUserId;
+    //谷歌平台用户id
+    private String facebookUserId;
 
 
     public long getPlayerId() {
@@ -143,5 +147,21 @@ public class Account {
 
     public void setGoogleUserId(String googleUserId) {
         this.googleUserId = googleUserId;
+    }
+
+    public String getAppleUserId() {
+        return appleUserId;
+    }
+
+    public void setAppleUserId(String appleUserId) {
+        this.appleUserId = appleUserId;
+    }
+
+    public String getFacebookUserId() {
+        return facebookUserId;
+    }
+
+    public void setFacebookUserId(String facebookUserId) {
+        this.facebookUserId = facebookUserId;
     }
 }

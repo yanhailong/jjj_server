@@ -6,8 +6,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.UUID;
-
 /**
  * @author 11
  * @date 2025/5/24 15:01
@@ -15,6 +13,9 @@ import java.util.UUID;
 public abstract class AbstractController {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
+    protected <T> WebResult success(){
+        return new WebResult<T>(Code.SUCCESS);
+    }
     protected <T> WebResult success(T data){
         return new WebResult<T>(Code.SUCCESS,data);
     }

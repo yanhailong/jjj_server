@@ -391,7 +391,12 @@ public class BaseLogger {
      */
     public void order(Player player, Order order) {
         order(player, order.getId(), order.getId(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), order.getPrice(), order.getCreateTime(), order.getUpdateTime(),
-                order.getOrderStatus(), order.getPayType());
+                order.getOrderStatus(), order.getPayType(),null);
+    }
+
+    public void order(Player player, Order order,String desc) {
+        order(player, order.getId(), order.getId(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), order.getPrice(), order.getCreateTime(), order.getUpdateTime(),
+                order.getOrderStatus(), order.getPayType(),desc);
     }
 
     /**
@@ -499,7 +504,7 @@ public class BaseLogger {
     }
 
     public void order(Player player, String orderId, String merchantOrderId, int playerChannel, int payChannel, RechargeType rechargeType,
-                      long price, long createTime, long updateTime, OrderStatus orderStatus, int payType) {
+                      long price, long createTime, long updateTime, OrderStatus orderStatus, int payType,String desc) {
         try {
             JSONObject json = new JSONObject();
             json.put("orderId", orderId);
@@ -513,6 +518,7 @@ public class BaseLogger {
             json.put("updateTime", updateTime);
             json.put("status", orderStatus.code);
             json.put("payType", payType);
+            json.put("desc", payType);
 
             sendLog("order", player, json);
         } catch (Exception e) {

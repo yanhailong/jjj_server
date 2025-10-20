@@ -24,10 +24,6 @@ public interface HallConstant {
     }
 
     interface VerCode {
-        //验证码类型
-        int TYPE_BIND_PHONE = 0;
-        int TYPE_BIND_EMAIL = 1;
-
         //验证码范围
         int CODE_MIN = 1000;
         int CODE_MAX = 9999;

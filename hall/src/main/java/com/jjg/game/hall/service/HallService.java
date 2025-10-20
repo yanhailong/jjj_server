@@ -13,14 +13,13 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.PlayerAvatarDao;
-import com.jjg.game.core.dao.ShopProductDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.hall.constant.HallCode;
+import com.jjg.game.core.service.SmsService;
 import com.jjg.game.hall.constant.HallConstant;
-import com.jjg.game.hall.dao.BindDao;
+import com.jjg.game.core.dao.VerCodeDao;
 import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
@@ -39,7 +38,6 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * @author 11
@@ -54,7 +52,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     @Autowired
     private AccountDao accountDao;
     @Autowired
-    private BindDao bindDao;
+    private VerCodeDao verCodeDao;
     @Autowired
     private PlayerAvatarDao playerAvatarDao;
     @Autowired
@@ -69,6 +67,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private TimerCenter timerCenter;
     @Autowired
     private HallPoolDao poolDao;
+    @Autowired
+    private SmsService smsService;
 
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
@@ -184,7 +184,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         }
 
         int now = TimeHelper.nowInt();
-        result = bindDao.verCodeIdleTime(playerId, HallConstant.VerCode.TYPE_BIND_PHONE);
+        result = verCodeDao.verCodeIdleTime(playerId, VerCodeType.SMS_BIND_PHONE);
         if (now <= result.data) {
             log.debug("操作频繁，请稍后再试获取绑定手机验证码 playerId = {},data = {}", playerId, data);
             result.code = Code.REPEAT_OP;
@@ -204,14 +204,20 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
-        int verCode = RandomUtils.randomNum(HallConstant.VerCode.CODE_MIN, HallConstant.VerCode.CODE_MAX);
-        bindDao.addPhoneVerCode(playerId, data, verCode);
-        result.data = verCode;
+        CommonResult<Integer> sendCodeResult = smsService.sendCode(playerId, data, VerCodeType.SMS_BIND_PHONE);
+        if(sendCodeResult.success()){
+            log.debug("发送短信失败 playerId = {},phone = {},code = {}", playerId, data,sendCodeResult.code);
+            result.code = sendCodeResult.code;
+            return result;
+        }
+
+        verCodeDao.addVerCode(playerId, VerCodeType.SMS_BIND_PHONE,data, sendCodeResult.data);
+        result.data = sendCodeResult.data;
         return result;
     }
 
     /**
-     * 绑定手机号
+     * 绑定邮箱
      *
      * @param playerId
      * @param data
@@ -232,7 +238,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         }
 
         int now = TimeHelper.nowInt();
-        result = bindDao.verCodeIdleTime(playerId, HallConstant.VerCode.TYPE_BIND_EMAIL);
+        result = verCodeDao.verCodeIdleTime(playerId, VerCodeType.MAIL_BIND_MAIL);
         if (now <= result.data) {
             log.debug("操作频繁，请稍后再试获取绑定邮箱验证码 playerId = {},data = {}", playerId, data);
             result.code = Code.REPEAT_OP;
@@ -253,7 +259,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         }
 
         int verCode = RandomUtils.randomNum(HallConstant.VerCode.CODE_MIN, HallConstant.VerCode.CODE_MAX);
-        bindDao.addEmailVerCode(playerId, data, verCode);
+        verCodeDao.addVerCode(playerId, VerCodeType.MAIL_BIND_MAIL,data, verCode);
         result.data = verCode;
         return result;
     }
@@ -268,13 +274,27 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      */
     public CommonResult<String> comfirmVerCode(long playerId, int verCodeType, int verCode) {
         CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
+
+        VerCodeType smsType = VerCodeType.getType(verCodeType);
+        if(smsType == null) {
+            result.code = Code.PARAM_ERROR;
+            log.debug("验证码类型错误，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", playerId, verCodeType, verCode);
+            return result;
+        }
+
+        if(smsType != VerCodeType.MAIL_BIND_MAIL && smsType != VerCodeType.SMS_BIND_PHONE) {
+            result.code = Code.PARAM_ERROR;
+            log.debug("验证码类型错误，确认验证码失败2 playerId = {},verCodeType = {},verCode = {}", playerId, verCodeType, verCode);
+            return result;
+        }
+
         if (verCode < HallConstant.VerCode.CODE_MIN || verCode > HallConstant.VerCode.CODE_MAX) {
             result.code = Code.PARAM_ERROR;
             log.debug("验证码不在范围内，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", playerId, verCodeType, verCode);
             return result;
         }
 
-        CommonResult<String> verResult = bindDao.verifyVerCode(playerId, verCodeType, verCode);
+        CommonResult<String> verResult = verCodeDao.verifyVerCode(playerId, smsType, verCode);
         if (!verResult.success()) {
             result.code = verResult.code;
             return result;
@@ -288,9 +308,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         }
 
         boolean update = false;
-        if (verCodeType == HallConstant.VerCode.TYPE_BIND_PHONE) {
+        if (smsType == VerCodeType.SMS_BIND_PHONE) {
             update = accountDao.updatePhoneNumber(playerId, verResult.data);
-        } else if (verCodeType == HallConstant.VerCode.TYPE_BIND_EMAIL) {
+        } else if (smsType == VerCodeType.MAIL_BIND_MAIL) {
             update = accountDao.updateEmail(playerId, verResult.data);
         }
 
@@ -301,7 +321,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         }
 
         //删除验证码
-        bindDao.delVerCode(playerId, verCodeType);
+        verCodeDao.delVerCode(playerId, smsType);
         result.data = verResult.data;
         return result;
     }

@@ -214,6 +214,13 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //更新session
             PlayerSessionInfo playerSessionInfo = playerSessionService.online(session, player);
             Account account = accountDao.queryAccountByPlayerId(player.getId());
+            if(account == null) {
+                res.code = Code.NOT_FOUND;
+                session.send(res);
+                log.debug("未找到该账号 playerId = {}", player.getId());
+                return;
+            }
+
             boolean firstLogin = !TimeHelper.inSameDay(account.getLastLoginTime(), timeMillis) &&
                     !TimeHelper.inSameDay(account.getLastOfflineTime(), timeMillis);
             //更新最近登录时间

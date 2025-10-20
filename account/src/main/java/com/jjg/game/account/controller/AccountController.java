@@ -4,19 +4,18 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.account.config.AccountConfig;
 import com.jjg.game.account.data.*;
 import com.jjg.game.account.dto.LoginDto;
+import com.jjg.game.account.dto.LoginSmsDto;
 import com.jjg.game.account.dto.ServerUrlDto;
 import com.jjg.game.account.service.AccountService;
 import com.jjg.game.account.service.HttpService;
 import com.jjg.game.account.vo.ServerUrlVo;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.dao.BlackListDao;
-import com.jjg.game.core.data.Account;
+import com.jjg.game.core.data.*;
 import com.jjg.game.account.vo.LoginVo;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.PlayerSessionToken;
-import com.jjg.game.core.data.WebResult;
+import com.jjg.game.core.service.SmsService;
 import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +43,8 @@ public class AccountController extends AbstractController {
     private HttpService httpService;
     @Autowired
     private AccountService accountService;
+    @Autowired
+    private SmsService smsService;
 
     /**
      * 游客登录
@@ -102,6 +103,69 @@ public class AccountController extends AbstractController {
         }
     }
 
+    /**
+     * 获取服务器地址
+     */
+    @RequestMapping("serverurl")
+    private WebResult<ServerUrlVo> serverUrl(@RequestBody ServerUrlDto dto, HttpServletRequest request) {
+        try{
+            String token = request.getHeader("token");
+            long playerId = dto.getPlayerId();
+            if(StringUtils.isEmpty(token) || playerId < 0) {
+                log.debug("参数不能为空，获取服务器地址失败 token = {},playerId = {}", token, playerId);
+                return fail(Code.PARAM_ERROR);
+            }
+
+            //从数据库查询PlayerSessionToken对象信息
+            PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
+            if (playerSessionToken == null) {
+                log.debug("没有从db中找到playerSessionToken对象,登录失败, playerId = {}", playerId);
+                return fail(Code.ERROR_REQ);
+            }
+
+            //校验token
+            if (!playerSessionToken.getToken().equals(token)) {
+                log.debug("token校验失败,登录失败, playerId = {},dbToken = {},reqToken = {}", playerId,
+                        playerSessionToken.getToken(), token);
+                return fail(Code.EXPIRE);
+            }
+
+            ServerUrlVo serverUrlVo = new ServerUrlVo();
+
+            List<String> gameServersUrls = new ArrayList<>();
+            gameServersUrls.add(accountConfig.getGameserver());
+            serverUrlVo.setGameServersUrls(gameServersUrls);
+            log.info("获取服务器地址 playerId = {},token = {},gameServersUrls = {}", playerId, token,gameServersUrls);
+            return success(serverUrlVo);
+        }catch (Exception e){
+            log.error("", e);
+            return exception();
+        }
+    }
+
+
+    /**
+     * 登录验证码
+     *
+     * @param dto
+     * @return
+     */
+    @RequestMapping("loginsms")
+    public WebResult loginsms(@RequestBody LoginSmsDto dto, HttpServletRequest request) {
+        try{
+            int code = smsService.sendCode(dto.getPhone(), VerCodeType.SMS_LOGIN);
+            if(code != Code.SUCCESS){
+                return fail(code);
+            }
+            return success();
+        }catch (Exception e){
+            log.error("", e);
+            return exception();
+        }
+    }
+
+
+    /***********************************************************************************************************/
     /**
      * 游客登录
      *
@@ -174,7 +238,6 @@ public class AccountController extends AbstractController {
     private WebResult<LoginVo> appleLogin(LoginDto dto) {
         CommonResult<AppleUserInfo> userInfoResult = httpService.verifyAppleToken(dto.getData());
         if (!userInfoResult.success()) {
-            log.debug("token校验失败, 登录失败 = {},code = {}", dto.getData(), userInfoResult.code);
             return fail(Code.BAN_CAUSE_BLACK_LIST);
         }
 
@@ -197,14 +260,19 @@ public class AccountController extends AbstractController {
      * @return
      */
     private WebResult<LoginVo> phoneLogin(LoginDto dto) {
-        CommonResult<AppleUserInfo> userInfoResult = httpService.verifyAppleToken(dto.getData());
+        String[] arr = dto.getData().split(",");
+        if(arr.length != 2){
+            log.debug("手机登录参数错误 dto = {}", JSONObject.toJSONString(dto));
+            return fail(Code.PARAM_ERROR);
+        }
+
+        CommonResult<PhoneUserInfo> userInfoResult = httpService.verifyPhoneLoginCode(arr[0],Integer.parseInt(arr[1]));
         if (!userInfoResult.success()) {
-            log.debug("token校验失败, 登录失败 = {},code = {}", dto.getData(), userInfoResult.code);
             return fail(Code.BAN_CAUSE_BLACK_LIST);
         }
 
         //登录逻辑
-        CommonResult<Account> accountResult = accountService.login(LoginType.APPLE, userInfoResult.data, dto.getMac(), dto.getChannel());
+        CommonResult<Account> accountResult = accountService.login(LoginType.PHONE, userInfoResult.data, dto.getMac(), dto.getChannel());
         if (!accountResult.success()) {
             return fail(accountResult.code);
         }
@@ -239,46 +307,6 @@ public class AccountController extends AbstractController {
 
         log.info("facebook 登录获取 token成功 playerId = {},token = {}", accountResult.data.getPlayerId(), loginVoWebResult.getData().getToken());
         return loginVoWebResult;
-    }
-
-    /**
-     * 获取服务器地址
-     */
-    @RequestMapping("serverurl")
-    private WebResult<ServerUrlVo> serverUrl(@RequestBody ServerUrlDto dto, HttpServletRequest request) {
-        try{
-            String token = request.getHeader("token");
-            long playerId = dto.getPlayerId();
-            if(StringUtils.isEmpty(token) || playerId < 0) {
-                log.debug("参数不能为空，获取服务器地址失败 token = {},playerId = {}", token, playerId);
-                return fail(Code.PARAM_ERROR);
-            }
-
-            //从数据库查询PlayerSessionToken对象信息
-            PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
-            if (playerSessionToken == null) {
-                log.debug("没有从db中找到playerSessionToken对象,登录失败, playerId = {}", playerId);
-                return fail(Code.ERROR_REQ);
-            }
-
-            //校验token
-            if (!playerSessionToken.getToken().equals(token)) {
-                log.debug("token校验失败,登录失败, playerId = {},dbToken = {},reqToken = {}", playerId,
-                        playerSessionToken.getToken(), token);
-                return fail(Code.EXPIRE);
-            }
-
-            ServerUrlVo serverUrlVo = new ServerUrlVo();
-
-            List<String> gameServersUrls = new ArrayList<>();
-            gameServersUrls.add(accountConfig.getGameserver());
-            serverUrlVo.setGameServersUrls(gameServersUrls);
-            log.info("获取服务器地址 playerId = {},token = {},gameServersUrls = {}", playerId, token,gameServersUrls);
-            return success(serverUrlVo);
-        }catch (Exception e){
-            log.error("", e);
-            return exception();
-        }
     }
 
     /**
