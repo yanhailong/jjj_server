@@ -1,11 +1,8 @@
 package com.jjg.game.account.service;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.account.constant.AccountConstant;
 import com.jjg.game.account.dao.PlayerIdDao;
-import com.jjg.game.account.data.ChannelUserInfo;
-import com.jjg.game.account.data.GoogleUserInfo;
-import com.jjg.game.account.data.LoginType;
+import com.jjg.game.account.data.*;
 import com.jjg.game.account.logger.AccountLogger;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.Code;
@@ -172,6 +169,16 @@ public class AccountService {
                 GoogleUserInfo googleUserInfo = (GoogleUserInfo)channelUserInfo;
                 account.setEmail(googleUserInfo.getEmail());
                 account.setGoogleUserId(googleUserInfo.getUserId());
+                account.setAccountType(AccountConstant.AccountType.VERIFIED);
+                return account;
+            }
+            case FACEBOOK -> {
+                account.setFacebookUserId(channelUserInfo.getUserId());
+                account.setAccountType(AccountConstant.AccountType.VERIFIED);
+                return account;
+            }
+            case PHONE -> {
+                account.setPhoneNumber(channelUserInfo.getUserId());
                 account.setAccountType(AccountConstant.AccountType.VERIFIED);
                 return account;
             }

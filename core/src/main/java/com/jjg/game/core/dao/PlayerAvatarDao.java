@@ -1,11 +1,8 @@
 package com.jjg.game.core.dao;
 
-import cn.hutool.core.util.EnumUtil;
-import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.AvatarType;
 import com.jjg.game.core.data.PlayerAvatar;
-import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.AvatarCfg;
+import com.mongodb.client.result.UpdateResult;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,8 +12,6 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
 
 /**
  * @author 11
@@ -41,33 +36,6 @@ public class PlayerAvatarDao extends MongoBaseDao<PlayerAvatar, Long> {
         return mongoTemplate.findById(playerId, PlayerAvatar.class);
     }
 
-
-    /**
-     * 添加数据
-     *
-     * @param playerId 玩家id
-     * @param ids      配置表ids
-     * @return 是否添加成功
-     */
-    public boolean addByType(long playerId, List<Integer> ids) {
-        Query query = new Query(Criteria.where("playerId").is(playerId));
-        Update update = new Update();
-        for (Integer id : ids) {
-            AvatarCfg avatarCfg = GameDataManager.getAvatarCfg(id);
-            if (avatarCfg == null) {
-                log.warn("添加皮肤时未找到配置信息 playerId:{} id:{}", playerId, id);
-                continue;
-            }
-            AvatarType avatarType = EnumUtil.getBy(AvatarType.class, (type -> type.getType() == avatarCfg.getResourceType()));
-            if (avatarType == null) {
-                log.warn("添加皮肤时未找到对应类型 playerId:{} id:{}", playerId, id);
-                continue;
-            }
-            update.addToSet(avatarType.getField(), id);
-        }
-        return mongoTemplate.upsert(query, update, PlayerAvatar.class).wasAcknowledged();
-    }
-
     /**
      * 添加数据
      *
@@ -82,7 +50,8 @@ public class PlayerAvatarDao extends MongoBaseDao<PlayerAvatar, Long> {
         }
         Query query = new Query(Criteria.where("playerId").is(playerId));
         Update update = new Update().addToSet(type.getField(), id);
-        return mongoTemplate.upsert(query, update, PlayerAvatar.class).wasAcknowledged();
+        UpdateResult result = mongoTemplate.upsert(query, update, PlayerAvatar.class);
+        return result.getModifiedCount() > 0 || result.getUpsertedId() != null;
     }
 
     /**

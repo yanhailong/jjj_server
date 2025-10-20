@@ -42,7 +42,7 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
      * @return
      */
     public Order changeOrderFail(String orderId) {
-        return changeOrderStatus(orderId,OrderStatus.FAIL);
+        return changeOrderStatusNeExcept(orderId,OrderStatus.SUCCESS,OrderStatus.FAIL);
     }
 
     /**
@@ -65,10 +65,12 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
     /**
      * 修改订单状态
      * @param orderId
+     * @param exceptStatus
+     * @param newStatus
      * @return
      */
-    private Order changeOrderStatus(String orderId,OrderStatus newStatus) {
-        Query query = new Query(Criteria.where("id").is(orderId));
+    private Order changeOrderStatusNeExcept(String orderId,OrderStatus exceptStatus,OrderStatus newStatus) {
+        Query query = new Query(Criteria.where("id").is(orderId).and("orderStatus").ne(exceptStatus));
         Update update = new Update();
         update.set("orderStatus", newStatus);
         return mongoTemplate.findAndModify(
