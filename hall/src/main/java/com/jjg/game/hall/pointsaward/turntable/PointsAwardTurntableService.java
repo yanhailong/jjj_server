@@ -1,7 +1,10 @@
 package com.jjg.game.hall.pointsaward.turntable;
 
+import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.PointsAwardType;
+import com.jjg.game.core.data.Order;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.pointsaward.PointsAwardService;
@@ -12,6 +15,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.PointsAwardTurntableCfg;
 import org.redisson.api.RDeque;
+import org.redisson.api.RLock;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
@@ -39,6 +43,7 @@ public class PointsAwardTurntableService {
     private final PointsAwardService pointsAwardService;
     private final PlayerPackService playerPackService;
     private final RedissonClient redissonClient;
+    private final RedisLock redisLock;
 
     private final TreeMap<Integer, PointsAwardTurntableCfg> cfgTreeMap = new TreeMap<>();
 
@@ -53,24 +58,39 @@ public class PointsAwardTurntableService {
 
     public PointsAwardTurntableService(PointsAwardService pointsAwardService,
                                        PlayerPackService playerPackService,
-                                       RedissonClient redissonClient) {
+                                       RedissonClient redissonClient,
+                                       RedisLock redisLock) {
         this.pointsAwardService = pointsAwardService;
         this.redissonClient = redissonClient;
         this.playerPackService = playerPackService;
+        this.redisLock = redisLock;
     }
 
     public void init() {
         initConfig();
-        countMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_COUNT);
-        addCountMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_ADD_COUNT);
-        if (countMap != null) {
-            countMap.expire(getNextTime());
-            addCountMap.expire(getNextTime());
-        }
+        initMap();
     }
 
     /**
-     * 配置重载
+     * 初始化Map数据结构
+     * 使用分布式锁确保多节点环境下的数据一致性
+     * 移除过期时间设置，统一使用定时清除机制
+     */
+    public void initMap() {
+        redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, () -> {
+            // 初始化转盘次数统计Map
+            countMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_COUNT);
+
+            // 初始化充值增加次数Map
+            addCountMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_ADD_COUNT);
+
+            log.info("转盘数据Map初始化完成");
+        });
+    }
+
+    /**
+     * 配置重载和每日重置
+     * 使用分布式锁确保多节点环境下只有一个节点执行重置操作
      */
     public void dailyReset() {
         LocalDate now = LocalDate.now();
@@ -78,6 +98,23 @@ public class PointsAwardTurntableService {
             //重新初始化配置
             initConfig();
         }
+
+        // 使用分布式锁确保多节点环境下的数据一致性
+        redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, () -> {
+            try {
+                // 原子性清除所有相关数据
+                if (countMap != null) {
+                    countMap.clear();
+                }
+                if (addCountMap != null) {
+                    addCountMap.clear();
+                }
+                log.info("转盘每日数据重置完成");
+            } catch (Exception e) {
+                log.error("转盘每日数据重置失败", e);
+                throw e;
+            }
+        });
     }
 
     /**
@@ -183,7 +220,7 @@ public class PointsAwardTurntableService {
             int dayMaxCount = maxCount;
             //查看是否有增加的转盘次数
             if (addCountMap != null) {
-                dayMaxCount = addCountMap.getOrDefault(playerId, 0) + maxCount;
+                dayMaxCount = getAddCount(playerId) + maxCount;
             }
             return count < dayMaxCount;
         };
@@ -204,7 +241,7 @@ public class PointsAwardTurntableService {
                 int integralPoints = awardTurntableCfg.getIntegralNum();
                 // 积分奖励（内部自带锁，与扣费不再嵌套）
                 if (integralPoints > 0) {
-                    pointsAwardService.add(playerId, integralPoints);
+                    pointsAwardService.add(playerId, integralPoints, PointsAwardType.TURNTABLE);
                 }
                 // 道具奖励
                 if (awardTurntableCfg.getGetItem() != null && !awardTurntableCfg.getGetItem().isEmpty()) {
@@ -214,6 +251,8 @@ public class PointsAwardTurntableService {
                 history.setPlayerId(playerId);
                 history.setAwardId(selectedId);
                 history.setTime(System.currentTimeMillis());
+                history.setIntegralNum(integralPoints);
+                history.getItemInfoList().addAll(ItemUtils.buildItemInfos(awardTurntableCfg.getGetItem()));
                 addHistory(history);
                 //增加玩家转盘次数
                 countMap.put(playerId, countMap.getOrDefault(playerId, 0) + 1);
@@ -221,7 +260,7 @@ public class PointsAwardTurntableService {
                 log.warn("玩家[{}]积分大奖转盘奖励发送失败!中奖id[{}]配置不存在!", playerId, selectedId);
             }
             return selectedId;
-        }, -1);
+        }, -1, PointsAwardType.TURNTABLE);
     }
 
     public String historyKey(long playerId) {
@@ -266,8 +305,60 @@ public class PointsAwardTurntableService {
         // 固定的最大次数
         int maxCount = GameDataManager.getGlobalConfigCfg(43).getIntValue();
         // 额外增加的次数
-        int addCount = addCountMap.getOrDefault(playerId, 0);
+        int addCount = getAddCount(playerId);
         return maxCount + addCount;
     }
 
+    /**
+     * 增加玩家转盘次数
+     *
+     * @param playerId 玩家id
+     * @param count    增加次数
+     */
+    public void replaceCount(long playerId, int count) {
+        RLock lock = addCountMap.getReadWriteLock(playerId).writeLock();
+        if (lock.tryLock()) {
+            addCountMap.put(playerId, count);
+            lock.unlock();
+        }
+    }
+
+    /**
+     * 获取玩家增加的充值次数
+     *
+     * @param playerId 玩家id
+     */
+    public int getAddCount(long playerId) {
+        return addCountMap.getOrDefault(playerId, 0);
+    }
+
+    /**
+     * 获取配置的金额
+     */
+    public int getRechargeCheckValue() {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(44);
+        if (globalConfigCfg == null) {
+            return 0;
+        }
+        //每充值这么多就奖励一次
+        return globalConfigCfg.getIntValue();
+    }
+
+    /**
+     * 玩家充值
+     *
+     * @param order 订单信息
+     */
+    public void recharge(Order order) {
+        long playerId = order.getPlayerId();
+        int checkValue = getRechargeCheckValue();
+        long recharge = pointsAwardService.getRecharge(playerId);
+        if (recharge <= 0 || recharge < checkValue) {
+            return;
+        }
+        int resultCount = Math.toIntExact(recharge / checkValue);
+        if (resultCount > 0) {
+            replaceCount(playerId, resultCount);
+        }
+    }
 }

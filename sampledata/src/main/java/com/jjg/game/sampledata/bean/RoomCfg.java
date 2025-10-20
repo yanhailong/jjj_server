@@ -36,6 +36,8 @@ public class RoomCfg extends BaseCfgBean {
   protected int WaitTime;
   /** 中奖时扣除比例万分比 */
   protected int WinRatio;
+  /** 是否允许庄家参与游戏 */
+  protected int bankerBets;
   /** 底注 */
   protected int betBase;
   /** 押分筹码列表 */
@@ -112,6 +114,11 @@ public class RoomCfg extends BaseCfgBean {
   /** 返回中奖时扣除比例万分比 */
   public int getWinRatio() {
     return WinRatio;
+  }
+
+  /** 返回是否允许庄家参与游戏 */
+  public int getBankerBets() {
+    return bankerBets;
   }
 
   /** 返回底注 */

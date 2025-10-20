@@ -67,14 +67,17 @@ public class GameEventManager {
         // 处理事件
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             for (GameEventListener eventListener : eventListeners) {
-                try {
-                    log.debug("listener: {} 响应事件：{}", eventListener.getClass().getName(), gameEventType);
-                    //避免其中某个服务在处理事件耗时太久导致事件触发出现延迟
-                    executor.submit(() -> eventListener.handleEvent(gameEvent));
-                } catch (Exception exception) {
-                    log.error("listener: {} 触发事件：{} 时出现异常：{}",
-                            eventListener.getClass().getName(), gameEventType, exception.getMessage(), exception);
-                }
+                //避免其中某个服务在处理事件耗时太久导致事件触发出现延迟
+                executor.submit(() -> {
+                    try {
+                        log.debug("listener: {} 响应事件：{}", eventListener.getClass().getName(), gameEventType);
+                        eventListener.handleEvent(gameEvent);
+                    } catch (Exception exception) {
+                        log.error("listener: {} 触发事件：{} 时出现异常：{}",
+                                eventListener.getClass().getName(), gameEventType, exception.getMessage(), exception);
+                    }
+                });
+
             }
         }
     }

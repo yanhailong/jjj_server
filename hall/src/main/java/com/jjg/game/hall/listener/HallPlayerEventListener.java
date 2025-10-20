@@ -24,7 +24,6 @@ import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.MarqueeInfo;
 import com.jjg.game.core.service.CarouselService;
 import com.jjg.game.core.service.MailService;
-import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.dao.LikeGameDao;
@@ -238,6 +237,11 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 }
                 session.send(res);
                 hallLogger.login(player, req.token, playerSessionToken.getLoginType());
+                // 调用登录接口类
+                PlayerController playerController = new PlayerController(session, player);
+                session.setReference(playerController);
+                SystemInterfaceHolder.callGameSysAction(
+                        IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, firstLogin));
                 return;
             }
 

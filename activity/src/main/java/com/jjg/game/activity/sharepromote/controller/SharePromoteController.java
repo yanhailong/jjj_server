@@ -23,6 +23,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.SharePromoteCfg;
@@ -195,6 +196,12 @@ public class SharePromoteController extends BaseActivityController {
     public AbstractResponse reqSharePromoteBindPlayer(PlayerController playerController, ActivityData activityData, ReqSharePromoteBindPlayer req) {
         ResSharePromoteBindPlayer res = new ResSharePromoteBindPlayer(Code.SUCCESS);
         long playerId = playerController.playerId();
+        //多次输入错误邀请码判断
+        int playerCodeErrorPrint = sharePromoteDao.getPlayerCodeErrorPrint(playerId);
+        if (playerCodeErrorPrint >= ActivityConstant.SharePromote.MAX_ERROR_TIMES) {
+            TipUtils.sendToastTip(playerId, 62044);
+            return null;
+        }
         //获取玩家的推广分享数据
         SharePromotePlayerData playerInfoData = sharePromoteDao.getPlayerInfoData(playerId);
         if (playerInfoData == null) {
@@ -205,10 +212,10 @@ public class SharePromoteController extends BaseActivityController {
             res.code = Code.CODE_ERROR;
             return res;
         }
-        //绑定之前的收益率
-        int bindBefore = getPlayerProportion(playerId, activityData);
         //绑定玩家
         res.code = sharePromoteDao.bindPlayer(playerId, req.invitationCode);
+        //绑定之前的收益率
+        int bindBefore = getPlayerProportion(playerId, activityData);
         if (res.code == Code.SUCCESS) {
             //修改玩家数据
             String lock = sharePromoteDao.getLock(playerId);

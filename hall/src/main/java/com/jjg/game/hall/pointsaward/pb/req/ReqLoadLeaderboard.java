@@ -26,10 +26,16 @@ public class ReqLoadLeaderboard extends AbstractMessage {
     private int type;
 
     /**
-     * 加载条数
+     * 当前页码
      */
-    @ProtoDesc("加载条数,基于配置表 超过最大条数只会回返配置的最大条数")
-    private int count;
+    @ProtoDesc("当前页码")
+    private int pageIndex;
+
+    /**
+     * 每页条数
+     */
+    @ProtoDesc("每页条数")
+    private int pageSize;
 
     public int getType() {
         return type;
@@ -39,11 +45,19 @@ public class ReqLoadLeaderboard extends AbstractMessage {
         this.type = type;
     }
 
-    public int getCount() {
-        return count;
+    public int getPageIndex() {
+        return pageIndex;
     }
 
-    public void setCount(int count) {
-        this.count = count;
+    public void setPageIndex(int pageIndex) {
+        this.pageIndex = pageIndex;
+    }
+
+    public int getPageSize() {
+        return pageSize;
+    }
+
+    public void setPageSize(int pageSize) {
+        this.pageSize = pageSize;
     }
 }

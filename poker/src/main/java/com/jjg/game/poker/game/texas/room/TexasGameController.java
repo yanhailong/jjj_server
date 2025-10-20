@@ -86,7 +86,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     public void respRoomInitInfoAction(PlayerController playerController) {
         RepsTexasRoomBaseInfo repsTexasRoomBaseInfo = new RepsTexasRoomBaseInfo(Code.SUCCESS);
         repsTexasRoomBaseInfo.phase = getCurrentGamePhase();
-        repsTexasRoomBaseInfo.phaseEndTime= gameDataVo.getPhaseEndTime();
+        repsTexasRoomBaseInfo.phaseEndTime = gameDataVo.getPhaseEndTime();
         if (getCurrentGamePhase() != EGamePhase.WAIT_READY && getCurrentGamePhase() != EGamePhase.START_GAME) {
             if (Objects.nonNull(gameDataVo.getPublicCards())) {
                 repsTexasRoomBaseInfo.publicCards = TexasDataHelper.getClientId(gameDataVo,
@@ -124,6 +124,8 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         repsTexasRoomBaseInfo.operationTime = TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.PLAY_CARDS);
         TexasCfg texasCfg = TexasDataHelper.getTexasCfg(gameDataVo);
         repsTexasRoomBaseInfo.SB = texasCfg.getSbNum();
+        repsTexasRoomBaseInfo.wareType = texasCfg.getRoomID();
+        repsTexasRoomBaseInfo.maxPlayerNum = gameDataVo.getRoomCfg().getMaxPlayer();
         repsTexasRoomBaseInfo.BB = texasCfg.getBbNum();
         repsTexasRoomBaseInfo.operationTime = TexasDataHelper.getExecutionTime(gameDataVo, PokerPhase.PLAY_CARDS);
         //记录操作时间
@@ -636,8 +638,10 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         Long hasTempCurrency = gameDataVo.getTempGold().getOrDefault(seatInfo.getPlayerId(), 0L);
         TexasCfg texasCfg = TexasDataHelper.getTexasCfg(gameDataVo);
         if (hasTempCurrency < texasCfg.getTablecoin()) {
-            long defaultCoinsNum = Math.min(TexasDataHelper.getDefaultCoinsNum(gameDataVo), texasCfg.getTablecoin());
-            if (getTransactionItemNum(gamePlayer.getId()) >= defaultCoinsNum) {
+            long defaultCoinsNum = TexasDataHelper.getDefaultCoinsNum(gameDataVo);
+            long hasNum = getTransactionItemNum(gamePlayer.getId());
+            defaultCoinsNum = hasNum >= defaultCoinsNum ? defaultCoinsNum : texasCfg.getTablecoin();
+            if (hasNum >= defaultCoinsNum) {
                 //增加零时货币
                 gameDataVo.getTempGold().put(seatInfo.getPlayerId(), defaultCoinsNum);
                 NotifyTexasTempGoldReflush reflush = new NotifyTexasTempGoldReflush();
@@ -731,8 +735,8 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         boolean changed =
                 roomController.getRoomManager().changeRoom(
                         playerController, room.getId(), room.getGameType(), room.getRoomCfgId());
-        RepsTexasRoomBaseInfo repsTexasRoomBaseInfo = new RepsTexasRoomBaseInfo(changed ? Code.SUCCESS : Code.FAIL);
-        playerController.send(repsTexasRoomBaseInfo);
+        RepsTexasChangTable res = new RepsTexasChangTable(changed ? Code.SUCCESS : Code.FAIL);
+        playerController.send(res);
     }
 
     /**

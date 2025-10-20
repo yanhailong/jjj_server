@@ -41,7 +41,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     public <G extends Room> void initial(G room) {
         super.initial(room);
         // 在初始化完成后，保存房间的游戏运行状态
-        CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<R>() {
+        CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<>() {
             @Override
             public void updateData(R dataEntity) {
 
@@ -136,7 +136,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         if (addPredicateGold < 0) {
             return;
         }
-        CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<R>() {
+        CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(), new DataSaveCallback<>() {
             @Override
             public void updateData(R dataEntity) {
 
@@ -292,7 +292,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             }
             // 续费时长
             long finalOverdueTime = overdueTime;
-            CommonResult<R> result = roomDao.doSave(room, new DataSaveCallback<R>() {
+            CommonResult<R> result = roomDao.doSave(room, new DataSaveCallback<>() {
                 @Override
                 public void updateData(R dataEntity) {
                 }
@@ -360,10 +360,12 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             // 重复上庄
             return Code.REPEAT_OP;
         }
-        // 房主不能成为庄家
-        long roomCreator = room.getCreator();
-        if (roomCreator == playerId) {
-            return Code.ROOM_CREATOR_CANT_BE_BANKER;
+        if (roomCfg.getBankerBets() == 0) {
+            // 房主不能成为庄家
+            long roomCreator = room.getCreator();
+            if (roomCreator == playerId) {
+                return Code.ROOM_CREATOR_CANT_BE_BANKER;
+            }
         }
         int addRes = addBankerPredicateGold(playerId, predictCostGold);
         // 如果申请成功，且当前游戏处于暂停状态，需要继续游戏
@@ -438,16 +440,16 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         long bankerResetGold = room.roomBankerResetGold();
         // 将玩家移除
         CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(),
-            new DataSaveCallback<R>() {
-                @Override
-                public void updateData(R dataEntity) {
-                }
+                new DataSaveCallback<>() {
+                    @Override
+                    public void updateData(R dataEntity) {
+                    }
 
-                @Override
-                public boolean updateDataWithRes(FriendRoom dataEntity) {
-                    return dataEntity.removeBanker() != null;
-                }
-            });
+                    @Override
+                    public boolean updateDataWithRes(FriendRoom dataEntity) {
+                        return dataEntity.removeBanker() != null;
+                    }
+                });
         // 如果下庄不成功
         if (!result.success()) {
             log.error("下庄失败，res：更新房间，code：{} {}", result.code, getRoom().logStr());
@@ -543,7 +545,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                     playerId,
                     predictCostGold,
                     ERoomItemReason.FRIEND_ROOM_APPLY_BANKER_DEDUCT_PREDICATE.name());
-            log.debug("扣除道具：{} {}", roomCfg.getMinBankerAmount().get(0), predictCostGold);
+            log.debug("扣除道具：{} {}", roomCfg.getMinBankerAmount().getFirst(), predictCostGold);
             if (removeItemResult != Code.SUCCESS) {
                 return removeItemResult;
             }

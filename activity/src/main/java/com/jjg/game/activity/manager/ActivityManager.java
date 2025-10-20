@@ -13,7 +13,6 @@ import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.util.CronUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.config.NodeConfig;
-import com.jjg.game.common.constant.StrConstant;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.AbstractMessage;
@@ -24,41 +23,38 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.base.condition.CheckParamCategory.EffectiveFlowingParam;
-import com.jjg.game.core.base.condition.ConditionCheckService;
-import com.jjg.game.core.base.drop.ConditionProgressKeyCons;
-import com.jjg.game.core.base.drop.DropItemDao;
-import com.jjg.game.core.base.drop.DropItemLogger;
-import com.jjg.game.core.base.drop.ItemDropDataHolder;
+import com.jjg.game.core.base.condition.ConditionType;
+import com.jjg.game.core.base.condition.check.record.PlayerEffectiveParam;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Item;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.manager.CoreMarqueeManager;
+import com.jjg.game.core.manager.DropItemManager;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.ActivityItemDropInfo;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.pb.NotifyItemDropInfo;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
-import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
-import com.jjg.game.sampledata.bean.ConditionCfg;
+import com.jjg.game.sampledata.bean.DropConfigCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * @author lm
@@ -98,43 +94,41 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     private Map<ActivityType, Map<Long, ActivityData>> activityTypeData = new ConcurrentHashMap<>();
 
-    // 事件类型 => 活动ID列表
-    private final Map<EGameEventType, List<Integer>> eventTypeListMap = new HashMap<>();
     /**
      * 红点管理
      */
     private final RedDotManager redDotManager;
-    @Autowired
-    private GameEventManager gameEventManager;
-    @Autowired
-    private ConditionCheckService conditionCheckService;
-    @Autowired
-    private DropItemDao dropItemDao;
+    /**
+     * 事件管理
+     */
+    private final GameEventManager gameEventManager;
+    /**
+     * 条件检查
+     */
+    private final ConditionManager conditionManager;
     /**
      * 开服时间（毫秒）
      */
     private final long startServerTime = 1756656000000L;
-    @Autowired
-    private ItemDropDataHolder itemDropDataHolder;
-    @Autowired
-    private PlayerPackService playerPackService;
-    @Autowired
-    private DropItemLogger dropItemLogger;
     /**
      * 玩家获得数据dao
      */
     private final PlayerActivityDao playerActivityDao;
+    private final DropItemManager dropItemManager;
 
     public ActivityManager(TimerCenter timerCenter, ClusterSystem clusterSystem,
                            CoreMarqueeManager marqueeManager,
-                           MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager, PlayerActivityDao playerActivityDao) {
+                           MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager, GameEventManager gameEventManager, ConditionManager conditionManager, PlayerActivityDao playerActivityDao, DropItemManager dropItemManager) {
         this.timerCenter = timerCenter;
         this.clusterSystem = clusterSystem;
         this.marqueeManager = marqueeManager;
         this.marsCurator = marsCurator;
         this.nodeConfig = nodeConfig;
         this.redDotManager = redDotManager;
+        this.gameEventManager = gameEventManager;
+        this.conditionManager = conditionManager;
         this.playerActivityDao = playerActivityDao;
+        this.dropItemManager = dropItemManager;
     }
 
 
@@ -677,47 +671,60 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     private void checkDropItem(PlayerEffectiveFlowingEvent effectiveFlowingEvent) {
         Player player = effectiveFlowingEvent.getPlayer();
         // 检查道具掉落
-        List<Map.Entry<Long, ActivityData>> activityIdList =
-                activityData.entrySet().stream()
-                        .filter(entry ->
-                                !CollectionUtils.isEmpty(entry.getValue().getDropCondition()) && !CollectionUtils.isEmpty(entry.getValue().getDropId()))
-                        .toList();
+        List<ActivityData> activityIdList = activityData.values()
+                .stream()
+                .filter(data -> data.getDropId() > 0)
+                .toList();
+        int gameCfgId = effectiveFlowingEvent.getGameCfgId();
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(gameCfgId);
+        if (warehouseCfg == null) {
+            return;
+        }
         List<ActivityItemDropInfo> itemDropInfos = new ArrayList<>();
-        for (Map.Entry<Long, ActivityData> activityDataEntry : activityIdList) {
-            long activityId = activityDataEntry.getKey();
-            ActivityData activityData = activityDataEntry.getValue();
+        //只支持有效流水下注
+        PlayerEffectiveParam param = new PlayerEffectiveParam();
+        param.setPlayerId(player.getId());
+        param.setGameId(gameCfgId);
+        param.setGameType(warehouseCfg.getGameType());
+        param.setRoomType(warehouseCfg.getRoomType());
+        param.setFunction(ConditionType.FunctionType.ACTIVITY.name());
+        if (effectiveFlowingEvent.getEventChangeValue() instanceof Long value) {
+            param.setParamList(List.of(value));
+        }
+        for (ActivityData activityData : activityIdList) {
+            long activityId = activityData.getId();
             // 需要判断活动是否开启
             if (!playerCanJoinActivity(activityData, player)) {
                 continue;
             }
-            List<Integer> dropCondition = activityData.getDropCondition();
-            // 条件key
-            String conditionKey =
-                    ConditionProgressKeyCons.BET_EFFECTIVE_FLOWING + player.getId() + StrConstant.COLON + activityId;
-            ConditionCfg cfg = GameDataManager.getConditionCfg(dropCondition.getFirst());
-            EffectiveFlowingParam effectiveFlowingParam = new EffectiveFlowingParam(cfg.getConditionType(), null);
-            effectiveFlowingParam.setFlowingValue((Long) effectiveFlowingEvent.getEventChangeValue());
-            effectiveFlowingParam.setGameCfgId(effectiveFlowingEvent.getGameCfgId());
-            effectiveFlowingParam.setConditionProgressKey(conditionKey);
-            effectiveFlowingParam.setNeedUpdateProgress(true);
-            effectiveFlowingParam.setConditionCfg(dropCondition.subList(1, dropCondition.size()));
-            // 检查活动进度是否达到
-            boolean triggerRes =
-                    conditionCheckService.isTriggerComplete(player, cfg, Collections.singletonList(effectiveFlowingParam));
-            log.debug("activity id: {} 参数：{} checkRes: {}",
-                    activityId, JSON.toJSONString(effectiveFlowingParam), triggerRes);
-            if (triggerRes) {
+            DropConfigCfg dropConfigCfg = GameDataManager.getDropConfigCfg(activityData.getDropId());
+            if (dropConfigCfg == null) {
+                continue;
+            }
+            List<String> dropCondition = dropConfigCfg.getDropCondition();
+            if (CollectionUtil.isEmpty(dropCondition)) {
+                continue;
+            }
+            long triggerTimes = Long.MAX_VALUE;
+
+            for (String condition : dropCondition) {
+                triggerTimes = Math.min(triggerTimes, conditionManager.addProgressAndGetAchievements(player, param, condition, false));
+            }
+            log.debug("activity id: {} 参数：{} checkRes: {}", activityId, JSON.toJSONString(param), triggerTimes);
+            if (triggerTimes > 0) {
+                //删除进度值
+                for (String condition : dropCondition) {
+                    conditionManager.reduceProgress(param, condition, triggerTimes);
+                }
                 // 触发次数
-                int triggerTimes = effectiveFlowingParam.getTriggerTimes();
                 // 触发掉落逻辑
-                List<Item> dropItems = triggerDropItem(player, activityData, triggerTimes, effectiveFlowingEvent);
+                List<Item> dropItems = dropItemManager.triggerDropItem(player, "Activity", activityData.getId(), activityData.getDropId(), (int) triggerTimes, effectiveFlowingEvent);
                 if (!dropItems.isEmpty()) {
-                    ActivityItemDropInfo activityItemDropInfo =
-                            buildActivityDropInfo(activityData, effectiveFlowingEvent.getGameCfgId(), dropItems);
+                    ActivityItemDropInfo activityItemDropInfo = buildActivityDropInfo(activityData, gameCfgId, dropItems);
                     itemDropInfos.add(activityItemDropInfo);
                     log.info("玩家：{} 在活动中：{} 游戏：{} 产生有效流水：{} 产出道具：{}",
-                            player.getId(), activityId, effectiveFlowingEvent.getGameCfgId(),
-                            effectiveFlowingParam.getFlowingValue(), dropItems);
+                            player.getId(), activityId, gameCfgId,
+                            param.getParamList().getFirst(), dropItems);
                 }
             }
         }
@@ -755,61 +762,6 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         return activityItemDropInfo;
     }
 
-    /**
-     * 触发道具掉落
-     */
-    private List<Item> triggerDropItem(
-            Player player, ActivityData activityData, int triggerTimes, PlayerEffectiveFlowingEvent event) {
-        Map<Integer, Integer> itemDropGroupCounter = dropItemDao.getItemDropGroupCounter(player.getId());
-        if (itemDropGroupCounter == null) {
-            itemDropGroupCounter = new HashMap<>();
-        }
-        List<Item> dropItems = new ArrayList<>();
-        // 随机N次
-        for (int i = 0; i < triggerTimes; i++) {
-            // 获取当前活动的掉落配置
-            List<Integer> dropIdList = new ArrayList<>(activityData.getDropId());
-            Map<Integer, Integer> finalItemDropGroupCounter = itemDropGroupCounter;
-            // 先排除已经不能掉落的分组ID
-            dropIdList.removeIf(dropGroupId -> {
-                int useTimes = finalItemDropGroupCounter.getOrDefault(dropGroupId, 0);
-                int limitTimes = itemDropDataHolder.getDropGroupLimit(dropGroupId);
-                return useTimes >= limitTimes;
-            });
-            // 根据分组配置，获取对应的子包组ID 分组ID <=> 道具ID
-            List<Pair<Integer, Item>> randDropItems =
-                    itemDropDataHolder.randDropItems(dropIdList, itemDropGroupCounter);
-            if (!CollectionUtils.isEmpty(randDropItems)) {
-                dropItems.addAll(randDropItems.stream().map(Pair::getSecond).toList());
-            }
-        }
-        if (dropItems.isEmpty()) {
-            return dropItems;
-        }
-
-        //将同一item.id的道具相加
-        Map<Integer, Long> mergedMap = dropItems.stream()
-                .collect(Collectors.groupingBy(
-                        Item::getId,
-                        Collectors.summingLong(Item::getItemCount)
-                ));
-
-        // 将 Map 转换回 List<Item>
-        dropItems = mergedMap.entrySet().stream()
-                .map(entry -> new Item(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
-
-        // 更新道具掉落使用map
-        dropItemDao.updateItemDropGroupCounter(player.getId(), itemDropGroupCounter);
-        // 添加道具
-        CommonResult<ItemOperationResult> result =
-                playerPackService.addItems(player.getId(), dropItems, "ACTIVITY_DROP_ITEM");
-        if (result.success()) {
-            // 记录日志
-            dropItemLogger.recordDropItem(player, activityData.getId(), event.getGameCfgId(), dropItems, result.data);
-        }
-        return dropItems;
-    }
 
     @Override
     public List<EGameEventType> needMonitorEvents() {

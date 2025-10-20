@@ -22,6 +22,8 @@ public class ShopConfigCfg extends BaseCfgBean {
   protected Map<Integer,Long> discount;
   /** 结束日期 */
   protected Date endTime;
+  /** 等级显示条件 */
+  protected Map<Integer,Integer> grade;
   /** 道具奖励 */
   protected Map<Integer,Long> item;
   /** 标签1 */
@@ -51,6 +53,11 @@ public class ShopConfigCfg extends BaseCfgBean {
   /** 返回结束日期 */
   public Date getEndTime() {
     return endTime;
+  }
+
+  /** 返回等级显示条件 */
+  public Map<Integer,Integer> getGrade() {
+    return grade;
   }
 
   /** 返回道具奖励 */

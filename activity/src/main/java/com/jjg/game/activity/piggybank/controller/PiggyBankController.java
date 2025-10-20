@@ -98,7 +98,7 @@ public class PiggyBankController extends BaseActivityController {
                 piggyBankData.setBuyTime(timeMillis);
                 piggyBankData.setClaimStatus(ActivityConstant.ClaimStatus.ALREADY_BUG);
                 // 判断是否已满额
-                if (piggyBankData.getProgress() >= cfg.getFullup()) {
+                if (piggyBankData.getProgress() >= cfg.getFullUp()) {
                     piggyBankData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
                 }
 
@@ -112,7 +112,7 @@ public class PiggyBankController extends BaseActivityController {
 
             // 日志记录玩家参加活动
             if (piggyBankData != null) {
-                activityLogger.sendPiggyBankJoin(player, activityData, piggyBankData, cfg.getName(), detailId);
+                activityLogger.sendPiggyBankJoin(player, activityData, piggyBankData, cfg.getType(), detailId);
             }
 
             // 构建响应
@@ -167,7 +167,7 @@ public class PiggyBankController extends BaseActivityController {
                         key -> new PiggyBankData(activityData.getId(), activityData.getRound()));
 
                 // 如果进度已经满了，跳过
-                if (piggyBankData.getProgress() >= cfg.getFullup()) {
+                if (piggyBankData.getProgress() >= cfg.getFullUp()) {
                     continue;
                 }
 
@@ -177,10 +177,10 @@ public class PiggyBankController extends BaseActivityController {
                         .longValue();
 
                 // 更新进度
-                piggyBankData.setProgress(Math.min(cfg.getFullup(), piggyBankData.getProgress() + addValue));
+                piggyBankData.setProgress(Math.min(cfg.getFullUp(), piggyBankData.getProgress() + addValue));
 
                 // 判断是否可领取奖励
-                if (piggyBankData.getProgress() >= cfg.getFullup()) {
+                if (piggyBankData.getProgress() >= cfg.getFullUp()) {
                     if (piggyBankData.getBuyTime() > 0) {
                         piggyBankData.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
                     }
@@ -213,13 +213,12 @@ public class PiggyBankController extends BaseActivityController {
 
         Map<Integer, PiggyBankCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         PiggyBankCfg cfg = baseCfgBeanMap.get(detailId);
-        if (cfg == null || CollectionUtil.isEmpty(cfg.getGetitem())) {
+        if (cfg == null || CollectionUtil.isEmpty(cfg.getGetItem())) {
             res.code = Code.SAMPLE_ERROR;
             return res;
         }
         PiggyBankData data = null;
         CommonResult<ItemOperationResult> addedItems = null;
-
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
@@ -240,7 +239,7 @@ public class PiggyBankController extends BaseActivityController {
             }
 
             // 添加奖励到背包
-            addedItems = playerPackService.addItems(playerId, cfg.getGetitem(), "privilegeCardRewords");
+            addedItems = playerPackService.addItems(playerId, cfg.getGetItem(), "privilegeCardRewords");
             if (!addedItems.success()) {
                 res.code = Code.UNKNOWN_ERROR;
                 return res;
@@ -259,13 +258,13 @@ public class PiggyBankController extends BaseActivityController {
 
         // 记录日志
         if (data != null && addedItems != null && addedItems.success()) {
-            activityLogger.sendPiggyBankRewards(player, activityData, data, cfg.getWeight(), cfg.getName(),
-                    addedItems.data, cfg.getGetitem());
+            activityLogger.sendPiggyBankRewards(player, activityData, data, cfg.getWeight(), cfg.getType(),
+                    addedItems.data, cfg.getGetItem());
         }
         // 构建响应
         res.activityId = activityData.getId();
         res.detailId = detailId;
-        res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
+        res.infoList = ItemUtils.buildItemInfo(cfg.getGetItem());
         res.detailInfo = buildPlayerActivityDetail(activityData.getId(), cfg, data);
         return res;
     }
@@ -301,14 +300,14 @@ public class PiggyBankController extends BaseActivityController {
             info.activityId = activityId;
             info.detailId = baseCfgBean.getId();
             info.rechargePrice = cfg.getPay(); // 充值金额
-            info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetitem()); // 奖励道具
+            info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetItem()); // 奖励道具
 
             // 设置玩家数据
             if (data instanceof PiggyBankData piggyBankData) {
                 info.claimStatus = piggyBankData.getClaimStatus();
                 info.progress = piggyBankData.getProgress();
                 if (piggyBankData.getFullTime() > 0) {
-                    info.remainTime = (piggyBankData.getFullTime() + (long) cfg.getResetime() * TimeHelper.ONE_DAY_OF_MILLIS) - System.currentTimeMillis();
+                    info.remainTime = (piggyBankData.getFullTime() + (long) cfg.getReseTime() * TimeHelper.ONE_DAY_OF_MILLIS) - System.currentTimeMillis();
                 }
                 info.isFull = piggyBankData.getFullTime() > 0;
             }
@@ -379,12 +378,12 @@ public class PiggyBankController extends BaseActivityController {
                 if (piggyBankDataEntry.getValue() instanceof PiggyBankData piggyBankData) {
                     PiggyBankCfg cfg = baseCfgBeanMap.get(piggyBankDataEntry.getKey());
                     if (cfg != null && piggyBankData.getFullTime() > 0) {
-                        long resetTime = piggyBankData.getFullTime() + (long) TimeHelper.ONE_DAY_OF_MILLIS * cfg.getResetime();
+                        long resetTime = piggyBankData.getFullTime() + (long) TimeHelper.ONE_DAY_OF_MILLIS * cfg.getReseTime();
                         // 判断是否到达重置时间
                         if (resetTime <= timeMillis) {
                             if (piggyBankData.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
                                 // 邮件发奖
-                                mailService.addCfgMail(playerId, ActivityConstant.PiggyBank.MAIL_ID, ItemUtils.buildItems(cfg.getGetitem()));
+                                mailService.addCfgMail(playerId, ActivityConstant.PiggyBank.MAIL_ID, ItemUtils.buildItems(cfg.getGetItem()));
                             }
                             // 重置数据
                             resetPiggyBankData(piggyBankData);

@@ -1,8 +1,6 @@
 package com.jjg.game.core.service;
 
-import com.jjg.game.common.config.NodeConfig;
-import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.gameevent.CurrencyChangeEvent;
@@ -62,7 +60,7 @@ public class AbstractPlayerService {
     @Autowired
     protected GameEventManager gameEventManager;
     @Autowired
-    protected NodeConfig nodeConfig;
+    protected NodeManager nodeManager;
 
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
@@ -263,24 +261,15 @@ public class AbstractPlayerService {
             result.code = Code.PARAM_ERROR;
             return result;
         }
-        //获取当前节点信息
-        NodeType nodeType = NodeType.getNodeTypeByName(nodeConfig.getType());
-        if (nodeType == NodeType.GAME && nodeConfig.getGameMajorTypes() != null && nodeConfig.getGameMajorTypes().length > 0) {
-            boolean isMemory = false;
-            for (int gameMajorType : nodeConfig.getGameMajorTypes()) {
-                if (gameMajorType == CoreConst.GameMajorType.POKER || gameMajorType == CoreConst.GameMajorType.TABLE) {
-                    isMemory = true;
-                    break;
-                }
-            }
-            if (!isMemory) {
-                Player player = getFromAllDB(playerId);
-                //游戏内修改内存中的数据并返回
-                triggerCurrencyChangeEvent(player, goldNum, diamondNum);
-                result.code = Code.SUCCESS;
-                result.data = player;
-                return result;
-            }
+        //获取当前节点玩家数据是否在内存中
+        boolean inMemoryNode = nodeManager.isPlayerDataInMemoryNode();
+        if(inMemoryNode) {
+            Player player = getFromAllDB(playerId);
+            //游戏内修改内存中的数据并返回
+            triggerCurrencyChangeEvent(player, goldNum, diamondNum);
+            result.code = Code.SUCCESS;
+            result.data = player;
+            return result;
         }
         final long[] beforeCoin = {0, 0};
 
@@ -1406,9 +1395,7 @@ public class AbstractPlayerService {
                 beforeCoin[0] = player.getDiamond();
 
                 if (num >= 0) {
-                    player.setDiamond(Math.min(Long.MAX_VALUE, num));
-                } else {
-                    player.setDiamond(Math.max(Long.MIN_VALUE, num));
+                    player.setDiamond(num);
                 }
                 return true;
             }

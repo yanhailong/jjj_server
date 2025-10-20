@@ -43,6 +43,14 @@ public interface PointsAwardConstant {
          * 玩家的排行榜历史记录
          */
         String POINTS_AWARD_PLAYER_RANKING_HISTORY = "pointsAwardPlayerRankingHistory:";
+        /**
+         * 所有排行榜的历史记录
+         */
+        String POINTS_AWARD_RANKING_HISTORY = "pointsAwardRankingHistory:";
+        /**
+         * 积分大奖积分阶梯奖励领取记录
+         */
+        String POINTS_AWARD_LADDER_REWARDS_RECEIVE = "pointsAwardLadderRewardsReceive:";
     }
 
     /**
@@ -57,18 +65,30 @@ public interface PointsAwardConstant {
          * 玩家签到锁
          */
         String POINTS_AWARD_SING_IN_LOCK = "pointsAwardSignInLock:";
-
         /**
          * 积分大奖排行榜更新锁
          */
         String POINTS_AWARD_RANKING_LOCK = "pointsAwardRankingLock:";
-
+        /**
+         * 玩家积分大奖数据初始化锁
+         */
+        String POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT = "pointsAwardDataLock:turntable:init";
+        /**
+         * 玩家排行榜奖励和历史记录锁
+         */
+        String PLAYER_RANKING_AWARD_LOCK = "playerRankingAwardLock:";
     }
 
     /**
      * 排行榜相关常量
      */
     interface Leaderboard {
+
+        /**
+         * 排行榜名字连接符
+         */
+        String NAME = "-";
+
         /**
          * 奖励类型
          */
@@ -122,6 +142,10 @@ public interface PointsAwardConstant {
         /**
          * 玩家最大历史记录保留条数
          */
+        int PLAYER_MAX_HISTORY_SIZE = 100;
+        /**
+         * 排行榜最大历史记录
+         */
         int MAX_HISTORY_SIZE = 100;
     }
 
@@ -143,6 +167,17 @@ public interface PointsAwardConstant {
          * 转盘历史记录最大条数  策划要求写死
          */
         int HISTORY_MAX_SIZE = 50;
+    }
+
+    /**
+     * 红点子模块
+     */
+    interface RedDotSubModule {
+        /**
+         * 签到
+         */
+        int SIGN_IN = 1;
+
     }
 
     /**
@@ -190,6 +225,22 @@ public interface PointsAwardConstant {
         int REQ_LOAD_LEADERBOARD_HISTORY = BASE_MSG_PREFIX | 0x15;
         //请求排行记录回复
         int RES_LOAD_LEADERBOARD_HISTORY = BASE_MSG_PREFIX | 0x16;
+
+        //请求装盘充值情况
+        int REQ_TURNTABLE_RECHARGE_INFO = BASE_MSG_PREFIX | 0x17;
+        //请求装盘充值情况回复
+        int RES_TURNTABLE_RECHARGE_INFO = BASE_MSG_PREFIX | 0x18;
+
+        //请求积分大奖积分的阶梯奖励
+        int REQ_POINTS_AWARD_LADDER_REWARD = BASE_MSG_PREFIX | 0x19;
+        //请求积分大奖积分的阶梯奖励回复
+        int RES_POINTS_AWARD_LADDER_REWARD = BASE_MSG_PREFIX | 0x20;
+
+        //请求领取积分大奖积分的阶梯奖励
+        int REQ_RECEIVE_POINTS_AWARD_LADDER_REWARD = BASE_MSG_PREFIX | 0x2a;
+        //请求领取积分大奖积分的阶梯奖励回复
+        int RES_RECEIVE_POINTS_AWARD_LADDER_REWARD = BASE_MSG_PREFIX | 0x2b;
+
 
     }
 

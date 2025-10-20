@@ -10,20 +10,11 @@ public interface TaskConstant {
 
     /**
      * 任务类型 等同于配置TaskType{@link TaskCfg#getTaskType()}
+     * TaskType=任务小红点子模块
      */
     interface TaskType {
         /**
          * 积分大奖
-         */
-        int POINTS_AWARD = 1;
-    }
-
-    /**
-     * 任务小红点子模块定义
-     */
-    interface RedDotModule {
-        /**
-         * 积分大奖任务
          */
         int POINTS_AWARD = 1;
     }

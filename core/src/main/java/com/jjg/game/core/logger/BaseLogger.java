@@ -1,6 +1,7 @@
 package com.jjg.game.core.logger;
 
 import cn.hutool.core.util.IdUtil;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
@@ -251,12 +252,12 @@ public class BaseLogger {
             json.put("beforeLevel", beforeLevel);
             json.put("currentLevel", level);
 
-            if(items != null && !items.isEmpty()) {
+            if (items != null && !items.isEmpty()) {
                 JSONArray jsonArray = new JSONArray();
                 items.forEach(item -> {
                     JSONObject jsonObject = new JSONObject();
-                    jsonObject.put("itemId",item.itemId);
-                    jsonObject.put("count",item.count);
+                    jsonObject.put("itemId", item.itemId);
+                    jsonObject.put("count", item.count);
                     jsonArray.add(jsonObject);
                 });
                 json.put("items", jsonArray);
@@ -406,7 +407,7 @@ public class BaseLogger {
      * @param order
      */
     public void shop(Player player, Order order, ShopProduct shopProduct) {
-        shop(player, order.getId(), order.getId(), shopProduct.getType(), order.getPlayerChannel(), order.getPayChannel() , order.getRechargeType(), order.getPrice(), order.getCreateTime(), order.getUpdateTime(),
+        shop(player, order.getId(), order.getId(), shopProduct.getType(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), order.getPrice(), order.getCreateTime(), order.getUpdateTime(),
                 order.getOrderStatus(), order.getPayType());
     }
 
@@ -549,17 +550,31 @@ public class BaseLogger {
         }
     }
 
-    protected JSONArray mapToArray(Map map) {
-        if (map == null || map.isEmpty()) {
-            return null;
-        }
 
-        JSONArray jsonArray = new JSONArray();
-        map.forEach((k, v) -> {
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put(k + "", v);
-            jsonArray.add(jsonObject);
-        });
-        return jsonArray;
+    /**
+     * 发送vip日志
+     *
+     * @param player      玩家数据
+     * @param rewardsType 奖励类型
+     * @param rewards     奖励
+     * @param result      奖励完成后结果
+     * @param addExp      增加经验值
+     */
+    public void sendVipLog(Player player, int rewardsType, Map<Integer, Long> rewards, ItemOperationResult result, long addExp) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("rewardsType", rewardsType);
+            json.put("functionType", 1);
+            if (rewards != null) {
+                json.put("rewards", JSON.toJSONString(rewards, SerializerFeature.WriteNonStringKeyAsString));
+            }
+            if (result != null) {
+                json.put("result", JSON.toJSONString(result, SerializerFeature.WriteNonStringKeyAsString));
+            }
+            json.put("addExp", addExp);
+            sendLog("function", player, json);
+        } catch (Exception e) {
+            log.error("sendVipLog", e);
+        }
     }
 }

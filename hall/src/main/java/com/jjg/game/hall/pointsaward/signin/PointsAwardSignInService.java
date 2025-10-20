@@ -2,6 +2,10 @@ package com.jjg.game.hall.pointsaward.signin;
 
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.base.reddot.IRedDotService;
+import com.jjg.game.core.constant.PointsAwardType;
+import com.jjg.game.core.manager.RedDotManager;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.pointsaward.PointsAwardService;
@@ -23,13 +27,15 @@ import java.util.Set;
  * 签到服务
  */
 @Service
-public class PointsAwardSignInService {
+public class PointsAwardSignInService implements IRedDotService {
 
     private final PointsAwardService pointsAwardService;
     private final ClusterSystem clusterSystem;
     private final PlayerPackService playerPackService;
     private final RedissonClient redissonClient;
     private final RedisLock redisLock;
+    private final RedDotManager redDotManager;
+
     /**
      * 签到管理器
      */
@@ -39,12 +45,14 @@ public class PointsAwardSignInService {
                                     PlayerPackService playerPackService,
                                     RedissonClient redissonClient,
                                     RedisLock redisLock,
-                                    ClusterSystem clusterSystem) {
+                                    ClusterSystem clusterSystem,
+                                    RedDotManager redDotManager) {
         this.pointsAwardService = pointsAwardService;
         this.playerPackService = playerPackService;
         this.redissonClient = redissonClient;
         this.redisLock = redisLock;
         this.clusterSystem = clusterSystem;
+        this.redDotManager = redDotManager;
     }
 
     public void init(PointsAwardSignInManager manager) {
@@ -80,6 +88,21 @@ public class PointsAwardSignInService {
     }
 
     /**
+     * 跨天
+     */
+    public void daily() {
+        //清除玩家今天的签到数据
+        Set<Long> onlinePlayerId = clusterSystem.getAllOnlinePlayerId();
+        if (!onlinePlayerId.isEmpty()) {
+            onlinePlayerId.forEach(playerId -> {
+                getDateMap().remove(playerId);
+                //更新红点
+                redDotManager.updateRedDot(this, 0, playerId);
+            });
+        }
+    }
+
+    /**
      * 判断是否需要清空签到数据
      *
      * @param lastSignDate 上次签到日期
@@ -101,11 +124,11 @@ public class PointsAwardSignInService {
      * 检测签到数据
      */
     public void check(long playerId) {
-        RMap<Long, Long> pointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_SING_IN_DATE);
-        if (pointsMap == null) {
+        RMap<Long, Long> dateMap = getDateMap();
+        if (dateMap == null) {
             return;
         }
-        long lastSignTime = pointsMap.getOrDefault(playerId, 0L);
+        long lastSignTime = dateMap.getOrDefault(playerId, 0L);
         LocalDate now = LocalDate.now();
         //签到过才计算
         if (lastSignTime > 0) {
@@ -116,7 +139,9 @@ public class PointsAwardSignInService {
                 if (countMap != null) {
                     countMap.remove(playerId);
                 }
-                pointsMap.remove(playerId);
+                dateMap.remove(playerId);
+                //更新红点
+                redDotManager.updateRedDot(this, 0, playerId);
             }
         }
     }
@@ -218,16 +243,44 @@ public class PointsAwardSignInService {
         }, false);
         if (success) {
             if (signInCfg.getIntegralNum() > 0) {
-                pointsAwardService.add(playerId, signInCfg.getIntegralNum());
+                pointsAwardService.add(playerId, signInCfg.getIntegralNum(), PointsAwardType.SIGN);
             }
             //发送道具奖励
             if (signInCfg.getGetItem() != null && !signInCfg.getGetItem().isEmpty()) {
                 playerPackService.addItems(playerId, ItemUtils.buildItems(signInCfg.getGetItem()), "积分大奖签到奖励");
             }
         }
-
-
+        //更新红点
+        redDotManager.updateRedDot(this, 0, playerId);
         return success;
     }
 
+    /**
+     * 检测当天能否签到
+     *
+     * @return true 可以签到
+     */
+    public boolean checkCanSign(long playerId) {
+        Long time = getDateMap().get(playerId);
+        if (time == null) {
+            return true;
+        }
+        LocalDate now = LocalDate.now();
+        LocalDate dateTime = LocalDate.ofInstant(Instant.ofEpochMilli(time), ZoneId.systemDefault());
+        return !dateTime.isEqual(now);
+    }
+
+    @Override
+    public RedDotDetails.RedDotModule getModule() {
+        return RedDotDetails.RedDotModule.POINTS_AWARD;
+    }
+
+    @Override
+    public List<RedDotDetails> initialize(long playerId, int submodule) {
+        RedDotDetails details = new RedDotDetails();
+        details.setRedDotModule(getModule());
+        details.setRedDotSubmodule(PointsAwardConstant.RedDotSubModule.SIGN_IN);
+        details.setRedDotType(RedDotDetails.RedDotType.COMMON);
+        return List.of(details);
+    }
 }

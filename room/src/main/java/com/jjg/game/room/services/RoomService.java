@@ -10,8 +10,6 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.room.AbstractRoomDao;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.exception.GameSampleException;
@@ -123,7 +121,7 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
             }
             List<Integer> deletionSolution = warehouseCfg.getRoomDeletion_Solution();
             // 每个游戏最小存在的房间数量
-            int minRoomNum = deletionSolution.get(0);
+            int minRoomNum = deletionSolution.getFirst();
             if (minRoomNum > 0) {
                 // 有些游戏还暂未实现逻辑先跳过
                 if (EGameType.getGameByTypeId(warehouseCfg.getGameID()) == null) {
@@ -202,7 +200,6 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         EGameType eGameType = EGameType.getGameByTypeId(gameType);
         log.info("初始化游戏类型：{} 已存在的房间成功！ID：{} RoomCfgId: {}",
                 eGameType.getGameDesc(), roomController.getRoom().getId(), roomController.getRoom().getRoomCfgId());
-        startGameWithRoomController(roomController, warehouseCfg);
         return true;
     }
 
@@ -221,40 +218,8 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         EGameType eGameType = EGameType.getGameByTypeId(gameType);
         log.info("创建游戏类型：{} 的房间成功！ID：{} RoomCfgId: {}",
                 eGameType.getGameDesc(), roomController.getRoom().getId(), roomController.getRoom().getRoomCfgId());
-        startGameWithRoomController(roomController, warehouseCfg);
     }
 
-    /**
-     * 添加机器人，通过房间控制器开始游戏
-     */
-    private void startGameWithRoomController(
-            AbstractRoomController<? extends RoomCfg, ? extends Room> roomController, WarehouseCfg warehouseCfg) throws Exception {
-        int gameType = warehouseCfg.getGameID();
-        Room room = roomController.getRoom();
-        long roomId = room.getId();
-        // 创建一个机器人,将机器人放入到游戏中
-        PlayerController robotPlayerController =
-                robotService.getOrCreateRobotPlayerController(warehouseCfg.getId(), roomId, true);
-        if (robotPlayerController != null) {
-            // 机器人加入房间
-            CommonResult<? extends Room> result = roomController.joinRoom(robotPlayerController);
-            if (result.success()) {
-                log.info("创建游戏类型：{} 房间ID：{} 房间配置ID：{} 并加入初始机器人：{} 机器人初始金币：{}",
-                        gameType, roomId, warehouseCfg.getId(), robotPlayerController.playerId(),
-                        robotPlayerController.getPlayer().getGold());
-            } else {
-                // 加入失败需要销毁机器人
-                robotService.recycleRobotPlayer(robotPlayerController.playerId());
-                log.error("游戏启动时，机器人加入失败, code: {} roomInfo: {}", result.code, roomController.getRoom().logStr());
-            }
-        } else {
-            log.error("启动游戏时，初始化机器人失败：{}", roomController.getRoom().logStr());
-        }
-        if (!roomController.isStartedGame()) {
-            log.error("游戏启动失败 {}", roomController.getRoom().logStr());
-            throw new RuntimeException("游戏启动失败：" + roomController.getRoom().logStr());
-        }
-    }
 
     /**
      * 获取房间的最大限制值

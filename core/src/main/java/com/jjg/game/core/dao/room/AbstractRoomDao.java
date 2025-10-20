@@ -335,7 +335,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
                     log.error("player:{} 更新玩家座位时 老座位不是对应玩家", playerId);
                     return null;
                 }
-                Long newSitId = playerSits.get(newSitIndex);
+                Long newSitId = playerSits.getOrDefault(newSitIndex, -1L);
                 if (newSitId != null && !forcedExchange) {
                     log.error("player:{} 更新玩家座位时 新座位有玩家", playerId);
                     return null;

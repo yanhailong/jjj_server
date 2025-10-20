@@ -7,6 +7,7 @@ import com.jjg.game.core.data.SendInfo;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.service.AbstractPlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.core.utils.MessageBuildUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -66,13 +67,7 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
     public void buildMoneyChangeMessage(PFSession session, Player player) {
         SendInfo sendInfo = new SendInfo();
 
-        NoticeBaseInfoChange notice = new NoticeBaseInfoChange();
-        notice.gold = player.getGold();
-        notice.diamond = player.getDiamond();
-        notice.vipLevel = player.getVipLevel();
-        notice.level = player.getLevel();
-        notice.levelExp = player.getExp();
-
+        NoticeBaseInfoChange notice = MessageBuildUtil.buildNoticeBaseInfoChange(player);
         sendInfo.addPlayerMsg(session.playerId, notice);
         sendInfo.getLogMessage().add(notice);
         sendRun(session, sendInfo, "推送玩家基础信息", false);

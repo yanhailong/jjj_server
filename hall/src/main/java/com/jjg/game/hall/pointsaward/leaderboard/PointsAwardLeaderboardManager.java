@@ -10,8 +10,7 @@ import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardData;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PointsAwardRankingCfg;
-import org.redisson.api.RBucket;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -23,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * 积分大奖排行榜管理器
@@ -78,7 +78,7 @@ public class PointsAwardLeaderboardManager {
         }
         if (hour == 12) {
             // 12 点：结算上午榜并开启下午榜
-            snapshotUnderLock(PointsAwardConstant.Leaderboard.AM, PointsAwardConstant.Leaderboard.AM);
+            snapshotUnderLock(PointsAwardConstant.Leaderboard.AM, PointsAwardConstant.Leaderboard.AM, true);
             leaderboardService.reset(PointsAwardConstant.Leaderboard.AM);
             long now = nowMillis();
             // 开启下午榜周期并确保为空
@@ -86,14 +86,14 @@ public class PointsAwardLeaderboardManager {
             leaderboardService.reset(PointsAwardConstant.Leaderboard.PM);
         } else if (hour == 0) {
             // 0 点：结算下午榜并开启新一天上午榜
-            snapshotUnderLock(PointsAwardConstant.Leaderboard.PM, PointsAwardConstant.Leaderboard.PM);
+            snapshotUnderLock(PointsAwardConstant.Leaderboard.PM, PointsAwardConstant.Leaderboard.PM, true);
             leaderboardService.reset(PointsAwardConstant.Leaderboard.PM);
             long now = nowMillis();
             redissonClient.getBucket(startKey(PointsAwardConstant.Leaderboard.AM)).set(now);
             leaderboardService.reset(PointsAwardConstant.Leaderboard.AM);
             // 每月第一天的 0 点，保存上月榜并清空月榜
             if (LocalDate.now().getDayOfMonth() == 1) {
-                snapshotUnderLock(PointsAwardConstant.Leaderboard.TYPE_MONTH, PointsAwardConstant.Leaderboard.TYPE_MONTH);
+                snapshotUnderLock(PointsAwardConstant.Leaderboard.TYPE_MONTH, PointsAwardConstant.Leaderboard.TYPE_MONTH, true);
                 leaderboardService.reset(PointsAwardConstant.Leaderboard.TYPE_MONTH);
                 redissonClient.getBucket(startKey(PointsAwardConstant.Leaderboard.TYPE_MONTH)).set(now);
             }
@@ -118,11 +118,15 @@ public class PointsAwardLeaderboardManager {
         String name = null;
         LocalDate date = LocalDate.ofInstant(Instant.ofEpochMilli(endTime), ZoneId.systemDefault());
         if (rankType == PointsAwardConstant.Leaderboard.AM) {
-            name = date + PointsAwardConstant.Leaderboard.RANK_NAME_AM;
+            name = date + PointsAwardConstant.Leaderboard.NAME + PointsAwardConstant.Leaderboard.RANK_NAME_AM;
         } else if (rankType == PointsAwardConstant.Leaderboard.PM) {
-            name = date + PointsAwardConstant.Leaderboard.RANK_NAME_PM;
+            name = date + PointsAwardConstant.Leaderboard.NAME + PointsAwardConstant.Leaderboard.RANK_NAME_PM;
         } else if (rankType == PointsAwardConstant.Leaderboard.TYPE_MONTH) {
-            name = date.toString();
+            // 本月第一天
+            LocalDate firstDay = date.withDayOfMonth(1);
+            // 本月最后一天
+            LocalDate lastDay = date.withDayOfMonth(date.lengthOfMonth());
+            name = firstDay + PointsAwardConstant.Leaderboard.NAME + lastDay;
         }
         return name;
     }
@@ -130,9 +134,8 @@ public class PointsAwardLeaderboardManager {
     /**
      * 在对应排行榜锁下读取 TopN 并持久化快照
      */
-    private void snapshotUnderLock(int zsetType, int snapshotType) {
-        String lockKey = PointsAwardConstant.RedisLockKey.POINTS_AWARD_RANKING_LOCK + zsetType;
-        PointsAwardLeaderboardData rankingData = redisLock.lockAndGet(lockKey, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, () -> {
+    private void snapshotUnderLock(int zsetType, int snapshotType, boolean lock) {
+        Supplier<PointsAwardLeaderboardData> supplier = () -> {
             List<PointsAwardLeaderboardInfo> topList = leaderboardService.topN(zsetType, PointsAwardConstant.Leaderboard.MAX_RANK_SIZE);
             PointsAwardLeaderboardData data = new PointsAwardLeaderboardData();
             data.setRankType(snapshotType);
@@ -140,9 +143,18 @@ public class PointsAwardLeaderboardManager {
             data.setRankingInfoList(topList);
             data.setName(buildName(snapshotType, data.getEndTime()));
             return data;
-        });
+        };
+        PointsAwardLeaderboardData rankingData;
+        if (lock) {
+            String lockKey = PointsAwardConstant.RedisLockKey.POINTS_AWARD_RANKING_LOCK + zsetType;
+            rankingData = redisLock.lockAndGet(lockKey, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, supplier);
+        } else {
+            rankingData = supplier.get();
+        }
         //发奖
         sendAward(rankingData);
+        //记录排行榜历史记录
+        addHistory(rankingData);
     }
 
     /**
@@ -211,37 +223,39 @@ public class PointsAwardLeaderboardManager {
             //发奖
             if (cfg != null) {
                 List<String> awardItems = cfg.getGetItem();
-                String code = null;
                 //有奖励才发奖
                 if (awardItems != null && !awardItems.isEmpty()) {
-                    List<LanguageParamData> paramData = new ArrayList<>();
-                    LocalDate date = LocalDate.ofInstant(Instant.ofEpochMilli(rankingData.getEndTime()), ZoneId.systemDefault());
-                    if (rankingData.getRankType() == PointsAwardConstant.Leaderboard.AM) {
-                        paramData.add(new LanguageParamData(0, date.toString()));
-                        paramData.add(new LanguageParamData(0, PointsAwardConstant.Leaderboard.RANK_NAME_AM));
-                        paramData.add(new LanguageParamData(0, String.valueOf(info.getRank())));
+                    redisLock.tryLockAndRun(PointsAwardConstant.RedisLockKey.PLAYER_RANKING_AWARD_LOCK + info.getPlayerId(), () -> {
+                        String code = null;
+                        List<LanguageParamData> paramData = new ArrayList<>();
+                        LocalDate date = LocalDate.ofInstant(Instant.ofEpochMilli(rankingData.getEndTime()), ZoneId.systemDefault());
+                        if (rankingData.getRankType() == PointsAwardConstant.Leaderboard.AM) {
+                            paramData.add(new LanguageParamData(0, date.toString()));
+                            paramData.add(new LanguageParamData(0, PointsAwardConstant.Leaderboard.RANK_NAME_AM));
+                            paramData.add(new LanguageParamData(0, String.valueOf(info.getRank())));
 
-                    } else if (rankingData.getRankType() == PointsAwardConstant.Leaderboard.PM) {
-                        paramData.add(new LanguageParamData(0, date.toString()));
-                        paramData.add(new LanguageParamData(0, PointsAwardConstant.Leaderboard.RANK_NAME_PM));
-                        paramData.add(new LanguageParamData(0, String.valueOf(info.getRank())));
-                    } else if (rankingData.getRankType() == PointsAwardConstant.Leaderboard.TYPE_MONTH) {
-                        paramData.add(new LanguageParamData(0, date.toString()));
-                        paramData.add(new LanguageParamData(0, String.valueOf(info.getRank())));
-                    }
-                    //其他奖励
-                    if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.OTHER) {
-                        mailService.addCfgMail(info.getPlayerId(), 5, null, paramData);
-                        //TODO:领奖码
-                        code = "";
-                    }
-                    //道具
-                    else if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.ITEM) {
-                        mailService.addCfgMail(info.getPlayerId(), 4, ItemUtils.buildItemsByStrList(awardItems), paramData);
-                    }
+                        } else if (rankingData.getRankType() == PointsAwardConstant.Leaderboard.PM) {
+                            paramData.add(new LanguageParamData(0, date.toString()));
+                            paramData.add(new LanguageParamData(0, PointsAwardConstant.Leaderboard.RANK_NAME_PM));
+                            paramData.add(new LanguageParamData(0, String.valueOf(info.getRank())));
+                        } else if (rankingData.getRankType() == PointsAwardConstant.Leaderboard.TYPE_MONTH) {
+                            paramData.add(new LanguageParamData(0, date.toString()));
+                            paramData.add(new LanguageParamData(0, String.valueOf(info.getRank())));
+                        }
+                        //其他奖励
+                        if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.OTHER) {
+                            mailService.addCfgMail(info.getPlayerId(), 5, null, paramData);
+                            //TODO:领奖码
+                            code = "access678";
+                        }
+                        //道具
+                        else if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.ITEM) {
+                            mailService.addCfgMail(info.getPlayerId(), 4, ItemUtils.buildItemsByStrList(awardItems), paramData);
+                        }
+                        //添加历史记录
+                        leaderboardService.addHistory(info, cfg, code, rankingData.getName());
+                    });
                 }
-                //添加历史记录
-                leaderboardService.addHistory(info, cfg, code, rankingData.getName());
             }
             log.debug("rank:[{}] playerId: [{}] rank: [{}]", rankingData.getRankType(), info.getPlayerId(), info.getRank());
         });
@@ -310,7 +324,7 @@ public class PointsAwardLeaderboardManager {
                 long startOfDayMillis = nowDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
                 long noonMillis = startOfDayMillis + 12L * 60 * 60 * 1000;
                 if (now >= noonMillis && startTs < noonMillis && nowDate.equals(startDate)) {
-                    snapshotUnderLock(PointsAwardConstant.Leaderboard.AM, PointsAwardConstant.Leaderboard.AM);
+                    snapshotUnderLock(PointsAwardConstant.Leaderboard.AM, PointsAwardConstant.Leaderboard.AM, false);
                     leaderboardService.reset(PointsAwardConstant.Leaderboard.AM);
                     // 开启下午榜
                     redissonClient.getBucket(startKey(PointsAwardConstant.Leaderboard.PM)).set(now);
@@ -319,7 +333,7 @@ public class PointsAwardLeaderboardManager {
             } else if (type == PointsAwardConstant.Leaderboard.PM) {
                 // 下午榜：跨天（0 点）结算并开启新一天上午榜
                 if (nowDate.isAfter(startDate)) {
-                    snapshotUnderLock(PointsAwardConstant.Leaderboard.PM, PointsAwardConstant.Leaderboard.PM);
+                    snapshotUnderLock(PointsAwardConstant.Leaderboard.PM, PointsAwardConstant.Leaderboard.PM, false);
                     leaderboardService.reset(PointsAwardConstant.Leaderboard.PM);
                     long newStartAm = nowDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
                     redissonClient.getBucket(startKey(PointsAwardConstant.Leaderboard.AM)).set(newStartAm);
@@ -330,12 +344,51 @@ public class PointsAwardLeaderboardManager {
                 boolean monthChanged = nowDate.getYear() != startDate.getYear()
                         || nowDate.getMonthValue() != startDate.getMonthValue();
                 if (monthChanged) {
-                    snapshotUnderLock(PointsAwardConstant.Leaderboard.TYPE_MONTH, PointsAwardConstant.Leaderboard.TYPE_MONTH);
+                    snapshotUnderLock(PointsAwardConstant.Leaderboard.TYPE_MONTH, PointsAwardConstant.Leaderboard.TYPE_MONTH, false);
                     leaderboardService.reset(PointsAwardConstant.Leaderboard.TYPE_MONTH);
                     startBucket.set(now);
                 }
             }
         });
+    }
+
+    /**
+     * 添加排行榜历史记录
+     *
+     * @param data 排行数据
+     */
+    public void addHistory(PointsAwardLeaderboardData data) {
+        RMap<Integer, RDeque<PointsAwardLeaderboardData>> rankingHistoryMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_HISTORY + data.getRankType());
+        RLock rLock = rankingHistoryMap.getLock(data.getRankType());
+        boolean tryLock = rLock.tryLock();
+        try {
+            if (!tryLock) {
+                return;
+            }
+            RDeque<PointsAwardLeaderboardData> rankingHistoryDeque = rankingHistoryMap.get(data.getRankType());
+            if (rankingHistoryDeque != null) {
+                rankingHistoryDeque.addFirst(data);
+                if (rankingHistoryDeque.size() > PointsAwardConstant.Leaderboard.MAX_HISTORY_SIZE) {
+                    rankingHistoryDeque.removeLast();
+                }
+            }
+        } finally {
+            rLock.unlock();
+        }
+    }
+
+    /**
+     * 获取排行榜所有历史记录
+     *
+     * @param rankType 排行榜类型
+     */
+    public List<PointsAwardLeaderboardData> getRankingHistory(int rankType) {
+        RMap<Integer, RDeque<PointsAwardLeaderboardData>> rankingHistoryMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_HISTORY + rankType);
+        if (!rankingHistoryMap.containsKey(rankType)) {
+            return new ArrayList<>();
+        }
+        RDeque<PointsAwardLeaderboardData> rankingHistory = rankingHistoryMap.get(rankType);
+        return rankingHistory.readAll();
     }
 
 }

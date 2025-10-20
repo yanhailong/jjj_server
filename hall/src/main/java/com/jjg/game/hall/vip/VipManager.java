@@ -9,6 +9,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.vip.data.Vip;
@@ -41,15 +42,18 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
     private final PlayerPackService playerPackService;
     private final AccountDao accountDao;
     private final CorePlayerService playerService;
+    private final CoreLogger coreLogger;
 
     public VipManager(VipService vipService,
                       PlayerPackService playerPackService,
                       AccountDao accountDao,
-                      CorePlayerService playerService) {
+                      CorePlayerService playerService,
+                      CoreLogger coreLogger) {
         this.vipService = vipService;
         this.playerPackService = playerPackService;
         this.accountDao = accountDao;
         this.playerService = playerService;
+        this.coreLogger = coreLogger;
     }
 
     @Override
@@ -173,6 +177,8 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
             if (!addedItems.success()) {
                 return res;
             }
+            //发送领奖日志
+            coreLogger.sendVipLog(player, gift.getType(), rewards, addedItems.data, 0);
             VipGiftInfo vipGiftInfo = new VipGiftInfo();
             vipGiftInfo.type = gift.getType();
             vipGiftInfo.camClaim = gift.isCanClaim(player, vip, timeMillis);

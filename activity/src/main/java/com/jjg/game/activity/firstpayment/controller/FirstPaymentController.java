@@ -60,7 +60,7 @@ public class FirstPaymentController extends BaseActivityController {
             return res;
         }
         PlayerActivityData data;
-        CommonResult<ItemOperationResult> addedItems;
+        CommonResult<ItemOperationResult> addedItems = null;
         Map<Integer, Long> rewards = null;
         String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
         // 加锁，防止并发修改
@@ -95,9 +95,10 @@ public class FirstPaymentController extends BaseActivityController {
         } finally {
             redisLock.unlock(lockKey);
         }
-
+        if (addedItems != null && addedItems.success()) {
+            activityLogger.sendFirstPaymentJoinLog(player, activityData, cfg, addedItems.data, rewards);
+        }
         // 发送日志
-//            activityLogger.sendFirstPaymentJoinLog(player, activityData, detailId, addedItems == null ? null : addedItems.data, cfg.getGetItem());
         if (rewards != null) {
             res.infoList = ItemUtils.buildItemInfo(rewards);
         }

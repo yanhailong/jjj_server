@@ -15,6 +15,7 @@ public enum RoomEventType {
     ROOM_SAVE_PLAYER_DATA("房间玩家数据回存"),
     ROOM_TICK("房间tick"),
     CURRENCY_CHANGE_EVENT("货币变化事件"),
+    PLAYER_RECHARGE_EVENT("玩家充值事件"),
     ;
     final String eventTypeName;
 

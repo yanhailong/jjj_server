@@ -322,7 +322,10 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
         Map<Integer, BetAreaCfg> betAreaCfgMap = getBetAreaCfgMap();
         List<Integer> betList = gameDataVo.getRoomCfg().getBetList();
         // 场上最大下注倍数
-        int betMax = betList.stream().max(Integer::compareTo).get();
+        int betMax = betList.stream().max(Integer::compareTo).orElse(0);
+        if (betMax <= 0) {
+            return Code.SAMPLE_ERROR;
+        }
         long totalBetValue = 0;
         Map<Integer, Long> playerReqBetMap = new HashMap<>();
         for (ReqBetBean betBean : reqBetBean) {
@@ -368,15 +371,19 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             }
             totalBetValue += betValue;
         }
-        // 庄家不能押注
-        long roomBankerId = gameController.getRoom().roomBankerId();
-        if (roomBankerId != 0 && roomBankerId == gamePlayer.getId()) {
-            return Code.BANKER_CANT_BET;
+        //不运行庄家押注
+        if (gameDataVo.getRoomCfg().getBankerBets() == 0) {
+            // 庄家不能押注
+            long roomBankerId = gameController.getRoom().roomBankerId();
+            if (roomBankerId != 0 && roomBankerId == gamePlayer.getId()) {
+                return Code.BANKER_CANT_BET;
+            }
+            // 庄家不能押注
+            if (roomBankerId == 0 && gamePlayer.getId() == gameController.getRoom().getCreator()) {
+                return Code.BANKER_CANT_BET;
+            }
         }
-        // 庄家不能押注
-        if (roomBankerId == 0 && gamePlayer.getId() == gameController.getRoom().getCreator()) {
-            return Code.BANKER_CANT_BET;
-        }
+
         // 检查玩家的钱是否带够
         long needTake = totalBetValue;
         if (needTake > gameController.getTransactionItemNum(gamePlayer.getId())) {

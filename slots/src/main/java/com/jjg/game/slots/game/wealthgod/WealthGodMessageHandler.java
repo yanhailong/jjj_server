@@ -53,8 +53,8 @@ public class WealthGodMessageHandler {
     @Command(WealthGodConstant.MsgBean.REQ_START_GAME)
     public void reqStartGame(PlayerController playerController, ReqWealthGodStartGame req) {
         try {
-            log.info("收到玩家开始游戏 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             WealthGodGameRunInfo gameRunInfo = gameManager.playerStartGame(playerController, req.stakeValue);
+            log.info("收到玩家开始游戏 playerId={},req={}, gameRunInfo = {}", playerController.playerId(), JSONObject.toJSONString(req), JSONObject.toJSONString(gameRunInfo));
             sendMessageManager.sendStartGameMessage(playerController, gameRunInfo);
         } catch (Exception e) {
             log.error("", e);

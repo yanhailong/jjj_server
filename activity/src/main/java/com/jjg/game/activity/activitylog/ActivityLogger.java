@@ -11,6 +11,8 @@ import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
+import com.jjg.game.sampledata.bean.FirstpaymentCfg;
+import com.jjg.game.sampledata.bean.PlayerLevelPackCfg;
 import com.jjg.game.sampledata.bean.PrivilegeCardCfg;
 import org.springframework.stereotype.Component;
 
@@ -310,4 +312,68 @@ public class ActivityLogger extends BaseLogger {
             log.error("sendDailyLoginRewards error:", e);
         }
     }
+
+    /**
+     * 首充领取奖励
+     *
+     * @param player       玩家数据
+     * @param activityData 活动数据
+     * @param cfg          配置表数据
+     * @param data         奖励结果
+     * @param rewards      奖励
+     */
+    public void sendFirstPaymentJoinLog(Player player, ActivityData activityData, FirstpaymentCfg cfg, ItemOperationResult data, Map<Integer, Long> rewards) {
+        try {
+            JSONObject json = buildBaseInfo(activityData, cfg.getId());
+            json.put("rewards", JSON.toJSONString(rewards, SerializerFeature.WriteNonStringKeyAsString));
+            json.put("money", cfg.getMoney());
+            json.put("remain", JSON.toJSONString(data, SerializerFeature.WriteNonStringKeyAsString));
+            sendLog(TOPIC, player, json);
+        } catch (Exception e) {
+            log.error("sendDailyLoginRewards error:", e);
+        }
+    }
+
+    /**
+     * 等级礼包购买日志
+     *
+     * @param player 玩家数据
+     * @param cfg    等级礼包配置
+     */
+    public void sendLevelPackBuyLog(Player player, PlayerLevelPackCfg cfg) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("operator", 1);
+            json.put("type", -1);
+            json.put("level", cfg.getPlayerlevel());
+            json.put("money", cfg.getPay());
+            json.put("rewards", JSON.toJSONString(cfg.getLevelRewards(), SerializerFeature.WriteNonStringKeyAsString));
+            sendLog(TOPIC, player, json);
+        } catch (Exception e) {
+            log.error("sendDailyLoginRewards error:", e);
+        }
+    }
+
+    /**
+     * 等级礼包领取日志
+     *
+     * @param player 玩家数据
+     * @param data   道具领取后日志
+     * @param cfg    等级礼包配置
+     */
+    public void sendLevelPackClaimLog(Player player, ItemOperationResult data, PlayerLevelPackCfg cfg) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("operator", 2);
+            json.put("type", -1);
+            json.put("level", cfg.getPlayerlevel());
+            json.put("money", cfg.getPay());
+            json.put("remain", JSON.toJSONString(data));
+            json.put("rewards", JSON.toJSONString(cfg.getLevelRewards(), SerializerFeature.WriteNonStringKeyAsString));
+            sendLog(TOPIC, player, json);
+        } catch (Exception e) {
+            log.error("sendDailyLoginRewards error:", e);
+        }
+    }
+
 }

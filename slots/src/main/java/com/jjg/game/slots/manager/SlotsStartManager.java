@@ -2,6 +2,7 @@ package com.jjg.game.slots.manager;
 
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.service.MarsCoreStartService;
+import com.jjg.game.core.base.condition.ConditionType;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.core.task.manager.TaskManager;
@@ -52,6 +53,8 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
         this.marqueeManager.init();
         //加载活动数据
         activityManager.initData();
+        //条件枚举
+        ConditionType.initData();
         //加载任务管理器
         taskManager.init();
         running = true;
