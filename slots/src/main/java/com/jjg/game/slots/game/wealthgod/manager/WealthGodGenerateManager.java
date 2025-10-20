@@ -32,24 +32,21 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
 
     @Override
     public void calTimes(WealthGodResultLib lib) throws Exception {
-        lib.addTimes(calLineTimes(lib.getAwardLineInfoList()));
-//        lib.addTimes(calFree(lib));
-        calFree(lib);
+        calLineTimes(lib, lib);
+        calFree(lib, lib);
     }
 
     /**
      * 计算中奖线的倍数
      */
-    private int calLineTimes(List<WealthGodAwardLineInfo> list) {
+    private void calLineTimes(WealthGodResultLib recordLib, WealthGodResultLib lib) {
+        List<WealthGodAwardLineInfo> list = lib.getAwardLineInfoList();
         if (list == null || list.isEmpty()) {
-            return 0;
+            return;
         }
-
-        int times = 0;
         for (WealthGodAwardLineInfo awardLineInfo : list) {
-            times += awardLineInfo.getBaseTimes();
+            recordLib.addTimes(awardLineInfo.getBaseTimes());
         }
-        return times;
     }
 
     /**
@@ -57,7 +54,7 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
      * 新逻辑：为每次旋转单独记录倍数，不再累加到外层总倍数
      * 这样可以清晰地看到每次旋转（包括嵌套免费游戏）的具体倍数贡献
      */
-    private void calFree(WealthGodResultLib lib) throws Exception {
+    private void calFree(WealthGodResultLib recordLib, WealthGodResultLib lib) {
         if (lib.getSpecialAuxiliaryInfoList() == null || lib.getSpecialAuxiliaryInfoList().isEmpty()) {
             return;
         }
@@ -67,12 +64,9 @@ public class WealthGodGenerateManager extends AbstractSlotsGenerateManager<Wealt
             }
             for (JSONObject jsonObject : specialAuxiliaryInfo.getFreeGames()) {
                 WealthGodResultLib tmpLib = JSON.parseObject(jsonObject.toJSONString(), WealthGodResultLib.class);
-                // 计算当前免费游戏旋转的中奖线倍数
-                long freeLineTimes = calLineTimes(tmpLib.getAwardLineInfoList());
-                // 直接设置该次旋转的倍数，不累加到外层
-                tmpLib.setTimes(freeLineTimes);
-                // 递归处理嵌套的免费游戏，为每层都单独记录倍数
-                calFree(tmpLib);
+                calLineTimes(recordLib, tmpLib);
+                // 递归处理嵌套的免费游戏
+                calFree(recordLib, tmpLib);
             }
         }
     }
