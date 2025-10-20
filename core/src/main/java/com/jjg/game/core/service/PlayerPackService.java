@@ -134,7 +134,6 @@ public class PlayerPackService implements IPlayerRegister {
         }
         PlayerPack playerPack = null;
         String key = getLockKey(playerId);
-        Map<EItemUseStrategy, List<Item>> autoActivateMap = new HashMap<>(itemList.size());
         // TODO 当前的加锁位置会有数据覆盖问题
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         try {
@@ -151,11 +150,14 @@ public class PlayerPackService implements IPlayerRegister {
                     continue;
                 }
                 EItemUseStrategy strategy = EItemUseStrategy.getItemUseStrategy(itemCfg.getType());
+                int useNum = 0;
                 if (strategy != null) {
-                    autoActivateMap.computeIfAbsent(strategy, k -> new ArrayList<>()).add(item);
-                } else {
+                    //尝试自动使用
+                    useNum = strategy.getUseStrategy().autoUse(playerId, item, itemCfg);
+                }
+                if (item.getItemCount() - useNum > 0) {
                     changeBefore.put(itemId, changeBefore.getOrDefault(itemId, 0L) + playerPack.getItemCount(itemId));
-                    playerPack.addItem(itemId, item.getItemCount(), itemCfg.getProp());
+                    playerPack.addItem(itemId, item.getItemCount() - useNum, itemCfg.getProp());
                     hasChange = true;
                 }
             }
@@ -178,11 +180,6 @@ public class PlayerPackService implements IPlayerRegister {
                     changeAfterNum.put(item.getId(), count);
                 }
                 result.data.setChangeEndItemNum(changeAfterNum);
-            }
-            if (!autoActivateMap.isEmpty()) {
-                for (Map.Entry<EItemUseStrategy, List<Item>> entry : autoActivateMap.entrySet()) {
-                    entry.getKey().getUseStrategy().autoUse(playerId, entry.getValue());
-                }
             }
             Map<Integer, Long> addTempItemMap =
                     itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getItemCount()),

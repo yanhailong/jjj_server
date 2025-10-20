@@ -3,8 +3,6 @@ package com.jjg.game.core.base.item;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.sampledata.bean.ItemCfg;
 
-import java.util.List;
-
 /**
  * 道具使用接口
  *
@@ -14,6 +12,10 @@ public interface IItemUseInterface {
 
     /**
      * 自动使用
+     * @param playerId 玩家id
+     * @param item 道具数据
+     * @param itemCfg 道具配置
+     * @return 自动使用的数量
      */
-    void autoUse(long playerId, List<Item> itemList);
+    int autoUse(long playerId, Item item, ItemCfg itemCfg);
 }
