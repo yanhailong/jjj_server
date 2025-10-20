@@ -889,6 +889,41 @@ public class GMController extends AbstractController {
 
     }
 
+    /**
+     * 更新excel配置
+     *
+     * @return
+     */
+//    @RequestMapping(BackendGMCmd.UPDATE_EXCEL_CONFIGS)
+//    public WebResult<String> updateExcelConfigs(@RequestBody UpdateExcelConfigsDto dto) {
+//        log.info("收到修改服务器列表信息 dto = {}",dto);
+//
+//        try{
+//            if(dto.name() == null || dto.name().isEmpty()){
+//                log.debug("修改服务器信息错误,节点名不能为空 dto = {}",dto);
+//                return fail("common.paramerror");
+//            }
+//            ClusterClient clusterClient = clusterSystem.getNodesByName(dto.name());
+//            if(clusterClient == null){
+//                log.debug("修改服务器信息错误,未找到该节点 dto = {}",dto);
+//                return fail("common.paramerror");
+//            }
+//
+//            NotifyGameNodeChange notify = new NotifyGameNodeChange();
+//            notify.weight = dto.weight();
+//            notify.ips = dto.whiteIpList();
+//            notify.ids = dto.whiteIdList();
+//
+//            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
+//            clusterClient.write(new ClusterMessage(pfMessage));
+//            return success("common.success");
+//        }catch (Exception e){
+//            log.error("", e);
+//            return fail("common.exception");
+//        }
+//
+//    }
+
 
     //****************************************************************************************************************/
 

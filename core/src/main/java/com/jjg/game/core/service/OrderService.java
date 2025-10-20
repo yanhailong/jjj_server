@@ -1,11 +1,10 @@
 package com.jjg.game.core.service;
 
 import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.constant.RechargeType;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.OrderDao;
 import com.jjg.game.core.data.*;
@@ -14,8 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author 11
@@ -30,7 +27,12 @@ public class OrderService {
     @Autowired
     private AccountDao accountDao;
 
-    public Order generateOrder(Player player, PayType payType, int productId, long price, RechargeType rechargeType) {
+    public Order generateOrder(Player player, PayType payType, String productId, RechargeType rechargeType) {
+        Account account = accountDao.queryAccountByPlayerId(player.getId());
+        return generateOrder(player.getId(), account.getChannel(), payType, productId, 0, rechargeType);
+    }
+
+    public Order generateOrder(Player player, PayType payType, String productId, long price, RechargeType rechargeType) {
         Account account = accountDao.queryAccountByPlayerId(player.getId());
         return generateOrder(player.getId(), account.getChannel(), payType, productId, price, rechargeType);
     }
@@ -43,7 +45,7 @@ public class OrderService {
      * @param price
      * @return
      */
-    public Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, int productId, long price, RechargeType rechargeType) {
+    public Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, long price, RechargeType rechargeType) {
         for (int i = 0; i < CoreConst.Common.MONGO_TRY_COUNT; i++) {
             String orderId = "cz" + DateUtil.format(DateUtil.date(), "yyMMdd") + RandomUtils.getRandomString(9);
             try {

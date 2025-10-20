@@ -16,7 +16,7 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.RechargeType;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
@@ -203,7 +203,7 @@ public class PlayerLevelPackManager implements GameEventListener {
             case PlayerEventCategory.PlayerRechargeEvent event -> {
                 Player player = event.getPlayer();
                 if (event.getOrder().getRechargeType() == RechargeType.PLAYER_LEVEL_GIFT) {
-                    dealRecharge(player, event.getOrder().getProductId());
+                    dealRecharge(player, Integer.parseInt(event.getOrder().getProductId()));
                 }
             }
             case PlayerEvent event -> {

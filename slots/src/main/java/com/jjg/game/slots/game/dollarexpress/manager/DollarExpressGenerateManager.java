@@ -349,7 +349,6 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         for (int i = 1; i < lib.getIconArr().length; i++) {
             int icon = lib.getIconArr()[i];
             if (trainId(icon)) {
-                System.out.println(icon);
                 auxiliaryIdList.add(this.trainIdToAuxiliaryMap.get(icon));
             }
         }
@@ -359,20 +358,33 @@ public class DollarExpressGenerateManager extends AbstractSlotsGenerateManager<D
         }
 
         //将specialAuxiliaryInfoList转化成map映射
-        Map<Integer, SpecialAuxiliaryInfo> tmpAuxiliaryMap = new HashMap<>();
+        Map<Integer, List<SpecialAuxiliaryInfo>> tmpAuxiliaryMap = new HashMap<>();
         lib.getSpecialAuxiliaryInfoList().forEach(specialAuxiliaryInfo -> {
-            tmpAuxiliaryMap.put(specialAuxiliaryInfo.getCfgId(), specialAuxiliaryInfo);
+            List<SpecialAuxiliaryInfo> tmpList = tmpAuxiliaryMap.computeIfAbsent(specialAuxiliaryInfo.getCfgId(), k -> new ArrayList<>());
+            tmpList.add(specialAuxiliaryInfo);
+//            tmpAuxiliaryMap.put(specialAuxiliaryInfo.getCfgId(), specialAuxiliaryInfo);
         });
 
         //根据顺序重新放入新的list
         List<SpecialAuxiliaryInfo> sortList = new ArrayList<>();
         for (int auxiliaryId : auxiliaryIdList) {
-            sortList.add(tmpAuxiliaryMap.remove(auxiliaryId));
+            List<SpecialAuxiliaryInfo> tmpList = tmpAuxiliaryMap.get(auxiliaryId);
+            if(tmpList == null){
+                continue;
+
+            }
+            SpecialAuxiliaryInfo info = tmpList.removeFirst();
+            if(info == null){
+                continue;
+            }
+            sortList.add(info);
         }
 
         //将剩余的 SpecialAuxiliaryInfo 放入sortList中
         if(!tmpAuxiliaryMap.isEmpty()){
-            tmpAuxiliaryMap.forEach((k,v) -> sortList.add(v));
+            tmpAuxiliaryMap.forEach((k,v) -> {
+                sortList.addAll(v);
+            });
         }
 
         lib.setSpecialAuxiliaryInfoList(sortList);

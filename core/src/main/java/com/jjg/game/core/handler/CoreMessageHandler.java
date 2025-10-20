@@ -1,6 +1,7 @@
 package com.jjg.game.core.handler;
 
 import cn.hutool.core.util.EnumUtil;
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
@@ -10,7 +11,7 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.RechargeType;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.constant.SubscriptionTopic;
@@ -110,7 +111,7 @@ public class CoreMessageHandler {
             String cmd = arr[0];
             String params = arr[1];
 
-            if("init".equals(cmd)) {
+            if ("init".equals(cmd)) {
                 return;
             }
 
@@ -165,7 +166,7 @@ public class CoreMessageHandler {
                 //1等级礼包 测试用
                 RechargeType rechargeType = EnumUtil.getBy(RechargeType.class, e -> e.getType() == type);
                 int id = Integer.parseInt(arr[2]);
-                Order order = orderService.generateOrder(playerController.getPlayer(),PayType.GOOGLE, id, 1000, rechargeType);
+                Order order = orderService.generateOrder(playerController.getPlayer(), PayType.GOOGLE, id + "", 1000, rechargeType);
                 gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(playerController.getPlayer(), order));
                 //任务条件参数
                 Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
@@ -422,6 +423,38 @@ public class CoreMessageHandler {
             subscriptionManager.subscription(subscriptionTopic, playerController.playerId());
         } else {
             subscriptionManager.unsubscription(subscriptionTopic, playerController.playerId());
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 请求预下单
+     */
+    @Command(MessageConst.CoreMessage.REQ_GENERATE_ORDER)
+    public void generateOrder(PlayerController playerController, ReqGenerateOrder req) {
+        ResGenerateOrder res = new ResGenerateOrder(Code.SUCCESS);
+        try {
+            log.debug("收到玩家预下单请求 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
+            PayType payType = PayType.valueOf(req.payType);
+            if (payType == null) {
+                log.debug("payType 类型错误 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
+                res.code = Code.PARAM_ERROR;
+                playerController.send(res);
+                return;
+            }
+
+            Order order = orderService.generateOrder(playerController.getPlayer(), payType, req.productId, req.rechargeType);
+            if (order == null) {
+                log.debug("预下单失败 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
+                res.code = Code.FAIL;
+                playerController.send(res);
+                return;
+            }
+            res.orderId = order.getId();
+
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
         }
         playerController.send(res);
     }

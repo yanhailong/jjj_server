@@ -1,16 +1,13 @@
 package com.jjg.game.core.service;
 
-import com.jjg.game.common.pb.ItemInfo;
-import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.RechargeType;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.ShopProductDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.CoreSendMessageManager;
-import com.jjg.game.core.pb.NotifyPayCallBack;
 import com.jjg.game.core.utils.ConditionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +84,7 @@ public class ShopService {
      */
     public CommonResult<String> generateOrder(Player player, ShopProduct shopProduct, RechargeType rechargeType, PayType payType) {
         CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
-        Order order = orderService.generateOrder(player, payType, shopProduct.getId(), shopProduct.getMoney(), rechargeType);
+        Order order = orderService.generateOrder(player, payType, shopProduct.getId() + "", shopProduct.getMoney(), rechargeType);
         if (order == null) {
             log.info("玩家下单失败 playerId = {},productId = {}", player.getId(), shopProduct.getId());
             result.code = Code.FAIL;

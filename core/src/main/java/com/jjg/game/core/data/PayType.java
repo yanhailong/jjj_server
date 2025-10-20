@@ -7,7 +7,6 @@ package com.jjg.game.core.data;
 public enum PayType {
     GOOGLE(0),
     IOS(1),
-    FACEBOOK(2),
 
     ;
 
@@ -29,10 +28,6 @@ public enum PayType {
 
             case 1 -> {
                 return IOS;
-            }
-
-            case 2 -> {
-                return FACEBOOK;
             }
 
             default -> {

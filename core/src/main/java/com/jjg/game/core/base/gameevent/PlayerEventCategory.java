@@ -1,6 +1,5 @@
 package com.jjg.game.core.base.gameevent;
 
-import com.jjg.game.core.constant.RechargeType;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 

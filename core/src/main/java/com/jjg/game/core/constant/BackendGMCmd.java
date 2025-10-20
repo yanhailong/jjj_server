@@ -49,6 +49,8 @@ public interface BackendGMCmd {
 
     //获取全部活动数据
     String GET_ALL_ACTIVITY_DATA = "getAllActivityData";
+    //更新excel配置
+    String UPDATE_EXCEL_CONFIGS = "updateExcelConfigs";
 
     /**
      * 配置相关
