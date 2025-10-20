@@ -17,14 +17,10 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ACTIVITY, cmd = ActivityConstant.MsgBean.RES_DAILY_LOGIN_CLAIM_REWARDS,resp = true)
 @ProtoDesc("响应每日签到领取活动奖励")
 public class ResDailyLoginClaimRewards extends AbstractResponse {
-    @ProtoDesc("活动id")
-    public long activityId;
-    @ProtoDesc("详情id")
-    public long detailId;
     @ProtoDesc("领取奖励信息")
     public List<ItemInfo> infoList;
     @ProtoDesc("详细信息")
-    public DailyLoginDetailInfo detailInfo;
+    public List<DailyLoginDetailInfo> detailInfo;
 
     public ResDailyLoginClaimRewards(int code) {
         super(code);

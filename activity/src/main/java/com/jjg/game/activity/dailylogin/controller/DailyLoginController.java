@@ -119,6 +119,7 @@ public class DailyLoginController extends BaseActivityController {
             return res;
         }
         PlayerActivityData data = null;
+        List<PlayerActivityData> changData = new ArrayList<>();
         CommonResult<ItemOperationResult> addedItems = null;
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         // 加锁，保证领取操作原子性
@@ -156,6 +157,7 @@ public class DailyLoginController extends BaseActivityController {
                     PlayerActivityData temp = dataMap.computeIfAbsent(rewardsCfg.getId(), key -> new PlayerActivityData(activityId, activityData.getRound()));
                     if (temp.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
                         temp.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+                        changData.add(temp);
                     }
                 }
             }
@@ -174,10 +176,14 @@ public class DailyLoginController extends BaseActivityController {
             activityLogger.sendDailyLoginRewards(player, activityData, detailId, cfg.getType(), cfg.getGetItem(),
                     addedItems != null && addedItems.success() ? addedItems.data : null);
             // 构建响应数据
-            res.activityId = activityId;
-            res.detailId = detailId;
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetItem());
-            res.detailInfo = buildPlayerActivityDetail(activityData, cfg, data);
+            res.detailInfo = new ArrayList<>();
+            res.detailInfo.add(buildPlayerActivityDetail(activityData, cfg, data));
+            if (CollectionUtil.isNotEmpty(changData)) {
+                for (PlayerActivityData changDatum : changData) {
+                    res.detailInfo.add(buildPlayerActivityDetail(activityData, cfg, changDatum));
+                }
+            }
         }
         return res;
     }
