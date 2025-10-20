@@ -6,7 +6,7 @@ import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.utils.MessageBuildUtil;
-import com.jjg.game.core.utils.VipManager;
+import com.jjg.game.core.manager.VipCheckManager;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
@@ -33,7 +33,7 @@ public record PlayerRechargeEventHandler(Player player, AbstractGameController<?
                 log.error("玩家充值时修改玩家vip等级失败 gamePlayer为空 playerId:{} order:{} ", player.getId(), JSON.toJSONString(order));
                 return;
             }
-            VipManager.rechargeCheckVipLevel(gamePlayer, BigDecimal.valueOf(order.getPrice()));
+            VipCheckManager.rechargeCheckVipLevel(gamePlayer, BigDecimal.valueOf(order.getPrice()));
             //修改vip等级和经验
             player.setVipLevel(gamePlayer.getVipLevel());
             player.setVipExp(gamePlayer.getVipExp());
