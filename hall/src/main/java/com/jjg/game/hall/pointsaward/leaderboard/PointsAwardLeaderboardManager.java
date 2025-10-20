@@ -2,7 +2,9 @@ package com.jjg.game.hall.pointsaward.leaderboard;
 
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.constant.AwardCodeType;
 import com.jjg.game.core.data.LanguageParamData;
+import com.jjg.game.core.manager.AwardCodeManager;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
@@ -42,16 +44,19 @@ public class PointsAwardLeaderboardManager {
     private final MarsCurator marsCurator;
     private final RedissonClient redissonClient;
     private final MailService mailService;
+    private final AwardCodeManager awardCodeManager;
 
     public PointsAwardLeaderboardManager(PointsAwardLeaderboardService leaderboardService,
                                          RedisLock redisLock,
                                          RedissonClient redissonClient,
                                          MailService mailService,
+                                         AwardCodeManager awardCodeManager,
                                          MarsCurator marsCurator) {
         this.leaderboardService = leaderboardService;
         this.redisLock = redisLock;
         this.redissonClient = redissonClient;
         this.mailService = mailService;
+        this.awardCodeManager = awardCodeManager;
         this.marsCurator = marsCurator;
     }
 
@@ -245,8 +250,7 @@ public class PointsAwardLeaderboardManager {
                         //其他奖励
                         if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.OTHER) {
                             mailService.addCfgMail(info.getPlayerId(), 5, null, paramData);
-                            //TODO:领奖码
-                            code = "access678";
+                            code = awardCodeManager.generateCode(info.getPlayerId(), AwardCodeType.POINTS_AWARD);
                         }
                         //道具
                         else if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.ITEM) {

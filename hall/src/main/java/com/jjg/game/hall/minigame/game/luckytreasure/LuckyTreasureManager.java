@@ -9,17 +9,18 @@ import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.config.bean.LuckyTreasureConfig;
+import com.jjg.game.core.constant.AwardCodeType;
 import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
 import com.jjg.game.core.data.LuckyTreasure;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.manager.AwardCodeManager;
 import com.jjg.game.hall.logger.MinigameLogger;
 import com.jjg.game.hall.minigame.MinigameManager;
 import com.jjg.game.hall.minigame.event.MinigameReadyEvent;
 import com.jjg.game.hall.minigame.game.luckytreasure.bean.LuckyTreasureTimerEvent;
 import com.jjg.game.hall.minigame.game.luckytreasure.service.LuckyTreasureService;
-import com.jjg.game.hall.minigame.game.luckytreasure.util.RewardCodeGenerator;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
@@ -48,7 +49,6 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     private final RedisLock redisLock;
     private final MarsCurator marsCurator;
     private final TimerCenter timerCenter;
-    private final RewardCodeGenerator rewardCodeGenerator;
     private final LuckyTreasureService luckyTreasureService;
     private final MinigameManager minigameManager;
     private final ConfigManager configManager;
@@ -59,6 +59,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * 活动定时器映射：期号 -> 定时器事件
      */
     private final Map<Long, TimerEvent<LuckyTreasureTimerEvent>> activityTimers = new ConcurrentHashMap<>();
+    private final AwardCodeManager awardCodeManager;
 
     public LuckyTreasureManager(LuckyTreasureDao luckyTreasureDao,
                                 LuckyTreasureRedisDao luckyTreasureRedisDao,
@@ -70,18 +71,18 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                                 MinigameManager minigameManager,
                                 HallPlayerService hallPlayerService,
                                 MinigameLogger minigameLogger,
-                                RewardCodeGenerator rewardCodeGenerator) {
+                                AwardCodeManager awardCodeManager) {
         this.luckyTreasureDao = luckyTreasureDao;
         this.luckyTreasureRedisDao = luckyTreasureRedisDao;
         this.redisLock = redisLock;
         this.marsCurator = marsCurator;
         this.timerCenter = timerCenter;
-        this.rewardCodeGenerator = rewardCodeGenerator;
         this.luckyTreasureService = luckyTreasureService;
         this.minigameManager = minigameManager;
         this.configManager = configManager;
         this.hallPlayerService = hallPlayerService;
         this.minigameLogger = minigameLogger;
+        this.awardCodeManager = awardCodeManager;
     }
 
     /**
@@ -436,7 +437,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             luckyTreasure.setAwardPlayerId(winnerPlayerId);
             // 根据type类型处理奖励
             if (config.getType() == 1) {
-                String rewardCode = rewardCodeGenerator.generateRewardCode(luckyTreasure.getIssueNumber(), winnerPlayerId);
+                String rewardCode = awardCodeManager.generateCode(winnerPlayerId, AwardCodeType.LUCK_TREASURE);
                 log.info("夺宝奇兵[{}]结束,玩家[{}]中奖,生成领奖码[{}]", luckyTreasure.getIssueNumber(), winnerPlayerId, rewardCode);
                 luckyTreasure.setRewardCode(rewardCode);
             }
