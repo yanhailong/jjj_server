@@ -3,7 +3,6 @@ package com.jjg.game.activity.dailylogin.controller;
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
-import com.jjg.game.activity.common.data.ClaimRewardsResult;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -17,6 +16,8 @@ import com.jjg.game.activity.privilegecard.data.PlayerPrivilegeCard;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -71,7 +72,6 @@ public class DailyLoginController extends BaseActivityController {
         }
         long playerId = player.getId();
         long continuousLoginDay = dailyLoginDao.getContinuousLoginDay(activityId, playerId);
-        long cumulativeLoginDay = dailyLoginDao.getCumulativeLoginDay(activityId, playerId);
         boolean change = false;
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
@@ -79,11 +79,10 @@ public class DailyLoginController extends BaseActivityController {
             Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
             for (DailyRewardsCfg cfg : baseCfgBeanMap.values()) {
                 //连续奖励
-                if ((cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE && continuousLoginDay >= cfg.getDays()) ||
-                        cfg.getType() == ActivityConstant.DailyLogin.CUMULATIVE_TYPE && cumulativeLoginDay >= cfg.getDays()) {
+                if ((cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE && continuousLoginDay >= cfg.getDays())) {
                     PlayerActivityData data = playerActivityData.computeIfAbsent(cfg.getId(), key -> new PlayerActivityData(activityId, activityData.getRound()));
                     //未领取的设置为领取
-                    if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CLAIMED) {
+                    if (data.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
                         data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
                         change = true;
                     }
@@ -119,22 +118,67 @@ public class DailyLoginController extends BaseActivityController {
             res.code = Code.PARAM_ERROR;
             return res;
         }
-        ClaimRewardsResult result = claimActivityRewards(playerId, activityData, detailId, "DailyLogin", cfg.getGetItem());
-        if (result != null) {
+        PlayerActivityData data = null;
+        CommonResult<ItemOperationResult> addedItems = null;
+        String lockKey = playerActivityDao.getLockKey(playerId, activityId);
+        // 加锁，保证领取操作原子性
+        redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+        try {
+            Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
+            if (CollectionUtil.isEmpty(dataMap)) {
+                res.code = Code.PARAM_ERROR;
+                return res;
+            }
+            data = dataMap.get(detailId);
+            if (data == null) {
+                res.code = Code.PARAM_ERROR;
+                return res;
+            }
+            if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
+                res.code = Code.REPEAT_OP;
+                return res;
+            }
+            // 发放奖励
+            addedItems = playerPackService.addItems(playerId, cfg.getGetItem(), "DailyLogin");
+            if (!addedItems.success()) {
+                res.code = Code.UNKNOWN_ERROR;
+                return res;
+            }
+            data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
+            if (cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE) {
+                long added = dailyLoginDao.addCumulativeLoginDay(activityId, playerId);
+                //检查累积是否可以领取
+                List<DailyRewardsCfg> cfgList = getDetailCfgBean(activityData).values()
+                        .stream()
+                        .filter(tempCfg -> tempCfg.getType() == ActivityConstant.DailyLogin.CUMULATIVE_TYPE
+                                && tempCfg.getDays() <= added).toList();
+                for (DailyRewardsCfg rewardsCfg : cfgList) {
+                    PlayerActivityData temp = dataMap.computeIfAbsent(rewardsCfg.getId(), key -> new PlayerActivityData(activityId, activityData.getRound()));
+                    if (temp.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
+                        temp.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+                    }
+                }
+            }
+            playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityId, dataMap);
+        } catch (Exception e) {
+            log.error("活动领取异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
+        } finally {
+            redisLock.unlock(lockKey);
+        }
+        if (data != null) {
             if (cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE) {
                 dailyLoginDao.updateClaimTime(activityId, playerId);
                 dailyLoginDao.addContinuousLoginDay(activityId, playerId);
-                dailyLoginDao.addCumulativeLoginDay(activityId, playerId);
             }
             //日志
-            activityLogger.sendDailyLoginRewards(player, activityData, detailId, cfg.getType(), cfg.getGetItem(), result.itemOperationResult());
+            activityLogger.sendDailyLoginRewards(player, activityData, detailId, cfg.getType(), cfg.getGetItem(),
+                    addedItems != null && addedItems.success() ? addedItems.data : null);
             // 构建响应数据
             res.activityId = activityId;
             res.detailId = detailId;
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetItem());
-            res.detailInfo = buildPlayerActivityDetail(activityData, cfg, result.playerActivityData());
+            res.detailInfo = buildPlayerActivityDetail(activityData, cfg, data);
         }
-
         return res;
     }
 
