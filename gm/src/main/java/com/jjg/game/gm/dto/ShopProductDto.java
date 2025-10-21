@@ -1,5 +1,6 @@
 package com.jjg.game.gm.dto;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 /**
@@ -28,7 +29,7 @@ public record ShopProductDto(
         //购买类型  -1.充值  ,其他值则为道具id
         int payType,
         //价格
-        long money,
+        BigDecimal money,
         //标签1
         int label1,
         //标签2

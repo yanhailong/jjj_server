@@ -1,6 +1,8 @@
 package com.jjg.game.sampledata.bean;
 
 import java.util.*;
+import java.math.BigDecimal;
+
 
 
 import javax.annotation.processing.Generated;
@@ -20,7 +22,7 @@ public class FirstpaymentCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "firstpayment";
 
   /** 超值 */
-  protected int bestValue;
+  protected BigDecimal bestValue;
   /** 头像框奖励 */
   protected Map<Integer,Long> getAvatarFrame;
   /** 金币奖励 */
@@ -28,12 +30,12 @@ public class FirstpaymentCfg extends BaseCfgBean {
   /** 道具奖励 */
   protected Map<Integer,Long> getitem;
   /** 购买金额 */
-  protected int money;
+  protected BigDecimal money;
   /** 原价值 */
-  protected int wasPrice;
+  protected BigDecimal wasPrice;
 
   /** 返回超值 */
-  public int getBestValue() {
+  public BigDecimal getBestValue() {
     return bestValue;
   }
 
@@ -53,12 +55,12 @@ public class FirstpaymentCfg extends BaseCfgBean {
   }
 
   /** 返回购买金额 */
-  public int getMoney() {
+  public BigDecimal getMoney() {
     return money;
   }
 
   /** 返回原价值 */
-  public int getWasPrice() {
+  public BigDecimal getWasPrice() {
     return wasPrice;
   }
 

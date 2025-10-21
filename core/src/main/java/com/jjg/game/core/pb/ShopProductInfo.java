@@ -25,7 +25,7 @@ public class ShopProductInfo {
     @ProtoDesc("购买类型  -1.充值  ,其他值则为道具id")
     public int payType;
     @ProtoDesc("价格")
-    public long money;
+    public String money;
     @ProtoDesc("标签1   1.best   2.most popular")
     public int label1;
     @ProtoDesc("标签2")

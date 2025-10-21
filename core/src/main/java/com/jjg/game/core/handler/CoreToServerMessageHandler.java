@@ -162,7 +162,7 @@ public class CoreToServerMessageHandler {
         //任务条件参数
         Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
             DefaultTaskConditionParam param = new DefaultTaskConditionParam();
-            param.setAddValue(order.getPrice());
+            param.setAddValue(order.getPrice().longValue());
             return param;
         };
         //单笔充值任务

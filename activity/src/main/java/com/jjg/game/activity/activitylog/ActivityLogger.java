@@ -326,7 +326,7 @@ public class ActivityLogger extends BaseLogger {
         try {
             JSONObject json = buildBaseInfo(activityData, cfg.getId());
             json.put("rewards", JSON.toJSONString(rewards, SerializerFeature.WriteNonStringKeyAsString));
-            json.put("money", cfg.getMoney());
+            json.put("money", cfg.getMoney().toString());
             json.put("remain", JSON.toJSONString(data, SerializerFeature.WriteNonStringKeyAsString));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
@@ -346,7 +346,7 @@ public class ActivityLogger extends BaseLogger {
             json.put("operator", 1);
             json.put("type", -1);
             json.put("level", cfg.getPlayerlevel());
-            json.put("money", cfg.getPay());
+            json.put("money", cfg.getPay().toString());
             json.put("rewards", JSON.toJSONString(cfg.getLevelRewards(), SerializerFeature.WriteNonStringKeyAsString));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
@@ -367,7 +367,7 @@ public class ActivityLogger extends BaseLogger {
             json.put("operator", 2);
             json.put("type", -1);
             json.put("level", cfg.getPlayerlevel());
-            json.put("money", cfg.getPay());
+            json.put("money", cfg.getPay().toString());
             json.put("remain", JSON.toJSONString(data));
             json.put("rewards", JSON.toJSONString(cfg.getLevelRewards(), SerializerFeature.WriteNonStringKeyAsString));
             sendLog(TOPIC, player, json);

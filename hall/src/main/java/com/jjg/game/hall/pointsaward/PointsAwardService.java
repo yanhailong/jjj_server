@@ -346,7 +346,7 @@ public class PointsAwardService implements IPlayerLoginSuccess {
      */
     public void recharge(Order order) {
         long playerId = order.getPlayerId();
-        long price = order.getPrice();
+        long price = order.getPrice().longValue();
         RLock lock = rechargeMap.getReadWriteLock(playerId).writeLock();
         if (lock.tryLock()) {
             long resultValue = getRecharge(playerId) + price;

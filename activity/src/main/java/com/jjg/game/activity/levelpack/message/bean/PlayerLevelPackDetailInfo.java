@@ -24,5 +24,5 @@ public class PlayerLevelPackDetailInfo {
     @ProtoDesc("剩余时间")
     public long remainTime;
     @ProtoDesc("礼包购买金额")
-    public int buyPrice;
+    public String buyPrice;
 }

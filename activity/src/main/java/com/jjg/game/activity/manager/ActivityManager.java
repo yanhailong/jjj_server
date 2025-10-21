@@ -712,7 +712,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             long triggerTimes = Long.MAX_VALUE;
 
             for (String condition : dropCondition) {
-                triggerTimes = Math.min(triggerTimes, conditionManager.addProgressAndGetAchievements(player, param, condition, false));
+                triggerTimes = Math.min(triggerTimes, conditionManager.addProgressAndGetAchievements(player, param, condition, false).longValue());
             }
             log.debug("activity id: {} 参数：{} checkRes: {}", activityId, JSON.toJSONString(param), triggerTimes);
             if (triggerTimes > 0) {

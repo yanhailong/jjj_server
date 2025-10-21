@@ -1,6 +1,8 @@
 package com.jjg.game.sampledata.bean;
 
 import java.util.*;
+import java.math.BigDecimal;
+
 
 
 import javax.annotation.processing.Generated;
@@ -22,7 +24,7 @@ public class PlayerLevelPackCfg extends BaseCfgBean {
   /** 等级奖励 */
   protected Map<Integer,Long> levelRewards;
   /** 购买金额 */
-  protected int pay;
+  protected BigDecimal pay;
   /** 等级 */
   protected int playerlevel;
   /** 有效时长(分钟) */
@@ -34,7 +36,7 @@ public class PlayerLevelPackCfg extends BaseCfgBean {
   }
 
   /** 返回购买金额 */
-  public int getPay() {
+  public BigDecimal getPay() {
     return pay;
   }
 

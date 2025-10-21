@@ -3,6 +3,7 @@ package com.jjg.game.core.base.condition.check;
 import com.jjg.game.core.base.condition.ConditionCheck;
 import com.jjg.game.core.data.Player;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -19,18 +20,18 @@ public class PlayerLevelCheck implements ConditionCheck {
     }
 
     @Override
-    public long getProgress(Object param) {
+    public BigDecimal getProgress(Object param) {
         if (param instanceof Player player) {
-            return player.getLevel();
+            return BigDecimal.valueOf(player.getLevel());
         }
-        return 0;
+        return BigDecimal.ZERO;
     }
 
     @Override
-    public Integer analysisCondition(List<Integer> condition) {
+    public Integer analysisCondition(List<String> condition) {
         if (condition.isEmpty()) {
             return Integer.MAX_VALUE;
         }
-        return condition.getFirst();
+        return Integer.parseInt(condition.getFirst());
     }
 }

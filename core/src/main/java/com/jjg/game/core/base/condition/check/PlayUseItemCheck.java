@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.core.base.condition.check.record.PlayerSampleCondition;
 import com.jjg.game.core.base.condition.check.record.PlayerSampleParam;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -15,26 +16,26 @@ import java.util.List;
 public class PlayUseItemCheck extends BaseCheck {
 
     @Override
-    public long addProgress(Object paramObject, Object conditionObject) {
+    public BigDecimal addProgress(Object paramObject, Object conditionObject) {
         if (paramObject instanceof PlayerSampleParam param && conditionObject instanceof PlayerSampleCondition condition) {
 
             if (CollectionUtil.isEmpty(param.getParamList())) {
-                return 0;
+                return BigDecimal.ZERO;
             }
-            long progress = countDao.incrBy(param.getFunction(), getCustomId(param.getPlayerId()), param.getParamList().getFirst());
-            return progress >= condition.getAchievedTimes() ? 1 : 0;
+            long progress = countDao.incrBy(param.getFunction(), getCustomId(param.getPlayerId()), BigDecimal.valueOf(param.getParamList().getFirst())).longValue();
+            return progress >= condition.getAchievedTimes() ? BigDecimal.ONE : BigDecimal.ZERO;
         }
-        return 0;
+        return BigDecimal.ZERO;
     }
 
     @Override
-    public PlayerSampleCondition analysisCondition(List<Integer> condition) {
+    public PlayerSampleCondition analysisCondition(List<String> condition) {
         if (condition.size() < 2) {
             return null;
         }
         PlayerSampleCondition sampleCondition = new PlayerSampleCondition();
-        sampleCondition.setItemId(condition.getFirst());
-        sampleCondition.setAchievedTimes(condition.get(1));
+        sampleCondition.setItemId(Integer.parseInt(condition.getFirst()));
+        sampleCondition.setAchievedTimes(Integer.parseInt(condition.get(1)));
         return sampleCondition;
     }
 

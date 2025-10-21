@@ -19,8 +19,8 @@ public class GameFunctionCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "GameFunction";
 
-  /** 游戏中列表入口 */
-  protected Map<Integer,Integer> butList;
+  /** 游戏中左侧列表按钮 */
+  protected int butList;
   /** 显示区域类型 */
   protected int displayArea;
   /** 对应按钮节点 */
@@ -36,8 +36,8 @@ public class GameFunctionCfg extends BaseCfgBean {
   /** 解锁条件 */
   protected List<Integer> vipLevel;
 
-  /** 返回游戏中列表入口 */
-  public Map<Integer,Integer> getButList() {
+  /** 返回游戏中左侧列表按钮 */
+  public int getButList() {
     return butList;
   }
 
