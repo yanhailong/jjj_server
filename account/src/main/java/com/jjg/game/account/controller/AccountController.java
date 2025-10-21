@@ -107,9 +107,8 @@ public class AccountController extends AbstractController {
      * 获取服务器地址
      */
     @RequestMapping("serverurl")
-    private WebResult<ServerUrlVo> serverUrl(@RequestBody ServerUrlDto dto, HttpServletRequest request) {
+    private WebResult<ServerUrlVo> serverUrl(@RequestBody ServerUrlDto dto, @RequestHeader("token") String token) {
         try{
-            String token = request.getHeader("token");
             long playerId = dto.getPlayerId();
             if(StringUtils.isEmpty(token) || playerId < 0) {
                 log.debug("参数不能为空，获取服务器地址失败 token = {},playerId = {}", token, playerId);
@@ -291,8 +290,8 @@ public class AccountController extends AbstractController {
      */
     public WebResult<LoginVo> facebookLogin(LoginDto dto) {
         CommonResult<FacebookUserInfo> userInfoResult = httpService.verifyFacebookToken(dto.getData());
-        if (userInfoResult == null) {
-            log.debug("token校验失败, 登录失败 dto= {}", JSONObject.toJSONString(dto));
+        if (!userInfoResult.success()) {
+            log.debug("token校验失败, 登录失败 dto= {},code = {}", JSONObject.toJSONString(dto),userInfoResult.code);
             return fail(Code.BAN_CAUSE_BLACK_LIST);
         }
 
