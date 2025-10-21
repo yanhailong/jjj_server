@@ -15,6 +15,7 @@ import com.jjg.game.sampledata.bean.PointsAwardRankingCfg;
 import org.redisson.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -50,7 +51,7 @@ public class PointsAwardLeaderboardManager {
                                          RedisLock redisLock,
                                          RedissonClient redissonClient,
                                          MailService mailService,
-                                         AwardCodeManager awardCodeManager,
+                                         @Lazy AwardCodeManager awardCodeManager,
                                          MarsCurator marsCurator) {
         this.leaderboardService = leaderboardService;
         this.redisLock = redisLock;

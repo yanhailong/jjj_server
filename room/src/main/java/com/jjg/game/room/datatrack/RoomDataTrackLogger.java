@@ -6,9 +6,11 @@ import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.core.logger.BaseLogger;
+import com.jjg.game.core.manager.SnowflakeManager;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.SimplePlayerInfo;
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -26,7 +28,9 @@ public class RoomDataTrackLogger extends BaseLogger {
     @Autowired
     protected NodeConfig nodeConfig;
     // 雪花算法
-    protected Snowflake snowflake = new Snowflake(NodeType.GAME.getValue());
+//    protected Snowflake snowflake = new Snowflake(NodeType.GAME.getValue());
+    @Autowired
+    protected SnowflakeManager snowflakeManager;
     // 游戏日志topic前缀
     protected final String gameLogTopicPrefix = "game_bet";
 
@@ -72,6 +76,6 @@ public class RoomDataTrackLogger extends BaseLogger {
     }
 
     public Snowflake getSnowflake() {
-        return snowflake;
+        return snowflakeManager.getSnowflake();
     }
 }

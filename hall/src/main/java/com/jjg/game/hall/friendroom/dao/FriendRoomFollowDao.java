@@ -1,13 +1,11 @@
 package com.jjg.game.hall.friendroom.dao;
 
-import cn.hutool.core.lang.Snowflake;
-import com.alibaba.fastjson.JSON;
-import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.core.dao.MongoBaseDao;
+import com.jjg.game.core.manager.SnowflakeManager;
 import com.jjg.game.hall.friendroom.constant.FriendRoomConstant;
 import com.jjg.game.hall.friendroom.data.FriendRoomFollowBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Pageable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.*;
@@ -18,7 +16,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 房间好友Dao
@@ -28,10 +25,13 @@ import java.util.stream.Collectors;
 @Repository
 public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long> {
 
-    private static final Snowflake snowflake = new Snowflake(NodeType.HALL.getValue(), NodeType.HALL.getValue());
+//    private static final Snowflake snowflake = new Snowflake(NodeType.HALL.getValue(), NodeType.HALL.getValue());
 
-    public FriendRoomFollowDao(@Autowired MongoTemplate mongoTemplate) {
+    private final SnowflakeManager snowflakeManager;
+
+    public FriendRoomFollowDao(@Autowired MongoTemplate mongoTemplate, @Lazy SnowflakeManager snowflakeManager) {
         super(FriendRoomFollowBean.class, mongoTemplate);
+        this.snowflakeManager = snowflakeManager;
     }
 
     /**
@@ -116,7 +116,7 @@ public class FriendRoomFollowDao extends MongoBaseDao<FriendRoomFollowBean, Long
      */
     public FriendRoomFollowBean addFriendByInvitationCode(long playerId, long followedPlayerId, int invitationCode) {
         FriendRoomFollowBean friendRoomFollowBean = new FriendRoomFollowBean();
-        friendRoomFollowBean.setId(snowflake.nextId());
+        friendRoomFollowBean.setId(snowflakeManager.nextId());
         friendRoomFollowBean.setFollowedPlayerId(followedPlayerId);
         friendRoomFollowBean.setPlayerId(playerId);
         friendRoomFollowBean.setInvitationCode(invitationCode);

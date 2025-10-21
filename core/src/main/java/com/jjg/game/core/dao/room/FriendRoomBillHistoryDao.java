@@ -1,12 +1,12 @@
 package com.jjg.game.core.dao.room;
 
-import cn.hutool.core.lang.Snowflake;
-import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.redis.RedissonLock;
 import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.core.data.FriendRoomBillHistoryBean;
 import com.jjg.game.core.data.Item;
+import com.jjg.game.core.manager.SnowflakeManager;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -30,10 +30,12 @@ import java.util.List;
 @Repository
 public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistoryBean, Long> {
 
-    private Snowflake snowflake = new Snowflake(NodeType.GAME.getValue(), NodeType.GAME.getValue());
+//    private Snowflake snowflake = new Snowflake(NodeType.GAME.getValue(), NodeType.GAME.getValue());
+    private final SnowflakeManager snowflakeManager;
 
-    public FriendRoomBillHistoryDao(@Autowired MongoTemplate mongoTemplate) {
+    public FriendRoomBillHistoryDao(@Autowired MongoTemplate mongoTemplate, @Lazy SnowflakeManager snowflakeManager) {
         super(FriendRoomBillHistoryBean.class, mongoTemplate);
+        this.snowflakeManager = snowflakeManager;
     }
 
     /**
@@ -41,7 +43,7 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
      */
     @RedissonLock(key = "#root.getPlayerBillLockKey(#historyBean.getRoomCreator())")
     public void addFriendRoomBillHistory(@Param("historyBean") FriendRoomBillHistoryBean historyBean) {
-        historyBean.setId(snowflake.nextId());
+        historyBean.setId(snowflakeManager.nextId());
         mongoTemplate.save(historyBean);
     }
 
