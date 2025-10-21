@@ -5,7 +5,6 @@ import java.math.BigDecimal;
 
 
 
-
 import javax.annotation.processing.Generated;
 /**
  * 配置bean
