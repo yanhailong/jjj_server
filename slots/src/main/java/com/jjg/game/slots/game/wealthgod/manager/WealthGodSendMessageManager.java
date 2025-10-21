@@ -61,8 +61,8 @@ public class WealthGodSendMessageManager extends BaseSendMessageManager {
         SendInfo sendInfo = new SendInfo();
         ResWealthGodStartGame res = new ResWealthGodStartGame(gameRunInfo.getCode());
         if (gameRunInfo.success()) {
-            //玩家当前金币
-            res.allGold = gameRunInfo.getAfterGold();
+            //玩家当前金币  改成开始旋转前的钱 没有增加中奖钱
+            res.allGold = gameRunInfo.getBeforeGold();
             //总计获得金币
             res.allWinGold = gameRunInfo.getAllWinGold();
             //等级信息

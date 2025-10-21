@@ -76,7 +76,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         Map<Integer, Map<Long, List<Integer>>> betInfo = gameDataVo.getBetInfo();
         boolean luckBet;
         Map<RedBlackWarConstant.Camp, Map<HandType, List<WinPosWeightCfg>>> winMap =
-            redBlackWarSampleManager.getWinMap();
+                redBlackWarSampleManager.getWinMap();
         Map<Long, DefaultKeyValue<Long, Long>> playerGet = new HashMap<>();
         List<WinPosWeightCfg> weightCfgList;
         if (result > 0) {
@@ -123,21 +123,21 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                     canGet += backBet - roomCreatorIncome;
                     // 给玩家添加金币
                     gameController.addItem(
-                        gamePlayer.getId(), canGet,
-                        ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
+                            gamePlayer.getId(), canGet,
+                            ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
                     DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId,
-                        key -> new DefaultKeyValue<>(0L, 0L));
+                            key -> new DefaultKeyValue<>(0L, 0L));
                     keyValue.setKey(keyValue.getKey() + totalBet);
                     keyValue.setValue(keyValue.getValue() + canGet);
                     SettlementData settlementData =
-                        new SettlementData(canGet - backBet, backBet, canGet, totalBet, roomCreatorIncome);
+                            new SettlementData(canGet - backBet, backBet, canGet, totalBet, roomCreatorIncome);
                     if (!settlementDataMap.containsKey(playerId)) {
                         settlementDataMap.put(playerId, settlementData);
                     } else {
                         settlementDataMap.get(playerId).increaseBySettlementData(settlementData);
                     }
                     bankerChangeGold +=
-                        settlementDataMap.get(playerId).getTotalWin() - settlementDataMap.get(playerId).getBetTotal();
+                            settlementDataMap.get(playerId).getTotalWin() - settlementDataMap.get(playerId).getBetTotal();
                 }
             }
         }
@@ -152,6 +152,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         settleInfo.redCardType = redHandType.getRank();
         settleInfo.playerSettleInfos = TableMessageBuilder.getPlayerSettleInfos(gameController, playerGet, gameDataVo);
         settleInfo.isLucky = luckBet;
+        settleInfo.waitEndTime = gameDataVo.getPhaseEndTime();
         //记录
         addLog(gameDataVo, playerGet, settleInfo.redCards, settleInfo.blackCards);
         //更新房间记录
@@ -179,7 +180,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
     private void addLog(RedBlackWarGameDataVo gameDataVo, Map<Long, DefaultKeyValue<Long, Long>> playerGet,
                         List<Integer> redCard, List<Integer> blackCard) {
         SaveLogUtil.generalLog(gameDataVo.getPlayerBetInfo(), playerGet, gameDataVo.getGamePlayerMap(),
-            gameController);
+                gameController);
         gameDataTracker.addGameLogData("redCard", redCard);
         gameDataTracker.addGameLogData("blackCard", blackCard);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);

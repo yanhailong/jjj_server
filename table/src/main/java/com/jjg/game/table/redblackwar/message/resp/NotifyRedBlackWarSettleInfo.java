@@ -37,5 +37,8 @@ public class NotifyRedBlackWarSettleInfo extends AbstractNotice {
 
     @ProtoDesc("幸运一击")
     public boolean isLucky;
+
+    @ProtoDesc("结算结束时间")
+    public long waitEndTime;
 }
 

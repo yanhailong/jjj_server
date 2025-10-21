@@ -20,15 +20,9 @@ public class PointsAwardLeaderboardData {
     private int rankType;
 
     /**
-     * 排行榜名字
+     * 结束时间 用于计算排行榜名字 未结束的排行榜为当前时间戳
      */
-    @ProtoDesc("排行榜名字")
-    private String name;
-
-    /**
-     * 结束时间
-     */
-    @ProtoDesc("结束时间")
+    @ProtoDesc("结束时间 用于计算排行榜名字 未结束的排行榜为当前时间戳")
     private long endTime;
 
     /**
@@ -61,11 +55,4 @@ public class PointsAwardLeaderboardData {
         this.rankingInfoList = rankingInfoList;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
 }
