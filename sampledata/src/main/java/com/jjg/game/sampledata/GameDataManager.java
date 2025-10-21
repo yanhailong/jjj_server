@@ -155,6 +155,7 @@ public class GameDataManager {
     containerMap.put(GrowthFundCfg.class, new GrowthFundCfgContainer());
     containerMap.put(ItemCfg.class, new ItemCfgContainer());
     containerMap.put(JumpDataCfg.class, new JumpDataCfgContainer());
+    containerMap.put(LoginConfigCfg.class, new LoginConfigCfgContainer());
     containerMap.put(MGLuckyTreasureCfg.class, new MGLuckyTreasureCfgContainer());
     containerMap.put(MailCfg.class, new MailCfgContainer());
     containerMap.put(MiniGameCfg.class, new MiniGameCfgContainer());
@@ -168,6 +169,7 @@ public class GameDataManager {
     containerMap.put(PointsAwardTurntableCfg.class, new PointsAwardTurntableCfgContainer());
     containerMap.put(PokerPoolCfg.class, new PokerPoolCfgContainer());
     containerMap.put(PoolCfg.class, new PoolCfgContainer());
+    containerMap.put(PopUpConfigCfg.class, new PopUpConfigCfgContainer());
     containerMap.put(PrivilegeCardCfg.class, new PrivilegeCardCfgContainer());
     containerMap.put(RobotActionCfg.class, new RobotActionCfgContainer());
     containerMap.put(RobotCfg.class, new RobotCfgContainer());
@@ -1035,6 +1037,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(JumpDataCfg.class).getCfgBeanList();
   }
 
+  public static LoginConfigCfg getLoginConfigCfg(int key) {
+    return getInstance().getCfgContainer(LoginConfigCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, LoginConfigCfg> getLoginConfigCfgMap() {
+    return getInstance().getCfgContainer(LoginConfigCfg.class).getCfgBeanMap();
+  }
+
+  public static List<LoginConfigCfg> getLoginConfigCfgList() {
+    return getInstance().getCfgContainer(LoginConfigCfg.class).getCfgBeanList();
+  }
+
   public static MGLuckyTreasureCfg getMGLuckyTreasureCfg(int key) {
     return getInstance().getCfgContainer(MGLuckyTreasureCfg.class).getCfgBeanMap().get(key);
   }
@@ -1189,6 +1203,18 @@ public class GameDataManager {
 
   public static List<PoolCfg> getPoolCfgList() {
     return getInstance().getCfgContainer(PoolCfg.class).getCfgBeanList();
+  }
+
+  public static PopUpConfigCfg getPopUpConfigCfg(int key) {
+    return getInstance().getCfgContainer(PopUpConfigCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PopUpConfigCfg> getPopUpConfigCfgMap() {
+    return getInstance().getCfgContainer(PopUpConfigCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PopUpConfigCfg> getPopUpConfigCfgList() {
+    return getInstance().getCfgContainer(PopUpConfigCfg.class).getCfgBeanList();
   }
 
   public static PrivilegeCardCfg getPrivilegeCardCfg(int key) {
