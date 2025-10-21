@@ -2,6 +2,7 @@ package com.jjg.game.sampledata.bean;
 
 import java.util.*;
 
+
 import javax.annotation.processing.Generated;
 /**
  * 配置bean
@@ -34,6 +35,12 @@ public class MGLuckyTreasureCfg extends BaseCfgBean {
   protected int itemNum;
   /** 商品名称 */
   protected String name;
+  /** 机器人购买上限万分比 */
+  protected int robotHaveMax;
+  /** 单次购买分数万分比下限_上限 */
+  protected List<Integer> robotSinglePurchase;
+  /** 购买间隔时间下限_上限（毫秒） */
+  protected List<Integer> robotTime;
   /** 每局抢购时间(分钟) */
   protected int time;
   /** 总份数 */
@@ -79,6 +86,21 @@ public class MGLuckyTreasureCfg extends BaseCfgBean {
   /** 返回商品名称 */
   public String getName() {
     return name;
+  }
+
+  /** 返回机器人购买上限万分比 */
+  public int getRobotHaveMax() {
+    return robotHaveMax;
+  }
+
+  /** 返回单次购买分数万分比下限_上限 */
+  public List<Integer> getRobotSinglePurchase() {
+    return robotSinglePurchase;
+  }
+
+  /** 返回购买间隔时间下限_上限（毫秒） */
+  public List<Integer> getRobotTime() {
+    return robotTime;
   }
 
   /** 返回每局抢购时间(分钟) */
