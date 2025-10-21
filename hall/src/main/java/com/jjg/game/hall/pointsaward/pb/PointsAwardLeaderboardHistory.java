@@ -99,7 +99,7 @@ public class PointsAwardLeaderboardHistory {
     /**
      * 排行榜类型 1=上午榜 2=下午榜 3=月榜
      */
-    @ProtoDesc("排行榜类型")
+    @ProtoDesc("排行榜类型 1=上午榜 2=下午榜 3=月榜")
     private int rankType;
 
     /**
