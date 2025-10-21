@@ -85,12 +85,6 @@ public class PointsAwardLeaderboardHistory {
     private long price;
 
     /**
-     * 排行榜名字
-     */
-    @ProtoDesc("排行榜名字")
-    private String rankName;
-
-    /**
      * 图片资源
      */
     @ProtoDesc("图片资源")
@@ -101,6 +95,32 @@ public class PointsAwardLeaderboardHistory {
      */
     @ProtoDesc("奖励类型")
     private int awardType;
+
+    /**
+     * 排行榜类型 1=上午榜 2=下午榜 3=月榜
+     */
+    @ProtoDesc("排行榜类型")
+    private int rankType;
+
+    /**
+     * 结束时间 用于计算排行榜名字 未结束的排行榜为当前时间戳
+     */
+    @ProtoDesc("结束时间 用于计算排行榜名字 未结束的排行榜为当前时间戳")
+    private long endTime;
+
+    /**
+     * 领奖码的过期时间
+     */
+    @ProtoDesc("领奖码的过期时间 -1表示已经领取了")
+    private long expiredTime;
+
+    public int getRankType() {
+        return rankType;
+    }
+
+    public void setRankType(int rankType) {
+        this.rankType = rankType;
+    }
 
     public long getPlayerId() {
         return playerId;
@@ -198,14 +218,6 @@ public class PointsAwardLeaderboardHistory {
         this.price = price;
     }
 
-    public String getRankName() {
-        return rankName;
-    }
-
-    public void setRankName(String rankName) {
-        this.rankName = rankName;
-    }
-
     public String getPicRes() {
         return picRes;
     }
@@ -220,5 +232,21 @@ public class PointsAwardLeaderboardHistory {
 
     public void setAwardType(int awardType) {
         this.awardType = awardType;
+    }
+
+    public long getExpiredTime() {
+        return expiredTime;
+    }
+
+    public void setExpiredTime(long expiredTime) {
+        this.expiredTime = expiredTime;
+    }
+
+    public long getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(long endTime) {
+        this.endTime = endTime;
     }
 }

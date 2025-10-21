@@ -116,6 +116,8 @@ public class PointsAwardLeaderboardManager {
 
     /**
      * 在对应排行榜锁下读取 TopN 并持久化快照
+     *
+     * @param lock 如果外部有锁 则传入false 内部则不加锁
      */
     private void snapshotUnderLock(int zsetType, int snapshotType, boolean lock) {
         Supplier<PointsAwardLeaderboardData> supplier = () -> {

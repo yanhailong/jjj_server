@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.sqids.Sqids;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 领奖码生成器
@@ -136,4 +137,35 @@ public class AwardCodeManager {
             }
         });
     }
+
+    /**
+     * 删除领奖码
+     *
+     * @param code 领奖码
+     * @return true 删除成功
+     */
+    public boolean deleteCode(String code) {
+        long id = decode(code);
+        awardCodeDao.deleteById(id);
+        return true;
+    }
+
+    /**
+     * 使用领奖码
+     *
+     * @param code 领奖码
+     * @return true 使用成功 false 使用失败
+     */
+    public boolean useCode(String code) {
+        long id = decode(code);
+        Optional<AwardCode> awardCodeOptional = awardCodeDao.findById(id);
+        if (awardCodeOptional.isPresent()) {
+            AwardCode awardCode = awardCodeOptional.get();
+            awardCode.setUseTime(System.currentTimeMillis());
+            awardCodeDao.save(awardCode);
+            return true;
+        }
+        return false;
+    }
+
 }

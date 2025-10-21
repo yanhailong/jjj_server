@@ -4,7 +4,10 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.data.Order;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
@@ -29,7 +32,7 @@ import java.util.stream.Collectors;
  * 积分大奖积分服务
  */
 @Service
-public class PointsAwardService {
+public class PointsAwardService implements IPlayerLoginSuccess {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -86,6 +89,19 @@ public class PointsAwardService {
                     });
             log.info("充值数据记录map清除完成");
         }
+    }
+
+    /**
+     * 玩家登录成功事件
+     *
+     * @param playerController 玩家信息
+     * @param player
+     * @param firstLogin       是否是首次登录
+     * @return true 继续执行 false终止执行
+     */
+    @Override
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+        leaderboardService.login(player.getId());
     }
 
     /**

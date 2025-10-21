@@ -4,6 +4,7 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.PageUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.manager.AwardCodeManager;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardData;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardHistory;
@@ -11,6 +12,7 @@ import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardInfo;
 import com.jjg.game.hall.pointsaward.pb.res.ResLoadLeaderboardHistory;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.PointsAwardRankingCfg;
 import org.redisson.api.RDeque;
 import org.redisson.api.RScoredSortedSet;
@@ -45,21 +47,44 @@ public class PointsAwardLeaderboardService {
     private final RedissonClient redissonClient;
     private final RedisLock redisLock;
     private final HallPlayerService hallPlayerService;
+    private final AwardCodeManager awardCodeManager;
 
     /**
      * 排行榜管理器
      */
     private PointsAwardLeaderboardManager manager;
 
-    public PointsAwardLeaderboardService(RedissonClient redissonClient, RedisLock redisLock, HallPlayerService hallPlayerService) {
+    public PointsAwardLeaderboardService(RedissonClient redissonClient, RedisLock redisLock, HallPlayerService hallPlayerService, AwardCodeManager awardCodeManager) {
         this.redissonClient = redissonClient;
         this.redisLock = redisLock;
         this.hallPlayerService = hallPlayerService;
+        this.awardCodeManager = awardCodeManager;
     }
 
     public void init(PointsAwardLeaderboardManager manager) {
         this.manager = manager;
 
+    }
+
+    /**
+     * 玩家登录成功
+     *
+     * @param playerId 玩家id
+     */
+    public void login(long playerId) {
+        RDeque<PointsAwardLeaderboardHistory> dequeHistory = redissonClient.getDeque(historyKey(playerId));
+        List<PointsAwardLeaderboardHistory> historyList = dequeHistory.readAll();
+        long now = System.currentTimeMillis();
+        //计算领奖码过期
+        historyList.forEach(history -> {
+            long settlementTime = history.getExpiredTime();
+            //过期
+            if (settlementTime > 0 && settlementTime < now) {
+                String code = history.getCode();
+                awardCodeManager.deleteCode(code);
+                log.info("玩家[{}]排行榜[{}]领奖码[{}]过期!清除领奖码!", playerId, history.getEndTime(), code);
+            }
+        });
     }
 
     private RScoredSortedSet<Long> set(int type) {
@@ -213,9 +238,21 @@ public class PointsAwardLeaderboardService {
         history.setTitleId(info.getTitleId());
         history.setReward(cfg.getGetItem());
         history.setPrice(cfg.getPrice());
-        history.setCode(code);
         history.setPicRes(cfg.getPicRes());
         history.setAwardType(cfg.getAwardType());
+        history.setRankType(cfg.getType());
+        long now = System.currentTimeMillis();
+        history.setEndTime(now);
+        if (code != null) {
+            history.setCode(code);
+            history.setExpiredTime(now);
+            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(47);
+            if (globalConfigCfg != null) {
+                int day = globalConfigCfg.getIntValue();
+                long time = day * 24 * 60 * 60 * 1000L;
+                history.setExpiredTime(now + time);
+            }
+        }
         dequeHistory.addFirst(history);
         //只保留一定条数
         if (dequeHistory.size() > PointsAwardConstant.Leaderboard.PLAYER_MAX_HISTORY_SIZE) {
@@ -264,6 +301,38 @@ public class PointsAwardLeaderboardService {
         response.setTotalPage(pageResult.getMaxPageIndex());
         response.setHistoryList(pageResult.getData());
         return response;
+    }
+
+    /**
+     * 领奖码已经使用
+     *
+     * @param code 被使用的领奖码
+     */
+    public void receiveCode(long playerId, String code) {
+        redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.PLAYER_RANKING_AWARD_LOCK + playerId, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, () -> {
+            RDeque<PointsAwardLeaderboardHistory> dequeHistory = redissonClient.getDeque(historyKey(playerId));
+            List<PointsAwardLeaderboardHistory> historyList = dequeHistory.readAll();
+
+            // 查找匹配的历史记录并修改
+            boolean found = false;
+            for (PointsAwardLeaderboardHistory history : historyList) {
+                if (history.getCode() != null && history.getCode().equals(code)) {
+                    history.setExpiredTime(-1L);
+                    found = true;
+                    break;
+                }
+            }
+
+            // 如果找到了匹配的记录，需要重新写入整个队列 目前调用不频繁暂不考虑性能
+            if (found) {
+                // 清空原队列
+                dequeHistory.clear();
+                // 重新添加修改后的数据
+                for (PointsAwardLeaderboardHistory history : historyList) {
+                    dequeHistory.addLast(history);
+                }
+            }
+        });
     }
 
 }
