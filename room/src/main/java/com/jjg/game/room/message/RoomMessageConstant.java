@@ -50,7 +50,7 @@ public interface RoomMessageConstant {
         // 通知房间庄家变化
         int NOTIFY_ROOM_BANKER_CHANGE = BASE_ROOM_MSG_PREFIX | 0x88;
         //通知房间长时间未操作的提示
-        int NOTIFY_ROOM_LONG_TIME_NO_OPERATE = BASE_ROOM_MSG_PREFIX | 0x87;
+        int NOTIFY_ROOM_LONG_TIME_NO_OPERATE = BASE_ROOM_MSG_PREFIX | 0x89;
 
     }
 }
