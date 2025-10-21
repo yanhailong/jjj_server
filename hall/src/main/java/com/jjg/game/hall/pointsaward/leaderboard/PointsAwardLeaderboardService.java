@@ -199,7 +199,7 @@ public class PointsAwardLeaderboardService {
     /**
      * 添加历史记录
      */
-    public void addHistory(PointsAwardLeaderboardInfo info, PointsAwardRankingCfg cfg, String code, String rankName) {
+    public void addHistory(PointsAwardLeaderboardInfo info, PointsAwardRankingCfg cfg, String code) {
         RDeque<PointsAwardLeaderboardHistory> dequeHistory = redissonClient.getDeque(historyKey(info.getPlayerId()));
         PointsAwardLeaderboardHistory history = new PointsAwardLeaderboardHistory();
         history.setPlayerId(info.getPlayerId());
@@ -214,7 +214,6 @@ public class PointsAwardLeaderboardService {
         history.setReward(cfg.getGetItem());
         history.setPrice(cfg.getPrice());
         history.setCode(code);
-        history.setRankName(rankName);
         history.setPicRes(cfg.getPicRes());
         history.setAwardType(cfg.getAwardType());
         dequeHistory.addFirst(history);
@@ -237,7 +236,6 @@ public class PointsAwardLeaderboardService {
         PointsAwardLeaderboardData data = new PointsAwardLeaderboardData();
         data.setRankType(type);
         data.setRankingInfoList(rankingInfos);
-        data.setName(manager.buildName(type, System.currentTimeMillis()));
         List<PointsAwardLeaderboardData> list = manager.getRankingHistory(type);
         list.addFirst(data);
         return PageUtils.page(list, pageIndex, pageSize);
