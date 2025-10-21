@@ -139,7 +139,7 @@ public class PlayerLevelPackManager implements GameEventListener {
                 continue;
             }
             PlayerLevelPackDetailInfo detailInfo = new PlayerLevelPackDetailInfo();
-            detailInfo.buyPrice = packCfg.getPay();
+            detailInfo.buyPrice = packCfg.getPay().doubleValue();
             detailInfo.claimStatus = data.getClaimStatus();
             detailInfo.level = packCfg.getPlayerlevel();
             detailInfo.remainTime = data.getBuyEndTime() - currentTimeMillis;

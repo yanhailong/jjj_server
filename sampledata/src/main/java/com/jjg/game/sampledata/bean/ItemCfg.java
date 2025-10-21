@@ -2,6 +2,7 @@ package com.jjg.game.sampledata.bean;
 
 import java.util.*;
 
+
 import javax.annotation.processing.Generated;
 /**
  * 配置bean

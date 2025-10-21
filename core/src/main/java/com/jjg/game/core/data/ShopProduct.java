@@ -3,6 +3,7 @@ package com.jjg.game.core.data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 /**
@@ -28,13 +29,13 @@ public class ShopProduct {
     //奖励道具
     private Map<Integer,Long> rewardItems;
     //价值类型
-    int valueType;
+    private int valueType;
     //价值
-    long value;
+    private long value;
     //购买类型  -1.充值  ,其他值则为道具id
     private int payType;
     //价格
-    private long money;
+    private BigDecimal money;
     //标签1
     private int label1;
     //标签2
@@ -122,11 +123,11 @@ public class ShopProduct {
         this.payType = payType;
     }
 
-    public long getMoney() {
+    public BigDecimal getMoney() {
         return money;
     }
 
-    public void setMoney(long money) {
+    public void setMoney(BigDecimal money) {
         this.money = money;
     }
 

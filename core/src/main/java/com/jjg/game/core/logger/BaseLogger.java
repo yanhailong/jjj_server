@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -505,7 +506,7 @@ public class BaseLogger {
     }
 
     public void order(Player player, String orderId, String merchantOrderId, int playerChannel, int payChannel, RechargeType rechargeType,
-                      long price, long createTime, long updateTime, OrderStatus orderStatus, int payType,String desc) {
+                      BigDecimal price, long createTime, long updateTime, OrderStatus orderStatus, int payType,String desc) {
         try {
             JSONObject json = new JSONObject();
             json.put("orderId", orderId);
@@ -514,7 +515,7 @@ public class BaseLogger {
             json.put("playerChannel", playerChannel);
             json.put("payChannel", payChannel);
             json.put("rechargeType", rechargeType.getType());
-            json.put("money", price);
+            json.put("money", price.toString());
             json.put("createTime", createTime);
             json.put("updateTime", updateTime);
             json.put("status", orderStatus.code);
@@ -528,7 +529,7 @@ public class BaseLogger {
     }
 
     public void shop(Player player, String orderId, String merchantOrderId, int shopProductType, int playerChannel, int payChannel, RechargeType rechargeType,
-                     long price, long createTime, long updateTime, OrderStatus orderStatus, int payType) {
+                     BigDecimal price, long createTime, long updateTime, OrderStatus orderStatus, int payType) {
         try {
             JSONObject json = new JSONObject();
             json.put("orderId", orderId);
@@ -538,7 +539,7 @@ public class BaseLogger {
             json.put("playerChannel", playerChannel);
             json.put("payChannel", payChannel);
             json.put("rechargeType", rechargeType.getType());
-            json.put("money", price);
+            json.put("money", price.toString());
             json.put("createTime", createTime);
             json.put("updateTime", updateTime);
             json.put("status", orderStatus.code);

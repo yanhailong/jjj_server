@@ -198,7 +198,7 @@ public class ScratchCardsController extends BaseActivityController {
             info.activityId = activityData.getId();
             info.detailId = cfg.getId();
             info.type = cfg.getType();
-            info.buyPrice = cfg.getCost();
+            info.buyPrice = cfg.getCost().doubleValue();
             // 奖励信息
             info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetitem());
             info.numOf7 = cfg.getIconNum();

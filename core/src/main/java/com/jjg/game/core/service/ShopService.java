@@ -109,7 +109,7 @@ public class ShopService {
             addItemMap = Collections.emptyMap();
         }
 
-        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(), shopProduct.getPayType(), shopProduct.getMoney(), addItemMap, "exchange");
+        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(), shopProduct.getPayType(), shopProduct.getMoney().intValue(), addItemMap, "exchange");
         if (!result.success()) {
             return result;
         }

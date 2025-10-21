@@ -257,7 +257,7 @@ public class PrivilegeCardController extends BaseActivityController {
         PrivilegeCardDetailInfo info = new PrivilegeCardDetailInfo();
         info.activityId = activityData.getId();
         info.detailId = baseCfgBean.getId();
-        info.rechargePrice = cfg.getPurchasecost();
+        info.rechargePrice = cfg.getPurchasecost().doubleValue();
 
         // 合并总奖励（购买奖励 + 累计返利）
         Map<Integer, Long> totalGetHashMap = new HashMap<>(cfg.getTotalRebate());

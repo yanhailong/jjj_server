@@ -1,6 +1,9 @@
 package com.jjg.game.sampledata.bean;
 
 import java.util.*;
+import java.math.BigDecimal;
+
+
 
 import javax.annotation.processing.Generated;
 /**
@@ -25,7 +28,7 @@ public class PiggyBankCfg extends BaseCfgBean {
   /** 奖励1 */
   protected Map<Integer,Long> getItem;
   /** 购买金额 */
-  protected int pay;
+  protected BigDecimal pay;
   /** 重置时间(天) */
   protected int reseTime;
   /** 罐子类型 */
@@ -49,7 +52,7 @@ public class PiggyBankCfg extends BaseCfgBean {
   }
 
   /** 返回购买金额 */
-  public int getPay() {
+  public BigDecimal getPay() {
     return pay;
   }
 

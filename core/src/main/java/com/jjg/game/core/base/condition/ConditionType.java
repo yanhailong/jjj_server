@@ -4,6 +4,7 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.base.condition.check.*;
 import com.jjg.game.core.dao.CountDao;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -59,15 +60,15 @@ public enum ConditionType {
         return conditionCheck;
     }
 
-    public long addProgress(Object paramObject, List<Integer> cfg) {
+    public BigDecimal addProgress(Object paramObject, List<String> cfg) {
         Object conditionObject = conditionCheck.analysisCondition(cfg);
         if (conditionObject == null) {
-            return 0;
+            return BigDecimal.ZERO;
         }
         return conditionCheck.addProgress(paramObject, conditionObject);
     }
 
-    public boolean doCheck(Object paramObject, List<Integer> cfg) {
+    public boolean doCheck(Object paramObject, List<String> cfg) {
 
         Object condition = conditionCheck.analysisCondition(cfg);
         if (condition == null) {
@@ -76,7 +77,7 @@ public enum ConditionType {
         return conditionCheck.check(paramObject, condition);
     }
 
-    public long getProgress(Object paramObject) {
+    public BigDecimal getProgress(Object paramObject) {
         return conditionCheck.getProgress(paramObject);
     }
 

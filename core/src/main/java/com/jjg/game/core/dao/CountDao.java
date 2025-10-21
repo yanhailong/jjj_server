@@ -1,14 +1,17 @@
 package com.jjg.game.core.dao;
 
+import org.redisson.api.RAtomicDouble;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 
 /**
  * 通用计数DAO
- * 用于保存功能ID对应的计数或自定义ID的统计值。
+ * 支持两位小数，并在Redis层实现原子自增。
  * key 格式：count:{featureId}:{customId}
  */
 @Repository
@@ -21,50 +24,48 @@ public class CountDao {
         this.redissonClient = redissonClient;
     }
 
-    /**
-     * 拼接Redis key
-     */
     private String getKey(String featureId, String customId) {
         return String.format(TABLE_NAME, featureId, customId);
     }
 
     /**
-     * 设置计数值
+     * 设置计数（保留两位小数）
      */
-    public void setCount(String featureId, String customId, long count) {
-        RBucket<Long> bucket = redissonClient.getBucket(getKey(featureId, customId));
-        bucket.set(count);
+    public void setCount(String featureId, String customId, BigDecimal count) {
+        RBucket<Double> bucket = redissonClient.getBucket(getKey(featureId, customId));
+        bucket.set(count.setScale(2, RoundingMode.HALF_UP).doubleValue());
+    }
+
+    public void setCount(String featureId, String customId, BigDecimal count, long expireSeconds) {
+        RBucket<Double> bucket = redissonClient.getBucket(getKey(featureId, customId));
+        bucket.set(count.setScale(2, RoundingMode.HALF_UP).doubleValue(), Duration.ofSeconds(expireSeconds));
     }
 
     /**
-     * 设置计数值并指定过期时间
+     * 获取计数（返回 BigDecimal）
      */
-    public void setCount(String featureId, String customId, long count, long expireSeconds) {
-        RBucket<Long> bucket = redissonClient.getBucket(getKey(featureId, customId));
-        bucket.set(count, Duration.ofSeconds(expireSeconds));
+    public BigDecimal getCount(String featureId, String customId) {
+        RBucket<Double> bucket = redissonClient.getBucket(getKey(featureId, customId));
+        Double val = bucket.get();
+        return val == null
+                ? BigDecimal.ZERO
+                : BigDecimal.valueOf(val).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
-     * 获取计数值
+     * 原子自增（两位小数）
      */
-    public long getCount(String featureId, String customId) {
-        RBucket<Long> bucket = redissonClient.getBucket(getKey(featureId, customId));
-        Long val = bucket.get();
-        return val == null ? 0L : val;
+    public BigDecimal incrBy(String featureId, String customId, BigDecimal delta) {
+        RAtomicDouble atomic = redissonClient.getAtomicDouble(getKey(featureId, customId));
+        double newVal = atomic.addAndGet(delta.doubleValue());
+        return BigDecimal.valueOf(newVal).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
-     * 自增计数（返回自增后的值）
+     * 自增1.00
      */
-    public long incr(String featureId, String customId) {
-        return redissonClient.getAtomicLong(getKey(featureId, customId)).incrementAndGet();
-    }
-
-    /**
-     * 自增指定步长
-     */
-    public long incrBy(String featureId, String customId, long delta) {
-        return redissonClient.getAtomicLong(getKey(featureId, customId)).addAndGet(delta);
+    public BigDecimal incr(String featureId, String customId) {
+        return incrBy(featureId, customId, BigDecimal.ONE);
     }
 
     /**
@@ -75,7 +76,7 @@ public class CountDao {
     }
 
     /**
-     * 判断是否存在
+     * 是否存在
      */
     public boolean exists(String featureId, String customId) {
         return redissonClient.getBucket(getKey(featureId, customId)).isExists();

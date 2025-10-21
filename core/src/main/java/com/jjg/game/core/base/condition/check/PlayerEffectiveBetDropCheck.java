@@ -8,6 +8,8 @@ import com.jjg.game.core.base.condition.check.record.BaseCheckParam;
 import com.jjg.game.core.base.condition.check.record.PlayerEffectiveCondition;
 import com.jjg.game.core.base.condition.check.record.PlayerEffectiveParam;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 /**
@@ -27,35 +29,35 @@ public class PlayerEffectiveBetDropCheck extends BaseCheck {
     }
 
     @Override
-    public long addProgress(Object paramObject, Object conditionObject) {
+    public BigDecimal addProgress(Object paramObject, Object conditionObject) {
         if (paramObject instanceof PlayerEffectiveParam param && conditionObject instanceof PlayerEffectiveCondition condition) {
             if (CollectionUtil.isEmpty(param.getParamList())) {
-                return 0;
+                return BigDecimal.ZERO;
             }
             //条件检查
             if ((CollectionUtil.isNotEmpty(condition.getRoomTypeIds()) && !condition.getRoomTypeIds().contains(param.getRoomType()))
                     || (CollectionUtil.isNotEmpty(condition.getExclusionGameIds()) && condition.getExclusionGameIds().contains(param.getGameId()))
                     || (CollectionUtil.isNotEmpty(condition.getGameType()) && condition.getGameType().contains(param.getGameType()))
                     || (CollectionUtil.isNotEmpty(condition.getGameIds()) && !condition.getGameIds().contains(param.getGameId()))) {
-                return 0;
+                return BigDecimal.ZERO;
             }
-            long progress = countDao.incrBy(param.getFunction(), getCustomId(param.getPlayerId()), param.getParamList().getFirst());
-            return (int) (progress / condition.getMinAchievedValue());
+            BigDecimal progress = countDao.incrBy(param.getFunction(), getCustomId(param.getPlayerId()), BigDecimal.valueOf(param.getParamList().getFirst()));
+            return progress.divide(condition.getMinAchievedValue(), RoundingMode.DOWN);
         }
-        return 0;
+        return BigDecimal.ZERO;
     }
 
     @Override
-    public long reduceProgress(Object param, Object condition, long times) {
+    public BigDecimal reduceProgress(Object param, Object condition, long times) {
         if (param instanceof BaseCheckParam checkParam && condition instanceof BaseCheckCondition baseCheckCondition) {
             return countDao.incrBy(checkParam.getFunction(), getCustomId(checkParam.getPlayerId()),
-                    -baseCheckCondition.getMinAchievedValue() * times);
+                    baseCheckCondition.getMinAchievedValue().multiply(BigDecimal.valueOf(-times)));
         }
-        return 0;
+        return BigDecimal.ZERO;
     }
 
     @Override
-    public PlayerEffectiveCondition analysisCondition(List<Integer> condition) {
+    public PlayerEffectiveCondition analysisCondition(List<String> condition) {
         if (condition.size() < 2) {
             return null;
         }
@@ -64,8 +66,8 @@ public class PlayerEffectiveBetDropCheck extends BaseCheck {
             return null;
         }
         PlayerEffectiveCondition dropCondition = new PlayerEffectiveCondition();
-        dropCondition.setMinAchievedValue(condition.get(1));
-        List<Integer> list = List.copyOf(condition.subList(2, condition.size()));
+        dropCondition.setMinAchievedValue(new BigDecimal(condition.get(1)).setScale(2, RoundingMode.DOWN));
+        List<Integer> list = condition.subList(2, condition.size()).stream().map(Integer::parseInt).toList();
         switch (type) {
             case PLAY_GAME -> dropCondition.setGameIds(list);
             case NOT_PLAY_GAME -> dropCondition.setExclusionGameIds(list);

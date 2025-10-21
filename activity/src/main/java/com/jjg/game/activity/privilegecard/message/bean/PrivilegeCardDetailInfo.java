@@ -17,7 +17,7 @@ public class PrivilegeCardDetailInfo extends BaseActivityDetailInfo {
     @ProtoDesc("总获利")
     public List<ItemInfo> totalGet;
     @ProtoDesc("需要充值金额")
-    public int rechargePrice;
+    public double rechargePrice;
     @ProtoDesc("剩余时间 毫秒")
     public long remainTime;
     @ProtoDesc("持续天数")

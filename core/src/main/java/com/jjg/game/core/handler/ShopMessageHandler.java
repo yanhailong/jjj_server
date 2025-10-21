@@ -60,7 +60,7 @@ public class ShopMessageHandler {
                 }
 
                 info.payType = shopProduct.getPayType();
-                info.money = shopProduct.getMoney();
+                info.money = shopProduct.getMoney().doubleValue();
                 info.label1 = shopProduct.getLabel1();
                 info.label2 = shopProduct.getLabel2();
                 info.pic = shopProduct.getPic();

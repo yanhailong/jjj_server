@@ -31,6 +31,8 @@ import org.apache.commons.lang3.Validate;
 import org.apache.poi.ss.usermodel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * 配置表容器
@@ -365,6 +367,7 @@ public abstract class BaseCfgContainer<T extends BaseCfgBean> {
     SET(SetFieldAdapter::new),
     // Map适配器
     MAP(MapFieldAdapter::new),
+    BIG_DECIMAL(BigDecimalFieldAdapter::new),
     ;
 
     /** 字段适配器 */
@@ -617,7 +620,38 @@ public abstract class BaseCfgContainer<T extends BaseCfgBean> {
         return true;
       }
     }
+    private static class BigDecimalFieldAdapter implements FieldAdapter<BigDecimal> {
 
+        @Override
+        public BigDecimal parseFieldStrToClassType(
+        String fieldStr, String fieldType, BaseCfgBean cfgBean) {
+        BigDecimal decimal = isEmptyString(fieldStr)
+        ? getDefaultVal()
+        : new BigDecimal(fieldStr);
+        decimal = decimal.setScale(2, RoundingMode.HALF_UP);
+        return decimal;
+        }
+
+        @Override
+        public Set<String> getAcceptTypeStr() {
+            return new HashSet<>(Arrays.asList("[Bb]ig[Dd]ecimal", "java.math.BigDecimal"));
+            }
+
+            @Override
+            public String getTargetFieldTypeStr(String fieldType) {
+            return "BigDecimal";
+            }
+
+            @Override
+            public BigDecimal getDefaultVal() {
+            return BigDecimal.ZERO;
+            }
+
+            @Override
+            public boolean isBaseType() {
+            return false;
+            }
+            }
     private static class DateFieldAdapter implements FieldAdapter<Date> {
 
       /** 时间匹配 */

@@ -4,6 +4,8 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.core.base.condition.check.record.PlayerEffectiveCondition;
 import com.jjg.game.core.base.condition.check.record.PlayerEffectiveParam;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 /**
@@ -15,30 +17,31 @@ import java.util.List;
 public class PlayerEffectiveBetAllCheck extends BaseCheck {
 
     @Override
-    public long addProgress(Object paramObject, Object conditionObject) {
+    public BigDecimal addProgress(Object paramObject, Object conditionObject) {
         if (paramObject instanceof PlayerEffectiveParam param && conditionObject instanceof PlayerEffectiveCondition condition) {
             if (CollectionUtil.isEmpty(param.getParamList())) {
-                return 0;
+                return BigDecimal.ZERO;
             }
-            long progress = 0;
+            BigDecimal progress =BigDecimal.ZERO;
             if (CollectionUtil.isEmpty(condition.getGameIds()) || condition.getGameIds().contains(param.getGameId())) {
-                progress = countDao.incrBy(param.getFunction(), getCustomId(param.getPlayerId()), param.getParamList().getFirst());
+                progress = countDao.incrBy(param.getFunction(), getCustomId(param.getPlayerId()), BigDecimal.valueOf(param.getParamList().getFirst()));
             }
-            return (int) (progress / condition.getMinAchievedValue());
+            return progress.divide(condition.getMinAchievedValue(), RoundingMode.DOWN);
         }
-        return 0;
+        return BigDecimal.ZERO;
     }
 
     @Override
-    public PlayerEffectiveCondition analysisCondition(List<Integer> condition) {
+    public PlayerEffectiveCondition analysisCondition(List<String> condition) {
         if (condition.size() < 2) {
             return null;
         }
         PlayerEffectiveCondition sampleCondition = new PlayerEffectiveCondition();
-        if (condition.getFirst() > 0) {
-            sampleCondition.setRoomTypeIds(List.of(condition.getFirst()));
+        int roomTypeId = Integer.parseInt(condition.getFirst());
+        if (roomTypeId > 0) {
+            sampleCondition.setRoomTypeIds(List.of(roomTypeId));
         }
-        sampleCondition.setMinAchievedValue(condition.get(1));
+        sampleCondition.setMinAchievedValue(new BigDecimal(condition.get(1)).setScale(2, RoundingMode.DOWN));
         return sampleCondition;
     }
 

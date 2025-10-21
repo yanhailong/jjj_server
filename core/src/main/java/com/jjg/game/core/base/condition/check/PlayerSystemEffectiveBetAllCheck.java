@@ -5,6 +5,8 @@ import com.jjg.game.core.base.condition.check.record.PlayerEffectiveCondition;
 import com.jjg.game.core.base.condition.check.record.PlayerEffectiveParam;
 import com.jjg.game.core.base.condition.check.record.PlayerSampleCondition;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 /**
@@ -15,28 +17,28 @@ import java.util.List;
  */
 public class PlayerSystemEffectiveBetAllCheck extends BaseCheck {
     @Override
-    public long addProgress(Object paramObject, Object conditionObject) {
+    public BigDecimal addProgress(Object paramObject, Object conditionObject) {
         if (paramObject instanceof PlayerEffectiveParam param && conditionObject instanceof PlayerEffectiveCondition condition) {
             if (CollectionUtil.isEmpty(param.getParamList())) {
-                return 0;
+                return BigDecimal.ZERO;
             }
             long progress = 0;
             //开房间的类型大于十
             if (param.getRoomType() < 10) {
-                progress = countDao.incrBy(param.getFunction(), getCustomId(param.getPlayerId()), param.getParamList().getFirst());
+                progress = countDao.incrBy(param.getFunction(), getCustomId(param.getPlayerId()), BigDecimal.valueOf(param.getParamList().getFirst())).longValue();
             }
-            return progress >= condition.getMinAchievedValue() ? 1 : 0;
+            return progress >= condition.getMinAchievedValue().longValue() ? BigDecimal.ONE : BigDecimal.ZERO;
         }
-        return 0;
+        return BigDecimal.ZERO;
     }
 
     @Override
-    public PlayerSampleCondition analysisCondition(List<Integer> condition) {
+    public PlayerSampleCondition analysisCondition(List<String> condition) {
         if (condition.isEmpty()) {
             return null;
         }
         PlayerSampleCondition sampleCondition = new PlayerSampleCondition();
-        sampleCondition.setMinAchievedValue(condition.getFirst());
+        sampleCondition.setMinAchievedValue(new BigDecimal(condition.getFirst()).setScale(2, RoundingMode.DOWN));
         return sampleCondition;
     }
 

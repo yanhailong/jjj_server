@@ -1,5 +1,7 @@
 package com.jjg.game.core.base.condition.check.record;
 
+import java.math.BigDecimal;
+
 /**
  * @author lm
  * @date 2025/10/17 10:56
@@ -12,7 +14,7 @@ public abstract class BaseCheckCondition {
     /**
      * 条件达到最低值
      */
-    private long minAchievedValue;
+    private BigDecimal minAchievedValue;
 
     public int getAchievedTimes() {
         return achievedTimes;
@@ -22,11 +24,11 @@ public abstract class BaseCheckCondition {
         this.achievedTimes = achievedTimes;
     }
 
-    public long getMinAchievedValue() {
+    public BigDecimal getMinAchievedValue() {
         return minAchievedValue;
     }
 
-    public void setMinAchievedValue(long minAchievedValue) {
+    public void setMinAchievedValue(BigDecimal minAchievedValue) {
         this.minAchievedValue = minAchievedValue;
     }
 }

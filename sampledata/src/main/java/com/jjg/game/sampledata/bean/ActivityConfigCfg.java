@@ -1,6 +1,9 @@
 package com.jjg.game.sampledata.bean;
 
 import java.util.*;
+import java.math.BigDecimal;
+
+
 
 import javax.annotation.processing.Generated;
 /**
@@ -18,6 +21,8 @@ public class ActivityConfigCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "ActivityConfig";
 
+  /** 值3 */
+  protected List<BigDecimal> bigDecimalParam;
   /** 解锁条件 */
   protected String condition;
   /** 掉落id */
@@ -42,6 +47,11 @@ public class ActivityConfigCfg extends BaseCfgBean {
   protected List<Integer> value;
   /** 值2 */
   protected List<Integer> valueParam;
+
+  /** 返回值3 */
+  public List<BigDecimal> getBigDecimalParam() {
+    return bigDecimalParam;
+  }
 
   /** 返回解锁条件 */
   public String getCondition() {

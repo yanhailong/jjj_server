@@ -17,9 +17,9 @@ public class GrowthFundActivityInfo {
     @ProtoDesc("当前等级")
     public long currentLevel;
     @ProtoDesc("售价")
-    public int sellingPrice;
+    public double sellingPrice;
     @ProtoDesc("原价")
-    public int originalPrice;
+    public double originalPrice;
     @ProtoDesc("总计获得")
     public long totalGet;
 }

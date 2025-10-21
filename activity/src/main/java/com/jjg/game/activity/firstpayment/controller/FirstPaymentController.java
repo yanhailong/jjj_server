@@ -136,9 +136,9 @@ public class FirstPaymentController extends BaseActivityController {
         FirstPaymentDetailInfo info = new FirstPaymentDetailInfo();
         info.activityId = activityData.getId();
         info.detailId = baseCfgBean.getId();
-        info.rechargePrice = cfg.getMoney();
-        info.wasPrice = cfg.getWasPrice();
-        info.bestValue = cfg.getBestValue();
+        info.rechargePrice = cfg.getMoney().doubleValue();
+        info.wasPrice = cfg.getWasPrice().doubleValue();
+        info.bestValue = cfg.getBestValue().doubleValue();
         // 合并总奖励
         Map<Integer, Long> totalGetHashMap = new HashMap<>(cfg.getGetitem());
         totalGetHashMap.putAll(cfg.getGetgold());

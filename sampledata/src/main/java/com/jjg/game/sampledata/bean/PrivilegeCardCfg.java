@@ -1,6 +1,9 @@
 package com.jjg.game.sampledata.bean;
 
 import java.util.*;
+import java.math.BigDecimal;
+
+
 
 import javax.annotation.processing.Generated;
 /**
@@ -27,7 +30,7 @@ public class PrivilegeCardCfg extends BaseCfgBean {
   /** 活动名称 */
   protected int name;
   /** 购买花费(充值) */
-  protected int purchasecost;
+  protected BigDecimal purchasecost;
   /** 总计返利(金币) */
   protected Map<Integer,Long> totalRebate;
   /** 类型ID */
@@ -54,7 +57,7 @@ public class PrivilegeCardCfg extends BaseCfgBean {
   }
 
   /** 返回购买花费(充值) */
-  public int getPurchasecost() {
+  public BigDecimal getPurchasecost() {
     return purchasecost;
   }
 
