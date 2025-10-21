@@ -102,10 +102,14 @@ public class OfficialAwardsController extends BaseActivityController implements 
             res.code = Code.OFFICIAL_AWARDS_POOL_NULL;
             return res;
         }
+        if (activityData.getValueParam().size() < 2) {
+            res.code = Code.SAMPLE_ERROR;
+            return res;
+        }
         // 获取活动明细配置
         Map<Integer, OfficialAwardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         //获取消耗
-        int needPoints = activityData.getValueParam().getLast() * times;
+        int needPoints = activityData.getValueParam().get(1) * times;
         //扣减积分
         int remainPoint = officialAwardsDao.reducePlayerProgress(playerId, needPoints);
         if (remainPoint < 0) {
@@ -256,7 +260,6 @@ public class OfficialAwardsController extends BaseActivityController implements 
      */
     @Override
     public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
-        long activityId = activityData.getId();
         ResOfficialAwardsDetailInfo detailInfo = new ResOfficialAwardsDetailInfo(Code.SUCCESS);
         Map<Integer, OfficialAwardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
 
