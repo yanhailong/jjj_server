@@ -296,7 +296,7 @@ public class PiggyBankController extends BaseActivityController {
             PiggyBankDetailInfo info = new PiggyBankDetailInfo();
             info.activityId = activityData.getId();
             info.detailId = baseCfgBean.getId();
-            info.rechargePrice = cfg.getPay().doubleValue(); // 充值金额
+            info.rechargePrice = cfg.getPay().toString(); // 充值金额
             info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetItem()); // 奖励道具
 
             // 设置玩家数据

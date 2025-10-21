@@ -30,7 +30,10 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -247,6 +250,7 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
     }
 
     public void changeGameType(long playerId, int gameType, int roomCfgId) {
+        //TODO
         PlayerSessionInfo info = getInfo(playerId);
         info.setGameType(gameType);
         info.setRoomCfgId(roomCfgId);

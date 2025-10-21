@@ -14,12 +14,10 @@ import java.util.List;
 public class GrowthFundActivityInfo {
     @ProtoDesc("活动详细信息")
     public List<GrowthFundDetailInfo> detailInfos;
-    @ProtoDesc("当前等级")
-    public long currentLevel;
     @ProtoDesc("售价")
-    public double sellingPrice;
+    public String sellingPrice;
     @ProtoDesc("原价")
-    public double originalPrice;
+    public String originalPrice;
     @ProtoDesc("总计获得")
     public long totalGet;
 }

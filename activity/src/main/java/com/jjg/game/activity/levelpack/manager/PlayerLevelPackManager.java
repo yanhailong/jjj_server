@@ -16,12 +16,12 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.pb.NotifyPlayerLevelUp;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -139,7 +139,7 @@ public class PlayerLevelPackManager implements GameEventListener {
                 continue;
             }
             PlayerLevelPackDetailInfo detailInfo = new PlayerLevelPackDetailInfo();
-            detailInfo.buyPrice = packCfg.getPay().doubleValue();
+            detailInfo.buyPrice = packCfg.getPay().toString();
             detailInfo.claimStatus = data.getClaimStatus();
             detailInfo.level = packCfg.getPlayerlevel();
             detailInfo.remainTime = data.getBuyEndTime() - currentTimeMillis;
