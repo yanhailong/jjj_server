@@ -41,6 +41,9 @@ public class PlayerEffectiveBetDropCheck extends BaseCheck {
                     || (CollectionUtil.isNotEmpty(condition.getGameIds()) && !condition.getGameIds().contains(param.getGameId()))) {
                 return BigDecimal.ZERO;
             }
+            if (conditionTypeId == ConditionType.PLAYER_BET.getId() && param.getRoomType() > 10) {
+                return BigDecimal.ZERO;
+            }
             BigDecimal progress = countDao.incrBy(param.getFunction(), getCustomId(param.getPlayerId()), BigDecimal.valueOf(param.getParamList().getFirst()));
             return progress.divide(condition.getMinAchievedValue(), RoundingMode.DOWN);
         }
@@ -58,7 +61,7 @@ public class PlayerEffectiveBetDropCheck extends BaseCheck {
 
     @Override
     public PlayerEffectiveCondition analysisCondition(List<String> condition) {
-        if (condition.size() < 2) {
+        if (condition.isEmpty()) {
             return null;
         }
         ConditionType type = EnumUtil.getBy(ConditionType.class, (t) -> t.getId() == conditionTypeId);
@@ -66,13 +69,15 @@ public class PlayerEffectiveBetDropCheck extends BaseCheck {
             return null;
         }
         PlayerEffectiveCondition dropCondition = new PlayerEffectiveCondition();
-        dropCondition.setMinAchievedValue(new BigDecimal(condition.get(1)).setScale(2, RoundingMode.DOWN));
-        List<Integer> list = condition.subList(2, condition.size()).stream().map(Integer::parseInt).toList();
-        switch (type) {
-            case PLAY_GAME -> dropCondition.setGameIds(list);
-            case NOT_PLAY_GAME -> dropCondition.setExclusionGameIds(list);
-            case PLAY_GAME_TYPE -> dropCondition.setGameType(list);
-            case PLAY_ROOM_TYPE -> dropCondition.setRoomTypeIds(list);
+        dropCondition.setMinAchievedValue(new BigDecimal(condition.getFirst()).setScale(2, RoundingMode.DOWN));
+        if (condition.size() > 1) {
+            List<Integer> list = condition.subList(2, condition.size()).stream().map(Integer::parseInt).toList();
+            switch (type) {
+                case PLAY_GAME -> dropCondition.setGameIds(list);
+                case NOT_PLAY_GAME -> dropCondition.setExclusionGameIds(list);
+                case PLAY_GAME_TYPE -> dropCondition.setGameType(list);
+                case PLAY_ROOM_TYPE -> dropCondition.setRoomTypeIds(list);
+            }
         }
         return dropCondition;
     }

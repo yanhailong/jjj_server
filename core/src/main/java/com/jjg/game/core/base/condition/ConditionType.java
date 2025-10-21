@@ -29,7 +29,7 @@ public enum ConditionType {
     //个人有效下注
     PLAYER_BET_ALL(12001, new PlayerEffectiveBetAllCheck()),
     //个人有效下注
-    PLAYER_BET(12002, new PlayerSystemEffectiveBetAllCheck()),
+    PLAYER_BET(12002, new PlayerEffectiveBetDropCheck(12002)),
     //指定游戏掉落
     PLAY_GAME(12003, new PlayerEffectiveBetDropCheck(12003)),
     //不在指定游戏掉落
@@ -102,6 +102,17 @@ public enum ConditionType {
      */
     public enum FunctionType {
         //活动
-        ACTIVITY
+        ACTIVITY("activity:%s"),
+        MY_CASINO("myCasino");
+
+        private final String param;
+
+        FunctionType(String param) {
+            this.param = param;
+        }
+
+        public String getParam() {
+            return param;
+        }
     }
 }

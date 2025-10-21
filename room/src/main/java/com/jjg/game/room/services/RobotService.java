@@ -115,7 +115,7 @@ public class RobotService implements IRoomStartListener {
                     continue;
                 }
                 //vip等级检查
-                if (robotPlayer.getVipLevel() < warehouseCfg.getVipLvLimit()) {
+                if (robotPlayer.getLevel() < warehouseCfg.getPlayerLvLimit()) {
                     continue;
                 }
                 long checkNum = 0;

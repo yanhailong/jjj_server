@@ -48,10 +48,12 @@ public class SystemInterfaceHolder implements BeanPostProcessor {
     /**
      * 获取对应类的所有实现
      */
+    @SuppressWarnings("unchecked")
     public static <T extends IGameSysFuncInterface> List<T> getGameSysInterface(Class<T> clazz) {
-        return Collections.unmodifiableList((List<T>) INTERFACE_MAP.getOrDefault(clazz, new ArrayList<>())
-            .stream()
-            .sorted(Comparator.comparingInt(IGameSysFuncInterface::executeOrder)));
+        return (List<T>) INTERFACE_MAP.getOrDefault(clazz, new ArrayList<>())
+                .stream()
+                .sorted(Comparator.comparingInt(IGameSysFuncInterface::executeOrder))
+                .toList();
     }
 
     /**

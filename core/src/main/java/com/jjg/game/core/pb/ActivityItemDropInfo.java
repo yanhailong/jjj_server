@@ -1,5 +1,6 @@
 package com.jjg.game.core.pb;
 
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
@@ -14,7 +15,7 @@ import java.util.List;
 public class ActivityItemDropInfo {
 
     @ProtoDesc("道具信息")
-    public List<KVInfo> itemMap;
+    public List<ItemInfo> itemMap;
 
     @ProtoDesc("活动ID")
     public long activityId;

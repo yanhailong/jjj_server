@@ -14,8 +14,8 @@ public class WareHouseConfigInfo {
     public int wareId;
     @ProtoDesc("场次名称")
     public String name;
-    @ProtoDesc("进入vip最低等级")
-    public int limitVipMin;
+    @ProtoDesc("进入玩家最低等级")
+    public int limitPlayerLevelMin;
     @ProtoDesc("进入最低金币数量")
     public long limitGoldMin;
     @ProtoDesc("展示的押注")

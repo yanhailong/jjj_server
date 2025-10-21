@@ -2,13 +2,12 @@ package com.jjg.game.core.base.drop;
 
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import java.util.Map;
 
 /**
  * 道具掉落日志logger
@@ -27,14 +26,14 @@ public class DropItemLogger extends BaseLogger {
      * @param player player
      * @param result 道具操作记录
      */
-    public void recordDropItem(Player player, String source, long sourceId, int gameCfgId, List<Item> itemList,
+    public void recordDropItem(Player player, String source, long sourceId, int gameCfgId, Map<Integer, Long> itemList,
                                ItemOperationResult result) {
         try {
             JSONObject data = new JSONObject();
             data.put("source", source);
             data.put("sourceId", sourceId);
             data.put("gameCfgId", gameCfgId);
-            data.put("itemList", itemList);
+            data.put("itemList", JSONObject.toJSONString(itemList, SerializerFeature.WriteNonStringKeyAsString));
             data.put("itemChangeBefore", JSONObject.toJSONString(result.getChangeBeforeItemNum(), SerializerFeature.WriteNonStringKeyAsString));
             data.put("itemChangeAfter", JSONObject.toJSONString(result.getChangeEndItemNum(), SerializerFeature.WriteNonStringKeyAsString));
             sendLog(DROP_ITEM_TOPIC, player, data);
