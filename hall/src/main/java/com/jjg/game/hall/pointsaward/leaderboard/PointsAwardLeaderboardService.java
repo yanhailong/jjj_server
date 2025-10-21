@@ -224,7 +224,7 @@ public class PointsAwardLeaderboardService {
     /**
      * 添加历史记录
      */
-    public void addHistory(PointsAwardLeaderboardInfo info, PointsAwardRankingCfg cfg, String code) {
+    public void addHistory(PointsAwardLeaderboardInfo info, PointsAwardRankingCfg cfg, String code, long endTime) {
         RDeque<PointsAwardLeaderboardHistory> dequeHistory = redissonClient.getDeque(historyKey(info.getPlayerId()));
         PointsAwardLeaderboardHistory history = new PointsAwardLeaderboardHistory();
         history.setPlayerId(info.getPlayerId());
@@ -241,9 +241,9 @@ public class PointsAwardLeaderboardService {
         history.setPicRes(cfg.getPicRes());
         history.setAwardType(cfg.getAwardType());
         history.setRankType(cfg.getType());
-        long now = System.currentTimeMillis();
-        history.setEndTime(now);
+        history.setEndTime(endTime);
         if (code != null) {
+            long now = System.currentTimeMillis();
             history.setCode(code);
             history.setExpiredTime(now);
             GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(47);
