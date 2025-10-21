@@ -4,8 +4,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.logger.BaseLogger;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-
 /**
  * 积分大奖日志
  */
@@ -28,9 +26,9 @@ public class PointsAwardLogger extends BaseLogger {
         log.put("flag", flag);
         //更新后的值
         log.put("afterValue", resultValue);
-        log.put("time", LocalDateTime.now());
         sendLog("pointsAwardPointsChange", null, log);
     }
+
 
 
 

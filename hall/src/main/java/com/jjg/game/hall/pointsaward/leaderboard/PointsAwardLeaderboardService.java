@@ -268,11 +268,13 @@ public class PointsAwardLeaderboardService {
      * @param pageSize  每页显示的数据数量
      * @return 分页后的积分奖励排行榜数据
      */
+
     public PageUtils.PageResult<PointsAwardLeaderboardData> getData(int type, int pageIndex, int pageSize) {
         List<PointsAwardLeaderboardInfo> rankingInfos = topN(type, PointsAwardConstant.Leaderboard.MAX_RANK_SIZE);
         PointsAwardLeaderboardData data = new PointsAwardLeaderboardData();
         data.setRankType(type);
         data.setRankingInfoList(rankingInfos);
+        data.setEndTime(System.currentTimeMillis());
         List<PointsAwardLeaderboardData> list = manager.getRankingHistory(type);
         list.addFirst(data);
         return PageUtils.page(list, pageIndex, pageSize);
