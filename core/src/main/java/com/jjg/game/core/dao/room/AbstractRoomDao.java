@@ -1,18 +1,18 @@
 package com.jjg.game.core.dao.room;
 
 import cn.hutool.core.collection.CollectionUtil;
-import cn.hutool.core.lang.Snowflake;
 import com.jjg.game.common.curator.NodeManager;
-import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.manager.SnowflakeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.lang.reflect.Constructor;
@@ -43,7 +43,10 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     private PlayerRoomDataDao playerRoomDataDao;
     @Autowired
     protected NodeManager nodeManager;
-    private final Snowflake snowflake = new Snowflake(NodeType.GAME.getValue(), 1);
+
+    @Lazy
+    @Autowired
+    protected SnowflakeManager snowflakeManager;
 
     protected Class<T> roomClazz;
     protected Class<P> roomPlayerClazz;
@@ -166,7 +169,7 @@ public abstract class AbstractRoomDao<T extends Room, P extends RoomPlayer> {
     protected T createRoom(T room) {
         try {
             //随机房间号
-            long roomId = snowflake.nextId();
+            long roomId = snowflakeManager.nextId();
             room.setId(roomId);
 
             log.debug("创建房间是生成的房间id = {}", roomId);

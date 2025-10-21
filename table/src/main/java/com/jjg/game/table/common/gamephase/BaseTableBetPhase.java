@@ -380,7 +380,7 @@ public abstract class BaseTableBetPhase<D extends TableGameDataVo> extends
             }
             // 庄家不能押注
             if (roomBankerId == 0 && gamePlayer.getId() == gameController.getRoom().getCreator()) {
-                return Code.BANKER_CANT_BET;
+                return Code.HOMEOWNER_CANT_BET;
             }
         }
 

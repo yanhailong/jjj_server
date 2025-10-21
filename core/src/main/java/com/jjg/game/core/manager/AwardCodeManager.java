@@ -1,158 +1,139 @@
 package com.jjg.game.core.manager;
 
-import cn.hutool.core.lang.Snowflake;
 import com.jjg.game.core.constant.AwardCodeType;
 import com.jjg.game.core.dao.AwardCodeDao;
 import com.jjg.game.core.data.AwardCode;
-import org.redisson.api.RAtomicLong;
-import org.redisson.api.RLock;
-import org.redisson.api.RMap;
-import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.sqids.Sqids;
 
-import java.net.InetAddress;
 import java.util.List;
 
 /**
- * 领奖码生成器 使用前必须要调用init方法初始化雪花id生成器
+ * 领奖码生成器
+ * 基于雪花算法生成唯一ID，并使用Sqids进行编码混淆
  */
 @Component
 public class AwardCodeManager {
+    private static final Logger log = LoggerFactory.getLogger(AwardCodeManager.class);
 
-    private final static Logger log = LoggerFactory.getLogger(AwardCodeManager.class);
-
-    private final static String ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-    private static final String WORKER_ID_MAP_KEY = "snowflake:workerId:map";
-    private static final String WORKER_ID_COUNTER_KEY = "snowflake:workerId:counter";
-    private static final String WORKER_ID_LOCK_KEY = "snowflake:workerId:lock";
-    // 0~31
-    private static final long MAX_WORKER_ID = 31;
-    private static final long MAX_DATACENTER_ID = 31;
-
+    /**
+     * Sqids编码使用的字符表
+     */
+    private static final String ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     /**
      * 领奖码的最小长度
      */
-    private final static int MIN_LENGTH = 10;
+    private static final int MIN_CODE_LENGTH = 10;
+
     /**
-     * 雪花id编解码器
+     * 雪花ID编解码器
      */
     private final Sqids sqids;
+
     /**
-     * 雪花ID生成器实例
+     * 雪花ID管理器
      */
-    private final Snowflake idWorker;
+    private final SnowflakeManager snowflakeManager;
+
     /**
-     * 领奖码dao
+     * 领奖码数据访问对象
      */
     private final AwardCodeDao awardCodeDao;
-    private final RedissonClient redissonClient;
 
-
-    public AwardCodeManager(AwardCodeDao awardCodeDao, RedissonClient redissonClient) {
+    public AwardCodeManager(AwardCodeDao awardCodeDao, @Lazy SnowflakeManager snowflakeManager) {
         this.awardCodeDao = awardCodeDao;
-        this.redissonClient = redissonClient;
+        this.snowflakeManager = snowflakeManager;
+        this.sqids = createSqidsEncoder();
+        log.info("领奖码管理器初始化成功");
+    }
 
-        this.sqids = Sqids.builder()
+    /**
+     * 创建Sqids编码器
+     */
+    private Sqids createSqidsEncoder() {
+        return Sqids.builder()
                 .alphabet(ALPHABET)
-                .minLength(MIN_LENGTH)
+                .minLength(MIN_CODE_LENGTH)
                 .build();
-        this.idWorker = initSnowflake();
-        log.info("AwardCodeManager init success!");
     }
 
     /**
-     * 初始化雪花id生成器
-     */
-    private Snowflake initSnowflake() {
-        long workerId;
-        long datacenterId;
-        try {
-            String hostname = InetAddress.getLocalHost().getHostName();
-            datacenterId = Math.abs(hostname.hashCode()) % (MAX_DATACENTER_ID + 1);
-            RMap<String, Long> workerIdMap = redissonClient.getMap(WORKER_ID_MAP_KEY);
-            RLock lock = redissonClient.getLock(WORKER_ID_LOCK_KEY);
-            lock.lock();
-            try {
-                // 如果该主机名已经分配过 workerId，则直接使用
-                if (workerIdMap.containsKey(hostname)) {
-                    workerId = workerIdMap.get(hostname);
-                    log.info("使用已有 workerId: {} -> {}", hostname, workerId);
-                } else {
-                    // 分配新的 workerId
-                    RAtomicLong counter = redissonClient.getAtomicLong(WORKER_ID_COUNTER_KEY);
-                    workerId = counter.getAndIncrement();
-                    if (workerId > MAX_WORKER_ID) {
-                        workerId = workerId % (MAX_WORKER_ID + 1);
-                        counter.set(workerId + 1);
-                    }
-                    workerIdMap.put(hostname, workerId);
-                    log.info("为主机分配新 workerId: {} -> {}", hostname, workerId);
-                }
-            } finally {
-                lock.unlock();
-            }
-            log.info("Snowflake 初始化成功 -> workerId={}, datacenterId={}, host={}",
-                    workerId, datacenterId, hostname);
-            return new Snowflake(workerId, datacenterId);
-        } catch (Exception e) {
-            throw new RuntimeException("初始化 Snowflake 失败", e);
-        }
-    }
-
-    /**
-     * 获取一个唯一id
-     */
-    public synchronized long nextId() {
-        return idWorker.nextId();
-    }
-
-    /**
-     * 加密为随机字符串
+     * 将雪花ID编码为混淆字符串
      *
-     * @param id 雪花id
-     * @return 加密后的字符串
+     * @param id 雪花ID
+     * @return 编码后的字符串
      */
     public String encode(long id) {
         return sqids.encode(List.of(id));
     }
 
     /**
-     * 将加密后的字符串还原为雪花id
+     * 将混淆字符串解码为雪花ID
      *
-     * @param str 加密后的字符串
-     * @return 雪花id
+     * @param str 编码后的字符串
+     * @return 雪花ID
      */
     public long decode(String str) {
         return sqids.decode(str).getFirst();
     }
 
     /**
-     * 生成一个唯一的领奖码 创建好以后会保存到数据库中
+     * 生成唯一的领奖码
+     * 生成后会异步保存到数据库
      *
-     * @return 包含字母和数字的唯一领奖码
+     * @param playerId 玩家ID
+     * @param type     领奖码类型
+     * @return 编码后的领奖码字符串
      */
     public String generateCode(long playerId, AwardCodeType type) {
+        long snowflakeId = snowflakeManager.nextId();
+        String encodedCode = encode(snowflakeId);
+
+        AwardCode awardCode = createAwardCode(playerId, type, snowflakeId, encodedCode);
+        saveAwardCodeAsync(awardCode, playerId, encodedCode);
+
+        return encodedCode;
+    }
+
+    /**
+     * 创建领奖码数据对象
+     *
+     * @param playerId    玩家ID
+     * @param type        领奖码类型
+     * @param snowflakeId 雪花ID
+     * @param encodedCode 编码后的领奖码
+     * @return AwardCode对象
+     */
+    private AwardCode createAwardCode(long playerId, AwardCodeType type, long snowflakeId, String encodedCode) {
         AwardCode awardCode = new AwardCode();
         awardCode.setPlayerId(playerId);
         awardCode.setType(type);
         awardCode.setCreateTime(System.currentTimeMillis());
-        long id = idWorker.nextId();
-        awardCode.setSnowflakeId(id);
-        String encodedId = encode(id);
-        awardCode.setCode(encodedId);
+        awardCode.setSnowflakeId(snowflakeId);
+        awardCode.setCode(encodedCode);
+        return awardCode;
+    }
+
+    /**
+     * 异步保存领奖码到数据库
+     * 使用虚拟线程进行异步处理
+     *
+     * @param awardCode 领奖码对象
+     * @param playerId  玩家ID
+     * @param code      领奖码字符串
+     */
+    private void saveAwardCodeAsync(AwardCode awardCode, long playerId, String code) {
         Thread.ofVirtual().start(() -> {
             try {
                 awardCodeDao.save(awardCode);
             } catch (Exception e) {
-                log.error("保存领奖码失败, playerId={}, code={}, data= {}", playerId, encodedId, awardCode, e);
+                log.error("保存领奖码失败, playerId={}, code={}, data={}",
+                        playerId, code, awardCode, e);
             }
         });
-        return encodedId;
     }
-
 }

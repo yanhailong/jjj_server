@@ -14,6 +14,7 @@ import com.jjg.game.activity.dailylogin.message.res.ResDailyLoginDetailInfo;
 import com.jjg.game.activity.dailylogin.message.res.ResDailyLoginTypeInfo;
 import com.jjg.game.activity.privilegecard.data.PlayerPrivilegeCard;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -119,7 +120,7 @@ public class DailyLoginController extends BaseActivityController {
             return res;
         }
         PlayerActivityData data = null;
-        List<PlayerActivityData> changData = new ArrayList<>();
+        List<Pair<DailyRewardsCfg, PlayerActivityData>> changData = new ArrayList<>();
         CommonResult<ItemOperationResult> addedItems = null;
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         // 加锁，保证领取操作原子性
@@ -157,7 +158,7 @@ public class DailyLoginController extends BaseActivityController {
                     PlayerActivityData temp = dataMap.computeIfAbsent(rewardsCfg.getId(), key -> new PlayerActivityData(activityId, activityData.getRound()));
                     if (temp.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
                         temp.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
-                        changData.add(temp);
+                        changData.add(Pair.newPair(rewardsCfg, temp));
                     }
                 }
             }
@@ -180,8 +181,8 @@ public class DailyLoginController extends BaseActivityController {
             res.detailInfo = new ArrayList<>();
             res.detailInfo.add(buildPlayerActivityDetail(activityData, cfg, data));
             if (CollectionUtil.isNotEmpty(changData)) {
-                for (PlayerActivityData changDatum : changData) {
-                    res.detailInfo.add(buildPlayerActivityDetail(activityData, cfg, changDatum));
+                for (Pair<DailyRewardsCfg, PlayerActivityData> changDatum : changData) {
+                    res.detailInfo.add(buildPlayerActivityDetail(activityData, changDatum.getFirst(), changDatum.getSecond()));
                 }
             }
         }

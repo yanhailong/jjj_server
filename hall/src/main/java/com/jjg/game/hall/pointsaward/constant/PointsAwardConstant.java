@@ -89,11 +89,6 @@ public interface PointsAwardConstant {
     interface Leaderboard {
 
         /**
-         * 排行榜名字连接符
-         */
-        String NAME = "-";
-
-        /**
          * 奖励类型
          */
         interface AwardType {
@@ -138,7 +133,7 @@ public interface PointsAwardConstant {
         /**
          * 上午榜时段名字
          */
-        String RANK_NAME_AM = "00:00-12:00";
+        String RANK_NAME_AM = "00:00:00-12:00:00";
         /**
          * 下午榜时段名字
          */

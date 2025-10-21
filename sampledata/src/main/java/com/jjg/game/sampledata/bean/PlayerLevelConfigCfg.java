@@ -21,6 +21,8 @@ public class PlayerLevelConfigCfg extends BaseCfgBean {
 
   /** 黑名单数量 */
   protected int blockListNum;
+  /** 掉落ID在dropConfig */
+  protected int dropConfig;
   /** 基础关注数量 */
   protected int friendsNum;
   /** 道具奖励 */
@@ -35,6 +37,11 @@ public class PlayerLevelConfigCfg extends BaseCfgBean {
   /** 返回黑名单数量 */
   public int getBlockListNum() {
     return blockListNum;
+  }
+
+  /** 返回掉落ID在dropConfig */
+  public int getDropConfig() {
+    return dropConfig;
   }
 
   /** 返回基础关注数量 */

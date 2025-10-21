@@ -15,6 +15,7 @@ import com.jjg.game.sampledata.bean.PointsAwardRankingCfg;
 import org.redisson.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -50,7 +51,7 @@ public class PointsAwardLeaderboardManager {
                                          RedisLock redisLock,
                                          RedissonClient redissonClient,
                                          MailService mailService,
-                                         AwardCodeManager awardCodeManager,
+                                         @Lazy AwardCodeManager awardCodeManager,
                                          MarsCurator marsCurator) {
         this.leaderboardService = leaderboardService;
         this.redisLock = redisLock;
@@ -114,29 +115,6 @@ public class PointsAwardLeaderboardManager {
     }
 
     /**
-     * 生成排行榜名字
-     *
-     * @param rankType 类型
-     * @param endTime  结束时间
-     */
-    public String buildName(int rankType, long endTime) {
-        String name = null;
-        LocalDate date = LocalDate.ofInstant(Instant.ofEpochMilli(endTime), ZoneId.systemDefault());
-        if (rankType == PointsAwardConstant.Leaderboard.AM) {
-            name = date + PointsAwardConstant.Leaderboard.NAME + PointsAwardConstant.Leaderboard.RANK_NAME_AM;
-        } else if (rankType == PointsAwardConstant.Leaderboard.PM) {
-            name = date + PointsAwardConstant.Leaderboard.NAME + PointsAwardConstant.Leaderboard.RANK_NAME_PM;
-        } else if (rankType == PointsAwardConstant.Leaderboard.TYPE_MONTH) {
-            // 本月第一天
-            LocalDate firstDay = date.withDayOfMonth(1);
-            // 本月最后一天
-            LocalDate lastDay = date.withDayOfMonth(date.lengthOfMonth());
-            name = firstDay + PointsAwardConstant.Leaderboard.NAME + lastDay;
-        }
-        return name;
-    }
-
-    /**
      * 在对应排行榜锁下读取 TopN 并持久化快照
      */
     private void snapshotUnderLock(int zsetType, int snapshotType, boolean lock) {
@@ -146,7 +124,6 @@ public class PointsAwardLeaderboardManager {
             data.setRankType(snapshotType);
             data.setEndTime(System.currentTimeMillis());
             data.setRankingInfoList(topList);
-            data.setName(buildName(snapshotType, data.getEndTime()));
             return data;
         };
         PointsAwardLeaderboardData rankingData;
@@ -257,7 +234,7 @@ public class PointsAwardLeaderboardManager {
                             mailService.addCfgMail(info.getPlayerId(), 4, ItemUtils.buildItemsByStrList(awardItems), paramData);
                         }
                         //添加历史记录
-                        leaderboardService.addHistory(info, cfg, code, rankingData.getName());
+                        leaderboardService.addHistory(info, cfg, code);
                     });
                 }
             }
