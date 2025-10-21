@@ -2,7 +2,6 @@ package com.jjg.game.sampledata.bean;
 
 import java.util.*;
 
-
 import javax.annotation.processing.Generated;
 /**
  * 配置bean
@@ -23,8 +22,6 @@ public class PlayerLevelConfigCfg extends BaseCfgBean {
   protected int blockListNum;
   /** 掉落ID在dropConfig */
   protected int dropConfig;
-  /** 赌场掉落条件每X有效打码量掉落一次掉落包 */
-  protected int droppedConditions;
   /** 基础关注数量 */
   protected int friendsNum;
   /** 道具奖励 */
@@ -44,11 +41,6 @@ public class PlayerLevelConfigCfg extends BaseCfgBean {
   /** 返回掉落ID在dropConfig */
   public int getDropConfig() {
     return dropConfig;
-  }
-
-  /** 返回赌场掉落条件每X有效打码量掉落一次掉落包 */
-  public int getDroppedConditions() {
-    return droppedConditions;
   }
 
   /** 返回基础关注数量 */
