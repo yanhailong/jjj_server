@@ -88,7 +88,9 @@ public interface Code {
     // 使用未拥有的皮肤
     int NOT_UNLOCKED = 434;
     // 庄家不能押注
-    int BANKER_CANT_BET = 435;
+    int BANKER_CANT_BET = 49136;
+    // 庄家不能押注
+    int HOMEOWNER_CANT_BET = 49137;
     // 請輸入正確的code
     int CODE_ERROR = 436;
     // 不能绑定自己
