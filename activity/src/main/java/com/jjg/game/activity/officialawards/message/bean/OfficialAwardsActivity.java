@@ -28,4 +28,6 @@ public class OfficialAwardsActivity {
     public int activityState;
     @ProtoDesc("转盘类型")
     public int turntableType;
+    @ProtoDesc("显示类型 1每天 2根据号数")
+    public int showType;
 }

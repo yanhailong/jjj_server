@@ -19,6 +19,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.dao.*;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.AmazonBucketManager;
@@ -26,6 +27,7 @@ import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
+import com.jjg.game.core.pb.NotifyPointsUpdate;
 import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.service.*;
 import com.jjg.game.gm.dto.*;
@@ -316,6 +318,7 @@ public class GMController extends AbstractController {
 
     /**
      * 邮件
+     *
      */
     @RequestMapping(BackendGMCmd.SEND_EMAIL)
     public WebResult<String> sendEmail(@RequestBody MailDto dto) {
@@ -372,6 +375,7 @@ public class GMController extends AbstractController {
 
     /**
      * 货币操作
+     *
      */
     @RequestMapping(BackendGMCmd.GOLD_OPERATOR)
     public WebResult<String> goldOperator(@RequestBody GoldOperatorDto dto) {
@@ -495,6 +499,7 @@ public class GMController extends AbstractController {
 
     /**
      * 踢出玩家
+     *
      */
     @RequestMapping(BackendGMCmd.KICK_ACCOUNT)
     public WebResult<String> kickAccount(@RequestBody KickAccountDto dto) {
@@ -540,6 +545,7 @@ public class GMController extends AbstractController {
 
     /**
      * 封禁
+     *
      */
     @RequestMapping(BackendGMCmd.BAN_ACCOUNT)
     public WebResult<String> banAccount(@RequestBody BanAccountDto dto) {
@@ -582,6 +588,7 @@ public class GMController extends AbstractController {
 
     /**
      * 在线玩家
+     *
      */
     @RequestMapping(BackendGMCmd.PLAYING_INFO)
     public WebResult<PageVo<List<OnlinePlayerVo>>> onlinePlayer(@RequestBody OnlinePlayerDto dto) {
@@ -833,7 +840,7 @@ public class GMController extends AbstractController {
                 dto.ips().removeIf(StringUtils::isEmpty);
                 if (!dto.ips().isEmpty()) {
                     boolean match = dto.ips().stream().allMatch(NetUtil::isValidIP);
-                    if (!match) {
+                    if(!match){
                         log.debug("ip格式错误");
                         return fail("common.fail");
                     }
@@ -847,7 +854,7 @@ public class GMController extends AbstractController {
                 }
             }
 
-            if (none) {
+            if(none){
                 log.debug("黑名单为空...");
                 return fail("common.fail");
             }
@@ -981,11 +988,46 @@ public class GMController extends AbstractController {
 
     }
 
+    @RequestMapping(BackendGMCmd.CHANGE_PLAYER_POINTS)
+    public WebResult<String> changePoints(@RequestBody ChangePointsDto dto) {
+        log.info("收到修改玩家积分大奖积分请求 dto = {}", dto);
+        try {
+            int points = dto.points();
+            if (points <= 0 || dto.playerId() <= 0) {
+                return fail("common.paramerror");
+            }
+            changePlayerPoints(dto.playerId(), points, dto.flag());
+            return success("common.success");
+        }catch (Exception e){
+            log.error("", e);
+            return fail("common.exception");
+        }
+
+    }
+
 
     //****************************************************************************************************************/
 
     /**
+     * 修改玩家积分
+     *
+     * @param playerId 玩家id
+     * @param value    变化值
+     * @param flag     变化 true增加 false扣除
+     */
+    public void changePlayerPoints(long playerId, int value, boolean flag) {
+        NotifyPointsUpdate notifyPointsUpdate = new NotifyPointsUpdate();
+        notifyPointsUpdate.setFlag(flag);
+        notifyPointsUpdate.setPlayerId(playerId);
+        notifyPointsUpdate.setValue(value);
+        notifyPointsUpdate.setType(PointsAwardType.GM);
+        clusterSystem.notifyNode(MessageUtil.getPFMessage(notifyPointsUpdate), Set.of(NodeType.HALL.toString())::contains);
+    }
+
+    /**
+     *
      * 检验玩家信息
+     *
      */
     private boolean checkPlayerInfo(QueryAccountDto dto, Player player, Account account) {
         //检查玩家id

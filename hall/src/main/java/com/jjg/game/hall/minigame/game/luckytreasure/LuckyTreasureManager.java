@@ -63,6 +63,10 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * 活动定时器映射：期号 -> 定时器事件
      */
     private final Map<Long, TimerEvent<LuckyTreasureTimerEvent>> activityTimers = new ConcurrentHashMap<>();
+    /**
+     * 活动机器人购买定时器映射：期号 -> 定时器事件
+     */
+    private final Map<Long, TimerEvent<LuckyTreasureTimerEvent>> activityBuyTimers = new ConcurrentHashMap<>();
     private final AwardCodeManager awardCodeManager;
 
     public LuckyTreasureManager(LuckyTreasureDao luckyTreasureDao,
@@ -171,9 +175,12 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         List<LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
         if (activeTreasures != null && !activeTreasures.isEmpty()) {
             activeTreasures.forEach(activeTreasure -> {
-                if (checkRobotBuy(activeTreasure)) {
-                    //添加机器人购买定时器
-                    addRobotBuyTimer(activeTreasure);
+                TimerEvent<LuckyTreasureTimerEvent> event = activityBuyTimers.get(activeTreasure.getIssueNumber());
+                if (event == null) {
+                    if (checkRobotBuy(activeTreasure)) {
+                        //添加机器人购买定时器
+                        addRobotBuyTimer(activeTreasure);
+                    }
                 }
             });
         }
@@ -451,6 +458,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         );
         // 添加到定时器中心
         timerCenter.add(buyTimer);
+        activityBuyTimers.put(issueNumber, buyTimer);
         log.info("夺宝奇兵期号[{}],configId[{}]增加机器人购买定时器!", issueNumber, config.getId());
     }
 

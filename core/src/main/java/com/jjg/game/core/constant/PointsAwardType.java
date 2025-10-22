@@ -17,5 +17,8 @@ public interface PointsAwardType {
      * 积分任务
      */
     int TASK = 3;
-
+    /**
+     * GM
+     */
+    int GM = 4;
 }

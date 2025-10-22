@@ -637,7 +637,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     }
 
     /**
-     * 添加金币，不要将此方法设置为public，游戏的交易道具是配置的道具ID写入
+     * 修改金币，钻石
      *
      * @param player      需要更新数据的player
      * @param currencyMap 货币数量
@@ -645,34 +645,53 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param desc        描述
      * @param isNotify    是否通知
      */
-    public void addCurrency(Player player, Map<Integer, Long> currencyMap, String addType, String desc, boolean isNotify) {
+    public void changeCurrency(Player player, Map<Integer, Long> currencyMap, String addType, String desc, boolean isNotify) {
         if (player == null || player.getId() <= 0 || CollectionUtil.isEmpty(currencyMap)) {
             return;
         }
         long playerId = player.getId();
         for (Map.Entry<Integer, Long> entry : currencyMap.entrySet()) {
-            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-            if (entry.getKey() == ItemUtils.getGoldItemId() && entry.getValue() > 0) {
-                if (addGold(playerId, entry.getValue(), addType, desc, isNotify) != Code.SUCCESS) {
-                    log.error("房间内添加金币失败 playerId:{} num:{}", playerId, entry.getValue());
-                    continue;
+            Long changeValue = entry.getValue();
+            if (changeValue == 0) {
+                continue;
+            }
+            if (entry.getKey() == ItemUtils.getGoldItemId()) {
+                if (changeValue > 0) {
+                    if (addGold(playerId, changeValue, addType, desc, isNotify) != Code.SUCCESS) {
+                        log.error("房间内添加金币失败 playerId:{} num:{}", playerId, changeValue);
+                        continue;
+                    }
+                    //触发任务
+                    triggerTask(playerId, getRoom().getGameType(), changeValue, ItemUtils.getGoldItemId());
+                } else {
+                    if (deductGold(playerId, Math.abs(changeValue), addType, desc, isNotify) != Code.SUCCESS) {
+                        log.error("房间内移除金币失败 playerId:{} num:{}", playerId, Math.abs(changeValue));
+                        continue;
+                    }
                 }
+                GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
                 if (gamePlayer != null) {
                     player.setGold(gamePlayer.getGold());
                 }
-                //触发任务
-                triggerTask(playerId, getRoom().getGameType(), entry.getValue(), ItemUtils.getGoldItemId());
             }
-            if (entry.getKey() == ItemUtils.getDiamondItemId() && entry.getValue() > 0) {
-                if (addDiamond(playerId, entry.getValue(), addType, desc, isNotify) != Code.SUCCESS) {
-                    log.error("房间内添加钻石失败 playerId:{} num:{}", playerId, entry.getValue());
-                    continue;
+            if (entry.getKey() == ItemUtils.getDiamondItemId()) {
+                if (changeValue > 0) {
+                    if (addDiamond(playerId, changeValue, addType, desc, isNotify) != Code.SUCCESS) {
+                        log.error("房间内添加钻石失败 playerId:{} num:{}", playerId, changeValue);
+                        continue;
+                    }
+                    //触发任务
+                    triggerTask(playerId, getRoom().getGameType(), changeValue, ItemUtils.getDiamondItemId());
+                } else {
+                    if (deductDiamond(playerId, Math.abs(changeValue), addType, desc, isNotify) != Code.SUCCESS) {
+                        log.error("房间内删除钻石失败 playerId:{} num:{}", playerId, Math.abs(changeValue));
+                        continue;
+                    }
                 }
+                GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
                 if (gamePlayer != null) {
                     player.setDiamond(gamePlayer.getDiamond());
                 }
-                //触发任务
-                triggerTask(playerId, getRoom().getGameType(), entry.getValue(), ItemUtils.getDiamondItemId());
             }
         }
     }

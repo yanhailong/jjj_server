@@ -8,6 +8,7 @@ import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.hall.pointsaward.PointsAwardLogger;
 import com.jjg.game.hall.pointsaward.PointsAwardService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardSignInConfig;
@@ -35,6 +36,7 @@ public class PointsAwardSignInService implements IRedDotService {
     private final RedissonClient redissonClient;
     private final RedisLock redisLock;
     private final RedDotManager redDotManager;
+    private final PointsAwardLogger pointsAwardLogger;
 
     /**
      * 签到管理器
@@ -46,13 +48,15 @@ public class PointsAwardSignInService implements IRedDotService {
                                     RedissonClient redissonClient,
                                     RedisLock redisLock,
                                     ClusterSystem clusterSystem,
-                                    RedDotManager redDotManager) {
+                                    RedDotManager redDotManager,
+                                    PointsAwardLogger pointsAwardLogger) {
         this.pointsAwardService = pointsAwardService;
         this.playerPackService = playerPackService;
         this.redissonClient = redissonClient;
         this.redisLock = redisLock;
         this.clusterSystem = clusterSystem;
         this.redDotManager = redDotManager;
+        this.pointsAwardLogger = pointsAwardLogger;
     }
 
     public void init(PointsAwardSignInManager manager) {
@@ -235,8 +239,8 @@ public class PointsAwardSignInService implements IRedDotService {
             }
             //签到成功
             if (signCount < manager.getSignInMaxCount()) {
-                getCountMap().put(playerId, signCount + 1);
-                getDateMap().put(playerId, System.currentTimeMillis());
+                getCountMap().fastPut(playerId, signCount + 1);
+                getDateMap().fastPut(playerId, System.currentTimeMillis());
                 return true;
             }
             return false;
@@ -249,6 +253,8 @@ public class PointsAwardSignInService implements IRedDotService {
             if (signInCfg.getGetItem() != null && !signInCfg.getGetItem().isEmpty()) {
                 playerPackService.addItems(playerId, ItemUtils.buildItems(signInCfg.getGetItem()), "积分大奖签到奖励");
             }
+            //记录日志
+            pointsAwardLogger.signInLog(playerId, getSignCount(playerId), signInCfg.getIntegralNum(), pointsAwardService.getPoints(playerId));
         }
         //更新红点
         redDotManager.updateRedDot(this, 0, playerId);

@@ -7,12 +7,16 @@ import com.jjg.game.core.data.LanguageParamData;
 import com.jjg.game.core.manager.AwardCodeManager;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.hall.pointsaward.PointsAwardLogger;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardData;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PointsAwardRankingCfg;
-import org.redisson.api.*;
+import org.redisson.api.RBucket;
+import org.redisson.api.RDeque;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
@@ -47,19 +51,21 @@ public class PointsAwardLeaderboardManager {
     private final RedissonClient redissonClient;
     private final MailService mailService;
     private final AwardCodeManager awardCodeManager;
+    private final PointsAwardLogger pointsAwardLogger;
 
     public PointsAwardLeaderboardManager(PointsAwardLeaderboardService leaderboardService,
                                          RedisLock redisLock,
                                          RedissonClient redissonClient,
                                          MailService mailService,
                                          @Lazy AwardCodeManager awardCodeManager,
-                                         MarsCurator marsCurator) {
+                                         MarsCurator marsCurator, PointsAwardLogger pointsAwardLogger) {
         this.leaderboardService = leaderboardService;
         this.redisLock = redisLock;
         this.redissonClient = redissonClient;
         this.mailService = mailService;
         this.awardCodeManager = awardCodeManager;
         this.marsCurator = marsCurator;
+        this.pointsAwardLogger = pointsAwardLogger;
     }
 
     /**
@@ -383,6 +389,8 @@ public class PointsAwardLeaderboardManager {
                 historyDeque.removeLast();
             }
         });
+        //记录历史记录日志
+        pointsAwardLogger.addLeaderboardHistory(data);
     }
 
     /**

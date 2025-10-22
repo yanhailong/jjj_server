@@ -62,7 +62,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
     /**
      * 锁时间。
      */
-    private static final int LOCK_TIME = 2000;
+    private static final int LOCK_TIME = 10000;
 
     /**
      * 任务管理器 任务服务初始化后才赋值
@@ -152,6 +152,8 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
             //同步到缓存中
             playerTasks.fastPut(taskData.getConfigId(), taskData);
         });
+        //同步到数据库
+        taskDataDao.save(taskData);
     }
 
     /**
@@ -167,40 +169,48 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
         log.info("玩家[{}]触发条件[{}]conditionId[{}]参数[{}]", playerId, condition.getClass().getSimpleName(), condition.getId(), param == null ? "null" : param.toString());
         for (TaskCfg taskCfg : taskCfgList) {
             taskData = playerTasks.get(taskCfg.getId());
-            if (taskData == null) {
-                taskData = taskDataDao.findByPlayerIdAndConfigId(playerId, taskCfg.getId());
-            }
             //接了任务才触发
             if (taskData != null) {
-                boolean isTriggered = condition.trigger(taskCfg, taskData, param);
-                log.info("玩家[{}]触发任务[{}]条件[{}]触发[{}]", playerId, taskCfg.getId(), condition.getClass().getSimpleName(), isTriggered);
-                if (isTriggered) {
-                    LocalDateTime now = LocalDateTime.now();
-                    long timestamp = TimeHelper.getTimestamp(now);
-                    //任务所有条件都完成了
-                    if (taskData.getFinishConditionIds().size() == taskData.getProgress().size()) {
-                        taskData.setCompleteTime(timestamp);
-                        //检测是否有奖励
-                        List<Integer> awardList = taskCfg.getGetItem();
-                        //没有奖励的任务 默认直接完成并且已经领取奖励
-                        if (awardList.isEmpty() && taskCfg.getIntegralNum() <= 0) {
-                            taskData.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
-                            taskData.setRewardTime(timestamp);
-                            taskLogger.receiveTaskAward(playerId, taskData.getConfigId(), null, taskCfg.getIntegralNum());
-                            log.info("玩家[{}]完成任务[{}]任务没有奖励直接修改为已领取状态!", playerId, taskData.getConfigId());
-                        } else {
-                            taskData.setStatus(TaskConstant.TaskStatus.STATUS_COMPLETED);
-                            taskLogger.completeTask(playerId, taskData.getConfigId());
-                            log.info("玩家[{}]完成任务[{}]", playerId, taskData.getConfigId());
-                        }
-                        //任务条件完成了 通知红点
-                        redDotManager.updateRedDot(this, taskCfg.getTaskType(), playerId);
+                TaskData data = redisLock.lockAndGet(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
+                    TaskData tempData = taskDataDao.findByPlayerIdAndConfigId(playerId, taskCfg.getId());
+                    if (tempData == null) {
+                        return null;
                     }
-                    updatePlayerTaskCache(playerId, taskData);
-                    //更新到数据库中
-                    taskDataDao.save(taskData);
+                    boolean isTriggered = condition.trigger(taskCfg, tempData, param);
+                    log.info("玩家[{}]触发任务[{}]条件[{}]触发[{}]", playerId, taskCfg.getId(), condition.getClass().getSimpleName(), isTriggered);
+                    if (isTriggered) {
+                        LocalDateTime now = LocalDateTime.now();
+                        long timestamp = TimeHelper.getTimestamp(now);
+                        //任务所有条件都完成了
+                        if (tempData.getFinishConditionIds().size() == tempData.getProgress().size()) {
+                            tempData.setCompleteTime(timestamp);
+                            //检测是否有奖励
+                            List<Integer> awardList = taskCfg.getGetItem();
+                            //没有奖励的任务 默认直接完成并且已经领取奖励
+                            if (awardList.isEmpty() && taskCfg.getIntegralNum() <= 0) {
+                                tempData.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
+                                tempData.setRewardTime(timestamp);
+                                taskLogger.receiveTaskAward(playerId, tempData.getConfigId(), null, taskCfg.getIntegralNum());
+                                log.info("玩家[{}]完成任务[{}]任务没有奖励直接修改为已领取状态!", playerId, tempData.getConfigId());
+                            } else {
+                                tempData.setStatus(TaskConstant.TaskStatus.STATUS_COMPLETED);
+                                taskLogger.completeTask(playerId, tempData.getConfigId());
+                                log.info("玩家[{}]完成任务[{}]", playerId, tempData.getConfigId());
+                            }
+                        }
+                        return tempData;
+                    }
+                    return null;
+                });
+                if (data != null) {
+                    //同步到缓存中
+                    playerTasks.fastPut(data.getConfigId(), data);
+                    //任务条件完成了 通知红点
+                    redDotManager.updateRedDot(this, taskCfg.getTaskType(), playerId);
                     //通知进度更新
-                    noticeUpdate(playerId, taskData, taskCfg);
+                    noticeUpdate(playerId, data, taskCfg);
+                    //更新到数据库中
+                    taskDataDao.save(data);
                 }
             }
         }
@@ -513,33 +523,41 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
         if (taskDataMap == null) {
             return false;
         }
-        TaskData taskData = taskDataMap.get(taskId);
-        if (taskData == null) {
-            log.info("玩家[{}]领取[{}]任务奖励失败!任务不存在!", playerId, taskId);
-            return false;
-        }
-        //状态不对
-        if (taskData.getStatus() != TaskConstant.TaskStatus.STATUS_COMPLETED) {
-            log.info("玩家[{}]领取[{}]任务奖励失败!任务状态[{}]", playerId, taskId, taskData.getStatus());
-            return false;
-        }
-        List<Integer> getItem = taskCfg.getGetItem();
-        int integralNum = taskCfg.getIntegralNum();
-        //如果有积分奖励通知大厅
-        if (integralNum > 0) {
-            addPlayerPoints(playerId, integralNum, true);
-        }
-        List<Item> itemList = new ArrayList<>();
-        if (!getItem.isEmpty()) {
+        return redisLock.lockAndGet(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
+            TaskData taskData = taskDataMap.get(taskId);
+            if (taskData == null) {
+                log.info("玩家[{}]领取[{}]任务奖励失败!任务不存在!", playerId, taskId);
+                return false;
+            }
+            //状态不对
+            if (taskData.getStatus() != TaskConstant.TaskStatus.STATUS_COMPLETED) {
+                log.info("玩家[{}]领取[{}]任务奖励失败!任务状态[{}]", playerId, taskId, taskData.getStatus());
+                return false;
+            }
+            //修改任务状态
             taskData.setRewardTime(System.currentTimeMillis());
             taskData.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
-            itemList = ItemUtils.buildItems(getItem);
-            playerPackService.addItems(playerId, itemList, "taskAward");
-        }
-        //记录日志
-        taskLogger.receiveTaskAward(playerId, taskId, itemList, integralNum);
-        redDotManager.updateRedDot(this, taskCfg.getTaskType(), playerId);
-        return true;
+            //同步到缓存中
+            taskDataMap.fastPut(taskData.getConfigId(), taskData);
+            //同步到数据库
+            taskDataDao.save(taskData);
+
+            List<Integer> getItem = taskCfg.getGetItem();
+            int integralNum = taskCfg.getIntegralNum();
+            //如果有积分奖励通知大厅
+            if (integralNum > 0) {
+                addPlayerPoints(playerId, integralNum, true);
+            }
+            List<Item> itemList = new ArrayList<>();
+            if (!getItem.isEmpty()) {
+                itemList = ItemUtils.buildItems(getItem);
+                playerPackService.addItems(playerId, itemList, "taskAward");
+            }
+            //记录日志
+            taskLogger.receiveTaskAward(playerId, taskId, itemList, integralNum);
+            redDotManager.updateRedDot(this, taskCfg.getTaskType(), playerId);
+            return true;
+        });
     }
 
     /**
