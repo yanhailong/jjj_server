@@ -229,10 +229,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
             tasks = taskDataDao.findByPlayerId(playerId);
             if (tasks != null) {
                 for (TaskData taskData : tasks) {
-                    //暂时只加载进行中的任务
-                    if (taskData.getStatus() == TaskConstant.TaskStatus.STATUS_IN_PROGRESS) {
-                        playerTasks.fastPut(taskData.getConfigId(), taskData);
-                    }
+                    playerTasks.fastPut(taskData.getConfigId(), taskData);
                 }
             }
         }
@@ -526,36 +523,41 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
         if (taskDataMap == null) {
             return false;
         }
-        TaskData taskData = taskDataMap.get(taskId);
-        if (taskData == null) {
-            log.info("玩家[{}]领取[{}]任务奖励失败!任务不存在!", playerId, taskId);
-            return false;
-        }
-        //状态不对
-        if (taskData.getStatus() != TaskConstant.TaskStatus.STATUS_COMPLETED) {
-            log.info("玩家[{}]领取[{}]任务奖励失败!任务状态[{}]", playerId, taskId, taskData.getStatus());
-            return false;
-        }
-        //修改任务状态
-        taskData.setRewardTime(System.currentTimeMillis());
-        taskData.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
-        //保存任务状态
-        updatePlayerTaskCache(playerId, taskData);
-        List<Integer> getItem = taskCfg.getGetItem();
-        int integralNum = taskCfg.getIntegralNum();
-        //如果有积分奖励通知大厅
-        if (integralNum > 0) {
-            addPlayerPoints(playerId, integralNum, true);
-        }
-        List<Item> itemList = new ArrayList<>();
-        if (!getItem.isEmpty()) {
-            itemList = ItemUtils.buildItems(getItem);
-            playerPackService.addItems(playerId, itemList, "taskAward");
-        }
-        //记录日志
-        taskLogger.receiveTaskAward(playerId, taskId, itemList, integralNum);
-        redDotManager.updateRedDot(this, taskCfg.getTaskType(), playerId);
-        return true;
+        return redisLock.lockAndGet(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
+            TaskData taskData = taskDataMap.get(taskId);
+            if (taskData == null) {
+                log.info("玩家[{}]领取[{}]任务奖励失败!任务不存在!", playerId, taskId);
+                return false;
+            }
+            //状态不对
+            if (taskData.getStatus() != TaskConstant.TaskStatus.STATUS_COMPLETED) {
+                log.info("玩家[{}]领取[{}]任务奖励失败!任务状态[{}]", playerId, taskId, taskData.getStatus());
+                return false;
+            }
+            //修改任务状态
+            taskData.setRewardTime(System.currentTimeMillis());
+            taskData.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
+            //同步到缓存中
+            taskDataMap.fastPut(taskData.getConfigId(), taskData);
+            //同步到数据库
+            taskDataDao.save(taskData);
+
+            List<Integer> getItem = taskCfg.getGetItem();
+            int integralNum = taskCfg.getIntegralNum();
+            //如果有积分奖励通知大厅
+            if (integralNum > 0) {
+                addPlayerPoints(playerId, integralNum, true);
+            }
+            List<Item> itemList = new ArrayList<>();
+            if (!getItem.isEmpty()) {
+                itemList = ItemUtils.buildItems(getItem);
+                playerPackService.addItems(playerId, itemList, "taskAward");
+            }
+            //记录日志
+            taskLogger.receiveTaskAward(playerId, taskId, itemList, integralNum);
+            redDotManager.updateRedDot(this, taskCfg.getTaskType(), playerId);
+            return true;
+        });
     }
 
     /**
