@@ -21,19 +21,12 @@ public class LoginConfigCfg extends BaseCfgBean {
 
   /** 绑定奖励内容 */
   protected Map<Integer,Integer> awardItem;
-  /** 设备类型 */
-  protected int phoneType;
   /** 奖励类型 */
   protected int type;
 
   /** 返回绑定奖励内容 */
   public Map<Integer,Integer> getAwardItem() {
     return awardItem;
-  }
-
-  /** 返回设备类型 */
-  public int getPhoneType() {
-    return phoneType;
   }
 
   /** 返回奖励类型 */

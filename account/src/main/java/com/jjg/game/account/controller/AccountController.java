@@ -3,7 +3,6 @@ package com.jjg.game.account.controller;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.account.config.AccountConfig;
 import com.jjg.game.account.data.*;
-import com.jjg.game.account.dto.LoginConfigDto;
 import com.jjg.game.account.dto.LoginDto;
 import com.jjg.game.account.dto.LoginSmsDto;
 import com.jjg.game.account.dto.ServerUrlDto;
@@ -19,14 +18,12 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.service.SmsService;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.LoginConfigCfg;
 import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 
@@ -57,20 +54,14 @@ public class AccountController extends AbstractController {
      * @return
      */
     @RequestMapping("loginConfig")
-    public WebResult<List<LoginConfigVo>> loginConfig(@RequestBody LoginConfigDto dto) {
-        List<LoginConfigCfg> list = GameDataManager.getLoginConfigCfgList().stream().filter(c -> c.getPhoneType() == dto.getDevice()).toList();
-        if(list.isEmpty()){
-            return success(Collections.emptyList());
-        }
-
-        List<LoginConfigVo> resultList = new ArrayList<>(list.size());
-        list.forEach(config -> {
+    public WebResult<List<LoginConfigVo>> loginConfig() {
+        List<LoginConfigVo> resultList = new ArrayList<>(GameDataManager.getLoginConfigCfgList().size());
+        GameDataManager.getLoginConfigCfgList().forEach(config -> {
             LoginConfigVo vo = new LoginConfigVo();
             vo.setType(config.getType());
             vo.setOpen(true);
             resultList.add(vo);
         });
-
         return success(resultList);
     }
 
