@@ -18,6 +18,7 @@ import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.dao.*;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.AmazonBucketManager;
@@ -25,6 +26,7 @@ import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
+import com.jjg.game.core.pb.NotifyPointsUpdate;
 import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.service.*;
 import com.jjg.game.gm.dto.*;
@@ -116,7 +118,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            boolean saved = gameStatusService.saveOrUpdateGameStatus(new GameStatus(dto.name(),dto.number(),
+            boolean saved = gameStatusService.saveOrUpdateGameStatus(new GameStatus(dto.name(), dto.number(),
                     dto.open(), dto.status(), dto.right_top_icon(), dto.icon_category(), dto.sort()));
 
             if (!saved) {
@@ -703,7 +705,7 @@ public class GMController extends AbstractController {
                 return fail("common.fail");
             }
 
-            if(NodeType.GAME.name().equals(clusterClient.nodeConfig.getType()) &&
+            if (NodeType.GAME.name().equals(clusterClient.nodeConfig.getType()) &&
                     clusterClient.nodeConfig.getGameMajorTypes()[0] != CoreConst.GameMajorType.SLOTS) {
                 log.debug("只能是slots的游戏节点才需要生成结果库 param = {}", param);
                 return fail("common.fail");
@@ -752,7 +754,7 @@ public class GMController extends AbstractController {
 
             //通知大厅节点，商城商品变更
             PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyShopProductChange());
-            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString(),NodeType.GAME.toString(),NodeType.RECHARGE.toString())::contains);
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString(), NodeType.GAME.toString(), NodeType.RECHARGE.toString())::contains);
 
             return success("common.success");
         } catch (Exception e) {
@@ -795,32 +797,32 @@ public class GMController extends AbstractController {
         log.info("收到修改黑名单信息 param={}", dto);
         try {
             boolean none = true;
-            if(dto.ids() != null) {
+            if (dto.ids() != null) {
                 dto.ids().removeIf(Objects::isNull);
-                if(!dto.ids().isEmpty()){
-                    if(dto.type() == 0){
+                if (!dto.ids().isEmpty()) {
+                    if (dto.type() == 0) {
                         blackListDao.addBlackIds(dto.ids());
-                    }else {
+                    } else {
                         blackListDao.removeBlackIds(dto.ids());
                     }
                     none = false;
                 }
             }
 
-            if(dto.ips() != null) {
+            if (dto.ips() != null) {
                 dto.ips().removeIf(ip -> {
                     ip = ip.trim();
                     return StringUtils.isEmpty(ip);
                 });
-                if(!dto.ips().isEmpty()){
+                if (!dto.ips().isEmpty()) {
                     boolean match = dto.ips().stream().allMatch(NetUtil::isValidIP);
-                    if(!match){
+                    if (!match) {
                         log.debug("ip格式错误");
                         return fail("common.fail");
                     }
-                    if(dto.type() == 0){
+                    if (dto.type() == 0) {
                         blackListDao.addBlackIps(dto.ips());
-                    }else {
+                    } else {
                         blackListDao.removeBlackIps(dto.ips());
                     }
 
@@ -828,7 +830,7 @@ public class GMController extends AbstractController {
                 }
             }
 
-            if(none){
+            if (none) {
                 log.debug("黑名单为空...");
                 return fail("common.fail");
             }
@@ -854,7 +856,7 @@ public class GMController extends AbstractController {
         addNodeConfig(nodeConfigList, NodeType.HALL);
         addNodeConfig(nodeConfigList, NodeType.GAME);
         addNodeConfig(nodeConfigList, NodeType.RECHARGE);
-        return success("common.success",nodeConfigList);
+        return success("common.success", nodeConfigList);
     }
 
     /**
@@ -864,16 +866,16 @@ public class GMController extends AbstractController {
      */
     @RequestMapping(BackendGMCmd.CHANG_GAME_NODE_INFO)
     public WebResult<String> changeGameServerInfo(@RequestBody ChangeNodeDto dto) {
-        log.info("收到修改服务器列表信息 dto = {}",dto);
+        log.info("收到修改服务器列表信息 dto = {}", dto);
 
-        try{
-            if(dto.name() == null || dto.name().isEmpty()){
-                log.debug("修改服务器信息错误,节点名不能为空 dto = {}",dto);
+        try {
+            if (dto.name() == null || dto.name().isEmpty()) {
+                log.debug("修改服务器信息错误,节点名不能为空 dto = {}", dto);
                 return fail("common.paramerror");
             }
             ClusterClient clusterClient = clusterSystem.getNodesByName(dto.name());
-            if(clusterClient == null){
-                log.debug("修改服务器信息错误,未找到该节点 dto = {}",dto);
+            if (clusterClient == null) {
+                log.debug("修改服务器信息错误,未找到该节点 dto = {}", dto);
                 return fail("common.paramerror");
             }
 
@@ -885,7 +887,7 @@ public class GMController extends AbstractController {
             PFMessage pfMessage = MessageUtil.getPFMessage(notify);
             clusterClient.write(new ClusterMessage(pfMessage));
             return success("common.success");
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
         }
@@ -899,18 +901,18 @@ public class GMController extends AbstractController {
      */
     @RequestMapping(BackendGMCmd.UPDATE_EXCEL_CONFIGS)
     public WebResult<String> updateExcelConfigs(@RequestBody UpdateExcelConfigsDto dto) {
-        log.info("收到excel配置表更新请求 dto = {}",dto);
+        log.info("收到excel配置表更新请求 dto = {}", dto);
 
-        try{
-            if(dto.nameList() == null || dto.nameList().isEmpty()){
-                log.debug("更新excel配置表错误,名称列表不能为空 dto = {}",dto);
+        try {
+            if (dto.nameList() == null || dto.nameList().isEmpty()) {
+                log.debug("更新excel配置表错误,名称列表不能为空 dto = {}", dto);
                 return fail("common.paramerror");
             }
 
             //获取除 gate 之外的所有节点
             List<ClusterClient> clusterList = clusterSystem.getAllExcept(NodeType.GATE);
-            if(clusterList == null || clusterList.isEmpty()){
-                log.debug("更新excel配置表错误,获取节点列表为空 dto = {}",dto);
+            if (clusterList == null || clusterList.isEmpty()) {
+                log.debug("更新excel配置表错误,获取节点列表为空 dto = {}", dto);
                 return fail("common.paramerror");
             }
 
@@ -918,11 +920,11 @@ public class GMController extends AbstractController {
             notify.nameList = dto.nameList();
 
             PFMessage pfMessage = MessageUtil.getPFMessage(notify);
-            clusterSystem.sendClusterMessage(pfMessage,clusterList);
+            clusterSystem.sendClusterMessage(pfMessage, clusterList);
 
             amazonBucketManager.dowmloadFiles(dto.nameList());
             return success("common.success");
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
         }
@@ -935,29 +937,60 @@ public class GMController extends AbstractController {
      */
     @RequestMapping(BackendGMCmd.CHANGE_LOGIN_CONFIG)
     public WebResult<String> changeLoginConfig(@RequestBody ChangeLoginConfigDto dto) {
-        log.info("收到更新登录配置的请求 dto = {}",dto);
+        log.info("收到更新登录配置的请求 dto = {}", dto);
 
-        try{
+        try {
             LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(c -> c.getType() == dto.loginType()).findFirst().orElse(null);
-            if(loginConfigCfg == null){
-                log.debug("修改登录配置失败,未找到对应的配置文件 dto = {}",dto);
+            if (loginConfigCfg == null) {
+                log.debug("修改登录配置失败,未找到对应的配置文件 dto = {}", dto);
                 return fail("common.paramerror");
             }
 
-            loginConfigService.save(dto.loginType(),dto.open());
+            loginConfigService.save(dto.loginType(), dto.open());
 
             PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyLoadLoginConfig());
-            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.ACCOUNT.toString(),NodeType.HALL.toString())::contains);
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.ACCOUNT.toString(), NodeType.HALL.toString())::contains);
             return success("common.success");
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
         }
 
     }
 
+    @RequestMapping(BackendGMCmd.CHANGE_PLAYER_POINTS)
+    public WebResult<String> changePoints(@RequestBody ChangePointsDto dto) {
+        log.info("收到修改玩家积分大奖积分请求 dto = {}", dto);
+        try {
+            int points = dto.points();
+            if (points <= 0 || dto.playerId() <= 0) {
+                return fail("common.paramerror");
+            }
+            changePlayerPoints(dto.playerId(), points, dto.flag());
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
 
     //****************************************************************************************************************/
+
+    /**
+     * 修改玩家积分
+     *
+     * @param playerId 玩家id
+     * @param value    变化值
+     * @param flag     变化 true增加 false扣除
+     */
+    public void changePlayerPoints(long playerId, int value, boolean flag) {
+        NotifyPointsUpdate notifyPointsUpdate = new NotifyPointsUpdate();
+        notifyPointsUpdate.setFlag(flag);
+        notifyPointsUpdate.setPlayerId(playerId);
+        notifyPointsUpdate.setValue(value);
+        notifyPointsUpdate.setType(PointsAwardType.GM);
+        clusterSystem.notifyNode(MessageUtil.getPFMessage(notifyPointsUpdate), Set.of(NodeType.HALL.toString())::contains);
+    }
 
     /**
      *
@@ -1029,10 +1062,10 @@ public class GMController extends AbstractController {
             vo.setHttpAddress(node.getNodeConfig().getHttpAddress());
             vo.setWeight(node.getNodeConfig().getWeight());
 
-            if(node.getNodeConfig().getWhiteIpList() != null && node.getNodeConfig().getWhiteIpList().length > 0){
+            if (node.getNodeConfig().getWhiteIpList() != null && node.getNodeConfig().getWhiteIpList().length > 0) {
                 vo.setWhiteIpList(Arrays.stream(node.getNodeConfig().getWhiteIpList()).toList());
             }
-            if(node.getNodeConfig().getWhiteIdList() != null && node.getNodeConfig().getWhiteIdList().length > 0){
+            if (node.getNodeConfig().getWhiteIdList() != null && node.getNodeConfig().getWhiteIdList().length > 0) {
                 vo.setWhiteIdList(Arrays.stream(node.getNodeConfig().getWhiteIdList()).toList());
             }
             nodeList.add(vo);

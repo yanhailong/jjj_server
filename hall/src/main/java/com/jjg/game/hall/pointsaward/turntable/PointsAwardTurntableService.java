@@ -163,16 +163,6 @@ public class PointsAwardTurntableService {
     }
 
     /**
-     * 获取到第二天0点剩余的时间
-     */
-    public Duration getNextTime() {
-        // 计算距离下一个 0 点的时间（单位：秒）
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime midnight = now.toLocalDate().plusDays(1).atStartOfDay();
-        return Duration.between(now, midnight);
-    }
-
-    /**
      * 获取转盘配置
      */
     public PointsAwardTurntableCfg getCfg(int gridId) {
@@ -255,7 +245,7 @@ public class PointsAwardTurntableService {
                 history.getItemInfoList().addAll(ItemUtils.buildItemInfos(awardTurntableCfg.getGetItem()));
                 addHistory(history);
                 //增加玩家转盘次数
-                countMap.put(playerId, countMap.getOrDefault(playerId, 0) + 1);
+                countMap.fastPut(playerId, countMap.getOrDefault(playerId, 0) + 1);
             } else {
                 log.warn("玩家[{}]积分大奖转盘奖励发送失败!中奖id[{}]配置不存在!", playerId, selectedId);
             }
@@ -318,7 +308,7 @@ public class PointsAwardTurntableService {
     public void replaceCount(long playerId, int count) {
         RLock lock = addCountMap.getReadWriteLock(playerId).writeLock();
         if (lock.tryLock()) {
-            addCountMap.put(playerId, count);
+            addCountMap.fastPut(playerId, count);
             lock.unlock();
         }
     }

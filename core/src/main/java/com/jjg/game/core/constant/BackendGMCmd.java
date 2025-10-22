@@ -34,12 +34,6 @@ public interface BackendGMCmd {
     String SAVE_SHOP_PRODUCTS = "saveShopProducts";
     //删除商品
     String DEL_SHOP_PRODUCTS = "delShopProducts";
-    //获取夺宝奇兵配置列表
-    String LUCKY_TREASURE_CONFIG_LIST = "luckyTreasureConfigList";
-    //添加/更新配置
-    String REPLACE_LUCKY_TREASURE_CONFIG = "replaceLuckyTreasureConfig";
-    //删除配置
-    String DELETE_LUCKY_TREASURE_CONFIG = "deleteLuckyTreasureConfig";
     //修改黑名单
     String CHANGE_BLACK_LIST = "changeBlackList";
     //服务器节点列表
@@ -53,6 +47,8 @@ public interface BackendGMCmd {
     String UPDATE_EXCEL_CONFIGS = "updateExcelConfigs";
     //更新登录配置
     String CHANGE_LOGIN_CONFIG = "changeLoginConfig";
+    //修改玩家积分大奖的积分
+    String CHANGE_PLAYER_POINTS = "changePlayerPoints";
 
     /**
      * 配置相关q

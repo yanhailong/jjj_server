@@ -5,6 +5,7 @@ import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
+import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -123,6 +124,7 @@ public class PointsAwardService implements IPlayerLoginSuccess {
      *
      * @param playerId    玩家id
      * @param pointsAward 增加的积分
+     * @param type        {@link PointsAwardType}
      */
     public void add(long playerId, int pointsAward, int type) {
         if (pointsAward <= 0) {
@@ -351,7 +353,7 @@ public class PointsAwardService implements IPlayerLoginSuccess {
         if (lock.tryLock()) {
             long resultValue = getRecharge(playerId) + price;
             //增加玩家充值金额
-            rechargeMap.put(playerId, resultValue);
+            rechargeMap.fastPut(playerId, resultValue);
             lock.unlock();
         }
     }
