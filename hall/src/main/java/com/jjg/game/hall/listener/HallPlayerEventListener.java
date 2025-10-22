@@ -116,7 +116,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             if (playerSessionToken == null) {
                 res.code = Code.ERROR_REQ;
                 session.send(res);
-                log.debug("没有从db中找到playerSessionToken对象,登录失败, playerId = {}", req.playerId);
+                log.debug("没有从redis中找到playerSessionToken对象,登录失败, playerId = {}", req.playerId);
                 session.verifyPassFail();
                 return;
             }

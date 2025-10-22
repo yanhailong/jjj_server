@@ -148,7 +148,7 @@ public class AccountController extends AbstractController {
             //从数据库查询PlayerSessionToken对象信息
             PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
             if (playerSessionToken == null) {
-                log.debug("没有从db中找到playerSessionToken对象,登录失败, playerId = {}", playerId);
+                log.debug("没有从redis中找到playerSessionToken对象,登录失败, playerId = {}", playerId);
                 return fail(Code.ERROR_REQ);
             }
 
