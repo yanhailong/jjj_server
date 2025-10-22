@@ -143,7 +143,10 @@ public class OfficialAwardsController extends BaseActivityController implements 
             return res;
         }
         addPlayerRecord(player, activityData.getId(), getRewards);
-        res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem().getFirst(), totalGet);
+        res.infoList = new ArrayList<>();
+        for (Integer getReward : getRewards) {
+            res.infoList.add(ItemUtils.buildItemInfo(cfg.getGetitem().getFirst(), getReward));
+        }
         res.remainPoint = remainPoint;
         res.totalPool = reducedPair.getSecond();
         res.rewardDetailId = cfg.getId();
