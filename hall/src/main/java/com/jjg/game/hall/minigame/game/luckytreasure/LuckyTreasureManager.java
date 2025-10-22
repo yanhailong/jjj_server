@@ -10,6 +10,7 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.config.bean.LuckyTreasureConfig;
 import com.jjg.game.core.constant.AwardCodeType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
@@ -21,9 +22,12 @@ import com.jjg.game.hall.minigame.MinigameManager;
 import com.jjg.game.hall.minigame.event.MinigameReadyEvent;
 import com.jjg.game.hall.minigame.game.luckytreasure.bean.LuckyTreasureTimerEvent;
 import com.jjg.game.hall.minigame.game.luckytreasure.service.LuckyTreasureService;
+import com.jjg.game.hall.minigame.game.luckytreasure.util.LuckyTreasureStatusUtil;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
+import com.jjg.game.sampledata.bean.RobotCfg;
+import org.redisson.api.RLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -90,6 +94,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      */
     @EventListener(MinigameReadyEvent.class)
     public void init(MinigameReadyEvent event) {
+        //幸运夺宝小游戏开启了才初始化
         if (event.getGameId() == LuckyTreasureConstant.Common.GAME_ID) {
             redisLock.tryLockAndRun(LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_INIT, () -> {
                 //检测服务器重启后是否有未处理数据
@@ -99,12 +104,14 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             });
             //初始化服务
             luckyTreasureService.init();
+            //监听配置文件变化 如果有新增的夺宝奇兵配置则直接开始
+            configManager.addUpdateConfigListener(LuckyTreasureConfig.class, (a, b, c) -> {
+                log.info("夺宝奇兵配置更新!检测是否需要新增!id={}", c.getId());
+                startNewActivityForConfig(c);
+            });
+            //初始化机器人购买定时器
+            initRobotTimer();
         }
-        //监听配置文件变化 如果有新增的夺宝奇兵配置则直接开始
-        configManager.addUpdateConfigListener(LuckyTreasureConfig.class, (a, b, c) -> {
-            log.info("夺宝奇兵配置更新!检测是否需要新增!id={}", c.getId());
-            startNewActivityForConfig(c);
-        });
     }
 
     /**
@@ -136,22 +143,191 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         if (event == null) {
             return;
         }
-
         long issueNumber = event.issueNumber();
         LuckyTreasureTimerEvent.TimerType timerType = event.timerType();
-
         try {
-            // 只有主节点才处理定时器事件
-            if (!isCurrentNodeMaster()) {
-                return;
+            //机器人购买
+            if (timerType == LuckyTreasureTimerEvent.TimerType.ROBOT_BUY) {
+                robotBuy(issueNumber);
+            } else {
+                // 只有主节点才处理定时器事件
+                if (!isCurrentNodeMaster()) {
+                    return;
+                }
+                //结束
+                if (timerType == LuckyTreasureTimerEvent.TimerType.ACTIVITY_END) {
+                    handleActivityEndTimer(issueNumber);
+                }
             }
-
-            if (timerType == LuckyTreasureTimerEvent.TimerType.ACTIVITY_END) {
-                handleActivityEndTimer(issueNumber);
-            }
-
         } catch (Exception e) {
             log.error("处理夺宝奇兵定时器事件失败，期号: {}, 类型: {}", issueNumber, timerType, e);
+        }
+    }
+
+    /**
+     * 初始化机器人购买定时器
+     */
+    public void initRobotTimer() {
+        List<LuckyTreasure> activeTreasures = luckyTreasureRedisDao.getActiveTreasures();
+        if (activeTreasures != null && !activeTreasures.isEmpty()) {
+            activeTreasures.forEach(activeTreasure -> {
+                if (checkRobotBuy(activeTreasure)) {
+                    //添加机器人购买定时器
+                    addRobotBuyTimer(activeTreasure);
+                }
+            });
+        }
+    }
+
+    /**
+     * 检查是否符合机器人购买的逻辑。
+     *
+     * @param activeTreasure 当前活跃的夺宝奇兵活动实例。
+     * @return 如果符合机器人购买条件返回true，否则返回false。
+     */
+    public boolean checkRobotBuy(LuckyTreasure activeTreasure) {
+        if (activeTreasure == null) {
+            return false;
+        }
+        if (activeTreasure.getEndTime() > 0) {
+            return false;
+        }
+        LuckyTreasureConfig config = activeTreasure.getConfig();
+        //机器人购买限制
+        List<Integer> robotSinglePurchase = config.getRobotSinglePurchase();
+        if (robotSinglePurchase == null || robotSinglePurchase.isEmpty()) {
+            return false;
+        }
+        List<RobotCfg> robotCfgList = GameDataManager.getRobotCfgList();
+        if (robotCfgList == null || robotCfgList.isEmpty()) {
+            return false;
+        }
+        RobotCfg robotCfg = robotCfgList.get(RandomUtils.randomMinMax(0, robotCfgList.size() - 1));
+        if (robotCfg == null) {
+            return false;
+        }
+        int total = config.getTotal();
+        //机器人购买上限万分比
+        int robotHaveMax = config.getRobotHaveMax();
+        // 当前售出的数量
+        int soldCount = activeTreasure.getSoldCount();
+        //库存限制 机器人不能在低于这个库存的时候再进行购买逻辑
+        int limitCount = robotHaveMax * total / 10000;
+        //不买了
+        return soldCount >= limitCount;
+    }
+
+    /**
+     * 机器人购买逻辑
+     */
+    public void robotBuy(long issueNumber) {
+        LuckyTreasure treasureDetails = luckyTreasureRedisDao.getTreasureByIssueNumber(issueNumber);
+        if (treasureDetails == null) {
+            return;
+        }
+        LuckyTreasureConfig config = treasureDetails.getConfig();
+        //机器人购买限制
+        List<Integer> robotSinglePurchase = config.getRobotSinglePurchase();
+        if (robotSinglePurchase == null || robotSinglePurchase.isEmpty()) {
+            return;
+        }
+        List<RobotCfg> robotCfgList = GameDataManager.getRobotCfgList();
+        if (robotCfgList == null || robotCfgList.isEmpty()) {
+            return;
+        }
+        RobotCfg robotCfg = robotCfgList.get(RandomUtils.randomMinMax(0, robotCfgList.size() - 1));
+        if (robotCfg == null) {
+            return;
+        }
+        //不能购买
+        if (!checkRobotBuy(treasureDetails)) {
+            return;
+        }
+        //总库存
+        int total = config.getTotal();
+        //机器人购买上限万分比
+        int robotHaveMax = config.getRobotHaveMax();
+        //库存限制 机器人不能在低于这个库存的时候再进行购买逻辑
+        int limitCount = robotHaveMax * total / 10000;
+        //随机购买数量万分比
+        int buyCountPr = RandomUtils.randomMinMax(robotSinglePurchase.getFirst(), robotSinglePurchase.getLast());
+        //当前总购买数量
+        int totalBuy = buyCountPr * total / 10000;
+        // 使用读写锁确保购买的一致性
+        String lockKey = LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_BUY + issueNumber;
+        try {
+            // 获取写锁进行购买操作
+            RLock writeLock = redisLock.getWriteLock(lockKey, 100);
+            if (writeLock != null && writeLock.tryLock()) {
+                try {
+                    //在写锁中重新获取最新数据
+                    LuckyTreasure latestTreasure = luckyTreasureRedisDao.getTreasureByIssueNumber(issueNumber);
+                    //购买
+                    int resultCode = robotBuyWithoutLock(robotCfg.getId(), latestTreasure, totalBuy);
+                    if (resultCode == Code.SUCCESS) {
+                        //购买成功通知更新 广播到所有节点
+                        luckyTreasureService.broadcastUpdate(latestTreasure.getIssueNumber());
+                    }
+                } finally {
+                    writeLock.unlock();
+                }
+            }
+        } catch (Exception e) {
+            log.error("夺宝奇兵 机器人购买失败!", e);
+        }
+        // 使用读写锁确保购买的一致性
+        try {
+            // 获取写锁进行购买操作
+            RLock readLock = redisLock.getReadLock(lockKey);
+            if (readLock != null) {
+                try {
+                    readLock.lock();
+                    //在写锁中重新获取最新数据
+                    LuckyTreasure latestTreasure = luckyTreasureRedisDao.getTreasureByIssueNumber(issueNumber);
+                    // 当前售出的数量
+                    int soldCount = latestTreasure.getSoldCount();
+                    //不买了
+                    if (soldCount >= limitCount) {
+                        return;
+                    }
+                    //继续出发机器人购买
+                    addRobotBuyTimer(latestTreasure);
+                } finally {
+                    readLock.unlock();
+                }
+            }
+        } catch (Exception e) {
+            log.error("夺宝奇兵 机器人购买失败!", e);
+        }
+        //购买失败的话继续添加定时器
+        addRobotBuyTimer(treasureDetails);
+    }
+
+    /**
+     * 执行购买逻辑（在写锁内执行，道具已扣除）
+     */
+    private int robotBuyWithoutLock(long playerId, LuckyTreasure latestTreasure, int count) {
+        try {
+            if (latestTreasure == null || LuckyTreasureStatusUtil.calculateStatus(latestTreasure, playerId) != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
+                return Code.FAIL;
+            }
+            // 检查剩余数量
+            int remainingCount = latestTreasure.getConfig().getTotal() - latestTreasure.getSoldCount();
+            if (remainingCount < count) {
+                return Code.FAIL;
+            }
+            // 执行购买
+            latestTreasure = luckyTreasureRedisDao.buyTreasure(latestTreasure.getIssueNumber(), playerId, count);
+            if (latestTreasure == null) {
+                return Code.FAIL;
+            }
+            // 购买成功，更新数据库
+            luckyTreasureDao.save(latestTreasure);
+            log.info("夺宝奇兵机器人购买成功, 机器人ID:{}, 期号:{}, 购买数量:{}", playerId, latestTreasure.getIssueNumber(), count);
+            return Code.SUCCESS;
+        } catch (Exception e) {
+            log.error("执行购买逻辑失败", e);
+            return Code.EXCEPTION;
         }
     }
 
@@ -246,6 +422,36 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             luckyTreasureService.broadcastUpdate(newRound.getIssueNumber());
             log.info("启动新的夺宝奇兵活动，配置ID: {}, 期号: {}", config.getId(), newRound.getIssueNumber());
         });
+    }
+
+    /**
+     * 注册机器人购买定时器
+     */
+    public void addRobotBuyTimer(LuckyTreasure newRound) {
+        long issueNumber = newRound.getIssueNumber();
+        LuckyTreasureConfig config = newRound.getConfig();
+        if (config.getRobotHaveMax() <= 0) {
+            return;
+        }
+        //机器人购买间隔
+        List<Integer> buyTimeList = config.getRobotTime();
+        if (buyTimeList == null || buyTimeList.isEmpty()) {
+            return;
+        }
+        //间隔时间
+        int interval = RandomUtils.randomMinMax(buyTimeList.getFirst(), buyTimeList.getLast());
+        //注册机器人购买定时器
+        TimerEvent<LuckyTreasureTimerEvent> buyTimer = new TimerEvent<>(
+                this,
+                new LuckyTreasureTimerEvent(issueNumber, LuckyTreasureTimerEvent.TimerType.ROBOT_BUY),
+                0, // 不重复执行
+                1, // 只执行一次
+                interval, // 延迟时间
+                false // 相对时间
+        );
+        // 添加到定时器中心
+        timerCenter.add(buyTimer);
+        log.info("夺宝奇兵期号[{}],configId[{}]增加机器人购买定时器!", issueNumber, config.getId());
     }
 
     /**

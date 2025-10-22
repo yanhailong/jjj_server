@@ -3,11 +3,17 @@ package com.jjg.game.core.dao.luckytreasure;
 import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.core.data.LuckyTreasure;
 import com.jjg.game.core.data.LuckyTreasureBuyRecord;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.redisson.api.RAtomicLong;
+import org.redisson.api.RBucket;
+import org.redisson.api.RKeys;
+import org.redisson.api.RedissonClient;
+import org.redisson.api.options.KeysScanOptions;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * 夺宝奇兵redis操作类
@@ -15,10 +21,10 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class LuckyTreasureRedisDao {
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final RedissonClient redissonClient;
 
-    public LuckyTreasureRedisDao(RedisTemplate<String, Object> redisTemplate) {
-        this.redisTemplate = redisTemplate;
+    public LuckyTreasureRedisDao(RedissonClient redissonClient) {
+        this.redissonClient = redissonClient;
     }
 
 
@@ -27,7 +33,8 @@ public class LuckyTreasureRedisDao {
      */
     public boolean hasActiveRound(int configId) {
         String configMappingKey = buildConfigMappingKey(configId);
-        return redisTemplate.hasKey(configMappingKey);
+        RBucket<Long> bucket = redissonClient.getBucket(configMappingKey);
+        return bucket.isExists();
     }
 
     /**
@@ -36,11 +43,15 @@ public class LuckyTreasureRedisDao {
     public void saveActiveRound(LuckyTreasure luckyTreasure, int expireMinutes) {
         // 直接按期号存储活动数据，实现一次查询
         String issueKey = buildIssueMappingKey(luckyTreasure.getIssueNumber());
-        redisTemplate.opsForValue().set(issueKey, luckyTreasure, expireMinutes, TimeUnit.MINUTES);
+        RBucket<LuckyTreasure> issueBucket = redissonClient.getBucket(issueKey);
+        issueBucket.set(luckyTreasure);
+        issueBucket.expire(Duration.ofMinutes(expireMinutes));
 
         // 同时维护configId到期号的映射，用于按配置ID查询
         String configMappingKey = buildConfigMappingKey(luckyTreasure.getConfig().getId());
-        redisTemplate.opsForValue().set(configMappingKey, luckyTreasure.getIssueNumber(), expireMinutes, TimeUnit.MINUTES);
+        RBucket<Long> configBucket = redissonClient.getBucket(configMappingKey);
+        configBucket.set(luckyTreasure.getIssueNumber());
+        configBucket.expire(Duration.ofMinutes(expireMinutes));
     }
 
     /**
@@ -48,7 +59,8 @@ public class LuckyTreasureRedisDao {
      */
     public LuckyTreasure getActiveRound(int configId) {
         String configMappingKey = buildConfigMappingKey(configId);
-        Long issueNumber = (Long) redisTemplate.opsForValue().get(configMappingKey);
+        RBucket<Long> configBucket = redissonClient.getBucket(configMappingKey);
+        Long issueNumber = configBucket.get();
 
         if (issueNumber != null) {
             return getTreasureByIssueNumber(issueNumber);
@@ -61,8 +73,8 @@ public class LuckyTreasureRedisDao {
      * 根据Redis Key获取活跃活动
      */
     public LuckyTreasure getActiveRoundByKey(String redisKey) {
-        Object obj = redisTemplate.opsForValue().get(redisKey);
-        return obj instanceof LuckyTreasure ? (LuckyTreasure) obj : null;
+        RBucket<LuckyTreasure> bucket = redissonClient.getBucket(redisKey);
+        return bucket.get();
     }
 
     /**
@@ -77,14 +89,16 @@ public class LuckyTreasureRedisDao {
      */
     public void removeActiveRoundByIssueNumber(long issueNumber) {
         String issueKey = buildIssueMappingKey(issueNumber);
-        LuckyTreasure treasure = (LuckyTreasure) redisTemplate.opsForValue().get(issueKey);
+        RBucket<LuckyTreasure> issueBucket = redissonClient.getBucket(issueKey);
+        LuckyTreasure treasure = issueBucket.get();
 
         if (treasure != null) {
             // 删除期号Key
-            redisTemplate.delete(issueKey);
+            issueBucket.delete();
             // 删除配置映射
             String configMappingKey = buildConfigMappingKey(treasure.getConfig().getId());
-            redisTemplate.delete(configMappingKey);
+            RBucket<Long> configBucket = redissonClient.getBucket(configMappingKey);
+            configBucket.delete();
         }
     }
 
@@ -93,12 +107,16 @@ public class LuckyTreasureRedisDao {
      */
     public long generateIssueNumber(int configId, String today) {
         String key = buildDailyCounterKey(configId, today);
-        Long counter = redisTemplate.opsForValue().increment(key);
-        if (counter != null && counter == 1) {
+        RAtomicLong counter = redissonClient.getAtomicLong(key);
+
+        // 使用原子操作递增
+        long result = counter.incrementAndGet();
+        if (result == 1) {
             // 设置过期时间为第二天
-            redisTemplate.expire(key, 24, TimeUnit.HOURS);
+            counter.expire(Duration.ofHours(24));
         }
-        return counter != null ? counter : 1L;
+
+        return result;
     }
 
     /**
@@ -106,7 +124,13 @@ public class LuckyTreasureRedisDao {
      */
     public List<String> getAllActiveRoundKeys() {
         String pattern = LuckyTreasureConstant.RedisKey.LUCKY_TREASURE_ROUND_DATA_ISSUE + "*";
-        return redisTemplate.keys(pattern).stream().toList();
+        RKeys keys = redissonClient.getKeys();
+        Iterable<String> keyIterable = keys.getKeys(KeysScanOptions.defaults().pattern(pattern));
+        List<String> keyList = new ArrayList<>();
+        for (String key : keyIterable) {
+            keyList.add(key);
+        }
+        return keyList;
     }
 
     /**
@@ -115,8 +139,11 @@ public class LuckyTreasureRedisDao {
     public List<LuckyTreasure> getActiveTreasures() {
         List<String> keys = getAllActiveRoundKeys();
         return keys.stream()
-                .map(key -> (LuckyTreasure) redisTemplate.opsForValue().get(key))
-                .toList();
+                .map(key -> {
+                    RBucket<LuckyTreasure> bucket = redissonClient.getBucket(key);
+                    return bucket.get();
+                })
+                .collect(Collectors.toList());
     }
 
     /**
@@ -125,12 +152,12 @@ public class LuckyTreasureRedisDao {
     public LuckyTreasure getTreasureByIssueNumber(long issueNumber) {
         // 直接按期号获取活动数据，只需要一次Redis查询
         String issueKey = buildIssueMappingKey(issueNumber);
-        Object obj = redisTemplate.opsForValue().get(issueKey);
-        return obj instanceof LuckyTreasure ? (LuckyTreasure) obj : null;
+        RBucket<LuckyTreasure> bucket = redissonClient.getBucket(issueKey);
+        return bucket.get();
     }
 
     /**
-     * 购买夺宝奇兵（原子操作）
+     * 购买夺宝奇兵
      */
     public LuckyTreasure buyTreasure(long issueNumber, long playerId, int count) {
         LuckyTreasure treasure = getTreasureByIssueNumber(issueNumber);

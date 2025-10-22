@@ -366,25 +366,23 @@ public class PointsAwardLeaderboardManager {
      * @param data 排行数据
      */
     public void addHistory(PointsAwardLeaderboardData data) {
-        RMap<Integer, RDeque<PointsAwardLeaderboardData>> rankingHistoryMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_HISTORY + data.getRankType());
-        RLock rLock = rankingHistoryMap.getLock(data.getRankType());
-        boolean tryLock = rLock.tryLock();
-        try {
-            if (!tryLock) {
-                return;
+        // 历史记录队列的 Redis key
+        String historyKey = PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_HISTORY + data.getRankType();
+        // 锁 key
+        String lockKey = PointsAwardConstant.RedisLockKey.POINTS_AWARD_RANKING_HISTORY_LOCK + data.getRankType();
+
+        redisLock.lockAndRun(lockKey, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, () -> {
+            // 获取对应排行榜类型的历史记录队列
+            RDeque<PointsAwardLeaderboardData> historyDeque = redissonClient.getDeque(historyKey);
+
+            // 在队列头部插入最新数据
+            historyDeque.addFirst(data);
+
+            // 如果超出最大历史记录数量则删除最后一条
+            if (historyDeque.size() > PointsAwardConstant.Leaderboard.MAX_HISTORY_SIZE) {
+                historyDeque.removeLast();
             }
-            RDeque<PointsAwardLeaderboardData> rankingHistoryDeque = rankingHistoryMap.get(data.getRankType());
-            if (rankingHistoryDeque != null) {
-                rankingHistoryDeque.addFirst(data);
-                if (rankingHistoryDeque.size() > PointsAwardConstant.Leaderboard.MAX_HISTORY_SIZE) {
-                    rankingHistoryDeque.removeLast();
-                }
-                //回写数据
-                rankingHistoryMap.fastPut(data.getRankType(), rankingHistoryDeque);
-            }
-        } finally {
-            rLock.unlock();
-        }
+        });
     }
 
     /**

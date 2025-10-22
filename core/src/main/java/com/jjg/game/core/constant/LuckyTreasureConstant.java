@@ -26,11 +26,6 @@ public interface LuckyTreasureConstant {
      */
     interface RedisKey {
         /**
-         * 夺宝奇兵配置缓存key
-         */
-        String LUCKY_TREASURE_CONFIG = "luckyTreasure:config:";
-
-        /**
          * 活跃活动状态key前缀
          */
         String LUCKY_TREASURE_ACTIVE = "luckyTreasure:active:";
@@ -41,20 +36,9 @@ public interface LuckyTreasureConstant {
         String LUCKY_TREASURE_DAILY_COUNTER = "luckyTreasure:dailyCounter:";
 
         /**
-         * 活动数据缓存key前缀
-         */
-        String LUCKY_TREASURE_ROUND_DATA = "luckyTreasure:roundData:";
-
-        /**
          * 期号映射key前缀
          */
         String LUCKY_TREASURE_ROUND_DATA_ISSUE = "luckyTreasure:issue:";
-
-        /**
-         * 用来同步每个节点变化的夺宝奇兵活动库存
-         */
-        String LUCKY_TREASURE_UPDATE_CHANEL = "luckyTreasure:updateInfo:chanel:";
-
     }
 
     /**

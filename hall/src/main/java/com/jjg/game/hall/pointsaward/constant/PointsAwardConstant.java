@@ -14,47 +14,47 @@ public interface PointsAwardConstant {
         /**
          * 玩家积分
          */
-        String POINTS_AWARD_DATA_POINTS = "pointsAwardDataPoints:";
+        String POINTS_AWARD_DATA_POINTS = "pointsAward:dataPoints:";
         /**
          * 签到次数
          */
-        String POINTS_AWARD_SING_IN_COUNT = "pointsAwardSingIn:count:";
+        String POINTS_AWARD_SING_IN_COUNT = "pointsAward:singIn:count:";
         /**
          * 最后一次签到时间
          */
-        String POINTS_AWARD_SING_IN_DATE = "pointsAwardSingIn:date:";
+        String POINTS_AWARD_SING_IN_DATE = "pointsAward:singIn:date:";
         /**
          * 积分大奖排行榜
          */
-        String POINTS_AWARD_RANKING = "pointsAwardRanking:";
+        String POINTS_AWARD_RANKING = "pointsAward:ranking:";
         /**
          * 转盘历史记录
          */
-        String POINTS_AWARD_TURNTABLE_HISTORY = "pointsAwardTurntableHistory:";
+        String POINTS_AWARD_TURNTABLE_HISTORY = "pointsAward:history:turntable:";
         /**
-         * 转盘当前最大次数
+         * 转盘当前使用次数
          */
-        String TURNTABLE_COUNT = "turntableCount:";
+        String TURNTABLE_COUNT = "pointsAward:turntable:count:";
         /**
          * 转盘增加的次数
          */
-        String TURNTABLE_ADD_COUNT = "turntableAddCount:";
+        String TURNTABLE_ADD_COUNT = "pointsAward:turntable:addCount:";
         /**
          * 玩家的排行榜历史记录
          */
-        String POINTS_AWARD_PLAYER_RANKING_HISTORY = "pointsAwardPlayerRankingHistory:";
+        String POINTS_AWARD_PLAYER_RANKING_HISTORY = "pointsAward:history:ranking:player:";
         /**
          * 所有排行榜的历史记录
          */
-        String POINTS_AWARD_RANKING_HISTORY = "pointsAwardRankingHistory:";
+        String POINTS_AWARD_RANKING_HISTORY = "pointsAward:history:ranking:";
         /**
          * 积分大奖积分阶梯奖励领取记录
          */
-        String POINTS_AWARD_LADDER_REWARDS_RECEIVE = "pointsAwardLadderRewardsReceive:";
+        String POINTS_AWARD_LADDER_REWARDS_RECEIVE = "pointsAward:ladderRewards:receive:";
         /**
          * 玩家积分大奖累计充值金额记录
          */
-        String POINTS_AWARD_RECHARGE = "pointsAwardRecharge:";
+        String POINTS_AWARD_RECHARGE = "pointsAward:recharge:";
     }
 
     /**
@@ -76,11 +76,15 @@ public interface PointsAwardConstant {
         /**
          * 玩家积分大奖数据初始化锁
          */
-        String POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT = "pointsAwardDataLock:turntable:init";
+        String POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT = "pointsAwardDataLockTurntableInit";
         /**
          * 玩家排行榜奖励和历史记录锁
          */
         String PLAYER_RANKING_AWARD_LOCK = "playerRankingAwardLock:";
+        /**
+         * 所有排行榜的历史记录记录锁
+         */
+        String POINTS_AWARD_RANKING_HISTORY_LOCK = "pointsAwardRankingHistoryLock:";
     }
 
     /**
