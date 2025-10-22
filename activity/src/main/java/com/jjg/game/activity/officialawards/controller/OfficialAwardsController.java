@@ -128,7 +128,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
             if (reducedPair.getFirst() < 1) {
                 break;
             }
-            getRewards.add(getNum);
+            getRewards.add(reducedPair.getFirst());
         }
         if (cfg == null || getRewards.isEmpty()) {
             //奖池不足
