@@ -179,7 +179,7 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
                 return;
             }
             Order order = event.getOrder();
-            BigDecimal rechargeAmount = BigDecimal.valueOf(order.getPrice());
+            BigDecimal rechargeAmount = order.getPrice();
             boolean change = rechargeCheckVipLevel(player, rechargeAmount);
             //回存玩家数据
             Player newPlayer = playerService.doSave(player.getId(), (oldPlayer) -> {

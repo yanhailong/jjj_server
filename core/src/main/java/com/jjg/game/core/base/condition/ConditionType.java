@@ -4,6 +4,7 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.base.condition.check.*;
 import com.jjg.game.core.dao.CountDao;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -28,7 +29,7 @@ public enum ConditionType {
     //个人有效下注
     PLAYER_BET_ALL(12001, new PlayerEffectiveBetAllCheck()),
     //个人有效下注
-    PLAYER_BET(12002, new PlayerSystemEffectiveBetAllCheck()),
+    PLAYER_BET(12002, new PlayerEffectiveBetDropCheck(12002)),
     //指定游戏掉落
     PLAY_GAME(12003, new PlayerEffectiveBetDropCheck(12003)),
     //不在指定游戏掉落
@@ -59,15 +60,15 @@ public enum ConditionType {
         return conditionCheck;
     }
 
-    public long addProgress(Object paramObject, List<Integer> cfg) {
+    public BigDecimal addProgress(Object paramObject, List<String> cfg) {
         Object conditionObject = conditionCheck.analysisCondition(cfg);
         if (conditionObject == null) {
-            return 0;
+            return BigDecimal.ZERO;
         }
         return conditionCheck.addProgress(paramObject, conditionObject);
     }
 
-    public boolean doCheck(Object paramObject, List<Integer> cfg) {
+    public boolean doCheck(Object paramObject, List<String> cfg) {
 
         Object condition = conditionCheck.analysisCondition(cfg);
         if (condition == null) {
@@ -76,7 +77,7 @@ public enum ConditionType {
         return conditionCheck.check(paramObject, condition);
     }
 
-    public long getProgress(Object paramObject) {
+    public BigDecimal getProgress(Object paramObject) {
         return conditionCheck.getProgress(paramObject);
     }
 
@@ -101,6 +102,17 @@ public enum ConditionType {
      */
     public enum FunctionType {
         //活动
-        ACTIVITY
+        ACTIVITY("activity:%s"),
+        MY_CASINO("myCasino");
+
+        private final String param;
+
+        FunctionType(String param) {
+            this.param = param;
+        }
+
+        public String getParam() {
+            return param;
+        }
     }
 }

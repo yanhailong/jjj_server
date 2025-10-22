@@ -92,6 +92,13 @@ public class GameFunctionService implements GameEventListener {
     }
 
     /**
+     * 检查游戏功能开放，应该根据功能的整个协议蔟去拦截整个功能
+     */
+    public boolean checkGameFunctionOpen(Player player, EFunctionType eFunctionType, boolean notify) {
+        return checkGameFunctionOpen(player, GameDataManager.getGameFunctionCfg(eFunctionType.getFunctionId()), notify);
+    }
+
+    /**
      * 检查游戏功能开放
      */
     public boolean checkGameFunctionOpen(Player player, GameFunctionCfg functionCfg, boolean notify) {
@@ -107,7 +114,7 @@ public class GameFunctionService implements GameEventListener {
         List<Integer> conditionCfg = new ArrayList<>(conditionTypes);
         // 检查是否触发成功
         boolean achievement = conditionManager.isAchievement(player, player, conditionCfg);
-        if (notify) {
+        if (!achievement && notify) {
             TipUtils.sendToastTip(player.getId(), 16030);
         }
         return achievement;

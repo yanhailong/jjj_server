@@ -16,5 +16,5 @@ public class ScratchCardsDetailInfo extends BaseActivityDetailInfo {
     @ProtoDesc("含7个数")
     public int numOf7;
     @ProtoDesc("礼包购买金额")
-    public int buyPrice;
+    public String buyPrice;
 }

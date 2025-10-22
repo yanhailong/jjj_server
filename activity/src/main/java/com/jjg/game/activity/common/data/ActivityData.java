@@ -7,6 +7,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
 import org.apache.commons.lang3.StringUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
@@ -75,6 +76,11 @@ public class ActivityData {
      * 值2
      */
     private List<Integer> valueParam;
+
+    /**
+     * bigDecimal参数
+     */
+    List<BigDecimal> bigDecimalParam;
 
     /**
      * 道具掉落包ID
@@ -231,6 +237,14 @@ public class ActivityData {
         this.condition = condition;
     }
 
+    public List<BigDecimal> getBigDecimalParam() {
+        return bigDecimalParam;
+    }
+
+    public void setBigDecimalParam(List<BigDecimal> bigDecimalParam) {
+        this.bigDecimalParam = bigDecimalParam;
+    }
+
     public boolean canRun() {
         return isOpen() && status == ActivityConstant.ActivityStatus.RUNNING;
     }
@@ -252,6 +266,7 @@ public class ActivityData {
         data.setValue(cfg.getValue());
         data.setValueParam(cfg.getValueParam());
         data.setDropId(cfg.getDropConfigId());
+        data.setBigDecimalParam(cfg.getBigDecimalParam());
         long currentTimeMillis = System.currentTimeMillis();
         switch (data.getOpenType()) {
             case ActivityConstant.Common.CYCLE_SERVER_TYPE -> {
@@ -268,7 +283,7 @@ public class ActivityData {
                     if (nextOpenTime != null) {
                         data.setTimeStart(TimeHelper.getTimestamp(nextOpenTime.getFirst()));
                         data.setTimeEnd(TimeHelper.getTimestamp(nextOpenTime.getSecond()));
-                        offset =  nextOpenTime.getSecond();
+                        offset = nextOpenTime.getSecond();
                     }
                 } while (currentTimeMillis >= data.getTimeEnd());
             }
@@ -291,7 +306,7 @@ public class ActivityData {
                         long timestampByDay = TimeHelper.getTimestampByDay(data.getTimeStart(), data.getDuration());
                         data.setTimeStart(data.getTimeEnd());
                         data.setTimeEnd(timestampByDay);
-                    }while (currentTimeMillis >= data.getTimeEnd());
+                    } while (currentTimeMillis >= data.getTimeEnd());
                 }
             }
         }

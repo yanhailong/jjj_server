@@ -24,7 +24,6 @@ public class MinigameLogger extends BaseLogger {
             JSONObject jsonObject = JSON.parseObject(json);
             JSONObject result = new JSONObject();
             result.put("gameId", MinigameConstant.GameId.LUCKY_TREASURE);
-            result.put("logTime", System.currentTimeMillis());
             result.put("log", jsonObject);
             sendLog("minigameLog", null, result);
         } catch (Exception e) {

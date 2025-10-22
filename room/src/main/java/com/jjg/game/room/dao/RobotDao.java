@@ -2,11 +2,11 @@ package com.jjg.game.room.dao;
 
 import com.jjg.game.common.constant.StrConstant;
 import com.jjg.game.common.curator.NodeManager;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.data.RobotPlayer;
 import org.redisson.api.RScoredSortedSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.protocol.ScoredEntry;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -31,11 +31,13 @@ public class RobotDao {
     // 每个节点的所有机器人 键：servers_robot+节点路径 数据：机器人ID <=> 机器人redis数据
     private final String SERVER_OF_ROBOT = "ClusterRobotId";
 
+    private final RedissonClient redissonClient;
+    private final NodeManager nodeManager;
 
-    @Autowired
-    private RedissonClient redissonClient;
-    @Autowired
-    private NodeManager nodeManager;
+    public RobotDao(RedissonClient redissonClient, NodeManager nodeManager) {
+        this.redissonClient = redissonClient;
+        this.nodeManager = nodeManager;
+    }
 
     public String getRobotIdListTableName() {
         return ROBOT_ID_LIST_REDIS_KEY_PREFIX;
@@ -76,7 +78,7 @@ public class RobotDao {
     /**
      * 删除机器人
      */
-    public void recycleRobotPlayers(Map<Long, Double> robotIds) {
+    public void recycleRobotPlayers(Map<Long, Pair<Integer, Long>> robotIds) {
         //删除记录
         String serverRobotTableName = getCurServerRobotTableName();
         int batchSize = 500;
@@ -117,11 +119,36 @@ public class RobotDao {
         return new ArrayList<>(scoredSortedSet.readAll());
     }
 
+
     /**
      * 添加新的机器人ID
+     *
+     * @param newRobotIdList 机器id->机器人等级->金币
      */
-    public void addNewRobotIds(Map<Long, Double> newRobotIdList) {
+    public void addNewRobotIds(Map<Long, Pair<Integer, Long>> newRobotIdList) {
         RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(getRobotIdListTableName());
-        scoredSortedSet.addAll(newRobotIdList);
+        Map<Long, Double> scoredMap = new HashMap<>();
+        for (Map.Entry<Long, Pair<Integer, Long>> entry : newRobotIdList.entrySet()) {
+            long playerId = entry.getKey();
+            scoredMap.put(playerId, getFinalScore(entry.getValue()));
+        }
+        scoredSortedSet.addAll(scoredMap);
     }
+
+    /**
+     * 使用玩家等级和金币生成最后的积分
+     *
+     * @param longPair 玩家等级和金币
+     * @return 排序积分
+     */
+    public double getFinalScore(Pair<Integer, Long> longPair) {
+        long level = longPair.getFirst();
+        long gold = longPair.getSecond();
+        // 等级优先，其次金币
+        //比金币最大值大1，金币最大值暂定为int最大值
+        // Integer.MAX_VALUE + 1
+        long LEVEL_SCALE = 2_147_483_648L;
+        return (double) (level * LEVEL_SCALE + gold);
+    }
+
 }

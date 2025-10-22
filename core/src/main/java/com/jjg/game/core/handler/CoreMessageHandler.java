@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -161,12 +162,12 @@ public class CoreMessageHandler {
                 //1等级礼包 测试用
                 RechargeType rechargeType = EnumUtil.getBy(RechargeType.class, e -> e.getType() == type);
                 int id = Integer.parseInt(arr[2]);
-                Order order = orderService.generateOrder(playerController.getPlayer(), PayType.GOOGLE, id + "", 1000, rechargeType);
+                Order order = orderService.generateOrder(playerController.getPlayer(), PayType.GOOGLE, id + "", BigDecimal.valueOf(100.99), rechargeType);
                 gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(playerController.getPlayer(), order));
                 //任务条件参数
                 Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
                     DefaultTaskConditionParam param = new DefaultTaskConditionParam();
-                    param.setAddValue(order.getPrice());
+                    param.setAddValue(order.getPrice().longValue());
                     return param;
                 };
                 //单笔充值任务

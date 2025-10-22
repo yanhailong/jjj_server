@@ -4,6 +4,8 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.core.base.condition.check.record.PlayerGameWinMoneyCondition;
 import com.jjg.game.core.base.condition.check.record.PlayerSampleParam;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 /**
@@ -29,24 +31,25 @@ public class PlayerGameWinMoneyCheck extends BaseCheck {
             }
             if (CollectionUtil.isEmpty(condition.getIds()) || condition.getIds().contains(param.getId())) {
                 Long first = paramList.getFirst();
-                return first >= condition.getNeedBet() && paramList.get(1) >= condition.getMinAchievedValue();
+                return first >= condition.getNeedBet() && paramList.get(1) >= condition.getMinAchievedValue().longValue();
             }
         }
         return false;
     }
 
     @Override
-    public PlayerGameWinMoneyCondition analysisCondition(List<Integer> condition) {
+    public PlayerGameWinMoneyCondition analysisCondition(List<String> condition) {
         if (condition.size() < 4) {
             return null;
         }
         PlayerGameWinMoneyCondition sampleCondition = new PlayerGameWinMoneyCondition();
-        if (condition.getFirst() > 0) {
-            sampleCondition.setIds(List.of(condition.getFirst()));
+        int id = Integer.parseInt(condition.getFirst());
+        if (id > 0) {
+            sampleCondition.setIds(List.of(id));
         }
-        sampleCondition.setNeedBet(condition.get(1));
-        sampleCondition.setMinAchievedValue(condition.get(2));
-        sampleCondition.setItemId(condition.get(3));
+        sampleCondition.setNeedBet(Long.parseLong(condition.get(1)));
+        sampleCondition.setMinAchievedValue(new BigDecimal(condition.get(2)).setScale(2, RoundingMode.DOWN));
+        sampleCondition.setItemId(Integer.parseInt(condition.get(3)));
         return sampleCondition;
     }
 

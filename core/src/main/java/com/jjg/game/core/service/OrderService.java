@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+
 /**
  * @author 11
  * @date 2025/9/18 15:03
@@ -29,10 +31,10 @@ public class OrderService {
 
     public Order generateOrder(Player player, PayType payType, String productId, RechargeType rechargeType) {
         Account account = accountDao.queryAccountByPlayerId(player.getId());
-        return generateOrder(player.getId(), account.getChannel(), payType, productId, 0, rechargeType);
+        return generateOrder(player.getId(), account.getChannel(), payType, productId, BigDecimal.ZERO, rechargeType);
     }
 
-    public Order generateOrder(Player player, PayType payType, String productId, long price, RechargeType rechargeType) {
+    public Order generateOrder(Player player, PayType payType, String productId, BigDecimal price, RechargeType rechargeType) {
         Account account = accountDao.queryAccountByPlayerId(player.getId());
         return generateOrder(player.getId(), account.getChannel(), payType, productId, price, rechargeType);
     }
@@ -45,7 +47,7 @@ public class OrderService {
      * @param price
      * @return
      */
-    public Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, long price, RechargeType rechargeType) {
+    public Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price, RechargeType rechargeType) {
         for (int i = 0; i < CoreConst.Common.MONGO_TRY_COUNT; i++) {
             String orderId = "cz" + DateUtil.format(DateUtil.date(), "yyMMdd") + RandomUtils.getRandomString(9);
             try {

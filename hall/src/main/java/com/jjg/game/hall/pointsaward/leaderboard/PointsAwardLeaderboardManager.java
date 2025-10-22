@@ -15,10 +15,12 @@ import com.jjg.game.sampledata.bean.PointsAwardRankingCfg;
 import org.redisson.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -50,7 +52,7 @@ public class PointsAwardLeaderboardManager {
                                          RedisLock redisLock,
                                          RedissonClient redissonClient,
                                          MailService mailService,
-                                         AwardCodeManager awardCodeManager,
+                                         @Lazy AwardCodeManager awardCodeManager,
                                          MarsCurator marsCurator) {
         this.leaderboardService = leaderboardService;
         this.redisLock = redisLock;
@@ -81,24 +83,23 @@ public class PointsAwardLeaderboardManager {
         if (isMaster()) {
             return;
         }
+        long now = nowMillis();
         if (hour == 12) {
             // 12 点：结算上午榜并开启下午榜
-            snapshotUnderLock(PointsAwardConstant.Leaderboard.AM, PointsAwardConstant.Leaderboard.AM, true);
+            snapshotUnderLock(PointsAwardConstant.Leaderboard.AM, true);
             leaderboardService.reset(PointsAwardConstant.Leaderboard.AM);
-            long now = nowMillis();
             // 开启下午榜周期并确保为空
             redissonClient.getBucket(startKey(PointsAwardConstant.Leaderboard.PM)).set(now);
             leaderboardService.reset(PointsAwardConstant.Leaderboard.PM);
         } else if (hour == 0) {
             // 0 点：结算下午榜并开启新一天上午榜
-            snapshotUnderLock(PointsAwardConstant.Leaderboard.PM, PointsAwardConstant.Leaderboard.PM, true);
+            snapshotUnderLock(PointsAwardConstant.Leaderboard.PM, true);
             leaderboardService.reset(PointsAwardConstant.Leaderboard.PM);
-            long now = nowMillis();
             redissonClient.getBucket(startKey(PointsAwardConstant.Leaderboard.AM)).set(now);
             leaderboardService.reset(PointsAwardConstant.Leaderboard.AM);
             // 每月第一天的 0 点，保存上月榜并清空月榜
             if (LocalDate.now().getDayOfMonth() == 1) {
-                snapshotUnderLock(PointsAwardConstant.Leaderboard.TYPE_MONTH, PointsAwardConstant.Leaderboard.TYPE_MONTH, true);
+                snapshotUnderLock(PointsAwardConstant.Leaderboard.TYPE_MONTH, true);
                 leaderboardService.reset(PointsAwardConstant.Leaderboard.TYPE_MONTH);
                 redissonClient.getBucket(startKey(PointsAwardConstant.Leaderboard.TYPE_MONTH)).set(now);
             }
@@ -113,21 +114,48 @@ public class PointsAwardLeaderboardManager {
         }
     }
 
+    public long getEndTime(int rankType) {
+        RBucket<Long> bucket = redissonClient.getBucket(startKey(rankType));
+        //排行榜开始时间
+        long startTime = bucket.get();
+        LocalDateTime localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(startTime), ZoneId.systemDefault());
+        int year = localDateTime.getYear();
+        int month = localDateTime.getMonthValue();
+        int day = localDateTime.getDayOfMonth();
+        //开始时的年月日
+        LocalDate startDate = LocalDate.of(year, month, day);
+        LocalDateTime endTime;
+        //开始计算结束时间
+        if (rankType == PointsAwardConstant.Leaderboard.TYPE_MONTH) {
+            // 本月最后一天
+            endTime = startDate.withDayOfMonth(startDate.lengthOfMonth()).atTime(23, 59, 59);
+        } else if (rankType == PointsAwardConstant.Leaderboard.AM) {
+            endTime = startDate.atTime(11, 59, 59);
+        } else if (rankType == PointsAwardConstant.Leaderboard.PM) {
+            endTime = startDate.atTime(23, 59, 59);
+        } else {
+            endTime = LocalDateTime.now();
+        }
+        return endTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+    }
+
     /**
      * 在对应排行榜锁下读取 TopN 并持久化快照
+     *
+     * @param lock 如果外部有锁 则传入false 内部则不加锁
      */
-    private void snapshotUnderLock(int zsetType, int snapshotType, boolean lock) {
+    private void snapshotUnderLock(int snapshotType, boolean lock) {
         Supplier<PointsAwardLeaderboardData> supplier = () -> {
-            List<PointsAwardLeaderboardInfo> topList = leaderboardService.topN(zsetType, PointsAwardConstant.Leaderboard.MAX_RANK_SIZE);
+            List<PointsAwardLeaderboardInfo> topList = leaderboardService.topN(snapshotType, PointsAwardConstant.Leaderboard.MAX_RANK_SIZE);
             PointsAwardLeaderboardData data = new PointsAwardLeaderboardData();
             data.setRankType(snapshotType);
-            data.setEndTime(System.currentTimeMillis());
+            data.setEndTime(getEndTime(snapshotType));
             data.setRankingInfoList(topList);
             return data;
         };
         PointsAwardLeaderboardData rankingData;
         if (lock) {
-            String lockKey = PointsAwardConstant.RedisLockKey.POINTS_AWARD_RANKING_LOCK + zsetType;
+            String lockKey = PointsAwardConstant.RedisLockKey.POINTS_AWARD_RANKING_LOCK + snapshotType;
             rankingData = redisLock.lockAndGet(lockKey, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, supplier);
         } else {
             rankingData = supplier.get();
@@ -233,7 +261,7 @@ public class PointsAwardLeaderboardManager {
                             mailService.addCfgMail(info.getPlayerId(), 4, ItemUtils.buildItemsByStrList(awardItems), paramData);
                         }
                         //添加历史记录
-                        leaderboardService.addHistory(info, cfg, code);
+                        leaderboardService.addHistory(info, cfg, code, rankingData.getEndTime());
                     });
                 }
             }
@@ -304,7 +332,7 @@ public class PointsAwardLeaderboardManager {
                 long startOfDayMillis = nowDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
                 long noonMillis = startOfDayMillis + 12L * 60 * 60 * 1000;
                 if (now >= noonMillis && startTs < noonMillis && nowDate.equals(startDate)) {
-                    snapshotUnderLock(PointsAwardConstant.Leaderboard.AM, PointsAwardConstant.Leaderboard.AM, false);
+                    snapshotUnderLock(PointsAwardConstant.Leaderboard.AM, false);
                     leaderboardService.reset(PointsAwardConstant.Leaderboard.AM);
                     // 开启下午榜
                     redissonClient.getBucket(startKey(PointsAwardConstant.Leaderboard.PM)).set(now);
@@ -313,7 +341,7 @@ public class PointsAwardLeaderboardManager {
             } else if (type == PointsAwardConstant.Leaderboard.PM) {
                 // 下午榜：跨天（0 点）结算并开启新一天上午榜
                 if (nowDate.isAfter(startDate)) {
-                    snapshotUnderLock(PointsAwardConstant.Leaderboard.PM, PointsAwardConstant.Leaderboard.PM, false);
+                    snapshotUnderLock(PointsAwardConstant.Leaderboard.PM, false);
                     leaderboardService.reset(PointsAwardConstant.Leaderboard.PM);
                     long newStartAm = nowDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
                     redissonClient.getBucket(startKey(PointsAwardConstant.Leaderboard.AM)).set(newStartAm);
@@ -324,7 +352,7 @@ public class PointsAwardLeaderboardManager {
                 boolean monthChanged = nowDate.getYear() != startDate.getYear()
                         || nowDate.getMonthValue() != startDate.getMonthValue();
                 if (monthChanged) {
-                    snapshotUnderLock(PointsAwardConstant.Leaderboard.TYPE_MONTH, PointsAwardConstant.Leaderboard.TYPE_MONTH, false);
+                    snapshotUnderLock(PointsAwardConstant.Leaderboard.TYPE_MONTH, false);
                     leaderboardService.reset(PointsAwardConstant.Leaderboard.TYPE_MONTH);
                     startBucket.set(now);
                 }
@@ -351,6 +379,8 @@ public class PointsAwardLeaderboardManager {
                 if (rankingHistoryDeque.size() > PointsAwardConstant.Leaderboard.MAX_HISTORY_SIZE) {
                     rankingHistoryDeque.removeLast();
                 }
+                //回写数据
+                rankingHistoryMap.fastPut(data.getRankType(), rankingHistoryDeque);
             }
         } finally {
             rLock.unlock();

@@ -6,7 +6,6 @@ import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.constant.ShopConstant;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.*;
@@ -60,7 +59,7 @@ public class ShopMessageHandler {
                 }
 
                 info.payType = shopProduct.getPayType();
-                info.money = shopProduct.getMoney();
+                info.money = shopProduct.getMoney().toString();
                 info.label1 = shopProduct.getLabel1();
                 info.label2 = shopProduct.getLabel2();
                 info.pic = shopProduct.getPic();

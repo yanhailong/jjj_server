@@ -4,6 +4,8 @@ import com.jjg.game.core.pb.RechargeType;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.math.BigDecimal;
+
 /**
  * 订单
  * @author 11
@@ -25,7 +27,7 @@ public class Order {
     //商品id
     private String productId;
     //价格
-    private long price;
+    private BigDecimal price;
     //订单状态
     private OrderStatus orderStatus;
     //充值类型
@@ -83,11 +85,11 @@ public class Order {
         this.productId = productId;
     }
 
-    public long getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(long price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 

@@ -4,7 +4,10 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.data.Order;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
@@ -29,7 +32,7 @@ import java.util.stream.Collectors;
  * 积分大奖积分服务
  */
 @Service
-public class PointsAwardService {
+public class PointsAwardService implements IPlayerLoginSuccess {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -89,6 +92,19 @@ public class PointsAwardService {
     }
 
     /**
+     * 玩家登录成功事件
+     *
+     * @param playerController 玩家信息
+     * @param player
+     * @param firstLogin       是否是首次登录
+     * @return true 继续执行 false终止执行
+     */
+    @Override
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+        leaderboardService.login(player.getId());
+    }
+
+    /**
      * 积分数据锁
      */
     public String lockKey(long playerId) {
@@ -139,7 +155,7 @@ public class PointsAwardService {
             log.error("add 玩家积分更新失败!playerId = [{}],pointsAward = [{}]", playerId, pointsAward, e);
         }
         // 排行榜更新
-        updateLeaderboards(playerId, pointsAward);
+        updateLeaderboards(playerId, counter.get());
         //记录日志
         pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, true, counter.get());
     }
@@ -181,7 +197,7 @@ public class PointsAwardService {
      * @param playerId    玩家ID
      * @param pointsAward 增加的积分
      */
-    private void updateLeaderboards(long playerId, int pointsAward) {
+    private void updateLeaderboards(long playerId, long pointsAward) {
         try {
             long nowTs = System.currentTimeMillis();
             // 更新日榜
@@ -330,7 +346,7 @@ public class PointsAwardService {
      */
     public void recharge(Order order) {
         long playerId = order.getPlayerId();
-        long price = order.getPrice();
+        long price = order.getPrice().longValue();
         RLock lock = rechargeMap.getReadWriteLock(playerId).writeLock();
         if (lock.tryLock()) {
             long resultValue = getRecharge(playerId) + price;

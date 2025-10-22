@@ -4,6 +4,8 @@ import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.core.base.condition.check.record.PlayerSampleCondition;
 import com.jjg.game.core.base.condition.check.record.PlayerSampleParam;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 /**
@@ -14,42 +16,43 @@ import java.util.List;
  */
 public class PlayerBetCountCheck extends BaseCheck {
     @Override
-    public long addProgress(Object paramObject, Object conditionObject) {
+    public BigDecimal addProgress(Object paramObject, Object conditionObject) {
         if (paramObject instanceof PlayerSampleParam param && conditionObject instanceof PlayerSampleCondition condition) {
             if (CollectionUtil.isEmpty(param.getParamList())) {
-                return 0;
+                return BigDecimal.ZERO;
             }
             long progress = 0;
             if (CollectionUtil.isEmpty(condition.getIds()) || condition.getIds().contains(param.getId())) {
-                progress = getProgress(param);
+                progress = getProgress(param).longValue();
                 int add = 0;
                 for (Long betValue : param.getParamList()) {
-                    if (betValue >= condition.getMinAchievedValue()) {
+                    if (betValue >= condition.getMinAchievedValue().longValue()) {
                         progress = progress + 1;
                         add++;
                     }
                 }
                 if (add > 0) {
-                    countDao.incrBy(param.getFunction(), getCustomId(param.getPlayerId()), add);
+                    countDao.incrBy(param.getFunction(), getCustomId(param.getPlayerId()), BigDecimal.valueOf(add));
                 }
             }
-            return (int) (progress / condition.getAchievedTimes());
+            return BigDecimal.valueOf(progress / condition.getAchievedTimes());
         }
-        return 0;
+        return BigDecimal.ZERO;
     }
 
 
     @Override
-    public PlayerSampleCondition analysisCondition(List<Integer> condition) {
+    public PlayerSampleCondition analysisCondition(List<String> condition) {
         if (condition.size() < 3) {
             return null;
         }
         PlayerSampleCondition playerSampleCondition = new PlayerSampleCondition();
-        if (condition.getFirst() != 0) {
-            playerSampleCondition.setIds(List.of(condition.getFirst()));
+        int gameId = Integer.parseInt(condition.getFirst());
+        if (gameId != 0) {
+            playerSampleCondition.setIds(List.of(gameId));
         }
-        playerSampleCondition.setMinAchievedValue(condition.get(1));
-        playerSampleCondition.setAchievedTimes(condition.get(2));
+        playerSampleCondition.setMinAchievedValue(new BigDecimal(condition.get(1)).setScale(2, RoundingMode.DOWN));
+        playerSampleCondition.setAchievedTimes(Integer.parseInt(condition.get(2)));
         return playerSampleCondition;
     }
 

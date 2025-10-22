@@ -9,6 +9,7 @@ import com.jjg.game.core.data.Player;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,19 +28,19 @@ public class ConditionManager {
      * @param condition 条件
      * @return 添加后的进度
      */
-    public long addProgress(Object param, String condition) {
+    public BigDecimal addProgress(Object param, String condition) {
         if (StringUtils.isEmpty(condition) || param == null) {
-            return 0;
+            return BigDecimal.ZERO;
         }
         //解析条件
-        List<Integer> conditionCfg = getConditionCfgList(condition);
+        List<String> conditionCfg = getConditionCfgList(condition);
         if (conditionCfg.size() < 2) {
-            return 0;
+            return BigDecimal.ZERO;
         }
-        int id = conditionCfg.removeFirst();
+        int id = Integer.parseInt(conditionCfg.removeFirst());
         ConditionType type = EnumUtil.getBy(ConditionType.class, (t) -> t.getId() == id);
         if (type == null) {
-            return 0;
+            return BigDecimal.ZERO;
         }
         return type.addProgress(param, conditionCfg);
     }
@@ -53,21 +54,21 @@ public class ConditionManager {
      * @param reset     是否重置
      * @return 达成次数
      */
-    public long addProgressAndGetAchievements(Player player, Object param, String condition, boolean reset) {
+    public BigDecimal addProgressAndGetAchievements(Player player, Object param, String condition, boolean reset) {
         if (StringUtils.isEmpty(condition) || param == null || player == null) {
-            return 0;
+            return BigDecimal.ZERO;
         }
-        List<Integer> conditionCfg = getConditionCfgList(condition);
+        List<String> conditionCfg = getConditionCfgList(condition);
         if (conditionCfg.isEmpty()) {
-            return 0;
+            return BigDecimal.ZERO;
         }
-        int id = conditionCfg.removeFirst();
+        int id = Integer.parseInt(conditionCfg.removeFirst());
         ConditionType type = EnumUtil.getBy(ConditionType.class, (t) -> t.getId() == id);
         if (type == null) {
-            return 0;
+            return BigDecimal.ZERO;
         }
-        long result = type.addProgress(param, conditionCfg);
-        if (result > 0 && reset) {
+        BigDecimal result = type.addProgress(param, conditionCfg);
+        if (result.compareTo(BigDecimal.ZERO) > 0 && reset) {
             type.getConditionCheck().clearProgress(param);
         }
         return result;
@@ -79,9 +80,8 @@ public class ConditionManager {
      * @param condition 条件限制字符串
      * @return 解析后的条件限制列表
      */
-    private List<Integer> getConditionCfgList(String condition) {
+    private List<String> getConditionCfgList(String condition) {
         return new ArrayList<>(Arrays.stream(StringUtils.split(condition, "_"))
-                .map(Integer::parseInt)
                 .toList());
     }
 
@@ -97,12 +97,32 @@ public class ConditionManager {
         if (StringUtils.isEmpty(condition) || player == null || param == null) {
             return false;
         }
-        Pair<List<Integer>, ConditionType> conditionCfg = getConditionCfg(condition);
+        Pair<List<String>, ConditionType> conditionCfg = getConditionCfg(condition);
         if (conditionCfg == null) {
             return false;
         }
         ConditionType type = conditionCfg.getSecond();
         return type.doCheck(param, conditionCfg.getFirst());
+    }
+
+    /**
+     * 是否达成条件
+     *
+     * @param player    玩家
+     * @param param     添加参数
+     * @param condition 条件参数
+     * @return 是否达成条件
+     */
+    public boolean isAchievementByStr(Player player, Object param, List<String> condition) {
+        if (CollectionUtil.isEmpty(condition) || player == null || param == null) {
+            return false;
+        }
+        int id = Integer.parseInt(condition.removeFirst());
+        ConditionType type = EnumUtil.getBy(ConditionType.class, (t) -> t.getId() == id);
+        if (type == null) {
+            return false;
+        }
+        return type.doCheck(param, condition);
     }
 
     /**
@@ -122,7 +142,7 @@ public class ConditionManager {
         if (type == null) {
             return false;
         }
-        return type.doCheck(param, condition);
+        return type.doCheck(param, condition.stream().map(String::valueOf).toList());
     }
 
     /**
@@ -133,13 +153,13 @@ public class ConditionManager {
      * @param times      达成次数
      * @return 进度
      */
-    public long reduceProgress(Object checkParam, String condition, long times) {
+    public BigDecimal reduceProgress(Object checkParam, String condition, long times) {
         if (StringUtils.isEmpty(condition)) {
-            return 0;
+            return BigDecimal.ZERO;
         }
-        Pair<List<Integer>, ConditionType> conditionCfg = getConditionCfg(condition);
+        Pair<List<String>, ConditionType> conditionCfg = getConditionCfg(condition);
         if (conditionCfg == null) {
-            return 0;
+            return BigDecimal.ZERO;
         }
 
         ConditionCheck check = conditionCfg.getSecond().getConditionCheck();
@@ -153,12 +173,12 @@ public class ConditionManager {
      * @param condition 条件限制字符串
      * @return 解析后的条件限制列表和条件类型
      */
-    private Pair<List<Integer>, ConditionType> getConditionCfg(String condition) {
-        List<Integer> conditionCfg = getConditionCfgList(condition);
+    private Pair<List<String>, ConditionType> getConditionCfg(String condition) {
+        List<String> conditionCfg = getConditionCfgList(condition);
         if (conditionCfg.isEmpty()) {
             return null;
         }
-        int id = conditionCfg.removeFirst();
+        int id = Integer.parseInt(conditionCfg.removeFirst());
         ConditionType type = EnumUtil.getBy(ConditionType.class, (t) -> t.getId() == id);
         if (type == null) {
             return null;
@@ -173,9 +193,9 @@ public class ConditionManager {
      * @param type       条件类型
      * @return 进度
      */
-    public long getProgress(Object checkParam, ConditionType type) {
+    public BigDecimal getProgress(Object checkParam, ConditionType type) {
         if (type == null) {
-            return 0;
+            return BigDecimal.ZERO;
         }
         return type.getProgress(checkParam);
     }

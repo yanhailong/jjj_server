@@ -2,6 +2,7 @@ package com.jjg.game.room.services;
 
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.curator.NodeManager;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.RandomUtils;
@@ -20,7 +21,6 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.redisson.client.protocol.ScoredEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -35,20 +35,23 @@ import java.util.stream.Stream;
 @Service
 public class RobotService implements IRoomStartListener {
 
-    private static final Logger log = LoggerFactory.getLogger(RobotService.class);
+    private final Logger log = LoggerFactory.getLogger(RobotService.class);
     // 不同时间段房间创建机器人的人数限制
     private final Map<Integer, TreeMap<Integer, Integer>> roomRobotCreateLimit = new HashMap<>();
 
-    @Autowired
-    private RobotDao robotDao;
-    @Autowired
-    private RedisLock redisLock;
-    @Autowired
-    private NodeManager nodeManager;
-    @Autowired
-    private MarsCurator marsCurator;
-    private static final int MAX_WAIT_TIME =
+    private final RobotDao robotDao;
+    private final RedisLock redisLock;
+    private final NodeManager nodeManager;
+    private final MarsCurator marsCurator;
+    private final int MAX_WAIT_TIME =
             GameConstant.Redis.LOCK_TRY_TIMES * GameConstant.Redis.PER_TRY_TAKE_MILE_TIME;
+
+    public RobotService(RobotDao robotDao, RedisLock redisLock, NodeManager nodeManager, MarsCurator marsCurator) {
+        this.robotDao = robotDao;
+        this.redisLock = redisLock;
+        this.nodeManager = nodeManager;
+        this.marsCurator = marsCurator;
+    }
 
     /**
      * 通过游戏类型一定创建机器人,TODO 还可以通过添加机器人池的方式继续优化机器人的创建
@@ -95,13 +98,14 @@ public class RobotService implements IRoomStartListener {
      * @return 机器人
      */
     private RobotPlayer getRobotPlayer(int roomCfgId, long roomId) {
-        int size = 10;
-        // 取出满足最低金币进入限制的机器人id
+        int size = 5;
         RoomCfg roomCfg = GameDataManager.getRoomCfg(roomCfgId);
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         long maxGetCount = (robotDao.getAvailableNum() / size) + 1;
+        //生成最低分数 取出满足最低金币进入限制的机器人id
+        double finalScore = robotDao.getFinalScore(Pair.newPair(warehouseCfg.getPlayerLvLimit(), (long) warehouseCfg.getEnterLimit()));
         for (int i = 0; i < maxGetCount; i++) {
-            List<ScoredEntry<Long>> canUseRobotIds = robotDao.getCanUseRobotIds(warehouseCfg.getEnterLimit(), i * size, size);
+            List<ScoredEntry<Long>> canUseRobotIds = robotDao.getCanUseRobotIds(finalScore, i * size, size);
             //没有比限制大的直接返回
             if (canUseRobotIds.isEmpty()) {
                 return null;
@@ -114,8 +118,8 @@ public class RobotService implements IRoomStartListener {
                 if (robotPlayer == null) {
                     continue;
                 }
-                //vip等级检查
-                if (robotPlayer.getVipLevel() < warehouseCfg.getVipLvLimit()) {
+                //等级检查
+                if (robotPlayer.getLevel() < warehouseCfg.getPlayerLvLimit()) {
                     continue;
                 }
                 long checkNum = 0;
@@ -246,7 +250,7 @@ public class RobotService implements IRoomStartListener {
      */
     public void recycleRobotPlayers(List<Long> robotIds) {
         String lockKey = robotDao.getLockRobotTableName();
-        Map<Long, Double> collect = getRobotRealMoney(robotIds.stream());
+        Map<Long, Pair<Integer, Long>> collect = getRobotRealMoney(robotIds.stream());
         boolean locked = false;
         try {
             locked = redisLock.tryLock(lockKey, MAX_WAIT_TIME);
@@ -261,7 +265,7 @@ public class RobotService implements IRoomStartListener {
         }
     }
 
-    public Map<Long, Double> getRobotRealMoney(Stream<Long> robotIdsStream) {
+    public Map<Long, Pair<Integer, Long>> getRobotRealMoney(Stream<Long> robotIdsStream) {
         return robotIdsStream
                 .map(id -> GameDataManager.getRobotCfg(id.intValue()))
                 .collect(Collectors.toMap(cfg -> (long) cfg.getId(), this::getRobotRealMoney));
@@ -312,16 +316,15 @@ public class RobotService implements IRoomStartListener {
                         .put(robotNumConf.get(1), robotNumConf.get(2));
             }
         }
-        // TODO 如果是开服就创建房间的游戏，检查机器人填充上限是否大于房间人数上限，如果出现这种情况会出现房间全是机器人的情况
     }
 
-    private double getRobotRealMoney(long robotId) {
+    private Pair<Integer, Long> getRobotRealMoney(long robotId) {
         RobotCfg robotCfg = GameDataManager.getRobotCfg((int) robotId);
         return getRobotRealMoney(robotCfg);
     }
 
-    private double getRobotRealMoney(RobotCfg cfg) {
-        return RandomUtils.randomWeightList(cfg.getAddMoney());
+    private Pair<Integer, Long> getRobotRealMoney(RobotCfg cfg) {
+        return Pair.newPair(cfg.getPlayerLevel(), RandomUtils.randomWeightList(cfg.getAddMoney()));
     }
 
     /**
@@ -329,7 +332,7 @@ public class RobotService implements IRoomStartListener {
      */
     public void checkOrInitRobotIdPool() {
         //机器人id 机器人最少金币
-        Map<Long, Double> robotCfgMap =
+        Map<Long, Pair<Integer, Long>> robotCfgMap =
                 GameDataManager.getRobotCfgList().stream()
                         // 所有的ID必须符合规则
                         .filter(cfg -> cfg.getId() % 17 == 0)

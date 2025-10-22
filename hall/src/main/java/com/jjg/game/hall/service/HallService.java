@@ -597,8 +597,10 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
     @Override
     public void initSampleCallbackCollector() {
-        addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
-        addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig);
+        addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData)
+                .addChangeSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
+        addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig)
+                .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig);
     }
 
     /**
@@ -614,7 +616,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 WareHouseConfigInfo info = new WareHouseConfigInfo();
                 info.wareId = c.getId();
                 info.limitGoldMin = c.getEnterLimit();
-                info.limitVipMin = c.getVipLvLimit();
+                info.limitPlayerLevelMin = c.getPlayerLvLimit();
                 info.betShow = c.getBetShow();
                 tempList.add(info);
             }

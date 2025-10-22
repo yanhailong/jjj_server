@@ -117,7 +117,7 @@ public class GrowthFundController extends BaseActivityController {
             if (playerActivityData.size() == baseCfgBeanMap.size()) {
                 return false;
             }
-            long count = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player));
+            long count = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player)).longValue();
             String lockKey = playerActivityDao.getLockKey(playerId, activityId);
             redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
@@ -242,8 +242,8 @@ public class GrowthFundController extends BaseActivityController {
             }
             ActivityData activityData = activityManager.getActivityData().get(entry.getKey());
             if (activityData != null && activityData.getValueParam().size() >= 3) {
-                activityInfo.sellingPrice = activityData.getValueParam().getFirst();
-                activityInfo.originalPrice = activityData.getValueParam().get(1);
+                activityInfo.sellingPrice = activityData.getBigDecimalParam().getFirst().toString();
+                activityInfo.originalPrice = activityData.getBigDecimalParam().get(1).toString();
                 activityInfo.totalGet = activityData.getValueParam().getLast();
             }
         }

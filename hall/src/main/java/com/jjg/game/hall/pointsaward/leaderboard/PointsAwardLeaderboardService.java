@@ -4,6 +4,7 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.PageUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.manager.AwardCodeManager;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardData;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardHistory;
@@ -11,6 +12,7 @@ import com.jjg.game.hall.pointsaward.pb.PointsAwardLeaderboardInfo;
 import com.jjg.game.hall.pointsaward.pb.res.ResLoadLeaderboardHistory;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.PointsAwardRankingCfg;
 import org.redisson.api.RDeque;
 import org.redisson.api.RScoredSortedSet;
@@ -45,21 +47,44 @@ public class PointsAwardLeaderboardService {
     private final RedissonClient redissonClient;
     private final RedisLock redisLock;
     private final HallPlayerService hallPlayerService;
+    private final AwardCodeManager awardCodeManager;
 
     /**
      * 排行榜管理器
      */
     private PointsAwardLeaderboardManager manager;
 
-    public PointsAwardLeaderboardService(RedissonClient redissonClient, RedisLock redisLock, HallPlayerService hallPlayerService) {
+    public PointsAwardLeaderboardService(RedissonClient redissonClient, RedisLock redisLock, HallPlayerService hallPlayerService, AwardCodeManager awardCodeManager) {
         this.redissonClient = redissonClient;
         this.redisLock = redisLock;
         this.hallPlayerService = hallPlayerService;
+        this.awardCodeManager = awardCodeManager;
     }
 
     public void init(PointsAwardLeaderboardManager manager) {
         this.manager = manager;
 
+    }
+
+    /**
+     * 玩家登录成功
+     *
+     * @param playerId 玩家id
+     */
+    public void login(long playerId) {
+        RDeque<PointsAwardLeaderboardHistory> dequeHistory = redissonClient.getDeque(historyKey(playerId));
+        List<PointsAwardLeaderboardHistory> historyList = dequeHistory.readAll();
+        long now = System.currentTimeMillis();
+        //计算领奖码过期
+        historyList.forEach(history -> {
+            long settlementTime = history.getExpiredTime();
+            //过期
+            if (settlementTime > 0 && settlementTime < now) {
+                String code = history.getCode();
+                awardCodeManager.deleteCode(code);
+                log.info("玩家[{}]排行榜[{}]领奖码[{}]过期!清除领奖码!", playerId, history.getEndTime(), code);
+            }
+        });
     }
 
     private RScoredSortedSet<Long> set(int type) {
@@ -77,7 +102,7 @@ public class PointsAwardLeaderboardService {
     }
 
     /**
-     * 更新（或写入）玩家积分到排行榜；传入的 points 为“增量值”（本次增加的积分），不是最终总积分。
+     * 更新（或写入）玩家积分到排行榜；传入的 points 为最终总积分。
      * 不满足最低分时移除。
      * 并发控制：对同一排行榜使用分布式锁，保证读取-计算-写入与裁剪的原子性。
      */
@@ -85,18 +110,13 @@ public class PointsAwardLeaderboardService {
         String lockKey = PointsAwardConstant.RedisLockKey.POINTS_AWARD_RANKING_LOCK + type;
         redisLock.lockAndRun(lockKey, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, () -> {
             RScoredSortedSet<Long> s = set(type);
-            // 读取当前玩家积分（取整去掉时间偏移的小数部分）
-            Double currentScore = s.getScore(playerId);
-            long currentPoints = currentScore == null ? 0L : (long) Math.floor(currentScore);
-            // 累加本次增量，得到新的总积分
-            long newPoints = currentPoints + points;
             int minPoints = resolveMinPoints(type);
-            log.info("upsert playerId = {},type = {},points = {},tsMillis = {},newPoints = {},minPoints = {}", playerId, type, points, tsMillis, newPoints, minPoints);
-            if (newPoints < minPoints) {
+            log.info("upsert playerId = {},type = {},points = {},tsMillis = {},minPoints = {}", playerId, type, points, tsMillis, minPoints);
+            if (points < minPoints) {
                 return;
             }
             // 写入新的分数（总积分 + 时间偏移），并按照需要裁剪榜单大小
-            s.add(toScore(newPoints, tsMillis), playerId);
+            s.add(toScore(points, tsMillis), playerId);
             int size = s.size();
             int maxSize = manager.getMaxSize(type);
             if (size > maxSize) {
@@ -199,7 +219,7 @@ public class PointsAwardLeaderboardService {
     /**
      * 添加历史记录
      */
-    public void addHistory(PointsAwardLeaderboardInfo info, PointsAwardRankingCfg cfg, String code) {
+    public void addHistory(PointsAwardLeaderboardInfo info, PointsAwardRankingCfg cfg, String code, long endTime) {
         RDeque<PointsAwardLeaderboardHistory> dequeHistory = redissonClient.getDeque(historyKey(info.getPlayerId()));
         PointsAwardLeaderboardHistory history = new PointsAwardLeaderboardHistory();
         history.setPlayerId(info.getPlayerId());
@@ -213,9 +233,21 @@ public class PointsAwardLeaderboardService {
         history.setTitleId(info.getTitleId());
         history.setReward(cfg.getGetItem());
         history.setPrice(cfg.getPrice());
-        history.setCode(code);
         history.setPicRes(cfg.getPicRes());
         history.setAwardType(cfg.getAwardType());
+        history.setRankType(cfg.getType());
+        history.setEndTime(endTime);
+        if (code != null) {
+            long now = System.currentTimeMillis();
+            history.setCode(code);
+            history.setExpiredTime(now);
+            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(47);
+            if (globalConfigCfg != null) {
+                int day = globalConfigCfg.getIntValue();
+                long time = day * 24 * 60 * 60 * 1000L;
+                history.setExpiredTime(now + time);
+            }
+        }
         dequeHistory.addFirst(history);
         //只保留一定条数
         if (dequeHistory.size() > PointsAwardConstant.Leaderboard.PLAYER_MAX_HISTORY_SIZE) {
@@ -231,11 +263,13 @@ public class PointsAwardLeaderboardService {
      * @param pageSize  每页显示的数据数量
      * @return 分页后的积分奖励排行榜数据
      */
+
     public PageUtils.PageResult<PointsAwardLeaderboardData> getData(int type, int pageIndex, int pageSize) {
         List<PointsAwardLeaderboardInfo> rankingInfos = topN(type, PointsAwardConstant.Leaderboard.MAX_RANK_SIZE);
         PointsAwardLeaderboardData data = new PointsAwardLeaderboardData();
         data.setRankType(type);
         data.setRankingInfoList(rankingInfos);
+        data.setEndTime(System.currentTimeMillis());
         List<PointsAwardLeaderboardData> list = manager.getRankingHistory(type);
         list.addFirst(data);
         return PageUtils.page(list, pageIndex, pageSize);
@@ -264,6 +298,38 @@ public class PointsAwardLeaderboardService {
         response.setTotalPage(pageResult.getMaxPageIndex());
         response.setHistoryList(pageResult.getData());
         return response;
+    }
+
+    /**
+     * 领奖码已经使用
+     *
+     * @param code 被使用的领奖码
+     */
+    public void receiveCode(long playerId, String code) {
+        redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.PLAYER_RANKING_AWARD_LOCK + playerId, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, () -> {
+            RDeque<PointsAwardLeaderboardHistory> dequeHistory = redissonClient.getDeque(historyKey(playerId));
+            List<PointsAwardLeaderboardHistory> historyList = dequeHistory.readAll();
+
+            // 查找匹配的历史记录并修改
+            boolean found = false;
+            for (PointsAwardLeaderboardHistory history : historyList) {
+                if (history.getCode() != null && history.getCode().equals(code)) {
+                    history.setExpiredTime(-1L);
+                    found = true;
+                    break;
+                }
+            }
+
+            // 如果找到了匹配的记录，需要重新写入整个队列 目前调用不频繁暂不考虑性能
+            if (found) {
+                // 清空原队列
+                dequeHistory.clear();
+                // 重新添加修改后的数据
+                for (PointsAwardLeaderboardHistory history : historyList) {
+                    dequeHistory.addLast(history);
+                }
+            }
+        });
     }
 
 }
