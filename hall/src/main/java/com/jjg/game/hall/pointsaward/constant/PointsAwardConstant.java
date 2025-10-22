@@ -18,11 +18,11 @@ public interface PointsAwardConstant {
         /**
          * 签到次数
          */
-        String POINTS_AWARD_SING_IN_COUNT = "pointsAwardSingInCount:";
+        String POINTS_AWARD_SING_IN_COUNT = "pointsAwardSingIn:count:";
         /**
          * 最后一次签到时间
          */
-        String POINTS_AWARD_SING_IN_DATE = "pointsAwardSingInDate:";
+        String POINTS_AWARD_SING_IN_DATE = "pointsAwardSingIn:date:";
         /**
          * 积分大奖排行榜
          */
