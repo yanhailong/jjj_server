@@ -174,7 +174,7 @@ public class SampleDataManager implements FileLoader {
                 log.error("重载配置表文件：{} 时发生异常", e.getMessage(), e);
                 throw new GameSampleException(e);
             }
-        } else if (fileName.endsWith(".json")) {
+        } else if (!"nodeConfig.json".equalsIgnoreCase(fileName) && fileName.endsWith(".json")) {
             loadJsonConfig(file);
         }
     }
