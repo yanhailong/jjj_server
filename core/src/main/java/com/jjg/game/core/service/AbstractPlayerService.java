@@ -262,13 +262,7 @@ public class AbstractPlayerService {
             return result;
         }
         //获取当前节点玩家数据是否在内存中
-        boolean inMemoryNode = nodeManager.isPlayerDataInMemoryNode();
-        if (inMemoryNode) {
-            Player player = getFromAllDB(playerId);
-            //游戏内修改内存中的数据并返回
-            triggerCurrencyChangeEvent(player, goldNum, diamondNum);
-            result.code = Code.SUCCESS;
-            result.data = player;
+        if (playerInMemoryNode(playerId, goldNum, diamondNum, result)) {
             return result;
         }
         final long[] beforeCoin = {0, 0};
@@ -309,6 +303,28 @@ public class AbstractPlayerService {
     }
 
     /**
+     * 玩家数据是否在内存中
+     *
+     * @param playerId   玩家id
+     * @param goldNum    金币变化数量
+     * @param diamondNum 钻石
+     * @param result     响应结果
+     * @return true是 false不是
+     */
+    private boolean playerInMemoryNode(long playerId, long goldNum, long diamondNum, CommonResult<Player> result) {
+        boolean inMemoryNode = nodeManager.isPlayerDataInMemoryNode();
+        if (inMemoryNode) {
+            Player player = getFromAllDB(playerId);
+            //游戏内修改内存中的数据并返回
+            triggerCurrencyChangeEvent(player, goldNum, diamondNum);
+            result.code = Code.SUCCESS;
+            result.data = player;
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * 触发金币变化事件
      *
      * @param player     玩家数据
@@ -318,10 +334,10 @@ public class AbstractPlayerService {
     private void triggerCurrencyChangeEvent(Player player, long goldNum, long diamondNum) {
         //通知房间内存中的玩家修改金币数量
         Map<Integer, Long> currencyMap = new HashMap<>(2);
-        if (goldNum > 0) {
+        if (goldNum != 0) {
             currencyMap.put(ItemUtils.getGoldItemId(), goldNum);
         }
-        if (diamondNum > 0) {
+        if (diamondNum != 0) {
             currencyMap.put(ItemUtils.getDiamondItemId(), diamondNum);
         }
         gameEventManager.triggerEvent(new CurrencyChangeEvent(EGameEventType.CURRENCY_CHANGE, player, currencyMap));
@@ -786,7 +802,10 @@ public class AbstractPlayerService {
             result.code = Code.PARAM_ERROR;
             return result;
         }
-
+        //获取当前节点玩家数据是否在内存中
+        if (playerInMemoryNode(playerId, -goldNum, -diamondNum, result)) {
+            return result;
+        }
         final long[] beforeCoin = {0, 0};
 
         Player p = checkAndSave(playerId, new DataSaveCallback<>() {

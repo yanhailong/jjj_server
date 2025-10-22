@@ -20,7 +20,7 @@ public record CurrentChangeEventHandler(Player player, AbstractGameController<?,
     @Override
     public void action() throws Exception {
         try {
-            gameController.addCurrency(player, currencyMap, "CurrentChange", "", true);
+            gameController.changeCurrency(player, currencyMap, "CurrentChange", "", true);
         } catch (Exception e) {
             log.error("货币变化时更新房间内货币失败 playerId:{} currencyMap:{} ", player.getId(), JSON.toJSONString(currencyMap), e);
         }
