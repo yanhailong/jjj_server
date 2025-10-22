@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 /**
@@ -60,8 +62,16 @@ public class ConfigManager {
      */
     private final Set<Class<?>> loadConfigSet = new HashSet<>();
 
+    /**
+     * 用于管理和执行任务的线程池。采用每个任务分配一个虚拟线程的执行器，能够高效管理任务执行。
+     * 基于虚拟线程的模型，减少线程阻塞问题，提高并发能力。
+     * 此执行器在配置加载和更新过程中，帮助提高任务执行的效率。
+     */
+    private final ExecutorService executor;
+
     public ConfigManager(RedissonClient redissonClient) {
         this.redissonClient = redissonClient;
+        this.executor = Executors.newVirtualThreadPerTaskExecutor();
         init();
     }
 
@@ -556,7 +566,13 @@ public class ConfigManager {
         }
         List<ConfigUpdateHandler<? extends AbstractExcelConfig>> configListenerList = updateConfigListenerMap.get(configClass);
         if (configListenerList != null && !configListenerList.isEmpty()) {
-            configListenerList.forEach(handler -> ((ConfigUpdateHandler<T>) handler).accept(name, state, (T) newConfig));
+            configListenerList.forEach(handler -> executor.submit(() -> {
+                try {
+                    ((ConfigUpdateHandler<T>) handler).accept(name, state, (T) newConfig);
+                } catch (Exception e) {
+                    log.error("配置[{}]state[{}]通知更新失败!", name, state, e);
+                }
+            }));
         }
     }
 

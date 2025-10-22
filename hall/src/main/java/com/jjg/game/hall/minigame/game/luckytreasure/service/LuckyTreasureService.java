@@ -61,6 +61,8 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
      */
     private TimerEvent<LuckyTreasureService> updateTimer;
 
+    private TimerEvent<LuckyTreasureService> tickTimer;
+
     public LuckyTreasureService(LuckyTreasureDao luckyTreasureDao,
                                 LuckyTreasureRedisDao luckyTreasureRedisDao,
                                 RedisLock redisLock,
@@ -81,6 +83,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
      * 初始化
      */
     public void init() {
+        tickTimer = new TimerEvent<>(this, null, 1000);
     }
 
     /**
@@ -90,29 +93,31 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
      */
     @Override
     public void onTimer(TimerEvent<LuckyTreasureService> e) {
-        updateTimer = null;
-        Set<Long> updateSet = new HashSet<>(issueNumberSet);
-        issueNumberSet.clear();
-        //只有先将活动从redis中取出来 避免循环中从redis拉取增大开销
-        List<LuckyTreasure> luckyTreasureList = updateSet.stream().map(luckyTreasureRedisDao::getTreasureByIssueNumber).toList();
-        subscriptionManager.publish(SubscriptionTopic.TOPIC_LUCKY_TREASURE_UPDATE, (playerId) -> {
-            NotifyLuckyTreasureUpdate notifyLuckyTreasureUpdate = new NotifyLuckyTreasureUpdate();
-            luckyTreasureList.forEach(treasure -> {
-                LuckyTreasureUpdateInfo afterInfo = new LuckyTreasureUpdateInfo();
-                afterInfo.setIssueNumber(treasure.getIssueNumber());
-                afterInfo.setAlreadyBuyCount(treasure.getBuyMap().getOrDefault(playerId, 0));
-                afterInfo.setIssueNumber(treasure.getIssueNumber());
-                afterInfo.setSoldCount(treasure.getSoldCount());
-                afterInfo.setCountDown(LuckyTreasureStatusUtil.calculateCountDown(treasure));
-                afterInfo.setConfigId(treasure.getConfig().getId());
-                afterInfo.setBuyCount(treasure.getBuyMap().size());
-                afterInfo.setTotalCount(treasure.getConfig().getTotal());
-                afterInfo.setStatus(LuckyTreasureStatusUtil.calculateStatus(treasure, playerId));
-                notifyLuckyTreasureUpdate.getUpdateList().add(afterInfo);
+        if (e == updateTimer) {
+            updateTimer = null;
+            Set<Long> updateSet = new HashSet<>(issueNumberSet);
+            issueNumberSet.clear();
+            //只有先将活动从redis中取出来 避免循环中从redis拉取增大开销
+            List<LuckyTreasure> luckyTreasureList = updateSet.stream().map(luckyTreasureRedisDao::getTreasureByIssueNumber).toList();
+            subscriptionManager.publish(SubscriptionTopic.TOPIC_LUCKY_TREASURE_UPDATE, (playerId) -> {
+                NotifyLuckyTreasureUpdate notifyLuckyTreasureUpdate = new NotifyLuckyTreasureUpdate();
+                luckyTreasureList.forEach(treasure -> {
+                    LuckyTreasureUpdateInfo afterInfo = new LuckyTreasureUpdateInfo();
+                    afterInfo.setIssueNumber(treasure.getIssueNumber());
+                    afterInfo.setAlreadyBuyCount(treasure.getBuyMap().getOrDefault(playerId, 0));
+                    afterInfo.setIssueNumber(treasure.getIssueNumber());
+                    afterInfo.setSoldCount(treasure.getSoldCount());
+                    afterInfo.setCountDown(LuckyTreasureStatusUtil.calculateCountDown(treasure));
+                    afterInfo.setConfigId(treasure.getConfig().getId());
+                    afterInfo.setBuyCount(treasure.getBuyMap().size());
+                    afterInfo.setTotalCount(treasure.getConfig().getTotal());
+                    afterInfo.setStatus(LuckyTreasureStatusUtil.calculateStatus(treasure, playerId));
+                    notifyLuckyTreasureUpdate.getUpdateList().add(afterInfo);
+                });
+                return notifyLuckyTreasureUpdate;
             });
-            return notifyLuckyTreasureUpdate;
-        });
-        log.info("延迟同步夺宝奇兵库存完毕!set={}", updateSet);
+            log.info("延迟同步夺宝奇兵库存完毕!set={}", updateSet);
+        }
     }
 
     /**
@@ -241,14 +246,6 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                 consumeMap.put(itemId, itemNum);
             }
 
-            // 先扣除玩家道具
-            CommonResult<ItemOperationResult> deductResult = playerPackService.removeItems(player, consumeMap, "luckyTreasureBuy");
-            if (!deductResult.success()) {
-                TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, 50028);
-                result.code = Code.FAIL;
-                return result;
-            }
-
             // 使用读写锁确保购买的一致性
             String lockKey = LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_BUY + issueNumber;
 
@@ -256,9 +253,19 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                 // 获取写锁进行购买操作
                 RLock writeLock = redisLock.getWriteLock(lockKey, 100);
                 if (writeLock == null) {
-                    // 获取锁失败，退还道具
-                    playerPackService.addItems(player.getId(), consumeMap, "luckyTreasureBuyRollback");
-                    TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, 50030);
+                    result.code = Code.FAIL;
+                    TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, 50028);
+                    return result;
+                }
+                if (!writeLock.tryLock()) {
+                    TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, 50028);
+                    result.code = Code.FAIL;
+                    return result;
+                }
+                // 先扣除玩家道具
+                CommonResult<ItemOperationResult> deductResult = playerPackService.removeItems(player, consumeMap, "luckyTreasureBuy");
+                if (!deductResult.success()) {
+                    TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, 50028);
                     result.code = Code.FAIL;
                     return result;
                 }

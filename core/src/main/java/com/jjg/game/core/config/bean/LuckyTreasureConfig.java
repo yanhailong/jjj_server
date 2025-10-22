@@ -66,6 +66,21 @@ public class LuckyTreasureConfig extends AbstractExcelConfig {
      */
     private boolean repeated;
 
+    /**
+     * 机器人购买上限万分比
+     */
+    private int robotHaveMax;
+
+    /**
+     * 购买间隔时间下限_上限（毫秒）
+     */
+    private List<Integer> robotTime;
+
+    /**
+     * 单次购买分数万分比下限_上限
+     */
+    private List<Integer> robotSinglePurchase;
+
     public int getBestValue() {
         return bestValue;
     }
@@ -152,5 +167,29 @@ public class LuckyTreasureConfig extends AbstractExcelConfig {
 
     public void setRepeated(boolean repeated) {
         this.repeated = repeated;
+    }
+
+    public int getRobotHaveMax() {
+        return robotHaveMax;
+    }
+
+    public void setRobotHaveMax(int robotHaveMax) {
+        this.robotHaveMax = robotHaveMax;
+    }
+
+    public List<Integer> getRobotTime() {
+        return robotTime;
+    }
+
+    public void setRobotTime(List<Integer> robotTime) {
+        this.robotTime = robotTime;
+    }
+
+    public List<Integer> getRobotSinglePurchase() {
+        return robotSinglePurchase;
+    }
+
+    public void setRobotSinglePurchase(List<Integer> robotSinglePurchase) {
+        this.robotSinglePurchase = robotSinglePurchase;
     }
 }
