@@ -36,7 +36,7 @@ public class ShopMessageHandler {
     @Command(ShopConstant.MsgBean.REQ_SHOP)
     public void reqShop(PlayerController playerController, ReqShop req) {
         ResShop res = new ResShop(Code.SUCCESS);
-        List<ShopProduct> shopProductList = shopService.getShop(playerController.getPlayer());
+        List<ShopProduct> shopProductList = shopService.getShop(playerController.getPlayer(),req.channel);
         if (shopProductList != null && !shopProductList.isEmpty()) {
             res.shopProductInfoList = new ArrayList<>(shopProductList.size());
             shopProductList.forEach((shopProduct) -> {
@@ -68,6 +68,7 @@ public class ShopMessageHandler {
             });
         }
         playerController.send(res);
+        log.debug("返回商品 resp = {}", JSON.toJSONString(res));
     }
 
     /**

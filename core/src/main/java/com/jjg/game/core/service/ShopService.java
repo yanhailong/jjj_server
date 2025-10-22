@@ -57,7 +57,7 @@ public class ShopService {
      * @param player
      * @return
      */
-    public List<ShopProduct> getShop(Player player) {
+    public List<ShopProduct> getShop(Player player, int channel) {
         if (this.shopProductMap == null || this.shopProductMap.isEmpty()) {
             return null;
         }
@@ -68,7 +68,7 @@ public class ShopService {
         for (Map.Entry<Integer, ShopProduct> en : this.shopProductMap.entrySet()) {
             ShopProduct shopProduct = en.getValue();
             //检查是否开启
-            if (!checkProductOpen(player, shopProduct, now)) {
+            if (!checkProductOpen(player, shopProduct, now, channel)) {
                 continue;
             }
             list.add(shopProduct);
@@ -129,8 +129,7 @@ public class ShopService {
     public void loadShopProducts() {
         List<ShopProduct> all = shopProductDao.getAll();
         if (all != null && !all.isEmpty()) {
-            this.shopProductMap = all.stream()
-                    .collect(Collectors.toUnmodifiableMap(ShopProduct::getId, Function.identity()));
+            this.shopProductMap = all.stream().collect(Collectors.toUnmodifiableMap(ShopProduct::getId, Function.identity()));
             log.info("加载商城商品数量 size = {}", this.shopProductMap.size());
         }
     }
@@ -167,6 +166,22 @@ public class ShopService {
      * @return
      */
     public boolean checkProductOpen(Player player, ShopProduct shopProduct, int now) {
+        int channel = ChannelType.GOOGLE.getValue();
+        if (player.getChannel() != null) {
+            channel = player.getChannel().getValue();
+        }
+
+        return checkProductOpen(player, shopProduct, now, channel);
+    }
+
+    /**
+     * 检查商品条件，是否开启
+     *
+     * @param player
+     * @param shopProduct
+     * @return
+     */
+    public boolean checkProductOpen(Player player, ShopProduct shopProduct, int now, int channel) {
         //是否开启
         if (!shopProduct.isOpen()) {
             return false;
@@ -187,9 +202,9 @@ public class ShopService {
             return false;
         }
 
-        if(shopProduct.getChannelProductIdMap() == null){
+        if (shopProduct.getChannelProductIdMap() == null) {
             return false;
         }
-        return shopProduct.getConditionsMap().containsKey(player.getChannel().getValue());
+        return shopProduct.getConditionsMap().containsKey(channel);
     }
 }
