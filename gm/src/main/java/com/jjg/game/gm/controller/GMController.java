@@ -23,17 +23,16 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.AmazonBucketManager;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
-import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.service.*;
-import com.jjg.game.core.utils.MessageBuildUtil;
 import com.jjg.game.gm.dto.*;
 import com.jjg.game.gm.util.NetUtil;
 import com.jjg.game.gm.vo.*;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
+import com.jjg.game.sampledata.bean.LoginConfigCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,6 +83,8 @@ public class GMController extends AbstractController {
     private AmazonBucketManager amazonBucketManager;
     @Autowired
     private CoreSendMessageManager coreSendMessageManager;
+    @Autowired
+    private LoginConfigService loginConfigService;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -920,6 +921,33 @@ public class GMController extends AbstractController {
             clusterSystem.sendClusterMessage(pfMessage,clusterList);
 
             amazonBucketManager.dowmloadFiles(dto.nameList());
+            return success("common.success");
+        }catch (Exception e){
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 更新登录配置
+     *
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.CHANGE_LOGIN_CONFIG)
+    public WebResult<String> changeLoginConfig(@RequestBody ChangeLoginConfigDto dto) {
+        log.info("收到更新登录配置的请求 dto = {}",dto);
+
+        try{
+            LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(c -> c.getType() == dto.loginType()).findFirst().orElse(null);
+            if(loginConfigCfg == null){
+                log.debug("修改登录配置失败,未找到对应的配置文件 dto = {}",dto);
+                return fail("common.paramerror");
+            }
+
+            loginConfigService.save(dto.loginType(),dto.open());
+
+            PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyLoadLoginConfig());
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.ACCOUNT.toString(),NodeType.HALL.toString())::contains);
             return success("common.success");
         }catch (Exception e){
             log.error("", e);

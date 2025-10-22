@@ -16,6 +16,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.account.vo.LoginVo;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
+import com.jjg.game.core.service.LoginConfigService;
 import com.jjg.game.core.service.SmsService;
 import com.jjg.game.sampledata.GameDataManager;
 import io.micrometer.common.util.StringUtils;
@@ -47,6 +48,8 @@ public class AccountController extends AbstractController {
     private AccountService accountService;
     @Autowired
     private SmsService smsService;
+    @Autowired
+    private LoginConfigService loginConfigService;
 
     /**
      * 获取开启的登录方式
@@ -59,7 +62,7 @@ public class AccountController extends AbstractController {
         GameDataManager.getLoginConfigCfgList().forEach(config -> {
             LoginConfigVo vo = new LoginConfigVo();
             vo.setType(config.getType());
-            vo.setOpen(true);
+            vo.setOpen(loginConfigService.isOpen(config.getType()));
             resultList.add(vo);
         });
         return success(resultList);

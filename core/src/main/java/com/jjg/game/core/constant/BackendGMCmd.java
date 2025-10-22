@@ -51,9 +51,11 @@ public interface BackendGMCmd {
     String GET_ALL_ACTIVITY_DATA = "getAllActivityData";
     //更新excel配置
     String UPDATE_EXCEL_CONFIGS = "updateExcelConfigs";
+    //更新登录配置
+    String CHANGE_LOGIN_CONFIG = "changeLoginConfig";
 
     /**
-     * 配置相关
+     * 配置相关q
      */
     interface Config {
         //加载配置列表

@@ -26,6 +26,7 @@ import com.jjg.game.core.pb.NotifyConfigUpdate;
 import com.jjg.game.core.pb.NotifyRechargeServer;
 import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.LoginConfigService;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.ShopService;
 import com.jjg.game.core.task.manager.TaskManager;
@@ -65,6 +66,8 @@ public class CoreToServerMessageHandler {
     private TaskManager taskManager;
     @Autowired
     private AmazonBucketManager amazonBucketManager;
+    @Autowired
+    private LoginConfigService loginConfigService;
 
     /**
      * 其他节点推送的跑马灯信息
@@ -215,6 +218,19 @@ public class CoreToServerMessageHandler {
         log.debug("收到需要更新配置表的消息 notify = {}", JSON.toJSONString(notify));
         try {
             amazonBucketManager.dowmloadFiles(notify.nameList);
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 加载登录配置
+     */
+    @Command(MessageConst.ToServer.NOTIFY_LOAD_LOGIN_CONFIG)
+    public void notifyLoadLoginConfig(NotifyLoadLoginConfig notify) {
+        log.debug("收到需要重新加载登录配置的消息 notify = {}", JSON.toJSONString(notify));
+        try {
+            loginConfigService.load();
         } catch (Exception e) {
             log.error("", e);
         }

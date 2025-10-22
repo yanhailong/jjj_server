@@ -6,6 +6,7 @@ import com.jjg.game.core.base.condition.ConditionType;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
+import com.jjg.game.core.service.LoginConfigService;
 import com.jjg.game.hall.casino.manager.CasinoManager;
 import com.jjg.game.hall.config.HallConfig;
 import com.jjg.game.hall.listener.HallPlayerEventListener;
@@ -51,6 +52,8 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private ConfigManager configManager;
     @Autowired
     private PointsAwardManager pointsAwardManager;
+    @Autowired
+    private LoginConfigService loginConfigService;
 
     private ApplicationContext context;
 
@@ -68,6 +71,7 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         ConditionType.initData();
         minigameManager.init();
         pointsAwardManager.init();
+        loginConfigService.init();
         running = true;
     }
 
