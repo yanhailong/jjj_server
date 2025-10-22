@@ -1,15 +1,10 @@
 package com.jjg.game.core.data;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-
 /**
  * @author 11
  * @date 2025/6/10 9:48
  */
-@Document
 public class PlayerSessionToken {
-    @Id
     private long playerId;
     private String token;
     private int loginType;

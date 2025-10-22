@@ -186,6 +186,10 @@ public class ShopService {
         if (shopProduct.getEndTime() > 0 && now > shopProduct.getEndTime()) {
             return false;
         }
-        return true;
+
+        if(shopProduct.getChannelProductIdMap() == null){
+            return false;
+        }
+        return shopProduct.getConditionsMap().containsKey(player.getChannel().getValue());
     }
 }

@@ -1,6 +1,8 @@
 package com.jjg.game.hall.utils;
 
 import cn.hutool.core.lang.Snowflake;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.Phonenumber;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.core.constant.GameConstant;
 
@@ -28,5 +30,14 @@ public class HallTool {
 
     public static long getNextId() {
         return SNOWFLAKE.nextId();
+    }
+
+    public static boolean validPhoneNumber(String phoneNumber) {
+        try{
+            Phonenumber.PhoneNumber parse = PhoneNumberUtil.getInstance().parse(phoneNumber, "");
+            return PhoneNumberUtil.getInstance().isValidNumber(parse);
+        }catch (Exception e){
+            return false;
+        }
     }
 }

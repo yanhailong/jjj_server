@@ -13,8 +13,8 @@ import java.util.Set;
  */
 @Repository
 public class BlackListDao {
-    private final String ipTableName = "blackIp";
-    private final String idTableName = "blackId";
+    private final String ipTableName = "gm:blackIp";
+    private final String idTableName = "gm:blackId";
 
     @Autowired
     private RedisTemplate redisTemplate;
@@ -74,7 +74,7 @@ public class BlackListDao {
      *
      * @return
      */
-    public Set<Object> getAllBlackIp() {
+    public Set<String> getAllBlackIp() {
         return redisTemplate.opsForSet().members(ipTableName);
     }
 
@@ -129,7 +129,7 @@ public class BlackListDao {
      *
      * @return
      */
-    public Set<Object> getAllBlackId() {
+    public Set<Long> getAllBlackId() {
         return redisTemplate.opsForSet().members(idTableName);
     }
 }

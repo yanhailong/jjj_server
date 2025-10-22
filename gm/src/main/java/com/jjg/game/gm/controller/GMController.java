@@ -17,6 +17,7 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.BackendGMCmd;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.*;
 import com.jjg.game.core.data.*;
@@ -78,7 +79,7 @@ public class GMController extends AbstractController {
     @Autowired
     private NodeManager nodeManager;
     @Autowired
-    private BlackListDao blackListDao;
+    private BlackListService blackListService;
     @Autowired
     private AmazonBucketManager amazonBucketManager;
     @Autowired
@@ -116,7 +117,7 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
-            boolean saved = gameStatusService.saveOrUpdateGameStatus(new GameStatus(dto.name(),dto.number(),
+            boolean saved = gameStatusService.saveOrUpdateGameStatus(new GameStatus(dto.name(), dto.number(),
                     dto.open(), dto.status(), dto.right_top_icon(), dto.icon_category(), dto.sort()));
 
             if (!saved) {
@@ -200,7 +201,6 @@ public class GMController extends AbstractController {
 
     /**
      * 停止跑马灯
-     *
      */
     @RequestMapping(BackendGMCmd.STOP_MARQUEE)
     public WebResult<String> stopMarquee(@RequestBody StopMarqueeDto dto) {
@@ -231,7 +231,6 @@ public class GMController extends AbstractController {
 
     /**
      * 查询玩家信息
-     *
      */
     @RequestMapping(BackendGMCmd.QUERY_ACCOUNT)
     public WebResult<PlayerVo> queryAccount(@RequestBody QueryAccountDto dto) {
@@ -317,7 +316,6 @@ public class GMController extends AbstractController {
 
     /**
      * 邮件
-     *
      */
     @RequestMapping(BackendGMCmd.SEND_EMAIL)
     public WebResult<String> sendEmail(@RequestBody MailDto dto) {
@@ -374,7 +372,6 @@ public class GMController extends AbstractController {
 
     /**
      * 货币操作
-     *
      */
     @RequestMapping(BackendGMCmd.GOLD_OPERATOR)
     public WebResult<String> goldOperator(@RequestBody GoldOperatorDto dto) {
@@ -421,33 +418,60 @@ public class GMController extends AbstractController {
                 return fail("common.paramerror");
             }
 
+            boolean notifyNode = false;
+            String addType = "GM_GOLD_OPERATOR";
             CommonResult<Player> result;
-            if (dto.type() == 1) {  //增加
-                if (dto.operator_type() == 1) { //账户
-                    if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
-                        result = playerService.addGold(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
-                    } else {  //钻石
-                        result = playerService.addDiamond(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
+            if (dto.operator_type() == 1) {  //账户
+                PlayerSessionInfo info = playerSessionService.getInfo(player.getId());
+                if (info == null || info.getGameType() == CoreConst.GameMajorType.SLOTS) {
+                    if (dto.type() == 1) { //增加
+                        if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
+                            result = playerService.addGold(dto.playerId(), dto.quantity(), addType, dto.remark());
+                        } else {  //钻石
+                            result = playerService.addDiamond(dto.playerId(), dto.quantity(), addType, dto.remark());
+                        }
+                    } else {
+                        if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
+                            result = playerService.deductGold(dto.playerId(), dto.quantity(), addType, dto.remark());
+                        } else {  //钻石
+                            result = playerService.deductDiamond(dto.playerId(), dto.quantity(), addType, dto.remark());
+                        }
                     }
-                } else { //保险箱
-                    if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
-                        result = playerService.addSafeBoxGold(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
-                    } else {  //钻石
-                        result = playerService.addSafeBoxDiamond(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
+                } else {
+                    //获取节点
+                    String[] arr = info.getCurrentNode().split("/");
+                    ClusterClient clusterClient = clusterSystem.getNodesByName(arr[arr.length - 1]);
+                    if (clusterClient == null) {
+                        log.debug("修改货币时，未找到玩家所在节点 playerId = {},nodeName = {}", dto.playerId(), info.getCurrentNode());
+                        return fail("common.paramerror");
                     }
+                    NotifyGoldOperator notify = new NotifyGoldOperator();
+                    notify.playerId = dto.playerId();
+                    notify.currency_id = dto.currency_id();
+                    notify.type = dto.type();
+                    notify.quantity = dto.quantity();
+                    notify.addType = addType;
+                    notify.remark = dto.remark();
+
+                    PFMessage pfMessage = MessageUtil.getPFMessage(notify);
+                    ClusterMessage msg = new ClusterMessage(pfMessage);
+                    clusterClient.write(msg);
+                    result = new CommonResult<>(Code.SUCCESS);
+                    notifyNode = true;
+                    log.debug("通知节点修改玩家账户 node = {},notify = {}", info.getCurrentNode(), JSON.toJSONString(notify));
                 }
-            } else {  //减少
-                if (dto.operator_type() == 1) { //账户
+            } else {  //保险箱
+                if (dto.type() == 1) { //增加
                     if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
-                        result = playerService.deductGold(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
+                        result = playerService.addSafeBoxGold(dto.playerId(), dto.quantity(), addType, dto.remark());
                     } else {  //钻石
-                        result = playerService.deductDiamond(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
+                        result = playerService.addSafeBoxDiamond(dto.playerId(), dto.quantity(), addType, dto.remark());
                     }
-                } else { //保险箱
+                } else {
                     if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
-                        result = playerService.deductSafeBoxGold(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
+                        result = playerService.deductSafeBoxGold(dto.playerId(), dto.quantity(), addType, dto.remark());
                     } else {  //钻石
-                        result = playerService.deductSafeBoxDiamond(dto.playerId(), dto.quantity(), "GM_GOLD_OPERATOR", dto.remark());
+                        result = playerService.deductSafeBoxDiamond(dto.playerId(), dto.quantity(), addType, dto.remark());
                     }
                 }
             }
@@ -457,7 +481,7 @@ public class GMController extends AbstractController {
                 return fail("common.fail");
             }
 
-            if (dto.operator_type() == 1) {  //如果是账户修改，则要进行通知
+            if (!notifyNode && dto.operator_type() == 1) {  //如果是账户修改，则要进行通知
                 coreSendMessageManager.buildMoneyChangeMessage(result.data);
             }
 
@@ -471,7 +495,6 @@ public class GMController extends AbstractController {
 
     /**
      * 踢出玩家
-     *
      */
     @RequestMapping(BackendGMCmd.KICK_ACCOUNT)
     public WebResult<String> kickAccount(@RequestBody KickAccountDto dto) {
@@ -517,7 +540,6 @@ public class GMController extends AbstractController {
 
     /**
      * 封禁
-     *
      */
     @RequestMapping(BackendGMCmd.BAN_ACCOUNT)
     public WebResult<String> banAccount(@RequestBody BanAccountDto dto) {
@@ -560,7 +582,6 @@ public class GMController extends AbstractController {
 
     /**
      * 在线玩家
-     *
      */
     @RequestMapping(BackendGMCmd.PLAYING_INFO)
     public WebResult<PageVo<List<OnlinePlayerVo>>> onlinePlayer(@RequestBody OnlinePlayerDto dto) {
@@ -703,7 +724,7 @@ public class GMController extends AbstractController {
                 return fail("common.fail");
             }
 
-            if(NodeType.GAME.name().equals(clusterClient.nodeConfig.getType()) &&
+            if (NodeType.GAME.name().equals(clusterClient.nodeConfig.getType()) &&
                     clusterClient.nodeConfig.getGameMajorTypes()[0] != CoreConst.GameMajorType.SLOTS) {
                 log.debug("只能是slots的游戏节点才需要生成结果库 param = {}", param);
                 return fail("common.fail");
@@ -752,7 +773,7 @@ public class GMController extends AbstractController {
 
             //通知大厅节点，商城商品变更
             PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyShopProductChange());
-            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString(),NodeType.GAME.toString(),NodeType.RECHARGE.toString())::contains);
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString(), NodeType.GAME.toString(), NodeType.RECHARGE.toString())::contains);
 
             return success("common.success");
         } catch (Exception e) {
@@ -795,44 +816,48 @@ public class GMController extends AbstractController {
         log.info("收到修改黑名单信息 param={}", dto);
         try {
             boolean none = true;
-            if(dto.ids() != null) {
+            if (dto.ids() != null) {
                 dto.ids().removeIf(Objects::isNull);
-                if(!dto.ids().isEmpty()){
-                    if(dto.type() == 0){
-                        blackListDao.addBlackIds(dto.ids());
-                    }else {
-                        blackListDao.removeBlackIds(dto.ids());
+                if (!dto.ids().isEmpty()) {
+                    if (dto.type() == 0) {
+                        blackListService.addBlackIds(dto.ids());
+                    } else {
+                        blackListService.removeBlackIds(dto.ids());
                     }
                     none = false;
                 }
             }
 
-            if(dto.ips() != null) {
-                dto.ips().removeIf(ip -> {
-                    ip = ip.trim();
-                    return StringUtils.isEmpty(ip);
-                });
-                if(!dto.ips().isEmpty()){
+            if (dto.ips() != null) {
+                dto.ips().replaceAll(String::trim);
+                dto.ips().removeIf(StringUtils::isEmpty);
+                if (!dto.ips().isEmpty()) {
                     boolean match = dto.ips().stream().allMatch(NetUtil::isValidIP);
-                    if(!match){
+                    if (!match) {
                         log.debug("ip格式错误");
                         return fail("common.fail");
                     }
-                    if(dto.type() == 0){
-                        blackListDao.addBlackIps(dto.ips());
-                    }else {
-                        blackListDao.removeBlackIps(dto.ips());
+                    if (dto.type() == 0) {
+                        blackListService.addBlackIps(dto.ips());
+                    } else {
+                        blackListService.removeBlackIps(dto.ips());
                     }
 
                     none = false;
                 }
             }
 
-            if(none){
+            if (none) {
                 log.debug("黑名单为空...");
                 return fail("common.fail");
             }
 
+            NotifyLoadBlackList notify = new NotifyLoadBlackList();
+            notify.loadId = dto.ids() != null;
+            notify.loadIp = dto.ips() != null;
+
+            PFMessage pfMessage = MessageUtil.getPFMessage(notify);
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.ACCOUNT.toString())::contains);
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);
@@ -854,7 +879,7 @@ public class GMController extends AbstractController {
         addNodeConfig(nodeConfigList, NodeType.HALL);
         addNodeConfig(nodeConfigList, NodeType.GAME);
         addNodeConfig(nodeConfigList, NodeType.RECHARGE);
-        return success("common.success",nodeConfigList);
+        return success("common.success", nodeConfigList);
     }
 
     /**
@@ -864,16 +889,16 @@ public class GMController extends AbstractController {
      */
     @RequestMapping(BackendGMCmd.CHANG_GAME_NODE_INFO)
     public WebResult<String> changeGameServerInfo(@RequestBody ChangeNodeDto dto) {
-        log.info("收到修改服务器列表信息 dto = {}",dto);
+        log.info("收到修改服务器列表信息 dto = {}", dto);
 
-        try{
-            if(dto.name() == null || dto.name().isEmpty()){
-                log.debug("修改服务器信息错误,节点名不能为空 dto = {}",dto);
+        try {
+            if (dto.name() == null || dto.name().isEmpty()) {
+                log.debug("修改服务器信息错误,节点名不能为空 dto = {}", dto);
                 return fail("common.paramerror");
             }
             ClusterClient clusterClient = clusterSystem.getNodesByName(dto.name());
-            if(clusterClient == null){
-                log.debug("修改服务器信息错误,未找到该节点 dto = {}",dto);
+            if (clusterClient == null) {
+                log.debug("修改服务器信息错误,未找到该节点 dto = {}", dto);
                 return fail("common.paramerror");
             }
 
@@ -885,7 +910,7 @@ public class GMController extends AbstractController {
             PFMessage pfMessage = MessageUtil.getPFMessage(notify);
             clusterClient.write(new ClusterMessage(pfMessage));
             return success("common.success");
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
         }
@@ -899,18 +924,18 @@ public class GMController extends AbstractController {
      */
     @RequestMapping(BackendGMCmd.UPDATE_EXCEL_CONFIGS)
     public WebResult<String> updateExcelConfigs(@RequestBody UpdateExcelConfigsDto dto) {
-        log.info("收到excel配置表更新请求 dto = {}",dto);
+        log.info("收到excel配置表更新请求 dto = {}", dto);
 
-        try{
-            if(dto.nameList() == null || dto.nameList().isEmpty()){
-                log.debug("更新excel配置表错误,名称列表不能为空 dto = {}",dto);
+        try {
+            if (dto.nameList() == null || dto.nameList().isEmpty()) {
+                log.debug("更新excel配置表错误,名称列表不能为空 dto = {}", dto);
                 return fail("common.paramerror");
             }
 
             //获取除 gate 之外的所有节点
             List<ClusterClient> clusterList = clusterSystem.getAllExcept(NodeType.GATE);
-            if(clusterList == null || clusterList.isEmpty()){
-                log.debug("更新excel配置表错误,获取节点列表为空 dto = {}",dto);
+            if (clusterList == null || clusterList.isEmpty()) {
+                log.debug("更新excel配置表错误,获取节点列表为空 dto = {}", dto);
                 return fail("common.paramerror");
             }
 
@@ -918,11 +943,11 @@ public class GMController extends AbstractController {
             notify.nameList = dto.nameList();
 
             PFMessage pfMessage = MessageUtil.getPFMessage(notify);
-            clusterSystem.sendClusterMessage(pfMessage,clusterList);
+            clusterSystem.sendClusterMessage(pfMessage, clusterList);
 
             amazonBucketManager.dowmloadFiles(dto.nameList());
             return success("common.success");
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
         }
@@ -935,21 +960,21 @@ public class GMController extends AbstractController {
      */
     @RequestMapping(BackendGMCmd.CHANGE_LOGIN_CONFIG)
     public WebResult<String> changeLoginConfig(@RequestBody ChangeLoginConfigDto dto) {
-        log.info("收到更新登录配置的请求 dto = {}",dto);
+        log.info("收到更新登录配置的请求 dto = {}", dto);
 
-        try{
+        try {
             LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(c -> c.getType() == dto.loginType()).findFirst().orElse(null);
-            if(loginConfigCfg == null){
-                log.debug("修改登录配置失败,未找到对应的配置文件 dto = {}",dto);
+            if (loginConfigCfg == null) {
+                log.debug("修改登录配置失败,未找到对应的配置文件 dto = {}", dto);
                 return fail("common.paramerror");
             }
 
-            loginConfigService.save(dto.loginType(),dto.open());
+            loginConfigService.save(dto.loginType(), dto.open());
 
             PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyLoadLoginConfig());
-            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.ACCOUNT.toString(),NodeType.HALL.toString())::contains);
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.ACCOUNT.toString(), NodeType.HALL.toString())::contains);
             return success("common.success");
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
         }
@@ -960,9 +985,7 @@ public class GMController extends AbstractController {
     //****************************************************************************************************************/
 
     /**
-     *
      * 检验玩家信息
-     *
      */
     private boolean checkPlayerInfo(QueryAccountDto dto, Player player, Account account) {
         //检查玩家id
@@ -1029,10 +1052,10 @@ public class GMController extends AbstractController {
             vo.setHttpAddress(node.getNodeConfig().getHttpAddress());
             vo.setWeight(node.getNodeConfig().getWeight());
 
-            if(node.getNodeConfig().getWhiteIpList() != null && node.getNodeConfig().getWhiteIpList().length > 0){
+            if (node.getNodeConfig().getWhiteIpList() != null && node.getNodeConfig().getWhiteIpList().length > 0) {
                 vo.setWhiteIpList(Arrays.stream(node.getNodeConfig().getWhiteIpList()).toList());
             }
-            if(node.getNodeConfig().getWhiteIdList() != null && node.getNodeConfig().getWhiteIdList().length > 0){
+            if (node.getNodeConfig().getWhiteIdList() != null && node.getNodeConfig().getWhiteIdList().length > 0) {
                 vo.setWhiteIdList(Arrays.stream(node.getNodeConfig().getWhiteIdList()).toList());
             }
             nodeList.add(vo);

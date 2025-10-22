@@ -42,6 +42,8 @@ public class ShopProduct {
     private int label2;
     //图片
     private String pic;
+    //渠道自己的商品id
+    private Map<Integer,String> channelProductIdMap;
 
     public int getId() {
         return id;
@@ -153,5 +155,20 @@ public class ShopProduct {
 
     public void setPic(String pic) {
         this.pic = pic;
+    }
+
+    public Map<Integer, String> getChannelProductIdMap() {
+        return channelProductIdMap;
+    }
+
+    public void setChannelProductIdMap(Map<Integer, String> channelProductIdMap) {
+        this.channelProductIdMap = channelProductIdMap;
+    }
+
+    public String channelProductId(int channelId) {
+        if(this.channelProductIdMap == null || this.channelProductIdMap.isEmpty()){
+            return null;
+        }
+        return this.channelProductIdMap.get(channelId);
     }
 }

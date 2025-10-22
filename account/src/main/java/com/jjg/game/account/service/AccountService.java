@@ -13,6 +13,7 @@ import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.ChannelType;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.LoginType;
+import com.jjg.game.core.service.BlackListService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +37,7 @@ public class AccountService {
     @Autowired
     private RedisLock redisLock;
     @Autowired
-    private BlackListDao blackListDao;
+    private BlackListService blackListService;
     @Autowired
     private AccountLogger accountLogger;
 
@@ -64,7 +65,7 @@ public class AccountService {
         }
 
         //检测黑名单
-        if (blackListDao.blackId(account.getPlayerId())) {
+        if (blackListService.isBlackId(account.getPlayerId())) {
             log.debug("该用户在黑名单，无法登录 loginType = {},channelUserId = {},playerId = {}", loginType, channelUserInfo.getUserId(), account.getPlayerId());
             accountResult.code = Code.BAN_ACCOUNT;
             return accountResult;

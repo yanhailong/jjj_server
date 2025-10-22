@@ -1,6 +1,8 @@
 package com.jjg.game.account.controller;
 
 import com.alibaba.fastjson.JSONObject;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.Phonenumber;
 import com.jjg.game.account.config.AccountConfig;
 import com.jjg.game.account.data.*;
 import com.jjg.game.account.dto.LoginDto;
@@ -16,6 +18,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.account.vo.LoginVo;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
+import com.jjg.game.core.service.BlackListService;
 import com.jjg.game.core.service.LoginConfigService;
 import com.jjg.game.core.service.SmsService;
 import com.jjg.game.sampledata.GameDataManager;
@@ -41,7 +44,7 @@ public class AccountController extends AbstractController {
     @Autowired
     private AccountConfig accountConfig;
     @Autowired
-    private BlackListDao blackListDao;
+    private BlackListService blackListService;
     @Autowired
     private HttpService httpService;
     @Autowired
@@ -89,10 +92,15 @@ public class AccountController extends AbstractController {
                 return fail(Code.PARAM_ERROR);
             }
 
+            if(!loginConfigService.isOpen(dto.getLoginType())){
+                log.debug("该登录类型被后台关闭，登录失败 dto = {}", JSONObject.toJSONString(dto));
+                return fail(Code.FORBID);
+            }
+
             //检查是否在黑名单中
             String clientIp = getClientIp(request);
             if (StringUtils.isNotEmpty(clientIp)) {
-                boolean blackIp = blackListDao.blackIp(clientIp);
+                boolean blackIp = blackListService.isBlackIp(clientIp);
                 if (blackIp) {
                     log.debug("该ip已被封禁，无法登录 ip = {},dto = {}", clientIp, JSONObject.toJSONString(dto));
                     return fail(Code.BAN_CAUSE_BLACK_LIST);
@@ -171,7 +179,18 @@ public class AccountController extends AbstractController {
     @RequestMapping("loginsms")
     public WebResult loginsms(@RequestBody LoginSmsDto dto, HttpServletRequest request) {
         try {
-            int code = smsService.sendCode(dto.getPhone(), VerCodeType.SMS_LOGIN);
+            if(StringUtils.isEmpty(dto.getPhone())){
+                log.debug("获取登录验证码失败,手机号不能为空 phone = {}", dto.getPhone());
+                return fail(Code.PARAM_ERROR);
+            }
+
+            String phone = dto.getPhone().trim();
+            boolean valid = validPhoneNumber(phone);
+            if (!valid) {
+                log.debug("获取登录验证码失败,手机号格式错误 phone = {}", dto.getPhone());
+                return fail(Code.PARAM_ERROR);
+            }
+            int code = smsService.sendCode(phone, VerCodeType.SMS_LOGIN);
             if (code != Code.SUCCESS) {
                 return fail(code);
             }
@@ -283,11 +302,24 @@ public class AccountController extends AbstractController {
     private WebResult<LoginVo> phoneLogin(LoginDto dto) {
         String[] arr = dto.getData().split(",");
         if (arr.length != 2) {
-            log.debug("手机登录参数错误 dto = {}", JSONObject.toJSONString(dto));
+            log.debug("手机登录参数错误,应该包含手机号和验证码 dto = {}", JSONObject.toJSONString(dto));
             return fail(Code.PARAM_ERROR);
         }
 
-        CommonResult<PhoneUserInfo> userInfoResult = httpService.verifyPhoneLoginCode(arr[0], Integer.parseInt(arr[1]));
+        String phone = arr[0].trim();
+        if(StringUtils.isEmpty(phone)){
+            log.debug("手机登录失败,手机号不能为空 phone = {}", phone);
+            return fail(Code.PARAM_ERROR);
+        }
+
+        boolean valid = validPhoneNumber(phone);
+        if (!valid) {
+            log.debug("手机登录失败,手机号格式错误 phone = {}", phone);
+            return fail(Code.PARAM_ERROR);
+        }
+
+        int code = Integer.parseInt(arr[1].trim());
+        CommonResult<PhoneUserInfo> userInfoResult = httpService.verifyPhoneLoginCode(phone, code);
         if (!userInfoResult.success()) {
             return fail(Code.BAN_CAUSE_BLACK_LIST);
         }
@@ -348,5 +380,20 @@ public class AccountController extends AbstractController {
         vo.setToken(token);
         vo.setPlayerId(account.getPlayerId());
         return success(vo);
+    }
+
+    /**
+     * 检验手机号是否有效
+     * @param phoneNumber
+     * @return
+     */
+    private boolean validPhoneNumber(String phoneNumber) {
+        try{
+            Phonenumber.PhoneNumber parse = PhoneNumberUtil.getInstance().parse(phoneNumber, "");
+            return PhoneNumberUtil.getInstance().isValidNumber(parse);
+        }catch (Exception e){
+            log.warn("解析手机号错误 phoneNumber = {}", phoneNumber);
+            return false;
+        }
     }
 }

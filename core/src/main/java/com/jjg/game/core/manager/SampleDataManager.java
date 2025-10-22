@@ -193,6 +193,7 @@ public class SampleDataManager implements FileLoader {
             String name = fileName.replace(".json", "");
             Object bean = CommonUtil.getContext().getBean(name);
             BeanUtils.copyProperties(jsonObject.toJavaObject(bean.getClass()), bean);
+            log.debug("加载json配置 name = {}",fileName);
         } catch (NoSuchBeanDefinitionException e1) {
 
         } catch (Exception e) {

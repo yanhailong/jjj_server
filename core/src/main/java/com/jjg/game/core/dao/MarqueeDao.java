@@ -1,8 +1,6 @@
 package com.jjg.game.core.dao;
 
 import com.jjg.game.core.data.Marquee;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
@@ -15,7 +13,6 @@ import java.util.List;
  */
 @Repository
 public class MarqueeDao {
-    private static final Logger log = LoggerFactory.getLogger(MarqueeDao.class);
     //跑马灯信息
     private final String marqueeTableName = "marquee";
 

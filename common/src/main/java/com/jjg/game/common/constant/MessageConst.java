@@ -259,5 +259,9 @@ public interface MessageConst {
         int NOTIFY_EXCEL_CHANGE = BASE_MSG_PREFIX | 0x10;
         //通知服务器加载登录配置
         int NOTIFY_LOAD_LOGIN_CONFIG = BASE_MSG_PREFIX | 0x11;
+        //通知服务器加载黑名单
+        int NOTIFY_LOAD_BLACK_LIST = BASE_MSG_PREFIX | 0x12;
+        //通知修改玩家金币
+        int NOTIFY_GOLD_OPERATE = BASE_MSG_PREFIX | 0x13;
     }
 }

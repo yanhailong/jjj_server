@@ -63,6 +63,7 @@ public class ShopMessageHandler {
                 info.label1 = shopProduct.getLabel1();
                 info.label2 = shopProduct.getLabel2();
                 info.pic = shopProduct.getPic();
+                info.channelProductId = shopProduct.channelProductId(req.channel);
                 res.shopProductInfoList.add(info);
             });
         }

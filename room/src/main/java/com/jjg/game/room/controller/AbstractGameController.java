@@ -10,7 +10,9 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.ExceptionUtils;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEventManager;
+import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.*;
@@ -507,7 +509,13 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 return gamePlayer;
             }
             ExperienceBonusParam expParam = playerService.getExpParam(playerId, num);
+
+            int beforeLevel = gamePlayer.getLevel();
             playerService.onBetDeductGoldAfter(gamePlayer, expParam, false, num);
+            if(beforeLevel != gamePlayer.getLevel()){
+                gameEventManager.triggerEvent(
+                        new PlayerEvent(gamePlayer, EGameEventType.PLAYER_LEVEL, beforeLevel, gamePlayer.getLevel()));
+            }
             return gamePlayer;
         };
         // 机器人直接扣除

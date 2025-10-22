@@ -304,7 +304,6 @@ public class AbstractPlayerService {
             }
             return result;
         }
-        System.out.println(2222);
         return result;
     }
 

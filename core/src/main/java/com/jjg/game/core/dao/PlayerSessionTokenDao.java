@@ -3,25 +3,38 @@ package com.jjg.game.core.dao;
 import com.mongodb.client.result.DeleteResult;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.data.PlayerSessionToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Repository;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author 11
  * @date 2025/5/26 10:14
  */
 @Repository
-public class PlayerSessionTokenDao extends MongoBaseDao<PlayerSessionToken, Long> {
+public class PlayerSessionTokenDao {
+    private Logger log = LoggerFactory.getLogger(getClass());
 
-    public PlayerSessionTokenDao(@Autowired MongoTemplate mongoTemplate) {
-        super(PlayerSessionToken.class, mongoTemplate);
-    }
-
+    //玩家token
+    private final String tableName = "playerSessionToken";
     //token过期时长
-    private final long tokenExpireTime = 2400L * TimeHelper.ONE_HOUR_OF_MILLIS;
+    private final long tokenExpireTime = 240L * TimeHelper.ONE_HOUR_OF_MILLIS;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * 保存token
@@ -36,7 +49,7 @@ public class PlayerSessionTokenDao extends MongoBaseDao<PlayerSessionToken, Long
         playerSessionToken.setExpireTime(System.currentTimeMillis() + tokenExpireTime);
         playerSessionToken.setLoginType(loginType);
         playerSessionToken.setChannel(channel);
-        mongoTemplate.save(playerSessionToken);
+        redisTemplate.opsForHash().put(tableName, playerId, playerSessionToken);
     }
 
     /**
@@ -46,15 +59,51 @@ public class PlayerSessionTokenDao extends MongoBaseDao<PlayerSessionToken, Long
      * @return
      */
     public PlayerSessionToken getByPlayerId(long playerId) {
-        return mongoTemplate.findById(playerId, PlayerSessionToken.class);
+        return (PlayerSessionToken)redisTemplate.opsForHash().get(tableName, playerId);
     }
 
     /**
      * 清除过期token
      */
-    public DeleteResult clearExpireToken() {
-        Query query = new Query(Criteria.where("expireTime").lt(System.currentTimeMillis()));
-        // 执行删除
-        return mongoTemplate.remove(query, PlayerSessionToken.class);
+    public int clearExpireToken() {
+        Cursor<Map.Entry<Long, PlayerSessionToken>> cursor = null;
+        int deleteCount = 0;
+        try{
+            cursor = redisTemplate.opsForHash().scan(
+                    tableName,
+                    ScanOptions.scanOptions().count(100).build());
+
+            long now = System.currentTimeMillis();
+
+            List<Long> delList = new ArrayList<>();
+            while (cursor.hasNext()) {
+                Map.Entry<Long, PlayerSessionToken> entry = cursor.next();
+
+                PlayerSessionToken playerSessionToken = entry.getValue();
+                if(playerSessionToken.getExpireTime() < now){
+                    delList.add(entry.getKey());
+                }
+
+                // 分批处理，避免内存占用过大
+                if (delList.size() >= 50) {
+                    deleteCount += delList.size();
+                    redisTemplate.opsForHash().delete(tableName, delList.toArray());
+                    delList.clear();
+                }
+            }
+
+            // 处理剩余未删除的字段
+            if (!delList.isEmpty()) {
+                deleteCount += delList.size();
+                redisTemplate.opsForHash().delete(tableName, delList.toArray());
+            }
+        }catch (Exception e) {
+            log.error("",e);
+        }finally {
+            if(cursor != null){
+                cursor.close();
+            }
+        }
+        return deleteCount;
     }
 }

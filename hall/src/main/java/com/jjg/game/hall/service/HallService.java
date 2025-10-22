@@ -183,6 +183,12 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
+        if(!HallTool.validPhoneNumber(data)){
+            result.code = Code.PARAM_ERROR;
+            log.debug("手机号格式错误,获取绑定手机验证码失败 playerId = {},phone = {}", playerId, data);
+            return result;
+        }
+
         int now = TimeHelper.nowInt();
         result = verCodeDao.verCodeIdleTime(playerId, VerCodeType.SMS_BIND_PHONE);
         if (now <= result.data) {

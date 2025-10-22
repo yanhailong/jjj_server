@@ -13,11 +13,9 @@ import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.base.player.IRecharge;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.constant.BackendGMCmd;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.TaskConstant;
-import com.jjg.game.core.data.Marquee;
-import com.jjg.game.core.data.Order;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.ShopProduct;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.AmazonBucketManager;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
@@ -231,6 +229,38 @@ public class CoreToServerMessageHandler {
         log.debug("收到需要重新加载登录配置的消息 notify = {}", JSON.toJSONString(notify));
         try {
             loginConfigService.load();
+        } catch (Exception e) {
+            log.error("", e);
+        }
+    }
+
+    /**
+     * 通知修改玩家金币修改
+     */
+    @Command(MessageConst.ToServer.NOTIFY_GOLD_OPERATE)
+    public void notifyGoldOperate(NotifyGoldOperator notify) {
+        log.debug("收到需要修改玩家金币的消息 notify = {}", JSON.toJSONString(notify));
+        try {
+            CommonResult<Player> result;
+            if(notify.type == 1){  //增加
+                if(notify.currency_id == GameConstant.Item.TYPE_GOLD){
+                    result = playerService.addGoldAndDiamond(notify.playerId, notify.quantity,0,notify.addType,true,notify.remark);
+                }else {
+                    result = playerService.addGoldAndDiamond(notify.playerId, 0,notify.quantity,notify.addType,true,notify.remark);
+                }
+            }else {  //减少
+                if(notify.currency_id == GameConstant.Item.TYPE_GOLD){
+                    result = playerService.deductGoldAndDiamond(notify.playerId, notify.quantity,0,notify.addType,true,notify.remark);
+                }else {
+                    result = playerService.deductGoldAndDiamond(notify.playerId, 0,notify.quantity,notify.addType,true,notify.remark);
+                }
+            }
+
+            if(result.success()){
+                log.info("修改玩家账户成功 notify = {}", JSON.toJSONString(notify));
+            }else {
+                log.info("修改玩家账户失败 notify = {},code = {}", JSON.toJSONString(notify),result.code);
+            }
         } catch (Exception e) {
             log.error("", e);
         }

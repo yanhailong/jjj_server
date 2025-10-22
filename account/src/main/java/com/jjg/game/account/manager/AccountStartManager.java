@@ -2,6 +2,7 @@ package com.jjg.game.account.manager;
 
 import com.jjg.game.account.dao.PlayerIdDao;
 import com.jjg.game.common.service.MarsCoreStartService;
+import com.jjg.game.core.service.BlackListService;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.core.service.LoginConfigService;
 import org.slf4j.Logger;
@@ -33,6 +34,8 @@ public class AccountStartManager implements SmartLifecycle, ApplicationContextAw
     private PlayerIdDao playerIdDao;
     @Autowired
     private LoginConfigService loginConfigService;
+    @Autowired
+    private BlackListService blackListService;
 
     private ApplicationContext context;
 
@@ -44,6 +47,7 @@ public class AccountStartManager implements SmartLifecycle, ApplicationContextAw
         coreStartService.init(this.context);
 
         this.loginConfigService.init();
+        this.blackListService.init();
         this.playerIdDao.init();
         createPidFile();
         this.running = true;

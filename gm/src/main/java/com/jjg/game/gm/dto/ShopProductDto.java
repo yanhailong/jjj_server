@@ -35,6 +35,8 @@ public record ShopProductDto(
         //标签2
         int label2,
         //图片
-        String pic
+        String pic,
+        //渠道自己的商品id
+        Map<Integer,String> channelProductIdMap
 ) {
 }

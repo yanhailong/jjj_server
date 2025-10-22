@@ -32,4 +32,6 @@ public class ShopProductInfo {
     public int label2;
     @ProtoDesc("图片地址")
     public String pic;
+    @ProtoDesc("渠道商品id")
+    public String channelProductId;
 }

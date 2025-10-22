@@ -52,8 +52,8 @@ public class HallSchedulManager {
     private void clearToken() {
         //是主节点才能执行
         if (marsCurator.isMaster()) {
-            DeleteResult deleteResult = playerSessionTokenDao.clearExpireToken();
-            log.info("删除过期token条数: {}", deleteResult.getDeletedCount());
+            int delCount = playerSessionTokenDao.clearExpireToken();
+            log.info("删除过期token条数: {}", delCount);
         }
     }
 
