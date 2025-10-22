@@ -379,6 +379,8 @@ public class PointsAwardLeaderboardManager {
                 if (rankingHistoryDeque.size() > PointsAwardConstant.Leaderboard.MAX_HISTORY_SIZE) {
                     rankingHistoryDeque.removeLast();
                 }
+                //回写数据
+                rankingHistoryMap.fastPut(data.getRankType(), rankingHistoryDeque);
             }
         } finally {
             rLock.unlock();

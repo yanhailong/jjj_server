@@ -155,7 +155,7 @@ public class PointsAwardService implements IPlayerLoginSuccess {
             log.error("add 玩家积分更新失败!playerId = [{}],pointsAward = [{}]", playerId, pointsAward, e);
         }
         // 排行榜更新
-        updateLeaderboards(playerId, pointsAward);
+        updateLeaderboards(playerId, counter.get());
         //记录日志
         pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, true, counter.get());
     }
@@ -197,7 +197,7 @@ public class PointsAwardService implements IPlayerLoginSuccess {
      * @param playerId    玩家ID
      * @param pointsAward 增加的积分
      */
-    private void updateLeaderboards(long playerId, int pointsAward) {
+    private void updateLeaderboards(long playerId, long pointsAward) {
         try {
             long nowTs = System.currentTimeMillis();
             // 更新日榜

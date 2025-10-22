@@ -102,7 +102,7 @@ public class PointsAwardLeaderboardService {
     }
 
     /**
-     * 更新（或写入）玩家积分到排行榜；传入的 points 为“增量值”（本次增加的积分），不是最终总积分。
+     * 更新（或写入）玩家积分到排行榜；传入的 points 为最终总积分。
      * 不满足最低分时移除。
      * 并发控制：对同一排行榜使用分布式锁，保证读取-计算-写入与裁剪的原子性。
      */
@@ -110,18 +110,13 @@ public class PointsAwardLeaderboardService {
         String lockKey = PointsAwardConstant.RedisLockKey.POINTS_AWARD_RANKING_LOCK + type;
         redisLock.lockAndRun(lockKey, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, () -> {
             RScoredSortedSet<Long> s = set(type);
-            // 读取当前玩家积分（取整去掉时间偏移的小数部分）
-            Double currentScore = s.getScore(playerId);
-            long currentPoints = currentScore == null ? 0L : (long) Math.floor(currentScore);
-            // 累加本次增量，得到新的总积分
-            long newPoints = currentPoints + points;
             int minPoints = resolveMinPoints(type);
-            log.info("upsert playerId = {},type = {},points = {},tsMillis = {},newPoints = {},minPoints = {}", playerId, type, points, tsMillis, newPoints, minPoints);
-            if (newPoints < minPoints) {
+            log.info("upsert playerId = {},type = {},points = {},tsMillis = {},minPoints = {}", playerId, type, points, tsMillis, minPoints);
+            if (points < minPoints) {
                 return;
             }
             // 写入新的分数（总积分 + 时间偏移），并按照需要裁剪榜单大小
-            s.add(toScore(newPoints, tsMillis), playerId);
+            s.add(toScore(points, tsMillis), playerId);
             int size = s.size();
             int maxSize = manager.getMaxSize(type);
             if (size > maxSize) {
