@@ -679,19 +679,19 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param isNotify 是否通知
      * @return 扣除结果
      */
-    private <P extends Player> int addGold(long playerId, long num, String addType, String desc, boolean isNotify) {
+    private int addGold(long playerId, long num, String addType, String desc, boolean isNotify) {
         if (playerId <= 0 || num <= 0) {
             return Code.FAIL;
         }
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
-        P gamePlayer = (P) gameDataVo.getGamePlayer(playerId);
-        CommonResult<P> result;
+        Player gamePlayer = gameDataVo.getGamePlayer(playerId);
+        CommonResult<Player> result;
         if (gamePlayer != null) {
             if (!(gamePlayer instanceof GameRobotPlayer)) {
                 log.info("玩家：{} 添加金币数量：{}", playerId, num);
             }
-            Supplier<P> supplier = () -> {
+            Supplier<Player> supplier = () -> {
                 beforeUpdateGold.value = gamePlayer.getGold();
                 gamePlayer.setGold(Math.min(Long.MAX_VALUE, gamePlayer.getGold() + num));
                 return gamePlayer;
@@ -722,16 +722,16 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param isNotify 是否通知
      * @return 扣除结果
      */
-    private <P extends Player> int addDiamond(long playerId, long num, String addType, String desc, boolean isNotify) {
+    private int addDiamond(long playerId, long num, String addType, String desc, boolean isNotify) {
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
-        P gamePlayer = (P) gameDataVo.getGamePlayer(playerId);
-        CommonResult<P> result = new CommonResult<>(Code.FAIL);
+        Player gamePlayer = gameDataVo.getGamePlayer(playerId);
+        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (gamePlayer != null) {
             if (!(gamePlayer instanceof GameRobotPlayer)) {
                 log.info("玩家：{} 添加钻石数量：{}", playerId, num);
             }
-            Supplier<P> supplier = () -> {
+            Supplier<Player> supplier = () -> {
                 beforeUpdateGold.value = gamePlayer.getDiamond();
                 gamePlayer.setDiamond(Math.min(Long.MAX_VALUE, gamePlayer.getDiamond() + num));
                 return gamePlayer;
