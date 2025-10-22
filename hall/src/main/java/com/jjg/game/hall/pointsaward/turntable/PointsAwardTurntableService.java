@@ -7,6 +7,7 @@ import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.hall.pointsaward.PointsAwardLogger;
 import com.jjg.game.hall.pointsaward.PointsAwardService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardTurntableConfig;
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
 public class PointsAwardTurntableService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
+    private final PointsAwardLogger pointsAwardLogger;
 
     /**
      * 配置初始化时间
@@ -59,11 +61,12 @@ public class PointsAwardTurntableService {
     public PointsAwardTurntableService(PointsAwardService pointsAwardService,
                                        PlayerPackService playerPackService,
                                        RedissonClient redissonClient,
-                                       RedisLock redisLock) {
+                                       RedisLock redisLock, PointsAwardLogger pointsAwardLogger) {
         this.pointsAwardService = pointsAwardService;
         this.redissonClient = redissonClient;
         this.playerPackService = playerPackService;
         this.redisLock = redisLock;
+        this.pointsAwardLogger = pointsAwardLogger;
     }
 
     public void init() {
@@ -246,6 +249,8 @@ public class PointsAwardTurntableService {
                 addHistory(history);
                 //增加玩家转盘次数
                 countMap.fastPut(playerId, countMap.getOrDefault(playerId, 0) + 1);
+                //转盘日志
+                pointsAwardLogger.turntableLog(playerId, consume, integralPoints, pointsAwardService.getPoints(playerId));
             } else {
                 log.warn("玩家[{}]积分大奖转盘奖励发送失败!中奖id[{}]配置不存在!", playerId, selectedId);
             }
