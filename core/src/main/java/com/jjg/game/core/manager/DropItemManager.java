@@ -35,8 +35,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author lm
@@ -77,7 +79,7 @@ public class DropItemManager implements GameEventListener {
         if (itemDropGroupCounter == null) {
             itemDropGroupCounter = new HashMap<>();
         }
-        List<Item> dropItems = new ArrayList<>();
+        Map<Integer, Long> dropItems = new HashMap<>();
         // 随机N次
         for (int i = 0; i < triggerTimes; i++) {
             // 获取当的掉落配置
@@ -93,28 +95,23 @@ public class DropItemManager implements GameEventListener {
             List<Pair<Integer, Item>> randDropItems =
                     itemDropDataHolder.randDropItems(dropIdList, itemDropGroupCounter);
             if (!CollectionUtils.isEmpty(randDropItems)) {
-                dropItems.addAll(randDropItems.stream().map(Pair::getSecond).toList());
+                randDropItems.forEach(item ->
+                        dropItems.merge(item.getSecond().getId(), item.getSecond().getItemCount(), Long::sum));
             }
         }
         if (dropItems.isEmpty()) {
             return Map.of();
         }
-        //将同一item.id的道具相加
-        Map<Integer, Long> mergedMap = dropItems.stream()
-                .collect(Collectors.groupingBy(
-                        Item::getId,
-                        Collectors.summingLong(Item::getItemCount)
-                ));
         // 更新道具掉落使用map
         dropItemDao.updateItemDropGroupCounter(player.getId(), itemDropGroupCounter);
         // 添加道具
         CommonResult<ItemOperationResult> result =
-                playerPackService.addItems(player.getId(), mergedMap, "DROP_ITEM");
+                playerPackService.addItems(player.getId(), dropItems, "DROP_ITEM");
         if (result.success()) {
             // 记录日志
-            dropItemLogger.recordDropItem(player, source, sourceId, event.getGameCfgId(), mergedMap, result.data);
+            dropItemLogger.recordDropItem(player, source, sourceId, event.getGameCfgId(), dropItems, result.data);
         }
-        return mergedMap;
+        return dropItems;
     }
 
     @Override
