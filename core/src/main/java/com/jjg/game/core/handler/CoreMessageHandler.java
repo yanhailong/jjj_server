@@ -112,6 +112,11 @@ public class CoreMessageHandler {
             String params = arr[1];
 
             if ("init".equals(cmd)) {
+                long goldNum = Long.parseLong(params);
+                long diamondNum = Long.parseLong(arr[2]);
+                int vip = Integer.parseInt(arr[3]);
+                int level = Integer.parseInt(arr[4]);
+                init(res,playerController,req.order,goldNum,diamondNum,vip,level);
                 return;
             }
 
@@ -122,16 +127,6 @@ public class CoreMessageHandler {
 
             if ("addDiamond".equalsIgnoreCase(cmd)) {
                 addDiamond(res, playerController, req.order, params);
-                return;
-            }
-
-            if ("setGold".equalsIgnoreCase(cmd)) {
-                setGold(res, playerController, req.order, params);
-                return;
-            }
-
-            if ("setDiamond".equalsIgnoreCase(cmd)) {
-                setDiamond(res, playerController, req.order, params);
                 return;
             }
 
@@ -217,17 +212,8 @@ public class CoreMessageHandler {
     /**
      * gm玩家初始化
      */
-    private void init(ResGm res, PlayerController playerController, String order, String params) throws Exception {
-        if (params == null || params.isEmpty()) {
-            res.code = Code.PARAM_ERROR;
-            log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(), order);
-            return;
-        }
-
-//        playerService.gmSetGoldAndDiamond(playerController.playerId(),)
-
-        long num = Long.parseLong(params);
-        CommonResult<Player> result = playerService.addGold(playerController.playerId(), num, "gmAddGold", null);
+    private void init(ResGm res, PlayerController playerController, String order, long goldNum,long diamongNum,int vip,int level) throws Exception {
+        CommonResult<Player> result = playerService.gmPlayerInit(playerController.playerId(), goldNum, diamongNum,vip,level,"gmPlayerInit", null);
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
@@ -259,27 +245,6 @@ public class CoreMessageHandler {
     }
 
     /**
-     * gm修改金币
-     */
-    private void setGold(ResGm res, PlayerController playerController, String order, String params) throws Exception {
-        if (params == null || params.isEmpty()) {
-            res.code = Code.PARAM_ERROR;
-            log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(), order);
-            return;
-        }
-
-        long num = Long.parseLong(params);
-//        CommonResult<Player> result = playerService.gmSetGold(playerController.playerId(), num, "gmSetGold", null);
-//        if (!result.success()) {
-//            res.code = result.code;
-//            log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
-//            return;
-//        }
-//        playerController.getPlayer().setGold(result.data.getGold());
-//        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data);
-    }
-
-    /**
      * gm修改钻石
      */
     private void addDiamond(ResGm res, PlayerController playerController, String order, String params) throws Exception {
@@ -291,28 +256,6 @@ public class CoreMessageHandler {
 
         long num = Long.parseLong(params);
         CommonResult<Player> result = playerService.addDiamond(playerController.playerId(), num, "gmAddDiamond", null);
-        if (!result.success()) {
-            res.code = result.code;
-            log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
-            return;
-        }
-        playerController.getPlayer().setDiamond(result.data.getDiamond());
-        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data);
-    }
-
-    /**
-     * gm修改钻石
-     */
-    private void setDiamond(ResGm res, PlayerController playerController, String order, String params) throws Exception {
-        if (params == null || params.isEmpty()) {
-            res.code = Code.PARAM_ERROR;
-            log.debug("params为空，使用gm失败 playerId = {},order = {}", playerController.playerId(), order);
-            return;
-        }
-
-        long num = Long.parseLong(params);
-        CommonResult<Player> result = playerService.gmSetDiamond(playerController.playerId(), num, "gmSetDiamond",
-                null);
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);

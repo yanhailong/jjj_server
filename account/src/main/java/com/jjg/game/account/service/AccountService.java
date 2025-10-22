@@ -12,6 +12,7 @@ import com.jjg.game.core.dao.BlackListDao;
 import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.ChannelType;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.LoginType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

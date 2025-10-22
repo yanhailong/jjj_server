@@ -54,6 +54,7 @@ public class SampleDataManager implements FileLoader {
             });
             // 初始化需要缓存的配置数据
             initLoadCacheData();
+            initConfigJson();
         } catch (Exception e) {
             log.error("配置表加载异常：{}", e.getMessage(), e);
             throw new GameSampleException(e);
@@ -72,6 +73,12 @@ public class SampleDataManager implements FileLoader {
     private void initLoadCacheData() {
         Collection<File> sampleFile =
             FileUtils.listFiles(new File(getSamplePath()), new String[]{"xlsx", "xls"}, true);
+        sampleFile.forEach(file -> loadFile(file, false));
+    }
+
+    private void initConfigJson(){
+        Collection<File> sampleFile =
+                FileUtils.listFiles(new File("config"), new String[]{"json"}, true);
         sampleFile.forEach(file -> loadFile(file, false));
     }
 
@@ -100,7 +107,7 @@ public class SampleDataManager implements FileLoader {
     }
 
     protected String getGameConfigName() {
-        return null;
+        return "config/";
     }
 
     @Override

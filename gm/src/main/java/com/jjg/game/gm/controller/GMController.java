@@ -22,6 +22,7 @@ import com.jjg.game.core.dao.*;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.AmazonBucketManager;
 import com.jjg.game.core.manager.CoreMarqueeManager;
+import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.pb.NoticeBaseInfoChange;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
@@ -81,6 +82,8 @@ public class GMController extends AbstractController {
     private BlackListDao blackListDao;
     @Autowired
     private AmazonBucketManager amazonBucketManager;
+    @Autowired
+    private CoreSendMessageManager coreSendMessageManager;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -454,11 +457,7 @@ public class GMController extends AbstractController {
             }
 
             if (dto.operator_type() == 1) {  //如果是账户修改，则要进行通知
-                PFSession session = playerSessionService.getSession(dto.playerId());
-                if (session != null) {
-                    NoticeBaseInfoChange notice = MessageBuildUtil.buildNoticeBaseInfoChange(result.data);
-                    session.send(notice);
-                }
+                coreSendMessageManager.buildMoneyChangeMessage(result.data);
             }
 
             //返回修改结果

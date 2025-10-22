@@ -69,7 +69,7 @@ public class AbstractPlayerService {
     public Player checkAndSave(long playerId, DataSaveCallback<Player> cbk) {
         String key = getLockKey(playerId);
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
-        try{
+        try {
             Player player = get(playerId);
             if (player == null || player instanceof RobotPlayer) {
                 return null;
@@ -81,9 +81,9 @@ public class AbstractPlayerService {
             player.setUpdateTime(System.currentTimeMillis());
             redisTemplate.opsForHash().put(tableName, playerId, player);
             return player;
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("保存player失败 playerId={}", playerId, e);
-        }finally {
+        } finally {
             redisLock.unlock(key);
         }
         return null;
@@ -263,7 +263,7 @@ public class AbstractPlayerService {
         }
         //获取当前节点玩家数据是否在内存中
         boolean inMemoryNode = nodeManager.isPlayerDataInMemoryNode();
-        if(inMemoryNode) {
+        if (inMemoryNode) {
             Player player = getFromAllDB(playerId);
             //游戏内修改内存中的数据并返回
             triggerCurrencyChangeEvent(player, goldNum, diamondNum);
@@ -858,6 +858,8 @@ public class AbstractPlayerService {
         }
 
         LongRef beforeCoin = PrimitiveRef.ofLong(0);
+        PrimitiveRef.IntRef beforeLevel = PrimitiveRef.ofInt(0);
+
         //获取经验加成参数
         ExperienceBonusParam experienceBonusParam = getExpParam(playerId, num);
         Player p = checkAndSave(playerId, new DataSaveCallback<>() {
@@ -868,6 +870,7 @@ public class AbstractPlayerService {
             @Override
             public boolean updateDataWithRes(Player player) {
                 beforeCoin.value = player.getGold();
+                beforeLevel.value = player.getLevel();
                 long afterCoin = player.getGold() - num;
                 if (afterCoin < 0) {
                     result.code = Code.NOT_ENOUGH;
@@ -878,8 +881,15 @@ public class AbstractPlayerService {
                 return true;
             }
         });
+
         //记录日志
         if (p != null) {
+            // 升级需要抛升级事件
+            if (beforeLevel.value != p.getLevel()) {
+                gameEventManager.triggerEvent(
+                        new PlayerEvent(p, EGameEventType.PLAYER_LEVEL, beforeLevel.value, p.getLevel()));
+            }
+
             coreLogger.useGold(p, beforeCoin.value, -num, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
@@ -897,8 +907,6 @@ public class AbstractPlayerService {
      *
      * @param player               玩家数据
      * @param experienceBonusParam 经验加成参数
-     * @param effective            是否是游戏流水
-     * @param num                  扣除数量
      */
     public void onBetDeductGoldAfter(Player player, ExperienceBonusParam experienceBonusParam, boolean effective, long num) {
         //获取当前等级升级需要的经验
@@ -918,10 +926,11 @@ public class AbstractPlayerService {
         //增加经验
         player.setExp(player.getExp() + tmpAddExp);
 
-        player = levelUp(player, cfg);
         if (effective) {
             VipCheckManager.checkVipLevel(player, num);
         }
+
+        player = levelUp(player, cfg);
         log.info("玩家押注获取经验 playerId = {},addExp = {},level = {}", player.getId(), tmpAddExp, player.getLevel());
     }
 
@@ -1254,7 +1263,6 @@ public class AbstractPlayerService {
         if (cfg.getLevelUpExp() < 1) {
             return player;
         }
-        int oldLevel = player.getLevel();
         int maxLevel = GameDataManager.getPlayerLevelConfigCfgList().size();
         for (int i = 0; i < maxLevel; i++) {
             //判断经验是否足够升级
@@ -1269,11 +1277,6 @@ public class AbstractPlayerService {
             if (cfg == null || cfg.getLevelUpExp() < 1) {
                 break;
             }
-        }
-        // 升级需要抛升级事件
-        if (player.getLevel() != oldLevel) {
-            gameEventManager.triggerEvent(
-                    new PlayerEvent(player, EGameEventType.PLAYER_LEVEL, oldLevel, player.getLevel()));
         }
         return player;
     }
@@ -1334,7 +1337,7 @@ public class AbstractPlayerService {
      * @param desc     dec
      * @return 最新Player
      */
-    public CommonResult<Player> gmSetGoldAndDiamond(long playerId, long goldNum, long diamondNum, String addType, String desc) {
+    public CommonResult<Player> gmPlayerInit(long playerId, long goldNum, long diamondNum, int vip, int level, String addType, String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
         if (goldNum < 0 || diamondNum < 0) {
             result.code = Code.PARAM_ERROR;
@@ -1355,14 +1358,20 @@ public class AbstractPlayerService {
 
                 player.setGold(goldNum);
                 player.setDiamond(diamondNum);
+                player.setVipLevel(vip);
+                player.setLevel(level);
                 return true;
             }
         });
 
         //记录日志
         if (p != null) {
-            coreLogger.useGold(p, beforeCoin[0], beforeCoin[0] - p.getGold(), addType, desc);
-            coreLogger.useDiamond(p, beforeCoin[1], beforeCoin[1] - p.getDiamond(), addType, desc);
+            if (beforeCoin[0] != p.getGold()) {
+                coreLogger.useGold(p, beforeCoin[0], beforeCoin[0] - p.getGold(), addType, desc);
+            }
+            if (beforeCoin[1] != p.getDiamond()) {
+                coreLogger.useDiamond(p, beforeCoin[1], beforeCoin[1] - p.getDiamond(), addType, desc);
+            }
             result.code = Code.SUCCESS;
             result.data = p;
             return result;
@@ -1370,44 +1379,4 @@ public class AbstractPlayerService {
         return result;
     }
 
-    /**
-     * gm使用 修改钻石
-     * 该功能为gm专用，因为正常情况不会将玩家的金币钻石设置为负数
-     *
-     * @param playerId 玩家ID
-     * @param num      添加数量
-     * @param addType  添加类型
-     * @param desc     dec
-     * @return 最新Player
-     */
-    public CommonResult<Player> gmSetDiamond(long playerId, long num, String addType, String desc) {
-        CommonResult<Player> result = new CommonResult<>(Code.FAIL);
-
-        final long[] beforeCoin = {0};
-
-        Player p = checkAndSave(playerId, new DataSaveCallback<>() {
-            @Override
-            public void updateData(Player dataEntity) {
-            }
-
-            @Override
-            public boolean updateDataWithRes(Player player) {
-                beforeCoin[0] = player.getDiamond();
-
-                if (num >= 0) {
-                    player.setDiamond(num);
-                }
-                return true;
-            }
-        });
-
-        //记录日志
-        if (p != null) {
-            coreLogger.useDiamond(p, beforeCoin[0], beforeCoin[0] - p.getDiamond(), addType, desc);
-            result.code = Code.SUCCESS;
-            result.data = p;
-            return result;
-        }
-        return result;
-    }
 }

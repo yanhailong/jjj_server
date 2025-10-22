@@ -1,6 +1,5 @@
 package com.jjg.game.account;
 
-import com.jjg.game.account.config.ExcludeServiceFilter;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration;
@@ -15,24 +14,7 @@ import org.springframework.context.annotation.FilterType;
 @ComponentScan(
     basePackages = "com.jjg.game",
     excludeFilters = {
-        @ComponentScan.Filter(
-            type = FilterType.ASSIGNABLE_TYPE,
-            classes = {
-                com.jjg.game.common.service.MarsCoreStartService.class,
-                com.jjg.game.core.handler.CoreMessageHandler.class,
-            }),
-        @ComponentScan.Filter(
-                type = FilterType.CUSTOM,
-                classes = ExcludeServiceFilter.class),
-        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.cluster.*"),
-        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.curator.*"),
-        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.rpc.*"),
-        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.common.gate.*"),
-        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.manager.*"),
-        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.handler.*"),
         @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.dao.room.*"),
-        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.config.*"),
-        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.task.*"),
     })
 public class AccountApp {
 

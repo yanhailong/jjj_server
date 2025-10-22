@@ -33,14 +33,14 @@ public class WarehouseCfg extends BaseCfgBean {
   protected int nameid;
   /** 房间最大人数:达到X人时创建新房间 */
   protected String participants_max;
+  /** 角色等级限制 */
+  protected int playerLvLimit;
   /** 最少保留房间数量：无人后间隔X秒删除 */
   protected List<Integer> roomDeletion_Solution;
   /** 说明 */
   protected int roomType;
   /** 交易项目ID */
   protected int transactionItemId;
-  /** VIP等级限制 */
-  protected int vipLvLimit;
 
   /** 返回倍场显示默认押注 */
   public int getBetShow() {
@@ -77,6 +77,11 @@ public class WarehouseCfg extends BaseCfgBean {
     return participants_max;
   }
 
+  /** 返回角色等级限制 */
+  public int getPlayerLvLimit() {
+    return playerLvLimit;
+  }
+
   /** 返回最少保留房间数量：无人后间隔X秒删除 */
   public List<Integer> getRoomDeletion_Solution() {
     return roomDeletion_Solution;
@@ -90,11 +95,6 @@ public class WarehouseCfg extends BaseCfgBean {
   /** 返回交易项目ID */
   public int getTransactionItemId() {
     return transactionItemId;
-  }
-
-  /** 返回VIP等级限制 */
-  public int getVipLvLimit() {
-    return vipLvLimit;
   }
 
   @Override

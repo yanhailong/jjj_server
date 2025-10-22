@@ -141,6 +141,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 return;
             }
 
+            ChannelType channelType = ChannelType.valueOf(playerSessionToken.getChannel());
+            LoginType loginType = LoginType.valueOf(playerSessionToken.getLoginType());
+
             //标记是否为注册的账号
             boolean[] register = new boolean[1];
             CommonResult<Player> playerResult = hallPlayerService.loginAndNewOrSave(req.playerId,
@@ -148,6 +151,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                         @Override
                         public void loginAction(Player player) {
                             player.setIp(session.getAddress().getHost());
+                            player.setChannel(channelType);
+                            player.setLoginType(loginType);
                         }
 
                         @Override
@@ -161,6 +166,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                             player.setHeadFrameId(hallService.getDefaultHeadFrameId());
                             player.setNationalId(hallService.getDefaultNationalId());
                             player.setTitleId(hallService.getDefaultTitleId());
+                            player.setChannel(channelType);
+                            player.setLoginType(loginType);
                             // 调用注册接口类
                             SystemInterfaceHolder.callGameSysAction(IPlayerRegister.class, (f) -> f.playerRegister(player));
                             register[0] = true;

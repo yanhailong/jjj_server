@@ -1,31 +1,31 @@
 package com.jjg.game.account.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * @author 11
  * @date 2025/6/9 16:04
  */
-@ConfigurationProperties(prefix = "jjgaccount")
 @Component
 public class AccountConfig {
-    private String gameserver;
-    private long playerBeginId = 1000000;
+    private long playerBeginId;
+    private List<String> gameservers;
 
-    public String getGameserver() {
-        return gameserver;
-    }
-
-    public void setGameserver(String gameserver) {
-        this.gameserver = gameserver;
+    public long getPlayerBeginId() {
+        return playerBeginId;
     }
 
     public void setPlayerBeginId(long playerBeginId) {
         this.playerBeginId = playerBeginId;
     }
 
-    public long getPlayerBeginId() {
-        return playerBeginId;
+    public List<String> getGameservers() {
+        return gameservers;
+    }
+
+    public void setGameservers(List<String> gameservers) {
+        this.gameservers = gameservers;
     }
 }

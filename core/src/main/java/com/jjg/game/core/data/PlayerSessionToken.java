@@ -15,6 +15,7 @@ public class PlayerSessionToken {
     private int loginType;
     //过期时间
     private long expireTime;
+    private int channel;
 
     public long getPlayerId() {
         return playerId;
@@ -46,5 +47,13 @@ public class PlayerSessionToken {
 
     public void setExpireTime(long expireTime) {
         this.expireTime = expireTime;
+    }
+
+    public int getChannel() {
+        return channel;
+    }
+
+    public void setChannel(int channel) {
+        this.channel = channel;
     }
 }

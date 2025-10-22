@@ -1,5 +1,6 @@
 package com.jjg.game.core.data;
 
+import com.jjg.game.core.constant.GameConstant;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Objects;
@@ -68,6 +69,8 @@ public class Player {
     private int friendRoomInvitationCode;
     //登录渠道
     private ChannelType channel;
+    //登录方式
+    private LoginType loginType;
 
     public long getId() {
         return id;
@@ -294,6 +297,14 @@ public class Player {
 
     public void setChannel(ChannelType channel) {
         this.channel = channel;
+    }
+
+    public LoginType getLoginType() {
+        return loginType;
+    }
+
+    public void setLoginType(LoginType loginType) {
+        this.loginType = loginType;
     }
 
     @Override

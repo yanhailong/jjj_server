@@ -780,7 +780,7 @@ public class HallMessageHandler implements GmListener {
             return new CommonResult<>(Code.NOT_ENOUGH);
         }
 
-        if (info.limitVipMin > playerController.getPlayer().getVipLevel()) {
+        if (info.limitVipMin > player.getVipLevel()) {
             log.debug("玩家vip等级不足 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(),
                 gameType, roomCfgId);
             return new CommonResult<>(Code.VIP_NOT_ENOUGH);

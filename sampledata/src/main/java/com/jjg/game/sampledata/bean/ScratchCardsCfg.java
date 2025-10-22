@@ -1,6 +1,8 @@
 package com.jjg.game.sampledata.bean;
 
 import java.util.*;
+import java.math.BigDecimal;
+
 
 
 import javax.annotation.processing.Generated;
@@ -20,7 +22,7 @@ public class ScratchCardsCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "ScratchCards";
 
   /** 礼包购买金额 */
-  protected int cost;
+  protected BigDecimal cost;
   /** 奖励1 */
   protected Map<Integer,Long> getitem;
   /** 中奖图标数量 */
@@ -31,7 +33,7 @@ public class ScratchCardsCfg extends BaseCfgBean {
   protected int weight;
 
   /** 返回礼包购买金额 */
-  public int getCost() {
+  public BigDecimal getCost() {
     return cost;
   }
 

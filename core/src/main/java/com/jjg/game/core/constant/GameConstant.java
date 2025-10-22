@@ -78,16 +78,6 @@ public class GameConstant {
         int PER_TRY_TAKE_MILE_TIME = 10;
     }
 
-    //登录类型
-    public class LoginType {
-        //游客
-        public static final int GUEST = 0;
-        //手机
-        public static final int PHONE = 1;
-        //google邮箱
-        public static final int GOOGLE_MAIL = 2;
-    }
-
     //性别
     public class Gender {
         //女
