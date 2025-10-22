@@ -117,13 +117,13 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
     public WealthGodGameRunInfo startGame(PlayerController playerController, WealthGodPlayerGameData playerGameData, long betValue) {
         WealthGodGameRunInfo gameRunInfo = new WealthGodGameRunInfo(Code.SUCCESS, playerGameData.playerId());
         try {
+            CommonResult<WealthGodResultLib> commonResult = normalGetLib(playerGameData, betValue, WealthGodConstant.SpecialMode.TYPE_NORMAL);
             //玩家当前金币
             Player player = slotsPlayerService.get(playerGameData.playerId());
             gameRunInfo.setBeforeGold(player.getGold());
             if (playerController != null) {
                 playerController.setPlayer(player);
             }
-            CommonResult<WealthGodResultLib> commonResult = normalGetLib(playerGameData, betValue, WealthGodConstant.SpecialMode.TYPE_NORMAL);
             WealthGodResultLib resultLib = commonResult.data;
             if (resultLib == null) {
                 gameRunInfo.setCode(Code.EXCEPTION);
