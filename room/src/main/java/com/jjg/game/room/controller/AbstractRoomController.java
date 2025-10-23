@@ -207,6 +207,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                     room.getGameType(), room.getRoomCfgId(), room.getId(), room.getCreateTime());
         }
     }
+
     /**
      * 更新房间玩家信息
      *
@@ -450,6 +451,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             checkRobotJoinRoom();
         }
     }
+
 
     /**
      * 检查机器人添加逻辑

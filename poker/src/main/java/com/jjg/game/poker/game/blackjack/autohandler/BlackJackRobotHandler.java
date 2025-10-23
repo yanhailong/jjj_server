@@ -77,13 +77,11 @@ public class BlackJackRobotHandler extends BasePokerRobotProcessorHandler<BlackJ
                         log.debug("机器人:{} 进行下注为空 pro:{}", playerId, betPro);
                         return;
                     }
-                    log.debug("机器人:{} 进行下注 pro:{}", playerId, betPro);
                     if (controller.getCurrentGamePhase() == EGamePhase.BET && betPro > RandomUtil.randomInt(10000)) {
                         int random = RandomUtils.randomByWeight(chessRobotCfg.getBlackjackBet()) - 1;
                         BlackjackCfg blackjackCfg = BlackJackDataHelper.getBlackjackCfg(gameDataVo);
                         if (random >= 0 && random < blackjackCfg.getBetList().size()) {
                             Integer betValue = blackjackCfg.getBetList().get(random);
-                            log.debug("机器人:{} 进行下注 {}", playerId, betValue);
                             ReqPokerBet reqPokerBet = new ReqPokerBet();
                             reqPokerBet.betType = PokerConstant.PlayerOperation.BET;
                             reqPokerBet.betValue = betValue;
@@ -117,26 +115,21 @@ public class BlackJackRobotHandler extends BasePokerRobotProcessorHandler<BlackJ
                     }
                     //行为权重随机
                     Integer next = RandomUtils.randomByWeight(hashMap);
-                    log.debug("机器人:{} next", next);
                     ReqPokerSampleCardOperation operation = new ReqPokerSampleCardOperation();
                     switch (next) {
                         case DOUBLE_BET -> {
-                            log.debug("机器人:{} 双倍", playerId);
                             operation.type = PokerConstant.PlayerOperation.DOUBLE_BET;
                             controller.sampleCardOperation(playerId, operation);
                         }
                         case GET_CARD -> {
-                            log.debug("机器人:{} 拿牌", playerId);
                             operation.type = PokerConstant.PlayerOperation.GET_CARD;
                             controller.sampleCardOperation(playerId, operation);
                         }
                         case STOP -> {
-                            log.debug("机器人:{} 停牌", playerId);
                             operation.type = PokerConstant.PlayerOperation.STOP;
                             controller.sampleCardOperation(playerId, operation);
                         }
                         case CUT_CARD -> {
-                            log.debug("机器人:{} 分牌", playerId);
                             operation.type = PokerConstant.PlayerOperation.CUT_CARD;
                             controller.sampleCardOperation(playerId, operation);
                         }

@@ -218,6 +218,12 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
         EGameType eGameType = EGameType.getGameByTypeId(gameType);
         log.info("创建游戏类型：{} 的房间成功！ID：{} RoomCfgId: {}",
                 eGameType.getGameDesc(), roomController.getRoom().getId(), roomController.getRoom().getRoomCfgId());
+        if (roomController.checkRoomCanContinue() && roomController.getGameController().checkRoomCanStart()) {
+            roomController.startGame();
+            log.info("游戏启动成功  roomInfo: {}", roomController.getRoom().logStr());
+        } else {
+            log.error("游戏启动失败  roomInfo: {}", roomController.getRoom().logStr());
+        }
     }
 
 

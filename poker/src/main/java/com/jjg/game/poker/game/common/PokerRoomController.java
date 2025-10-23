@@ -1,6 +1,5 @@
 package com.jjg.game.poker.game.common;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.utils.RandomUtils;
@@ -9,14 +8,11 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PokerRoom;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.controller.AbstractRoomController;
-import com.jjg.game.room.data.robot.GameRobotPlayer;
-import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.services.RobotService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -56,21 +52,6 @@ public class PokerRoomController extends AbstractRoomController<Room_ChessCfg, P
                     if (!controller.canJoinRobot()) {
                         return;
                     }
-                }
-                //当房间有真人玩家时才加入机器人
-                Map<Long, GamePlayer> gamePlayerMap = gameController.getGameDataVo().getGamePlayerMap();
-                if (CollectionUtil.isEmpty(gamePlayerMap)) {
-                    return;
-                }
-                boolean hasPlayer = false;
-                for (GamePlayer player : gamePlayerMap.values()) {
-                    if (player instanceof GameRobotPlayer) {
-                        continue;
-                    }
-                    hasPlayer = true;
-                }
-                if (!hasPlayer) {
-                    return;
                 }
                 List<Integer> robotIntervalTime = roomCfg.getIntervalTime();
                 int randomTime;
