@@ -62,6 +62,13 @@ public class PlayerSessionTokenDao {
         return (PlayerSessionToken)redisTemplate.opsForHash().get(tableName, playerId);
     }
 
+    public Long delTokens(List<Long> playerIds) {
+        if(playerIds == null || playerIds.isEmpty()) {
+            return 0l;
+        }
+        return redisTemplate.opsForHash().delete(tableName, playerIds.toArray());
+    }
+
     /**
      * 清除过期token
      */
@@ -86,16 +93,14 @@ public class PlayerSessionTokenDao {
 
                 // 分批处理，避免内存占用过大
                 if (delList.size() >= 50) {
-                    deleteCount += delList.size();
-                    redisTemplate.opsForHash().delete(tableName, delList.toArray());
+                    deleteCount += delTokens(delList);
                     delList.clear();
                 }
             }
 
             // 处理剩余未删除的字段
             if (!delList.isEmpty()) {
-                deleteCount += delList.size();
-                redisTemplate.opsForHash().delete(tableName, delList.toArray());
+                deleteCount += delTokens(delList);
             }
         }catch (Exception e) {
             log.error("",e);

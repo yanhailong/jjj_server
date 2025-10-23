@@ -13,21 +13,22 @@ import org.springframework.stereotype.Component;
 public class HallLogger extends BaseLogger {
     /**
      * 登录日志
+     *
      * @param player
      * @return
      */
-    public void login(Player player,String token,int loginType){
-        try{
+    public void login(Player player, String token, int loginType, int channel) {
+        try {
             JSONObject json = new JSONObject();
 //            json.put("logType", "login");
             json.put("loginType", loginType);
             json.put("token", token);
-            sendLog("login",player,json);
-        }catch (Exception e){
-            log.error("记录login登录日志异常",e);
+            json.put("channel", channel);
+            sendLog("login", player, json);
+        } catch (Exception e) {
+            log.error("记录login登录日志异常", e);
         }
     }
-
 
 
 }
