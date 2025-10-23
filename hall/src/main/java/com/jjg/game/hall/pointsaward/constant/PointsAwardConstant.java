@@ -28,6 +28,10 @@ public interface PointsAwardConstant {
          */
         String POINTS_AWARD_RANKING = "pointsAward:ranking:";
         /**
+         * 积分大奖排行榜记录的玩家积分
+         */
+        String POINTS_AWARD_RANKING_POINTS = "pointsAward:ranking:points:";
+        /**
          * 转盘历史记录
          */
         String POINTS_AWARD_TURNTABLE_HISTORY = "pointsAward:history:turntable:";

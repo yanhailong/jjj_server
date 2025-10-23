@@ -157,7 +157,7 @@ public class PointsAwardService implements IPlayerLoginSuccess {
             log.error("add 玩家积分更新失败!playerId = [{}],pointsAward = [{}]", playerId, pointsAward, e);
         }
         // 排行榜更新
-        updateLeaderboards(playerId, counter.get());
+        updateLeaderboards(playerId, pointsAward);
         //记录日志
         pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, true, counter.get());
     }
