@@ -783,7 +783,7 @@ public class HallMessageHandler implements GmListener {
         if (info.limitPlayerLevelMin > playerController.getPlayer().getLevel()) {
             log.debug("玩家等级不足 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(),
                     gameType, roomCfgId);
-            return new CommonResult<>(Code.VIP_NOT_ENOUGH);
+            return new CommonResult<>(Code.LEVEL_NOT_ENOUGH);
         }
 
         MarsNode node = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(),

@@ -175,7 +175,7 @@ public class PiggyBankController extends BaseActivityController {
                 // 更新进度
                 piggyBankData.setProgress(Math.min(cfg.getFullUp(), piggyBankData.getProgress() + addValue));
                 // 判断是否可领取奖励
-                if (piggyBankData.getProgress() + cfg.getBaseGold() >= cfg.getFullUp()) {
+                if (piggyBankData.getProgress() >= cfg.getFullUp()) {
                     piggyBankData.setFullTime(System.currentTimeMillis());
                     changeStatus = true;
                 }
