@@ -9,7 +9,7 @@ import java.util.Map;
  */
 public record ShopProductDto(
         //产品id
-        int id,
+        long id,
         //类型
         int type,
         //条件

@@ -15,7 +15,7 @@ import java.util.Map;
 public class ShopProduct {
     //商品id
     @Id
-    private int id;
+    private long id;
     //类型
     private int type;
     //条件
@@ -45,11 +45,11 @@ public class ShopProduct {
     //渠道自己的商品id
     private Map<Integer,String> channelProductIdMap;
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(long id) {
         this.id = id;
     }
 
