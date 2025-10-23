@@ -15,6 +15,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.PointsAwardRankingCfg;
 import org.redisson.api.RDeque;
+import org.redisson.api.RMap;
 import org.redisson.api.RScoredSortedSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.protocol.ScoredEntry;
@@ -109,14 +110,16 @@ public class PointsAwardLeaderboardService {
     public void upsert(int type, long playerId, long points, long tsMillis) {
         String lockKey = PointsAwardConstant.RedisLockKey.POINTS_AWARD_RANKING_LOCK + type;
         redisLock.lockAndRun(lockKey, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, () -> {
+            RMap<Long, Long> playerPointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_POINTS);
+            long totalPoints = playerPointsMap.merge(playerId, points, Long::sum);
             RScoredSortedSet<Long> s = set(type);
             int minPoints = resolveMinPoints(type);
-            log.info("upsert playerId = {},type = {},points = {},tsMillis = {},minPoints = {}", playerId, type, points, tsMillis, minPoints);
-            if (points < minPoints) {
+            log.info("upsert playerId = {},type = {}, points = {}, totalPoints = {},tsMillis = {},minPoints = {}", playerId, type, points, totalPoints, tsMillis, minPoints);
+            if (totalPoints < minPoints) {
                 return;
             }
             // 写入新的分数（总积分 + 时间偏移），并按照需要裁剪榜单大小
-            s.add(toScore(points, tsMillis), playerId);
+            s.add(toScore(totalPoints, tsMillis), playerId);
             int size = s.size();
             int maxSize = manager.getMaxSize(type);
             if (size > maxSize) {
@@ -209,6 +212,8 @@ public class PointsAwardLeaderboardService {
         redisLock.lockAndRun(lockKey, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, () -> {
             RScoredSortedSet<Long> s = set(type);
             s.delete();
+            RMap<Long, Long> playerPointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_POINTS);
+            playerPointsMap.clear();
         });
     }
 
@@ -251,7 +256,13 @@ public class PointsAwardLeaderboardService {
         dequeHistory.addFirst(history);
         //只保留一定条数
         if (dequeHistory.size() > PointsAwardConstant.Leaderboard.PLAYER_MAX_HISTORY_SIZE) {
-            dequeHistory.removeLast();
+            PointsAwardLeaderboardHistory lastHistoryEntry = dequeHistory.removeLast();
+            if (lastHistoryEntry != null) {
+                String awardCode = lastHistoryEntry.getCode();
+                if (awardCode != null) {
+                    awardCodeManager.deleteCode(awardCode);
+                }
+            }
         }
     }
 

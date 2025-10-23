@@ -5,10 +5,13 @@ import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.PointsAwardType;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
@@ -33,7 +36,7 @@ import java.util.stream.Collectors;
  * 积分大奖积分服务
  */
 @Service
-public class PointsAwardService implements IPlayerLoginSuccess {
+public class PointsAwardService implements IPlayerLoginSuccess, GmListener {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -72,7 +75,7 @@ public class PointsAwardService implements IPlayerLoginSuccess {
         // 初始化充值数据记录map
         redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
                 () -> rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RECHARGE));
-        log.info("初始化充值数据记录map完成");
+        log.debug("初始化充值数据记录map完成");
     }
 
     /**
@@ -88,7 +91,7 @@ public class PointsAwardService implements IPlayerLoginSuccess {
                             rechargeMap.clear();
                         }
                     });
-            log.info("充值数据记录map清除完成");
+            log.debug("充值数据记录map清除完成");
         }
     }
 
@@ -157,7 +160,7 @@ public class PointsAwardService implements IPlayerLoginSuccess {
             log.error("add 玩家积分更新失败!playerId = [{}],pointsAward = [{}]", playerId, pointsAward, e);
         }
         // 排行榜更新
-        updateLeaderboards(playerId, counter.get());
+        updateLeaderboards(playerId, pointsAward);
         //记录日志
         pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, true, counter.get());
     }
@@ -443,4 +446,25 @@ public class PointsAwardService implements IPlayerLoginSuccess {
         return false;
     }
 
+    @Override
+    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
+        CommonResult<String> result = new CommonResult<>();
+        if (gmOrders.length < 2) {
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+        String code = gmOrders[0];
+        if (!"addPoints".equalsIgnoreCase(code)) {
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+        int points = Integer.parseInt(gmOrders[1]);
+        if (points <= 0) {
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+        add(playerController.playerId(), points, PointsAwardType.GM);
+        result.success();
+        return result;
+    }
 }

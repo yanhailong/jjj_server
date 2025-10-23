@@ -70,9 +70,7 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
             //handler类型
             switch (getType()) {
                 case GO_READY -> {
-                    log.debug("机器人:{} 进行准备 pro:{}", robotPlayer.getId(), readyPro);
                     if (controller.getCurrentGamePhase() == EGamePhase.START_GAME && readyPro > RandomUtil.randomInt(10000)) {
-                        log.debug("机器人:{} 进行准备", robotPlayer.getId());
                         //机器人进行准备
                         controller.reqTexasGoReady(getPlayerId());
                     }
@@ -87,17 +85,14 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                     if (tempHandType == null) {
                         return;
                     }
-                    log.debug("机器人:{} 获取牌型", tempHandType.getHandRank());
                     //获取执行id 最大点数对应执行id
                     int maxRank = tempHandType.getMaxRank();
-                    log.debug("机器人:{} 最大点数", maxRank);
                     //获取执行策略
                     ChessTexasStrategyCfg robotActionCfg = TexasDataHelper.getRobotActionCfg(tempHandType.getHandRank().rank, maxRank);
                     if (robotActionCfg == null) {
                         return;
                     }
                     int round = gameDataVo.getRound();
-                    log.debug("机器人:{} round", round);
                     Map<Integer, Integer> strategyDataMap = getStrategyDataMap(controller, robotActionCfg, tempHandType, round);
                     if (CollectionUtil.isEmpty(strategyDataMap)) {
                         return;
@@ -115,7 +110,6 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                     random.add(FOLLOW, strategyDataMap.getOrDefault(FOLLOW, 0));
                     random.add(DISCARD, strategyDataMap.getOrDefault(DISCARD, 0));
                     Integer next = random.next();
-                    log.debug("机器人:{} next", next);
                     switch (next) {
                         case RAISE -> {
                             if (gameDataVo.getRound() == TexasConstant.Common.MAX_ROUND) {
@@ -138,7 +132,6 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                             //大于等于【要求平均下注量百分比】，执行【跟注】行为，反之执行【加注】，
                             if (proportion >= strategyDataMap.getOrDefault(TARGET_CHIP, 0) || CollectionUtil.isEmpty(chessRobotCfg.getAddBetMultiple())) {
                                 //跟注
-                                log.debug("进行跟注");
                                 followBet(controller, robotPlayer);
                             } else {
                                 // 根据权重中随机获取【大盲】X倍的加注筹码，
@@ -148,7 +141,6 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                                 long addValue = gameDataVo.getMaxBetValue() - currentBet + (long) addBet * texasCfg.getBbNum();
                                 Long tempGold = gameDataVo.getTempGold().getOrDefault(robotPlayer.getId(), 0L);
                                 ReqPokerBet reqPokerBet = new ReqPokerBet();
-                                log.debug("尝试加注 金额:{}",addBet);
                                 if (addValue >= tempGold) {
                                     reqPokerBet.betType = PokerConstant.PlayerOperation.ALL_IN;
                                 } else {
@@ -159,11 +151,9 @@ public class TexasRobotHandler extends BasePokerRobotProcessorHandler<TexasGameD
                             }
                         }
                         case FOLLOW -> {
-                            log.debug("机器人:{} 跟牌", tempHandType);
                             followBet(controller, robotPlayer);
                         }
                         case DISCARD -> {
-                            log.debug("机器人:{} 弃牌", tempHandType);
                             controller.discardCard(robotPlayer.getId());
                         }
                     }

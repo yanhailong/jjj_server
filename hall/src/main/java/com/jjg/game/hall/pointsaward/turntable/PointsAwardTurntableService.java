@@ -87,7 +87,7 @@ public class PointsAwardTurntableService {
             // 初始化充值增加次数Map
             addCountMap = redissonClient.getMap(PointsAwardConstant.RedisKey.TURNTABLE_ADD_COUNT);
 
-            log.info("转盘数据Map初始化完成");
+            log.debug("转盘数据Map初始化完成");
         });
     }
 

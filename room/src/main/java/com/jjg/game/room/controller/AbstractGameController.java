@@ -131,7 +131,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      */
     public boolean checkRoomCanStart() {
         // 房间玩家不为空
-        return !roomController.getRoom().getRoomPlayers().isEmpty() && gameState == EGameState.INIT_DONE;
+        return gameState == EGameState.INIT_DONE;
     }
 
     /**
@@ -512,7 +512,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
 
             int beforeLevel = gamePlayer.getLevel();
             playerService.onBetDeductGoldAfter(gamePlayer, expParam, false, num);
-            if(beforeLevel != gamePlayer.getLevel()){
+            if (beforeLevel != gamePlayer.getLevel()) {
                 gameEventManager.triggerEvent(
                         new PlayerEvent(gamePlayer, EGameEventType.PLAYER_LEVEL, beforeLevel, gamePlayer.getLevel()));
             }

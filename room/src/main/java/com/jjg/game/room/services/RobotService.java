@@ -103,12 +103,16 @@ public class RobotService implements IRoomStartListener {
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         long maxGetCount = (robotDao.getAvailableNum() / size) + 1;
         //生成最低分数 取出满足最低金币进入限制的机器人id
-        double finalScore = robotDao.getFinalScore(Pair.newPair(warehouseCfg.getPlayerLvLimit(), (long) warehouseCfg.getEnterLimit()));
+        double finalScore = Math.max(1, robotDao.getFinalScore(Pair.newPair(warehouseCfg.getPlayerLvLimit(), (long) warehouseCfg.getEnterLimit())));
         for (int i = 0; i < maxGetCount; i++) {
             List<ScoredEntry<Long>> canUseRobotIds = robotDao.getCanUseRobotIds(finalScore, i * size, size);
             //没有比限制大的直接返回
             if (canUseRobotIds.isEmpty()) {
                 return null;
+            }
+            if (i > 1) {
+                log.warn("多次寻找机器人 playerId:{} 需要分数{} 需要等级{} 金币{} 第一个分数{}", canUseRobotIds.getFirst().getValue(), Double.valueOf(finalScore).longValue(), warehouseCfg.getPlayerLvLimit(), warehouseCfg.getEnterLimit()
+                        , canUseRobotIds.getFirst().getScore().longValue());
             }
             Collections.shuffle(canUseRobotIds);
             for (ScoredEntry<Long> robotId : canUseRobotIds) {
@@ -192,7 +196,7 @@ public class RobotService implements IRoomStartListener {
         robotPlayer.setRoomId(roomId);
         robotPlayer.setRoomCfgId(roomCfg.getId());
         robotPlayer.setNickName(robotCfg.getName());
-        robotPlayer.setGold(robotParam.getScore().longValue());
+        robotPlayer.setGold(robotDao.decodeGold(robotParam.getScore()));
         robotPlayer.setGameType(roomCfg.getGameID());
         robotPlayer.setRoomCfgId(roomCfg.getId());
         return robotPlayer;
@@ -366,4 +370,5 @@ public class RobotService implements IRoomStartListener {
     @Override
     public void shutdown() {
     }
+
 }
