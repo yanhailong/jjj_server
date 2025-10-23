@@ -5,10 +5,13 @@ import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.PointsAwardType;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
@@ -33,7 +36,7 @@ import java.util.stream.Collectors;
  * 积分大奖积分服务
  */
 @Service
-public class PointsAwardService implements IPlayerLoginSuccess {
+public class PointsAwardService implements IPlayerLoginSuccess, GmListener {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -443,4 +446,20 @@ public class PointsAwardService implements IPlayerLoginSuccess {
         return false;
     }
 
+    @Override
+    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
+        CommonResult<String> result = new CommonResult<>();
+        if (gmOrders.length < 1) {
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+        int points = Integer.parseInt(gmOrders[0]);
+        if (points <= 0) {
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+        add(playerController.playerId(), points, PointsAwardType.GM);
+        result.success();
+        return result;
+    }
 }
