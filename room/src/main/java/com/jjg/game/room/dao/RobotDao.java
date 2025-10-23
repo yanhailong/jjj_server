@@ -31,10 +31,10 @@ public class RobotDao {
     // 每个节点的所有机器人 键：servers_robot+节点路径 数据：机器人ID <=> 机器人redis数据
     private final String SERVER_OF_ROBOT = "ClusterRobotId";
     //比金币最大值大1，金币最大值暂定为int最大值
-    private final long LEVEL_SCALE = 2_147_483_648L;
-
     private final RedissonClient redissonClient;
     private final NodeManager nodeManager;
+    private final int LEVEL_BITS = 14;
+    private final long LEVEL_MASK = (1L << LEVEL_BITS) - 1;
 
     public RobotDao(RedissonClient redissonClient, NodeManager nodeManager) {
         this.redissonClient = redissonClient;
@@ -143,23 +143,18 @@ public class RobotDao {
      * @param longPair 玩家等级和金币
      * @return 排序积分
      */
-    public double getFinalScore(Pair<Integer, Long> longPair) {
+    public  double getFinalScore(Pair<Integer, Long> longPair) {
         long level = longPair.getFirst();
         long gold = longPair.getSecond();
-        // 等级优先，其次金币
-        // Integer.MAX_VALUE + 1
-        return (double) (level * LEVEL_SCALE + gold);
+        // 因为要让等级高的排前面，所以这里用 (maxLevel - level)
+        long invertedLevel = LEVEL_MASK - level;
+        return (double) ((gold << LEVEL_BITS) | (invertedLevel & LEVEL_MASK));
     }
-
     /**
-     * 使用玩家等级和金币生成最后的积分
-     *
-     * @param score 排序积分
-     * @param level 机器人等级
-     * @return 机器人的金币数量
+     * 解码金币
      */
-    public long parseGold(double score, long level) {
-        return (long) (score - LEVEL_SCALE * level);
+    public long decodeGold(double score) {
+        return ((long) score) >> LEVEL_BITS;
     }
 
 }
