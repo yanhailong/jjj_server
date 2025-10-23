@@ -110,6 +110,10 @@ public class RobotService implements IRoomStartListener {
             if (canUseRobotIds.isEmpty()) {
                 return null;
             }
+            if (i > 1) {
+                log.warn("多次寻找机器人 需要分数{} 需要等级{} 金币{} 第一个分数{}", finalScore, warehouseCfg.getPlayerLvLimit(), warehouseCfg.getEnterLimit()
+                        , canUseRobotIds.getFirst().getScore());
+            }
             Collections.shuffle(canUseRobotIds);
             for (ScoredEntry<Long> robotId : canUseRobotIds) {
                 // 创建一个机器人
