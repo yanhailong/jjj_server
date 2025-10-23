@@ -344,9 +344,10 @@ public class OfficialAwardsController extends BaseActivityController implements 
             }
             ActivityData activityData = activityManager.getActivityData().get(entry.getKey());
             officialAwardsActivity.totalPool = officialAwardsDao.getTotalPool(activityData.getId());
-            if (activityData.getValueParam().size() >= 3) {
+            if (activityData.getValueParam().size() >= 4) {
                 officialAwardsActivity.costPoint = activityData.getValueParam().get(1);
-                officialAwardsActivity.turntableType = activityData.getValueParam().getLast();
+                officialAwardsActivity.turntableType = activityData.getValueParam().get(2);
+                officialAwardsActivity.showType = activityData.getValueParam().get(3);
             }
             if (activityData.canRun()) {
                 officialAwardsActivity.remainTime = activityData.getTimeEnd() - System.currentTimeMillis();

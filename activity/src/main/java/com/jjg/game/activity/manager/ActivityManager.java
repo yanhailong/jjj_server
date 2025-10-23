@@ -288,6 +288,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         //活动结束
         if (data.getStatus() == ActivityConstant.ActivityStatus.RUNNING && timeMillis >= data.getTimeEnd()) {
+            log.info("活动activity:{} 进入结束阶段", activityId);
             switch (data.getOpenType()) {
                 case ActivityConstant.Common.LIMIT_TYPE -> {
                     data.setStatus(ActivityConstant.ActivityStatus.ENDED);
@@ -303,6 +304,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     //计算结束时间
                     long timestampByDay = TimeHelper.getTimestampByDay(data.getTimeStart(), data.getDuration());
                     data.setTimeEnd(timestampByDay);
+                    log.info("开服活动 activity:{} 下一次结束时间{}", activityId, data.getTimeStart());
                     if (isExecutionNode()) {
                         //活动结束执行
                         data.getType().getController().onActivityEnd(data);
@@ -327,8 +329,10 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     if (nextOpenTime != null) {
                         //设置下一轮的开始时间
                         data.setTimeStart(TimeHelper.getTimestamp(nextOpenTime.getFirst()));
+                        log.info("循环活动 activity:{} 下一次开始时间{}", activityId, data.getTimeStart());
                         //设置下一轮的结束
-                        data.setTimeEnd(TimeHelper.getTimestamp(nextOpenTime.getFirst()));
+                        data.setTimeEnd(TimeHelper.getTimestamp(nextOpenTime.getSecond()));
+                        log.info("循环活动 activity:{} 下一次结束时间{}", activityId, data.getTimeStart());
                         //设置定时器
                         addActivityTimer(List.of(Pair.newPair(data.getTimeEnd(), activityId),
                                 Pair.newPair(data.getTimeStart(), activityId)));
@@ -336,6 +340,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     }
                 }
             }
+            log.info("活动activity:{} 完成结束阶段", activityId);
         }
 
     }
@@ -347,11 +352,11 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     private void activityOpenAction(ActivityData data) {
         if (isExecutionNode()) {
-            //活动开始执行
-            data.getType().getController().onActivityStart(data);
-            log.info("活动开启 activityId:{}", data.getId());
-            //活动开始发送跑马灯
-            marqueeManager.activityMarquee(data.getMarquee());
+        //活动开始执行
+        data.getType().getController().onActivityStart(data);
+        log.info("活动开启 activityId:{} 开始时间:{} 结束时间:{} ", data.getId(), data.getTimeStart(), data.getTimeEnd());
+        //活动开始发送跑马灯
+        marqueeManager.activityMarquee(data.getMarquee());
         }
         data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
         //推送活动变化
