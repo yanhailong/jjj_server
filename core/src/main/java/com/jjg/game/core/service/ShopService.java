@@ -44,7 +44,7 @@ public class ShopService {
     private AccountDao accountDao;
 
     //商城商品
-    private Map<Integer, ShopProduct> shopProductMap;
+    private Map<Long, ShopProduct> shopProductMap;
 
     public void init() {
         //加载商城商品
@@ -65,7 +65,7 @@ public class ShopService {
         List<ShopProduct> list = new ArrayList<>();
 
         int now = TimeHelper.nowInt();
-        for (Map.Entry<Integer, ShopProduct> en : this.shopProductMap.entrySet()) {
+        for (Map.Entry<Long, ShopProduct> en : this.shopProductMap.entrySet()) {
             ShopProduct shopProduct = en.getValue();
             //检查是否开启
             if (!checkProductOpen(player, shopProduct, now, channel)) {

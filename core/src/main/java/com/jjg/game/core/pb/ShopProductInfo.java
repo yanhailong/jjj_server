@@ -11,7 +11,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtoDesc("商品信息")
 public class ShopProductInfo {
     @ProtoDesc("商品id")
-    public int id;
+    public long id;
     @ProtoDesc("类型  1.热卖   2.金币   3.钻石")
     public int type;
     @ProtoDesc("结束时间")
