@@ -168,14 +168,12 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
         TaskData taskData;
         log.info("玩家[{}]触发条件[{}]conditionId[{}]参数[{}]", playerId, condition.getClass().getSimpleName(), condition.getId(), param == null ? "null" : param.toString());
         for (TaskCfg taskCfg : taskCfgList) {
-            taskData = playerTasks.get(taskCfg.getId());
             //接了任务才触发
+            taskData = playerTasks.get(taskCfg.getId());
             if (taskData != null) {
                 TaskData data = redisLock.lockAndGet(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
-                    TaskData tempData = taskDataDao.findByPlayerIdAndConfigId(playerId, taskCfg.getId());
-                    if (tempData == null) {
-                        return null;
-                    }
+                    //从内存加载最新的任务对象进行处理
+                    TaskData tempData = playerTasks.get(taskCfg.getId());
                     boolean isTriggered = condition.trigger(taskCfg, tempData, param);
                     log.info("玩家[{}]触发任务[{}]条件[{}]触发[{}]", playerId, taskCfg.getId(), condition.getClass().getSimpleName(), isTriggered);
                     if (isTriggered) {
@@ -258,117 +256,134 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
      * 检测玩家任务
      */
     public void checkTask(long playerId) {
-        RMap<Integer, TaskData> playerTasks = getPlayerTaskMap(playerId);
-        boolean noticeRedDot = false;
-        List<TaskData> deletedTasks = new ArrayList<>();
-        for (Map.Entry<Integer, TaskData> entry : playerTasks.entrySet()) {
-            Integer taskId = entry.getKey();
-            TaskData taskData = entry.getValue();
-            TaskCfg taskCfg = GameDataManager.getTaskCfg(taskId);
-            boolean delete = false;
-            //有配置才处理
-            if (taskCfg != null) {
-                //积分大奖任务处理
-                if (taskCfg.getTaskType() == TaskConstant.TaskType.POINTS_AWARD) {
-                    long timestamp = taskData.getCreateTime();
-                    LocalDateTime createTime = LocalDateTime.ofInstant(
-                            Instant.ofEpochMilli(timestamp),
-                            ZoneId.systemDefault()
-                    );
-                    //任务过期
-                    if (shouldRefreshTask(createTime)) {
+        redisLock.lockAndRun(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
+            RMap<Integer, TaskData> playerTasks = getPlayerTaskMap(playerId);
+            boolean noticeRedDot = false;
+            List<TaskData> deletedTasks = new ArrayList<>();
+            for (Map.Entry<Integer, TaskData> entry : playerTasks.entrySet()) {
+                Integer taskId = entry.getKey();
+                TaskData taskData = entry.getValue();
+                TaskCfg taskCfg = GameDataManager.getTaskCfg(taskId);
+                boolean delete = false;
+                //有配置才处理
+                if (taskCfg != null) {
+                    //检测任务是否需要删除
+                    if (shouldDelete(taskData, taskCfg)) {
                         delete = true;
                     }
                 }
+                //配置不存在则删除任务
+                else {
+                    delete = true;
+                }
+                if (delete) {
+                    deletedTasks.add(taskData);
+                }
             }
-            //配置不存在则删除任务
-            else {
-                delete = true;
-            }
-            if (delete) {
-                deletedTasks.add(taskData);
-            }
-        }
-        //有需要删除的过期任务
-        if (!deletedTasks.isEmpty()) {
-            //删除数据库
-            taskDataDao.deleteAllList(deletedTasks);
-            redisLock.lockAndRun(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
+            //有需要删除的过期任务
+            if (!deletedTasks.isEmpty()) {
+                //删除数据库
+                taskDataDao.deleteAllList(deletedTasks);
                 for (TaskData taskData : deletedTasks) {
                     playerTasks.fastRemove(taskData.getConfigId());
                     log.info("玩家[{}]任务[{}]过期!", playerId, taskData.getConfigId());
                 }
-            });
-            noticeRedDot = true;
-        }
-        //根据配置检测是否需要领取新任务
-        List<TaskCfg> taskCfgList = GameDataManager.getTaskCfgList().stream()
-                .filter(t -> {
-                    //积分任务有时间限制
-                    if (t.getTaskType() == TaskConstant.TaskType.POINTS_AWARD) {
-                        String time = t.getTime();
-                        //没有时间限制
-                        if (time == null || time.isEmpty()) {
-                            return true;
+                noticeRedDot = true;
+            }
+            //根据配置检测是否需要领取新任务
+            List<TaskCfg> taskCfgList = GameDataManager.getTaskCfgList().stream()
+                    .filter(this::filterTask)
+                    .toList();
+            List<TaskData> receiveList = new ArrayList<>();
+            //检测是否有新任务
+            if (!taskCfgList.isEmpty()) {
+                taskCfgList.forEach(taskCfg -> {
+                    List<Integer> taskCfgTaskConditionId = taskCfg.getTaskConditionId();
+                    if (taskCfgTaskConditionId != null && !taskCfgTaskConditionId.isEmpty()) {
+                        int conditionId = taskCfgTaskConditionId.getFirst();
+                        AbstractTaskCondition<DefaultTaskConditionParam> abstractTaskCondition = taskManager.getTaskCondition(conditionId);
+                        //有处理器才给玩家领取任务
+                        if (abstractTaskCondition != null) {
+                            //不重复领取任务
+                            if (!playerTasks.containsKey(taskCfg.getId())) {
+                                TaskData taskData = new TaskData();
+                                taskData.setConfigId(taskCfg.getId());
+                                taskData.setStatus(TaskConstant.TaskStatus.STATUS_IN_PROGRESS);
+                                taskData.setCreateTime(System.currentTimeMillis());
+                                taskData.setPlayerId(playerId);
+                                receiveList.add(taskData);
+                            }
+                        } else {
+                            log.warn("配置任务[{}],条件[{}]没有处理器!", taskCfg.getId(), conditionId);
                         }
-                        long timestamp = TimeHelper.getTimestamp(time.trim());
-                        //没有时间限制
-                        if (timestamp <= 0) {
-                            return true;
-                        }
-                        LocalDate dateTime = LocalDate.ofInstant(
-                                Instant.ofEpochMilli(timestamp),
-                                ZoneId.systemDefault()
-                        );
-                        return dateTime.isEqual(LocalDate.now());
-                    } else {
-                        return true;
                     }
-                })
-                .toList();
-        List<TaskData> receiveList = new ArrayList<>();
-        //检测是否有新任务
-        if (!taskCfgList.isEmpty()) {
-            taskCfgList.forEach(taskCfg -> {
-                List<Integer> taskCfgTaskConditionId = taskCfg.getTaskConditionId();
-                if (taskCfgTaskConditionId != null && !taskCfgTaskConditionId.isEmpty()) {
-                    int conditionId = taskCfgTaskConditionId.getFirst();
-                    AbstractTaskCondition<DefaultTaskConditionParam> abstractTaskCondition = taskManager.getTaskCondition(conditionId);
-                    //有处理器才给玩家领取任务
-                    if (abstractTaskCondition != null) {
-                        //不重复领取任务
-                        if (!playerTasks.containsKey(taskCfg.getId())) {
-                            TaskData taskData = new TaskData();
-                            taskData.setConfigId(taskCfg.getId());
-                            taskData.setStatus(TaskConstant.TaskStatus.STATUS_IN_PROGRESS);
-                            taskData.setCreateTime(System.currentTimeMillis());
-                            taskData.setPlayerId(playerId);
-                            receiveList.add(taskData);
-                        }
-                    } else {
-                        log.warn("配置任务[{}],条件[{}]没有处理器!", taskCfg.getId(), conditionId);
-                    }
-                }
-            });
-        }
-        //有任务才更新
-        if (!receiveList.isEmpty()) {
-            //覆盖数据库数据
-            taskDataDao.saveAll(receiveList);
-            //覆盖缓存
-            redisLock.lockAndRun(playerTaskMapLockKey(playerId), LOCK_TIME, () ->
-                    receiveList.forEach(taskData -> {
-                        playerTasks.fastPut(taskData.getConfigId(), taskData);
-                        //记录领取任务日志
-                        taskLogger.receiveTask(playerId, taskData.getConfigId());
-                        log.info("玩家[{}]领取到[{}]任务", playerId, taskData.getConfigId());
-                    })
+                });
+            }
+            //有任务才更新
+            if (!receiveList.isEmpty()) {
+                //覆盖数据库数据
+                taskDataDao.saveAll(receiveList);
+                //覆盖缓存
+                receiveList.forEach(taskData -> {
+                    playerTasks.fastPut(taskData.getConfigId(), taskData);
+                    //记录领取任务日志
+                    taskLogger.receiveTask(playerId, taskData.getConfigId());
+                    log.info("玩家[{}]领取到[{}]任务", playerId, taskData.getConfigId());
+                });
+                noticeRedDot = true;
+            }
+            if (noticeRedDot) {
+                //更新红点信息
+                redDotManager.updateRedDot(this, 0, playerId);
+            }
+        });
+    }
+
+    /**
+     * 是否需要删除任务
+     *
+     * @return true 需要删除
+     */
+    public boolean shouldDelete(TaskData taskData, TaskCfg taskCfg) {
+        //积分大奖任务处理
+        if (taskCfg.getTaskType() == TaskConstant.TaskType.POINTS_AWARD) {
+            long timestamp = taskData.getCreateTime();
+            LocalDateTime createTime = LocalDateTime.ofInstant(
+                    Instant.ofEpochMilli(timestamp),
+                    ZoneId.systemDefault()
             );
-            noticeRedDot = true;
+            //任务过期
+            return shouldRefreshTask(createTime);
         }
-        if (noticeRedDot) {
-            //更新红点信息
-            redDotManager.updateRedDot(this, 0, playerId);
+        return false;
+    }
+
+    /**
+     * 根据配置筛选是否需要玩家领取任务
+     *
+     * @param taskCfg 任务配置
+     * @return
+     */
+    public boolean filterTask(TaskCfg taskCfg) {
+        //积分任务有时间限制
+        if (taskCfg.getTaskType() == TaskConstant.TaskType.POINTS_AWARD) {
+            String time = taskCfg.getTime();
+            //没有时间限制
+            if (time == null || time.isEmpty()) {
+                return true;
+            }
+            long timestamp = TimeHelper.getTimestamp(time.trim());
+            //没有时间限制
+            if (timestamp <= 0) {
+                return true;
+            }
+            LocalDate dateTime = LocalDate.ofInstant(
+                    Instant.ofEpochMilli(timestamp),
+                    ZoneId.systemDefault()
+            );
+            return dateTime.isEqual(LocalDate.now());
+        } else {
+            return true;
         }
     }
 
