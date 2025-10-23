@@ -448,7 +448,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener {
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
-        CommonResult<String> result = new CommonResult<>();
+        CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
         if (gmOrders.length < 2) {
             result.code = Code.PARAM_ERROR;
             return result;
@@ -464,7 +464,6 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener {
             return result;
         }
         add(playerController.playerId(), points, PointsAwardType.GM);
-        result.success();
         return result;
     }
 }
