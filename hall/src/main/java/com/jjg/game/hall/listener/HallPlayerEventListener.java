@@ -220,7 +220,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //更新session
             PlayerSessionInfo playerSessionInfo = playerSessionService.online(session, player);
             Account account = accountDao.queryAccountByPlayerId(player.getId());
-            if(account == null) {
+            if (account == null) {
                 res.code = Code.NOT_FOUND;
                 session.send(res);
                 log.debug("未找到该账号 playerId = {}", player.getId());
@@ -243,7 +243,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                             warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START;
                 }
                 session.send(res);
-                hallLogger.login(player, req.token, playerSessionToken.getLoginType());
+                hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel());
                 // 调用登录接口类
                 PlayerController playerController = new PlayerController(session, player);
                 session.setReference(playerController);
@@ -254,7 +254,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             //返回登录消息
             session.send(res);
-            hallLogger.login(player, req.token, playerSessionToken.getLoginType());
+            hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel());
 
             //接收全服邮件
             mailService.playerGetServerMails(player.getId());
