@@ -89,7 +89,7 @@ public class AccountService {
         CommonResult<Account> result = new CommonResult<>(Code.SUCCESS);
         //要加锁，防止重复创建账号
         String lockKey = getLockKey(loginType, channelUserInfo);
-        redisLock.executeWithLock(lockKey,GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES, TimeUnit.MILLISECONDS,()->{
+        redisLock.executeWithLock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES, TimeUnit.MILLISECONDS, () -> {
             //查询该账号是否存在
             Account account = getAccountByLoginType(loginType, channelUserInfo);
             if (account == null) {
@@ -111,7 +111,7 @@ public class AccountService {
 
                 account = accountDao.insert(account);
 
-                accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId);
+                accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, channel);
             }
 
             result.data = account;
@@ -168,7 +168,7 @@ public class AccountService {
                 return account;
             }
             case GOOGLE -> {
-                GoogleUserInfo googleUserInfo = (GoogleUserInfo)channelUserInfo;
+                GoogleUserInfo googleUserInfo = (GoogleUserInfo) channelUserInfo;
                 account.setEmail(googleUserInfo.getEmail());
                 account.setGoogleUserId(googleUserInfo.getUserId());
                 account.setAccountType(AccountConstant.AccountType.VERIFIED);

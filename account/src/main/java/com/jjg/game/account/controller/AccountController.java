@@ -137,7 +137,7 @@ public class AccountController extends AbstractController {
      * 获取服务器地址
      */
     @RequestMapping("serverurl")
-    private WebResult<ServerUrlVo> serverUrl(@RequestBody ServerUrlDto dto, @RequestHeader("token") String token) {
+    private WebResult<ServerUrlVo> serverUrl(@RequestBody ServerUrlDto dto, @RequestHeader("token") String token, HttpServletRequest request) {
         try {
             long playerId = dto.getPlayerId();
             if (StringUtils.isEmpty(token) || playerId < 0) {
@@ -145,18 +145,41 @@ public class AccountController extends AbstractController {
                 return fail(Code.PARAM_ERROR);
             }
 
+            //检查是否在黑名单中
+            String clientIp = getClientIp(request);
+            if (StringUtils.isNotEmpty(clientIp)) {
+                boolean blackIp = blackListService.isBlackIp(clientIp);
+                if (blackIp) {
+                    log.debug("该ip已被封禁，获取服务器地址失败 ip = {},dto = {}", clientIp, JSONObject.toJSONString(dto));
+                    return fail(Code.BAN_CAUSE_BLACK_LIST);
+                }
+            }
+
+            //检查玩家id是否被封禁
+            boolean blackId = blackListService.isBlackId(playerId);
+            if (blackId) {
+                log.debug("该playerId已被封禁，获取服务器地址失败 ip = {},dto = {}", clientIp, JSONObject.toJSONString(dto));
+                return fail(Code.BAN_CAUSE_BLACK_LIST);
+            }
+
             //从数据库查询PlayerSessionToken对象信息
             PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
             if (playerSessionToken == null) {
-                log.debug("没有从redis中找到playerSessionToken对象,登录失败, playerId = {}", playerId);
+                log.debug("没有从redis中找到playerSessionToken对象,获取服务器地址失败, playerId = {}", playerId);
                 return fail(Code.ERROR_REQ);
             }
 
             //校验token
             if (!playerSessionToken.getToken().equals(token)) {
-                log.debug("token校验失败,登录失败, playerId = {},dbToken = {},reqToken = {}", playerId,
+                log.debug("token校验失败,获取服务器地址失败, playerId = {},dbToken = {},reqToken = {}", playerId,
                         playerSessionToken.getToken(), token);
                 return fail(Code.EXPIRE);
+            }
+
+            //检查该登录类型是否被关闭
+            if(!loginConfigService.isOpen(playerSessionToken.getLoginType())){
+                log.debug("该登录类型被后台关闭，获取服务器地址失败 dto = {}", JSONObject.toJSONString(dto));
+                return fail(Code.FORBID);
             }
 
             ServerUrlVo serverUrlVo = new ServerUrlVo();

@@ -88,6 +88,8 @@ public class GMController extends AbstractController {
     private CoreSendMessageManager coreSendMessageManager;
     @Autowired
     private LoginConfigService loginConfigService;
+    @Autowired
+    private PlayerSessionTokenDao playerSessionTokenDao;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -564,10 +566,13 @@ public class GMController extends AbstractController {
 
             //先踢人
             NotifyKickout notifyKickout = new NotifyKickout();
+
+            List<Long> delTokenList = new ArrayList<>();
             for (String str : arr) {
                 long playerId = Long.parseLong(str);
 
                 if (dto.type() == 1) {  //封
+                    delTokenList.add(playerId);
                     accountDao.updateAccountStatus(playerId, GameConstant.AccountStatus.BAN);
                     PFSession session = playerSessionService.getSession(playerId);
                     if (session == null) {
@@ -578,6 +583,9 @@ public class GMController extends AbstractController {
                     accountDao.updateAccountStatus(playerId, GameConstant.AccountStatus.NORMAL);
                 }
             }
+
+            //如果是封禁账号，则要删除当前token
+            playerSessionTokenDao.delTokens(delTokenList);
             //返回修改结果
             return success("common.success");
         } catch (Exception e) {
