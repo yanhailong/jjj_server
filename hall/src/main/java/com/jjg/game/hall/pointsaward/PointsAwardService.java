@@ -72,7 +72,7 @@ public class PointsAwardService implements IPlayerLoginSuccess {
         // 初始化充值数据记录map
         redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
                 () -> rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RECHARGE));
-        log.info("初始化充值数据记录map完成");
+        log.debug("初始化充值数据记录map完成");
     }
 
     /**
@@ -88,7 +88,7 @@ public class PointsAwardService implements IPlayerLoginSuccess {
                             rechargeMap.clear();
                         }
                     });
-            log.info("充值数据记录map清除完成");
+            log.debug("充值数据记录map清除完成");
         }
     }
 

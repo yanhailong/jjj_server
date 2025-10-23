@@ -399,12 +399,11 @@ public class PointsAwardLeaderboardManager {
      * @param rankType 排行榜类型
      */
     public List<PointsAwardLeaderboardData> getRankingHistory(int rankType) {
-        RMap<Integer, RDeque<PointsAwardLeaderboardData>> rankingHistoryMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_HISTORY + rankType);
-        if (!rankingHistoryMap.containsKey(rankType)) {
-            return new ArrayList<>();
-        }
-        RDeque<PointsAwardLeaderboardData> rankingHistory = rankingHistoryMap.get(rankType);
-        return rankingHistory.readAll();
+        // 历史记录队列的 Redis key
+        String historyKey = PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_HISTORY + rankType;
+        // 获取对应排行榜类型的历史记录队列
+        RDeque<PointsAwardLeaderboardData> historyDeque = redissonClient.getDeque(historyKey);
+        return historyDeque.readAll();
     }
 
 }
