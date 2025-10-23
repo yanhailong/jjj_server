@@ -30,6 +30,8 @@ public class RobotDao {
     private final String ROBOT_ID_LIST_REDIS_KEY_PREFIX = "RobotIdSet" + StrConstant.COLON;
     // 每个节点的所有机器人 键：servers_robot+节点路径 数据：机器人ID <=> 机器人redis数据
     private final String SERVER_OF_ROBOT = "ClusterRobotId";
+    //比金币最大值大1，金币最大值暂定为int最大值
+    private final long LEVEL_SCALE = 2_147_483_648L;
 
     private final RedissonClient redissonClient;
     private final NodeManager nodeManager;
@@ -145,10 +147,19 @@ public class RobotDao {
         long level = longPair.getFirst();
         long gold = longPair.getSecond();
         // 等级优先，其次金币
-        //比金币最大值大1，金币最大值暂定为int最大值
         // Integer.MAX_VALUE + 1
-        long LEVEL_SCALE = 2_147_483_648L;
         return (double) (level * LEVEL_SCALE + gold);
+    }
+
+    /**
+     * 使用玩家等级和金币生成最后的积分
+     *
+     * @param score 排序积分
+     * @param level 机器人等级
+     * @return 机器人的金币数量
+     */
+    public long parseGold(double score, long level) {
+        return (long) (score - LEVEL_SCALE * level);
     }
 
 }
