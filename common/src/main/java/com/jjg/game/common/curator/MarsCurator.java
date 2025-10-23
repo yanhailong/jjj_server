@@ -372,7 +372,7 @@ public class MarsCurator implements TreeCacheListener {
     @Override
     public void childEvent(CuratorFramework client, TreeCacheEvent event)
         throws Exception {
-        log.info("Event type = {}, client state = {}", event.getType(), client.getState());
+//        log.info("Event type = {}, client state = {}", event.getType(), client.getState());
 
         TreeCacheEvent.Type type = event.getType();
         ChildData childData = event.getData();

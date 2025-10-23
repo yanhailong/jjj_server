@@ -17,6 +17,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -37,11 +38,15 @@ public class GameStatusService {
     /**
      * 保存或更新游戏状态
      */
-    public boolean saveOrUpdateGameStatus(GameStatus gameStatus) {
+    public boolean saveOrUpdateGameStatus(List<GameStatus> gameStatusList) {
         try {
-            String field = getGameStatusField(gameStatus.gameId());
-            String value = objectMapper.writeValueAsString(gameStatus);
-            redisTemplate.opsForHash().put(GameConstant.Redis.GAME_STATUS_KEY, field, value);
+            Map<String, String> map = new HashMap<>();
+            for(GameStatus gameStatus : gameStatusList){
+                String field = getGameStatusField(gameStatus.gameId());
+                String value = objectMapper.writeValueAsString(gameStatus);
+                map.put(field, value);
+            }
+            redisTemplate.opsForHash().putAll(GameConstant.Redis.GAME_STATUS_KEY, map);
             return true;
         } catch (JsonProcessingException e) {
             log.error("序列化游戏状态失败", e);

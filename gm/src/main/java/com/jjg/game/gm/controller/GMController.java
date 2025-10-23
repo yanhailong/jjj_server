@@ -98,34 +98,44 @@ public class GMController extends AbstractController {
      * 修改游戏状态
      */
     @RequestMapping(BackendGMCmd.CHANGE_GAME_STATUS)
-    public WebResult<String> changeGameStatus(@RequestBody GameStatusDto dto) {
+    public WebResult<String> changeGameStatus(@RequestBody GameStatusListDto dtoList) {
         try {
-            log.info("收到修改游戏状态请求 dto = {}", dto);
-            if (dto.number() < 1) {
-                log.debug("游戏id不能为负，修改游戏状态失败 dto = {}", dto);
+            log.info("收到修改游戏状态请求 dtoList = {}", dtoList);
+            if(dtoList == null || dtoList.gameStatusList() == null || dtoList.gameStatusList().isEmpty()) {
+                log.debug("游戏列表为空，修改游戏状态失败 dtoList = {}", dtoList);
                 return fail("common.paramerror");
             }
 
-            if (dto.open() != 1 && dto.open() != 2) {
-                log.debug("开放状态错误，只能为1(开放)或2(不开放)  dto = {}", dto);
-                return fail("common.paramerror");
+            //检查参数
+            List<GameStatus> gameStatusList = new ArrayList<>();
+            for(GameStatusDto dto : dtoList.gameStatusList()){
+                if (dto.number() < 1) {
+                    log.debug("游戏id不能为负，修改游戏状态失败 dto = {}", dto);
+                    return fail("common.paramerror");
+                }
+
+                if (dto.open() != 1 && dto.open() != 2) {
+                    log.debug("开放状态错误，只能为1(开放)或2(不开放)  dto = {}", dto);
+                    return fail("common.paramerror");
+                }
+
+                if (dto.status() != 1 && dto.status() != 2) {
+                    log.debug("上下架状态错误，只能为1(上架)或2(下架)  dto = {}", dto);
+                    return fail("common.paramerror");
+                }
+
+                if (dto.icon_category() != 0 && dto.icon_category() != 1) {
+                    log.debug("图标大小错误，只能为0(大)或1(小)  dto = {}", dto);
+                    return fail("common.paramerror");
+                }
+
+                gameStatusList.add(new GameStatus(dto.name(), dto.number(),dto.open(), dto.status(), dto.right_top_icon(), dto.icon_category(), dto.sort()));
             }
 
-            if (dto.status() != 1 && dto.status() != 2) {
-                log.debug("上下架状态错误，只能为1(上架)或2(下架)  dto = {}", dto);
-                return fail("common.paramerror");
-            }
-
-            if (dto.icon_category() != 0 && dto.icon_category() != 1) {
-                log.debug("图标大小错误，只能为0(大)或1(小)  dto = {}", dto);
-                return fail("common.paramerror");
-            }
-
-            boolean saved = gameStatusService.saveOrUpdateGameStatus(new GameStatus(dto.name(), dto.number(),
-                    dto.open(), dto.status(), dto.right_top_icon(), dto.icon_category(), dto.sort()));
+            boolean saved = gameStatusService.saveOrUpdateGameStatus(gameStatusList);
 
             if (!saved) {
-                log.info("修改游戏状态失败,无法保存到Redis , dto = {}", dto);
+                log.info("修改游戏状态失败,无法保存到Redis , dto = {}", dtoList);
                 return fail("common.fail");
             }
             //获取大厅节点
@@ -133,7 +143,7 @@ public class GMController extends AbstractController {
             //构建请求消息
             ReqRefreshGameStatus msg = new ReqRefreshGameStatus();
 
-            msg.cmdParam = new ObjectMapper().writeValueAsString(dto);
+            msg.cmdParam = new ObjectMapper().writeValueAsString(dtoList);
 
             byte[] data = ProtostuffUtil.serialize(msg);
             PFMessage pfMessage = new PFMessage(MessageConst.ToServer.REQ_REFRESH_GAME_STATUS, data);
