@@ -110,7 +110,7 @@ public class PointsAwardLeaderboardService {
     public void upsert(int type, long playerId, long points, long tsMillis) {
         String lockKey = PointsAwardConstant.RedisLockKey.POINTS_AWARD_RANKING_LOCK + type;
         redisLock.lockAndRun(lockKey, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, () -> {
-            RMap<Long, Long> playerPointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_POINTS);
+            RMap<Long, Long> playerPointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_POINTS + type);
             long totalPoints = playerPointsMap.merge(playerId, points, Long::sum);
             RScoredSortedSet<Long> s = set(type);
             int minPoints = resolveMinPoints(type);
@@ -212,7 +212,7 @@ public class PointsAwardLeaderboardService {
         redisLock.lockAndRun(lockKey, PointsAwardConstant.Leaderboard.LOCK_LEASE_MILLIS, () -> {
             RScoredSortedSet<Long> s = set(type);
             s.delete();
-            RMap<Long, Long> playerPointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_POINTS);
+            RMap<Long, Long> playerPointsMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RANKING_POINTS + type);
             playerPointsMap.clear();
         });
     }
