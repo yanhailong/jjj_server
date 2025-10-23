@@ -449,11 +449,16 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener {
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
         CommonResult<String> result = new CommonResult<>();
-        if (gmOrders.length < 1) {
+        if (gmOrders.length < 2) {
             result.code = Code.PARAM_ERROR;
             return result;
         }
-        int points = Integer.parseInt(gmOrders[0]);
+        String code = gmOrders[0];
+        if (!"addPoints".equalsIgnoreCase(code)) {
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+        int points = Integer.parseInt(gmOrders[1]);
         if (points <= 0) {
             result.code = Code.PARAM_ERROR;
             return result;
