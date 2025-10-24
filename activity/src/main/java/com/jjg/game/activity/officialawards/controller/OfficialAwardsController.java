@@ -79,7 +79,9 @@ public class OfficialAwardsController extends BaseActivityController implements 
                 .divide(BigDecimal.valueOf(pair.getFirst()), RoundingMode.DOWN)
                 .intValue();
         if (addValue > 0) {
-            officialAwardsDao.incrementPlayerProgress(playerId, addValue);
+            int incremented = officialAwardsDao.incrementPlayerProgress(playerId, addValue);
+            activityLogger.sendOfficialAwardsLog(player, activityData, 1, 0
+                    , addValue, incremented, 0, null, null);
         }
         return false;
     }
@@ -142,6 +144,9 @@ public class OfficialAwardsController extends BaseActivityController implements 
             log.error("官方派奖玩家参加活动发奖失败 playerId:{} get:{}", playerId, totalGet);
             return res;
         }
+        //发送日志
+        activityLogger.sendOfficialAwardsLog(player, activityData, 2, activityData.getValueParam().getLast(), needPoints,
+                remainPoint, reducedPair.getSecond(), addResult.data, Map.of(cfg.getGetitem().getFirst(), (long) totalGet));
         addPlayerRecord(player, activityData.getId(), getRewards);
         res.infoList = new ArrayList<>();
         for (Integer getReward : getRewards) {
