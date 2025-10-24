@@ -374,21 +374,90 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
      */
     private List<TaskCfg> getAvailableTaskConfigs() {
         List<TaskCfg> taskCfgList = new ArrayList<>();
+        LocalDate currentDate = LocalDate.now();
+
+        // 按组分组所有任务配置
         Map<Integer, List<TaskCfg>> taskConfigsByGroupId = GameDataManager.getTaskCfgList().stream()
-                .filter(this::checkTaskActive)
                 .collect(Collectors.groupingBy(TaskCfg::getGroup));
+
         //筛选出每个组中可以接取的任务
         taskConfigsByGroupId.forEach((groupId, list) -> {
-            TaskCfg cfg;
-            //多个则取id最小的
-            if (list.size() > TaskConstant.TimeConstants.MIN_TASK_GROUP_SIZE) {
-                cfg = list.stream().min(Comparator.comparingInt(TaskCfg::getId)).orElse(null);
-            } else {
-                cfg = list.getFirst();
+            TaskCfg selectedTask = selectTaskFromGroup(list, currentDate);
+            if (selectedTask != null) {
+                taskCfgList.add(selectedTask);
             }
-            taskCfgList.add(cfg);
         });
+
         return taskCfgList;
+    }
+
+    /**
+     * 从任务组中选择合适的任务
+     * 优先选择时间配置与当前年月相同的任务，如果没有则选择没有时间配置的常驻任务
+     *
+     * @param taskList    任务组列表
+     * @param currentDate 当前日期
+     * @return 选中的任务配置，如果没有合适的任务则返回null
+     */
+    private TaskCfg selectTaskFromGroup(List<TaskCfg> taskList, LocalDate currentDate) {
+        // 筛选出有时间配置且与当前年月匹配的任务
+        List<TaskCfg> currentMonthTasks = taskList.stream()
+                .filter(cfg -> isTaskMatchCurrentMonth(cfg, currentDate))
+                .toList();
+
+        //只有一个就直接返回
+        if (currentMonthTasks.size() == 1) {
+            return currentMonthTasks.getFirst();
+        }
+
+        // 如果有匹配当前年月的任务，选择ID最小的
+        if (!currentMonthTasks.isEmpty()) {
+            return currentMonthTasks.stream()
+                    .min(Comparator.comparingInt(TaskCfg::getId))
+                    .orElse(null);
+        }
+
+        // 如果没有匹配当前年月的任务，选择没有时间配置的常驻任务
+        List<TaskCfg> permanentTasks = taskList.stream()
+                .filter(cfg -> cfg.getTime() == null || cfg.getTime().isEmpty())
+                .toList();
+
+        //只有一个就直接返回
+        if (permanentTasks.size() == 1) {
+            return permanentTasks.getFirst();
+        }
+
+        if (!permanentTasks.isEmpty()) {
+            return permanentTasks.stream()
+                    .min(Comparator.comparingInt(TaskCfg::getId))
+                    .orElse(null);
+        }
+
+        return null;
+    }
+
+    /**
+     * 检查任务是否匹配当前年月
+     *
+     * @param taskCfg     任务配置
+     * @param currentDate 当前日期
+     * @return true 如果任务时间配置与当前年月匹配
+     */
+    private boolean isTaskMatchCurrentMonth(TaskCfg taskCfg, LocalDate currentDate) {
+        String timeStr = taskCfg.getTime();
+        if (timeStr == null || timeStr.isEmpty()) {
+            return false;
+        }
+
+        long timestamp = TimeHelper.getTimestamp(timeStr.trim());
+        if (timestamp <= TaskConstant.TimeConstants.INVALID_TIMESTAMP_THRESHOLD) {
+            return false;
+        }
+
+        LocalDate taskDate = getLocalDateFromTimestamp(timestamp);
+        // 检查年月是否相同
+        return taskDate.getYear() == currentDate.getYear() &&
+                taskDate.getMonth() == currentDate.getMonth();
     }
 
     /**
@@ -548,19 +617,40 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
      * @return 当前应该激活的任务
      */
     private TaskCfg getCurrentActiveTaskInGroup(List<TaskCfg> activeGroupTasks) {
-        // 筛选出有时间限制的任务
-        List<TaskCfg> tasksWithTime = activeGroupTasks.stream()
-                .filter(cfg -> cfg.getTime() != null && !cfg.getTime().isEmpty())
+        LocalDate currentDate = LocalDate.now();
+
+        // 筛选出与当前年月匹配的任务
+        List<TaskCfg> currentMonthTasks = activeGroupTasks.stream()
+                .filter(cfg -> isTaskMatchCurrentMonth(cfg, currentDate))
                 .toList();
 
-        // 优先选择有时间限制的任务，有多个则选择ID最小的
-        if (!tasksWithTime.isEmpty()) {
-            return tasksWithTime.stream()
-                    .min(Comparator.comparingInt(TaskCfg::getId))
-                    .orElse(tasksWithTime.getFirst());
+        if (currentMonthTasks.size() == 1) {
+            return currentMonthTasks.getFirst();
         }
 
-        // 如果没有时间限制的任务，选择ID最小的
+        // 优先选择与当前年月匹配的任务，有多个则选择ID最小的
+        if (!currentMonthTasks.isEmpty()) {
+            return currentMonthTasks.stream()
+                    .min(Comparator.comparingInt(TaskCfg::getId))
+                    .orElse(currentMonthTasks.getFirst());
+        }
+
+        // 如果没有匹配当前年月的任务，选择没有时间配置的常驻任务中ID最小的
+        List<TaskCfg> permanentTasks = activeGroupTasks.stream()
+                .filter(cfg -> cfg.getTime() == null || cfg.getTime().isEmpty())
+                .toList();
+
+        if (permanentTasks.size() == 1) {
+            return permanentTasks.getFirst();
+        }
+
+        if (!permanentTasks.isEmpty()) {
+            return permanentTasks.stream()
+                    .min(Comparator.comparingInt(TaskCfg::getId))
+                    .orElse(permanentTasks.getFirst());
+        }
+
+        // 如果都没有，返回ID最小的任务作为兜底
         return activeGroupTasks.stream()
                 .min(Comparator.comparingInt(TaskCfg::getId))
                 .orElse(activeGroupTasks.getFirst());
