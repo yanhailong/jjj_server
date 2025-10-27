@@ -48,7 +48,7 @@ public enum RechargeType {
     /**
      * 成长基金
      */
-    @ProtoDesc("特权卡 值7")
+    @ProtoDesc("成长基金 值7")
     GROWTH_FUND(7),
     ;
     private final int type;
