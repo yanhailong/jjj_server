@@ -253,8 +253,6 @@ public interface MessageConst {
         //节点信息变化
         int NOTIFY_GAME_NODE_CHANGE = BASE_MSG_PREFIX | 0xE;
 
-        //通知玩家积分变化
-        int NOTIFY_PLAYER_POINTS_UPDATE = BASE_MSG_PREFIX | 0x0F;
         //通知服务器配置表变化
         int NOTIFY_EXCEL_CHANGE = BASE_MSG_PREFIX | 0x10;
         //通知服务器加载登录配置

@@ -2,8 +2,6 @@ package com.jjg.game.core.task.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
-import com.jjg.game.common.curator.NodeType;
-import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
@@ -20,7 +18,6 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.logger.TaskLogger;
 import com.jjg.game.core.manager.RedDotManager;
-import com.jjg.game.core.pb.NotifyPointsUpdate;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.task.condition.AbstractTaskCondition;
@@ -65,6 +62,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
     private final TaskDataDao taskDataDao;
     private final RedisLock redisLock;
     private final PlayerPackService playerPackService;
+    private final IPlayerPointsAwardService pointsAwardService;
 
     /**
      * 锁时间。
@@ -82,6 +80,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
                        TaskDataDao taskDataDao,
                        RedisLock redisLock,
                        TaskLogger taskLogger,
+                       IPlayerPointsAwardService pointsAwardService,
                        @Lazy PlayerPackService playerPackService) {
         this.clusterSystem = clusterSystem;
         this.redDotManager = redDotManager;
@@ -89,6 +88,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
         this.taskDataDao = taskDataDao;
         this.redisLock = redisLock;
         this.taskLogger = taskLogger;
+        this.pointsAwardService = pointsAwardService;
         this.playerPackService = playerPackService;
     }
 
@@ -899,12 +899,11 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      * @param flag     变化 true增加 false扣除
      */
     public void addPlayerPoints(long playerId, int value, boolean flag) {
-        NotifyPointsUpdate notifyPointsUpdate = new NotifyPointsUpdate();
-        notifyPointsUpdate.setFlag(flag);
-        notifyPointsUpdate.setPlayerId(playerId);
-        notifyPointsUpdate.setValue(value);
-        notifyPointsUpdate.setType(PointsAwardType.TASK);
-        clusterSystem.notifyNode(MessageUtil.getPFMessage(notifyPointsUpdate), Set.of(NodeType.HALL.toString())::contains);
+        if (flag) {
+            pointsAwardService.add(playerId, value, PointsAwardType.TASK);
+        } else {
+            pointsAwardService.deduct(playerId, value, PointsAwardType.TASK);
+        }
     }
 
     /**
