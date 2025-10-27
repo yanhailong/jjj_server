@@ -28,7 +28,7 @@ public class TaskCondition12001 extends AbstractTaskCondition<TaskConditionParam
         if (gameId > 0) {
             return param.getGameId() == gameId;
         }
-        return false;
+        return true;
     }
 
     /**

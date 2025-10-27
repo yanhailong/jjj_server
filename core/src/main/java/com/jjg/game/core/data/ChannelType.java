@@ -12,7 +12,7 @@ public enum ChannelType {
 
     ;
 
-    private int value;
+    private final int value;
 
     ChannelType(int value) {
         this.value = value;
@@ -23,22 +23,14 @@ public enum ChannelType {
     }
 
     public static ChannelType valueOf(int value) {
-        switch (value) {
-            case 0 -> {
-                return GOOGLE;
-            }
+        return switch (value) {
+            case 0 -> GOOGLE;
 
-            case 1 -> {
-                return APPLE;
-            }
+            case 1 -> APPLE;
 
-            case 2 -> {
-                return FACEBOOK;
-            }
+            case 2 -> FACEBOOK;
 
-            default -> {
-                return null;
-            }
-        }
+            default -> null;
+        };
     }
 }

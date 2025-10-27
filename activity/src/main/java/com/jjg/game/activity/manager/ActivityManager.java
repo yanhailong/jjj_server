@@ -29,6 +29,7 @@ import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -119,10 +120,14 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     private final DropItemManager dropItemManager;
 
+    /**
+     * 计数dao(用于判断活动是否开启过)
+     */
+    private final CountDao countDao;
 
     public ActivityManager(TimerCenter timerCenter, ClusterSystem clusterSystem,
                            CoreMarqueeManager marqueeManager,
-                           MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager, GameEventManager gameEventManager, ConditionManager conditionManager, PlayerActivityDao playerActivityDao, DropItemManager dropItemManager) {
+                           MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager, GameEventManager gameEventManager, ConditionManager conditionManager, PlayerActivityDao playerActivityDao, DropItemManager dropItemManager, CountDao countDao) {
         this.timerCenter = timerCenter;
         this.clusterSystem = clusterSystem;
         this.marqueeManager = marqueeManager;
@@ -133,6 +138,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         this.conditionManager = conditionManager;
         this.playerActivityDao = playerActivityDao;
         this.dropItemManager = dropItemManager;
+        this.countDao = countDao;
     }
 
 
@@ -293,22 +299,21 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 case ActivityConstant.Common.LIMIT_TYPE -> {
                     data.setStatus(ActivityConstant.ActivityStatus.ENDED);
                     //活动结束执行
-                    if (isExecutionNode()) {
+                    if (addActivityStatusChangeCount(data.getId(), data.getTimeEnd())) {
                         data.getType().getController().onActivityEnd(data);
                     }
                     //推送活动变化
                     notifyNodeActivityChange(data);
                 }
                 case ActivityConstant.Common.OPEN_SERVER_TYPE -> {
+                    if (addActivityStatusChangeCount(data.getId(), data.getTimeEnd())) {
+                        data.getType().getController().onActivityEnd(data);
+                    }
                     data.setTimeStart(data.getTimeEnd());
                     //计算结束时间
                     long timestampByDay = TimeHelper.getTimestampByDay(data.getTimeStart(), data.getDuration());
                     data.setTimeEnd(timestampByDay);
-                    log.info("开服活动 activity:{} 下一次结束时间{}", activityId, data.getTimeStart());
-                    if (isExecutionNode()) {
-                        //活动结束执行
-                        data.getType().getController().onActivityEnd(data);
-                    }
+                    log.info("开服活动 activity:{} 下一次结束时间{}", activityId, data.getTimeEnd());
                     notifyNodeActivityChange(data);
                     //修改轮数
                     data.addRound();
@@ -317,8 +322,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 }
                 case ActivityConstant.Common.CYCLE_SERVER_TYPE -> {
                     data.setStatus(ActivityConstant.ActivityStatus.ENDED);
-                    //活动结束执行
-                    if (isExecutionNode()) {
+                    if (addActivityStatusChangeCount(data.getId(), data.getTimeEnd())) {
                         data.getType().getController().onActivityEnd(data);
                     }
                     //推送活动变化
@@ -351,12 +355,12 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * @param data 活动数据
      */
     private void activityOpenAction(ActivityData data) {
-        if (isExecutionNode()) {
-        //活动开始执行
-        data.getType().getController().onActivityStart(data);
-        log.info("活动开启 activityId:{} 开始时间:{} 结束时间:{} ", data.getId(), data.getTimeStart(), data.getTimeEnd());
-        //活动开始发送跑马灯
-        marqueeManager.activityMarquee(data.getMarquee());
+        if (addActivityStatusChangeCount(data.getId(), data.getTimeStart())) {
+            //活动开始执行
+            data.getType().getController().onActivityStart(data);
+            log.info("活动开启 activityId:{} 开始时间:{} 结束时间:{} ", data.getId(), data.getTimeStart(), data.getTimeEnd());
+            //活动开始发送跑马灯
+            marqueeManager.activityMarquee(data.getMarquee());
         }
         data.setStatus(ActivityConstant.ActivityStatus.RUNNING);
         //推送活动变化
@@ -726,6 +730,14 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
     }
 
+    /**
+     * 活动开启或者关闭时进行计数
+     * @param activityId 活动id
+     * @param time 时间
+     */
+    public final boolean addActivityStatusChangeCount(long activityId, long time) {
+        return countDao.setIfAbsent("activity:status:%s".formatted(activityId), String.valueOf(time));
+    }
 
     /**
      * 获取所属模块{@link RedDotDetails.RedDotModule}

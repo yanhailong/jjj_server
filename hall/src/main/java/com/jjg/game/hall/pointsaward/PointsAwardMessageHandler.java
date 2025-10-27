@@ -122,7 +122,7 @@ public class PointsAwardMessageHandler {
     @Command(PointsAwardConstant.Message.REQ_TURNTABLE)
     public void turntableSpin(PlayerController playerController, ReqPointsAwardTurntableSpin message) {
         ResPointsAwardTurntableSpin res = new ResPointsAwardTurntableSpin(Code.SUCCESS);
-        int gridId = pointsAwardTurntableService.spin(playerController.playerId());
+        int gridId = pointsAwardTurntableService.spin(playerController.playerId(), res);
         if (gridId > 0) {
             res.setGridId(gridId);
         } else {

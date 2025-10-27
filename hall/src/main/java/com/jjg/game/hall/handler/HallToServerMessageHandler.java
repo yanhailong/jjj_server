@@ -10,12 +10,10 @@ import com.jjg.game.common.net.Connect;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.protostuff.MessageUtil;
-import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.handler.CoreToServerMessageHandler;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.pb.LuckyTreasureUpdateBroadcast;
-import com.jjg.game.core.pb.NotifyPointsUpdate;
 import com.jjg.game.core.pb.ReqActivityInfos;
 import com.jjg.game.core.pb.ResActivityInfos;
 import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
@@ -96,22 +94,4 @@ public class HallToServerMessageHandler extends CoreToServerMessageHandler {
         }
     }
 
-    /**
-     * 收到更新玩家积分大奖积分请求
-     */
-    @Command(MessageConst.ToServer.NOTIFY_PLAYER_POINTS_UPDATE)
-    public void notifyUpdatePlayerPoints(NotifyPointsUpdate message) {
-        long playerId = message.getPlayerId();
-        PFSession session = clusterSystem.getSession(playerId);
-        if (session == null) {
-            return;
-        }
-        int value = message.getValue();
-        int type = message.getType();
-        if (message.isFlag()) {
-            pointsAwardService.add(playerId, value, type);
-        } else {
-            pointsAwardService.deduct(playerId, value, type);
-        }
-    }
 }

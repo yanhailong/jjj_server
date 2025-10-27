@@ -186,17 +186,6 @@ public abstract class BaseActivityController {
     public void onActivityStart(ActivityData activityData) {
     }
 
-
-    /**
-     * 后台更新活动配置数据
-     *
-     * @param jsonData 活动配置的JSON字符串
-     * @return 更新后的记录数
-     */
-    public int updateActivity(String jsonData) {
-        return 0;
-    }
-
     /**
      * 构建玩家的活动详情数据
      *

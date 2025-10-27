@@ -5,6 +5,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
+import com.jjg.game.hall.pointsaward.pb.PointsAwardTurntableHistory;
 
 /**
  * 请求转盘旋转回复
@@ -35,6 +36,12 @@ public class ResPointsAwardTurntableSpin extends AbstractResponse {
     @ProtoDesc("中奖id")
     private int gridId;
 
+    /**
+     * 本次转盘的历史记录 只有成功才有
+     */
+    @ProtoDesc("本次转盘的历史记录 只有成功才有")
+    private PointsAwardTurntableHistory history;
+
     public ResPointsAwardTurntableSpin(int code) {
         super(code);
     }
@@ -61,5 +68,13 @@ public class ResPointsAwardTurntableSpin extends AbstractResponse {
 
     public void setMaxCount(int maxCount) {
         this.maxCount = maxCount;
+    }
+
+    public PointsAwardTurntableHistory getHistory() {
+        return history;
+    }
+
+    public void setHistory(PointsAwardTurntableHistory history) {
+        this.history = history;
     }
 }

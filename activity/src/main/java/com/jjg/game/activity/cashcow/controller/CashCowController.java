@@ -448,12 +448,6 @@ public class CashCowController extends BaseActivityController implements TimerLi
     }
 
     @Override
-    public int updateActivity(String jsonData) {
-        // 配置变更/热更回调（当前实现为 no-op）
-        return 0;
-    }
-
-    @Override
     public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData data, int detailId) {
         // 查询并返回玩家对于某个 detail 的活动明细信息（界面显示）
         long activityId = data.getId();
