@@ -23,6 +23,8 @@ public class FirstpaymentCfg extends BaseCfgBean {
 
   /** 超值 */
   protected BigDecimal bestValue;
+  /** 渠道商品ID */
+  protected Map<Integer,String> channelCommodity;
   /** 头像框奖励 */
   protected Map<Integer,Long> getAvatarFrame;
   /** 金币奖励 */
@@ -37,6 +39,11 @@ public class FirstpaymentCfg extends BaseCfgBean {
   /** 返回超值 */
   public BigDecimal getBestValue() {
     return bestValue;
+  }
+
+  /** 返回渠道商品ID */
+  public Map<Integer,String> getChannelCommodity() {
+    return channelCommodity;
   }
 
   /** 返回头像框奖励 */

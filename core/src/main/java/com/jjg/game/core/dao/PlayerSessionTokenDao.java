@@ -42,14 +42,24 @@ public class PlayerSessionTokenDao {
      * @param token
      * @param playerId
      */
-    public void save(String token, int loginType, long playerId, int channel) {
+    public void save(String token, int loginType, long playerId, int channel, String ip) {
         PlayerSessionToken playerSessionToken = new PlayerSessionToken();
         playerSessionToken.setPlayerId(playerId);
         playerSessionToken.setToken(token);
         playerSessionToken.setExpireTime(System.currentTimeMillis() + tokenExpireTime);
         playerSessionToken.setLoginType(loginType);
         playerSessionToken.setChannel(channel);
-        redisTemplate.opsForHash().put(tableName, playerId, playerSessionToken);
+        playerSessionToken.setIp(ip);
+        save(playerSessionToken);
+    }
+
+    public void save(PlayerSessionToken playerSessionToken) {
+        redisTemplate.opsForHash().put(tableName, playerSessionToken.getPlayerId(), playerSessionToken);
+    }
+
+    public void updateExpire(PlayerSessionToken playerSessionToken) {
+        playerSessionToken.setExpireTime(System.currentTimeMillis() + tokenExpireTime);
+        save(playerSessionToken);
     }
 
     /**
@@ -59,11 +69,11 @@ public class PlayerSessionTokenDao {
      * @return
      */
     public PlayerSessionToken getByPlayerId(long playerId) {
-        return (PlayerSessionToken)redisTemplate.opsForHash().get(tableName, playerId);
+        return (PlayerSessionToken) redisTemplate.opsForHash().get(tableName, playerId);
     }
 
     public Long delTokens(List<Long> playerIds) {
-        if(playerIds == null || playerIds.isEmpty()) {
+        if (playerIds == null || playerIds.isEmpty()) {
             return 0l;
         }
         return redisTemplate.opsForHash().delete(tableName, playerIds.toArray());
@@ -75,7 +85,7 @@ public class PlayerSessionTokenDao {
     public int clearExpireToken() {
         Cursor<Map.Entry<Long, PlayerSessionToken>> cursor = null;
         int deleteCount = 0;
-        try{
+        try {
             cursor = redisTemplate.opsForHash().scan(
                     tableName,
                     ScanOptions.scanOptions().count(100).build());
@@ -87,7 +97,7 @@ public class PlayerSessionTokenDao {
                 Map.Entry<Long, PlayerSessionToken> entry = cursor.next();
 
                 PlayerSessionToken playerSessionToken = entry.getValue();
-                if(playerSessionToken.getExpireTime() < now){
+                if (playerSessionToken.getExpireTime() < now) {
                     delList.add(entry.getKey());
                 }
 
@@ -102,10 +112,10 @@ public class PlayerSessionTokenDao {
             if (!delList.isEmpty()) {
                 deleteCount += delTokens(delList);
             }
-        }catch (Exception e) {
-            log.error("",e);
-        }finally {
-            if(cursor != null){
+        } catch (Exception e) {
+            log.error("", e);
+        } finally {
+            if (cursor != null) {
                 cursor.close();
             }
         }

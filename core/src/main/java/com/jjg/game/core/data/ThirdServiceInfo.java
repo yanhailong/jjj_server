@@ -33,10 +33,19 @@ public class ThirdServiceInfo {
     private String facebookSecret;
 
     //apple配置信息
+    @Value("${thirdservice.apple.app_id:}")
+    private Long appleAppId;
+    @Value("${thirdservice.apple.bundle_id:}")
+    private String appleBundleId;
     @Value("${thirdservice.apple.jwks_url:}")
     private String appleJwksUrl;
-    @Value("${thirdservice.apple.aud:}")
-    private String appleAud;
+    @Value("${thirdservice.apple.key_id:}")
+    private String appleKeyId;
+    @Value("${thirdservice.apple.issuer_id:}")
+    private String appleIssuerId;
+    @Value("${thirdservice.apple.sandbox:true}")
+    private boolean sandbox;
+
 
     //短信配置信息
     @Value("${thirdservice.sms.send_sms_url:}")
@@ -121,6 +130,38 @@ public class ThirdServiceInfo {
         this.facebookSecret = facebookSecret;
     }
 
+    public String getAppleKeyId() {
+        return appleKeyId;
+    }
+
+    public void setAppleKeyId(String appleKeyId) {
+        this.appleKeyId = appleKeyId;
+    }
+
+    public Long getAppleAppId() {
+        return appleAppId;
+    }
+
+    public void setAppleAppId(Long appleAppId) {
+        this.appleAppId = appleAppId;
+    }
+
+    public String getAppleIssuerId() {
+        return appleIssuerId;
+    }
+
+    public void setAppleIssuerId(String appleIssuerId) {
+        this.appleIssuerId = appleIssuerId;
+    }
+
+    public String getAppleBundleId() {
+        return appleBundleId;
+    }
+
+    public void setAppleBundleId(String appleBundleId) {
+        this.appleBundleId = appleBundleId;
+    }
+
     public String getAppleJwksUrl() {
         return appleJwksUrl;
     }
@@ -129,12 +170,12 @@ public class ThirdServiceInfo {
         this.appleJwksUrl = appleJwksUrl;
     }
 
-    public String getAppleAud() {
-        return appleAud;
+    public boolean isSandbox() {
+        return sandbox;
     }
 
-    public void setAppleAud(String appleAud) {
-        this.appleAud = appleAud;
+    public void setSandbox(boolean sandbox) {
+        this.sandbox = sandbox;
     }
 
     public String getSmsSensSmsUrl() {

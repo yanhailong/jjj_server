@@ -1,6 +1,5 @@
 package com.jjg.game.core.data;
 
-import com.jjg.game.core.constant.GameConstant;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Objects;

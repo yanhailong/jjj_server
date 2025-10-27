@@ -36,6 +36,8 @@ public class Order {
     private int createTime;
     //更新时间
     private int updateTime;
+    //渠道订单id
+    private String channelOrderId;
 
     public String getId() {
         return id;
@@ -123,5 +125,13 @@ public class Order {
 
     public void setUpdateTime(int updateTime) {
         this.updateTime = updateTime;
+    }
+
+    public String getChannelOrderId() {
+        return channelOrderId;
+    }
+
+    public void setChannelOrderId(String channelOrderId) {
+        this.channelOrderId = channelOrderId;
     }
 }

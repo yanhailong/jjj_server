@@ -21,6 +21,8 @@ public class PlayerLevelPackCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "PlayerLevelPack";
 
+  /** 渠道商品ID */
+  protected Map<Integer,String> channelCommodity;
   /** 等级奖励 */
   protected Map<Integer,Long> levelRewards;
   /** 购买金额 */
@@ -29,6 +31,11 @@ public class PlayerLevelPackCfg extends BaseCfgBean {
   protected int playerlevel;
   /** 有效时长(分钟) */
   protected int time;
+
+  /** 返回渠道商品ID */
+  public Map<Integer,String> getChannelCommodity() {
+    return channelCommodity;
+  }
 
   /** 返回等级奖励 */
   public Map<Integer,Long> getLevelRewards() {

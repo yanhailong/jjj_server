@@ -23,6 +23,8 @@ public class PiggyBankCfg extends BaseCfgBean {
 
   /** 初始金币 */
   protected int baseGold;
+  /** 渠道商品ID */
+  protected Map<Integer,String> channelCommodity;
   /** 罐子存储上限 */
   protected long fullUp;
   /** 奖励1 */
@@ -39,6 +41,11 @@ public class PiggyBankCfg extends BaseCfgBean {
   /** 返回初始金币 */
   public int getBaseGold() {
     return baseGold;
+  }
+
+  /** 返回渠道商品ID */
+  public Map<Integer,String> getChannelCommodity() {
+    return channelCommodity;
   }
 
   /** 返回罐子存储上限 */

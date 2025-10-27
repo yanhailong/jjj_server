@@ -1,22 +1,33 @@
 package com.jjg.game.recharge.controller;
 
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.crypto.asymmetric.RSA;
+import cn.hutool.crypto.asymmetric.Sign;
+import cn.hutool.crypto.asymmetric.SignAlgorithm;
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpResponse;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.auth0.jwk.*;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.data.ThirdServiceInfo;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -31,9 +42,27 @@ public class GoogleCallbackController extends AbstractCallbackController{
     private final ThirdServiceInfo thirdServiceInfo;
 
     private final String ISSUER = "https://accounts.google.com";
-    private final long CLOCK_SKEW = 300000; // 5分钟时钟容差
+    //获取交易详情的连接
+    private final String PRODUCT_URL = "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/%s/purchases/products/%s/tokens/%s";
+    //获取token的连接
+    private final String TOKEN_URL = "https://oauth2.googleapis.com/token";
 
+    private final String JWT_SCOPE = "https://www.googleapis.com/auth/androidpublisher";
+    private final String JWT_AUD = "https://oauth2.googleapis.com/token";
+
+
+
+    private final long CLOCK_SKEW = 300000; // 5分钟时钟容差
     private JwkProvider jwkProvider;
+
+    //服务账号
+    private final String serviceAccountEmail;
+    private final RSA rsa;
+    private final String privateKeyPem;
+
+    //缓存的accessToken
+    private String accessToken;
+    private int expiresTime;
 
     public GoogleCallbackController(ThirdServiceInfo thirdServiceInfo) throws MalformedURLException {
         this.thirdServiceInfo = thirdServiceInfo;
@@ -43,6 +72,23 @@ public class GoogleCallbackController extends AbstractCallbackController{
                 .cached(10, 12, TimeUnit.HOURS) // 缓存10个密钥，12小时
                 .rateLimited(10, 1, TimeUnit.MINUTES) // 限流：每分钟10次
                 .build();
+
+
+        File file = new File("config/google-service-account.json");
+        String jsonContent = FileUtil.readUtf8String(file.getAbsolutePath());
+        JSONObject googleServiceAccount = JSON.parseObject(jsonContent);
+
+        this.serviceAccountEmail = googleServiceAccount.getString("client_email");
+        this.privateKeyPem = googleServiceAccount.getString("private_key"); // 保留原始格式
+
+        String cleanedPrivateKey = this.privateKeyPem
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replaceAll("\\n", "")
+                .replaceAll("\\s", "")
+                .trim();
+        byte[] privateKeyBytes = Base64.getDecoder().decode(cleanedPrivateKey);
+        this.rsa = new RSA(privateKeyBytes, null); // 使用字节数组初始化
     }
 
     /**
@@ -78,6 +124,13 @@ public class GoogleCallbackController extends AbstractCallbackController{
             JsonNode oneTimeProductNotificationNode = jsonNode.get("oneTimeProductNotification");
             if(oneTimeProductNotificationNode != null){
                 log.debug("收到一次性购买通知 notification = {}", oneTimeProductNotificationNode);
+                String purchaseToken = oneTimeProductNotificationNode.get("purchaseToken").asText();
+                String sku = oneTimeProductNotificationNode.get("sku").asText();
+                String packageName = jsonNode.get("packageName").asText();
+
+                JSONObject productInfoJson = getProductInfo(purchaseToken, packageName, sku);
+                log.debug("商品信息 productInfoJson = {}", productInfoJson);
+
                 return ResponseEntity.ok("Recharge processed");
             }
 
@@ -206,5 +259,98 @@ public class GoogleCallbackController extends AbstractCallbackController{
             log.error("",e);
             return null;
         }
+    }
+
+    /**
+     * 生成jwt
+     * @return
+     */
+    private String generateJwt() {
+        long now = System.currentTimeMillis() / 1000;
+        long expiry = now + TimeUnit.HOURS.toSeconds(1);
+
+        // 构建 JWT Header
+        Map<String, String> header = new HashMap<>();
+        header.put("alg", "RS256");
+        header.put("typ", "JWT");
+
+        // 构建 JWT Payload
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("iss", serviceAccountEmail);
+        payload.put("scope", JWT_SCOPE);
+        payload.put("aud", JWT_AUD);
+        payload.put("exp", expiry);
+        payload.put("iat", now);
+
+        // 编码 Header 和 Payload
+        String headerBase64 = StrUtil.removeAllLineBreaks(
+                Base64.getUrlEncoder().encodeToString(JSON.toJSONBytes(header)));
+        String payloadBase64 = StrUtil.removeAllLineBreaks(
+                Base64.getUrlEncoder().encodeToString(JSON.toJSONBytes(payload)));
+
+        // 使用 RSA 签名
+        String dataToSign = headerBase64 + "." + payloadBase64;
+        Sign sign = new Sign(SignAlgorithm.SHA256withRSA, rsa.getPrivateKey(), null);
+        byte[] signatureBytes = sign.sign(dataToSign.getBytes());
+        String signatureBase64 = StrUtil.removeAllLineBreaks(
+                Base64.getUrlEncoder().encodeToString(signatureBytes));
+
+        return headerBase64 + "." + payloadBase64 + "." + signatureBase64;
+    }
+
+    /**
+     * 获取access_token
+     * @return
+     */
+    private String getAccessToken() {
+        int now = TimeHelper.nowInt();
+        if(!StringUtils.isEmpty(accessToken) && expiresTime > now){
+            return accessToken;
+        }
+
+        String jwt = generateJwt();
+        HttpRequest request = HttpRequest.post(TOKEN_URL);
+
+        HttpResponse response = request
+                .form("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer")
+                .form("assertion", jwt)
+                .execute();
+
+        if (response.isOk()) {
+            JSONObject tokenResponse = JSON.parseObject(response.body());
+
+            String accessToken = tokenResponse.getString("access_token");
+
+            this.accessToken = accessToken;
+            this.expiresTime = now + tokenResponse.getIntValue("expires_in");
+            return accessToken;
+        } else {
+            throw new RuntimeException("Failed to get access token: " + response.body());
+        }
+    }
+
+    /**
+     * 获取商品信息
+     * @param purchaseToken
+     * @param packageName
+     * @param prodctId
+     * @return
+     */
+    private JSONObject getProductInfo(String purchaseToken,String packageName,String prodctId){
+        String accessToken = getAccessToken();
+
+        String url = String.format(this.PRODUCT_URL,packageName,  prodctId,purchaseToken);
+        HttpRequest request = HttpRequest.get(url);
+        HttpResponse response = request
+                .header("Authorization", "Bearer " + accessToken)
+                .header("Content-Type", "application/json")
+                .execute();
+
+        if(response.isOk()){
+            return JSON.parseObject(response.body());
+        }
+
+        log.warn("获取商品信息失败 resp = {}", JSON.parseObject(response.body()));
+        return null;
     }
 }

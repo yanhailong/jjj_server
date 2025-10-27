@@ -21,6 +21,8 @@ public class PrivilegeCardCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "PrivilegeCard";
 
+  /** 渠道商品ID */
+  protected Map<Integer,String> channelCommodity;
   /** 每天返利(金币) */
   protected Map<Integer,Long> dayRebate;
   /** 持续天数 */
@@ -35,6 +37,11 @@ public class PrivilegeCardCfg extends BaseCfgBean {
   protected Map<Integer,Long> totalRebate;
   /** 类型ID */
   protected int type;
+
+  /** 返回渠道商品ID */
+  public Map<Integer,String> getChannelCommodity() {
+    return channelCommodity;
+  }
 
   /** 返回每天返利(金币) */
   public Map<Integer,Long> getDayRebate() {

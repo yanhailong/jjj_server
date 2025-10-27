@@ -48,6 +48,18 @@ public class OrderService {
      * @return
      */
     public Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price, RechargeType rechargeType) {
+        return generateOrder(playerId, playerChannel, payType, productId, price, rechargeType,OrderStatus.ORDER,null);
+    }
+
+    /**
+     * 生成订单
+     *
+     * @param playerId
+     * @param productId
+     * @param price
+     * @return
+     */
+    public Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price, RechargeType rechargeType,OrderStatus orderStatus,String channelProductId) {
         for (int i = 0; i < CoreConst.Common.MONGO_TRY_COUNT; i++) {
             String orderId = "cz" + DateUtil.format(DateUtil.date(), "yyMMdd") + RandomUtils.getRandomString(9);
             try {
@@ -59,9 +71,10 @@ public class OrderService {
                 order.setProductId(productId);
                 order.setPrice(price);
 
-                order.setOrderStatus(OrderStatus.ORDER);
+                order.setOrderStatus(orderStatus);
                 order.setRechargeType(rechargeType);
                 order.setCreateTime(TimeHelper.nowInt());
+                order.setChannelOrderId(channelProductId);
                 orderDao.insert(order);
                 return order;
             } catch (DuplicateKeyException e) {
