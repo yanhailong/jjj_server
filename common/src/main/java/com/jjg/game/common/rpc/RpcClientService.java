@@ -9,10 +9,12 @@ import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.rpc.msg.ReqRpcServiceData;
 import com.jjg.game.common.rpc.msg.RespRpcServiceData;
+import com.jjg.game.common.utils.CommonUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Method;
@@ -48,8 +50,16 @@ public class RpcClientService {
      * @return 调用返回值
      */
     public Object tryInvokeRemote(
-        String className, Method method, Object[] args, ClusterRpcReference reference)
-        throws TimeoutException, ExecutionException, InterruptedException {
+            String className, Method method, Object[] args, ClusterRpcReference reference)
+            throws TimeoutException, ExecutionException, InterruptedException {
+
+        // 【新增】优先检测本地调用
+        Object localResult = tryInvokeLocal(className, method, args);
+        if (localResult != null || method.getReturnType() == Void.TYPE) {
+            return localResult;
+        }
+
+        // 原有的远程调用逻辑
         String methodName = method.getName();
         Parameter[] parameters = method.getParameters();
         RpcReqParameterBuilder rpcReqParameter = GameRpcContext.getContext().getReqParameterBuilder();
@@ -71,20 +81,65 @@ public class RpcClientService {
         message.parameterTypeWithData = JSON.toJSONString(parameterArgsMap);
 
         int waitTime = rpcReqParameter != null && rpcReqParameter.getTryMillisPerClient() > 0
-            ? rpcReqParameter.getTryMillisPerClient() : reference.timeoutMillis();
+                ? rpcReqParameter.getTryMillisPerClient() : reference.timeoutMillis();
         // TODO.2CL 后续加入重试
         int retryTimes = rpcReqParameter != null && rpcReqParameter.getRetryTimesPerClient() > 0
-            ? rpcReqParameter.getRetryTimesPerClient() : reference.tryTimes();
+                ? rpcReqParameter.getRetryTimesPerClient() : reference.tryTimes();
 
         // 发送消息并等待
         return flushMessageAndWait(clusterClients, message, waitTime, method.getReturnType());
     }
 
     /**
+     * 尝试本地调用(同JVM内直接调用,避免序列化和网络开销)
+     *
+     * @param className 服务接口类名
+     * @param method    方法
+     * @param args      参数
+     * @return 调用结果,如果本地不存在该服务返回null
+     */
+    private Object tryInvokeLocal(String className, Method method, Object[] args) {
+        try {
+            ApplicationContext context = CommonUtil.getContext();
+            if (context == null) {
+                return null;
+            }
+
+            // 1. 尝试通过接口类型查找实现类
+            Class<?> interfaceClass = Class.forName(className);
+            Map<String, ?> beans = context.getBeansOfType(interfaceClass);
+
+            if (beans.isEmpty()) {
+                // 本地没有该服务实现
+                return null;
+            }
+
+            // 2. 获取第一个实现类(通常只有一个)
+            Object serviceBean = beans.values().iterator().next();
+
+            // 3. 直接本地调用
+            Object result = method.invoke(serviceBean, args);
+
+            log.debug("RPC本地调用成功: {}.{}", className, method.getName());
+            return result;
+
+        } catch (ClassNotFoundException e) {
+            // 接口类不存在,可能是依赖问题,继续走远程调用
+            log.debug("本地未找到RPC接口类: {}, 将使用远程调用", className);
+            return null;
+        } catch (Exception e) {
+            // 本地调用失败,记录日志后返回null,让框架继续尝试远程调用
+            log.warn("RPC本地调用失败: {}.{}, 将回退到远程调用, error: {}",
+                    className, method.getName(), e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * 解析客户端列表
      */
     private List<ClusterClient> parseClusterClients(
-        RpcReqParameterBuilder rpcReqParameter, ClusterRpcReference reference) {
+            RpcReqParameterBuilder rpcReqParameter, ClusterRpcReference reference) {
         // 优先使用请求参数中的节点
         List<ClusterClient> clusterClients = new ArrayList<>();
         String nodePath = reference.targetNodePath();
@@ -98,7 +153,7 @@ public class RpcClientService {
         if (rpcReqParameter != null) {
             if (!rpcReqParameter.getClusterClients().isEmpty()) {
                 clusterClients =
-                    new ArrayList<>(rpcReqParameter.getClusterClients().stream().filter(Objects::nonNull).toList());
+                        new ArrayList<>(rpcReqParameter.getClusterClients().stream().filter(Objects::nonNull).toList());
             }
             // 如果没有传节点，则向默认节点类型中的所有节点发送
             if (clusterClients.isEmpty()) {
@@ -137,8 +192,8 @@ public class RpcClientService {
      * @param returnType     返回类型
      */
     private Object flushMessageAndWait(
-        List<ClusterClient> clusterClients, ReqRpcServiceData message, int waitTime, Class<?> returnType)
-        throws TimeoutException, ExecutionException, InterruptedException {
+            List<ClusterClient> clusterClients, ReqRpcServiceData message, int waitTime, Class<?> returnType)
+            throws TimeoutException, ExecutionException, InterruptedException {
         if (clusterClients.size() == 1) {
             return dealSingleClientRpcMsg(clusterClients.getFirst(), message, waitTime, returnType);
         } else {
@@ -150,8 +205,8 @@ public class RpcClientService {
      * 处理单个客户端消息
      */
     private Object dealSingleClientRpcMsg(
-        ClusterClient clusterClient, ReqRpcServiceData message, int waitTime, Class<?> returnType)
-        throws TimeoutException, ExecutionException, InterruptedException {
+            ClusterClient clusterClient, ReqRpcServiceData message, int waitTime, Class<?> returnType)
+            throws TimeoutException, ExecutionException, InterruptedException {
         Object responseData = null;
         String nodePath = clusterClient.marsNode.getNodePath();
         CompletableFuture<RespRpcServiceData> completableFuture = new CompletableFuture<>();
@@ -174,7 +229,7 @@ public class RpcClientService {
         try {
             // 返回消息
             RespRpcServiceData responseObject =
-                completableFuture.get(waitTime, TimeUnit.MILLISECONDS);
+                    completableFuture.get(waitTime, TimeUnit.MILLISECONDS);
             log.debug("SingleClientRpcMsg 收到节点：{} 返回的RPC消息：{}", nodePath, responseObject);
             // 要有返回值
             if (!Void.TYPE.isAssignableFrom(returnType) && responseObject != null) {
@@ -203,7 +258,7 @@ public class RpcClientService {
      * 批量给指定的客户端发送RPC消息
      */
     private Object batchSendRpcMsg(
-        List<ClusterClient> clusterClients, ReqRpcServiceData message, int waitTime, Class<?> returnType) throws InterruptedException {
+            List<ClusterClient> clusterClients, ReqRpcServiceData message, int waitTime, Class<?> returnType) throws InterruptedException {
         Map<String, Object> responseMap = new ConcurrentHashMap<>();
         CountDownLatch countDownLatch = new CountDownLatch(clusterClients.size());
         try (ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor()) {
@@ -214,7 +269,7 @@ public class RpcClientService {
                 long requestId = message.requestId = requestIdGenerator.nextId();
                 messagePending.put(requestId, completableFuture);
                 log.debug("batchSendRpcMsg send cluster: {} with id, {}",
-                    clusterClient.nodeConfig.getName(), requestId);
+                        clusterClient.nodeConfig.getName(), requestId);
                 try {
                     clusterClient.getConnect().writeWithFuture(new ClusterMessage(message), f -> {
                         if (!f.isSuccess()) {
@@ -230,7 +285,7 @@ public class RpcClientService {
                 try {
                     // 返回消息
                     RespRpcServiceData responseObject =
-                        completableFuture.get(waitTime, TimeUnit.MILLISECONDS);
+                            completableFuture.get(waitTime, TimeUnit.MILLISECONDS);
                     boolean success = Void.TYPE.isAssignableFrom(returnType);
                     // 要有返回值
                     if (!success && responseObject != null) {
@@ -258,15 +313,15 @@ public class RpcClientService {
             GameRpcContext gameRpcContext = GameRpcContext.getContext();
             if (countDownLatch.await(maxWaitTime, TimeUnit.MILLISECONDS)) {
                 log.debug("batchSendRpcMsg 给节点：{} 发送请求全部返回成功",
-                    clusterClients.stream().map(c -> c.nodeConfig.getName()).collect(Collectors.joining(",")));
+                        clusterClients.stream().map(c -> c.nodeConfig.getName()).collect(Collectors.joining(",")));
                 if (gameRpcContext != null) {
                     // 所有请求都成功后调用
                     gameRpcContext.getReqParameterBuilder().getAllSuccessCallback().run();
                 }
             } else {
                 log.warn("batchSendRpcMsg 给节点：{} 发送请求结束, 成功数量：{}",
-                    clusterClients.stream().map(c -> c.nodeConfig.getName()).collect(Collectors.joining(",")),
-                    (clusterClients.size() - countDownLatch.getCount()));
+                        clusterClients.stream().map(c -> c.nodeConfig.getName()).collect(Collectors.joining(",")),
+                        (clusterClients.size() - countDownLatch.getCount()));
             }
             if (gameRpcContext != null) {
                 gameRpcContext.setDataOfNode(responseMap);

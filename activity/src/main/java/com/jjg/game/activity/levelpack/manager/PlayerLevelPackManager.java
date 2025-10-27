@@ -1,6 +1,7 @@
 package com.jjg.game.activity.levelpack.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.activitylog.ActivityLogger;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.levelpack.dao.PlayerLevelDao;
@@ -16,10 +17,7 @@ import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.NotifyPlayerLevelUp;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.service.PlayerPackService;
@@ -117,13 +115,13 @@ public class PlayerLevelPackManager implements GameEventListener {
             redisLock.unlock(lockKey);
         }
         if (change) {
-            NotifyPlayerLevelPackDetailInfo info = buildNotifyPlayerLevelPackDetailInfo(playerLevelPackData);
+            NotifyPlayerLevelPackDetailInfo info = buildNotifyPlayerLevelPackDetailInfo(player, playerLevelPackData);
             clusterSystem.sendToPlayer(info, playerId);
         }
     }
 
 
-    public NotifyPlayerLevelPackDetailInfo buildNotifyPlayerLevelPackDetailInfo(Map<Integer, PlayerLevelPackData> playerLevelPackData) {
+    public NotifyPlayerLevelPackDetailInfo buildNotifyPlayerLevelPackDetailInfo(Player player, Map<Integer, PlayerLevelPackData> playerLevelPackData) {
         NotifyPlayerLevelPackDetailInfo info = new NotifyPlayerLevelPackDetailInfo();
         if (CollectionUtil.isEmpty(playerLevelPackData)) {
             return info;
@@ -145,6 +143,10 @@ public class PlayerLevelPackManager implements GameEventListener {
             detailInfo.remainTime = data.getBuyEndTime() - currentTimeMillis;
             detailInfo.rewardItems = ItemUtils.buildItemInfo(packCfg.getLevelRewards());
             detailInfo.id = data.getId();
+            //商品id
+            if (CollectionUtil.isNotEmpty(packCfg.getChannelCommodity())) {
+                detailInfo.productId = packCfg.getChannelCommodity().get(player.getChannel().getValue());
+            }
             info.detailInfo.add(detailInfo);
         }
         return info;
@@ -192,7 +194,7 @@ public class PlayerLevelPackManager implements GameEventListener {
         }
         if (added != null && added.success()) {
             res.itemInfos = ItemUtils.buildItemInfo(packCfg.getLevelRewards());
-            activityLogger.sendLevelPackClaimLog(playerController.getPlayer(),added.data,packCfg);
+            activityLogger.sendLevelPackClaimLog(playerController.getPlayer(), added.data, packCfg);
         }
         return res;
     }
@@ -203,7 +205,7 @@ public class PlayerLevelPackManager implements GameEventListener {
             case PlayerEventCategory.PlayerRechargeEvent event -> {
                 Player player = event.getPlayer();
                 if (event.getOrder().getRechargeType() == RechargeType.PLAYER_LEVEL_GIFT) {
-                    dealRecharge(player, Integer.parseInt(event.getOrder().getProductId()));
+                    dealRecharge(player, event.getOrder());
                 }
             }
             case PlayerEvent event -> {
@@ -223,12 +225,25 @@ public class PlayerLevelPackManager implements GameEventListener {
      *
      * @param player 玩家信息
      */
-    private void dealRecharge(Player player, int id) {
-        PlayerLevelPackCfg playerLevelPackCfg = GameDataManager.getPlayerLevelPackCfg(id);
+    private void dealRecharge(Player player, Order order) {
+        String productId = order.getProductId();
+        List<PlayerLevelPackCfg> packCfgList = GameDataManager.getPlayerLevelPackCfgList();
+        PlayerLevelPackCfg playerLevelPackCfg = null;
+        //获取与商品id匹配的配置
+        for (PlayerLevelPackCfg cfg : packCfgList) {
+            if (CollectionUtil.isEmpty(cfg.getChannelCommodity())) {
+                continue;
+            }
+            String pId = cfg.getChannelCommodity().get(player.getChannel().getValue());
+            if (pId.equals(productId)) {
+                playerLevelPackCfg = cfg;
+            }
+        }
         if (playerLevelPackCfg == null) {
-            log.error("玩家购买等级礼包失败 配置不存在 playerId:{} id:{} ", player.getId(), id);
+            log.error("玩家购买等级礼包失败 配置不存在 playerId:{} order:{} ", player.getId(), JSONObject.toJSONString(order));
             return;
         }
+        int id = playerLevelPackCfg.getId();
         try {
             String lockKey = playerLevelDao.getLockKey(player.getId());
             redisLock.lock(lockKey, REDIS_LOCK_TIME);
@@ -249,10 +264,10 @@ public class PlayerLevelPackManager implements GameEventListener {
             }
             if (playerLevelPackData != null && playerLevelPackData.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
                 //发送日志
-                activityLogger.sendLevelPackBuyLog(player,playerLevelPackCfg);
+                activityLogger.sendLevelPackBuyLog(player, playerLevelPackCfg);
             }
             if (playerLevelPackData != null) {
-                clusterSystem.sendToPlayer(buildNotifyPlayerLevelPackDetailInfo(Map.of(playerLevelPackData.getId(), playerLevelPackData)), player.getId());
+                clusterSystem.sendToPlayer(buildNotifyPlayerLevelPackDetailInfo(player, Map.of(playerLevelPackData.getId(), playerLevelPackData)), player.getId());
             }
         } catch (Exception e) {
             log.error("等级礼包购买 异常playerId:{} id:{} ", player.getId(), id, e);
@@ -268,7 +283,7 @@ public class PlayerLevelPackManager implements GameEventListener {
 
     public AbstractResponse reqPlayerLevelPackDetailInfo(PlayerController playerController) {
         Map<Integer, PlayerLevelPackData> playerLevelPackData = playerLevelDao.getPlayerLevelPackData(playerController.playerId());
-        return buildNotifyPlayerLevelPackDetailInfo(playerLevelPackData);
+        return buildNotifyPlayerLevelPackDetailInfo(playerController.getPlayer(), playerLevelPackData);
     }
 
     /**

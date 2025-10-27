@@ -25,4 +25,6 @@ public class PlayerLevelPackDetailInfo {
     public long remainTime;
     @ProtoDesc("礼包购买金额")
     public String buyPrice;
+    @ProtoDesc("商品id")
+    public String productId;
 }

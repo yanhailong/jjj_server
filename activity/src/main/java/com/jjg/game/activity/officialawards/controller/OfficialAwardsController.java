@@ -134,6 +134,9 @@ public class OfficialAwardsController extends BaseActivityController implements 
                 break;
             }
             getRewards.add(reducedPair.getFirst());
+            if (reducedPair.getSecond() <= 0) {
+                break;
+            }
         }
         if (cfg == null || getRewards.isEmpty()) {
             //奖池不足
@@ -269,12 +272,12 @@ public class OfficialAwardsController extends BaseActivityController implements 
      * 获取玩家官方派奖活动明细
      */
     @Override
-    public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
+    public AbstractResponse getPlayerActivityDetail(Player player, ActivityData activityData, int detailId) {
         ResOfficialAwardsDetailInfo detailInfo = new ResOfficialAwardsDetailInfo(Code.SUCCESS);
         Map<Integer, OfficialAwardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
 
         detailInfo.detailInfo = new ArrayList<>();
-        OfficialAwardsDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), null);
+        OfficialAwardsDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(player, activityData, baseCfgBeanMap.get(detailId), null);
         detailInfo.detailInfo.add(baseActivityDetailInfo);
         return detailInfo;
     }
@@ -283,7 +286,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
      * 构建玩家官方派奖活动明细信息
      */
     @Override
-    public OfficialAwardsDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public OfficialAwardsDetailInfo buildPlayerActivityDetail(Player player, ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (baseCfgBean instanceof OfficialAwardsCfg cfg && activityData.canRun()) {
             OfficialAwardsDetailInfo info = new OfficialAwardsDetailInfo();
             info.activityId = activityData.getId();
@@ -333,7 +336,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
      * 获取玩家官方派奖活动类型信息（前端展示）
      */
     @Override
-    public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
+    public AbstractResponse getPlayerActivityInfoByTypeRes(Player player, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
         ResOfficialAwardsTypeInfo cardTypeInfo = new ResOfficialAwardsTypeInfo(Code.SUCCESS);
         if (CollectionUtil.isEmpty(allDetailInfo)) {
             return cardTypeInfo;
@@ -360,7 +363,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
                 officialAwardsActivity.remainTime = activityData.getTimeEnd() - System.currentTimeMillis();
             }
             officialAwardsActivity.startInfos = getOfficialAwardsStartInfo(activityData);
-            officialAwardsActivity.remainPoints = officialAwardsDao.getPlayerProgress(playerId);
+            officialAwardsActivity.remainPoints = officialAwardsDao.getPlayerProgress(player.getId());
             officialAwardsActivity.activityState = activityData.getStatus();
         }
         return cardTypeInfo;

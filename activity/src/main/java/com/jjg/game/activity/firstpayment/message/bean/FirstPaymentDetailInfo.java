@@ -22,4 +22,6 @@ public class FirstPaymentDetailInfo extends BaseActivityDetailInfo {
     public String wasPrice;
     @ProtoDesc("超值")
     public String bestValue;
+    @ProtoDesc("商品id")
+    public String productId;
 }

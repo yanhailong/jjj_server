@@ -1,8 +1,10 @@
 package com.jjg.game.activity.privilegecard.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
+import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -14,10 +16,16 @@ import com.jjg.game.activity.privilegecard.message.res.ResPrivilegeCardDetailInf
 import com.jjg.game.activity.privilegecard.message.res.ResPrivilegeCardTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEvent;
+import com.jjg.game.core.base.gameevent.GameEventListener;
+import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
+import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
@@ -49,7 +57,7 @@ import java.util.stream.Collectors;
  * @date 2025/9/3
  */
 @Component
-public class PrivilegeCardController extends BaseActivityController {
+public class PrivilegeCardController extends BaseActivityController implements GameEventListener {
 
     private final Logger log = LoggerFactory.getLogger(PrivilegeCardController.class);
 
@@ -157,7 +165,7 @@ public class PrivilegeCardController extends BaseActivityController {
             // 构建响应数据
             res = new ResPrivilegeCardDetailInfo(Code.SUCCESS);
             res.detailInfo = new ArrayList<>();
-            res.detailInfo.add(buildPlayerActivityDetail(activityData, cfg, privilegeCard));
+            res.detailInfo.add(buildPlayerActivityDetail(player, activityData, cfg, privilegeCard));
 
         } else {
             log.error("活动配置为空 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
@@ -236,20 +244,21 @@ public class PrivilegeCardController extends BaseActivityController {
         res.activityId = activityData.getId();
         res.detailId = detailId;
         res.infoList = ItemUtils.buildItemInfo(cfg.getDayRebate());
-        res.detailInfo = buildPlayerActivityDetail(activityData, cfg, data);
+        res.detailInfo = buildPlayerActivityDetail(player, activityData, cfg, data);
         return res;
     }
 
     /**
      * 构建玩家特权卡活动详情
      *
+     * @param player
      * @param activityData 活动ID
      * @param baseCfgBean  活动配置
      * @param data         玩家特权卡数据
      * @return 返回特权卡详情信息
      */
     @Override
-    public PrivilegeCardDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public PrivilegeCardDetailInfo buildPlayerActivityDetail(Player player, ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (!(baseCfgBean instanceof PrivilegeCardCfg cfg)) {
             return null;
         }
@@ -267,7 +276,10 @@ public class PrivilegeCardController extends BaseActivityController {
         // 当日奖励信息
         info.rewardItems = ItemUtils.buildItemInfo(cfg.getDayRebate());
         info.days = cfg.getDays();
-
+        //商品id
+        if (CollectionUtil.isNotEmpty(cfg.getChannelCommodity())) {
+            info.productId = cfg.getChannelCommodity().get(player.getChannel().getValue());
+        }
         long timeMillis = System.currentTimeMillis();
         if (data instanceof PlayerPrivilegeCard privilegeCard) {
             info.claimStatus = getClaimStatus(privilegeCard, timeMillis);
@@ -281,15 +293,15 @@ public class PrivilegeCardController extends BaseActivityController {
      * 获取玩家特权卡活动明细
      */
     @Override
-    public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
+    public AbstractResponse getPlayerActivityDetail(Player player, ActivityData activityData, int detailId) {
         long activityId = activityData.getId();
         ResPrivilegeCardDetailInfo detailInfo = new ResPrivilegeCardDetailInfo(Code.SUCCESS);
 
         Map<Integer, PrivilegeCardCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
-        Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
+        Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(player.getId(), activityData.getType(), activityId);
 
         detailInfo.detailInfo = new ArrayList<>();
-        BaseActivityDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId));
+        BaseActivityDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(player, activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId));
         if (baseActivityDetailInfo instanceof PrivilegeCardDetailInfo cardDetailInfo) {
             detailInfo.detailInfo.add(cardDetailInfo);
         }
@@ -301,7 +313,7 @@ public class PrivilegeCardController extends BaseActivityController {
      * 构建活动类型信息
      */
     @Override
-    public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
+    public AbstractResponse getPlayerActivityInfoByTypeRes(Player player, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
         ResPrivilegeCardTypeInfo cardTypeInfo = new ResPrivilegeCardTypeInfo(Code.SUCCESS);
         if (CollectionUtil.isEmpty(allDetailInfo)) {
             return cardTypeInfo;
@@ -332,4 +344,42 @@ public class PrivilegeCardController extends BaseActivityController {
                 .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
+    @Override
+    public <T extends GameEvent> void handleEvent(T gameEvent) {
+        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
+            Order order = event.getOrder();
+            Player player = event.getPlayer();
+            if (order.getRechargeType() != RechargeType.PRIVILEGE_CARD) {
+                return;
+            }
+            Map<Long, ActivityData> map = activityManager.getActivityTypeData().get(ActivityType.PRIVILEGE_CARD);
+            if (CollectionUtil.isEmpty(map)) {
+                log.error("充值事件 没有活动数据 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
+                return;
+            }
+            log.info("充值事件 参加活动 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
+            for (ActivityData activityData : map.values()) {
+                if (!checkPlayerCanJoinActivity(player, activityData)) {
+                    continue;
+                }
+                Map<Integer, PrivilegeCardCfg> detailCfgBean = getDetailCfgBean(activityData);
+                for (PrivilegeCardCfg cfg : detailCfgBean.values()) {
+                    if (CollectionUtil.isEmpty(cfg.getChannelCommodity())) {
+                        continue;
+                    }
+                    String productId = cfg.getChannelCommodity().get(player.getChannel().getValue());
+                    if (productId.equals(order.getProductId())) {
+                        joinActivity(player, activityData, cfg.getId(), 1);
+                        log.info("充值事件 参加活动成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public List<EGameEventType> needMonitorEvents() {
+        return List.of(EGameEventType.RECHARGE);
+    }
 }

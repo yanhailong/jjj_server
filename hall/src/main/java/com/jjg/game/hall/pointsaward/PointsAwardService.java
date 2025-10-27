@@ -4,6 +4,7 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.PointsAwardType;
@@ -12,8 +13,8 @@ import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.core.rpc.HallPointsAwardBridge;
 import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.task.service.IPlayerPointsAwardService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardLadderRewardsInfo;
@@ -37,7 +38,7 @@ import java.util.stream.Collectors;
  * 积分大奖积分服务
  */
 @Service
-public class PointsAwardService implements IPlayerLoginSuccess, GmListener, IPlayerPointsAwardService {
+public class PointsAwardService implements IPlayerLoginSuccess, GmListener, HallPointsAwardBridge {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -131,6 +132,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, IPla
      * @param type        {@link PointsAwardType}
      */
     @Override
+    @RpcCallSetting(processorModKey = "#arg1")
     public void add(long playerId, int pointsAward, int type) {
         if (pointsAward <= 0) {
             return;
@@ -223,6 +225,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, IPla
      * @param pointsAward 扣除的积分 只支持正数
      */
     @Override
+    @RpcCallSetting(processorModKey = "#arg1")
     public boolean deduct(long playerId, int pointsAward, int type) {
         if (pointsAward <= 0) {
             return false;

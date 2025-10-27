@@ -82,7 +82,7 @@ public class SharePromoteController extends BaseActivityController {
                         claimRewardsResult.itemOperationResult().getGoldNum(), 0);
             }
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetitem());
-            res.detailInfo = buildPlayerActivityDetail(activityData, cfg, claimRewardsResult.playerActivityData());
+            res.detailInfo = buildPlayerActivityDetail(player, activityData, cfg, claimRewardsResult.playerActivityData());
         }
         return res;
     }
@@ -126,19 +126,19 @@ public class SharePromoteController extends BaseActivityController {
     }
 
     @Override
-    public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
+    public AbstractResponse getPlayerActivityDetail(Player player, ActivityData activityData, int detailId) {
         long activityId = activityData.getId();
         ResSharePromoteDetailInfo detailInfo = new ResSharePromoteDetailInfo(Code.SUCCESS);
         Map<Integer, SharePromoteCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
 
-        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
+        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(player.getId(), activityData.getType(), activityId);
         detailInfo.detailInfo = new ArrayList<>();
-        detailInfo.detailInfo.add(buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
+        detailInfo.detailInfo.add(buildPlayerActivityDetail(player, activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
         return detailInfo;
     }
 
     @Override
-    public SharePromoteDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public SharePromoteDetailInfo buildPlayerActivityDetail(Player player, ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (baseCfgBean instanceof SharePromoteCfg cfg && cfg.getType() != ActivityConstant.SharePromote.RANK_REWARDS) {
             SharePromoteDetailInfo info = new SharePromoteDetailInfo();
             info.activityId = activityData.getId();
@@ -157,7 +157,7 @@ public class SharePromoteController extends BaseActivityController {
     }
 
     @Override
-    public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
+    public AbstractResponse getPlayerActivityInfoByTypeRes(Player player, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
         ResSharePromoteTypeInfo typeInfo = new ResSharePromoteTypeInfo(Code.SUCCESS);
         if (CollectionUtil.isEmpty(allDetailInfo)) {
             return typeInfo;
@@ -169,8 +169,8 @@ public class SharePromoteController extends BaseActivityController {
             for (BaseActivityDetailInfo baseActivityDetailInfo : baseActivityDetailInfos) {
                 if (baseActivityDetailInfo instanceof SharePromoteDetailInfo info) {
                     detailInfos.detailInfos.add(info);
-                    detailInfos.getProfitReward = sharePromoteDao.getPlayerIncome(playerId);
-                    detailInfos.progress = sharePromoteDao.getBindCount(playerId);
+                    detailInfos.getProfitReward = sharePromoteDao.getPlayerIncome(player.getId());
+                    detailInfos.progress = sharePromoteDao.getBindCount(player.getId());
                 }
             }
         }

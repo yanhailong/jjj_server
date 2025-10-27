@@ -179,10 +179,10 @@ public class DailyLoginController extends BaseActivityController {
             // 构建响应数据
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetItem());
             res.detailInfo = new ArrayList<>();
-            res.detailInfo.add(buildPlayerActivityDetail(activityData, cfg, data));
+            res.detailInfo.add(buildPlayerActivityDetail(player, activityData, cfg, data));
             if (CollectionUtil.isNotEmpty(changData)) {
                 for (Pair<DailyRewardsCfg, PlayerActivityData> changDatum : changData) {
-                    res.detailInfo.add(buildPlayerActivityDetail(activityData, changDatum.getFirst(), changDatum.getSecond()));
+                    res.detailInfo.add(buildPlayerActivityDetail(player, activityData, changDatum.getFirst(), changDatum.getSecond()));
                 }
             }
         }
@@ -192,13 +192,14 @@ public class DailyLoginController extends BaseActivityController {
     /**
      * 构建每日签到活动详情
      *
+     * @param player   玩家数据
      * @param activityData 活动ID
      * @param baseCfgBean  活动配置
      * @param data         玩家特权卡数据
      * @return 返回特权卡详情信息
      */
     @Override
-    public DailyLoginDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public DailyLoginDetailInfo buildPlayerActivityDetail(Player player, ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (!(baseCfgBean instanceof DailyRewardsCfg cfg)) {
             return null;
         }
@@ -219,15 +220,15 @@ public class DailyLoginController extends BaseActivityController {
      * 获取玩家每日签到活动明细
      */
     @Override
-    public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
+    public AbstractResponse getPlayerActivityDetail(Player player, ActivityData activityData, int detailId) {
         long activityId = activityData.getId();
         ResDailyLoginDetailInfo detailInfo = new ResDailyLoginDetailInfo(Code.SUCCESS);
         //活动数据
         Map<Integer, DailyRewardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
-        Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
+        Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(player.getId(), activityData.getType(), activityId);
 
         detailInfo.detailInfo = new ArrayList<>();
-        detailInfo.detailInfo.add(buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
+        detailInfo.detailInfo.add(buildPlayerActivityDetail(player, activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
 
         return detailInfo;
     }
@@ -236,7 +237,7 @@ public class DailyLoginController extends BaseActivityController {
      * 构建活动类型信息
      */
     @Override
-    public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
+    public AbstractResponse getPlayerActivityInfoByTypeRes(Player player, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
         ResDailyLoginTypeInfo cardTypeInfo = new ResDailyLoginTypeInfo(Code.SUCCESS);
         if (CollectionUtil.isEmpty(allDetailInfo)) {
             return cardTypeInfo;
@@ -253,7 +254,7 @@ public class DailyLoginController extends BaseActivityController {
                     activityInfo.detailInfos.add(info);
                 }
             }
-            activityInfo.cumulativeDay = dailyLoginDao.getCumulativeLoginDay(entry.getKey(), playerId);
+            activityInfo.cumulativeDay = dailyLoginDao.getCumulativeLoginDay(entry.getKey(), player.getId());
             activityInfo.remainTime = TimeHelper.getNextDayRemainTime();
         }
         return cardTypeInfo;

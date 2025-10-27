@@ -15,6 +15,7 @@ import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
+import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.Code;
@@ -28,8 +29,8 @@ import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.gm.*;
+import com.jjg.game.core.rpc.HallPointsAwardBridge;
 import com.jjg.game.core.service.*;
-import com.jjg.game.core.task.service.IPlayerPointsAwardService;
 import com.jjg.game.gm.dto.*;
 import com.jjg.game.gm.util.NetUtil;
 import com.jjg.game.gm.vo.*;
@@ -90,8 +91,8 @@ public class GMController extends AbstractController {
     private LoginConfigService loginConfigService;
     @Autowired
     private PlayerSessionTokenDao playerSessionTokenDao;
-    @Autowired
-    private IPlayerPointsAwardService pointsAwardService;
+    @ClusterRpcReference
+    private HallPointsAwardBridge hallPointsAwardBridge;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -1037,10 +1038,10 @@ public class GMController extends AbstractController {
      */
     public void changePlayerPoints(long playerId, int value, boolean flag) {
         if (flag) {
-            pointsAwardService.add(playerId, value, PointsAwardType.GM);
+            hallPointsAwardBridge.add(playerId, value, PointsAwardType.GM);
 
         } else {
-            pointsAwardService.deduct(playerId, value, PointsAwardType.GM);
+            hallPointsAwardBridge.deduct(playerId, value, PointsAwardType.GM);
         }
     }
 

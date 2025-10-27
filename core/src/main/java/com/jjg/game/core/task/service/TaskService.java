@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.ClockEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
@@ -19,6 +20,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.logger.TaskLogger;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
+import com.jjg.game.core.rpc.HallPointsAwardBridge;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.task.condition.AbstractTaskCondition;
 import com.jjg.game.core.task.db.TaskData;
@@ -62,7 +64,8 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
     private final TaskDataDao taskDataDao;
     private final RedisLock redisLock;
     private final PlayerPackService playerPackService;
-    private final IPlayerPointsAwardService pointsAwardService;
+    @ClusterRpcReference()
+    private HallPointsAwardBridge hallPointsAwardBridge;
 
     /**
      * 锁时间。
@@ -80,7 +83,6 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
                        TaskDataDao taskDataDao,
                        RedisLock redisLock,
                        TaskLogger taskLogger,
-                       IPlayerPointsAwardService pointsAwardService,
                        @Lazy PlayerPackService playerPackService) {
         this.clusterSystem = clusterSystem;
         this.redDotManager = redDotManager;
@@ -88,7 +90,6 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
         this.taskDataDao = taskDataDao;
         this.redisLock = redisLock;
         this.taskLogger = taskLogger;
-        this.pointsAwardService = pointsAwardService;
         this.playerPackService = playerPackService;
     }
 
@@ -900,9 +901,9 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      */
     public void addPlayerPoints(long playerId, int value, boolean flag) {
         if (flag) {
-            pointsAwardService.add(playerId, value, PointsAwardType.TASK);
+            hallPointsAwardBridge.add(playerId, value, PointsAwardType.TASK);
         } else {
-            pointsAwardService.deduct(playerId, value, PointsAwardType.TASK);
+            hallPointsAwardBridge.deduct(playerId, value, PointsAwardType.TASK);
         }
     }
 

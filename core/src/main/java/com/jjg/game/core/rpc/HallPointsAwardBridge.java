@@ -1,13 +1,9 @@
-package com.jjg.game.core.task.service;
+package com.jjg.game.core.rpc;
 
+import com.jjg.game.common.rpc.IGameRpc;
 import com.jjg.game.core.constant.PointsAwardType;
-import org.springframework.stereotype.Service;
 
-/**
- * 大厅提供给core调用的积分处理接口
- */
-@Service
-public interface IPlayerPointsAwardService {
+public interface HallPointsAwardBridge extends IGameRpc {
 
     /**
      * 添加积分
