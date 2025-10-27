@@ -35,10 +35,10 @@ public class ThirdServiceInfo {
     //apple配置信息
     @Value("${thirdservice.apple.jwks_url:}")
     private String appleJwksUrl;
-    @Value("${thirdservice.apple.client_id:}")
-    private String appleClientId;
+    @Value("${thirdservice.apple.aud:}")
+    private String appleAud;
 
-    //apple配置信息
+    //短信配置信息
     @Value("${thirdservice.sms.send_sms_url:}")
     private String smsSensSmsUrl;
     @Value("${thirdservice.sms.app_id:}")
@@ -129,12 +129,12 @@ public class ThirdServiceInfo {
         this.appleJwksUrl = appleJwksUrl;
     }
 
-    public String getAppleClientId() {
-        return appleClientId;
+    public String getAppleAud() {
+        return appleAud;
     }
 
-    public void setAppleClientId(String appleClientId) {
-        this.appleClientId = appleClientId;
+    public void setAppleAud(String appleAud) {
+        this.appleAud = appleAud;
     }
 
     public String getSmsSensSmsUrl() {

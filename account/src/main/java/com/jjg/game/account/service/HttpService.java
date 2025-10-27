@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.security.interfaces.RSAPublicKey;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 
@@ -41,6 +42,8 @@ public class HttpService {
     private final JwkProvider appleJwkProvider;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private final long MAX_TOKEN_AGE = 3600L; // 最大token年龄1小时
 
     public HttpService(ThirdServiceInfo thirdServiceInfo) {
         this.thirdServiceInfo = thirdServiceInfo;
@@ -145,19 +148,51 @@ public class HttpService {
             DecodedJWT tempJwt = JWT.decode(token);
             String kid = tempJwt.getHeaderClaim("kid").asString();
 
+            //解码预校验
+            DecodedJWT decodedJWT = JWT.decode(token);
+            if (!"https://appleid.apple.com".equals(decodedJWT.getIssuer())) {
+                result.code = Code.FORBID;
+                log.debug("非Apple发行的Token = {}", token);
+                return result;
+            }
+            if (!decodedJWT.getAudience().contains(thirdServiceInfo.getAppleAud())) {
+                result.code = Code.FORBID;
+                log.debug("受众不匹配 configAud = {},jwtAud = {},token = {}", thirdServiceInfo.getAppleAud(), decodedJWT.getAudience(), token);
+                return result;
+            }
+            Date now = new Date();
+            if (decodedJWT.getExpiresAt().before(now)) {
+                result.code = Code.EXPIRE;
+                log.debug("apple token已过期 token = {}", token);
+                return result;
+            }
+            if (decodedJWT.getIssuedAt() != null) {
+                long tokenAge = (now.getTime() - decodedJWT.getIssuedAt().getTime()) / 1000;
+                if (tokenAge > MAX_TOKEN_AGE) {
+                    result.code = Code.FORBID;
+                    log.debug("token签发时间过久 issuedAt = {},token = {}", decodedJWT.getIssuedAt().getTime(),token);
+                    return result;
+                }
+            }
+
             // 获取对应公钥
             Jwk jwk = this.appleJwkProvider.get(kid);
             RSAPublicKey publicKey = (RSAPublicKey) jwk.getPublicKey();
 
             if (publicKey == null) {
                 result.code = Code.FAIL;
+                log.debug("获取公钥失败 kid = {},token = {}",kid,token);
                 return result;
             }
+
             // 验证
             DecodedJWT jwt = JWT.require(Algorithm.RSA256(publicKey, null))
                     .withIssuer("https://appleid.apple.com")
-                    .withAudience(thirdServiceInfo.getAppleClientId())
+                    .withAudience(thirdServiceInfo.getAppleAud())
                     .withClaimPresence("sub")
+                    .withClaimPresence("exp")
+                    .withClaimPresence("iat")
+                    .acceptLeeway(60)
                     .build()
                     .verify(token);
 

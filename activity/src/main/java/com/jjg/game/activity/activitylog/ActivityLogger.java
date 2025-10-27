@@ -376,4 +376,36 @@ public class ActivityLogger extends BaseLogger {
         }
     }
 
+
+    /**
+     * 官方派奖日志
+     *
+     * @param player          玩家数据
+     * @param activityData    活动数据
+     * @param pointsType      积分类型 1 增加 2 减少
+     * @param turntableType   转盘类型
+     * @param deductPoints    消耗积分
+     * @param remainingPoints 剩余积分
+     * @param jackPotGold     奖池剩余金币
+     * @param remain          玩家剩余金币
+     * @param rouletteReward  转盘奖励
+     */
+    public void sendOfficialAwardsLog(Player player, ActivityData activityData, int pointsType, int turntableType, int deductPoints, int remainingPoints, long jackPotGold,
+                                      ItemOperationResult remain, Map<Integer, Long> rouletteReward) {
+        try {
+            JSONObject json = buildBaseInfo(activityData, 0);
+            json.put("pointsType", pointsType);
+            json.put("deductPoints", deductPoints);
+            json.put("remainingPoints", remainingPoints);
+            if (pointsType == 2) {
+                json.put("turntableType", turntableType);
+                json.put("jackPotGold", jackPotGold);
+                json.put("rouletteReward", JSON.toJSONString(rouletteReward, SerializerFeature.WriteNonStringKeyAsString));
+                json.put("remain", JSON.toJSONString(remain, SerializerFeature.WriteNonStringKeyAsString));
+            }
+            sendLog(TOPIC, player, json);
+        } catch (Exception e) {
+            log.error("sendLevelPackClaimLog error:", e);
+        }
+    }
 }

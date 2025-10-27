@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -135,6 +136,29 @@ public class PointsAwardLeaderboardService {
         long startOfDayMillis = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
         long noonMillis = startOfDayMillis + 12L * 60 * 60 * 1000;
         return tsMillis < noonMillis ? PointsAwardConstant.Leaderboard.AM : PointsAwardConstant.Leaderboard.PM;
+    }
+
+    /**
+     * 判断指定类型的排行榜在当前时间是否处于活跃状态
+     *
+     * @param type 排行榜类型
+     * @return true 如果排行榜当前活跃，false 如果排行榜当前不活跃
+     */
+    private boolean isLeaderboardActive(int type) {
+        LocalDateTime nowDateTime = LocalDateTime.now();
+        int currentHour = nowDateTime.getHour();
+        return switch (type) {
+            case PointsAwardConstant.Leaderboard.AM ->
+                // 上午榜活跃时间：00:00-12:00
+                    currentHour < 12;
+            case PointsAwardConstant.Leaderboard.PM ->
+                // 下午榜活跃时间：12:00-24:00
+                    currentHour >= 12;
+            case PointsAwardConstant.Leaderboard.TYPE_MONTH ->
+                // 月榜始终活跃
+                    true;
+            default -> false;
+        };
     }
 
     /**
@@ -276,13 +300,15 @@ public class PointsAwardLeaderboardService {
      */
 
     public PageUtils.PageResult<PointsAwardLeaderboardData> getData(int type, int pageIndex, int pageSize) {
-        List<PointsAwardLeaderboardInfo> rankingInfos = topN(type, PointsAwardConstant.Leaderboard.MAX_RANK_SIZE);
-        PointsAwardLeaderboardData data = new PointsAwardLeaderboardData();
-        data.setRankType(type);
-        data.setRankingInfoList(rankingInfos);
-        data.setEndTime(System.currentTimeMillis());
         List<PointsAwardLeaderboardData> list = manager.getRankingHistory(type);
-        list.addFirst(data);
+        // 只有在排行榜活跃时才添加当前数据
+        if (isLeaderboardActive(type)) {
+            PointsAwardLeaderboardData data = new PointsAwardLeaderboardData();
+            data.setRankType(type);
+            data.setRankingInfoList(topN(type, PointsAwardConstant.Leaderboard.MAX_RANK_SIZE));
+            data.setEndTime(System.currentTimeMillis());
+            list.addFirst(data);
+        }
         return PageUtils.page(list, pageIndex, pageSize);
     }
 

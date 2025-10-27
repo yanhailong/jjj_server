@@ -33,6 +33,8 @@ public class GameFunctionCfg extends BaseCfgBean {
   protected List<Integer> position;
   /** 显示顺序 */
   protected int serialNumber;
+  /** 提示文本ID */
+  protected int tips;
   /** 解锁条件 */
   protected List<Integer> vipLevel;
 
@@ -69,6 +71,11 @@ public class GameFunctionCfg extends BaseCfgBean {
   /** 返回显示顺序 */
   public int getSerialNumber() {
     return serialNumber;
+  }
+
+  /** 返回提示文本ID */
+  public int getTips() {
+    return tips;
   }
 
   /** 返回解锁条件 */

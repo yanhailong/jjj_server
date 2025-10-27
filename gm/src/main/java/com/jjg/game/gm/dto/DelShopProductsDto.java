@@ -7,6 +7,6 @@ import java.util.List;
  * @date 2025/9/18 9:48
  */
 public record DelShopProductsDto (
-        List<Integer> productIds
+        List<Long> productIds
 ){
 }

@@ -20,6 +20,36 @@ public interface TaskConstant {
     }
 
     /**
+     * 时间相关常量
+     */
+    interface TimeConstants {
+        /**
+         * 中午12点（小时）
+         */
+        int NOON_HOUR = 12;
+        
+        /**
+         * 无效时间戳阈值
+         */
+        long INVALID_TIMESTAMP_THRESHOLD = 0L;
+        
+        /**
+         * 全部子模块标识
+         */
+        int ALL_SUBMODULES = 0;
+        
+        /**
+         * 最小积分奖励阈值
+         */
+        int MIN_INTEGRAL_REWARD = 0;
+        
+        /**
+         * 单个任务组最小任务数
+         */
+        int MIN_TASK_GROUP_SIZE = 1;
+    }
+
+    /**
      * redis缓存key
      */
     interface RedisKey {
@@ -101,7 +131,9 @@ public interface TaskConstant {
     interface MsgBean {
         int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.TASK_TYPE << MessageConst.MessageCommon.RIGHT_MOVE;
 
-        //请求任务列表
+        /**
+         * 请求任务列表
+         */
         int REQ_TASK = BASE_MSG_PREFIX | 0X1;
         int RES_TASK = BASE_MSG_PREFIX | 0X2;
 
@@ -111,11 +143,11 @@ public interface TaskConstant {
         int NOTIFY_TASK_UPDATE = BASE_MSG_PREFIX | 0X3;
 
         /**
-         * 请求领取任务奖励
+         * 请求任务奖励
          */
         int REQ_TASK_REWARD = BASE_MSG_PREFIX | 0X4;
         /**
-         * 请求领取任务奖励回复
+         * 响应任务奖励
          */
         int RES_TASK_REWARD = BASE_MSG_PREFIX | 0X5;
 

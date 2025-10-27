@@ -21,6 +21,8 @@ public class TaskCfg extends BaseCfgBean {
 
   /** 道具奖励 */
   protected List<Integer> getItem;
+  /** 任务组 */
+  protected int group;
   /** 积分ICON */
   protected String integralIcon;
   /** 积分奖励 */
@@ -41,6 +43,11 @@ public class TaskCfg extends BaseCfgBean {
   /** 返回道具奖励 */
   public List<Integer> getGetItem() {
     return getItem;
+  }
+
+  /** 返回任务组 */
+  public int getGroup() {
+    return group;
   }
 
   /** 返回积分ICON */

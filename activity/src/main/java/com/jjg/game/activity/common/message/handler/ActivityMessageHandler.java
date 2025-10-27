@@ -93,9 +93,6 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_ACTIVITY_CLAIM_REWARDS)
     public void reqActivityClaimRewards(PlayerController playerController, ReqActivityClaimRewards req) {
-        if (serverCanClaimRewardsAndJoin()) {
-            return;
-        }
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data == null || !data.getValue().contains(req.detailId)) {
             return;
@@ -114,9 +111,6 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_ACTIVITY_PLAYER_JOIN)
     public void reqActivityPlayerJoin(PlayerController playerController, ReqActivityPlayerJoin req) {
-        if (serverCanClaimRewardsAndJoin()) {
-            return;
-        }
         //查找活动数据
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.getValue().contains(req.detailId) && data.getType().isCanInitiativeJoin()) {
@@ -164,9 +158,6 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_CASH_COW_FREE_REWARDS)
     public void reqCashCowFreeRewards(PlayerController playerController, ReqCashCowFreeRewards req) {
-        if (serverCanClaimRewardsAndJoin()) {
-            return;
-        }
         ActivityData data = activityManager.getActivityData().get(req.activityId);
         if (data != null && data.getType() == ActivityType.CASH_COW) {
             if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
@@ -250,9 +241,6 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_CLAIM_REWARDS)
     public void reqPlayerLevelClaimRewards(PlayerController playerController, ReqPlayerLevelClaimRewards req) {
-        if (serverCanClaimRewardsAndJoin()) {
-            return;
-        }
         playerController.send(playerLevelPackManager.ReqPlayerLevelClaimRewards(playerController, req));
     }
 
@@ -271,7 +259,7 @@ public class ActivityMessageHandler {
                 }
             }
         }
-        return false;
+        return true;
     }
 
     /**

@@ -39,9 +39,9 @@ public class ShopProductDao extends MongoBaseDao<ShopProduct, Integer>{
      * 根据id删除
      * @param delIds
      */
-    public void delById(List<Integer> delIds) {
+    public void delById(List<Long> delIds) {
         BulkOperations bulkOps = mongoTemplate.bulkOps(BulkOperations.BulkMode.ORDERED, ShopProduct.class);
-        for (int id : delIds) {
+        for (long id : delIds) {
             Query query = new Query(Criteria.where("_id").is(id));
             bulkOps.remove(query);
         }

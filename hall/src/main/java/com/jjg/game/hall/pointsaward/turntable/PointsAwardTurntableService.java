@@ -12,6 +12,7 @@ import com.jjg.game.hall.pointsaward.PointsAwardService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardTurntableConfig;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardTurntableHistory;
+import com.jjg.game.hall.pointsaward.pb.res.ResPointsAwardTurntableSpin;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.PointsAwardTurntableCfg;
@@ -23,7 +24,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.*;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -195,7 +198,7 @@ public class PointsAwardTurntableService {
      * @param playerId 玩家id
      * @return true 成功
      */
-    public int spin(long playerId) {
+    public int spin(long playerId, ResPointsAwardTurntableSpin spinRes) {
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(40);
         if (globalConfigCfg == null) {
             return -1;
@@ -251,6 +254,10 @@ public class PointsAwardTurntableService {
                 countMap.fastPut(playerId, countMap.getOrDefault(playerId, 0) + 1);
                 //转盘日志
                 pointsAwardLogger.turntableLog(playerId, consume, integralPoints, pointsAwardService.getPoints(playerId));
+                //客户端返回数据组装
+                //添加本次历史记录
+                spinRes.setHistory(history);
+                spinRes.setGridId(selectedId);
             } else {
                 log.warn("玩家[{}]积分大奖转盘奖励发送失败!中奖id[{}]配置不存在!", playerId, selectedId);
             }
