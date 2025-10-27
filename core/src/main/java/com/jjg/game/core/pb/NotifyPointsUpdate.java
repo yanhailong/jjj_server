@@ -1,7 +1,7 @@
 package com.jjg.game.core.pb;
 
 import com.jjg.game.common.constant.MessageConst;
-import com.jjg.game.common.pb.AbstractNotice;
+import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
@@ -11,7 +11,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.TO_SERVER_CONST_TYPE,
         cmd = MessageConst.ToServer.NOTIFY_PLAYER_POINTS_UPDATE, resp = true, toPbFile = false)
 @ProtoDesc("通知玩家积分变化")
-public class NotifyPointsUpdate extends AbstractNotice {
+public class NotifyPointsUpdate extends AbstractMessage {
 
     /**
      * 玩家id
