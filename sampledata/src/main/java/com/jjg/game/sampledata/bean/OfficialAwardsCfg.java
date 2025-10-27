@@ -1,9 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
-
 import javax.annotation.processing.Generated;
+import java.util.Map;
 /**
  * 配置bean
  *
@@ -20,25 +18,18 @@ public class OfficialAwardsCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "OfficialAwards";
 
   /** 奖励 */
-  protected List<Integer> getitem;
+  protected Map<Integer,Long> getItem;
   /** 中奖概率(万分比) */
   protected int probability;
-  /** 奖励显示图标 */
-  protected String showicon;
 
   /** 返回奖励 */
-  public List<Integer> getGetitem() {
-    return getitem;
+  public Map<Integer,Long> getGetItem() {
+    return getItem;
   }
 
   /** 返回中奖概率(万分比) */
   public int getProbability() {
     return probability;
-  }
-
-  /** 返回奖励显示图标 */
-  public String getShowicon() {
-    return showicon;
   }
 
   @Override

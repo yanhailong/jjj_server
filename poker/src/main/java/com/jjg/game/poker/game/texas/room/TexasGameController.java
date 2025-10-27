@@ -734,7 +734,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         Room room = abstractRoomController.getRoom();
         boolean changed =
                 roomController.getRoomManager().changeRoom(
-                        playerController, room.getId(), room.getGameType(), room.getRoomCfgId());
+                        playerController, room.getId(), room.getGameType(), controller.getRoom().getRoomCfgId(), controller.getRoom().getMaxLimit());
         RepsTexasChangTable res = new RepsTexasChangTable(changed ? Code.SUCCESS : Code.FAIL);
         playerController.send(res);
     }

@@ -1,6 +1,5 @@
 package com.jjg.game.hall.room;
 
-import cn.hutool.core.util.RandomUtil;
 import com.jjg.game.common.baselogic.IConsoleReceiver;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsCurator;
@@ -27,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
 
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -63,7 +63,7 @@ public class HallRoomService implements IConsoleReceiver {
         }
         int gameType = warehouseCfg.getGameID();
         MarsNode marsNode = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(),
-            playerController.getPlayer().getIp());
+                playerController.getPlayer().getIp());
 
         if (marsNode == null) {
             log.debug("获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
@@ -96,11 +96,12 @@ public class HallRoomService implements IConsoleReceiver {
             return Code.SUCCESS;
         }
         Pair<MarsNode, Boolean> marsNodeBooleanPair = nodeManager.getGameNodePairByWeight(gameType, playerController.playerId(),
-            playerController.getPlayer().getIp());
+                playerController.getPlayer().getIp());
         if (marsNodeBooleanPair == null) {
             log.debug("加入房间时 获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
             return Code.NOT_FOUND;
         }
+
         MarsNode marsNode = marsNodeBooleanPair.getFirst();
         //白名单
         if (marsNodeBooleanPair.getSecond()) {
@@ -110,15 +111,23 @@ public class HallRoomService implements IConsoleReceiver {
                 long waitingRoomId = createRoom(playerController, roomCfgId, warehouseCfg, gameType, marsNode);
                 return joinRoomById(playerController, waitingRoomId, gameType);
             }
+            chooseNodeRoom.sort(Comparator.comparingInt(r -> r.getRoomPlayers().size()));
             //随机选取一个
-            Room room = RandomUtil.randomEle(chooseNodeRoom);
+            Room room = chooseNodeRoom.getFirst();
+            boolean joinNum = matchDataDao.changeRoomJoinNum(gameType, roomCfgId, room.getId(), room.getMaxLimit(), 1, 1);
+            if(!joinNum) {
+                //创建一个房间
+                long waitingRoomId = createRoom(playerController, roomCfgId, warehouseCfg, gameType, marsNode);
+                return joinRoomById(playerController, waitingRoomId, gameType);
+            }
             return joinRoomById(playerController, room.getId(), gameType);
         }
         // 获取一个等待房间，如果有空闲的话
-        long waitingRoomId = matchService.getWaitingRoomId(gameType, roomCfgId);
+        long waitingRoomId = matchService.getWaitingRoomId(playerController, gameType, roomCfgId, SampleDataUtils.getRoomMaxLimit(warehouseCfg).getT2(), marsNode.getNodePath());
         // 如果对应的游戏类型没有房间的话则创建一个新的房间
         if (waitingRoomId == 0) {
-            waitingRoomId = createRoom(playerController, roomCfgId, warehouseCfg, gameType, marsNode);
+            log.error("加入房间时 获取房间为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
+            return Code.NOT_FOUND;
         }
         // 加入房间
         return joinRoomById(playerController, waitingRoomId, gameType);
@@ -126,11 +135,12 @@ public class HallRoomService implements IConsoleReceiver {
 
     /**
      * 创建一个房间
+     *
      * @param playerController 玩家控制器
-     * @param roomCfgId 房间配置id
-     * @param warehouseCfg 场次配置
-     * @param gameType 游戏类型
-     * @param marsNode 节点
+     * @param roomCfgId        房间配置id
+     * @param warehouseCfg     场次配置
+     * @param gameType         游戏类型
+     * @param marsNode         节点
      * @return 创建的id
      */
     private long createRoom(PlayerController playerController, int roomCfgId, WarehouseCfg warehouseCfg, int gameType, MarsNode marsNode) {
@@ -153,11 +163,11 @@ public class HallRoomService implements IConsoleReceiver {
     private void handleBaccaratJoinGame(PlayerController playerController, int roomCfgId) {
         // 获取所有的游戏
         MarsNode marsNode =
-            nodeManager.getGameNodeByWeight(
-                EGameType.BACCARAT.getGameTypeId(), playerController.playerId(), playerController.getPlayer().getIp());
+                nodeManager.getGameNodeByWeight(
+                        EGameType.BACCARAT.getGameTypeId(), playerController.playerId(), playerController.getPlayer().getIp());
         //更新session中的gametype
         playerSessionService.changeGameType(
-            playerController.playerId(), EGameType.BACCARAT.getGameTypeId(), roomCfgId);
+                playerController.playerId(), EGameType.BACCARAT.getGameTypeId(), roomCfgId);
         //切换节点
         clusterSystem.switchNode(playerController.getSession(), marsNode);
     }
@@ -176,11 +186,11 @@ public class HallRoomService implements IConsoleReceiver {
         if (StringUtils.isEmpty(room.getPath())) {
             // 随机分配一个
             marsNode =
-                nodeManager.getGameNodeByWeight(
-                    gameType, playerController.playerId(), playerController.getPlayer().getIp());
+                    nodeManager.getGameNodeByWeight(
+                            gameType, playerController.playerId(), playerController.getPlayer().getIp());
             if (marsNode == null) {
                 log.debug("加入好友房房间时 获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}",
-                    playerController.playerId(), gameType);
+                        playerController.playerId(), gameType);
                 return Code.NOT_FOUND;
             }
             updateFriendRoomPath(room, marsNode);
@@ -190,7 +200,7 @@ public class HallRoomService implements IConsoleReceiver {
             if (marsNode == null) {
                 // 随机分配一个节点
                 marsNode = nodeManager.getGameNodeByWeight(
-                    gameType, playerController.playerId(), playerController.getPlayer().getIp());
+                        gameType, playerController.playerId(), playerController.getPlayer().getIp());
                 if (marsNode == null) {
                     // 直接返回错误
                     return Code.FAIL;
@@ -200,7 +210,7 @@ public class HallRoomService implements IConsoleReceiver {
         }
         // 更新玩家的房间ID
         playerController.setPlayer(
-            playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(room.getId())));
+                playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(room.getId())));
         //更新session中的gametype
         playerSessionService.changeGameType(playerController.playerId(), gameType, room.getRoomCfgId());
         //切换节点
@@ -245,15 +255,17 @@ public class HallRoomService implements IConsoleReceiver {
         if (marsNode == null) {
             log.error("房间: {} 对应的节点: {} 不存在或者已关闭", room.getId(), room.getPath());
             // 将有问题的房间ID移动到最前面，房间主节点去处理异常的房间
-            matchDataDao.moveWaitJoinRoomIdToLast(gameType, room.getRoomCfgId(), roomId);
+            matchDataDao.removeWaitJoinRoomId(gameType, room.getRoomCfgId(), roomId);
             // 直接返回错误
             return Code.FAIL;
         } else {
             // TODO 需要判断当前节点是否是维护节点，如果是维护的节点需要重新挑选一个节点
         }
+        //等待
+        matchService.addPlayerExpiredWaiting(roomId, playerController.playerId());
         // 更新玩家的房间ID
         playerController.setPlayer(
-            playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(room.getId())));
+                playerService.doSave(playerController.playerId(), (player) -> player.setRoomId(room.getId())));
         //更新session中的gametype
         playerSessionService.changeGameType(playerController.playerId(), gameType, room.getRoomCfgId());
         //切换节点
