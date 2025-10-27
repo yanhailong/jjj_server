@@ -7,6 +7,10 @@ import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.gameevent.ClockEvent;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEvent;
+import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.PointsAwardType;
@@ -42,6 +46,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 /**
@@ -49,7 +55,7 @@ import java.util.stream.Collectors;
  * 负责玩家任务的初始化、进度更新、完成检查和奖励发放
  */
 @Service
-public class TaskService implements IRedDotService, IPlayerLoginSuccess {
+public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEventListener {
     private static final Logger log = LoggerFactory.getLogger(TaskService.class);
 
     private final ClusterSystem clusterSystem;
@@ -901,4 +907,65 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess {
         clusterSystem.notifyNode(MessageUtil.getPFMessage(notifyPointsUpdate), Set.of(NodeType.HALL.toString())::contains);
     }
 
+    /**
+     * 检查所有在线玩家的任务
+     * 在关键时间点（0点、12点）触发全局任务检查
+     *
+     * @param hour 触发的小时
+     */
+    private void checkAllOnlinePlayerTasks(int hour) {
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            try {
+                // 获取所有在线玩家ID
+                Set<Long> onlinePlayerIds = clusterSystem.getAllOnlinePlayerId();
+                log.info("时钟事件[{}点]触发，开始检查{}个在线玩家的任务", hour, onlinePlayerIds.size());
+                int failCount = 0;
+                for (Long playerId : onlinePlayerIds) {
+                    try {
+                        executor.submit(() -> {
+                            // 使用非阻塞方式检查任务，避免影响其他玩家
+                            checkTask(playerId);
+                        });
+                    } catch (Exception e) {
+                        failCount++;
+                        log.error("时钟事件检查玩家[{}]任务失败: {}", playerId, e.getMessage(), e);
+                    }
+                }
+                log.info("时钟事件[{}点]任务检查完成，total[{}] 失败: {}", hour, onlinePlayerIds.size(), failCount);
+            } catch (Exception e) {
+                log.error("时钟事件[{}点]获取在线玩家列表失败: {}", hour, e.getMessage(), e);
+            }
+        }
+
+    }
+
+    /**
+     * 处理事件
+     *
+     * @param gameEvent 事件
+     */
+    @Override
+    public <T extends GameEvent> void handleEvent(T gameEvent) {
+        if (gameEvent instanceof ClockEvent clockEvent) {
+            int hour = clockEvent.getHour();
+            //处理日常任务
+            if (hour == 0) {
+                checkAllOnlinePlayerTasks(hour);
+            }
+            //积分大奖任务额外处理
+            else if (hour == 12) {
+                checkAllOnlinePlayerTasks(hour);
+            }
+        }
+    }
+
+    /**
+     * 需要监听的事件类型, 根据实际需要监听的类型写入，通过配置表配置或者手动配置，需尽量避免写入无关事件类型
+     *
+     * @return 事件类型列表
+     */
+    @Override
+    public List<EGameEventType> needMonitorEvents() {
+        return List.of(EGameEventType.CLOCK_EVENT);
+    }
 }
