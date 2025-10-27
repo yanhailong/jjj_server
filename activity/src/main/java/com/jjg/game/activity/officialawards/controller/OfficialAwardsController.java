@@ -244,7 +244,11 @@ public class OfficialAwardsController extends BaseActivityController implements 
 
     @Override
     public void onActivityEnd(ActivityData activityData) {
-        clearData(activityData.getId());
+        try {
+            clearData(activityData.getId());
+        } catch (Exception e) {
+            log.error("官方派奖活动结算，数据清除异常", e);
+        }
     }
 
     /**
@@ -259,12 +263,6 @@ public class OfficialAwardsController extends BaseActivityController implements 
                 timerCenter.add(new TimerEvent<>(this, nextTime, activityId));
             }
         }
-    }
-
-    @Override
-    public int updateActivity(String jsonData) {
-        // 可用于更新活动配置
-        return 0;
     }
 
     /**
