@@ -16,6 +16,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.ThirdServiceInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.ResponseEntity;
@@ -123,15 +124,7 @@ public class GoogleCallbackController extends AbstractCallbackController{
             //一次性购买
             JsonNode oneTimeProductNotificationNode = jsonNode.get("oneTimeProductNotification");
             if(oneTimeProductNotificationNode != null){
-                log.debug("收到一次性购买通知 notification = {}", oneTimeProductNotificationNode);
-                String purchaseToken = oneTimeProductNotificationNode.get("purchaseToken").asText();
-                String sku = oneTimeProductNotificationNode.get("sku").asText();
-                String packageName = jsonNode.get("packageName").asText();
-
-                JSONObject productInfoJson = getProductInfo(purchaseToken, packageName, sku);
-                log.debug("商品信息 productInfoJson = {}", productInfoJson);
-
-                return ResponseEntity.ok("Recharge processed");
+                return handleOneTimeProductNotification(jsonNode,oneTimeProductNotificationNode);
             }
 
             //作废的购买交易
@@ -155,6 +148,40 @@ public class GoogleCallbackController extends AbstractCallbackController{
             log.error("",e);
             return ResponseEntity.status(500).body("Error processing callback");
         }
+    }
+
+    /**
+     * 一次性购买
+     * @param jsonNode
+     * @param oneTimeProductNotificationNode
+     * @return
+     */
+    private ResponseEntity<String> handleOneTimeProductNotification(JsonNode jsonNode,JsonNode oneTimeProductNotificationNode){
+        log.debug("收到一次性购买通知 notification = {}", oneTimeProductNotificationNode);
+        String purchaseToken = oneTimeProductNotificationNode.get("purchaseToken").asText();
+        String sku = oneTimeProductNotificationNode.get("sku").asText();
+        String packageName = jsonNode.get("packageName").asText();
+
+        JSONObject productInfoJson = getProductInfo(purchaseToken, packageName, sku);
+        log.debug("商品信息 productInfoJson = {}", productInfoJson);
+        if(productInfoJson == null){
+            return ResponseEntity.ok("get product fail");
+        }
+
+        String orderId = productInfoJson.get("obfuscatedExternalProfileId").toString();
+        Order order = orderService.getOrder(orderId);
+        if(order == null){
+            log.debug("未找到该订单 orderId = {}", orderId);
+            return ResponseEntity.ok("not found order");
+        }
+
+        boolean check = checkOrder(order);
+        if(!check){
+            log.debug("检查订单失败 orderId = {}", orderId);
+            return ResponseEntity.ok("check order fail");
+        }
+        payCallback(order);
+        return ResponseEntity.ok("Recharge processed");
     }
 
 
@@ -322,7 +349,7 @@ public class GoogleCallbackController extends AbstractCallbackController{
             String accessToken = tokenResponse.getString("access_token");
 
             this.accessToken = accessToken;
-            this.expiresTime = now + tokenResponse.getIntValue("expires_in");
+            this.expiresTime = now + tokenResponse.getIntValue("expires_in") - 300;
             return accessToken;
         } else {
             throw new RuntimeException("Failed to get access token: " + response.body());
