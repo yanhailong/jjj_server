@@ -75,7 +75,7 @@ public class ActivityData {
     /**
      * 值2
      */
-    private List<Integer> valueParam;
+    private List<Long> valueParam;
 
     /**
      * bigDecimal参数
@@ -137,11 +137,11 @@ public class ActivityData {
         return round;
     }
 
-    public List<Integer> getValueParam() {
+    public List<Long> getValueParam() {
         return valueParam;
     }
 
-    public void setValueParam(List<Integer> valueParam) {
+    public void setValueParam(List<Long> valueParam) {
         this.valueParam = valueParam;
     }
 

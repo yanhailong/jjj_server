@@ -23,7 +23,8 @@ public class ResOfficialAwardsJoinActivity extends AbstractResponse {
     @ProtoDesc("剩余积分")
     public int remainPoint;
     @ProtoDesc("总奖池")
-    public int totalPool;
+    public long totalPool;
+
     public ResOfficialAwardsJoinActivity(int code) {
         super(code);
     }

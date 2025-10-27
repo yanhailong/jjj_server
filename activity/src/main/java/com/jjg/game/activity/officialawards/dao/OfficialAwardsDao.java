@@ -70,7 +70,7 @@ public class OfficialAwardsDao {
     /**
      * 获取活动全部玩家记录
      */
-    public Pair<Boolean, List<OfficialAwardsRecord>> getAllRecords(long activityId,int start, int end) {
+    public Pair<Boolean, List<OfficialAwardsRecord>> getAllRecords(long activityId, int start, int end) {
         int mined = Math.min(ActivityConstant.OfficialAwards.GET_MAX_RECORD_NUM, end);
         return recordDao.getRecords(FUNCTION_NAME, activityId, start, mined, OfficialAwardsRecord.class);
     }
@@ -169,18 +169,18 @@ public class OfficialAwardsDao {
      *
      * @return 扣减数量 剩余数量
      */
-    public Pair<Integer, Integer> reduceTotalPool(long activityId, int reduceValue) {
+    public Pair<Long, Long> reduceTotalPool(long activityId, long reduceValue) {
         String key = TOTAL_POOL_KEY.formatted(activityId);
         String lockKey = "lock:" + key;
         redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
             String val = redisTemplate.opsForValue().get(key);
-            int current = val == null ? 0 : Integer.parseInt(val);
+            long current = val == null ? 0 : Long.parseLong(val);
             if (current == 0) {
                 return null;
             }
             reduceValue = Math.min(reduceValue, current);
-            int remain = current - reduceValue;
+            long remain = current - reduceValue;
             redisTemplate.opsForValue().set(key, String.valueOf(remain));
             return Pair.newPair(reduceValue, remain);
         } catch (Exception e) {
