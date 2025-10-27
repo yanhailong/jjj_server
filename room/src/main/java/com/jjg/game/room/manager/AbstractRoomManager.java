@@ -100,7 +100,6 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     protected GameEventManager gameEventManager;
     @Autowired
     protected TaskManager taskManager;
-
     // context
     protected ApplicationContext applicationContext;
     // 房间计时器(线程池)
@@ -523,6 +522,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 // 删除机器人数据
                 robotService.recycleRobotPlayer(playerController.playerId());
             }
+            // 退出房间时删除人数
+            matchDataDao.changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, 0);
             // TODO 需要检查房间内玩家是否为空，如果为空则需要检查是否需要删除房间，如果房间不能删除则需要添加机器人进入房间
             // 退出房间将当前场景置为空
             playerController.setScene(null);
@@ -546,7 +547,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     /**
      * 获取同类型的房间id
      */
-    public long getSameRoomOtherId(long oldRoomId, int gameType, int roomConfigId) {
+    public long getSameRoomOtherId(long oldRoomId, int gameType, int roomConfigId, int maxLimit) {
         //取本服的
         Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> map = roomControllerMap.get(gameType);
         if (Objects.nonNull(map)) {
@@ -557,7 +558,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 }
             }
         }
-        return matchDataDao.getNewWaitJoinRoomId(gameType, roomConfigId, oldRoomId);
+        return matchDataDao.getNewWaitJoinRoomId(gameType, roomConfigId, maxLimit, oldRoomId);
     }
 
     /**
@@ -959,7 +960,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
 
     @Override
     public void changeSampleCallbackCollector() {
-                addChangeSampleFileObserveWithCallBack(Room_BetCfg.EXCEL_NAME, this::reloadRoomCfgRef)
+        addChangeSampleFileObserveWithCallBack(Room_BetCfg.EXCEL_NAME, this::reloadRoomCfgRef)
                 .addChangeSampleFileObserveWithCallBack(Room_ChessCfg.EXCEL_NAME, this::reloadRoomCfgRef);
     }
 
@@ -1115,9 +1116,9 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     /**
      * 换房间
      */
-    public boolean changeRoom(PlayerController playerController, long oldRoomId, int gameType, int roomConfigId) {
+    public boolean changeRoom(PlayerController playerController, long oldRoomId, int gameType, int roomCfgId, int maxLimit) {
         //获取另一个房间id
-        long roomOtherId = getSameRoomOtherId(oldRoomId, gameType, roomConfigId);
+        long roomOtherId = getSameRoomOtherId(oldRoomId, gameType, roomCfgId, maxLimit);
         if (roomOtherId == 0) {
             return false;
         }
@@ -1125,11 +1126,15 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         int exited = exitRoom(playerController);
         if (exited != Code.SUCCESS) {
             log.info("换房间时退出当前房间失败 playerId:{} oldRoomId:{} gameType:{} roomConfigId:{}",
-                    oldRoomId, roomOtherId, gameType, roomConfigId);
+                    oldRoomId, roomOtherId, gameType, roomCfgId);
+            return false;
+        }
+        boolean join = matchDataDao.changeRoomJoinNum(gameType, roomCfgId, roomOtherId, maxLimit, 1, 1);
+        if (!join) {
             return false;
         }
         //加入房间
-        int joined = joinRoom(playerController, gameType, roomConfigId, roomOtherId);
+        int joined = joinRoom(playerController, gameType, roomCfgId, roomOtherId);
         return joined == Code.SUCCESS;
     }
 

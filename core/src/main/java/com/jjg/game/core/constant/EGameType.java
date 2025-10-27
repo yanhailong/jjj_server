@@ -3,7 +3,8 @@ package com.jjg.game.core.constant;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.data.RoomType;
 
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author 2CL
@@ -52,13 +53,19 @@ public enum EGameType {
     // 游戏对应的默认房间类型
     final RoomType defualtRoomType;
     // 房间游戏类型ID Set
-    static final ConcurrentHashMap<Integer, EGameType> GAME_TYPE_ID_SET = new ConcurrentHashMap<>();
+    static final Map<Integer, EGameType> GAME_TYPE_ID_SET = new HashMap<>();
 
 
     EGameType(int gameTypeId, RoomType defualtRoomType, String gameDesc) {
         this.gameTypeId = gameTypeId;
         this.gameDesc = gameDesc;
         this.defualtRoomType = defualtRoomType;
+    }
+
+    static {
+        for (EGameType value : values()) {
+            GAME_TYPE_ID_SET.put(value.getGameTypeId(), value);
+        }
     }
 
     public int getGameTypeId() {
@@ -80,17 +87,6 @@ public enum EGameType {
      * 通过游戏配置ID获取游戏类型枚举
      */
     public static EGameType getGameByTypeId(int gameTypeId) {
-        EGameType gameType = null;
-        if (GAME_TYPE_ID_SET.isEmpty()) {
-            for (EGameType value : values()) {
-                if (value.getGameTypeId() == gameTypeId) {
-                    gameType = value;
-                }
-                GAME_TYPE_ID_SET.put(value.getGameTypeId(), value);
-            }
-        } else {
-            gameType = GAME_TYPE_ID_SET.get(gameTypeId);
-        }
-        return gameType;
+        return GAME_TYPE_ID_SET.get(gameTypeId);
     }
 }

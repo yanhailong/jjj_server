@@ -220,6 +220,8 @@ public class RoomService implements IRoomStartListener, TimerListener<IProcessor
                 eGameType.getGameDesc(), roomController.getRoom().getId(), roomController.getRoom().getRoomCfgId());
         if (roomController.checkRoomCanContinue() && roomController.getGameController().checkRoomCanStart()) {
             roomController.startGame();
+            roomManager.getMatchDataDao().addWaitJoinRoomId(gameType, roomController.getRoom().getRoomCfgId(), roomController.getRoom().getId()
+                    , System.currentTimeMillis());
             log.info("游戏启动成功  roomInfo: {}", roomController.getRoom().logStr());
         } else {
             log.error("游戏启动失败  roomInfo: {}", roomController.getRoom().logStr());

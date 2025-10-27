@@ -157,6 +157,13 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             if (!reconnect) {
                 // 当玩家加入时尝试开启游戏
                 tryStartGameOnPlayerJoinIn(playerController);
+                if (!(playerController.getPlayer() instanceof RobotPlayer)) {
+                    boolean deduction = roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId()
+                            , room.getMaxLimit(), 0, -1);
+                    if (!deduction) {
+                        log.error("房间减少等待人数失败 roomId = {},playerId = {}", room.getId(), playerController.playerId());
+                    }
+                }
             }
             result.data = room;
             return result;
@@ -180,8 +187,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             );
             log.debug("房间数据：{}", JSON.toJSONString(room));
         }
-        // 检查等待房间的逻辑
-        updateWaitRoomList();
         // 检查房间开始的逻辑，由房间判断和游戏判断开启时机
         if (checkRoomCanContinue() && gameController.checkRoomCanStart()) {
             // 检查通过开始游戏
@@ -189,24 +194,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         }
     }
 
-    /**
-     * 更新房间等待列表
-     */
-    protected void updateWaitRoomList() {
-        // 好友房不进等待房间列表
-        if (room instanceof FriendRoom) {
-            return;
-        }
-        // 如果房间已满，则需要将等待房间列表从redis中删除
-        if (!room.canEnter()) {
-            roomManager.getMatchDataDao().removeWaitJoinRoomId(
-                    room.getGameType(), room.getRoomCfgId(), room.getId());
-        } else {
-            // 如果房间未满，则将直接写入等待列表
-            roomManager.getMatchDataDao().addWaitJoinRoomId(
-                    room.getGameType(), room.getRoomCfgId(), room.getId(), room.getCreateTime());
-        }
-    }
 
     /**
      * 更新房间玩家信息
@@ -429,9 +416,19 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         // 房间Timer执行tick时间 现在默认 200ms
         // 添加房间tick
         //机器人检查
+        WheelTimerUtil.scheduleAtFixedRate(this::checkNoJoinPlayer, RoomConstant.ROOM_TICK_TIME, RoomConstant.ROOM_PLAYER_NUM_CHECK, TimeUnit.MILLISECONDS);
         WheelTimerUtil.scheduleAtFixedRate(this::roomTick, RoomConstant.ROOM_TICK_TIME, RoomConstant.ROOM_TICK_TIME, TimeUnit.MILLISECONDS);
         roomState = ERoomState.READY;
     }
+
+    /**
+     * 检查未加入人数
+     */
+    public void checkNoJoinPlayer() {
+        RC cfg = gameController.getGameDataVo().getRoomCfg();
+        roomManager.getMatchDataDao().checkPlayerExpiredWaitingNum(cfg.getGameID(), cfg.getId(), room.getId());
+    }
+
 
     @Override
     public void roomReady() {
@@ -453,6 +450,10 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     }
 
 
+    protected boolean checkRobotJoinRoomCondition() {
+        return true;
+    }
+
     /**
      * 检查机器人添加逻辑
      */
@@ -463,10 +464,17 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             @Override
             public void action() {
                 // 创建人数达到上限
-                if (room.getRoomPlayers() != null && room.getRoomPlayers().size() >= room.getMaxLimit()) {
+                if (room.getRoomPlayers() != null && room.getRoomPlayers().size() >= room.getMaxLimit() || !checkRobotJoinRoomCondition()) {
                     return;
                 }
-                if (robotLastCreatedTime > System.currentTimeMillis()) {
+                long currentTimeMillis = System.currentTimeMillis();
+                if (robotLastCreatedTime > currentTimeMillis) {
+                    return;
+                }
+                boolean incremented = roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(),
+                        room.getId(), room.getMaxLimit(), 1, 0);
+                if (!incremented) {
+                    log.debug("机器人加入房间失败, 房间已满 {}", room.logStr());
                     return;
                 }
                 List<Integer> robotIntervalTime = roomCfg.getIntervalTime();
@@ -478,7 +486,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                     randomTime = RandomUtils.randomMinMax(robotIntervalTime.get(0), robotIntervalTime.get(1));
                 }
                 // 机器人创建时间更新
-                robotLastCreatedTime = System.currentTimeMillis() + randomTime;
+                robotLastCreatedTime = currentTimeMillis + randomTime;
                 int roomCfgId = roomCfg.getId();
                 long robotCreateStartTime = System.currentTimeMillis();
                 RobotService robotService = roomManager.getRobotService();
@@ -545,8 +553,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             }
             result.data = room;
             this.room = room;
-            // 退出房间时检查是否可以添加等待房间列表
-            updateWaitRoomList();
         } catch (Exception e) {
             log.error("", e);
             result.code = Code.EXCEPTION;
@@ -581,8 +587,9 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             }
             result.data = room;
             this.room = room;
-            // 退出房间时检查是否可以添加等待房间列表
-            updateWaitRoomList();
+            // 退出房间时删除人数
+            roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId(),
+                    room.getMaxLimit(), -playerControllers.size(), 0);
         } catch (Exception e) {
             log.error("机器人退出房间时异常", e);
             result.code = Code.EXCEPTION;
