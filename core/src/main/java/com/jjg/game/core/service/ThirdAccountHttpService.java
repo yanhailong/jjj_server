@@ -1,4 +1,4 @@
-package com.jjg.game.account.service;
+package com.jjg.game.core.service;
 
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
@@ -10,7 +10,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jjg.game.account.data.*;
+import com.jjg.game.core.data.*;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.VerCodeDao;
@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
  * @date 2025/10/13 14:27
  */
 @Service
-public class HttpService {
+public class ThirdAccountHttpService {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     private final ThirdServiceInfo thirdServiceInfo;
@@ -47,7 +47,7 @@ public class HttpService {
 
     private final long MAX_TOKEN_AGE = 3600L; // 最大token年龄1小时
 
-    public HttpService(ThirdServiceInfo thirdServiceInfo) {
+    public ThirdAccountHttpService(ThirdServiceInfo thirdServiceInfo) {
         this.thirdServiceInfo = thirdServiceInfo;
 
         appleJwkProvider = new JwkProviderBuilder(thirdServiceInfo.getAppleJwksUrl())

@@ -3,6 +3,7 @@ package com.jjg.game.core.data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -15,10 +16,6 @@ import java.util.Map;
 public class Account {
     @Id
     private long playerId;
-    //游客登录账号
-    private String guest;
-    //手机号
-    private String phoneNumber;
     //邮箱账号
     private String email;
     //0.游客  1.实名用户
@@ -37,12 +34,8 @@ public class Account {
     private int status;
     //渠道
     private ChannelType channel;
-    //谷歌平台用户id
-    private String googleUserId;
-    //谷歌平台用户id
-    private String appleUserId;
-    //谷歌平台用户id
-    private String facebookUserId;
+    //第三方账号
+    private Map<LoginType, String> thirdAccounts;
 
 
     public long getPlayerId() {
@@ -69,28 +62,12 @@ public class Account {
         this.lastOfflineTime = lastOfflineTime;
     }
 
-    public String getGuest() {
-        return guest;
-    }
-
-    public void setGuest(String guest) {
-        this.guest = guest;
-    }
-
     public int getAccountType() {
         return accountType;
     }
 
     public void setAccountType(int accountType) {
         this.accountType = accountType;
-    }
-
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
     }
 
     public String getEmail() {
@@ -141,27 +118,30 @@ public class Account {
         this.channel = channel;
     }
 
-    public String getGoogleUserId() {
-        return googleUserId;
+    public Map<LoginType, String> getThirdAccounts() {
+        return thirdAccounts;
     }
 
-    public void setGoogleUserId(String googleUserId) {
-        this.googleUserId = googleUserId;
+    public void setThirdAccounts(Map<LoginType, String> thirdAccounts) {
+        this.thirdAccounts = thirdAccounts;
     }
 
-    public String getAppleUserId() {
-        return appleUserId;
+    public boolean addThirdAccount(LoginType loginType, String accountName) {
+        if(thirdAccounts == null){
+            thirdAccounts = new HashMap<>();
+        }
+
+        if(thirdAccounts.containsKey(loginType)){
+           return false;
+        }
+        thirdAccounts.put(loginType, accountName);
+        return true;
     }
 
-    public void setAppleUserId(String appleUserId) {
-        this.appleUserId = appleUserId;
-    }
-
-    public String getFacebookUserId() {
-        return facebookUserId;
-    }
-
-    public void setFacebookUserId(String facebookUserId) {
-        this.facebookUserId = facebookUserId;
+    public String getThirdAccount(LoginType loginType) {
+        if(thirdAccounts == null){
+            return null;
+        }
+        return thirdAccounts.get(loginType);
     }
 }

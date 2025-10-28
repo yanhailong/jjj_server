@@ -11,7 +11,10 @@ import java.util.List;
 @Component
 public class AccountConfig {
     private long playerBeginId;
+    //服务器ws地址
     private List<String> gameservers;
+    //资源地址
+    private List<String> resourceurls;
 
     public long getPlayerBeginId() {
         return playerBeginId;
@@ -27,5 +30,13 @@ public class AccountConfig {
 
     public void setGameservers(List<String> gameservers) {
         this.gameservers = gameservers;
+    }
+
+    public List<String> getResourceurls() {
+        return resourceurls;
+    }
+
+    public void setResourceurls(List<String> resourceurls) {
+        this.resourceurls = resourceurls;
     }
 }

@@ -16,6 +16,8 @@ public class Order {
     //订单id
     @Id
     private String id;
+    //苹果下单透传的是uuid
+    private String uuid;
     //玩家id
     private long playerId;
     //玩家渠道
@@ -45,6 +47,14 @@ public class Order {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(String uuid) {
+        this.uuid = uuid;
     }
 
     public long getPlayerId() {

@@ -4,12 +4,11 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 import com.jjg.game.account.config.AccountConfig;
-import com.jjg.game.account.data.*;
 import com.jjg.game.account.dto.LoginDto;
 import com.jjg.game.account.dto.LoginSmsDto;
 import com.jjg.game.account.dto.ServerUrlDto;
 import com.jjg.game.account.service.AccountService;
-import com.jjg.game.account.service.HttpService;
+import com.jjg.game.core.service.ThirdAccountHttpService;
 import com.jjg.game.account.vo.LoginConfigVo;
 import com.jjg.game.account.vo.ServerUrlVo;
 import com.jjg.game.common.utils.RandomUtils;
@@ -45,7 +44,7 @@ public class AccountController extends AbstractController {
     @Autowired
     private BlackListService blackListService;
     @Autowired
-    private HttpService httpService;
+    private ThirdAccountHttpService thirdAccountHttpService;
     @Autowired
     private AccountService accountService;
     @Autowired
@@ -170,8 +169,7 @@ public class AccountController extends AbstractController {
 
             //校验token
             if (!playerSessionToken.getToken().equals(token)) {
-                log.debug("token校验失败,获取服务器地址失败, playerId = {},dbToken = {},reqToken = {}", playerId,
-                        playerSessionToken.getToken(), token);
+                log.debug("token校验失败,获取服务器地址失败, playerId = {},dbToken = {},reqToken = {}", playerId, playerSessionToken.getToken(), token);
                 return fail(Code.EXPIRE);
             }
 
@@ -181,14 +179,15 @@ public class AccountController extends AbstractController {
                 return fail(Code.FORBID);
             }
 
-            if(StringUtils.isNotEmpty(clientIp) && !clientIp.equals(playerSessionToken.getIp())) {
+            if (StringUtils.isNotEmpty(clientIp) && !clientIp.equals(playerSessionToken.getIp())) {
                 playerSessionToken.setIp(clientIp);
                 playerSessionTokenDao.save(playerSessionToken);
             }
 
             ServerUrlVo serverUrlVo = new ServerUrlVo();
             serverUrlVo.setGameServersUrls(accountConfig.getGameservers());
-            log.info("获取服务器地址 playerId = {},token = {},gameServersUrls = {}", playerId, token, accountConfig.getGameservers());
+            serverUrlVo.setResourceUrls(accountConfig.getResourceurls());
+            log.info("获取服务器地址 playerId = {},token = {},gameServersUrls = {},resourceUrls = {}", playerId, token, accountConfig.getGameservers(),accountConfig.getResourceurls());
             return success(serverUrlVo);
         } catch (Exception e) {
             log.error("", e);
@@ -238,13 +237,13 @@ public class AccountController extends AbstractController {
      */
     private WebResult<LoginVo> guestLogin(LoginDto dto, String ip) {
         //登录逻辑
-        CommonResult<Account> accountResult = accountService.login(LoginType.GUEST, new GuestUserInfo(dto.getData()), dto.getMac(), dto.getChannel(), ip);
+        CommonResult<Account> accountResult = accountService.login(LoginType.GUEST, new GuestUserInfo(dto.getData()), dto, ip);
         if (!accountResult.success()) {
             return fail(accountResult.code);
         }
 
         //组装返回结果
-        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.GUEST, accountResult.data, dto,ip);
+        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.GUEST, accountResult.data, dto, ip);
 
         log.info("游客获取token成功 guest = {},playerId = {},token = {}", dto.getData(), accountResult.data.getPlayerId(), loginVoWebResult.getData().getToken());
         return loginVoWebResult;
@@ -277,19 +276,19 @@ public class AccountController extends AbstractController {
 //            String email = payload.getEmail();
 //            String name = (String) payload.get("name");
 
-        CommonResult<GoogleUserInfo> userInfoResult = httpService.verifyGoogleToken(dto.getData());
+        CommonResult<GoogleUserInfo> userInfoResult = thirdAccountHttpService.verifyGoogleToken(dto.getData());
         if (!userInfoResult.success()) {
             return fail(userInfoResult.code);
         }
 
         //登录逻辑
-        CommonResult<Account> accountResult = accountService.login(LoginType.GOOGLE, userInfoResult.data, dto.getMac(), dto.getChannel(), ip);
+        CommonResult<Account> accountResult = accountService.login(LoginType.GOOGLE, userInfoResult.data, dto, ip);
         if (!accountResult.success()) {
             return fail(accountResult.code);
         }
 
         //组装返回结果
-        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.GOOGLE, accountResult.data, dto,ip);
+        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.GOOGLE, accountResult.data, dto, ip);
 
         log.info("谷歌登录获取 token成功 playerId = {},token = {}", accountResult.data.getPlayerId(), loginVoWebResult.getData().getToken());
         return loginVoWebResult;
@@ -302,19 +301,19 @@ public class AccountController extends AbstractController {
      * @return
      */
     private WebResult<LoginVo> appleLogin(LoginDto dto, String ip) {
-        CommonResult<AppleUserInfo> userInfoResult = httpService.verifyAppleToken(dto.getData());
+        CommonResult<AppleUserInfo> userInfoResult = thirdAccountHttpService.verifyAppleToken(dto.getData());
         if (!userInfoResult.success()) {
             return fail(Code.BAN_CAUSE_BLACK_LIST);
         }
 
         //登录逻辑
-        CommonResult<Account> accountResult = accountService.login(LoginType.APPLE, userInfoResult.data, dto.getMac(), dto.getChannel(), ip);
+        CommonResult<Account> accountResult = accountService.login(LoginType.APPLE, userInfoResult.data, dto, ip);
         if (!accountResult.success()) {
             return fail(accountResult.code);
         }
 
         //组装返回结果
-        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.APPLE, accountResult.data, dto,ip);
+        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.APPLE, accountResult.data, dto, ip);
 
         log.info("apple登录获取 token成功 playerId = {},token = {}", accountResult.data.getPlayerId(), loginVoWebResult.getData().getToken());
         return loginVoWebResult;
@@ -346,19 +345,19 @@ public class AccountController extends AbstractController {
         }
 
         int code = Integer.parseInt(arr[1].trim());
-        CommonResult<PhoneUserInfo> userInfoResult = httpService.verifyPhoneLoginCode(phone, code);
+        CommonResult<PhoneUserInfo> userInfoResult = thirdAccountHttpService.verifyPhoneLoginCode(phone, code);
         if (!userInfoResult.success()) {
             return fail(Code.BAN_CAUSE_BLACK_LIST);
         }
 
         //登录逻辑
-        CommonResult<Account> accountResult = accountService.login(LoginType.PHONE, userInfoResult.data, dto.getMac(), dto.getChannel(), ip);
+        CommonResult<Account> accountResult = accountService.login(LoginType.PHONE, userInfoResult.data, dto, ip);
         if (!accountResult.success()) {
             return fail(accountResult.code);
         }
 
         //组装返回结果
-        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.APPLE, accountResult.data, dto,ip);
+        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.APPLE, accountResult.data, dto, ip);
 
         log.info("phone登录获取 token成功 playerId = {},token = {}", accountResult.data.getPlayerId(), loginVoWebResult.getData().getToken());
         return loginVoWebResult;
@@ -371,20 +370,20 @@ public class AccountController extends AbstractController {
      * @return
      */
     public WebResult<LoginVo> facebookLogin(LoginDto dto, String ip) {
-        CommonResult<FacebookUserInfo> userInfoResult = httpService.verifyFacebookToken(dto.getData());
+        CommonResult<FacebookUserInfo> userInfoResult = thirdAccountHttpService.verifyFacebookToken(dto.getData());
         if (!userInfoResult.success()) {
             log.debug("token校验失败, 登录失败 dto= {},code = {}", JSONObject.toJSONString(dto), userInfoResult.code);
             return fail(Code.BAN_CAUSE_BLACK_LIST);
         }
 
         //登录逻辑
-        CommonResult<Account> accountResult = accountService.login(LoginType.FACEBOOK, userInfoResult.data, dto.getMac(), dto.getChannel(), ip);
+        CommonResult<Account> accountResult = accountService.login(LoginType.FACEBOOK, userInfoResult.data, dto, ip);
         if (!accountResult.success()) {
             return fail(accountResult.code);
         }
 
         //组装返回结果
-        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.FACEBOOK, accountResult.data, dto,ip);
+        WebResult<LoginVo> loginVoWebResult = loginResult(LoginType.FACEBOOK, accountResult.data, dto, ip);
 
         log.info("facebook 登录获取 token成功 playerId = {},token = {}", accountResult.data.getPlayerId(), loginVoWebResult.getData().getToken());
         return loginVoWebResult;
@@ -397,11 +396,11 @@ public class AccountController extends AbstractController {
      * @param account
      * @return
      */
-    private WebResult<LoginVo> loginResult(LoginType loginType, Account account, LoginDto dto,String ip) {
+    private WebResult<LoginVo> loginResult(LoginType loginType, Account account, LoginDto dto, String ip) {
         //生成token
         String token = RandomUtils.getUUid();
         //保存token，方便weboskcet连接时进行校验
-        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), dto.getChannel(),ip);
+        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), dto.getChannel(), ip, dto.getDevice());
 
         LoginVo vo = new LoginVo();
         vo.setToken(token);

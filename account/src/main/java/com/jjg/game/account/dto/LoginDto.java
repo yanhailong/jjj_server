@@ -13,6 +13,8 @@ public class LoginDto {
     private String mac;
     //渠道
     private int channel;
+    //设备类型  1.安卓  2.ios
+    private int device;
 
     public int getLoginType() {
         return loginType;
@@ -44,5 +46,13 @@ public class LoginDto {
 
     public void setChannel(int channel) {
         this.channel = channel;
+    }
+
+    public int getDevice() {
+        return device;
+    }
+
+    public void setDevice(int device) {
+        this.device = device;
     }
 }

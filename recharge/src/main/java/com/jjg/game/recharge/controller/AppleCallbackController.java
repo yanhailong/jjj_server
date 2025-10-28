@@ -7,7 +7,6 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,8 +29,6 @@ public class AppleCallbackController extends AbstractCallbackController {
 
     private static final long CLOCK_SKEW = 300; // 5分钟时钟偏差
 
-    @Autowired
-    private PlayerSessionTokenDao playerSessionTokenDao;
     @Autowired
     private ThirdServiceInfo thirdServiceInfo;
 
@@ -76,21 +73,25 @@ public class AppleCallbackController extends AbstractCallbackController {
 
             log.debug("解析后的交易信息: {}", transactionInfo);
 
-            // 根据通知类型路由到不同的处理方法
-//            switch (notificationType) {
-//                case "DID_RENEW" -> {}
-//                    return handleSuccessfulRenewal(notificationNode);
-//                case "DID_FAIL_TO_RENEW":
-//                    return handleRenewalFailure(notificationNode);
-//                case "EXPIRED":
-//                    return handleSubscriptionExpired(notificationNode);
-//                case "REFUND":
-//                    return handleRefund(notificationNode);
-//                case "TEST":
-//                    return handleTestNotification(notificationNode);
-//                default:
-//                    return handleOtherNotification(notificationNode);
-//            }
+            JsonNode appAccountTokenNode = transactionInfo.get("appAccountToken");
+            if(appAccountTokenNode == null){
+                log.warn("缺少 appAccountToken 信息");
+                return ResponseEntity.status(400).body("no appAccountToken");
+            }
+
+            Order order = orderService.getOrderByUUid(appAccountTokenNode.asText());
+            if(order == null){
+                log.debug("未找到该订单 uuid = {}", appAccountTokenNode.asText());
+                return ResponseEntity.status(400).body("not found order");
+            }
+
+            boolean check = checkOrder(order);
+            if(!check){
+                log.debug("检查订单失败 uuid = {}", order.getUuid());
+                return ResponseEntity.status(400).body("check order failed");
+            }
+
+            payCallback(order);
         }catch (Exception e){
             log.error("处理Apple充值回调异常", e);
             return ResponseEntity.status(500).body("Error processing callback");
@@ -363,10 +364,7 @@ public class AppleCallbackController extends AbstractCallbackController {
 
             // 提取 payload
             String payload = new String(Base64.getUrlDecoder().decode(decodedJWT.getPayload()));
-            JsonNode transactionInfo = objectMapper.readTree(payload);
-            log.debug("成功解析 signedTransactionInfo: {}", transactionInfo);
-            return transactionInfo;
-
+            return objectMapper.readTree(payload);
         } catch (Exception e) {
             log.error("解析 signedTransactionInfo 异常", e);
             return null;

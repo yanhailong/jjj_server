@@ -282,7 +282,7 @@ public class GMController extends AbstractController {
                 p = playerService.getFromAllDB(playerId);
                 account = accountDao.queryAccountByPlayerId(playerId);
             } else if (StringUtils.isNotEmpty(dto.mobile())) {  //根据手机号
-                account = accountDao.queryByPhone(dto.mobile());
+                account = accountDao.queryThirdAccount(LoginType.PHONE,dto.mobile());
                 if (account == null) {
                     log.debug("未找到该玩家账号信息 mobile = {}", dto.mobile());
                     return fail("common.fail");
@@ -316,7 +316,7 @@ public class GMController extends AbstractController {
             vo.setRegisterMac(account.getRegisterMac());
             vo.setIsBan(account.getStatus());
             vo.setIsOffline(playerSessionService.hasSession(p.getId()) ? 0 : 1);
-            vo.setMobile(account.getPhoneNumber());
+            vo.setMobile(account.getThirdAccount(LoginType.PHONE));
 
             SafeVo safeVo = new SafeVo();
             safeVo.setSafeGold(p.getSafeBoxGold());
@@ -1081,7 +1081,7 @@ public class GMController extends AbstractController {
 
         //检查手机号
         if (StringUtils.isNotEmpty(dto.mobile())) {
-            return dto.mobile().equals(account.getPhoneNumber());
+            return dto.mobile().equals(account.getThirdAccount(LoginType.PHONE));
         }
         return true;
     }

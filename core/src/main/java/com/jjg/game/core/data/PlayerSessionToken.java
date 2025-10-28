@@ -12,6 +12,8 @@ public class PlayerSessionToken {
     private long expireTime;
     private int channel;
     private String ip;
+    //设备类型  1.安卓  2.ios
+    private int device;
 
     public long getPlayerId() {
         return playerId;
@@ -59,5 +61,13 @@ public class PlayerSessionToken {
 
     public void setIp(String ip) {
         this.ip = ip;
+    }
+
+    public int getDevice() {
+        return device;
+    }
+
+    public void setDevice(int device) {
+        this.device = device;
     }
 }

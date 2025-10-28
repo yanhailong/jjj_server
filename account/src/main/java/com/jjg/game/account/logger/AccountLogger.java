@@ -21,13 +21,15 @@ public class AccountLogger extends BaseLogger {
      * @param playerId
      * @return
      */
-    public void register(String account, int registerType, long playerId, int channel,String ip) {
+    public void register(String account, int registerType, long playerId, int channel, String ip, int device) {
         try {
             JSONObject json = new JSONObject();
             json.put("registerType", registerType);
             json.put("account", account);
             json.put("playerId", playerId);
             json.put("channel", channel);
+            json.put("ip", ip);
+            json.put("device", device);
             sendLog("register", null, json);
         } catch (Exception e) {
             log.error("记录guestLogin登录日志异常", e);

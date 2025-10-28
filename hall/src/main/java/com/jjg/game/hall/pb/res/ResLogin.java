@@ -62,8 +62,6 @@ public class ResLogin extends AbstractResponse {
     public GameWareInfo gameWareInfo;
     @ProtoDesc("轮播数据")
     public List<Carousel> carouselList;
-    @ProtoDesc("客户端资源路径")
-    public String resourceUrl;
     @ProtoDesc("玩家创建时间(秒)")
     public int createTime;
 

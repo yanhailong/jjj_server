@@ -2,5 +2,8 @@
   "playerBeginId": 1000000,
   "gameservers": [
     "ws://192.168.3.31:8090"
+  ],
+  "resourceurls": [
+    "http://47.109.92.221:8099/Tmep/"
   ]
 }

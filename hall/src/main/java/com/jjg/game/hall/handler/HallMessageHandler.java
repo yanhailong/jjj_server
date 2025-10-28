@@ -21,6 +21,7 @@ import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.MailService;
+import com.jjg.game.core.service.ThirdAccountHttpService;
 import com.jjg.game.hall.casino.manager.CasinoManager;
 import com.jjg.game.hall.casino.pb.req.*;
 import com.jjg.game.hall.constant.HallCode;
@@ -42,6 +43,7 @@ import com.jjg.game.hall.vip.pb.req.ReqVipInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,8 +72,6 @@ public class HallMessageHandler implements GmListener {
     @Autowired
     private AccountDao accountDao;
     @Autowired
-    private HallPoolDao poolDao;
-    @Autowired
     private MailService mailService;
     @Autowired
     private VipManager vipManager;
@@ -81,6 +81,8 @@ public class HallMessageHandler implements GmListener {
     private CorePlayerService corePlayerService;
     @Autowired
     private PlayerAvatarDao playerAvatarDao;
+    @Autowired
+    private ThirdAccountHttpService thirdAccountHttpService;
 
     /**
      * 进入游戏
@@ -211,7 +213,7 @@ public class HallMessageHandler implements GmListener {
             if (account == null) {
                 log.warn("没有找到玩家的账号信息 playerId = {}", playerController.playerId());
             } else {
-                res.phoneNumber = account.getPhoneNumber();
+                res.phoneNumber = account.getThirdAccount(LoginType.PHONE);
                 res.email = account.getEmail();
             }
             playerController.setPlayer(player);
@@ -952,6 +954,40 @@ public class HallMessageHandler implements GmListener {
     @Command(HallConstant.MsgBean.REQ_VIP_CLAIM_GIFT_REWARD)
     public void reqVipClaimGiftReward(PlayerController playerController, ReqVipClaimGiftReward req) {
         playerController.send(vipManager.reqVipClaimGiftReward(playerController, req));
+    }
+
+    /**
+     * 请求绑定第三方账号
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_VIP_CLAIM_GIFT_REWARD)
+    public void reqBindThirdAccount(PlayerController playerController, ReqBindThirdAccount req) {
+        ResBindThirdAccount res = new ResBindThirdAccount(Code.SUCCESS);
+        try {
+            CommonResult<List<Item>> result = hallService.bindThirdAccount(playerController.playerId(), req.type, req.token);
+            if (!result.success()) {
+                res.code = result.code;
+                playerController.send(res);
+                return;
+            }
+
+            if (result.data != null && !result.data.isEmpty()) {
+                List<ItemInfo> items = new ArrayList<>();
+                for (Item i : result.data) {
+                    ItemInfo info = new ItemInfo();
+                    info.itemId = i.getId();
+                    info.count = i.getItemCount();
+                    items.add(info);
+                }
+                res.items = items;
+            }
+            log.debug("账号绑定成功 type = {},res = {}", req.type, JSON.toJSONString(res));
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
     }
 
 

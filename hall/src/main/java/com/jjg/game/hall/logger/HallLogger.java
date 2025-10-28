@@ -17,13 +17,15 @@ public class HallLogger extends BaseLogger {
      * @param player
      * @return
      */
-    public void login(Player player, String token, int loginType, int channel,String ip) {
+    public void login(Player player, String token, int loginType, int channel, String ip, int device) {
         try {
             JSONObject json = new JSONObject();
 //            json.put("logType", "login");
             json.put("loginType", loginType);
             json.put("token", token);
             json.put("channel", channel);
+            json.put("ip", ip);
+            json.put("device", device);
             sendLog("login", player, json);
         } catch (Exception e) {
             log.error("记录login登录日志异常", e);

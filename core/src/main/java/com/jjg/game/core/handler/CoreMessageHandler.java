@@ -375,7 +375,6 @@ public class CoreMessageHandler {
     public void generateOrder(PlayerController playerController, ReqGenerateOrder req) {
         ResGenerateOrder res = new ResGenerateOrder(Code.SUCCESS);
         try {
-            log.debug("收到玩家预下单请求 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
             PayType payType = PayType.valueOf(req.payType);
             if (payType == null) {
                 log.debug("payType 类型错误 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
@@ -391,8 +390,14 @@ public class CoreMessageHandler {
                 playerController.send(res);
                 return;
             }
-            res.orderId = order.getId();
 
+            if(req.payType == 1){
+                res.orderId = order.getUuid();
+            }else {
+                res.orderId = order.getId();
+            }
+
+            log.debug("玩家预下单 req = {},resp = {}",JSON.toJSONString(req), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

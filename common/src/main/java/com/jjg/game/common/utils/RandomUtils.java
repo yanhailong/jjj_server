@@ -36,6 +36,9 @@ public class RandomUtils {
     public static String getUUid() {
         return UUID.randomUUID().toString().replaceAll("-", "");
     }
+    public static String getOriginalUUid() {
+        return UUID.randomUUID().toString();
+    }
 
     public static int randomNum(int start, int end) {
         return ThreadLocalRandom.current().nextInt(start, end);

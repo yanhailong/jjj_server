@@ -37,13 +37,14 @@ public class PlayerSessionTokenDao {
      * @param token
      * @param playerId
      */
-    public void save(String token, int loginType, long playerId, int channel, String ip) {
+    public void save(String token, int loginType, long playerId, int channel, String ip,int device) {
         PlayerSessionToken playerSessionToken = new PlayerSessionToken();
         playerSessionToken.setPlayerId(playerId);
         playerSessionToken.setToken(token);
         playerSessionToken.setExpireTime(System.currentTimeMillis() + tokenExpireTime);
         playerSessionToken.setLoginType(loginType);
         playerSessionToken.setChannel(channel);
+        playerSessionToken.setIp(ip);
         playerSessionToken.setIp(ip);
         save(playerSessionToken);
     }

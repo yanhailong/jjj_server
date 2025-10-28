@@ -168,5 +168,9 @@ public interface HallConstant {
         int REQ_VIP_CLAIM_GIFT_REWARD = BASE_MSG_PREFIX | 0X43;
         int RES_VIP_CLAIM_GIFT_REWARD = BASE_MSG_PREFIX | 0X44;
 
+        //绑定第三方账号
+        int REQ_BIND_THIRD_ACCOUNT = BASE_MSG_PREFIX | 0X45;
+        int RES_BIND_THIRD_ACCOUNT = BASE_MSG_PREFIX | 0X46;
+
     }
 }
