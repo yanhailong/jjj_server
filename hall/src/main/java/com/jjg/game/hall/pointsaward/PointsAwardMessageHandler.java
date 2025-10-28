@@ -69,12 +69,8 @@ public class PointsAwardMessageHandler {
     public void signInConfig(PlayerController playerController, ReqPointsAwardSignInConfig message) {
         ResPointsAwardSignInConfig res = new ResPointsAwardSignInConfig(Code.SUCCESS);
         try {
-            List<PointsAwardSignInConfig> configList = pointsAwardSignInService.getConfigList();
-            int signCount = pointsAwardSignInService.getSignCount(playerController.playerId());
+            List<PointsAwardSignInConfig> configList = pointsAwardSignInService.getConfigList(playerController.playerId());
             res.setConfigList(configList);
-            res.setCount(signCount);
-            boolean canSign = pointsAwardSignInService.checkCanSign(playerController.playerId());
-            res.setSign(canSign);
         } catch (Exception e) {
             log.error("积分大奖获取签到配置失败!playerId = [{}]", playerController.playerId(), e);
             res.code = Code.EXCEPTION;
@@ -88,13 +84,10 @@ public class PointsAwardMessageHandler {
     @Command(PointsAwardConstant.Message.REQ_SIGN)
     public void singIn(PlayerController playerController, ReqPointsAwardSignIn message) {
         ResPointsAwardSignIn res = new ResPointsAwardSignIn(Code.SUCCESS);
-        boolean signInResult = pointsAwardSignInService.signIn(playerController.playerId());
-        int signCount = pointsAwardSignInService.getSignCount(playerController.playerId());
-        if (signInResult) {
-            res.setCount(signCount);
-        } else {
-            res.code = Code.SAMPLE_ERROR;
-        }
+        pointsAwardSignInService.signIn(playerController.playerId(), message.getDayOfMonth());
+        List<PointsAwardSignInConfig> configList = pointsAwardSignInService.getConfigList(playerController.playerId());
+        res.setConfigList(configList);
+        res.setDayOfMonth(message.getDayOfMonth());
         playerController.send(res);
     }
 

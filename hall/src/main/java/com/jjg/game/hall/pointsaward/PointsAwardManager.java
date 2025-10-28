@@ -1,8 +1,6 @@
 package com.jjg.game.hall.pointsaward;
 
-import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.core.base.gameevent.*;
-import com.jjg.game.core.task.service.TaskService;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardManager;
 import com.jjg.game.hall.pointsaward.signin.PointsAwardSignInManager;
 import com.jjg.game.hall.pointsaward.turntable.PointsAwardTurntableService;
@@ -31,26 +29,16 @@ public class PointsAwardManager implements GameEventListener {
      */
     private final PointsAwardLeaderboardManager pointsAwardLeaderboardManager;
 
-    /**
-     * 任务服务
-     */
-    private final TaskService taskService;
     private final PointsAwardService pointsAwardService;
-
-    private final ClusterSystem clusterSystem;
 
     public PointsAwardManager(PointsAwardTurntableService pointsAwardTurntableService,
                               PointsAwardSignInManager pointsAwardSignInManager,
-                              ClusterSystem clusterSystem,
                               PointsAwardService pointsAwardService,
-                              PointsAwardLeaderboardManager pointsAwardLeaderboardManager,
-                              TaskService taskService) {
+                              PointsAwardLeaderboardManager pointsAwardLeaderboardManager) {
         this.pointsAwardTurntableService = pointsAwardTurntableService;
         this.pointsAwardSignInManager = pointsAwardSignInManager;
-        this.taskService = taskService;
         this.pointsAwardService = pointsAwardService;
         this.pointsAwardLeaderboardManager = pointsAwardLeaderboardManager;
-        this.clusterSystem = clusterSystem;
     }
 
     public void init() {
@@ -74,9 +62,6 @@ public class PointsAwardManager implements GameEventListener {
                 pointsAwardSignInManager.daily();
                 pointsAwardTurntableService.dailyReset();
                 pointsAwardService.daily();
-            } else if (hour == 12) {
-                //检测玩家任务
-                clusterSystem.getAllOnlinePlayerId().forEach(taskService::checkTask);
             }
             pointsAwardLeaderboardManager.clock(hour);
         }

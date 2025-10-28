@@ -6,6 +6,10 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
+import com.jjg.game.hall.pointsaward.pb.PointsAwardSignInConfig;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 请求积分大奖签到回返
@@ -19,20 +23,34 @@ import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 public class ResPointsAwardSignIn extends AbstractResponse {
 
     /**
-     * 当前签到总天数
+     * 领取奖励的签到天数对应协议 签到配置的dayOfMonth字段
      */
-    @ProtoDesc("当前签到总天数")
-    private int count;
+    @ProtoDesc("领取奖励的签到天数对应协议 签到配置的dayOfMonth字段")
+    private int dayOfMonth;
+
+    /**
+     * 配置数据
+     */
+    @ProtoDesc("签到后的配置数据,条数等于本月天数,签到成功失败都会返回整个列表")
+    private List<PointsAwardSignInConfig> configList = new ArrayList<>();
 
     public ResPointsAwardSignIn(int code) {
         super(code);
     }
 
-    public int getCount() {
-        return count;
+    public List<PointsAwardSignInConfig> getConfigList() {
+        return configList;
     }
 
-    public void setCount(int count) {
-        this.count = count;
+    public void setConfigList(List<PointsAwardSignInConfig> configList) {
+        this.configList = configList;
+    }
+
+    public int getDayOfMonth() {
+        return dayOfMonth;
+    }
+
+    public void setDayOfMonth(int dayOfMonth) {
+        this.dayOfMonth = dayOfMonth;
     }
 }

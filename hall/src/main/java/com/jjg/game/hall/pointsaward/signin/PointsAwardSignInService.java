@@ -2,8 +2,11 @@ package com.jjg.game.hall.pointsaward.signin;
 
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.PointsAwardType;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerPackService;
@@ -14,7 +17,10 @@ import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardSignInConfig;
 import com.jjg.game.sampledata.bean.PointsAwardSigninCfg;
 import org.redisson.api.RMap;
+import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -23,13 +29,17 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 
 /**
  * 签到服务
  */
 @Service
-public class PointsAwardSignInService implements IRedDotService {
+public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuccess {
 
+    private static final Logger log = LoggerFactory.getLogger(PointsAwardSignInService.class);
     private final PointsAwardService pointsAwardService;
     private final ClusterSystem clusterSystem;
     private final PlayerPackService playerPackService;
@@ -42,6 +52,11 @@ public class PointsAwardSignInService implements IRedDotService {
      * 签到管理器
      */
     private PointsAwardSignInManager manager;
+
+    /**
+     * 虚拟线程池
+     */
+    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
     public PointsAwardSignInService(PointsAwardService pointsAwardService,
                                     PlayerPackService playerPackService,
@@ -64,21 +79,12 @@ public class PointsAwardSignInService implements IRedDotService {
     }
 
     /**
-     * 最后一次签到时间key
-     *
-     * @param playerId 玩家id
-     */
-    public String signDateKey(long playerId) {
-        return PointsAwardConstant.RedisKey.POINTS_AWARD_SING_IN_DATE + playerId;
-    }
-
-    /**
      * 签到锁
      *
      * @param playerId 玩家id
      */
     public String signLock(long playerId) {
-        return PointsAwardConstant.RedisLockKey.POINTS_AWARD_SING_IN_LOCK + playerId;
+        return PointsAwardConstant.RedisLockKey.POINTS_AWARD_SIGN_IN_LOCK + playerId;
     }
 
     /**
@@ -87,7 +93,17 @@ public class PointsAwardSignInService implements IRedDotService {
     public void clear() {
         Set<Long> onlinePlayerId = clusterSystem.getAllOnlinePlayerId();
         if (!onlinePlayerId.isEmpty()) {
-            onlinePlayerId.forEach(this::check);
+            //清除签到数据 怕人多用虚拟线程多线程执行
+            onlinePlayerId.forEach(playerId -> executor.submit(() -> {
+                try {
+                    redisLock.lockAndRun(signLock(playerId), PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, () -> {
+                        getSignSet(playerId).clear();
+                        getUnlockSet(playerId).clear();
+                    });
+                } catch (Exception e) {
+                    log.error("玩家[{}]跨月清除签到数据错误!", playerId, e);
+                }
+            }));
         }
     }
 
@@ -95,14 +111,19 @@ public class PointsAwardSignInService implements IRedDotService {
      * 跨天
      */
     public void daily() {
-        //清除玩家今天的签到数据
+        //清除玩家今天的签到数据 怕人多用虚拟线程多线程执行
         Set<Long> onlinePlayerId = clusterSystem.getAllOnlinePlayerId();
         if (!onlinePlayerId.isEmpty()) {
-            onlinePlayerId.forEach(playerId -> {
-                getDateMap().remove(playerId);
-                //更新红点
-                redDotManager.updateRedDot(this, 0, playerId);
-            });
+            onlinePlayerId.forEach(playerId -> executor.submit(() -> {
+                try {
+                    redisLock.lockAndRun(signLock(playerId), PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, () -> {
+                        getDateMap().remove(playerId);
+                        unlock(playerId);
+                    });
+                } catch (Exception e) {
+                    log.error("玩家[{}],跨天清除签到数据错误!", playerId, e);
+                }
+            }));
         }
     }
 
@@ -139,13 +160,9 @@ public class PointsAwardSignInService implements IRedDotService {
             LocalDate dateTime = LocalDate.ofInstant(Instant.ofEpochMilli(lastSignTime), ZoneId.systemDefault());
             //检测是否需要清空签到数据
             if (needReset(dateTime, now)) {
-                RMap<Long, Integer> countMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_SING_IN_COUNT);
-                if (countMap != null) {
-                    countMap.remove(playerId);
-                }
+                getSignSet(playerId).clear();
+                getUnlockSet(playerId).clear();
                 dateMap.remove(playerId);
-                //更新红点
-                redDotManager.updateRedDot(this, 0, playerId);
             }
         }
     }
@@ -155,16 +172,28 @@ public class PointsAwardSignInService implements IRedDotService {
      *
      * @return 签到配置列表
      */
-    public List<PointsAwardSignInConfig> getConfigList() {
+    public List<PointsAwardSignInConfig> getConfigList(long playerId) {
         List<PointsAwardSigninCfg> signInCfgList = manager.getSignInCfgList();
         if (signInCfgList == null || signInCfgList.isEmpty()) {
             return null;
         }
+        RSet<Integer> unlockSet = getUnlockSet(playerId);
+        RSet<Integer> signSet = getSignSet(playerId);
         return signInCfgList.stream().map(cfg -> {
             PointsAwardSignInConfig config = new PointsAwardSignInConfig();
             config.setDayOfMonth(cfg.getId());
             config.setIntegralNum(cfg.getIntegralNum());
             config.setItemList(ItemUtils.buildItemInfos(cfg.getGetItem()));
+            //已领取
+            if (signSet.contains(cfg.getId())) {
+                config.setState(2);
+            }
+            //已解锁 未领取
+            else if (unlockSet.contains(cfg.getId())) {
+                config.setState(1);
+            } else {
+                config.setState(0);
+            }
             return config;
         }).toList();
     }
@@ -174,22 +203,15 @@ public class PointsAwardSignInService implements IRedDotService {
      *
      * @return 一个包含玩家ID和签到次数的映射表。如果映射表不存在，则返回空映射。
      */
-    public RMap<Long, Integer> getCountMap() {
-        return redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_SING_IN_COUNT);
+    public RSet<Integer> getSignSet(long playerId) {
+        return redissonClient.getSet(PointsAwardConstant.RedisKey.POINTS_AWARD_SIGN_IN_SET + playerId);
     }
 
     /**
-     * 获取玩家签到天数
-     *
-     * @param playerId 玩家id
-     * @return 0表示没有签到过
+     * 获取签到奖励解锁次数统计的映射表。
      */
-    public int getSignCount(long playerId) {
-        RMap<Long, Integer> countMap = getCountMap();
-        if (countMap != null) {
-            return countMap.getOrDefault(playerId, 0);
-        }
-        return 0;
+    public RSet<Integer> getUnlockSet(long playerId) {
+        return redissonClient.getSet(PointsAwardConstant.RedisKey.POINTS_AWARD_SIGN_IN_UNLOCK_SET + playerId);
     }
 
     /**
@@ -198,7 +220,7 @@ public class PointsAwardSignInService implements IRedDotService {
      * @return 一个包含玩家ID与最后签到时间戳（毫秒值）之间关系的映射表。
      */
     public RMap<Long, Long> getDateMap() {
-        return redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_SING_IN_DATE);
+        return redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_SIGN_IN_DATE);
     }
 
     /**
@@ -220,30 +242,35 @@ public class PointsAwardSignInService implements IRedDotService {
      * @param playerId 玩家id
      * @return true 签到成功
      */
-    public boolean signIn(long playerId) {
-        PointsAwardSigninCfg signInCfg = manager.getSignInCfg(LocalDate.now().getDayOfMonth());
+    public void signIn(long playerId, int dayOfMonth) {
+        PointsAwardSigninCfg signInCfg = manager.getSignInCfg(dayOfMonth);
         if (signInCfg == null) {
-            return false;
+            return;
+        }
+        //检测条件
+        Supplier<Boolean> condition = () -> {
+            RSet<Integer> unlockSet = getUnlockSet(playerId);
+            if (unlockSet == null) {
+                return false;
+            }
+            //未解锁不能领取奖励
+            if (!unlockSet.contains(dayOfMonth)) {
+                return false;
+            }
+            RSet<Integer> signSet = getSignSet(playerId);
+            //重复领取
+            return !signSet.contains(dayOfMonth);
+        };
+        if (!condition.get()) {
+            return;
         }
         boolean success = redisLock.tryLockAndGet(signLock(playerId), () -> {
-            //签到次数
-            int signCount = getSignCount(playerId);
-            //最后一次签到时间
-            long lastSignInTime = getLastSignInTime(playerId);
-            //今天签到过了
-            if (lastSignInTime > 0) {
-                LocalDate dateTime = LocalDate.ofInstant(Instant.ofEpochMilli(lastSignInTime), ZoneId.systemDefault());
-                if (dateTime.isEqual(LocalDate.now())) {
-                    return false;
-                }
+            if (!condition.get()) {
+                return false;
             }
-            //签到成功
-            if (signCount < manager.getSignInMaxCount()) {
-                getCountMap().fastPut(playerId, signCount + 1);
-                getDateMap().fastPut(playerId, System.currentTimeMillis());
-                return true;
-            }
-            return false;
+            //记录签到奖励领取数据
+            getSignSet(playerId).add(dayOfMonth);
+            return true;
         }, false);
         if (success) {
             if (signInCfg.getIntegralNum() > 0) {
@@ -254,26 +281,10 @@ public class PointsAwardSignInService implements IRedDotService {
                 playerPackService.addItems(playerId, ItemUtils.buildItems(signInCfg.getGetItem()), "积分大奖签到奖励");
             }
             //记录日志
-            pointsAwardLogger.signInLog(playerId, getSignCount(playerId), signInCfg.getIntegralNum(), pointsAwardService.getPoints(playerId));
+            pointsAwardLogger.signInLog(playerId, getSignSet(playerId).size(), signInCfg.getIntegralNum(), pointsAwardService.getPoints(playerId));
         }
         //更新红点
         redDotManager.updateRedDot(this, 0, playerId);
-        return success;
-    }
-
-    /**
-     * 检测当天能否签到
-     *
-     * @return true 可以签到
-     */
-    public boolean checkCanSign(long playerId) {
-        Long time = getDateMap().get(playerId);
-        if (time == null) {
-            return true;
-        }
-        LocalDate now = LocalDate.now();
-        LocalDate dateTime = LocalDate.ofInstant(Instant.ofEpochMilli(time), ZoneId.systemDefault());
-        return !dateTime.isEqual(now);
     }
 
     @Override
@@ -283,10 +294,64 @@ public class PointsAwardSignInService implements IRedDotService {
 
     @Override
     public List<RedDotDetails> initialize(long playerId, int submodule) {
-        RedDotDetails details = new RedDotDetails();
-        details.setRedDotModule(getModule());
-        details.setRedDotSubmodule(PointsAwardConstant.RedDotSubModule.SIGN_IN);
-        details.setRedDotType(RedDotDetails.RedDotType.COMMON);
-        return List.of(details);
+        int currCount = getSignSet(playerId).size();
+        int unlockCount = getUnlockSet(playerId).size();
+        if (currCount < unlockCount) {
+            RedDotDetails details = new RedDotDetails();
+            details.setRedDotModule(getModule());
+            details.setRedDotSubmodule(PointsAwardConstant.RedDotSubModule.SIGN_IN);
+            details.setRedDotType(RedDotDetails.RedDotType.COMMON);
+            return List.of(details);
+        }
+        return List.of();
+    }
+
+    /**
+     * 玩家解锁今日签到
+     *
+     * @param playerId 玩家id
+     */
+    public void unlock(long playerId) {
+        PointsAwardSigninCfg tempConfig = manager.getSignInCfg();
+        if (tempConfig == null) {
+            return;
+        }
+        RSet<Integer> unlockSet = getUnlockSet(playerId);
+        if (unlockSet == null) {
+            return;
+        }
+        PointsAwardSigninCfg todayConfig = manager.getSignInCfg();
+        if (todayConfig == null) {
+            return;
+        }
+        //不重复解锁
+        if (unlockSet.contains(todayConfig.getId())) {
+            return;
+        }
+        //解锁今天的签到配置
+        unlockSet.add(todayConfig.getId());
+        //记录时间 用来清除记录
+        getDateMap().fastPut(playerId, System.currentTimeMillis());
+        //更新红点
+        redDotManager.updateRedDot(this, 0, playerId);
+    }
+
+    /**
+     * 玩家登录成功事件
+     *
+     * @param playerController 玩家信息
+     * @param player
+     * @param firstLogin       是否是首次登录
+     * @return true 继续执行 false终止执行
+     */
+    @Override
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+        long playerId = playerController.playerId();
+        redisLock.lockAndRun(signLock(playerId), PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, () -> {
+            //检测玩家数据是否需要重置
+            check(playerId);
+            //解锁玩家签到数据
+            unlock(playerId);
+        });
     }
 }

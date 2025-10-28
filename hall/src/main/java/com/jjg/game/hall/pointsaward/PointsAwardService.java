@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,11 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     private final MarsCurator marsCurator;
     private final PointsAwardLogger pointsAwardLogger;
     private final PlayerPackService playerPackService;
+
+    /**
+     * 初始化时间
+     */
+    private LocalDate initDate;
 
     /**
      * 玩家累计充值金额
@@ -74,6 +80,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * 初始化
      */
     public void init() {
+        initDate = LocalDate.now();
         // 初始化充值数据记录map
         redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
                 () -> rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RECHARGE));
@@ -84,6 +91,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * 跨天
      */
     public void daily() {
+        //跨月检查
+        checkMonth();
         if (marsCurator.isMaster()) {
             // 初始化充值数据记录map
             redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
@@ -94,6 +103,19 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                         }
                     });
             log.debug("充值数据记录map清除完成");
+        }
+    }
+
+    /**
+     * 检查跨月
+     */
+    private void checkMonth() {
+        LocalDate now = LocalDate.now();
+        if (now.getMonthValue() != initDate.getMonthValue()) {
+            // 初始化充值数据记录map
+            redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
+                    () -> clusterSystem.getAllOnlinePlayerId().forEach(playerId -> getLadderReceiveSet(playerId).clear()));
+            initDate = now;
         }
     }
 

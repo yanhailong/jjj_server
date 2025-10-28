@@ -31,6 +31,12 @@ public class PointsAwardSignInConfig {
     @ProtoDesc("奖励的积分")
     private int integralNum;
 
+    /**
+     * 签到状态 0=未解锁 1=已解锁 未领取 2=已领取
+     */
+    @ProtoDesc("签到状态 0=未解锁 1=已解锁 未领取 2=已领取")
+    private int state;
+
     public int getDayOfMonth() {
         return dayOfMonth;
     }
@@ -55,4 +61,11 @@ public class PointsAwardSignInConfig {
         this.integralNum = integralNum;
     }
 
+    public int getState() {
+        return state;
+    }
+
+    public void setState(int state) {
+        this.state = state;
+    }
 }

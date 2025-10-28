@@ -94,6 +94,7 @@ public class SubscriptionManager implements SessionCloseListener {
                 log.error("publish msg topic[{}] error playerId: {}", topic.getTopic(), playerId, e);
             }
         });
+        log.debug("publish msg topic[{}] success playerId: {}", topic.getTopic(), playerIdSet);
     }
 
     /**
@@ -123,6 +124,7 @@ public class SubscriptionManager implements SessionCloseListener {
                 log.error("publish msg topic[{}] error playerId: {}", topic.getTopic(), playerId, e);
             }
         });
+        log.debug("publish msg topic[{}] success playerId: {}", topic.getTopic(), playerIdSet);
     }
 
 }
