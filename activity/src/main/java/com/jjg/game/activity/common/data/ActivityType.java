@@ -42,8 +42,8 @@ public enum ActivityType {
     FIRST_PAYMENT(11, FirstPaymentController.class, false, false,
             ActivityTargetType.RECHARGE.getTargetKey(), false, false),
     //成长基金
-    GROWTH_FUND(15, GrowthFundController.class, true, false,
-            ActivityTargetType.LEVEL.getTargetKey(), true, false);
+    GROWTH_FUND(15, GrowthFundController.class, false, false,
+            ActivityTargetType.LEVEL.getTargetKey(), false, false);
     //活动类型
     private final int type;
     //活动控制器的class
