@@ -1,4 +1,4 @@
-package com.jjg.game.account.config;
+package com.jjg.game.recharge.config;
 
 import org.springframework.core.type.classreading.MetadataReader;
 import org.springframework.core.type.classreading.MetadataReaderFactory;
@@ -8,17 +8,12 @@ import java.io.IOException;
 
 /**
  * @author 11
- * @date 2025/10/18 9:52
+ * @date 2025/10/27 19:42
  */
 public class ExcludeServiceFilter implements TypeFilter {
     @Override
     public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory) throws IOException {
         String className = metadataReader.getClassMetadata().getClassName();
-        // 如果类在 service 包下，且不是 SmsService，则排除
-        return className.startsWith("com.jjg.game.core.service")
-                && !className.equals("com.jjg.game.core.service.SmsService")
-                && !className.equals("com.jjg.game.core.service.CoreStartService")
-                && !className.equals("com.jjg.game.core.service.PlayerSessionService")
-                ;
+        return className.equals("com.jjg.game.core.service.ChannelHttpService");
     }
 }

@@ -28,6 +28,10 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
         return mongoTemplate.findOne(Query.query(Criteria.where("id").is(id)), Order.class);
     }
 
+    public Order getOrderByUUid(String uuid) {
+        return mongoTemplate.findOne(Query.query(Criteria.where("uuid").is(uuid)), Order.class);
+    }
+
     /**
      * 订单置为成功状态
      * @param orderId

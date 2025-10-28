@@ -23,7 +23,6 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.MarqueeInfo;
 import com.jjg.game.core.service.CarouselService;
-import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.dao.LikeGameDao;
@@ -70,8 +69,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private HallService hallService;
     @Autowired
     private PlayerLastGameInfoDao playerLastGameInfoDao;
-    @Autowired
-    private MailService mailService;
     @Autowired
     private CoreMarqueeManager marqueeManager;
     @Autowired
@@ -214,9 +211,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             //添加轮播数据
             res.carouselList = getCarousel();
 
-            //TODO:客户端资源地址 暂时硬编码 后续看需求进行改动
-            res.resourceUrl = "http://47.109.92.221:8099/Tmep/";
-
             //更新session
             PlayerSessionInfo playerSessionInfo = playerSessionService.online(session, player);
             Account account = accountDao.queryAccountByPlayerId(player.getId());
@@ -246,7 +240,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                             warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START;
                 }
                 session.send(res);
-                hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp());
+                hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice());
                 // 调用登录接口类
                 PlayerController playerController = new PlayerController(session, player);
                 session.setReference(playerController);
@@ -257,10 +251,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             //返回登录消息
             session.send(res);
-            hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp());
-
-            //接收全服邮件
-            mailService.playerGetServerMails(player.getId());
+            hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp(), playerSessionToken.getDevice());
 
             //创建 playerController
             PlayerController playerController = new PlayerController(session, player);

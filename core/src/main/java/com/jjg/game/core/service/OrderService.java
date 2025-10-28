@@ -65,6 +65,7 @@ public class OrderService {
             try {
                 Order order = new Order();
                 order.setId(orderId);
+                order.setUuid(RandomUtils.getOriginalUUid());
                 order.setPlayerId(playerId);
                 order.setPlayerChannel(playerChannel.getValue());
                 order.setPayChannel(payType.getValue());
@@ -94,5 +95,9 @@ public class OrderService {
 
     public Order getOrder(String orderId) {
         return orderDao.getOrderById(orderId);
+    }
+
+    public Order getOrderByUUid(String uuid) {
+        return orderDao.getOrderByUUid(uuid);
     }
 }

@@ -4,6 +4,7 @@ import cn.hutool.core.util.IdUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -26,7 +27,7 @@ import java.util.*;
  * @date 2025/8/11 17:41
  */
 @Service
-public class MailService implements IRedDotService {
+public class MailService implements IRedDotService, IPlayerLoginSuccess {
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
@@ -459,4 +460,8 @@ public class MailService implements IRedDotService {
         return List.of(redDotDetails);
     }
 
+    @Override
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
+        playerGetServerMails(player.getId());
+    }
 }

@@ -8,7 +8,6 @@ package com.jjg.game.core.data;
 public enum ChannelType {
     GOOGLE(1),
     APPLE(2),
-    FACEBOOK(3),
 
     ;
 
@@ -24,11 +23,10 @@ public enum ChannelType {
 
     public static ChannelType valueOf(int value) {
         return switch (value) {
-            case 0 -> GOOGLE;
+            case 1 -> GOOGLE;
 
-            case 1 -> APPLE;
+            case 2 -> APPLE;
 
-            case 2 -> FACEBOOK;
 
             default -> null;
         };

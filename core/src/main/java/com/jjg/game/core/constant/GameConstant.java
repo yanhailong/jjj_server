@@ -137,4 +137,12 @@ public class GameConstant {
         // 好友房 房间类型开始...
         int FRIEND_ROOM_TYPE_START = 10;
     }
+
+    //账号类型
+    public class AccountType{
+        //游客
+        public static final int GUEST = 0;
+        //认证用户
+        public static final int VERIFIED = 1;
+    }
 }

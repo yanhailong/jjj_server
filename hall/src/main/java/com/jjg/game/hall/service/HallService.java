@@ -1,6 +1,7 @@
 package com.jjg.game.hall.service;
 
 import cn.hutool.core.util.EnumUtil;
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.timer.TimerCenter;
@@ -18,6 +19,7 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.SmsService;
+import com.jjg.game.core.service.ThirdAccountHttpService;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.core.dao.VerCodeDao;
 import com.jjg.game.hall.dao.HallPoolDao;
@@ -69,6 +71,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private HallPoolDao poolDao;
     @Autowired
     private SmsService smsService;
+    @Autowired
+    private ThirdAccountHttpService thirdAccountHttpService;
 
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
@@ -157,6 +161,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
     /**
      * 判断是否能进入游戏
+     *
      * @param gameType
      * @return
      */
@@ -183,7 +188,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
-        if(!HallTool.validPhoneNumber(data)){
+        if (!HallTool.validPhoneNumber(data)) {
             result.code = Code.PARAM_ERROR;
             log.debug("手机号格式错误,获取绑定手机验证码失败 playerId = {},phone = {}", playerId, data);
             return result;
@@ -204,20 +209,20 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return result;
         }
 
-        if (data.equals(account.getPhoneNumber())) {
+        if (data.equals(account.getThirdAccount(LoginType.PHONE))) {
             result.code = Code.REPEAT_OP;
-            log.debug("玩家当前绑定手机号与新手机号一致，绑定手机号失败 playerId = {},oldPhone = {},newPhone = {}", playerId, account.getPhoneNumber(), data);
+            log.debug("玩家当前绑定手机号与新手机号一致，绑定手机号失败 playerId = {},oldPhone = {},newPhone = {}", playerId, account.getThirdAccount(LoginType.PHONE), data);
             return result;
         }
 
         CommonResult<Integer> sendCodeResult = smsService.sendCode(playerId, data, VerCodeType.SMS_BIND_PHONE);
-        if(sendCodeResult.success()){
-            log.debug("发送短信失败 playerId = {},phone = {},code = {}", playerId, data,sendCodeResult.code);
+        if (sendCodeResult.success()) {
+            log.debug("发送短信失败 playerId = {},phone = {},code = {}", playerId, data, sendCodeResult.code);
             result.code = sendCodeResult.code;
             return result;
         }
 
-        verCodeDao.addVerCode(playerId, VerCodeType.SMS_BIND_PHONE,data, sendCodeResult.data);
+        verCodeDao.addVerCode(playerId, VerCodeType.SMS_BIND_PHONE, data, sendCodeResult.data);
         result.data = sendCodeResult.data;
         return result;
     }
@@ -260,12 +265,12 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
         if (data.equals(account.getEmail())) {
             result.code = Code.REPEAT_OP;
-            log.debug("玩家当前绑定邮箱与新邮箱一致，获取绑定邮箱验证码失败 playerId = {},oldPhone = {},newPhone = {}", playerId, account.getPhoneNumber(), data);
+            log.debug("玩家当前绑定邮箱与新邮箱一致，获取绑定邮箱验证码失败 playerId = {},oldEmail = {},newEmail = {}", playerId, account.getEmail(), data);
             return result;
         }
 
         int verCode = RandomUtils.randomNum(HallConstant.VerCode.CODE_MIN, HallConstant.VerCode.CODE_MAX);
-        verCodeDao.addVerCode(playerId, VerCodeType.MAIL_BIND_MAIL,data, verCode);
+        verCodeDao.addVerCode(playerId, VerCodeType.MAIL_BIND_MAIL, data, verCode);
         result.data = verCode;
         return result;
     }
@@ -282,13 +287,13 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
 
         VerCodeType smsType = VerCodeType.getType(verCodeType);
-        if(smsType == null) {
+        if (smsType == null) {
             result.code = Code.PARAM_ERROR;
             log.debug("验证码类型错误，确认验证码失败 playerId = {},verCodeType = {},verCode = {}", playerId, verCodeType, verCode);
             return result;
         }
 
-        if(smsType != VerCodeType.MAIL_BIND_MAIL && smsType != VerCodeType.SMS_BIND_PHONE) {
+        if (smsType != VerCodeType.MAIL_BIND_MAIL && smsType != VerCodeType.SMS_BIND_PHONE) {
             result.code = Code.PARAM_ERROR;
             log.debug("验证码类型错误，确认验证码失败2 playerId = {},verCodeType = {},verCode = {}", playerId, verCodeType, verCode);
             return result;
@@ -315,7 +320,13 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
         boolean update = false;
         if (smsType == VerCodeType.SMS_BIND_PHONE) {
-            update = accountDao.updatePhoneNumber(playerId, verResult.data);
+            CommonResult<Account> accountCommonResult = accountDao.addThirdAccount(LoginType.PHONE, verResult.data);
+            if(!accountCommonResult.success()){
+                result.code = accountCommonResult.code;
+                log.debug("更新到数据库失败，确认验证码失败1 playerId = {},verCodeType = {},verCode = {}", playerId, verCodeType, verCode);
+                return result;
+            }
+            update = true;
         } else if (smsType == VerCodeType.MAIL_BIND_MAIL) {
             update = accountDao.updateEmail(playerId, verResult.data);
         }
@@ -578,7 +589,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      */
     public List<Integer> addLikeGame(long playerId, List<Integer> gameTypes) {
         TreeSet<Integer> set = likeGameDao.addLikeGame(playerId, gameTypes);
-        if(set == null) {
+        if (set == null) {
             return null;
         }
         return new ArrayList<>(set);
@@ -597,6 +608,78 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             return null;
         }
         return new ArrayList<>(set);
+    }
+
+    /**
+     * 绑定第三方账号
+     *
+     * @param type
+     * @param token
+     */
+    public CommonResult<List<Item>> bindThirdAccount(long playerId,int type, String token) {
+        CommonResult<List<Item>> result = new CommonResult<>(Code.SUCCESS);
+        try {
+            LoginType loginType = LoginType.valueOf(type);
+            if (loginType == null) {
+                log.debug("类型错误，绑定第三方账号失败 type = {}", type);
+                result.code = Code.FAIL;
+                return result;
+            }
+
+            if (StringUtils.isEmpty(token)) {
+                log.debug("token不能为空，绑定第三方账号失败 type = {}", type);
+                result.code = Code.FAIL;
+                return result;
+            }
+
+            CommonResult<Account> addResult;
+            if (loginType == LoginType.GOOGLE) {
+                CommonResult<GoogleUserInfo> verifyResult = thirdAccountHttpService.verifyGoogleToken(token);
+                if(!verifyResult.success()){
+                    result.code = verifyResult.code;
+                    return result;
+                }
+                addResult = accountDao.addThirdAccount(loginType, verifyResult.data);
+            } else if (loginType == LoginType.FACEBOOK) {
+                CommonResult<FacebookUserInfo> verifyResult = thirdAccountHttpService.verifyFacebookToken(token);
+                if(!verifyResult.success()){
+                    result.code = verifyResult.code;
+                    return result;
+                }
+                addResult = accountDao.addThirdAccount(loginType, verifyResult.data);
+            } else if (loginType == LoginType.APPLE) {
+                CommonResult<AppleUserInfo> verifyResult = thirdAccountHttpService.verifyAppleToken(token);
+                if(!verifyResult.success()){
+                    result.code = verifyResult.code;
+                    return result;
+                }
+                addResult = accountDao.addThirdAccount(loginType, verifyResult.data);
+            } else {
+                log.debug("该接口不支持该类型绑定，绑定第三方账号失败 type = {}", type);
+                result.code = Code.FAIL;
+                return result;
+            }
+
+            if(!addResult.success()){
+                result.code = addResult.code;
+                return result;
+            }
+
+            LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(cfg -> cfg.getType() == type).findFirst().orElse(null);
+            if(loginConfigCfg == null || loginConfigCfg.getAwardItem() == null || loginConfigCfg.getAwardItem().isEmpty()) {
+                log.debug("未找到绑定的奖励 type = {}", type);
+                return result;
+            }
+
+            CommonResult<ItemOperationResult> bindRewardResult = playerPackService.addItems(playerId, loginConfigCfg.getAwardItem(), "bindReward");
+            if(!bindRewardResult.success()){
+                log.debug("添加绑定奖励失败 playerId = {},type = {}", playerId,type);
+            }
+        } catch (Exception e) {
+            log.error("", e);
+            result.code = Code.EXCEPTION;
+        }
+        return result;
     }
 
     /***********************************************************************************************************/
@@ -671,7 +754,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      */
     public List<GameListConfig> sortGameList() {
         try {
-            if(this.gameStatusesMap == null || this.gameStatusesMap.isEmpty()) {
+            if (this.gameStatusesMap == null || this.gameStatusesMap.isEmpty()) {
                 return null;
             }
 
@@ -715,7 +798,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      * 更新奖池
      */
     private void updatePoolEvent() {
-        if(this.sortGameList == null || this.sortGameList.isEmpty()) {
+        if (this.sortGameList == null || this.sortGameList.isEmpty()) {
             return;
         }
         Map<Integer, List<WarePoolInfo>> tmpPoolMap = new HashMap<>();

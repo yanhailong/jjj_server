@@ -1,12 +1,18 @@
 package com.jjg.game.core.dao;
 
-import com.jjg.game.core.data.Account;
+import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.data.*;
+import com.mongodb.client.result.UpdateResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author 11
@@ -15,19 +21,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class AccountDao extends MongoBaseDao<Account, Long> {
 
+    @Autowired
+    private RedisLock redisLock;
+
     public AccountDao(@Autowired MongoTemplate mongoTemplate) {
         super(Account.class, mongoTemplate);
-    }
-
-    /**
-     * 根据游客账号查询
-     *
-     * @param guest
-     * @return
-     */
-    public Account queryAccountByGuest(String guest) {
-        Query query = new Query(Criteria.where("guest").is(guest));
-        return mongoTemplate.findOne(query, this.clazz);
     }
 
     /**
@@ -37,20 +35,6 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
      */
     public Account queryAccountByPlayerId(long playerId) {
         return mongoTemplate.findById(playerId, this.clazz);
-    }
-
-    /**
-     * 更新手机号
-     *
-     * @param playerId
-     * @param phoneNumber
-     * @return
-     */
-    public boolean updatePhoneNumber(long playerId, String phoneNumber) {
-        Query query = new Query(Criteria.where("playerId").is(playerId));
-
-        Update update = new Update().set("phoneNumber", phoneNumber);
-        return mongoTemplate.updateFirst(query, update, this.clazz).getModifiedCount() > 0;
     }
 
     /**
@@ -88,26 +72,6 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
     }
 
     /**
-     * 根据手机号查询
-     *
-     * @return
-     */
-    public Account queryByPhone(String phoneNumber) {
-        Query query = new Query(Criteria.where("phoneNumber").is(phoneNumber));
-        return mongoTemplate.findOne(query, this.clazz);
-    }
-
-    /**
-     * 根据邮箱查询
-     *
-     * @return
-     */
-    public Account queryByEmail(String email) {
-        Query query = new Query(Criteria.where("email").is(email));
-        return mongoTemplate.findOne(query, this.clazz);
-    }
-
-    /**
      * 修改账号状态
      *
      * @param playerId
@@ -139,5 +103,113 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
 
         Update update = new Update().set("lastOfflineTime", lastOfflineTime);
         return mongoTemplate.updateFirst(query, update, this.clazz).getModifiedCount() > 0;
+    }
+
+    /**
+     * 查询第三方账号
+     *
+     * @param data
+     * @return
+     */
+    public Account queryThirdAccount(LoginType loginType, String data) {
+        // 构建查询条件
+        Query query = new Query();
+        query.addCriteria(Criteria.where("thirdAccounts." + loginType).is(data));
+        return mongoTemplate.findOne(query, this.clazz);
+    }
+
+    public Account setChannelValue(LoginType loginType, ChannelUserInfo channelUserInfo, Account account) {
+        boolean add = account.addThirdAccount(loginType, channelUserInfo.getUserId());
+        if (!add) {
+            return null;
+        }
+
+        if (loginType == LoginType.GOOGLE) {
+            GoogleUserInfo googleUserInfo = (GoogleUserInfo) channelUserInfo;
+            account.setEmail(googleUserInfo.getEmail());
+        }
+        return account;
+    }
+
+    /**
+     * 绑定第三方账号
+     *
+     * @param loginType
+     * @param channelUserInfo
+     * @return
+     */
+    public CommonResult<Account> addThirdAccount(LoginType loginType, ChannelUserInfo channelUserInfo) {
+        CommonResult<Account> result = new CommonResult<>(Code.SUCCESS);
+        //要加锁，防止重复绑定
+        String lockKey = getBindLockKey(loginType, channelUserInfo.getUserId());
+        redisLock.executeWithLock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES, TimeUnit.MILLISECONDS, () -> {
+            //查询该账号是否存在
+            Account account = queryThirdAccount(loginType, channelUserInfo.getUserId());
+            if (account == null) {
+                result.code = Code.NOT_FOUND;
+            } else {
+                Account tmpAccount = setChannelValue(loginType, channelUserInfo, account);
+                if (tmpAccount == null) {
+                    result.code = Code.FAIL;
+                    return result;
+                }
+                result.data = account;
+                save(account);
+            }
+            return result;
+        });
+        return result;
+    }
+
+    /**
+     * 绑定第三方账号
+     *
+     * @param loginType
+     * @return
+     */
+    public CommonResult<Account> addThirdAccount(LoginType loginType, String data) {
+        CommonResult<Account> result = new CommonResult<>(Code.SUCCESS);
+        //要加锁，防止重复绑定
+        String lockKey = getBindLockKey(loginType, data);
+        redisLock.executeWithLock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES, TimeUnit.MILLISECONDS, () -> {
+            //查询该账号是否存在
+            Account account = queryThirdAccount(loginType, data);
+            if (account == null) {
+                result.code = Code.NOT_FOUND;
+            } else {
+                boolean add = account.addThirdAccount(loginType, data);
+                if (!add) {
+                    result.code = Code.FAIL;
+                    return result;
+                }
+                result.data = account;
+                save(account);
+            }
+            return result;
+        });
+        return result;
+    }
+
+    private String getBindLockKey(LoginType loginType, String data) {
+        switch (loginType) {
+            case GUEST -> {
+                return "guestbind:" + data;
+            }
+            case GOOGLE -> {
+                return "googlebind:" + data;
+            }
+            case APPLE -> {
+                return "applebind:" + data;
+            }
+            case FACEBOOK -> {
+                return "facebookbind:" + data;
+            }
+            case PHONE -> {
+                return "phonebind:" + data;
+            }
+            default -> {
+                return "guestbind:" + data;
+            }
+        }
     }
 }

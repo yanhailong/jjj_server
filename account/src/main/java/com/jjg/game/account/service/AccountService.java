@@ -2,17 +2,13 @@ package com.jjg.game.account.service;
 
 import com.jjg.game.account.constant.AccountConstant;
 import com.jjg.game.account.dao.PlayerIdDao;
-import com.jjg.game.account.data.*;
+import com.jjg.game.account.dto.LoginDto;
 import com.jjg.game.account.logger.AccountLogger;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
-import com.jjg.game.core.dao.BlackListDao;
-import com.jjg.game.core.data.Account;
-import com.jjg.game.core.data.ChannelType;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.LoginType;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.BlackListService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,8 +37,8 @@ public class AccountService {
     @Autowired
     private AccountLogger accountLogger;
 
-    public CommonResult<Account> login(LoginType loginType, ChannelUserInfo channelUserInfo, String mac, int channel, String ip) {
-        CommonResult<Account> accountResult = getOrCreateAccount(loginType, channelUserInfo, mac, channel, ip);
+    public CommonResult<Account> login(LoginType loginType, ChannelUserInfo channelUserInfo, LoginDto loginDto, String ip) {
+        CommonResult<Account> accountResult = getOrCreateAccount(loginType, channelUserInfo, loginDto, ip);
         if (!accountResult.success()) {
             log.warn("获取或者创建账号失败,登录失败 loginType = {},channelUserId = {}", loginType, channelUserInfo.getUserId());
             return accountResult;
@@ -51,7 +47,7 @@ public class AccountService {
         Account account = accountResult.data;
 
         //如果是游客登录，要检测是否已经认证
-        if (loginType == LoginType.GUEST && account.getAccountType() != AccountConstant.AccountType.GUEST) {
+        if (loginType == LoginType.GUEST && account.getAccountType() != GameConstant.AccountType.GUEST) {
             log.debug("该用户已经认证，无法使用游客登录 loginType = {},channelUserId = {},playerId = {}", loginType, channelUserInfo.getUserId(), account.getPlayerId());
             accountResult.code = Code.PARAM_ERROR;
             return accountResult;
@@ -71,7 +67,7 @@ public class AccountService {
             return accountResult;
         }
 
-        if (!Objects.equals(mac, account.getLastLoginMac())) {
+        if (!Objects.equals(loginDto.getMac(), account.getLastLoginMac())) {
             accountDao.save(account);
         }
         return accountResult;
@@ -85,13 +81,13 @@ public class AccountService {
      * @param channelUserInfo
      * @return
      */
-    private CommonResult<Account> getOrCreateAccount(LoginType loginType, ChannelUserInfo channelUserInfo, String mac, int channel, String ip) {
+    private CommonResult<Account> getOrCreateAccount(LoginType loginType, ChannelUserInfo channelUserInfo, LoginDto loginDto, String ip) {
         CommonResult<Account> result = new CommonResult<>(Code.SUCCESS);
         //要加锁，防止重复创建账号
         String lockKey = getLockKey(loginType, channelUserInfo);
         redisLock.executeWithLock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES, TimeUnit.MILLISECONDS, () -> {
             //查询该账号是否存在
-            Account account = getAccountByLoginType(loginType, channelUserInfo);
+            Account account = accountDao.queryThirdAccount(loginType, channelUserInfo.getUserId());
             if (account == null) {
                 //注册新账号
                 long playerId = playerIdDao.getNewId();
@@ -103,15 +99,18 @@ public class AccountService {
                 }
                 account = new Account();
                 account.setPlayerId(playerId);
-                account.setRegisterMac(mac);
-                account.setLastLoginMac(mac);
-                account.setChannel(ChannelType.valueOf(channel));
+                account.setRegisterMac(loginDto.getMac());
+                account.setLastLoginMac(loginDto.getMac());
+                account.setChannel(ChannelType.valueOf(loginDto.getChannel()));
 
-                account = setChannelValue(loginType, channelUserInfo, account);
+                account = accountDao.setChannelValue(loginType, channelUserInfo, account);
 
                 account = accountDao.insert(account);
 
-                accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, channel, ip);
+                accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, loginDto.getChannel(), ip, loginDto.getDevice());
+            } else {
+                account.setLastLoginMac(loginDto.getMac());
+                accountDao.save(account);
             }
 
             result.data = account;
@@ -130,65 +129,16 @@ public class AccountService {
                 return "googlelogin:" + channelUserInfo.getUserId();
             }
             case APPLE -> {
-                return "applelogin:" + channelUserInfo.toString();
+                return "applelogin:" + channelUserInfo.getUserId();
             }
             case FACEBOOK -> {
-                return "facebooklogin:" + channelUserInfo.toString();
-            }
-            default -> {
-                return "guestlogin:" + channelUserInfo.toString();
-            }
-        }
-    }
-
-    /**
-     * 根据登录类型查询账号信息
-     *
-     * @param loginType
-     * @param channelUserInfo
-     * @return
-     */
-    private Account getAccountByLoginType(LoginType loginType, ChannelUserInfo channelUserInfo) {
-        switch (loginType) {
-            case GUEST -> {
-                return accountDao.queryAccountByGuest(channelUserInfo.getUserId());
-            }
-
-            default -> {
-                return accountDao.queryAccountByGuest(channelUserInfo.getUserId());
-            }
-        }
-    }
-
-    private Account setChannelValue(LoginType loginType, ChannelUserInfo channelUserInfo, Account account) {
-        switch (loginType) {
-            case GUEST -> {
-                account.setGuest(channelUserInfo.getUserId());
-                account.setAccountType(AccountConstant.AccountType.GUEST);
-                return account;
-            }
-            case GOOGLE -> {
-                GoogleUserInfo googleUserInfo = (GoogleUserInfo) channelUserInfo;
-                account.setEmail(googleUserInfo.getEmail());
-                account.setGoogleUserId(googleUserInfo.getUserId());
-                account.setAccountType(AccountConstant.AccountType.VERIFIED);
-                return account;
-            }
-            case FACEBOOK -> {
-                account.setFacebookUserId(channelUserInfo.getUserId());
-                account.setAccountType(AccountConstant.AccountType.VERIFIED);
-                return account;
+                return "facebooklogin:" + channelUserInfo.getUserId();
             }
             case PHONE -> {
-                account.setPhoneNumber(channelUserInfo.getUserId());
-                account.setAccountType(AccountConstant.AccountType.VERIFIED);
-                return account;
+                return "phonelogin:" + channelUserInfo.getUserId();
             }
-
             default -> {
-                account.setGuest(channelUserInfo.getUserId());
-                account.setAccountType(AccountConstant.AccountType.GUEST);
-                return account;
+                return "guestlogin:" + channelUserInfo.getUserId();
             }
         }
     }

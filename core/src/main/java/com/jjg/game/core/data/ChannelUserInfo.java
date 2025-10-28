@@ -1,4 +1,4 @@
-package com.jjg.game.account.data;
+package com.jjg.game.core.data;
 
 /**
  * @author 11

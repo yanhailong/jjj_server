@@ -1,5 +1,6 @@
 package com.jjg.game.recharge;
 
+import com.jjg.game.recharge.config.ExcludeServiceFilter;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration;
@@ -19,6 +20,9 @@ import org.springframework.context.annotation.FilterType;
                         classes = {
                                 com.jjg.game.core.manager.RedDotServiceRegistrar.class
                         }),
+                @ComponentScan.Filter(
+                        type = FilterType.CUSTOM,
+                        classes = ExcludeServiceFilter.class),
                 @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.jjg.game.core.dao.room.*")
         })
 public class RechargeApp {
