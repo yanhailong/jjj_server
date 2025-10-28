@@ -154,7 +154,7 @@ public class CoreToServerMessageHandler {
     public void notifyRecharge(NotifyRechargeServer notify) {
         Player player = playerService.get(notify.playerId);
         Order order = orderService.getOrder(notify.orderId);
-        ShopProduct shopProduct = shopService.getShopProduct(Integer.parseInt(order.getProductId()));
+        ShopProduct shopProduct = shopService.getShopProduct(Long.parseLong(order.getProductId()));
 
         //接口通知
         SystemInterfaceHolder.callGameSysAction(IRecharge.class, (f) -> f.rechargeSuccess(player, order, shopProduct));
