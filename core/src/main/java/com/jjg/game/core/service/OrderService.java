@@ -48,7 +48,7 @@ public class OrderService {
      * @return
      */
     public Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price, RechargeType rechargeType) {
-        return generateOrder(playerId, playerChannel, payType, productId, price, rechargeType,OrderStatus.ORDER,null);
+        return generateOrder(playerId, playerChannel, payType, productId, price, rechargeType, OrderStatus.ORDER, null);
     }
 
     /**
@@ -59,7 +59,7 @@ public class OrderService {
      * @param price
      * @return
      */
-    public Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price, RechargeType rechargeType,OrderStatus orderStatus,String channelProductId) {
+    public Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price, RechargeType rechargeType, OrderStatus orderStatus, String channelProductId) {
         for (int i = 0; i < CoreConst.Common.MONGO_TRY_COUNT; i++) {
             String orderId = "cz" + DateUtil.format(DateUtil.date(), "yyMMdd") + RandomUtils.getRandomString(9);
             try {
@@ -85,8 +85,8 @@ public class OrderService {
         return null;
     }
 
-    public Order orderSuccess(String orderId) {
-        return orderDao.changeOrderSuccess(orderId);
+    public Order orderSuccess(String orderId, String channelOrderId) {
+        return orderDao.changeOrderSuccess(orderId, channelOrderId);
     }
 
     public Order orderFail(String orderId) {

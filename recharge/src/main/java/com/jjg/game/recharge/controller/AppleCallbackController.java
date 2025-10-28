@@ -85,13 +85,18 @@ public class AppleCallbackController extends AbstractCallbackController {
                 return ResponseEntity.status(400).body("not found order");
             }
 
+            String transactionId = transactionInfo.get("transactionId").asText();
+            order.setChannelOrderId(transactionId);
             boolean check = checkOrder(order);
             if(!check){
                 log.debug("检查订单失败 uuid = {}", order.getUuid());
                 return ResponseEntity.status(400).body("check order failed");
             }
 
-            payCallback(order);
+            String money = transactionInfo.get("price").asText();
+            String currency = transactionInfo.get("currency").asText();
+
+            payCallback(order, money, currency);
         }catch (Exception e){
             log.error("处理Apple充值回调异常", e);
             return ResponseEntity.status(500).body("Error processing callback");

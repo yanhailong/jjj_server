@@ -385,20 +385,26 @@ public class BaseLogger {
         return snowflakeNextId;
     }
 
+    public void order(Player player, Order order, String regionCode) {
+        order(player, order, null, regionCode);
+    }
+
     /**
      * 订单
      *
      * @param player
      * @param order
      */
-    public void order(Player player, Order order) {
-        order(player, order.getId(), order.getId(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), order.getPrice(), order.getCreateTime(), order.getUpdateTime(),
-                order.getOrderStatus(), order.getPayType(),null);
+    public void order(Player player, Order order, String money, String regionCode) {
+        order(player, order, money, regionCode, null);
     }
 
-    public void order(Player player, Order order,String desc) {
-        order(player, order.getId(), order.getId(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), order.getPrice(), order.getCreateTime(), order.getUpdateTime(),
-                order.getOrderStatus(), order.getPayType(),desc);
+
+    public void order(Player player, Order order, String money, String regionCode, String desc) {
+        String price = StringUtils.isEmpty(money) ? order.getPrice().toString() : money;
+
+        order(player, order.getId(), order.getChannelOrderId(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), price, order.getCreateTime(), order.getUpdateTime(),
+                order.getOrderStatus(), order.getPayType(), regionCode, desc);
     }
 
     /**
@@ -407,9 +413,9 @@ public class BaseLogger {
      * @param player
      * @param order
      */
-    public void shop(Player player, Order order, ShopProduct shopProduct) {
-        shop(player, order.getId(), order.getId(), shopProduct.getType(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), order.getPrice(), order.getCreateTime(), order.getUpdateTime(),
-                order.getOrderStatus(), order.getPayType());
+    public void shop(Player player, Order order, ShopProduct shopProduct, String money, String region) {
+        shop(player, order.getId(), order.getChannelOrderId(), shopProduct.getType(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), money, order.getCreateTime(), order.getUpdateTime(),
+                order.getOrderStatus(), order.getPayType(), region);
     }
 
     /**
@@ -420,7 +426,7 @@ public class BaseLogger {
      */
     public void shop(Player player, ShopProduct shopProduct, int registerChannel) {
         long now = System.currentTimeMillis();
-        shop(player, null, null, shopProduct.getType(), registerChannel, player.getChannel().getValue(), RechargeType.SHOP, shopProduct.getMoney(), now, now, OrderStatus.SUCCESS, shopProduct.getPayType());
+        shop(player, null, null, shopProduct.getType(), registerChannel, player.getChannel().getValue(), RechargeType.SHOP, shopProduct.getMoney().toString(), now, now, OrderStatus.SUCCESS, shopProduct.getPayType(), null);
     }
 
     /***********************************************************************************************/
@@ -506,21 +512,21 @@ public class BaseLogger {
     }
 
     public void order(Player player, String orderId, String merchantOrderId, int playerChannel, int payChannel, RechargeType rechargeType,
-                      BigDecimal price, long createTime, long updateTime, OrderStatus orderStatus, int payType,String desc) {
+                      String price, long createTime, long updateTime, OrderStatus orderStatus, int payType, String regionCode, String desc) {
         try {
             JSONObject json = new JSONObject();
             json.put("orderId", orderId);
             json.put("merchantOrderId", merchantOrderId);
-            json.put("nick", player.getNickName());
             json.put("playerChannel", playerChannel);
             json.put("payChannel", payChannel);
             json.put("rechargeType", rechargeType.getType());
-            json.put("money", price.toString());
+            json.put("money", price);
             json.put("createTime", createTime);
             json.put("updateTime", updateTime);
             json.put("status", orderStatus.code);
             json.put("payType", payType);
-            json.put("desc", payType);
+            json.put("regionCode", regionCode);
+            json.put("desc", desc);
 
             sendLog("order", player, json);
         } catch (Exception e) {
@@ -529,21 +535,21 @@ public class BaseLogger {
     }
 
     public void shop(Player player, String orderId, String merchantOrderId, int shopProductType, int playerChannel, int payChannel, RechargeType rechargeType,
-                     BigDecimal price, long createTime, long updateTime, OrderStatus orderStatus, int payType) {
+                     String price, long createTime, long updateTime, OrderStatus orderStatus, int payType, String regionCode) {
         try {
             JSONObject json = new JSONObject();
             json.put("orderId", orderId);
             json.put("merchantOrderId", merchantOrderId);
             json.put("shopProductType", shopProductType);
-            json.put("nick", player.getNickName());
             json.put("playerChannel", playerChannel);
             json.put("payChannel", payChannel);
             json.put("rechargeType", rechargeType.getType());
-            json.put("money", price.toString());
+            json.put("money", price);
             json.put("createTime", createTime);
             json.put("updateTime", updateTime);
             json.put("status", orderStatus.code);
             json.put("payType", payType);
+            json.put("regionCode", regionCode);
 
             sendLog("shop", player, json);
         } catch (Exception e) {

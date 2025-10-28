@@ -11,8 +11,10 @@ import com.jjg.game.core.constant.ShopConstant;
  * @date 2025/9/18 14:26
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SHOP_TYPE, cmd = ShopConstant.MsgBean.REQ_BUY_PRODUCT,resp = true)
-@ProtoDesc("返回下单")
+@ProtoDesc("商城中物品兑换")
 public class ReqBuyProduct extends AbstractMessage {
     @ProtoDesc("商品id")
     public int productId;
+    @ProtoDesc("兑换个数")
+    public int count;
 }

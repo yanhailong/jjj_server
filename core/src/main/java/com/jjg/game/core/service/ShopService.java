@@ -103,7 +103,7 @@ public class ShopService {
      * @param playerController
      * @return
      */
-    public CommonResult<ItemOperationResult> exchange(PlayerController playerController, ShopProduct shopProduct) {
+    public CommonResult<ItemOperationResult> exchange(PlayerController playerController, ShopProduct shopProduct, int count) {
         Map<Integer, Long> addItemMap;
         //添加商品
         if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
@@ -112,7 +112,7 @@ public class ShopService {
             addItemMap = Collections.emptyMap();
         }
 
-        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(), shopProduct.getPayType(), shopProduct.getMoney().intValue(), addItemMap, "exchange");
+        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(), shopProduct.getPayType(), shopProduct.getMoney().intValue() * count, addItemMap, "exchange");
         if (!result.success()) {
             return result;
         }
