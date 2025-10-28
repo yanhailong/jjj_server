@@ -6,6 +6,7 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomPlayer;
+import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.texas.constant.TexasConstant;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
@@ -143,9 +144,7 @@ public class TexasMessageHandler {
                 return;
             }
         }
-        NotifyTexasSeatStateChange change = new NotifyTexasSeatStateChange();
-        change.code = Code.FAIL;
-        gameController.broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, change));
+        TipUtils.sendToastTip(playerId, Code.FAIL);
     }
 
     public NotifyTexasSeatStateChange swapSeat(TexasGameController controller, SeatInfo seatInfo, GamePlayer gamePlayer, int srcSeatId) {

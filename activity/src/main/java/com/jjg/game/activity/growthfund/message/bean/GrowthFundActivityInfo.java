@@ -1,5 +1,6 @@
 package com.jjg.game.activity.growthfund.message.bean;
 
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
@@ -24,4 +25,6 @@ public class GrowthFundActivityInfo {
     public String productId;
     @ProtoDesc("是否购买")
     public boolean isBuy;
+    @ProtoDesc("购买能获取道具")
+    public List<ItemInfo> buyGetItems;
 }
