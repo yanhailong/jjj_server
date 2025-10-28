@@ -65,7 +65,7 @@ public abstract class AbstractCallbackController {
         }
 
         //修改订单状态
-        Order successOrder = orderService.orderSuccess(order.getId());
+        Order successOrder = orderService.orderSuccess(order.getId(), order.getChannelOrderId());
         if (successOrder == null) {
             log.warn("未找到该订单 orderId = {},status = {}", order.getId(), OrderStatus.ORDER);
             //TODO 记录下来，检查该订单，这里不能再次修改订单状态，因为可能是多线程问题没有修改成功
@@ -88,17 +88,17 @@ public abstract class AbstractCallbackController {
      * @param order
      * @return
      */
-    protected void payCallback(Order order) {
+    protected void payCallback(Order order, String money, String regionCode) {
         try {
             Player player = playerService.get(order.getPlayerId());
             //获取玩家session信息
             PlayerSessionInfo info = playerSessionService.getInfo(order.getPlayerId());
             //处理商城订单
-            if(order.getRechargeType() == RechargeType.SHOP){
-                handleShopOrder(player,info,order);
+            if (order.getRechargeType() == RechargeType.SHOP) {
+                handleShopOrder(player, info, order, money, regionCode);
             }
 
-            coreLogger.order(player, order);
+            coreLogger.order(player, order, money, regionCode);
             log.info("玩家充值成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
             //将充值成功消息通知玩家所在节点
             notifyPlayerCurrentNode(info, order);
@@ -109,12 +109,13 @@ public abstract class AbstractCallbackController {
 
     /**
      * 处理商城订单
+     *
      * @param info
      * @param order
      */
-    private void handleShopOrder(Player player,PlayerSessionInfo info,Order order) {
+    private void handleShopOrder(Player player, PlayerSessionInfo info, Order order, String money, String regionCode) {
         ShopProduct shopProduct = shopService.getShopProduct(Integer.parseInt(order.getProductId()));
-        if(shopProduct == null){
+        if (shopProduct == null) {
             return;
         }
 
@@ -133,7 +134,7 @@ public abstract class AbstractCallbackController {
                 itemInfoList.add(itemInfo);
             }
         }
-        coreLogger.shop(player, order, shopProduct);
+        coreLogger.shop(player, order, shopProduct, money, regionCode);
         //通知玩家充值成功
         notifyPlayerRechargeCallBack(info, order, itemInfoList);
     }
@@ -198,21 +199,22 @@ public abstract class AbstractCallbackController {
 
     /**
      * 失败订单处理
+     *
      * @param orderId
      * @param desc
      */
-    protected void failOrder(String orderId,String desc) {
+    protected void failOrder(String orderId, String desc) {
         Order order = orderService.orderFail(orderId);
         if (order == null) {
             return;
         }
 
         Player player = playerService.get(order.getPlayerId());
-        coreLogger.order(player,order,desc);
+        coreLogger.order(player, order, desc);
     }
 
     //获取商品价格
-    protected BigDecimal getProductPrice(RechargeType rechargeType,String productId) {
+    protected BigDecimal getProductPrice(RechargeType rechargeType, String productId) {
         return BigDecimal.ONE;
     }
 }

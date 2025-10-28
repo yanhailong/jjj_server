@@ -36,7 +36,7 @@ public class ShopMessageHandler {
     @Command(ShopConstant.MsgBean.REQ_SHOP)
     public void reqShop(PlayerController playerController, ReqShop req) {
         ResShop res = new ResShop(Code.SUCCESS);
-        List<ShopProduct> shopProductList = shopService.getShop(playerController.getPlayer(),req.channel);
+        List<ShopProduct> shopProductList = shopService.getShop(playerController.getPlayer(), req.channel);
         if (shopProductList != null && !shopProductList.isEmpty()) {
             res.shopProductInfoList = new ArrayList<>(shopProductList.size());
             shopProductList.forEach((shopProduct) -> {
@@ -82,50 +82,51 @@ public class ShopMessageHandler {
             if (shopProduct == null) {
                 res.code = Code.NOT_FOUND;
                 playerController.send(res);
-                log.debug("获取商品信息失败 playerId = {},productId = {}", playerController.playerId(), req.productId);
+                log.debug("获取商品信息失败，兑换失败 playerId = {},productId = {}", playerController.playerId(), req.productId);
+                return;
+            }
+
+            if (req.count < 1) {
+                res.code = Code.PARAM_ERROR;
+                playerController.send(res);
+                log.debug("兑换个数不能小于1，兑换失败 playerId = {},productId = {},count = {}", playerController.playerId(), req.productId, req.count);
                 return;
             }
 
             //检查是否开启
             if (!shopService.checkProductOpen(playerController.getPlayer(), shopProduct)) {
-                log.debug("商品未开启，或者玩家未达到开启条件 playerId = {},productId = {}", playerController.playerId(), req.productId);
+                log.debug("商品未开启，或者玩家未达到开启条件，兑换失败 playerId = {},productId = {}", playerController.playerId(), req.productId);
                 res.code = Code.FORBID;
                 playerController.send(res);
                 return;
             }
 
             if (shopProduct.getPayType() < 1) {  //充值
-                CommonResult<String> orderResult = shopService.generateOrder(playerController.getPlayer(), shopProduct, RechargeType.SHOP, PayType.GOOGLE);
-                if (!orderResult.success()) {
-                    res.code = orderResult.code;
-                    playerController.send(res);
-                    return;
-                }
-                res.orderId = orderResult.data;
-                res.productId = shopProduct.getId();
+                res.code = Code.FORBID;
+                log.debug("该商品不支持兑换，兑换失败 playerId = {},productId = {}", playerController.playerId(), req.productId);
                 playerController.send(res);
-                log.debug("玩家充值下单成功 playerId = {},productId = {},orderId = {}", playerController.playerId(), req.productId, res.orderId);
-            } else {  //道具兑换
-                CommonResult<ItemOperationResult> exchangeResult = shopService.exchange(playerController, shopProduct);
-                if (!exchangeResult.success()) {
-                    res.code = exchangeResult.code;
-                    playerController.send(res);
-                    return;
-                }
-
-                if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
-                    res.items = new ArrayList<>(shopProduct.getRewardItems().size());
-                    shopProduct.getRewardItems().forEach((k, v) -> {
-                        ItemInfo itemInfo = new ItemInfo();
-                        itemInfo.itemId = k;
-                        itemInfo.count = v;
-                        res.items.add(itemInfo);
-                    });
-                }
-                res.productId = shopProduct.getId();
-                playerController.send(res);
-                log.debug("玩家道具购买成功 playerId = {},productId = {},res = {}", playerController.playerId(), req.productId, JSON.toJSONString(res));
+                return;
             }
+
+            CommonResult<ItemOperationResult> exchangeResult = shopService.exchange(playerController, shopProduct, req.count);
+            if (!exchangeResult.success()) {
+                res.code = exchangeResult.code;
+                playerController.send(res);
+                return;
+            }
+
+            if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
+                res.items = new ArrayList<>(shopProduct.getRewardItems().size());
+                shopProduct.getRewardItems().forEach((k, v) -> {
+                    ItemInfo itemInfo = new ItemInfo();
+                    itemInfo.itemId = k;
+                    itemInfo.count = v;
+                    res.items.add(itemInfo);
+                });
+            }
+            res.productId = shopProduct.getId();
+            playerController.send(res);
+            log.debug("玩家道具购买成功 playerId = {},productId = {},res = {}", playerController.playerId(), req.productId, JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
         }

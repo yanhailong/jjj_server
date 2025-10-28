@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
  */
 @RestController
 @RequestMapping(method = {RequestMethod.POST}, value = "googlepay")
-public class GoogleCallbackController extends AbstractCallbackController{
+public class GoogleCallbackController extends AbstractCallbackController {
 
     private final ThirdServiceInfo thirdServiceInfo;
 
@@ -50,7 +50,6 @@ public class GoogleCallbackController extends AbstractCallbackController{
 
     private final String JWT_SCOPE = "https://www.googleapis.com/auth/androidpublisher";
     private final String JWT_AUD = "https://oauth2.googleapis.com/token";
-
 
 
     private final long CLOCK_SKEW = 300000; // 5分钟时钟容差
@@ -100,10 +99,10 @@ public class GoogleCallbackController extends AbstractCallbackController{
     @RequestMapping("callback")
     public ResponseEntity<String> callback(@RequestBody Map<String, Object> payload,
                                            @RequestHeader("Authorization") String authHeader) {
-        try{
+        try {
             log.debug("收到谷歌充值回调 payload = {}", payload);
             // ===== 1. 安全验证=====
-            if(!verifyJwtToken(authHeader, thirdServiceInfo.getGoogleAud())){
+            if (!verifyJwtToken(authHeader, thirdServiceInfo.getGoogleAud())) {
                 return ResponseEntity.status(403).body("Invalid Authorization header");
             }
 
@@ -116,47 +115,46 @@ public class GoogleCallbackController extends AbstractCallbackController{
 
             //订阅相关
             JsonNode subscriptionNotificationNode = jsonNode.get("subscriptionNotification");
-            if(subscriptionNotificationNode != null){
+            if (subscriptionNotificationNode != null) {
                 log.debug("收到订阅通知 notification = {}", subscriptionNotificationNode);
                 return ResponseEntity.ok("Recharge processed");
             }
 
             //一次性购买
             JsonNode oneTimeProductNotificationNode = jsonNode.get("oneTimeProductNotification");
-            if(oneTimeProductNotificationNode != null){
-                return handleOneTimeProductNotification(jsonNode,oneTimeProductNotificationNode);
+            if (oneTimeProductNotificationNode != null) {
+                return handleOneTimeProductNotification(jsonNode, oneTimeProductNotificationNode);
             }
 
             //作废的购买交易
             JsonNode voidedPurchaseNotificationNode = jsonNode.get("voidedPurchaseNotification");
-            if(voidedPurchaseNotificationNode != null){
+            if (voidedPurchaseNotificationNode != null) {
                 log.debug("收到作废的购买交易通知 notification = {}", voidedPurchaseNotificationNode);
                 return ResponseEntity.ok("Recharge processed");
             }
 
             //测试通知
             JsonNode testNotificationNode = jsonNode.get("testNotification");
-            if(testNotificationNode != null){
+            if (testNotificationNode != null) {
                 log.debug("收到测试通知 notification = {}", testNotificationNode);
                 return ResponseEntity.ok("Recharge processed");
             }
 
-            //处理充值回调逻辑
-//            payCallback(order);
             return ResponseEntity.ok("Recharge processed");
-        }catch (Exception e){
-            log.error("",e);
+        } catch (Exception e) {
+            log.error("", e);
             return ResponseEntity.status(500).body("Error processing callback");
         }
     }
 
     /**
      * 一次性购买
+     *
      * @param jsonNode
      * @param oneTimeProductNotificationNode
      * @return
      */
-    private ResponseEntity<String> handleOneTimeProductNotification(JsonNode jsonNode,JsonNode oneTimeProductNotificationNode){
+    private ResponseEntity<String> handleOneTimeProductNotification(JsonNode jsonNode, JsonNode oneTimeProductNotificationNode) {
         log.debug("收到一次性购买通知 notification = {}", oneTimeProductNotificationNode);
         String purchaseToken = oneTimeProductNotificationNode.get("purchaseToken").asText();
         String sku = oneTimeProductNotificationNode.get("sku").asText();
@@ -164,23 +162,27 @@ public class GoogleCallbackController extends AbstractCallbackController{
 
         JSONObject productInfoJson = getProductInfo(purchaseToken, packageName, sku);
         log.debug("商品信息 productInfoJson = {}", productInfoJson);
-        if(productInfoJson == null){
+        if (productInfoJson == null) {
             return ResponseEntity.ok("get product fail");
         }
 
         String orderId = productInfoJson.get("obfuscatedExternalProfileId").toString();
         Order order = orderService.getOrder(orderId);
-        if(order == null){
+        if (order == null) {
             log.debug("未找到该订单 orderId = {}", orderId);
             return ResponseEntity.ok("not found order");
         }
 
+        String channelOrderId = productInfoJson.getString("orderId");
+        order.setChannelOrderId(channelOrderId);
         boolean check = checkOrder(order);
-        if(!check){
+        if (!check) {
             log.debug("检查订单失败 orderId = {}", orderId);
             return ResponseEntity.ok("check order fail");
         }
-        payCallback(order);
+
+        String regionCode = productInfoJson.getString("regionCode");
+        payCallback(order, null, regionCode);
         return ResponseEntity.ok("Recharge processed");
     }
 
@@ -190,7 +192,7 @@ public class GoogleCallbackController extends AbstractCallbackController{
      */
     public boolean verifyJwtToken(String authorizationHeader, String expectedAudience) {
         try {
-            log.debug("authorizationHeader = {}",authorizationHeader);
+            log.debug("authorizationHeader = {}", authorizationHeader);
             // 1. 提取 Bearer Token
             if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
                 log.debug("authorizationHeader 错误,  authorizationHeader = {}", authorizationHeader);
@@ -240,7 +242,7 @@ public class GoogleCallbackController extends AbstractCallbackController{
             return true;
 
         } catch (Exception e) {
-            log.error("验证google jwt 异常",e);
+            log.error("验证google jwt 异常", e);
             return false;
         }
     }
@@ -270,7 +272,7 @@ public class GoogleCallbackController extends AbstractCallbackController{
             }
             return true;
         } catch (Exception e) {
-            log.error("验证 JWT 的基本声明 异常 ",e);
+            log.error("验证 JWT 的基本声明 异常 ", e);
             return false;
         }
     }
@@ -283,13 +285,14 @@ public class GoogleCallbackController extends AbstractCallbackController{
             Jwk jwk = this.jwkProvider.get(keyId);
             return (RSAPublicKey) jwk.getPublicKey();
         } catch (Exception e) {
-            log.error("",e);
+            log.error("", e);
             return null;
         }
     }
 
     /**
      * 生成jwt
+     *
      * @return
      */
     private String generateJwt() {
@@ -327,11 +330,12 @@ public class GoogleCallbackController extends AbstractCallbackController{
 
     /**
      * 获取access_token
+     *
      * @return
      */
     private String getAccessToken() {
         int now = TimeHelper.nowInt();
-        if(!StringUtils.isEmpty(accessToken) && expiresTime > now){
+        if (!StringUtils.isEmpty(accessToken) && expiresTime > now) {
             return accessToken;
         }
 
@@ -358,22 +362,23 @@ public class GoogleCallbackController extends AbstractCallbackController{
 
     /**
      * 获取商品信息
+     *
      * @param purchaseToken
      * @param packageName
      * @param prodctId
      * @return
      */
-    private JSONObject getProductInfo(String purchaseToken,String packageName,String prodctId){
+    private JSONObject getProductInfo(String purchaseToken, String packageName, String prodctId) {
         String accessToken = getAccessToken();
 
-        String url = String.format(this.PRODUCT_URL,packageName,  prodctId,purchaseToken);
+        String url = String.format(this.PRODUCT_URL, packageName, prodctId, purchaseToken);
         HttpRequest request = HttpRequest.get(url);
         HttpResponse response = request
                 .header("Authorization", "Bearer " + accessToken)
                 .header("Content-Type", "application/json")
                 .execute();
 
-        if(response.isOk()){
+        if (response.isOk()) {
             return JSON.parseObject(response.body());
         }
 

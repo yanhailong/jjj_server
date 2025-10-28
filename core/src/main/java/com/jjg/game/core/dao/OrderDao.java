@@ -21,6 +21,7 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
 
     /**
      * 根据订单id获取订单对象
+     *
      * @param id
      * @return
      */
@@ -34,30 +35,35 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
 
     /**
      * 订单置为成功状态
+     *
      * @param orderId
      * @return
      */
-    public Order changeOrderSuccess(String orderId) {
-        return changeOrderStatus(orderId,OrderStatus.ORDER,OrderStatus.SUCCESS);
+    public Order changeOrderSuccess(String orderId, String channelOrderId) {
+        return changeOrderStatus(orderId, OrderStatus.ORDER, OrderStatus.SUCCESS, channelOrderId);
     }
+
     /**
      * 订单置为失败状态
+     *
      * @param orderId
      * @return
      */
     public Order changeOrderFail(String orderId) {
-        return changeOrderStatusNeExcept(orderId,OrderStatus.SUCCESS,OrderStatus.FAIL);
+        return changeOrderStatusNeExcept(orderId, OrderStatus.SUCCESS, OrderStatus.FAIL);
     }
 
     /**
      * 修改订单状态
+     *
      * @param orderId
      * @return
      */
-    private Order changeOrderStatus(String orderId,OrderStatus exceptStatus,OrderStatus newStatus) {
+    private Order changeOrderStatus(String orderId, OrderStatus exceptStatus, OrderStatus newStatus, String channelOrderId) {
         Query query = new Query(Criteria.where("id").is(orderId).and("orderStatus").is(exceptStatus));
         Update update = new Update();
         update.set("orderStatus", newStatus);
+        update.set("channelOrderId", channelOrderId);
         return mongoTemplate.findAndModify(
                 query,
                 update,
@@ -68,12 +74,13 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
 
     /**
      * 修改订单状态
+     *
      * @param orderId
      * @param exceptStatus
      * @param newStatus
      * @return
      */
-    private Order changeOrderStatusNeExcept(String orderId,OrderStatus exceptStatus,OrderStatus newStatus) {
+    private Order changeOrderStatusNeExcept(String orderId, OrderStatus exceptStatus, OrderStatus newStatus) {
         Query query = new Query(Criteria.where("id").is(orderId).and("orderStatus").ne(exceptStatus));
         Update update = new Update();
         update.set("orderStatus", newStatus);
