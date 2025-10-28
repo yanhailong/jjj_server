@@ -1,9 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
-
 import javax.annotation.processing.Generated;
+import java.util.List;
 /**
  * 配置bean
  *
@@ -24,13 +22,13 @@ public class PopUpConfigCfg extends BaseCfgBean {
   /** 回大厅弹出 */
   protected boolean boolReturnHall;
   /** 按钮显示位置 */
-  protected Map<Integer,Integer> butPos;
+  protected List<Integer> butPos;
   /** 每天弹窗次数 */
   protected int count;
   /** 弹窗结束时间 */
   protected String endTime;
   /** 活动或功能界面名称 */
-  protected Map<String,String> functionUiName;
+  protected List<List<String>> functionUiName;
   /** 是否开启 */
   protected boolean isOpen;
   /** 弹窗顺序 */
@@ -38,9 +36,9 @@ public class PopUpConfigCfg extends BaseCfgBean {
   /** 弹窗开始时间 */
   protected String strarTime;
   /** 弹窗类型值 */
-  protected Map<Integer,Integer> typeValue;
+  protected List<List<Integer>> typeValue;
   /** 宣传弹窗界面名称 */
-  protected Map<String,String> windowUiName;
+  protected List<String> windowUiName;
 
   /** 返回每次登入弹出 */
   public boolean getBoolLogin() {
@@ -53,7 +51,7 @@ public class PopUpConfigCfg extends BaseCfgBean {
   }
 
   /** 返回按钮显示位置 */
-  public Map<Integer,Integer> getButPos() {
+  public List<Integer> getButPos() {
     return butPos;
   }
 
@@ -68,7 +66,7 @@ public class PopUpConfigCfg extends BaseCfgBean {
   }
 
   /** 返回活动或功能界面名称 */
-  public Map<String,String> getFunctionUiName() {
+  public List<List<String>> getFunctionUiName() {
     return functionUiName;
   }
 
@@ -88,12 +86,12 @@ public class PopUpConfigCfg extends BaseCfgBean {
   }
 
   /** 返回弹窗类型值 */
-  public Map<Integer,Integer> getTypeValue() {
+  public List<List<Integer>> getTypeValue() {
     return typeValue;
   }
 
   /** 返回宣传弹窗界面名称 */
-  public Map<String,String> getWindowUiName() {
+  public List<String> getWindowUiName() {
     return windowUiName;
   }
 

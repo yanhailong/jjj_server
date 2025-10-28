@@ -1,9 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
-
 import javax.annotation.processing.Generated;
+import java.util.List;
 /**
  * 配置bean
  *
@@ -27,12 +25,14 @@ public class PopUpGetWayCfg extends BaseCfgBean {
   protected int name;
   /** 是否开启 */
   protected boolean open;
+  /** 打开界面需要导入的脚本 */
+  protected String require;
   /** 描述文本 */
   protected int strDes;
   /** 跳转分类 */
   protected int type;
   /** 打开界面名称 */
-  protected Map<String,String> uiName;
+  protected List<String> uiName;
 
   /** 返回图标ICON */
   public String getIcon() {
@@ -54,6 +54,11 @@ public class PopUpGetWayCfg extends BaseCfgBean {
     return open;
   }
 
+  /** 返回打开界面需要导入的脚本 */
+  public String getRequire() {
+    return require;
+  }
+
   /** 返回描述文本 */
   public int getStrDes() {
     return strDes;
@@ -65,7 +70,7 @@ public class PopUpGetWayCfg extends BaseCfgBean {
   }
 
   /** 返回打开界面名称 */
-  public Map<String,String> getUiName() {
+  public List<String> getUiName() {
     return uiName;
   }
 
