@@ -208,7 +208,7 @@ public class ShopService {
         if (shopProduct.getChannelProductIdMap() == null) {
             return false;
         }
-        return shopProduct.getConditionsMap().containsKey(channel);
+        return shopProduct.getChannelProductIdMap().containsKey(channel);
     }
 
 }
