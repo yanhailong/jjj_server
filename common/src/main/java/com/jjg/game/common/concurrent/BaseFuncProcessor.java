@@ -11,8 +11,4 @@ public abstract class BaseFuncProcessor extends BaseProcessor {
         super(name);
     }
 
-    @Override
-    public void executeHandler(BaseHandler<?> handler) {
-        super.executeHandler(handler);
-    }
 }

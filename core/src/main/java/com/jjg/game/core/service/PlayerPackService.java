@@ -139,7 +139,7 @@ public class PlayerPackService implements IPlayerRegister {
         try {
             playerPack = getFromAllDB(playerId);
             if (playerPack == null) {
-                playerPack = new PlayerPack();
+                playerPack = new PlayerPack(playerId);
             }
             boolean hasChange = false;
             Map<Integer, Long> changeBefore = new HashMap<>(itemList.size());
@@ -248,7 +248,6 @@ public class PlayerPackService implements IPlayerRegister {
         long deductDiamondV = 0;
         long playerId = player.getId();
         String key = getLockKey(playerId);
-        // TODO 当前加锁位置，有概率造成前面检查checkHasItems失效
         redisLock.lock(key, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES);
         try {
             List<Item> packItemList = new ArrayList<>();
@@ -584,8 +583,7 @@ public class PlayerPackService implements IPlayerRegister {
 
     @Override
     public void playerRegister(Player player) {
-        PlayerPack pack = new PlayerPack();
-        pack.setPlayerId(player.getId());
+        PlayerPack pack = new PlayerPack(player.getId());
         redisSave(pack);
     }
 }

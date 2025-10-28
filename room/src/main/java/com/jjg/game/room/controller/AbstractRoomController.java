@@ -1,8 +1,8 @@
 package com.jjg.game.room.controller;
 
 import com.alibaba.fastjson.JSON;
-import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.pb.AbstractMessage;
@@ -62,7 +62,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
     // 游戏控制器
     protected AbstractGameController<RC, ? extends GameDataVo<RC>> gameController;
     // 房间线程
-    protected BaseFuncProcessor roomProcessor;
+    protected BaseProcessor roomProcessor;
     // 房间配置
     protected RC roomCfg;
     // 机器人上次创建的时间
@@ -458,7 +458,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      * 检查机器人添加逻辑
      */
     protected void checkRobotJoinRoom() {
-        BaseFuncProcessor baseFuncProcessor = getRoomProcessor();
+        BaseProcessor baseFuncProcessor = getRoomProcessor();
         // 必须在房间线程中执行
         baseFuncProcessor.executeHandler(new BaseHandler<String>() {
             @Override
@@ -693,7 +693,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
         return gameController;
     }
 
-    public BaseFuncProcessor getRoomProcessor() {
+    public BaseProcessor getRoomProcessor() {
         return this.roomProcessor;
     }
 

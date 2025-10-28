@@ -310,7 +310,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
      * 检查是否重连
      */
     private boolean reconnect(PFSession session, Player player, PlayerSessionInfo playerSessionInfo) {
-        MarsNode node = null;
+        MarsNode node;
         //先判断有房间类的游戏重连
         if (player.getRoomId() > 0) {
             //获取该房间数据

@@ -7,12 +7,10 @@ import com.jjg.game.common.cluster.ClusterConnect;
 import com.jjg.game.common.cluster.ClusterMessage;
 import com.jjg.game.common.cluster.ClusterProcessorExecutors;
 import com.jjg.game.common.cluster.ClusterSystem;
-import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.BaseHandler;
-import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.rpc.msg.ReqRpcServiceData;
 import com.jjg.game.common.rpc.msg.RespRpcServiceData;
-import org.bson.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -110,7 +108,7 @@ public class RpcServerService {
             }
             // 如果需要服务端使用指定的线程执行方法
             if (processorId != null && processorId.longValue() > 0) {
-                BaseFuncProcessor processor = processorExecutors.getProcessorById(processorId.longValue());
+                BaseProcessor processor = processorExecutors.getProcessorById(processorId.longValue());
                 processor.executeHandler(new BaseHandler<>() {
                     @Override
                     public void action() throws Exception {
