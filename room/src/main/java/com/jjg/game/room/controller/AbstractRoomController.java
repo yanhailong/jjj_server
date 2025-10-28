@@ -587,7 +587,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             }
             result.data = room;
             this.room = room;
-            log.debug("机器人退出 人数:{}",playerControllers.size());
             // 退出房间时删除人数
             roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId(),
                     room.getMaxLimit(), -playerControllers.size(), 0);
