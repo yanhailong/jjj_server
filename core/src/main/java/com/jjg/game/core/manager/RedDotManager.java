@@ -158,6 +158,9 @@ public class RedDotManager {
             return;
         }
         List<RedDotDetails> details = redDotService.initialize(playerId, submodule);
+        if (details == null || details.isEmpty()) {
+            return;
+        }
         updateRedDot(details, playerId);
     }
 

@@ -49,8 +49,8 @@ public class PointsAwardSignInManager {
      * 初始化配置
      */
     public void initConfig() {
-        configDate = LocalDate.now();
         LocalDate now = LocalDate.now();
+        configDate = now;
         //当前月最大天数
         int totalDays = now.lengthOfMonth();
         List<PointsAwardSigninCfg> signinCfgList = GameDataManager.getPointsAwardSigninCfgList();
@@ -107,19 +107,9 @@ public class PointsAwardSignInManager {
      * 每日0点调用
      */
     public void daily() {
+        //先跨月再跨天
         checkMonth();
         pointsAwardSignInService.daily();
-    }
-
-    /**
-     * 获取今天的签到配置
-     *
-     * @return 存在null值返回
-     */
-    public PointsAwardSigninCfg getTodayConfig() {
-        LocalDate now = LocalDate.now();
-        int today = now.getDayOfMonth();
-        return signInCfgMap.get(today);
     }
 
     /**
@@ -145,5 +135,16 @@ public class PointsAwardSignInManager {
     public PointsAwardSigninCfg getSignInCfg(int dayOfMonth) {
         return signInCfgMap.get(dayOfMonth);
     }
+
+    /**
+     * 获取签到配置
+     *
+     * @return 存在null
+     */
+    public PointsAwardSigninCfg getSignInCfg() {
+        int dayOfMonth = LocalDate.now().getDayOfMonth();
+        return signInCfgMap.get(dayOfMonth);
+    }
+
 
 }

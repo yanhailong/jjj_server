@@ -1,5 +1,6 @@
 package com.jjg.game.hall.pointsaward.turntable;
 
+import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
@@ -39,6 +40,7 @@ public class PointsAwardTurntableService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final PointsAwardLogger pointsAwardLogger;
+    private final MarsCurator marsCurator;
 
     /**
      * 配置初始化时间
@@ -64,12 +66,13 @@ public class PointsAwardTurntableService {
     public PointsAwardTurntableService(PointsAwardService pointsAwardService,
                                        PlayerPackService playerPackService,
                                        RedissonClient redissonClient,
-                                       RedisLock redisLock, PointsAwardLogger pointsAwardLogger) {
+                                       RedisLock redisLock, PointsAwardLogger pointsAwardLogger, MarsCurator marsCurator) {
         this.pointsAwardService = pointsAwardService;
         this.redissonClient = redissonClient;
         this.playerPackService = playerPackService;
         this.redisLock = redisLock;
         this.pointsAwardLogger = pointsAwardLogger;
+        this.marsCurator = marsCurator;
     }
 
     public void init() {
@@ -104,7 +107,9 @@ public class PointsAwardTurntableService {
             //重新初始化配置
             initConfig();
         }
-
+        if (!marsCurator.isMaster()) {
+            return;
+        }
         // 使用分布式锁确保多节点环境下的数据一致性
         redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, () -> {
             try {

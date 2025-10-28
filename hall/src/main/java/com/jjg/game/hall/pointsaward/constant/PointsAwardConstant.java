@@ -18,11 +18,15 @@ public interface PointsAwardConstant {
         /**
          * 签到次数
          */
-        String POINTS_AWARD_SING_IN_COUNT = "pointsAward:singIn:count:";
+        String POINTS_AWARD_SIGN_IN_SET = "pointsAward:signIn:set:";
+        /**
+         * 签到奖励解锁的最大次数
+         */
+        String POINTS_AWARD_SIGN_IN_UNLOCK_SET = "pointsAward:signIn:unlock:set:";
         /**
          * 最后一次签到时间
          */
-        String POINTS_AWARD_SING_IN_DATE = "pointsAward:singIn:date:";
+        String POINTS_AWARD_SIGN_IN_DATE = "pointsAward:signIn:date:";
         /**
          * 积分大奖排行榜
          */
@@ -72,7 +76,7 @@ public interface PointsAwardConstant {
         /**
          * 玩家签到锁
          */
-        String POINTS_AWARD_SING_IN_LOCK = "pointsAwardSignInLock:";
+        String POINTS_AWARD_SIGN_IN_LOCK = "pointsAwardSignInLock:";
         /**
          * 积分大奖排行榜更新锁
          */

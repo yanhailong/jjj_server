@@ -206,7 +206,7 @@ public class RedisLock {
      */
     public void unlock(String key) {
         RedissonLock redissonLock = (RedissonLock) redissonClient.getLock(getKey(key));
-        if(redissonLock.isHeldByCurrentThread()) {
+        if (redissonLock.isHeldByCurrentThread()) {
             redissonLock.unlock();
         }
     }
@@ -232,6 +232,8 @@ public class RedisLock {
         if (lockAcquired) {
             try {
                 runnable.run();
+            } catch (Exception e) {
+                log.error("tryLockAndRun error", e);
             } finally {
                 unlock(key);
             }
@@ -253,6 +255,8 @@ public class RedisLock {
         if (lockAcquired) {
             try {
                 return supplier.get();
+            } catch (Exception e) {
+                log.error("tryLockAndGet error", e);
             } finally {
                 unlock(key);
             }
@@ -276,6 +280,8 @@ public class RedisLock {
         if (lockAcquired) {
             try {
                 return supplier.get();
+            } catch (Exception e) {
+                log.error("tryLockAndGet error", e);
             } finally {
                 unlock(key);
             }
@@ -295,6 +301,8 @@ public class RedisLock {
         lock(key, waitTime);
         try {
             runnable.run();
+        } catch (Exception e) {
+            log.error("lockAndRun error", e);
         } finally {
             unlock(key);
         }
@@ -314,6 +322,9 @@ public class RedisLock {
         lock(key, waitTime);
         try {
             return supplier.get();
+        } catch (Exception e) {
+            log.error("lockAndGet error", e);
+            return null;
         } finally {
             unlock(key);
         }
@@ -321,11 +332,12 @@ public class RedisLock {
 
     /**
      * 执行带锁的逻辑（自动释放）
-     * @param key 锁键
+     *
+     * @param key      锁键
      * @param waitTime 等待时间
      * @param timeUnit 时间单位
-     * @param action 业务逻辑
-     * @param <T> 返回值类型
+     * @param action   业务逻辑
+     * @param <T>      返回值类型
      * @return 业务结果（失败返回 null）
      */
     public <T> T executeWithLock(String key, long waitTime, TimeUnit timeUnit, Supplier<T> action) {
