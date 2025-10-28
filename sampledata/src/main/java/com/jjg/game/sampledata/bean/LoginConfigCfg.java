@@ -20,12 +20,12 @@ public class LoginConfigCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "loginConfig";
 
   /** 绑定奖励内容 */
-  protected Map<Integer,Integer> awardItem;
+  protected Map<Integer,Long> awardItem;
   /** 奖励类型 */
   protected int type;
 
   /** 返回绑定奖励内容 */
-  public Map<Integer,Integer> getAwardItem() {
+  public Map<Integer,Long> getAwardItem() {
     return awardItem;
   }
 
