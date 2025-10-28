@@ -1,17 +1,11 @@
 package com.jjg.game.core.dao;
 
-import com.mongodb.client.result.DeleteResult;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.data.PlayerSessionToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.Cursor;
-import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Repository;
@@ -30,8 +24,9 @@ public class PlayerSessionTokenDao {
 
     //玩家token
     private final String tableName = "playerSessionToken";
+    //TODO
     //token过期时长
-    private final long tokenExpireTime = 240L * TimeHelper.ONE_HOUR_OF_MILLIS;
+    private final long tokenExpireTime = 2400L * TimeHelper.ONE_HOUR_OF_MILLIS;
 
     @Autowired
     private RedisTemplate redisTemplate;
