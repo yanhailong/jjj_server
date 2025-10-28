@@ -21,12 +21,10 @@ import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.MailService;
-import com.jjg.game.core.service.ThirdAccountHttpService;
 import com.jjg.game.hall.casino.manager.CasinoManager;
 import com.jjg.game.hall.casino.pb.req.*;
 import com.jjg.game.hall.constant.HallCode;
 import com.jjg.game.hall.constant.HallConstant;
-import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.pb.req.*;
 import com.jjg.game.hall.pb.res.*;
@@ -43,7 +41,6 @@ import com.jjg.game.hall.vip.pb.req.ReqVipInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,8 +78,6 @@ public class HallMessageHandler implements GmListener {
     private CorePlayerService corePlayerService;
     @Autowired
     private PlayerAvatarDao playerAvatarDao;
-    @Autowired
-    private ThirdAccountHttpService thirdAccountHttpService;
 
     /**
      * 进入游戏
@@ -116,11 +111,12 @@ public class HallMessageHandler implements GmListener {
             }
 
             res.wareHouseList = wareHouseConfigList;
-            playerController.send(res);
             log.info("玩家选择游戏，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
+            res.code = Code.EXCEPTION;
         }
+        playerController.send(res);
     }
 
     /**
@@ -149,11 +145,12 @@ public class HallMessageHandler implements GmListener {
                 // 进入大厅加入房间的逻辑
                 res.code = hallRoomService.hallJoinRoom(playerController, req.wareId);
             }
-            playerController.send(res);
             log.info("玩家选择场次，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
+            res.code = Code.EXCEPTION;
         }
+        playerController.send(res);
     }
 
     /**
