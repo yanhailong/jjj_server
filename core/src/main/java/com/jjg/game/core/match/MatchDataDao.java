@@ -2,10 +2,11 @@ package com.jjg.game.core.match;
 
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.redis.RedissonLock;
+import com.jjg.game.core.data.Room;
 import com.jjg.game.core.match.data.MatchDataRedisKey;
 import com.jjg.game.core.utils.RoomScoreUtil;
+import org.redisson.api.RMapCache;
 import org.redisson.api.RScoredSortedSet;
-import org.redisson.api.RSetCache;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.protocol.ScoredEntry;
 import org.slf4j.Logger;
@@ -145,9 +146,9 @@ public class MatchDataDao {
      */
     public void addPlayerExpiredWaiting(long roomId, long playerId) {
         String playerWaitKey = getPlayerWaitKey(roomId);
-        RSetCache<Long> setCache = redissonClient.getSetCache(playerWaitKey);
-        setCache.remove(playerId); // 可选，确保刷新 TTL
-        setCache.add(playerId, 10, TimeUnit.SECONDS);
+        RMapCache<Long, Long> waitMap = redissonClient.getMapCache(playerWaitKey);
+        waitMap.put(playerId, System.currentTimeMillis(), 10, TimeUnit.SECONDS); // 自动刷新 TTL
+
     }
 
     /**
@@ -157,7 +158,7 @@ public class MatchDataDao {
      */
     public int getPlayerExpiredWaitingNum(long roomId) {
         String playerWaitKey = getPlayerWaitKey(roomId);
-        return redissonClient.getSetCache(playerWaitKey).size();
+        return redissonClient.getMapCache(playerWaitKey).size();
     }
 
     /**
@@ -165,11 +166,12 @@ public class MatchDataDao {
      *
      * @param gameType     游戏类型
      * @param roomConfigId 房间配置id
-     * @param roomId       房间id
+     * @param room       房间信息
      */
-    public void checkPlayerExpiredWaitingNum(int gameType, int roomConfigId, long roomId) {
+    public void checkPlayerExpiredWaitingNum(int gameType, int roomConfigId, Room room) {
         String matchRedisKey = getMatchRedisKey(gameType, roomConfigId);
         String lockMatchRedisKey = getLockMatchRedisKey(gameType, roomConfigId);
+        long roomId = room.getId();
         boolean locked = false;
         try {
             locked = redisLock.tryLock(lockMatchRedisKey, MATCH_MAX_LOCK_HOLD_TIME);
@@ -181,6 +183,10 @@ public class MatchDataDao {
                     return;
                 }
                 RoomScoreUtil.RoomScoreInfo roomScoreInfo = RoomScoreUtil.parseScore(score);
+                int roomNum = room.getRoomPlayers().size();
+                if (roomScoreInfo.maxPlayers() != roomNum + roomScoreInfo.readyPlayers()) {
+                    log.warn("房间内人数和计数不相等 roomId:{} roomNum:{} roomScoreInfo:{} ", roomId, roomNum, roomScoreInfo);
+                }
                 int readyPlayers = roomScoreInfo.readyPlayers();
                 //获取过期等待人数
                 int waitingNum = getPlayerExpiredWaitingNum(roomId);

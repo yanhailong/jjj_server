@@ -426,7 +426,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      */
     public void checkNoJoinPlayer() {
         RC cfg = gameController.getGameDataVo().getRoomCfg();
-        roomManager.getMatchDataDao().checkPlayerExpiredWaitingNum(cfg.getGameID(), cfg.getId(), room.getId());
+        roomManager.getMatchDataDao().checkPlayerExpiredWaitingNum(cfg.getGameID(), cfg.getId(), room);
     }
 
 

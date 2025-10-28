@@ -15,6 +15,7 @@ import com.jjg.game.common.utils.NetUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.dao.RoomDao;
@@ -29,7 +30,6 @@ import com.jjg.game.table.baccarat.message.resp.*;
 import com.jjg.game.table.common.data.TableGameDataVo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -45,19 +45,24 @@ import java.util.List;
 @Component
 public class BaccaratMessageHandler implements IConsoleReceiver {
 
-    private static final Logger log = LoggerFactory.getLogger(BaccaratMessageHandler.class);
-    @Autowired
-    protected RoomManager roomManager;
-    @Autowired
-    protected NodeManager nodeManager;
-    @Autowired
-    protected ClusterSystem clusterSystem;
-    @Autowired
-    private RoomDao roomDao;
-    @Autowired
-    private CorePlayerService playerService;
-    @Autowired
-    private BaccaratTempRoom baccaratTempRoom;
+    private final Logger log = LoggerFactory.getLogger(BaccaratMessageHandler.class);
+    private final RoomManager roomManager;
+    private final NodeManager nodeManager;
+    private final ClusterSystem clusterSystem;
+    private final RoomDao roomDao;
+    private final CorePlayerService playerService;
+    private final BaccaratTempRoom baccaratTempRoom;
+    private final MatchDataDao matchDataDao;
+
+    public BaccaratMessageHandler(RoomManager roomManager, NodeManager nodeManager, ClusterSystem clusterSystem, RoomDao roomDao, CorePlayerService playerService, BaccaratTempRoom baccaratTempRoom, MatchDataDao matchDataDao) {
+        this.roomManager = roomManager;
+        this.nodeManager = nodeManager;
+        this.clusterSystem = clusterSystem;
+        this.roomDao = roomDao;
+        this.playerService = playerService;
+        this.baccaratTempRoom = baccaratTempRoom;
+        this.matchDataDao = matchDataDao;
+    }
 
     /**
      * 请求百家乐房间信息，玩家进入房间时拉取此数据
@@ -65,7 +70,7 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
     @Command(BaccaratMessageConstant.ReqMsgBean.REQ_BACCARAT_TABLE_INFO)
     public void reqBaccaratTableInfo(PlayerController playerController) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-            roomManager.getGameControllerByPlayerId(playerController.playerId());
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
         if (gameController == null) {
             log.error("玩家： {} 找不到对应的房间", playerController.playerId());
             playerController.send(new RespBaccaratTableInfo(Code.FAIL));
@@ -88,21 +93,21 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         // 获取进入房间时的配置ID
         int roomCfgId = playerController.getPlayer().getRoomCfgId();
         CommonResult<List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> result =
-            getBaccaratGameController(roomCfgId);
+                getBaccaratGameController(roomCfgId);
         if (result.code != Code.SUCCESS) {
             playerController.send(new RespBaccaratTableSummaryList(result.code));
             return;
         }
         List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameControllers =
-            result.data;
+                result.data;
         // 向客户端发送摘要信息
         RespBaccaratTableSummaryList respSummaryList = new RespBaccaratTableSummaryList(Code.SUCCESS);
         respSummaryList.tableSummaryList = new ArrayList<>();
         for (AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameWareController :
-            gameControllers) {
+                gameControllers) {
             if (gameWareController instanceof BaccaratGameController baccaratGameController) {
                 BaccaratTableSummary baccaratTableSummary =
-                    BaccaratMessageBuilder.buildBaccaratSummaryInfo(baccaratGameController);
+                        BaccaratMessageBuilder.buildBaccaratSummaryInfo(baccaratGameController);
                 respSummaryList.tableSummaryList.add(baccaratTableSummary);
             }
         }
@@ -155,11 +160,13 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         String clusterCurrentNodePath = clusterSystem.getNodePath();
         // 进入房间需要先将玩家从临时房间中移除
         baccaratTempRoom.exit(playerController.getSession(), playerController);
+        //等待进入人数+1
+        matchDataDao.addPlayerExpiredWaiting(reqJoinRoomInGame.roomId, playerController.playerId());
         // 如果就在当前节点
         if (clusterCurrentNodePath.equalsIgnoreCase(room.getPath())) {
             // 将玩家加入房间
             roomManager.joinRoom(
-                playerController, reqJoinRoomInGame.gameType, room.getRoomCfgId(), reqJoinRoomInGame.roomId);
+                    playerController, reqJoinRoomInGame.gameType, room.getRoomCfgId(), reqJoinRoomInGame.roomId);
             log.info("玩家：{} 请求加入房间：{} {} 处于当前节点", playerController.playerId(), room.getRoomCfgId(), room.getId());
         } else {
             // 将玩家的房间ID设置成请求的，在session进入时会自动加入到对应的房间
@@ -176,7 +183,7 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
     @Command(value = BaccaratMessageConstant.ReqMsgBean.REQ_EXIT_ROOM_IN_GAME)
     public void exitRoomInGame(PlayerController playerController, ReqExitRoomInGame reqExitRoomInGame) {
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-            roomManager.getGameControllerByPlayerId(playerController.playerId());
+                roomManager.getGameControllerByPlayerId(playerController.playerId());
         if (gameController == null) {
             log.error("玩家请求退出房间，但找不到对应的游戏控制器");
             playerController.send(new RespExitRoomInGame(Code.FAIL));
@@ -198,14 +205,14 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
      */
     private CommonResult<List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> getBaccaratGameController(int roomCfgId) {
         List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameControllers =
-            roomManager.getGameControllersByGameType(EGameType.BACCARAT, RoomType.BET_ROOM);
+                roomManager.getGameControllersByGameType(EGameType.BACCARAT, RoomType.BET_ROOM);
         if (gameControllers.isEmpty()) {
             // 没有找到百家乐的房间
             return new CommonResult<>(Code.FAIL);
         }
         // 房间配置ID
         List<AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> gameWareControllers =
-            gameControllers.stream().filter(controller -> controller.getRoom().getRoomCfgId() == roomCfgId).toList();
+                gameControllers.stream().filter(controller -> controller.getRoom().getRoomCfgId() == roomCfgId).toList();
         if (gameWareControllers.isEmpty()) {
             return new CommonResult<>(Code.FAIL);
         }

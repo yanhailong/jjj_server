@@ -102,7 +102,6 @@ public class HallRoomService implements IConsoleReceiver {
             log.debug("加入房间时 获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
             return Code.NOT_FOUND;
         }
-
         MarsNode marsNode = marsNodeBooleanPair.getFirst();
         //白名单
         if (marsNodeBooleanPair.getSecond()) {
