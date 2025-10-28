@@ -58,12 +58,10 @@ public abstract class AbstractCallbackController {
      * @param order
      * @return
      */
-    protected CommonResult<ShopProduct> checkOrder(Order order) {
-        CommonResult<ShopProduct> result = new CommonResult<>(Code.SUCCESS);
+    protected boolean checkOrder(Order order) {
         if (order.getOrderStatus() == OrderStatus.SUCCESS) {
             log.debug("该订单重复回调 orderId = {}", order.getId());
-            result.code = Code.REPEAT_OP;
-            return result;
+            return false;
         }
 
         //修改订单状态
@@ -71,8 +69,7 @@ public abstract class AbstractCallbackController {
         if (successOrder == null) {
             log.warn("未找到该订单 orderId = {},status = {}", order.getId(), OrderStatus.ORDER);
             //TODO 记录下来，检查该订单，这里不能再次修改订单状态，因为可能是多线程问题没有修改成功
-            result.code = Code.PARAM_ERROR;
-            return null;
+            return false;
         }
 
         //获取商品
@@ -80,11 +77,9 @@ public abstract class AbstractCallbackController {
         if (shopProduct == null) {
             //TODO 记录下来，检查该订单
             log.debug("未找到该商品 orderId = {},productId = {}", order.getId(), order.getProductId());
-            result.code = Code.NOT_FOUND;
-            return null;
+            return false;
         }
-        result.data = shopProduct;
-        return result;
+        return true;
     }
 
     /**

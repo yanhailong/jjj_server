@@ -1,37 +1,24 @@
 package com.jjg.game.recharge.controller;
 
-import com.alibaba.fastjson.JSON;
-import com.apple.itunes.storekit.client.AppStoreServerAPIClient;
-import com.apple.itunes.storekit.model.*;
-import com.apple.itunes.storekit.verification.SignedDataVerifier;
-import com.auth0.jwk.Jwk;
-import com.auth0.jwk.JwkProvider;
-import com.auth0.jwk.JwkProviderBuilder;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTDecodeException;
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.pb.RechargeType;
-import com.jjg.game.recharge.dto.AppleValidateDto;
-import com.jjg.game.recharge.vo.AppleValidateVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.interfaces.RSAPublicKey;
+import java.io.ByteArrayInputStream;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.interfaces.ECPublicKey;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author 11
@@ -41,49 +28,13 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping(method = {RequestMethod.POST}, value = "applepay")
 public class AppleCallbackController extends AbstractCallbackController {
 
-    // Apple相关常量
-    private static final String APPLE_ISSUER = "appstoreconnect-v1";
-    private static final String APPLE_AUDIENCE = "appstoreconnect-v1";
-
     private static final long CLOCK_SKEW = 300; // 5分钟时钟偏差
-
-    private final SignedDataVerifier verifier;
-
-    private final AppStoreServerAPIClient client;
-
-    private final JwkProvider jwkProvider;
 
     @Autowired
     private PlayerSessionTokenDao playerSessionTokenDao;
+    @Autowired
+    private ThirdServiceInfo thirdServiceInfo;
 
-    public AppleCallbackController(ThirdServiceInfo thirdServiceInfo) throws Exception {
-
-        try {
-            // 创建JWK提供者，用于获取Apple的公钥
-            this.jwkProvider = new JwkProviderBuilder(thirdServiceInfo.getAppleJwksUrl())
-                    .cached(10, 24, TimeUnit.HOURS) // 缓存10个密钥，24小时
-                    .rateLimited(10, 1, TimeUnit.MINUTES) // 限流：每分钟10次
-                    .build();
-
-            Set<InputStream> certificates = new HashSet<>();
-            certificates.add(new FileInputStream("config/AppleRootCA-G2.cer"));
-            certificates.add(new FileInputStream("config/AppleRootCA-G3.cer"));
-
-            Path subKeyfilePath = Path.of("config/SubscriptionKey.p8");
-            String subKeyEncodedKey = Files.readString(subKeyfilePath);
-
-            if (thirdServiceInfo.isSandbox()) {
-                this.verifier = new SignedDataVerifier(certificates, thirdServiceInfo.getAppleBundleId(), thirdServiceInfo.getAppleAppId(), Environment.SANDBOX, true);
-                this.client = new AppStoreServerAPIClient(subKeyEncodedKey, thirdServiceInfo.getAppleKeyId(), thirdServiceInfo.getAppleIssuerId(), thirdServiceInfo.getAppleBundleId(), Environment.SANDBOX);
-            } else {
-                this.verifier = new SignedDataVerifier(certificates, thirdServiceInfo.getAppleBundleId(), thirdServiceInfo.getAppleAppId(), Environment.PRODUCTION, true);
-                this.client = new AppStoreServerAPIClient(subKeyEncodedKey, thirdServiceInfo.getAppleKeyId(), thirdServiceInfo.getAppleIssuerId(), thirdServiceInfo.getAppleBundleId(), Environment.PRODUCTION);
-            }
-
-        } catch (Exception e) {
-            throw e;
-        }
-    }
 
     /**
      * 接收App Store Server Notifications V2格式的回调通知
@@ -116,6 +67,15 @@ public class AppleCallbackController extends AbstractCallbackController {
 
             log.info("处理Apple通知 type={}, uuid={}", notificationType, notificationUUID);
 
+            // 解析 signedTransactionInfo
+            JsonNode transactionInfo = verifyAndDecodeTransactionInfo(notificationNode);
+            if (transactionInfo == null) {
+                log.warn("无法解析 signedTransactionInfo");
+                return ResponseEntity.status(400).body("Invalid transaction info");
+            }
+
+            log.debug("解析后的交易信息: {}", transactionInfo);
+
             // 根据通知类型路由到不同的处理方法
 //            switch (notificationType) {
 //                case "DID_RENEW" -> {}
@@ -141,7 +101,7 @@ public class AppleCallbackController extends AbstractCallbackController {
     /**
      * 验证Apple通知签名
      *
-     * @param notificationData 原始的JSON字符串（从请求体获取）
+     * @param notificationData 原始的JSON字符串
      * @return 验证结果
      */
     public boolean verifyAppleNotificationSignature(String notificationData) {
@@ -159,6 +119,12 @@ public class AppleCallbackController extends AbstractCallbackController {
 
             String signedPayload = notificationNode.get("signedPayload").asText();
             log.debug("获取到signedPayload，长度: {}", signedPayload.length());
+
+            // 2. 验证 signedPayload 是否为有效的 JWT
+            if (!isValidJWT(signedPayload)) {
+                log.warn("signedPayload 不是有效的 JWT 格式: {}", signedPayload);
+                return false;
+            }
 
             // ===== 3. 解码JWS Token =====
             DecodedJWT decodedJWT = decodeJWS(signedPayload);
@@ -187,6 +153,25 @@ public class AppleCallbackController extends AbstractCallbackController {
     }
 
     /**
+     * 验证字符串是否为有效的 JWT 格式
+     */
+    private boolean isValidJWT(String signedPayload) {
+        try {
+            String[] parts = signedPayload.split("\\.");
+            if (parts.length != 3) {
+                log.warn("JWT 格式无效，部分数量不正确: {}", parts.length);
+                return false;
+            }
+            Base64.getUrlDecoder().decode(parts[0]); // header
+            Base64.getUrlDecoder().decode(parts[1]); // payload
+            return true;
+        } catch (IllegalArgumentException e) {
+            log.warn("JWT 格式无效，Base64 解码失败: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * 解码JWS Token
      */
     private DecodedJWT decodeJWS(String signedPayload) {
@@ -195,14 +180,12 @@ public class AppleCallbackController extends AbstractCallbackController {
             DecodedJWT decodedJWT = JWT.decode(signedPayload);
 
             // 验证算法
-            if (!"RS256".equals(decodedJWT.getAlgorithm())) {
+            if (!"ES256".equals(decodedJWT.getAlgorithm())) {
                 log.warn("不支持的签名算法: {}", decodedJWT.getAlgorithm());
                 return null;
             }
 
-            log.debug("JWS解码成功，Key ID: {}", decodedJWT.getKeyId());
             return decodedJWT;
-
         } catch (JWTDecodeException e) {
             log.warn("JWS解码失败: {}", e.getMessage());
             return null;
@@ -214,35 +197,32 @@ public class AppleCallbackController extends AbstractCallbackController {
      */
     private boolean verifyBasicClaims(DecodedJWT jwt) {
         try {
-            // 验证颁发者
-            if (!APPLE_ISSUER.equals(jwt.getIssuer())) {
-                log.warn("颁发者验证失败: expected={}, actual={}", APPLE_ISSUER, jwt.getIssuer());
+            // 验证 signedDate
+            JsonNode payloadNode = objectMapper.readTree(new String(Base64.getUrlDecoder().decode(jwt.getPayload())));
+            if (!payloadNode.has("signedDate")) {
+                log.warn("缺少 signedDate 字段");
                 return false;
             }
 
-            // 验证受众
-            if (!jwt.getAudience().contains(APPLE_AUDIENCE)) {
-                log.warn("受众验证失败: expected={}, actual={}", APPLE_AUDIENCE, jwt.getAudience());
+            long signedDate = payloadNode.get("signedDate").asLong();
+            long now = System.currentTimeMillis();
+            long clockSkewMillis = CLOCK_SKEW * 100000; // 5 分钟延迟
+            if (signedDate < (now - clockSkewMillis)) {
+                log.warn("通知已过期: signedDate={}, now={}", signedDate, now);
+                return false;
+            }
+            if (signedDate > (now + clockSkewMillis)) {
+                log.warn("通知尚未生效: signedDate={}, now={}", signedDate, now);
                 return false;
             }
 
-            // 验证过期时间
-            Date expiresAt = jwt.getExpiresAt();
-            if (expiresAt == null) {
-                log.warn("缺少过期时间声明");
+            JsonNode dataNode = payloadNode.get("data");
+            if(!thirdServiceInfo.getAppleBundleId().equals(dataNode.get("bundleId").asText())){
+                log.warn("bundleId 匹配不上 : jwtBundleId={}, cfgBundleId={}", dataNode.get("bundleId").asText(), thirdServiceInfo.getAppleBundleId());
                 return false;
             }
-
-            Date now = new Date();
-            if (expiresAt.before(new Date(now.getTime() - CLOCK_SKEW * 1000))) {
-                log.warn("Token已过期: expiresAt={}, now={}", expiresAt, now);
-                return false;
-            }
-
-            // 验证生效时间（可选）
-            Date notBefore = jwt.getNotBefore();
-            if (notBefore != null && notBefore.after(new Date(now.getTime() + CLOCK_SKEW * 1000))) {
-                log.warn("Token尚未生效: notBefore={}, now={}", notBefore, now);
+            if(thirdServiceInfo.getAppleAppId() != dataNode.get("appAppleId").asLong()){
+                log.warn("apple app id 匹配不上 : jwtAppid={}, cfgAppid={}", dataNode.get("appAppleId").asText(), thirdServiceInfo.getAppleAppId());
                 return false;
             }
 
@@ -256,41 +236,48 @@ public class AppleCallbackController extends AbstractCallbackController {
     }
 
     /**
-     * 验证签名
+     * 验证签名（使用 x5c 证书链）
      */
     private boolean verifySignature(DecodedJWT jwt) {
         try {
-            String keyId = jwt.getKeyId();
-            if (keyId == null || keyId.isEmpty()) {
-                log.warn("JWT中缺少Key ID");
+            // 解析 header 获取 x5c 证书链
+            JsonNode headerNode = objectMapper.readTree(new String(Base64.getUrlDecoder().decode(jwt.getHeader())));
+            if (!headerNode.has("x5c")) {
+                log.warn("JWT 头部缺少 x5c 字段");
                 return false;
             }
 
-            log.debug("获取公钥，Key ID: {}", keyId);
-
-            // 从Apple JWKS端点获取公钥
-            Jwk jwk = jwkProvider.get(keyId);
-            RSAPublicKey publicKey = (RSAPublicKey) jwk.getPublicKey();
-
-            if (publicKey == null) {
-                log.warn("无法获取公钥");
+            JsonNode x5cNode = headerNode.get("x5c");
+            if (!x5cNode.isArray() || x5cNode.size() == 0) {
+                log.warn("x5c 证书链为空或格式无效");
                 return false;
             }
 
-            // 5. 创建验证器并验证签名
-            Algorithm algorithm = Algorithm.RSA256(publicKey, null);
+            // 提取证书链中的第一张证书（签名证书）
+            String certStr = x5cNode.get(0).asText();
+            X509Certificate certificate = parseCertificate(certStr);
+            if (certificate == null) {
+                log.warn("无法解析 x5c 证书");
+                return false;
+            }
+
+            // 获取公钥
+            ECPublicKey publicKey = (ECPublicKey) certificate.getPublicKey();
+//            log.debug("成功获取公钥: {}", publicKey);
+
+            // 创建验证器并验证签名
+            Algorithm algorithm = Algorithm.ECDSA256(publicKey, null);
             JWTVerifier verifier = JWT.require(algorithm)
-                    .withIssuer(APPLE_ISSUER)
-                    .withAudience(APPLE_AUDIENCE)
                     .acceptLeeway(CLOCK_SKEW)
                     .build();
 
-            // 验证签名
             verifier.verify(jwt.getToken());
-
             log.debug("签名验证成功");
             return true;
 
+        } catch (JWTVerificationException e) {
+            log.error("签名验证失败: {}", e.getMessage());
+            return false;
         } catch (Exception e) {
             log.error("验证签名异常", e);
             return false;
@@ -298,12 +285,40 @@ public class AppleCallbackController extends AbstractCallbackController {
     }
 
     /**
-     * 从验证通过的JWT中提取通知数据
+     * 解析 Base64 编码的 X.509 证书
      */
-    public JsonNode extractNotificationData(String signedPayload) {
+    private X509Certificate parseCertificate(String certStr) {
         try {
+            byte[] certBytes = Base64.getDecoder().decode(certStr);
+            CertificateFactory factory = CertificateFactory.getInstance("X.509");
+            return (X509Certificate) factory.generateCertificate(new ByteArrayInputStream(certBytes));
+        } catch (Exception e) {
+            log.error("解析 X.509 证书失败: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 从验证通过的 JWT 中提取通知数据
+     */
+    public JsonNode extractNotificationData(String rawBody) {
+        try {
+            // 解析 rawBody 获取 signedPayload
+            JsonNode notificationNode = objectMapper.readTree(rawBody);
+            if (!notificationNode.has("signedPayload")) {
+                log.warn("rawBody 中未找到 signedPayload 字段");
+                return null;
+            }
+
+            String signedPayload = notificationNode.get("signedPayload").asText();
+            if (StringUtils.isEmpty(signedPayload)) {
+                log.warn("signedPayload 为空");
+                return null;
+            }
+
+            // 解码 JWT 的 payload 部分
             DecodedJWT decodedJWT = JWT.decode(signedPayload);
-            String payload = new String(java.util.Base64.getUrlDecoder().decode(decodedJWT.getPayload()));
+            String payload = new String(Base64.getUrlDecoder().decode(decodedJWT.getPayload()));
             return objectMapper.readTree(payload);
         } catch (Exception e) {
             log.error("提取通知数据异常", e);
@@ -312,121 +327,50 @@ public class AppleCallbackController extends AbstractCallbackController {
     }
 
     /**
-     * 回调
-     *
-     * @return
+     * 验证并解码 signedTransactionInfo
      */
-    @RequestMapping("validate")
-    public WebResult<AppleValidateVo> validate(@RequestBody AppleValidateDto dto) {
+    public JsonNode verifyAndDecodeTransactionInfo(JsonNode notificationNode) {
         try {
-            log.debug("收到apple充值验证 dto = {}", JSON.toJSONString(dto));
-
-            //检查参数
-            if (StringUtils.isEmpty(dto.getPlayerToken()) || dto.getPlayerId() < 1) {
-                log.debug("参数 playerToken、playerId 不能为空，apple充值失败 dto = {}", JSON.toJSONString(dto));
-                return new WebResult<>(Code.FAIL, "参数 playerToken、playerId 不能为空");
+            // 提取 signedTransactionInfo
+            JsonNode dataNode = notificationNode.get("data");
+            if (dataNode == null || !dataNode.has("signedTransactionInfo")) {
+                log.warn("通知中未找到 data.signedTransactionInfo 字段");
+                return null;
             }
 
-            // 提取 jws
-            String jwsRepresentation = dto.getJwsRepresentation();
-            String transactionId = dto.getTransactionId();
-            if (StringUtils.isEmpty(transactionId) || StringUtils.isEmpty(jwsRepresentation)) {
-                log.debug("参数 transactionId、jwsRepresentation 不能为空，apple充值失败 dto = {}", JSON.toJSONString(dto));
-                return new WebResult<>(Code.FAIL, "参数 transactionId、jwsRepresentation 不能为空");
+            String signedTransactionInfo = dataNode.get("signedTransactionInfo").asText();
+            if (StringUtils.isEmpty(signedTransactionInfo)) {
+                log.warn("signedTransactionInfo 为空");
+                return null;
             }
 
-            //检查rechargeType
-            RechargeType rechargeType = RechargeType.valueOf(dto.rechargeType);
-            if (rechargeType == null || StringUtils.isEmpty(dto.getProductId())) {
-                log.debug("参数 rechargeType、productId 不能为空，apple充值失败 dto = {}", JSON.toJSONString(dto));
-                return new WebResult<>(Code.FAIL, "参数 rechargeType、productId 不能为空，apple充值失败");
+            // 验证 signedTransactionInfo 是否为有效的 JWT
+            if (!isValidJWT(signedTransactionInfo)) {
+                log.warn("signedTransactionInfo 不是有效的 JWT 格式: {}", signedTransactionInfo);
+                return null;
             }
 
-            //本地校验
-            boolean verify = verify(transactionId, jwsRepresentation);
-            if (!verify) {
-                return new WebResult<>(Code.FAIL, "校验 jwt 失败");
+            // 解码 JWS
+            DecodedJWT decodedJWT = decodeJWS(signedTransactionInfo);
+            if (decodedJWT == null) {
+                return null;
             }
 
-            //去apple服务器获取该交易信息
-            TransactionInfoResponse transactionInfo = this.client.getTransactionInfo(transactionId);
-            if (transactionInfo == null || StringUtils.isEmpty(transactionInfo.getSignedTransactionInfo())) {
-                log.debug("从apple服务器获取的transactionInfo错误，apple充值失败 dto = {},transactionInfo = {}", JSON.toJSONString(dto), transactionInfo);
-                return new WebResult<>(Code.FAIL, "从apple服务器获取的transactionInfo错误");
+            // 验证签名
+            if (!verifySignature(decodedJWT)) {
+                return null;
             }
 
-            log.debug("从apple服务器成功获取交易信息 jwsRepresentation = {}", transactionInfo.getSignedTransactionInfo());
-            //从apple获取的订单信息，进行校验
-            verify = verify(transactionId, transactionInfo.getSignedTransactionInfo());
-            if (!verify) {
-                return new WebResult<>(Code.FAIL, "从apple服务器获取的信息 校验 jwt 失败");
-            }
+            // 提取 payload
+            String payload = new String(Base64.getUrlDecoder().decode(decodedJWT.getPayload()));
+            JsonNode transactionInfo = objectMapper.readTree(payload);
+            log.debug("成功解析 signedTransactionInfo: {}", transactionInfo);
+            return transactionInfo;
 
-            //获取商品价格
-            BigDecimal productPrice = getProductPrice(rechargeType, dto.getProductId());
-            if (productPrice == null) {
-                log.debug("获取商品价格失败 dto = {}", JSON.toJSONString(dto));
-                return new WebResult<>(Code.FAIL, "获取商品价格失败");
-            }
-
-            //获取redis中的token信息
-            PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(dto.getPlayerId());
-            if (playerSessionToken == null) {
-                log.debug("获取玩家 playerSessionToken 失败 dto = {}", JSON.toJSONString(dto));
-                return new WebResult<>(Code.FAIL, "获取玩家 playerSessionToken 失败");
-            }
-
-            //对比token
-            if (!playerSessionToken.getToken().equals(dto.getPlayerToken())) {
-                log.debug("玩家 token 校验失败 dto = {},dbToken = {}", JSON.toJSONString(dto), playerSessionToken.getToken());
-                return new WebResult<>(Code.FAIL, "玩家 token 校验失败");
-            }
-
-            //生成订单
-            Order order = orderService.generateOrder(dto.getPlayerId(), ChannelType.APPLE, PayType.IOS, dto.productId, productPrice, rechargeType, OrderStatus.SUCCESS, dto.getTransactionId());
-            if (order == null) {
-                log.debug("生成订单失败 dto = {}", JSON.toJSONString(dto));
-                return new WebResult<>(Code.FAIL, "玩家 token 校验失败");
-            }
-
-            payCallback(order);
-            log.info("ios充值成功 orderId = {},transactionId = {}", order.getId(), transactionId);
-            return new WebResult<>(Code.SUCCESS);
         } catch (Exception e) {
-            log.error("处理Apple充值回调异常", e);
-            return new WebResult<>(Code.EXCEPTION);
+            log.error("解析 signedTransactionInfo 异常", e);
+            return null;
         }
-    }
-
-    /**
-     * 校验
-     *
-     * @param jwt
-     * @return
-     * @throws Exception
-     */
-    public boolean verify(String transactionId, String jwt) throws Exception {
-        JWSTransactionDecodedPayload jwsPayload = this.verifier.verifyAndDecodeTransaction(jwt);
-        log.debug("jwsPayload = {}", jwsPayload);
-
-        // 检查 transactionId 一致性
-        if (!transactionId.equals(jwsPayload.getTransactionId())) {
-            log.debug("transactionId 不一致 req.transactionId = {},jws.transactionId = {},jwt = {} ", transactionId, jwsPayload.getTransactionId(), jwt);
-            return false;
-        }
-
-        // 检查交易是否被撤销
-        if (jwsPayload.getRevocationDate() != null) {
-            log.debug("交易被撤销 date = {},jwt = {}", jwsPayload.getRevocationDate(), jwt);
-            return false;
-        }
-
-        // 检查订阅是否过期
-        if (jwsPayload.getExpiresDate() != null && jwsPayload.getExpiresDate() < System.currentTimeMillis()) {
-            log.debug("订阅过期 jwt = {}", jwt);
-            return false;
-        }
-        return true;
     }
 }
 
