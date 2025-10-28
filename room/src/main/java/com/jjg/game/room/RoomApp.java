@@ -6,6 +6,7 @@ import com.jjg.game.common.service.MarsCoreStartService;
 import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.base.condition.ConditionType;
 import com.jjg.game.core.service.CoreStartService;
+import com.jjg.game.room.config.ExcludeServiceFilter;
 import com.jjg.game.room.listener.IRoomStartListener;
 import com.jjg.game.room.listener.RoomEventListener;
 import org.slf4j.Logger;
@@ -20,6 +21,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.core.annotation.Order;
 
 import java.util.Collections;
@@ -30,7 +32,13 @@ import java.util.Map;
  * @date 2025/6/17 13:25
  */
 @SpringBootApplication(exclude = {QuartzAutoConfiguration.class})
-@ComponentScan({"com.jjg.game"})
+@ComponentScan(
+        basePackages = "com.jjg.game",
+        excludeFilters = {
+                @ComponentScan.Filter(
+                        type = FilterType.CUSTOM,
+                        classes = ExcludeServiceFilter.class)
+        })
 @Order(2)
 public class RoomApp implements SmartLifecycle, ApplicationContextAware {
     private Logger log = LoggerFactory.getLogger(getClass());
