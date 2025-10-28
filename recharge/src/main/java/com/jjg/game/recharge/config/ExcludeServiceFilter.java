@@ -14,6 +14,6 @@ public class ExcludeServiceFilter implements TypeFilter {
     @Override
     public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory) throws IOException {
         String className = metadataReader.getClassMetadata().getClassName();
-        return className.equals("com.jjg.game.core.service.ChannelHttpService");
+        return className.equals("com.jjg.game.core.service.ThirdAccountHttpService");
     }
 }
