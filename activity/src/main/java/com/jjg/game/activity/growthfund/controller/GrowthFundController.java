@@ -68,9 +68,9 @@ public class GrowthFundController extends BaseActivityController implements Game
         long playerId = player.getId();
         long activityId = activityData.getId();
         BigDecimal decimal = countDao.incr(String.valueOf(activityId), String.valueOf(playerId));
-        if (decimal.intValue() >= 1) {
+        if (decimal.intValue() > 1) {
             log.error("玩家已经购买过成长基金 playerId:{} activityId:{}", playerId, activityId);
-            return null;
+            return new ResGrowthFundBuyResultInfo(Code.REPEAT_OP);
         }
         //购买道具奖励
         Map<Integer, Long> rewards = getBuyGetRewards(activityData);
@@ -90,7 +90,7 @@ public class GrowthFundController extends BaseActivityController implements Game
             //触发需要购买的奖励
             for (GrowthFundCfg cfg : baseCfgBeanMap.values()) {
                 //等级不够 和 不需要支付的跳过
-                if (cfg.getLevel() > level && cfg.getType() == ActivityConstant.GrowthFund.Charge) {
+                if (cfg.getLevel() > level || cfg.getType() != ActivityConstant.GrowthFund.Charge) {
                     continue;
                 }
                 //判断是否能触发
@@ -173,8 +173,8 @@ public class GrowthFundController extends BaseActivityController implements Game
                 return false;
             }
             long count = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player)).longValue();
-            String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-            redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+//            String lockKey = playerActivityDao.getLockKey(playerId, activityId);
+//            redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
                 playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
                 for (GrowthFundCfg cfg : baseCfgBeanMap.values()) {
@@ -183,7 +183,7 @@ public class GrowthFundController extends BaseActivityController implements Game
                         continue;
                     }
                     //判断是否能触发
-                    if (cfg.getLevel() == ActivityConstant.GrowthFund.FREE || cfg.getType() == ActivityConstant.GrowthFund.Charge && count > 0) {
+                    if (cfg.getType() == ActivityConstant.GrowthFund.FREE || cfg.getType() == ActivityConstant.GrowthFund.Charge && count > 0) {
                         PlayerActivityData data = playerActivityData.computeIfAbsent(cfg.getId(), key -> new PlayerActivityData(activityId, activityData.getRound()));
                         //不可领取的设置为领取
                         if (data.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
@@ -198,7 +198,7 @@ public class GrowthFundController extends BaseActivityController implements Game
             } catch (Exception e) {
                 log.error("成长基金增加进度异常 playerId:{} activityId:{}", player, activityId, e);
             } finally {
-                redisLock.unlock(lockKey);
+//                redisLock.unlock(lockKey);
             }
         }
         return change;
@@ -244,7 +244,7 @@ public class GrowthFundController extends BaseActivityController implements Game
                 if (fundCfg == null || CollectionUtil.isEmpty(fundCfg.getGetItem())) {
                     continue;
                 }
-                rewards.putAll(fundCfg.getGetItem());
+                fundCfg.getGetItem().forEach((key, value) -> rewards.merge(key, value, Long::sum));
                 playerActivityData.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
                 dataPair.add(Pair.newPair(fundCfg, playerActivityData));
             }
@@ -342,7 +342,7 @@ public class GrowthFundController extends BaseActivityController implements Game
             ActivityData activityData = activityManager.getActivityData().get(entry.getKey());
             if (activityData != null) {
                 if (activityData.getBigDecimalParam().size() >= 3) {
-                    activityInfo.sellingPrice = activityData.getBigDecimalParam().getFirst().toString();
+                    activityInfo.sellingPrice = activityData.getBigDecimalParam().getLast().toString();
                     activityInfo.originalPrice = activityData.getBigDecimalParam().get(1).toString();
                     activityInfo.totalGet = activityData.getBigDecimalParam().getFirst().longValue();
                 }
@@ -384,6 +384,8 @@ public class GrowthFundController extends BaseActivityController implements Game
                 }
                 return true;
             }
+        } else {
+            return true;
         }
         return false;
     }
@@ -412,7 +414,10 @@ public class GrowthFundController extends BaseActivityController implements Game
                 }
                 String pId = activityData.getChannelCommodity().get(player.getChannel().getValue());
                 if (pId.equals(order.getProductId())) {
-                    joinActivity(player, activityData, 0, 1);
+                    AbstractResponse res = joinActivity(player, activityData, 0, 1);
+                    if (res != null) {
+                        activityManager.sendToPlayer(player.getId(), res);
+                    }
                     log.info("充值事件 参加活动成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
                     break;
                 }
