@@ -177,7 +177,7 @@ public class OfficialAwardsDao {
             String val = redisTemplate.opsForValue().get(key);
             long current = val == null ? 0 : Long.parseLong(val);
             if (current == 0) {
-                return Pair.newPair(0L,0L);
+                return Pair.newPair(0L, 0L);
             }
             reduceValue = Math.min(reduceValue, current);
             long remain = current - reduceValue;

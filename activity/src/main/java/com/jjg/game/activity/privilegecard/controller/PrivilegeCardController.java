@@ -195,7 +195,6 @@ public class PrivilegeCardController extends BaseActivityController implements G
         }
         PlayerPrivilegeCard data = null;
         CommonResult<ItemOperationResult> addedItems = null;
-
         // 加锁，保证领取操作原子性
         redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
