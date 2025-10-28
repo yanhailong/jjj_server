@@ -5,8 +5,8 @@ import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.cluster.ClusterProcessorExecutors;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.concurrent.IProcessorHandler;
-import com.jjg.game.common.concurrent.processor.GameProcessor;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
@@ -1084,7 +1084,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         for (AbstractRoomController<? extends RoomCfg, ? extends Room> needDestroyRoomController : needDestroyRooms) {
             log.info("开始销毁空房间: {}", needDestroyRoomController.getRoom().logStr());
             // 需要将销毁逻辑切换到原来的房间线程执行
-            GameProcessor gameProcessor =
+            BaseProcessor gameProcessor =
                     processorExecutors.getProcessorById(needDestroyRoomController.getRoom().getId());
             gameProcessor.executeHandler(new BaseHandler<>() {
                 @Override

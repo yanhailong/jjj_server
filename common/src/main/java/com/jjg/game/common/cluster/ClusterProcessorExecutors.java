@@ -93,14 +93,14 @@ public class ClusterProcessorExecutors {
     /**
      * 获取通过session中的workId获取对应的逻辑线程
      */
-    public <T extends BaseProcessor> T getProcessorById(long workId) {
+    public BaseProcessor getProcessorById(long workId) {
         // 默认节点的工作ID是大于0的
         if (workId == 0) {
             return null;
         }
         int threadId = calcThreadId(workId);
         if (processorPool.containsKey(threadId)) {
-            return (T) processorPool.get(threadId);
+            return processorPool.get(threadId);
         }
         if (nodeConfig == null) {
             nodeConfig = CommonUtil.getContext().getBean(NodeConfig.class);
@@ -115,7 +115,7 @@ public class ClusterProcessorExecutors {
             log.error("节点: {} 未找到线程基础配置,将走默认逻辑线程: {}", nodeType.name(), Thread.currentThread().getName());
             return null;
         }
-        return (T) processorPool.computeIfAbsent(threadId, k -> processorModule.getModuleProcessor(threadId));
+        return processorPool.computeIfAbsent(threadId, k -> processorModule.getModuleProcessor(threadId));
     }
 
     /**

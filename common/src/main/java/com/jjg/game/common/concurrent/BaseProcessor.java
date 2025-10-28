@@ -287,7 +287,7 @@ public abstract class BaseProcessor implements IPrintTimeHandler {
     /**
      * 向该线程投递Handler(Runnable)
      */
-    protected void executeHandler(BaseHandler<?> handler) {
+    public void executeHandler(BaseHandler<?> handler) {
         try {
             if (executor.isShutdown()) {
                 logger.warn("线程{} 已经停止, Handler被丢弃: {}", this.name, handler.getClass().getName());

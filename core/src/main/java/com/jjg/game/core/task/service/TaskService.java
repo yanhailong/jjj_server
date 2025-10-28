@@ -744,6 +744,35 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
     }
 
     /**
+     * 通知玩家任务更新
+     */
+    public void noticeUpdateAll(long playerId) {
+        NotifyUpdateTask updateTask = new NotifyUpdateTask();
+        RMap<Integer, TaskData> dataMap = getPlayerTaskMap(playerId);
+        if (dataMap != null) {
+            //已领取任务不显示
+            List<Task> tasks = dataMap.values().stream().map(taskData -> {
+                if (taskData.getStatus() == TaskConstant.TaskStatus.STATUS_REWARDED) {
+                    return null;
+                }
+                TaskCfg taskCfg = GameDataManager.getTaskCfg(taskData.getConfigId());
+                if (taskCfg == null) {
+                    return null;
+                }
+                return assembleTask(taskData, taskCfg);
+            }).filter(Objects::nonNull).toList();
+            //有任务才推送更新
+            if (!tasks.isEmpty()) {
+                updateTask.setTaskList(tasks);
+                PFSession pfSession = clusterSystem.getSession(playerId);
+                if (pfSession != null) {
+                    pfSession.send(updateTask);
+                }
+            }
+        }
+    }
+
+    /**
      * 获取所属模块{@link RedDotDetails.RedDotModule}
      */
     @Override
@@ -925,6 +954,8 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
                         executor.submit(() -> {
                             // 使用非阻塞方式检查任务，避免影响其他玩家
                             checkTask(playerId);
+                            //重新通知客户端刷新一次列表 推送玩家所有任务更新
+                            noticeUpdateAll(playerId);
                         });
                     } catch (Exception e) {
                         failCount++;

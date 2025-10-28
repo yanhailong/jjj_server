@@ -1,12 +1,12 @@
 package com.jjg.game.common.cluster;
 
-import com.jjg.game.common.concurrent.BaseFuncProcessor;
 import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.constant.CoreConst;
-import com.jjg.game.common.protostuff.*;
-import io.netty.channel.ChannelHandler;
 import com.jjg.game.common.listener.SessionReferenceBinder;
 import com.jjg.game.common.net.Connect;
+import com.jjg.game.common.protostuff.*;
+import io.netty.channel.ChannelHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -84,7 +84,7 @@ public class ClusterMessageDispatcher {
         }
         PFMessage msg = clusterMessage.getMsg();
         try {
-            BaseFuncProcessor processor = processorExecutors.getProcessorById(
+            BaseProcessor processor = processorExecutors.getProcessorById(
                 session == null ? 0 : session.getWorkId());
             if (processor == null) {
                 handle(connect, session, msg);
