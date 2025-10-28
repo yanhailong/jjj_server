@@ -64,6 +64,7 @@ public class FirstPaymentController extends BaseActivityController implements Ga
         Map<Integer, FirstpaymentCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         FirstpaymentCfg cfg = baseCfgBeanMap.get(detailId);
         if (cfg == null) {
+            log.error("配置错误 未找到首充配置 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
             res.code = Code.PARAM_ERROR;
             return res;
         }
@@ -262,7 +263,10 @@ public class FirstPaymentController extends BaseActivityController implements Ga
                     }
                     String productId = cfg.getChannelCommodity().get(player.getChannel().getValue());
                     if (productId.equals(order.getProductId())) {
-                        joinActivity(player, activityData, cfg.getId(), 1);
+                        AbstractResponse res = joinActivity(player, activityData, cfg.getId(), 1);
+                        if (res != null) {
+                            activityManager.sendToPlayer(player.getId(), res);
+                        }
                         log.info("充值事件 参加活动成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
                         break;
                     }

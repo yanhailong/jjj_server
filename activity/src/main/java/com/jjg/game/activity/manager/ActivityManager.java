@@ -290,6 +290,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         long timeMillis = System.currentTimeMillis();
         //活动开启
         if (data.getStatus() == ActivityConstant.ActivityStatus.NOT_START && timeMillis >= data.getTimeStart()) {
+            log.info("活动activity:{} 开启 time:{}", activityId, data.getTimeStart());
             activityOpenAction(data);
         }
         //活动结束
@@ -336,7 +337,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                         log.info("循环活动 activity:{} 下一次开始时间{}", activityId, data.getTimeStart());
                         //设置下一轮的结束
                         data.setTimeEnd(TimeHelper.getTimestamp(nextOpenTime.getSecond()));
-                        log.info("循环活动 activity:{} 下一次结束时间{}", activityId, data.getTimeStart());
+                        log.info("循环活动 activity:{} 下一次结束时间{}", activityId, data.getTimeEnd());
                         //设置定时器
                         addActivityTimer(List.of(Pair.newPair(data.getTimeEnd(), activityId),
                                 Pair.newPair(data.getTimeStart(), activityId)));
@@ -426,8 +427,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * @param value                增加值
      * @param additionalParameters 额外参数
      */
-    public void addPlayerActivityProgress(Player player, long activityTargetKey, long value,
-                                          Object additionalParameters) {
+    public void addPlayerActivityProgress(Player player, long activityTargetKey, long value, Object additionalParameters) {
         if (value <= 0) {
             return;
         }
