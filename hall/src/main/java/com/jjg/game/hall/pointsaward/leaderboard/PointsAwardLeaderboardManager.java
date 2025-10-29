@@ -247,7 +247,6 @@ public class PointsAwardLeaderboardManager {
                             paramData.add(new LanguageParamData(0, date.toString()));
                             paramData.add(new LanguageParamData(0, PointsAwardConstant.Leaderboard.RANK_NAME_AM));
                             paramData.add(new LanguageParamData(0, String.valueOf(info.getRank())));
-
                         } else if (rankingData.getRankType() == PointsAwardConstant.Leaderboard.PM) {
                             paramData.add(new LanguageParamData(0, date.toString()));
                             paramData.add(new LanguageParamData(0, PointsAwardConstant.Leaderboard.RANK_NAME_PM));
@@ -256,14 +255,26 @@ public class PointsAwardLeaderboardManager {
                             paramData.add(new LanguageParamData(0, date.toString()));
                             paramData.add(new LanguageParamData(0, String.valueOf(info.getRank())));
                         }
-                        //其他奖励
-                        if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.OTHER) {
-                            mailService.addCfgMail(info.getPlayerId(), 5, null, paramData);
-                            code = awardCodeManager.generateCode(info.getPlayerId(), AwardCodeType.POINTS_AWARD);
-                        }
-                        //道具
-                        else if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.ITEM) {
-                            mailService.addCfgMail(info.getPlayerId(), 4, ItemUtils.buildItemsByStrList(awardItems), paramData);
+                        if (rankingData.getRankType() == PointsAwardConstant.Leaderboard.TYPE_MONTH) {
+                            //其他奖励
+                            if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.OTHER) {
+                                mailService.addCfgMail(info.getPlayerId(), 7, null, paramData);
+                                code = awardCodeManager.generateCode(info.getPlayerId(), AwardCodeType.POINTS_AWARD);
+                            }
+                            //道具
+                            else if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.ITEM) {
+                                mailService.addCfgMail(info.getPlayerId(), 6, ItemUtils.buildItemsByStrList(awardItems), paramData);
+                            }
+                        } else {
+                            //其他奖励
+                            if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.OTHER) {
+                                mailService.addCfgMail(info.getPlayerId(), 5, null, paramData);
+                                code = awardCodeManager.generateCode(info.getPlayerId(), AwardCodeType.POINTS_AWARD);
+                            }
+                            //道具
+                            else if (cfg.getAwardType() == PointsAwardConstant.Leaderboard.AwardType.ITEM) {
+                                mailService.addCfgMail(info.getPlayerId(), 4, ItemUtils.buildItemsByStrList(awardItems), paramData);
+                            }
                         }
                         //添加历史记录
                         leaderboardService.addHistory(info, cfg, code, rankingData.getEndTime());
