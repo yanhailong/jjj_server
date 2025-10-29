@@ -172,9 +172,9 @@ public class GrowthFundController extends BaseActivityController implements Game
             if (playerActivityData.size() == baseCfgBeanMap.size()) {
                 return false;
             }
-            long count = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player)).longValue();
-//            String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-//            redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            long count = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player.getId())).longValue();
+            String lockKey = playerActivityDao.getLockKey(playerId, activityId);
+            redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
                 playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
                 for (GrowthFundCfg cfg : baseCfgBeanMap.values()) {
@@ -198,7 +198,7 @@ public class GrowthFundController extends BaseActivityController implements Game
             } catch (Exception e) {
                 log.error("成长基金增加进度异常 playerId:{} activityId:{}", player, activityId, e);
             } finally {
-//                redisLock.unlock(lockKey);
+                redisLock.unlock(lockKey);
             }
         }
         return change;
@@ -349,7 +349,7 @@ public class GrowthFundController extends BaseActivityController implements Game
                 if (CollectionUtil.isNotEmpty(activityData.getChannelCommodity())) {
                     activityInfo.productId = activityData.getChannelCommodity().get(player.getChannel().getValue());
                 }
-                activityInfo.isBuy = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player)).longValue() > 0;
+                activityInfo.isBuy = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player.getId())).longValue() > 0;
                 activityInfo.buyGetItems = ItemUtils.buildItemInfo(getBuyGetRewards(activityData));
             }
         }

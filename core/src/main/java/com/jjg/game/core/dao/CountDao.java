@@ -35,8 +35,8 @@ public class CountDao {
      * @param count 计数
      */
     public void setCount(String featureId, String customId, BigDecimal count) {
-        RBucket<Double> bucket = redissonClient.getBucket(getKey(featureId, customId));
-        bucket.set(count.setScale(2, RoundingMode.HALF_UP).doubleValue());
+        RAtomicDouble atomicDouble = redissonClient.getAtomicDouble(getKey(featureId, customId));
+        atomicDouble.set(count.setScale(2, RoundingMode.HALF_UP).doubleValue());
     }
 
     /**
@@ -58,11 +58,9 @@ public class CountDao {
      * @return 计数
      */
     public BigDecimal getCount(String featureId, String customId) {
-        RBucket<Double> bucket = redissonClient.getBucket(getKey(featureId, customId));
-        Double val = bucket.get();
-        return val == null
-                ? BigDecimal.ZERO
-                : BigDecimal.valueOf(val).setScale(2, RoundingMode.HALF_UP);
+        RAtomicDouble atomicDouble = redissonClient.getAtomicDouble(getKey(featureId, customId));
+        double val = atomicDouble.get();
+        return BigDecimal.valueOf(val).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**

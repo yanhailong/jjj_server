@@ -18,7 +18,7 @@ import java.util.Map;
 public class DropItemLogger extends BaseLogger {
 
     // 道具掉落topic
-    private static final String DROP_ITEM_TOPIC = "drop_item";
+    private final String DROP_ITEM_TOPIC = "drop_item";
 
     /**
      * 记录道具掉落日志
