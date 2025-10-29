@@ -411,7 +411,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 }
 
                 //根据倍数区间从结果库里面随机获取一条
-                resultLib = (L) getResultLibDao().getLibBySectionIndex(libType, resultLibSectionResult.data);
+                resultLib = (L) getResultLibDao().getLibBySectionIndex(libType, resultLibSectionResult.data, this.libClass);
                 if (resultLib == null) {
                     log.debug("获取结果库失败 gameType = {},modelId = {},libType = {},sectionIndex = {},retry = {}", this.gameType, libCfgResult.data.getModelId(), libType, resultLibSectionResult.data, i);
                     continue;
@@ -424,7 +424,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //如果前面没有获取到lib，则获取一个无奖励的结果
             if (resultLib == null) {
                 sectionIndex = this.defaultRewardSectionIndex;
-                resultLib = (L) getResultLibDao().getLibBySectionIndex(specialModeNormalType, this.defaultRewardSectionIndex);
+                resultLib = (L) getResultLibDao().getLibBySectionIndex(specialModeNormalType, this.defaultRewardSectionIndex,this.libClass);
                 log.debug("前面获取结果库失败，所以找一个不中奖的结果返回 gameType = {},libType = {}", this.gameType, libType);
 
                 if (resultLib == null) {
@@ -498,7 +498,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     continue;
                 }
                 //获取结果库
-                freeLib = (L) getResultLibDao().getLibBySectionIndex(specialModeFreeLibType, sectionResult.data);
+                freeLib = (L) getResultLibDao().getLibBySectionIndex(specialModeFreeLibType, sectionResult.data,this.libClass);
                 if (freeLib == null) {
                     continue;
                 }

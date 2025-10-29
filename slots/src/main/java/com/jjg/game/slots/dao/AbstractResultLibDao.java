@@ -59,18 +59,18 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         super(clazz, mongoTemplate);
     }
 
-    public void init(int gameType){
+    public void init(int gameType) {
         this.gameType = gameType;
         reloadLib();
     }
 
     //加载最新的结果库名
-    public void reloadLib(){
+    public void reloadLib() {
         this.currentMongoLibName = getCurrentMongoLibNameFromRedis();
         this.currentRedisLibName = getCurrentRedisLibNameFromRedis();
     }
 
-    protected String generateLockTableName(int gameType){
+    protected String generateLockTableName(int gameType) {
         return generateLock + ":" + gameType;
     }
 
@@ -148,7 +148,6 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
 
     /**
      * 加载到redis
-     *
      */
     public String moveToRedis(String docName, Map<Integer, Map<Integer, int[]>> resultLibSectionMap) {
         Query query = new Query();
@@ -215,7 +214,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
      * 清除mongo结果库
      */
     public void clearMongoLib(String docName) {
-        if(docName == null || docName.isEmpty()){
+        if (docName == null || docName.isEmpty()) {
             log.debug("从mongo删除结果库失败，docName 为空");
             return;
         }
@@ -223,9 +222,9 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         String[] arr = docName.split("_");
         int index = Integer.parseInt(arr[1]);
         String removeName;
-        if(index == 1){
+        if (index == 1) {
             removeName = arr[0] + "_2";
-        }else {
+        } else {
             removeName = arr[0] + "_1";
         }
         this.mongoTemplate.dropCollection(removeName);
@@ -235,14 +234,14 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
     /**
      * 清除redis结果库
      */
-    public void clearRedisLib(int gameType){
-        clearRedisLib(this.currentRedisLibName,gameType);
+    public void clearRedisLib(int gameType) {
+        clearRedisLib(this.currentRedisLibName, gameType);
     }
 
     /**
      * 清除redis结果库
      */
-    public void clearRedisLib(String redisLibName,int gameType){
+    public void clearRedisLib(String redisLibName, int gameType) {
         if (redisLibName == null || redisLibName.isEmpty()) {
             log.debug("从redis删除结果库失败，redisLibName 为空");
             return;
@@ -256,46 +255,57 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         RKeys keys = redisson.getKeys();
         long start = System.currentTimeMillis();
         long deleted = keys.deleteByPattern(gameTableName + "*");
-        log.debug("从redis移除结果库 removeName = {}, 删除Key数量 = {},耗时 = {} ms", gameTableName, deleted,System.currentTimeMillis() - start);
+        log.debug("从redis移除结果库 removeName = {}, 删除Key数量 = {},耗时 = {} ms", gameTableName, deleted, System.currentTimeMillis() - start);
     }
 
-    public T getLibBySectionIndex(int libType, int sectionIndex) {
+    public T getLibBySectionIndex(int libType, int sectionIndex, Class<T> clazz) {
         String tableName = tabelName(this.currentRedisLibName, this.gameType, libType, sectionIndex);
-        return (T)this.redisTemplate.opsForSet().randomMember(tableName);
+
+        //根据条件随机获取一个结果库id
+        Object object = this.redisTemplate.opsForSet().randomMember(tableName);
+        if (object == null) {
+            return null;
+        }
+
+        System.out.println("id = " + object);
+        return mongoTemplate.findById(object.toString(), clazz, this.currentMongoLibName);
     }
 
     /**
      * 生成结果库的时候要添加所
+     *
      * @param gameType
      * @return
      */
-    public boolean addGenerateLock(int gameType){
-        return this.redisTemplate.opsForValue().setIfAbsent(generateLockTableName(gameType),true,10, TimeUnit.MINUTES);
+    public boolean addGenerateLock(int gameType) {
+        return this.redisTemplate.opsForValue().setIfAbsent(generateLockTableName(gameType), true, 10, TimeUnit.MINUTES);
     }
 
     /**
      * 获取是否加锁
+     *
      * @param gameType
      * @return
      */
-    public boolean getGenerateLock(int gameType){
+    public boolean getGenerateLock(int gameType) {
         Object o = this.redisTemplate.opsForValue().get(generateLockTableName(gameType));
-        if(o == null){
+        if (o == null) {
             return false;
         }
         return Boolean.parseBoolean(o.toString());
     }
 
-    public void removeGenerateLock(int gameType){
+    public void removeGenerateLock(int gameType) {
         this.redisTemplate.delete(generateLockTableName(gameType));
     }
 
     /**
      * 一次性保存多条结果
+     *
      * @param list
      * @return
      */
-    public int batchSave(List<T> list, String docName){
+    public int batchSave(List<T> list, String docName) {
         BulkOperations bulkOps = this.mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, docName);
         for (T lib : list) {
             bulkOps.insert(lib);
@@ -308,13 +318,17 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
                                       Map<Integer, Map<Integer, int[]>> resultLibSectionMap) {
         redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             for (Object lib : batch) {
-                Set<Integer> libTypeSet = ((T)lib).getLibTypeSet();
+                T t = (T) lib;
+                Set<Integer> libTypeSet = t.getLibTypeSet();
                 for (int type : libTypeSet) {
-                    int sectionIndex = getSectionIndex(resultLibSectionMap, type, ((T)lib).getTimes());
+                    int sectionIndex = getSectionIndex(resultLibSectionMap, type, t.getTimes());
                     if (sectionIndex < 0) continue;
                     connection.sAdd(
                             tabelName(redisTableNameIndex, gameType, type, sectionIndex).getBytes(),
-                            redisTemplate.getValueSerializer().serialize(lib)
+//                            redisTemplate.getValueSerializer().serialize(t)
+
+                            //保存整个对象会占用很大内存，所以这里只保存id
+                            redisTemplate.getValueSerializer().serialize(t.getId())
                     );
                 }
             }
