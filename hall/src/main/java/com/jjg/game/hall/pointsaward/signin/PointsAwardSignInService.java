@@ -312,15 +312,15 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
      * @param playerId 玩家id
      */
     public void unlock(long playerId) {
-        PointsAwardSigninCfg tempConfig = manager.getSignInCfg();
-        if (tempConfig == null) {
-            return;
-        }
         RSet<Integer> unlockSet = getUnlockSet(playerId);
-        if (unlockSet == null) {
+        //当前需要解锁的天数
+        int day = unlockSet.size() + 1;
+        int signInMaxCount = manager.getSignInMaxCount();
+        //签到满了已经
+        if (day >= signInMaxCount) {
             return;
         }
-        PointsAwardSigninCfg todayConfig = manager.getSignInCfg();
+        PointsAwardSigninCfg todayConfig = manager.getSignInCfg(day);
         if (todayConfig == null) {
             return;
         }
@@ -328,6 +328,7 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
         if (unlockSet.contains(todayConfig.getId())) {
             return;
         }
+        log.info("玩家[{}]解锁[{}]签到!", playerId, day);
         //解锁今天的签到配置
         unlockSet.add(todayConfig.getId());
         //记录时间 用来清除记录
