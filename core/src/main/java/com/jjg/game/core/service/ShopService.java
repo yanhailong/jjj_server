@@ -143,7 +143,7 @@ public class ShopService {
      * @param productId
      * @return
      */
-    public ShopProduct getShopProduct(int productId) {
+    public ShopProduct getShopProduct(long productId) {
         if (this.shopProductMap == null || this.shopProductMap.isEmpty()) {
             return null;
         }
@@ -208,7 +208,7 @@ public class ShopService {
         if (shopProduct.getChannelProductIdMap() == null) {
             return false;
         }
-        return shopProduct.getConditionsMap().containsKey(channel);
+        return shopProduct.getChannelProductIdMap().containsKey(channel);
     }
 
 }

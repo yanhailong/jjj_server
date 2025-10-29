@@ -30,12 +30,12 @@ public class BlackListService {
 
     public void loadAllBlackId(){
         this.blackIdSet = blackListDao.getAllBlackId();
-        log.debug("加载黑名单id");
+        log.debug("加载黑名单id, blackIdSet.size={}", this.blackIdSet == null ? 0 : this.blackIdSet.size());
     }
 
     public void loadAllBlackIp(){
         this.blackIpSet = blackListDao.getAllBlackIp();
-        log.debug("加载黑名单ip");
+        log.debug("加载黑名单ip, blackIpSet.size={}", this.blackIpSet == null ? 0 : this.blackIpSet.size());
     }
 
     public void addBlackIds(List<Long> ids){

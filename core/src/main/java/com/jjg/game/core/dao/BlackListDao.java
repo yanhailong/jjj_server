@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -130,6 +131,13 @@ public class BlackListDao {
      * @return
      */
     public Set<Long> getAllBlackId() {
-        return redisTemplate.opsForSet().members(idTableName);
+        Set members = redisTemplate.opsForSet().members(idTableName);
+        if(members == null) {
+            return null;
+        }
+
+        Set<Long> set = new HashSet<>(members.size());
+        members.forEach(m -> set.add(Long.parseLong(m.toString())));
+        return set;
     }
 }

@@ -73,7 +73,7 @@ public abstract class AbstractCallbackController {
         }
 
         //获取商品
-        ShopProduct shopProduct = shopService.getShopProduct(Integer.parseInt(order.getProductId()));
+        ShopProduct shopProduct = shopService.getShopProduct(Long.parseLong(order.getProductId()));
         if (shopProduct == null) {
             //TODO 记录下来，检查该订单
             log.debug("未找到该商品 orderId = {},productId = {}", order.getId(), order.getProductId());

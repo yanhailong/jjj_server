@@ -62,10 +62,11 @@ public class OrderService {
     public Order generateOrder(long playerId, ChannelType playerChannel, PayType payType, String productId, BigDecimal price, RechargeType rechargeType, OrderStatus orderStatus, String channelProductId) {
         for (int i = 0; i < CoreConst.Common.MONGO_TRY_COUNT; i++) {
             String orderId = "cz" + DateUtil.format(DateUtil.date(), "yyMMdd") + RandomUtils.getRandomString(9);
+            String uuid = RandomUtils.getOriginalUUid().toUpperCase();
             try {
                 Order order = new Order();
                 order.setId(orderId);
-                order.setUuid(RandomUtils.getOriginalUUid());
+                order.setUuid(uuid);
                 order.setPlayerId(playerId);
                 order.setPlayerChannel(playerChannel.getValue());
                 order.setPayChannel(payType.getValue());

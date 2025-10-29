@@ -457,7 +457,10 @@ public class PiggyBankController extends BaseActivityController implements GameE
                     }
                     String productId = cfg.getChannelCommodity().get(player.getChannel().getValue());
                     if (productId.equals(order.getProductId())) {
-                        joinActivity(player, activityData, cfg.getId(), 1);
+                        AbstractResponse res = joinActivity(player, activityData, cfg.getId(), 1);
+                        if (res != null) {
+                            activityManager.sendToPlayer(player.getId(), res);
+                        }
                         log.info("充值事件 参加活动成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
                         break;
                     }

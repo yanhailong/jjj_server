@@ -274,6 +274,7 @@ public abstract class BaseActivityController {
      */
     public AbstractResponse getPlayerActivityInfoByType(Player player, ActivityType activityType) {
         long playerId = player.getId();
+        Player latestPlayer = corePlayerService.get(playerId);
         // 获取玩家的活动数据（分活动ID -> 分子项ID）
         Map<Long, Map<Integer, PlayerActivityData>> playerActivityData = playerActivityDao.getAllPlayerActivityData(playerId, activityType);
 
@@ -283,9 +284,8 @@ public abstract class BaseActivityController {
 
         // 如果没有活动，直接返回空结果
         if (CollectionUtil.isEmpty(activityDataMap)) {
-            return getPlayerActivityInfoByTypeRes(player, allDetailInfoMap);
+            return getPlayerActivityInfoByTypeRes(latestPlayer, allDetailInfoMap);
         }
-
         // 获取活动的子配置数据
         // 遍历每个活动
         for (ActivityData activityData : activityDataMap.values()) {
@@ -293,7 +293,7 @@ public abstract class BaseActivityController {
             // 过滤掉不可运行、无配置、或玩家不符合条件的活动
             if (!activityData.getType().isShowInNotOpen() && (CollectionUtil.isEmpty(baseCfgBeanMap) || !activityData.canRun()
                     || CollectionUtil.isEmpty(activityData.getValue())
-                    || !checkPlayerCanJoinActivity(player, activityData))) {
+                    || !checkPlayerCanJoinActivity(latestPlayer, activityData))) {
                 continue;
             }
             //请求时处理数据重置
@@ -311,13 +311,13 @@ public abstract class BaseActivityController {
                 if (baseCfgBean == null) {
                     continue;
                 }
-                BaseActivityDetailInfo detail = buildPlayerActivityDetail(player, activityData, baseCfgBean, playerActivityDataMap.get(id));
+                BaseActivityDetailInfo detail = buildPlayerActivityDetail(latestPlayer, activityData, baseCfgBean, playerActivityDataMap.get(id));
                 if (detail != null) {
                     arrayList.add(detail);
                 }
             }
         }
-        return getPlayerActivityInfoByTypeRes(player, allDetailInfoMap);
+        return getPlayerActivityInfoByTypeRes(latestPlayer, allDetailInfoMap);
     }
 
 
