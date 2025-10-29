@@ -446,7 +446,7 @@ public class HallMessageHandler implements GmListener {
     public void reqUseItem(PlayerController playerController, ReqUseItem req) {
         ResUseItem res = new ResUseItem(HallCode.SUCCESS);
         try {
-            CommonResult<Map<Integer, Long>> useResult = hallService.useItem(playerController.playerId(), req.girdId,
+            CommonResult<Map<Integer, Long>> useResult = hallService.useItem(playerController.getPlayer(), req.girdId,
                     req.itemId, req.useItemCount);
             if (!useResult.success()) {
                 res.code = useResult.code;

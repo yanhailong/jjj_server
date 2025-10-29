@@ -12,10 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 道具掉落数据holder
@@ -25,7 +22,7 @@ import java.util.Map;
 @Component
 public class ItemDropDataHolder implements ConfigExcelChangeListener {
 
-    private static final Logger log = LoggerFactory.getLogger(ItemDropDataHolder.class);
+    private final Logger log = LoggerFactory.getLogger(ItemDropDataHolder.class);
     // 分组ID <=> 子包随机权重+ <子包道具随机权重, 道具信息>
     private final Map<Integer, List<Pair<Integer, List<Pair<Integer, Item>>>>> dropGroupCfgMap = new HashMap<>();
     // 道具掉落分组限制map
@@ -34,9 +31,9 @@ public class ItemDropDataHolder implements ConfigExcelChangeListener {
     @Override
     public void initSampleCallbackCollector() {
         addInitSampleFileObserveWithCallBack(DropGroupCfg.EXCEL_NAME, this::reloadGameCacheData)
-            .addChangeSampleFileObserveWithCallBack(DropGroupCfg.EXCEL_NAME, this::reloadGameCacheData)
-            .addInitSampleFileObserveWithCallBack(DropDetailedCfg.EXCEL_NAME, this::reloadGameCacheData)
-            .addChangeSampleFileObserveWithCallBack(DropDetailedCfg.EXCEL_NAME, this::reloadGameCacheData);
+                .addChangeSampleFileObserveWithCallBack(DropGroupCfg.EXCEL_NAME, this::reloadGameCacheData)
+                .addInitSampleFileObserveWithCallBack(DropDetailedCfg.EXCEL_NAME, this::reloadGameCacheData)
+                .addChangeSampleFileObserveWithCallBack(DropDetailedCfg.EXCEL_NAME, this::reloadGameCacheData);
     }
 
     /**
@@ -99,37 +96,56 @@ public class ItemDropDataHolder implements ConfigExcelChangeListener {
      * @param dropGroupIdList 掉落分组ID列表
      */
     public List<Pair<Integer, Item>> randDropItems(
-        List<Integer> dropGroupIdList, Map<Integer, Integer> itemDropGroupCounter) {
+            List<Integer> dropGroupIdList, Map<Integer, Integer> itemDropGroupCounter) {
         List<Pair<Integer, Item>> items = new ArrayList<>();
         for (Integer dropGroupId : dropGroupIdList) {
-            // 分组已经掉落过的次数
-            int usedDropGroupTimes = itemDropGroupCounter.getOrDefault(dropGroupId, 0);
-            // 分组限制每天掉落的次数
-            int limitedGroupTimes = getDropGroupLimit(dropGroupId);
-            if (usedDropGroupTimes >= limitedGroupTimes) {
+            Pair<Integer, Item> pair = randDropItems(dropGroupId, itemDropGroupCounter);
+            if (pair == null) {
                 continue;
             }
-            List<Pair<Integer, List<Pair<Integer, Item>>>> itemDropGroupWeights = dropGroupCfgMap.get(dropGroupId);
-            if (itemDropGroupWeights == null) {
-                continue;
-            }
-            // 随机分组详情数据
-            List<Pair<Integer, Item>> itemWeightMap = RandomUtils.randomByWeight(itemDropGroupWeights);
-            // 如果是空的直接返回
-            if (CollectionUtils.isEmpty(itemWeightMap)) {
-                continue;
-            }
-            // 随机分组详情中的道具数据
-            Item randedItem = RandomUtils.randomByWeight(itemWeightMap);
-            // 如果随机到空的道具，继续
-            if (randedItem.getId() == 0) {
-                continue;
-            }
-            items.add(new Pair<>(dropGroupId, randedItem));
-            // 更新掉落表次数
-            itemDropGroupCounter.put(dropGroupId, usedDropGroupTimes + 1);
-//            log.info("通过分组ID：{} 随机到分组详情配置：{} 随机到道具：{}", dropGroupId, itemWeightMap, randedItem);
+            items.add(pair);
         }
         return items;
+    }
+
+    /**
+     * 获取掉落分组配置数据
+     *
+     * @param dropGroupId 掉落分组ID列表
+     */
+    public Pair<Integer, Item> randDropItems(
+            int dropGroupId, Map<Integer, Integer> itemDropGroupCounter) {
+
+        // 分组已经掉落过的次数
+        int usedDropGroupTimes = itemDropGroupCounter.getOrDefault(dropGroupId, 0);
+        // 分组限制每天掉落的次数
+        int limitedGroupTimes = getDropGroupLimit(dropGroupId);
+        if (usedDropGroupTimes >= limitedGroupTimes) {
+            log.debug("已经掉落的次数大于限制 dropGroupId = {}, usedDropGroupTimes = {},limitedGroupTimes = {}", dropGroupId, usedDropGroupTimes, limitedGroupTimes);
+            return null;
+        }
+        List<Pair<Integer, List<Pair<Integer, Item>>>> itemDropGroupWeights = dropGroupCfgMap.get(dropGroupId);
+        if (itemDropGroupWeights == null) {
+            log.debug("获取掉落道具失败 dropGroupId = {}", dropGroupId);
+            return null;
+        }
+        // 随机分组详情数据
+        List<Pair<Integer, Item>> itemWeightMap = RandomUtils.randomByWeight(itemDropGroupWeights);
+        // 如果是空的直接返回
+        if (CollectionUtils.isEmpty(itemWeightMap)) {
+            log.debug("随机获取掉落道具失败 dropGroupId = {}", dropGroupId);
+            return null;
+        }
+        // 随机分组详情中的道具数据
+        Item randedItem = RandomUtils.randomByWeight(itemWeightMap);
+        // 如果随机到空的道具，继续
+        if (randedItem.getId() == 0) {
+            log.debug("随机到空的道具 dropGroupId = {}", dropGroupId);
+            return null;
+        }
+        // 更新掉落表次数
+        itemDropGroupCounter.put(dropGroupId, usedDropGroupTimes + 1);
+//            log.info("通过分组ID：{} 随机到分组详情配置：{} 随机到道具：{}", dropGroupId, itemWeightMap, randedItem);
+        return new Pair<>(dropGroupId, randedItem);
     }
 }

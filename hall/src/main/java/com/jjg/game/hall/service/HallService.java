@@ -16,6 +16,7 @@ import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.PlayerAvatarDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.core.manager.DropItemManager;
 import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.SmsService;
@@ -73,6 +74,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private SmsService smsService;
     @Autowired
     private ThirdAccountHttpService thirdAccountHttpService;
+    @Autowired
+    private DropItemManager dropItemManager;
 
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
     //游戏类型->游戏状态
@@ -321,7 +324,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         boolean update = false;
         if (smsType == VerCodeType.SMS_BIND_PHONE) {
             CommonResult<Account> accountCommonResult = accountDao.addThirdAccount(LoginType.PHONE, verResult.data);
-            if(!accountCommonResult.success()){
+            if (!accountCommonResult.success()) {
                 result.code = accountCommonResult.code;
                 log.debug("更新到数据库失败，确认验证码失败1 playerId = {},verCodeType = {},verCode = {}", playerId, verCodeType, verCode);
                 return result;
@@ -519,60 +522,61 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     /**
      * 使用道具
      *
-     * @param playerId
+     * @param player
      * @param itemId
      */
-    public CommonResult<Map<Integer, Long>> useItem(long playerId, int girdId, int itemId, long useItemCount) {
+    public CommonResult<Map<Integer, Long>> useItem(Player player, int girdId, int itemId, long useItemCount) {
         CommonResult<Map<Integer, Long>> result = new CommonResult<>(Code.SUCCESS);
         try {
-            log.debug("玩家使用道具 playerId = {},girdId = {},itemId = {}", playerId, girdId, itemId);
+            log.debug("玩家使用道具 playerId = {},girdId = {},itemId = {}", player.getId(), girdId, itemId);
             ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
             if (itemCfg == null) {
                 result.code = Code.NOT_FOUND;
-                log.debug("未找到该道具配置，使用道具失败 playerId = {},itemId = {}", playerId, itemId);
+                log.debug("未找到该道具配置，使用道具失败 playerId = {},itemId = {}", player.getId(), itemId);
                 return result;
             }
 
             //检查道具类型
             if (itemCfg.getType() != GameConstant.Item.TYPE_CAN_USE) {
                 result.code = Code.FORBID;
-                log.debug("改道具不可被使用，使用道具失败 playerId = {},itemId = {}", playerId, itemId);
-                return result;
-            }
-
-            if (itemCfg.getGetItem() == null || itemCfg.getGetItem().isEmpty()) {
-                result.code = Code.FORBID;
-                log.debug("使用后获取道具配置为空，使用道具失败 playerId = {},itemId = {}", playerId, itemId);
+                log.debug("改道具不可被使用，使用道具失败 playerId = {},itemId = {}", player.getId(), itemId);
                 return result;
             }
 
             Map<Integer, Long> addItemsMap = new HashMap<>();
-            CommonResult<ItemOperationResult> useResult;
-            for (Map.Entry<Integer, Long> en : itemCfg.getGetItem().entrySet()) {
-                int addItemId = en.getKey();
-                ItemCfg addItemCfg = GameDataManager.getItemCfg(addItemId);
-                if (addItemCfg == null) {
-                    log.debug("未找到获得新道具的配置 playerId = {},itemId = {}", playerId, addItemId);
-                    continue;
+            //是否有获取的道具
+            if (itemCfg.getGetItem() != null && !itemCfg.getGetItem().isEmpty()) {
+                for (Map.Entry<Integer, Long> en : itemCfg.getGetItem().entrySet()) {
+                    int addItemId = en.getKey();
+                    ItemCfg addItemCfg = GameDataManager.getItemCfg(addItemId);
+                    if (addItemCfg == null) {
+                        log.debug("未找到获得新道具的配置 playerId = {},itemId = {}", player.getId(), addItemId);
+                        continue;
+                    }
+                    addItemsMap.merge(addItemId, en.getValue(), Long::sum);
                 }
-                addItemsMap.merge(addItemId, en.getValue(), Long::sum);
+
+                CommonResult<ItemOperationResult> useResult = playerPackService.useItem(player.getId(), girdId, itemId, useItemCount, addItemsMap, "packUseItem");
+                if (!useResult.success()) {
+                    log.debug("使用道具后获得新道具失败 playerId = {},itemId = {}", player.getId(), itemId);
+                    result.code = useResult.code;
+                    return result;
+                }
             }
 
-            Map<Integer, Long> tmpAddItemsMap = new HashMap<>(addItemsMap);
+            //是否有掉落的道具
+            if (itemCfg.getDropId() > 0) {
+                Map<Integer, Long> useItem = dropItemManager.triggerDropItem(player, "USE_ITEM", player.getId(), itemCfg.getDropId());
+                addItemsMap.putAll(useItem);
+            }
 
-            useResult = playerPackService.useItem(playerId, girdId, itemId, useItemCount, addItemsMap, "packUseItem");
-
-            if (useResult == null) {
-                log.debug("使用道具后获得新道具失败 playerId = {},itemId = {}", playerId, itemId);
-                result.code = Code.FAIL;
+            if (addItemsMap.isEmpty()) {
+                log.debug("使用道具失败 playerId = {},itemId = {}", player.getId(), itemId);
+                result.code = Code.FORBID;
                 return result;
             }
 
-            if (!useResult.success()) {
-                result.code = useResult.code;
-                return result;
-            }
-            result.data = tmpAddItemsMap;
+            result.data = addItemsMap;
         } catch (Exception e) {
             log.error("", e);
             result.code = Code.EXCEPTION;
@@ -616,7 +620,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      * @param type
      * @param token
      */
-    public CommonResult<List<Item>> bindThirdAccount(long playerId,int type, String token) {
+    public CommonResult<List<Item>> bindThirdAccount(long playerId, int type, String token) {
         CommonResult<List<Item>> result = new CommonResult<>(Code.SUCCESS);
         try {
             LoginType loginType = LoginType.valueOf(type);
@@ -635,21 +639,21 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             CommonResult<Account> addResult;
             if (loginType == LoginType.GOOGLE) {
                 CommonResult<GoogleUserInfo> verifyResult = thirdAccountHttpService.verifyGoogleToken(token);
-                if(!verifyResult.success()){
+                if (!verifyResult.success()) {
                     result.code = verifyResult.code;
                     return result;
                 }
                 addResult = accountDao.addThirdAccount(loginType, verifyResult.data);
             } else if (loginType == LoginType.FACEBOOK) {
                 CommonResult<FacebookUserInfo> verifyResult = thirdAccountHttpService.verifyFacebookToken(token);
-                if(!verifyResult.success()){
+                if (!verifyResult.success()) {
                     result.code = verifyResult.code;
                     return result;
                 }
                 addResult = accountDao.addThirdAccount(loginType, verifyResult.data);
             } else if (loginType == LoginType.APPLE) {
                 CommonResult<AppleUserInfo> verifyResult = thirdAccountHttpService.verifyAppleToken(token);
-                if(!verifyResult.success()){
+                if (!verifyResult.success()) {
                     result.code = verifyResult.code;
                     return result;
                 }
@@ -660,20 +664,20 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return result;
             }
 
-            if(!addResult.success()){
+            if (!addResult.success()) {
                 result.code = addResult.code;
                 return result;
             }
 
             LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(cfg -> cfg.getType() == type).findFirst().orElse(null);
-            if(loginConfigCfg == null || loginConfigCfg.getAwardItem() == null || loginConfigCfg.getAwardItem().isEmpty()) {
+            if (loginConfigCfg == null || loginConfigCfg.getAwardItem() == null || loginConfigCfg.getAwardItem().isEmpty()) {
                 log.debug("未找到绑定的奖励 type = {}", type);
                 return result;
             }
 
             CommonResult<ItemOperationResult> bindRewardResult = playerPackService.addItems(playerId, loginConfigCfg.getAwardItem(), "bindReward");
-            if(!bindRewardResult.success()){
-                log.debug("添加绑定奖励失败 playerId = {},type = {}", playerId,type);
+            if (!bindRewardResult.success()) {
+                log.debug("添加绑定奖励失败 playerId = {},type = {}", playerId, type);
             }
         } catch (Exception e) {
             log.error("", e);
