@@ -35,10 +35,8 @@ public class TaskCondition10003 extends AbstractTaskCondition<TaskConditionParam
             if (param.getGameId() != gameId) {
                 return false;
             }
-        } else {
-            return checkValue <= param.getAddValue();
         }
-        return false;
+        return checkValue <= param.getAddValue();
     }
 
     /**
