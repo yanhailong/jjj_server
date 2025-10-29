@@ -266,8 +266,6 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
         if (object == null) {
             return null;
         }
-
-        System.out.println("id = " + object);
         return mongoTemplate.findById(object.toString(), clazz, this.currentMongoLibName);
     }
 

@@ -455,7 +455,6 @@ public class HallMessageHandler implements GmListener {
             }
 
             res.packItemInfos = getPlayerPack(playerController.playerId());
-            log.debug("data = {}", JSON.toJSONString(useResult.data));
 
             List<ItemInfo> items = new ArrayList<>();
             useResult.data.forEach((k, v) -> {
