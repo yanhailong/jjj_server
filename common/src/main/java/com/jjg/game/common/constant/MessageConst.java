@@ -202,6 +202,11 @@ public interface MessageConst {
         int REQ_GENERATE_ORDER = BASE_MSG_PREFIX | 0x17;
         //返回预下单
         int RES_GENERATE_ORDER = BASE_MSG_PREFIX | 0x18;
+
+        //获取玩家的账户信息
+        int REQ_PLAYER_MONEY = BASE_MSG_PREFIX | 0x19;
+        //返回预下单
+        int RES_PLAYER_MONEY = BASE_MSG_PREFIX | 0x1A;
     }
 
     interface RoomMessage {
