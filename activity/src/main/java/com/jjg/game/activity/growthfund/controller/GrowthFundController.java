@@ -173,8 +173,8 @@ public class GrowthFundController extends BaseActivityController implements Game
                 return false;
             }
             long count = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player)).longValue();
-//            String lockKey = playerActivityDao.getLockKey(playerId, activityId);
-//            redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
+            String lockKey = playerActivityDao.getLockKey(playerId, activityId);
+            redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
                 playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
                 for (GrowthFundCfg cfg : baseCfgBeanMap.values()) {
@@ -198,7 +198,7 @@ public class GrowthFundController extends BaseActivityController implements Game
             } catch (Exception e) {
                 log.error("成长基金增加进度异常 playerId:{} activityId:{}", player, activityId, e);
             } finally {
-//                redisLock.unlock(lockKey);
+                redisLock.unlock(lockKey);
             }
         }
         return change;
