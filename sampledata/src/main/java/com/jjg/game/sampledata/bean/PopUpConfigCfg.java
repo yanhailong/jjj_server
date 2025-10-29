@@ -23,24 +23,24 @@ public class PopUpConfigCfg extends BaseCfgBean {
   protected boolean boolLogin;
   /** 回大厅弹出 */
   protected boolean boolReturnHall;
-  /** 按钮显示位置 */
-  protected List<Integer> butPos;
   /** 每天弹窗次数 */
   protected int count;
   /** 弹窗结束时间 */
   protected String endTime;
   /** 活动或功能界面名称 */
   protected List<List<String>> functionUiName;
+  /** 宣传弹窗界面名称 */
+  protected String imgName;
   /** 是否开启 */
   protected boolean isOpen;
+  /** 打开界面需要导入的脚本 */
+  protected List<String> requires;
   /** 弹窗顺序 */
   protected int serialNumber;
   /** 弹窗开始时间 */
   protected String strarTime;
   /** 弹窗类型值 */
   protected List<List<Integer>> typeValue;
-  /** 宣传弹窗界面名称 */
-  protected List<String> windowUiName;
 
   /** 返回每次登入弹出 */
   public boolean getBoolLogin() {
@@ -50,11 +50,6 @@ public class PopUpConfigCfg extends BaseCfgBean {
   /** 返回回大厅弹出 */
   public boolean getBoolReturnHall() {
     return boolReturnHall;
-  }
-
-  /** 返回按钮显示位置 */
-  public List<Integer> getButPos() {
-    return butPos;
   }
 
   /** 返回每天弹窗次数 */
@@ -72,9 +67,19 @@ public class PopUpConfigCfg extends BaseCfgBean {
     return functionUiName;
   }
 
+  /** 返回宣传弹窗界面名称 */
+  public String getImgName() {
+    return imgName;
+  }
+
   /** 返回是否开启 */
   public boolean getIsOpen() {
     return isOpen;
+  }
+
+  /** 返回打开界面需要导入的脚本 */
+  public List<String> getRequires() {
+    return requires;
   }
 
   /** 返回弹窗顺序 */
@@ -90,11 +95,6 @@ public class PopUpConfigCfg extends BaseCfgBean {
   /** 返回弹窗类型值 */
   public List<List<Integer>> getTypeValue() {
     return typeValue;
-  }
-
-  /** 返回宣传弹窗界面名称 */
-  public List<String> getWindowUiName() {
-    return windowUiName;
   }
 
   @Override
