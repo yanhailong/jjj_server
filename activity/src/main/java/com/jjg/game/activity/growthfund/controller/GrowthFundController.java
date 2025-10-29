@@ -172,7 +172,7 @@ public class GrowthFundController extends BaseActivityController implements Game
             if (playerActivityData.size() == baseCfgBeanMap.size()) {
                 return false;
             }
-            long count = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player)).longValue();
+            long count = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player.getId())).longValue();
             String lockKey = playerActivityDao.getLockKey(playerId, activityId);
             redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
@@ -349,7 +349,7 @@ public class GrowthFundController extends BaseActivityController implements Game
                 if (CollectionUtil.isNotEmpty(activityData.getChannelCommodity())) {
                     activityInfo.productId = activityData.getChannelCommodity().get(player.getChannel().getValue());
                 }
-                activityInfo.isBuy = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player)).longValue() > 0;
+                activityInfo.isBuy = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player.getId())).longValue() > 0;
                 activityInfo.buyGetItems = ItemUtils.buildItemInfo(getBuyGetRewards(activityData));
             }
         }
