@@ -114,6 +114,39 @@ public class DropItemManager implements GameEventListener {
         return dropItems;
     }
 
+    /**
+     * 触发道具掉落
+     * @param player
+     * @param source
+     * @param sourceId
+     * @param dropTrunkId
+     * @return
+     */
+    public Map<Integer, Long> triggerDropItem(Player player, String source, long sourceId, int dropTrunkId) {
+        Map<Integer, Integer> itemDropGroupCounter = dropItemDao.getItemDropGroupCounter(player.getId());
+        if (itemDropGroupCounter == null) {
+            itemDropGroupCounter = new HashMap<>();
+        }
+
+        Map<Integer, Long> dropItems = new HashMap<>();
+
+        Pair<Integer, Item> item = itemDropDataHolder.randDropItems(dropTrunkId, itemDropGroupCounter);
+
+        if(item == null) {
+            return Map.of();
+        }
+
+        // 更新道具掉落使用map
+        dropItemDao.updateItemDropGroupCounter(player.getId(), itemDropGroupCounter);
+        // 添加道具
+        CommonResult<ItemOperationResult> result = playerPackService.addItems(player.getId(), dropItems, "DROP_TRUNK_ITEM");
+        if (result.success()) {
+            // 记录日志
+            dropItemLogger.recordDropItem(player, source, sourceId, dropTrunkId, dropItems, result.data);
+        }
+        return dropItems;
+    }
+
     @Override
     public <T extends GameEvent> void handleEvent(T gameEvent) {
         //赌场道具掉落
