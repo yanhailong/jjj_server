@@ -7,7 +7,7 @@ import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.common.data.ActivityType;
-import com.jjg.game.activity.common.message.bean.ActivityInfo;
+import com.jjg.game.activity.common.message.ActivityBuilder;
 import com.jjg.game.activity.common.message.res.NotifyActivityChange;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.util.CronUtil;
@@ -375,12 +375,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     public void notifyNodeActivityChange(ActivityData data) {
         NotifyActivityChange notifyActivityChange = new NotifyActivityChange();
-        ActivityInfo activityInfo = new ActivityInfo();
-        activityInfo.activityType = data.getType().getType();
-        activityInfo.activityId = data.getId();
-        activityInfo.status = data.getStatus();
         notifyActivityChange.activityInfos = new ArrayList<>();
-        notifyActivityChange.activityInfos.add(activityInfo);
+        notifyActivityChange.activityInfos.add(ActivityBuilder.buildActivityInfo(data));
         clusterSystem.broadcastToOnlinePlayer(notifyActivityChange);
     }
 
@@ -619,6 +615,27 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     Player player = playerEvent.getPlayer();
                     //添加其他活动进度
                     addPlayerActivityProgress(player, ActivityTargetType.LEVEL.getTargetKey(), player.getLevel(), playerEvent.getNewlyValue());
+                    //更新活动变化
+                    List<ActivityData> openActivityData = new ArrayList<>();
+                    for (ActivityData data : activityData.values()) {
+                        if (!data.canRun()) {
+                            continue;
+                        }
+                        if (conditionManager.isAchievement(player, playerEvent.getEventChangeValue(), data.getCondition())) {
+                            continue;
+                        }
+                        if (conditionManager.isAchievement(player, playerEvent.getNewlyValue(), data.getCondition())) {
+                            openActivityData.add(data);
+                        }
+                    }
+                    if (CollectionUtil.isNotEmpty(openActivityData)) {
+                        NotifyActivityChange change = new NotifyActivityChange();
+                        change.activityInfos = new ArrayList<>();
+                        for (ActivityData data : openActivityData) {
+                            change.activityInfos.add(ActivityBuilder.buildActivityInfo(data));
+                        }
+                        sendToPlayer(player.getId(), change);
+                    }
                 }
             }
             case ClockEvent clockEvent -> {

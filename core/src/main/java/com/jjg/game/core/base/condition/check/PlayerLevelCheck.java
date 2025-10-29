@@ -13,8 +13,8 @@ import java.util.List;
 public class PlayerLevelCheck implements ConditionCheck {
     @Override
     public boolean check(Object paramObject, Object conditionObject) {
-        if (paramObject instanceof Player param && conditionObject instanceof Integer condition) {
-            return param.getLevel() >= condition;
+        if (paramObject instanceof Integer param && conditionObject instanceof Integer condition) {
+            return param >= condition;
         }
         return false;
     }
