@@ -15,7 +15,7 @@ public class ReqGenerateOrder extends AbstractMessage {
     @ProtoDesc("支付方式  0.google   1.ios")
     public int payType;
     @ProtoDesc("来源")
-    public RechargeType rechargeType;
+    public int rechargeType;
     @ProtoDesc("商品id")
     public String productId;
 }

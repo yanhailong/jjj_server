@@ -385,7 +385,16 @@ public class CoreMessageHandler {
                 return;
             }
 
-            Order order = orderService.generateOrder(playerController.getPlayer(), payType, req.productId, req.rechargeType);
+            RechargeType rechargeType = RechargeType.valueOf(req.rechargeType);
+
+            if(req.rechargeType < 1 || rechargeType == null){
+                log.debug("rechargeType 类型错误 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
+                res.code = Code.PARAM_ERROR;
+                playerController.send(res);
+                return;
+            }
+
+            Order order = orderService.generateOrder(playerController.getPlayer(), payType, req.productId, rechargeType);
             if (order == null) {
                 log.debug("预下单失败 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
                 res.code = Code.FAIL;

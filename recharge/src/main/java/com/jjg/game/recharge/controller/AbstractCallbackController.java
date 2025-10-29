@@ -114,7 +114,7 @@ public abstract class AbstractCallbackController {
      * @param order
      */
     private void handleShopOrder(Player player, PlayerSessionInfo info, Order order, String money, String regionCode) {
-        ShopProduct shopProduct = shopService.getShopProduct(Integer.parseInt(order.getProductId()));
+        ShopProduct shopProduct = shopService.getShopProduct(Long.parseLong(order.getProductId()));
         if (shopProduct == null) {
             return;
         }

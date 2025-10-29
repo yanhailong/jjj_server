@@ -29,6 +29,7 @@ public class AccountLogger extends BaseLogger {
             json.put("playerId", playerId);
             json.put("channel", channel);
             json.put("ip", ip);
+            json.put("mac", ip);
             json.put("device", device);
             sendLog("register", null, json);
         } catch (Exception e) {
