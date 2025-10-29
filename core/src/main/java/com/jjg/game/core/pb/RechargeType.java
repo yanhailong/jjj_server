@@ -51,16 +51,11 @@ public enum RechargeType {
     }
 
     public static RechargeType valueOf(int type) {
-        switch (type) {
-            case 1 -> {
-                return SHOP;
-            }
-            case 2 -> {
-                return PLAYER_LEVEL_GIFT;
-            }
-            default -> {
-                return null;
+        for (RechargeType rt : RechargeType.values()) {
+            if (rt.type == type) {
+                return rt;
             }
         }
+        return null;
     }
 }
