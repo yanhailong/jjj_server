@@ -225,11 +225,12 @@ public class GrowthFundController extends BaseActivityController implements Game
         List<Pair<GrowthFundCfg, PlayerActivityData>> dataPair = new ArrayList<>();
         CommonResult<ItemOperationResult> addedItems;
         Map<Integer, Long> rewards = new HashMap<>();
+        Map<Integer, PlayerActivityData> dataMap = new HashMap<>();
         String lockKey = playerActivityDao.getLockKey(playerId, activityId);
         // 加锁，保证领取操作原子性
         redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
         try {
-            Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
+            dataMap = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityData.getId());
             if (CollectionUtil.isEmpty(dataMap)) {
                 res.code = Code.PARAM_ERROR;
                 return res;
@@ -274,6 +275,7 @@ public class GrowthFundController extends BaseActivityController implements Game
             for (Pair<GrowthFundCfg, PlayerActivityData> pair : dataPair) {
                 res.detailInfo.add(buildPlayerActivityDetail(player, activityData, pair.getFirst(), pair.getSecond()));
             }
+            res.isAllGet = isAllGet(activityData, dataMap);
         }
         return res;
     }
@@ -375,6 +377,16 @@ public class GrowthFundController extends BaseActivityController implements Game
         if (CollectionUtil.isEmpty(playerActivityData)) {
             return true;
         }
+        return isAllGet(activityData, playerActivityData);
+    }
+
+    /**
+     * 是否全部领取
+     * @param activityData 活动数据
+     * @param playerActivityData 玩家获得数据
+     * @return true 全部领取 false没全部领取
+     */
+    private boolean isAllGet(ActivityData activityData, Map<Integer, PlayerActivityData> playerActivityData) {
         //全部领取不显示
         Map<Integer, GrowthFundCfg> detailCfgBean = getDetailCfgBean(activityData);
         if (detailCfgBean.size() == playerActivityData.size()) {
@@ -382,12 +394,12 @@ public class GrowthFundController extends BaseActivityController implements Game
                 if (data.getClaimStatus() == ActivityConstant.ActivityStatus.ENDED) {
                     continue;
                 }
-                return true;
+                return false;
             }
         } else {
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
 
