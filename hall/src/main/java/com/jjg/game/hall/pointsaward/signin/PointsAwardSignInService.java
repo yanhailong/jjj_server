@@ -324,15 +324,22 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
         if (todayConfig == null) {
             return;
         }
-        //不重复解锁
-        if (unlockSet.contains(todayConfig.getId())) {
-            return;
+        //签到时间map
+        RMap<Long, Long> dateMap = getDateMap();
+        Long signTime = dateMap.get(playerId);
+        //验证今天是否签到过
+        if (signTime != null && signTime > 0) {
+            LocalDate signDate = LocalDate.ofInstant(Instant.ofEpochMilli(signTime), ZoneId.systemDefault());
+            //今天签到过了
+            if (signDate.isEqual(LocalDate.now())) {
+                return;
+            }
         }
-        log.info("玩家[{}]解锁[{}]签到!", playerId, day);
+        log.info("玩家[{}]解锁[{}]签到 signTime = [{}]!", playerId, day, signTime);
         //解锁今天的签到配置
         unlockSet.add(todayConfig.getId());
         //记录时间 用来清除记录
-        getDateMap().fastPut(playerId, System.currentTimeMillis());
+        dateMap.fastPut(playerId, System.currentTimeMillis());
         //更新红点
         redDotManager.updateRedDot(this, 0, playerId);
     }
