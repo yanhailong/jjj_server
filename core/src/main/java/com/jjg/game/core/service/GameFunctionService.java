@@ -113,7 +113,7 @@ public class GameFunctionService implements GameEventListener {
         List<Integer> conditionTypes = functionCfg.getVipLevel();
         List<Integer> conditionCfg = new ArrayList<>(conditionTypes);
         // 检查是否触发成功
-        boolean achievement = conditionManager.isAchievement(player, player, conditionCfg);
+        boolean achievement = conditionManager.isAchievement(player, player.getLevel(), conditionCfg);
         if (!achievement && notify) {
             TipUtils.sendToastTip(player.getId(), 16030);
         }

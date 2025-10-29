@@ -134,7 +134,7 @@ public abstract class BaseActivityController {
      */
     public boolean checkPlayerCanJoinActivity(Player player, ActivityData activityData) {
         // 调用条件检查服务，验证触发条件是否完成
-        return conditionManager.isAchievement(player, player, activityData.getCondition());
+        return conditionManager.isAchievement(player, player.getLevel(), activityData.getCondition());
     }
 
 
