@@ -377,7 +377,7 @@ public class GrowthFundController extends BaseActivityController implements Game
         if (CollectionUtil.isEmpty(playerActivityData)) {
             return true;
         }
-        return isAllGet(activityData, playerActivityData);
+        return !isAllGet(activityData, playerActivityData);
     }
 
     /**
