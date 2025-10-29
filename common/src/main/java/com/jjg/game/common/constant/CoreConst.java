@@ -47,6 +47,24 @@ public class CoreConst {
         public static final int WEST_JOURNEY = 101300;
         //埃及艳后
         public static final int CLEOPATRA = 101400;
+        //狼月
+        public static final int WOLF_MOON = 101500;
+        //热血足球
+        public static final int HOT_SOCCER = 101600;
+        //圣诞狂欢夜
+        public static final int CHRISTMAS_PARTY = 101700;
+        //篮球巨星
+        public static final int BASKETBALL_STAR = 101800;
+        //德古拉黑暗财富
+        public static final int DEGULA_WEALTH = 101900;
+        //宙斯VS哈迪斯
+        public static final int ZEUS_VS_HADES = 102000;
+        //杰克船长
+        public static final int CAPTAIN_JACK = 102100;
+        //雷神
+        public static final int THOR = 102200;
+        //蒸汽时代
+        public static final int STEAM_AGE = 102300;
 
 
         //红黑大战
@@ -73,6 +91,10 @@ public class CoreConst {
         public static final int APPLE_FRUITS = 201000;
         //苹果机-动物
         public static final int APPLE_ANIMAL = 201001;
+        //红包扫雷
+        public static final int RED_PACKET = 201100;
+        //俄罗斯转盘
+        public static final int RUSSIAN_ROULETTE = 201200;
 
 
         //21点
@@ -81,6 +103,8 @@ public class CoreConst {
         public static final int TEXAS = 300200;
         //拉斯维加斯拼三张
         public static final int VEGAS_THREE = 300300;
+        //南方前进
+        public static final int TO_SOUTH = 300400;
     }
 
     public static class Common {

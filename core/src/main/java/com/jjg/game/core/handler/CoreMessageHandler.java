@@ -407,4 +407,31 @@ public class CoreMessageHandler {
         playerController.send(res);
     }
 
+    /**
+     * 获取玩家的账户信息
+     */
+    @Command(MessageConst.CoreMessage.REQ_PLAYER_MONEY)
+    public void reqPlayerMoney(PlayerController playerController, ReqPlayerMoney req) {
+        ResPlayerMoney res = new ResPlayerMoney(Code.SUCCESS);
+        try {
+            Player player = playerService.get(playerController.getPlayer().getId());
+            if(player == null){
+                log.debug("未找到该玩家信息 playerId = {}", playerController.playerId());
+                res.code = Code.NOT_FOUND;
+                playerController.send(res);
+                return;
+            }
+
+            res.gold = player.getGold();
+            res.diamond = player.getDiamond();
+            res.safeBoxGold = player.getSafeBoxGold();
+            res.safeBoxDiamond = player.getSafeBoxDiamond();
+            log.debug("返回玩家账户信息 resp = {}", JSON.toJSONString(res));
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
 }
