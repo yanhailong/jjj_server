@@ -25,6 +25,8 @@ public class ResGrowthFundClaimRewards extends AbstractResponse {
     public List<ItemInfo> infoList;
     @ProtoDesc("详细信息")
     public List<GrowthFundDetailInfo> detailInfo;
+    @ProtoDesc("是否全部领取")
+    public boolean isAllGet;
 
     public ResGrowthFundClaimRewards(int code) {
         super(code);
