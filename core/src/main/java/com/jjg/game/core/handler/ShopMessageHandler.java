@@ -68,7 +68,7 @@ public class ShopMessageHandler {
             });
         }
         playerController.send(res);
-        log.debug("返回商品 resp = {}", JSON.toJSONString(res));
+        log.debug("返回商品 req = {},resp = {}", JSON.toJSONString(req),JSON.toJSONString(res));
     }
 
     /**
