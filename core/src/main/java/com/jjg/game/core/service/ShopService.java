@@ -203,10 +203,12 @@ public class ShopService implements OrderGenerate {
         long shopProductId = Long.parseLong(req.productId);
         ShopProduct shopProduct = shopProductMap.get(shopProductId);
         if (shopProduct == null || !checkProductOpen(player, shopProduct)) {
+            log.debug("获取商品为空或则商品未开启 playerId = {}, shopProductId = {}", player, shopProductId);
             return null;
         }
         String channelProductId = shopProduct.channelProductId(player.getChannel().getValue());
         if (channelProductId == null) {
+            log.debug("获取商品的渠道商品id为空 playerId = {}, shopProductId = {}", player, shopProductId);
             return null;
         }
         return shopProduct.getMoney();
