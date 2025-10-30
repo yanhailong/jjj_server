@@ -14,6 +14,7 @@ import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.redis.RedisLock;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
@@ -353,7 +354,7 @@ public abstract class BaseActivityController {
      * @param getItem      获得道具
      * @return 最新玩家活动数据,添加道具结果
      */
-    public ClaimRewardsResult claimActivityRewards(long playerId, ActivityData activityData, int detailId, String addType, Map<Integer, Long> getItem) {
+    public ClaimRewardsResult claimActivityRewards(long playerId, ActivityData activityData, int detailId, AddType addType, Map<Integer, Long> getItem) {
         long activityId = activityData.getId();
         PlayerActivityData data;
         CommonResult<ItemOperationResult> addedItems;

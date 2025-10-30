@@ -19,6 +19,6 @@ public class NotifyGoldOperator extends AbstractNotice {
     public int type;
     // 增减数量
     public long quantity;
-    public String addType;
+    public int addType;
     public String remark;
 }

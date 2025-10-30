@@ -5,6 +5,7 @@ import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.item.EItemUseStrategy;
 import com.jjg.game.core.base.player.IPlayerRegister;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.TaskConstant;
@@ -49,8 +50,6 @@ public class PlayerPackService implements IPlayerRegister {
     private CorePlayerService corePlayerService;
     @Autowired
     private CoreLogger coreLogger;
-    @Autowired
-    private ClusterSystem clusterSystem;
     @Lazy
     @Autowired
     private TaskManager taskManager;
@@ -62,21 +61,21 @@ public class PlayerPackService implements IPlayerRegister {
     /**
      * 添加道具
      */
-    public CommonResult<ItemOperationResult> addItem(long playerId, int id, long count, String addType) {
+    public CommonResult<ItemOperationResult> addItem(long playerId, int id, long count, AddType addType) {
         return addItems(playerId, Collections.singletonList(new Item(id, count)), addType, null);
     }
 
     /**
      * 添加多个道具
      */
-    public CommonResult<ItemOperationResult> addItems(long playerId, Map<Integer, Long> addItemMap, String addType) {
+    public CommonResult<ItemOperationResult> addItems(long playerId, Map<Integer, Long> addItemMap, AddType addType) {
         return addItems(playerId, addItemMap, addType, null);
     }
 
     /**
      * 添加多个道具
      */
-    public CommonResult<ItemOperationResult> addItems(long playerId, Map<Integer, Long> addItemMap, String addType, String desc) {
+    public CommonResult<ItemOperationResult> addItems(long playerId, Map<Integer, Long> addItemMap, AddType addType, String desc) {
         List<Item> itemList = new ArrayList<>();
         for (Map.Entry<Integer, Long> entry : addItemMap.entrySet()) {
             itemList.add(new Item(entry.getKey(), entry.getValue()));
@@ -87,14 +86,14 @@ public class PlayerPackService implements IPlayerRegister {
     /**
      * 添加多个道具
      */
-    public CommonResult<ItemOperationResult> addItems(long playerId, List<Item> addItemList, String addType) {
+    public CommonResult<ItemOperationResult> addItems(long playerId, List<Item> addItemList, AddType addType) {
         return addItems(playerId, addItemList, addType, null);
     }
 
     /**
      * 添加多个道具
      */
-    public CommonResult<ItemOperationResult> addItems(long playerId, List<Item> addItemList, String addType, String desc) {
+    public CommonResult<ItemOperationResult> addItems(long playerId, List<Item> addItemList, AddType addType, String desc) {
         CommonResult<ItemOperationResult> result = new CommonResult<>(Code.FAIL);
         long addGold = 0;
         long addDiamond = 0;
@@ -197,14 +196,14 @@ public class PlayerPackService implements IPlayerRegister {
      * @param remove   移除的道具
      * @return 最新的背包结果
      */
-    public CommonResult<ItemOperationResult> removeItem(long playerId, Item remove, String addType) {
+    public CommonResult<ItemOperationResult> removeItem(long playerId, Item remove, AddType addType) {
         return removeItem(playerId, remove.getId(), remove.getItemCount(), addType);
     }
 
     /**
      * 移除道具
      */
-    public CommonResult<ItemOperationResult> removeItem(long playerId, int id, long count, String addType) {
+    public CommonResult<ItemOperationResult> removeItem(long playerId, int id, long count, AddType addType) {
         return removeItem(playerId, null, id, count, addType);
     }
 
@@ -212,7 +211,7 @@ public class PlayerPackService implements IPlayerRegister {
      * 移除道具
      */
     public CommonResult<ItemOperationResult> removeItem(long playerId, Integer girdId, int id, long count,
-                                                        String addType) {
+                                                        AddType addType) {
         Player player = corePlayerService.get(playerId);
         return removeItem(player, Collections.singletonList(new Item(girdId, id, count)), addType);
     }
@@ -223,7 +222,7 @@ public class PlayerPackService implements IPlayerRegister {
      * @param player 玩家信息
      */
     public CommonResult<ItemOperationResult> removeItems(Player player, Map<Integer, Long> removeItemMap,
-                                                         String addType) {
+                                                         AddType addType) {
         List<Item> itemList = new ArrayList<>();
         for (Map.Entry<Integer, Long> entry : removeItemMap.entrySet()) {
             itemList.add(new Item(entry.getKey(), entry.getValue()));
@@ -236,7 +235,7 @@ public class PlayerPackService implements IPlayerRegister {
      *
      * @param player 玩家信息
      */
-    public CommonResult<ItemOperationResult> removeItem(Player player, List<Item> removeItemList, String addType) {
+    public CommonResult<ItemOperationResult> removeItem(Player player, List<Item> removeItemList, AddType addType) {
         CommonResult<ItemOperationResult> result = new CommonResult<>(Code.NOT_ENOUGH_ITEM);
         int code = checkHasItems(player, removeItemList);
         if (code != Code.SUCCESS) {
@@ -443,7 +442,7 @@ public class PlayerPackService implements IPlayerRegister {
      */
     public CommonResult<ItemOperationResult> useItem(long playerId, int useItemId, long useItemCount,
                                                      Map<Integer, Long> addItemsMap,
-                                                     String addType) {
+                                                     AddType addType) {
         return useItem(playerId, null, useItemId, useItemCount, addItemsMap, addType);
     }
 
@@ -456,7 +455,7 @@ public class PlayerPackService implements IPlayerRegister {
      */
     public CommonResult<ItemOperationResult> useItem(long playerId, Integer girdId, int useItemId, long useItemCount,
                                                      Map<Integer, Long> addItemsMap,
-                                                     String addType) {
+                                                     AddType addType) {
         CommonResult<ItemOperationResult> result = new CommonResult<>(Code.FAIL);
 
         CommonResult<ItemOperationResult> removeResult = removeItem(playerId, girdId, useItemId, useItemCount, addType);
@@ -468,7 +467,7 @@ public class PlayerPackService implements IPlayerRegister {
         CommonResult<ItemOperationResult> addResult = addItems(playerId, addItemsMap, addType);
         if (!addResult.success()) {
             //添加失败，要将之前扣除的道具加回去
-            addItem(playerId, useItemId, useItemCount, "fail.rollback");
+            addItem(playerId, useItemId, useItemCount, AddType.FAIL_ROLLBACK);
             result.code = addResult.code;
             log.debug("使用道具时，添加失败 playerId = {},girdId = {},useItemId = {}", playerId, girdId, useItemId);
             return result;

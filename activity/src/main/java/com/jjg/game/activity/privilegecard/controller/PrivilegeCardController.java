@@ -20,6 +20,7 @@ import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
@@ -144,7 +145,7 @@ public class PrivilegeCardController extends BaseActivityController implements G
 
                 // 购买奖励发放
                 if (CollectionUtil.isNotEmpty(cfg.getGetItem())) {
-                    addedItems = playerPackService.addItems(playerId, cfg.getGetItem(), "privilegeCardBuy");
+                    addedItems = playerPackService.addItems(playerId, cfg.getGetItem(), AddType.ACTIVITY_PRIVILEGE_CARD_BUY);
                     if (!addedItems.success()) {
                         log.error("发放购买奖励失败 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
                     }
@@ -218,7 +219,7 @@ public class PrivilegeCardController extends BaseActivityController implements G
             }
 
             // 发放每日奖励
-            addedItems = playerPackService.addItems(playerId, cfg.getDayRebate(), "privilegeCardRewords");
+            addedItems = playerPackService.addItems(playerId, cfg.getDayRebate(), AddType.ACTIVITY_PRIVILEGE_REWARDS);
             if (!addedItems.success()) {
                 res.code = Code.UNKNOWN_ERROR;
                 return res;

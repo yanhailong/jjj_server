@@ -13,6 +13,7 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.*;
@@ -23,7 +24,6 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.room.base.BaseGameTickTask;
 import com.jjg.game.room.base.BaseGameTickTask.ETickTaskType;
 import com.jjg.game.room.base.EGameState;
-import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.constant.RoomConstant;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -442,21 +442,14 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 扣除金币
      */
-    public int deductItem(long playerId, long num, ERoomItemReason deductType) {
-        return deductItem(playerId, num, deductType.name(), deductType.getGameCfgId() + "", true);
-    }
-
-    /**
-     * 扣除金币
-     */
-    public int deductItem(long playerId, long num, String deductType) {
+    public int deductItem(long playerId, long num, AddType deductType) {
         return deductItem(playerId, num, deductType, "", true);
     }
 
     /**
      * 扣除金币
      */
-    public int deductItem(long playerId, long num, String deductType, String desc) {
+    public int deductItem(long playerId, long num, AddType deductType, String desc) {
         return deductItem(playerId, num, deductType, desc, true);
     }
 
@@ -470,7 +463,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param isNotify   是否通知
      * @return 扣除结果
      */
-    public int deductItem(long playerId, long num, String deductType, String desc, boolean isNotify) {
+    public int deductItem(long playerId, long num, AddType deductType, String desc, boolean isNotify) {
         int transactionItemId = getGameTransactionItemId();
         int goldCfgId = ItemUtils.getGoldItemId();
         int diamondCfgId = ItemUtils.getDiamondItemId();
@@ -487,7 +480,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 扣除金币，不要将此方法设置为public，游戏的交易道具是配置的道具ID写入
      */
-    private int deductGold(long playerId, long num, String deductType, String desc, boolean isNotify) {
+    private int deductGold(long playerId, long num, AddType deductType, String desc, boolean isNotify) {
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
@@ -534,7 +527,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 扣除金币，不要将此方法设置为public，游戏的交易道具是配置的道具ID写入
      */
-    private int deductDiamond(long playerId, long num, String deductType, String desc, boolean isNotify) {
+    private int deductDiamond(long playerId, long num, AddType deductType, String desc, boolean isNotify) {
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateDiamond = PrimitiveRef.ofLong(0);
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
@@ -570,21 +563,14 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
     /**
      * 添加金币
      */
-    public int addItem(long playerId, long num, ERoomItemReason addType) {
-        return addItem(playerId, num, addType.name(), addType.getGameCfgId() + "", false);
-    }
-
-    /**
-     * 添加金币
-     */
-    public int addItem(long playerId, long num, String addType) {
+    public int addItem(long playerId, long num, AddType addType) {
         return addItem(playerId, num, addType, "", false);
     }
 
     /**
      * 添加金币
      */
-    public int addItem(long playerId, long num, String addType, String desc) {
+    public int addItem(long playerId, long num, AddType addType, String desc) {
         return addItem(playerId, num, addType, desc, false);
     }
 
@@ -598,7 +584,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param isNotify 是否通知
      * @return 扣除结果
      */
-    public int addItem(long playerId, long num, String addType, String desc, boolean isNotify) {
+    public int addItem(long playerId, long num, AddType addType, String desc, boolean isNotify) {
         if (playerId <= 0 || num <= 0) {
             return Code.FAIL;
         }
@@ -645,7 +631,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param desc        描述
      * @param isNotify    是否通知
      */
-    public void changeCurrency(Player player, Map<Integer, Long> currencyMap, String addType, String desc, boolean isNotify) {
+    public void changeCurrency(Player player, Map<Integer, Long> currencyMap, AddType addType, String desc, boolean isNotify) {
         if (player == null || player.getId() <= 0 || CollectionUtil.isEmpty(currencyMap)) {
             return;
         }
@@ -706,7 +692,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param isNotify 是否通知
      * @return 扣除结果
      */
-    private int addGold(long playerId, long num, String addType, String desc, boolean isNotify) {
+    private int addGold(long playerId, long num, AddType addType, String desc, boolean isNotify) {
         if (playerId <= 0 || num <= 0) {
             return Code.FAIL;
         }
@@ -749,7 +735,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param isNotify 是否通知
      * @return 扣除结果
      */
-    private int addDiamond(long playerId, long num, String addType, String desc, boolean isNotify) {
+    private int addDiamond(long playerId, long num, AddType addType, String desc, boolean isNotify) {
         CorePlayerService playerService = roomController.getRoomManager().getPlayerService();
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
         Player gamePlayer = gameDataVo.getGamePlayer(playerId);

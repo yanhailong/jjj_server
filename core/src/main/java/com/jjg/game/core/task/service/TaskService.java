@@ -12,6 +12,7 @@ import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.Item;
@@ -901,7 +902,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
                     List<Item> itemList = new ArrayList<>();
                     if (!getItem.isEmpty()) {
                         itemList = ItemUtils.buildItems(getItem);
-                        playerPackService.addItems(playerId, itemList, "taskAward");
+                        playerPackService.addItems(playerId, itemList, AddType.TASKAWARD);
                     }
                     //记录日志
                     taskLogger.receiveTaskAward(playerId, taskId, itemList, integralNum);

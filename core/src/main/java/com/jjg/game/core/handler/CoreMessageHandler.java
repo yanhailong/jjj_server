@@ -10,6 +10,7 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.SubscriptionTopic;
 import com.jjg.game.core.constant.TaskConstant;
@@ -149,7 +150,7 @@ public class CoreMessageHandler {
                 log.debug("收到添加经验的gm命令 playerId = {},gmOrders = {}", playerController.playerId(), arr);
                 long num = Long.parseLong(params);
                 CommonResult<Player> result =
-                        playerService.betDeductGold(playerController.playerId(), num, true, true, "gmtest");
+                        playerService.betDeductGold(playerController.playerId(), num, true, true, AddType.GM_TEST);
                 res.code = result.code;
                 playerController.send(res);
                 return;
@@ -213,7 +214,7 @@ public class CoreMessageHandler {
      * gm玩家初始化
      */
     private void init(ResGm res, PlayerController playerController, String order, long goldNum,long diamongNum,int vip,int level) throws Exception {
-        CommonResult<Player> result = playerService.gmPlayerInit(playerController.playerId(), goldNum, diamongNum,vip,level,"gmPlayerInit", null);
+        CommonResult<Player> result = playerService.gmPlayerInit(playerController.playerId(), goldNum, diamongNum,vip,level,AddType.GM_OPERATOR, null);
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
@@ -234,7 +235,7 @@ public class CoreMessageHandler {
         }
 
         long num = Long.parseLong(params);
-        CommonResult<Player> result = playerService.addGold(playerController.playerId(), num, "gmAddGold", null);
+        CommonResult<Player> result = playerService.addGold(playerController.playerId(), num,AddType.GM_OPERATOR, null);
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
@@ -255,7 +256,7 @@ public class CoreMessageHandler {
         }
 
         long num = Long.parseLong(params);
-        CommonResult<Player> result = playerService.addDiamond(playerController.playerId(), num, "gmAddDiamond", null);
+        CommonResult<Player> result = playerService.addDiamond(playerController.playerId(), num, AddType.GM_OPERATOR, null);
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
@@ -276,7 +277,7 @@ public class CoreMessageHandler {
         }
 
         int num = Integer.parseInt(params);
-        CommonResult<Player> result = playerService.setVip(playerController.playerId(), num, "gmSetVip", null);
+        CommonResult<Player> result = playerService.setVip(playerController.playerId(), num, AddType.GM_OPERATOR, null);
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {},params = {}", playerController.playerId(), order,
@@ -297,7 +298,7 @@ public class CoreMessageHandler {
         int itemId = Integer.parseInt(orders[1]);
         int count = Integer.parseInt(orders[2]);
 
-        CommonResult<ItemOperationResult> result = playerPackService.addItem(playerController.playerId(), itemId, count, "gmAdd");
+        CommonResult<ItemOperationResult> result = playerPackService.addItem(playerController.playerId(), itemId, count, AddType.GM_OPERATOR);
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},orders = {}", playerController.playerId(), orders);

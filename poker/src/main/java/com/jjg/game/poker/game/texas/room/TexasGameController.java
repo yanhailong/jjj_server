@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.texas.room;
 import com.jjg.game.activity.common.data.ActivityTargetType;
 import com.jjg.game.activity.manager.ActivityManager;
 import com.jjg.game.common.proto.Pair;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
@@ -41,7 +42,6 @@ import com.jjg.game.poker.game.texas.message.req.ReqTexasHistory;
 import com.jjg.game.poker.game.texas.room.data.TexasGameDataVo;
 import com.jjg.game.poker.game.texas.util.HandResult;
 import com.jjg.game.room.base.BaseGameTickTask;
-import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
@@ -623,10 +623,10 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
      */
     public void changePlayerGold(GamePlayer gamePlayer, long change) {
         if (change > 0) {
-            addItem(gamePlayer.getId(), change, ERoomItemReason.GAME_SETTLEMENT);
+            addItem(gamePlayer.getId(), change, AddType.GAME_SETTLEMENT);
             gameDataVo.getTempGold().merge(gamePlayer.getId(), change, Long::sum);
         } else {
-            deductItem(gamePlayer.getId(), Math.abs(change), ERoomItemReason.GAME_BET);
+            deductItem(gamePlayer.getId(), Math.abs(change), AddType.GAME_BET);
             gameDataVo.getTempGold().merge(gamePlayer.getId(), change, Long::sum);
         }
     }

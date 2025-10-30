@@ -18,6 +18,7 @@ import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
@@ -92,7 +93,7 @@ public class FirstPaymentController extends BaseActivityController implements Ga
             rewards.putAll(cfg.getGetgold());
             if (CollectionUtil.isNotEmpty(rewards)) {
                 //在游戏节点
-                addedItems = playerPackService.addItems(playerId, rewards, "firstpayment");
+                addedItems = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_FIRST_PAYMENT);
                 if (!addedItems.success()) {
                     log.error("发放购买奖励失败 playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
                 }

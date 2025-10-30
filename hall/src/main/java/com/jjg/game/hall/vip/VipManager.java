@@ -5,6 +5,7 @@ import cn.hutool.core.util.EnumUtil;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
@@ -172,7 +173,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
                 vip.getGiftGetTime().put(gift.getType(), timeMillis);
             }
             vipService.redisSave(playerId, vip);
-            CommonResult<ItemOperationResult> addedItems = playerPackService.addItems(playerController.playerId(), rewards, "vip奖励领取");
+            CommonResult<ItemOperationResult> addedItems = playerPackService.addItems(playerController.playerId(), rewards, AddType.VIP_REWARDS);
             res.code = addedItems.code;
             if (!addedItems.success()) {
                 return res;

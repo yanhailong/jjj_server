@@ -10,6 +10,7 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.config.bean.LuckyTreasureConfig;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.core.constant.SubscriptionTopic;
@@ -263,7 +264,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                     return result;
                 }
                 // 先扣除玩家道具
-                CommonResult<ItemOperationResult> deductResult = playerPackService.removeItems(player, consumeMap, "luckyTreasureBuy");
+                CommonResult<ItemOperationResult> deductResult = playerPackService.removeItems(player, consumeMap, AddType.LUCKY_TREASURE_BUY);
                 if (!deductResult.success()) {
                     TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, 50028);
                     result.code = Code.FAIL;
@@ -293,7 +294,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                 }
             } catch (Exception e) {
                 // 发生异常，退还道具
-                playerPackService.addItems(player.getId(), consumeMap, "luckyTreasureBuyExceptionRollback");
+                playerPackService.addItems(player.getId(), consumeMap, AddType.LUCKY_TREASURE_BUY_EXCEPTION_ROLL_BACK);
                 throw e;
             }
         } catch (Exception e) {
@@ -312,7 +313,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         try {
             if (latestTreasure == null || LuckyTreasureStatusUtil.calculateStatus(latestTreasure, player.getId()) != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
                 // 活动状态已变更，退还道具
-                playerPackService.addItems(player.getId(), consumeMap, "luckyTreasureBuyStatusChangedRollback");
+                playerPackService.addItems(player.getId(), consumeMap, AddType.LUCKY_TREASURE_BUY_STATUSCHANGED_ROLL_BACK);
                 TipUtils.sendTip(player.getId(), TipUtils.TipType.TOAST, 50031);
                 return Code.FAIL;
             }
@@ -321,7 +322,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             int remainingCount = latestTreasure.getConfig().getTotal() - latestTreasure.getSoldCount();
             if (remainingCount < count) {
                 // 剩余数量不足，退还道具
-                playerPackService.addItems(player.getId(), consumeMap, "luckyTreasureBuyNotEnoughRollback");
+                playerPackService.addItems(player.getId(), consumeMap, AddType.LUCKY_TREASURE_BUY_NOT_ENOUGH_ROLLBACK);
                 TipUtils.sendTip(player.getId(), TipUtils.TipType.TOAST, 50032);
                 return Code.FAIL;
             }
@@ -331,7 +332,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
 
             if (latestTreasure == null) {
                 // 购买失败，退还道具
-                playerPackService.addItems(player.getId(), consumeMap, "luckyTreasureBuyFailedRollback");
+                playerPackService.addItems(player.getId(), consumeMap, AddType.LUCKY_TREASURE_BUY_FAILED_ROLLBACK);
                 TipUtils.sendTip(player.getId(), TipUtils.TipType.TOAST, 50030);
                 return Code.FAIL;
             }
@@ -345,7 +346,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         } catch (Exception e) {
             log.error("执行购买逻辑失败", e);
             // 发生异常，退还道具
-            playerPackService.addItems(player.getId(), consumeMap, "luckyTreasureBuyExceptionRollback");
+            playerPackService.addItems(player.getId(), consumeMap, AddType.LUCKY_TREASURE_BUY_EXCEPTION_ROLL_BACK);
             return Code.EXCEPTION;
         }
     }
@@ -564,7 +565,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             rewardMap.put(config.getItemId(), (long) config.getItemNum());
 
             long playerId = player.getId();
-            CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, rewardMap, "luckyTreasureReceive");
+            CommonResult<ItemOperationResult> addResult = playerPackService.addItems(playerId, rewardMap, AddType.LUCKY_TREASURE_REWARDS);
 
             if (!addResult.success()) {
                 return false;

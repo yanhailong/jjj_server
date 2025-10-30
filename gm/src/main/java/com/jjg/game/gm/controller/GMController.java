@@ -17,10 +17,7 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.constant.BackendGMCmd;
-import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.constant.PointsAwardType;
+import com.jjg.game.core.constant.*;
 import com.jjg.game.core.dao.*;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.AmazonBucketManager;
@@ -438,7 +435,7 @@ public class GMController extends AbstractController {
             }
 
             boolean notifyNode = false;
-            String addType = "GM_GOLD_OPERATOR";
+            AddType addType = AddType.GM_OPERATOR;
             CommonResult<Player> result;
             if (dto.operator_type() == 1) {  //账户
                 PlayerSessionInfo info = playerSessionService.getInfo(player.getId());
@@ -469,7 +466,7 @@ public class GMController extends AbstractController {
                     notify.currency_id = dto.currency_id();
                     notify.type = dto.type();
                     notify.quantity = dto.quantity();
-                    notify.addType = addType;
+                    notify.addType = addType.getValue();
                     notify.remark = dto.remark();
 
                     PFMessage pfMessage = MessageUtil.getPFMessage(notify);

@@ -4,6 +4,7 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -278,7 +279,7 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
             }
             //发送道具奖励
             if (signInCfg.getGetItem() != null && !signInCfg.getGetItem().isEmpty()) {
-                playerPackService.addItems(playerId, ItemUtils.buildItems(signInCfg.getGetItem()), "积分大奖签到奖励");
+                playerPackService.addItems(playerId, ItemUtils.buildItems(signInCfg.getGetItem()), AddType.POINTS_AWARD_SIGN_REWARDS);
             }
             //记录日志
             pointsAwardLogger.signInLog(playerId, getSignSet(playerId).size(), signInCfg.getIntegralNum(), pointsAwardService.getPoints(playerId));

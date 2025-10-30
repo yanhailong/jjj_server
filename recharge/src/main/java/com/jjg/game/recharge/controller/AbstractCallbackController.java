@@ -9,6 +9,7 @@ import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.data.*;
@@ -121,7 +122,7 @@ public abstract class AbstractCallbackController {
 
         List<ItemInfo> itemInfoList = null;
         if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
-            CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(order.getPlayerId(), shopProduct.getRewardItems(), "recharge", order.getId());
+            CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(order.getPlayerId(), shopProduct.getRewardItems(), AddType.RECHARGE, order.getId());
             if (!addItemsResult.success()) {
                 log.warn("支付成功，但是添加道具失败 playerId = {},orderId = {},productId = {},code = {}", order.getPlayerId(), order.getId(), shopProduct.getId(), addItemsResult.code);
             }

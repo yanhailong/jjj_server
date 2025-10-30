@@ -26,6 +26,7 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
@@ -239,7 +240,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 CashCowPlayerActivityData data = playerActivityData.computeIfAbsent(detailId, key -> new CashCowPlayerActivityData(activityId, activityData.getRound())
                 );
                 // 扣除消耗道具
-                removed = playerPackService.removeItems(player, cfg.getNeedItem(), "cashcow");
+                removed = playerPackService.removeItems(player, cfg.getNeedItem(), AddType.ACTIVITY_CASHCOW);
                 if (!removed.success()) {
                     // 扣除失败，返回对应错误码（可能是道具不足等）
                     res.code = removed.code;
@@ -260,7 +261,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                             get = cashCowDao.reduceActivityPool(activityId, cfg.getDistribution());
                             if (get > 0) {
                                 // 给玩家发放金币（或其他道具，目前为金币）
-                                addedItem = playerPackService.addItem(playerId, ItemUtils.getGoldItemId(), get, "CashCowJoin");
+                                addedItem = playerPackService.addItem(playerId, ItemUtils.getGoldItemId(), get, AddType.ACTIVITY_CASHCOW_JOIN);
                                 // 记录玩家中奖记录（写到玩家记录表或排行榜）
                                 CashCowRecordData cashCowRecordData = new CashCowRecordData(activityData.getRound(), System.currentTimeMillis(), player.getNickName(), cfg.getType(), get);
                                 cashCowDao.savePlayerRecordActivity(playerId, activityId, cashCowRecordData);
@@ -325,7 +326,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             res.code = Code.PARAM_ERROR;
             return res;
         }
-        ClaimRewardsResult claimRewardsResult = claimActivityRewards(playerId, activityData, detailId, "CashCowRewords", cfg.getRewards());
+        ClaimRewardsResult claimRewardsResult = claimActivityRewards(playerId, activityData, detailId, AddType.ACTIVITY_CASHCOW_REWARDS, cfg.getRewards());
         if (claimRewardsResult != null) {
             // 记录日志并构建返回值
             if (claimRewardsResult.itemOperationResult() != null) {
@@ -750,7 +751,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
                 return res;
             }
             // 发放道具到玩家背包
-            addItems = playerPackService.addItem(playerController.playerId(), freeRewards.getId(), freeRewards.getItemCount(), "CashCowFreeRewards");
+            addItems = playerPackService.addItem(playerController.playerId(), freeRewards.getId(), freeRewards.getItemCount(), AddType.ACTIVITY_CASHCOW_FREE_REWARDS);
             if (!addItems.success()) {
                 res.code = Code.UNKNOWN_ERROR;
                 return res;

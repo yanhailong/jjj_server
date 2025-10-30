@@ -11,6 +11,7 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.PlayerPackService;
@@ -128,7 +129,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             }
             //扣除道具
             CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.playerId(),
-                    buyClaimAllRewardsConsumer.getFirst(), "一键升级购买");
+                    buyClaimAllRewardsConsumer.getFirst(), AddType.ONE_CLICK_UPGRADE_PURCHASE);
             if (!result.success()) {
                 res.code = result.code;
                 return res;
@@ -300,7 +301,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 }
                 //发奖
                 CommonResult<ItemOperationResult> result = playerPackService.addItems(playerController.playerId(), getReward,
-                        "一键领取赌场收益");
+                        AddType.ONE_CLICK_CLAIM_GAMB_EARNINGS);
                 if (!result.success()) {
                     res.code = result.code;
                     return res;
@@ -356,7 +357,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             //发奖
             Item item = new Item(cfg.getOutput().get(1), totalNum);
             CommonResult<ItemOperationResult> result = playerPackService.addItem(playerController.playerId(), item.getId(),
-                    item.getItemCount(), "一键领取机台收益");
+                    item.getItemCount(), AddType.ONE_CLICK_CLAIM_TABKE_EARNINGS);
             if (!result.success()) {
                 res.code = Code.UNKNOWN_ERROR;
                 return res;
@@ -420,7 +421,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             CasinoEmployment casinoEmployment = employmentMap.getOrDefault(req.index, new CasinoEmployment());
             List<Integer> cost = dealerFunctionCfg.getHiringExpenses();
             Item costItem = new Item(cost.getFirst(), cost.getLast());
-            CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.playerId(), costItem, "请求雇员职员");
+            CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.playerId(), costItem, AddType.EMPLOYEE_STAFF);
             if (!result.success()) {
                 res.code = result.code;
                 return res;
@@ -514,7 +515,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             return res;
         }
         //扣除消耗
-        CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.playerId(), item, "加速清理");
+        CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.playerId(), item, AddType.CLEANUP_PROCESS);
         if (!result.success()) {
             res.code = result.code;
             return res;
@@ -639,7 +640,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             }
         }
         //扣除消耗
-        CommonResult<ItemOperationResult> removed = playerPackService.removeItems(player, functionCfg.getUplevel_itemid(), "升级建筑");
+        CommonResult<ItemOperationResult> removed = playerPackService.removeItems(player, functionCfg.getUplevel_itemid(), AddType.UP_BUILD);
         if (!removed.success()) {
             res.code = removed.code;
             return res;
@@ -684,7 +685,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             return res;
         }
         //扣除消耗
-        CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.playerId(), item, "加速升级");
+        CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.playerId(), item, AddType.UPGRADE_PROCESS);
         if (!result.success()) {
             res.code = result.code;
             return res;

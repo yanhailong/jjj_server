@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.blackjack.gamephase;
 
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
 import com.jjg.game.poker.game.blackjack.data.BlackJackBuilder;
 import com.jjg.game.poker.game.blackjack.data.BlackJackDataHelper;
@@ -15,7 +16,6 @@ import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.poker.game.common.message.bean.PokerPlayerSettlementInfo;
-import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
@@ -246,7 +246,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
                     robotPlayer.setLastWin(2);
                 }
             }
-            gameController.addItem(playerId, totalGet, ERoomItemReason.GAME_SETTLEMENT);
+            gameController.addItem(playerId, totalGet, AddType.GAME_SETTLEMENT);
             blackJackSettlementInfo.getGold = totalGet;
             blackJackSettlementInfo.win = get >= 0;
             blackJackSettlementInfo.currentGold = controller.getTransactionItemNum(playerId);

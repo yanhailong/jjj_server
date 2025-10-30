@@ -2,6 +2,7 @@ package com.jjg.game.room.handler;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.concurrent.IProcessorHandler;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.room.controller.AbstractGameController;
 import org.slf4j.Logger;
@@ -20,7 +21,7 @@ public record CurrentChangeEventHandler(Player player, AbstractGameController<?,
     @Override
     public void action() throws Exception {
         try {
-            gameController.changeCurrency(player, currencyMap, "CurrentChange", "", true);
+            gameController.changeCurrency(player, currencyMap, AddType.ROOM_CURRENCY_CHANGE, "", true);
         } catch (Exception e) {
             log.error("货币变化时更新房间内货币失败 playerId:{} currencyMap:{} ", player.getId(), JSON.toJSONString(currencyMap), e);
         }

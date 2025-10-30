@@ -2,6 +2,7 @@ package com.jjg.game.slots.game.superstar.manager;
 
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -140,7 +141,7 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
             long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
             if (gameRunInfo.getBigPoolTimes() > 0) {
                 if (addGold > 0) {
-                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_BET_REWARD");
+                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_BET_REWARD);
                     if (!result.success()) {
                         log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
                         gameRunInfo.setCode(result.code);
@@ -154,7 +155,7 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
                 long pool = getPoolValueByPoolId(jackpotId, betValue);
                 if (pool > 0) {
                     addGold += pool;
-                    slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), pool, "SLOTS_JACKPOT_REWARD");
+                    slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), pool, AddType.SLOTS_JACKPOT_REWARD);
                     //记录发奖金额
                     gameRunInfo.getSpinInfo().jackpotValue = pool;
                 }

@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -144,7 +145,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             if (gameRunInfo.getBigPoolTimes() > 0) {
                 addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
                 if (addGold > 0) {
-                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_BET_REWARD");
+                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_BET_REWARD);
                     if (!result.success()) {
                         log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
                         gameRunInfo.setCode(result.code);
@@ -158,7 +159,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
                 long pool = calculatePool(roomCfgId, jackpotId, playerController);
                 if (pool > 0) {
                     addGold += pool;
-                    slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), pool, "SLOTS_JACKPOT_REWARD");
+                    slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), pool, AddType.SLOTS_JACKPOT_REWARD);
                     //记录发奖金额
                     gameRunInfo.setJackpotValue(pool);
                     //记录发奖后剩余的奖池金额
@@ -274,7 +275,7 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
         }
         Player player = playerController.getPlayer();
         long playerId = playerController.playerId();
-        CommonResult<Long> slotsRewardPool = slotsPoolDao.rewardByRatioFromSmallPool(playerId, this.gameType, player.getRoomCfgId(), poolCfg.getTruePool(), "SLOTS_REWARD_POOL");
+        CommonResult<Long> slotsRewardPool = slotsPoolDao.rewardByRatioFromSmallPool(playerId, this.gameType, player.getRoomCfgId(), poolCfg.getTruePool(), AddType.SLOTS_JACKPOT_REWARD);
         if (slotsRewardPool != null) {
             return slotsRewardPool.data;
         }

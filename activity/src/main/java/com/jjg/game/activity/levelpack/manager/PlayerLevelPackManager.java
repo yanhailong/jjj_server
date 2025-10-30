@@ -16,6 +16,7 @@ import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.*;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.NotifyPlayerLevelUp;
@@ -153,7 +154,7 @@ public class PlayerLevelPackManager implements GameEventListener {
     }
 
 
-    public AbstractResponse ReqPlayerLevelClaimRewards(PlayerController playerController, ReqPlayerLevelClaimRewards req) {
+    public AbstractResponse reqPlayerLevelClaimRewards(PlayerController playerController, ReqPlayerLevelClaimRewards req) {
         ResPlayerLevelClaimRewards res = new ResPlayerLevelClaimRewards(Code.SUCCESS);
         PlayerLevelPackCfg packCfg = GameDataManager.getPlayerLevelPackCfg(req.id);
         //检查配置
@@ -180,7 +181,7 @@ public class PlayerLevelPackManager implements GameEventListener {
             playerLevelPackData = playerLevelDao.getPlayerLevelPackData(playerId, req.id);
             //领取奖励
             if (playerLevelPackData != null && playerLevelPackData.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                added = playerPackService.addItems(playerId, packCfg.getLevelRewards(), "playerLevelClaim");
+                added = playerPackService.addItems(playerId, packCfg.getLevelRewards(), AddType.LEVEL_CLAIM);
                 if (!added.success()) {
                     log.error("等级礼包添加道具失败 playerId:{} id:{} ", playerId, req.id);
                 }
@@ -309,7 +310,7 @@ public class PlayerLevelPackManager implements GameEventListener {
         List<ItemInfo> items = null;
         if (!addItemsMap.isEmpty()) {
             //添加道具
-            CommonResult<ItemOperationResult> result = playerPackService.addItems(player.getId(), addItemsMap, "playerLevelUpgrade");
+            CommonResult<ItemOperationResult> result = playerPackService.addItems(player.getId(), addItemsMap, AddType.LEVEL_UPGRADE);
             if (!result.success()) {
                 log.warn("玩家升级添加道具失败 playerId = {},level = {},code = {}", player.getId(), player.getLevel(), result.code);
             } else {

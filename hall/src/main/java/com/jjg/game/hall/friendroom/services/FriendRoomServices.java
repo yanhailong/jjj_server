@@ -12,6 +12,7 @@ import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.dao.room.AbstractFriendRoomDao.CreateFriendsRoom;
@@ -133,9 +134,9 @@ public class FriendRoomServices {
         if (req.predictCostGoldNum != 0) {
             itemMap.put(reqItem.getId(), reqItem.getItemCount());
             itemMap.put(ItemUtils.getDiamondItemId(), req.predictCostGoldNum);
-            removeItem = playerPackService.removeItems(player, itemMap, "create_friend_room");
+            removeItem = playerPackService.removeItems(player, itemMap, AddType.CREATE_FRIEND_ROOM);
         } else {
-            removeItem = playerPackService.removeItem(player.getId(), reqItem, "create_friend_room");
+            removeItem = playerPackService.removeItem(player.getId(), reqItem, AddType.CREATE_FRIEND_ROOM);
         }
         // 移除道具失败
         if (!removeItem.success()) {
@@ -871,7 +872,7 @@ public class FriendRoomServices {
             }
             // 扣除道具
             CommonResult<ItemOperationResult> removeItem = playerPackService.removeItems(player, itemMap,
-                "manage_friend_room");
+                    AddType.MANAGE_FRIEND_ROOM);
             // 移除道具失败
             if (!removeItem.success()) {
                 return removeItem.code;
@@ -1114,7 +1115,7 @@ public class FriendRoomServices {
         // 更新所有领奖状态
         billHistoryDao.updateAllHistoryRewardTook(playerId);
         // 给玩家添加收益道具
-        playerPackService.addItems(playerId, playerAllReward, "friend_room_income_take_all");
+        playerPackService.addItems(playerId, playerAllReward, AddType.FRIEND_ROOM_INCOME_TAKE_ALL);
         // 发送消息
         return Code.SUCCESS;
     }

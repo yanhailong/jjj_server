@@ -241,7 +241,7 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_CLAIM_REWARDS)
     public void reqPlayerLevelClaimRewards(PlayerController playerController, ReqPlayerLevelClaimRewards req) {
-        playerController.send(playerLevelPackManager.ReqPlayerLevelClaimRewards(playerController, req));
+        playerController.send(playerLevelPackManager.reqPlayerLevelClaimRewards(playerController, req));
     }
 
     /**

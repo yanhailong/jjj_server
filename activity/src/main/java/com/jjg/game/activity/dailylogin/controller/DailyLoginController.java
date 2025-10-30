@@ -16,6 +16,7 @@ import com.jjg.game.activity.privilegecard.data.PlayerPrivilegeCard;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
@@ -141,7 +142,7 @@ public class DailyLoginController extends BaseActivityController {
                 return res;
             }
             // 发放奖励
-            addedItems = playerPackService.addItems(playerId, cfg.getGetItem(), "DailyLogin");
+            addedItems = playerPackService.addItems(playerId, cfg.getGetItem(), AddType.ACTIVITY_DAILY_LOGIN);
             if (!addedItems.success()) {
                 res.code = Code.UNKNOWN_ERROR;
                 return res;

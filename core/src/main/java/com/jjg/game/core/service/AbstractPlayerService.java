@@ -7,6 +7,7 @@ import com.jjg.game.core.base.gameevent.CurrencyChangeEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerDao;
@@ -132,27 +133,27 @@ public class AbstractPlayerService {
         return null;
     }
 
-    public CommonResult<Player> addSafeBoxDiamond(long playerId, long addNum, String addType) {
+    public CommonResult<Player> addSafeBoxDiamond(long playerId, long addNum, AddType addType) {
         return addSafeBoxDiamond(playerId, addNum, addType, null);
     }
 
-    public CommonResult<Player> addGoldAndDiamond(long playerId, long goldNum, long diamondNum, String addType) {
+    public CommonResult<Player> addGoldAndDiamond(long playerId, long goldNum, long diamondNum, AddType addType) {
         return addGoldAndDiamond(playerId, goldNum, diamondNum, addType, false, null);
     }
 
-    public CommonResult<Player> deductSafeBoxDiamond(long playerId, long addNum, String addType) {
+    public CommonResult<Player> deductSafeBoxDiamond(long playerId, long addNum, AddType addType) {
         return deductSafeBoxDiamond(playerId, addNum, addType, null);
     }
 
-    public CommonResult<Player> addDiamond(long playerId, long addNum, String addType) {
+    public CommonResult<Player> addDiamond(long playerId, long addNum, AddType addType) {
         return addDiamond(playerId, addNum, addType, "");
     }
 
-    public CommonResult<Player> addDiamond(long playerId, long addNum, String addType, String desc) {
+    public CommonResult<Player> addDiamond(long playerId, long addNum, AddType addType, String desc) {
         return addDiamond(playerId, addNum, addType, desc, false);
     }
 
-    public CommonResult<Player> addDiamond(long playerId, long addNum, String addType, String desc, boolean isNotify) {
+    public CommonResult<Player> addDiamond(long playerId, long addNum, AddType addType, String desc, boolean isNotify) {
         LongRef longRef = PrimitiveRef.ofLong(0);
         Supplier<Player> supplier = () -> checkAndSave(playerId, new DataSaveCallback<>() {
             @Override
@@ -175,7 +176,7 @@ public class AbstractPlayerService {
     public <P extends Player> CommonResult<P> addDiamond(
             long playerId,
             long addNum,
-            String addType,
+            AddType addType,
             String desc,
             boolean isNotify,
             Supplier<P> updatePlayerMethod,
@@ -210,7 +211,7 @@ public class AbstractPlayerService {
      * @param desc
      * @return
      */
-    public CommonResult<Player> addSafeBoxDiamond(long playerId, long addNum, String addType, String desc) {
+    public CommonResult<Player> addSafeBoxDiamond(long playerId, long addNum, AddType addType, String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (addNum < 1) {
             log.warn("添加保险箱钻石错误 playerId={},addNum={}", playerId, addNum);
@@ -252,7 +253,7 @@ public class AbstractPlayerService {
      * @param desc
      * @return
      */
-    public CommonResult<Player> addGoldAndDiamond(long playerId, long goldNum, long diamondNum, String addType,
+    public CommonResult<Player> addGoldAndDiamond(long playerId, long goldNum, long diamondNum, AddType addType,
                                                   boolean isNotify, String desc) {
         // TODO 添加金币时只能保证分布式服务状态下的更新同步，不能保证当前服的线程安全引起的数据同步问题
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
@@ -343,11 +344,11 @@ public class AbstractPlayerService {
     }
 
 
-    public CommonResult<Player> deductDiamond(long playerId, long addNum, String addType) {
+    public CommonResult<Player> deductDiamond(long playerId, long addNum, AddType addType) {
         return deductDiamond(playerId, addNum, addType, "");
     }
 
-    public CommonResult<Player> deductDiamond(long playerId, long deductNum, String addType, String desc) {
+    public CommonResult<Player> deductDiamond(long playerId, long deductNum, AddType addType, String desc) {
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
         Supplier<Player> supplier = () -> checkAndSave(playerId, new DataSaveCallback<>() {
             @Override
@@ -377,7 +378,7 @@ public class AbstractPlayerService {
      * @return
      */
     public <P extends Player> CommonResult<P> deductDiamond(
-            long playerId, long num, String addType, String desc,
+            long playerId, long num, AddType addType, String desc,
             boolean isNotify,
             Supplier<P> playerUpdateMethod,
             LongRef beforeUpdateGold) {
@@ -414,7 +415,7 @@ public class AbstractPlayerService {
      * @param desc
      * @return
      */
-    public CommonResult<Player> deductSafeBoxDiamond(long playerId, long num, String addType, String desc) {
+    public CommonResult<Player> deductSafeBoxDiamond(long playerId, long num, AddType addType, String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (num < 1) {
             log.warn("扣除保险箱钻石错误 playerId={},num={}", playerId, num);
@@ -461,7 +462,7 @@ public class AbstractPlayerService {
      * @param desc
      * @return
      */
-    public CommonResult<Player> setVip(long playerId, int vipLevel, String addType, String desc) {
+    public CommonResult<Player> setVip(long playerId, int vipLevel, AddType addType, String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (vipLevel < 0) {
             log.warn("设置vip等级错误 playerId={},vipLevel={}", playerId, vipLevel);
@@ -496,41 +497,41 @@ public class AbstractPlayerService {
         return result;
     }
 
-    public CommonResult<Player> addGold(long playerId, long addNum, String addType) {
+    public CommonResult<Player> addGold(long playerId, long addNum, AddType addType) {
         return addGold(playerId, addNum, addType, null);
     }
 
-    public CommonResult<Player> deductGold(long playerId, long addNum, String addType) {
+    public CommonResult<Player> deductGold(long playerId, long addNum, AddType addType) {
         return deductGold(playerId, addNum, addType, null, false);
     }
 
-    public CommonResult<Player> deductGold(long playerId, long addNum, String addType, String desc) {
+    public CommonResult<Player> deductGold(long playerId, long addNum, AddType addType, String desc) {
         return deductGold(playerId, addNum, addType, desc, false);
     }
 
-    public CommonResult<Player> deductGold(long playerId, long addNum, String addType, boolean isNotify) {
+    public CommonResult<Player> deductGold(long playerId, long addNum, AddType addType, boolean isNotify) {
         return deductGold(playerId, addNum, addType, null, isNotify);
     }
 
-    public CommonResult<Player> deductSafeBoxGold(long playerId, long addNum, String addType) {
+    public CommonResult<Player> deductSafeBoxGold(long playerId, long addNum, AddType addType) {
         return deductSafeBoxGold(playerId, addNum, addType, null);
     }
 
-    public CommonResult<Player> betDeductGold(long playerId, long addNum, boolean effective, String addType) {
+    public CommonResult<Player> betDeductGold(long playerId, long addNum, boolean effective, AddType addType) {
         return betDeductGold(playerId, addNum, addType, effective, false, null);
     }
 
-    public CommonResult<Player> betDeductGold(long playerId, long addNum, boolean effective, boolean notify, String addType) {
+    public CommonResult<Player> betDeductGold(long playerId, long addNum, boolean effective, boolean notify, AddType addType) {
         return betDeductGold(playerId, addNum, addType, effective, notify, null);
     }
 
-    public CommonResult<Player> deductGoldAndDiamond(long playerId, long goldNum, long diamondNum, String addType) {
+    public CommonResult<Player> deductGoldAndDiamond(long playerId, long goldNum, long diamondNum, AddType addType) {
         return deductGoldAndDiamond(playerId, goldNum, diamondNum, addType, true, null);
     }
 
 
     public CommonResult<Player> deductGoldAndDiamond(long playerId, long goldNum, long diamondNum, boolean notify,
-                                                     String addType) {
+                                                     AddType addType) {
         return deductGoldAndDiamond(playerId, goldNum, diamondNum, addType, notify, null);
     }
 
@@ -538,21 +539,21 @@ public class AbstractPlayerService {
     /**
      * 添加金币
      */
-    public CommonResult<Player> addGold(long playerId, long addNum, String addType, boolean isNotify) {
+    public CommonResult<Player> addGold(long playerId, long addNum, AddType addType, boolean isNotify) {
         return addGold(playerId, addNum, addType, "", isNotify);
     }
 
     /**
      * 添加金币
      */
-    public CommonResult<Player> addGold(long playerId, long addNum, String addType, String desc) {
+    public CommonResult<Player> addGold(long playerId, long addNum, AddType addType, String desc) {
         return addGold(playerId, addNum, addType, desc, false);
     }
 
     /**
      * 添加保险箱金币
      */
-    public CommonResult<Player> addSafeBoxGold(long playerId, long addNum, String addType, String desc) {
+    public CommonResult<Player> addSafeBoxGold(long playerId, long addNum, AddType addType, String desc) {
         return addSafeBoxGold(playerId, addNum, addType, desc, false);
     }
 
@@ -567,7 +568,7 @@ public class AbstractPlayerService {
      * @param desc     dec
      * @return 最新Player
      */
-    public CommonResult<Player> addGold(long playerId, long addNum, String addType, String desc, boolean isNotify) {
+    public CommonResult<Player> addGold(long playerId, long addNum, AddType addType, String desc, boolean isNotify) {
         LongRef playerBeforeGoldRef = PrimitiveRef.ofLong(0);
         Supplier<Player> supplier = () -> checkAndSave(playerId, new DataSaveCallback<>() {
             @Override
@@ -600,7 +601,7 @@ public class AbstractPlayerService {
     public <P extends Player> CommonResult<P> addGold(
             long playerId,
             long addNum,
-            String addType,
+            AddType addType,
             String desc,
             boolean isNotify,
             Supplier<P> updatePlayerMethod,
@@ -637,7 +638,7 @@ public class AbstractPlayerService {
      * @param desc     dec
      * @return 最新Player
      */
-    protected CommonResult<Player> addSafeBoxGold(long playerId, long addNum, String addType, String desc,
+    protected CommonResult<Player> addSafeBoxGold(long playerId, long addNum, AddType addType, String desc,
                                                   boolean isNotify) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (addNum < 1) {
@@ -680,7 +681,7 @@ public class AbstractPlayerService {
     /**
      * 扣除金币
      */
-    protected CommonResult<Player> deductGold(long playerId, long num, String addType, String desc, boolean isNotify) {
+    protected CommonResult<Player> deductGold(long playerId, long num, AddType addType, String desc, boolean isNotify) {
         LongRef ref = PrimitiveRef.ofLong(0);
         Supplier<Player> supplier = () -> checkAndSave(playerId, new DataSaveCallback<>() {
             @Override
@@ -707,7 +708,7 @@ public class AbstractPlayerService {
     public <P extends Player> CommonResult<P> deductGold(
             long playerId,
             long num,
-            String addType,
+            AddType addType,
             String desc,
             boolean isNotify,
             Supplier<P> playerUpdateMethod,
@@ -744,7 +745,7 @@ public class AbstractPlayerService {
      * @param desc
      * @return
      */
-    public CommonResult<Player> deductSafeBoxGold(long playerId, long num, String addType, String desc) {
+    public CommonResult<Player> deductSafeBoxGold(long playerId, long num, AddType addType, String desc) {
         // TODO 添加金币时只能保证分布式服务状态下的更新同步，不能保证当前服的线程安全引起的数据同步问题
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (num < 1) {
@@ -793,7 +794,7 @@ public class AbstractPlayerService {
      * @return
      */
     public CommonResult<Player> deductGoldAndDiamond(
-            long playerId, long goldNum, long diamondNum, String addType, boolean notify, String desc) {
+            long playerId, long goldNum, long diamondNum, AddType addType, boolean notify, String desc) {
         // TODO 添加金币时只能保证分布式服务状态下的更新同步，不能保证当前服的线程安全引起的数据同步问题
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (goldNum < 0 || diamondNum < 0 || (goldNum + diamondNum) < 1) {
@@ -867,7 +868,7 @@ public class AbstractPlayerService {
      * @return
      */
     public CommonResult<Player> betDeductGold(
-            long playerId, long num, String addType, boolean effective, boolean notify, String desc) {
+            long playerId, long num, AddType addType, boolean effective, boolean notify, String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.FAIL);
         if (num < 1) {
             log.warn("押注扣除金币错误 playerId={},num={}", playerId, num);
@@ -1084,7 +1085,7 @@ public class AbstractPlayerService {
      * @param gold
      * @return
      */
-    public CommonResult<Player> goldInSafeBox(long playerId, long gold, String addType) {
+    public CommonResult<Player> goldInSafeBox(long playerId, long gold, AddType addType) {
         CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
         if (gold < 1) {
             result.code = Code.PARAM_ERROR;
@@ -1132,7 +1133,7 @@ public class AbstractPlayerService {
      * @param diamond
      * @return
      */
-    public CommonResult<Player> diamondInSafeBox(long playerId, long diamond, String addType) {
+    public CommonResult<Player> diamondInSafeBox(long playerId, long diamond, AddType addType) {
         CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
         if (diamond < 1) {
             result.code = Code.PARAM_ERROR;
@@ -1180,7 +1181,7 @@ public class AbstractPlayerService {
      * @param gold
      * @return
      */
-    public CommonResult<Player> goldOutFromSafeBox(long playerId, long gold, String addType) {
+    public CommonResult<Player> goldOutFromSafeBox(long playerId, long gold, AddType addType) {
         CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
         if (gold < 1) {
             result.code = Code.PARAM_ERROR;
@@ -1229,7 +1230,7 @@ public class AbstractPlayerService {
      * @param diamond
      * @return
      */
-    public CommonResult<Player> diamondOutFromSafeBox(long playerId, long diamond, String addType) {
+    public CommonResult<Player> diamondOutFromSafeBox(long playerId, long diamond, AddType addType) {
         CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
         if (diamond < 1) {
             result.code = Code.PARAM_ERROR;
@@ -1355,7 +1356,7 @@ public class AbstractPlayerService {
      * @param desc     dec
      * @return 最新Player
      */
-    public CommonResult<Player> gmPlayerInit(long playerId, long goldNum, long diamondNum, int vip, int level, String addType, String desc) {
+    public CommonResult<Player> gmPlayerInit(long playerId, long goldNum, long diamondNum, int vip, int level, AddType addType, String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
         if (goldNum < 0 || diamondNum < 0) {
             result.code = Code.PARAM_ERROR;

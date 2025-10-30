@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
@@ -135,7 +136,7 @@ public class MahjiongWinGameManager extends AbstractSlotsGameManager<MahjiongWin
             if (gameRunInfo.getBigPoolTimes() > 0) {
                 long addGold = playerGameData.getOneBetScore() * gameRunInfo.getBigPoolTimes();
                 if (addGold > 0) {
-                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, "SLOTS_BET_REWARD");
+                    CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.playerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, AddType.SLOTS_BET_REWARD);
                     if (!result.success()) {
                         log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
                         gameRunInfo.setCode(result.code);

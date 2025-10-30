@@ -4,6 +4,7 @@ import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.service.PlayerPackService;
@@ -246,7 +247,7 @@ public class PointsAwardTurntableService {
                 }
                 // 道具奖励
                 if (awardTurntableCfg.getGetItem() != null && !awardTurntableCfg.getGetItem().isEmpty()) {
-                    playerPackService.addItems(playerId, ItemUtils.buildItems(awardTurntableCfg.getGetItem()), "积分大奖转盘奖励");
+                    playerPackService.addItems(playerId, ItemUtils.buildItems(awardTurntableCfg.getGetItem()), AddType.POINTS_AWARD_TURNTABLE_REWARDS);
                 }
                 PointsAwardTurntableHistory history = new PointsAwardTurntableHistory();
                 history.setPlayerId(playerId);

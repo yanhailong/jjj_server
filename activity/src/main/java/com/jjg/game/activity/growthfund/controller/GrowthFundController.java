@@ -20,6 +20,7 @@ import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.CommonResult;
@@ -106,7 +107,7 @@ public class GrowthFundController extends BaseActivityController implements Game
             }
             //道具奖励
             if (CollectionUtil.isNotEmpty(rewards)) {
-                addItems = playerPackService.addItems(playerId, rewards, "GrowthFundBuy");
+                addItems = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_GROWTH_FUND_BUY);
                 if (!addItems.success()) {
                     log.error("成长基金购买增加发奖失败 playerId:{} activityId:{}", playerId, activityId);
                 }
@@ -255,7 +256,7 @@ public class GrowthFundController extends BaseActivityController implements Game
             // 更新状态
             playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), dataMap);
             // 发放每日奖励
-            addedItems = playerPackService.addItems(playerId, rewards, "GrowthFundClaimRewards");
+            addedItems = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_GROWTH_FUND_CLAIM_REWARDS);
             if (!addedItems.success()) {
                 res.code = Code.UNKNOWN_ERROR;
                 return res;

@@ -10,6 +10,7 @@ import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
@@ -556,7 +557,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     addItemsMap.merge(addItemId, en.getValue(), Long::sum);
                 }
 
-                CommonResult<ItemOperationResult> useResult = playerPackService.useItem(player.getId(), girdId, itemId, useItemCount, addItemsMap, "packUseItem");
+                CommonResult<ItemOperationResult> useResult = playerPackService.useItem(player.getId(), girdId, itemId, useItemCount, addItemsMap, AddType.USE_ITEM);
                 if (!useResult.success()) {
                     log.debug("使用道具后获得新道具失败 playerId = {},itemId = {}", player.getId(), itemId);
                     result.code = useResult.code;
@@ -675,7 +676,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return result;
             }
 
-            CommonResult<ItemOperationResult> bindRewardResult = playerPackService.addItems(playerId, loginConfigCfg.getAwardItem(), "bindReward");
+            CommonResult<ItemOperationResult> bindRewardResult = playerPackService.addItems(playerId, loginConfigCfg.getAwardItem(), AddType.BIND_REWARD);
             if (!bindRewardResult.success()) {
                 log.debug("添加绑定奖励失败 playerId = {},type = {}", playerId, type);
             }

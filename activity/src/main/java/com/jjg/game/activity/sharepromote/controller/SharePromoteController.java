@@ -19,6 +19,7 @@ import com.jjg.game.activity.sharepromote.message.res.*;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.MailService;
@@ -73,7 +74,7 @@ public class SharePromoteController extends BaseActivityController {
             res.code = Code.SAMPLE_ERROR;
             return res;
         }
-        ClaimRewardsResult claimRewardsResult = claimActivityRewards(playerId, activityData, detailId, "", cfg.getGetitem());
+        ClaimRewardsResult claimRewardsResult = claimActivityRewards(playerId, activityData, detailId, AddType.ACTIVITY_SHARE_PROMOTE, cfg.getGetitem());
         if (claimRewardsResult != null) {
             //发送日志
             Long add = cfg.getGetitem().getOrDefault(ItemUtils.getGoldItemId(), 0L);
@@ -311,7 +312,7 @@ public class SharePromoteController extends BaseActivityController {
                 //删除记录
                 sharePromoteDao.delPlayerIncome(playerId);
                 //发放奖励
-                CommonResult<ItemOperationResult> addedItem = playerPackService.addItem(playerId, goldItemId, playerIncome, "sharePromoteClaimProfitReward");
+                CommonResult<ItemOperationResult> addedItem = playerPackService.addItem(playerId, goldItemId, playerIncome, AddType.ACTIVITY_SHARE_PROMOTE_REWARDS);
                 if (!addedItem.success()) {
                     log.error("玩家领取收益时方法奖励失败 playerId:{} playerIncome:{}", playerId, playerIncome);
                 }

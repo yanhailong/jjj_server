@@ -6,6 +6,7 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.data.CommonResult;
@@ -464,7 +465,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                     return false;
                 }
                 //奖励道具
-                playerPackService.addItem(playerId, info.getItemId(), info.getItemNum(), "POINTS_AWARD_LADDER_REWARDS");
+                playerPackService.addItem(playerId, info.getItemId(), info.getItemNum(), AddType.POINTS_AWARD_SIGN_REWARDS);
                 rewardReceiveSet.add(info.getPoints());
                 return true;
             }

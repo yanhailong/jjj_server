@@ -16,6 +16,7 @@ import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.ItemOperationResult;
@@ -106,7 +107,7 @@ public class DropItemManager implements GameEventListener {
         dropItemDao.updateItemDropGroupCounter(player.getId(), itemDropGroupCounter);
         // 添加道具
         CommonResult<ItemOperationResult> result =
-                playerPackService.addItems(player.getId(), dropItems, "DROP_ITEM");
+                playerPackService.addItems(player.getId(), dropItems, AddType.DROP_ITEM);
         if (result.success()) {
             // 记录日志
             dropItemLogger.recordDropItem(player, source, sourceId, event.getGameCfgId(), dropItems, result.data);
@@ -139,7 +140,7 @@ public class DropItemManager implements GameEventListener {
         // 更新道具掉落使用map
         dropItemDao.updateItemDropGroupCounter(player.getId(), itemDropGroupCounter);
         // 添加道具
-        CommonResult<ItemOperationResult> result = playerPackService.addItems(player.getId(), dropItems, "DROP_TRUNK_ITEM");
+        CommonResult<ItemOperationResult> result = playerPackService.addItems(player.getId(), dropItems, AddType.DROP_TRUNK_ITEM);
         if (result.success()) {
             // 记录日志
             dropItemLogger.recordDropItem(player, source, sourceId, dropTrunkId, dropItems, result.data);

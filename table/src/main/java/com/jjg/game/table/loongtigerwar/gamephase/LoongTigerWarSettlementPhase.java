@@ -3,8 +3,8 @@ package com.jjg.game.table.loongtigerwar.gamephase;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.WeightRandom;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.utils.PokerCardUtils;
-import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.data.room.TablePlayerGameData;
@@ -101,7 +101,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
                     // 给玩家添加金币
                     gameController.addItem(
                         gamePlayer.getId(), canGet,
-                        ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
+                            AddType.GAME_SETTLEMENT,gameDataVo.getRoomCfg().getId()+"");
                     DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId,
                         key -> new DefaultKeyValue<>(0L, 0L));
                     keyValue.setKey(keyValue.getKey() + totalBet);

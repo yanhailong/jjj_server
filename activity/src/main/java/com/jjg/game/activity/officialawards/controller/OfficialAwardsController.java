@@ -27,6 +27,7 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
@@ -146,7 +147,7 @@ public class OfficialAwardsController extends BaseActivityController implements 
         long totalGet = getRewards.stream().mapToLong(Long::longValue).sum();
         //添加道具
         Integer id = cfg.getGetItem().keySet().iterator().next();
-        CommonResult<ItemOperationResult> addResult = playerPackService.addItem(playerId, id, totalGet, "officialAwards");
+        CommonResult<ItemOperationResult> addResult = playerPackService.addItem(playerId, id, totalGet, AddType.ACTIVITY_OFFICIAL_AWARDS);
         if (!addResult.success()) {
             log.error("官方派奖玩家参加活动发奖失败 playerId:{} get:{}", playerId, totalGet);
             return res;

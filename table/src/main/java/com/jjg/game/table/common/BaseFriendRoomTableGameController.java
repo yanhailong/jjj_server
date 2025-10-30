@@ -1,13 +1,13 @@
 package com.jjg.game.table.common;
 
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.base.EGameState;
-import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.FriendRoomBillHistoryHelper;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -49,7 +49,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                         // 下庄，下庄之后，下一个自动成为庄家
                         int code =
                             friendRoomController.cancelBeBanker(
-                                roomBankerId, ERoomItemReason.FRIEND_ROOM_CONTINUES_BANKER_ADD_GOLD);
+                                roomBankerId, AddType.FRIEND_ROOM_CONTINUES_BANKER_ADD_GOLD);
                         if (code != Code.SUCCESS) {
                             log.error("申请庄家下庄时失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
                         } else {
@@ -67,7 +67,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                             // 下庄，下庄之后，下一个自动成为庄家
                             int code =
                                 friendRoomController.cancelBeBanker(
-                                    roomBankerId, ERoomItemReason.FRIEND_ROOM_CONTINUES_BANKER_ADD_GOLD);
+                                    roomBankerId, AddType.FRIEND_ROOM_CONTINUES_BANKER_ADD_GOLD);
                             if (code != Code.SUCCESS) {
                                 log.error("检查庄家自动下庄时失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
                             } else {
@@ -86,7 +86,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                             // 下庄，下庄之后，下一个自动成为庄家
                             int code =
                                 friendRoomController.cancelBeBanker(
-                                    roomBankerId, ERoomItemReason.FRIEND_ROOM_PREDICATE_GOLD_NOT_ENOUGH);
+                                    roomBankerId, AddType.FRIEND_ROOM_PREDICATE_GOLD_NOT_ENOUGH);
                             if (code != Code.SUCCESS) {
                                 log.error("检查庄家剩余准备金时，自动下庄失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
                             } else {
@@ -158,7 +158,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                 } else {
                     // 给庄家添加金币
                     addItem(roomBankerId, afterRatio,
-                        ERoomItemReason.FRIEND_ROOM_ADD_ROOM_CREATOR_RATIO.withCfgId(getRoom().getRoomCfgId()));
+                        AddType.FRIEND_ROOM_ADD_ROOM_CREATOR_RATIO,getRoom().getRoomCfgId()+"");
                 }
             }
             // 需要记录

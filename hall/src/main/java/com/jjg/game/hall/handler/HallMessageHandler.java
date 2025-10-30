@@ -12,6 +12,7 @@ import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
@@ -670,9 +671,9 @@ public class HallMessageHandler implements GmListener {
         try {
             CommonResult<Player> result;
             if (req.deposit) {
-                result = hallPlayerService.goldInSafeBox(playerController.playerId(), req.value, "playerDeposit");
+                result = hallPlayerService.goldInSafeBox(playerController.playerId(), req.value, AddType.DEPOSIT_IN_SAFE_BOX);
             } else {
-                result = hallPlayerService.goldOutFromSafeBox(playerController.playerId(), req.value, "playerWithdraw");
+                result = hallPlayerService.goldOutFromSafeBox(playerController.playerId(), req.value, AddType.WITHDRAW_FROM_SAFE_BOX);
             }
             if (!result.success()) {
                 res.code = result.code;
@@ -704,10 +705,10 @@ public class HallMessageHandler implements GmListener {
         try {
             CommonResult<Player> result;
             if (req.deposit) {
-                result = hallPlayerService.diamondInSafeBox(playerController.playerId(), req.value, "playerDeposit");
+                result = hallPlayerService.diamondInSafeBox(playerController.playerId(), req.value, AddType.DEPOSIT_IN_SAFE_BOX);
             } else {
                 result = hallPlayerService.diamondOutFromSafeBox(playerController.playerId(), req.value,
-                        "playerWithdraw");
+                        AddType.WITHDRAW_FROM_SAFE_BOX);
             }
             if (!result.success()) {
                 res.code = result.code;

@@ -1,5 +1,6 @@
 package com.jjg.game.slots.dao;
 
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.AbstractPoolDao;
@@ -113,7 +114,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
      * @param addType
      * @return
      */
-    public CommonResult<Player> rewardFromBigPool(long playerId, int gameType, int roomCfgId, long value, String addType) {
+    public CommonResult<Player> rewardFromBigPool(long playerId, int gameType, int roomCfgId, long value, AddType addType) {
         CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
         if (value == 0) {
             result.code = Code.PARAM_ERROR;
@@ -141,7 +142,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
     /**
      * 从小池子扣钱，然后给玩家加钱
      */
-    public CommonResult<Player> rewardFromSmallPool(long playerId, int gameType, int roomCfgId, long value, String addType) {
+    public CommonResult<Player> rewardFromSmallPool(long playerId, int gameType, int roomCfgId, long value, AddType addType,String desc) {
         CommonResult<Player> result = new CommonResult<>(Code.SUCCESS);
 
         Long poolValue = addToSmallPool(gameType, roomCfgId, -value);
@@ -191,7 +192,7 @@ public class SlotsPoolDao extends AbstractPoolDao {
      * @param addType
      * @return
      */
-    public CommonResult<Long> rewardByRatioFromSmallPool(long playerId, int gameType, int roomCfgId, int ratio, String addType) {
+    public CommonResult<Long> rewardByRatioFromSmallPool(long playerId, int gameType, int roomCfgId, int ratio, AddType addType) {
         CommonResult<Long> result = new CommonResult<>(Code.SUCCESS);
 
         Number poolValue = getSmallPoolByRoomCfgId(gameType, roomCfgId);

@@ -1,6 +1,7 @@
 package com.jjg.game.poker.game.blackjack.room;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
@@ -28,7 +29,6 @@ import com.jjg.game.poker.game.common.message.reps.NotifyPokerSampleCardOperatio
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
-import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
@@ -144,7 +144,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         //所有下注信息
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
         betInfo.merge(seatInfo.getCardIndex(), betValue, Long::sum);
-        deductItem(gamePlayer.getId(), betValue, ERoomItemReason.GAME_BET);
+        deductItem(gamePlayer.getId(), betValue, AddType.GAME_BET);
         RoomDataHelper.checkPlayerVipLevel(gamePlayer, this, betValue);
         int card = getCard(gameDataVo);
         seatInfo.getCurrentCards().add(card);
@@ -262,7 +262,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, msg));
             return;
         }
-        deductItem(gamePlayer.getId(), betValue, ERoomItemReason.GAME_BET);
+        deductItem(gamePlayer.getId(), betValue, AddType.GAME_BET);
         RoomDataHelper.checkPlayerVipLevel(gamePlayer, this, betValue);
         gameDataVo.getAceBuyPlayerIds().add(playerId);
         //计算购买ace总金额
@@ -427,7 +427,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, jackBetResult));
             return;
         }
-        deductItem(gamePlayer.getId(), betValue, ERoomItemReason.GAME_BET);
+        deductItem(gamePlayer.getId(), betValue, AddType.GAME_BET);
         RoomDataHelper.checkPlayerVipLevel(gamePlayer, this, betValue);
         Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         baseBetInfo.merge(playerId, betValue, Long::sum);
@@ -515,7 +515,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         int autoCard = getCard(gameDataVo);
         totalCards.getFirst().add(autoCard);
         //下注
-        deductItem(gamePlayer.getId(), betValue, ERoomItemReason.GAME_BET);
+        deductItem(gamePlayer.getId(), betValue, AddType.GAME_BET);
         RoomDataHelper.checkPlayerVipLevel(gamePlayer, this, betValue);
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
         betInfo.merge(seatInfo.getCardIndex() + 1, betValue, Long::sum);

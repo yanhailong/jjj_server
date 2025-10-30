@@ -12,6 +12,7 @@ import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.base.player.IRecharge;
 import com.jjg.game.core.config.ConfigManager;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.TaskConstant;
@@ -242,17 +243,20 @@ public class CoreToServerMessageHandler {
         log.debug("收到需要修改玩家金币的消息 notify = {}", JSON.toJSONString(notify));
         try {
             CommonResult<Player> result;
+
+            AddType addType = AddType.valueOf(notify.addType);
+
             if(notify.type == 1){  //增加
                 if(notify.currency_id == GameConstant.Item.TYPE_GOLD){
-                    result = playerService.addGoldAndDiamond(notify.playerId, notify.quantity,0,notify.addType,true,notify.remark);
+                    result = playerService.addGoldAndDiamond(notify.playerId, notify.quantity,0,addType,true,notify.remark);
                 }else {
-                    result = playerService.addGoldAndDiamond(notify.playerId, 0,notify.quantity,notify.addType,true,notify.remark);
+                    result = playerService.addGoldAndDiamond(notify.playerId, 0,notify.quantity,addType,true,notify.remark);
                 }
             }else {  //减少
                 if(notify.currency_id == GameConstant.Item.TYPE_GOLD){
-                    result = playerService.deductGoldAndDiamond(notify.playerId, notify.quantity,0,notify.addType,true,notify.remark);
+                    result = playerService.deductGoldAndDiamond(notify.playerId, notify.quantity,0,addType,true,notify.remark);
                 }else {
-                    result = playerService.deductGoldAndDiamond(notify.playerId, 0,notify.quantity,notify.addType,true,notify.remark);
+                    result = playerService.deductGoldAndDiamond(notify.playerId, 0,notify.quantity,addType,true,notify.remark);
                 }
             }
 

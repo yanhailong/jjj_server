@@ -22,6 +22,7 @@ import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.RechargeType;
@@ -98,7 +99,7 @@ public class ScratchCardsController extends BaseActivityController implements Ga
         costItem.setItemCount(costItem.getItemCount() * times);
 
         // 扣除玩家道具
-        CommonResult<ItemOperationResult> removedItem = playerPackService.removeItem(playerId, costItem, "ScratchCardsJoin");
+        CommonResult<ItemOperationResult> removedItem = playerPackService.removeItem(playerId, costItem, AddType.ACTIVITY_SCRATCH_CARDS_JOIN);
         if (!removedItem.success()) {
             res.code = removedItem.code;
             return res;
@@ -147,7 +148,7 @@ public class ScratchCardsController extends BaseActivityController implements Ga
                 info.times = timesMap.get(entry.getKey());
                 res.rewardsInfo.add(info);
             }
-            commonResult = playerPackService.addItems(playerId, rewards, "ScratchCardsJoin");
+            commonResult = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_SCRATCH_CARDS_JOIN);
             if (!commonResult.success()) {
                 log.error("刮刮乐添加道具失败 playerId={}", playerId);
                 return res;
@@ -228,7 +229,7 @@ public class ScratchCardsController extends BaseActivityController implements Ga
         Map<Integer, ScratchCardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         ScratchCardsCfg cfg = baseCfgBeanMap.get(giftId);
         if (cfg.getType() == ActivityConstant.ScratchCards.GIFT_TYPE) {
-            CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerId, cfg.getGetitem(), "ScratchCardsGift");
+            CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerId, cfg.getGetitem(), AddType.ACTIVITY_SCRATCH_CARDS_BUY_GIFT);
             if (!addItems.success()) {
                 log.error("刮刮乐购买礼包自动领奖失败 playerId:{} activityData:{}", playerId, activityData);
                 res.code = Code.UNKNOWN_ERROR;

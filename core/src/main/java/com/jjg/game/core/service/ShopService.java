@@ -1,6 +1,7 @@
 package com.jjg.game.core.service;
 
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.ShopProductDao;
@@ -112,7 +113,7 @@ public class ShopService {
             addItemMap = Collections.emptyMap();
         }
 
-        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(), shopProduct.getPayType(), shopProduct.getMoney().intValue() * count, addItemMap, "exchange");
+        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(), shopProduct.getPayType(), shopProduct.getMoney().intValue() * count, addItemMap, AddType.ITEM_EXCHANGE);
         if (!result.success()) {
             return result;
         }

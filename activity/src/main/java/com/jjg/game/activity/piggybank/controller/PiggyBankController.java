@@ -21,6 +21,7 @@ import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
@@ -246,7 +247,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
                 return res;
             }
             // 添加奖励到背包
-            addedItems = playerPackService.addItems(playerId, rewards, "privilegeCardRewords");
+            addedItems = playerPackService.addItems(playerId, rewards, AddType.ACTIVITY_PIGGY_BANK_REWARDS);
             if (!addedItems.success()) {
                 res.code = Code.UNKNOWN_ERROR;
                 return res;

@@ -1,9 +1,9 @@
 package com.jjg.game.table.baccarat.gamephase;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.utils.PokerCardUtils;
-import com.jjg.game.room.base.ERoomItemReason;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.data.room.SettlementData;
@@ -214,7 +214,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 // 给玩家添加金币
                 gameController.addItem(
                         gamePlayer.getId(), settlementData.getTotalWin(),
-                        ERoomItemReason.GAME_SETTLEMENT.withCfgId(gameDataVo.getRoomCfg().getId()));
+                        AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
                 // 需要扣除庄家的钱
                 bankerChangeGold -= settlementData.getBetWin();
                 playerGoldChange.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());

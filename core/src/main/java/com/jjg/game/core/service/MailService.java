@@ -6,6 +6,7 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.MailDao;
@@ -104,7 +105,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess {
 
             if (!map.isEmpty()) {
                 mailDao.getMailItems(playerId, mailId);
-                playerPackService.addItems(playerId, map, "getMailItems");
+                playerPackService.addItems(playerId, map, AddType.GET_MAIL_ITEMS);
             }
             //邮件变化时通知客户端刷新小红点
             redDotManager.updateRedDot(this, 0, playerId);
@@ -187,8 +188,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess {
         }
 
         long count = mailDao.batchUpdateMailStatus(mailIds, GameConstant.Mail.STATUS_GET_ITEMS);
-        CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(playerId, map,
-            "getAllMailsItems");
+        CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(playerId, map,AddType.GET_ALL_MAILS_ITEMS);
         if (!addItemsResult.success()) {
             log.debug("一键领取失败 playerId = {},code = {}", playerId, addItemsResult.code);
             result.code = addItemsResult.code;
