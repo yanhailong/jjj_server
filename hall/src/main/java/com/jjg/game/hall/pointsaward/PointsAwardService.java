@@ -28,7 +28,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -51,11 +53,6 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     private final MarsCurator marsCurator;
     private final PointsAwardLogger pointsAwardLogger;
     private final PlayerPackService playerPackService;
-
-    /**
-     * 初始化时间
-     */
-    private LocalDate initDate;
 
     /**
      * 玩家累计充值金额
@@ -81,11 +78,15 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * 初始化
      */
     public void init() {
-        initDate = LocalDate.now();
         // 初始化充值数据记录map
         redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
                 () -> rechargeMap = redissonClient.getMap(PointsAwardConstant.RedisKey.POINTS_AWARD_RECHARGE));
-        log.debug("初始化充值数据记录map完成");
+        //查看是否需要清除旧数据
+        clear();
+        RBucket<Long> bucket = redissonClient.getBucket(PointsAwardConstant.RedisKey.POINTS_AWARD_TIME);
+        if (bucket.get() == null) {
+            bucket.set(System.currentTimeMillis());
+        }
     }
 
     /**
@@ -111,12 +112,34 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
      * 检查跨月
      */
     private void checkMonth() {
-        LocalDate now = LocalDate.now();
-        if (now.getMonthValue() != initDate.getMonthValue()) {
+        clear();
+    }
+
+    /**
+     * 检测玩家数据是否需要清除
+     */
+    public void clear() {
+        RBucket<Long> bucket = redissonClient.getBucket(PointsAwardConstant.RedisKey.POINTS_AWARD_TIME);
+        Runnable command = () -> {
             // 初始化充值数据记录map
             redisLock.lockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_DATA_LOCK_TURNTABLE_INIT, PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS,
-                    () -> clusterSystem.getAllOnlinePlayerId().forEach(playerId -> getLadderReceiveSet(playerId).clear()));
-            initDate = now;
+                    () -> {
+                        RKeys keys = redissonClient.getKeys();
+                        long deleted = keys.deleteByPattern(PointsAwardConstant.RedisKey.POINTS_AWARD_DATA_POINTS + "*");
+                        log.info("玩家积分数据清除! 删除数量: {}", deleted);
+                        deleted = keys.deleteByPattern(PointsAwardConstant.RedisKey.POINTS_AWARD_LADDER_REWARDS_RECEIVE + "*");
+                        log.info("充值数据领取记录 删除数量: {}", deleted);
+                    });
+        };
+        if (bucket.get() == null) {
+            command.run();
+        } else {
+            long initDateMills = bucket.get();
+            LocalDate initDate = LocalDate.ofInstant(Instant.ofEpochMilli(initDateMills), ZoneId.systemDefault());
+            if (LocalDate.now().getMonthValue() != initDate.getMonthValue()) {
+                bucket.set(System.currentTimeMillis());
+                command.run();
+            }
         }
     }
 

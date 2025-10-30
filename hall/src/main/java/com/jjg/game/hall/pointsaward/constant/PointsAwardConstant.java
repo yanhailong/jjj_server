@@ -32,6 +32,10 @@ public interface PointsAwardConstant {
          */
         String POINTS_AWARD_RANKING = "pointsAward:ranking:";
         /**
+         * 积分大奖排行榜
+         */
+        String POINTS_AWARD_RANKING_START_TS = "pointsAward:ranking:start_ts:";
+        /**
          * 积分大奖排行榜记录的玩家积分
          */
         String POINTS_AWARD_RANKING_POINTS = "pointsAward:ranking:points:";
@@ -60,6 +64,10 @@ public interface PointsAwardConstant {
          */
         String POINTS_AWARD_LADDER_REWARDS_RECEIVE = "pointsAward:ladderRewards:receive:";
         /**
+         * 积分大奖记录开始时间
+         */
+        String POINTS_AWARD_TIME = "pointsAward:time";
+        /**
          * 玩家积分大奖累计充值金额记录
          */
         String POINTS_AWARD_RECHARGE = "pointsAward:recharge:";
@@ -77,6 +85,10 @@ public interface PointsAwardConstant {
          * 玩家签到锁
          */
         String POINTS_AWARD_SIGN_IN_LOCK = "pointsAwardSignInLock:";
+        /**
+         * 玩家签到数据清理锁
+         */
+        String POINTS_AWARD_SIGN_IN_CLEAR_LOCK = "pointsAwardSignInClearLock";
         /**
          * 积分大奖排行榜更新锁
          */
@@ -112,6 +124,57 @@ public interface PointsAwardConstant {
              * 道具
              */
             int ITEM = 2;
+        }
+
+        /**
+         * 邮件模板ID常量
+         */
+        interface MailTemplateId {
+            /**
+             * 日榜道具奖励邮件模板ID
+             */
+            int DAILY_ITEM_AWARD = 4;
+            /**
+             * 日榜其他奖励邮件模板ID
+             */
+            int DAILY_OTHER_AWARD = 5;
+            /**
+             * 月榜道具奖励邮件模板ID
+             */
+            int MONTHLY_ITEM_AWARD = 6;
+            /**
+             * 月榜其他奖励邮件模板ID
+             */
+            int MONTHLY_OTHER_AWARD = 7;
+        }
+
+        /**
+         * 时间相关常量
+         */
+        interface TimeConstants {
+            /**
+             * 上午榜结束时间 - 11:59:59
+             */
+            int AM_END_HOUR = 11;
+            int AM_END_MINUTE = 59;
+            int AM_END_SECOND = 59;
+
+            /**
+             * 下午榜开始时间 - 12:00:00
+             */
+            int PM_START_HOUR = 12;
+
+            /**
+             * 一天结束时间 - 23:59:59
+             */
+            int DAY_END_HOUR = 23;
+            int DAY_END_MINUTE = 59;
+            int DAY_END_SECOND = 59;
+
+            /**
+             * 12小时的毫秒数
+             */
+            long TWELVE_HOURS_MILLIS = 12L * 60 * 60 * 1000;
         }
 
         /**

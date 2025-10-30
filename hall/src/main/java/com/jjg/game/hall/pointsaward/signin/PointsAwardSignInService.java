@@ -17,6 +17,7 @@ import com.jjg.game.hall.pointsaward.PointsAwardService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.pb.PointsAwardSignInConfig;
 import com.jjg.game.sampledata.bean.PointsAwardSigninCfg;
+import org.redisson.api.RKeys;
 import org.redisson.api.RMap;
 import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
@@ -92,37 +93,30 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
      * 清除签到数据 跨月了
      */
     public void clear() {
-        Set<Long> onlinePlayerId = clusterSystem.getAllOnlinePlayerId();
-        if (!onlinePlayerId.isEmpty()) {
-            //清除签到数据 怕人多用虚拟线程多线程执行
-            onlinePlayerId.forEach(playerId -> executor.submit(() -> {
-                try {
-                    redisLock.lockAndRun(signLock(playerId), PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, () -> {
-                        getSignSet(playerId).clear();
-                        getUnlockSet(playerId).clear();
-                    });
-                } catch (Exception e) {
-                    log.error("玩家[{}]跨月清除签到数据错误!", playerId, e);
-                }
-            }));
-        }
+        redisLock.tryLockAndRun(PointsAwardConstant.RedisLockKey.POINTS_AWARD_SIGN_IN_CLEAR_LOCK, () -> {
+            RKeys keys = redissonClient.getKeys();
+            long deleted = keys.deleteByPattern(PointsAwardConstant.RedisKey.POINTS_AWARD_SIGN_IN_SET + "*");
+            log.info("清除签到数据 删除数量: {}", deleted);
+            deleted = keys.deleteByPattern(PointsAwardConstant.RedisKey.POINTS_AWARD_SIGN_IN_UNLOCK_SET + "*");
+            log.info("清除签到解锁数据 删除数量: {}", deleted);
+            getDateMap().clear();
+            log.info("清除签到时间数据map!");
+        });
     }
 
     /**
      * 跨天
      */
     public void daily() {
-        //清除玩家今天的签到数据 怕人多用虚拟线程多线程执行
         Set<Long> onlinePlayerId = clusterSystem.getAllOnlinePlayerId();
         if (!onlinePlayerId.isEmpty()) {
+            //清除签到数据 怕人多用虚拟线程多线程执行
             onlinePlayerId.forEach(playerId -> executor.submit(() -> {
                 try {
-                    redisLock.lockAndRun(signLock(playerId), PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, () -> {
-                        getDateMap().remove(playerId);
-                        unlock(playerId);
-                    });
+                    //解锁新签到
+                    redisLock.lockAndRun(signLock(playerId), PointsAwardConstant.WaitTime.LOCK_LEASE_MILLIS, () -> unlock(playerId));
                 } catch (Exception e) {
-                    log.error("玩家[{}],跨天清除签到数据错误!", playerId, e);
+                    log.error("玩家[{}]跨月解锁签到数据错误!", playerId, e);
                 }
             }));
         }
