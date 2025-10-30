@@ -182,7 +182,7 @@ public class PlayerPackService implements IPlayerRegister {
             Map<Integer, Long> addTempItemMap =
                     itemList.stream().collect(HashMap::new, (map, e) -> map.put(e.getId(), e.getItemCount()),
                             HashMap::putAll);
-            coreLogger.addItems(playerId, addTempItemMap, addType, desc);
+            coreLogger.addItems(playerId, result.data.getChangeBeforeItemNum(), addTempItemMap,result.data.getChangeEndItemNum(), addType, desc);
         }
         return result;
     }
@@ -445,6 +445,7 @@ public class PlayerPackService implements IPlayerRegister {
         return useItem(playerId, null, useItemId, useItemCount, addItemsMap, addType);
     }
 
+
     /**
      * 使用道具
      *
@@ -463,6 +464,10 @@ public class PlayerPackService implements IPlayerRegister {
             return result;
         }
 
+        if (removeResult.success()) {
+            coreLogger.consumeItem(playerId, removeResult.data.getChangeBeforeItemNum(), useItemId, useItemCount, removeResult.data.getChangeEndItemNum(), addType);
+        }
+
         CommonResult<ItemOperationResult> addResult = addItems(playerId, addItemsMap, addType);
         if (!addResult.success()) {
             //添加失败，要将之前扣除的道具加回去
@@ -473,7 +478,7 @@ public class PlayerPackService implements IPlayerRegister {
         }
 
         if (addResult.success()) {
-            coreLogger.consumeItem(playerId, useItemId, useItemCount, addType);
+            coreLogger.addItems(playerId, addResult.data.getChangeBeforeItemNum(), addItemsMap, addResult.data.getChangeEndItemNum(), addType, "");
         }
         result.code = Code.SUCCESS;
         result.data = addResult.data;
