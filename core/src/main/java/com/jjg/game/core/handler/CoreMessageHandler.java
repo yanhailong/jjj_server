@@ -415,13 +415,13 @@ public class CoreMessageHandler {
             }
             Order order = orderService.generateOrder(playerController.getPlayer(), payType, req.productId, price, rechargeType);
             if (order == null) {
-                log.debug("预下单失败 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
+                log.debug("预下单失败11 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
                 res.code = Code.FAIL;
                 playerController.send(res);
                 return;
             }
 
-            if (req.payType == 1) {
+            if (payType == PayType.IOS) {
                 res.orderId = order.getUuid();
             } else {
                 res.orderId = order.getId();

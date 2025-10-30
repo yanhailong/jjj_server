@@ -21,18 +21,11 @@ public enum PayType {
     }
 
     public static PayType valueOf(int value) {
-        switch (value) {
-            case 0 -> {
-                return GOOGLE;
-            }
-
-            case 1 -> {
-                return IOS;
-            }
-
-            default -> {
-                return null;
+        for(PayType type : PayType.values()){
+            if(type.getValue() == value){
+                return type;
             }
         }
+        return null;
     }
 }
