@@ -261,6 +261,7 @@ public class BaseLogger {
                     jsonObject.put("count", item.count);
                     jsonArray.add(jsonObject);
                 });
+
                 json.put("items", jsonArray);
             }
             sendLog("levelChange", player, json);
@@ -310,21 +311,34 @@ public class BaseLogger {
     }
 
     /**
-     * 使用道具
+     * 消耗道具
      *
      * @param playerId
      * @param itemId
      * @param count
      * @param addType
      */
-    public void useItem(long playerId, int itemId, int count, AddType addType) {
+    public void consumeItem(long playerId, Map<Integer, Long> beforeMap, int itemId, long count,Map<Integer, Long> afterMap, AddType addType) {
         try {
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
-            json.put("itemId", itemId);
-            json.put("count", count);
+            //道具表  logType  1.获得   2.消耗
+            json.put("logType", 2);
+
+            //前
+            JSONArray beforeJsonArray = itemMapToJsonArray(beforeMap);
+            json.put("before", beforeJsonArray);
+
+            //变化值
+            JSONArray jsonArray = itemToJsonArray(itemId,count);
+            json.put("items", jsonArray);
+
+            //后
+            JSONArray afterJsonArray = itemMapToJsonArray(afterMap);
+            json.put("after", afterJsonArray);
+
             json.put("addType", addType.getValue());
-            sendLog("useitem", null, json);
+            sendLog("addItems", null, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -336,19 +350,22 @@ public class BaseLogger {
      * @param playerId
      * @param addType
      */
-    public void addItems(long playerId, Map<Integer, Long> map, AddType addType, String desc) {
+    public void addItems(long playerId, Map<Integer, Long> beforeMap, Map<Integer, Long> map, Map<Integer, Long> afterMap, AddType addType, String desc) {
         try {
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
-            JSONArray jsonArray = new JSONArray();
-            map.forEach((k, v) -> {
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("itemId", k);
-                jsonObject.put("count", v);
-                jsonArray.add(jsonObject);
-            });
+            //道具表  logType  1.获得   2.消耗
+            json.put("logType", 1);
 
+            JSONArray beforeJsonArray = itemMapToJsonArray(beforeMap);
+            json.put("before", beforeJsonArray);
+
+            JSONArray jsonArray = itemMapToJsonArray(map);
             json.put("items", jsonArray);
+
+            JSONArray afterJsonArray = itemMapToJsonArray(afterMap);
+            json.put("after", afterJsonArray);
+
             json.put("addType", addType.getValue());
             json.put("desc", desc);
             sendLog("addItems", null, json);
@@ -357,33 +374,6 @@ public class BaseLogger {
         }
     }
 
-    /**
-     * 获取道具
-     *
-     * @param playerId
-     * @param addType
-     */
-    public long addItem(long playerId, int itemId, long count, AddType addType) {
-        long snowflakeNextId = IdUtil.getSnowflakeNextId();
-        try {
-            JSONObject json = new JSONObject();
-            json.put("playerId", playerId);
-            json.put("operationId", snowflakeNextId);
-
-            JSONArray jsonArray = new JSONArray();
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("itemId", itemId);
-            jsonObject.put("count", count);
-            jsonArray.add(jsonObject);
-
-            json.put("items", jsonArray);
-            json.put("addType", addType.getValue());
-            sendLog("addItems", null, json);
-        } catch (Exception e) {
-            log.error("", e);
-        }
-        return snowflakeNextId;
-    }
 
     public void order(Player player, Order order, String regionCode) {
         order(player, order, null, regionCode);
@@ -583,5 +573,30 @@ public class BaseLogger {
         } catch (Exception e) {
             log.error("sendVipLog", e);
         }
+    }
+
+    private JSONObject itemToJson(int id,long count) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("itemId", id);
+        jsonObject.put("count", count);
+        return jsonObject;
+    }
+
+    private JSONArray itemToJsonArray(int id,long count) {
+        JSONArray jsonArray = new JSONArray();
+        jsonArray.add(itemToJson(id,count));
+        return jsonArray;
+    }
+
+    private JSONArray itemMapToJsonArray(Map<Integer,Long> items) {
+        if(items == null || items.isEmpty()) {
+            return null;
+        }
+        JSONArray jsonArray = new JSONArray();
+
+        for(Map.Entry<Integer,Long> en : items.entrySet()){
+            jsonArray.add(itemToJson(en.getKey(), en.getValue()));
+        }
+        return jsonArray;
     }
 }

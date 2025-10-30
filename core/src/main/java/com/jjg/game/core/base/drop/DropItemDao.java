@@ -6,6 +6,7 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.time.Duration;
 import java.util.Map;
 
 /**
@@ -22,7 +23,7 @@ public class DropItemDao {
     private RedisTemplate<String, Map<Integer, Integer>> itemDropGroupMap;
 
     // 道具掉落分组计数器，按天重置，玩家ID <=> 分组使用次数记录map
-    private final String itemDropGroupCounter = "itemDropGroupCounter";
+    private final String itemDropGroupCounter = "itemDropGroupCounter:";
 
 
     private String getItemDropGroupCounterTableName() {
@@ -45,5 +46,7 @@ public class DropItemDao {
     public void updateItemDropGroupCounter(long playerId, Map<Integer, Integer> itemDropGroupCounter) {
         String tableName = getItemDropGroupCounterTableName();
         itemDropGroupMap.opsForHash().put(tableName, playerId, itemDropGroupCounter);
+        //设置2天过期
+        itemDropGroupMap.expire(tableName, Duration.ofDays(2));
     }
 }
