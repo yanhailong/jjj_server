@@ -958,7 +958,7 @@ public class HallMessageHandler implements GmListener {
      *
      * @param playerController 玩家信息
      */
-    @Command(HallConstant.MsgBean.REQ_VIP_CLAIM_GIFT_REWARD)
+    @Command(HallConstant.MsgBean.REQ_BIND_THIRD_ACCOUNT)
     public void reqBindThirdAccount(PlayerController playerController, ReqBindThirdAccount req) {
         ResBindThirdAccount res = new ResBindThirdAccount(Code.SUCCESS);
         try {
