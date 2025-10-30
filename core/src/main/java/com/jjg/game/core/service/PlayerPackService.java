@@ -1,6 +1,5 @@
 package com.jjg.game.core.service;
 
-import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.item.EItemUseStrategy;
@@ -474,7 +473,7 @@ public class PlayerPackService implements IPlayerRegister {
         }
 
         if (addResult.success()) {
-            coreLogger.useItem(playerId, useItemId, 1, addType);
+            coreLogger.consumeItem(playerId, useItemId, useItemCount, addType);
         }
         result.code = Code.SUCCESS;
         result.data = addResult.data;

@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -311,21 +310,30 @@ public class BaseLogger {
     }
 
     /**
-     * 使用道具
+     * 消耗道具
      *
      * @param playerId
      * @param itemId
      * @param count
      * @param addType
      */
-    public void useItem(long playerId, int itemId, int count, AddType addType) {
+    public void consumeItem(long playerId, int itemId, long count, AddType addType) {
         try {
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
-            json.put("itemId", itemId);
-            json.put("count", count);
+            //道具表  logType  1.获得   2.消耗
+            json.put("logType", 2);
+
+            JSONArray jsonArray = new JSONArray();
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("itemId", itemId);
+            jsonObject.put("count", count);
+            jsonArray.add(jsonObject);
+
+            json.put("items", jsonArray);
+
             json.put("addType", addType.getValue());
-            sendLog("useitem", null, json);
+            sendLog("addItems", null, json);
         } catch (Exception e) {
             log.error("", e);
         }
@@ -341,6 +349,8 @@ public class BaseLogger {
         try {
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
+            //道具表  logType  1.获得   2.消耗
+            json.put("logType", 1);
             JSONArray jsonArray = new JSONArray();
             map.forEach((k, v) -> {
                 JSONObject jsonObject = new JSONObject();
@@ -369,6 +379,9 @@ public class BaseLogger {
         try {
             JSONObject json = new JSONObject();
             json.put("playerId", playerId);
+            //道具表  logType  1.获得   2.消耗
+            json.put("logType", 1);
+
             json.put("operationId", snowflakeNextId);
 
             JSONArray jsonArray = new JSONArray();
