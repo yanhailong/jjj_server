@@ -8,8 +8,8 @@ import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.core.constant.AddType;
-import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.pb.RechargeType;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -394,7 +394,7 @@ public class BaseLogger {
         String price = StringUtils.isEmpty(money) ? order.getPrice().toString() : money;
 
         order(player, order.getId(), order.getChannelOrderId(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), price, order.getCreateTime(), order.getUpdateTime(),
-                order.getOrderStatus(), order.getPayType(), regionCode, desc);
+                order.getOrderStatus(), 0, regionCode, desc);
     }
 
     /**
@@ -405,7 +405,7 @@ public class BaseLogger {
      */
     public void shop(Player player, Order order, ShopProduct shopProduct, String money, String region) {
         shop(player, order.getId(), order.getChannelOrderId(), shopProduct.getType(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), money, order.getCreateTime(), order.getUpdateTime(),
-                order.getOrderStatus(), order.getPayType(), region);
+                order.getOrderStatus(), 0, region);
     }
 
     /**

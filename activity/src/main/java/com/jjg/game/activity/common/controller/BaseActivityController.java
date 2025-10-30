@@ -1,6 +1,7 @@
 package com.jjg.game.activity.common.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.activitylog.ActivityLogger;
 import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
@@ -18,12 +19,14 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
+import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -390,5 +393,58 @@ public abstract class BaseActivityController {
             redisLock.unlock(lockKey);
         }
         return null;
+    }
+
+    /**
+     * 获取活动订单生成配置
+     * @param player 玩家数据
+     * @param order 订单
+     * @param dealType 处理类型1加入活动 2购买礼包
+     */
+    public final void dealActivityRecharge(Player player, Order order, int dealType) {
+        log.info("充值事件 参加活动 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
+        String[] idCfg = StringUtils.split(order.getProductId(), "_");
+        if (idCfg.length != 2) {
+            log.error("活动充值回调 productId错误 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
+            return;
+        }
+        long activityId = Long.parseLong(idCfg[0]);
+        int detailId = Integer.parseInt(idCfg[1]);
+        ActivityData data = activityManager.getActivityData().get(activityId);
+        if (data == null || !data.getValue().contains(detailId) || !checkPlayerCanJoinActivity(player, data)) {
+            log.error("充值事件 不能参加活动 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
+            return;
+        }
+        if (dealType == 1) {
+            AbstractResponse res = joinActivity(player, data, detailId, 1);
+            if (res != null) {
+                log.info("充值事件 参加活动成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
+                activityManager.sendToPlayer(player.getId(), res);
+            }
+        } else if (dealType == 2) {
+            buyActivityGift(player, data, detailId);
+            log.info("充值事件 购买活动礼包成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
+        }
+
+    }
+
+    /**
+     * 获取活动订单生成配置
+     * @param productId 原id
+     *
+     */
+    public final BaseCfgBean getOrderGenerateBean(Player player, String productId) {
+        String[] idCfg = StringUtils.split(productId, "_");
+        if (idCfg.length != 2) {
+            return null;
+        }
+        long activityId = Long.parseLong(idCfg[0]);
+        int detailId = Integer.parseInt(idCfg[1]);
+        ActivityData data = activityManager.getActivityData().get(activityId);
+        if (data == null || !data.getValue().contains(detailId) || !checkPlayerCanJoinActivity(player, data)) {
+            return null;
+        }
+        Map<Integer, ? extends BaseCfgBean> bean = getDetailCfgBean(data);
+        return bean.get(detailId);
     }
 }

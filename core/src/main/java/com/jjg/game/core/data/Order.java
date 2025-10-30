@@ -24,8 +24,6 @@ public class Order {
     private int playerChannel;
     //支付渠道
     private int payChannel;
-    //支付方式
-    private int payType;
     //商品id
     private String productId;
     //价格
@@ -79,14 +77,6 @@ public class Order {
 
     public void setPayChannel(int payChannel) {
         this.payChannel = payChannel;
-    }
-
-    public int getPayType() {
-        return payType;
-    }
-
-    public void setPayType(int payType) {
-        this.payType = payType;
     }
 
     public String getProductId() {

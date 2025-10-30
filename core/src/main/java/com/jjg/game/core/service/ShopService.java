@@ -6,15 +6,18 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.ShopProductDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.pb.RechargeType;
+import com.jjg.game.core.pb.ReqGenerateOrder;
 import com.jjg.game.core.utils.ConditionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,7 +30,7 @@ import java.util.stream.Collectors;
  * @date 2025/9/18 14:15
  */
 @Component
-public class ShopService {
+public class ShopService implements OrderGenerate {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -80,23 +83,6 @@ public class ShopService {
         return list;
     }
 
-    /**
-     * 下单
-     *
-     * @param player
-     * @return
-     */
-    public CommonResult<String> generateOrder(Player player, ShopProduct shopProduct, RechargeType rechargeType, PayType payType) {
-        CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
-        Order order = orderService.generateOrder(player, payType, shopProduct.getId() + "", shopProduct.getMoney(), rechargeType);
-        if (order == null) {
-            log.info("玩家下单失败 playerId = {},productId = {}", player.getId(), shopProduct.getId());
-            result.code = Code.FAIL;
-            return result;
-        }
-        result.data = order.getId();
-        return result;
-    }
 
     /**
      * 道具兑换
@@ -212,4 +198,22 @@ public class ShopService {
         return shopProduct.getChannelProductIdMap().containsKey(channel);
     }
 
+    @Override
+    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        long shopProductId = Long.parseLong(req.productId);
+        ShopProduct shopProduct = shopProductMap.get(shopProductId);
+        if (shopProduct == null || !checkProductOpen(player, shopProduct)) {
+            return null;
+        }
+        String channelProductId = shopProduct.channelProductId(player.getChannel().getValue());
+        if (channelProductId == null) {
+            return null;
+        }
+        return shopProduct.getMoney();
+    }
+
+    @Override
+    public RechargeType getRechargeType() {
+        return RechargeType.SHOP;
+    }
 }

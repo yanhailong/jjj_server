@@ -1,10 +1,8 @@
 package com.jjg.game.activity.privilegecard.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
-import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -26,7 +24,9 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.pb.RechargeType;
+import com.jjg.game.core.pb.ReqGenerateOrder;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -58,7 +59,7 @@ import java.util.stream.Collectors;
  * @date 2025/9/3
  */
 @Component
-public class PrivilegeCardController extends BaseActivityController implements GameEventListener {
+public class PrivilegeCardController extends BaseActivityController implements GameEventListener, OrderGenerate {
 
     private final Logger log = LoggerFactory.getLogger(PrivilegeCardController.class);
 
@@ -349,40 +350,33 @@ public class PrivilegeCardController extends BaseActivityController implements G
         if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
             Order order = event.getOrder();
             Player player = event.getPlayer();
-            if (order.getRechargeType() != RechargeType.PRIVILEGE_CARD) {
+            if (order.getRechargeType() != getRechargeType()) {
                 return;
             }
-            Map<Long, ActivityData> map = activityManager.getActivityTypeData().get(ActivityType.PRIVILEGE_CARD);
-            if (CollectionUtil.isEmpty(map)) {
-                log.error("充值事件 没有活动数据 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
-                return;
-            }
-            log.info("充值事件 参加活动 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
-            for (ActivityData activityData : map.values()) {
-                if (!checkPlayerCanJoinActivity(player, activityData)) {
-                    continue;
-                }
-                Map<Integer, PrivilegeCardCfg> detailCfgBean = getDetailCfgBean(activityData);
-                for (PrivilegeCardCfg cfg : detailCfgBean.values()) {
-                    if (CollectionUtil.isEmpty(cfg.getChannelCommodity())) {
-                        continue;
-                    }
-                    String productId = cfg.getChannelCommodity().get(player.getChannel().getValue());
-                    if (productId.equals(order.getProductId())) {
-                        AbstractResponse res = joinActivity(player, activityData, cfg.getId(), 1);
-                        if (res != null) {
-                            activityManager.sendToPlayer(player.getId(), res);
-                        }
-                        log.info("充值事件 参加活动成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
-                        break;
-                    }
-                }
-            }
+            dealActivityRecharge(player, order, 1);
         }
     }
 
     @Override
     public List<EGameEventType> needMonitorEvents() {
         return List.of(EGameEventType.RECHARGE);
+    }
+
+    @Override
+    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        BaseCfgBean cfgBean = getOrderGenerateBean(player, req.productId);
+        if (cfgBean instanceof PrivilegeCardCfg cfg) {
+            String channelCommodity = cfg.getChannelCommodity().get(player.getChannel().getValue());
+            if (channelCommodity == null) {
+                return null;
+            }
+            return cfg.getPurchasecost();
+        }
+        return null;
+    }
+
+    @Override
+    public RechargeType getRechargeType() {
+        return RechargeType.PRIVILEGE_CARD;
     }
 }
