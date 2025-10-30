@@ -117,6 +117,7 @@ public abstract class AbstractCallbackController {
     private void handleShopOrder(Player player, PlayerSessionInfo info, Order order, String money, String regionCode) {
         ShopProduct shopProduct = shopService.getShopProduct(Long.parseLong(order.getProductId()));
         if (shopProduct == null) {
+            log.debug("获取商品失败 orderId = {},productId = {}", order.getId(), order.getProductId());
             return;
         }
 
@@ -125,14 +126,15 @@ public abstract class AbstractCallbackController {
             CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(order.getPlayerId(), shopProduct.getRewardItems(), AddType.RECHARGE, order.getId());
             if (!addItemsResult.success()) {
                 log.warn("支付成功，但是添加道具失败 playerId = {},orderId = {},productId = {},code = {}", order.getPlayerId(), order.getId(), shopProduct.getId(), addItemsResult.code);
-            }
-
-            itemInfoList = new ArrayList<>();
-            for (Map.Entry<Integer, Long> en : shopProduct.getRewardItems().entrySet()) {
-                ItemInfo itemInfo = new ItemInfo();
-                itemInfo.itemId = en.getKey();
-                itemInfo.count = en.getValue();
-                itemInfoList.add(itemInfo);
+            }else{
+                itemInfoList = new ArrayList<>();
+                for (Map.Entry<Integer, Long> en : shopProduct.getRewardItems().entrySet()) {
+                    ItemInfo itemInfo = new ItemInfo();
+                    itemInfo.itemId = en.getKey();
+                    itemInfo.count = en.getValue();
+                    itemInfoList.add(itemInfo);
+                }
+                log.debug("商城充值后添加道具成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
             }
         }
         coreLogger.shop(player, order, shopProduct, money, regionCode);
