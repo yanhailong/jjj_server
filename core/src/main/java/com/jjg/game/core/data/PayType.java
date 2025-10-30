@@ -5,8 +5,8 @@ package com.jjg.game.core.data;
  * @date 2025/10/13 16:17
  */
 public enum PayType {
-    GOOGLE(0),
-    IOS(1),
+    GOOGLE(1),
+    IOS(2),
 
     ;
 

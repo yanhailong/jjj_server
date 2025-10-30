@@ -2,6 +2,7 @@ package com.jjg.game.core.handler;
 
 import cn.hutool.core.util.EnumUtil;
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.baselogic.function.SystemInterfaceHolder;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.curator.NodeType;
@@ -16,6 +17,7 @@ import com.jjg.game.core.constant.SubscriptionTopic;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.manager.RedDotManager;
@@ -117,7 +119,7 @@ public class CoreMessageHandler {
                 long diamondNum = Long.parseLong(arr[2]);
                 int vip = Integer.parseInt(arr[3]);
                 int level = Integer.parseInt(arr[4]);
-                init(res,playerController,req.order,goldNum,diamondNum,vip,level);
+                init(res, playerController, req.order, goldNum, diamondNum, vip, level);
                 return;
             }
 
@@ -213,8 +215,8 @@ public class CoreMessageHandler {
     /**
      * gm玩家初始化
      */
-    private void init(ResGm res, PlayerController playerController, String order, long goldNum,long diamongNum,int vip,int level) throws Exception {
-        CommonResult<Player> result = playerService.gmPlayerInit(playerController.playerId(), goldNum, diamongNum,vip,level,AddType.GM_OPERATOR, null);
+    private void init(ResGm res, PlayerController playerController, String order, long goldNum, long diamongNum, int vip, int level) throws Exception {
+        CommonResult<Player> result = playerService.gmPlayerInit(playerController.playerId(), goldNum, diamongNum, vip, level, AddType.GM_OPERATOR, null);
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
@@ -235,7 +237,7 @@ public class CoreMessageHandler {
         }
 
         long num = Long.parseLong(params);
-        CommonResult<Player> result = playerService.addGold(playerController.playerId(), num,AddType.GM_OPERATOR, null);
+        CommonResult<Player> result = playerService.addGold(playerController.playerId(), num, AddType.GM_OPERATOR, null);
         if (!result.success()) {
             res.code = result.code;
             log.debug("使用gm失败 playerId = {},order = {},code = {}", playerController.playerId(), order, result.code);
@@ -388,14 +390,30 @@ public class CoreMessageHandler {
 
             RechargeType rechargeType = RechargeType.valueOf(req.rechargeType);
 
-            if(req.rechargeType < 1 || rechargeType == null){
+            if (req.rechargeType < 1 || rechargeType == null) {
                 log.debug("rechargeType 类型错误 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
                 res.code = Code.PARAM_ERROR;
                 playerController.send(res);
                 return;
             }
-
-            Order order = orderService.generateOrder(playerController.getPlayer(), payType, req.productId, rechargeType);
+            BigDecimal price = null;
+            for (OrderGenerate generate : SystemInterfaceHolder.getGameSysInterface(OrderGenerate.class)) {
+                try {
+                    if (generate.getRechargeType() == rechargeType) {
+                        price = generate.generateOrderDetailInfo(playerController.getPlayer(), req);
+                        break;
+                    }
+                } catch (Exception e) {
+                    log.error("预下单获取 价格失败 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req), e);
+                }
+            }
+            if (price == null) {
+                log.debug("预下单失败 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
+                res.code = Code.FAIL;
+                playerController.send(res);
+                return;
+            }
+            Order order = orderService.generateOrder(playerController.getPlayer(), payType, req.productId, price, rechargeType);
             if (order == null) {
                 log.debug("预下单失败 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
                 res.code = Code.FAIL;
@@ -403,13 +421,13 @@ public class CoreMessageHandler {
                 return;
             }
 
-            if(req.payType == 1){
+            if (req.payType == 1) {
                 res.orderId = order.getUuid();
-            }else {
+            } else {
                 res.orderId = order.getId();
             }
 
-            log.debug("玩家预下单 req = {},resp = {}",JSON.toJSONString(req), JSON.toJSONString(res));
+            log.debug("玩家预下单 req = {},resp = {}", JSON.toJSONString(req), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -425,7 +443,7 @@ public class CoreMessageHandler {
         ResPlayerMoney res = new ResPlayerMoney(Code.SUCCESS);
         try {
             Player player = playerService.get(playerController.getPlayer().getId());
-            if(player == null){
+            if (player == null) {
                 log.debug("未找到该玩家信息 playerId = {}", playerController.playerId());
                 res.code = Code.NOT_FOUND;
                 playerController.send(res);

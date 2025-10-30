@@ -19,8 +19,10 @@ import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.pb.NotifyPlayerLevelUp;
 import com.jjg.game.core.pb.RechargeType;
+import com.jjg.game.core.pb.ReqGenerateOrder;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -30,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +43,7 @@ import java.util.Map;
  * @date 2025/9/3
  */
 @Component
-public class PlayerLevelPackManager implements GameEventListener {
+public class PlayerLevelPackManager implements GameEventListener, OrderGenerate {
     private final Logger log = LoggerFactory.getLogger(PlayerLevelPackManager.class);
 
     private final RedisLock redisLock;
@@ -205,7 +208,7 @@ public class PlayerLevelPackManager implements GameEventListener {
         switch (gameEvent) {
             case PlayerEventCategory.PlayerRechargeEvent event -> {
                 Player player = event.getPlayer();
-                if (event.getOrder().getRechargeType() == RechargeType.PLAYER_LEVEL_GIFT) {
+                if (event.getOrder().getRechargeType() == getRechargeType()) {
                     dealRecharge(player, event.getOrder());
                 }
             }
@@ -227,25 +230,14 @@ public class PlayerLevelPackManager implements GameEventListener {
      * @param player 玩家信息
      */
     private void dealRecharge(Player player, Order order) {
-        String productId = order.getProductId();
-        List<PlayerLevelPackCfg> packCfgList = GameDataManager.getPlayerLevelPackCfgList();
-        PlayerLevelPackCfg playerLevelPackCfg = null;
-        //获取与商品id匹配的配置
-        for (PlayerLevelPackCfg cfg : packCfgList) {
-            if (CollectionUtil.isEmpty(cfg.getChannelCommodity())) {
-                continue;
-            }
-            String pId = cfg.getChannelCommodity().get(player.getChannel().getValue());
-            if (pId.equals(productId)) {
-                playerLevelPackCfg = cfg;
-            }
-        }
-        if (playerLevelPackCfg == null) {
-            log.error("玩家购买等级礼包失败 配置不存在 playerId:{} order:{} ", player.getId(), JSONObject.toJSONString(order));
-            return;
-        }
-        int id = playerLevelPackCfg.getId();
         try {
+            String productId = order.getProductId();
+            int id = Integer.parseInt(productId);
+            PlayerLevelPackCfg playerLevelPackCfg = GameDataManager.getPlayerLevelPackCfg(id);
+            if (playerLevelPackCfg == null) {
+                log.error("玩家购买等级礼包失败 配置不存在 playerId:{} order:{} ", player.getId(), JSONObject.toJSONString(order));
+                return;
+            }
             String lockKey = playerLevelDao.getLockKey(player.getId());
             redisLock.lock(lockKey, REDIS_LOCK_TIME);
             PlayerLevelPackData playerLevelPackData = null;
@@ -271,7 +263,7 @@ public class PlayerLevelPackManager implements GameEventListener {
                 clusterSystem.sendToPlayer(buildNotifyPlayerLevelPackDetailInfo(player, Map.of(playerLevelPackData.getId(), playerLevelPackData)), player.getId());
             }
         } catch (Exception e) {
-            log.error("等级礼包购买 异常playerId:{} id:{} ", player.getId(), id, e);
+            log.error("等级礼包购买 异常playerId:{} order:{} ", player.getId(), JSONObject.toJSONString(order), e);
         }
 
     }
@@ -333,5 +325,24 @@ public class PlayerLevelPackManager implements GameEventListener {
             }
         }
         activityLogger.level(player, oldLevel, player.getLevel(), items);
+    }
+
+    @Override
+    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        Integer id = Integer.getInteger(req.productId);
+        PlayerLevelPackCfg cfg = GameDataManager.getPlayerLevelPackCfg(id);
+        if (cfg == null) {
+            return null;
+        }
+        String channelCommodity = cfg.getChannelCommodity().get(player.getChannel().getValue());
+        if (channelCommodity == null) {
+            return null;
+        }
+        return cfg.getPay();
+    }
+
+    @Override
+    public RechargeType getRechargeType() {
+        return RechargeType.PLAYER_LEVEL_GIFT;
     }
 }
