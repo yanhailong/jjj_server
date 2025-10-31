@@ -17,7 +17,6 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.CommonUtil;
-import com.jjg.game.common.utils.TimeHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -709,6 +708,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
         }
         Set<String> temp = new HashSet<>(deleteSet);
         deleteSet.clear();
+        //TODO
         temp.forEach(sessionId -> {
             PFSession pfSession = sessionMap.remove(sessionId);
             if (pfSession != null) {
@@ -728,7 +728,8 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
      * @return true 已经不活跃了 false 活跃中
      */
     private boolean checkActive(long currentTimeMillis, long activeTime) {
-        return currentTimeMillis - activeTime > SESSION_TIME_OUT_MINUTES * TimeHelper.ONE_MINUTE_OF_MILLIS;
+//        return currentTimeMillis - activeTime > SESSION_TIME_OUT_MINUTES * TimeHelper.ONE_MINUTE_OF_MILLIS;
+        return false;
     }
 
     /**
