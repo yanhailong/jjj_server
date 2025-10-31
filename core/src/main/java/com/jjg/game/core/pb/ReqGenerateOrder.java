@@ -12,7 +12,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE, cmd = MessageConst.CoreMessage.REQ_GENERATE_ORDER)
 @ProtoDesc("预下单请求")
 public class ReqGenerateOrder extends AbstractMessage {
-    @ProtoDesc("支付方式  0.google   1.ios")
+    @ProtoDesc("支付方式  1.google   2.ios")
     public int payType;
     @ProtoDesc("来源")
     public int rechargeType;
