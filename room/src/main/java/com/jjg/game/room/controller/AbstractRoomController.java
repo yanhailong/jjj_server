@@ -501,6 +501,8 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 boolean incremented = roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(),
                         room.getId(), room.getMaxLimit(), 1, 0);
                 if (!incremented) {
+                    //释放机器人
+                    robotService.recycleRobotPlayers(List.of(robotPlayerController.getPlayer().getId()));
                     log.debug("机器人加入房间失败, 房间已满 {}", room.logStr());
                     return;
                 }
