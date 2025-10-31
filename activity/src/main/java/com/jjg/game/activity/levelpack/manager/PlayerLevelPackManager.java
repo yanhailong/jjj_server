@@ -240,9 +240,15 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
             }
             String lockKey = playerLevelDao.getLockKey(player.getId());
             redisLock.lock(lockKey, REDIS_LOCK_TIME);
+            Map<Integer, PlayerLevelPackData> playerLevelPackDataMap = null;
             PlayerLevelPackData playerLevelPackData = null;
             try {
-                playerLevelPackData = playerLevelDao.getPlayerLevelPackData(player.getId(), id);
+                playerLevelPackDataMap = playerLevelDao.getPlayerLevelPackData(player.getId());
+                if (CollectionUtil.isEmpty(playerLevelPackDataMap)) {
+                    log.error("玩家购买等级礼包失败 没有任何等级礼包数据 playerId:{} id:{} ", player.getId(), id);
+                    return;
+                }
+                playerLevelPackData = playerLevelPackDataMap.get(id);
                 //购买条件判断
                 if (playerLevelPackData == null || playerLevelPackData.getClaimStatus() != ActivityConstant.ClaimStatus.NOT_CLAIM) {
                     log.error("玩家购买等级礼包失败 数据不存在 playerLevelPackData：{} playerId:{} id:{} ", playerLevelPackData, player.getId(), id);
@@ -260,7 +266,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
                 activityLogger.sendLevelPackBuyLog(player, playerLevelPackCfg);
             }
             if (playerLevelPackData != null) {
-                clusterSystem.sendToPlayer(buildNotifyPlayerLevelPackDetailInfo(player, Map.of(playerLevelPackData.getId(), playerLevelPackData)), player.getId());
+                clusterSystem.sendToPlayer(buildNotifyPlayerLevelPackDetailInfo(player, playerLevelPackDataMap), player.getId());
             }
         } catch (Exception e) {
             log.error("等级礼包购买 异常playerId:{} order:{} ", player.getId(), JSONObject.toJSONString(order), e);
@@ -329,7 +335,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
 
     @Override
     public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
-        Integer id = Integer.getInteger(req.productId);
+        int id = Integer.parseInt(req.productId);
         PlayerLevelPackCfg cfg = GameDataManager.getPlayerLevelPackCfg(id);
         if (cfg == null) {
             return null;
