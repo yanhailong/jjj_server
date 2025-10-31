@@ -7,17 +7,21 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.Order;
+import com.jjg.game.core.data.ThirdServiceInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.io.ByteArrayInputStream;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
-import java.util.*;
+import java.util.Base64;
 
 /**
  * @author 11
@@ -92,7 +96,6 @@ public class AppleCallbackController extends AbstractCallbackController {
                 log.debug("检查订单失败 uuid = {}", order.getUuid());
                 return ResponseEntity.status(400).body("check order failed");
             }
-
             String money = transactionInfo.get("price").asText();
             String currency = transactionInfo.get("currency").asText();
 

@@ -1,8 +1,7 @@
 package com.jjg.game.activity.activitylog;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.activity.activitylog.data.ScratchCardsResult;
 import com.jjg.game.activity.activitylog.data.SharePromoteWeekRank;
 import com.jjg.game.activity.common.data.ActivityData;
@@ -29,6 +28,7 @@ import java.util.Map;
 public class ActivityLogger extends BaseLogger {
 
     private final String TOPIC = "activity";
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * 每日奖金道具参加获得日志记录
@@ -40,9 +40,9 @@ public class ActivityLogger extends BaseLogger {
             json.put("subType", cfg.getType());
             json.put("price", cfg.getPurchasecost());
             //奖励
-            json.put("rewards", JSON.toJSONString(rewards));
+            json.put("rewards", objectMapper.writeValueAsString(rewards));
             if (result != null) {
-                json.put("rewardsItemNum", JSON.toJSONString(result));
+                json.put("rewardsItemNum", objectMapper.writeValueAsString(result));
             }
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
@@ -60,8 +60,8 @@ public class ActivityLogger extends BaseLogger {
             json.put("subType", cfg.getType());
             json.put("remainingDays", remain);
             //奖励
-            json.put("rewards", JSON.toJSONString(rewards));
-            json.put("rewardsItemNum", JSON.toJSONString(result));
+            json.put("rewards", objectMapper.writeValueAsString(rewards));
+            json.put("rewardsItemNum", objectMapper.writeValueAsString(result));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendPrivilegeCardRewardsLog error:", e);
@@ -79,9 +79,9 @@ public class ActivityLogger extends BaseLogger {
             json.put("operation", "join");
             json.put("cashCowType", cashCowType);
             json.put("rewards", get);
-            json.put("rewardsItemNum", JSON.toJSONString(rewardsAfter));
-            json.put("cost", JSON.toJSONString(cost));
-            json.put("costItemNum", JSON.toJSONString(costAfter));
+            json.put("rewardsItemNum", objectMapper.writeValueAsString(rewardsAfter));
+            json.put("cost", objectMapper.writeValueAsString(cost));
+            json.put("costItemNum", objectMapper.writeValueAsString(costAfter));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendCashCowJoinLog error:", e);
@@ -97,8 +97,8 @@ public class ActivityLogger extends BaseLogger {
         try {
             JSONObject json = buildBaseInfo(activityData, detailId);
             json.put("operation", "rewards");
-            json.put("rewards", JSON.toJSONString(rewards));
-            json.put("rewardsItemNum", JSON.toJSONString(result));
+            json.put("rewards", objectMapper.writeValueAsString(rewards));
+            json.put("rewardsItemNum", objectMapper.writeValueAsString(result));
             json.put("currentNum", progress);
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
@@ -113,8 +113,8 @@ public class ActivityLogger extends BaseLogger {
         try {
             JSONObject json = buildBaseInfo(activityData, 0);
             json.put("operation", "freeRewards");
-            json.put("rewards", JSON.toJSONString(Map.of(reward.getId(), reward.getItemCount())));
-            json.put("rewardsItemNum", JSON.toJSONString(result));
+            json.put("rewards", objectMapper.writeValueAsString((Map.of(reward.getId(), reward.getItemCount()))));
+            json.put("rewardsItemNum", objectMapper.writeValueAsString(result));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendCashCowFreeRewards error:", e);
@@ -144,10 +144,10 @@ public class ActivityLogger extends BaseLogger {
         try {
             JSONObject json = buildBaseInfo(activityData, detailId);
             json.put("piggyBank", type);
-            json.put("rewards", JSON.toJSONString(rewards));
+            json.put("rewards", objectMapper.writeValueAsString(rewards));
             json.put("buyTime", piggyBankData.getBuyTime());
             json.put("fullTime", piggyBankData.getFullTime());
-            json.put("rewardsItemNum", JSON.toJSONString(result));
+            json.put("rewardsItemNum", objectMapper.writeValueAsString(result));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendPiggyBankRewards error:", e);
@@ -164,12 +164,12 @@ public class ActivityLogger extends BaseLogger {
         try {
             JSONObject json = buildBaseInfo(activityData, 0);
             json.put("operation", "join");
-            json.put("rewards", JSON.toJSONString(totalRewards));
-            json.put("rewardsItemNum", JSON.toJSONString(addResult));
-            json.put("cost", JSON.toJSONString(Map.of(totalCost.getId(), totalCost.getItemCount())));
-            json.put("costItemNum", JSON.toJSONString(costAfter));
+            json.put("rewards", objectMapper.writeValueAsString(totalRewards));
+            json.put("rewardsItemNum", objectMapper.writeValueAsString(addResult));
+            json.put("cost", objectMapper.writeValueAsString(Map.of(totalCost.getId(), totalCost.getItemCount())));
+            json.put("costItemNum", objectMapper.writeValueAsString(costAfter));
             json.put("times", times);
-            json.put("detail", JSON.toJSONString(scratchCardsResults));
+            json.put("detail", objectMapper.writeValueAsString(scratchCardsResults));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendScratchCardsJoin error", e);
@@ -183,9 +183,9 @@ public class ActivityLogger extends BaseLogger {
     public void sendActivityGift(Player player, ActivityData activityData, ItemOperationResult result, Map<Integer, Long> rewards, int detailId) {
         try {
             JSONObject json = buildBaseInfo(activityData, detailId);
-            json.put("rewards", JSON.toJSONString(rewards));
+            json.put("rewards", objectMapper.writeValueAsString(rewards));
             json.put("operation", "gift");
-            json.put("rewardsItemNum", JSON.toJSONString(result));
+            json.put("rewardsItemNum", objectMapper.writeValueAsString(result));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendActivityGift error:", e);
@@ -282,7 +282,7 @@ public class ActivityLogger extends BaseLogger {
     public void sendSharePromoteRankRewards(ActivityData activityData, List<SharePromoteWeekRank> logList) {
         try {
             JSONObject json = buildBaseInfo(activityData, 0);
-            json.put("rankInfos", JSON.toJSONString(logList, SerializerFeature.WriteNonStringKeyAsString));
+            json.put("rankInfos", objectMapper.writeValueAsString(logList));
             json.put("logType", 7);
             sendLog(TOPIC, null, json);
         } catch (Exception e) {
@@ -305,8 +305,8 @@ public class ActivityLogger extends BaseLogger {
         try {
             JSONObject json = buildBaseInfo(activityData, detailId);
             json.put("signType", signType);
-            json.put("rewards", JSON.toJSONString(rewards));
-            json.put("result", JSON.toJSONString(result));
+            json.put("rewards", objectMapper.writeValueAsString(rewards));
+            json.put("result", objectMapper.writeValueAsString(result));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendDailyLoginRewards error:", e);
@@ -325,9 +325,9 @@ public class ActivityLogger extends BaseLogger {
     public void sendFirstPaymentJoinLog(Player player, ActivityData activityData, FirstpaymentCfg cfg, ItemOperationResult data, Map<Integer, Long> rewards) {
         try {
             JSONObject json = buildBaseInfo(activityData, cfg.getId());
-            json.put("rewards", JSON.toJSONString(rewards, SerializerFeature.WriteNonStringKeyAsString));
+            json.put("rewards", objectMapper.writeValueAsString(rewards));
             json.put("money", cfg.getMoney().toString());
-            json.put("remain", JSON.toJSONString(data, SerializerFeature.WriteNonStringKeyAsString));
+            json.put("remain", objectMapper.writeValueAsString(data));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendDailyLoginRewards error:", e);
@@ -347,7 +347,7 @@ public class ActivityLogger extends BaseLogger {
             json.put("type", -1);
             json.put("level", cfg.getPlayerlevel());
             json.put("money", cfg.getPay().toString());
-            json.put("rewards", JSON.toJSONString(cfg.getLevelRewards(), SerializerFeature.WriteNonStringKeyAsString));
+            json.put("rewards", objectMapper.writeValueAsString(cfg.getLevelRewards()));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendDailyLoginRewards error:", e);
@@ -368,8 +368,8 @@ public class ActivityLogger extends BaseLogger {
             json.put("type", -1);
             json.put("level", cfg.getPlayerlevel());
             json.put("money", cfg.getPay().toString());
-            json.put("remain", JSON.toJSONString(data));
-            json.put("rewards", JSON.toJSONString(cfg.getLevelRewards(), SerializerFeature.WriteNonStringKeyAsString));
+            json.put("remain", objectMapper.writeValueAsString(data));
+            json.put("rewards", objectMapper.writeValueAsString(cfg.getLevelRewards()));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
             log.error("sendDailyLoginRewards error:", e);
@@ -400,8 +400,8 @@ public class ActivityLogger extends BaseLogger {
             if (pointsType == 2) {
                 json.put("turntableType", turntableType);
                 json.put("jackPotGold", jackPotGold);
-                json.put("rouletteReward", JSON.toJSONString(rouletteReward, SerializerFeature.WriteNonStringKeyAsString));
-                json.put("remain", JSON.toJSONString(remain, SerializerFeature.WriteNonStringKeyAsString));
+                json.put("rouletteReward", objectMapper.writeValueAsString(rouletteReward));
+                json.put("remain", objectMapper.writeValueAsString(remain));
             }
             sendLog(TOPIC, player, json);
         } catch (Exception e) {

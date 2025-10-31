@@ -27,7 +27,9 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.pb.RechargeType;
+import com.jjg.game.core.pb.ReqGenerateOrder;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -46,7 +48,7 @@ import java.util.stream.Collectors;
  * @date 2025/9/3
  */
 @Component
-public class GrowthFundController extends BaseActivityController implements GameEventListener {
+public class GrowthFundController extends BaseActivityController implements GameEventListener, OrderGenerate {
 
     private final Logger log = LoggerFactory.getLogger(GrowthFundController.class);
     private final CountDao countDao;
@@ -414,26 +416,18 @@ public class GrowthFundController extends BaseActivityController implements Game
             }
             Map<Long, ActivityData> map = activityManager.getActivityTypeData().get(ActivityType.GROWTH_FUND);
             if (CollectionUtil.isEmpty(map)) {
+                log.error("充值事件 所有活动数据为空 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
+                return;
+            }
+            ActivityData data = map.get(Long.parseLong(order.getProductId()));
+            if (data == null) {
                 log.error("充值事件 没有活动数据 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
                 return;
             }
             log.info("充值事件 参加活动 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
-            for (ActivityData activityData : map.values()) {
-                if (!checkPlayerCanJoinActivity(player, activityData)) {
-                    continue;
-                }
-                if (CollectionUtil.isEmpty(activityData.getChannelCommodity())) {
-                    continue;
-                }
-                String pId = activityData.getChannelCommodity().get(player.getChannel().getValue());
-                if (pId.equals(order.getProductId())) {
-                    AbstractResponse res = joinActivity(player, activityData, 0, 1);
-                    if (res != null) {
-                        activityManager.sendToPlayer(player.getId(), res);
-                    }
-                    log.info("充值事件 参加活动成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
-                    break;
-                }
+            AbstractResponse res = joinActivity(player, data, 1, 1);
+            if (res != null) {
+                activityManager.sendToPlayer(player.getId(), res);
             }
         }
     }
@@ -443,4 +437,22 @@ public class GrowthFundController extends BaseActivityController implements Game
         return List.of(EGameEventType.RECHARGE);
     }
 
+    @Override
+    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        long activityId = Long.parseLong(req.productId);
+        ActivityData activityData = activityManager.getActivityData().get(activityId);
+        if (activityData == null || !checkPlayerCanJoinActivity(player, activityData)) {
+            return null;
+        }
+        String channelCommodity = activityData.getChannelCommodity().get(player.getChannel().getValue());
+        if (channelCommodity == null) {
+            return null;
+        }
+        return activityData.getBigDecimalParam().getLast();
+    }
+
+    @Override
+    public RechargeType getRechargeType() {
+        return RechargeType.GROWTH_FUND;
+    }
 }

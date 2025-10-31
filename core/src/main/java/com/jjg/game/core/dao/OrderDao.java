@@ -63,6 +63,7 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
         Query query = new Query(Criteria.where("id").is(orderId).and("orderStatus").is(exceptStatus));
         Update update = new Update();
         update.set("orderStatus", newStatus);
+        update.set("updateTime", (int) (System.currentTimeMillis() / 1000));
         update.set("channelOrderId", channelOrderId);
         return mongoTemplate.findAndModify(
                 query,
@@ -91,4 +92,6 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
                 Order.class
         );
     }
+
+
 }
