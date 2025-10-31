@@ -299,7 +299,7 @@ public class BaseLogger {
      * @param player
      * @return
      */
-    public void exitGame(Player player,int onlineTimeLen) {
+    public void exitGame(Player player,int onlineTimeLen,int device) {
         if (player instanceof RobotPlayer) {
             return;
         }
@@ -307,7 +307,8 @@ public class BaseLogger {
             JSONObject json = new JSONObject();
             json.put("gameType", player.getGameType());
             json.put("channel", player.getChannel().getValue());
-            json.put("onlineTimeLen", onlineTimeLen);
+            json.put("online", onlineTimeLen);
+            json.put("device", onlineTimeLen);
             sendLog("exitGame", player, json);
         } catch (Exception e) {
             log.error("", e);
