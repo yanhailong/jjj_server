@@ -308,7 +308,7 @@ public class BaseLogger {
             json.put("gameType", player.getGameType());
             json.put("channel", player.getChannel().getValue());
             json.put("online", onlineTimeLen);
-            json.put("device", onlineTimeLen);
+            json.put("device", device);
             sendLog("exitGame", player, json);
         } catch (Exception e) {
             log.error("", e);
