@@ -10,12 +10,11 @@ import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.constant.AddType;
-import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.pb.NotifyPayCallBack;
 import com.jjg.game.core.pb.NotifyRechargeServer;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.service.*;
 import io.micrometer.common.util.StringUtils;
 import org.slf4j.Logger;
@@ -72,13 +71,14 @@ public abstract class AbstractCallbackController {
             //TODO 记录下来，检查该订单，这里不能再次修改订单状态，因为可能是多线程问题没有修改成功
             return false;
         }
-
-        //获取商品
-        ShopProduct shopProduct = shopService.getShopProduct(Long.parseLong(order.getProductId()));
-        if (shopProduct == null) {
-            //TODO 记录下来，检查该订单
-            log.debug("未找到该商品 orderId = {},productId = {}", order.getId(), order.getProductId());
-            return false;
+        if (order.getRechargeType() == RechargeType.SHOP) {
+            //获取商品
+            ShopProduct shopProduct = shopService.getShopProduct(Long.parseLong(order.getProductId()));
+            if (shopProduct == null) {
+                //TODO 记录下来，检查该订单
+                log.debug("未找到该商品 orderId = {},productId = {}", order.getId(), order.getProductId());
+                return false;
+            }
         }
         return true;
     }
