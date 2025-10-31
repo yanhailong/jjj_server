@@ -19,10 +19,7 @@ import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.AmazonBucketManager;
 import com.jjg.game.core.manager.CoreMarqueeManager;
-import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
-import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
-import com.jjg.game.core.pb.NotifyConfigUpdate;
-import com.jjg.game.core.pb.NotifyRechargeServer;
+import com.jjg.game.core.pb.*;
 import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.LoginConfigService;
@@ -155,10 +152,11 @@ public class CoreToServerMessageHandler {
     public void notifyRecharge(NotifyRechargeServer notify) {
         Player player = playerService.get(notify.playerId);
         Order order = orderService.getOrder(notify.orderId);
-        ShopProduct shopProduct = shopService.getShopProduct(Long.parseLong(order.getProductId()));
-
-        //接口通知
-        SystemInterfaceHolder.callGameSysAction(IRecharge.class, (f) -> f.rechargeSuccess(player, order, shopProduct));
+        if (order.getRechargeType() == RechargeType.SHOP) {
+            ShopProduct shopProduct = shopService.getShopProduct(Long.parseLong(order.getProductId()));
+            //接口通知
+            SystemInterfaceHolder.callGameSysAction(IRecharge.class, (f) -> f.rechargeSuccess(player, order, shopProduct));
+        }
         //充值事件
         gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order));
         //任务条件参数

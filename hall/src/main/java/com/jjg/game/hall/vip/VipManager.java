@@ -141,17 +141,18 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
                 res.code = Code.PARAM_ERROR;
                 return res;
             }
-            if (vip.getLvGiftGetTime().containsKey(req.vipLevel)) {
-                res.code = Code.PARAM_ERROR;
-                return res;
-            }
-            int nowMax = getMaxClaimLv(vip, player);
-            if (nowMax != req.vipLevel) {
-                res.code = Code.PARAM_ERROR;
-                return res;
-            }
             Map<Integer, Long> rewards;
             if (gift == VipGift.PROMOTION) {
+                //晋级领取判断领取判断
+                if (vip.getLvGiftGetTime().containsKey(req.vipLevel)) {
+                    res.code = Code.PARAM_ERROR;
+                    return res;
+                }
+                int nowMax = getMaxClaimLv(vip, player);
+                if (nowMax != req.vipLevel) {
+                    res.code = Code.PARAM_ERROR;
+                    return res;
+                }
                 ViplevelCfg claimCfg = VipCfgCache.getVipLevelCfg(req.vipLevel);
                 if (Objects.isNull(claimCfg)) {
                     res.code = Code.SAMPLE_ERROR;
