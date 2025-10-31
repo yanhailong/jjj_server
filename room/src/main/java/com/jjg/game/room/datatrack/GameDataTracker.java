@@ -1,5 +1,6 @@
 package com.jjg.game.room.datatrack;
 
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -174,6 +175,14 @@ public class GameDataTracker {
         // 完成数据收集
         finishedDataCollect();
     }
+
+    /**
+     * 发送退出游戏日志
+     */
+    public void sendExitGameLog(GamePlayer gamePlayer) {
+        trackLogger.exitGame(gamePlayer, TimeHelper.nowInt() - gamePlayer.getEnterGameTime());
+    }
+
 
     /**
      * 是否已经开始
