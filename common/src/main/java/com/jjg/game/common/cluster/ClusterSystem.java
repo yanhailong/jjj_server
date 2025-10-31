@@ -708,7 +708,6 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
         }
         Set<String> temp = new HashSet<>(deleteSet);
         deleteSet.clear();
-        //TODO
         temp.forEach(sessionId -> {
             PFSession pfSession = sessionMap.remove(sessionId);
             if (pfSession != null) {
