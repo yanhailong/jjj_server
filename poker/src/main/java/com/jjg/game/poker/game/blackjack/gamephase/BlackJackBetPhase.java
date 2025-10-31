@@ -108,6 +108,12 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
                         } else {
                             log.info("玩家：{}  未押注离线直接踢掉退出房间", info.getPlayerId());
                             gameController.getRoomController().getRoomManager().exitRoom(playerController);
+                            GamePlayer gamePlayer = getGameDataVo().getGamePlayer(info.getPlayerId());
+                            if (gamePlayer != null) {
+                                gameController.getGameDataTracker().sendExitGameLog(gamePlayer);
+                            } else {
+                                log.info("提出玩家：{}  时gamePlayer为null", info.getPlayerId());
+                            }
                         }
                     }
                 }

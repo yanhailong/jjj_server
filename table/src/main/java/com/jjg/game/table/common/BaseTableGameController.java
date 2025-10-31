@@ -199,6 +199,7 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
                             .addPlayerId(entry.getKey()).setData(notifyTableExitRoom));
                 } else {
                     roomController.getRoomManager().exitRoom(gamePlayer.getId());
+                    gameDataTracker.sendExitGameLog(gamePlayer);
                 }
                 continue;
             }
