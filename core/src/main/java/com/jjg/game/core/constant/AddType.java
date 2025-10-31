@@ -37,6 +37,8 @@ public enum AddType {
     ONE_CLICK_CLAIM_GAMB_EARNINGS(206),
     //一键领取机台收益
     ONE_CLICK_CLAIM_TABKE_EARNINGS(207),
+    //赌场
+    GAMBLING(208),
 
 
     //绑定奖励
@@ -92,6 +94,8 @@ public enum AddType {
     ACTIVITY_PIGGY_BANK_REWARDS(615),
     //首充
     ACTIVITY_FIRST_PAYMENT(616),
+    //活动
+    ACTIVITY(617),
 
 
     //好友房申请庄家扣除准备金

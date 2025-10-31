@@ -28,6 +28,7 @@ import com.jjg.game.core.base.condition.check.record.PlayerEffectiveParam;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.reddot.IRedDotService;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.CommonResult;
@@ -744,8 +745,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     /**
      * 活动开启或者关闭时进行计数
+     *
      * @param activityId 活动id
-     * @param time 时间
+     * @param time       时间
      */
     public final boolean addActivityStatusChangeCount(long activityId, long time) {
         return countDao.setIfAbsent("activity:status:%s".formatted(activityId), String.valueOf(time));
@@ -844,7 +846,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     }
                     // 触发次数
                     // 触发掉落逻辑
-                    Map<Integer, Long> dropItems = dropItemManager.triggerDropItem(player, "Activity", activityData.getId(), activityData.getDropId(), (int) triggerTimes, effectiveFlowingEvent);
+                    Map<Integer, Long> dropItems = dropItemManager.triggerDropItem(player, AddType.ACTIVITY, activityData.getId() + "", activityData.getDropId(), (int) triggerTimes, effectiveFlowingEvent);
                     if (!dropItems.isEmpty()) {
                         ActivityItemDropInfo activityItemDropInfo = MessageBuildUtil.buildActivityDropInfo(activityData.getType().getType(), activityId, effectiveFlowingEvent.getGameCfgId(), dropItems);
                         itemDropInfos.add(activityItemDropInfo);

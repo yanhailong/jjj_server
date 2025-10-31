@@ -52,6 +52,15 @@ public class ShopMessageHandler {
                     if (show != null) {
                         info.value = show;
                     }
+
+                    List<ItemInfo> items = new ArrayList<>();
+                    shopProduct.getRewardItems().forEach((k,v) -> {
+                        ItemInfo item = new ItemInfo();
+                        item.itemId = k;
+                        item.count = v;
+                        items.add(item);
+                    });
+                    info.items = items;
                 }
 
                 if (info.value < 1) {

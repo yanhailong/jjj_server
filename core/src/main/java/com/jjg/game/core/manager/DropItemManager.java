@@ -70,7 +70,7 @@ public class DropItemManager implements GameEventListener {
     /**
      * 触发道具掉落
      */
-    public Map<Integer, Long> triggerDropItem(Player player, String source, long sourceId, int dropCfgId, int triggerTimes, PlayerEventCategory.PlayerEffectiveFlowingEvent event) {
+    public Map<Integer, Long> triggerDropItem(Player player, AddType addType, String desc, int dropCfgId, int triggerTimes, PlayerEventCategory.PlayerEffectiveFlowingEvent event) {
         DropConfigCfg dropConfigCfg = GameDataManager.getDropConfigCfg(dropCfgId);
         if (dropConfigCfg == null) {
             log.error("不存在该掉落配置 playerId:{} dropCfgId:{} triggerTimes:{}", player.getId(), dropCfgId, triggerTimes);
@@ -110,20 +110,21 @@ public class DropItemManager implements GameEventListener {
                 playerPackService.addItems(player.getId(), dropItems, AddType.DROP_ITEM);
         if (result.success()) {
             // 记录日志
-            dropItemLogger.recordDropItem(player, source, sourceId, event.getGameCfgId(), dropItems, result.data);
+            dropItemLogger.recordDropItem(player, addType, desc, event.getGameCfgId(), dropItems, result.data);
         }
         return dropItems;
     }
 
     /**
      * 触发道具掉落
+     *
      * @param player
-     * @param source
-     * @param sourceId
+     * @param addType
+     * @param desc
      * @param dropTrunkId
      * @return
      */
-    public Map<Integer, Long> triggerDropItem(Player player, String source, long sourceId, int dropTrunkId) {
+    public Map<Integer, Long> triggerDropItem(Player player, AddType addType, String desc, int dropTrunkId) {
         Map<Integer, Integer> itemDropGroupCounter = dropItemDao.getItemDropGroupCounter(player.getId());
         if (itemDropGroupCounter == null) {
             itemDropGroupCounter = new HashMap<>();
@@ -133,7 +134,7 @@ public class DropItemManager implements GameEventListener {
 
         Pair<Integer, Item> item = itemDropDataHolder.randDropItems(dropTrunkId, itemDropGroupCounter);
 
-        if(item == null) {
+        if (item == null) {
             return Map.of();
         }
 
@@ -143,7 +144,7 @@ public class DropItemManager implements GameEventListener {
         CommonResult<ItemOperationResult> result = playerPackService.addItems(player.getId(), dropItems, AddType.DROP_TRUNK_ITEM);
         if (result.success()) {
             // 记录日志
-            dropItemLogger.recordDropItem(player, source, sourceId, dropTrunkId, dropItems, result.data);
+            dropItemLogger.recordDropItem(player, addType, desc, dropTrunkId, dropItems, result.data);
         }
         return dropItems;
     }
@@ -181,7 +182,6 @@ public class DropItemManager implements GameEventListener {
     }
 
     /**
-     *
      * @param event 流水事件
      * @return 掉落信息
      */
@@ -221,7 +221,7 @@ public class DropItemManager implements GameEventListener {
             }
         }
         //扣除积分
-        Map<Integer, Long> dropItem = triggerDropItem(player, "Casino", player.getId(), dropConfigCfg.getId(), triggerTimes.intValue(), event);
+        Map<Integer, Long> dropItem = triggerDropItem(player, AddType.DROP_ITEM, player.getId() + "", dropConfigCfg.getId(), triggerTimes.intValue(), event);
         if (CollectionUtil.isNotEmpty(dropItem)) {
             return List.of(MessageBuildUtil.buildActivityDropInfo(0, 0, event.getGameCfgId(), dropItem));
         }

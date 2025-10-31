@@ -285,6 +285,7 @@ public class BaseLogger {
             JSONObject json = new JSONObject();
             json.put("gameType", gameType);
             json.put("roomCfgId", roomCfgId);
+            json.put("channel", player.getChannel().getValue());
             sendLog("enterGame", player, json);
         } catch (Exception e) {
             log.error("", e);

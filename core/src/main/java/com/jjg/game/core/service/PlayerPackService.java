@@ -37,8 +37,6 @@ public class PlayerPackService implements IPlayerRegister {
     private final String tableName = "playerPack";
     private final String lockTableName = "lockplayerpack:";
 
-    private final String useItemAddType = "useItem";
-
     @Autowired
     private RedisTemplate<String, PlayerPack> redisTemplate;
     @Autowired
@@ -145,6 +143,7 @@ public class PlayerPackService implements IPlayerRegister {
                 int itemId = item.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
                 if (itemCfg == null) {
+                    log.debug("未找到该道具配置 playerId = {},itemId = {}", playerId, itemId);
                     continue;
                 }
                 EItemUseStrategy strategy = EItemUseStrategy.getItemUseStrategy(itemCfg.getType());

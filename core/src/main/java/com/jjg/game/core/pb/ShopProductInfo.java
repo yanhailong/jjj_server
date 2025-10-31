@@ -1,7 +1,10 @@
 package com.jjg.game.core.pb;
 
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+
+import java.util.List;
 
 /**
  * @author 11
@@ -34,4 +37,6 @@ public class ShopProductInfo {
     public String pic;
     @ProtoDesc("渠道商品id")
     public String channelProductId;
+    @ProtoDesc("道具列表")
+    public List<ItemInfo> items;
 }

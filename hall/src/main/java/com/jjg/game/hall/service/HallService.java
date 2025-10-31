@@ -567,7 +567,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
             //是否有掉落的道具
             if (itemCfg.getDropId() > 0) {
-                Map<Integer, Long> useItem = dropItemManager.triggerDropItem(player, "USE_ITEM", player.getId(), itemCfg.getDropId());
+                Map<Integer, Long> useItem = dropItemManager.triggerDropItem(player, AddType.USE_ITEM, player.getId() + "", itemCfg.getDropId());
                 addItemsMap.putAll(useItem);
             }
 
