@@ -1,10 +1,14 @@
 package com.jjg.game.hall.pb.res;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.hall.constant.HallConstant;
+
+import java.util.List;
 
 /**
  * @author 11
@@ -47,6 +51,8 @@ public class ResQueryPlayerInfo extends AbstractResponse {
     public int level;
     @ProtoDesc("经验")
     public long exp;
+    @ProtoDesc("已经绑定的第三方账号,类型参考loginType")
+    public List<Integer> bindThirdAccountList;
 
 
     public ResQueryPlayerInfo(int code) {

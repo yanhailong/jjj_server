@@ -1,5 +1,7 @@
 package com.jjg.game.core.data;
 
+import java.util.Arrays;
+
 /**
  * @author 11
  * @date 2025/10/13 16:38
@@ -29,25 +31,6 @@ public enum LoginType {
     }
 
     public static LoginType valueOf(int value) {
-        switch (value) {
-            case 1 -> {
-                return GUEST;
-            }
-            case 2 -> {
-                return GOOGLE;
-            }
-            case 3 -> {
-                return APPLE;
-            }
-            case 4 -> {
-                return FACEBOOK;
-            }
-            case 5 -> {
-                return PHONE;
-            }
-            default -> {
-                return null;
-            }
-        }
+        return Arrays.stream(values()).filter(e -> e.getValue() == value).findFirst().orElse(null);
     }
 }

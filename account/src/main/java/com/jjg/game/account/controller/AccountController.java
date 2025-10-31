@@ -179,15 +179,13 @@ public class AccountController extends AbstractController {
                 return fail(Code.FORBID);
             }
 
-            if (StringUtils.isNotEmpty(clientIp) && !clientIp.equals(playerSessionToken.getIp())) {
-                playerSessionToken.setIp(clientIp);
-                playerSessionTokenDao.save(playerSessionToken);
-            }
+            //如果与缓存数据不一致，就更新缓存
+            checkDiffAndSave(clientIp, dto, playerSessionToken);
 
             ServerUrlVo serverUrlVo = new ServerUrlVo();
             serverUrlVo.setGameServersUrls(accountConfig.getGameservers());
             serverUrlVo.setResourceUrls(accountConfig.getResourceurls());
-            log.info("获取服务器地址 playerId = {},token = {},gameServersUrls = {},resourceUrls = {}", playerId, token, accountConfig.getGameservers(),accountConfig.getResourceurls());
+            log.info("获取服务器地址 playerId = {},token = {},gameServersUrls = {},resourceUrls = {}", playerId, token, accountConfig.getGameservers(), accountConfig.getResourceurls());
             return success(serverUrlVo);
         } catch (Exception e) {
             log.error("", e);
@@ -399,8 +397,21 @@ public class AccountController extends AbstractController {
     private WebResult<LoginVo> loginResult(LoginType loginType, Account account, LoginDto dto, String ip) {
         //生成token
         String token = RandomUtils.getUUid();
+
+        //默认安卓设备
+        DeviceType deviceType = DeviceType.valueOf(dto.getDevice());
+        if (deviceType == null) {
+            deviceType = DeviceType.ANDROID;
+        }
+
+        //默认google渠道
+        ChannelType channelType = ChannelType.valueOf(dto.getChannel());
+        if (channelType == null) {
+            channelType = ChannelType.GOOGLE;
+        }
+
         //保存token，方便weboskcet连接时进行校验
-        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), dto.getChannel(), ip, dto.getDevice());
+        playerSessionTokenDao.save(token, loginType.getValue(), account.getPlayerId(), channelType.getValue(), ip, deviceType.getValue(), dto.getMac());
 
         LoginVo vo = new LoginVo();
         vo.setToken(token);
@@ -421,6 +432,48 @@ public class AccountController extends AbstractController {
         } catch (Exception e) {
             log.warn("解析手机号错误 phoneNumber = {}", phoneNumber);
             return false;
+        }
+    }
+
+    /**
+     * 如果与缓存数据不一致，就更新缓存
+     */
+    private void checkDiffAndSave(String clientIp, ServerUrlDto dto, PlayerSessionToken playerSessionToken) {
+        boolean change = false;
+        //对比ip
+        if (StringUtils.isNotEmpty(clientIp) && !clientIp.equals(playerSessionToken.getIp())) {
+            playerSessionToken.setIp(clientIp);
+            change = true;
+        }
+
+        //对比mac
+        if (StringUtils.isNotEmpty(dto.getMac()) && !dto.getMac().equals(playerSessionToken.getMac())) {
+            playerSessionToken.setMac(dto.getMac());
+            change = true;
+        }
+
+        //对比设备类型
+        DeviceType deviceType = DeviceType.valueOf(dto.getDevice());
+        if (deviceType == null) {
+            deviceType = DeviceType.ANDROID;
+        }
+        if (deviceType.getValue() != playerSessionToken.getDevice()) {
+            playerSessionToken.setDevice(deviceType.getValue());
+            change = true;
+        }
+
+        //对比渠道类型
+        ChannelType channelType = ChannelType.valueOf(dto.getChannel());
+        if (channelType == null) {
+            channelType = ChannelType.GOOGLE;
+        }
+        if (channelType.getValue() != playerSessionToken.getChannel()) {
+            playerSessionToken.setChannel(channelType.getValue());
+            change = true;
+        }
+
+        if (change) {
+            playerSessionTokenDao.save(playerSessionToken);
         }
     }
 }

@@ -213,6 +213,14 @@ public class HallMessageHandler implements GmListener {
             } else {
                 res.phoneNumber = account.getThirdAccount(LoginType.PHONE);
                 res.email = account.getEmail();
+
+                Map<LoginType, String> thirdAccountsMap = account.getThirdAccounts();
+                if(thirdAccountsMap != null && !thirdAccountsMap.isEmpty()){
+                    res.bindThirdAccountList = new ArrayList<>();
+                    for(Map.Entry<LoginType, String> en : thirdAccountsMap.entrySet()){
+                        res.bindThirdAccountList.add(en.getKey().getValue());
+                    }
+                }
             }
             playerController.setPlayer(player);
             log.info("获取玩家信息，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));

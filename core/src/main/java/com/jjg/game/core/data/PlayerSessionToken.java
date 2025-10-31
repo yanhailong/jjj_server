@@ -14,6 +14,7 @@ public class PlayerSessionToken {
     private String ip;
     //设备类型  1.安卓  2.ios
     private int device;
+    private String mac;
 
     public long getPlayerId() {
         return playerId;
@@ -69,5 +70,13 @@ public class PlayerSessionToken {
 
     public void setDevice(int device) {
         this.device = device;
+    }
+
+    public String getMac() {
+        return mac;
+    }
+
+    public void setMac(String mac) {
+        this.mac = mac;
     }
 }
