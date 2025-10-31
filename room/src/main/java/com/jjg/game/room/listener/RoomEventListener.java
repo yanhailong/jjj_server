@@ -126,10 +126,11 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
 
             int onlineTimeLen = 0;
             GamePlayer gamePlayer = roomController.getGameController().getGamePlayer(playerController.playerId());
-            if(gamePlayer != null){
+            if (gamePlayer != null) {
                 onlineTimeLen = TimeHelper.nowInt() - gamePlayer.getEnterGameTime();
             }
-            logger.exitGame(playerController.getPlayer(),onlineTimeLen);
+
+            logger.exitGame(playerController.getPlayer(), onlineTimeLen, playerController.getPlayer().getDeviceType());
         }
 
         IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(gameType);
@@ -172,7 +173,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             session.setReference(playerController);
 
             PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
-            logger.enterGame(player, info.getGameType(), info.getRoomCfgId(),playerSessionToken.getDevice());
+            logger.enterGame(player, info.getGameType(), info.getRoomCfgId(), playerSessionToken.getDevice());
 
             // 玩家房间ID不为0 且 不能是百家乐重连进入的房间
             if (player.getRoomId() > 0) {

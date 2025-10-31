@@ -66,7 +66,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                     info.setGameType(playerLastGameInfo.getGameType());
                     info.setRoomCfgId(playerLastGameInfo.getRoomCfgId());
                 }
-            }else {
+            } else {
                 if (info.getGameType() < 1) {
                     log.warn("sessionEnter时 PlayerSessionInfo 中的gameType小于1 playerId = {}", playerId);
                     return;
@@ -74,7 +74,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             }
 
             AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(info.getGameType());
-            if(gameManager == null){
+            if (gameManager == null) {
                 log.debug("sessionEnter时，获取游戏管理器失败 playerId = {},gameType = {}", playerId, info.getGameType());
                 return;
             }
@@ -97,7 +97,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             slotsFactoryManager.clearPlayerEvent(playerId);
 
             PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
-            logger.enterGame(player, info.getGameType(), info.getRoomCfgId(),playerSessionToken.getDevice());
+            logger.enterGame(player, info.getGameType(), info.getRoomCfgId(), playerSessionToken.getDevice());
         } catch (Exception e) {
             log.error("", e);
         }
@@ -112,7 +112,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         }
 
         AbstractSlotsGameManager gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType());
-        if(gameManager == null){
+        if (gameManager == null) {
             log.debug("退出游戏时，获取游戏管理器失败 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
             return;
         }
@@ -122,11 +122,12 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
 
         //计算玩游戏的时长
         int onlineTimeLen = 0;
-        if(playerGameData != null){
+        if (playerGameData != null) {
             onlineTimeLen = TimeHelper.nowInt() - playerGameData.getCreateTime();
         }
-        logger.exitGame(playerController.getPlayer(),onlineTimeLen);
-        log.debug("退出游戏结算 playerId = {}",playerController.playerId());
+
+        logger.exitGame(playerController.getPlayer(), onlineTimeLen, playerController.getPlayer().getDeviceType());
+        log.debug("退出游戏结算 playerId = {}", playerController.playerId());
     }
 
 }

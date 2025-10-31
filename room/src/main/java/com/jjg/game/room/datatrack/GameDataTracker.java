@@ -180,7 +180,7 @@ public class GameDataTracker {
      * 发送退出游戏日志
      */
     public void sendExitGameLog(GamePlayer gamePlayer) {
-        trackLogger.exitGame(gamePlayer, TimeHelper.nowInt() - gamePlayer.getEnterGameTime());
+        trackLogger.exitGame(gamePlayer, TimeHelper.nowInt() - gamePlayer.getEnterGameTime(), gamePlayer.getDeviceType());
     }
 
 

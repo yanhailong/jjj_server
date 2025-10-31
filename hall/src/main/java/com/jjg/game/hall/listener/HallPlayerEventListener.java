@@ -150,6 +150,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                             player.setIp(session.getAddress().getHost());
                             player.setChannel(channelType);
                             player.setLoginType(loginType);
+                            player.setDeviceType(player.getDeviceType());
                         }
 
                         @Override
@@ -168,6 +169,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                             player.setCardBackgroundId(hallService.getDefaultCardBackgroundId());
                             player.setChannel(channelType);
                             player.setLoginType(loginType);
+                            player.setDeviceType(playerSessionToken.getDevice());
                             // 调用注册接口类
                             SystemInterfaceHolder.callGameSysAction(IPlayerRegister.class, (f) -> f.playerRegister(player));
                             register[0] = true;

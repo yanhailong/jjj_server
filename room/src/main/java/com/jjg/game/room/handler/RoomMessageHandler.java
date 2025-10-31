@@ -6,7 +6,10 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.dao.PlayerSessionTokenDao;
+import com.jjg.game.core.data.DeviceType;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.PlayerSessionToken;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.pb.ReqExitGame;
@@ -75,7 +78,7 @@ public class RoomMessageHandler {
             }
             int code = playerEventListener.exitGame(playerController);
             if (code == Code.SUCCESS && gamePlayer != null) {
-                coreLogger.exitGame(gamePlayer, TimeHelper.nowInt() - gamePlayer.getEnterGameTime());
+                coreLogger.exitGame(gamePlayer, TimeHelper.nowInt() - gamePlayer.getEnterGameTime(), gamePlayer.getDeviceType());
             }
             playerController.send(new ResExitGame(code));
         } catch (Exception e) {
