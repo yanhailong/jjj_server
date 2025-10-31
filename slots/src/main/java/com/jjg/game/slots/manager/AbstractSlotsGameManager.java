@@ -775,6 +775,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setGameType(playerController.getPlayer().getGameType());
             playerGameData.setRoomCfgId(playerController.getPlayer().getRoomCfgId());
             playerGameData.getHasPlaySlots().set(hasPlay);
+            playerGameData.setCreateTime(TimeHelper.nowInt());
 
             //设置默认押注
             BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(playerGameData.getRoomCfgId());
@@ -1176,8 +1177,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
 
-    public boolean exit(PlayerController playerController) {
-        return true;
+    public T exit(PlayerController playerController) {
+        return null;
     }
 
     protected int getBigShowIdByTimes(int times) {

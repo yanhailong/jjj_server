@@ -1125,10 +1125,10 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
      * @return 返回值来标记是否可以进行断线重连
      */
     @Override
-    public boolean exit(PlayerController playerController) {
+    public DollarExpressPlayerGameData exit(PlayerController playerController) {
         DollarExpressPlayerGameData playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
-            return true;
+            return null;
         }
 
         if (playerGameData.getStatus() == DollarExpressConstant.Status.NOTMAL_ALL_BOARD || playerGameData.getStatus() == DollarExpressConstant.Status.GOLD_ALL_BOARD) {
@@ -1146,7 +1146,7 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
         }
 
         playerGameData.setOnline(false);
-        return true;
+        return playerGameData;
     }
 
     @Override

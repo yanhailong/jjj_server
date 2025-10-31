@@ -16,6 +16,9 @@ public class GamePlayer extends Player {
     protected transient TablePlayerGameData tableGameData;
     // poker类的玩家数据
     protected transient PokerPlayerGameData pokerPlayerGameData;
+    //进入游戏的时间
+    protected int enterGameTime;
+
 
     public void setPokerPlayerGameData(PokerPlayerGameData pokerPlayerGameData) {
         this.pokerPlayerGameData = pokerPlayerGameData;
@@ -39,6 +42,14 @@ public class GamePlayer extends Player {
 
     public void setTableGameData(TablePlayerGameData tableGameData) {
         this.tableGameData = tableGameData;
+    }
+
+    public int getEnterGameTime() {
+        return enterGameTime;
+    }
+
+    public void setEnterGameTime(int enterGameTime) {
+        this.enterGameTime = enterGameTime;
     }
 
     @Override

@@ -8,17 +8,21 @@ import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionInfo;
+import com.jjg.game.core.data.PlayerSessionToken;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.data.room.GameDataVo;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.handler.CurrentChangeEventHandler;
 import com.jjg.game.room.handler.PlayerRechargeEventHandler;
 import com.jjg.game.room.manager.AbstractRoomManager;
@@ -54,6 +58,8 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
     private AbstractRoomManager roomManager;
 
     private final Map<Integer, IPlayerRoomEventListener> roomListenerMap = new HashMap<>();
+    @Autowired
+    private PlayerSessionTokenDao playerSessionTokenDao;
 
     public void init() {
         Map<String, IPlayerRoomEventListener> listenerMap =
@@ -105,7 +111,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
         playerSessionService.offline(playerController.getPlayer(), false);
         // 调用房间Controller的offline消息
         Object scene = playerController.getScene();
-        if (scene instanceof AbstractRoomController<?, ?>) {
+        if (scene instanceof AbstractRoomController<?, ?> roomController) {
             // 房间进入断线流程，
             // TODO 考虑保存玩家的数据在内存中，如果有自动托管逻辑，可以使用LRU保存一定的玩家。
             //  如果没有需要判断玩家当前处于具体游戏的哪个阶段，是否在需要完成整局再退出房间
@@ -117,6 +123,13 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 log.info("玩家掉线 player: {}", playerController.playerId());
                 roomManager.disconnectedExitRoom(playerController);
             }
+
+            int onlineTimeLen = 0;
+            GamePlayer gamePlayer = roomController.getGameController().getGamePlayer(playerController.playerId());
+            if(gamePlayer != null){
+                onlineTimeLen = TimeHelper.nowInt() - gamePlayer.getEnterGameTime();
+            }
+            logger.exitGame(playerController.getPlayer(),onlineTimeLen);
         }
 
         IPlayerRoomEventListener playerRoomEventListener = roomListenerMap.get(gameType);
@@ -126,8 +139,6 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             log.warn("玩家退出游戏服务器时未找到 playerRoomEventListener, playerId = {},gameType = {}",
                     playerController.playerId(), gameType);
         }
-
-        logger.exitGame(playerController.getPlayer());
         log.info("房间 session close 成功 player: {}", playerController.playerId());
     }
 
@@ -160,7 +171,9 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
             PlayerController playerController = new PlayerController(session, player);
             session.setReference(playerController);
 
-            logger.enterGame(player, info.getGameType(), info.getRoomCfgId());
+            PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
+            logger.enterGame(player, info.getGameType(), info.getRoomCfgId(),playerSessionToken.getDevice());
+
             // 玩家房间ID不为0 且 不能是百家乐重连进入的房间
             if (player.getRoomId() > 0) {
                 // 设置workId

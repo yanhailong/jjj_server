@@ -53,6 +53,8 @@ public class SlotsPlayerGameData {
     protected Object freeLib;
     //用于测试
     protected LinkedList<TestLibData> testLibDataList;
+    //创建该对象的时间(及进入游戏的时间)
+    protected int createTime;
 
 
     public PlayerController getPlayerController() {
@@ -245,6 +247,14 @@ public class SlotsPlayerGameData {
 
     public void setLastSectionIndex(int lastSectionIndex) {
         this.lastSectionIndex = lastSectionIndex;
+    }
+
+    public int getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(int createTime) {
+        this.createTime = createTime;
     }
 
     public <T extends SlotsPlayerGameDataDTO> T converToDto(Class<T> cla) throws Exception{

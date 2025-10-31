@@ -275,9 +275,10 @@ public class BaseLogger {
      *
      * @param player
      * @param gameType
+     * @param device 设备
      * @return
      */
-    public void enterGame(Player player, int gameType, int roomCfgId) {
+    public void enterGame(Player player, int gameType, int roomCfgId,int device) {
         if (player instanceof RobotPlayer) {
             return;
         }
@@ -286,6 +287,7 @@ public class BaseLogger {
             json.put("gameType", gameType);
             json.put("roomCfgId", roomCfgId);
             json.put("channel", player.getChannel().getValue());
+            json.put("device", device);
             sendLog("enterGame", player, json);
         } catch (Exception e) {
             log.error("", e);
@@ -298,13 +300,15 @@ public class BaseLogger {
      * @param player
      * @return
      */
-    public void exitGame(Player player) {
+    public void exitGame(Player player,int onlineTimeLen) {
         if (player instanceof RobotPlayer) {
             return;
         }
         try {
             JSONObject json = new JSONObject();
             json.put("gameType", player.getGameType());
+            json.put("channel", player.getChannel().getValue());
+            json.put("onlineTimeLen", onlineTimeLen);
             sendLog("exitGame", player, json);
         } catch (Exception e) {
             log.error("", e);

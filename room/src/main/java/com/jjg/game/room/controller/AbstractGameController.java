@@ -10,6 +10,7 @@ import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.ExceptionUtils;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
@@ -152,6 +153,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
             gameDataVo.addGamePlayer(gamePlayer);
         } else {
             gamePlayer = JSON.parseObject(playerJson, GamePlayer.class);
+            gamePlayer.setEnterGameTime(TimeHelper.nowInt());
             gameDataVo.addGamePlayer(gamePlayer);
             gameDataVo.setRoomDestroyTime(0);
         }

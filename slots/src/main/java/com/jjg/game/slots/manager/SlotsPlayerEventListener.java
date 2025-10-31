@@ -3,14 +3,14 @@ package com.jjg.game.slots.manager;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.PlayerLastGameInfo;
-import com.jjg.game.core.data.PlayerSessionInfo;
+import com.jjg.game.core.dao.PlayerSessionTokenDao;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.slots.data.SlotsPlayerGameData;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +38,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     private PlayerLastGameInfoDao playerLastGameInfoDao;
     @Autowired
     private SlotsFactoryManager slotsFactoryManager;
+    @Autowired
+    private PlayerSessionTokenDao playerSessionTokenDao;
 
 
     @Override
@@ -89,11 +91,13 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             PlayerController playerController = new PlayerController(session, player);
             session.setReference(playerController);
 
-            logger.enterGame(player, info.getGameType(), info.getRoomCfgId());
             //创建 PlayerGameData
             gameManager.createPlayerGameData(playerController);
 
             slotsFactoryManager.clearPlayerEvent(playerId);
+
+            PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(playerId);
+            logger.enterGame(player, info.getGameType(), info.getRoomCfgId(),playerSessionToken.getDevice());
         } catch (Exception e) {
             log.error("", e);
         }
@@ -113,9 +117,15 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             return;
         }
 
-        boolean exit = gameManager.exit(playerController);
-        playerSessionService.offline(playerController.getPlayer(), !exit);
-        logger.exitGame(playerController.getPlayer());
+        SlotsPlayerGameData playerGameData = gameManager.exit(playerController);
+        playerSessionService.offline(playerController.getPlayer(), false);
+
+        //计算玩游戏的时长
+        int onlineTimeLen = 0;
+        if(playerGameData != null){
+            onlineTimeLen = TimeHelper.nowInt() - playerGameData.getCreateTime();
+        }
+        logger.exitGame(playerController.getPlayer(),onlineTimeLen);
         log.debug("退出游戏结算 playerId = {}",playerController.playerId());
     }
 
