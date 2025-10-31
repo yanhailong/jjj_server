@@ -3,19 +3,19 @@ package com.jjg.game.core.data;
 import java.util.Arrays;
 
 /**
- * 渠道枚举
+ * 设备类型
  * @author 11
- * @date 2025/10/13 11:37
+ * @date 2025/10/31 13:48
  */
-public enum ChannelType {
-    GOOGLE(1),
-    APPLE(2),
+public enum DeviceType {
+    ANDROID(1),
+    IOS(2),
 
     ;
 
-    private final int value;
+    private int value;
 
-    ChannelType(int value) {
+    DeviceType(int value) {
         this.value = value;
     }
 
@@ -23,7 +23,8 @@ public enum ChannelType {
         return value;
     }
 
-    public static ChannelType valueOf(int value) {
+
+    public static DeviceType valueOf(int value) {
         return Arrays.stream(values()).filter(t -> t.getValue() == value).findFirst().orElse(null);
     }
 }

@@ -661,13 +661,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     return result;
                 }
                 addResult = accountDao.addThirdAccount(loginType, verifyResult.data);
-            } else if (loginType == LoginType.APPLE) {
-                CommonResult<AppleUserInfo> verifyResult = thirdAccountHttpService.verifyAppleToken(token);
-                if (!verifyResult.success()) {
-                    result.code = verifyResult.code;
-                    return result;
-                }
-                addResult = accountDao.addThirdAccount(loginType, verifyResult.data);
             } else {
                 log.debug("该接口不支持该类型绑定，绑定第三方账号失败 type = {}", type);
                 result.code = Code.FAIL;

@@ -425,10 +425,6 @@ public class BaseLogger {
 
     /***********************************************************************************************/
 
-    protected void sendLog(Player player, JSONObject json) {
-        sendLog(null, player, json);
-    }
-
     protected void sendLog(String topic, Player player, JSONObject json) {
         if (player instanceof RobotPlayer) {
             return;
@@ -449,10 +445,6 @@ public class BaseLogger {
         kafkaTemplate.send(StringUtils.isEmpty(topic) ? GAME_LOGS_TOPIC : topic.toLowerCase(), msg);
 
         log.debug("打印日志数据 msg = {}", msg);
-    }
-
-    protected void sendLog(JSONObject json) {
-        sendLog(null, json);
     }
 
     /**

@@ -13,7 +13,7 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.REQ_BIND_THIRD_ACCOUNT)
 @ProtoDesc("请求绑定第三方账号")
 public class ReqBindThirdAccount extends AbstractMessage {
-    @ProtoDesc("也就是登录类型  2.ios   3.google   4.facebook")
+    @ProtoDesc("参考loginType  3.google   4.facebook")
     public int type;
     public String token;
 }
