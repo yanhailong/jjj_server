@@ -389,7 +389,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 // 检查该配置是否已有活跃活动
                 if (!luckyTreasureRedisDao.hasActiveRound(config.getId())) {
                     log.info("检测到配置 {} 没有活跃活动，准备启动新活动", config.getId());
-                    if (isOpen() && config.isRepeated()) {
+                    if (isOpen()) {
                         startNewActivityForConfig(config);
                         startedCount++;
                     } else {

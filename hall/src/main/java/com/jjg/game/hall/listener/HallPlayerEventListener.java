@@ -163,6 +163,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                             player.setHeadFrameId(hallService.getDefaultHeadFrameId());
                             player.setNationalId(hallService.getDefaultNationalId());
                             player.setTitleId(hallService.getDefaultTitleId());
+                            player.setChipsId(hallService.getDefaultChipsId());
+                            player.setBackgroundId(hallService.getDefaultBackgroundId());
+                            player.setCardBackgroundId(hallService.getDefaultCardBackgroundId());
                             player.setChannel(channelType);
                             player.setLoginType(loginType);
                             // 调用注册接口类

@@ -896,6 +896,8 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
                     broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(gamePlayer.getId(), notify));
                 } else {
                     roomController.getRoomManager().exitRoom(gamePlayer.getId());
+                    //退出日志
+                    gameDataTracker.sendExitGameLog(gamePlayer);
                 }
             }
         }

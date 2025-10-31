@@ -1,7 +1,6 @@
 package com.jjg.game.hall.service;
 
 import cn.hutool.core.util.EnumUtil;
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.timer.TimerCenter;
@@ -15,6 +14,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.PlayerAvatarDao;
+import com.jjg.game.core.dao.VerCodeDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.DropItemManager;
@@ -23,7 +23,6 @@ import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.SmsService;
 import com.jjg.game.core.service.ThirdAccountHttpService;
 import com.jjg.game.hall.constant.HallConstant;
-import com.jjg.game.core.dao.VerCodeDao;
 import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.dao.LikeGameDao;
 import com.jjg.game.hall.data.WareHouseConfigInfo;
@@ -98,6 +97,13 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private int defaultNationalId = 0;
     //默认称号id
     private int defaultTitleId = 0;
+    //默认筹码id
+    private int defaultChipsId = 0;
+    //默认背景id
+    private int defaultBackgroundId = 0;
+    //默认牌背ID
+    private int defaultCardBackgroundId = 0;
+
 
     private TimerEvent<String> updatePoolEvent;
 
@@ -503,6 +509,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             playerAvatar.addAvatar(this.defaultHeadImgId);
             playerAvatar.addFrame(this.defaultHeadFrameId);
             playerAvatar.addTitle(this.defaultTitleId);
+            playerAvatar.addChip(this.defaultChipsId);
+            playerAvatar.addBackground(this.defaultBackgroundId);
+            playerAvatar.addCardBackground(this.defaultCardBackgroundId);
             this.playerAvatarDao.save(playerAvatar);
             log.info("保存默认的头像信息成功  playerId = {}", playerId);
         } catch (Exception e) {
@@ -729,6 +738,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         this.defaultHeadFrameId = Integer.parseInt(arr[1]);
         this.defaultNationalId = Integer.parseInt(arr[2]);
         this.defaultTitleId = Integer.parseInt(arr[3]);
+        this.defaultChipsId = Integer.parseInt(arr[4]);
+        this.defaultBackgroundId = Integer.parseInt(arr[5]);
+        this.defaultCardBackgroundId= Integer.parseInt(arr[6]);
     }
 
     public int getDefaultHeadImgId() {
@@ -745,6 +757,18 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
     public int getDefaultTitleId() {
         return defaultTitleId;
+    }
+
+    public int getDefaultChipsId() {
+        return defaultChipsId;
+    }
+
+    public int getDefaultBackgroundId() {
+        return defaultBackgroundId;
+    }
+
+    public int getDefaultCardBackgroundId() {
+        return defaultCardBackgroundId;
     }
 
     /**
