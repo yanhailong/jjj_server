@@ -739,8 +739,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         this.defaultNationalId = Integer.parseInt(arr[2]);
         this.defaultTitleId = Integer.parseInt(arr[3]);
         this.defaultChipsId = Integer.parseInt(arr[4]);
-        this.defaultBackgroundId = Integer.parseInt(arr[5]);
-        this.defaultCardBackgroundId= Integer.parseInt(arr[6]);
+        this.defaultCardBackgroundId= Integer.parseInt(arr[5]);
+        this.defaultBackgroundId = Integer.parseInt(arr[6]);
     }
 
     public int getDefaultHeadImgId() {
