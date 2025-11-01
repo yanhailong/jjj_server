@@ -495,6 +495,7 @@ public class ConfigManager {
                 for (AbstractExcelConfig config : configs) {
                     excelConfigMap.put(config.getId(), config);
                 }
+                configMap.put(name, excelConfigMap);
                 log.info("同步[{}]的配置[{}]条!  map = {}", name, configs.size(),JSON.toJSONString(excelConfigMap));
             } finally {
                 configMap.getLock(name).unlock();
