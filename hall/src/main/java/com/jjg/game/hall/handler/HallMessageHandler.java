@@ -16,7 +16,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
-import com.jjg.game.core.dao.PlayerAvatarDao;
+import com.jjg.game.core.dao.PlayerSkinDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.service.CorePlayerService;
@@ -78,7 +78,7 @@ public class HallMessageHandler implements GmListener {
     @Autowired
     private CorePlayerService corePlayerService;
     @Autowired
-    private PlayerAvatarDao playerAvatarDao;
+    private PlayerSkinDao playerSkinDao;
 
     /**
      * 进入游戏
@@ -337,43 +337,43 @@ public class HallMessageHandler implements GmListener {
         Player player = playerController.getPlayer();
         ResAllAvatar res = new ResAllAvatar(HallCode.SUCCESS);
         try {
-            PlayerAvatar playerAvatar = hallService.allAvatar(playerController.playerId());
-            if (playerAvatar == null) {
+            PlayerSkin playerSkin = hallService.allAvatar(playerController.playerId());
+            if (playerSkin == null) {
                 res.code = Code.NOT_FOUND;
                 playerController.send(res);
                 log.debug("未找到该玩家的头像信息 playerId = {}", playerController.playerId());
                 return;
             }
             //根据vip等级解锁头像
-            playerAvatar.setUnlockAvatarSet(unlockSkin(player.getId(), playerAvatar.getUnlockAvatarSet(),
+            playerSkin.setUnlockAvatarSet(unlockSkin(player.getId(), playerSkin.getUnlockAvatarSet(),
                     player.getVipLevel(), AvatarType.AVATAR));
-            playerAvatar.setUnlockFrameSet(unlockSkin(player.getId(), playerAvatar.getUnlockFrameSet(),
+            playerSkin.setUnlockFrameSet(unlockSkin(player.getId(), playerSkin.getUnlockFrameSet(),
                     player.getVipLevel(), AvatarType.FRAME));
-            playerAvatar.setUnlockTitleSet(unlockSkin(player.getId(), playerAvatar.getUnlockTitleSet(),
+            playerSkin.setUnlockTitleSet(unlockSkin(player.getId(), playerSkin.getUnlockTitleSet(),
                     player.getVipLevel(), AvatarType.TITLE));
-            playerAvatar.setUnlockChipsSet(unlockSkin(player.getId(), playerAvatar.getUnlockChipsSet(),
+            playerSkin.setUnlockChipsSet(unlockSkin(player.getId(), playerSkin.getUnlockChipsSet(),
                     player.getVipLevel(), AvatarType.CHIP));
-            playerAvatar.setUnlockBackgroundSet(unlockSkin(player.getId(), playerAvatar.getUnlockBackgroundSet(),
+            playerSkin.setUnlockBackgroundSet(unlockSkin(player.getId(), playerSkin.getUnlockBackgroundSet(),
                     player.getVipLevel(), AvatarType.BACKGROUND));
-            playerAvatar.setUnlockCardBackgroundSet(unlockSkin(player.getId(),
-                    playerAvatar.getUnlockCardBackgroundSet(), player.getVipLevel(), AvatarType.CARD_BACKGROUND));
-            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockAvatarSet())) {
-                res.avatars = new ArrayList<>(playerAvatar.getUnlockAvatarSet());
+            playerSkin.setUnlockCardBackgroundSet(unlockSkin(player.getId(),
+                    playerSkin.getUnlockCardBackgroundSet(), player.getVipLevel(), AvatarType.CARD_BACKGROUND));
+            if (CollectionUtil.isNotEmpty(playerSkin.getUnlockAvatarSet())) {
+                res.avatars = new ArrayList<>(playerSkin.getUnlockAvatarSet());
             }
-            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockFrameSet())) {
-                res.frames = new ArrayList<>(playerAvatar.getUnlockFrameSet());
+            if (CollectionUtil.isNotEmpty(playerSkin.getUnlockFrameSet())) {
+                res.frames = new ArrayList<>(playerSkin.getUnlockFrameSet());
             }
-            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockTitleSet())) {
-                res.titles = new ArrayList<>(playerAvatar.getUnlockTitleSet());
+            if (CollectionUtil.isNotEmpty(playerSkin.getUnlockTitleSet())) {
+                res.titles = new ArrayList<>(playerSkin.getUnlockTitleSet());
             }
-            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockChipsSet())) {
-                res.unlockChipsId = new ArrayList<>(playerAvatar.getUnlockChipsSet());
+            if (CollectionUtil.isNotEmpty(playerSkin.getUnlockChipsSet())) {
+                res.unlockChipsId = new ArrayList<>(playerSkin.getUnlockChipsSet());
             }
-            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockBackgroundSet())) {
-                res.unlockBackgroundId = new ArrayList<>(playerAvatar.getUnlockBackgroundSet());
+            if (CollectionUtil.isNotEmpty(playerSkin.getUnlockBackgroundSet())) {
+                res.unlockBackgroundId = new ArrayList<>(playerSkin.getUnlockBackgroundSet());
             }
-            if (CollectionUtil.isNotEmpty(playerAvatar.getUnlockCardBackgroundSet())) {
-                res.unlockCardBackgroundId = new ArrayList<>(playerAvatar.getUnlockCardBackgroundSet());
+            if (CollectionUtil.isNotEmpty(playerSkin.getUnlockCardBackgroundSet())) {
+                res.unlockCardBackgroundId = new ArrayList<>(playerSkin.getUnlockCardBackgroundSet());
             }
 
             log.debug("玩家获取所有头像信息 playerId = {}", playerController.playerId());
@@ -394,7 +394,7 @@ public class HallMessageHandler implements GmListener {
         if (CollectionUtil.isNotEmpty(skinIds)) {
             for (Integer chip : skinIds) {
                 if (addAll || !originally.contains(chip)) {
-                    playerAvatarDao.addByType(playerId, type, chip);
+                    playerSkinDao.addByType(playerId, type, chip);
                     originally.add(chip);
                 }
             }

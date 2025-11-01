@@ -1,7 +1,7 @@
 package com.jjg.game.core.dao;
 
 import com.jjg.game.core.data.AvatarType;
-import com.jjg.game.core.data.PlayerAvatar;
+import com.jjg.game.core.data.PlayerSkin;
 import com.mongodb.client.result.UpdateResult;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -18,12 +18,12 @@ import org.springframework.stereotype.Repository;
  * @date 2025/8/7 16:32
  */
 @Repository
-public class PlayerAvatarDao extends MongoBaseDao<PlayerAvatar, Long> {
+public class PlayerSkinDao extends MongoBaseDao<PlayerSkin, Long> {
 
-    private final Logger log = LoggerFactory.getLogger(PlayerAvatarDao.class);
+    private final Logger log = LoggerFactory.getLogger(PlayerSkinDao.class);
 
-    public PlayerAvatarDao(@Autowired MongoTemplate mongoTemplate) {
-        super(PlayerAvatar.class, mongoTemplate);
+    public PlayerSkinDao(@Autowired MongoTemplate mongoTemplate) {
+        super(PlayerSkin.class, mongoTemplate);
     }
 
     /**
@@ -32,8 +32,8 @@ public class PlayerAvatarDao extends MongoBaseDao<PlayerAvatar, Long> {
      * @param playerId
      * @return
      */
-    public PlayerAvatar getPlayerAvatar(long playerId) {
-        return mongoTemplate.findById(playerId, PlayerAvatar.class);
+    public PlayerSkin getPlayerSkin(long playerId) {
+        return mongoTemplate.findById(playerId, PlayerSkin.class);
     }
 
     /**
@@ -50,7 +50,7 @@ public class PlayerAvatarDao extends MongoBaseDao<PlayerAvatar, Long> {
         }
         Query query = new Query(Criteria.where("playerId").is(playerId));
         Update update = new Update().addToSet(type.getField(), id);
-        UpdateResult result = mongoTemplate.upsert(query, update, PlayerAvatar.class);
+        UpdateResult result = mongoTemplate.upsert(query, update, PlayerSkin.class);
         return result.getModifiedCount() > 0 || result.getUpsertedId() != null;
     }
 
@@ -66,7 +66,7 @@ public class PlayerAvatarDao extends MongoBaseDao<PlayerAvatar, Long> {
             return false;
         }
         Query query = new Query(Criteria.where("playerId").is(playerId).and(type.getField()).in(id));
-        return mongoTemplate.exists(query, PlayerAvatar.class);
+        return mongoTemplate.exists(query, PlayerSkin.class);
     }
 
 
