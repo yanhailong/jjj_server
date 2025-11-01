@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.math.BigDecimal;
 import java.util.function.Supplier;
 
 /**
@@ -162,7 +163,7 @@ public class CoreToServerMessageHandler {
         //任务条件参数
         Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
             DefaultTaskConditionParam param = new DefaultTaskConditionParam();
-            param.setAddValue(order.getPrice().longValue());
+            param.setAddValue(order.getPrice().multiply(BigDecimal.valueOf(100)).longValue());
             return param;
         };
         //单笔充值任务
@@ -244,24 +245,24 @@ public class CoreToServerMessageHandler {
 
             AddType addType = AddType.valueOf(notify.addType);
 
-            if(notify.type == 1){  //增加
-                if(notify.currency_id == GameConstant.Item.TYPE_GOLD){
-                    result = playerService.addGoldAndDiamond(notify.playerId, notify.quantity,0,addType,true,notify.remark);
-                }else {
-                    result = playerService.addGoldAndDiamond(notify.playerId, 0,notify.quantity,addType,true,notify.remark);
+            if (notify.type == 1) {  //增加
+                if (notify.currency_id == GameConstant.Item.TYPE_GOLD) {
+                    result = playerService.addGoldAndDiamond(notify.playerId, notify.quantity, 0, addType, true, notify.remark);
+                } else {
+                    result = playerService.addGoldAndDiamond(notify.playerId, 0, notify.quantity, addType, true, notify.remark);
                 }
-            }else {  //减少
-                if(notify.currency_id == GameConstant.Item.TYPE_GOLD){
-                    result = playerService.deductGoldAndDiamond(notify.playerId, notify.quantity,0,addType,true,notify.remark);
-                }else {
-                    result = playerService.deductGoldAndDiamond(notify.playerId, 0,notify.quantity,addType,true,notify.remark);
+            } else {  //减少
+                if (notify.currency_id == GameConstant.Item.TYPE_GOLD) {
+                    result = playerService.deductGoldAndDiamond(notify.playerId, notify.quantity, 0, addType, true, notify.remark);
+                } else {
+                    result = playerService.deductGoldAndDiamond(notify.playerId, 0, notify.quantity, addType, true, notify.remark);
                 }
             }
 
-            if(result.success()){
+            if (result.success()) {
                 log.info("修改玩家账户成功 notify = {}", JSON.toJSONString(notify));
-            }else {
-                log.info("修改玩家账户失败 notify = {},code = {}", JSON.toJSONString(notify),result.code);
+            } else {
+                log.info("修改玩家账户失败 notify = {},code = {}", JSON.toJSONString(notify), result.code);
             }
         } catch (Exception e) {
             log.error("", e);
