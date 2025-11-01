@@ -216,7 +216,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 Long bet = baseBetInfo.getOrDefault(playerId, 0L);
                 long afterRatio = BigDecimal.valueOf(totalGet - bet)
                         .multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getEffectiveRatio())))
-                                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
                 long roomCreatorIncome = calcRoomCreatorIncome(totalGet - bet);
                 totalGet = bet + afterRatio - roomCreatorIncome;
                 //增加金币
@@ -422,6 +422,10 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
     @Override
     public void phaseFinishDoAction() {
         //设置为等待阶段
+        //暂定50条
+        if (gameDataVo.getTexasHistoryList().size() >= 50) {
+            gameDataVo.getTexasHistoryList().removeLast();
+        }
         gameDataVo.getTexasHistoryList().add(gameDataVo.getTexasHistory());
         //结算后更新玩家信息
         updatePlayerData();
