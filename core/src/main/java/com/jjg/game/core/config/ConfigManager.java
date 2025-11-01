@@ -481,22 +481,28 @@ public class ConfigManager {
         if (checkConfig(name)) {
             return;
         }
+
+        Map<Integer, AbstractExcelConfig> tmpExcelConfigMap = new ConcurrentHashMap<>();
+        for (AbstractExcelConfig config : configs) {
+            tmpExcelConfigMap.put(config.getId(), config);
+        }
+
         RMap<String, Map<Integer, AbstractExcelConfig>> configMap = redissonClient.getMap(CONFIG_MAP_KEY);
         try {
             configMap.getLock(name).lock();
             try {
                 // 先更新Redis数据
-                Map<Integer, AbstractExcelConfig> excelConfigMap = configMap.get(name);
-                if (excelConfigMap == null) {
-                    excelConfigMap = new ConcurrentHashMap<>();
-                } else {
-                    excelConfigMap.clear();
-                }
-                for (AbstractExcelConfig config : configs) {
-                    excelConfigMap.put(config.getId(), config);
-                }
-                configMap.put(name, excelConfigMap);
-                log.info("同步[{}]的配置[{}]条!  map = {}", name, configs.size(),JSON.toJSONString(excelConfigMap));
+//                Map<Integer, AbstractExcelConfig> excelConfigMap = configMap.get(name);
+//                if (excelConfigMap == null) {
+//                    excelConfigMap = new ConcurrentHashMap<>();
+//                } else {
+//                    excelConfigMap.clear();
+//                }
+//                for (AbstractExcelConfig config : configs) {
+//                    excelConfigMap.put(config.getId(), config);
+//                }
+                configMap.put(name, tmpExcelConfigMap);
+                log.info("同步[{}]的配置[{}]条!  map = {}", name, configs.size(),JSON.toJSONString(tmpExcelConfigMap));
             } finally {
                 configMap.getLock(name).unlock();
             }
@@ -535,7 +541,7 @@ public class ConfigManager {
                 for (Map.Entry<Integer, AbstractExcelConfig> entry : oldLocal.entrySet()) {
                     int id = entry.getKey();
                     AbstractExcelConfig config = entry.getValue();
-                    if (!localConfigMap.containsKey(id)) {
+                    if (!tmpExcelConfigMap.containsKey(id)) {
                         notifyUpdateConfig(name, ConfigChangeState.DELETE, config);
                     }
                 }
