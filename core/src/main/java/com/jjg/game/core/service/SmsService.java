@@ -43,7 +43,7 @@ public class SmsService {
     public int sendCode(String phone, VerCodeType verCodeType) {
         //生成验证码
         int verCode = RandomUtils.randomNum(100000, 999999);
-        String content = "code:" + verCode;
+        String content = verCode + " is your verification code";
         int sendResultCode = sendOnbukaSms(phone, content, verCodeType);
         if (sendResultCode != Code.SUCCESS) {
             return sendResultCode;
@@ -64,7 +64,7 @@ public class SmsService {
         CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
         //生成验证码
         int verCode = RandomUtils.randomNum(100000, 999999);
-        String content = "code:" + verCode;
+        String content = verCode + " is your verification code";
         int sendResultCode = sendOnbukaSms(phone, content, verCodeType);
         if (sendResultCode != Code.SUCCESS) {
             result.code = sendResultCode;
@@ -156,6 +156,12 @@ public class SmsService {
 
             if (!resp.isOk()) {
                 log.warn("发送短信失败 phoneNumber = {},code = {},reason = {}", phoneNumber, json.getInt("status"), json.getStr("reason"));
+                return Code.FAIL;
+            }
+
+            int status = json.getInt("status");
+            if(status != 0){
+                log.warn("发送短信失败1 phoneNumber = {},code = {},reason = {}", phoneNumber, json.getInt("status"), json.getStr("reason"));
                 return Code.FAIL;
             }
 

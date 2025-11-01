@@ -82,7 +82,7 @@ public class AccountService {
      * @return
      */
     private CommonResult<Account> getOrCreateAccount(LoginType loginType, ChannelUserInfo channelUserInfo, LoginDto loginDto, String ip) {
-        CommonResult<Account> result = new CommonResult<>(Code.SUCCESS);
+        CommonResult<Account> result = new CommonResult<>(Code.FAIL);
         //要加锁，防止重复创建账号
         String lockKey = getLockKey(loginType, channelUserInfo);
         redisLock.executeWithLock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES, TimeUnit.MILLISECONDS, () -> {
@@ -113,6 +113,7 @@ public class AccountService {
                 accountDao.save(account);
             }
 
+            result.code = Code.SUCCESS;
             result.data = account;
             return result;
         });

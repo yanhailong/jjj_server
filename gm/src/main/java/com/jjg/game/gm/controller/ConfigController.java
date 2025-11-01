@@ -2,6 +2,7 @@ package com.jjg.game.gm.controller;
 
 import com.alibaba.fastjson.JSONAware;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.core.config.AbstractExcelConfig;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * 配置相关操作
@@ -119,7 +121,8 @@ public class ConfigController extends AbstractController {
         NotifyConfigUpdate notifyConfigUpdate = new NotifyConfigUpdate();
         notifyConfigUpdate.setName(name);
         PFMessage pfMessage = MessageUtil.getPFMessage(notifyConfigUpdate);
-        clusterSystem.notifyAllNode(pfMessage);
+
+        clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString(), NodeType.GAME.toString(), NodeType.ACCOUNT, NodeType.RECHARGE)::contains);
     }
 
 }

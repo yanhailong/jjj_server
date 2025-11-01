@@ -289,7 +289,6 @@ public class HallMessageHandler implements GmListener {
                 playerController.send(res);
                 return;
             }
-            res.verCode = result.data;
             log.info("获取验证码成功，playerId = {},verCodeType = {},data = {},verCode = {}", playerController.playerId(),
                     req.type, req.data, result.data);
         } catch (Exception e) {

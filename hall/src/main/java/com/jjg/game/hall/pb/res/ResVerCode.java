@@ -13,9 +13,6 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_VER_CODE,resp = true)
 @ProtoDesc("请求验证码返回")
 public class ResVerCode extends AbstractResponse {
-    @ProtoDesc("为测试方便，返回验证码,后面要去掉")
-    //todo 为测试方便，返回验证码,后面要去掉
-    public int verCode;
 
     public ResVerCode(int code) {
         super(code);

@@ -139,7 +139,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
      * @return
      */
     public CommonResult<Account> addThirdAccount(LoginType loginType, ChannelUserInfo channelUserInfo) {
-        CommonResult<Account> result = new CommonResult<>(Code.SUCCESS);
+        CommonResult<Account> result = new CommonResult<>(Code.FAIL);
         //要加锁，防止重复绑定
         String lockKey = getBindLockKey(loginType, channelUserInfo.getUserId());
         redisLock.executeWithLock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES, TimeUnit.MILLISECONDS, () -> {
@@ -150,9 +150,10 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
             } else {
                 Account tmpAccount = setChannelValue(loginType, channelUserInfo, account);
                 if (tmpAccount == null) {
-                    result.code = Code.FAIL;
+                    result.code = Code.QUERY_EXCEPTION;
                     return result;
                 }
+                result.code = Code.SUCCESS;
                 result.data = account;
                 save(account);
             }
@@ -167,21 +168,22 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
      * @param loginType
      * @return
      */
-    public CommonResult<Account> addThirdAccount(LoginType loginType, String data) {
-        CommonResult<Account> result = new CommonResult<>(Code.SUCCESS);
+    public CommonResult<Account> addThirdAccount(long playerId,LoginType loginType, String data) {
+        CommonResult<Account> result = new CommonResult<>(Code.FAIL);
         //要加锁，防止重复绑定
         String lockKey = getBindLockKey(loginType, data);
         redisLock.executeWithLock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES, TimeUnit.MILLISECONDS, () -> {
             //查询该账号是否存在
-            Account account = queryThirdAccount(loginType, data);
+            Account account = queryAccountByPlayerId(playerId);
             if (account == null) {
                 result.code = Code.NOT_FOUND;
             } else {
                 boolean add = account.addThirdAccount(loginType, data);
                 if (!add) {
-                    result.code = Code.FAIL;
+                    result.code = Code.QUERY_EXCEPTION;
                     return result;
                 }
+                result.code = Code.SUCCESS;
                 result.data = account;
                 save(account);
             }

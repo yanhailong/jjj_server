@@ -293,12 +293,15 @@ public class ConfigManager {
             configMap.getLock(name).lock();
             try {
                 Map<Integer, AbstractExcelConfig> excelConfigMap = configMap.computeIfAbsent(name, k -> new ConcurrentHashMap<>());
+
+//                log.debug("beforeMap = {}",JSON.toJSONString(excelConfigMap));
                 configs.forEach(config -> {
                     // 先更新Redis数据
                     excelConfigMap.put(config.getId(), config);
                 });
+//                log.debug("afterMap = {}",JSON.toJSONString(excelConfigMap));
                 configMap.put(name, excelConfigMap);
-                log.info("批量覆盖[{}]的配置[{}]条!", name, configs.size());
+                log.info("批量覆盖[{}]的配置[{}]条! ", name, configs.size());
             } finally {
                 configMap.getLock(name).unlock();
             }
@@ -463,6 +466,7 @@ public class ConfigManager {
         if (configList.isEmpty()) {
             return;
         }
+        log.debug("同步配置 name = {},configs = {}", name, JSON.toJSONString(configList));
         syncConfigs(name, configList);
     }
 
@@ -491,7 +495,7 @@ public class ConfigManager {
                 for (AbstractExcelConfig config : configs) {
                     excelConfigMap.put(config.getId(), config);
                 }
-                log.info("同步[{}]的配置[{}]条!", name, configs.size());
+                log.info("同步[{}]的配置[{}]条!  map = {}", name, configs.size(),JSON.toJSONString(excelConfigMap));
             } finally {
                 configMap.getLock(name).unlock();
             }
