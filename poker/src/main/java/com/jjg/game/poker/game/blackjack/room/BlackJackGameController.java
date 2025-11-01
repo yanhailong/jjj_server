@@ -68,7 +68,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
 
     @Override
     public boolean canJoinRobot() {
-        return getCurrentGamePhase() == EGamePhase.BET;
+        return getCurrentGamePhase() == EGamePhase.BET || getCurrentGamePhase() == EGamePhase.WAIT_READY;
     }
 
     @Override
@@ -307,7 +307,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
 
     @Override
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
-        canStartNextPhase();
+//        canStartNextPhase();
     }
 
     public void canStartNextPhase() {
@@ -438,7 +438,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         jackBetResult.betValue = betValue;
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(jackBetResult));
         //如果全部押注完成 进入下一阶段
-        canStartNextPhase();
+//        canStartNextPhase();
     }
 
     public void addNextTimer(PlayerSeatInfo nextExePlayer, int sendCardNum) {

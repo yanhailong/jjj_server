@@ -13,7 +13,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
-import com.jjg.game.core.dao.PlayerAvatarDao;
+import com.jjg.game.core.dao.PlayerSkinDao;
 import com.jjg.game.core.dao.VerCodeDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
@@ -57,7 +57,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     @Autowired
     private VerCodeDao verCodeDao;
     @Autowired
-    private PlayerAvatarDao playerAvatarDao;
+    private PlayerSkinDao playerSkinDao;
     @Autowired
     private HallPlayerService hallPlayerService;
     @Autowired
@@ -422,8 +422,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      * @param playerId
      * @return
      */
-    public PlayerAvatar allAvatar(long playerId) {
-        return playerAvatarDao.getPlayerAvatar(playerId);
+    public PlayerSkin allAvatar(long playerId) {
+        return playerSkinDao.getPlayerSkin(playerId);
     }
 
     /**
@@ -449,14 +449,14 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         }
         Integer nowId = type.getGetter().apply(player);
         if (nowId == id) {
-            result.code = Code.PARAM_ERROR;
+            result.code = Code.ALREADY_WORN;
             return result;
         }
         boolean has;
         if (StringUtils.isEmpty(type.getField())) {
             has = true;
         } else {
-            has = playerAvatarDao.hasByType(playerId, type, id);
+            has = playerSkinDao.hasByType(playerId, type, id);
         }
         //检查玩家是否拥有该id
         if (!has) {
@@ -487,7 +487,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             log.debug("添加头像信息失败该类型 playerId = {},cfgId = {}", playerId, avatarCfg.getId());
             return;
         }
-        boolean add = playerAvatarDao.addByType(playerId, type, id);
+        boolean add = playerSkinDao.addByType(playerId, type, id);
         if (!add) {
             log.debug("添加头像信息失败 playerId = {},cfgId = {}", playerId, avatarCfg.getId());
             return;
@@ -502,15 +502,15 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      */
     public void saveDefaultAvatar(long playerId) {
         try {
-            PlayerAvatar playerAvatar = new PlayerAvatar();
-            playerAvatar.setPlayerId(playerId);
-            playerAvatar.addAvatar(this.defaultHeadImgId);
-            playerAvatar.addFrame(this.defaultHeadFrameId);
-            playerAvatar.addTitle(this.defaultTitleId);
-            playerAvatar.addChip(this.defaultChipsId);
-            playerAvatar.addBackground(this.defaultBackgroundId);
-            playerAvatar.addCardBackground(this.defaultCardBackgroundId);
-            this.playerAvatarDao.save(playerAvatar);
+            PlayerSkin playerSkin = new PlayerSkin();
+            playerSkin.setPlayerId(playerId);
+            playerSkin.addAvatar(this.defaultHeadImgId);
+            playerSkin.addFrame(this.defaultHeadFrameId);
+            playerSkin.addTitle(this.defaultTitleId);
+            playerSkin.addChip(this.defaultChipsId);
+            playerSkin.addBackground(this.defaultBackgroundId);
+            playerSkin.addCardBackground(this.defaultCardBackgroundId);
+            this.playerSkinDao.save(playerSkin);
             log.info("保存默认的头像信息成功  playerId = {}", playerId);
         } catch (Exception e) {
             log.error("", e);

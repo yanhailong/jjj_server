@@ -1,7 +1,7 @@
 package com.jjg.game.core.base.item;
 
 import cn.hutool.core.util.EnumUtil;
-import com.jjg.game.core.dao.PlayerAvatarDao;
+import com.jjg.game.core.dao.PlayerSkinDao;
 import com.jjg.game.core.data.AvatarType;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.sampledata.GameDataManager;
@@ -20,10 +20,10 @@ import org.springframework.stereotype.Component;
 public class SkinItemUse implements IItemUseInterface {
 
     private final Logger log = LoggerFactory.getLogger(SkinItemUse.class);
-    private final PlayerAvatarDao playerAvatarDao;
+    private final PlayerSkinDao playerSkinDao;
 
-    public SkinItemUse(PlayerAvatarDao playerAvatarDao) {
-        this.playerAvatarDao = playerAvatarDao;
+    public SkinItemUse(PlayerSkinDao playerSkinDao) {
+        this.playerSkinDao = playerSkinDao;
     }
 
     @Override
@@ -42,7 +42,7 @@ public class SkinItemUse implements IItemUseInterface {
                 log.error("自动添加皮肤失败 不存在皮肤类型，  playerId={} cfgId={}", playerId, itemCfg.getAvatarID());
                 return 0;
             }
-            boolean add = playerAvatarDao.addByType(playerId, type, avatarCfg.getId());
+            boolean add = playerSkinDao.addByType(playerId, type, avatarCfg.getId());
             if (!add) {
                 log.error("自动添加皮肤失败，  playerId={} cfgId={}", playerId, avatarCfg.getId());
                 return 0;

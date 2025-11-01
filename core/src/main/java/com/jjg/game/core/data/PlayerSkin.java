@@ -12,7 +12,7 @@ import java.util.Set;
  * @date 2025/8/7 16:16
  */
 @Document
-public class PlayerAvatar {
+public class PlayerSkin {
     @Id
     private long playerId;
     //已解锁的头像列表

@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.blackjack.gamephase;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
 import com.jjg.game.poker.game.blackjack.data.BlackJackBuilder;
@@ -252,6 +253,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             blackJackSettlementInfo.currentGold = controller.getTransactionItemNum(playerId);
             settlementPlayerInfo.settlementInfos.add(settlementInfo);
         }
+        log.info("21点结算信息: {}", JSON.toJSONString(settlementPlayerInfo));
         gameDataVo.setSettlementInfo(settlementPlayerInfo);
         return settlementPlayerInfo;
     }
