@@ -68,7 +68,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
 
     @Override
     public boolean canJoinRobot() {
-        return getCurrentGamePhase() == EGamePhase.BET;
+        return getCurrentGamePhase() == EGamePhase.BET || getCurrentGamePhase() == EGamePhase.WAIT_READY;
     }
 
     @Override
