@@ -357,6 +357,7 @@ public class ConfigManager {
                         excelConfigMap.remove(id);
                     }
                 });
+                configMap.put(name, excelConfigMap);
                 log.info("删除[{}]的配置ids:[{}]的配置!", name, ids);
             } finally {
                 // 确保锁被正确释放，防止死锁
@@ -539,9 +540,9 @@ public class ConfigManager {
             //检测配置是否删除
             if (oldLocal != null) {
                 for (Map.Entry<Integer, AbstractExcelConfig> entry : oldLocal.entrySet()) {
-                    int id = entry.getKey();
+                    Integer key = entry.getKey();
                     AbstractExcelConfig config = entry.getValue();
-                    if (!tmpExcelConfigMap.containsKey(id)) {
+                    if (!tmpExcelConfigMap.containsKey(key)) {
                         notifyUpdateConfig(name, ConfigChangeState.DELETE, config);
                     }
                 }
