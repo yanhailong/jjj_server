@@ -226,13 +226,11 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         }
 
         CommonResult<Integer> sendCodeResult = smsService.sendCode(playerId, data, VerCodeType.SMS_BIND_PHONE);
-        if (sendCodeResult.success()) {
+        if (!sendCodeResult.success()) {
             log.debug("发送短信失败 playerId = {},phone = {},code = {}", playerId, data, sendCodeResult.code);
             result.code = sendCodeResult.code;
             return result;
         }
-
-        verCodeDao.addVerCode(playerId, VerCodeType.SMS_BIND_PHONE, data, sendCodeResult.data);
         result.data = sendCodeResult.data;
         return result;
     }
@@ -330,10 +328,10 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
         boolean update = false;
         if (smsType == VerCodeType.SMS_BIND_PHONE) {
-            CommonResult<Account> accountCommonResult = accountDao.addThirdAccount(LoginType.PHONE, verResult.data);
+            CommonResult<Account> accountCommonResult = accountDao.addThirdAccount(playerId,LoginType.PHONE, verResult.data);
             if (!accountCommonResult.success()) {
                 result.code = accountCommonResult.code;
-                log.debug("更新到数据库失败，确认验证码失败1 playerId = {},verCodeType = {},verCode = {}", playerId, verCodeType, verCode);
+                log.debug("更新到数据库失败，确认验证码失败1 playerId = {},verCodeType = {},verCode = {},failCode = {}", playerId, verCodeType, verCode,accountCommonResult.code);
                 return result;
             }
             update = true;

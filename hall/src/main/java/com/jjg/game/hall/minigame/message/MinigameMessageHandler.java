@@ -1,5 +1,6 @@
 package com.jjg.game.hall.minigame.message;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
@@ -18,6 +19,8 @@ import com.jjg.game.hall.minigame.game.luckytreasure.message.res.ResLuckyTreasur
 import com.jjg.game.hall.minigame.game.luckytreasure.service.LuckyTreasureService;
 import com.jjg.game.hall.minigame.message.req.ReqMinigameList;
 import com.jjg.game.hall.minigame.message.res.ResMinigameList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -28,6 +31,7 @@ import java.util.List;
 @MessageType(MessageConst.MessageTypeDef.MINIGAME)
 @Component
 public class MinigameMessageHandler {
+    private Logger log = LoggerFactory.getLogger(getClass());
 
     private final MinigameManager minigameManager;
     private final LuckyTreasureService luckyTreasureService;
@@ -47,6 +51,7 @@ public class MinigameMessageHandler {
         ResMinigameList resMinigameList = new ResMinigameList(Code.SUCCESS);
         resMinigameList.setGameIdList(openGameList);
         playerController.send(resMinigameList);
+        log.debug("返回开启的小游戏列表 res = {}", JSON.toJSONString(resMinigameList));
     }
 
     /**
@@ -56,6 +61,7 @@ public class MinigameMessageHandler {
     public void reqInfo(PlayerController playerController, ReqLuckyTreasureInfo msg) {
         ResLuckyTreasureInfo response = luckyTreasureService.getLuckyTreasureInfo(playerController, msg.getCurrPage(), msg.getPageSize());
         playerController.send(response);
+        log.debug("返回夺宝奇兵详情 res = {}", JSON.toJSONString(response));
     }
 
     /**
@@ -66,8 +72,10 @@ public class MinigameMessageHandler {
         CommonResult<ResBuyLuckyTreasure> result = luckyTreasureService.buyLuckyTreasure(playerController, msg.getIssueNumber(), msg.getCount());
         if (result.code != Code.SUCCESS) {
             playerController.send(new ResBuyLuckyTreasure(result.code));
+            log.debug("购买夺宝奇兵道具失败 playerId = {},code = {}",playerController.playerId(), result.code);
         } else {
             playerController.send(result.data);
+            log.debug("返回购买夺宝奇兵道具 res = {}", JSON.toJSONString(result.data));
         }
 
     }
@@ -83,6 +91,7 @@ public class MinigameMessageHandler {
             response.code = Code.FAIL;
         }
         playerController.send(response);
+        log.debug("返回领取夺宝奇兵道具 res = {}", JSON.toJSONString(response));
     }
 
     /**
