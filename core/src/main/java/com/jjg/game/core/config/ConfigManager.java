@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.ClassUtils;
 import com.jjg.game.common.utils.ObjectMapperUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
@@ -379,24 +380,37 @@ public class ConfigManager {
         if (checkConfig(name)) {
             return;
         }
-        RMap<String, Map<Integer, AbstractExcelConfig>> configMap = redissonClient.getMap(CONFIG_MAP_KEY);
+        RMap<String, String> configMap = redissonClient.getMap(CONFIG_MAP_KEY);
         try {
             // 使用分布式锁确保Redis和本地缓存的一致性
             // 防止多个节点同时删除同一配置导致的数据不一致
+            boolean isDelete = false;
             configMap.getLock(name).lock();
             try {
-                Map<Integer, AbstractExcelConfig> excelConfigMap = configMap.get(name);
+                String jsonString = configMap.get(name);
+                if (StringUtils.isEmpty(jsonString)) {
+                    log.error("删除失败,不存在 [{}]的配置ids:[{}]的配置!", name, ids);
+                    return;
+                }
+                Map<Integer, AbstractExcelConfig> excelConfigMap = objectMapper.readValue(jsonString, new TypeReference<>() {
+                });
                 ids.forEach(id -> {
                     // 从Redis中删除配置数据
                     if (excelConfigMap != null) {
                         excelConfigMap.remove(id);
                     }
                 });
-                configMap.put(name, excelConfigMap);
+                configMap.put(name, objectMapper.writeValueAsString(excelConfigMap));
+                isDelete = true;
                 log.info("删除[{}]的配置ids:[{}]的配置!", name, ids);
+            } catch (Exception e) {
+                log.error("deleteConfig error! [{}]的配置ids:[{}]的配置!", name, ids, e);
             } finally {
                 // 确保锁被正确释放，防止死锁
                 configMap.getLock(name).unlock();
+            }
+            if (!isDelete) {
+                return;
             }
             Map<Integer, AbstractExcelConfig> excelConfigs = localCache.get(name);
             ids.forEach(id -> {
@@ -426,7 +440,7 @@ public class ConfigManager {
         if (configClass == null) {
             return;
         }
-        RMap<String, Map<Integer, AbstractExcelConfig>> configMap = redissonClient.getMap(CONFIG_MAP_KEY);
+        Map<String, Map<Integer, AbstractExcelConfig>> configMap = getRedisConfigMap();
         Map<Integer, AbstractExcelConfig> excelConfigMap = configMap.get(name);
         if (excelConfigMap == null) {
             return;
@@ -523,8 +537,9 @@ public class ConfigManager {
             tmpExcelConfigMap.put(config.getId(), config);
         }
 
-        RMap<String, Map<Integer, AbstractExcelConfig>> configMap = redissonClient.getMap(CONFIG_MAP_KEY);
+        RMap<String, String> configMap = redissonClient.getMap(CONFIG_MAP_KEY);
         try {
+            boolean isSync = false;
             configMap.getLock(name).lock();
             try {
                 // 先更新Redis数据
@@ -537,10 +552,17 @@ public class ConfigManager {
 //                for (AbstractExcelConfig config : configs) {
 //                    excelConfigMap.put(config.getId(), config);
 //                }
-                configMap.put(name, tmpExcelConfigMap);
-                log.info("同步[{}]的配置[{}]条!  map = {}", name, configs.size(), JSON.toJSONString(tmpExcelConfigMap));
+                String jsonString = objectMapper.writeValueAsString(tmpExcelConfigMap);
+                configMap.put(name, jsonString);
+                isSync = true;
+                log.info("同步[{}]的配置[{}]条!  map = {}", name, configs.size(), jsonString);
+            } catch (Exception e) {
+                log.error("同步[{}]的配置 error", name, e);
             } finally {
                 configMap.getLock(name).unlock();
+            }
+            if (!isSync) {
+                return;
             }
             Map<Integer, AbstractExcelConfig> localConfigMap = localCache.get(name);
             Map<Integer, AbstractExcelConfig> oldLocal = null;
