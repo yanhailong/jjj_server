@@ -66,7 +66,7 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
      * 创建押注好友房
      */
     public FriendRoom createBetFriendRoom(
-        long playerId, String nodePath, WarehouseCfg warehouseCfg, CreateFriendsRoom req) {
+            long playerId, String nodePath, WarehouseCfg warehouseCfg, CreateFriendsRoom req) {
         try {
             int gameType = warehouseCfg.getGameID();
             int roomCfgId = warehouseCfg.getId();
@@ -120,14 +120,14 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
      */
     public Map<Long, Integer> getPlayerFriendRoomNum(List<Long> playerIds) {
         List<Integer> playerRoomNumList = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
-                for (long playerId : playerIds) {
-                    String tableName = getPlayerFriendRoomTableName(playerId);
-                    connection.hashCommands().hLen(tableName.getBytes());
-                }
-                return null;
-            }).stream()
-            .map(a -> ((Long) a).intValue())
-            .toList();
+                    for (long playerId : playerIds) {
+                        String tableName = getPlayerFriendRoomTableName(playerId);
+                        connection.hashCommands().hLen(tableName.getBytes());
+                    }
+                    return null;
+                }).stream()
+                .map(a -> ((Long) a).intValue())
+                .toList();
         Map<Long, Integer> playerRoomNumMap = new HashMap<>();
         for (int i = 0; i < playerIds.size(); i++) {
             playerRoomNumMap.put(playerIds.get(i), playerRoomNumList.get(i));
@@ -182,10 +182,10 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
         Map<Object, Object> roomIds = redisTemplate.opsForHash().entries(playerFriendRoomTableName);
         // 游戏类型，房间ID列表
         Map<Object, List<Object>> gameOfIdList =
-            roomIds.entrySet().stream()
-                .collect(HashMap::new, (map, e) -> {
-                    map.computeIfAbsent(e.getValue(), k -> new ArrayList<>()).add(e.getKey());
-                }, HashMap::putAll);
+                roomIds.entrySet().stream()
+                        .collect(HashMap::new, (map, e) -> {
+                            map.computeIfAbsent(e.getValue(), k -> new ArrayList<>()).add(e.getKey());
+                        }, HashMap::putAll);
         // 批量获取房间
         List<Object> roomObjectList = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             for (Map.Entry<Object, List<Object>> entry : gameOfIdList.entrySet()) {
@@ -203,11 +203,11 @@ public abstract class AbstractFriendRoomDao<T extends FriendRoom, P extends Room
             return new ArrayList<>();
         }
         return roomObjectList.stream()
-            .map(a -> a == null ? null : (List) a)
-            .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll)
-            .stream()
-            .filter(Objects::nonNull)
-            .map((a) -> (FriendRoom) a)
-            .collect(Collectors.toList());
+                .map(a -> a == null ? null : (List) a)
+                .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll)
+                .stream()
+                .filter(Objects::nonNull)
+                .map((a) -> (FriendRoom) a)
+                .collect(Collectors.toList());
     }
 }

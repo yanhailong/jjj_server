@@ -1,7 +1,11 @@
 package com.jjg.game.core.base.drop;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.common.utils.TimeHelper;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
@@ -19,11 +23,16 @@ import java.util.Map;
 @Repository
 public class DropItemDao {
 
-    @Autowired
-    private RedisTemplate<String, Map<Integer, Integer>> itemDropGroupMap;
-
+    private final Logger log = LoggerFactory.getLogger(DropItemDao.class);
+    private final RedisTemplate<String, String> itemDropGroupMap;
+    private final ObjectMapper objectMapper;
     // 道具掉落分组计数器，按天重置，玩家ID <=> 分组使用次数记录map
     private final String itemDropGroupCounter = "itemDropGroupCounter:";
+
+    public DropItemDao(RedisTemplate<String, String> itemDropGroupMap) {
+        this.itemDropGroupMap = itemDropGroupMap;
+        this.objectMapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
+    }
 
 
     private String getItemDropGroupCounterTableName() {
@@ -36,8 +45,15 @@ public class DropItemDao {
      */
     public Map<Integer, Integer> getItemDropGroupCounter(long playerId) {
         String tableName = getItemDropGroupCounterTableName();
-        HashOperations<String, Object, Map<Integer, Integer>> opsForHash = itemDropGroupMap.opsForHash();
-        return opsForHash.get(tableName, playerId);
+        HashOperations<String, String, String> opsForHash = itemDropGroupMap.opsForHash();
+        String json = opsForHash.get(tableName, playerId);
+        try {
+            return objectMapper.readValue(json, new TypeReference<>() {
+            });
+        } catch (Exception e) {
+            log.error("json parse error", e);
+        }
+        return Map.of();
     }
 
     /**
@@ -45,8 +61,13 @@ public class DropItemDao {
      */
     public void updateItemDropGroupCounter(long playerId, Map<Integer, Integer> itemDropGroupCounter) {
         String tableName = getItemDropGroupCounterTableName();
-        itemDropGroupMap.opsForHash().put(tableName, playerId, itemDropGroupCounter);
-        //设置2天过期
-        itemDropGroupMap.expire(tableName, Duration.ofDays(2));
+        try {
+            String json = objectMapper.writeValueAsString(itemDropGroupCounter);
+            itemDropGroupMap.opsForHash().put(tableName, playerId, json);
+            //设置2天过期
+            itemDropGroupMap.expire(tableName, Duration.ofDays(2));
+        } catch (Exception e) {
+            log.error("json parse error playerId:{}", playerId, e);
+        }
     }
 }

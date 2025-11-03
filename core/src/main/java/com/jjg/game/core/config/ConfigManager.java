@@ -1,8 +1,11 @@
 package com.jjg.game.core.config;
 
 import com.alibaba.fastjson.JSON;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.utils.ClassUtils;
+import com.jjg.game.common.utils.ObjectMapperUtil;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
@@ -69,8 +72,14 @@ public class ConfigManager {
      */
     private final ExecutorService executor;
 
+    /**
+     * json转换对象
+     */
+    private final ObjectMapper objectMapper;
+
     public ConfigManager(RedissonClient redissonClient) {
         this.redissonClient = redissonClient;
+        this.objectMapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
         this.executor = Executors.newVirtualThreadPerTaskExecutor();
         init();
     }
@@ -109,15 +118,15 @@ public class ConfigManager {
      * 从Redis加载所有配置到本地缓存
      */
     private void loadAllConfigsFromRedis() {
-        RMap<String, Map<Integer, AbstractExcelConfig>> redisMap = redissonClient.getMap(CONFIG_MAP_KEY);
+        Map<String, Map<Integer, AbstractExcelConfig>> map = getRedisConfigMap();
         if (loadAll) {
-            localCache.putAll(redisMap);
+            localCache.putAll(map);
         } else {
             if (!loadConfigSet.isEmpty()) {
                 loadConfigSet.forEach(clazz -> {
                     String name = getConfigName(clazz);
                     if (name != null) {
-                        Map<Integer, AbstractExcelConfig> excelConfigMap = redisMap.get(name);
+                        Map<Integer, AbstractExcelConfig> excelConfigMap = map.get(name);
                         if (excelConfigMap != null) {
                             localCache.put(name, excelConfigMap);
                         }
@@ -129,10 +138,28 @@ public class ConfigManager {
     }
 
     /**
+     * 获取存储在redis中的配置信息
+     * @return redis中的配置信息
+     */
+    private Map<String, Map<Integer, AbstractExcelConfig>> getRedisConfigMap() {
+        RMap<String, String> redisMap = redissonClient.getMap(CONFIG_MAP_KEY);
+        Map<String, Map<Integer, AbstractExcelConfig>> map = new HashMap<>();
+        for (Map.Entry<String, String> entry : redisMap.entrySet()) {
+            try {
+                map.put(entry.getKey(), objectMapper.readValue(entry.getValue(), new TypeReference<>() {
+                }));
+            } catch (Exception e) {
+                log.error("load config from redis map error!", e);
+            }
+        }
+        return map;
+    }
+
+    /**
      * 从Redis加载所有配置到本地缓存
      */
     public void reLoadAllConfigsFromRedis(String name) {
-        RMap<String, Map<Integer, AbstractExcelConfig>> redisMap = redissonClient.getMap(CONFIG_MAP_KEY);
+        Map<String, Map<Integer, AbstractExcelConfig>> redisMap = getRedisConfigMap();
         Map<Integer, AbstractExcelConfig> excelConfigMap = redisMap.get(name);
         log.info("收到更新配置消息!name={}", name);
         if (excelConfigMap != null) {
@@ -288,22 +315,30 @@ public class ConfigManager {
         if (checkConfig(name)) {
             return;
         }
-        RMap<String, Map<Integer, AbstractExcelConfig>> configMap = redissonClient.getMap(CONFIG_MAP_KEY);
+        RMap<String, String> configMap = redissonClient.getMap(CONFIG_MAP_KEY);
         try {
             configMap.getLock(name).lock();
+            boolean isReplace = false;
             try {
-                Map<Integer, AbstractExcelConfig> excelConfigMap = configMap.computeIfAbsent(name, k -> new ConcurrentHashMap<>());
-
+                String jsonString = configMap.get(name);
+                Map<Integer, AbstractExcelConfig> excelConfigMap = objectMapper.readValue(jsonString, new TypeReference<>() {
+                });
 //                log.debug("beforeMap = {}",JSON.toJSONString(excelConfigMap));
                 configs.forEach(config -> {
                     // 先更新Redis数据
                     excelConfigMap.put(config.getId(), config);
                 });
 //                log.debug("afterMap = {}",JSON.toJSONString(excelConfigMap));
-                configMap.put(name, excelConfigMap);
+                configMap.put(name, objectMapper.writeValueAsString(excelConfigMap));
+                isReplace = true;
                 log.info("批量覆盖[{}]的配置[{}]条! ", name, configs.size());
+            } catch (Exception e) {
+                log.error("replaceConfig error! name:{}", name, e);
             } finally {
                 configMap.getLock(name).unlock();
+            }
+            if (!isReplace) {
+                return;
             }
             //更新本地缓存
             configs.forEach(config -> {
@@ -502,7 +537,7 @@ public class ConfigManager {
 //                    excelConfigMap.put(config.getId(), config);
 //                }
                 configMap.put(name, tmpExcelConfigMap);
-                log.info("同步[{}]的配置[{}]条!  map = {}", name, configs.size(),JSON.toJSONString(tmpExcelConfigMap));
+                log.info("同步[{}]的配置[{}]条!  map = {}", name, configs.size(), JSON.toJSONString(tmpExcelConfigMap));
             } finally {
                 configMap.getLock(name).unlock();
             }
