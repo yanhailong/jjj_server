@@ -19,9 +19,33 @@ public enum RechargeType {
      * 等级礼包
      */
     @ProtoDesc("等级礼包")
-    PLAYER_LEVEL_GIFT(2)
+    PLAYER_LEVEL_GIFT(2),
 
+    /**
+     * 首充
+     */
+    @ProtoDesc("首充")
+    FIRST_PAYMENT(3),
+
+    /**
+     * 储钱罐
+     */
+    @ProtoDesc("储钱罐")
+    PIGGY_BANK(4),
+
+    /**
+     * 刮刮乐
+     */
+    @ProtoDesc("刮刮乐")
+    SCRATCH_CARDS(5),
+
+    /**
+     * 特权卡
+     */
+    @ProtoDesc("特权卡")
+    PRIVILEGE_CARD(6),
     ;
+
     private final int type;
 
     RechargeType(int type) {

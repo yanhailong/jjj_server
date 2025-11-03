@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.util.function.Tuple2;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -105,7 +106,7 @@ public class HallRoomService implements IConsoleReceiver {
         MarsNode marsNode = marsNodeBooleanPair.getFirst();
         //白名单
         if (marsNodeBooleanPair.getSecond()) {
-            List<Room> chooseNodeRoom = hallRoomDao.getChooseNodeRoom(marsNode.getNodePath(), gameType, roomCfgId);
+            List<Room> chooseNodeRoom = new ArrayList<>(hallRoomDao.getChooseNodeRoom(marsNode.getNodePath(), gameType, roomCfgId));
             if (chooseNodeRoom.isEmpty()) {
                 //创建一个房间
                 long waitingRoomId = createRoom(playerController, roomCfgId, warehouseCfg, gameType, marsNode);

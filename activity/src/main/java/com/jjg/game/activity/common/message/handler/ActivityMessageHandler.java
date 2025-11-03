@@ -65,7 +65,7 @@ public class ActivityMessageHandler {
         if (data != null && data.getValue().contains(req.detailId)) {
             BaseActivityController controller = data.getType().getController();
             if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
-                AbstractResponse response = controller.getPlayerActivityDetail(playerController.playerId(), data, req.detailId);
+                AbstractResponse response = controller.getPlayerActivityDetail(playerController.getPlayer(), data, req.detailId);
                 if (response != null) {
                     playerController.send(response);
                 }

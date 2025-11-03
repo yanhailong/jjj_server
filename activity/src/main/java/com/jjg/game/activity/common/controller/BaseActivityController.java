@@ -189,32 +189,33 @@ public abstract class BaseActivityController {
     /**
      * 构建玩家的活动详情数据
      *
+     * @param player
      * @param activityData 活动ID
      * @param baseCfgBean  配置数据
      * @param data         玩家活动数据
      * @return 活动详情对象
      */
-    public abstract BaseActivityDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data);
+    public abstract BaseActivityDetailInfo buildPlayerActivityDetail(Player player, ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data);
 
     /**
      * 获取指定玩家的活动详情
      *
-     * @param playerId     玩家ID
+     * @param player       玩家ID
      * @param activityData 活动数据
      * @param detailId     活动详情ID
      * @return 响应对象
      */
-    public abstract AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId);
+    public abstract AbstractResponse getPlayerActivityDetail(Player player, ActivityData activityData, int detailId);
 
 
     /**
      * 构建指定活动类型的响应
      *
-     * @param playerId      玩家ID
+     * @param player        玩家数据
      * @param allDetailInfo 活动详情映射
      * @return 响应对象
      */
-    public abstract AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo);
+    public abstract AbstractResponse getPlayerActivityInfoByTypeRes(Player player, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo);
 
     /**
      * 构建玩家活动基本信息
@@ -282,7 +283,7 @@ public abstract class BaseActivityController {
 
         // 如果没有活动，直接返回空结果
         if (CollectionUtil.isEmpty(activityDataMap)) {
-            return getPlayerActivityInfoByTypeRes(playerId, allDetailInfoMap);
+            return getPlayerActivityInfoByTypeRes(player, allDetailInfoMap);
         }
 
         // 获取活动的子配置数据
@@ -310,13 +311,13 @@ public abstract class BaseActivityController {
                 if (baseCfgBean == null) {
                     continue;
                 }
-                BaseActivityDetailInfo detail = buildPlayerActivityDetail(activityData, baseCfgBean, playerActivityDataMap.get(id));
+                BaseActivityDetailInfo detail = buildPlayerActivityDetail(player, activityData, baseCfgBean, playerActivityDataMap.get(id));
                 if (detail != null) {
                     arrayList.add(detail);
                 }
             }
         }
-        return getPlayerActivityInfoByTypeRes(playerId, allDetailInfoMap);
+        return getPlayerActivityInfoByTypeRes(player, allDetailInfoMap);
     }
 
 
@@ -352,7 +353,7 @@ public abstract class BaseActivityController {
      * @param getItem      获得道具
      * @return 最新玩家活动数据,添加道具结果
      */
-    public ClaimRewardsResult claimActivityRewards(long playerId, ActivityData activityData, int detailId,String addType, Map<Integer, Long> getItem) {
+    public ClaimRewardsResult claimActivityRewards(long playerId, ActivityData activityData, int detailId, String addType, Map<Integer, Long> getItem) {
         long activityId = activityData.getId();
         PlayerActivityData data;
         CommonResult<ItemOperationResult> addedItems;

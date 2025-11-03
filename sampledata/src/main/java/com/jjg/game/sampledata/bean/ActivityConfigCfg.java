@@ -3,6 +3,7 @@ package com.jjg.game.sampledata.bean;
 import javax.annotation.processing.Generated;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 /**
  * 配置bean
  *
@@ -20,6 +21,8 @@ public class ActivityConfigCfg extends BaseCfgBean {
 
   /** 值3 */
   protected List<BigDecimal> bigDecimalParam;
+  /** 渠道和商品ID */
+  protected Map<Integer,String> channelCommodity;
   /** 解锁条件 */
   protected String condition;
   /** 掉落id */
@@ -48,6 +51,11 @@ public class ActivityConfigCfg extends BaseCfgBean {
   /** 返回值3 */
   public List<BigDecimal> getBigDecimalParam() {
     return bigDecimalParam;
+  }
+
+  /** 返回渠道和商品ID */
+  public Map<Integer,String> getChannelCommodity() {
+    return channelCommodity;
   }
 
   /** 返回解锁条件 */

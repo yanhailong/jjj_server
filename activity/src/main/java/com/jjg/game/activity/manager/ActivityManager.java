@@ -681,11 +681,6 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     @Override
     public void initSampleCallbackCollector() {
         // 添加活动表监听
-        addChangeSampleFileObserveWithCallBack(
-                ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this))
-                .addInitSampleFileObserveWithCallBack(
-                        ActivityConfigCfg.EXCEL_NAME, () -> gameEventManager.registerEventListener(this));
-        //活动热更
         addChangeSampleFileObserveWithCallBack(ActivityConfigCfg.EXCEL_NAME, this::reloadConfig);
     }
 

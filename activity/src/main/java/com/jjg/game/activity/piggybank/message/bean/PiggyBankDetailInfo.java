@@ -21,4 +21,6 @@ public class PiggyBankDetailInfo extends BaseActivityDetailInfo {
     public boolean isFull;
     @ProtoDesc("初始金币")
     public long baseValue;
+    @ProtoDesc("商品id")
+    public String productId;
 }

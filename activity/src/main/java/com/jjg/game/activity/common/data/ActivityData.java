@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author lm
@@ -80,8 +81,11 @@ public class ActivityData {
     /**
      * bigDecimal参数
      */
-    List<BigDecimal> bigDecimalParam;
-
+    private List<BigDecimal> bigDecimalParam;
+    /**
+     * 渠道和商品ID
+     */
+    private Map<Integer, String> channelCommodity;
     /**
      * 道具掉落包ID
      */
@@ -127,6 +131,14 @@ public class ActivityData {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public Map<Integer, String> getChannelCommodity() {
+        return channelCommodity;
+    }
+
+    public void setChannelCommodity(Map<Integer, String> channelCommodity) {
+        this.channelCommodity = channelCommodity;
     }
 
     public void setRound(long round) {
@@ -267,15 +279,16 @@ public class ActivityData {
         data.setValueParam(cfg.getValueParam());
         data.setDropId(cfg.getDropConfigId());
         data.setBigDecimalParam(cfg.getBigDecimalParam());
+        data.setChannelCommodity(cfg.getChannelCommodity());
         long currentTimeMillis = System.currentTimeMillis();
         switch (data.getOpenType()) {
             case ActivityConstant.Common.CYCLE_SERVER_TYPE -> {
                 //循环设置cron
                 data.setTimeStartCorn(cfg.getTime_start());
                 data.setTimeEndCorn(cfg.getTime_end());
-                LocalDateTime offset = LocalDateTime.now();
+                LocalDateTime offset = LocalDateTime.now().minusMonths(1);
                 if (activityType == ActivityType.OFFICIAL_AWARDS) {
-                    offset = offset.with(TemporalAdjusters.firstDayOfMonth());
+                    offset = offset.with(TemporalAdjusters.lastDayOfMonth());
                 }
                 do {
                     //获取下次执行时间

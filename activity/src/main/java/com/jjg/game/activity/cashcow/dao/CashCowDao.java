@@ -1,6 +1,5 @@
 package com.jjg.game.activity.cashcow.dao;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.activity.cashcow.data.CashCowRecordData;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.proto.Pair;
@@ -15,7 +14,6 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 摇钱树 DAO
@@ -139,7 +137,8 @@ public class CashCowDao {
     /**
      * 获取指定 detailId 的活动奖池余额
      */
-    public long getSpecifiedActivityPool(long activityId, int detailId) {
+    public long getSpecifiedActivityPool(long activityId) {
+        int detailId = 0;
         String poolKey = String.format(POOL_KEY, activityId);
         HashOperations<String, String, String> hash = getOpsForHash();
         String pool = hash.get(poolKey, String.valueOf(detailId));
@@ -147,42 +146,10 @@ public class CashCowDao {
     }
 
     /**
-     * 获取活动的总奖池（所有 detailId 的和）
-     *
-     * @return 总奖池值
-     */
-    public long getActivityPool(long activityId) {
-       return getActivityPool(activityId,0).getFirst();
-    }
-
-    /**
-     * 获取活动的总奖池（所有 detailId 的和）和指定池的值
-     *
-     * @return 总奖池值, 指定奖池值
-     */
-    public Pair<Long, Long> getActivityPool(long activityId, int detailId) {
-        String poolKey = String.format(POOL_KEY, activityId);
-        HashOperations<String, String, String> hash = getOpsForHash();
-        Map<String, String> values = hash.entries(poolKey);
-        if (CollectionUtil.isEmpty(values)) {
-            return Pair.newPair(0L, 0L);
-        }
-        long totalPool = 0;
-        long pool = 0;
-        for (Map.Entry<String, String> entry : values.entrySet()) {
-            long temp = Long.parseLong(entry.getValue());
-            if (Integer.parseInt(entry.getKey()) == detailId) {
-                pool = temp;
-            }
-            totalPool += temp;
-        }
-        return Pair.newPair(totalPool, pool);
-    }
-
-    /**
      * 设置某个 detailId 的奖池值
      */
-    public void setActivityPool(long activityId, int detailId, long setValue) {
+    public void setActivityPool(long activityId, long setValue) {
+        int detailId = 0;
         String poolKey = String.format(POOL_KEY, activityId);
         String poolLock = String.format(POOL_LOCK_KEY, activityId, detailId);
         lock.lock(poolLock, ActivityConstant.Common.REDIS_LOCK);
@@ -201,7 +168,8 @@ public class CashCowDao {
      *
      * @return 增加后的总值
      */
-    public long addActivityPool(long activityId, int detailId, long addValue) {
+    public long addActivityPool(long activityId, long addValue) {
+        int detailId = 0;
         String poolKey = String.format(POOL_KEY, activityId);
         String poolLock = String.format(POOL_LOCK_KEY, activityId, detailId);
         lock.lock(poolLock, ActivityConstant.Common.REDIS_LOCK);
@@ -230,7 +198,8 @@ public class CashCowDao {
      * @param distribution 扣减比例（万分比，例如 2000 = 20%）
      * @return 扣减后剩余的奖池数量
      */
-    public long reduceActivityPool(long activityId, int detailId, int distribution) {
+    public long reduceActivityPool(long activityId, int distribution) {
+        int detailId = 0;
         String poolKey = String.format(POOL_KEY, activityId);
         String poolLock = String.format(POOL_LOCK_KEY, activityId, detailId);
         lock.lock(poolLock, ActivityConstant.Common.REDIS_LOCK);
@@ -242,12 +211,12 @@ public class CashCowDao {
             }
             long realPool = Long.parseLong(pool);
             // 计算剩余奖池：realPool - (realPool * distribution / 10000)
-            long remain = realPool - (BigDecimal.valueOf(realPool)
+            long get = BigDecimal.valueOf(realPool)
                     .multiply(BigDecimal.valueOf(distribution))
-                    .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN))
+                    .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
                     .longValue();
-            opsForHash.put(poolKey, String.valueOf(detailId), String.valueOf(remain));
-            return remain;
+            opsForHash.put(poolKey, String.valueOf(detailId), String.valueOf(realPool - get));
+            return get;
         } catch (Exception e) {
             log.error("减少摇钱树奖池失败 activityId:{} detailId:{} addValue:{}", activityId, detailId, activityId, e);
         } finally {

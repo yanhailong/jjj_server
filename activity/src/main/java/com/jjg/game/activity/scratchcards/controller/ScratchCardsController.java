@@ -1,9 +1,11 @@
 package com.jjg.game.activity.scratchcards.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.activitylog.data.ScratchCardsResult;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
+import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.common.message.res.ResActivityBuyGift;
@@ -16,8 +18,13 @@ import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsJoinActivit
 import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.utils.WeightRandom;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEvent;
+import com.jjg.game.core.base.gameevent.GameEventListener;
+import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
@@ -50,7 +57,7 @@ import java.util.stream.Collectors;
  * @date 2025/9/3
  */
 @Component
-public class ScratchCardsController extends BaseActivityController {
+public class ScratchCardsController extends BaseActivityController implements GameEventListener {
     private final Logger log = LoggerFactory.getLogger(ScratchCardsController.class);
 
     /**
@@ -177,13 +184,12 @@ public class ScratchCardsController extends BaseActivityController {
      * 获取玩家刮刮乐活动明细
      */
     @Override
-    public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
-        long activityId = activityData.getId();
+    public AbstractResponse getPlayerActivityDetail(Player player, ActivityData activityData, int detailId) {
         ResScratchCardsDetailInfo detailInfo = new ResScratchCardsDetailInfo(Code.SUCCESS);
         Map<Integer, ScratchCardsCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
 
         detailInfo.detailInfo = new ArrayList<>();
-        ScratchCardsDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), null);
+        ScratchCardsDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(player, activityData, baseCfgBeanMap.get(detailId), null);
         detailInfo.detailInfo.add(baseActivityDetailInfo);
         return detailInfo;
     }
@@ -192,7 +198,7 @@ public class ScratchCardsController extends BaseActivityController {
      * 构建玩家刮刮乐活动明细信息
      */
     @Override
-    public ScratchCardsDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public ScratchCardsDetailInfo buildPlayerActivityDetail(Player player, ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (baseCfgBean instanceof ScratchCardsCfg cfg) {
             ScratchCardsDetailInfo info = new ScratchCardsDetailInfo();
             info.activityId = activityData.getId();
@@ -202,6 +208,10 @@ public class ScratchCardsController extends BaseActivityController {
             // 奖励信息
             info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetitem());
             info.numOf7 = cfg.getIconNum();
+            //商品id
+            if (CollectionUtil.isNotEmpty(cfg.getChannelCommodity())) {
+                info.productId = cfg.getChannelCommodity().get(player.getChannel().getValue());
+            }
             return info;
         }
         return null;
@@ -236,7 +246,7 @@ public class ScratchCardsController extends BaseActivityController {
      * 获取玩家刮刮乐活动类型信息（前端展示）
      */
     @Override
-    public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
+    public AbstractResponse getPlayerActivityInfoByTypeRes(Player player, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
         ResScratchCardsTypeInfo cardTypeInfo = new ResScratchCardsTypeInfo(Code.SUCCESS);
         if (CollectionUtil.isEmpty(allDetailInfo)) {
             return cardTypeInfo;
@@ -253,7 +263,7 @@ public class ScratchCardsController extends BaseActivityController {
             }
             // 获取剩余次数
             Item costItem = getCostItem();
-            PlayerPack playerPack = playerPackService.getFromAllDB(playerId);
+            PlayerPack playerPack = playerPackService.getFromAllDB(player.getId());
             if (playerPack != null) {
                 scratchCardsType.remainTimes = playerPack.getItemCount(costItem.getId());
             }
@@ -269,4 +279,42 @@ public class ScratchCardsController extends BaseActivityController {
                 .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
+    @Override
+    public <T extends GameEvent> void handleEvent(T gameEvent) {
+        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
+            Order order = event.getOrder();
+            Player player = event.getPlayer();
+            if (order.getRechargeType() != RechargeType.SCRATCH_CARDS) {
+                return;
+            }
+            Map<Long, ActivityData> map = activityManager.getActivityTypeData().get(ActivityType.SCRATCH_CARDS);
+            if (CollectionUtil.isEmpty(map)) {
+                log.error("充值事件 没有活动数据 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
+                return;
+            }
+            log.info("充值事件 参加活动 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
+            for (ActivityData activityData : map.values()) {
+                if (!checkPlayerCanJoinActivity(player, activityData)) {
+                    continue;
+                }
+                Map<Integer, ScratchCardsCfg> detailCfgBean = getDetailCfgBean(activityData);
+                for (ScratchCardsCfg cfg : detailCfgBean.values()) {
+                    if (CollectionUtil.isEmpty(cfg.getChannelCommodity())) {
+                        continue;
+                    }
+                    String productId = cfg.getChannelCommodity().get(player.getChannel().getValue());
+                    if (productId.equals(order.getProductId())) {
+                        buyActivityGift(player, activityData, cfg.getId());
+                        log.info("充值事件 参加活动成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public List<EGameEventType> needMonitorEvents() {
+        return List.of(EGameEventType.RECHARGE);
+    }
 }

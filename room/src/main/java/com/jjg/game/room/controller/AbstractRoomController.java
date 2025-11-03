@@ -471,12 +471,6 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 if (robotLastCreatedTime > currentTimeMillis) {
                     return;
                 }
-                boolean incremented = roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(),
-                        room.getId(), room.getMaxLimit(), 1, 0);
-                if (!incremented) {
-                    log.debug("机器人加入房间失败, 房间已满 {}", room.logStr());
-                    return;
-                }
                 List<Integer> robotIntervalTime = roomCfg.getIntervalTime();
                 int randomTime;
                 if (robotIntervalTime == null || robotIntervalTime.size() < 2) {
@@ -502,6 +496,12 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 }
                 if (robotPlayerController == null) {
                     // 返回
+                    return;
+                }
+                boolean incremented = roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(),
+                        room.getId(), room.getMaxLimit(), 1, 0);
+                if (!incremented) {
+                    log.debug("机器人加入房间失败, 房间已满 {}", room.logStr());
                     return;
                 }
                 // 将机器人加入房间中
@@ -587,6 +587,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             }
             result.data = room;
             this.room = room;
+            log.debug("机器人退出 人数:{}",playerControllers.size());
             // 退出房间时删除人数
             roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId(),
                     room.getMaxLimit(), -playerControllers.size(), 0);

@@ -1,8 +1,10 @@
 package com.jjg.game.activity.piggybank.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
+import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
@@ -15,10 +17,16 @@ import com.jjg.game.activity.piggybank.message.res.ResPiggyBankDetailInfo;
 import com.jjg.game.activity.privilegecard.data.PlayerPrivilegeCard;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEvent;
+import com.jjg.game.core.base.gameevent.GameEventListener;
+import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
+import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -42,7 +50,7 @@ import java.util.stream.Collectors;
  * 继承自 BaseActivityController，实现储钱罐相关活动逻辑
  */
 @Component
-public class PiggyBankController extends BaseActivityController {
+public class PiggyBankController extends BaseActivityController implements GameEventListener {
 
     // 日志记录
     private final Logger log = LoggerFactory.getLogger(PiggyBankController.class);
@@ -114,7 +122,7 @@ public class PiggyBankController extends BaseActivityController {
             // 构建响应
             res = new ResPiggyBankDetailInfo(Code.SUCCESS);
             res.detailInfo = new ArrayList<>();
-            res.detailInfo.add(buildPlayerActivityDetail(activityData, cfg, piggyBankData));
+            res.detailInfo.add(buildPlayerActivityDetail(player, activityData, cfg, piggyBankData));
         } else {
             // 配置错误
             log.error("玩家参加活动失败 活动配置为空playerId:{} activityId:{} detailId:{}", playerId, activityData.getId(), detailId);
@@ -262,7 +270,7 @@ public class PiggyBankController extends BaseActivityController {
         res.activityId = activityData.getId();
         res.detailId = detailId;
         res.infoList = ItemUtils.buildItemInfo(rewards);
-        res.detailInfo = buildPlayerActivityDetail(activityData, cfg, data);
+        res.detailInfo = buildPlayerActivityDetail(player, activityData, cfg, data);
         return res;
     }
 
@@ -270,18 +278,18 @@ public class PiggyBankController extends BaseActivityController {
      * 获取玩家储钱罐活动详情
      */
     @Override
-    public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
+    public AbstractResponse getPlayerActivityDetail(Player player, ActivityData activityData, int detailId) {
         long activityId = activityData.getId();
         ResPiggyBankDetailInfo detailInfo = new ResPiggyBankDetailInfo(Code.SUCCESS);
 
         // 获取活动配置与玩家数据
         ActivityData data = activityManager.getActivityData().get(activityId);
         Map<Integer, PiggyBankCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
-        Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, data.getType(), activityId);
+        Map<Integer, PlayerPrivilegeCard> playerActivityData = playerActivityDao.getPlayerActivityData(player.getId(), data.getType(), activityId);
 
         // 构建返回详情
         detailInfo.detailInfo = new ArrayList<>();
-        PiggyBankDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId));
+        PiggyBankDetailInfo baseActivityDetailInfo = buildPlayerActivityDetail(player, activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId));
         detailInfo.detailInfo.add(baseActivityDetailInfo);
 
         return detailInfo;
@@ -291,7 +299,7 @@ public class PiggyBankController extends BaseActivityController {
      * 构建玩家储钱罐活动详情
      */
     @Override
-    public PiggyBankDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public PiggyBankDetailInfo buildPlayerActivityDetail(Player player, ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (baseCfgBean instanceof PiggyBankCfg cfg) {
             PiggyBankDetailInfo info = new PiggyBankDetailInfo();
             info.activityId = activityData.getId();
@@ -309,6 +317,10 @@ public class PiggyBankController extends BaseActivityController {
                 info.isFull = piggyBankData.getFullTime() > 0;
             }
             info.baseValue = cfg.getBaseGold();
+            //商品id
+            if (CollectionUtil.isNotEmpty(cfg.getChannelCommodity())) {
+                info.productId = cfg.getChannelCommodity().get(player.getChannel().getValue());
+            }
             return info;
         }
         return null;
@@ -318,7 +330,7 @@ public class PiggyBankController extends BaseActivityController {
      * 根据类型构建玩家活动信息列表
      */
     @Override
-    public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
+    public AbstractResponse getPlayerActivityInfoByTypeRes(Player player, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
         ResPiggyBankActivityInfos activityInfos = new ResPiggyBankActivityInfos(Code.SUCCESS);
 
         if (CollectionUtil.isEmpty(allDetailInfo)) {
@@ -420,4 +432,42 @@ public class PiggyBankController extends BaseActivityController {
                 .collect(Collectors.toMap(BaseCfgBean::getId, cfg -> cfg));
     }
 
+    @Override
+    public <T extends GameEvent> void handleEvent(T gameEvent) {
+        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
+            Order order = event.getOrder();
+            Player player = event.getPlayer();
+            if (order.getRechargeType() != RechargeType.PIGGY_BANK) {
+                return;
+            }
+            Map<Long, ActivityData> map = activityManager.getActivityTypeData().get(ActivityType.PIGGY_BANK);
+            if (CollectionUtil.isEmpty(map)) {
+                log.error("充值事件 没有活动数据 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
+                return;
+            }
+            log.info("充值事件 参加活动 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
+            for (ActivityData activityData : map.values()) {
+                if (!checkPlayerCanJoinActivity(player, activityData)) {
+                    continue;
+                }
+                Map<Integer, PiggyBankCfg> detailCfgBean = getDetailCfgBean(activityData);
+                for (PiggyBankCfg cfg : detailCfgBean.values()) {
+                    if (CollectionUtil.isEmpty(cfg.getChannelCommodity())) {
+                        continue;
+                    }
+                    String productId = cfg.getChannelCommodity().get(player.getChannel().getValue());
+                    if (productId.equals(order.getProductId())) {
+                        joinActivity(player, activityData, cfg.getId(), 1);
+                        log.info("充值事件 参加活动成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public List<EGameEventType> needMonitorEvents() {
+        return List.of(EGameEventType.RECHARGE);
+    }
 }
