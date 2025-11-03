@@ -429,6 +429,7 @@ public class CoreMessageHandler {
             }
             log.debug("玩家预下单 req = {},resp = {}", JSON.toJSONString(req), JSON.toJSONString(res));
             //如果有测试充值url直接调用
+            log.debug("nodeConfig : {}", JSON.toJSONString(nodeConfig));
             if (StringUtils.isNotEmpty(nodeConfig.getTestRechargeUrl())) {
                 log.debug("测试充值玩家预下单调用 req = {},resp = {}", JSON.toJSONString(req), JSON.toJSONString(res));
                 HttpUtils.HttpResponse httpResponse = HttpUtils.doPostWithJSON(nodeConfig.getTestRechargeUrl() + order.getId(), "");
