@@ -347,8 +347,8 @@ public class GrowthFundController extends BaseActivityController implements Game
             ActivityData activityData = activityManager.getActivityData().get(entry.getKey());
             if (activityData != null) {
                 if (activityData.getBigDecimalParam().size() >= 3) {
-                    activityInfo.sellingPrice = activityData.getBigDecimalParam().getLast().toString();
-                    activityInfo.originalPrice = activityData.getBigDecimalParam().get(1).toString();
+                    activityInfo.sellingPrice = activityData.getBigDecimalParam().getLast().toPlainString();
+                    activityInfo.originalPrice = activityData.getBigDecimalParam().get(1).toPlainString();
                     activityInfo.totalGet = activityData.getBigDecimalParam().getFirst().longValue();
                 }
                 if (CollectionUtil.isNotEmpty(activityData.getChannelCommodity())) {

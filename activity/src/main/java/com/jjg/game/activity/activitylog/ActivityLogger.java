@@ -326,7 +326,7 @@ public class ActivityLogger extends BaseLogger {
         try {
             JSONObject json = buildBaseInfo(activityData, cfg.getId());
             json.put("rewards", objectMapper.writeValueAsString(rewards));
-            json.put("money", cfg.getMoney().toString());
+            json.put("money", cfg.getMoney().toPlainString());
             json.put("remain", objectMapper.writeValueAsString(data));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
@@ -346,7 +346,7 @@ public class ActivityLogger extends BaseLogger {
             json.put("operator", 1);
             json.put("type", -1);
             json.put("level", cfg.getPlayerlevel());
-            json.put("money", cfg.getPay().toString());
+            json.put("money", cfg.getPay().toPlainString());
             json.put("rewards", objectMapper.writeValueAsString(cfg.getLevelRewards()));
             sendLog(TOPIC, player, json);
         } catch (Exception e) {
@@ -367,7 +367,7 @@ public class ActivityLogger extends BaseLogger {
             json.put("operator", 2);
             json.put("type", -1);
             json.put("level", cfg.getPlayerlevel());
-            json.put("money", cfg.getPay().toString());
+            json.put("money", cfg.getPay().toPlainString());
             json.put("remain", objectMapper.writeValueAsString(data));
             json.put("rewards", objectMapper.writeValueAsString(cfg.getLevelRewards()));
             sendLog(TOPIC, player, json);

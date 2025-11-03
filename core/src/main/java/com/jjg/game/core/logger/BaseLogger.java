@@ -396,7 +396,7 @@ public class BaseLogger {
 
 
     public void order(Player player, Order order, String money, String regionCode, String desc) {
-        String price = StringUtils.isEmpty(money) ? order.getPrice().toString() : money;
+        String price = StringUtils.isEmpty(money) ? order.getPrice().toPlainString() : money;
 
         order(player, order.getId(), order.getChannelOrderId(), order.getPlayerChannel(), order.getPayChannel(), order.getRechargeType(), price, order.getCreateTime(), order.getUpdateTime(),
                 order.getOrderStatus(), 0, regionCode, desc);
@@ -421,7 +421,7 @@ public class BaseLogger {
      */
     public void shop(Player player, ShopProduct shopProduct, int registerChannel) {
         long now = System.currentTimeMillis();
-        shop(player, null, null, shopProduct.getType(), registerChannel, player.getChannel().getValue(), RechargeType.SHOP, shopProduct.getMoney().toString(), now, now, OrderStatus.SUCCESS, shopProduct.getPayType(), null);
+        shop(player, null, null, shopProduct.getType(), registerChannel, player.getChannel().getValue(), RechargeType.SHOP, shopProduct.getMoney().toPlainString(), now, now, OrderStatus.SUCCESS, shopProduct.getPayType(), null);
     }
 
     /***********************************************************************************************/

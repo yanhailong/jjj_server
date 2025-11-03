@@ -148,9 +148,9 @@ public class FirstPaymentController extends BaseActivityController implements Ga
         FirstPaymentDetailInfo info = new FirstPaymentDetailInfo();
         info.activityId = activityData.getId();
         info.detailId = baseCfgBean.getId();
-        info.rechargePrice = cfg.getMoney().toString();
-        info.wasPrice = cfg.getWasPrice().toString();
-        info.bestValue = cfg.getBestValue().toString();
+        info.rechargePrice = cfg.getMoney().toPlainString();
+        info.wasPrice = cfg.getWasPrice().toPlainString();
+        info.bestValue = cfg.getBestValue().toPlainString();
         // 合并总奖励
         Map<Integer, Long> totalGetHashMap = new HashMap<>(cfg.getGetitem());
         totalGetHashMap.putAll(cfg.getGetgold());

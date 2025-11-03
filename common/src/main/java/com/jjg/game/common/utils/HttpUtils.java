@@ -1,5 +1,6 @@
 package com.jjg.game.common.utils;
 
+import cn.hutool.http.ContentType;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.httpclient.*;
@@ -88,6 +89,12 @@ public class HttpUtils {
     public static HttpResponse doPostWithXml(String url , String params) throws Exception{
         String defaultHttpContentCharset = "UTF-8";
         String defaultHttpContentType = "text/xml";
+        return doPost(url,params,defaultHttpContentType,defaultHttpContentCharset);
+    }
+
+    public static HttpResponse doPostWithJSON(String url , String params) throws Exception{
+        String defaultHttpContentCharset = "UTF-8";
+        String defaultHttpContentType = ContentType.JSON.toString();
         return doPost(url,params,defaultHttpContentType,defaultHttpContentCharset);
     }
 

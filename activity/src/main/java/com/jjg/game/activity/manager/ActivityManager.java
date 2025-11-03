@@ -155,7 +155,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 初始化活动数据
      */
     public void initData() {
-        ActivityType.intialize();
+        ActivityType.initialize();
         Map<Long, ActivityData> tempActivityData = new ConcurrentHashMap<>();
         //要添加定时器的列表 时间戳 活动id
         List<Pair<Long, Long>> timerList = new ArrayList<>();

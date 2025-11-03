@@ -43,6 +43,17 @@ public class NodeConfig {
     //是否开启gm
     public boolean gm = false;
 
+    //测试充值url
+    public String testRechargeUrl;
+
+    public String getTestRechargeUrl() {
+        return testRechargeUrl;
+    }
+
+    public void setTestRechargeUrl(String testRechargeUrl) {
+        this.testRechargeUrl = testRechargeUrl;
+    }
+
     public String getParentPath() {
         return parentPath;
     }

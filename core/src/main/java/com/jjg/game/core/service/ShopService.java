@@ -1,6 +1,12 @@
 package com.jjg.game.core.service;
 
+import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEvent;
+import com.jjg.game.core.base.gameevent.GameEventListener;
+import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
@@ -9,6 +15,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.CoreSendMessageManager;
+import com.jjg.game.core.pb.NotifyPayCallBack;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.ReqGenerateOrder;
 import com.jjg.game.core.utils.ConditionUtil;
@@ -30,13 +37,11 @@ import java.util.stream.Collectors;
  * @date 2025/9/18 14:15
  */
 @Component
-public class ShopService implements OrderGenerate {
+public class ShopService implements OrderGenerate, GameEventListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private ShopProductDao shopProductDao;
-    @Autowired
-    private OrderService orderService;
     @Autowired
     private PlayerPackService playerPackService;
     @Autowired
@@ -44,12 +49,11 @@ public class ShopService implements OrderGenerate {
     @Autowired
     private CoreSendMessageManager sendMessageManager;
     @Autowired
-    private PlayerSessionService playerSessionService;
-    @Autowired
     private CoreLogger coreLogger;
     @Autowired
     private AccountDao accountDao;
-
+    @Autowired
+    private ClusterSystem clusterSystem;
     //商城商品
     private Map<Long, ShopProduct> shopProductMap;
 
@@ -99,7 +103,7 @@ public class ShopService implements OrderGenerate {
             addItemMap = Collections.emptyMap();
         }
 
-        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(), shopProduct.getPayType(), shopProduct.getMoney().intValue() * count, addItemMap, AddType.ITEM_EXCHANGE);
+        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(), shopProduct.getPayType(), shopProduct.getMoney().longValue() * count, addItemMap, AddType.ITEM_EXCHANGE);
         if (!result.success()) {
             return result;
         }
@@ -207,7 +211,7 @@ public class ShopService implements OrderGenerate {
             return null;
         }
 
-        if(!checkProductOpen(player, shopProduct)){
+        if (!checkProductOpen(player, shopProduct)) {
             log.debug("商品未开启 playerId = {}, shopProductId = {}", player, shopProductId);
             return null;
         }
@@ -220,8 +224,72 @@ public class ShopService implements OrderGenerate {
         return shopProduct.getMoney();
     }
 
+    /**
+     * 处理商城订单
+     * @param player 玩家数据
+     * @param order 订单数据
+     * @param money 实际支付金额
+     * @param regionCode 地区代码
+     */
+    private void handleShopOrder(Player player, Order order, String money, String regionCode) {
+        ShopProduct shopProduct = getShopProduct(Long.parseLong(order.getProductId()));
+        if (shopProduct == null) {
+            log.error("未找到该商品 orderId = {},productId = {}", order.getId(), order.getProductId());
+            return;
+        }
+        List<ItemInfo> itemInfoList = null;
+        if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
+            CommonResult<ItemOperationResult> addItemsResult = playerPackService.addItems(order.getPlayerId(), shopProduct.getRewardItems(), AddType.RECHARGE, order.getId());
+            if (!addItemsResult.success()) {
+                log.warn("支付成功，但是添加道具失败 playerId = {},orderId = {},productId = {},code = {}", order.getPlayerId(), order.getId(), shopProduct.getId(), addItemsResult.code);
+            } else {
+                itemInfoList = new ArrayList<>();
+                for (Map.Entry<Integer, Long> en : shopProduct.getRewardItems().entrySet()) {
+                    ItemInfo itemInfo = new ItemInfo();
+                    itemInfo.itemId = en.getKey();
+                    itemInfo.count = en.getValue();
+                    itemInfoList.add(itemInfo);
+                }
+                log.debug("商城充值后添加道具成功 playerId = {},orderId = {}", order.getPlayerId(), order.getId());
+            }
+        }
+        coreLogger.shop(player, order, shopProduct, money, regionCode);
+        //通知玩家充值成功
+        notifyPlayerRechargeCallBack(player, order, itemInfoList);
+    }
+
+    /**
+     * 通知玩家充值成功
+     * @param player 玩家数据
+     * @param order 订单
+     * @param itemInfoList 奖励信息
+     */
+    private void notifyPlayerRechargeCallBack(Player player, Order order, List<ItemInfo> itemInfoList) {
+        NotifyPayCallBack notify = new NotifyPayCallBack();
+        notify.orderId = order.getId();
+        notify.items = itemInfoList;
+        clusterSystem.sendToPlayer(notify, player.getId());
+    }
+
     @Override
     public RechargeType getRechargeType() {
         return RechargeType.SHOP;
+    }
+
+    @Override
+    public <T extends GameEvent> void handleEvent(T gameEvent) {
+        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
+            Order order = event.getOrder();
+            Player player = event.getPlayer();
+            if (order.getRechargeType() == RechargeType.SHOP) {
+                //获取商品
+                handleShopOrder(player, order, event.getMoney(), event.getRegionCode());
+            }
+        }
+    }
+
+    @Override
+    public List<EGameEventType> needMonitorEvents() {
+        return List.of(EGameEventType.RECHARGE);
     }
 }

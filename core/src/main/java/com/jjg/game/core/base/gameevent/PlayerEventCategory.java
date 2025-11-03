@@ -38,10 +38,29 @@ public class PlayerEventCategory {
     public static class PlayerRechargeEvent extends PlayerEvent {
         // 充值订单
         private Order order;
+        // 付费金额
+        private String money;
+        // 地区代码
+        private String regionCode;
 
-        public PlayerRechargeEvent(Player player,Order order) {
+        public PlayerRechargeEvent(Player player, Order order) {
             super(player, EGameEventType.RECHARGE, null, null);
             this.order = order;
+        }
+
+        public PlayerRechargeEvent(Player player, Order order, String money, String regionCode) {
+            super(player, EGameEventType.RECHARGE, null, null);
+            this.order = order;
+            this.money = money;
+            this.regionCode = regionCode;
+        }
+
+        public String getMoney() {
+            return money;
+        }
+
+        public String getRegionCode() {
+            return regionCode;
         }
 
         public Order getOrder() {
