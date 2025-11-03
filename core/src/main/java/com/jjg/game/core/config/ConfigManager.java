@@ -165,7 +165,7 @@ public class ConfigManager {
         log.info("收到更新配置消息!name={}", name);
         if (excelConfigMap != null) {
             List<AbstractExcelConfig> configList = excelConfigMap.values().stream().toList();
-            replaceConfig(name, configList);
+            syncConfigs(name, configList);
         }
     }
 

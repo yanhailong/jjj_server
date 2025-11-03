@@ -444,7 +444,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         String lockKey = LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_START + config.getId();
         redisLock.tryLockAndRun(lockKey, () -> {
             // 检查该配置ID是否已有活跃活动
-            if (luckyTreasureRedisDao.hasActiveRound(config.getId())) {
+            if (!luckyTreasureRedisDao.hasActiveRound(config.getId())) {
                 return;
             }
             // 创建新活动
@@ -455,7 +455,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             activityEnd(newRound);
             //通知更新
             luckyTreasureService.broadcastUpdate(newRound.getIssueNumber());
-            log.info("启动新的夺宝奇兵活动，配置ID: {}, 期号: {}", config.getId(), newRound.getIssueNumber());
+            log.info("移除夺宝奇兵活动，配置ID: {}, 期号: {}", config.getId(), newRound.getIssueNumber());
         });
     }
 
