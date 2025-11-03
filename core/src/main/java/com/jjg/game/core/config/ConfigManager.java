@@ -574,8 +574,6 @@ public class ConfigManager {
                 localConfigMap.clear();
             }
 
-            log.debug("oldLocal = {}", JSON.toJSONString(oldLocal));
-
             AbstractExcelConfig oldConfig;
             for (AbstractExcelConfig config : configs) {
                 //更新本地缓存

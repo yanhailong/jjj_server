@@ -156,9 +156,10 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
                 robotBuy(issueNumber);
             } else {
                 // 只有主节点才处理定时器事件
-                if (!isCurrentNodeMaster()) {
-                    return;
-                }
+                //因为在添加事件的时候，没有判断是主节点添加，所以这里也可以不用添加
+//                if (!isCurrentNodeMaster()) {
+//                    return;
+//                }
                 //结束
                 if (timerType == LuckyTreasureTimerEvent.TimerType.ACTIVITY_END) {
                     handleActivityEndTimer(issueNumber);
