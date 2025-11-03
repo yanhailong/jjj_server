@@ -20,4 +20,8 @@ public class GrowthFundActivityInfo {
     public String originalPrice;
     @ProtoDesc("总计获得")
     public long totalGet;
+    @ProtoDesc("商品id")
+    public String productId;
+    @ProtoDesc("是否购买")
+    public boolean isBuy;
 }

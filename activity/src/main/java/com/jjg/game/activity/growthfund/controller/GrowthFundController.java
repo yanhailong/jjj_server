@@ -1,21 +1,30 @@
 package com.jjg.game.activity.growthfund.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.common.data.ActivityData;
+import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.ClaimRewardsResult;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.growthfund.message.bean.GrowthFundActivityInfo;
 import com.jjg.game.activity.growthfund.message.bean.GrowthFundDetailInfo;
+import com.jjg.game.activity.growthfund.message.res.ResGrowthFundBuyResultInfo;
 import com.jjg.game.activity.growthfund.message.res.ResGrowthFundClaimRewards;
 import com.jjg.game.activity.growthfund.message.res.ResGrowthFundDetailInfo;
 import com.jjg.game.activity.growthfund.message.res.ResGrowthFundTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEvent;
+import com.jjg.game.core.base.gameevent.GameEventListener;
+import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
+import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -25,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -33,7 +43,7 @@ import java.util.stream.Collectors;
  * @date 2025/9/3
  */
 @Component
-public class GrowthFundController extends BaseActivityController {
+public class GrowthFundController extends BaseActivityController implements GameEventListener {
 
     private final Logger log = LoggerFactory.getLogger(GrowthFundController.class);
     private final CountDao countDao;
@@ -55,7 +65,11 @@ public class GrowthFundController extends BaseActivityController {
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
         long playerId = player.getId();
         long activityId = activityData.getId();
-        countDao.incr(String.valueOf(activityId), String.valueOf(playerId));
+        BigDecimal decimal = countDao.incr(String.valueOf(activityId), String.valueOf(playerId));
+        if (decimal.intValue() >= 1) {
+            log.error("玩家已经购买过成长基金 playerId:{} activityId:{}", playerId, activityId);
+            return null;
+        }
         //获取最新的玩家等级数据
         Player newPlayer = corePlayerService.get(playerId);
         int level = newPlayer.getLevel();
@@ -91,11 +105,12 @@ public class GrowthFundController extends BaseActivityController {
             redisLock.unlock(lockKey);
         }
         if (!updateDetailId.isEmpty()) {
-            ResGrowthFundDetailInfo info = new ResGrowthFundDetailInfo(Code.SUCCESS);
+            ResGrowthFundBuyResultInfo info = new ResGrowthFundBuyResultInfo(Code.SUCCESS);
             info.detailInfo = new ArrayList<>(updateDetailId.size());
             for (GrowthFundCfg cfg : updateDetailId) {
-                info.detailInfo.add(buildPlayerActivityDetail(activityData, cfg, playerActivityData.get(cfg.getId())));
+                info.detailInfo.add(buildPlayerActivityDetail(player, activityData, cfg, playerActivityData.get(cfg.getId())));
             }
+            info.isBuy = true;
             return info;
         }
         return null;
@@ -174,7 +189,7 @@ public class GrowthFundController extends BaseActivityController {
             res.activityId = activityId;
             res.detailId = detailId;
             res.infoList = ItemUtils.buildItemInfo(cfg.getGetItem());
-            res.detailInfo = buildPlayerActivityDetail(activityData, cfg, claimRewardsResult.playerActivityData());
+            res.detailInfo = buildPlayerActivityDetail(player, activityData, cfg, claimRewardsResult.playerActivityData());
             return res;
         }
         return null;
@@ -183,13 +198,14 @@ public class GrowthFundController extends BaseActivityController {
     /**
      * 构建成长基金活动详情
      *
+     * @param player  玩家数据
      * @param activityData 活动ID
      * @param baseCfgBean  活动配置
      * @param data         玩家特权卡数据
      * @return 返回特权卡详情信息
      */
     @Override
-    public GrowthFundDetailInfo buildPlayerActivityDetail(ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+    public GrowthFundDetailInfo buildPlayerActivityDetail(Player player, ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (!(baseCfgBean instanceof GrowthFundCfg cfg)) {
             return null;
         }
@@ -210,14 +226,14 @@ public class GrowthFundController extends BaseActivityController {
      * 获取玩家成长基金活动明细
      */
     @Override
-    public AbstractResponse getPlayerActivityDetail(long playerId, ActivityData activityData, int detailId) {
+    public AbstractResponse getPlayerActivityDetail(Player player, ActivityData activityData, int detailId) {
         long activityId = activityData.getId();
         ResGrowthFundDetailInfo detailInfo = new ResGrowthFundDetailInfo(Code.SUCCESS);
         //活动数据
         Map<Integer, GrowthFundCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
-        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(playerId, activityData.getType(), activityId);
+        Map<Integer, PlayerActivityData> playerActivityData = playerActivityDao.getPlayerActivityData(player.getId(), activityData.getType(), activityId);
         detailInfo.detailInfo = new ArrayList<>();
-        detailInfo.detailInfo.add(buildPlayerActivityDetail(activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
+        detailInfo.detailInfo.add(buildPlayerActivityDetail(player, activityData, baseCfgBeanMap.get(detailId), playerActivityData.get(detailId)));
         return detailInfo;
     }
 
@@ -225,7 +241,7 @@ public class GrowthFundController extends BaseActivityController {
      * 构建活动类型信息
      */
     @Override
-    public AbstractResponse getPlayerActivityInfoByTypeRes(long playerId, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
+    public AbstractResponse getPlayerActivityInfoByTypeRes(Player player, Map<Long, List<BaseActivityDetailInfo>> allDetailInfo) {
         ResGrowthFundTypeInfo cardTypeInfo = new ResGrowthFundTypeInfo(Code.SUCCESS);
         if (CollectionUtil.isEmpty(allDetailInfo)) {
             return cardTypeInfo;
@@ -241,10 +257,16 @@ public class GrowthFundController extends BaseActivityController {
                 }
             }
             ActivityData activityData = activityManager.getActivityData().get(entry.getKey());
-            if (activityData != null && activityData.getValueParam().size() >= 3) {
-                activityInfo.sellingPrice = activityData.getBigDecimalParam().getFirst().toString();
-                activityInfo.originalPrice = activityData.getBigDecimalParam().get(1).toString();
-                activityInfo.totalGet = activityData.getValueParam().getLast();
+            if (activityData != null) {
+                if (activityData.getBigDecimalParam().size() >= 3) {
+                    activityInfo.sellingPrice = activityData.getBigDecimalParam().getFirst().toString();
+                    activityInfo.originalPrice = activityData.getBigDecimalParam().get(1).toString();
+                    activityInfo.totalGet = activityData.getBigDecimalParam().getFirst().longValue();
+                }
+                if (CollectionUtil.isNotEmpty(activityData.getChannelCommodity())) {
+                    activityInfo.productId = activityData.getChannelCommodity().get(player.getChannel().getValue());
+                }
+                activityInfo.isBuy = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player)).longValue() > 0;
             }
         }
         return cardTypeInfo;
@@ -281,4 +303,42 @@ public class GrowthFundController extends BaseActivityController {
         }
         return false;
     }
+
+
+    @Override
+    public <T extends GameEvent> void handleEvent(T gameEvent) {
+        if (gameEvent instanceof PlayerEventCategory.PlayerRechargeEvent event) {
+            Order order = event.getOrder();
+            Player player = event.getPlayer();
+            if (order.getRechargeType() != RechargeType.GROWTH_FUND) {
+                return;
+            }
+            Map<Long, ActivityData> map = activityManager.getActivityTypeData().get(ActivityType.GROWTH_FUND);
+            if (CollectionUtil.isEmpty(map)) {
+                log.error("充值事件 没有活动数据 playerId:{} order;{}", player.getId(), JSONObject.toJSONString(order));
+                return;
+            }
+            log.info("充值事件 参加活动 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
+            for (ActivityData activityData : map.values()) {
+                if (!checkPlayerCanJoinActivity(player, activityData)) {
+                    continue;
+                }
+                if (CollectionUtil.isEmpty(activityData.getChannelCommodity())) {
+                    continue;
+                }
+                String pId = activityData.getChannelCommodity().get(player.getChannel().getValue());
+                if (pId.equals(order.getProductId())) {
+                    joinActivity(player, activityData, 0, 1);
+                    log.info("充值事件 参加活动成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
+                    break;
+                }
+            }
+        }
+    }
+
+    @Override
+    public List<EGameEventType> needMonitorEvents() {
+        return List.of(EGameEventType.RECHARGE);
+    }
+
 }

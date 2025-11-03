@@ -249,7 +249,8 @@ public interface ActivityConstant {
         int RES_GROWTH_FUND_DETAIL_INFO = BASE_MSG_PREFIX | 0x4C;
         //玩家领取返回
         int RES_GROWTH_FUND_TYPE_INFO = BASE_MSG_PREFIX | 0x4D;
-
+        //玩家购买返回
+        int RES_GROWTH_FUND_BUY_RESULT_INFO = BASE_MSG_PREFIX | 0x4E;
 
     }
 }
