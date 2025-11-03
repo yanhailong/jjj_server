@@ -112,7 +112,7 @@ public enum ActivityType {
         return canInitiativeJoin;
     }
 
-    public static void intialize() {
+    public static void initialize() {
         for (ActivityType activityType : values()) {
             activityType.controller = CommonUtil.getContext().getBean(activityType.className);
         }

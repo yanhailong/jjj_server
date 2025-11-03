@@ -7,7 +7,10 @@ import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.ShopConstant;
-import com.jjg.game.core.data.*;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ItemOperationResult;
+import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.ShopProduct;
 import com.jjg.game.core.pb.*;
 import com.jjg.game.core.service.ShopService;
 import org.slf4j.Logger;
@@ -68,7 +71,7 @@ public class ShopMessageHandler {
                 }
 
                 info.payType = shopProduct.getPayType();
-                info.money = shopProduct.getMoney().toString();
+                info.money = shopProduct.getMoney().toPlainString();
                 info.label1 = shopProduct.getLabel1();
                 info.label2 = shopProduct.getLabel2();
                 info.pic = shopProduct.getPic();

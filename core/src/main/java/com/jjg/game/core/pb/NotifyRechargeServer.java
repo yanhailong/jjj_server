@@ -17,4 +17,8 @@ public class NotifyRechargeServer extends AbstractMessage {
     public long playerId;
     @ProtoDesc("订单id")
     public String orderId;
+    @ProtoDesc("付费金额")
+    public String money;
+    @ProtoDesc("地区代码")
+    public String regionCode;
 }

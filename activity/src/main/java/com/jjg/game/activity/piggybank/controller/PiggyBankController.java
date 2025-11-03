@@ -306,7 +306,7 @@ public class PiggyBankController extends BaseActivityController implements GameE
             PiggyBankDetailInfo info = new PiggyBankDetailInfo();
             info.activityId = activityData.getId();
             info.detailId = baseCfgBean.getId();
-            info.rechargePrice = cfg.getPay().toString(); // 充值金额
+            info.rechargePrice = cfg.getPay().toPlainString(); // 充值金额
             info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetItem()); // 奖励道具
             // 设置玩家数据
             if (data instanceof PiggyBankData piggyBankData) {

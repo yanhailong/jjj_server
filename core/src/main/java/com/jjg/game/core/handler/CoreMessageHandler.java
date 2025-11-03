@@ -9,6 +9,7 @@ import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.common.utils.HttpUtils;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
@@ -426,8 +427,16 @@ public class CoreMessageHandler {
             } else {
                 res.orderId = order.getId();
             }
-
             log.debug("玩家预下单 req = {},resp = {}", JSON.toJSONString(req), JSON.toJSONString(res));
+            //如果有测试充值url直接调用
+            if (StringUtils.isNotEmpty(nodeConfig.getTestRechargeUrl())) {
+                HttpUtils.HttpResponse httpResponse = HttpUtils.doPostWithJSON(nodeConfig.getTestRechargeUrl() + order.getId(), "");
+                if (!httpResponse.isOk()) {
+                    log.debug("测试充值玩家预下单调用失败 req = {},resp = {}", JSON.toJSONString(req), JSON.toJSONString(res));
+                    res.code = Code.FAIL;
+                    playerController.send(res);
+                }
+            }
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
