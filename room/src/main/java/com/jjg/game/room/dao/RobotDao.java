@@ -4,6 +4,7 @@ import com.jjg.game.common.constant.StrConstant;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.data.RobotPlayer;
+import org.redisson.api.RMap;
 import org.redisson.api.RScoredSortedSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.protocol.ScoredEntry;
@@ -64,7 +65,8 @@ public class RobotDao {
     public void recordCurServerRobotPlayer(RobotPlayer robotPlayer) {
         long robotId = robotPlayer.getId();
         String serverRobotTableName = getCurServerRobotTableName();
-        redissonClient.getMap(serverRobotTableName).put(robotId, System.currentTimeMillis() + "");
+        RMap<Long, String> rMap = redissonClient.getMap(serverRobotTableName);
+        rMap.put(robotId, System.currentTimeMillis() + "");
         RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(getRobotIdListTableName());
         scoredSortedSet.add(0, robotId);
     }
@@ -85,10 +87,10 @@ public class RobotDao {
         String serverRobotTableName = getCurServerRobotTableName();
         int batchSize = 500;
         List<Long> ids = new ArrayList<>(robotIds.keySet());
+        RMap<Long, String> rMap = redissonClient.getMap(serverRobotTableName);
         for (int i = 0; i < ids.size(); i += batchSize) {
             int end = Math.min(i + batchSize, ids.size());
-            redissonClient.getMap(serverRobotTableName)
-                    .fastRemove(ids.subList(i, end).toArray(new Long[0]));
+            rMap.fastRemove(ids.subList(i, end).toArray(new Long[0]));
         }
         //添加分数
         addNewRobotIds(robotIds);
