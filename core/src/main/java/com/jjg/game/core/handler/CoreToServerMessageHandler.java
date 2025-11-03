@@ -159,7 +159,7 @@ public class CoreToServerMessageHandler {
             SystemInterfaceHolder.callGameSysAction(IRecharge.class, (f) -> f.rechargeSuccess(player, order, shopProduct));
         }
         //充值事件
-        gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order, notify.money, notify.regionCode));
+        gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order, notify.money, notify.regionCode), order.getRechargeType());
         //任务条件参数
         Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
             DefaultTaskConditionParam param = new DefaultTaskConditionParam();

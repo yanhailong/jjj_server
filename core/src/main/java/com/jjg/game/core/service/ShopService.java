@@ -289,6 +289,11 @@ public class ShopService implements OrderGenerate, GameEventListener {
     }
 
     @Override
+    public Map<EGameEventType, Object> getSubTypeMap() {
+        return Map.of(EGameEventType.RECHARGE, getRechargeType());
+    }
+
+    @Override
     public List<EGameEventType> needMonitorEvents() {
         return List.of(EGameEventType.RECHARGE);
     }
