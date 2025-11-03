@@ -227,6 +227,9 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 return;
             }
 
+            //更新token过期时间
+            playerSessionTokenDao.updateExpire(playerSessionToken);
+
             boolean firstLogin = !TimeHelper.inSameDay(account.getLastLoginTime(), timeMillis) &&
                     !TimeHelper.inSameDay(account.getLastOfflineTime(), timeMillis);
             //更新最近登录时间
@@ -243,7 +246,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                             warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START;
                 }
                 session.send(res);
-                hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel());
+                hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp());
                 // 调用登录接口类
                 PlayerController playerController = new PlayerController(session, player);
                 session.setReference(playerController);
@@ -254,7 +257,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             //返回登录消息
             session.send(res);
-            hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel());
+            hallLogger.login(player, req.token, playerSessionToken.getLoginType(), playerSessionToken.getChannel(), playerSessionToken.getIp());
 
             //接收全服邮件
             mailService.playerGetServerMails(player.getId());

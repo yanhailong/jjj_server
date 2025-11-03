@@ -24,6 +24,8 @@ import org.springframework.stereotype.Service;
 
 import java.security.interfaces.RSAPublicKey;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 
@@ -155,9 +157,9 @@ public class HttpService {
                 log.debug("非Apple发行的Token = {}", token);
                 return result;
             }
-            if (!decodedJWT.getAudience().contains(thirdServiceInfo.getAppleAud())) {
+            if (!decodedJWT.getAudience().contains(thirdServiceInfo.getAppleBundleId())) {
                 result.code = Code.FORBID;
-                log.debug("受众不匹配 configAud = {},jwtAud = {},token = {}", thirdServiceInfo.getAppleAud(), decodedJWT.getAudience(), token);
+                log.debug("受众不匹配 configAud = {},jwtAud = {},token = {}", thirdServiceInfo.getAppleBundleId(), decodedJWT.getAudience(), token);
                 return result;
             }
             Date now = new Date();
@@ -188,7 +190,7 @@ public class HttpService {
             // 验证
             DecodedJWT jwt = JWT.require(Algorithm.RSA256(publicKey, null))
                     .withIssuer("https://appleid.apple.com")
-                    .withAudience(thirdServiceInfo.getAppleAud())
+                    .withAudience(thirdServiceInfo.getAppleBundleId())
                     .withClaimPresence("sub")
                     .withClaimPresence("exp")
                     .withClaimPresence("iat")
@@ -221,9 +223,12 @@ public class HttpService {
         try {
             // 验证token
             HttpRequest httpRequest = HttpRequest.get(thirdServiceInfo.getFacebookDebugTokenUrl());
-            httpRequest.body("input_token", token);
-            httpRequest.body("access_token", thirdServiceInfo.getFacebookAppId() + "|" + thirdServiceInfo.getFacebookSecret());
-            HttpResponse resp = httpRequest.execute();
+//            httpRequest.setProxy(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("192.168.3.46", 32649)));
+
+            Map<String,Object> params = new HashMap<>();
+            params.put("input_token", token);
+            params.put("access_token", thirdServiceInfo.getFacebookAppId() + "|" + thirdServiceInfo.getFacebookSecret());
+            HttpResponse resp = httpRequest.form(params).execute();
             String body = resp.body();
 
             // 解析返回的JSON
@@ -266,28 +271,23 @@ public class HttpService {
                 }
             }
 
-            //获取用户信息
-            HttpRequest userInfohttpRequest = HttpRequest.get(thirdServiceInfo.getFacebookUserInfoUrl() + token).timeout(30000);
-            HttpResponse userInfoResp = userInfohttpRequest.execute();
-            String userInfoBody = userInfoResp.body();
-
-            // 解析返回的JSON
-            JsonNode userInfoJsonNode = objectMapper.readTree(userInfoBody);
-            log.info("返回facebook userinfo json = {}", userInfoJsonNode.toString());
-
-            if (!userInfoResp.isOk()) {
+            int now = TimeHelper.nowInt();
+            //签发时间
+            if(data.get("issued_at").asInt() > now){
                 result.code = Code.FAIL;
-                JsonNode errorJsonNode = userInfoJsonNode.get("error");
-                if (errorJsonNode != null) {
-                    log.warn("获取facebook用户信息失败 token = {},msg = {}", token, errorJsonNode.get("message").asText());
-                } else {
-                    log.warn("获取facebook用户信息失败 token = {}", token);
-                }
+                log.warn("该token未生效 token = {}，issued_at = {}", token,data.get("issued_at"));
+                return result;
+            }
+
+            //过期时间
+            if(data.get("expires_at").asInt() < now){
+                result.code = Code.FAIL;
+                log.warn("该token已过期 token = {}，expires_at = {}", token,data.get("expires_at"));
                 return result;
             }
 
             FacebookUserInfo userInfo = new FacebookUserInfo();
-            userInfo.setUserId(userInfoJsonNode.get("id").asText());
+            userInfo.setUserId(data.get("user_id").asText());
 
             result.data = userInfo;
             return result;

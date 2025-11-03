@@ -11,6 +11,7 @@ public class PlayerSessionToken {
     //过期时间
     private long expireTime;
     private int channel;
+    private String ip;
 
     public long getPlayerId() {
         return playerId;
@@ -50,5 +51,13 @@ public class PlayerSessionToken {
 
     public void setChannel(int channel) {
         this.channel = channel;
+    }
+
+    public String getIp() {
+        return ip;
+    }
+
+    public void setIp(String ip) {
+        this.ip = ip;
     }
 }

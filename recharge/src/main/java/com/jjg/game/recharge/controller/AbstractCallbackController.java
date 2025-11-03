@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -213,5 +214,10 @@ public abstract class AbstractCallbackController {
 
         Player player = playerService.get(order.getPlayerId());
         coreLogger.order(player,order,desc);
+    }
+
+    //获取商品价格
+    protected BigDecimal getProductPrice(RechargeType rechargeType,String productId) {
+        return BigDecimal.ONE;
     }
 }

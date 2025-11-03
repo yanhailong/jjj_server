@@ -55,4 +55,18 @@ public enum RechargeType {
     public int getType() {
         return type;
     }
+
+    public static RechargeType valueOf(int type) {
+        switch (type) {
+            case 1 -> {
+                return SHOP;
+            }
+            case 2 -> {
+                return PLAYER_LEVEL_GIFT;
+            }
+            default -> {
+                return null;
+            }
+        }
+    }
 }

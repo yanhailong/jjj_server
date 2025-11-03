@@ -27,9 +27,9 @@ import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
-import com.jjg.game.core.pb.NotifyPointsUpdate;
 import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.service.*;
+import com.jjg.game.core.task.service.IPlayerPointsAwardService;
 import com.jjg.game.gm.dto.*;
 import com.jjg.game.gm.util.NetUtil;
 import com.jjg.game.gm.vo.*;
@@ -90,6 +90,8 @@ public class GMController extends AbstractController {
     private LoginConfigService loginConfigService;
     @Autowired
     private PlayerSessionTokenDao playerSessionTokenDao;
+    @Autowired
+    private IPlayerPointsAwardService pointsAwardService;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -101,14 +103,14 @@ public class GMController extends AbstractController {
     public WebResult<String> changeGameStatus(@RequestBody GameStatusListDto dtoList) {
         try {
             log.info("收到修改游戏状态请求 dtoList = {}", dtoList);
-            if(dtoList == null || dtoList.gameStatusList() == null || dtoList.gameStatusList().isEmpty()) {
+            if (dtoList == null || dtoList.gameStatusList() == null || dtoList.gameStatusList().isEmpty()) {
                 log.debug("游戏列表为空，修改游戏状态失败 dtoList = {}", dtoList);
                 return fail("common.paramerror");
             }
 
             //检查参数
             List<GameStatus> gameStatusList = new ArrayList<>();
-            for(GameStatusDto dto : dtoList.gameStatusList()){
+            for (GameStatusDto dto : dtoList.gameStatusList()) {
                 if (dto.number() < 1) {
                     log.debug("游戏id不能为负，修改游戏状态失败 dto = {}", dto);
                     return fail("common.paramerror");
@@ -129,7 +131,7 @@ public class GMController extends AbstractController {
                     return fail("common.paramerror");
                 }
 
-                gameStatusList.add(new GameStatus(dto.name(), dto.number(),dto.open(), dto.status(), dto.right_top_icon(), dto.icon_category(), dto.sort()));
+                gameStatusList.add(new GameStatus(dto.name(), dto.number(), dto.open(), dto.status(), dto.right_top_icon(), dto.icon_category(), dto.sort()));
             }
 
             boolean saved = gameStatusService.saveOrUpdateGameStatus(gameStatusList);
@@ -858,7 +860,7 @@ public class GMController extends AbstractController {
                 dto.ips().removeIf(StringUtils::isEmpty);
                 if (!dto.ips().isEmpty()) {
                     boolean match = dto.ips().stream().allMatch(NetUtil::isValidIP);
-                    if(!match){
+                    if (!match) {
                         log.debug("ip格式错误");
                         return fail("common.fail");
                     }
@@ -872,7 +874,7 @@ public class GMController extends AbstractController {
                 }
             }
 
-            if(none){
+            if (none) {
                 log.debug("黑名单为空...");
                 return fail("common.fail");
             }
@@ -1016,7 +1018,7 @@ public class GMController extends AbstractController {
             }
             changePlayerPoints(dto.playerId(), points, dto.flag());
             return success("common.success");
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
         }
@@ -1034,12 +1036,12 @@ public class GMController extends AbstractController {
      * @param flag     变化 true增加 false扣除
      */
     public void changePlayerPoints(long playerId, int value, boolean flag) {
-        NotifyPointsUpdate notifyPointsUpdate = new NotifyPointsUpdate();
-        notifyPointsUpdate.setFlag(flag);
-        notifyPointsUpdate.setPlayerId(playerId);
-        notifyPointsUpdate.setValue(value);
-        notifyPointsUpdate.setType(PointsAwardType.GM);
-        clusterSystem.notifyNode(MessageUtil.getPFMessage(notifyPointsUpdate), Set.of(NodeType.HALL.toString())::contains);
+        if (flag) {
+            pointsAwardService.add(playerId, value, PointsAwardType.GM);
+
+        } else {
+            pointsAwardService.deduct(playerId, value, PointsAwardType.GM);
+        }
     }
 
     /**

@@ -41,8 +41,8 @@ public class AccountService {
     @Autowired
     private AccountLogger accountLogger;
 
-    public CommonResult<Account> login(LoginType loginType, ChannelUserInfo channelUserInfo, String mac, int channel) {
-        CommonResult<Account> accountResult = getOrCreateAccount(loginType, channelUserInfo, mac, channel);
+    public CommonResult<Account> login(LoginType loginType, ChannelUserInfo channelUserInfo, String mac, int channel, String ip) {
+        CommonResult<Account> accountResult = getOrCreateAccount(loginType, channelUserInfo, mac, channel, ip);
         if (!accountResult.success()) {
             log.warn("获取或者创建账号失败,登录失败 loginType = {},channelUserId = {}", loginType, channelUserInfo.getUserId());
             return accountResult;
@@ -85,7 +85,7 @@ public class AccountService {
      * @param channelUserInfo
      * @return
      */
-    private CommonResult<Account> getOrCreateAccount(LoginType loginType, ChannelUserInfo channelUserInfo, String mac, int channel) {
+    private CommonResult<Account> getOrCreateAccount(LoginType loginType, ChannelUserInfo channelUserInfo, String mac, int channel, String ip) {
         CommonResult<Account> result = new CommonResult<>(Code.SUCCESS);
         //要加锁，防止重复创建账号
         String lockKey = getLockKey(loginType, channelUserInfo);
@@ -111,7 +111,7 @@ public class AccountService {
 
                 account = accountDao.insert(account);
 
-                accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, channel);
+                accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, channel, ip);
             }
 
             result.data = account;

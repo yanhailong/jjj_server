@@ -17,7 +17,7 @@ public class HallLogger extends BaseLogger {
      * @param player
      * @return
      */
-    public void login(Player player, String token, int loginType, int channel) {
+    public void login(Player player, String token, int loginType, int channel,String ip) {
         try {
             JSONObject json = new JSONObject();
 //            json.put("logType", "login");
