@@ -7,6 +7,7 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.config.ConfigChangeState;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.config.bean.LuckyTreasureConfig;
 import com.jjg.game.core.constant.AwardCodeType;
@@ -110,8 +111,13 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             luckyTreasureService.init();
             //监听配置文件变化 如果有新增的夺宝奇兵配置则直接开始
             configManager.addUpdateConfigListener(LuckyTreasureConfig.class, (a, b, c) -> {
-                log.info("夺宝奇兵配置更新!检测是否需要新增!id={}", c.getId());
-                startNewActivityForConfig(c);
+                log.info("夺宝奇兵配置更新!检测是否需要新增!id={},b = {}", c.getId(), b);
+                if (b == ConfigChangeState.DELETE) {
+                    delActivityForConfig(c);
+                } else {
+                    startNewActivityForConfig(c);
+                }
+
             });
             //初始化机器人购买定时器
             initRobotTimer();
@@ -432,6 +438,28 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     }
 
     /**
+     * 为指定配置启动新活动
+     */
+    private void delActivityForConfig(LuckyTreasureConfig config) {
+        String lockKey = LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_START + config.getId();
+        redisLock.tryLockAndRun(lockKey, () -> {
+            // 检查该配置ID是否已有活跃活动
+            if (luckyTreasureRedisDao.hasActiveRound(config.getId())) {
+                return;
+            }
+            // 创建新活动
+            LuckyTreasure newRound = createNewRound(config);
+            // 保存到Redis
+            saveActiveRoundToRedis(newRound);
+            //立即删除
+            activityEnd(newRound);
+            //通知更新
+            luckyTreasureService.broadcastUpdate(newRound.getIssueNumber());
+            log.info("启动新的夺宝奇兵活动，配置ID: {}, 期号: {}", config.getId(), newRound.getIssueNumber());
+        });
+    }
+
+    /**
      * 注册机器人购买定时器
      */
     public void addRobotBuyTimer(LuckyTreasure newRound) {
@@ -552,6 +580,16 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         activityTimers.put(issueNumber, timer);
 
         log.debug("为夺宝奇兵活动 {} 添加结束定时器，结束时间: {}", issueNumber, endTime);
+    }
+
+    private void activityEnd(LuckyTreasure round) {
+        long issueNumber = round.getIssueNumber();
+
+        // 如果已有定时器，先移除
+        removeActivityTimer(issueNumber);
+
+        //立即处理
+        handleActivityEndTimer(issueNumber);
     }
 
     /**
