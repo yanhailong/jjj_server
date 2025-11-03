@@ -329,7 +329,7 @@ public class ConfigManager {
                     // 先更新Redis数据
                     excelConfigMap.put(config.getId(), config);
                 });
-//                log.debug("afterMap = {}",JSON.toJSONString(excelConfigMap));
+                log.debug("afterMap = {}",objectMapper.writeValueAsString(excelConfigMap));
                 configMap.put(name, objectMapper.writeValueAsString(excelConfigMap));
                 isReplace = true;
                 log.info("批量覆盖[{}]的配置[{}]条! ", name, configs.size());
@@ -538,6 +538,7 @@ public class ConfigManager {
         }
 
         RMap<String, String> configMap = redissonClient.getMap(CONFIG_MAP_KEY);
+
         try {
             boolean isSync = false;
             configMap.getLock(name).lock();
@@ -572,6 +573,9 @@ public class ConfigManager {
                 oldLocal = new ConcurrentHashMap<>(localConfigMap);
                 localConfigMap.clear();
             }
+
+            log.debug("oldLocal = {}", JSON.toJSONString(oldLocal));
+
             AbstractExcelConfig oldConfig;
             for (AbstractExcelConfig config : configs) {
                 //更新本地缓存
@@ -597,9 +601,10 @@ public class ConfigManager {
             //检测配置是否删除
             if (oldLocal != null) {
                 for (Map.Entry<Integer, AbstractExcelConfig> entry : oldLocal.entrySet()) {
-                    Integer key = entry.getKey();
+                    Object obj = entry.getKey();
                     AbstractExcelConfig config = entry.getValue();
-                    if (!tmpExcelConfigMap.containsKey(key)) {
+                    int id = Integer.parseInt(obj.toString());
+                    if (!tmpExcelConfigMap.containsKey(id)) {
                         notifyUpdateConfig(name, ConfigChangeState.DELETE, config);
                     }
                 }
