@@ -1,5 +1,6 @@
 package com.jjg.game.core.utils;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.Item;
@@ -7,6 +8,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -140,5 +142,19 @@ public class ItemUtils {
         return items;
     }
 
-
+    /**
+     * 合并道具
+     * @param mergeMap1 需要合并的道具1
+     * @param mergeMap2 需要合并的道具2
+     * @return 合并后的道具
+     */
+    public static Map<Integer, Long> mergeItems(Map<Integer, Long> mergeMap1, Map<Integer, Long> mergeMap2) {
+        if (CollectionUtil.isEmpty(mergeMap1) || CollectionUtil.isEmpty(mergeMap2)) {
+            return Map.of();
+        }
+        Map<Integer, Long> tempMap = new HashMap<>();
+        mergeMap1.forEach((key, value) -> tempMap.merge(key, value, Long::sum));
+        mergeMap2.forEach((key, value) -> tempMap.merge(key, value, Long::sum));
+        return tempMap;
+    }
 }
