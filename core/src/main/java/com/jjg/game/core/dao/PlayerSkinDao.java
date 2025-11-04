@@ -13,6 +13,9 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * @author 11
  * @date 2025/8/7 16:32
@@ -50,6 +53,43 @@ public class PlayerSkinDao extends MongoBaseDao<PlayerSkin, Long> {
         }
         Query query = new Query(Criteria.where("playerId").is(playerId));
         Update update = new Update().addToSet(type.getField(), id);
+        UpdateResult result = mongoTemplate.upsert(query, update, PlayerSkin.class);
+        return result.getModifiedCount() > 0 || result.getUpsertedId() != null;
+    }
+
+    /**
+     * 添加数据
+     * @param playerId
+     * @param addIdsMap
+     * @return
+     */
+    public boolean addByType(long playerId, Map<AvatarType, List<Integer>> addIdsMap) {
+        if(addIdsMap == null || addIdsMap.isEmpty()) {
+            return false;
+        }
+
+        Query query = new Query(Criteria.where("playerId").is(playerId));
+
+        Update update = new Update();
+
+        boolean flag = false;
+        for (Map.Entry<AvatarType, List<Integer>> entry : addIdsMap.entrySet()) {
+            AvatarType type = entry.getKey();
+            List<Integer> ids = entry.getValue();
+
+            // 跳过字段名为空或id列表为空的情况
+            if (StringUtils.isEmpty(type.getField()) || ids == null || ids.isEmpty()) {
+                continue;
+            }
+
+            update.addToSet(type.getField()).each(ids.toArray());
+            flag = true;
+        }
+
+        if (!flag) {
+            return false;
+        }
+
         UpdateResult result = mongoTemplate.upsert(query, update, PlayerSkin.class);
         return result.getModifiedCount() > 0 || result.getUpsertedId() != null;
     }

@@ -128,9 +128,6 @@ public enum AddType {
     FRIEND_ROOM_INCOME_TAKE_ALL(714),
 
 
-
-
-
     //任务奖励
     TASKAWARD(801),
 
@@ -187,6 +184,8 @@ public enum AddType {
     VIP_REWARDS(1501),
     //解散房间时保证金退还
     BANKER_PREDICATE_BACK(1502),
+    //购买头像
+    BUY_AVATAR(1601),
     ;
 
 

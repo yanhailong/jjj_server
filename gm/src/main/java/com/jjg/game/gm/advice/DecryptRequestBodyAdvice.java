@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class DecryptRequestBodyAdvice implements RequestBodyAdvice {
 
 
-    private static final Logger log = LoggerFactory.getLogger(DecryptRequestBodyAdvice.class);
+    private final Logger log = LoggerFactory.getLogger(DecryptRequestBodyAdvice.class);
 
     @Override
     public boolean supports(MethodParameter methodParameter, Type targetType, Class<? extends HttpMessageConverter<?>> converterType) {

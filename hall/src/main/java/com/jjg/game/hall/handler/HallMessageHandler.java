@@ -994,6 +994,31 @@ public class HallMessageHandler implements GmListener {
         playerController.send(res);
     }
 
+    /**
+     * 请求购买头像
+     *
+     * @param playerController 玩家信息
+     */
+    @Command(HallConstant.MsgBean.REQ_BUY_AVATAR)
+    public void reqBuyAvatar(PlayerController playerController, ReqBuyAvatar req) {
+        ResBuyAvatar res = new ResBuyAvatar(Code.SUCCESS);
+        try {
+            CommonResult<Integer> result = hallService.buyAvatar(playerController.playerId(), req.id);
+            if (!result.success()) {
+                res.code = result.code;
+                playerController.send(res);
+                return;
+            }
+
+            res.giveId = result.data;
+            log.debug("购买头像成功 id = {},giveId = {}", req.id, result.data);
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {

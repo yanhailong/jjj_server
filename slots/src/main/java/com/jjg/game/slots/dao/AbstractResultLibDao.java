@@ -48,7 +48,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
     protected String currentRedisLibName;
 
     //生成结果集的时候要加锁
-    protected String generateLock = "generateLock";
+    protected String generateLock = "generateLock:";
 
     @Autowired
     protected RedisTemplate redisTemplate;
@@ -73,7 +73,7 @@ public abstract class AbstractResultLibDao<T extends SlotsResultLib> extends Mon
     }
 
     protected String generateLockTableName(int gameType) {
-        return generateLock + ":" + gameType;
+        return generateLock + gameType;
     }
 
     protected String tabelName(String tableIndex, int gameType, int libType, int sectionIndex) {
