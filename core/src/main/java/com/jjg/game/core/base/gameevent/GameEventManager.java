@@ -1,5 +1,6 @@
 package com.jjg.game.core.base.gameevent;
 
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.utils.CommonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +52,37 @@ public class GameEventManager {
             eventListMap.computeIfAbsent(gameEventType, k -> new HashSet<>()).add(gameEventListener);
         }
         log.info("注册事件监听器：{} 成功", gameEventListener.getClass().getName());
+    }
+
+    /**
+     * 触发事件最多执行一个事件
+     *
+     * @param gameEvent 游戏事件
+     * @param subType 游戏事件子类型
+     */
+    public <T extends GameEvent> void triggerEvent(T gameEvent, Object subType) {
+        EGameEventType gameEventType = gameEvent.getGameEventType();
+        Set<GameEventListener> eventListeners = eventListMap.get(gameEventType);
+        if (eventListeners == null || eventListeners.isEmpty() || subType == null) {
+            return;
+        }
+        for (GameEventListener eventListener : eventListeners) {
+            Map<EGameEventType, Object> subTypeMap = eventListener.getSubTypeMap();
+            Object configSubType = subTypeMap.get(gameEventType);
+            if (subType.equals(configSubType)) {
+                Thread.ofVirtual()
+                        .start(() -> {
+                            try {
+                                log.debug("listener: {} 响应事件：{} subtype:{}", eventListener.getClass().getName(), gameEventType, JSONObject.toJSONString(subType));
+                                eventListener.handleEvent(gameEvent);
+                            } catch (Exception exception) {
+                                log.error("listener: {} 触发事件：{} subtype:{} 时出现异常：{}",
+                                        eventListener.getClass().getName(), gameEventType, JSONObject.toJSONString(subType), exception.getMessage(), exception);
+                            }
+                        });
+                break;
+            }
+        }
     }
 
     /**

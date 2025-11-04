@@ -346,6 +346,10 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
         }
         return cfg.getPay();
     }
+    @Override
+    public Map<EGameEventType, Object> getSubTypeMap() {
+        return Map.of(EGameEventType.RECHARGE, getRechargeType());
+    }
 
     @Override
     public RechargeType getRechargeType() {

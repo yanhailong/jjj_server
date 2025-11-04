@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.utils.ObjectMapperUtil;
 import com.jjg.game.common.utils.TimeHelper;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.HashOperations;
@@ -46,14 +47,17 @@ public class DropItemDao {
     public Map<Integer, Integer> getItemDropGroupCounter(long playerId) {
         String tableName = getItemDropGroupCounterTableName();
         HashOperations<String, String, String> opsForHash = itemDropGroupMap.opsForHash();
-        String json = opsForHash.get(tableName, playerId);
+        String json = opsForHash.get(tableName, String.valueOf(playerId));
+        if (StringUtils.isEmpty(json)) {
+            return null;
+        }
         try {
             return objectMapper.readValue(json, new TypeReference<>() {
             });
         } catch (Exception e) {
             log.error("json parse error", e);
         }
-        return Map.of();
+        return null;
     }
 
     /**
@@ -63,7 +67,7 @@ public class DropItemDao {
         String tableName = getItemDropGroupCounterTableName();
         try {
             String json = objectMapper.writeValueAsString(itemDropGroupCounter);
-            itemDropGroupMap.opsForHash().put(tableName, playerId, json);
+            itemDropGroupMap.opsForHash().put(tableName, String.valueOf(playerId), json);
             //设置2天过期
             itemDropGroupMap.expire(tableName, Duration.ofDays(2));
         } catch (Exception e) {

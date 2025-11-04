@@ -464,6 +464,11 @@ public class PiggyBankController extends BaseActivityController implements GameE
     }
 
     @Override
+    public Map<EGameEventType, Object> getSubTypeMap() {
+        return Map.of(EGameEventType.RECHARGE, getRechargeType());
+    }
+
+    @Override
     public RechargeType getRechargeType() {
         return RechargeType.PIGGY_BANK;
     }

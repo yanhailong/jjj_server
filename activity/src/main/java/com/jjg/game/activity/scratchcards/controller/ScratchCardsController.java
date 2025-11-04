@@ -312,6 +312,11 @@ public class ScratchCardsController extends BaseActivityController implements Ga
     }
 
     @Override
+    public Map<EGameEventType, Object> getSubTypeMap() {
+        return Map.of(EGameEventType.RECHARGE, getRechargeType());
+    }
+
+    @Override
     public RechargeType getRechargeType() {
         return RechargeType.SCRATCH_CARDS;
     }
