@@ -691,6 +691,85 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         return result;
     }
 
+    /**
+     * 购买头像
+     */
+    public CommonResult<Integer> buyAvatar(long playerId, int id) {
+        CommonResult<Integer> result = new CommonResult<>(Code.SUCCESS);
+        try {
+            AvatarCfg avatarCfg = GameDataManager.getAvatarCfg(id);
+            if (avatarCfg == null) {
+                log.debug("未找到该配置 id = {}", id);
+                result.code = Code.NOT_FOUND;
+                return result;
+            }
+
+            if (avatarCfg.getBuyItem() == null || avatarCfg.getBuyItem().size() != 3) {
+                log.debug("该配置的buyItem配置错误 id = {}", id);
+                result.code = Code.SAMPLE_ERROR;
+                return result;
+            }
+
+            AvatarType avatarType = EnumUtil.getBy(AvatarType.class, (at -> at.getType() == avatarCfg.getResourceType()));
+            if (Objects.isNull(avatarType)) {
+                log.debug("该配置的buyItem配置错误1 id = {},type = {}", id, avatarCfg.getResourceType());
+                result.code = Code.PARAM_ERROR;
+                return result;
+            }
+
+            int moneyId = avatarCfg.getBuyItem().get(0);
+            ItemCfg itemCfg = GameDataManager.getItemCfg(moneyId);
+            if (itemCfg == null) {
+                log.debug("该配置的buyItem配置错误，未找到对应的item配置 id = {},itemCfgId = {}", id, moneyId);
+                result.code = Code.SAMPLE_ERROR;
+                return result;
+            }
+
+            CommonResult<Player> deductResult;
+            if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
+                deductResult = hallPlayerService.deductGold(playerId, avatarCfg.getBuyItem().get(1), AddType.BUY_AVATAR, id + "");
+            } else if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
+                deductResult = hallPlayerService.deductDiamond(playerId, avatarCfg.getBuyItem().get(1), AddType.BUY_AVATAR, id + "");
+            } else {
+                log.debug("该配置的buyItem配置错误，配置的itemIdc错误，id = {},itemCfgId = {}", id, moneyId);
+                result.code = Code.SAMPLE_ERROR;
+                return result;
+            }
+            if (!deductResult.success()) {
+                result.code = deductResult.code;
+                return result;
+            }
+
+            Map<AvatarType, List<Integer>> addIdsMap = new HashMap<>();
+            addIdsMap.computeIfAbsent(avatarType, k -> new ArrayList<>()).add(id);
+
+            //获取赠送的id
+            int giveId = avatarCfg.getBuyItem().get(2);
+            AvatarCfg giveAvatarCfg = GameDataManager.getAvatarCfg(giveId);
+            if (giveAvatarCfg != null) {
+                AvatarType giveAvatarType = EnumUtil.getBy(AvatarType.class, (at -> at.getType() == giveAvatarCfg.getResourceType()));
+                if (!Objects.isNull(giveAvatarType)) {
+                    addIdsMap.computeIfAbsent(giveAvatarType, k -> new ArrayList<>()).add(giveAvatarCfg.getId());
+                }else {
+                    giveId = 0;
+                }
+            }
+
+            //解锁头像
+            boolean success = playerSkinDao.addByType(playerId, addIdsMap);
+            if(!success){
+                log.debug("添加头像信息失败 playerId = {},addIdsMap = {}", playerId, addIdsMap);
+                result.code = Code.FAIL;
+                return result;
+            }
+            result.data = giveId;
+        } catch (Exception e) {
+            log.error("", e);
+            result.code = Code.EXCEPTION;
+        }
+        return result;
+    }
+
     /***********************************************************************************************************/
 
     @Override

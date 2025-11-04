@@ -172,5 +172,8 @@ public interface HallConstant {
         int REQ_BIND_THIRD_ACCOUNT = BASE_MSG_PREFIX | 0X45;
         int RES_BIND_THIRD_ACCOUNT = BASE_MSG_PREFIX | 0X46;
 
+        //购买头像等信息
+        int REQ_BUY_AVATAR = BASE_MSG_PREFIX | 0X47;
+        int RES_BUY_AVATAR = BASE_MSG_PREFIX | 0X48;
     }
 }

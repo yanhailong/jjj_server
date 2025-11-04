@@ -28,6 +28,7 @@ import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
 import com.jjg.game.core.pb.gm.*;
 import com.jjg.game.core.rpc.HallPointsAwardBridge;
 import com.jjg.game.core.service.*;
+import com.jjg.game.gm.dao.SlotsLibDao;
 import com.jjg.game.gm.dto.*;
 import com.jjg.game.gm.util.NetUtil;
 import com.jjg.game.gm.vo.*;
@@ -90,6 +91,8 @@ public class GMController extends AbstractController {
     private PlayerSessionTokenDao playerSessionTokenDao;
     @ClusterRpcReference
     private HallPointsAwardBridge hallPointsAwardBridge;
+    @Autowired
+    private SlotsLibDao slotsLibDao;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -279,7 +282,7 @@ public class GMController extends AbstractController {
                 p = playerService.getFromAllDB(playerId);
                 account = accountDao.queryAccountByPlayerId(playerId);
             } else if (StringUtils.isNotEmpty(dto.mobile())) {  //根据手机号
-                account = accountDao.queryThirdAccount(LoginType.PHONE,dto.mobile());
+                account = accountDao.queryThirdAccount(LoginType.PHONE, dto.mobile());
                 if (account == null) {
                     log.debug("未找到该玩家账号信息 mobile = {}", dto.mobile());
                     return fail("common.fail");
@@ -330,7 +333,6 @@ public class GMController extends AbstractController {
 
     /**
      * 邮件
-     *
      */
     @RequestMapping(BackendGMCmd.SEND_EMAIL)
     public WebResult<String> sendEmail(@RequestBody MailDto dto) {
@@ -387,7 +389,6 @@ public class GMController extends AbstractController {
 
     /**
      * 货币操作
-     *
      */
     @RequestMapping(BackendGMCmd.GOLD_OPERATOR)
     public WebResult<String> goldOperator(@RequestBody GoldOperatorDto dto) {
@@ -498,7 +499,12 @@ public class GMController extends AbstractController {
             }
 
             if (!notifyNode && dto.operator_type() == 1) {  //如果是账户修改，则要进行通知
-                coreSendMessageManager.buildMoneyChangeMessage(result.data);
+//                coreSendMessageManager.buildBaseInfoChangeMessage(result.data);
+                if (dto.currency_id() == GameConstant.Item.TYPE_GOLD) { //金币
+                    coreSendMessageManager.buildGoldChangeMessage(result.data, dto.type() == 1 ? dto.quantity() : -dto.quantity());
+                } else {
+                    coreSendMessageManager.buildDiamondChangeMessage(result.data, dto.type() == 1 ? dto.quantity() : -dto.quantity());
+                }
             }
 
             //返回修改结果
@@ -511,7 +517,6 @@ public class GMController extends AbstractController {
 
     /**
      * 踢出玩家
-     *
      */
     @RequestMapping(BackendGMCmd.KICK_ACCOUNT)
     public WebResult<String> kickAccount(@RequestBody KickAccountDto dto) {
@@ -557,7 +562,6 @@ public class GMController extends AbstractController {
 
     /**
      * 封禁
-     *
      */
     @RequestMapping(BackendGMCmd.BAN_ACCOUNT)
     public WebResult<String> banAccount(@RequestBody BanAccountDto dto) {
@@ -606,7 +610,6 @@ public class GMController extends AbstractController {
 
     /**
      * 在线玩家
-     *
      */
     @RequestMapping(BackendGMCmd.PLAYING_INFO)
     public WebResult<PageVo<List<OnlinePlayerVo>>> onlinePlayer(@RequestBody OnlinePlayerDto dto) {
@@ -763,6 +766,20 @@ public class GMController extends AbstractController {
             ClusterMessage msg = new ClusterMessage(pfMessage);
             clusterClient.write(msg);
             return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    /**
+     * 获取生成结果状态的请求
+     */
+    @RequestMapping(BackendGMCmd.GENERATE_LIB_STATUS)
+    public WebResult<Set<Integer>> generateLibStatus() {
+        log.info("收到查询生成结果状态的请求");
+        try {
+            return success(slotsLibDao.scanAllGenerateLocks());
         } catch (Exception e) {
             log.error("", e);
             return fail("common.exception");
@@ -1043,9 +1060,7 @@ public class GMController extends AbstractController {
     }
 
     /**
-     *
      * 检验玩家信息
-     *
      */
     private boolean checkPlayerInfo(QueryAccountDto dto, Player player, Account account) {
         //检查玩家id
