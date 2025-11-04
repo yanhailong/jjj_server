@@ -71,7 +71,7 @@ public class MinigameMessageHandler {
     public void buy(PlayerController playerController, ReqBuyLuckyTreasure msg) {
         CommonResult<ResBuyLuckyTreasure> result = luckyTreasureService.buyLuckyTreasure(playerController, msg.getIssueNumber(), msg.getCount());
         if (result.code != Code.SUCCESS) {
-            playerController.send(new ResBuyLuckyTreasure(result.code));
+//            playerController.send(new ResBuyLuckyTreasure(result.code));
             log.debug("购买夺宝奇兵道具失败 playerId = {},code = {}",playerController.playerId(), result.code);
         } else {
             playerController.send(result.data);

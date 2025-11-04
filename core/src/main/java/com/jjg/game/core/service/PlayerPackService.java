@@ -476,10 +476,6 @@ public class PlayerPackService implements IPlayerRegister {
             log.debug("使用道具时，添加失败 playerId = {},girdId = {},useItemId = {}", playerId, girdId, useItemId);
             return result;
         }
-
-        if (addResult.success()) {
-            coreLogger.addItems(playerId, addResult.data.getChangeBeforeItemNum(), addItemsMap, addResult.data.getChangeEndItemNum(), addType, "");
-        }
         result.code = Code.SUCCESS;
         result.data = addResult.data;
         return result;

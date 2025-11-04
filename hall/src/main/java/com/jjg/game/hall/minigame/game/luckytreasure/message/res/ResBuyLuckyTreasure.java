@@ -2,9 +2,12 @@ package com.jjg.game.hall.minigame.game.luckytreasure.message.res;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.constant.LuckyTreasureConstant;
+
+import java.util.List;
 
 /**
  * 购买夺宝奇兵道具回复
@@ -41,6 +44,9 @@ public class ResBuyLuckyTreasure extends AbstractResponse {
     @ProtoDesc("当前状态 1=可购买,2=等待开奖,3=待领取,4=已领取,5=领奖结束(中奖未领取),6=未中奖")
     private int status;
 
+    @ProtoDesc("剩余的道具数量")
+    private List<ItemInfo> items;
+
     public ResBuyLuckyTreasure(int code) {
         super(code);
     }
@@ -75,5 +81,13 @@ public class ResBuyLuckyTreasure extends AbstractResponse {
 
     public void setStatus(int status) {
         this.status = status;
+    }
+
+    public List<ItemInfo> getItems() {
+        return items;
+    }
+
+    public void setItems(List<ItemInfo> items) {
+        this.items = items;
     }
 }

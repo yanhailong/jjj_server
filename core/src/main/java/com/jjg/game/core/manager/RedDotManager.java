@@ -101,7 +101,7 @@ public class RedDotManager {
             if (redDots == null) {
                 return Collections.emptyList();
             }
-            log.debug("玩家 {} 的 {} 模块加载了 {} 个红点", playerId, module, redDots.size());
+//            log.debug("玩家 {} 的 {} 模块加载了 {} 个红点", playerId, module, redDots.size());
             return redDots;
         } catch (Exception e) {
             log.error("加载红点数据失败，玩家ID: {}, 模块: {}", playerId, module, e);

@@ -137,6 +137,7 @@ public class ShopMessageHandler {
                 });
             }
             res.productId = shopProduct.getId();
+            res.count = req.count;
             playerController.send(res);
             log.debug("玩家道具购买成功 playerId = {},productId = {},res = {}", playerController.playerId(), req.productId, JSON.toJSONString(res));
         } catch (Exception e) {

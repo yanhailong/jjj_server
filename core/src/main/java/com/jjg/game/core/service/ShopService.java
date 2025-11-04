@@ -104,7 +104,7 @@ public class ShopService implements OrderGenerate, GameEventListener {
             addItemMap = Collections.emptyMap();
         }
 
-        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(), shopProduct.getPayType(), shopProduct.getMoney().longValue() * count, addItemMap, AddType.ITEM_EXCHANGE);
+        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(), shopProduct.getPayType(), shopProduct.getMoney().longValue(), addItemMap, AddType.ITEM_EXCHANGE);
         if (!result.success()) {
             return result;
         }
