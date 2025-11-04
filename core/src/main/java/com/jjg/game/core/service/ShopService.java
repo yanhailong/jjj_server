@@ -26,10 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -99,12 +96,20 @@ public class ShopService implements OrderGenerate, GameEventListener {
         Map<Integer, Long> addItemMap;
         //添加商品
         if (shopProduct.getRewardItems() != null && !shopProduct.getRewardItems().isEmpty()) {
-            addItemMap = shopProduct.getRewardItems();
+            if (count > 1) {
+                addItemMap = new HashMap<>(shopProduct.getRewardItems().size());
+                shopProduct.getRewardItems().forEach((k, v) -> {
+                    addItemMap.put(k, v * count);
+                });
+            } else {
+                addItemMap = shopProduct.getRewardItems();
+            }
         } else {
             addItemMap = Collections.emptyMap();
         }
 
-        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(), shopProduct.getPayType(), shopProduct.getMoney().longValue(), addItemMap, AddType.ITEM_EXCHANGE);
+        long useItemCount = shopProduct.getMoney().longValue() * count;
+        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(), shopProduct.getPayType(), useItemCount, addItemMap, AddType.ITEM_EXCHANGE);
         if (!result.success()) {
             return result;
         }
@@ -223,9 +228,10 @@ public class ShopService implements OrderGenerate, GameEventListener {
 
     /**
      * 处理商城订单
-     * @param player 玩家数据
-     * @param order 订单数据
-     * @param money 实际支付金额
+     *
+     * @param player     玩家数据
+     * @param order      订单数据
+     * @param money      实际支付金额
      * @param regionCode 地区代码
      */
     private void handleShopOrder(Player player, Order order, String money, String regionCode) {
@@ -257,8 +263,9 @@ public class ShopService implements OrderGenerate, GameEventListener {
 
     /**
      * 通知玩家充值成功
-     * @param player 玩家数据
-     * @param order 订单
+     *
+     * @param player       玩家数据
+     * @param order        订单
      * @param itemInfoList 奖励信息
      */
     private void notifyPlayerRechargeCallBack(Player player, Order order, List<ItemInfo> itemInfoList) {
@@ -283,11 +290,6 @@ public class ShopService implements OrderGenerate, GameEventListener {
                 handleShopOrder(player, order, event.getMoney(), event.getRegionCode());
             }
         }
-    }
-
-    @Override
-    public Map<EGameEventType, Object> getSubTypeMap() {
-        return Map.of(EGameEventType.RECHARGE, getRechargeType());
     }
 
     @Override

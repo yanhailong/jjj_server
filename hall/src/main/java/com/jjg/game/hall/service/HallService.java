@@ -564,7 +564,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     addItemsMap.merge(addItemId, en.getValue(), Long::sum);
                 }
 
-                CommonResult<ItemOperationResult> useResult = playerPackService.useItem(player.getId(), girdId, itemId, useItemCount, addItemsMap, AddType.USE_ITEM);
+                CommonResult<ItemOperationResult> useResult = playerPackService.useItem(player.getId(), girdId, itemId, useItemCount, addItemsMap,AddType.USE_ITEM);
                 if (!useResult.success()) {
                     log.debug("使用道具后获得新道具失败 playerId = {},itemId = {}", player.getId(), itemId);
                     result.code = useResult.code;
