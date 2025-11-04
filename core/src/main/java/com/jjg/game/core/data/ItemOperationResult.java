@@ -15,8 +15,12 @@ public class ItemOperationResult {
     private Map<Integer, Long> changeEndItemNum;
     //变化后的金币数量
     private long goldNum;
+    //金币变化值
+    private long changeGoldNum;
     //变化后的钻石数量
     private long diamond;
+    //钻石变化值
+    private long changeDiamondNum;
 
     public Map<Integer, Long> getChangeEndItemNum() {
         return changeEndItemNum;
@@ -48,5 +52,31 @@ public class ItemOperationResult {
 
     public void setDiamond(long diamond) {
         this.diamond = diamond;
+    }
+
+    public long getChangeGoldNum() {
+        return changeGoldNum;
+    }
+
+    public void setChangeGoldNum(long changeGoldNum) {
+        this.changeGoldNum = changeGoldNum;
+    }
+
+    public long getChangeDiamondNum() {
+        return changeDiamondNum;
+    }
+
+    public void setChangeDiamondNum(long changeDiamondNum) {
+        this.changeDiamondNum = changeDiamondNum;
+    }
+
+    public void goldChange(long changeNum,long afterNum) {
+        this.goldNum = afterNum;
+        this.changeGoldNum = changeNum;
+    }
+
+    public void diamondChange(long changeNum,long afterNum) {
+        this.diamond = afterNum;
+        this.changeDiamondNum = changeNum;
     }
 }

@@ -9,6 +9,7 @@ import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.ShopProductDao;
 import com.jjg.game.core.data.*;
@@ -108,10 +109,6 @@ public class ShopService implements OrderGenerate, GameEventListener {
             return result;
         }
 
-        //如果钻石或金币有变化，则要
-        if (result.data.getDiamond() > 0 || result.data.getGoldNum() > 0) {
-            sendMessageManager.buildMoneyChangeMessage(playerController.playerId(), playerService);
-        }
         Account account = accountDao.queryAccountByPlayerId(playerController.playerId());
         coreLogger.shop(playerController.getPlayer(), shopProduct, account.getChannel().getValue());
         return result;

@@ -169,8 +169,8 @@ public interface MessageConst {
 //        int REQ_MARQUEE = BASE_MSG_PREFIX | 0x3;
 //        int RES_MARQUEE = BASE_MSG_PREFIX | 0x4;
 
-        //通知金钱变化
-        int NOTICE_MONEY_CHANGE = BASE_MSG_PREFIX | 0x99;
+        //通知玩家基础信息变化
+        int NOTICE_BASE_INFO_CHANGE = BASE_MSG_PREFIX | 0x99;
         //推送跑马灯
         int NOTICE_MARQUEE = BASE_MSG_PREFIX | 0x9A;
         //停止跑马灯
@@ -207,6 +207,8 @@ public interface MessageConst {
         int REQ_PLAYER_MONEY = BASE_MSG_PREFIX | 0x19;
         //返回预下单
         int RES_PLAYER_MONEY = BASE_MSG_PREFIX | 0x1A;
+        //通知玩家货币变化
+        int NOTIFY_MONEY_CHANGE = BASE_MSG_PREFIX | 0x1B;
     }
 
     interface RoomMessage {

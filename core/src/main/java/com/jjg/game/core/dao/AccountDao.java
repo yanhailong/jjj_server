@@ -138,13 +138,13 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
      * @param channelUserInfo
      * @return
      */
-    public CommonResult<Account> addThirdAccount(LoginType loginType, ChannelUserInfo channelUserInfo) {
+    public CommonResult<Account> addThirdAccount(long playerId, LoginType loginType, ChannelUserInfo channelUserInfo) {
         CommonResult<Account> result = new CommonResult<>(Code.FAIL);
         //要加锁，防止重复绑定
         String lockKey = getBindLockKey(loginType, channelUserInfo.getUserId());
         redisLock.executeWithLock(lockKey, GameConstant.Redis.PER_TRY_TAKE_MILE_TIME * GameConstant.Redis.LOCK_TRY_TIMES, TimeUnit.MILLISECONDS, () -> {
             //查询该账号是否存在
-            Account account = queryThirdAccount(loginType, channelUserInfo.getUserId());
+            Account account = queryAccountByPlayerId(playerId);
             if (account == null) {
                 result.code = Code.NOT_FOUND;
             } else {
@@ -168,7 +168,7 @@ public class AccountDao extends MongoBaseDao<Account, Long> {
      * @param loginType
      * @return
      */
-    public CommonResult<Account> addThirdAccount(long playerId,LoginType loginType, String data) {
+    public CommonResult<Account> addThirdAccount(long playerId, LoginType loginType, String data) {
         CommonResult<Account> result = new CommonResult<>(Code.FAIL);
         //要加锁，防止重复绑定
         String lockKey = getBindLockKey(loginType, data);

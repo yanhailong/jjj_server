@@ -188,7 +188,7 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
             });
             if (change) {
                 //信息变化推送一次
-                sendMessageManager.buildMoneyChangeMessage(newPlayer);
+                sendMessageManager.buildBaseInfoChangeMessage(newPlayer);
             }
         }
     }

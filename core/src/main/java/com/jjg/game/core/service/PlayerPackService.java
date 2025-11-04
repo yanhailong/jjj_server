@@ -120,8 +120,8 @@ public class PlayerPackService implements IPlayerRegister {
                 result.code = goldAndDiamond.code;
                 return result;
             }
-            result.data.setDiamond(goldAndDiamond.data.getDiamond());
-            result.data.setGoldNum(goldAndDiamond.data.getGold());
+            result.data.goldChange(addGold,goldAndDiamond.data.getGold());
+            result.data.diamondChange(addDiamond,goldAndDiamond.data.getDiamond());
         }
 
         if (itemList.isEmpty()) {
@@ -325,8 +325,9 @@ public class PlayerPackService implements IPlayerRegister {
                     result.code = removeResult.code;
                     return result;
                 }
-                result.data.setDiamond(removeResult.data.getDiamond());
-                result.data.setGoldNum(removeResult.data.getGold());
+                result.data.goldChange(-deductGoldV,removeResult.data.getGold());
+                result.data.diamondChange(-deductDiamondV,removeResult.data.getDiamond());
+
                 long finalDeductGoldV = deductGoldV;
                 long finalDeductDiamondV = deductDiamondV;
                 Thread.ofVirtual().start(() -> {

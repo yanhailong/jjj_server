@@ -1,0 +1,19 @@
+package com.jjg.game.core.pb;
+
+import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractNotice;
+import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.proto.ProtobufMessage;
+
+import java.util.List;
+
+/**
+ * @author 11
+ * @date 2025/11/3 16:57
+ */
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE, cmd = MessageConst.CoreMessage.NOTIFY_MONEY_CHANGE, resp = true)
+@ProtoDesc("推送玩家货币变化")
+public class NotifyMoneyChange extends AbstractNotice {
+    @ProtoDesc("货币变化列表")
+    public List<MoneyChangeInfo> moneyChangeInfos;
+}

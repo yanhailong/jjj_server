@@ -30,6 +30,9 @@ public interface BackendGMCmd {
     String SYNC_CAROUSEL = "syncEventImage";
     //生成结果库
     String GENERATE_LIB = "generateLib";
+    //生成结果库的状态
+    String GENERATE_LIB_STATUS = "generateLibStatus";
+
     //保存商品
     String SAVE_SHOP_PRODUCTS = "saveShopProducts";
     //删除商品

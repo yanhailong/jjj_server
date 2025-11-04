@@ -191,7 +191,8 @@ public class AbstractPlayerService {
         //记录日志
         if (player != null) {
             if (isNotify) {
-                sendMessageManager.buildMoneyChangeMessage(player);
+//                sendMessageManager.buildBaseInfoChangeMessage(player);
+                sendMessageManager.buildDiamondChangeMessage(player, addNum);
             }
             //TODO 后期要排除机器人的情况
             coreLogger.useDiamond(player, diamondBeforeUpdate.value, addNum, addType, desc);
@@ -295,7 +296,7 @@ public class AbstractPlayerService {
             result.data = p;
 
             if (isNotify) {
-                sendMessageManager.buildMoneyChangeMessage(p);
+                sendMessageManager.buildMoneyChangeMessage(p, goldNum, diamondNum);
             }
             return result;
         }
@@ -394,7 +395,8 @@ public class AbstractPlayerService {
         //记录日志
         if (player != null) {
             if (isNotify) {
-                sendMessageManager.buildMoneyChangeMessage(player);
+                sendMessageManager.buildDiamondChangeMessage(player, -num);
+//                sendMessageManager.buildBaseInfoChangeMessage(player);
             }
             //TODO 后期要排除机器人的情况
             coreLogger.useDiamond(player, beforeUpdateGold.value, -num, addType, desc);
@@ -621,7 +623,8 @@ public class AbstractPlayerService {
             result.data = p;
             if (isNotify) {
                 // 推送金币变化消息
-                sendMessageManager.buildMoneyChangeMessage(p);
+//                sendMessageManager.buildBaseInfoChangeMessage(p);
+                sendMessageManager.buildGoldChangeMessage(p, addNum);
             }
             return result;
         }
@@ -669,7 +672,8 @@ public class AbstractPlayerService {
             result.data = p;
             if (isNotify) {
                 // 推送金币变化消息
-                sendMessageManager.buildMoneyChangeMessage(p);
+//                sendMessageManager.buildBaseInfoChangeMessage(p);
+                sendMessageManager.buildGoldChangeMessage(p, addNum);
             }
             return result;
         }
@@ -725,7 +729,8 @@ public class AbstractPlayerService {
         if (p != null) {
             if (isNotify) {
                 // 推送金币变化消息
-                sendMessageManager.buildMoneyChangeMessage(p);
+//                sendMessageManager.buildBaseInfoChangeMessage(p);
+                sendMessageManager.buildGoldChangeMessage(p, -num);
             }
             coreLogger.useGold(p, beforeUpdateGold.value, -num, addType, desc);
             result.code = Code.SUCCESS;
@@ -847,7 +852,8 @@ public class AbstractPlayerService {
             }
             if (notify) {
                 // 推送金币变化消息
-                sendMessageManager.buildMoneyChangeMessage(p);
+//                sendMessageManager.buildBaseInfoChangeMessage(p);
+                sendMessageManager.buildMoneyChangeMessage(p, -goldNum, -diamondNum);
             }
             result.code = Code.SUCCESS;
             result.data = p;
@@ -914,7 +920,8 @@ public class AbstractPlayerService {
             result.data = p;
             //是否通知客户端
             if (notify) {
-                sendMessageManager.buildMoneyChangeMessage(p);
+//                sendMessageManager.buildBaseInfoChangeMessage(p);
+                sendMessageManager.buildGoldChangeMessage(p, -num);
             }
             return result;
         }

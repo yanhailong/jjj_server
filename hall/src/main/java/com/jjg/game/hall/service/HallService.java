@@ -328,10 +328,10 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
         boolean update = false;
         if (smsType == VerCodeType.SMS_BIND_PHONE) {
-            CommonResult<Account> accountCommonResult = accountDao.addThirdAccount(playerId,LoginType.PHONE, verResult.data);
+            CommonResult<Account> accountCommonResult = accountDao.addThirdAccount(playerId, LoginType.PHONE, verResult.data);
             if (!accountCommonResult.success()) {
                 result.code = accountCommonResult.code;
-                log.debug("更新到数据库失败，确认验证码失败1 playerId = {},verCodeType = {},verCode = {},failCode = {}", playerId, verCodeType, verCode,accountCommonResult.code);
+                log.debug("更新到数据库失败，确认验证码失败1 playerId = {},verCodeType = {},verCode = {},failCode = {}", playerId, verCodeType, verCode, accountCommonResult.code);
                 return result;
             }
             update = true;
@@ -651,14 +651,18 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     result.code = verifyResult.code;
                     return result;
                 }
-                addResult = accountDao.addThirdAccount(loginType, verifyResult.data);
+                addResult = accountDao.addThirdAccount(playerId, loginType, verifyResult.data);
+
             } else if (loginType == LoginType.FACEBOOK) {
                 CommonResult<FacebookUserInfo> verifyResult = thirdAccountHttpService.verifyFacebookToken(token);
                 if (!verifyResult.success()) {
                     result.code = verifyResult.code;
                     return result;
                 }
-                addResult = accountDao.addThirdAccount(loginType, verifyResult.data);
+
+//                verifyResult.data = new FacebookUserInfo();
+//                verifyResult.data.setUserId(token);
+                addResult = accountDao.addThirdAccount(playerId, loginType, verifyResult.data);
             } else {
                 log.debug("该接口不支持该类型绑定，绑定第三方账号失败 type = {}", type);
                 result.code = Code.FAIL;
@@ -737,7 +741,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         this.defaultNationalId = Integer.parseInt(arr[2]);
         this.defaultTitleId = Integer.parseInt(arr[3]);
         this.defaultChipsId = Integer.parseInt(arr[4]);
-        this.defaultCardBackgroundId= Integer.parseInt(arr[5]);
+        this.defaultCardBackgroundId = Integer.parseInt(arr[5]);
         this.defaultBackgroundId = Integer.parseInt(arr[6]);
     }
 

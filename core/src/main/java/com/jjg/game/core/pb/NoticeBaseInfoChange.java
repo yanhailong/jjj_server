@@ -9,13 +9,9 @@ import com.jjg.game.common.proto.ProtobufMessage;
  * @author 11
  * @date 2025/6/11 17:50
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE, cmd = MessageConst.CoreMessage.NOTICE_MONEY_CHANGE,resp = true)
-@ProtoDesc("推送玩家基础信息变化")
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE, cmd = MessageConst.CoreMessage.NOTICE_BASE_INFO_CHANGE,resp = true)
+@ProtoDesc("推送玩家基础信息变化,排除货币信息")
 public class NoticeBaseInfoChange extends AbstractNotice {
-    @ProtoDesc("金币")
-    public long gold;
-    @ProtoDesc("钻石")
-    public long diamond;
     @ProtoDesc("vip等级")
     public int vipLevel;
     @ProtoDesc("等级")

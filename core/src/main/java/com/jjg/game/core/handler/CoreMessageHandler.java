@@ -12,10 +12,7 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.HttpUtils;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
-import com.jjg.game.core.constant.AddType;
-import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.SubscriptionTopic;
-import com.jjg.game.core.constant.TaskConstant;
+import com.jjg.game.core.constant.*;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.listener.OrderGenerate;
@@ -224,7 +221,18 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setGold(result.data.getGold());
-        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data);
+        //等级等基本信息
+        coreSendMessageManager.buildBaseInfoChangeMessage(playerController, result.data);
+
+        //货币变化信息
+        List<MoneyChangeInfo> moneyChangeInfoList = new ArrayList<>();
+        if (goldNum > 0) {
+            moneyChangeInfoList.add(coreSendMessageManager.buildMoneyChangeInfo(GameConstant.Item.TYPE_GOLD, goldNum, result.data.getGold()));
+        }
+        if (diamongNum > 0) {
+            moneyChangeInfoList.add(coreSendMessageManager.buildMoneyChangeInfo(GameConstant.Item.TYPE_DIAMOND, diamongNum, result.data.getGold()));
+        }
+        coreSendMessageManager.buildMoneyChangeInfoMessage(playerController.getSession(), moneyChangeInfoList);
     }
 
     /**
@@ -245,7 +253,8 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setGold(result.data.getGold());
-        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data);
+//        coreSendMessageManager.buildBaseInfoChangeMessage(playerController, result.data);
+        coreSendMessageManager.buildGoldChangeMessage(playerController.getSession(), num, result.data.getGold());
     }
 
     /**
@@ -266,7 +275,8 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setDiamond(result.data.getDiamond());
-        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data);
+//        coreSendMessageManager.buildBaseInfoChangeMessage(playerController, result.data);
+        coreSendMessageManager.buildDiamondChangeMessage(playerController.getSession(), num, result.data.getDiamond());
     }
 
     /**
@@ -288,7 +298,7 @@ public class CoreMessageHandler {
             return;
         }
         playerController.getPlayer().setVipLevel(result.data.getVipLevel());
-        coreSendMessageManager.buildMoneyChangeMessage(playerController, result.data);
+        coreSendMessageManager.buildBaseInfoChangeMessage(playerController, result.data);
     }
 
     private void addItem(ResGm res, PlayerController playerController, String[] orders) throws Exception {
