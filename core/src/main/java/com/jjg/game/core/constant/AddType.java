@@ -185,6 +185,8 @@ public enum AddType {
 
     //VIP奖励
     VIP_REWARDS(1501),
+    //解散房间时保证金退还
+    BANKER_PREDICATE_BACK(1502),
     ;
 
 
