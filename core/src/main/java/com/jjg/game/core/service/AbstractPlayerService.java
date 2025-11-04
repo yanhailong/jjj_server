@@ -920,7 +920,7 @@ public class AbstractPlayerService {
             result.data = p;
             //是否通知客户端
             if (notify) {
-//                sendMessageManager.buildBaseInfoChangeMessage(p);
+                sendMessageManager.buildBaseInfoChangeMessage(p);
                 sendMessageManager.buildGoldChangeMessage(p, -num);
             }
             return result;
