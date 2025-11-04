@@ -215,7 +215,10 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
             case PlayerEvent event -> {
                 if (event.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
                     targetGift(event.getPlayer());
-                    levelUp(event.getPlayer(), (int) event.getEventChangeValue());
+                    if (event.getNewlyValue() instanceof Integer newLevel &&
+                            event.getEventChangeValue() instanceof Integer oldLevel) {
+                        levelUp(event.getPlayer(), oldLevel, newLevel);
+                    }
                 }
             }
             default -> {
@@ -290,19 +293,21 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
      *
      * @param player 玩家数据
      */
-    private void levelUp(Player player, int oldLevel) {
+    private void levelUp(Player player, int oldLevel, int newLevel) {
         Map<Integer, Long> addItemsMap = new HashMap<>();
-        for (int i = oldLevel + 1; i <= player.getLevel(); i++) {
+        for (int i = oldLevel + 1; i <= newLevel; i++) {
             //获取配置
             PlayerLevelConfigCfg playerLevelConfigCfg = GameDataManager.getPlayerLevelConfigCfg(i);
             if (playerLevelConfigCfg == null) {
                 continue;
             }
             //检查是否有道具配置
-            if (playerLevelConfigCfg.getGetItem() == null || playerLevelConfigCfg.getGetItem().isEmpty()) {
+            if (CollectionUtil.isEmpty(playerLevelConfigCfg.getGetItem())) {
                 continue;
             }
-            addItemsMap.putAll(playerLevelConfigCfg.getGetItem());
+            playerLevelConfigCfg.getGetItem().forEach((key,value)->{
+                addItemsMap.merge(key, value, Long::sum);
+            });
         }
 
         List<ItemInfo> items = null;
@@ -310,10 +315,10 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
             //添加道具
             CommonResult<ItemOperationResult> result = playerPackService.addItems(player.getId(), addItemsMap, AddType.LEVEL_UPGRADE);
             if (!result.success()) {
-                log.warn("玩家升级添加道具失败 playerId = {},level = {},code = {}", player.getId(), player.getLevel(), result.code);
+                log.warn("玩家升级添加道具失败 playerId = {},level = {},code = {}", player.getId(), newLevel, result.code);
             } else {
                 NotifyPlayerLevelUp notify = new NotifyPlayerLevelUp();
-                notify.level = player.getLevel();
+                notify.level = newLevel;
 
                 items = new ArrayList<>();
 
@@ -330,7 +335,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
                 clusterSystem.sendToPlayer(notify, player.getId());
             }
         }
-        activityLogger.level(player, oldLevel, player.getLevel(), items);
+        activityLogger.level(player, oldLevel, newLevel, items);
     }
 
     @Override
@@ -346,6 +351,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
         }
         return cfg.getPay();
     }
+
     @Override
     public Map<EGameEventType, Object> getSubTypeMap() {
         return Map.of(EGameEventType.RECHARGE, getRechargeType());
