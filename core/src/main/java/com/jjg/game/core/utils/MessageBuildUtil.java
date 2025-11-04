@@ -24,6 +24,8 @@ public class MessageBuildUtil {
      */
     public static NoticeBaseInfoChange buildNoticeBaseInfoChange(Player player) {
         NoticeBaseInfoChange notice = new NoticeBaseInfoChange();
+        notice.gold = player.getGold();
+        notice.diamond = player.getDiamond();
         notice.vipLevel = player.getVipLevel();
         notice.level = player.getLevel();
         notice.levelExp = player.getExp();
