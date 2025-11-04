@@ -41,10 +41,10 @@ public class LuckyTreasureStatusUtil {
     public static int calculateStatus(LuckyTreasure treasure, long playerId) {
         long currentTime = System.currentTimeMillis();
 
-        long endTime = treasure.getEndTime();
+
 
         //未结束
-        if (endTime == 0) {
+        if (!treasure.isEnd()) {
             //已经卖完了
             if (treasure.getSoldCount() >= treasure.getConfig().getTotal()) {
                 return STATUS_WAIT_DRAW;
@@ -53,8 +53,9 @@ public class LuckyTreasureStatusUtil {
             }
         }
 
+        long endTime = treasure.getEndTime();
         // 如果还没到结束时间，可以购买
-        if (endTime > 0 && currentTime < endTime) {
+        if (currentTime < endTime) {
             return STATUS_CAN_BUY;
         }
 

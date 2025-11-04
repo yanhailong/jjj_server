@@ -113,7 +113,7 @@ public class CoreSendMessageManager extends BaseSendMessageManager {
         if (session == null) {
             return;
         }
-        buildMoneyChangeMessage(session,GameConstant.Item.TYPE_GOLD, changeValue, player.getDiamond());
+        buildMoneyChangeMessage(session,GameConstant.Item.TYPE_GOLD, changeValue, player.getGold());
     }
 
     /**
