@@ -1,5 +1,6 @@
 package com.jjg.game.room.friendroom;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.utils.TimeHelper;
@@ -200,6 +201,24 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         if (gameController.getGameState() == EGameState.INIT_DONE) {
             log.info("房间处于未开启状态，直接解散");
             gameDestroy(true, true);
+            bankerPredicateBack();
+        }
+    }
+
+    /**
+     * 好友房解散时退还保证金
+     */
+    private void bankerPredicateBack() {
+        //退还保证金
+        LinkedHashMap<Long, Long> bankerPredicateMap = room.getBankerPredicateMap();
+        if (CollectionUtil.isNotEmpty(bankerPredicateMap)) {
+            for (Map.Entry<Long, Long> entry : bankerPredicateMap.entrySet()) {
+                if (entry.getValue() <= 0) {
+                    continue;
+                }
+                gameController.addItem(entry.getKey(), entry.getValue(), AddType.BANKER_PREDICATE_BACK, "", true);
+                log.info("房间解散playerId:{} 退还保证金:{}", entry.getKey(), entry.getValue());
+            }
         }
     }
 
