@@ -1,8 +1,11 @@
 package com.jjg.game.sampledata.bean;
 
-import javax.annotation.processing.Generated;
+import java.util.*;
 import java.math.BigDecimal;
-import java.util.Map;
+
+
+
+import javax.annotation.processing.Generated;
 /**
  * 配置bean
  *
