@@ -911,7 +911,6 @@ public class AbstractPlayerService {
         if (p != null) {
             // 升级需要抛升级事件
             if (beforeLevel.value != p.getLevel()) {
-                sendMessageManager.buildBaseInfoChangeMessage(p);
                 gameEventManager.triggerEvent(
                         new PlayerEvent(p, EGameEventType.PLAYER_LEVEL, beforeLevel.value, p.getLevel()));
             }

@@ -20,6 +20,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.OrderGenerate;
+import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.pb.NotifyPlayerLevelUp;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.ReqGenerateOrder;
@@ -51,17 +52,19 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
     private final ClusterSystem clusterSystem;
     private final PlayerPackService playerPackService;
     private final ActivityLogger activityLogger;
+    private final CoreSendMessageManager coreSendMessageManager;
 
     //redis持有锁时间
     private final int REDIS_LOCK_TIME = 200;
 
     public PlayerLevelPackManager(RedisLock redisLock, PlayerLevelDao playerLevelDao, ClusterSystem clusterSystem,
-                                  PlayerPackService playerPackService, ActivityLogger activityLogger) {
+                                  PlayerPackService playerPackService, ActivityLogger activityLogger, CoreSendMessageManager coreSendMessageManager) {
         this.redisLock = redisLock;
         this.playerLevelDao = playerLevelDao;
         this.clusterSystem = clusterSystem;
         this.playerPackService = playerPackService;
         this.activityLogger = activityLogger;
+        this.coreSendMessageManager = coreSendMessageManager;
     }
 
     /**
@@ -335,6 +338,8 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
                 clusterSystem.sendToPlayer(notify, player.getId());
             }
         }
+
+        coreSendMessageManager.buildBaseInfoChangeMessage(player);
         activityLogger.level(player, oldLevel, newLevel, items);
     }
 
