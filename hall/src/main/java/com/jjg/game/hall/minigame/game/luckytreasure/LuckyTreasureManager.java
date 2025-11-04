@@ -198,7 +198,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         if (activeTreasure == null) {
             return false;
         }
-        if (activeTreasure.getEndTime() > 0) {
+        if (activeTreasure.isEnd()) {
             return false;
         }
         LuckyTreasureConfig config = activeTreasure.getConfig();
@@ -477,7 +477,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         // 设置时间信息
         long now = System.currentTimeMillis();
         round.setStartTime(now);
-        round.setEndTime(0); // 初始为0，表示未结束
+        round.setEndTime(calculateEndTimeMillis(now,config.getTime()));
         // 初始化购买数据
         round.setBuyMap(new HashMap<>());
         return round;
@@ -579,15 +579,15 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         redisLock.tryLockAndRun(lockKey, () -> {
             // 从数据库获取活动数据
             LuckyTreasure round = luckyTreasureDao.findById(issueNumber).orElse(null);
-            if (round == null || round.getEndTime() > 0) {
+            if (round == null || round.isEnd()) {
                 return;
             }
 
             // 进行开奖
             reward(round);
 
-            // 更新结束时间
-            round.setEndTime(System.currentTimeMillis());
+            //结束标记
+            round.setEnd(true);
             luckyTreasureDao.save(round);
 
             LuckyTreasureConfig luckyTreasureConfig = round.getConfig();
@@ -623,7 +623,11 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * 计算活动实际结束时间（毫秒）
      */
     private long calculateEndTimeMillis(LuckyTreasure luckyTreasure) {
-        return luckyTreasure.getStartTime() + TimeUnit.MINUTES.toMillis(luckyTreasure.getConfig().getTime());
+        return calculateEndTimeMillis(luckyTreasure.getStartTime(),luckyTreasure.getConfig().getTime());
+    }
+
+    private long calculateEndTimeMillis(long startTime,long time) {
+        return startTime + TimeUnit.MINUTES.toMillis(time);
     }
 
     /**
