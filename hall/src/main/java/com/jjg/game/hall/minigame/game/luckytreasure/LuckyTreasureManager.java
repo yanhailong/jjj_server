@@ -267,7 +267,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         try {
             // 获取写锁进行购买操作
             RLock writeLock = redisLock.getWriteLock(lockKey, 100);
-            if (writeLock != null && writeLock.tryLock()) {
+            if (writeLock != null) {
                 try {
                     //在写锁中重新获取最新数据
                     LuckyTreasure latestTreasure = luckyTreasureRedisDao.getTreasureByIssueNumber(issueNumber);

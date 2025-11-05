@@ -22,6 +22,8 @@ public class ResBuyProduct extends AbstractResponse {
     public long productId;
     @ProtoDesc("添加的道具信息，如果是道具兑换类，则返回添加成功的道具")
     public List<ItemInfo> items;
+    @ProtoDesc("购买的数量")
+    public int count;
 
     public ResBuyProduct(int code) {
         super(code);

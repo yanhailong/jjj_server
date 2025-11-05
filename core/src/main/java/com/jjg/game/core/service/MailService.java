@@ -248,7 +248,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess {
      */
     public void addCfgMail(long playerId, int mailCfgId) {
         MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), new ArrayList<>(), new ArrayList<>());
+        addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), Collections.emptyList(), Collections.emptyList());
     }
 
     /**
@@ -256,7 +256,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess {
      */
     public void addCfgMail(long playerId, int mailCfgId, List<Item> items) {
         MailCfg mailCfg = GameDataManager.getMailCfg(mailCfgId);
-        addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, new ArrayList<>());
+        addCfgMail(playerId, mailCfg.getTitle(), mailCfg.getText(), items, Collections.emptyList());
     }
 
 

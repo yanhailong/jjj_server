@@ -3,6 +3,7 @@ package com.jjg.game.hall.minigame.game.luckytreasure.service;
 import cn.hutool.core.collection.ConcurrentHashSet;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.NodeType;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.redis.RedisLock;
@@ -10,10 +11,7 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.core.config.bean.LuckyTreasureConfig;
-import com.jjg.game.core.constant.AddType;
-import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.LuckyTreasureConstant;
-import com.jjg.game.core.constant.SubscriptionTopic;
+import com.jjg.game.core.constant.*;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureDao;
 import com.jjg.game.core.dao.luckytreasure.LuckyTreasureRedisDao;
 import com.jjg.game.core.data.*;
@@ -27,6 +25,8 @@ import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureI
 import com.jjg.game.hall.minigame.game.luckytreasure.message.bean.LuckyTreasureUpdateInfo;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.res.*;
 import com.jjg.game.hall.minigame.game.luckytreasure.util.LuckyTreasureStatusUtil;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ItemCfg;
 import org.redisson.api.RLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -210,7 +210,8 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             // 购买数量无效
             if (count <= 0) {
                 TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, 50031);
-                result.code = Code.FAIL;
+                result.code = Code.PARAM_ERROR;
+                log.debug("购买数量无效,购买夺宝奇兵道具失败 playerId = {},count = {}", player.getId(), count);
                 return result;
             }
 
@@ -218,14 +219,17 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             LuckyTreasure treasure = luckyTreasureRedisDao.getTreasureByIssueNumber(issueNumber);
             if (treasure == null) {
                 TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, 50031);
-                result.code = Code.FAIL;
+                result.code = Code.NOT_FOUND;
+                log.debug("获取夺宝奇兵的数据失败,购买夺宝奇兵道具失败 playerId = {},issueNumber = {}", player.getId(), issueNumber);
                 return result;
             }
 
             // 检查活动状态
-            if (LuckyTreasureStatusUtil.calculateStatus(treasure, player.getId()) != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
+            int status = LuckyTreasureStatusUtil.calculateStatus(treasure, player.getId());
+            if (status != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
                 TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, 50031);
                 result.code = Code.FAIL;
+                log.debug("该活动状态错误,购买夺宝奇兵道具失败 playerId = {},issueNumber = {},status = {}", player.getId(), issueNumber, status);
                 return result;
             }
 
@@ -234,6 +238,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             if (remainingCount < count) {
                 TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, 50032);
                 result.code = Code.FAIL;
+                log.debug("剩余数量不足,购买夺宝奇兵道具失败 playerId = {},issueNumber = {},remainingCount = {}", player.getId(), issueNumber, remainingCount);
                 return result;
             }
 
@@ -250,17 +255,14 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             // 使用读写锁确保购买的一致性
             String lockKey = LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_BUY + issueNumber;
 
+            RLock writeLock = null;
             try {
                 // 获取写锁进行购买操作
-                RLock writeLock = redisLock.getWriteLock(lockKey, 100);
+                writeLock = redisLock.getWriteLock(lockKey, 100);
                 if (writeLock == null) {
                     result.code = Code.FAIL;
                     TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, 50028);
-                    return result;
-                }
-                if (!writeLock.tryLock()) {
-                    TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, 50028);
-                    result.code = Code.FAIL;
+                    log.debug("加锁失败,购买夺宝奇兵道具失败 playerId = {},issueNumber = {}", player.getId(), issueNumber);
                     return result;
                 }
                 // 先扣除玩家道具
@@ -268,34 +270,59 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                 if (!deductResult.success()) {
                     TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, 50028);
                     result.code = Code.FAIL;
+                    log.debug("扣除道具失败,购买夺宝奇兵道具失败 playerId = {},issueNumber = {},consumeMap = {}", player.getId(), issueNumber, consumeMap);
                     return result;
                 }
 
-                try {
-                    //在写锁中重新获取最新数据
-                    LuckyTreasure latestTreasure = luckyTreasureRedisDao.getTreasureByIssueNumber(issueNumber);
-                    int resultCode = executeBuyWithLock(player, latestTreasure, count, consumeMap);
-                    if (resultCode != Code.SUCCESS) {
-                        result.code = resultCode;
-                    } else {
-                        // 返回成功结果
-                        ResBuyLuckyTreasure response = new ResBuyLuckyTreasure(Code.SUCCESS);
-                        response.setIssueNumber(latestTreasure.getIssueNumber());
-                        response.setBuyCount(count);
-                        response.setRemainingCount(remainingCount - count);
-                        response.setStatus(LuckyTreasureStatusUtil.calculateStatus(latestTreasure, player.getId()));
-                        result.data = response;
-                        //购买成功通知更新 广播到所有节点
-                        broadcastUpdate(latestTreasure.getIssueNumber());
+                //在写锁中重新获取最新数据
+                LuckyTreasure latestTreasure = luckyTreasureRedisDao.getTreasureByIssueNumber(issueNumber);
+                int resultCode = executeBuyWithLock(player, latestTreasure, count, consumeMap);
+                if (resultCode != Code.SUCCESS) {
+                    result.code = resultCode;
+                } else {
+                    // 返回成功结果
+                    ResBuyLuckyTreasure response = new ResBuyLuckyTreasure(Code.SUCCESS);
+                    response.setIssueNumber(latestTreasure.getIssueNumber());
+                    response.setBuyCount(count);
+                    response.setRemainingCount(remainingCount - count);
+                    response.setStatus(LuckyTreasureStatusUtil.calculateStatus(latestTreasure, player.getId()));
+
+                    List<ItemInfo> itemInfos = new ArrayList<>();
+                    for(Map.Entry<Integer, Long> en : consumeMap.entrySet()){
+                        int itemId = en.getKey();
+                        ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
+                        if(itemCfg == null){
+                            continue;
+                        }
+
+                        ItemInfo itemInfo = new ItemInfo();
+                        itemInfo.itemId = itemId;
+                        if(itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND){
+                            itemInfo.count = deductResult.data.getDiamond();
+                        }else if(itemCfg.getType() == GameConstant.Item.TYPE_GOLD){
+                            itemInfo.count = deductResult.data.getGoldNum();
+                        }else {
+                            Long num = deductResult.data.getChangeEndItemNum().get(en.getKey());
+                            if(num != null){
+                                itemInfo.count = num;
+                            }
+                        }
+                        itemInfos.add(itemInfo);
                     }
-                    return result;
-                } finally {
-                    writeLock.unlock();
+                    response.setItems(itemInfos);
+                    result.data = response;
+                    //购买成功通知更新 广播到所有节点
+                    broadcastUpdate(latestTreasure.getIssueNumber());
                 }
+                return result;
             } catch (Exception e) {
                 // 发生异常，退还道具
                 playerPackService.addItems(player.getId(), consumeMap, AddType.LUCKY_TREASURE_BUY_EXCEPTION_ROLL_BACK);
                 throw e;
+            } finally {
+                if(writeLock != null){
+                    writeLock.unlock();
+                }
             }
         } catch (Exception e) {
             log.error("购买夺宝奇兵失败, 玩家ID:{}, 期号:{}, 数量:{}",
@@ -311,10 +338,20 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
      */
     private int executeBuyWithLock(Player player, LuckyTreasure latestTreasure, int count, Map<Integer, Long> consumeMap) {
         try {
-            if (latestTreasure == null || LuckyTreasureStatusUtil.calculateStatus(latestTreasure, player.getId()) != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
+            if (latestTreasure == null) {
                 // 活动状态已变更，退还道具
                 playerPackService.addItems(player.getId(), consumeMap, AddType.LUCKY_TREASURE_BUY_STATUSCHANGED_ROLL_BACK);
                 TipUtils.sendTip(player.getId(), TipUtils.TipType.TOAST, 50031);
+                log.debug("latestTreasure为空，购买夺宝奇兵道具失败11 playerId = {}", player.getId());
+                return Code.FAIL;
+            }
+
+            int status = LuckyTreasureStatusUtil.calculateStatus(latestTreasure, player.getId());
+            if (status != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
+                // 活动状态已变更，退还道具
+                playerPackService.addItems(player.getId(), consumeMap, AddType.LUCKY_TREASURE_BUY_STATUSCHANGED_ROLL_BACK);
+                TipUtils.sendTip(player.getId(), TipUtils.TipType.TOAST, 50031);
+                log.debug("状态错误，购买夺宝奇兵道具失败11 playerId = {},status = {}", player.getId(), status);
                 return Code.FAIL;
             }
 
@@ -324,6 +361,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                 // 剩余数量不足，退还道具
                 playerPackService.addItems(player.getId(), consumeMap, AddType.LUCKY_TREASURE_BUY_NOT_ENOUGH_ROLLBACK);
                 TipUtils.sendTip(player.getId(), TipUtils.TipType.TOAST, 50032);
+                log.debug("剩余数量不足，购买夺宝奇兵道具失败11 playerId = {},remainingCount = {},count = {}", player.getId(), remainingCount, count);
                 return Code.FAIL;
             }
 
@@ -334,6 +372,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                 // 购买失败，退还道具
                 playerPackService.addItems(player.getId(), consumeMap, AddType.LUCKY_TREASURE_BUY_FAILED_ROLLBACK);
                 TipUtils.sendTip(player.getId(), TipUtils.TipType.TOAST, 50030);
+                log.debug("购买失败，购买夺宝奇兵道具失败11 playerId = {}", player.getId());
                 return Code.FAIL;
             }
 

@@ -975,17 +975,6 @@ public class HallMessageHandler implements GmListener {
                 playerController.send(res);
                 return;
             }
-
-            if (result.data != null && !result.data.isEmpty()) {
-                List<ItemInfo> items = new ArrayList<>();
-                for (Item i : result.data) {
-                    ItemInfo info = new ItemInfo();
-                    info.itemId = i.getId();
-                    info.count = i.getItemCount();
-                    items.add(info);
-                }
-                res.items = items;
-            }
             log.debug("账号绑定成功 type = {},res = {}", req.type, JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);

@@ -160,8 +160,8 @@ public class RedisLock {
         }
         RReadWriteLock rReadWriteLock = redissonClient.getReadWriteLock(getKey(keyName));
         RLock rLock = rReadWriteLock.writeLock();
-        rLock.tryLock(writeWaitTime, TimeUnit.MILLISECONDS);
-        return rLock;
+        boolean lock = rLock.tryLock(writeWaitTime, TimeUnit.MILLISECONDS);
+        return lock ? rLock : null;
     }
 
     /**
