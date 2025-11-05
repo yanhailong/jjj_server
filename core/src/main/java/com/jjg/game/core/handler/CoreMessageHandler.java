@@ -13,6 +13,7 @@ import com.jjg.game.common.utils.HttpUtils;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.*;
+import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.core.listener.OrderGenerate;
@@ -70,7 +71,8 @@ public class CoreMessageHandler {
     private OrderService orderService;
     @Autowired
     private TaskManager taskManager;
-
+    @Autowired
+    private CountDao countDao;
     /**
      *
      */
@@ -169,7 +171,10 @@ public class CoreMessageHandler {
                     param.setAddValue(1001);
                     return param;
                 };
+
                 long playerId = playerController.getPlayer().getId();
+                countDao.incrBy(CountDao.CountType.RECHARGE.getParam(), String.valueOf(playerId), order.getPrice());
+
                 //单笔充值任务
                 taskManager.trigger(playerId, TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
                 //累计充值任务

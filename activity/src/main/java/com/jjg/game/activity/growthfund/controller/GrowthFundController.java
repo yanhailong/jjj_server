@@ -70,7 +70,7 @@ public class GrowthFundController extends BaseActivityController implements Game
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
         long playerId = player.getId();
         long activityId = activityData.getId();
-        BigDecimal decimal = countDao.incr(String.valueOf(activityId), String.valueOf(playerId));
+        BigDecimal decimal = countDao.incr(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(activityId), String.valueOf(playerId));
         if (decimal.intValue() > 1) {
             log.error("玩家已经购买过成长基金 playerId:{} activityId:{}", playerId, activityId);
             return new ResGrowthFundBuyResultInfo(Code.REPEAT_OP);
@@ -175,7 +175,7 @@ public class GrowthFundController extends BaseActivityController implements Game
             if (playerActivityData.size() == baseCfgBeanMap.size()) {
                 return false;
             }
-            long count = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player.getId())).longValue();
+            long count = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(activityId), String.valueOf(player.getId())).longValue();
             String lockKey = playerActivityDao.getLockKey(playerId, activityId);
             redisLock.lock(lockKey, ActivityConstant.Common.REDIS_LOCK);
             try {
@@ -354,7 +354,7 @@ public class GrowthFundController extends BaseActivityController implements Game
                 if (CollectionUtil.isNotEmpty(activityData.getChannelCommodity())) {
                     activityInfo.productId = activityData.getChannelCommodity().get(player.getChannel().getValue());
                 }
-                activityInfo.isBuy = countDao.getCount(String.valueOf(activityData.getId()), String.valueOf(player.getId())).longValue() > 0;
+                activityInfo.isBuy = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(activityData.getId()), String.valueOf(player.getId())).longValue() > 0;
                 activityInfo.buyGetItems = ItemUtils.buildItemInfo(getBuyGetRewards(activityData));
             }
         }

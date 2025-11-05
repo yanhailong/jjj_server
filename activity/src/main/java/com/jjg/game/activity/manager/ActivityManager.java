@@ -23,7 +23,6 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.base.condition.ConditionType;
 import com.jjg.game.core.base.condition.check.record.PlayerEffectiveParam;
 import com.jjg.game.core.base.gameevent.*;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
@@ -44,6 +43,7 @@ import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.ActivityItemDropInfo;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.utils.MessageBuildUtil;
+import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ActivityConfigCfg;
 import com.jjg.game.sampledata.bean.DropConfigCfg;
@@ -611,6 +611,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     @Override
     public <T extends GameEvent> void handleEvent(T gameEvent) {
         switch (gameEvent) {
+            case PlayerEventCategory.PlayerRechargeEvent event -> {
+                addPlayerActivityProgress(event.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), RedisUtils.toLong(event.getOrder().getPrice()), null);
+            }
             case PlayerEvent playerEvent -> {
                 if (playerEvent.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
                     Player player = playerEvent.getPlayer();
@@ -693,7 +696,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     @Override
     public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.PLAYER_LEVEL, EGameEventType.CLOCK_EVENT);
+        return List.of(EGameEventType.PLAYER_LEVEL, EGameEventType.CLOCK_EVENT, EGameEventType.RECHARGE);
     }
 
     @Override
@@ -750,7 +753,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * @param time       时间
      */
     public final boolean addActivityStatusChangeCount(long activityId, long time) {
-        return countDao.setIfAbsent("activity:status:%s".formatted(activityId), String.valueOf(time));
+        return countDao.setIfAbsent(CountDao.CountType.ACTIVITY_STATUS.getParam().formatted(activityId), String.valueOf(time));
     }
 
     /**
@@ -833,7 +836,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     continue;
                 }
                 //每个活动单独计数
-                effectiveParam.setFunction(ConditionType.FunctionType.ACTIVITY.getParam().formatted(activityData.getId()));
+                effectiveParam.setFunction(CountDao.CountType.ACTIVITY_CONDITIONS.getParam().formatted(activityData.getId()));
                 long triggerTimes = Long.MAX_VALUE;
                 for (String condition : dropCondition) {
                     triggerTimes = Math.min(triggerTimes, conditionManager.addProgressAndGetAchievements(player, effectiveParam, condition, false).longValue());

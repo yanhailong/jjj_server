@@ -351,7 +351,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
     public void onActivityStart(ActivityData activityData) {
         long activityId = activityData.getId();
         Map<Integer, CashcowCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
-        BigDecimal decimal = countDao.incr("activity", "CashCowRound");
+        BigDecimal decimal = countDao.incr(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(activityData.getId()), "CashCowRound");
         activityData.setRound(decimal.longValue());
         // 初始化摇钱树活动（首次开活动 round==0）
         if (activityData.getRound() == 1) {

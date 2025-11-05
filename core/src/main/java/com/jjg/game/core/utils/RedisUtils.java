@@ -6,6 +6,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,5 +42,26 @@ public class RedisUtils {
             }
             return null;
         });
+    }
+
+    /**
+     * 保留两位小数计算
+     * @param value 要转换的值
+     * @return 转换后的值
+     */
+    // ---------- 工具 ----------
+    public static long toLong(BigDecimal value) {
+        return value.setScale(2, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .longValue();
+    }
+
+    /**
+     * 把值转为带小数的值
+     * @param value 转换的值
+     * @return 带两位小数的值
+     */
+    public static BigDecimal fromLong(long value) {
+        return BigDecimal.valueOf(value).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
 }

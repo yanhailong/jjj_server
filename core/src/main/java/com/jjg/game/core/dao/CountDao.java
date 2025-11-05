@@ -1,13 +1,13 @@
 package com.jjg.game.core.dao;
 
+import com.jjg.game.core.utils.RedisUtils;
 import org.redisson.api.RAtomicLong;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.Collections;
+import java.util.*;
 
 /**
  * 通用计数DAO
@@ -28,17 +28,6 @@ public class CountDao {
         return String.format(TABLE_NAME, featureId, customId);
     }
 
-    // ---------- 工具 ----------
-    private long toLong(BigDecimal value) {
-        return value.setScale(2, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100))
-                .longValue();
-    }
-
-    private BigDecimal fromLong(long value) {
-        return BigDecimal.valueOf(value).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-    }
-
     /**
      * 设置计数（保留两位小数）
      * @param featureId 功能ID
@@ -47,7 +36,7 @@ public class CountDao {
      */
     public void setCount(String featureId, String customId, BigDecimal count) {
         RAtomicLong atomicLong = redissonClient.getAtomicLong(getKey(featureId, customId));
-        atomicLong.set(toLong(count));
+        atomicLong.set(RedisUtils.toLong(count));
     }
 
     /**
@@ -59,7 +48,7 @@ public class CountDao {
      */
     public void setCount(String featureId, String customId, BigDecimal count, long expireSeconds) {
         String key = getKey(featureId, customId);
-        long value = toLong(count);
+        long value = RedisUtils.toLong(count);
         String lua = """
                 redis.call('SET', KEYS[1], ARGV[1])
                 redis.call('EXPIRE', KEYS[1], ARGV[2])
@@ -81,7 +70,7 @@ public class CountDao {
     public BigDecimal getCount(String featureId, String customId) {
         String key = getKey(featureId, customId);
         long val = redissonClient.getAtomicLong(key).get();
-        return fromLong(val);
+        return RedisUtils.fromLong(val);
     }
 
     /**
@@ -93,9 +82,9 @@ public class CountDao {
      */
     public BigDecimal incrBy(String featureId, String customId, BigDecimal delta) {
         String key = getKey(featureId, customId);
-        long deltaLong = toLong(delta);
+        long deltaLong = RedisUtils.toLong(delta);
         long newVal = redissonClient.getAtomicLong(key).addAndGet(deltaLong);
-        return fromLong(newVal);
+        return RedisUtils.fromLong(newVal);
     }
 
     /**
@@ -137,5 +126,70 @@ public class CountDao {
         return redissonClient.getAtomicLong(getKey(featureId, customId)).compareAndSet(0, 1);
     }
 
+    /**
+     * 获取多个
+     * @param featureId 功能id
+     * @param customIds 功能子id集合
+     * @return
+     */
+    public Map<String, BigDecimal> getCounts(String featureId, List<String> customIds) {
+        if (customIds == null || customIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
 
+        // 拼接 Redis key
+        List<String> keys = customIds.stream()
+                .map(customId -> getKey(featureId, customId))
+                .toList();
+        List<Object> objectKeys = new ArrayList<>(keys);
+        // Lua 一次性批量获取
+        // Lua: 获取并尝试转换为 number，缺失则返回 0
+        String lua = """
+            local res = {}
+            for i, k in ipairs(KEYS) do
+                local v = redis.call('GET', k)
+                if not v then
+                    table.insert(res, 0)
+                else
+                    table.insert(res, tonumber(v))
+                end
+            end
+            return res
+            """;
+
+        List<Long> values = redissonClient.getScript()
+                .eval(RScript.Mode.READ_ONLY, lua, RScript.ReturnType.MULTI, objectKeys);
+
+        Map<String, BigDecimal> result = new HashMap<>();
+        for (int i = 0; i < customIds.size(); i++) {
+            long v = values.get(i) == null ? 0L : values.get(i);
+            result.put(customIds.get(i), RedisUtils.fromLong(v));
+        }
+        return result;
+    }
+
+    /**
+     * 条件功能枚举
+     */
+    public enum CountType {
+        //活动掉落计数
+        ACTIVITY_CONDITIONS("activity:%s"),
+        //我的赌场掉落计数
+        MY_CASINO("myCasino"),
+        //活动状态
+        ACTIVITY_STATUS("activity:status:%s"),
+        //活动计数
+        ACTIVITY_COUNT("activity:count:%s"),
+        //充值计数
+        RECHARGE("recharge"),;
+        private final String param;
+
+        CountType(String param) {
+            this.param = param;
+        }
+
+        public String getParam() {
+            return param;
+        }
+    }
 }

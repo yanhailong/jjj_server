@@ -97,22 +97,4 @@ public enum ConditionType {
         }
     }
 
-    /**
-     * 条件功能枚举
-     */
-    public enum FunctionType {
-        //活动
-        ACTIVITY("activity:%s"),
-        MY_CASINO("myCasino");
-
-        private final String param;
-
-        FunctionType(String param) {
-            this.param = param;
-        }
-
-        public String getParam() {
-            return param;
-        }
-    }
 }

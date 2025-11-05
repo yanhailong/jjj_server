@@ -220,13 +220,22 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                 long gainGold =
                         (long) (room.getPredictCostGoldNum() * (Math.max(0, Math.min(gainRatio, 10000)) / 10000.0));
                 log.info("房间：{} 销毁返回准备金币：{} {}", room.logStr(), gainGold, room.getPredictCostGoldNum());
-                roomManager.getPlayerPackService().addItem(
-                        room.getCreator(),
-                        gameTransactionItemId,
-                        gainGold,
-                        AddType.FRIEND_ROOM_DISBAND_REBACK_GOLD);
+                sendDisbandRoomBack(gameTransactionItemId, gainGold);
             }
         }
+    }
+
+    /**
+     * 发送销毁房间是返回保证金
+     * @param gameTransactionItemId 房间货币id
+     * @param gainGold 返回金额
+     */
+    private void sendDisbandRoomBack(int gameTransactionItemId, long gainGold) {
+        List<LanguageParamData> params = new ArrayList<>(2);
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(room.getRoomCfgId());
+        params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
+        params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
+        roomManager.getMailService().addCfgMail(room.getCreator(), 35, List.of(new Item(gameTransactionItemId, gainGold)), params);
     }
 
     /**
