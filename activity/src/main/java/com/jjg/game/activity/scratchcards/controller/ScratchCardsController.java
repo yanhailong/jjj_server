@@ -239,7 +239,7 @@ public class ScratchCardsController extends BaseActivityController implements Ga
             }
             res.itemInfos = ItemUtils.buildItemInfo(cfg.getGetitem());
             // 日志记录
-            activityLogger.sendActivityGift(player, activityData, addItems.data, cfg.getGetitem(), giftId);
+            activityLogger.sendActivityGift(player, activityData, addItems.data, cfg.getGetitem(), cfg.getCost(), giftId);
             activityManager.sendToPlayer(playerId, res);
         }
     }
