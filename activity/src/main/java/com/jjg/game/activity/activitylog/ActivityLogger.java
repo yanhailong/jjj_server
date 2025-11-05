@@ -15,6 +15,7 @@ import com.jjg.game.sampledata.bean.PlayerLevelPackCfg;
 import com.jjg.game.sampledata.bean.PrivilegeCardCfg;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -180,10 +181,11 @@ public class ActivityLogger extends BaseLogger {
     /**
      * 礼包获得日志
      */
-    public void sendActivityGift(Player player, ActivityData activityData, ItemOperationResult result, Map<Integer, Long> rewards, int detailId) {
+    public void sendActivityGift(Player player, ActivityData activityData, ItemOperationResult result, Map<Integer, Long> rewards, BigDecimal cost, int detailId) {
         try {
             JSONObject json = buildBaseInfo(activityData, detailId);
             json.put("rewards", objectMapper.writeValueAsString(rewards));
+            json.put("cost", cost.toPlainString());
             json.put("operation", "gift");
             json.put("rewardsItemNum", objectMapper.writeValueAsString(result));
             sendLog(TOPIC, player, json);
