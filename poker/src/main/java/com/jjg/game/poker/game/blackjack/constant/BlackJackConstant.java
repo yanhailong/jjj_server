@@ -43,5 +43,9 @@ public interface BlackJackConstant {
         int NOTIFY_BLACKJACK_STOP_CARD = BASE_MSG_PREFIX | 0x11;
         //通知玩家开局结算
         int NOTIFY_BLACKJACK_SPECIAL_SETTLEMENT = BASE_MSG_PREFIX | 0x12;
+        //21点续押
+        int REQ_BLACKJACK_CONTINUED_DEPOSIT = BASE_MSG_PREFIX | 0x13;
+        //通知21点续押
+        int NOTIFY_BLACKJACK_CONTINUED_DEPOSIT = BASE_MSG_PREFIX | 0x14;
     }
 }

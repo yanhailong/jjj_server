@@ -31,12 +31,11 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BaseCfgBean;
-import com.jjg.game.sampledata.bean.CashcowCfg;
-import com.jjg.game.sampledata.bean.GlobalConfigCfg;
-import com.jjg.game.sampledata.bean.RobotCfg;
+import com.jjg.game.sampledata.bean.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,11 +83,17 @@ public class CashCowController extends BaseActivityController implements TimerLi
     private final ReentrantLock reentrantLock = new ReentrantLock();
     //期数用
     private final CountDao countDao;
+    //玩家dao
+    private final CorePlayerService corePlayerService;
+    //邮件服务
+    private final MailService mailService;
 
-    public CashCowController(CashCowDao cashCowDao, TimerCenter timerCenter, CountDao countDao) {
+    public CashCowController(CashCowDao cashCowDao, TimerCenter timerCenter, CountDao countDao, CorePlayerService corePlayerService, MailService mailService) {
         this.cashCowDao = cashCowDao;
         this.timerCenter = timerCenter;
         this.countDao = countDao;
+        this.corePlayerService = corePlayerService;
+        this.mailService = mailService;
         // 使用并发 Map 以保证在并发环境下对 timerMap 的安全访问
         timerMap = new ConcurrentHashMap<>();
     }
@@ -286,6 +291,10 @@ public class CashCowController extends BaseActivityController implements TimerLi
             // 业务日志：记录玩家参加并扣除/发放的明细（异步/日志落库）
             activityLogger.sendCashCowJoinLog(player, activityData, detailId
                     , cfg.getType(), cfg.getNeedItem(), removed.data, get, addedItem == null ? null : addedItem.data);
+            //vip特权
+            if (get > 0) {
+                vipPrivilegedAdd(playerId, get);
+            }
             // 构建返回数据
             res.activityId = activityId;
             res.detailId = detailId;
@@ -301,6 +310,34 @@ public class CashCowController extends BaseActivityController implements TimerLi
             log.error("玩家参加摇钱树  出现异常 playerId:{} activityId:{} detailId:{}", playerId, activityId, detailId, e);
         }
         return res;
+    }
+
+    /**
+     * vip特权加成
+     * @param playerId 玩家id
+     * @param get 获取金币数
+     */
+    private void vipPrivilegedAdd(long playerId, long get) {
+        Player newPlayer = corePlayerService.get(playerId);
+        ViplevelCfg viplevelCfg = GameDataManager.getViplevelCfgList().stream()
+                .filter(vipCfg -> vipCfg.getViplevel() == newPlayer.getVipLevel())
+                .findFirst().orElse(null);
+        if (viplevelCfg != null) {
+            Integer add = viplevelCfg.getPrivilegedFunctions().getOrDefault(1, 0);
+            if (add > 0) {
+                long addValue = BigDecimal.valueOf(get)
+                        .multiply(BigDecimal.valueOf(add))
+                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
+                        .longValue();
+                if (addValue > 0) {
+                    List<LanguageParamData> arrayList = new ArrayList<>();
+                    arrayList.add(new LanguageParamData(0, String.valueOf(newPlayer.getVipLevel())));
+                    arrayList.add(new LanguageParamData(0, String.valueOf(add)));
+                    arrayList.add(new LanguageParamData(0, String.valueOf(addValue)));
+                    mailService.addCfgMail(playerId, 38, List.of(new Item(ItemUtils.getGoldItemId(), addValue)), arrayList);
+                }
+            }
+        }
     }
 
     @Override

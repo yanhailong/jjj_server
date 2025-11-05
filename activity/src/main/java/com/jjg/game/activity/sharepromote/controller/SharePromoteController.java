@@ -126,8 +126,8 @@ public class SharePromoteController extends BaseActivityController {
         //计算本次添加的进度
         long addValue = RedisUtils.fromLong(progress)
                 .multiply(BigDecimal.valueOf(proportion))
-                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
                 .multiply(magnification)
+                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
                 .longValue();
         sharePromoteDao.addPlayerIncome(playerId, beneficiaryPlayerId, addValue);
         if (addValue > 0) {
