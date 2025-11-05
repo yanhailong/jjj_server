@@ -1,9 +1,9 @@
 package com.jjg.game.poker.game.blackjack.message.resp;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
 import com.jjg.game.poker.game.blackjack.message.bean.BlackJackCardInfo;
 
@@ -36,4 +36,6 @@ public class NotifyBlackJackSpecialSettlement extends AbstractNotice {
     public int currentCardIds;
     @ProtoDesc("结算信息")
     public NotifyBlackJackSettlementInfo settlementInfo;
+    @ProtoDesc("下注筹码值")
+    public List<Long> betValueList;
 }

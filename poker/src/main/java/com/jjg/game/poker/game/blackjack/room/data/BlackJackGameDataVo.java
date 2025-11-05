@@ -58,6 +58,19 @@ public class BlackJackGameDataVo extends BasePokerGameDataVo {
      */
     private boolean showDealer = true;
 
+    /**
+     * 玩家下注筹码列表
+     */
+    private Map<Long, List<Long>> playerBetValueList = new HashMap<>();
+
+    public Map<Long, List<Long>> getPlayerBetValueList() {
+        return playerBetValueList;
+    }
+
+    public void setPlayerBetValueList(Map<Long, List<Long>> playerBetValueList) {
+        this.playerBetValueList = playerBetValueList;
+    }
+
     public boolean isShowDealer() {
         return showDealer;
     }
@@ -149,5 +162,6 @@ public class BlackJackGameDataVo extends BasePokerGameDataVo {
         showDealer = true;
         settlementType = 0;
         settlementDelayTime = 0;
+        playerBetValueList.clear();
     }
 }
