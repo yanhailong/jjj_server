@@ -7,7 +7,6 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.PFSession;
-import com.jjg.game.core.base.condition.ConditionType;
 import com.jjg.game.core.base.condition.check.record.PlayerEffectiveParam;
 import com.jjg.game.core.base.drop.DropItemDao;
 import com.jjg.game.core.base.drop.DropItemLogger;
@@ -17,6 +16,7 @@ import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.ItemOperationResult;
@@ -200,7 +200,7 @@ public class DropItemManager implements GameEventListener {
             return List.of();
         }
         //暂时只有游戏流水条件
-        PlayerEffectiveParam effectiveParam = PlayerEffectiveParam.getPlayerEffectiveParam(ConditionType.FunctionType.MY_CASINO.getParam(), player.getId(), event);
+        PlayerEffectiveParam effectiveParam = PlayerEffectiveParam.getPlayerEffectiveParam(CountDao.CountType.MY_CASINO.getParam(), player.getId(), event);
         if (effectiveParam == null) {
             return List.of();
         }

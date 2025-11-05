@@ -55,7 +55,7 @@ public class RpcClientService {
 
         // 【新增】优先检测本地调用
         Object localResult = tryInvokeLocal(className, method, args);
-        if (localResult != null || method.getReturnType() == Void.TYPE) {
+        if (localResult != null) {
             return localResult;
         }
 

@@ -1,9 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
-
 import javax.annotation.processing.Generated;
+import java.util.List;
 /**
  * 配置bean
  *
@@ -23,8 +21,8 @@ public class AvatarCfg extends BaseCfgBean {
   protected int Dec;
   /** 货币购买 */
   protected List<Integer> buyItem;
-  /** 多语言ID */
-  protected int languageId;
+  /** 跳转路径 */
+  protected String jump;
   /** 资源名称 */
   protected int name;
   /** 等级 */
@@ -46,9 +44,9 @@ public class AvatarCfg extends BaseCfgBean {
     return buyItem;
   }
 
-  /** 返回多语言ID */
-  public int getLanguageId() {
-    return languageId;
+  /** 返回跳转路径 */
+  public String getJump() {
+    return jump;
   }
 
   /** 返回资源名称 */

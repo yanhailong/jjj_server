@@ -1,5 +1,6 @@
 package com.jjg.game.common.rpc.msg;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
@@ -31,7 +32,7 @@ public class RespRpcServiceData {
     public String toString() {
         return "RespRpcServiceData{" +
             "requestId=" + requestId +
-            ", responseData='" + responseData + '\'' +
+            ", responseData='" + JSON.toJSONString(responseData) + '\'' +
             ", success=" + success +
             '}';
     }

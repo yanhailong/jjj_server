@@ -16,6 +16,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.TaskConstant;
+import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.AmazonBucketManager;
 import com.jjg.game.core.manager.CoreMarqueeManager;
@@ -65,6 +66,8 @@ public class CoreToServerMessageHandler {
     private AmazonBucketManager amazonBucketManager;
     @Autowired
     private LoginConfigService loginConfigService;
+    @Autowired
+    private CountDao countDao;
 
     /**
      * 其他节点推送的跑马灯信息
@@ -158,14 +161,17 @@ public class CoreToServerMessageHandler {
             //接口通知
             SystemInterfaceHolder.callGameSysAction(IRecharge.class, (f) -> f.rechargeSuccess(player, order, shopProduct));
         }
+
         //充值事件
-        gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order, notify.money, notify.regionCode), order.getRechargeType());
+        gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(player, order, notify.money, notify.regionCode));
         //任务条件参数
         Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
             DefaultTaskConditionParam param = new DefaultTaskConditionParam();
             param.setAddValue(order.getPrice().multiply(BigDecimal.valueOf(100)).longValue());
             return param;
         };
+        //玩家累计充值
+        countDao.incrBy(CountDao.CountType.RECHARGE.getParam(), String.valueOf(player.getId()), order.getPrice());
         //单笔充值任务
         taskManager.trigger(order.getPlayerId(), TaskConstant.ConditionType.PLAYER_PAY, paramSupplier);
         //累计充值任务

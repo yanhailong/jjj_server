@@ -21,12 +21,15 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.SharePromoteCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -52,10 +55,12 @@ public class SharePromoteController extends BaseActivityController {
     private final Logger log = LoggerFactory.getLogger(SharePromoteController.class);
     private final SharePromoteDao sharePromoteDao;
     private final MailService mailService;
+    private final CountDao countDao;
 
-    public SharePromoteController(SharePromoteDao sharePromoteDao, MailService mailService) {
+    public SharePromoteController(SharePromoteDao sharePromoteDao, MailService mailService, CountDao countDao) {
         this.sharePromoteDao = sharePromoteDao;
         this.mailService = mailService;
+        this.countDao = countDao;
     }
 
     @Override
@@ -113,8 +118,17 @@ public class SharePromoteController extends BaseActivityController {
         if (playerInfoData == null) {
             return false;
         }
+        BigDecimal magnification = BigDecimal.ONE;
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(53);
+        if (globalConfigCfg != null) {
+            magnification = BigDecimal.valueOf(globalConfigCfg.getIntValue());
+        }
         //计算本次添加的进度
-        long addValue = BigDecimal.valueOf(progress).multiply(BigDecimal.valueOf(proportion)).divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
+        long addValue = RedisUtils.fromLong(progress)
+                .multiply(BigDecimal.valueOf(proportion))
+                .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
+                .multiply(magnification)
+                .longValue();
         sharePromoteDao.addPlayerIncome(playerId, beneficiaryPlayerId, addValue);
         if (addValue > 0) {
             Player beneficiaryPlayer = corePlayerService.get(beneficiaryPlayerId);
@@ -440,6 +454,7 @@ public class SharePromoteController extends BaseActivityController {
             res.rankInfoList = new ArrayList<>(playerIncomeRank.size());
             //获取排行榜玩家信息数据
             Map<Long, Player> playerMap = corePlayerService.multiGetPlayerMap(playerIncomeRank.keySet());
+            Map<String, BigDecimal> counts = countDao.getCounts(CountDao.CountType.RECHARGE.getParam(), playerIncomeRank.keySet().stream().map(String::valueOf).toList());
             for (Map.Entry<Long, Double> entry : playerIncomeRank.entrySet()) {
                 Player player = playerMap.get(entry.getKey());
                 if (player == null) {
@@ -448,7 +463,7 @@ public class SharePromoteController extends BaseActivityController {
                 SharePromoteSelfRankInfo rankInfo = new SharePromoteSelfRankInfo();
                 //构建排行榜玩家基本信息
                 buildSharePromoteRankInfo(player, rankInfo, entry.getValue().longValue());
-                rankInfo.totalRecharge = 0;
+                rankInfo.totalRecharge = counts.get(String.valueOf(entry.getKey())).toPlainString();
                 res.rankInfoList.add(rankInfo);
             }
             res.startIndex = req.startIndex;

@@ -8,6 +8,7 @@ import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
+import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.logger.CoreLogger;
@@ -44,17 +45,19 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
     private final AccountDao accountDao;
     private final CorePlayerService playerService;
     private final CoreLogger coreLogger;
+    private final CountDao countDao;
 
     public VipManager(VipService vipService,
                       PlayerPackService playerPackService,
                       AccountDao accountDao,
                       CorePlayerService playerService,
-                      CoreLogger coreLogger) {
+                      CoreLogger coreLogger, CountDao countDao) {
         this.vipService = vipService;
         this.playerPackService = playerPackService;
         this.accountDao = accountDao;
         this.playerService = playerService;
         this.coreLogger = coreLogger;
+        this.countDao = countDao;
     }
 
     @Override
@@ -91,6 +94,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
             res.nowExp = player.getVipExp();
             res.vipLevel = player.getVipLevel();
             res.claimMaxLv = getMaxClaimLv(vip, player);
+            res.recharge = countDao.getCount(CountDao.CountType.RECHARGE.getParam(), String.valueOf(playerId)).toPlainString();
             for (VipGift gift : VipGift.values()) {
                 VipGiftInfo vipGiftInfo = new VipGiftInfo();
                 vipGiftInfo.type = gift.getType();
