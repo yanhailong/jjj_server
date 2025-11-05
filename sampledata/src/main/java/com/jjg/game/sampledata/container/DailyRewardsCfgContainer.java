@@ -1,15 +1,15 @@
 package com.jjg.game.sampledata.container;
 
+import com.jjg.game.sampledata.bean.DailyRewardsCfg;
+
+import javax.annotation.processing.Generated;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.DailyRewardsCfg;
-
 /**
- * LoginRewards.xlsx配置管理容器
+ * DailyRewards.xlsx配置管理容器
  *
- * @excelName LoginRewards.xlsx
+ * @excelName DailyRewards.xlsx
  * @sheetName DailyRewards
  * @author auto_generator
  */
@@ -38,7 +38,7 @@ public class DailyRewardsCfgContainer extends BaseCfgContainer<DailyRewardsCfg> 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("LoginRewards.xlsx");
+    excelNameList.add("DailyRewards.xlsx");
     return excelNameList;
   }
 

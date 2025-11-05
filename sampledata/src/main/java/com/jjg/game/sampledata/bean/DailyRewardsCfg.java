@@ -1,13 +1,11 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
-
 import javax.annotation.processing.Generated;
+import java.util.Map;
 /**
  * 配置bean
  *
- * @excelName LoginRewards.xlsx
+ * @excelName DailyRewards.xlsx
  * @sheetName DailyRewards
  * @author Auto.Generator
  */
@@ -15,7 +13,7 @@ import javax.annotation.processing.Generated;
 public class DailyRewardsCfg extends BaseCfgBean {
 
   /** 配置表名 */
-  public static final String EXCEL_NAME = "LoginRewards.xlsx";
+  public static final String EXCEL_NAME = "DailyRewards.xlsx";
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "DailyRewards";
 
