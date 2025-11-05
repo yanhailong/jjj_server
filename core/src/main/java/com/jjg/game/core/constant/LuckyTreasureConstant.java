@@ -16,9 +16,17 @@ public interface LuckyTreasureConstant {
          */
         int LUCKY_TREASURE_GLOBAL_CONFIG_ID = 29;
         /**
+         * 夺宝奇兵开奖时间 全局表配置id
+         */
+        int LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID = 55;
+        /**
          * id
          */
         int GAME_ID = 1001;
+    }
+
+    interface Status{
+
     }
 
     /**
@@ -59,6 +67,11 @@ public interface LuckyTreasureConstant {
          * 结束活动锁前缀
          */
         String LUCKY_TREASURE_END = "luckyTreasure:end:";
+
+        /**
+         * 活动开奖锁前缀
+         */
+        String LUCKY_TREASURE_REWARD = "luckyTreasure:reward:";
 
         /**
          * 购买夺宝奇兵锁前缀

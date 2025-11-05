@@ -49,19 +49,26 @@ public class LuckyTreasureStatusUtil {
         int soldCount = treasure.getSoldCount();
 
         // 活动未结束的情况
-        if (!treasure.isEnd()) {
+        if(treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY){
             // 已售完但未到结束时间，等待开奖
             if (soldCount >= total) {
+                return STATUS_WAIT_DRAW;
+            }
+            if(endTime < currentTime) {
                 return STATUS_WAIT_DRAW;
             }
             // 可继续购买
             return STATUS_CAN_BUY;
         }
 
-        // 活动已结束且已到结束时间，但未开奖
-        if (treasure.getAwardPlayerId() == 0) {
-            // 已售完等待开奖，或未售完但时间到了也进入等待开奖
-            return STATUS_WAIT_DRAW;
+        //等待开奖
+        if(treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_DRAW){
+            return LuckyTreasureStatusUtil.STATUS_WAIT_DRAW;
+        }
+
+        //等待开奖
+        if(treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE){
+            return LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE;
         }
 
         // 已开奖的情况

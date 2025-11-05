@@ -14,6 +14,10 @@ public record LuckyTreasureTimerEvent(long issueNumber, TimerType timerType) {
          */
         ACTIVITY_END,
         /**
+         * 活动开奖
+         */
+        ACTIVITY_REWARD,
+        /**
          * 机器人购买
          */
         ROBOT_BUY,

@@ -464,7 +464,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
             List<LuckyTreasure> processedRecords = new ArrayList<>();
 
             pagedLuckyTreasures.forEach(record -> {
-                if (!record.isEnd()) {
+                if (record.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY || record.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_DRAW) {
                     // 活动未结束，从Redis获取最新数据
                     LuckyTreasure latestRecord = luckyTreasureRedisDao.getTreasureByIssueNumber(record.getIssueNumber());
                     // Redis中没有数据，使用数据库数据
