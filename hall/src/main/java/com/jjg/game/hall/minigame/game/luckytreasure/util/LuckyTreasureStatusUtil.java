@@ -134,8 +134,9 @@ public class LuckyTreasureStatusUtil {
     }
 
     public static int calculateRewardTimeSecond(LuckyTreasure luckyTreasure) {
+        long currentTime = System.currentTimeMillis();
         long time = calculateRewardTimeMillis(luckyTreasure);
-        return (int)(time / 1000);
+        return (int) ((time - currentTime) / 1000);
     }
 
 }
