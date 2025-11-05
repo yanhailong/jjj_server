@@ -385,7 +385,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
     @Override
     public void dealBet(long playerId, ReqPokerBet reqPokerBet) {
         NotifyBlackJackBetResult jackBetResult = new NotifyBlackJackBetResult();
-        Pair<GamePlayer, List<Integer>> gamePlayerListPair = betAction(playerId);
+        Pair<GamePlayer, List<Integer>> gamePlayerListPair = betActionAfterCheck(playerId);
         if (gamePlayerListPair == null) {
             jackBetResult.code = Code.PARAM_ERROR;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, jackBetResult));
@@ -399,15 +399,15 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, jackBetResult));
             return;
         }
-        //金币判断
-        if (getTransactionItemNum(playerId) < betValue) {
-            jackBetResult.code = Code.NOT_ENOUGH;
+        Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
+        int check = betValueCheck(playerId, baseBetInfo, betValue);
+        if (check > 0) {
+            jackBetResult.code = check;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, jackBetResult));
             return;
         }
         deductItem(gamePlayer.getId(), betValue, AddType.GAME_BET);
         RoomDataHelper.checkPlayerVipLevel(gamePlayer, this, betValue);
-        Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         baseBetInfo.merge(playerId, betValue, Long::sum);
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
         betInfo.merge(0, betValue, Long::sum);
@@ -772,7 +772,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
      */
     public void reqBlackJackContinuedDeposit(long playerId, ReqBlackJackContinuedDeposit req) {
         NotifyBlackJackContinuedDeposit jackBetResult = new NotifyBlackJackContinuedDeposit();
-        Pair<GamePlayer, List<Integer>> gamePlayerListPair = betAction(playerId);
+        Pair<GamePlayer, List<Integer>> gamePlayerListPair = betActionAfterCheck(playerId);
         if (gamePlayerListPair == null) {
             jackBetResult.code = Code.PARAM_ERROR;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, jackBetResult));
@@ -796,10 +796,9 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             }
             totalBet += betValue;
         }
-        //金币判断
-        if (getTransactionItemNum(playerId) < totalBet) {
-            jackBetResult.code = Code.NOT_ENOUGH;
-            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, jackBetResult));
+        int check = betValueCheck(playerId, baseBetInfo, totalBet);
+        if (check > 0) {
+            jackBetResult.code = check;
             return;
         }
         deductItem(gamePlayer.getId(), totalBet, AddType.GAME_BET);
@@ -814,7 +813,31 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(jackBetResult));
     }
 
-    private Pair<GamePlayer, List<Integer>> betAction(long playerId) {
+    /**
+     * 下注金额检查
+     * @param playerId 玩家id
+     * @param baseBetInfo 下注信息
+     * @param totalBet 总下注
+     * @return 错误码
+     */
+    private int betValueCheck(long playerId, Map<Long, Long> baseBetInfo, long totalBet) {
+        BlackjackCfg blackjackCfg = BlackJackDataHelper.getBlackjackCfg(gameDataVo);
+        Long alreadyBet = baseBetInfo.getOrDefault(playerId, 0L);
+        if (totalBet + alreadyBet > blackjackCfg.getLimit()) {
+            return Code.BET_TO_LIMIT;
+        }
+        //金币判断
+        if (getTransactionItemNum(playerId) < totalBet) {
+            return Code.NOT_ENOUGH;
+        }
+        return 0;
+    }
+
+    /**
+     * 下注前检查
+     * @param playerId 玩家id
+     */
+    private Pair<GamePlayer, List<Integer>> betActionAfterCheck(long playerId) {
         if (getCurrentGamePhase() != EGamePhase.BET) {
             return null;
         }
