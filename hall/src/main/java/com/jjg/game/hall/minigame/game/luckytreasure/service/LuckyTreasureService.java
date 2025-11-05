@@ -1,6 +1,7 @@
 package com.jjg.game.hall.minigame.game.luckytreasure.service;
 
 import cn.hutool.core.collection.ConcurrentHashSet;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.ItemInfo;
@@ -115,6 +116,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                     afterInfo.setTotalCount(treasure.getConfig().getTotal());
                     afterInfo.setStatus(LuckyTreasureStatusUtil.calculateStatus(treasure, playerId));
                     notifyLuckyTreasureUpdate.getUpdateList().add(afterInfo);
+                    log.debug("推送订阅 topic = {},playerId = {}, LuckyTreasureUpdateInfo = {}",SubscriptionTopic.TOPIC_LUCKY_TREASURE_UPDATE,playerId, JSONObject.toJSONString(notifyLuckyTreasureUpdate));
                 });
                 return notifyLuckyTreasureUpdate;
             });
