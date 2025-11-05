@@ -1,9 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
-
 import javax.annotation.processing.Generated;
+import java.util.List;
 /**
  * 配置bean
  *
@@ -35,6 +33,8 @@ public class BlackjackCfg extends BaseCfgBean {
   protected int fiveLittleDragons;
   /** 游戏ID */
   protected int gameId;
+  /** 下注上限 */
+  protected int limit;
   /** 其他点数 */
   protected int other;
   /** 牌池ID */
@@ -82,6 +82,11 @@ public class BlackjackCfg extends BaseCfgBean {
   /** 返回游戏ID */
   public int getGameId() {
     return gameId;
+  }
+
+  /** 返回下注上限 */
+  public int getLimit() {
+    return limit;
   }
 
   /** 返回其他点数 */
