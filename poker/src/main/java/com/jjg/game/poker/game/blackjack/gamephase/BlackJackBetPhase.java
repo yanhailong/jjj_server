@@ -81,13 +81,18 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
             //没下注的人直接踢掉
             List<PlayerSeatInfo> playerSeatInfo = gameDataVo.getPlayerSeatInfoList();
             List<PlayerSeatInfo> noBetPlayer = new ArrayList<>(playerSeatInfo.size());
+            List<Long> noJoinPlayer = new ArrayList<>(playerSeatInfo.size());
             long timeMillis = System.currentTimeMillis();
             Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
             for (PlayerSeatInfo seatInfo : playerSeatInfo) {
                 GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
                 if (Objects.nonNull(gamePlayer)) {
-                    if (!baseBetInfo.containsKey(gamePlayer.getId()) && timeMillis - BET_FIX_TIME > gamePlayer.getPokerPlayerGameData().getJoinTime()) {
-                        noBetPlayer.add(seatInfo);
+                    if (!baseBetInfo.containsKey(gamePlayer.getId())) {
+                        if (timeMillis - BET_FIX_TIME > gamePlayer.getPokerPlayerGameData().getJoinTime()) {
+                            noBetPlayer.add(seatInfo);
+                        } else {
+                            noJoinPlayer.add(seatInfo.getPlayerId());
+                        }
                     }
                 }
             }
@@ -121,6 +126,10 @@ public class BlackJackBetPhase extends BaseBetPhase<BlackJackGameDataVo> {
             }
             //机器人直接退出
             gameController.getRoomController().getRoomManager().robotPlayerExitRoom(robot);
+            //未下注的移除
+            if (!noJoinPlayer.isEmpty()) {
+                playerSeatInfo.removeIf(info -> noJoinPlayer.contains(info.getPlayerId()));
+            }
             if (gameDataVo.canStartGame() && !gameDataVo.getBaseBetInfo().isEmpty()) {
                 //进入下个阶段
                 nextPhase();
