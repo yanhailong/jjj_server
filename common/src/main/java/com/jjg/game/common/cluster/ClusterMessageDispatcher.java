@@ -77,6 +77,8 @@ public class ClusterMessageDispatcher {
 
                 final PFSession pfSession = session;
 
+                log.debug("收到节点消息 playerId = {},msgId = {}", clusterMessage.getPlayerId(), clusterMessage.getMsg() == null ? "null" : clusterMessage.getMsg().cmd);
+
                 sessionRefenerceBinderMap.values().forEach(o -> {
                     o.bind(pfSession, clusterMessage.getPlayerId());
                 });
