@@ -39,51 +39,49 @@ public class LuckyTreasureStatusUtil {
      * 计算夺宝奇兵当前状态
      */
     public static int calculateStatus(LuckyTreasure treasure, long playerId) {
-        long currentTime = System.currentTimeMillis();
-
-
-
-        //未结束
-        if (!treasure.isEnd()) {
-            //已经卖完了
-            if (treasure.getSoldCount() >= treasure.getConfig().getTotal()) {
-                return STATUS_WAIT_DRAW;
-            } else {
-                return STATUS_CAN_BUY;
-            }
+        if (treasure == null || treasure.getConfig() == null) {
+            return STATUS_NOT_WINNER;
         }
 
+        long currentTime = System.currentTimeMillis();
         long endTime = treasure.getEndTime();
-        // 如果还没到结束时间，可以购买
-        if (currentTime < endTime) {
+        int total = treasure.getConfig().getTotal();
+        int soldCount = treasure.getSoldCount();
+
+        // 活动未结束的情况
+        if (!treasure.isEnd()) {
+            // 已售完但未到结束时间，等待开奖
+            if (soldCount >= total) {
+                return STATUS_WAIT_DRAW;
+            }
+            // 可继续购买
             return STATUS_CAN_BUY;
         }
 
-        // 如果已售完但还没开奖，等待开奖
-        if (treasure.getSoldCount() >= treasure.getConfig().getTotal() && treasure.getAwardPlayerId() == 0) {
+        // 活动已结束且已到结束时间，但未开奖
+        if (treasure.getAwardPlayerId() == 0) {
+            // 已售完等待开奖，或未售完但时间到了也进入等待开奖
             return STATUS_WAIT_DRAW;
         }
 
-        // 如果已开奖
-        if (treasure.getAwardPlayerId() > 0) {
-            //自己是领奖人
-            if (treasure.getAwardPlayerId() == playerId) {
-                // 检查是否已领取
-                if (treasure.isReceived()) {
-                    return STATUS_RECEIVED;
-                }
-                // 检查是否超过领奖时间
-                long receiveDeadline = endTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
-                if (currentTime > receiveDeadline) {
-                    return STATUS_EXPIRED_WINNER;
-                }
-                return STATUS_WAIT_RECEIVE;
-            } else {
-                return STATUS_NOT_WINNER;
-            }
+        // 已开奖的情况
+        // 非中奖玩家直接返回未中奖
+        if (treasure.getAwardPlayerId() != playerId) {
+            return STATUS_NOT_WINNER;
         }
-        // 默认状态
-        return STATUS_NOT_WINNER;
+
+        // 中奖玩家的状态判断
+        if (treasure.isReceived()) {
+            return STATUS_RECEIVED;
+        }
+
+        // 检查领奖是否过期
+        long receiveDeadline = endTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
+        if (currentTime > receiveDeadline) {
+            return STATUS_EXPIRED_WINNER;
+        }
+
+        return STATUS_WAIT_RECEIVE;
     }
 
 

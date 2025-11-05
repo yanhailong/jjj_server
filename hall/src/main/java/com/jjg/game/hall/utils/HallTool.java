@@ -5,7 +5,12 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.data.Item;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,5 +44,17 @@ public class HallTool {
         }catch (Exception e){
             return false;
         }
+    }
+
+    public static List<Item> mapToItemList(Map<Integer, Long> map) {
+        if(map == null){
+            return Collections.emptyList();
+        }
+
+        List<Item> list = new ArrayList<>();
+        map.forEach((k, v) -> {
+            list.add(new Item(k, v));
+        });
+        return list;
     }
 }

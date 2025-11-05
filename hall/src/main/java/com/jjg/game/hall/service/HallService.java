@@ -18,10 +18,7 @@ import com.jjg.game.core.dao.VerCodeDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.DropItemManager;
-import com.jjg.game.core.service.GameStatusService;
-import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.service.SmsService;
-import com.jjg.game.core.service.ThirdAccountHttpService;
+import com.jjg.game.core.service.*;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.dao.LikeGameDao;
@@ -84,6 +81,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     private List<GameListConfig> sortGameList;
     //游戏倍场界面的奖池
     private Map<Integer, List<WarePoolInfo>> poolMap;
+    @Autowired
+    private MailService mailService;
 
     public Map<Integer, GameStatus> getGameStatusesMap() {
         return gameStatusesMap;
@@ -348,6 +347,19 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         //删除验证码
         verCodeDao.delVerCode(playerId, smsType);
         result.data = verResult.data;
+
+        //绑定手机号要发送奖励邮件
+        if (smsType == VerCodeType.SMS_BIND_PHONE) {
+            LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(cfg -> cfg.getType() == LoginType.PHONE.getValue()).findFirst().orElse(null);
+            if (loginConfigCfg == null || loginConfigCfg.getAwardItem() == null || loginConfigCfg.getAwardItem().isEmpty()) {
+                log.debug("未找到绑定手机号的奖励 playerId = {}, type = {}", playerId, LoginType.PHONE.getValue());
+                return result;
+            }
+
+            List<Item> list = HallTool.mapToItemList(loginConfigCfg.getAwardItem());
+            mailService.addCfgMail(playerId, HallConstant.Mail.ID_BIND_PHONE, list);
+            log.debug("已发送绑定手机奖励邮件 playerId = {},rewaredList = {}", playerId, list);
+        }
         return result;
     }
 
@@ -564,7 +576,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     addItemsMap.merge(addItemId, en.getValue(), Long::sum);
                 }
 
-                CommonResult<ItemOperationResult> useResult = playerPackService.useItem(player.getId(), girdId, itemId, useItemCount, addItemsMap,AddType.USE_ITEM);
+                CommonResult<ItemOperationResult> useResult = playerPackService.useItem(player.getId(), girdId, itemId, useItemCount, addItemsMap, AddType.USE_ITEM);
                 if (!useResult.success()) {
                     log.debug("使用道具后获得新道具失败 playerId = {},itemId = {}", player.getId(), itemId);
                     result.code = useResult.code;
@@ -645,6 +657,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             }
 
             CommonResult<Account> addResult;
+            int mailId = 0;
             if (loginType == LoginType.GOOGLE) {
                 CommonResult<GoogleUserInfo> verifyResult = thirdAccountHttpService.verifyGoogleToken(token);
                 if (!verifyResult.success()) {
@@ -653,6 +666,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 }
                 addResult = accountDao.addThirdAccount(playerId, loginType, verifyResult.data);
 
+                mailId = HallConstant.Mail.ID_BIND_GOOGLE;
             } else if (loginType == LoginType.FACEBOOK) {
                 CommonResult<FacebookUserInfo> verifyResult = thirdAccountHttpService.verifyFacebookToken(token);
                 if (!verifyResult.success()) {
@@ -660,9 +674,16 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     return result;
                 }
 
-//                verifyResult.data = new FacebookUserInfo();
-//                verifyResult.data.setUserId(token);
                 addResult = accountDao.addThirdAccount(playerId, loginType, verifyResult.data);
+                mailId = HallConstant.Mail.ID_BIND_FACEBOOK;
+            } else if (loginType == LoginType.APPLE) {
+                CommonResult<AppleUserInfo> verifyResult = thirdAccountHttpService.verifyAppleToken(token);
+                if (!verifyResult.success()) {
+                    result.code = verifyResult.code;
+                    return result;
+                }
+                addResult = accountDao.addThirdAccount(playerId, loginType, verifyResult.data);
+                mailId = HallConstant.Mail.ID_BIND_APPLE;
             } else {
                 log.debug("该接口不支持该类型绑定，绑定第三方账号失败 type = {}", type);
                 result.code = Code.FAIL;
@@ -680,10 +701,16 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return result;
             }
 
-            CommonResult<ItemOperationResult> bindRewardResult = playerPackService.addItems(playerId, loginConfigCfg.getAwardItem(), AddType.BIND_REWARD);
-            if (!bindRewardResult.success()) {
-                log.debug("添加绑定奖励失败 playerId = {},type = {}", playerId, type);
-            }
+//            CommonResult<ItemOperationResult> bindRewardResult = playerPackService.addItems(playerId, loginConfigCfg.getAwardItem(), AddType.BIND_REWARD);
+//            if (!bindRewardResult.success()) {
+//                log.debug("添加绑定奖励失败 playerId = {},type = {}", playerId, type);
+//                return result;
+//            }
+
+            result.data = HallTool.mapToItemList(loginConfigCfg.getAwardItem());
+
+            mailService.addCfgMail(playerId, mailId, result.data);
+            log.debug("已发送绑定账号奖励邮件 playerId = {},type = {},rewaredList = {}", playerId, type, result.data);
         } catch (Exception e) {
             log.error("", e);
             result.code = Code.EXCEPTION;
@@ -750,14 +777,14 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 AvatarType giveAvatarType = EnumUtil.getBy(AvatarType.class, (at -> at.getType() == giveAvatarCfg.getResourceType()));
                 if (!Objects.isNull(giveAvatarType)) {
                     addIdsMap.computeIfAbsent(giveAvatarType, k -> new ArrayList<>()).add(giveAvatarCfg.getId());
-                }else {
+                } else {
                     giveId = 0;
                 }
             }
 
             //解锁头像
             boolean success = playerSkinDao.addByType(playerId, addIdsMap);
-            if(!success){
+            if (!success) {
                 log.debug("添加头像信息失败 playerId = {},addIdsMap = {}", playerId, addIdsMap);
                 result.code = Code.FAIL;
                 return result;
@@ -774,10 +801,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
     @Override
     public void initSampleCallbackCollector() {
-        addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData)
-                .addChangeSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
-        addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig)
-                .addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig);
+        addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData).addChangeSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
+        addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig).addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig);
     }
 
     /**
@@ -787,8 +812,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         Map<Integer, List<WareHouseConfigInfo>> tempwareHouseConfigMap = new HashMap<>();
 
         for (WarehouseCfg c : GameDataManager.getWarehouseCfgList()) {
-            List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameID(),
-                    k -> new ArrayList<>());
+            List<WareHouseConfigInfo> tempList = tempwareHouseConfigMap.computeIfAbsent(c.getGameID(), k -> new ArrayList<>());
             if (c.getRoomType() < GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
                 WareHouseConfigInfo info = new WareHouseConfigInfo();
                 info.wareId = c.getId();
@@ -800,11 +824,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         }
 
         //根据场次id，从小到大排序
-        tempwareHouseConfigMap.replaceAll((key, list) ->
-                list.stream()
-                        .sorted(Comparator.comparingInt(wh -> wh.wareId))
-                        .collect(Collectors.toList())
-        );
+        tempwareHouseConfigMap.replaceAll((key, list) -> list.stream().sorted(Comparator.comparingInt(wh -> wh.wareId)).collect(Collectors.toList()));
 
         this.wareHouseConfigMap = tempwareHouseConfigMap;
     }
@@ -866,8 +886,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     .filter(gs -> gs.status() == 1)
 
                     // 2.排序：按 sort 升序，再按 gameId 升序
-                    .sorted(Comparator.comparingInt(GameStatus::sort)
-                            .thenComparingInt(GameStatus::gameId))
+                    .sorted(Comparator.comparingInt(GameStatus::sort).thenComparingInt(GameStatus::gameId))
 
                     // 3.转换 GameStatus → GameListConfig
                     .map(gameStatus -> {
@@ -878,8 +897,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                         config.rightTopIcon = gameStatus.right_top_icon();
                         config.name = gameStatus.name();
                         return config;
-                    })
-                    .collect(Collectors.toList());
+                    }).collect(Collectors.toList());
         } catch (Exception e) {
             log.error("", e);
         }
