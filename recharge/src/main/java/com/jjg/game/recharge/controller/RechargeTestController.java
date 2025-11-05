@@ -34,7 +34,9 @@ public class RechargeTestController extends AbstractCallbackController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
             order.setChannelOrderId("test");
-            if (!checkOrder(order)) {
+
+            order = checkOrder(order);
+            if (order == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
             Player player = playerService.get(order.getPlayerId());
