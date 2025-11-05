@@ -117,6 +117,9 @@ public class LuckyTreasureInfo {
     @ProtoDesc("第三方领奖码")
     private String rewardCode;
 
+    @ProtoDesc("结束购买倒计时")
+    private int endBuyCountDown;
+
     public long getIssueNumber() {
         return issueNumber;
     }
@@ -251,5 +254,13 @@ public class LuckyTreasureInfo {
 
     public void setRewardCode(String rewardCode) {
         this.rewardCode = rewardCode;
+    }
+
+    public int getEndBuyCountDown() {
+        return endBuyCountDown;
+    }
+
+    public void setEndBuyCountDown(int endBuyCountDown) {
+        this.endBuyCountDown = endBuyCountDown;
     }
 }

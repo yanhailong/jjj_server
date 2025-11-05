@@ -91,9 +91,9 @@ public class AppleCallbackController extends AbstractCallbackController {
 
             String transactionId = transactionInfo.get("transactionId").asText();
             order.setChannelOrderId(transactionId);
-            boolean check = checkOrder(order);
-            if(!check){
-                log.debug("检查订单失败 uuid = {}", order.getUuid());
+            order = checkOrder(order);
+            if(order == null){
+                log.debug("检查订单失败 uuid = {}", appAccountTokenNode.asText());
                 return ResponseEntity.status(400).body("check order failed");
             }
             String money = transactionInfo.get("price").asText();

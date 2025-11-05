@@ -175,8 +175,8 @@ public class GoogleCallbackController extends AbstractCallbackController {
 
         String channelOrderId = productInfoJson.getString("orderId");
         order.setChannelOrderId(channelOrderId);
-        boolean check = checkOrder(order);
-        if (!check) {
+        order = checkOrder(order);
+        if (order == null) {
             log.debug("检查订单失败 orderId = {}", orderId);
             return ResponseEntity.ok("check order fail");
         }

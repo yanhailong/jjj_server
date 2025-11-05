@@ -47,10 +47,10 @@ public abstract class AbstractCallbackController {
      * @param order
      * @return
      */
-    protected boolean checkOrder(Order order) {
+    protected Order checkOrder(Order order) {
         if (order.getOrderStatus() == OrderStatus.SUCCESS) {
             log.debug("该订单重复回调 orderId = {}", order.getId());
-            return false;
+            return null;
         }
 
         //修改订单状态
@@ -58,9 +58,9 @@ public abstract class AbstractCallbackController {
         if (successOrder == null) {
             log.warn("未找到该订单 orderId = {},status = {}", order.getId(), OrderStatus.ORDER);
             //TODO 记录下来，检查该订单，这里不能再次修改订单状态，因为可能是多线程问题没有修改成功
-            return false;
+            return null;
         }
-        return true;
+        return successOrder;
     }
 
     /**

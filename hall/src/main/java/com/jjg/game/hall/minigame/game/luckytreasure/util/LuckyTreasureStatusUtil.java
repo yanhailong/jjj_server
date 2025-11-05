@@ -1,6 +1,9 @@
 package com.jjg.game.hall.minigame.game.luckytreasure.util;
 
+import com.jjg.game.core.constant.LuckyTreasureConstant;
 import com.jjg.game.core.data.LuckyTreasure;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 
 import java.util.concurrent.TimeUnit;
 
@@ -66,11 +69,6 @@ public class LuckyTreasureStatusUtil {
             return LuckyTreasureStatusUtil.STATUS_WAIT_DRAW;
         }
 
-        //等待开奖
-        if(treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE){
-            return LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE;
-        }
-
         // 已开奖的情况
         // 非中奖玩家直接返回未中奖
         if (treasure.getAwardPlayerId() != playerId) {
@@ -121,6 +119,23 @@ public class LuckyTreasureStatusUtil {
         }
 
         return (int) ((receiveDeadline - currentTime) / 1000);
+    }
+
+    /**
+     * 计算活动实际开奖时间（毫秒）
+     */
+    public static long calculateRewardTimeMillis(LuckyTreasure luckyTreasure) {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
+        if (globalConfigCfg == null || globalConfigCfg.getIntValue() < 1) {
+            return luckyTreasure.getEndTime();
+        }
+
+        return luckyTreasure.getEndTime() + TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
+    }
+
+    public static int calculateRewardTimeSecond(LuckyTreasure luckyTreasure) {
+        long time = calculateRewardTimeMillis(luckyTreasure);
+        return (int)(time / 1000);
     }
 
 }
