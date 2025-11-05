@@ -569,7 +569,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     protected CommonResult<Player> goldToPool(T gameData, long betValue, BaseRoomCfg baseRoomCfg) {
-        CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, true,true, AddType.SLOTS_BET);
+        CommonResult<Player> result = slotsPlayerService.betDeductGold(gameData.playerId(), betValue, true, AddType.SLOTS_BET);
         if (!result.success()) {
             log.debug("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.playerId(), betValue, result.code);
             return result;
