@@ -73,6 +73,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         if (seatInfo.getOperationType() == PokerConstant.PlayerOperation.DOUBLE_BET) {
             notifyBlackJackSpecialSettlement.betValue = gameDataVo.getBaseBetInfo().getOrDefault(seatInfo.getPlayerId(), 0L);
         }
+        notifyBlackJackSpecialSettlement.betValueList = gameDataVo.getPlayerBetValueList().getOrDefault(seatInfo.getPlayerId(), new ArrayList<>());
         notifyBlackJackSpecialSettlement.cardIdList = BlackJackBuilder.getCardInfos(seatInfo, controller);
         notifyBlackJackSpecialSettlement.currentCardIds = seatInfo.getCards().size() > 1 ? seatInfo.getCardIndex() + 1 : seatInfo.getCardIndex();
         notifyBlackJackSpecialSettlement.settlementInfo = normalSettlement(controller);
@@ -109,6 +110,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             notifyBlackJackSpecialSettlement.putCardTotal = BlackJackDataHelper.getShowTotalPoint(seatInfo.getCards().getFirst());
             notifyBlackJackSpecialSettlement.betValue = gameDataVo.getBaseBetInfo().getOrDefault(seatInfo.getPlayerId(), 0L);
         }
+        notifyBlackJackSpecialSettlement.betValueList = gameDataVo.getPlayerBetValueList().getOrDefault(seatInfo.getPlayerId(), new ArrayList<>());
         notifyBlackJackSpecialSettlement.cardIdList = BlackJackBuilder.getCardInfos(seatInfo, controller);
         notifyBlackJackSpecialSettlement.currentCardIds = seatInfo.getCardIndex();
         notifyBlackJackSpecialSettlement.settlementInfo = normalSettlement(controller);

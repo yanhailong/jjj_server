@@ -1,9 +1,9 @@
 package com.jjg.game.poker.game.blackjack.message.resp;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
 import com.jjg.game.poker.game.blackjack.message.bean.BlackJackCardInfo;
 
@@ -28,4 +28,7 @@ public class NotifyBlackJackCutCard extends AbstractNotice {
     public long overTime;
     @ProtoDesc("下一个操作人")
     public long operationId;
+    @ProtoDesc("下注筹码值")
+    public List<Long> betValueList;
+
 }

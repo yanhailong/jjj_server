@@ -152,6 +152,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         seatInfo.getCurrentCards().add(card);
         seatInfo.setOperationType(req.type);
         notifyBlackJackDoubleBetInfo.betValue = betValue;
+        notifyBlackJackDoubleBetInfo.betValueList = gameDataVo.getPlayerBetValueList().getOrDefault(playerId, new ArrayList<>());
         //还有牌组
         if (seatInfo.getCardIndex() + 1 < seatInfo.getCards().size()) {
             seatInfo.setCardIndex(seatInfo.getCardIndex() + 1);
@@ -410,6 +411,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         baseBetInfo.merge(playerId, betValue, Long::sum);
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
         betInfo.merge(0, betValue, Long::sum);
+        gameDataVo.getPlayerBetValueList().computeIfAbsent(playerId, k -> new ArrayList<>()).add(betValue);
         jackBetResult.playerId = playerId;
         jackBetResult.type = reqPokerBet.betType;
         jackBetResult.betValue = betValue;
@@ -527,6 +529,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         //修正500毫秒
         addNextTimer(seatInfo, sendCardNum, BlackJackConstant.Common.CUT_FIX_TIME);
         notifyCutCard.operationId = seatInfo.getPlayerId();
+        notifyCutCard.betValueList = gameDataVo.getPlayerBetValueList().getOrDefault(playerId, new ArrayList<>());
         //通知分牌结果
         notifyCutCard.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
         notifyCutCard.currentCardIds = seatInfo.getCardIndex();
@@ -775,6 +778,12 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, jackBetResult));
             return;
         }
+        Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
+        if (baseBetInfo.containsKey(playerId)) {
+            jackBetResult.code = Code.FORBID;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, jackBetResult));
+            return;
+        }
         long totalBet = 0;
         GamePlayer gamePlayer = gamePlayerListPair.getFirst();
         List<Long> betValueList = req.betValueList;
@@ -795,8 +804,8 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         }
         deductItem(gamePlayer.getId(), totalBet, AddType.GAME_BET);
         RoomDataHelper.checkPlayerVipLevel(gamePlayer, this, totalBet);
-        Map<Long, Long> baseBetInfo = gameDataVo.getBaseBetInfo();
         baseBetInfo.merge(playerId, totalBet, Long::sum);
+        gameDataVo.getPlayerBetValueList().computeIfAbsent(playerId, k -> new ArrayList<>()).addAll(betValueList);
         Map<Integer, Long> betInfo = gameDataVo.getAllBetInfo().computeIfAbsent(playerId, key -> new HashMap<>());
         betInfo.merge(0, totalBet, Long::sum);
         jackBetResult.playerId = playerId;

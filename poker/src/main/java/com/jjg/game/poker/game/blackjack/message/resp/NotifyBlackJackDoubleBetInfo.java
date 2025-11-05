@@ -1,10 +1,12 @@
 package com.jjg.game.poker.game.blackjack.message.resp;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.poker.game.blackjack.constant.BlackJackConstant;
+
+import java.util.List;
 
 /**
  * @author lm
@@ -17,4 +19,6 @@ public class NotifyBlackJackDoubleBetInfo extends AbstractNotice {
     public NotifyBlackJackPutCard putCardInfo;
     @ProtoDesc("下注金额")
     public long betValue;
+    @ProtoDesc("下注筹码值")
+    public List<Long> betValueList;
 }
