@@ -96,8 +96,8 @@ public class LuckyTreasure {
      */
     private List<LuckyTreasureBuyRecord> buyRecordList = new ArrayList<>();
 
-    //标记是否结束
-    private boolean end;
+    //当前状态
+    private int status;
 
     public Long getIssueNumber() {
         return issueNumber;
@@ -219,11 +219,11 @@ public class LuckyTreasure {
         this.awardPlayerNationalId = awardPlayerNationalId;
     }
 
-    public boolean isEnd() {
-        return end;
+    public int getStatus() {
+        return status;
     }
 
-    public void setEnd(boolean end) {
-        this.end = end;
+    public void setStatus(int status) {
+        this.status = status;
     }
 }

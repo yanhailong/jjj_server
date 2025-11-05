@@ -382,6 +382,7 @@ public class CoreMessageHandler {
             subscriptionManager.unsubscription(subscriptionTopic, playerController.playerId());
         }
         playerController.send(res);
+        log.debug("玩家消息订阅处理 playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
     }
 
     /**

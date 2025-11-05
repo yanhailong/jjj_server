@@ -7,7 +7,6 @@ import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
 import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.core.config.ConfigChangeState;
 import com.jjg.game.core.config.ConfigManager;
 import com.jjg.game.core.config.bean.LuckyTreasureConfig;
 import com.jjg.game.core.constant.AwardCodeType;
@@ -198,7 +197,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         if (activeTreasure == null) {
             return false;
         }
-        if (activeTreasure.isEnd()) {
+        if (activeTreasure.getStatus() != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
             return false;
         }
         LuckyTreasureConfig config = activeTreasure.getConfig();
@@ -347,14 +346,23 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_CONFIG_ID);
         int intValue = globalConfigCfg.getIntValue();
         //查询数据库中是否存在上次未开奖的
-        List<LuckyTreasure> luckyTreasures = luckyTreasureDao.findAllByEndTime(0, intValue);
+        List<LuckyTreasure> luckyTreasures = luckyTreasureDao.findAllNotEnd(intValue);
         for (LuckyTreasure luckyTreasure : luckyTreasures) {
             long now = System.currentTimeMillis();
-            long endTime = calculateEndTimeMillis(luckyTreasure);
+            long endTime = luckyTreasure.getEndTime();
             if (isExpired(endTime, now)) {
-                // 已过期，立即处理
-                handleActivityEndTimer(luckyTreasure.getIssueNumber());
+                long rewardTime = calculateRewardTimeMillis(luckyTreasure);
+                if(isExpired(rewardTime,now)){
+                    log.debug("该幸运夺宝活动已过期，立即处理开奖 isserNum = {}",luckyTreasure.getIssueNumber());
+                    // 已过期，立即处理
+                    handleActivityRewardTimer(luckyTreasure.getIssueNumber());
+                }else {
+                    log.debug("该幸运夺宝活动已过期，立即结束 isserNum = {}",luckyTreasure.getIssueNumber());
+                    // 已过期，立即处理
+                    handleActivityEndTimer(luckyTreasure.getIssueNumber());
+                }
             } else {
+                log.debug("该幸运夺宝活动未过期，添加过期定时器 isserNum = {}",luckyTreasure.getIssueNumber());
                 // 未过期，添加定时器
                 addActivityEndTimer(luckyTreasure);
             }
@@ -478,6 +486,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         long now = System.currentTimeMillis();
         round.setStartTime(now);
         round.setEndTime(calculateEndTimeMillis(now,config.getTime()));
+        round.setStatus(LuckyTreasureStatusUtil.STATUS_CAN_BUY);
         // 初始化购买数据
         round.setBuyMap(new HashMap<>());
         return round;
@@ -516,7 +525,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         removeActivityTimer(issueNumber);
 
         // 计算活动结束时间
-        long endTime = calculateEndTimeMillis(round);
+        long endTime = round.getEndTime();
         long currentTime = System.currentTimeMillis();
 
         if (endTime <= currentTime) {
@@ -557,6 +566,59 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
     }
 
     /**
+     * 为活动添加开奖定时器
+     *
+     * @param round 活动数据
+     */
+    private void addActivityRewardTimer(LuckyTreasure round) {
+        long issueNumber = round.getIssueNumber();
+
+        // 如果已有定时器，先移除
+        removeActivityTimer(issueNumber);
+
+        // 计算活动开奖时间
+        long rewardTime = calculateRewardTimeMillis(round);
+        long currentTime = System.currentTimeMillis();
+
+        if (rewardTime <= currentTime) {
+            // 如果已经过期，立即处理
+            handleActivityRewardTimer(issueNumber);
+            return;
+        }
+
+        // 创建定时器事件
+        LuckyTreasureTimerEvent timerEvent = new LuckyTreasureTimerEvent(
+                issueNumber, LuckyTreasureTimerEvent.TimerType.ACTIVITY_REWARD);
+
+        // 计算延迟时间（毫秒）
+        long delayMillis = rewardTime - currentTime;
+
+        log.info("夺宝奇兵{}开奖延迟时间millis: {}", issueNumber, delayMillis);
+        // 确保延迟时间不为负数
+        if (delayMillis <= 0) {
+            log.warn("活动 {} 延迟开奖时间计算异常，延迟时间: {}ms，立即处理", issueNumber, delayMillis);
+            handleActivityEndTimer(issueNumber);
+            return;
+        }
+
+        TimerEvent<LuckyTreasureTimerEvent> timer = new TimerEvent<>(
+                this,
+                timerEvent,
+                0, // 不重复执行
+                1, // 只执行一次
+                (int) delayMillis, // 延迟时间
+                false // 相对时间
+        );
+
+        // 添加到定时器中心
+        timerCenter.add(timer);
+        activityTimers.put(issueNumber, timer);
+
+        log.debug("为夺宝奇兵活动 {} 添加开奖定时器，开奖时间: {}", issueNumber, rewardTime);
+    }
+
+
+    /**
      * 移除活动的定时器
      *
      * @param issueNumber 期号
@@ -575,28 +637,63 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * @param issueNumber 期号
      */
     private void handleActivityEndTimer(long issueNumber) {
+        // 移除定时器
+        removeActivityTimer(issueNumber);
+
         String lockKey = LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_END + issueNumber;
+
+        //获取配置的开奖时间
+        int rewardTime = 0;
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
+        if(globalConfigCfg == null || globalConfigCfg.getIntValue() < 1) {
+            rewardTime = globalConfigCfg.getIntValue();
+        }
+
+        final int finalRewardTime = rewardTime;
         redisLock.tryLockAndRun(lockKey, () -> {
             // 从数据库获取活动数据
             LuckyTreasure round = luckyTreasureDao.findById(issueNumber).orElse(null);
-            if (round == null || round.isEnd()) {
+            if (round == null || round.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
                 return;
             }
 
-            // 进行开奖
-            reward(round);
+            //标记等待开奖
+            round.setStatus(LuckyTreasureStatusUtil.STATUS_WAIT_DRAW);
 
-            //结束标记
-            round.setEnd(true);
+            // 进行开奖
+            if(finalRewardTime < 1){
+                handleActivityRewardTimer(issueNumber);
+            }else {
+                luckyTreasureDao.save(round);
+                addActivityRewardTimer(round);
+            }
+        });
+    }
+
+    /**
+     * 处理活动开奖定时器事件
+     *
+     * @param issueNumber 期号
+     */
+    private void handleActivityRewardTimer(long issueNumber) {
+        // 移除定时器
+        removeActivityTimer(issueNumber);
+
+        String lockKey = LuckyTreasureConstant.RedisLock.LUCKY_TREASURE_REWARD + issueNumber;
+
+        redisLock.tryLockAndRun(lockKey, () -> {
+            // 从数据库获取活动数据
+            LuckyTreasure round = luckyTreasureDao.findById(issueNumber).orElse(null);
+            if (round == null || round.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
+                return;
+            }
+
+            reward(round);
             luckyTreasureDao.save(round);
 
             LuckyTreasureConfig luckyTreasureConfig = round.getConfig();
             // 清理活跃状态
             luckyTreasureRedisDao.removeActiveRoundByIssueNumber(issueNumber);
-
-            // 移除定时器
-            removeActivityTimer(issueNumber);
-
             // 立即启动下一期活动
             startNextRoundForConfig(luckyTreasureConfig.getId());
 
@@ -624,6 +721,18 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      */
     private long calculateEndTimeMillis(LuckyTreasure luckyTreasure) {
         return calculateEndTimeMillis(luckyTreasure.getStartTime(),luckyTreasure.getConfig().getTime());
+    }
+
+    /**
+     * 计算活动实际开奖时间（毫秒）
+     */
+    private long calculateRewardTimeMillis(LuckyTreasure luckyTreasure) {
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
+        if(globalConfigCfg == null || globalConfigCfg.getIntValue() < 1) {
+            return luckyTreasure.getEndTime();
+        }
+
+        return luckyTreasure.getEndTime() + TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
     }
 
     private long calculateEndTimeMillis(long startTime,long time) {
@@ -664,6 +773,8 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             //标记未领取
             luckyTreasure.setReceived(false);
         }
+        //更新状态
+        luckyTreasure.setStatus(LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE);
         //记录开奖日志
         minigameLogger.finish(luckyTreasure);
     }

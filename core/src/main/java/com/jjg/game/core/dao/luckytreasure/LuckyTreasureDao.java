@@ -27,12 +27,11 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
     /**
      * 根据endTime查询记录
      *
-     * @param endTime 结束时间
      * @param limit   最大查询数量，0表示不限制
      * @return 指定endTime的LuckyTreasure列表
      */
-    public List<LuckyTreasure> findAllByEndTime(long endTime, int limit) {
-        Query query = new Query(Criteria.where("endTime").is(endTime));
+    public List<LuckyTreasure> findAllNotEnd(int limit) {
+        Query query = new Query(Criteria.where("end").is(false));
         if (limit > 0) {
             query.limit(limit);
         }
