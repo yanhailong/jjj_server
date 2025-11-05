@@ -731,7 +731,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return result;
             }
 
-            if (avatarCfg.getBuyItem() == null || avatarCfg.getBuyItem().size() != 3) {
+            if (avatarCfg.getBuyItem() == null || avatarCfg.getBuyItem().size() < 2) {
                 log.debug("该配置的buyItem配置错误 id = {}", id);
                 result.code = Code.SAMPLE_ERROR;
                 return result;
@@ -771,25 +771,27 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             addIdsMap.computeIfAbsent(avatarType, k -> new ArrayList<>()).add(id);
 
             //获取赠送的id
-            int giveId = avatarCfg.getBuyItem().get(2);
-            AvatarCfg giveAvatarCfg = GameDataManager.getAvatarCfg(giveId);
-            if (giveAvatarCfg != null) {
-                AvatarType giveAvatarType = EnumUtil.getBy(AvatarType.class, (at -> at.getType() == giveAvatarCfg.getResourceType()));
-                if (!Objects.isNull(giveAvatarType)) {
-                    addIdsMap.computeIfAbsent(giveAvatarType, k -> new ArrayList<>()).add(giveAvatarCfg.getId());
-                } else {
-                    giveId = 0;
+            if(avatarCfg.getBuyItem().size() >= 3){
+                int giveId = avatarCfg.getBuyItem().get(2);
+                AvatarCfg giveAvatarCfg = GameDataManager.getAvatarCfg(giveId);
+                if (giveAvatarCfg != null) {
+                    AvatarType giveAvatarType = EnumUtil.getBy(AvatarType.class, (at -> at.getType() == giveAvatarCfg.getResourceType()));
+                    if (!Objects.isNull(giveAvatarType)) {
+                        addIdsMap.computeIfAbsent(giveAvatarType, k -> new ArrayList<>()).add(giveAvatarCfg.getId());
+                    } else {
+                        giveId = 0;
+                    }
                 }
-            }
 
-            //解锁头像
-            boolean success = playerSkinDao.addByType(playerId, addIdsMap);
-            if (!success) {
-                log.debug("添加头像信息失败 playerId = {},addIdsMap = {}", playerId, addIdsMap);
-                result.code = Code.FAIL;
-                return result;
+                //解锁头像
+                boolean success = playerSkinDao.addByType(playerId, addIdsMap);
+                if (!success) {
+                    log.debug("添加头像信息失败 playerId = {},addIdsMap = {}", playerId, addIdsMap);
+                    result.code = Code.FAIL;
+                    return result;
+                }
+                result.data = giveId;
             }
-            result.data = giveId;
         } catch (Exception e) {
             log.error("", e);
             result.code = Code.EXCEPTION;
