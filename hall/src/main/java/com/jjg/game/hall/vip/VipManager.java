@@ -94,7 +94,7 @@ public class VipManager implements ConfigExcelChangeListener, IPlayerLoginSucces
             res.nowExp = player.getVipExp();
             res.vipLevel = player.getVipLevel();
             res.claimMaxLv = getMaxClaimLv(vip, player);
-            res.recharge = countDao.getCount(CountDao.CountType.RECHARGE.getParam(), String.valueOf(playerId)).intValue();
+            res.recharge = countDao.getCount(CountDao.CountType.RECHARGE.getParam(), String.valueOf(playerId)).toPlainString();
             for (VipGift gift : VipGift.values()) {
                 VipGiftInfo vipGiftInfo = new VipGiftInfo();
                 vipGiftInfo.type = gift.getType();

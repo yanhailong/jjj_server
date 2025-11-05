@@ -22,7 +22,7 @@ public class ResVipInfo extends AbstractResponse {
     @ProtoDesc("当前经验")
     public long nowExp;
     @ProtoDesc("当前充值金额")
-    public int recharge;
+    public String recharge;
     @ProtoDesc("到下级所需金额")
     public long needExp;
     @ProtoDesc("礼包信息")

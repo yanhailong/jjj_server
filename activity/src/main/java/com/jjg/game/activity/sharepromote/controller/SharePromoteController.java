@@ -463,7 +463,7 @@ public class SharePromoteController extends BaseActivityController {
                 SharePromoteSelfRankInfo rankInfo = new SharePromoteSelfRankInfo();
                 //构建排行榜玩家基本信息
                 buildSharePromoteRankInfo(player, rankInfo, entry.getValue().longValue());
-                rankInfo.totalRecharge = counts.getOrDefault(String.valueOf(entry.getKey()), BigDecimal.ZERO).intValue();
+                rankInfo.totalRecharge = counts.get(String.valueOf(entry.getKey())).toPlainString();
                 res.rankInfoList.add(rankInfo);
             }
             res.startIndex = req.startIndex;
