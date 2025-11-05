@@ -680,6 +680,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      * @param issueNumber 期号
      */
     private void handleActivityRewardTimer(long issueNumber) {
+        log.debug("开始处理幸运夺宝开奖事件 issueNumber = {}", issueNumber);
         // 移除定时器
         removeActivityTimer(issueNumber);
 
@@ -689,6 +690,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             // 从数据库获取活动数据
             LuckyTreasure round = luckyTreasureDao.findById(issueNumber).orElse(null);
             if (round == null || (round.getStatus() != LuckyTreasureStatusUtil.STATUS_CAN_BUY && round.getStatus() != LuckyTreasureStatusUtil.STATUS_WAIT_DRAW)) {
+                log.debug("status = {}", round == null ? "null" : round.getStatus());
                 return;
             }
 

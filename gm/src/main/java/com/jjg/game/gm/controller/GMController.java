@@ -312,7 +312,7 @@ public class GMController extends AbstractController {
             vo.setDiamond(p.getDiamond());
             vo.setVipLevel(p.getVipLevel());
             vo.setIp(p.getIp());
-            vo.setCreateTime(p.getCreateTime());
+            vo.setCreateTime(account.getCreateTime());
             vo.setRegisterMac(account.getRegisterMac());
             vo.setIsBan(account.getStatus());
             vo.setIsOffline(playerSessionService.hasSession(p.getId()) ? 0 : 1);
