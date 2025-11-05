@@ -66,11 +66,6 @@ public class LuckyTreasureStatusUtil {
             return LuckyTreasureStatusUtil.STATUS_WAIT_DRAW;
         }
 
-        //等待开奖
-        if(treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE){
-            return LuckyTreasureStatusUtil.STATUS_WAIT_RECEIVE;
-        }
-
         // 已开奖的情况
         // 非中奖玩家直接返回未中奖
         if (treasure.getAwardPlayerId() != playerId) {

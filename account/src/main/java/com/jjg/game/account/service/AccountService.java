@@ -107,7 +107,7 @@ public class AccountService {
 
                 account = accountDao.insert(account);
 
-                accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, loginDto.getChannel(), ip, loginDto.getDevice());
+                accountLogger.register(channelUserInfo.getUserId(), loginType.getValue(), playerId, loginDto.getChannel(), ip, loginDto.getDevice(), loginDto.getMac());
             } else {
                 account.setLastLoginMac(loginDto.getMac());
                 accountDao.save(account);

@@ -653,7 +653,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         redisLock.tryLockAndRun(lockKey, () -> {
             // 从数据库获取活动数据
             LuckyTreasure round = luckyTreasureDao.findById(issueNumber).orElse(null);
-            if (round == null || round.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
+            if (round == null || round.getStatus() != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
                 return;
             }
 
@@ -684,7 +684,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         redisLock.tryLockAndRun(lockKey, () -> {
             // 从数据库获取活动数据
             LuckyTreasure round = luckyTreasureDao.findById(issueNumber).orElse(null);
-            if (round == null || round.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
+            if (round == null || (round.getStatus() != LuckyTreasureStatusUtil.STATUS_CAN_BUY && round.getStatus() != LuckyTreasureStatusUtil.STATUS_WAIT_DRAW)) {
                 return;
             }
 

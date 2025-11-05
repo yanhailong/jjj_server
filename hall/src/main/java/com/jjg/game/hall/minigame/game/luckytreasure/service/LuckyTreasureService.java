@@ -414,7 +414,8 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
 
         // 使用工具类计算临时字段
         info.setStatus(LuckyTreasureStatusUtil.calculateStatus(treasure, player.getId()));
-        info.setCountDown(LuckyTreasureStatusUtil.calculateCountDown(treasure));
+        info.setEndBuyCountDown(LuckyTreasureStatusUtil.calculateCountDown(treasure));
+        info.setCountDown(LuckyTreasureStatusUtil.calculateReceiveCountdown(treasure));
         info.setReceiveCountdown(LuckyTreasureStatusUtil.calculateReceiveCountdown(treasure));
 
         // 设置消耗信息

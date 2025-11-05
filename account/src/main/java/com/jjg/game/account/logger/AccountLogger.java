@@ -21,7 +21,7 @@ public class AccountLogger extends BaseLogger {
      * @param playerId
      * @return
      */
-    public void register(String account, int registerType, long playerId, int channel, String ip, int device) {
+    public void register(String account, int registerType, long playerId, int channel, String ip, int device, String mac) {
         try {
             JSONObject json = new JSONObject();
             json.put("registerType", registerType);
@@ -29,7 +29,7 @@ public class AccountLogger extends BaseLogger {
             json.put("playerId", playerId);
             json.put("channel", channel);
             json.put("ip", ip);
-            json.put("mac", ip);
+            json.put("mac", mac);
             json.put("device", device);
             sendLog("register", null, json);
         } catch (Exception e) {
