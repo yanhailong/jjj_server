@@ -351,7 +351,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
             long now = System.currentTimeMillis();
             long endTime = luckyTreasure.getEndTime();
             if (isExpired(endTime, now)) {
-                long rewardTime = calculateRewardTimeMillis(luckyTreasure);
+                long rewardTime = LuckyTreasureStatusUtil.calculateRewardTimeMillis(luckyTreasure);
                 if (isExpired(rewardTime, now)) {
                     log.debug("该幸运夺宝活动已过期，立即处理开奖 isserNum = {}", luckyTreasure.getIssueNumber());
                     // 已过期，立即处理
@@ -577,7 +577,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         removeActivityTimer(issueNumber);
 
         // 计算活动开奖时间
-        long rewardTime = calculateRewardTimeMillis(round);
+        long rewardTime = LuckyTreasureStatusUtil.calculateRewardTimeMillis(round);
         long currentTime = System.currentTimeMillis();
 
         if (rewardTime <= currentTime) {
@@ -727,17 +727,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
         return calculateEndTimeMillis(luckyTreasure.getStartTime(), luckyTreasure.getConfig().getTime());
     }
 
-    /**
-     * 计算活动实际开奖时间（毫秒）
-     */
-    private long calculateRewardTimeMillis(LuckyTreasure luckyTreasure) {
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(LuckyTreasureConstant.Common.LUCKY_TREASURE_GLOBAL_REWARED_CONFIG_ID);
-        if (globalConfigCfg != null && globalConfigCfg.getIntValue() > 0) {
-            return luckyTreasure.getEndTime();
-        }
 
-        return luckyTreasure.getEndTime() + TimeUnit.SECONDS.toMillis(globalConfigCfg.getIntValue());
-    }
 
     private long calculateEndTimeMillis(long startTime, long time) {
         return startTime + TimeUnit.MINUTES.toMillis(time);

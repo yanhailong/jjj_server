@@ -58,6 +58,9 @@ public class LuckyTreasureUpdateInfo {
     @ProtoDesc("当前状态 1=可购买,2=等待开奖,3=待领取,4=已领取,5=领奖结束(中奖未领取),6=未中奖")
     private int status;
 
+    @ProtoDesc("结束购买倒计时")
+    private int endBuyCountDown;
+
     public long getIssueNumber() {
         return issueNumber;
     }
@@ -120,5 +123,13 @@ public class LuckyTreasureUpdateInfo {
 
     public void setStatus(int status) {
         this.status = status;
+    }
+
+    public int getEndBuyCountDown() {
+        return endBuyCountDown;
+    }
+
+    public void setEndBuyCountDown(int endBuyCountDown) {
+        this.endBuyCountDown = endBuyCountDown;
     }
 }

@@ -108,7 +108,8 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
                     afterInfo.setAlreadyBuyCount(treasure.getBuyMap().getOrDefault(playerId, 0));
                     afterInfo.setIssueNumber(treasure.getIssueNumber());
                     afterInfo.setSoldCount(treasure.getSoldCount());
-                    afterInfo.setCountDown(LuckyTreasureStatusUtil.calculateCountDown(treasure));
+                    afterInfo.setCountDown(LuckyTreasureStatusUtil.calculateRewardTimeSecond(treasure));
+                    afterInfo.setEndBuyCountDown(LuckyTreasureStatusUtil.calculateCountDown(treasure));
                     afterInfo.setConfigId(treasure.getConfig().getId());
                     afterInfo.setBuyCount(treasure.getBuyMap().size());
                     afterInfo.setTotalCount(treasure.getConfig().getTotal());
@@ -415,7 +416,7 @@ public class LuckyTreasureService implements TimerListener<LuckyTreasureService>
         // 使用工具类计算临时字段
         info.setStatus(LuckyTreasureStatusUtil.calculateStatus(treasure, player.getId()));
         info.setEndBuyCountDown(LuckyTreasureStatusUtil.calculateCountDown(treasure));
-        info.setCountDown(LuckyTreasureStatusUtil.calculateReceiveCountdown(treasure));
+        info.setCountDown(LuckyTreasureStatusUtil.calculateRewardTimeSecond(treasure));
         info.setReceiveCountdown(LuckyTreasureStatusUtil.calculateReceiveCountdown(treasure));
 
         // 设置消耗信息
