@@ -9,23 +9,26 @@ import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.dao.ShopProductDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.logger.CoreLogger;
-import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.pb.NotifyPayCallBack;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.ReqGenerateOrder;
 import com.jjg.game.core.utils.ConditionUtil;
+import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
+import com.jjg.game.sampledata.bean.ViplevelCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -43,15 +46,13 @@ public class ShopService implements OrderGenerate, GameEventListener {
     @Autowired
     private PlayerPackService playerPackService;
     @Autowired
-    private CorePlayerService playerService;
-    @Autowired
-    private CoreSendMessageManager sendMessageManager;
-    @Autowired
     private CoreLogger coreLogger;
     @Autowired
     private AccountDao accountDao;
     @Autowired
     private ClusterSystem clusterSystem;
+    @Autowired
+    private MailService mailService;
     //商城商品
     private Map<Long, ShopProduct> shopProductMap;
 
@@ -209,18 +210,18 @@ public class ShopService implements OrderGenerate, GameEventListener {
         long shopProductId = Long.parseLong(req.productId);
         ShopProduct shopProduct = shopProductMap.get(shopProductId);
         if (shopProduct == null) {
-            log.debug("获取商品为空 playerId = {}, shopProductId = {}", player, shopProductId);
+            log.debug("获取商品为空 playerId = {}, shopProductId = {}", player.getId(), shopProductId);
             return null;
         }
 
         if (!checkProductOpen(player, shopProduct)) {
-            log.debug("商品未开启 playerId = {}, shopProductId = {}", player, shopProductId);
+            log.debug("商品未开启 playerId = {}, shopProductId = {}", player.getId(), shopProductId);
             return null;
         }
 
         String channelProductId = shopProduct.channelProductId(player.getChannel().getValue());
         if (channelProductId == null) {
-            log.debug("获取商品的渠道商品id为空 playerId = {}, shopProductId = {}", player, shopProductId);
+            log.debug("获取商品的渠道商品id为空 playerId = {}, shopProductId = {}", player.getId(), shopProductId);
             return null;
         }
         return shopProduct.getMoney();
@@ -259,6 +260,55 @@ public class ShopService implements OrderGenerate, GameEventListener {
         coreLogger.shop(player, order, shopProduct, money, regionCode);
         //通知玩家充值成功
         notifyPlayerRechargeCallBack(player, order, itemInfoList);
+        //vip特权
+        dealVipPrivileged(player, shopProduct);
+    }
+
+    /**
+     * 处理vip特权
+     * @param player 玩家数据
+     * @param shopProduct 商品数据
+     */
+    private void dealVipPrivileged(Player player, ShopProduct shopProduct) {
+        if (shopProduct.getPayType() == -1) {
+            int currencyItemId = ItemUtils.isAllCurrencyItems(shopProduct.getRewardItems());
+            if (currencyItemId > 0) {
+                Optional<ViplevelCfg> viplevelCfgOptional = GameDataManager.getViplevelCfgList().stream()
+                        .filter(cfg -> cfg.getViplevel() == player.getVipLevel())
+                        .findFirst();
+                if (viplevelCfgOptional.isPresent()) {
+                    Integer add = viplevelCfgOptional.get().getPrivilegedFunctions().get(2);
+                    if (add > 0) {
+                        int magnification = 0;
+                        int mailId = 0;
+                        if (currencyItemId == ItemUtils.getDiamondItemId()) {
+                            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(54);
+                            if (globalConfigCfg != null) {
+                                magnification = globalConfigCfg.getIntValue();
+                                mailId = 37;
+                            }
+                        } else if (currencyItemId == ItemUtils.getGoldItemId()) {
+                            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(52);
+                            if (globalConfigCfg != null) {
+                                magnification = globalConfigCfg.getIntValue();
+                                mailId = 36;
+                            }
+                        }
+                        if (magnification > 0) {
+                            long addNum = shopProduct.getMoney().multiply(BigDecimal.valueOf(add))
+                                    .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
+                                    .multiply(BigDecimal.valueOf(magnification)).longValue();
+                            List<LanguageParamData> languageParamData = new ArrayList<>();
+                            languageParamData.add(new LanguageParamData(0, shopProduct.getMoney().toPlainString()));
+                            languageParamData.add(new LanguageParamData(0, String.valueOf(player.getVipLevel())));
+                            languageParamData.add(new LanguageParamData(0, String.valueOf(add)));
+                            languageParamData.add(new LanguageParamData(0, String.valueOf(addNum)));
+                            mailService.addCfgMail(player.getId(), mailId, List.of(new Item(currencyItemId, addNum)), languageParamData);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**

@@ -157,4 +157,26 @@ public class ItemUtils {
         mergeMap2.forEach((key, value) -> tempMap.merge(key, value, Long::sum));
         return tempMap;
     }
+
+    /**
+     * 判断道具是不是都是货币
+     * @param itemsMap 道具列表
+     * @return 货币id
+     */
+    public static int isAllCurrencyItems(Map<Integer, Long> itemsMap) {
+        if (itemsMap == null) {
+            return 0;
+        }
+        if (itemsMap.size() != 1) {
+            return 0;
+        }
+        for (Integer itemId : itemsMap.keySet()) {
+            ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
+            if (itemCfg == null || (itemCfg.getType() != GameConstant.Item.TYPE_GOLD
+                    && itemCfg.getType() != GameConstant.Item.TYPE_DIAMOND)) {
+                return 0;
+            }
+        }
+        return itemsMap.keySet().iterator().next();
+    }
 }

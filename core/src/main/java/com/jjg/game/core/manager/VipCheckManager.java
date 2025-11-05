@@ -178,13 +178,19 @@ public class VipCheckManager implements GameEventListener, ConfigExcelChangeList
                 log.info("玩家数据在内存中,直接返回,让对应接口处理,不统一处理 player:{} order:{}", player.getId(), JSON.toJSONString(event.getOrder()));
                 return;
             }
+            //复制一个player不修改event中的值
+            Player copyPlayer = new Player();
+            copyPlayer.setId(player.getId());
+            copyPlayer.setVipExp(player.getVipExp());
+            copyPlayer.setVipLevel(player.getVipLevel());
+
             Order order = event.getOrder();
             BigDecimal rechargeAmount = order.getPrice();
-            boolean change = rechargeCheckVipLevel(player, rechargeAmount);
+            boolean change = rechargeCheckVipLevel(copyPlayer, rechargeAmount);
             //回存玩家数据
             Player newPlayer = playerService.doSave(player.getId(), (oldPlayer) -> {
-                oldPlayer.setVipExp(player.getVipExp());
-                oldPlayer.setVipLevel(player.getVipLevel());
+                oldPlayer.setVipExp(copyPlayer.getVipExp());
+                oldPlayer.setVipLevel(copyPlayer.getVipLevel());
             });
             if (change) {
                 //信息变化推送一次

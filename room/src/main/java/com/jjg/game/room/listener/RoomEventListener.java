@@ -238,7 +238,7 @@ public class RoomEventListener implements SessionEnterListener, SessionCloseList
                 log.error("玩家充值事件找不到玩家所在房间 playerId:{} order:{}", event.getPlayer().getId(), JSON.toJSONString(event.getOrder()));
                 return;
             }
-            PlayerRechargeEventHandler handler = new PlayerRechargeEventHandler(event.getPlayer(), gameController, event.getOrder());
+            PlayerRechargeEventHandler handler = new PlayerRechargeEventHandler(event.getPlayer().getId(), gameController, event.getOrder());
             //抛到对应房间线程处理
             gameController.addGameTimeEvent(new TimerEvent<>(gameController, handler), RoomEventType.PLAYER_RECHARGE_EVENT);
         }
