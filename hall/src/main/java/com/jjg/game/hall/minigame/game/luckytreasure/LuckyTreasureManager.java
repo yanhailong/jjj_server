@@ -160,7 +160,9 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
 //                    return;
 //                }
                 //结束
-                if (timerType == LuckyTreasureTimerEvent.TimerType.ACTIVITY_END) {
+                if (timerType == LuckyTreasureTimerEvent.TimerType.ACTIVITY_REWARD) {
+                    handleActivityRewardTimer(issueNumber);
+                }else if(timerType == LuckyTreasureTimerEvent.TimerType.ACTIVITY_END){
                     handleActivityEndTimer(issueNumber);
                 }
             }
