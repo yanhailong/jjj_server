@@ -27,10 +27,6 @@ public class TexasFriendGameController extends TexasGameController {
         super(roomController);
     }
 
-    public void dealBankerFlowing(Map<Long, SettlementData> settlementDataMap) {
-        dealBankerFlowing(null, settlementDataMap);
-    }
-
     @Override
     public void dealBankerFlowing(RoomBankerChangeParam param, Map<Long, SettlementData> settlementDataMap) {
         if (roomController instanceof AbstractFriendRoomController<?, ?>) {
