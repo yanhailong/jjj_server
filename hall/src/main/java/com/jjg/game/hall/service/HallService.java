@@ -19,6 +19,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.DropItemManager;
 import com.jjg.game.core.service.*;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.constant.HallConstant;
 import com.jjg.game.hall.dao.HallPoolDao;
 import com.jjg.game.hall.dao.LikeGameDao;
@@ -292,7 +293,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      */
     public CommonResult<String> comfirmVerCode(long playerId, int verCodeType, int verCode) {
         CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
-
         VerCodeType smsType = VerCodeType.getType(verCodeType);
         if (smsType == null) {
             result.code = Code.PARAM_ERROR;
@@ -327,7 +327,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
         boolean update = false;
         if (smsType == VerCodeType.SMS_BIND_PHONE) {
-            CommonResult<Account> accountCommonResult = accountDao.addThirdAccount(playerId, LoginType.PHONE, verResult.data);
+            PhoneUserInfo phoneUserInfo = new PhoneUserInfo();
+            phoneUserInfo.setUserId(verResult.data);
+            CommonResult<Account> accountCommonResult = accountDao.addThirdAccount(playerId, LoginType.PHONE, phoneUserInfo);
             if (!accountCommonResult.success()) {
                 result.code = accountCommonResult.code;
                 log.debug("更新到数据库失败，确认验证码失败1 playerId = {},verCodeType = {},verCode = {},failCode = {}", playerId, verCodeType, verCode, accountCommonResult.code);
@@ -356,8 +358,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return result;
             }
 
-            List<Item> list = HallTool.mapToItemList(loginConfigCfg.getAwardItem());
-            mailService.addCfgMail(playerId, HallConstant.Mail.ID_BIND_PHONE, list);
+            List<Item> list = ItemUtils.buildItems(loginConfigCfg.getAwardItem());
+            mailService.addCfgMail(playerId, GameConstant.Mail.ID_BIND_PHONE, list);
             log.debug("已发送绑定手机奖励邮件 playerId = {},rewaredList = {}", playerId, list);
         }
         return result;
@@ -664,9 +666,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     result.code = verifyResult.code;
                     return result;
                 }
-                addResult = accountDao.addThirdAccount(playerId, loginType, verifyResult.data);
 
-                mailId = HallConstant.Mail.ID_BIND_GOOGLE;
+                addResult = accountDao.addThirdAccount(playerId, loginType, verifyResult.data);
+                mailId = GameConstant.Mail.ID_BIND_GOOGLE;
             } else if (loginType == LoginType.FACEBOOK) {
                 CommonResult<FacebookUserInfo> verifyResult = thirdAccountHttpService.verifyFacebookToken(token);
                 if (!verifyResult.success()) {
@@ -675,7 +677,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 }
 
                 addResult = accountDao.addThirdAccount(playerId, loginType, verifyResult.data);
-                mailId = HallConstant.Mail.ID_BIND_FACEBOOK;
+                mailId = GameConstant.Mail.ID_BIND_FACEBOOK;
             } else if (loginType == LoginType.APPLE) {
                 CommonResult<AppleUserInfo> verifyResult = thirdAccountHttpService.verifyAppleToken(token);
                 if (!verifyResult.success()) {
@@ -683,7 +685,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     return result;
                 }
                 addResult = accountDao.addThirdAccount(playerId, loginType, verifyResult.data);
-                mailId = HallConstant.Mail.ID_BIND_APPLE;
+                mailId = GameConstant.Mail.ID_BIND_APPLE;
             } else {
                 log.debug("该接口不支持该类型绑定，绑定第三方账号失败 type = {}", type);
                 result.code = Code.FAIL;
@@ -707,7 +709,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 //                return result;
 //            }
 
-            result.data = HallTool.mapToItemList(loginConfigCfg.getAwardItem());
+            result.data = ItemUtils.buildItems(loginConfigCfg.getAwardItem());
 
             mailService.addCfgMail(playerId, mailId, result.data);
             log.debug("已发送绑定账号奖励邮件 playerId = {},type = {},rewaredList = {}", playerId, type, result.data);
@@ -731,7 +733,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return result;
             }
 
-            if (avatarCfg.getBuyItem() == null || avatarCfg.getBuyItem().size() != 3) {
+            if (avatarCfg.getBuyItem() == null || avatarCfg.getBuyItem().size() < 2) {
                 log.debug("该配置的buyItem配置错误 id = {}", id);
                 result.code = Code.SAMPLE_ERROR;
                 return result;
@@ -771,14 +773,17 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             addIdsMap.computeIfAbsent(avatarType, k -> new ArrayList<>()).add(id);
 
             //获取赠送的id
-            int giveId = avatarCfg.getBuyItem().get(2);
-            AvatarCfg giveAvatarCfg = GameDataManager.getAvatarCfg(giveId);
-            if (giveAvatarCfg != null) {
-                AvatarType giveAvatarType = EnumUtil.getBy(AvatarType.class, (at -> at.getType() == giveAvatarCfg.getResourceType()));
-                if (!Objects.isNull(giveAvatarType)) {
-                    addIdsMap.computeIfAbsent(giveAvatarType, k -> new ArrayList<>()).add(giveAvatarCfg.getId());
-                } else {
-                    giveId = 0;
+            int giveId = 0;
+            if(avatarCfg.getBuyItem().size() >= 3){
+                giveId = avatarCfg.getBuyItem().get(2);
+                AvatarCfg giveAvatarCfg = GameDataManager.getAvatarCfg(giveId);
+                if (giveAvatarCfg != null) {
+                    AvatarType giveAvatarType = EnumUtil.getBy(AvatarType.class, (at -> at.getType() == giveAvatarCfg.getResourceType()));
+                    if (!Objects.isNull(giveAvatarType)) {
+                        addIdsMap.computeIfAbsent(giveAvatarType, k -> new ArrayList<>()).add(giveAvatarCfg.getId());
+                    } else {
+                        giveId = 0;
+                    }
                 }
             }
 

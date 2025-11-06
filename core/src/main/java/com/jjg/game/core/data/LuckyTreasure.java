@@ -4,10 +4,7 @@ import com.jjg.game.core.config.bean.LuckyTreasureConfig;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 夺宝奇兵数据
@@ -225,5 +222,17 @@ public class LuckyTreasure {
 
     public void setStatus(int status) {
         this.status = status;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        LuckyTreasure that = (LuckyTreasure) o;
+        return issueNumber == that.issueNumber;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(issueNumber);
     }
 }

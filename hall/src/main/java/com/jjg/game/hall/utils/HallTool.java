@@ -45,16 +45,4 @@ public class HallTool {
             return false;
         }
     }
-
-    public static List<Item> mapToItemList(Map<Integer, Long> map) {
-        if(map == null){
-            return Collections.emptyList();
-        }
-
-        List<Item> list = new ArrayList<>();
-        map.forEach((k, v) -> {
-            list.add(new Item(k, v));
-        });
-        return list;
-    }
 }
