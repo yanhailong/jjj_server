@@ -143,7 +143,7 @@ public class RedDotManager {
         List<RedDotDetails> list = new ArrayList<>();
         RedDotDetails redDotDetailInfo = new RedDotDetails();
         redDotDetailInfo.setRedDotModule(RedDotDetails.RedDotModule.ACTIVITY);
-        redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COUNT);
+        redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
         redDotDetailInfo.setCount(hasRedDot ? 1 : 0);
         redDotDetailInfo.setRedDotSubmodule(activityType);
         list.add(redDotDetailInfo);

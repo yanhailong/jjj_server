@@ -458,7 +458,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 for (ActivityData data : dataArrayList) {
                     RedDotDetails redDotDetails = new RedDotDetails();
                     redDotDetails.setRedDotModule(getModule());
-                    redDotDetails.setRedDotType(RedDotDetails.RedDotType.COUNT);
+                    redDotDetails.setRedDotType(RedDotDetails.RedDotType.COMMON);
                     redDotDetails.setCount(1);
                     redDotDetails.setRedDotSubmodule(data.getType().getType());
                     redInfo.add(redDotDetails);
@@ -797,7 +797,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             if (redDot) {
                 RedDotDetails redDotDetailInfo = new RedDotDetails();
                 redDotDetailInfo.setRedDotModule(getModule());
-                redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COUNT);
+                redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
                 redDotDetailInfo.setCount(1);
                 redDotDetailInfo.setRedDotSubmodule(data.getType().getType());
                 redDotDetails.add(redDotDetailInfo);

@@ -456,7 +456,8 @@ public abstract class BaseActivityController {
             buyActivityGift(player, data, detailId);
             log.info("充值事件 购买活动礼包成功 playerId:{}  order;{}", player.getId(), JSONObject.toJSONString(order));
         }
-
+        //更新红点
+        updateRodDot(player.getId(), data, false);
     }
 
     /**

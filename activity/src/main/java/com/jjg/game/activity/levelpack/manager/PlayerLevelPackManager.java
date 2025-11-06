@@ -376,7 +376,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
             List<RedDotDetails> list = new ArrayList<>();
             RedDotDetails redDotDetailInfo = new RedDotDetails();
             redDotDetailInfo.setRedDotModule(RedDotDetails.RedDotModule.LEVEL_PACK);
-            redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COUNT);
+            redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
             redDotDetailInfo.setCount(hasRed ? 1 : 0);
             list.add(redDotDetailInfo);
             redDotManager.updateRedDot(list, playerId);
@@ -409,7 +409,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
     public List<RedDotDetails> initialize(long playerId, int submodule) {
         RedDotDetails redDotDetailInfo = new RedDotDetails();
         redDotDetailInfo.setRedDotModule(RedDotDetails.RedDotModule.LEVEL_PACK);
-        redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COUNT);
+        redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
         redDotDetailInfo.setCount(hasRedDot(playerId) ? 1 : 0);
         return List.of(redDotDetailInfo);
     }
