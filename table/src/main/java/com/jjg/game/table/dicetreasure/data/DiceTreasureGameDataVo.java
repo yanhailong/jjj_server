@@ -20,15 +20,22 @@ public class DiceTreasureGameDataVo extends TableGameDataVo {
     private DiceTreasureSettlementInfo diceTreasureSettlementInfo;
     // 每次赢的历史记录
     private final List<DiceTreasureHistoryBean> winAreaCfgIdHistory = new ArrayList<>();
+    // gm结果
+    private final List<Integer> gmResult = new ArrayList<>();
 
     public DiceTreasureGameDataVo(Room_BetCfg roomCfg) {
         super(roomCfg);
+    }
+
+    public List<Integer> getGmResult() {
+        return gmResult;
     }
 
     @Override
     public void clearRoundData(AbstractGameController<?, ?> gameController) {
         super.clearRoundData(gameController);
         diceTreasureSettlementInfo = null;
+        gmResult.clear();
     }
 
     public List<DiceTreasureHistoryBean> getWinAreaCfgIdHistory() {

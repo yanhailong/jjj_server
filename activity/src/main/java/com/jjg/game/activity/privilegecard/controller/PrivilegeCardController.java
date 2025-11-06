@@ -374,10 +374,6 @@ public class PrivilegeCardController extends BaseActivityController implements G
         }
         return null;
     }
-    @Override
-    public Map<EGameEventType, Object> getSubTypeMap() {
-        return Map.of(EGameEventType.RECHARGE, getRechargeType());
-    }
 
     @Override
     public RechargeType getRechargeType() {

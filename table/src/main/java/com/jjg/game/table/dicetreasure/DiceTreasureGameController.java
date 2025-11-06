@@ -1,9 +1,12 @@
 package com.jjg.game.table.dicetreasure;
 
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.BetTableRoom;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
+import com.jjg.game.room.base.GameGm;
 import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
@@ -15,8 +18,10 @@ import com.jjg.game.table.dicetreasure.gamephase.DiceTreasureSettlementPhase;
 import com.jjg.game.table.dicetreasure.gamephase.DiceTreasureTableWaitReadyPhase;
 import com.jjg.game.table.dicetreasure.message.DiceTreasureMessageBuilder;
 import com.jjg.game.table.dicetreasure.message.NotifyDiceTreasureTableInfo;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.LinkedHashSet;
+import java.util.Map;
 
 /**
  * 骰宝游戏控制器
@@ -34,7 +39,7 @@ public class DiceTreasureGameController extends BaseTableGameController<DiceTrea
     public void respRoomInitInfo(PlayerController playerController) {
         // 发送初始化数据
         NotifyDiceTreasureTableInfo animalsTableInfo =
-            DiceTreasureMessageBuilder.notifyDiceTreasureTableInfo(playerController.playerId(), this, true);
+                DiceTreasureMessageBuilder.notifyDiceTreasureTableInfo(playerController.playerId(), this, true);
         playerController.send(animalsTableInfo);
     }
 
@@ -67,4 +72,19 @@ public class DiceTreasureGameController extends BaseTableGameController<DiceTrea
         return EGameType.DICE_TREASURE;
     }
 
+    @GameGm(cmd = "diceTreasure")
+    public CommonResult<Map<Integer, Integer>> diceTreasureSettlement(String[] gmOrders) {
+        if (gmOrders.length == 0) {
+            return new CommonResult<>(Code.PARAM_ERROR);
+        }
+        String[] split = StringUtils.split(gmOrders[0], ",");
+        if (split.length != 3) {
+            return new CommonResult<>(Code.PARAM_ERROR);
+        }
+        gameDataVo.getGmResult().clear();
+        for (String num : split) {
+            gameDataVo.getGmResult().add(Integer.parseInt(num));
+        }
+        return new CommonResult<>(Code.SUCCESS);
+    }
 }

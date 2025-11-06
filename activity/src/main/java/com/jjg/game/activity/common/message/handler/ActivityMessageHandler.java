@@ -29,6 +29,7 @@ import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import org.springframework.stereotype.Component;
 
@@ -102,6 +103,9 @@ public class ActivityMessageHandler {
             AbstractResponse response = controller.claimActivityRewards(playerController.getPlayer(), data, req.detailId);
             if (response != null) {
                 playerController.send(response);
+                if (response.code == Code.SUCCESS) {
+                    controller.updateRodDot(playerController.playerId(), data, true);
+                }
             }
         }
     }
@@ -119,6 +123,9 @@ public class ActivityMessageHandler {
                 AbstractResponse response = controller.joinActivity(playerController.getPlayer(), data, req.detailId, req.joinTimes);
                 if (response != null) {
                     playerController.send(response);
+                    if (response.code == Code.SUCCESS) {
+                        controller.updateRodDot(playerController.playerId(), data, false, true);
+                    }
                 }
             }
         }
@@ -163,6 +170,9 @@ public class ActivityMessageHandler {
             if (activityManager.playerCanJoinActivity(data, playerController.getPlayer())) {
                 AbstractResponse res = cashCowController.reqCashCowFreeRewards(playerController, data, req);
                 playerController.send(res);
+                if (res.code == Code.SUCCESS) {
+                    cashCowController.updateRodDot(playerController.playerId(), data, true);
+                }
             }
         }
     }
@@ -192,6 +202,9 @@ public class ActivityMessageHandler {
         }
         AbstractResponse res = sharePromoteController.reqSharePromoteClaimProfitReward(playerController, activityData);
         playerController.send(res);
+        if (res.code == Code.SUCCESS) {
+            sharePromoteController.updateRodDot(playerController.playerId(), activityData, true);
+        }
     }
 
     /**
@@ -269,7 +282,11 @@ public class ActivityMessageHandler {
      */
     @Command(ActivityConstant.MsgBean.REQ_PLAYER_LEVEL_PACK_DETAIL_INFO)
     public void reqPlayerLevelPackDetailInfo(PlayerController playerController) {
-        playerController.send(playerLevelPackManager.reqPlayerLevelPackDetailInfo(playerController));
+        AbstractResponse res = playerLevelPackManager.reqPlayerLevelPackDetailInfo(playerController);
+        playerController.send(res);
+        if (res.code == Code.SUCCESS) {
+            playerLevelPackManager.updateRedDot(playerController.playerId(), false);
+        }
     }
 
 

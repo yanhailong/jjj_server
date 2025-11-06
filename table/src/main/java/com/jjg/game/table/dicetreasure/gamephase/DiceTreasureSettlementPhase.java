@@ -1,5 +1,6 @@
 package com.jjg.game.table.dicetreasure.gamephase;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
@@ -38,33 +39,36 @@ public class DiceTreasureSettlementPhase extends BaseDiceSettlementPhase<DiceTre
         super.phaseDoAction();
         // 随机三个1-6的骰子点数
         List<Integer> randomNumDice = DiceUtils.randomDice(3, 1, 6);
+        if (CollectionUtil.isNotEmpty(gameDataVo.getGmResult())) {
+            randomNumDice = gameDataVo.getGmResult();
+        }
         // 通过骰子点数获取对应的配置
         List<WinPosWeightCfg> winPosWeightCfgs =
-            DiceDataHolder.getWinPosWeightCfg(EGameType.DICE_TREASURE, randomNumDice);
+                DiceDataHolder.getWinPosWeightCfg(EGameType.DICE_TREASURE, randomNumDice);
         if (winPosWeightCfgs == null || winPosWeightCfgs.isEmpty()) {
             log.error("骰宝结算异常，随机奖励的区域为空，骰子：{}", randomNumDice);
             return;
         }
         // 中奖的区域列表
         List<BetAreaCfg> betAreaCfgs =
-            winPosWeightCfgs.stream()
-                .map(WinPosWeightCfg::getBetArea)
-                .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll)
-                .stream()
-                .distinct()
-                .map(a -> GameDataManager.getBetAreaCfg((Integer) a)).toList();
+                winPosWeightCfgs.stream()
+                        .map(WinPosWeightCfg::getBetArea)
+                        .collect(ArrayList::new, ArrayList::addAll, ArrayList::addAll)
+                        .stream()
+                        .distinct()
+                        .map(a -> GameDataManager.getBetAreaCfg((Integer) a)).toList();
         log.debug("{} 摇中骰子：{}, 区域ID: {} 对应的中奖区域：{}",
-            gameDataVo.roomLogInfo(), randomNumDice.stream().map(String::valueOf).collect(Collectors.joining("")),
-            winPosWeightCfgs.stream().map(WinPosWeightCfg::getId).collect(Collectors.toList()),
-            betAreaCfgs.stream().map(BetAreaCfg::getId).map(String::valueOf).collect(Collectors.joining(",")));
+                gameDataVo.roomLogInfo(), randomNumDice.stream().map(String::valueOf).collect(Collectors.joining("")),
+                winPosWeightCfgs.stream().map(WinPosWeightCfg::getId).collect(Collectors.toList()),
+                betAreaCfgs.stream().map(BetAreaCfg::getId).map(String::valueOf).collect(Collectors.joining(",")));
         // 添加中奖记录
         DiceTreasureHistoryBean historyBean = addDiceTreasureHistory(randomNumDice, betAreaCfgs);
         NotifyDiceTreasureSettlement settlement =
-            DiceTreasureMessageBuilder.notifyDiceTreasureSettlement(historyBean);
+                DiceTreasureMessageBuilder.notifyDiceTreasureSettlement(historyBean);
         gameDataTracker.addGameLogData(DataTrackNameConstant.SETTLEMENT_DATA, historyBean);
         // 构建结算信息
         settlement.settlementInfo.diceSettlementInfo =
-            BaseDiceMessageBuilder.buildDiceSettlementInfo(gameDataVo);
+                BaseDiceMessageBuilder.buildDiceSettlementInfo(gameDataVo);
         settlementDice(settlement.settlementInfo.diceSettlementInfo, winPosWeightCfgs, settlement);
         log.debug("骰宝房间：{} 结算数据：{}", gameDataVo.getRoomCfg().getId(), JSON.toJSONString(settlement));
         // 保存记录

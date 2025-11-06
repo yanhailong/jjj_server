@@ -271,11 +271,6 @@ public class FirstPaymentController extends BaseActivityController implements Ga
     }
 
     @Override
-    public Map<EGameEventType, Object> getSubTypeMap() {
-        return Map.of(EGameEventType.RECHARGE, getRechargeType());
-    }
-
-    @Override
     public RechargeType getRechargeType() {
         return RechargeType.FIRST_PAYMENT;
     }

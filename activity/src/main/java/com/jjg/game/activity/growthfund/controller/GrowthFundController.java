@@ -452,11 +452,6 @@ public class GrowthFundController extends BaseActivityController implements Game
     }
 
     @Override
-    public Map<EGameEventType, Object> getSubTypeMap() {
-        return Map.of(EGameEventType.RECHARGE, getRechargeType());
-    }
-
-    @Override
     public RechargeType getRechargeType() {
         return RechargeType.GROWTH_FUND;
     }

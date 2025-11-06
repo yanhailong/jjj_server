@@ -89,6 +89,11 @@ public class RedDotDetails {
          */
         @ProtoDesc("积分大奖")
         POINTS_AWARD,
+        /**
+         * 等级礼包
+         */
+        @ProtoDesc("等级礼包")
+        LEVEL_PACK,
     }
 
 

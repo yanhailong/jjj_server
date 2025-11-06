@@ -132,6 +132,25 @@ public class RedDotManager {
         }
     }
 
+
+    /**
+     * 更新活动红点
+     * @param playerId 玩家id
+     * @param activityType 活动类型
+     * @param hasRedDot 是否有红点
+     */
+    public void updateActivityRedDot(long playerId, int activityType, boolean hasRedDot) {
+        List<RedDotDetails> list = new ArrayList<>();
+        RedDotDetails redDotDetailInfo = new RedDotDetails();
+        redDotDetailInfo.setRedDotModule(RedDotDetails.RedDotModule.ACTIVITY);
+        redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
+        redDotDetailInfo.setCount(hasRedDot ? 1 : 0);
+        redDotDetailInfo.setRedDotSubmodule(activityType);
+        list.add(redDotDetailInfo);
+        updateRedDot(list, playerId);
+    }
+
+
     /**
      * 更新客户端的红点数据。
      *

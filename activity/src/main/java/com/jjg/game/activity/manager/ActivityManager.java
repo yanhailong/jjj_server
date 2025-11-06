@@ -100,10 +100,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 红点管理
      */
     private final RedDotManager redDotManager;
-    /**
-     * 事件管理
-     */
-    private final GameEventManager gameEventManager;
+
     /**
      * 条件检查
      */
@@ -128,14 +125,14 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     public ActivityManager(TimerCenter timerCenter, ClusterSystem clusterSystem,
                            CoreMarqueeManager marqueeManager,
-                           MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager, GameEventManager gameEventManager, ConditionManager conditionManager, PlayerActivityDao playerActivityDao, DropItemManager dropItemManager, CountDao countDao) {
+                           MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager,
+                           ConditionManager conditionManager, PlayerActivityDao playerActivityDao, DropItemManager dropItemManager, CountDao countDao) {
         this.timerCenter = timerCenter;
         this.clusterSystem = clusterSystem;
         this.marqueeManager = marqueeManager;
         this.marsCurator = marsCurator;
         this.nodeConfig = nodeConfig;
         this.redDotManager = redDotManager;
-        this.gameEventManager = gameEventManager;
         this.conditionManager = conditionManager;
         this.playerActivityDao = playerActivityDao;
         this.dropItemManager = dropItemManager;
@@ -462,6 +459,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     RedDotDetails redDotDetails = new RedDotDetails();
                     redDotDetails.setRedDotModule(getModule());
                     redDotDetails.setRedDotType(RedDotDetails.RedDotType.COMMON);
+                    redDotDetails.setCount(1);
                     redDotDetails.setRedDotSubmodule(data.getType().getType());
                     redInfo.add(redDotDetails);
                 }
@@ -800,6 +798,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 RedDotDetails redDotDetailInfo = new RedDotDetails();
                 redDotDetailInfo.setRedDotModule(getModule());
                 redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
+                redDotDetailInfo.setCount(1);
                 redDotDetailInfo.setRedDotSubmodule(data.getType().getType());
                 redDotDetails.add(redDotDetailInfo);
             }
