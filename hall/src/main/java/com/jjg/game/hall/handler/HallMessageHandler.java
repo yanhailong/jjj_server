@@ -437,6 +437,7 @@ public class HallMessageHandler implements GmListener {
 
         if (!addIdsMap.isEmpty()) {
             playerSkinDao.addByType(playerSkin.getPlayerId(), addIdsMap);
+            log.debug("玩家新解锁头像 playerId = {},addIdsMap = {}", playerSkin.getPlayerId(), addIdsMap);
         }
     }
 
