@@ -39,58 +39,6 @@ public class LuckyTreasureStatusUtil {
     public static final int STATUS_NOT_WINNER = 6;
 
     /**
-     * 计算夺宝奇兵当前状态
-     */
-    public static int calculateStatus(LuckyTreasure treasure, long playerId) {
-        if (treasure == null || treasure.getConfig() == null) {
-            return STATUS_NOT_WINNER;
-        }
-
-        long currentTime = System.currentTimeMillis();
-        long endTime = treasure.getEndTime();
-        int total = treasure.getConfig().getTotal();
-        int soldCount = treasure.getSoldCount();
-
-        // 活动未结束的情况
-        if(treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_CAN_BUY){
-            // 已售完但未到结束时间，等待开奖
-            if (soldCount >= total) {
-                return STATUS_WAIT_DRAW;
-            }
-            if(endTime < currentTime) {
-                return STATUS_WAIT_DRAW;
-            }
-            // 可继续购买
-            return STATUS_CAN_BUY;
-        }
-
-        //等待开奖
-        if(treasure.getStatus() == LuckyTreasureStatusUtil.STATUS_WAIT_DRAW){
-            return LuckyTreasureStatusUtil.STATUS_WAIT_DRAW;
-        }
-
-        // 已开奖的情况
-        // 非中奖玩家直接返回未中奖
-        if (treasure.getAwardPlayerId() != playerId) {
-            return STATUS_NOT_WINNER;
-        }
-
-        // 中奖玩家的状态判断
-        if (treasure.isReceived()) {
-            return STATUS_RECEIVED;
-        }
-
-        // 检查领奖是否过期
-        long receiveDeadline = endTime + TimeUnit.MINUTES.toMillis(treasure.getConfig().getCollectTime());
-        if (currentTime > receiveDeadline) {
-            return STATUS_EXPIRED_WINNER;
-        }
-
-        return STATUS_WAIT_RECEIVE;
-    }
-
-
-    /**
      * 计算开奖倒计时（秒）
      */
     public static int calculateCountDown(LuckyTreasure treasure) {

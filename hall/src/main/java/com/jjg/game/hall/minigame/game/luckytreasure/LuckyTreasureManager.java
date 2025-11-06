@@ -318,7 +318,7 @@ public class LuckyTreasureManager implements IGameClusterLeaderListener, TimerLi
      */
     private int robotBuyWithoutLock(long playerId, LuckyTreasure latestTreasure, int count) {
         try {
-            if (latestTreasure == null || LuckyTreasureStatusUtil.calculateStatus(latestTreasure, playerId) != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
+            if (latestTreasure == null || luckyTreasureService.calculateStatus(latestTreasure, playerId) != LuckyTreasureStatusUtil.STATUS_CAN_BUY) {
                 return Code.FAIL;
             }
             // 检查剩余数量

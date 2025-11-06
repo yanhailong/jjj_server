@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -120,6 +121,15 @@ public class LuckyTreasureDao extends MongoBaseDao<LuckyTreasure, Long> {
 
             return new PageImpl<>(treasures, pageable, total);
         }
+    }
+    
+    public List<LuckyTreasure> find(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Query query = new Query(Criteria.where("_id").in(ids));
+        return mongoTemplate.find(query, LuckyTreasure.class);
     }
 
 }
