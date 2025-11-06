@@ -1,5 +1,6 @@
 package com.jjg.game.hall.pointsaward;
 
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
@@ -146,6 +147,7 @@ public class PointsAwardMessageHandler {
         res.setRank(pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerController.playerId()));
         res.setState(1);
         playerController.send(res);
+        log.debug("返回玩家积分大奖积分 playerId = {},res = {}",playerController.playerId(), JSONObject.toJSONString(res));
     }
 
     /**

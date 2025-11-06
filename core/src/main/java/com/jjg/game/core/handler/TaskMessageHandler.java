@@ -1,5 +1,6 @@
 package com.jjg.game.core.handler;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
@@ -55,6 +56,7 @@ public class TaskMessageHandler {
             resTaskList.code = Code.EXCEPTION;
         }
         playerController.send(resTaskList);
+        log.debug("玩家获取任务列表 playerId = {},res = {}", player.getId(), JSON.toJSONString(resTaskList));
     }
 
     /**
