@@ -80,7 +80,7 @@ public class SizeDiceTreasureSettlementPhase extends BaseDiceSettlementPhase<Siz
     private SizeDiceTreasureHistoryBean addHistory(
         List<Integer> diceData, List<BetAreaCfg> winPosWeightCfgs) {
         SizeDiceTreasureHistoryBean sizeDiceTreasureHistoryBean = new SizeDiceTreasureHistoryBean();
-        sizeDiceTreasureHistoryBean.betIdxId = winPosWeightCfgs.get(0).getId();
+        sizeDiceTreasureHistoryBean.betIdxId = winPosWeightCfgs.getFirst().getId();
         sizeDiceTreasureHistoryBean.diceData = diceData;
         // 添加记录
         gameDataVo.addWinAreaCfgIdHistory(sizeDiceTreasureHistoryBean);

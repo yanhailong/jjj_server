@@ -24,6 +24,8 @@ public interface RedBlackWarConstant {
         int BLACK_AREA = 2;
         //押注幸运区域
         int LUCK_AREA = 3;
+        //前端押注幸运区域
+        int CLIENT_LUCK_AREA = 20010003;
     }
 
     enum Camp {

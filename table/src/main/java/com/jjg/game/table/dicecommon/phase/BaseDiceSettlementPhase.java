@@ -6,6 +6,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.message.RoomMessageBuilder;
@@ -41,7 +42,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             BaseDiceSettlementInfo diceSettlementInfo, List<WinPosWeightCfg> winPosWeightCfgs, S settlement) {
         List<PlayerChangedGold> playerChangedGolds = new ArrayList<>();
         // 庄家变化的钱
-        long bankerChangeGold = 0;
+        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(gameDataVo.getBetInfo());
         Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
             long playerId = entry.getKey();
@@ -52,7 +53,7 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
                 continue;
             }
             // 给玩家进行结算
-            SettlementData playerSettlementData = calcSettlementGold(gamePlayer, winPosWeightCfgs, playerBetInfo);
+            SettlementData playerSettlementData = calcSettlementGold(gamePlayer, winPosWeightCfgs, playerBetInfo, changeParam);
             PlayerChangedGold playerChangedGold = new PlayerChangedGold();
             playerChangedGold.playerId = playerId;
             playerChangedGold.playerWinGold = playerSettlementData.getBetWin();
@@ -60,14 +61,20 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
             // 给玩家添加金币
             gameController.addItem(
                     gamePlayer.getId(), playerSettlementData.getTotalWin(),
-                    AddType.GAME_SETTLEMENT,gameDataVo.getRoomCfg().getId()+"");
+                    AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
             playerChangedGold.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
             // 添加记录
             entry.getValue().getTableGameData().addBetRecord(playerSettlementData.getTotalWin());
-            bankerChangeGold += playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal();
+            if (changeParam != null) {
+                changeParam.addBankerChangeGold(playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal());
+                changeParam.addTotalTaxRevenue(playerSettlementData.getTaxation());
+            }
             settlementDataMap.put(playerId, playerSettlementData);
         }
-        gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
+        if (changeParam != null) {
+            calculationFinalBankerChange(changeParam);
+            gameController.dealBankerFlowing(changeParam, settlementDataMap);
+        }
         // 场上玩家金币变化
         diceSettlementInfo.playerChangedGolds = playerChangedGolds;
         for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
@@ -90,13 +97,16 @@ public abstract class BaseDiceSettlementPhase<T extends TableGameDataVo> extends
     /**
      * 计算结算金币
      */
-    protected SettlementData calcSettlementGold(
-            GamePlayer gamePlayer, List<WinPosWeightCfg> winPosWeightCfgs, Map<Integer, List<Integer>> playerBetInfo) {
+    protected SettlementData calcSettlementGold(GamePlayer gamePlayer, List<WinPosWeightCfg> winPosWeightCfgs,
+                                                Map<Integer, List<Integer>> playerBetInfo, RoomBankerChangeParam changeParam) {
         SettlementData playerSettlementData = new SettlementData();
         for (WinPosWeightCfg winPosWeightCfg : winPosWeightCfgs) {
             List<Integer> betAreas = winPosWeightCfg.getBetArea();
             for (Integer betAreaIdx : betAreas) {
                 if (playerBetInfo.containsKey(betAreaIdx)) {
+                    if (changeParam != null) {
+                        changeParam.removeArea(betAreaIdx);
+                    }
                     List<Integer> playerBetGoldList = playerBetInfo.get(betAreaIdx);
                     // 玩家总押注
                     long playerBetGoldTotal = playerBetGoldList.stream().mapToInt(Integer::intValue).sum();

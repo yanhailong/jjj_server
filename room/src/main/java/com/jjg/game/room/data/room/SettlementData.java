@@ -14,17 +14,18 @@ public class SettlementData {
     private long totalWin;
     // 压的总值
     private long betTotal;
-    // 应该给房主加的值
-    private long roomCreatorIncome;
+    // 税收
+    private long taxation;
+
     public SettlementData() {
     }
 
-    public SettlementData(long betWin, long betReturn, long totalWin, long betTotal, long roomCreatorIncome) {
+    public SettlementData(long betWin, long betReturn, long totalWin, long betTotal, long taxation) {
         this.betWin = betWin;
         this.betReturn = betReturn;
         this.totalWin = totalWin;
         this.betTotal = betTotal;
-        this.roomCreatorIncome = roomCreatorIncome;
+        this.taxation = taxation;
     }
 
     public long getBetWin() {
@@ -47,8 +48,8 @@ public class SettlementData {
         this.betTotal = betTotal;
     }
 
-    public long getRoomCreatorIncome() {
-        return roomCreatorIncome;
+    public long getTaxation() {
+        return taxation;
     }
 
     /**
@@ -59,7 +60,7 @@ public class SettlementData {
         this.betReturn += settlementData.betReturn;
         this.totalWin += settlementData.totalWin;
         this.betTotal += settlementData.betTotal;
-        this.roomCreatorIncome += settlementData.roomCreatorIncome;
+        this.taxation += settlementData.taxation;
         return this;
     }
 }

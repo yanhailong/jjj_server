@@ -250,6 +250,12 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
      * 切换到固定节点
      */
     public void switchNode(PFSession pfSession, MarsNode marsNode) {
+        //如果要切换的节点和当前节点一致不切换
+        if (marsNode.getNodeConfig().getName().equals(nodeConfig.getName())) {
+            log.info("相同节点名不切换节点，sessionId={},currentNode={} ,toNode={}", pfSession.sessionId(), nodeConfig.getName(),
+                    marsNode.getNodeConfig().getName());
+            return;
+        }
         log.info("切换节点，sessionId={},toNode={}", pfSession.sessionId(), marsNode.getNodePath());
         try {
             SwitchNodeMessage switchNodeMessage = new SwitchNodeMessage(pfSession.sessionId(), marsNode.getNodePath()

@@ -27,6 +27,8 @@ public class RedBlackWarSampleManager implements ConfigExcelChangeListener {
     private Map<Integer, BetAreaCfg> betAreaMap;
     //阵容->牌型->开奖结果配置
     private Map<RedBlackWarConstant.Camp, Map<HandType, List<WinPosWeightCfg>>> winMap;
+    //所有的开奖结果配置
+    private final List<WinPosWeightCfg> allWinPosWeight = new ArrayList<>();
 
     @Override
     public void initSampleCallbackCollector() {
@@ -112,6 +114,7 @@ public class RedBlackWarSampleManager implements ConfigExcelChangeListener {
                 betAreaMap = tempBetAreaMap;
                 Map<RedBlackWarConstant.Camp, Map<HandType, List<WinPosWeightCfg>>> typeListHashMap = new HashMap<>();
                 for (WinPosWeightCfg value : tempWinMap.values()) {
+                    allWinPosWeight.add(value);
                     Map<HandType, List<WinPosWeightCfg>> handTypeListMap =
                         typeListHashMap.computeIfAbsent(value.getWinPosID() > RED_BLACK_LIMIT ?
                                 RedBlackWarConstant.Camp.BLACK : RedBlackWarConstant.Camp.RED,
@@ -132,6 +135,9 @@ public class RedBlackWarSampleManager implements ConfigExcelChangeListener {
         }
     }
 
+    public List<WinPosWeightCfg> getAllWinPosWeight() {
+        return allWinPosWeight;
+    }
 
     public Map<Integer, BetAreaCfg> getBetAreaMap() {
         return betAreaMap;

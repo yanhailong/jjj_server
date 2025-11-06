@@ -226,7 +226,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     }
 
     /**
-     * 发送销毁房间是返回保证金
+     * 发送销毁房间时返回保证金
      * @param gameTransactionItemId 房间货币id
      * @param gainGold 返回金额
      */
