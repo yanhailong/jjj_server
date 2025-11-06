@@ -22,6 +22,7 @@ import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.manager.ConditionManager;
+import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.TipUtils;
@@ -98,6 +99,12 @@ public abstract class BaseActivityController {
 
 
     /**
+     * 红点管理器
+     */
+    @Autowired
+    protected RedDotManager redDotManager;
+
+    /**
      * 增加玩家的活动进度
      *
      * @param player               玩家数据
@@ -162,6 +169,30 @@ public abstract class BaseActivityController {
      * @return 响应对象
      */
     public abstract AbstractResponse claimActivityRewards(Player player, ActivityData activityData, int detailId);
+
+
+    /**
+     * 更新红点数据
+     * @param playerId 玩家id
+     * @param data 活动数据
+     * @param oldState 老的红点状态
+     */
+    public final void updateRodDot(long playerId, ActivityData data, boolean oldState, boolean compulsory) {
+        boolean hasRedDot = hasRedDot(playerId, data);
+        if (hasRedDot != oldState || compulsory) {
+            redDotManager.updateActivityRedDot(playerId, data.getType().getType(), hasRedDot);
+        }
+    }
+
+    /**
+     * 更新红点数据
+     * @param playerId 玩家id
+     * @param data 活动数据
+     * @param oldState 老的红点状态
+     */
+    public final void updateRodDot(long playerId, ActivityData data, boolean oldState) {
+        updateRodDot(playerId, data, oldState, false);
+    }
 
     /**
      * 玩家购买活动礼包

@@ -311,13 +311,20 @@ public class ScratchCardsController extends BaseActivityController implements Ga
         return null;
     }
 
-    @Override
-    public Map<EGameEventType, Object> getSubTypeMap() {
-        return Map.of(EGameEventType.RECHARGE, getRechargeType());
-    }
 
     @Override
     public RechargeType getRechargeType() {
         return RechargeType.SCRATCH_CARDS;
+    }
+
+    @Override
+    public boolean hasRedDot(long playerId, ActivityData activityData) {
+        Item costItem = getCostItem();
+        if (costItem == null) {
+            return false;
+        }
+        //获取背包数据
+        PlayerPack playerPack = playerPackService.getFromAllDB(playerId);
+        return playerPack.getItemCount(costItem.getId()) > 0;
     }
 }

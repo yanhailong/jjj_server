@@ -16,14 +16,17 @@ import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.gameevent.*;
+import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.manager.CoreSendMessageManager;
+import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.NotifyPlayerLevelUp;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.ReqGenerateOrder;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -44,7 +47,7 @@ import java.util.Map;
  * @date 2025/9/3
  */
 @Component
-public class PlayerLevelPackManager implements GameEventListener, OrderGenerate {
+public class PlayerLevelPackManager implements GameEventListener, OrderGenerate, IRedDotService {
     private final Logger log = LoggerFactory.getLogger(PlayerLevelPackManager.class);
 
     private final RedisLock redisLock;
@@ -53,18 +56,19 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
     private final PlayerPackService playerPackService;
     private final ActivityLogger activityLogger;
     private final CoreSendMessageManager coreSendMessageManager;
-
+    private final RedDotManager redDotManager;
     //redis持有锁时间
     private final int REDIS_LOCK_TIME = 200;
 
     public PlayerLevelPackManager(RedisLock redisLock, PlayerLevelDao playerLevelDao, ClusterSystem clusterSystem,
-                                  PlayerPackService playerPackService, ActivityLogger activityLogger, CoreSendMessageManager coreSendMessageManager) {
+                                  PlayerPackService playerPackService, ActivityLogger activityLogger, CoreSendMessageManager coreSendMessageManager, RedDotManager redDotManager) {
         this.redisLock = redisLock;
         this.playerLevelDao = playerLevelDao;
         this.clusterSystem = clusterSystem;
         this.playerPackService = playerPackService;
         this.activityLogger = activityLogger;
         this.coreSendMessageManager = coreSendMessageManager;
+        this.redDotManager = redDotManager;
     }
 
     /**
@@ -124,6 +128,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
         if (change) {
             NotifyPlayerLevelPackDetailInfo info = buildNotifyPlayerLevelPackDetailInfo(player, playerLevelPackData);
             clusterSystem.sendToPlayer(info, playerId);
+            updateRedDot(player.getId(), false);
         }
     }
 
@@ -308,7 +313,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
             if (CollectionUtil.isEmpty(playerLevelConfigCfg.getGetItem())) {
                 continue;
             }
-            playerLevelConfigCfg.getGetItem().forEach((key,value)->{
+            playerLevelConfigCfg.getGetItem().forEach((key, value) -> {
                 addItemsMap.merge(key, value, Long::sum);
             });
         }
@@ -358,12 +363,54 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate 
     }
 
     @Override
-    public Map<EGameEventType, Object> getSubTypeMap() {
-        return Map.of(EGameEventType.RECHARGE, getRechargeType());
+    public RechargeType getRechargeType() {
+        return RechargeType.PLAYER_LEVEL_GIFT;
+    }
+
+    /**
+     * 更新红点
+     */
+    public void updateRedDot(long playerId, boolean oldState) {
+        boolean hasRed = hasRedDot(playerId);
+        if (oldState != hasRed) {
+            List<RedDotDetails> list = new ArrayList<>();
+            RedDotDetails redDotDetailInfo = new RedDotDetails();
+            redDotDetailInfo.setRedDotModule(RedDotDetails.RedDotModule.LEVEL_PACK);
+            redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COUNT);
+            redDotDetailInfo.setCount(hasRed ? 1 : 0);
+            list.add(redDotDetailInfo);
+            redDotManager.updateRedDot(list, playerId);
+        }
+    }
+
+    /**
+     * 是否有红点
+     */
+    private boolean hasRedDot(long playerId) {
+        Map<Integer, PlayerLevelPackData> playerLevelPackData = playerLevelDao.getPlayerLevelPackData(playerId);
+        if (CollectionUtil.isEmpty(playerLevelPackData)) {
+            return false;
+        }
+        long currentTimeMillis = System.currentTimeMillis();
+        for (PlayerLevelPackData packData : playerLevelPackData.values()) {
+            if (packData.getBuyEndTime() >= currentTimeMillis || packData.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
-    public RechargeType getRechargeType() {
-        return RechargeType.PLAYER_LEVEL_GIFT;
+    public RedDotDetails.RedDotModule getModule() {
+        return RedDotDetails.RedDotModule.LEVEL_PACK;
+    }
+
+    @Override
+    public List<RedDotDetails> initialize(long playerId, int submodule) {
+        RedDotDetails redDotDetailInfo = new RedDotDetails();
+        redDotDetailInfo.setRedDotModule(RedDotDetails.RedDotModule.LEVEL_PACK);
+        redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COUNT);
+        redDotDetailInfo.setCount(hasRedDot(playerId) ? 1 : 0);
+        return List.of(redDotDetailInfo);
     }
 }

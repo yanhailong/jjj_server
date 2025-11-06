@@ -1,7 +1,6 @@
 package com.jjg.game.core.base.gameevent;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 游戏事件监听
@@ -25,11 +24,4 @@ public interface GameEventListener {
      */
     List<EGameEventType> needMonitorEvents();
 
-    /**
-     * 获取事件子类型
-     * @return 事件子类型
-     */
-    default Map<EGameEventType, Object> getSubTypeMap() {
-        return Map.of();
-    }
 }

@@ -164,7 +164,7 @@ public class CoreMessageHandler {
                 //1等级礼包 测试用
                 RechargeType rechargeType = EnumUtil.getBy(RechargeType.class, e -> e.getType() == type);
                 Order order = orderService.generateOrder(playerController.getPlayer(), PayType.GOOGLE, arr[2], BigDecimal.valueOf(100.99), rechargeType);
-                gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(playerController.getPlayer(), order), order.getRechargeType());
+                gameEventManager.triggerEvent(new PlayerEventCategory.PlayerRechargeEvent(playerController.getPlayer(), order));
                 //任务条件参数
                 Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
                     DefaultTaskConditionParam param = new DefaultTaskConditionParam();
