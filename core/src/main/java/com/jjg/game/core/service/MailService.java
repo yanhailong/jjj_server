@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
+import com.jjg.game.core.base.player.IPlayerRegister;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -13,8 +14,10 @@ import com.jjg.game.core.dao.MailDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
+import com.jjg.game.sampledata.bean.LoginConfigCfg;
 import com.jjg.game.sampledata.bean.MailCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +31,7 @@ import java.util.*;
  * @date 2025/8/11 17:41
  */
 @Service
-public class MailService implements IRedDotService, IPlayerLoginSuccess {
+public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayerRegister {
     private Logger log = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
@@ -463,5 +466,35 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess {
     @Override
     public void onPlayerLoginSuccess(PlayerController playerController, Player player, boolean firstLogin) {
         playerGetServerMails(player.getId());
+    }
+
+    @Override
+    public void playerRegister(Player player) {
+        LoginType loginType = player.getLoginType();
+        if(loginType == null){
+            return;
+        }
+
+        //查找奖励
+        LoginConfigCfg loginConfigCfg = GameDataManager.getLoginConfigCfgList().stream().filter(cfg -> cfg.getType() == loginType.getValue()).findFirst().orElse(null);
+        if (loginConfigCfg == null || loginConfigCfg.getAwardItem() == null || loginConfigCfg.getAwardItem().isEmpty()) {
+            return;
+        }
+
+        int mailId = 0;
+        if (loginType == LoginType.GOOGLE) {
+            mailId = GameConstant.Mail.ID_BIND_GOOGLE;
+        } else if (loginType == LoginType.FACEBOOK) {
+            mailId = GameConstant.Mail.ID_BIND_FACEBOOK;
+        } else if (loginType == LoginType.APPLE) {
+            mailId = GameConstant.Mail.ID_BIND_APPLE;
+        } else if(loginType == LoginType.PHONE){
+            mailId = GameConstant.Mail.ID_BIND_PHONE;
+        } else {
+            log.debug("注册时未找到该登录方式奖励的邮件id playerId = {},loginType = {}", player.getId(), loginType);
+            return;
+//            mailId = GameConstant.Mail.ID_BIND_GOOGLE;
+        }
+        addCfgMail(player.getId(), mailId, ItemUtils.buildItems(loginConfigCfg.getAwardItem()));
     }
 }

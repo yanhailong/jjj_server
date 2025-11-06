@@ -95,6 +95,11 @@ public class GameConstant {
         public static final int STATUS_READ = 1;
         //已领取
         public static final int STATUS_GET_ITEMS = 2;
+
+        public static final int ID_BIND_GOOGLE = 31;
+        public static final int ID_BIND_FACEBOOK = 32;
+        public static final int ID_BIND_PHONE = 33;
+        public static final int ID_BIND_APPLE = 34;
     }
 
     public class GlobalConfig {

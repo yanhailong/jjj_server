@@ -29,13 +29,6 @@ public interface HallConstant {
         int CODE_MAX = 9999;
     }
 
-    interface Mail{
-        int ID_BIND_GOOGLE = 31;
-        int ID_BIND_FACEBOOK = 32;
-        int ID_BIND_PHONE = 33;
-        int ID_BIND_APPLE = 34;
-    }
-
     /**
      * 传入,返回参数类型
      */
