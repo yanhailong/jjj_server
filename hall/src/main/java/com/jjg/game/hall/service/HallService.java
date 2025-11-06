@@ -771,8 +771,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             addIdsMap.computeIfAbsent(avatarType, k -> new ArrayList<>()).add(id);
 
             //获取赠送的id
+            int giveId = 0;
             if(avatarCfg.getBuyItem().size() >= 3){
-                int giveId = avatarCfg.getBuyItem().get(2);
+                giveId = avatarCfg.getBuyItem().get(2);
                 AvatarCfg giveAvatarCfg = GameDataManager.getAvatarCfg(giveId);
                 if (giveAvatarCfg != null) {
                     AvatarType giveAvatarType = EnumUtil.getBy(AvatarType.class, (at -> at.getType() == giveAvatarCfg.getResourceType()));
@@ -782,16 +783,16 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                         giveId = 0;
                     }
                 }
-
-                //解锁头像
-                boolean success = playerSkinDao.addByType(playerId, addIdsMap);
-                if (!success) {
-                    log.debug("添加头像信息失败 playerId = {},addIdsMap = {}", playerId, addIdsMap);
-                    result.code = Code.FAIL;
-                    return result;
-                }
-                result.data = giveId;
             }
+
+            //解锁头像
+            boolean success = playerSkinDao.addByType(playerId, addIdsMap);
+            if (!success) {
+                log.debug("添加头像信息失败 playerId = {},addIdsMap = {}", playerId, addIdsMap);
+                result.code = Code.FAIL;
+                return result;
+            }
+            result.data = giveId;
         } catch (Exception e) {
             log.error("", e);
             result.code = Code.EXCEPTION;

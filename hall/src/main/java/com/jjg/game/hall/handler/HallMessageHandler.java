@@ -999,8 +999,10 @@ public class HallMessageHandler implements GmListener {
                 return;
             }
 
-            res.giveId = result.data;
-            log.debug("购买头像成功 id = {},giveId = {}", req.id, result.data);
+            res.giveId = req.id;
+            log.debug("购买头像成功 id = {},avatarId = {}", req.id, result.data);
+
+//            playerController.send(getAllAvatar(playerController));
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

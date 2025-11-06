@@ -13,7 +13,7 @@ import com.jjg.game.hall.constant.HallConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.HALL_TYPE, cmd = HallConstant.MsgBean.RES_BUY_AVATAR,resp = true)
 @ProtoDesc("返回购买头像结果")
 public class ResBuyAvatar extends AbstractResponse {
-    @ProtoDesc("赠送id")
+    @ProtoDesc("购买成功的头像id")
     public int giveId;
 
     public ResBuyAvatar(int code) {
