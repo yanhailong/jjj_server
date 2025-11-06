@@ -30,6 +30,8 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 使用 Redisson 实现的分布式排行榜服务
@@ -300,13 +302,52 @@ public class PointsAwardLeaderboardService {
     public PageUtils.PageResult<PointsAwardLeaderboardData> getData(int type, int pageIndex, int pageSize) {
         List<PointsAwardLeaderboardData> list = manager.getRankingHistory(type);
         // 只有在排行榜活跃时才添加当前数据
+        PointsAwardLeaderboardData data = null;
         if (isLeaderboardActive(type)) {
-            PointsAwardLeaderboardData data = new PointsAwardLeaderboardData();
+            data = new PointsAwardLeaderboardData();
             data.setRankType(type);
             data.setRankingInfoList(topN(type, PointsAwardConstant.Leaderboard.MAX_RANK_SIZE));
             data.setEndTime(System.currentTimeMillis());
             list.addFirst(data);
         }
+
+        //该名次中没有玩家的，也需要将配置的奖励发给客户端
+//        if(data != null) {
+//            //获取排行榜奖励
+//            Map<Integer, PointsAwardRankingCfg> rankingCfgMap = manager.getRankingCfgMap(type);
+//            //如果排行榜数据为空，则将名次对应的奖励发给客户端
+//            if(data.getRankingInfoList().isEmpty()){
+//                List<PointsAwardLeaderboardInfo> rankingInfoList = new ArrayList<>(rankingCfgMap.size());
+//                for(Map.Entry<Integer, PointsAwardRankingCfg> en : rankingCfgMap.entrySet()){
+//                    PointsAwardLeaderboardInfo info = new PointsAwardLeaderboardInfo();
+//                    info.setRank(en.getKey());
+//                    info.setConfigId(en.getValue().getId());
+//                    rankingInfoList.add(info);
+//                }
+//                data.setRankingInfoList(rankingInfoList);
+//            }else {
+//                //将data.getRankingInfoList()转化为map
+//                Map<Integer, PointsAwardLeaderboardInfo> tmpMap = data.getRankingInfoList().stream()
+//                                                                    .collect(Collectors.toMap(
+//                                                                            PointsAwardLeaderboardInfo::getRank,
+//                                                                            item -> item
+//                                                                    ));
+//
+//                for(Map.Entry<Integer, PointsAwardRankingCfg> en : rankingCfgMap.entrySet()){
+//                    int rank = en.getKey();
+//                    PointsAwardLeaderboardInfo info = tmpMap.get(rank);
+//                    if(info != null) {
+//                        continue;
+//                    }
+//
+//                    info = new PointsAwardLeaderboardInfo();
+//                    info.setRank(en.getKey());
+//                    info.setConfigId(en.getValue().getId());
+//                    data.getRankingInfoList().add(info);
+//                }
+//            }
+//        }
+
         return PageUtils.page(list, pageIndex, pageSize);
     }
 

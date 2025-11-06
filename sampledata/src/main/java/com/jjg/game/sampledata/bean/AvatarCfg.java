@@ -27,13 +27,13 @@ public class AvatarCfg extends BaseCfgBean {
   protected String jump;
   /** 资源名称 */
   protected int name;
-  /** 等级 */
+  /** 角色等级 */
   protected int playerLv;
   /** 美术资源名称与路径 */
   protected String resourcePath;
   /** 类型 */
   protected int resourceType;
-  /** VIP条件 */
+  /** VIP条件(仅显示用) */
   protected int vipLevel;
 
   /** 返回资源描述 */
@@ -56,7 +56,7 @@ public class AvatarCfg extends BaseCfgBean {
     return name;
   }
 
-  /** 返回等级 */
+  /** 返回角色等级 */
   public int getPlayerLv() {
     return playerLv;
   }
@@ -71,7 +71,7 @@ public class AvatarCfg extends BaseCfgBean {
     return resourceType;
   }
 
-  /** 返回VIP条件 */
+  /** 返回VIP条件(仅显示用) */
   public int getVipLevel() {
     return vipLevel;
   }

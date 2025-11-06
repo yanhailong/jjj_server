@@ -153,6 +153,7 @@ public class GameDataManager {
     containerMap.put(GiftPackCfg.class, new GiftPackCfgContainer());
     containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
     containerMap.put(GrowthFundCfg.class, new GrowthFundCfgContainer());
+    containerMap.put(IponeAreacodeConfigCfg.class, new IponeAreacodeConfigCfgContainer());
     containerMap.put(ItemCfg.class, new ItemCfgContainer());
     containerMap.put(LoginConfigCfg.class, new LoginConfigCfgContainer());
     containerMap.put(MGLuckyTreasureCfg.class, new MGLuckyTreasureCfgContainer());
@@ -1011,6 +1012,18 @@ public class GameDataManager {
 
   public static List<GrowthFundCfg> getGrowthFundCfgList() {
     return getInstance().getCfgContainer(GrowthFundCfg.class).getCfgBeanList();
+  }
+
+  public static IponeAreacodeConfigCfg getIponeAreacodeConfigCfg(int key) {
+    return getInstance().getCfgContainer(IponeAreacodeConfigCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, IponeAreacodeConfigCfg> getIponeAreacodeConfigCfgMap() {
+    return getInstance().getCfgContainer(IponeAreacodeConfigCfg.class).getCfgBeanMap();
+  }
+
+  public static List<IponeAreacodeConfigCfg> getIponeAreacodeConfigCfgList() {
+    return getInstance().getCfgContainer(IponeAreacodeConfigCfg.class).getCfgBeanList();
   }
 
   public static ItemCfg getItemCfg(int key) {

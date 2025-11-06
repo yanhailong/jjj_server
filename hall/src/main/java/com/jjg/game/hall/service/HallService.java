@@ -769,8 +769,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return result;
             }
 
-            Map<AvatarType, List<Integer>> addIdsMap = new HashMap<>();
-            addIdsMap.computeIfAbsent(avatarType, k -> new ArrayList<>()).add(id);
+            Map<AvatarType, Set<Integer>> addIdsMap = new HashMap<>();
+            addIdsMap.computeIfAbsent(avatarType, k -> new HashSet<>()).add(id);
 
             //获取赠送的id
             int giveId = 0;
@@ -780,7 +780,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 if (giveAvatarCfg != null) {
                     AvatarType giveAvatarType = EnumUtil.getBy(AvatarType.class, (at -> at.getType() == giveAvatarCfg.getResourceType()));
                     if (!Objects.isNull(giveAvatarType)) {
-                        addIdsMap.computeIfAbsent(giveAvatarType, k -> new ArrayList<>()).add(giveAvatarCfg.getId());
+                        addIdsMap.computeIfAbsent(giveAvatarType, k -> new HashSet<>()).add(giveAvatarCfg.getId());
                     } else {
                         giveId = 0;
                     }

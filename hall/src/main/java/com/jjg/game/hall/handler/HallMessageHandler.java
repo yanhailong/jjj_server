@@ -1,6 +1,7 @@
 package com.jjg.game.hall.handler;
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.util.EnumUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
@@ -40,6 +41,7 @@ import com.jjg.game.hall.vip.data.VipCfgCache;
 import com.jjg.game.hall.vip.pb.req.ReqVipClaimGiftReward;
 import com.jjg.game.hall.vip.pb.req.ReqVipInfo;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.AvatarCfg;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.slf4j.Logger;
@@ -131,8 +133,7 @@ public class HallMessageHandler implements GmListener {
         ResChooseWare res = new ResChooseWare(HallCode.SUCCESS);
         try {
             log.info("收到玩家选择游戏场次 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
-            CommonResult<WareHouseConfigInfo> checkRes =
-                    checkBeforeJoinRoom(playerController, req.gameType, req.wareId);
+            CommonResult<WareHouseConfigInfo> checkRes = checkBeforeJoinRoom(playerController, req.gameType, req.wareId);
             if (checkRes.code != Code.SUCCESS) {
                 res.code = checkRes.code;
                 playerController.send(res);
@@ -215,9 +216,9 @@ public class HallMessageHandler implements GmListener {
                 res.email = account.getEmail();
 
                 Map<LoginType, String> thirdAccountsMap = account.getThirdAccounts();
-                if(thirdAccountsMap != null && !thirdAccountsMap.isEmpty()){
+                if (thirdAccountsMap != null && !thirdAccountsMap.isEmpty()) {
                     res.bindThirdAccountList = new ArrayList<>();
-                    for(Map.Entry<LoginType, String> en : thirdAccountsMap.entrySet()){
+                    for (Map.Entry<LoginType, String> en : thirdAccountsMap.entrySet()) {
                         res.bindThirdAccountList.add(en.getKey().getValue());
                     }
                 }
@@ -279,8 +280,7 @@ public class HallMessageHandler implements GmListener {
             } else if (req.type == VerCodeType.MAIL_BIND_MAIL.getValue()) {
                 result = hallService.bindEmail(playerController.playerId(), req.data);
             } else {
-                log.debug("没有该类型的验证码 playerId = {},verCodeType = {},data = {}", playerController.playerId(), req.type
-                        , req.data);
+                log.debug("没有该类型的验证码 playerId = {},verCodeType = {},data = {}", playerController.playerId(), req.type, req.data);
                 result = new CommonResult<>(Code.PARAM_ERROR);
             }
 
@@ -289,8 +289,7 @@ public class HallMessageHandler implements GmListener {
                 playerController.send(res);
                 return;
             }
-            log.info("获取验证码成功，playerId = {},verCodeType = {},data = {},verCode = {}", playerController.playerId(),
-                    req.type, req.data, result.data);
+            log.info("获取验证码成功，playerId = {},verCodeType = {},data = {},verCode = {}", playerController.playerId(), req.type, req.data, result.data);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -309,15 +308,13 @@ public class HallMessageHandler implements GmListener {
         ResConfirmVerCode res = new ResConfirmVerCode(HallCode.SUCCESS);
         try {
             log.debug("确认验证码 req = {}", JSON.toJSONString(req));
-            CommonResult<String> result = hallService.comfirmVerCode(playerController.playerId(), req.verCodeType,
-                    req.verCode);
+            CommonResult<String> result = hallService.comfirmVerCode(playerController.playerId(), req.verCodeType, req.verCode);
             if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);
                 return;
             }
-            log.info("确认验证码成功 playerId = {},verCodeType = {},verCode = {},data = {}", playerController.playerId(),
-                    req.verCodeType, req.verCode, result.data);
+            log.info("确认验证码成功 playerId = {},verCodeType = {},verCode = {},data = {}", playerController.playerId(), req.verCodeType, req.verCode, result.data);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -343,19 +340,9 @@ public class HallMessageHandler implements GmListener {
                 log.debug("未找到该玩家的头像信息 playerId = {}", playerController.playerId());
                 return;
             }
-            //根据vip等级解锁头像
-            playerSkin.setUnlockAvatarSet(unlockSkin(player.getId(), playerSkin.getUnlockAvatarSet(),
-                    player.getVipLevel(), AvatarType.AVATAR));
-            playerSkin.setUnlockFrameSet(unlockSkin(player.getId(), playerSkin.getUnlockFrameSet(),
-                    player.getVipLevel(), AvatarType.FRAME));
-            playerSkin.setUnlockTitleSet(unlockSkin(player.getId(), playerSkin.getUnlockTitleSet(),
-                    player.getVipLevel(), AvatarType.TITLE));
-            playerSkin.setUnlockChipsSet(unlockSkin(player.getId(), playerSkin.getUnlockChipsSet(),
-                    player.getVipLevel(), AvatarType.CHIP));
-            playerSkin.setUnlockBackgroundSet(unlockSkin(player.getId(), playerSkin.getUnlockBackgroundSet(),
-                    player.getVipLevel(), AvatarType.BACKGROUND));
-            playerSkin.setUnlockCardBackgroundSet(unlockSkin(player.getId(),
-                    playerSkin.getUnlockCardBackgroundSet(), player.getVipLevel(), AvatarType.CARD_BACKGROUND));
+
+            unlockSkin(playerSkin,playerController.getPlayer().getVipLevel(),playerController.getPlayer().getLevel());
+
             if (CollectionUtil.isNotEmpty(playerSkin.getUnlockAvatarSet())) {
                 res.avatars = new ArrayList<>(playerSkin.getUnlockAvatarSet());
             }
@@ -383,22 +370,74 @@ public class HallMessageHandler implements GmListener {
         playerController.send(res);
     }
 
-    private Set<Integer> unlockSkin(long playerId, Set<Integer> originally, int vipLevel, AvatarType type) {
-        List<Integer> skinIds = VipCfgCache.getSkinsByType(vipLevel, type.getType());
-        boolean addAll = false;
-        if (Objects.isNull(originally)) {
-            addAll = true;
-            originally = new HashSet<>();
+    /**
+     * 解锁皮肤
+     * @param playerSkin
+     * @param vipLevel
+     */
+    private void unlockSkin(PlayerSkin playerSkin, int vipLevel, int playerLevel) {
+        Map<AvatarType, Set<Integer>> addIdsMap = new HashMap<>();
+
+        // 先收集所有需要解锁的皮肤ID，最后统一设置
+        Map<AvatarType, Set<Integer>> finalUnlockMap = new HashMap<>();
+
+        // 初始化最终解锁集合（复制当前已解锁的）
+        for (AvatarType type : AvatarType.values()) {
+            if (type == AvatarType.NATIONAL) continue;
+
+            Set<Integer> current = type.getSkinGetter().apply(playerSkin);
+            Set<Integer> finalSet = (current != null) ? new HashSet<>(current) : new HashSet<>();
+            finalUnlockMap.put(type, finalSet);
         }
-        if (CollectionUtil.isNotEmpty(skinIds)) {
-            for (Integer chip : skinIds) {
-                if (addAll || !originally.contains(chip)) {
-                    playerSkinDao.addByType(playerId, type, chip);
-                    originally.add(chip);
+
+        // 等级解锁
+        for (Map.Entry<Integer, AvatarCfg> en : GameDataManager.getAvatarCfgMap().entrySet()) {
+            AvatarCfg cfg = en.getValue();
+            if (cfg.getPlayerLv() < 1 || cfg.getPlayerLv() > playerLevel) {
+                continue;
+            }
+
+            AvatarType type = EnumUtil.getBy(AvatarType.class, t -> t.getType() == cfg.getResourceType());
+            if (type == null || type == AvatarType.NATIONAL) {
+                continue;
+            }
+
+            Set<Integer> finalSet = finalUnlockMap.get(type);
+            if (!finalSet.contains(cfg.getId())) {
+                finalSet.add(cfg.getId());
+                addIdsMap.computeIfAbsent(type, t -> new HashSet<>()).add(cfg.getId());
+            }
+        }
+
+        // VIP解锁
+        for (AvatarType type : AvatarType.values()) {
+            if (type == AvatarType.NATIONAL) {
+                continue;
+            }
+
+            List<Integer> skinIds = VipCfgCache.getSkinsByType(vipLevel, type.getType());
+            if (CollectionUtil.isEmpty(skinIds)) {
+                continue;
+            }
+
+            Set<Integer> finalSet = finalUnlockMap.get(type);
+            for (Integer skinId : skinIds) {
+                if (!finalSet.contains(skinId)) {
+                    finalSet.add(skinId);
+                    addIdsMap.computeIfAbsent(type, t -> new HashSet<>()).add(skinId);
                 }
             }
         }
-        return originally;
+
+        // 统一设置最终结果
+        for (Map.Entry<AvatarType, Set<Integer>> entry : finalUnlockMap.entrySet()) {
+            AvatarType type = entry.getKey();
+            type.getSkinConsumer().accept(playerSkin, entry.getValue());
+        }
+
+        if (!addIdsMap.isEmpty()) {
+            playerSkinDao.addByType(playerSkin.getPlayerId(), addIdsMap);
+        }
     }
 
     /**
@@ -454,8 +493,7 @@ public class HallMessageHandler implements GmListener {
     public void reqUseItem(PlayerController playerController, ReqUseItem req) {
         ResUseItem res = new ResUseItem(HallCode.SUCCESS);
         try {
-            CommonResult<Map<Integer, Long>> useResult = hallService.useItem(playerController.getPlayer(), req.girdId,
-                    req.itemId, req.useItemCount);
+            CommonResult<Map<Integer, Long>> useResult = hallService.useItem(playerController.getPlayer(), req.girdId, req.itemId, req.useItemCount);
             if (!useResult.success()) {
                 res.code = useResult.code;
                 playerController.send(res);
@@ -522,8 +560,7 @@ public class HallMessageHandler implements GmListener {
                 });
             }
 
-            log.debug("玩家获取邮件列表 playerId = {},page = {},size = {}", playerController.playerId(), req.page,
-                    res.mails == null ? 0 : res.mails.size());
+            log.debug("玩家获取邮件列表 playerId = {},page = {},size = {}", playerController.playerId(), req.page, res.mails == null ? 0 : res.mails.size());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -572,8 +609,7 @@ public class HallMessageHandler implements GmListener {
                 log.debug("参数错误，领取邮件内的道具失败 playerId = {},id = {}", playerController.playerId(), req.id);
                 return;
             }
-            CommonResult<Integer> result = mailService.getMailItems(playerController.playerId(), req.id,
-                    "playerGetMailItems");
+            CommonResult<Integer> result = mailService.getMailItems(playerController.playerId(), req.id, "playerGetMailItems");
             if (!result.success()) {
                 res.code = result.code;
                 playerController.send(res);
@@ -690,9 +726,7 @@ public class HallMessageHandler implements GmListener {
 
             res.gold = result.data.getGold();
             res.safeBoxGold = result.data.getSafeBoxGold();
-            log.debug("玩家转移保险箱金币成功 playerId = {},deposit = {},gold = {},changeGold = {},safeBoxGold = {}",
-                    playerController.playerId(), req.deposit, result.data.getGold(), req.value,
-                    result.data.getSafeBoxGold());
+            log.debug("玩家转移保险箱金币成功 playerId = {},deposit = {},gold = {},changeGold = {},safeBoxGold = {}", playerController.playerId(), req.deposit, result.data.getGold(), req.value, result.data.getSafeBoxGold());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -714,8 +748,7 @@ public class HallMessageHandler implements GmListener {
             if (req.deposit) {
                 result = hallPlayerService.diamondInSafeBox(playerController.playerId(), req.value, AddType.DEPOSIT_IN_SAFE_BOX);
             } else {
-                result = hallPlayerService.diamondOutFromSafeBox(playerController.playerId(), req.value,
-                        AddType.WITHDRAW_FROM_SAFE_BOX);
+                result = hallPlayerService.diamondOutFromSafeBox(playerController.playerId(), req.value, AddType.WITHDRAW_FROM_SAFE_BOX);
             }
             if (!result.success()) {
                 res.code = result.code;
@@ -725,9 +758,7 @@ public class HallMessageHandler implements GmListener {
 
             res.diamond = result.data.getDiamond();
             res.safeBoxDiamond = result.data.getSafeBoxDiamond();
-            log.debug("玩家转移保险箱钻石成功 playerId = {},deposit = {},diamond = {},changeDiamond = {},safeBoxDiamond = {}",
-                    playerController.playerId(), req.deposit, result.data.getGold(), req.value,
-                    result.data.getSafeBoxGold());
+            log.debug("玩家转移保险箱钻石成功 playerId = {},deposit = {},diamond = {},changeDiamond = {},safeBoxDiamond = {}", playerController.playerId(), req.deposit, result.data.getGold(), req.value, result.data.getSafeBoxGold());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -740,8 +771,7 @@ public class HallMessageHandler implements GmListener {
     /**
      * 加入房间之前检查前置条件
      */
-    private CommonResult<WareHouseConfigInfo> checkBeforeJoinRoom(PlayerController playerController, int gameType,
-                                                                  int roomCfgId) {
+    private CommonResult<WareHouseConfigInfo> checkBeforeJoinRoom(PlayerController playerController, int gameType, int roomCfgId) {
 
         if (gameType < 1) {
             log.debug("游戏类型错误，选择场次失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
@@ -760,11 +790,9 @@ public class HallMessageHandler implements GmListener {
             return new CommonResult<>(Code.NOT_FOUND);
         }
 
-        WareHouseConfigInfo info =
-                wareHouseConfigList.stream().filter(c -> c.wareId == roomCfgId).findFirst().orElse(null);
+        WareHouseConfigInfo info = wareHouseConfigList.stream().filter(c -> c.wareId == roomCfgId).findFirst().orElse(null);
         if (info == null) {
-            log.debug("未找到对应的游戏场次配置2，选择场次失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId()
-                    , gameType, roomCfgId);
+            log.debug("未找到对应的游戏场次配置2，选择场次失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), gameType, roomCfgId);
             return new CommonResult<>(Code.NOT_FOUND);
         }
 
@@ -780,29 +808,23 @@ public class HallMessageHandler implements GmListener {
 
         Player player = hallPlayerService.get(playerController.getPlayer().getId());
         if (warehouseCfg.getEnterLimit() != -1 && (checkDiamond ? warehouseCfg.getEnterLimit() > player.getDiamond() : warehouseCfg.getEnterLimit() > player.getGold())) {
-            log.debug("玩家携带货币不足 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},enterLimit = {},checkDiamond = {}",
-                    playerController.playerId(), gameType
-                    , roomCfgId, warehouseCfg.getTransactionItemId(), player.getGold(), player.getDiamond(), warehouseCfg.getEnterLimit(), checkDiamond);
+            log.debug("玩家携带货币不足 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},enterLimit = {},checkDiamond = {}", playerController.playerId(), gameType, roomCfgId, warehouseCfg.getTransactionItemId(), player.getGold(), player.getDiamond(), warehouseCfg.getEnterLimit(), checkDiamond);
             return new CommonResult<>(Code.NOT_ENOUGH);
         }
 
         if (info.limitPlayerLevelMin > playerController.getPlayer().getLevel()) {
-            log.debug("玩家等级不足 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(),
-                    gameType, roomCfgId);
+            log.debug("玩家等级不足 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), gameType, roomCfgId);
             return new CommonResult<>(Code.LEVEL_NOT_ENOUGH);
         }
 
-        MarsNode node = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(),
-                playerController.getPlayer().getIp());
+        MarsNode node = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(), playerController.getPlayer().getIp());
         if (node == null) {
             log.debug("获取游戏节点为空，进入游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
             return new CommonResult<>(Code.NOT_FOUND);
         }
 
         if (warehouseCfg.getEnterMax() != -1 && (checkDiamond ? warehouseCfg.getEnterMax() < player.getDiamond() : warehouseCfg.getEnterMax() < player.getGold())) {
-            log.debug("玩家携带货币超过房间限制 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},enterMax = {},checkDiamond = {}",
-                    playerController.playerId(), gameType
-                    , roomCfgId, warehouseCfg.getTransactionItemId(), player.getGold(), player.getDiamond(), warehouseCfg.getEnterMax(), checkDiamond);
+            log.debug("玩家携带货币超过房间限制 playerId = {},gameType = {},roomCfgId = {},transactionId = {},gold = {},diamond = {},enterMax = {},checkDiamond = {}", playerController.playerId(), gameType, roomCfgId, warehouseCfg.getTransactionItemId(), player.getGold(), player.getDiamond(), warehouseCfg.getEnterMax(), checkDiamond);
             return new CommonResult<>(Code.GOLD_TOO_MUCH);
         }
         return new CommonResult<>(Code.SUCCESS, info);
