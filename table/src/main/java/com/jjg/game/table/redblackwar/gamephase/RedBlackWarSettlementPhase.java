@@ -5,6 +5,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.data.room.TablePlayerGameData;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
@@ -89,12 +90,12 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
             weightCfgList = winMap.get(RedBlackWarConstant.Camp.BLACK).get(blackHandType);
         }
         // 庄家变化的钱
-        long bankerChangeGold = 0;
+        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(betInfo);
         Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         //遍历获奖位置
         for (WinPosWeightCfg cfg : weightCfgList) {
             List<Integer> betArea = cfg.getBetArea();
-            BetAreaCfg betAreaCfg = redBlackWarSampleManager.getBetAreaMap().get(betArea.get(0));
+            BetAreaCfg betAreaCfg = redBlackWarSampleManager.getBetAreaMap().get(betArea.getFirst());
             //押注区域非幸运一击
             boolean luckCfg = betAreaCfg.getAreaID() == RedBlackWarConstant.Common.LUCK_AREA;
             if (!luckBet && luckCfg) {
@@ -115,33 +116,39 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                     long backBet = (long) totalBet * cfg.getReturnRate() / 10000;
                     //总获得
                     long canGet = backBet * cfg.getOdds() / 100;
+                    long ratioBefore = canGet;
                     if (cfg.getIsRatio() == 1) {
                         canGet = canGet * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
                     }
-                    // 房主收益，如果不是好友房此值为0
-                    long roomCreatorIncome = calcRoomCreatorIncome(cfg, totalBet);
-                    canGet += backBet - roomCreatorIncome;
+                    canGet += backBet;
                     // 给玩家添加金币
                     gameController.addItem(
                             gamePlayer.getId(), canGet,
-                            AddType.GAME_SETTLEMENT,gameDataVo.getRoomCfg().getId()+"");
-                    DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId,
-                            key -> new DefaultKeyValue<>(0L, 0L));
+                            AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+                    DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId, key -> new DefaultKeyValue<>(0L, 0L));
                     keyValue.setKey(keyValue.getKey() + totalBet);
                     keyValue.setValue(keyValue.getValue() + canGet);
-                    SettlementData settlementData =
-                            new SettlementData(canGet - backBet, backBet, canGet, totalBet, roomCreatorIncome);
+                    SettlementData settlementData = new SettlementData(canGet - backBet, backBet, canGet, totalBet, ratioBefore - canGet);
                     if (!settlementDataMap.containsKey(playerId)) {
                         settlementDataMap.put(playerId, settlementData);
                     } else {
                         settlementDataMap.get(playerId).increaseBySettlementData(settlementData);
                     }
-                    bankerChangeGold +=
-                            settlementDataMap.get(playerId).getTotalWin() - settlementDataMap.get(playerId).getBetTotal();
+                }
+                if (changeParam != null) {
+                    changeParam.removeArea(betAreaCfg.getId());
                 }
             }
         }
-        gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
+        //计算最终的bankerChangeGold
+        if (changeParam != null) {
+            for (SettlementData data : settlementDataMap.values()) {
+                changeParam.addTotalTaxRevenue(data.getTaxation());
+                changeParam.addBankerChangeGold(data.getTotalWin() - data.getBetTotal());
+            }
+            calculationFinalBankerChange(changeParam);
+            gameController.dealBankerFlowing(changeParam, settlementDataMap);
+        }
         //通知
         int winState = result > 0 ? 1 : 2;
         NotifyRedBlackWarSettleInfo settleInfo = new NotifyRedBlackWarSettleInfo();
@@ -170,6 +177,25 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
         }
         //发送通知
         broadcastMsgToRoom(settleInfo);
+    }
+
+    @Override
+    public void calculationFinalBankerChange(RoomBankerChangeParam param) {
+        long totalGet = 0;
+        for (Map.Entry<Integer, Map<Long, Integer>> entry : param.getBankerChangeMap().entrySet()) {
+            long sum = entry.getValue().values().stream().mapToLong(Integer::intValue).sum();
+            if (entry.getKey() == RedBlackWarConstant.Common.CLIENT_LUCK_AREA) {
+                //不算税收
+                totalGet += sum;
+            } else {
+                long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
+                param.addTotalTaxRevenue(sum - realGet);
+                totalGet += realGet;
+            }
+        }
+        param.addBankerChangeGold(-totalGet);
+        //计算房主收益
+        param.addRoomCreatorTotalIncome(calcRoomCreatorIncome(param.getTotalTaxRevenue()));
     }
 
     @Override

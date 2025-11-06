@@ -6,6 +6,7 @@ import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
@@ -187,7 +188,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     private Map<Long, PlayerChangedGold> playerGameSettlement(BaccaratSettlementInfo baccaratSettlementInfo) {
         Map<Long, PlayerChangedGold> playerChangedGolds = new HashMap<>();
         // 庄家变化的钱
-        long bankerChangeGold = 0;
+        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(gameDataVo.getBetInfo());
         Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         // 获取玩家的押注信息，让后结算
         for (Map.Entry<Long, GamePlayer> playerEntry : gameDataVo.getGamePlayerMap().entrySet()) {
@@ -205,7 +206,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                             .mapToLong(Integer::longValue)
                             .sum();
             // 玩家押注赢
-            SettlementData settlementData = checkPlayerBetWin(gamePlayer, playerBetInfo, baccaratSettlementInfo);
+            SettlementData settlementData = checkPlayerBetWin(gamePlayer, playerBetInfo, baccaratSettlementInfo, changeParam);
             if (settlementData.getTotalWin() > 0) {
                 PlayerChangedGold playerGoldChange = new PlayerChangedGold();
                 playerGoldChange.playerId = playerEntry.getKey();
@@ -215,13 +216,8 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 gameController.addItem(
                         gamePlayer.getId(), settlementData.getTotalWin(),
                         AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
-                // 需要扣除庄家的钱
-                bankerChangeGold -= settlementData.getBetWin();
                 playerGoldChange.playerCurGold = gameController.getTransactionItemNum(gamePlayer.getId());
                 playerChangedGolds.put(playerEntry.getKey(), playerGoldChange);
-            } else {
-                // 需要给庄家加钱
-                bankerChangeGold += settlementData.getBetTotal();
             }
             settlementDataMap.put(gamePlayer.getId(), settlementData);
             if (!(gamePlayer instanceof GameRobotPlayer)) {
@@ -229,8 +225,11 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                 BetDataTrackLogUtils.recordBetLog(settlementData, gamePlayer, gameController, playerBetInfo);
             }
         }
+        if(changeParam!=null) {
+            calculationFinalBankerChange(changeParam);
+            gameController.dealBankerFlowing(changeParam, settlementDataMap);
+        }
         // 处理庄家输赢金币
-        gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
         return playerChangedGolds;
     }
 
@@ -265,8 +264,8 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
     /**
      * 通过玩家下注数据，计算获得的金币值
      */
-    private SettlementData checkPlayerBetWin(
-            GamePlayer gamePlayer, Map<Integer, List<Integer>> playerBetInfo, BaccaratSettlementInfo settlementInfo) {
+    private SettlementData checkPlayerBetWin(GamePlayer gamePlayer, Map<Integer, List<Integer>> playerBetInfo,
+                                             BaccaratSettlementInfo settlementInfo, RoomBankerChangeParam changeParam) {
         // 下注区域                        1:庄对     2:和    3: 闲对 4: 闲 5: 庄
         // winState          输赢状态      1:庄赢     2:闲赢  3：和
         // cardTypeWinState  牌型的输赢状态 0:默认状态，1:庄对  2：闲对，3：庄和闲都有对子
@@ -285,6 +284,9 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                         SettlementData settlementData =
                                 calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                         playerSettlementData.increaseBySettlementData(settlementData);
+                        if (changeParam != null) {
+                            changeParam.removeArea(entry.getKey());
+                        }
                     }
                     break;
                 }
@@ -293,6 +295,9 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                         SettlementData settlementData =
                                 calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                         playerSettlementData.increaseBySettlementData(settlementData);
+                        if (changeParam != null) {
+                            changeParam.removeArea(entry.getKey());
+                        }
                     }
                     break;
                 case 3:
@@ -300,6 +305,9 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                         SettlementData settlementData =
                                 calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                         playerSettlementData.increaseBySettlementData(settlementData);
+                        if (changeParam != null) {
+                            changeParam.removeArea(entry.getKey());
+                        }
                     }
                     break;
                 case 4:
@@ -307,6 +315,9 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                         SettlementData settlementData =
                                 calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                         playerSettlementData.increaseBySettlementData(settlementData);
+                        if (changeParam != null) {
+                            changeParam.removeArea(entry.getKey());
+                        }
                     }
                     break;
                 case 5:
@@ -314,11 +325,18 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
                         SettlementData settlementData =
                                 calcGold(gamePlayer, weightCfgMap.get(entry.getKey()), areaTotal);
                         playerSettlementData.increaseBySettlementData(settlementData);
+                        if (changeParam != null) {
+                            changeParam.removeArea(entry.getKey());
+                        }
                     }
                     break;
                 default:
                     break;
             }
+        }
+        if (changeParam != null) {
+            changeParam.addBankerChangeGold(playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal());
+            changeParam.addTotalTaxRevenue(playerSettlementData.getTaxation());
         }
         return playerSettlementData;
     }

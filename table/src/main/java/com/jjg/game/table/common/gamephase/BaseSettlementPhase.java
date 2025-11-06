@@ -1,6 +1,8 @@
 package com.jjg.game.table.common.gamephase;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
+import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.room.base.AbstractRoomPhase;
@@ -8,12 +10,14 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.sampledata.bean.Room_BetCfg;
 import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.data.TableGameDataVo;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 结算阶段
@@ -72,49 +76,71 @@ public abstract class BaseSettlementPhase<D extends TableGameDataVo> extends Abs
     protected SettlementData calcGold(GamePlayer gamePlayer, WinPosWeightCfg weightCfg, long betValue) {
         int winRatio = gameDataVo.getRoomCfg().getWinRatio();
         // 倍率计算
-        long multiAdd =
-            (long) Math.floor(betValue * (weightCfg.getOdds() / 100.0) * ((
-                10000 - (weightCfg.getIsRatio() == 1 ? winRatio : 0)) / 10000.0));
+        long totalGet = betValue * (weightCfg.getOdds() / 100);
+        long multiAdd = (long) Math.floor(totalGet * ((10000 - (weightCfg.getIsRatio() == 1 ? winRatio : 0)) / 10000.0));
         long betReturn = (long) Math.floor(betValue * (weightCfg.getReturnRate() / 10000.0));
-
-        // 计算房主收益
-        long bankerIncome = calcRoomCreatorIncome(weightCfg, betValue);
-        multiAdd = multiAdd - bankerIncome;
-
         // 赢的总值
         long totalWin = multiAdd + betReturn;
         if (!(gamePlayer instanceof GameRobotPlayer)) {
-            log.info("玩家：{} {} 在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{} 庄家： {}",
-                gamePlayer.getId(),
-                gameDataVo.roomLogInfo(),
-                weightCfg.getId(),
-                betValue,
-                multiAdd,
-                betReturn,
-                totalWin,
-                bankerIncome);
+            log.info("玩家：{} {} 在压分区域：{}，押注：{}，获得： 赢 {} + 抽水返还 {}, 总值：{}",
+                    gamePlayer.getId(),
+                    gameDataVo.roomLogInfo(),
+                    weightCfg.getId(),
+                    betValue,
+                    multiAdd,
+                    betReturn,
+                    totalWin);
         }
         // 倍率计算 + 压分返还 + 赢的总值
-        return new SettlementData(multiAdd, betReturn, totalWin, betValue, bankerIncome);
+        return new SettlementData(multiAdd, betReturn, totalWin, betValue, totalGet - multiAdd);
+    }
+
+    /**
+     * 获取RoomBankerChangeParam
+     * @param betInfo 下注信息
+     * @return RoomBankerChangeParam
+     */
+    public RoomBankerChangeParam getRoomBankerChangeParam(Map<Integer, Map<Long, List<Integer>>> betInfo) {
+        if (gameController.getRoom() instanceof FriendRoom && CollectionUtil.isNotEmpty(betInfo)) {
+            RoomBankerChangeParam param = new RoomBankerChangeParam();
+            param.initData(gameDataVo.getBetInfo());
+            return param;
+        }
+        return null;
     }
 
     /**
      * 计算房主应得的收益
      */
-    protected long calcRoomCreatorIncome(WinPosWeightCfg weightCfg, long betValue) {
+    protected long calcRoomCreatorIncome(long totalTaxRevenue) {
         RoomType roomType = RoomType.getRoomType(gameDataVo.getRoomCfg().getId());
         long bankerIncome = 0;
         // 如果是好友房需要扣除一部分金币给房主
         if (roomType == RoomType.POKER_TEAM_UP_ROOM || roomType == RoomType.BET_TEAM_UP_ROOM) {
             // 庄家扣税比例
-            int bankerIncomeRatio =
-                SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.CREATE_ROOM_FUNC_INCOME_RATIO);
-            bankerIncome =
-                (long) Math.floor((betValue * (weightCfg.getOdds() / 100.0)) * (bankerIncomeRatio / 10000.0));
+            int bankerIncomeRatio = SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.CREATE_ROOM_FUNC_INCOME_RATIO);
+            bankerIncome = totalTaxRevenue * bankerIncomeRatio / 10000;
             log.info("房主：{} 收益：{}", gameController.getRoom().getCreator(), bankerIncome);
         }
         return bankerIncome;
     }
+
+    /**
+     * 计算最后的BankerChange
+     */
+    public void calculationFinalBankerChange(RoomBankerChangeParam param) {
+        long totalGet = 0;
+        for (Map.Entry<Integer, Map<Long, Integer>> entry : param.getBankerChangeMap().entrySet()) {
+            long sum = entry.getValue().values().stream().mapToLong(Integer::intValue).sum();
+            long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
+            param.addTotalTaxRevenue(sum - realGet);
+            totalGet += realGet;
+        }
+        param.addBankerChangeGold(-totalGet);
+        //计算房主收益
+        param.addRoomCreatorTotalIncome(calcRoomCreatorIncome(param.getTotalTaxRevenue()));
+    }
+
 
     @Override
     public void phaseFinish() {

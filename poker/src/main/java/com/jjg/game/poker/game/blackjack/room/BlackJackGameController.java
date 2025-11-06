@@ -603,7 +603,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
                 return;
             }
             seatInfo.setOver(true);
-            notified.cardIndex = nextExePlayer.getCards().size() > 1 ? nextExePlayer.getCardIndex() + 1 : nextExePlayer.getCardIndex();
+            notified.cardIndex = seatInfo.getCards().size() > 1 ? seatInfo.getCardIndex() + 1 : seatInfo.getCardIndex();
             //获取下一个玩家
             nextExePlayer = getNextExePlayer();
             if (Objects.isNull(nextExePlayer)) {
@@ -618,7 +618,7 @@ public class BlackJackGameController extends BasePokerGameController<BlackJackGa
         notified.playerId = seatInfo.getPlayerId();
         notified.overTime = gameDataVo.getPlayerTimerEvent().getNextTime();
         //分牌后前端索引需要加1
-        notified.cardIndex = nextExePlayer.getCards().size() > 1 ? nextExePlayer.getCardIndex() + 1 : nextExePlayer.getCardIndex();
+        notified.cardIndex = seatInfo.getCards().size() > 1 ? seatInfo.getCardIndex() + 1 : seatInfo.getCardIndex();
         notified.operationId = nextExePlayer.getPlayerId();
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendAllPlayer(notified));
     }

@@ -214,18 +214,17 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             if (totalGet > 0) {
                 //扣税
                 Long bet = baseBetInfo.getOrDefault(playerId, 0L);
-                long afterRatio = BigDecimal.valueOf(totalGet - bet)
-                        .multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getEffectiveRatio())))
+                BigDecimal tempTotalGet = BigDecimal.valueOf(totalGet - bet);
+                long afterRatio = tempTotalGet.multiply(BigDecimal.valueOf((10000 - gameDataVo.getRoomCfg().getEffectiveRatio())))
                         .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN).longValue();
-                long roomCreatorIncome = calcRoomCreatorIncome(totalGet - bet);
-                totalGet = bet + afterRatio - roomCreatorIncome;
+                totalGet = bet + afterRatio;
                 //增加金币
                 controller.changePlayerGold(gamePlayer, totalGet);
                 // 添加账单记录
                 settlementDataMap.put(
                         playerId, settlementDataMap.getOrDefault(playerId, new SettlementData())
                                 .increaseBySettlementData(new SettlementData(
-                                        afterRatio, bet, totalGet, bet, roomCreatorIncome)));
+                                        afterRatio, bet, totalGet, bet, tempTotalGet.longValue() - totalGet)));
                 if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
                     robotPlayer.setLastWin(1);
                 }
@@ -242,7 +241,7 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             settlementInfoArrayList.add(settlementPlayerInfo);
         }
         // 添加房主流水记录
-        controller.dealBankerFlowing(0, settlementDataMap);
+        controller.dealBankerFlowing(null, settlementDataMap);
         notifyTexasSettlementInfo.playerSettlementInfos = settlementInfoArrayList;
         return notifyTexasSettlementInfo;
     }
@@ -354,17 +353,15 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             }
             info.betValue = -info.betValue;
         }
-        // 房主收益
-        long roomCreatorIncome = calcRoomCreatorIncome(beforeRatio);
-        long get = beforeRatio * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000 - roomCreatorIncome;
+        long get = beforeRatio * (10000 - gameDataVo.getRoomCfg().getEffectiveRatio()) / 10000;
         controller.changePlayerGold(gamePlayer, allBet + get);
         Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         // 添加账单记录
         settlementDataMap.put(
                 playerId, settlementDataMap.getOrDefault(playerId, new SettlementData())
                         .increaseBySettlementData(new SettlementData(
-                                get, allBet, beforeRatio, allBet, roomCreatorIncome)));
-        controller.dealBankerFlowing(0, settlementDataMap);
+                                get, allBet, beforeRatio, allBet, beforeRatio - get)));
+        controller.dealBankerFlowing(null, settlementDataMap);
         pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().getOrDefault(playerId, 0L);
         pokerPlayerSettlementInfo.getGold = allBet + get;
         pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;

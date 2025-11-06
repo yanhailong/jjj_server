@@ -9,6 +9,7 @@ import com.jjg.game.core.data.RoomType;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.room.FriendRoomBillHistoryHelper;
+import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.friendroom.AbstractFriendRoomController;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
@@ -26,23 +27,15 @@ public class TexasFriendGameController extends TexasGameController {
         super(roomController);
     }
 
-    public void dealBankerFlowing(Map<Long, SettlementData> settlementDataMap) {
-        dealBankerFlowing(0, settlementDataMap);
-    }
-
     @Override
-    public void dealBankerFlowing(long bankerFlowing, Map<Long, SettlementData> settlementDataMap) {
+    public void dealBankerFlowing(RoomBankerChangeParam param, Map<Long, SettlementData> settlementDataMap) {
         if (roomController instanceof AbstractFriendRoomController<?, ?>) {
             // 需要记录
             FriendRoomBillHistoryDao dao = roomController.getRoomManager().getFriendRoomBillHistoryDao();
             if (!settlementDataMap.isEmpty()) {
+                long roomCreatorTotalIncome = param.getRoomCreatorTotalIncome();
                 // 构建基础历史数据bean
                 FriendRoomBillHistoryBean historyBean = FriendRoomBillHistoryHelper.buildFriendRoom(getRoom());
-                long roomCreatorTotalIncome =
-                    settlementDataMap.values().stream()
-                        .filter(s -> s.getRoomCreatorIncome() > 0)
-                        .mapToLong(SettlementData::getRoomCreatorIncome)
-                        .sum();
                 historyBean.setTotalIncome(roomCreatorTotalIncome);
                 long totalFlowing =
                     settlementDataMap.values().stream()

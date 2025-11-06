@@ -6,6 +6,7 @@ import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.utils.PokerCardUtils;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.data.room.TablePlayerGameData;
 import com.jjg.game.room.datatrack.EDataTrackLogType;
@@ -14,6 +15,7 @@ import com.jjg.game.sampledata.bean.WinPosWeightCfg;
 import com.jjg.game.table.common.BaseTableGameController;
 import com.jjg.game.table.common.gamephase.BaseSettlementPhase;
 import com.jjg.game.table.common.message.TableMessageBuilder;
+import com.jjg.game.table.loongtigerwar.constant.LoongTigerWarConstant;
 import com.jjg.game.table.loongtigerwar.manager.LoongTigerWarSampleManager;
 import com.jjg.game.table.loongtigerwar.message.resp.NotifyLoongTigerWarSettleInfo;
 import com.jjg.game.table.loongtigerwar.room.data.LoongTigerWarGameDataVo;
@@ -63,13 +65,16 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         List<WinPosWeightCfg> weightCfgs = cfgMap.get(next);
         Map<Integer, Map<Long, List<Integer>>> betInfo = gameDataVo.getBetInfo();
         // 庄家变化的钱
-        long bankerChangeGold = 0;
+        RoomBankerChangeParam changeParam = getRoomBankerChangeParam(betInfo);
         Map<Long, SettlementData> settlementDataMap = new HashMap<>();
         for (WinPosWeightCfg weightCfg : weightCfgs) {
             for (Integer areaId : weightCfg.getBetArea()) {
                 Map<Long, List<Integer>> playerBetInfo = betInfo.get(areaId);
                 if (Objects.isNull(playerBetInfo)) {
                     continue;
+                }
+                if (changeParam != null) {
+                    changeParam.removeArea(areaId);
                 }
                 for (Map.Entry<Long, List<Integer>> entry : playerBetInfo.entrySet()) {
                     //计算
@@ -83,39 +88,39 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
                     long backBet = (long) totalBet * weightCfg.getReturnRate() / 10000;
                     //总获得
                     long canGet = backBet * weightCfg.getOdds() / 100;
+                    long totalGet = canGet;
                     if (weightCfg.getIsRatio() == 1) {
                         canGet = canGet * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
                     }
-                    // 房主收益，如果不是好友房此值为0
-                    long roomCreatorIncome = calcRoomCreatorIncome(weightCfg, totalBet);
-                    canGet += backBet - roomCreatorIncome;
-                    SettlementData settlementData =
-                        new SettlementData(canGet - backBet, backBet, canGet, totalBet, roomCreatorIncome);
+                    canGet += backBet;
+                    SettlementData settlementData = new SettlementData(canGet - backBet, backBet, canGet, totalBet, totalGet - canGet);
                     if (!settlementDataMap.containsKey(playerId)) {
                         settlementDataMap.put(playerId, settlementData);
                     } else {
                         settlementDataMap.get(playerId).increaseBySettlementData(settlementData);
                     }
-                    bankerChangeGold +=
-                        settlementDataMap.get(playerId).getTotalWin() - settlementDataMap.get(playerId).getBetTotal();
                     // 给玩家添加金币
-                    gameController.addItem(
-                        gamePlayer.getId(), canGet,
-                            AddType.GAME_SETTLEMENT,gameDataVo.getRoomCfg().getId()+"");
-                    DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId,
-                        key -> new DefaultKeyValue<>(0L, 0L));
+                    gameController.addItem(gamePlayer.getId(), canGet, AddType.GAME_SETTLEMENT, gameDataVo.getRoomCfg().getId() + "");
+                    DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId, key -> new DefaultKeyValue<>(0L, 0L));
                     keyValue.setKey(keyValue.getKey() + totalBet);
                     keyValue.setValue(keyValue.getValue() + canGet);
                 }
             }
         }
-        gameController.dealBankerFlowing(bankerChangeGold, settlementDataMap);
+        if (changeParam != null) {
+            for (SettlementData data : settlementDataMap.values()) {
+                changeParam.addTotalTaxRevenue(data.getTaxation());
+                changeParam.addBankerChangeGold(data.getTotalWin() - data.getBetTotal());
+            }
+            calculationFinalBankerChange(changeParam);
+            gameController.dealBankerFlowing(changeParam, settlementDataMap);
+        }
         Pair<Integer, Integer> twoSpecificCard = PokerCardUtils.getTwoSpecificCard(next);
         NotifyLoongTigerWarSettleInfo warSettleInfo = new NotifyLoongTigerWarSettleInfo();
         warSettleInfo.loongCard = twoSpecificCard.getFirst();
         warSettleInfo.tigerCard = twoSpecificCard.getSecond();
         warSettleInfo.playerSettleInfos =
-            TableMessageBuilder.getPlayerSettleInfos(gameController, playerGet, gameDataVo);
+                TableMessageBuilder.getPlayerSettleInfos(gameController, playerGet, gameDataVo);
         warSettleInfo.winState = next;
         warSettleInfo.waitEndTime = gameDataVo.getPhaseEndTime();
         //更新房间记录
@@ -137,6 +142,25 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
     }
 
     @Override
+    public void calculationFinalBankerChange(RoomBankerChangeParam param) {
+        long totalGet = 0;
+        for (Map.Entry<Integer, Map<Long, Integer>> entry : param.getBankerChangeMap().entrySet()) {
+            long sum = entry.getValue().values().stream().mapToLong(Integer::intValue).sum();
+            if (entry.getKey() == LoongTigerWarConstant.Common.LUCK_AREA) {
+                //不算税收
+                totalGet += sum;
+            } else {
+                long realGet = sum * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
+                param.addTotalTaxRevenue(sum - realGet);
+                totalGet += realGet;
+            }
+        }
+        param.addBankerChangeGold(-totalGet);
+        //计算房主收益
+        param.addRoomCreatorTotalIncome(calcRoomCreatorIncome(param.getTotalTaxRevenue()));
+    }
+
+    @Override
     public void phaseFinishAction() {
         gameDataVo.setCurrentSettleInfo(null);
     }
@@ -149,7 +173,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
     private void addLog(LoongTigerWarGameDataVo gameDataVo, Map<Long, DefaultKeyValue<Long, Long>> playerGetInfo,
                         int loongCard, int tigerCard) {
         SaveLogUtil.generalLog(gameDataVo.getPlayerBetInfo(), playerGetInfo, gameDataVo.getGamePlayerMap(),
-            gameController);
+                gameController);
         gameDataTracker.addGameLogData("loongCard", loongCard);
         gameDataTracker.addGameLogData("tigerCard", tigerCard);
         gameDataTracker.flushDataLog(EDataTrackLogType.SETTLEMENT);
