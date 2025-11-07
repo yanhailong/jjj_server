@@ -472,6 +472,9 @@ public class DollarExpressGameManager extends AbstractSlotsGameManager<DollarExp
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
+            //触发实际赢钱的task
+            triggerWinTask(playerController.playerId(),gameRunInfo.getAllWinGold(),betValue);
+
             //添加美元收集进度
             if (gameRunInfo.getTotalDollars() < 1) {
                 gameRunInfo.setTotalDollars(playerGameData.getTotalDollars());

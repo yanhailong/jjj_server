@@ -140,6 +140,9 @@ public class CleopatraGameManager extends AbstractSlotsGameManager<CleopatraPlay
 
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
 
+            //触发实际赢钱的task
+            triggerWinTask(playerController.playerId(),gameRunInfo.getAllWinGold(),betValue);
+
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
             gameRunInfo.setAfterGold(player.getGold());
