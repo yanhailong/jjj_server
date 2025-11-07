@@ -277,33 +277,36 @@ public class ShopService implements OrderGenerate, GameEventListener {
                         .filter(cfg -> cfg.getViplevel() == player.getVipLevel())
                         .findFirst();
                 if (viplevelCfgOptional.isPresent()) {
-                    Integer add = viplevelCfgOptional.get().getPrivilegedFunctions().get(2);
-                    if (add > 0) {
-                        int magnification = 0;
-                        int mailId = 0;
-                        if (currencyItemId == ItemUtils.getDiamondItemId()) {
-                            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(54);
-                            if (globalConfigCfg != null) {
-                                magnification = globalConfigCfg.getIntValue();
-                                mailId = 37;
+                    Map<Integer, Integer> privilegedFunctions = viplevelCfgOptional.get().getPrivilegedFunctions();
+                    if(privilegedFunctions != null && !privilegedFunctions.isEmpty()){
+                        Integer add = privilegedFunctions.get(2);
+                        if (add != null && add > 0) {
+                            int magnification = 0;
+                            int mailId = 0;
+                            if (currencyItemId == ItemUtils.getDiamondItemId()) {
+                                GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(54);
+                                if (globalConfigCfg != null) {
+                                    magnification = globalConfigCfg.getIntValue();
+                                    mailId = 37;
+                                }
+                            } else if (currencyItemId == ItemUtils.getGoldItemId()) {
+                                GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(52);
+                                if (globalConfigCfg != null) {
+                                    magnification = globalConfigCfg.getIntValue();
+                                    mailId = 36;
+                                }
                             }
-                        } else if (currencyItemId == ItemUtils.getGoldItemId()) {
-                            GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(52);
-                            if (globalConfigCfg != null) {
-                                magnification = globalConfigCfg.getIntValue();
-                                mailId = 36;
+                            if (magnification > 0) {
+                                long addNum = shopProduct.getMoney().multiply(BigDecimal.valueOf(add))
+                                        .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
+                                        .multiply(BigDecimal.valueOf(magnification)).longValue();
+                                List<LanguageParamData> languageParamData = new ArrayList<>();
+                                languageParamData.add(new LanguageParamData(0, shopProduct.getMoney().toPlainString()));
+                                languageParamData.add(new LanguageParamData(0, String.valueOf(player.getVipLevel())));
+                                languageParamData.add(new LanguageParamData(0, String.valueOf(add)));
+                                languageParamData.add(new LanguageParamData(0, String.valueOf(addNum)));
+                                mailService.addCfgMail(player.getId(), mailId, List.of(new Item(currencyItemId, addNum)), languageParamData);
                             }
-                        }
-                        if (magnification > 0) {
-                            long addNum = shopProduct.getMoney().multiply(BigDecimal.valueOf(add))
-                                    .divide(BigDecimal.valueOf(10000), RoundingMode.DOWN)
-                                    .multiply(BigDecimal.valueOf(magnification)).longValue();
-                            List<LanguageParamData> languageParamData = new ArrayList<>();
-                            languageParamData.add(new LanguageParamData(0, shopProduct.getMoney().toPlainString()));
-                            languageParamData.add(new LanguageParamData(0, String.valueOf(player.getVipLevel())));
-                            languageParamData.add(new LanguageParamData(0, String.valueOf(add)));
-                            languageParamData.add(new LanguageParamData(0, String.valueOf(addNum)));
-                            mailService.addCfgMail(player.getId(), mailId, List.of(new Item(currencyItemId, addNum)), languageParamData);
                         }
                     }
                 }
