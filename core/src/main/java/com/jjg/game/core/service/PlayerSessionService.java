@@ -79,6 +79,11 @@ public class PlayerSessionService implements TimerListener<String>, SessionLogou
         return (PlayerSessionInfo) redisTemplate.opsForHash().get(SESSION_TABLE_NAME, playerId);
     }
 
+    public List<PlayerSessionInfo> getInfos(List<Long> playerId) {
+        HashOperations<String, String, PlayerSessionInfo> opsForHash = redisTemplate.opsForHash();
+        return opsForHash.multiGet(SESSION_TABLE_NAME, playerId.stream().map(String::valueOf).collect(Collectors.toList()));
+    }
+
     public boolean hasSession(long playerId) {
         return redisTemplate.opsForHash().hasKey(SESSION_TABLE_NAME, playerId);
     }
