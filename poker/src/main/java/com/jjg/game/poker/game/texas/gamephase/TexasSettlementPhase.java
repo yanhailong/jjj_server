@@ -6,6 +6,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.base.gameevent.PlayerEventCategory.PlayerEffectiveFlowingEvent;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.Card;
+import com.jjg.game.core.data.FriendRoom;
 import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.constant.PokerConstant;
@@ -34,6 +35,7 @@ import com.jjg.game.poker.game.texas.util.PokerHandEvaluator;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.data.room.RoomBankerChangeParam;
 import com.jjg.game.room.data.room.SettlementData;
 import com.jjg.game.room.data.room.SimplePlayerInfo;
 import com.jjg.game.room.datatrack.DataTrackNameConstant;
@@ -241,9 +243,23 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             settlementInfoArrayList.add(settlementPlayerInfo);
         }
         // 添加房主流水记录
-        controller.dealBankerFlowing(null, settlementDataMap);
+        addCreateRecord(controller, settlementDataMap);
         notifyTexasSettlementInfo.playerSettlementInfos = settlementInfoArrayList;
         return notifyTexasSettlementInfo;
+    }
+
+    /**
+     * 添加房主记录
+     * @param controller 游戏控制器
+     * @param settlementDataMap 结算数据
+     */
+    private void addCreateRecord(TexasGameController controller, Map<Long, SettlementData> settlementDataMap) {
+        if (gameController.getRoom() instanceof FriendRoom) {
+            RoomBankerChangeParam roomBankerChangeParam = new RoomBankerChangeParam();
+            long sum = settlementDataMap.values().stream().mapToLong(SettlementData::getTaxation).sum();
+            roomBankerChangeParam.addRoomCreatorTotalIncome(calcRoomCreatorIncome(sum));
+            controller.dealBankerFlowing(roomBankerChangeParam, settlementDataMap);
+        }
     }
 
     /**
@@ -361,7 +377,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 playerId, settlementDataMap.getOrDefault(playerId, new SettlementData())
                         .increaseBySettlementData(new SettlementData(
                                 get, allBet, beforeRatio, allBet, beforeRatio - get)));
-        controller.dealBankerFlowing(null, settlementDataMap);
+
+        addCreateRecord(controller, settlementDataMap);
         pokerPlayerSettlementInfo.currentGold = gameDataVo.getTempGold().getOrDefault(playerId, 0L);
         pokerPlayerSettlementInfo.getGold = allBet + get;
         pokerPlayerSettlementInfo.win = pokerPlayerSettlementInfo.getGold > 0;

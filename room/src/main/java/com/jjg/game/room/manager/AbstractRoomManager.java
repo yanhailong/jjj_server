@@ -137,6 +137,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         return activityManager;
     }
 
+    public NodeManager getNodeManager() {
+        return nodeManager;
+    }
+
     @PostConstruct
     public <RC extends RoomCfg> void init() {
         try {
@@ -661,7 +665,7 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         // 移除房间map中的数据
         roomControllers.remove(roomId);
         // 好友房如果没有主动解散不能删除
-        if (room instanceof FriendRoom friendRoom && friendRoom.getStatus() != 3) {
+        if (room instanceof FriendRoom friendRoom && friendRoom.getStatus() != 3 && !nodeManager.nodeConfig.waitClose()) {
             saveFriendRoomDataOnShutdown(friendRoom);
             log.info("关服回存好友房数据：{}", JSON.toJSONString(friendRoom));
         } else {
@@ -901,14 +905,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     public AbstractRoomController<? extends RoomCfg, ? extends Room> getRoomControllerByRoomId(long roomId) {
         List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> roomMapControllers =
                 new ArrayList<>(roomControllerMap.values());
-        for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap :
-                roomMapControllers) {
-            List<AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllers =
-                    new ArrayList<>(roomControllerMap.values());
-            for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : roomControllers) {
-                if (roomController.getRoom().getId() == roomId) {
-                    return roomController;
-                }
+        for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> roomControllerMap : roomMapControllers) {
+            AbstractRoomController<? extends RoomCfg, ? extends Room> controller = roomControllerMap.get(roomId);
+            if (controller != null) {
+                return controller;
             }
         }
         return null;
@@ -1039,7 +1039,8 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                             .filter(p -> {
                                 if (p.getSecond() instanceof AbstractFriendRoomController<?, ?> friendRoomController) {
                                     // 好友房必须要处于销毁状态且没有玩家才能删除
-                                    return friendRoomController.getRoom().getStatus() == 3 && p.getSecond().getRoom().countPlayers() <= 0;
+                                    return friendRoomController.getRoom().getStatus() == 3 &&
+                                            p.getSecond().getRoom().countPlayers() <= 0;
                                 } else {
                                     // 需要筛选所有空的房间，还有真人的房间不能销毁
                                     return p.getSecond().getRoom().countPlayers() <= 0;

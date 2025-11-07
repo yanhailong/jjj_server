@@ -2,10 +2,12 @@ package com.jjg.game.common.cluster;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.collection.ConcurrentHashSet;
+import com.jjg.game.common.baselogic.function.SystemInterfaceHolder;
 import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.curator.*;
 import com.jjg.game.common.gate.GateClusterMessageDispatcher;
+import com.jjg.game.common.listener.OnServerAutoShoutDown;
 import com.jjg.game.common.message.SwitchNodeMessage;
 import com.jjg.game.common.net.NetAddress;
 import com.jjg.game.common.netty.ConnectPool;
@@ -251,7 +253,7 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
      */
     public void switchNode(PFSession pfSession, MarsNode marsNode) {
         //如果要切换的节点和当前节点一致不切换
-        if (marsNode.getNodeConfig().getName().equals(nodeConfig.getName())) {
+        if (nodeManager.getNodePath().equals(marsNode.getNodePath())) {
             log.info("相同节点名不切换节点，sessionId={},currentNode={} ,toNode={}", pfSession.sessionId(), nodeConfig.getName(),
                     marsNode.getNodeConfig().getName());
             return;
@@ -697,8 +699,20 @@ public class ClusterSystem implements MarsNodeListener, TimerListener<String> {
     public void onTimer(TimerEvent<String> e) {
         if (e == clusterSystemEvent) {
             log.info("节点权重={},当前session数量={}", nodeConfig.weight, clusterSessionSize());
-            if (nodeConfig.weight == 0 && sessionMap.isEmpty()) {
-                System.exit(0);
+            if (nodeConfig.waitClose() && sessionMap.isEmpty()) {
+                boolean canExit = true;
+                List<OnServerAutoShoutDown> gameSysInterface = SystemInterfaceHolder.getGameSysInterface(OnServerAutoShoutDown.class);
+                for (OnServerAutoShoutDown shout : gameSysInterface) {
+                    try {
+                        boolean temp = shout.canExit();
+                        canExit &= temp;
+                    } catch (Exception exception) {
+                        log.error("System exit error ", exception);
+                    }
+                }
+                if (canExit) {
+                    System.exit(0);
+                }
             }
         } else if (e == deleteTimerEvent) {
             deleteSession();
