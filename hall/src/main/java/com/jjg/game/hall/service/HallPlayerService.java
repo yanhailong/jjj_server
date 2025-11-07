@@ -1,5 +1,6 @@
 package com.jjg.game.hall.service;
 
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.PlayerLastGameInfoDao;
@@ -11,6 +12,8 @@ import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.hall.casino.service.PlayerBuildingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Set;
 
 /**
  * @author 11
@@ -77,13 +80,54 @@ public class HallPlayerService extends AbstractPlayerService {
     }
 
     /**
+     * 清除过期的player数据
+     */
+    public void clean(){
+        log.info("开始清除过期player数据");
+
+        long now = System.currentTimeMillis();
+
+        //获取一个时间
+        long expireTime = now - TimeHelper.ONE_DAY_OF_MILLIS;
+
+        Set<Object> loginSet = playerLoginTimeDao.getLoginSet(expireTime);
+        if (loginSet == null || loginSet.isEmpty()) {
+            return;
+        }
+
+        int index = 0;
+        int finishNum = 0;
+        for (Object o : loginSet) {
+            try {
+                if (index % 1000 == 0) {
+                    log.info("已执行循环次数index={},成功次数={}", index, finishNum);
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                boolean clear = clean(Long.parseLong(o.toString()), expireTime);
+                if (clear) {
+                    finishNum++;
+                }
+                index++;
+            } catch (Exception e) {
+                log.error("清除player数据异常,playerId:{}", o, e);
+            }
+        }
+        log.info("清除player数据完成,循环次数={},成功次数={},消耗时间={} ms", index, finishNum, System.currentTimeMillis() - now);
+    }
+
+    /**
      * 从redis删除过期的player数据,并且存储到mongodb
      *
      * @param playerId
      * @param expireTime
      * @return
      */
-    public boolean clear(long playerId, long expireTime) {
+    private boolean clean(long playerId, long expireTime) {
         if (playerId < 1) {
             return false;
         }

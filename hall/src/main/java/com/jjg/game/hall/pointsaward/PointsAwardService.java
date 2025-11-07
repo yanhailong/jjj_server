@@ -6,6 +6,7 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
+import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.PointsAwardType;
@@ -14,6 +15,8 @@ import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.core.manager.RedDotManager;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.rpc.HallPointsAwardBridge;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
@@ -42,7 +45,7 @@ import java.util.stream.Collectors;
  * 积分大奖积分服务
  */
 @Service
-public class PointsAwardService implements IPlayerLoginSuccess, GmListener, HallPointsAwardBridge {
+public class PointsAwardService implements IPlayerLoginSuccess, GmListener, HallPointsAwardBridge,IRedDotService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -53,6 +56,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
     private final MarsCurator marsCurator;
     private final PointsAwardLogger pointsAwardLogger;
     private final PlayerPackService playerPackService;
+    private final RedDotManager redDotManager;
 
     /**
      * 玩家累计充值金额
@@ -64,7 +68,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
                               PointsAwardLeaderboardService leaderboardService,
                               MarsCurator marsCurator,
                               RedisLock redisLock,
-                              PointsAwardLogger pointsAwardLogger, PlayerPackService playerPackService) {
+                              PointsAwardLogger pointsAwardLogger, PlayerPackService playerPackService, RedDotManager redDotManager) {
         this.redissonClient = redissonClient;
         this.clusterSystem = clusterSystem;
         this.leaderboardService = leaderboardService;
@@ -72,6 +76,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         this.redisLock = redisLock;
         this.pointsAwardLogger = pointsAwardLogger;
         this.playerPackService = playerPackService;
+        this.redDotManager = redDotManager;
     }
 
     /**
@@ -213,6 +218,8 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         updateLeaderboards(playerId, pointsAward);
         //记录日志
         pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, true, counter.get());
+        //通知红点
+        redDotManager.updateRedDot(this, PointsAwardConstant.RedDotSubModule.BONUS, playerId);
     }
 
     /**
@@ -517,5 +524,38 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         }
         add(playerController.playerId(), points, PointsAwardType.GM);
         return result;
+    }
+
+    @Override
+    public RedDotDetails.RedDotModule getModule() {
+        return RedDotDetails.RedDotModule.POINTS_AWARD;
+    }
+
+    @Override
+    public List<RedDotDetails> initialize(long playerId, int submodule) {
+        if(submodule == PointsAwardConstant.RedDotSubModule.BONUS){
+            //获取玩家积分
+            long points = getPoints(playerId);
+            List<PointsAwardLadderRewardsInfo> configInfoList = getLadderConfigInfoList(playerId);
+            Map<Long, PointsAwardLadderRewardsInfo> collect = configInfoList.stream()
+                    .collect(Collectors.toMap(PointsAwardLadderRewardsInfo::getPoints, Function.identity(), (oldValue, newValue) -> newValue));
+            PointsAwardLadderRewardsInfo info = collect.get(points);
+            if (info == null) {
+                return List.of();
+            }
+
+            RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
+            if (rewardReceiveSet.contains(info.getPoints())) {
+                return List.of();
+            }
+            RedDotDetails redDotDetails = new RedDotDetails();
+            redDotDetails.setRedDotModule(getModule());
+            redDotDetails.setRedDotSubmodule(submodule);
+            redDotDetails.setRedDotType(RedDotDetails.RedDotType.COMMON);
+            return List.of(redDotDetails);
+        }else {
+            return List.of();
+        }
+
     }
 }

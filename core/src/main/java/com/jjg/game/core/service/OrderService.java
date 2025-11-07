@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author 11
@@ -100,5 +101,16 @@ public class OrderService {
 
     public Order getOrderByUUid(String uuid) {
         return orderDao.getOrderByUUid(uuid);
+    }
+
+    /**
+     * 清除创建时间早于指定时间戳的订单
+     *
+     * @return 删除的订单数量
+     */
+    public void clean() {
+        int expire = TimeHelper.nowInt() - (int)TimeUnit.DAYS.toSeconds(60);
+        long delCount = orderDao.deleteOrdersBeforeTimestamp(expire);
+        log.info("删除过期订单数量 = {}", delCount);
     }
 }

@@ -456,9 +456,12 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
      */
     @Override
     public List<RedDotDetails> initialize(long playerId, int submodule) {
+        long itemMailsCount = mailDao.getItemsMailsCount(playerId, GameConstant.Mail.STATUS_NOT_READ);
+        if(itemMailsCount < 1){
+            return List.of();
+        }
         RedDotDetails redDotDetails = new RedDotDetails();
         redDotDetails.setRedDotModule(getModule());
-        long itemMailsCount = mailDao.getItemsMailsCount(playerId, GameConstant.Mail.STATUS_NOT_READ);
         redDotDetails.setCount(itemMailsCount);
         return List.of(redDotDetails);
     }
