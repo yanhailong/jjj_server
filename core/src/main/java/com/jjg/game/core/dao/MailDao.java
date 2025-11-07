@@ -17,7 +17,10 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * @author 11
@@ -119,15 +122,37 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
     /**
      * 获取邮件数量
      */
-    public long getItemsMailsCount(long playerId, int status) {
-        // 创建查询条件
-        Criteria criteria = Criteria.where("playerId").is(playerId).and("status").ne(status)
-                .and("items").exists(true)
-                .ne(null)
-                .not().size(0);
-
+    public long getItemsMailsCount(long playerId) {
+        Criteria criteria = Criteria.where("playerId").is(playerId).andOperator(
+                new Criteria().orOperator(
+                        Criteria.where("status").is(GameConstant.Mail.STATUS_NOT_READ),
+                        new Criteria().andOperator(
+                                Criteria.where("status").is(GameConstant.Mail.STATUS_READ),
+                                Criteria.where("items").exists(true).ne(null).not().size(0)
+                        )
+                )
+        );
         Query query = new Query(criteria);
         return mongoTemplate.count(query, Mail.class);
+    }
+
+    /**
+     * 批量获取玩家的邮件数据
+     * @param playerIds 玩家ids
+     * @return 全部邮件信息
+     */
+    public List<Mail> getItemsMailsCount(Collection<Long> playerIds) {
+        Criteria criteria = Criteria.where("playerId").in(playerIds).andOperator(
+                new Criteria().orOperator(
+                        Criteria.where("status").is(GameConstant.Mail.STATUS_NOT_READ),
+                        new Criteria().andOperator(
+                                Criteria.where("status").is(GameConstant.Mail.STATUS_READ),
+                                Criteria.where("items").exists(true).ne(null).not().size(0)
+                        )
+                )
+        );
+        Query query = new Query(criteria);
+        return mongoTemplate.find(query, Mail.class);
     }
 
     /**

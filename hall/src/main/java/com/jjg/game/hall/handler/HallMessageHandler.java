@@ -592,6 +592,7 @@ public class HallMessageHandler implements GmListener {
             res.code = Code.EXCEPTION;
         }
         playerController.send(res);
+        mailService.updateRedDot(playerController.playerId());
     }
 
     /**
@@ -622,6 +623,7 @@ public class HallMessageHandler implements GmListener {
             res.code = Code.EXCEPTION;
         }
         playerController.send(res);
+        mailService.updateRedDot(playerController.playerId());
     }
 
     /**
