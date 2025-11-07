@@ -169,6 +169,10 @@ public class WealthGodGameManager extends AbstractSlotsGameManager<WealthGodPlay
             if (addGold > 0) {
                 gameRunInfo.addAllWinGold(addGold);
             }
+
+            //触发实际赢钱的task
+            triggerWinTask(playerController.playerId(),gameRunInfo.getAllWinGold(),betValue);
+
             //玩家当前金币
             player = slotsPlayerService.get(playerGameData.playerId());
             gameRunInfo.setAfterGold(player.getGold());

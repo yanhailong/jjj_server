@@ -28,6 +28,7 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.TaskConditionParam10001;
+import com.jjg.game.core.task.param.TaskConditionParam10003;
 import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -425,7 +426,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //如果前面没有获取到lib，则获取一个无奖励的结果
             if (resultLib == null) {
                 sectionIndex = this.defaultRewardSectionIndex;
-                resultLib = (L) getResultLibDao().getLibBySectionIndex(specialModeNormalType, this.defaultRewardSectionIndex,this.libClass);
+                resultLib = (L) getResultLibDao().getLibBySectionIndex(specialModeNormalType, this.defaultRewardSectionIndex, this.libClass);
                 log.debug("前面获取结果库失败，所以找一个不中奖的结果返回 gameType = {},libType = {}", this.gameType, libType);
 
                 if (resultLib == null) {
@@ -499,7 +500,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     continue;
                 }
                 //获取结果库
-                freeLib = (L) getResultLibDao().getLibBySectionIndex(specialModeFreeLibType, sectionResult.data,this.libClass);
+                freeLib = (L) getResultLibDao().getLibBySectionIndex(specialModeFreeLibType, sectionResult.data, this.libClass);
                 if (freeLib == null) {
                     continue;
                 }
@@ -1382,4 +1383,28 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         return set;
     }
 
+    /**
+     * 触发实际赢钱的task
+     *
+     * @param playerId
+     */
+    protected void triggerWinTask(long playerId, long allWinGold, long bet) {
+        long winValue = allWinGold - bet;
+        if(winValue <= 0){
+            return;
+        }
+
+        int gameType = getGameType();
+
+        Thread.ofVirtual().start(() -> {
+            //触发任务
+            taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
+                TaskConditionParam10003 param = new TaskConditionParam10003();
+                param.setGameId(gameType);
+                param.setAddValue(winValue);
+                param.setCoinId(ItemUtils.getGoldItemId());
+                return param;
+            });
+        });
+    }
 }

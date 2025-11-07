@@ -163,6 +163,10 @@ public class SuperStarGameManager extends AbstractSlotsGameManager<SuperStarPlay
             if (addGold > 0) {
                 gameRunInfo.addAllWinGold(addGold);
             }
+
+            //触发实际赢钱的task
+            triggerWinTask(playerController.playerId(),gameRunInfo.getAllWinGold(),betValue);
+
             //添加大奖展示id
             int times = (int) (gameRunInfo.getAllWinGold() / betValue);
             log.debug("计算出获奖倍数 times = {}", times);
