@@ -93,5 +93,15 @@ public class OrderDao extends MongoBaseDao<Order, Long> {
         );
     }
 
+    /**
+     * 删除创建时间早于指定时间戳的订单
+     *
+     * @param timestamp 时间戳
+     * @return 删除的订单数量
+     */
+    public long deleteOrdersBeforeTimestamp(int timestamp) {
+        Query query = new Query(Criteria.where("createTime").lt(timestamp));
+        return mongoTemplate.remove(query, Order.class).getDeletedCount();
+    }
 
 }

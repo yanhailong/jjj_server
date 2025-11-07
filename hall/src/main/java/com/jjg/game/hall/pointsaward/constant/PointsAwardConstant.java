@@ -255,6 +255,10 @@ public interface PointsAwardConstant {
          * 转盘
          */
         int TURNRABLE = 2;
+        /**
+         * 奖金
+         */
+        int BONUS = 3;
     }
 
     /**

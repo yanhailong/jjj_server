@@ -350,6 +350,10 @@ public class AbstractPlayerService {
     }
 
     public CommonResult<Player> deductDiamond(long playerId, long deductNum, AddType addType, String desc) {
+        return deductDiamond(playerId, deductNum, addType, desc, false);
+    }
+
+    public CommonResult<Player> deductDiamond(long playerId, long deductNum, AddType addType, String desc,boolean isNotify) {
         LongRef beforeUpdateGold = PrimitiveRef.ofLong(0);
         Supplier<Player> supplier = () -> checkAndSave(playerId, new DataSaveCallback<>() {
             @Override
@@ -367,7 +371,7 @@ public class AbstractPlayerService {
                 return true;
             }
         });
-        return deductDiamond(playerId, deductNum, addType, desc, false, supplier, beforeUpdateGold);
+        return deductDiamond(playerId, deductNum, addType, desc, isNotify, supplier, beforeUpdateGold);
     }
 
     /**
@@ -685,7 +689,7 @@ public class AbstractPlayerService {
     /**
      * 扣除金币
      */
-    protected CommonResult<Player> deductGold(long playerId, long num, AddType addType, String desc, boolean isNotify) {
+    public CommonResult<Player> deductGold(long playerId, long num, AddType addType, String desc, boolean isNotify) {
         LongRef ref = PrimitiveRef.ofLong(0);
         Supplier<Player> supplier = () -> checkAndSave(playerId, new DataSaveCallback<>() {
             @Override
