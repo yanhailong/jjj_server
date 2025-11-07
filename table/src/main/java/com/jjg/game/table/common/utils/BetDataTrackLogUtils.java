@@ -1,9 +1,5 @@
 package com.jjg.game.table.common.utils;
 
-import com.jjg.game.activity.common.data.ActivityTargetType;
-import com.jjg.game.activity.manager.ActivityManager;
-import com.jjg.game.core.base.gameevent.EGameEventType;
-import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
@@ -32,14 +28,14 @@ public class BetDataTrackLogUtils {
      * 记录押注日志
      */
     public static void recordBetLog(
-        SettlementData settlementData, GamePlayer gamePlayer, AbstractPhaseGameController<Room_BetCfg, ?> controller,
-        Map<Integer, List<Integer>> playerBetInfo) {
+            SettlementData settlementData, GamePlayer gamePlayer, AbstractPhaseGameController<Room_BetCfg, ?> controller,
+            Map<Integer, List<Integer>> playerBetInfo) {
         GameDataTracker gameDataTracker = controller.getGameDataTracker();
         if (settlementData.getBetTotal() <= 0 && playerBetInfo != null) {
             // 统计总押注
             settlementData.setBetTotal(playerBetInfo.values().stream()
-                .mapToLong(a -> a.stream().mapToInt(b -> b).sum())
-                .sum());
+                    .mapToLong(a -> a.stream().mapToInt(b -> b).sum())
+                    .sum());
         }
         if (playerBetInfo != null && !(gamePlayer instanceof GameRobotPlayer)) {
             long effectiveWaterFlow = calculationEffectiveWaterFlow(playerBetInfo);
@@ -47,19 +43,19 @@ public class BetDataTrackLogUtils {
                 RoomDataHelper.checkPlayerVipLevel(gamePlayer, controller, effectiveWaterFlow);
             }
             gameDataTracker.addPlayerLogData(
-                gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, effectiveWaterFlow);
+                    gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, effectiveWaterFlow);
             //添加活动进度
             Thread.ofVirtual().start(() ->
-                SaveLogUtil.dealEffectiveWaterFlow(
-                    controller, gamePlayer, effectiveWaterFlow, settlementData.getBetTotal()));
+                    SaveLogUtil.dealEffectiveWaterFlow(
+                            controller, gamePlayer, effectiveWaterFlow, settlementData.getBetTotal(), settlementData.getBetWin()));
         }
         // 添加流水数据
         gameDataTracker.addPlayerLogData(
-            gamePlayer, DataTrackNameConstant.INCOME, settlementData.getBetWin());
+                gamePlayer, DataTrackNameConstant.INCOME, settlementData.getBetWin());
         gameDataTracker.addPlayerLogData(
-            gamePlayer, DataTrackNameConstant.TOTAL_BET, settlementData.getBetTotal());
+                gamePlayer, DataTrackNameConstant.TOTAL_BET, settlementData.getBetTotal());
         gameDataTracker.addPlayerLogData(
-            gamePlayer, DataTrackNameConstant.TOTAL_WIN, settlementData.getTotalWin());
+                gamePlayer, DataTrackNameConstant.TOTAL_WIN, settlementData.getTotalWin());
     }
 
     public static long calculationEffectiveWaterFlow(Map<Integer, List<Integer>> playerBetInfo) {

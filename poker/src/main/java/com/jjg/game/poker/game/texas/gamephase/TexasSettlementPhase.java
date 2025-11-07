@@ -408,22 +408,30 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(info.playerId);
             if (!(gamePlayer instanceof GameRobotPlayer)) {
                 Thread.ofVirtual().start(() -> {
-                    activityManager.addPlayerActivityProgress(gamePlayer,
-                            ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue,
-                            controller.getGameTransactionItemId());
-                    activityManager.addActivityProgress(gamePlayer,
-                            ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue,
-                            controller.getGameTransactionItemId());
-                    // 触发事件
-                    gameController.getGameEventManager().triggerEvent(
-                            new PlayerEffectiveFlowingEvent(gamePlayer, gameDataVo.getRoomCfg().getId(), betValue, 0));
-                    //触发任务
-                    gameController.getTaskManager().trigger(gamePlayer.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
-                        TaskConditionParam12001 param = new TaskConditionParam12001();
-                        param.setGameId(gameDataVo.getRoomCfg().getGameID());
-                        param.setAddValue(betValue);
-                        return param;
-                    });
+                    try {
+                        activityManager.addPlayerActivityProgress(gamePlayer,
+                                ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue,
+                                controller.getGameTransactionItemId());
+                        activityManager.addActivityProgress(gamePlayer,
+                                ActivityTargetType.getTagetKey(ActivityTargetType.EFFECTIVE_BET), betValue,
+                                controller.getGameTransactionItemId());
+                        // 触发事件
+                        gameController.getGameEventManager().triggerEvent(
+                                new PlayerEffectiveFlowingEvent(gamePlayer, gameDataVo.getRoomCfg().getId(), betValue, 0));
+                        //触发任务
+                        gameController.getTaskManager().trigger(gamePlayer.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
+                            TaskConditionParam12001 param = new TaskConditionParam12001();
+                            param.setGameId(gameDataVo.getRoomCfg().getGameID());
+                            param.setAddValue(betValue);
+                            return param;
+                        });
+                        //触发任务
+                        if (info.betValue > 0) {
+                            gameController.triggerTask(gamePlayer.getId(), gameController.getRoom().getGameType(), info.betValue, gameController.getGameTransactionItemId());
+                        }
+                    } catch (Exception e) {
+                        log.error("德州日志添加进度失败 info:{}", gamePlayer.getId(), e);
+                    }
                 });
             }
         }

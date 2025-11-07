@@ -16,7 +16,6 @@ import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.CorePlayerService;
@@ -38,9 +37,7 @@ import com.jjg.game.room.message.resp.NotifyPauseGameOnNewRound;
 import com.jjg.game.room.timer.RoomEventType;
 import com.jjg.game.room.timer.RoomTimerCenter;
 import com.jjg.game.room.timer.RoomTimerEvent;
-import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.RoomCfg;
-import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.apache.kafka.common.utils.PrimitiveRef;
 import org.apache.kafka.common.utils.PrimitiveRef.LongRef;
 import org.slf4j.Logger;
@@ -579,22 +576,13 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
         int diamondCfgId = ItemUtils.getDiamondItemId();
 
         //添加金币或钻石后，返回的错误码
-        int resAddCode = 0;
+        int resAddCode = Code.FAIL;
         if (transactionItemId == goldCfgId) {
             resAddCode = addGold(playerId, num, addType, desc, isNotify);
         } else if (transactionItemId == diamondCfgId) {
             resAddCode = addDiamond(playerId, num, addType, desc, isNotify);
         } else {
             log.error("游戏：{} 添加道具 暂不支持其他道具ID：{} 进行交易", getRoom().logStr(), transactionItemId);
-            return Code.FAIL;
-        }
-
-        if (resAddCode == Code.SUCCESS) {
-            //判断是否为好友房
-            WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(gameDataVo.getRoomCfg().getId());
-            if(warehouseCfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START){
-                triggerTask(playerId, gameDataVo.getRoomCfg().getGameID(), num, transactionItemId);
-            }
         }
         return resAddCode;
     }
@@ -607,7 +595,7 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param winValue 增加的钱
      * @param coinId   货币id
      */
-    private void triggerTask(long playerId, int gameType, long winValue, int coinId) {
+    public void triggerTask(long playerId, int gameType, long winValue, int coinId) {
         Thread.ofVirtual().start(() -> {
             //触发任务
             taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {

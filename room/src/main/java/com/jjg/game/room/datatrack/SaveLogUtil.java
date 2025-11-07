@@ -69,7 +69,8 @@ public class SaveLogUtil {
             // 打点
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_BET, totalBet);
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.TOTAL_WIN, keyValue.getValue());
-            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, keyValue.getValue() - totalBet);
+            long income = keyValue.getValue() - totalBet;
+            gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.INCOME, income);
             long sum = effectiveWaterFlow.values().stream().mapToLong(Math::abs).sum();
             if (sum > 0) {
                 RoomDataHelper.checkPlayerVipLevel(gamePlayer, gameController, sum);
@@ -78,7 +79,7 @@ public class SaveLogUtil {
             //添加活动进度
             long finalTotalBet = totalBet;
             // 处理有效流水
-            Thread.ofVirtual().start(() -> dealEffectiveWaterFlow(gameController, gamePlayer, sum, finalTotalBet));
+            Thread.ofVirtual().start(() -> dealEffectiveWaterFlow(gameController, gamePlayer, sum, finalTotalBet, income));
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_DATA, areaMap);
         }
         gameDataTracker.addGameLogData(DataTrackNameConstant.AREA_DATA, areaTotalBet);
@@ -88,28 +89,35 @@ public class SaveLogUtil {
      * 处理有效流水
      */
     public static void dealEffectiveWaterFlow(
-            AbstractPhaseGameController<Room_BetCfg, ?> controller, GamePlayer player, long effectiveGold, long allBet) {
-        ActivityManager activityManager =
-                controller.getRoomController().getRoomManager().getActivityManager();
-        if (effectiveGold > 0) {
-            activityManager.addPlayerActivityProgress(player,
-                    ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveGold,
-                    controller.getGameTransactionItemId());
-            activityManager.addActivityProgress(player,
-                    ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveGold,
-                    controller.getGameTransactionItemId());
-            controller.getGameEventManager().triggerEvent(
-                    new PlayerEffectiveFlowingEvent(player, controller.getRoom().getRoomCfgId(), effectiveGold, 0));
-            //触发任务
-            controller.getTaskManager().trigger(player.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
-                TaskConditionParam12001 param = new TaskConditionParam12001();
-                param.setGameId(controller.getRoom().getGameType());
-                param.setAddValue(effectiveGold);
-                return param;
-            });
-            log.debug("玩家：{} 在房间：{} 产生有效流水：{}", player.getId(), controller.getRoom().getRoomCfgId(), effectiveGold);
+            AbstractPhaseGameController<Room_BetCfg, ?> controller, GamePlayer player, long effectiveGold, long allBet, long income) {
+        try {
+            ActivityManager activityManager =
+                    controller.getRoomController().getRoomManager().getActivityManager();
+            if (effectiveGold > 0) {
+                activityManager.addPlayerActivityProgress(player,
+                        ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveGold,
+                        controller.getGameTransactionItemId());
+                activityManager.addActivityProgress(player,
+                        ActivityTargetType.EFFECTIVE_BET.getTargetKey(), effectiveGold,
+                        controller.getGameTransactionItemId());
+                controller.getGameEventManager().triggerEvent(
+                        new PlayerEffectiveFlowingEvent(player, controller.getRoom().getRoomCfgId(), effectiveGold, 0));
+                //触发任务
+                controller.getTaskManager().trigger(player.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
+                    TaskConditionParam12001 param = new TaskConditionParam12001();
+                    param.setGameId(controller.getRoom().getGameType());
+                    param.setAddValue(effectiveGold);
+                    return param;
+                });
+                if (income > 0) {
+                    controller.triggerTask(player.getId(), controller.getRoom().getGameType(), income, controller.getGameTransactionItemId());
+                }
+                log.debug("玩家：{} 在房间：{} 产生有效流水：{}", player.getId(), controller.getRoom().getRoomCfgId(), effectiveGold);
+            }
+            activityManager.addPlayerActivityProgress(
+                    player, ActivityTargetType.BET.getTargetKey(), allBet, controller.getGameTransactionItemId());
+        } catch (Exception e) {
+            log.error("下注结束记录异常 playId:{}", player.getId(), e);
         }
-        activityManager.addPlayerActivityProgress(
-                player, ActivityTargetType.BET.getTargetKey(), allBet, controller.getGameTransactionItemId());
     }
 }
