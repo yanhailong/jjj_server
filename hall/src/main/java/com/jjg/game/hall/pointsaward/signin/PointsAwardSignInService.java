@@ -277,9 +277,9 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
             }
             //记录日志
             pointsAwardLogger.signInLog(playerId, getSignSet(playerId).size(), signInCfg.getIntegralNum(), pointsAwardService.getPoints(playerId));
+            //更新红点
+            redDotManager.updateRedDot(this, 0, playerId);
         }
-        //更新红点
-        redDotManager.updateRedDot(this, 0, playerId);
     }
 
     @Override

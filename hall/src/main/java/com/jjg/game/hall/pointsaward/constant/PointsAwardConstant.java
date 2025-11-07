@@ -251,7 +251,10 @@ public interface PointsAwardConstant {
          * 签到
          */
         int SIGN_IN = 1;
-
+        /**
+         * 转盘
+         */
+        int TURNRABLE = 2;
     }
 
     /**

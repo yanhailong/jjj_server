@@ -4,9 +4,13 @@ import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.data.Order;
+import com.jjg.game.core.manager.RedDotManager;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.hall.pointsaward.PointsAwardLogger;
@@ -18,10 +22,7 @@ import com.jjg.game.hall.pointsaward.pb.res.ResPointsAwardTurntableSpin;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.PointsAwardTurntableCfg;
-import org.redisson.api.RDeque;
-import org.redisson.api.RLock;
-import org.redisson.api.RMap;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -37,7 +38,7 @@ import java.util.stream.Collectors;
  * 积分大奖转盘服务
  */
 @Service
-public class PointsAwardTurntableService {
+public class PointsAwardTurntableService implements IRedDotService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final PointsAwardLogger pointsAwardLogger;
@@ -52,6 +53,7 @@ public class PointsAwardTurntableService {
     private final PlayerPackService playerPackService;
     private final RedissonClient redissonClient;
     private final RedisLock redisLock;
+    private final RedDotManager redDotManager;
 
     private final TreeMap<Integer, PointsAwardTurntableCfg> cfgTreeMap = new TreeMap<>();
 
@@ -67,13 +69,14 @@ public class PointsAwardTurntableService {
     public PointsAwardTurntableService(PointsAwardService pointsAwardService,
                                        PlayerPackService playerPackService,
                                        RedissonClient redissonClient,
-                                       RedisLock redisLock, PointsAwardLogger pointsAwardLogger, MarsCurator marsCurator) {
+                                       RedisLock redisLock, PointsAwardLogger pointsAwardLogger, MarsCurator marsCurator, RedDotManager redDotManager) {
         this.pointsAwardService = pointsAwardService;
         this.redissonClient = redissonClient;
         this.playerPackService = playerPackService;
         this.redisLock = redisLock;
         this.pointsAwardLogger = pointsAwardLogger;
         this.marsCurator = marsCurator;
+        this.redDotManager = redDotManager;
     }
 
     public void init() {
@@ -205,29 +208,15 @@ public class PointsAwardTurntableService {
      * @return true 成功
      */
     public int spin(long playerId, ResPointsAwardTurntableSpin spinRes) {
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(40);
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.POINTS_AWARDS_TURNTABLE_SPEND_SCORE);
         if (globalConfigCfg == null) {
             return -1;
         }
-        // 固定的最大次数
-        int maxCount = GameDataManager.getGlobalConfigCfg(43).getIntValue();
+
         //积分消耗数量
         int consume = globalConfigCfg.getIntValue();
-        //转盘验证条件
-        Supplier<Boolean> supplier = () -> {
-            int count = 0;
-            if (countMap != null) {
-                count = countMap.getOrDefault(playerId, 0);
-            }
-            int dayMaxCount = maxCount;
-            //查看是否有增加的转盘次数
-            if (addCountMap != null) {
-                dayMaxCount = getAddCount(playerId) + maxCount;
-            }
-            return count < dayMaxCount;
-        };
         //验证扣除并且返回结果
-        return pointsAwardService.deduct(playerId, consume, supplier, () -> {
+        return pointsAwardService.deduct(playerId, consume, checkTurntable(playerId), () -> {
             int selectedId = -1;
             // 通过校验与扣费后再出结果，缩短锁持有时间，避免锁嵌套
             Map<Integer, Integer> probabilityMap = cfgTreeMap.values().stream()
@@ -368,5 +357,43 @@ public class PointsAwardTurntableService {
         if (resultCount > 0) {
             replaceCount(playerId, resultCount);
         }
+        redDotManager.updateRedDot(this, 0, playerId);
+    }
+
+    /**
+     * 检查玩家是否可以转盘
+     * @param playerId
+     * @return
+     */
+    private Supplier<Boolean> checkTurntable(long playerId){
+        return () -> {
+            int maxCount = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.POINTS_AWARDS_TURNTABLE_INIT_COUNT_LIMIT).getIntValue();
+            int count = 0;
+            if (countMap != null) {
+                count = countMap.getOrDefault(playerId, 0);
+            }
+            int dayMaxCount = maxCount;
+            if (addCountMap != null) {
+                dayMaxCount = getAddCount(playerId) + maxCount;
+            }
+            return count < dayMaxCount;
+        };
+    }
+
+    @Override
+    public RedDotDetails.RedDotModule getModule() {
+        return RedDotDetails.RedDotModule.POINTS_AWARD;
+    }
+
+    @Override
+    public List<RedDotDetails> initialize(long playerId, int submodule) {
+        if (checkTurntable(playerId).get()) {
+            RedDotDetails details = new RedDotDetails();
+            details.setRedDotModule(getModule());
+            details.setRedDotSubmodule(PointsAwardConstant.RedDotSubModule.TURNRABLE);
+            details.setRedDotType(RedDotDetails.RedDotType.COMMON);
+            return List.of(details);
+        }
+        return List.of();
     }
 }

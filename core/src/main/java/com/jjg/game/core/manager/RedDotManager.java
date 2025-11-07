@@ -1,5 +1,6 @@
 package com.jjg.game.core.manager;
 
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.base.reddot.IRedDotService;
@@ -127,6 +128,7 @@ public class RedDotManager {
                 return;
             }
             session.send(notifyRedDot);
+            log.debug("玩家刷新红点 playerId = {},details = {}", playerId, JSONObject.toJSONString(list));
         } else {
             clusterSystem.broadcastToOnlinePlayer(notifyRedDot);
         }

@@ -72,6 +72,7 @@ public class PointsAwardMessageHandler {
         try {
             List<PointsAwardSignInConfig> configList = pointsAwardSignInService.getConfigList(playerController.playerId());
             res.setConfigList(configList);
+            log.debug("玩家获取积分大奖签到配置 playerId = {}", playerController.playerId());
         } catch (Exception e) {
             log.error("积分大奖获取签到配置失败!playerId = [{}]", playerController.playerId(), e);
             res.code = Code.EXCEPTION;
@@ -90,6 +91,7 @@ public class PointsAwardMessageHandler {
         res.setConfigList(configList);
         res.setDayOfMonth(message.getDayOfMonth());
         playerController.send(res);
+        log.debug("玩家请求积分大奖签到 playerId = {},dayOfMonth = {}", playerController.playerId(), message.getDayOfMonth());
     }
 
     /**
@@ -103,6 +105,7 @@ public class PointsAwardMessageHandler {
             res.setConfigList(configList);
             res.setCount(pointsAwardTurntableService.getCount(playerController.playerId()));
             res.setMaxCount(pointsAwardTurntableService.getMaxCount(playerController.playerId()));
+            log.debug("玩家请求积分大奖签到 playerId = {}", playerController.playerId());
         } catch (Exception e) {
             log.error("积分大奖获取配置错误!playerId = [{}]", playerController.playerId(), e);
             res.code = Code.EXCEPTION;
@@ -125,6 +128,7 @@ public class PointsAwardMessageHandler {
         res.setCount(pointsAwardTurntableService.getCount(playerController.playerId()));
         res.setMaxCount(pointsAwardTurntableService.getMaxCount(playerController.playerId()));
         playerController.send(res);
+        log.debug("玩家请求积分大奖转盘 playerId = {},code = {},count = {},maxCount = {},gridId = {}", playerController.playerId(), res.code, res.getCount(), res.getMaxCount(), res.getGridId());
     }
 
     /**
@@ -135,6 +139,7 @@ public class PointsAwardMessageHandler {
         ResPointsAwardTurntableHistory res = new ResPointsAwardTurntableHistory(Code.SUCCESS);
         res.setHistoryList(pointsAwardTurntableService.getHistoryList(playerController.playerId()));
         playerController.send(res);
+        log.debug("玩家积分大奖转盘历史 playerId = {}", playerController.playerId());
     }
 
     /**
@@ -147,7 +152,7 @@ public class PointsAwardMessageHandler {
         res.setRank(pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerController.playerId()));
         res.setState(1);
         playerController.send(res);
-        log.debug("返回玩家积分大奖积分 playerId = {},res = {}",playerController.playerId(), JSONObject.toJSONString(res));
+        log.debug("返回玩家积分大奖积分 playerId = {},res = {}", playerController.playerId(), JSONObject.toJSONString(res));
     }
 
     /**
@@ -168,6 +173,7 @@ public class PointsAwardMessageHandler {
         res.setMaxPageIndex(pageResult.getMaxPageIndex());
         res.setSelfIndex(rank);
         playerController.send(res);
+        log.debug("返回玩家积分大奖排行榜数据 playerId = {}", playerController.playerId());
     }
 
     /**
@@ -179,6 +185,7 @@ public class PointsAwardMessageHandler {
         int pageSize = message.getPageSize();
         ResLoadLeaderboardHistory history = pointsAwardLeaderboardService.getHistory(playerController.playerId(), pageIndex, pageSize);
         playerController.send(history);
+        log.debug("返回玩家积分大奖排行榜历史数据 playerId = {}", playerController.playerId());
     }
 
     /**
@@ -194,6 +201,7 @@ public class PointsAwardMessageHandler {
         res.setRechargeValue(recharge);
         res.setConfigValue(checkValue);
         playerController.send(res);
+        log.debug("返回玩家积分大奖转盘充值信息 playerId = {}", playerController.playerId());
     }
 
     /**
@@ -207,6 +215,7 @@ public class PointsAwardMessageHandler {
         res.setTotalPoints(points);
         res.setLadderRewardsList(configInfoList);
         playerController.send(res);
+        log.debug("返回玩家积分大奖阶梯奖励信息 playerId = {}", playerController.playerId());
     }
 
     /**
@@ -222,6 +231,7 @@ public class PointsAwardMessageHandler {
             res.code = Code.SAMPLE_ERROR;
         }
         playerController.send(res);
+        log.debug("返回玩家领取积分大奖奖励 playerId = {},points = {},code = {}", playerController.playerId(), points, res.code);
     }
 
 }

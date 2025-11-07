@@ -122,6 +122,11 @@ public class GameConstant {
 
         //默认的邮件有效期
         public static final int DEFAULT_MAIL_VALID_TIME = 18;
+
+        //积分大奖转盘，每次消耗积分数
+        public static final int POINTS_AWARDS_TURNTABLE_SPEND_SCORE = 40;
+        //积分大奖：每日转盘默认初始次数上限
+        public static final int POINTS_AWARDS_TURNTABLE_INIT_COUNT_LIMIT = 43;
     }
 
     public class PlayerBuff {
