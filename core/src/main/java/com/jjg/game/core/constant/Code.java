@@ -101,6 +101,8 @@ public interface Code {
     int OFFICIAL_AWARDS_POOL_NULL = 439;
     // 重复穿戴头像
     int ALREADY_WORN = 439;
+    // 待关闭服务器禁止修改房间信息
+    int WAIT_CLOSE_NOT_MODIFICATION = 441;
     // 非庄家不能修改准备金
     int CANT_EDIT_BANKER_GOLD = 49074;
     // 服务器错误

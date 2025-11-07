@@ -185,4 +185,11 @@ public class NodeConfig {
     public void setNeedBootGameId(int[] needBootGameId) {
         this.needBootGameId = needBootGameId;
     }
+
+    /**
+     * 当前节点是否正在等待关闭
+     */
+    public boolean waitClose() {
+        return weight == 0;
+    }
 }

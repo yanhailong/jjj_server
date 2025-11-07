@@ -213,7 +213,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
     public void disbandRoom(Boolean closeByPlayer) {
         super.disbandRoom(closeByPlayer);
         // 解散完成后需要将剩余的准备金返给玩家
-        if (room.getStatus() == 3) {
+        if (room.getStatus() == 3 || roomManager.getNodeManager().nodeConfig.waitClose()) {
             int gameTransactionItemId = gameController.getGameTransactionItemId();
             int gainRatio = SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.FRIEND_ROOM_DESTROY_GAIN_RATIO);
             if (room.getPredictCostGoldNum() > 0) {
@@ -256,7 +256,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         // 需要检查房间时长
         if (room.getOverdueTime() < curTime) {
             // 如果时间到期且没有开启自动续费，先暂停游戏
-            if (!room.isAutoRenewal()) {
+            if (!room.isAutoRenewal() || roomManager.getNodeManager().nodeConfig.waitClose()) {
                 log.info("房间：{} 时长到期", room.logStr());
                 return false;
             }

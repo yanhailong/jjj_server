@@ -1,6 +1,7 @@
 package com.jjg.game.room.manager;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.listener.OnServerAutoShoutDown;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
@@ -26,8 +27,7 @@ import reactor.util.function.Tuple2;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 房间管理器
@@ -35,7 +35,7 @@ import java.util.Set;
  * @author 2CL
  */
 @Component
-public class RoomManager extends AbstractRoomManager implements GmListener, HallRoomBridge {
+public class RoomManager extends AbstractRoomManager implements GmListener, HallRoomBridge, OnServerAutoShoutDown {
 
     public RoomManager() {
         super();
@@ -46,7 +46,7 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
      */
     public Set<EGameType> getGameAvailableTypes() {
         Set<Class<? extends AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>>> gameControllerClazz =
-            getGameControllerClazz();
+                getGameControllerClazz();
         // 已经实现具体的功能gameController游戏类型
         Set<EGameType> gameAvailableTypes = new HashSet<>();
         for (Class<? extends AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>>> controllerClazz : gameControllerClazz) {
@@ -66,7 +66,7 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
             return new CommonResult<>(Code.FAIL);
         }
         AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController =
-            getGameControllerByPlayerId(playerController.playerId());
+                getGameControllerByPlayerId(playerController.playerId());
         if (gameController == null) {
             return new CommonResult<>(Code.FAIL);
         }
@@ -116,9 +116,9 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
      * invoke gm 方法
      */
     private Object invokeGmMethod(
-        AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController,
-        Method method, PlayerController playerController, String[] gmOrders) throws InvocationTargetException,
-        IllegalAccessException {
+            AbstractGameController<? extends RoomCfg, ? extends GameDataVo<? extends RoomCfg>> gameController,
+            Method method, PlayerController playerController, String[] gmOrders) throws InvocationTargetException,
+            IllegalAccessException {
         Class<?>[] types = method.getParameterTypes();
         if (types.length == 0) {
             return method.invoke(gameController);
@@ -160,7 +160,7 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
         Tuple2<Integer, Integer> tuples = SampleDataUtils.getRoomMaxLimit(warehouseCfg);
         try {
             AbstractRoomController<?, ?> roomController =
-                initExistEmptyRoomByRoomId(warehouseCfg.getGameID(), roomCfgId, tuples.getT2(), roomId);
+                    initExistEmptyRoomByRoomId(warehouseCfg.getGameID(), roomCfgId, tuples.getT2(), roomId);
             if (roomController == null) {
                 log.warn("通过cfgId: {} roomId: {} 初始化房间失败", roomCfgId, roomId);
             } else {
@@ -227,5 +227,22 @@ public class RoomManager extends AbstractRoomManager implements GmListener, Hall
             return friendRoom;
         }
         return null;
+    }
+
+    @Override
+    public boolean canExit() {
+        long currentTimeMillis = System.currentTimeMillis();
+        //检查所有好友房,看是否还有未到期的
+        List<Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>>> list = new ArrayList<>(roomControllerMap.values());
+        for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> controllerMap : list) {
+            for (AbstractRoomController<? extends RoomCfg, ? extends Room> controller : controllerMap.values()) {
+                if (controller.getRoom() instanceof FriendRoom friendRoom) {
+                    if (friendRoom.getOverdueTime() > currentTimeMillis) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 }
