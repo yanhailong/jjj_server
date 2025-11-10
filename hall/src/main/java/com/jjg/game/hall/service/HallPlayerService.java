@@ -30,6 +30,8 @@ public class HallPlayerService extends AbstractPlayerService {
     private PlayerPackService playerPackService;
     @Autowired
     private PlayerBuildingService playerBuildingService;
+    @Autowired
+    private NoticeService noticeService;
 
     /**
      * 仅在登录时调用
@@ -154,6 +156,7 @@ public class HallPlayerService extends AbstractPlayerService {
         playerBuildingService.moveToMongo(playerId);
         playerLastGameInfoDao.deleteById(playerId);
         playerLoginTimeDao.remove(playerId);
+        noticeService.removeReadData(playerId);
         return true;
     }
 }

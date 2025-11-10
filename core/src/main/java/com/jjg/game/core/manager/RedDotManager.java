@@ -105,7 +105,11 @@ public class RedDotManager {
             List<RedDotDetails> redDots = new ArrayList<>();
             if (submodule == 0) {
                 for (Map.Entry<Integer, IRedDotService> entry : serviceMap.entrySet()) {
-                    redDots.addAll(entry.getValue().initialize(playerId, entry.getKey()));
+                    List<RedDotDetails> initialize = entry.getValue().initialize(playerId, entry.getKey());
+                    if(initialize == null || initialize.isEmpty()){
+                        continue;
+                    }
+                    redDots.addAll(initialize);
                 }
             } else {
                 IRedDotService service = serviceMap.get(submodule);

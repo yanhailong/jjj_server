@@ -94,6 +94,11 @@ public class RedDotDetails {
          */
         @ProtoDesc("等级礼包")
         LEVEL_PACK,
+        /**
+         * 公告
+         */
+        @ProtoDesc("公告")
+        NOTICE,
     }
 
 

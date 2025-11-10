@@ -175,5 +175,13 @@ public interface HallConstant {
         //购买头像等信息
         int REQ_BUY_AVATAR = BASE_MSG_PREFIX | 0X47;
         int RES_BUY_AVATAR = BASE_MSG_PREFIX | 0X48;
+
+        //获取所有的公告
+        int REQ_ALL_NOTICE = BASE_MSG_PREFIX | 0x49;
+        int RES_ALL_NOTICE = BASE_MSG_PREFIX | 0x4A;
+
+        //阅读公告
+        int REQ_READ_NOTICE = BASE_MSG_PREFIX | 0x4B;
+        int RES_READ_NOTICE = BASE_MSG_PREFIX | 0x4C;
     }
 }

@@ -8,11 +8,11 @@ import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.core.service.LoginConfigService;
 import com.jjg.game.hall.casino.manager.CasinoManager;
-import com.jjg.game.hall.config.HallConfig;
 import com.jjg.game.hall.listener.HallPlayerEventListener;
 import com.jjg.game.hall.minigame.MinigameManager;
 import com.jjg.game.hall.pointsaward.PointsAwardManager;
 import com.jjg.game.hall.service.HallService;
+import com.jjg.game.hall.service.NoticeService;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -54,6 +54,8 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     private PointsAwardManager pointsAwardManager;
     @Autowired
     private LoginConfigService loginConfigService;
+    @Autowired
+    private NoticeService noticeService;
 
     private ApplicationContext context;
 
@@ -72,6 +74,7 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         minigameManager.init();
         pointsAwardManager.init();
         loginConfigService.init();
+        noticeService.init();
         running = true;
     }
 

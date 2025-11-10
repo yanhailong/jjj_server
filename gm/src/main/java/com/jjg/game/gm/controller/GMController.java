@@ -93,6 +93,8 @@ public class GMController extends AbstractController {
     private HallPointsAwardBridge hallPointsAwardBridge;
     @Autowired
     private SlotsLibDao slotsLibDao;
+    @Autowired
+    private NoticeDao noticeDao;
 
     //邮件中的道具string，需要用正则匹配
     private final Pattern mailItemsPattern = Pattern.compile("\\[(\\d+),(\\d+)]");
@@ -1038,6 +1040,59 @@ public class GMController extends AbstractController {
             return fail("common.exception");
         }
 
+    }
+
+    @RequestMapping(BackendGMCmd.SAVE_NOTICE)
+    public WebResult<String> saveNotice(@RequestBody NoticeDto dto) {
+        log.info("收到保存公告的请求 dto = {}", dto);
+        try {
+            Notice notice = new Notice();
+            notice.setId(dto.id());
+            notice.setName(dto.name());
+            notice.setTitle(dto.title());
+            notice.setContent(dto.content());
+            notice.setType(dto.type());
+            notice.setSort(dto.sort());
+            notice.setOpen(dto.open());
+            notice.setCornerMark(dto.corner_mark());
+            notice.setBackdrop(dto.backdrop());
+            notice.setButton(dto.button());
+            notice.setStartTime(dto.start_time());
+            notice.setEndTime(dto.end_time());
+            notice.setScence(dto.scence());
+            notice.setJumpUrl(dto.jump_url());
+            noticeDao.save(notice);
+
+            PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyLoadNoticeConfig());
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString())::contains);
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    @RequestMapping(BackendGMCmd.DEL_NOTICE)
+    public WebResult<String> delNotice(@RequestBody DelNoticeDto dto) {
+        log.info("收到删除公告的请求 dto = {}", dto);
+        try {
+            if(dto.ids() == null || dto.ids().isEmpty()){
+                return fail("common.paramerror");
+            }
+
+            long delCount = noticeDao.delNotice(dto.ids());
+            if(delCount < 1){
+                log.debug("删除公告条数小于1，不通知hall节点 delCount = {}",delCount);
+                return success("common.success");
+            }
+
+            PFMessage pfMessage = MessageUtil.getPFMessage(new NotifyLoadNoticeConfig());
+            clusterSystem.notifyNode(pfMessage, Set.of(NodeType.HALL.toString())::contains);
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
     }
 
 
