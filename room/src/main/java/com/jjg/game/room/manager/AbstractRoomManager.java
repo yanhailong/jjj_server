@@ -720,14 +720,24 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
         for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> values : roomControllerMap.values()) {
             for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : values.values()) {
                 // 先暂停房间中的定时器，状态机等
-                roomController.stopGame();
+                try {
+                    roomController.stopGame();
+                } catch (Exception e) {
+                    log.error("服务器关闭时停止游戏失败 roomId:{} gameType:{} roomCfgId:{}", roomController.getRoom().getId(),
+                            roomController.getRoom().getGameType(), roomController.getRoom().getRoomCfgId(), e);
+                }
             }
         }
         // 暂停成功后，所有数据落地再调用房间解散逻辑
         for (Map<Long, AbstractRoomController<? extends RoomCfg, ? extends Room>> values : roomControllerMap.values()) {
             for (AbstractRoomController<? extends RoomCfg, ? extends Room> roomController : values.values()) {
                 // 调用房间的解散逻辑
-                disbandRoom(roomController.getRoom(), false, true);
+                try {
+                    disbandRoom(roomController.getRoom(), false, true);
+                } catch (Exception e) {
+                    log.error("服务器关闭时解散游戏失败 roomId:{} gameType:{} roomCfgId:{}", roomController.getRoom().getId(),
+                            roomController.getRoom().getGameType(), roomController.getRoom().getRoomCfgId(), e);
+                }
             }
         }
         // 最终关闭房间定时器
