@@ -22,7 +22,10 @@ import com.jjg.game.hall.pointsaward.pb.res.ResPointsAwardTurntableSpin;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.PointsAwardTurntableCfg;
-import org.redisson.api.*;
+import org.redisson.api.RDeque;
+import org.redisson.api.RLock;
+import org.redisson.api.RMap;
+import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -365,7 +368,7 @@ public class PointsAwardTurntableService implements IRedDotService {
      * @param playerId
      * @return
      */
-    private Supplier<Boolean> checkTurntable(long playerId){
+    private Supplier<Boolean> checkTurntable(long playerId) {
         return () -> {
             int maxCount = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.POINTS_AWARDS_TURNTABLE_INIT_COUNT_LIMIT).getIntValue();
             int count = 0;
@@ -386,14 +389,23 @@ public class PointsAwardTurntableService implements IRedDotService {
     }
 
     @Override
+    public int getSubmodule() {
+        return PointsAwardConstant.RedDotSubModule.TURNRABLE;
+    }
+
+    @Override
     public List<RedDotDetails> initialize(long playerId, int submodule) {
-        if (checkTurntable(playerId).get()) {
-            RedDotDetails details = new RedDotDetails();
-            details.setRedDotModule(getModule());
-            details.setRedDotSubmodule(PointsAwardConstant.RedDotSubModule.TURNRABLE);
-            details.setRedDotType(RedDotDetails.RedDotType.COMMON);
-            return List.of(details);
+        RedDotDetails details = new RedDotDetails();
+        details.setRedDotModule(getModule());
+        details.setRedDotSubmodule(getSubmodule());
+        boolean hasRed = false;
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(GameConstant.GlobalConfig.POINTS_AWARDS_TURNTABLE_SPEND_SCORE);
+        if (globalConfigCfg != null) {
+            hasRed = checkTurntable(playerId).get() && pointsAwardService.getPoints(playerId) >= globalConfigCfg.getIntValue();
         }
-        return List.of();
+        //积分消耗数量
+        details.setCount(hasRed ? 1 : 0);
+        details.setRedDotType(RedDotDetails.RedDotType.COMMON);
+        return List.of(details);
     }
 }

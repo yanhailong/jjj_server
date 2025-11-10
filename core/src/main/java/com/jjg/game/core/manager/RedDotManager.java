@@ -1,5 +1,6 @@
 package com.jjg.game.core.manager;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.protostuff.PFSession;
@@ -31,9 +32,9 @@ public class RedDotManager {
 
     /**
      * 红点服务实例缓存
-     * Key: 红点模块, Value: 服务实例
+     * Key: 红点模块, Value: {子模块id->服务实例}
      */
-    private final Map<RedDotDetails.RedDotModule, IRedDotService> redDotServiceCache = new ConcurrentHashMap<>();
+    private final Map<RedDotDetails.RedDotModule, Map<Integer, IRedDotService>> redDotServiceCache = new ConcurrentHashMap<>();
 
     public RedDotManager(@Autowired ClusterSystem clusterSystem) {
         this.clusterSystem = clusterSystem;
@@ -47,7 +48,8 @@ public class RedDotManager {
      */
     public void registerService(RedDotDetails.RedDotModule module, IRedDotService service) {
         if (module != null && service != null) {
-            redDotServiceCache.put(module, service);
+            Map<Integer, IRedDotService> serviceMap = redDotServiceCache.computeIfAbsent(module, key -> new ConcurrentHashMap<>());
+            serviceMap.put(service.getSubmodule(), service);
             log.debug("注册红点服务: {} -> {}", module, service.getClass().getSimpleName());
         }
     }
@@ -65,7 +67,7 @@ public class RedDotManager {
         }
 
         List<RedDotDetails> allRedDots = new ArrayList<>();
-        for (Map.Entry<RedDotDetails.RedDotModule, IRedDotService> entry : redDotServiceCache.entrySet()) {
+        for (Map.Entry<RedDotDetails.RedDotModule, Map<Integer, IRedDotService>> entry : redDotServiceCache.entrySet()) {
             try {
                 RedDotDetails.RedDotModule module = entry.getKey();
                 List<RedDotDetails> detailsList = load(module, 0, playerId);
@@ -92,15 +94,22 @@ public class RedDotManager {
             log.warn("红点模块为空，玩家ID: {}", playerId);
             return Collections.emptyList();
         }
-        IRedDotService service = redDotServiceCache.get(module);
-        if (service == null) {
+        Map<Integer, IRedDotService> serviceMap = redDotServiceCache.get(module);
+        if (CollectionUtil.isEmpty(serviceMap)) {
             log.warn("未找到红点模块 {} 对应的服务，玩家ID: {}", module, playerId);
             return Collections.emptyList();
         }
         try {
-            List<RedDotDetails> redDots = service.initialize(playerId, submodule);
-            if (redDots == null) {
-                return Collections.emptyList();
+            List<RedDotDetails> redDots = new ArrayList<>();
+            if (submodule == 0) {
+                for (Map.Entry<Integer, IRedDotService> entry : serviceMap.entrySet()) {
+                    redDots.addAll(entry.getValue().initialize(playerId, entry.getKey()));
+                }
+            } else {
+                IRedDotService service = serviceMap.get(submodule);
+                if (service != null) {
+                    redDots.addAll(service.initialize(playerId, submodule));
+                }
             }
 //            log.debug("玩家 {} 的 {} 模块加载了 {} 个红点", playerId, module, redDots.size());
             return redDots;
@@ -179,6 +188,23 @@ public class RedDotManager {
             return;
         }
         List<RedDotDetails> details = redDotService.initialize(playerId, submodule);
+        if (details == null || details.isEmpty()) {
+            return;
+        }
+        updateRedDot(details, playerId);
+    }
+
+    /**
+     * 通知客户端刷新红点数据
+     *
+     * @param redDotService 红点服务
+     * @param playerId      玩家id 如果参数<=0则广播给所有在线玩家
+     */
+    public void updateRedDot(IRedDotService redDotService, long playerId) {
+        if (redDotService == null) {
+            return;
+        }
+        List<RedDotDetails> details = redDotService.initialize(playerId, redDotService.getSubmodule());
         if (details == null || details.isEmpty()) {
             return;
         }

@@ -27,5 +27,7 @@ public interface IRedDotService {
      */
     List<RedDotDetails> initialize(long playerId, int submodule);
 
-
+    default int getSubmodule() {
+        return 0;
+    }
 }

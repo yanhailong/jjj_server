@@ -7,6 +7,7 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.PageUtils;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.req.ReqLuckyTreasureHistory;
 import com.jjg.game.hall.pointsaward.constant.PointsAwardConstant;
 import com.jjg.game.hall.pointsaward.leaderboard.PointsAwardLeaderboardService;
@@ -53,14 +54,18 @@ public class PointsAwardMessageHandler {
      */
     private final PointsAwardService pointsAwardService;
 
+
+    private final RedDotManager redDotManager;
+
     public PointsAwardMessageHandler(PointsAwardSignInService pointsAwardSignInService,
                                      PointsAwardLeaderboardService pointsAwardLeaderboardService,
                                      PointsAwardService pointsAwardService,
-                                     PointsAwardTurntableService pointsAwardTurntableService) {
+                                     PointsAwardTurntableService pointsAwardTurntableService, RedDotManager redDotManager) {
         this.pointsAwardSignInService = pointsAwardSignInService;
         this.pointsAwardLeaderboardService = pointsAwardLeaderboardService;
         this.pointsAwardService = pointsAwardService;
         this.pointsAwardTurntableService = pointsAwardTurntableService;
+        this.redDotManager = redDotManager;
     }
 
     /**
@@ -129,6 +134,8 @@ public class PointsAwardMessageHandler {
         res.setMaxCount(pointsAwardTurntableService.getMaxCount(playerController.playerId()));
         playerController.send(res);
         log.debug("玩家请求积分大奖转盘 playerId = {},code = {},count = {},maxCount = {},gridId = {}", playerController.playerId(), res.code, res.getCount(), res.getMaxCount(), res.getGridId());
+        //更新红点
+        redDotManager.updateRedDot(pointsAwardTurntableService, playerController.playerId());
     }
 
     /**
@@ -232,6 +239,9 @@ public class PointsAwardMessageHandler {
         }
         playerController.send(res);
         log.debug("返回玩家领取积分大奖奖励 playerId = {},points = {},code = {}", playerController.playerId(), points, res.code);
+        if (flag) {
+            redDotManager.updateRedDot(pointsAwardService, playerController.playerId());
+        }
     }
 
 }
