@@ -526,8 +526,10 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                 // 删除机器人数据
                 robotService.recycleRobotPlayer(playerController.playerId());
             }
-            // 退出房间时删除人数
-            matchDataDao.changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, 0);
+            if (!(room instanceof FriendRoom)) {
+                // 退出房间时删除人数
+                matchDataDao.changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId(), room.getMaxLimit(), -1, 0);
+            }
             // TODO 需要检查房间内玩家是否为空，如果为空则需要检查是否需要删除房间，如果房间不能删除则需要添加机器人进入房间
             // 退出房间将当前场景置为空
             playerController.setScene(null);
@@ -1127,7 +1129,11 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
     /**
      * 换房间
      */
-    public boolean changeRoom(PlayerController playerController, long oldRoomId, int gameType, int roomCfgId, int maxLimit) {
+    public boolean changeRoom(PlayerController playerController, Room roomData, int gameType, int roomCfgId, int maxLimit) {
+        if (roomData instanceof FriendRoom) {
+            return false;
+        }
+        long oldRoomId = roomData.getId();
         //获取另一个房间id
         long roomOtherId = getSameRoomOtherId(oldRoomId, gameType, roomCfgId, maxLimit);
         if (roomOtherId == 0) {

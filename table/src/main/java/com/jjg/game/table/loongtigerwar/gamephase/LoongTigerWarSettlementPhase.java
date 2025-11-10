@@ -110,7 +110,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
         if (changeParam != null) {
             for (SettlementData data : settlementDataMap.values()) {
                 changeParam.addTotalTaxRevenue(data.getTaxation());
-                changeParam.addBankerChangeGold(data.getTotalWin() - data.getBetTotal());
+                changeParam.addBankerChangeGold(Math.max(0, data.getTotalWin() - data.getBetTotal()));
             }
             calculationFinalBankerChange(changeParam);
             gameController.dealBankerFlowing(changeParam, settlementDataMap);

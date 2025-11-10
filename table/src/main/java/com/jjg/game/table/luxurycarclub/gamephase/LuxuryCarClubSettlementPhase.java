@@ -89,7 +89,7 @@ public class LuxuryCarClubSettlementPhase extends BaseSettlementPhase<LuxuryCarC
             playerChangedGolds.add(playerChangedGold);
             if (changeParam != null) {
                 changeParam.removeArea(betAreaId);
-                changeParam.addBankerChangeGold(playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal());
+                changeParam.addBankerChangeGold(Math.max(0, playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal()));
                 changeParam.addTotalTaxRevenue(playerSettlementData.getTaxation());
             }
             settlementDataMap.put(playerId, playerSettlementData);

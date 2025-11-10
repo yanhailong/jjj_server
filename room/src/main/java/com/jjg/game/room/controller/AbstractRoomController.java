@@ -157,7 +157,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
             if (!reconnect) {
                 // 当玩家加入时尝试开启游戏
                 tryStartGameOnPlayerJoinIn(playerController);
-                if (!(playerController.getPlayer() instanceof RobotPlayer)) {
+                if (!(playerController.getPlayer() instanceof RobotPlayer) && !(room instanceof FriendRoom)) {
                     boolean deduction = roomManager.getMatchDataDao().changeRoomJoinNum(room.getGameType(), room.getRoomCfgId(), room.getId()
                             , room.getMaxLimit(), 0, -1);
                     if (!deduction) {

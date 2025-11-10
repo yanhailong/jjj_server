@@ -49,8 +49,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                     if (gameDataVo.getApplyCancelBeBankerPlayer() > 0) {
                         // 下庄，下庄之后，下一个自动成为庄家
                         int code =
-                                friendRoomController.cancelBeBanker(
-                                        roomBankerId, AddType.FRIEND_ROOM_CONTINUES_BANKER_ADD_GOLD);
+                                friendRoomController.cancelBeBanker(roomBankerId);
                         if (code != Code.SUCCESS) {
                             log.error("申请庄家下庄时失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
                         } else {
@@ -67,8 +66,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                         if (gameDataVo.getBeBankerTimes() >= maxRoundBeBanker) {
                             // 下庄，下庄之后，下一个自动成为庄家
                             int code =
-                                    friendRoomController.cancelBeBanker(
-                                            roomBankerId, AddType.FRIEND_ROOM_CONTINUES_BANKER_ADD_GOLD);
+                                    friendRoomController.cancelBeBanker(roomBankerId);
                             if (code != Code.SUCCESS) {
                                 log.error("检查庄家自动下庄时失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
                             } else {
@@ -85,9 +83,7 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
                         long resetGold = friendRoomController.getRoom().roomBankerResetGold();
                         if (resetGold < minBankerAmount) {
                             // 下庄，下庄之后，下一个自动成为庄家
-                            int code =
-                                    friendRoomController.cancelBeBanker(
-                                            roomBankerId, AddType.FRIEND_ROOM_PREDICATE_GOLD_NOT_ENOUGH);
+                            int code = friendRoomController.cancelBeBanker(roomBankerId);
                             if (code != Code.SUCCESS) {
                                 log.error("检查庄家剩余准备金时，自动下庄失败, 当前庄家ID：{}, err code: {}", roomBankerId, code);
                             } else {
@@ -150,11 +146,19 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
             if (bankerFlowing > 0) {
                 log.info("庄家输金币，扣除庄家金币：{}", bankerFlowing);
                 // 扣除庄家的金币
-                friendRoomController.deductBankerGold(bankerFlowing);
+                long deductNum = friendRoomController.deductBankerGold(bankerFlowing);
+                if (roomBankerId > 0) {
+                    // 给上庄的人扣除
+                    deductItem(roomBankerId, deductNum, AddType.FRIEND_ROOM_ADD_ROOM_CREATOR_RATIO, getRoom().getRoomCfgId() + "");
+                }
             } else if (bankerFlowing < 0) {
                 log.info("庄家赢金币，添加庄家金币：{} {}", bankerFlowing, bankerFlowing);
                 // 给房间添加准备金
                 friendRoomController.addRoomPredicateGold(Math.abs(bankerFlowing));
+                if (roomBankerId > 0) {
+                    //给上庄的人添加
+                    addItem(roomBankerId, Math.abs(bankerFlowing), AddType.FRIEND_ROOM_ADD_ROOM_CREATOR_RATIO, getRoom().getRoomCfgId() + "");
+                }
             }
             // 需要记录
             FriendRoomBillHistoryDao dao = roomController.getRoomManager().getFriendRoomBillHistoryDao();
@@ -210,5 +214,16 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
         super.nextRoundStart();
         // 添加坐庄次数
         gameDataVo.addBeBankerTimes();
+    }
+
+
+    @Override
+    public boolean canExitGame(long playerId) {
+        //如果玩家在上庄则不能退出
+        if (getRoom() instanceof FriendRoom friendRoom) {
+            long roomBankerId = friendRoom.roomBankerId();
+            return roomBankerId != playerId && super.canExitGame(playerId);
+        }
+        return super.canExitGame(playerId);
     }
 }
