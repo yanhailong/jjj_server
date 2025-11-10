@@ -278,7 +278,7 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
             //记录日志
             pointsAwardLogger.signInLog(playerId, getSignSet(playerId).size(), signInCfg.getIntegralNum(), pointsAwardService.getPoints(playerId));
             //更新红点
-            redDotManager.updateRedDot(this, 0, playerId);
+            redDotManager.updateRedDot(this, getSubmodule(), playerId);
         }
     }
 
@@ -291,14 +291,17 @@ public class PointsAwardSignInService implements IRedDotService, IPlayerLoginSuc
     public List<RedDotDetails> initialize(long playerId, int submodule) {
         int currCount = getSignSet(playerId).size();
         int unlockCount = getUnlockSet(playerId).size();
-        if (currCount < unlockCount) {
-            RedDotDetails details = new RedDotDetails();
-            details.setRedDotModule(getModule());
-            details.setRedDotSubmodule(PointsAwardConstant.RedDotSubModule.SIGN_IN);
-            details.setRedDotType(RedDotDetails.RedDotType.COMMON);
-            return List.of(details);
-        }
-        return List.of();
+        RedDotDetails details = new RedDotDetails();
+        details.setRedDotModule(getModule());
+        details.setCount(currCount < unlockCount ? 1 : 0);
+        details.setRedDotSubmodule(getSubmodule());
+        details.setRedDotType(RedDotDetails.RedDotType.COMMON);
+        return List.of(details);
+    }
+
+    @Override
+    public int getSubmodule() {
+        return PointsAwardConstant.RedDotSubModule.SIGN_IN;
     }
 
     /**

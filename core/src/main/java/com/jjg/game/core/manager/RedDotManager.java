@@ -1,11 +1,13 @@
 package com.jjg.game.core.manager;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.pb.reddot.NotifyRedDot;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
+import com.jjg.game.core.service.PlayerSessionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,15 +30,16 @@ public class RedDotManager {
     private static final Logger log = LoggerFactory.getLogger(RedDotManager.class);
 
     private final ClusterSystem clusterSystem;
-
+    private final PlayerSessionService playerSessionService;
     /**
      * 红点服务实例缓存
-     * Key: 红点模块, Value: 服务实例
+     * Key: 红点模块, Value: {子模块id->服务实例}
      */
-    private final Map<RedDotDetails.RedDotModule, IRedDotService> redDotServiceCache = new ConcurrentHashMap<>();
+    private final Map<RedDotDetails.RedDotModule, Map<Integer, IRedDotService>> redDotServiceCache = new ConcurrentHashMap<>();
 
-    public RedDotManager(@Autowired ClusterSystem clusterSystem) {
+    public RedDotManager(@Autowired ClusterSystem clusterSystem, PlayerSessionService playerSessionService) {
         this.clusterSystem = clusterSystem;
+        this.playerSessionService = playerSessionService;
     }
 
     /**
@@ -47,7 +50,8 @@ public class RedDotManager {
      */
     public void registerService(RedDotDetails.RedDotModule module, IRedDotService service) {
         if (module != null && service != null) {
-            redDotServiceCache.put(module, service);
+            Map<Integer, IRedDotService> serviceMap = redDotServiceCache.computeIfAbsent(module, key -> new ConcurrentHashMap<>());
+            serviceMap.put(service.getSubmodule(), service);
             log.debug("注册红点服务: {} -> {}", module, service.getClass().getSimpleName());
         }
     }
@@ -65,7 +69,7 @@ public class RedDotManager {
         }
 
         List<RedDotDetails> allRedDots = new ArrayList<>();
-        for (Map.Entry<RedDotDetails.RedDotModule, IRedDotService> entry : redDotServiceCache.entrySet()) {
+        for (Map.Entry<RedDotDetails.RedDotModule, Map<Integer, IRedDotService>> entry : redDotServiceCache.entrySet()) {
             try {
                 RedDotDetails.RedDotModule module = entry.getKey();
                 List<RedDotDetails> detailsList = load(module, 0, playerId);
@@ -92,15 +96,22 @@ public class RedDotManager {
             log.warn("红点模块为空，玩家ID: {}", playerId);
             return Collections.emptyList();
         }
-        IRedDotService service = redDotServiceCache.get(module);
-        if (service == null) {
+        Map<Integer, IRedDotService> serviceMap = redDotServiceCache.get(module);
+        if (CollectionUtil.isEmpty(serviceMap)) {
             log.warn("未找到红点模块 {} 对应的服务，玩家ID: {}", module, playerId);
             return Collections.emptyList();
         }
         try {
-            List<RedDotDetails> redDots = service.initialize(playerId, submodule);
-            if (redDots == null) {
-                return Collections.emptyList();
+            List<RedDotDetails> redDots = new ArrayList<>();
+            if (submodule == 0) {
+                for (Map.Entry<Integer, IRedDotService> entry : serviceMap.entrySet()) {
+                    redDots.addAll(entry.getValue().initialize(playerId, entry.getKey()));
+                }
+            } else {
+                IRedDotService service = serviceMap.get(submodule);
+                if (service != null) {
+                    redDots.addAll(service.initialize(playerId, submodule));
+                }
             }
 //            log.debug("玩家 {} 的 {} 模块加载了 {} 个红点", playerId, module, redDots.size());
             return redDots;
@@ -123,7 +134,7 @@ public class RedDotManager {
         NotifyRedDot notifyRedDot = new NotifyRedDot();
         notifyRedDot.setRedDotList(list);
         if (playerId > 0) {
-            PFSession session = clusterSystem.getSession(playerId);
+            PFSession session = playerSessionService.getSession(playerId);
             if (session == null) {
                 return;
             }
@@ -185,5 +196,21 @@ public class RedDotManager {
         updateRedDot(details, playerId);
     }
 
+    /**
+     * 通知客户端刷新红点数据
+     *
+     * @param redDotService 红点服务
+     * @param playerId      玩家id 如果参数<=0则广播给所有在线玩家
+     */
+    public void updateRedDot(IRedDotService redDotService, long playerId) {
+        if (redDotService == null) {
+            return;
+        }
+        List<RedDotDetails> details = redDotService.initialize(playerId, redDotService.getSubmodule());
+        if (details == null || details.isEmpty()) {
+            return;
+        }
+        updateRedDot(details, playerId);
+    }
 }
 

@@ -793,12 +793,10 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
     public List<RedDotDetails> initialize(long playerId, int submodule) {
         List<RedDotDetails> redDotList = new ArrayList<>();
         RMap<Integer, TaskData> playerTasks = getPlayerTaskMap(playerId);
-        Collection<TaskData> tasks = playerTasks.values();
+        List<TaskData> tasks = playerTasks.values().stream().filter(taskData -> taskData.getStatus() == TaskConstant.TaskStatus.STATUS_COMPLETED).toList();
         if (!tasks.isEmpty()) {
-            List<TaskData> pointAwardTasks;
-            if (submodule == 0) {
-                pointAwardTasks = tasks.stream().toList();
-            } else {
+            List<TaskData> pointAwardTasks = tasks;
+            if (submodule != 0) {
                 //筛选任务
                 pointAwardTasks = tasks.stream()
                         .filter(taskData -> {

@@ -144,7 +144,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
             @Override
             public boolean updateDataWithRes(FriendRoom dataEntity) {
-                dataEntity.setPredictCostGoldNum(dataEntity.getPredictCostGoldNum() + addPredicateGold);
+                dataEntity.addBankerBankerPredicateItem(addPredicateGold);
                 return true;
             }
         });

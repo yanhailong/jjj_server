@@ -35,6 +35,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -45,7 +46,7 @@ import java.util.stream.Collectors;
  * 积分大奖积分服务
  */
 @Service
-public class PointsAwardService implements IPlayerLoginSuccess, GmListener, HallPointsAwardBridge,IRedDotService {
+public class PointsAwardService implements IPlayerLoginSuccess, GmListener, HallPointsAwardBridge, IRedDotService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -219,7 +220,7 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
         //记录日志
         pointsAwardLogger.pointsChangeLog(playerId, pointsAward, type, true, counter.get());
         //通知红点
-        redDotManager.updateRedDot(this, PointsAwardConstant.RedDotSubModule.BONUS, playerId);
+        redDotManager.updateRedDot(this, getSubmodule(), playerId);
     }
 
     /**
@@ -533,29 +534,33 @@ public class PointsAwardService implements IPlayerLoginSuccess, GmListener, Hall
 
     @Override
     public List<RedDotDetails> initialize(long playerId, int submodule) {
-        if(submodule == PointsAwardConstant.RedDotSubModule.BONUS){
-            //获取玩家积分
-            long points = getPoints(playerId);
-            List<PointsAwardLadderRewardsInfo> configInfoList = getLadderConfigInfoList(playerId);
-            Map<Long, PointsAwardLadderRewardsInfo> collect = configInfoList.stream()
-                    .collect(Collectors.toMap(PointsAwardLadderRewardsInfo::getPoints, Function.identity(), (oldValue, newValue) -> newValue));
-            PointsAwardLadderRewardsInfo info = collect.get(points);
-            if (info == null) {
-                return List.of();
-            }
-
-            RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
-            if (rewardReceiveSet.contains(info.getPoints())) {
-                return List.of();
-            }
-            RedDotDetails redDotDetails = new RedDotDetails();
-            redDotDetails.setRedDotModule(getModule());
-            redDotDetails.setRedDotSubmodule(submodule);
-            redDotDetails.setRedDotType(RedDotDetails.RedDotType.COMMON);
+        //获取玩家积分
+        long points = getPoints(playerId);
+        List<PointsAwardLadderRewardsInfo> configInfoList = getLadderConfigInfoList(playerId);
+        //按积分升序
+        configInfoList.sort(Comparator.comparingLong(PointsAwardLadderRewardsInfo::getPoints));
+        //获取领取列表
+        RSet<Long> rewardReceiveSet = getLadderReceiveSet(playerId);
+        RedDotDetails redDotDetails = new RedDotDetails();
+        redDotDetails.setRedDotModule(getModule());
+        redDotDetails.setRedDotSubmodule(getSubmodule());
+        redDotDetails.setRedDotType(RedDotDetails.RedDotType.COMMON);
+        //已经领取的长度和配置长度一致直接返回
+        if (configInfoList.size() == rewardReceiveSet.size()) {
             return List.of(redDotDetails);
-        }else {
-            return List.of();
         }
+        for (PointsAwardLadderRewardsInfo rewardsInfo : configInfoList) {
+            //积分比配置大并且未领取的代表有后点
+            if (points >= rewardsInfo.getPoints() && !rewardReceiveSet.contains(rewardsInfo.getPoints())) {
+                redDotDetails.setCount(1);
+                break;
+            }
+        }
+        return List.of(redDotDetails);
+    }
 
+    @Override
+    public int getSubmodule() {
+        return PointsAwardConstant.RedDotSubModule.BONUS;
     }
 }

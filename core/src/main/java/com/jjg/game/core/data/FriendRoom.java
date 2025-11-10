@@ -96,7 +96,7 @@ public class FriendRoom extends Room {
      */
     public void addBankerSupply(long bankerId, long predictCostGoldNum) {
         bankerPredicateMap.put(bankerId,
-            bankerPredicateMap.getOrDefault(bankerId, 0L) + predictCostGoldNum);
+                bankerPredicateMap.getOrDefault(bankerId, 0L) + predictCostGoldNum);
     }
 
     public long getOverdueTime() {
@@ -174,15 +174,34 @@ public class FriendRoom extends Room {
             log.info("扣除房间准备金：{} 剩余：{}", deductItemNum, predictCostGoldNum);
         } else {
             long deductRes = bankerInf.getValue() - deductItemNum;
+            Long bankerInfKey = bankerInf.getKey();
             if (deductRes <= 0) {
                 // 设置扣除后的值
-                bankerPredicateMap.put(bankerInf.getKey(), 0L);
+                bankerPredicateMap.put(bankerInfKey, 0L);
                 predictCostGoldNum = Math.max(predictCostGoldNum - deductRes, 0);
-                log.info("扣除庄家准备金：{} 剩余：{} 扣除房主准备金：{} 剩余：{}", deductItemNum, 0, deductRes, predictCostGoldNum);
+                log.info("扣除庄家:{} 准备金：{} 剩余：{} 扣除房主准备金：{} 剩余：{}", bankerInfKey, deductItemNum, 0, deductRes, predictCostGoldNum);
             } else {
-                bankerPredicateMap.put(bankerInf.getKey(), deductRes);
-                log.info("扣除庄家准备金：{} 剩余：{}", deductItemNum, deductRes);
+                bankerPredicateMap.put(bankerInfKey, deductRes);
+                log.info("扣除庄家:{} 准备金：{} 剩余：{}", bankerInfKey, deductItemNum, deductRes);
             }
+        }
+    }
+
+    /**
+     * 添加庄家金币
+     */
+    public void addBankerBankerPredicateItem(long addValue) {
+        // 优先扣除庄家的
+        if (addValue < 0) {
+            return;
+        }
+        Map.Entry<Long, Long> bankerInf = bankerPredicateMap.firstEntry();
+        if (bankerInf == null) {
+            predictCostGoldNum += addValue;
+            log.info("增加房间准备金：{} 剩余：{}", addValue, predictCostGoldNum);
+        } else {
+            Long addAfter = bankerPredicateMap.merge(bankerInf.getKey(), addValue, Long::sum);
+            log.info("增加庄家:{} 准备金：{} 剩余：{} ", bankerInf.getKey(), addValue, addAfter);
         }
     }
 
@@ -217,18 +236,18 @@ public class FriendRoom extends Room {
     @Override
     public String toString() {
         return "FriendRoom{" +
-            "id=" + id +
-            ", overdueTime=" + overdueTime +
-            ", aliasName='" + aliasName + '\'' +
-            ", autoRenewal=" + autoRenewal +
-            ", roomExpendId=" + roomExpendId +
-            ", predictCostGoldNum=" + predictCostGoldNum +
-            ", type=" + type +
-            ", gameType=" + gameType +
-            ", roomCfgId=" + roomCfgId +
-            ", path='" + path + '\'' +
-            ", createTime=" + createTime +
-            ", creator=" + creator +
-            '}';
+                "id=" + id +
+                ", overdueTime=" + overdueTime +
+                ", aliasName='" + aliasName + '\'' +
+                ", autoRenewal=" + autoRenewal +
+                ", roomExpendId=" + roomExpendId +
+                ", predictCostGoldNum=" + predictCostGoldNum +
+                ", type=" + type +
+                ", gameType=" + gameType +
+                ", roomCfgId=" + roomCfgId +
+                ", path='" + path + '\'' +
+                ", createTime=" + createTime +
+                ", creator=" + creator +
+                '}';
     }
 }

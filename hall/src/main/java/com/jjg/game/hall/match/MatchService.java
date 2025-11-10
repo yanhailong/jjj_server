@@ -54,6 +54,8 @@ public class MatchService {
                     long waitingRoomId = room.getId();
                     //放入等待列表
                     double score = RoomScoreUtil.computeScore(0, 0, (int) (System.currentTimeMillis() / 1000));
+
+                    log.debug("大厅创建新房间 gameType:{} roomConfigId:{} ", gameType, roomConfigId);
                     scoredSortedSet.add(score, waitingRoomId);
                     //返回房间id
                     return waitingRoomId;
@@ -67,8 +69,11 @@ public class MatchService {
                 if (score == null) {
                     return 0;
                 }
-                double computed = RoomScoreUtil.computeScore(roomScoreInfo.maxPlayers() + 1, roomScoreInfo.readyPlayers() + 1, roomScoreInfo.seconds());
+                int newReadyPlayer = roomScoreInfo.readyPlayers() + 1;
+                int newMaxPlayer = roomScoreInfo.maxPlayers() + 1;
+                double computed = RoomScoreUtil.computeScore(newMaxPlayer, newReadyPlayer, roomScoreInfo.seconds());
                 scoredSortedSet.add(computed, roomId);
+                log.debug("更新后房间缓存数据 roomId:{} gameType:{} roomConfigId:{} maxPlayer:{} readyPlayer:{}", roomId, gameType, roomConfigId, newMaxPlayer, newReadyPlayer);
                 return roomId;
             }
         } catch (Exception e) {

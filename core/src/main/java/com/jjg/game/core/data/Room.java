@@ -278,7 +278,7 @@ public class Room {
     /**
      * 添加庄家金币
      */
-    public void addBankerGold(long addGold) {
+    public void addBankerBankerPredicateItem(long addGold) {
     }
 
     public String logStr() {

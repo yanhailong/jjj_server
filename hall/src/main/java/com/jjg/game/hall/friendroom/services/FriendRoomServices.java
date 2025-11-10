@@ -20,7 +20,10 @@ import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao;
 import com.jjg.game.core.dao.room.FriendRoomBillHistoryDao.GameBillResult;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.rpc.HallRoomBridge;
-import com.jjg.game.core.service.*;
+import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.GameFunctionService;
+import com.jjg.game.core.service.IllegalNameCheckService;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.core.utils.SampleDataUtils;
 import com.jjg.game.hall.friendroom.constant.FriendRoomConstant;
@@ -87,8 +90,6 @@ public class FriendRoomServices {
     private FriendRoomBillHistoryDao billHistoryDao;
     @Autowired
     private GameFunctionService gameFunctionService;
-    @Autowired
-    private MailService mailService;
     // 暂停时间
     private final Map<Long, Long> roomPauseTimeRec = new ConcurrentHashMap<>();
 
@@ -1243,8 +1244,6 @@ public class FriendRoomServices {
                 log.info("玩家：{} 请求解散房间：{}", playerId, req.roomId);
                 // 操作房间
                 operateFriendRoom(playerController, client, req, friendRoom);
-                //更新邮件的红点
-                mailService.updateRedDot(playerId);
                 break;
             default:
                 break;
