@@ -149,24 +149,12 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
             // 如果场上玩家赢钱，说明需要扣除准备金或者庄家金币
             if (bankerFlowing > 0) {
                 log.info("庄家输金币，扣除庄家金币：{}", bankerFlowing);
-                if (roomBankerId <= 0) {
-                    // 扣除庄家的金币
-                    friendRoomController.deductBankerGold(bankerFlowing);
-                } else {
-                    // 给庄家添加金币
-                    deductItem(roomBankerId, bankerFlowing,
-                            AddType.FRIEND_ROOM_ADD_ROOM_CREATOR_RATIO, getRoom().getRoomCfgId() + "");
-                }
+                // 扣除庄家的金币
+                friendRoomController.deductBankerGold(bankerFlowing);
             } else if (bankerFlowing < 0) {
                 log.info("庄家赢金币，添加庄家金币：{} {}", bankerFlowing, bankerFlowing);
-                if (roomBankerId <= 0) {
-                    // 给房间添加准备金
-                    friendRoomController.addRoomPredicateGold(Math.abs(bankerFlowing));
-                } else {
-                    // 给庄家添加金币
-                    addItem(roomBankerId, bankerFlowing,
-                            AddType.FRIEND_ROOM_ADD_ROOM_CREATOR_RATIO, getRoom().getRoomCfgId() + "");
-                }
+                // 给房间添加准备金
+                friendRoomController.addRoomPredicateGold(Math.abs(bankerFlowing));
             }
             // 需要记录
             FriendRoomBillHistoryDao dao = roomController.getRoomManager().getFriendRoomBillHistoryDao();
