@@ -268,5 +268,7 @@ public interface MessageConst {
         int NOTIFY_LOAD_BLACK_LIST = BASE_MSG_PREFIX | 0x12;
         //通知修改玩家金币
         int NOTIFY_GOLD_OPERATE = BASE_MSG_PREFIX | 0x13;
+        //通知加载公告配置
+        int NOTIFY_LOAD_NOTICE_LIST = BASE_MSG_PREFIX | 0x14;
     }
 }

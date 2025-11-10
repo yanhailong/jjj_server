@@ -2,6 +2,7 @@ package com.jjg.game.core.data;
 
 import com.jjg.game.core.pb.RechargeType;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
@@ -17,6 +18,7 @@ public class Order {
     @Id
     private String id;
     //苹果下单透传的是uuid
+    @Indexed
     private String uuid;
     //玩家id
     private long playerId;

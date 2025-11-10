@@ -53,6 +53,11 @@ public interface BackendGMCmd {
     //修改玩家积分大奖的积分
     String CHANGE_PLAYER_POINTS = "changePlayerPoints";
 
+    //保存公告
+    String SAVE_NOTICE = "saveNotice";
+    //删除公告
+    String DEL_NOTICE = "delNotice";
+
     /**
      * 配置相关q
      */

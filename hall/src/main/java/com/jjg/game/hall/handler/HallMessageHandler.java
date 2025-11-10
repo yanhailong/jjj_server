@@ -31,10 +31,12 @@ import com.jjg.game.hall.data.WareHouseConfigInfo;
 import com.jjg.game.hall.pb.req.*;
 import com.jjg.game.hall.pb.res.*;
 import com.jjg.game.hall.pb.struct.MailInfo;
+import com.jjg.game.hall.pb.struct.NoticeInfo;
 import com.jjg.game.hall.pb.struct.PackItemInfo;
 import com.jjg.game.hall.room.HallRoomService;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
+import com.jjg.game.hall.service.NoticeService;
 import com.jjg.game.hall.utils.HallTool;
 import com.jjg.game.hall.vip.VipManager;
 import com.jjg.game.hall.vip.data.VipCfgCache;
@@ -46,6 +48,7 @@ import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -81,6 +84,8 @@ public class HallMessageHandler implements GmListener {
     private CorePlayerService corePlayerService;
     @Autowired
     private PlayerSkinDao playerSkinDao;
+    @Autowired
+    private NoticeService noticeService;
 
     /**
      * 进入游戏
@@ -1094,6 +1099,30 @@ public class HallMessageHandler implements GmListener {
         List<Integer> openedFuncIdList = gameFunctionService.getOpenedFuncIdList(player);
         ResFunctionOpenList res = new ResFunctionOpenList(Code.SUCCESS);
         res.openedFunctionIdList = openedFuncIdList;
+        playerController.send(res);
+    }
+
+    /**
+     * 获取所有的公告
+     */
+    @Command(HallConstant.MsgBean.REQ_ALL_NOTICE)
+    public void reqAllNotice(PlayerController playerController,ReqAllNotice req) {
+        ResAllNotice res = new ResAllNotice(Code.SUCCESS);
+        try{
+            List<Notice> notices = noticeService.getNotices();
+            if(notices != null && !notices.isEmpty()){
+                res.noticeList = new ArrayList<>(notices.size());
+                for (Notice notice : notices) {
+                    NoticeInfo noticeInfo = new NoticeInfo();
+                    BeanUtils.copyProperties(notice, noticeInfo);
+                    res.noticeList.add(noticeInfo);
+                }
+            }
+            log.debug("返回公告列表 playerId = {}",playerController.playerId());
+        }catch (Exception e){
+            res.code = Code.EXCEPTION;
+            log.error("", e);
+        }
         playerController.send(res);
     }
 }

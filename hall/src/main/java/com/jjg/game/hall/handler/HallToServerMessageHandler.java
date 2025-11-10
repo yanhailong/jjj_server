@@ -16,10 +16,12 @@ import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.pb.LuckyTreasureUpdateBroadcast;
 import com.jjg.game.core.pb.ReqActivityInfos;
 import com.jjg.game.core.pb.ResActivityInfos;
+import com.jjg.game.core.pb.gm.NotifyLoadNoticeConfig;
 import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
 import com.jjg.game.hall.minigame.game.luckytreasure.service.LuckyTreasureService;
 import com.jjg.game.hall.pointsaward.PointsAwardService;
 import com.jjg.game.hall.service.HallService;
+import com.jjg.game.hall.service.NoticeService;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -40,19 +42,21 @@ public class HallToServerMessageHandler extends CoreToServerMessageHandler {
     private final ActivityManager activityManager;
     private final PointsAwardService pointsAwardService;
     private final ClusterSystem clusterSystem;
+    private final NoticeService noticeService;
 
     public HallToServerMessageHandler(LuckyTreasureService luckyTreasureService,
                                       HallService hallService,
                                       CoreLogger coreLogger,
                                       PointsAwardService pointsAwardService,
                                       ClusterSystem clusterSystem,
-                                      ActivityManager activityManager) {
+                                      ActivityManager activityManager, NoticeService noticeService) {
         this.luckyTreasureService = luckyTreasureService;
         this.hallService = hallService;
         this.coreLogger = coreLogger;
         this.pointsAwardService = pointsAwardService;
         this.clusterSystem = clusterSystem;
         this.activityManager = activityManager;
+        this.noticeService = noticeService;
     }
 
     @Command(MessageConst.ToServer.REQ_REFRESH_GAME_STATUS)
@@ -92,6 +96,14 @@ public class HallToServerMessageHandler extends CoreToServerMessageHandler {
         } catch (Exception e) {
             log.error("响应后台请求活动信息失败");
         }
+    }
+
+    /**
+     * 通知加载公告列表
+     */
+    @Command(MessageConst.ToServer.NOTIFY_LOAD_NOTICE_LIST)
+    public void notifyLoadNoticeConfig(NotifyLoadNoticeConfig notify) {
+        noticeService.loadNotice();
     }
 
 }
