@@ -249,6 +249,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         redDotManager.updateRedDot(this, 0, playerId);
     }
 
+
     /**
      * 添加系统配置邮件
      */

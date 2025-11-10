@@ -7,6 +7,7 @@ import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.pb.reddot.NotifyRedDot;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
+import com.jjg.game.core.service.PlayerSessionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,15 +30,16 @@ public class RedDotManager {
     private static final Logger log = LoggerFactory.getLogger(RedDotManager.class);
 
     private final ClusterSystem clusterSystem;
-
+    private final PlayerSessionService playerSessionService;
     /**
      * 红点服务实例缓存
      * Key: 红点模块, Value: {子模块id->服务实例}
      */
     private final Map<RedDotDetails.RedDotModule, Map<Integer, IRedDotService>> redDotServiceCache = new ConcurrentHashMap<>();
 
-    public RedDotManager(@Autowired ClusterSystem clusterSystem) {
+    public RedDotManager(@Autowired ClusterSystem clusterSystem, PlayerSessionService playerSessionService) {
         this.clusterSystem = clusterSystem;
+        this.playerSessionService = playerSessionService;
     }
 
     /**
@@ -132,7 +134,7 @@ public class RedDotManager {
         NotifyRedDot notifyRedDot = new NotifyRedDot();
         notifyRedDot.setRedDotList(list);
         if (playerId > 0) {
-            PFSession session = clusterSystem.getSession(playerId);
+            PFSession session = playerSessionService.getSession(playerId);
             if (session == null) {
                 return;
             }
@@ -210,6 +212,5 @@ public class RedDotManager {
         }
         updateRedDot(details, playerId);
     }
-
 }
 
