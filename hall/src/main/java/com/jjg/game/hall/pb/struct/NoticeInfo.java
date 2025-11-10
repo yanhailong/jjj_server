@@ -35,6 +35,8 @@ public class NoticeInfo {
     private int scence;
     @ProtoDesc("跳转地址")
     private String jumpUrl;
+    @ProtoDesc("是否阅读")
+    private boolean read;
 
     public long getId() {
         return id;
@@ -138,5 +140,13 @@ public class NoticeInfo {
 
     public void setJumpUrl(String jumpUrl) {
         this.jumpUrl = jumpUrl;
+    }
+
+    public boolean isRead() {
+        return read;
+    }
+
+    public void setRead(boolean read) {
+        this.read = read;
     }
 }

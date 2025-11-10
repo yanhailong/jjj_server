@@ -179,5 +179,9 @@ public interface HallConstant {
         //获取所有的公告
         int REQ_ALL_NOTICE = BASE_MSG_PREFIX | 0x49;
         int RES_ALL_NOTICE = BASE_MSG_PREFIX | 0x4A;
+
+        //阅读公告
+        int REQ_READ_NOTICE = BASE_MSG_PREFIX | 0x4B;
+        int RES_READ_NOTICE = BASE_MSG_PREFIX | 0x4C;
     }
 }

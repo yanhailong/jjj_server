@@ -346,7 +346,7 @@ public class HallMessageHandler implements GmListener {
                 return;
             }
 
-            unlockSkin(playerSkin,playerController.getPlayer().getVipLevel(),playerController.getPlayer().getLevel());
+            unlockSkin(playerSkin, playerController.getPlayer().getVipLevel(), playerController.getPlayer().getLevel());
 
             if (CollectionUtil.isNotEmpty(playerSkin.getUnlockAvatarSet())) {
                 res.avatars = new ArrayList<>(playerSkin.getUnlockAvatarSet());
@@ -377,6 +377,7 @@ public class HallMessageHandler implements GmListener {
 
     /**
      * 解锁皮肤
+     *
      * @param playerSkin
      * @param vipLevel
      */
@@ -1041,6 +1042,66 @@ public class HallMessageHandler implements GmListener {
     }
 
 
+    /**
+     * 游戏功能开放列表
+     */
+    @Command(HallConstant.MsgBean.REQ_FUNCTION_OPEN_LIST)
+    public void reqGameFunctionOpenList(PlayerController playerController) {
+        Player player = corePlayerService.get(playerController.playerId());
+        List<Integer> openedFuncIdList = gameFunctionService.getOpenedFuncIdList(player);
+        ResFunctionOpenList res = new ResFunctionOpenList(Code.SUCCESS);
+        res.openedFunctionIdList = openedFuncIdList;
+        playerController.send(res);
+    }
+
+    /**
+     * 获取所有的公告
+     */
+    @Command(HallConstant.MsgBean.REQ_ALL_NOTICE)
+    public void reqAllNotice(PlayerController playerController, ReqAllNotice req) {
+        ResAllNotice res = new ResAllNotice(Code.SUCCESS);
+        try {
+            List<Notice> notices = noticeService.getNotices();
+            if (notices != null && !notices.isEmpty()) {
+                //获取玩家已经阅读的公告
+                Set<Long> readSet = noticeService.getPlayerReadNotice(playerController.playerId());
+
+                res.noticeList = new ArrayList<>(notices.size());
+                for (Notice notice : notices) {
+                    NoticeInfo noticeInfo = new NoticeInfo();
+                    BeanUtils.copyProperties(notice, noticeInfo);
+
+                    if(readSet.contains(notice.getId())){
+                        noticeInfo.setRead(true);
+                    }
+                    res.noticeList.add(noticeInfo);
+                }
+            }
+            log.debug("返回公告列表 playerId = {}", playerController.playerId());
+        } catch (Exception e) {
+            res.code = Code.EXCEPTION;
+            log.error("", e);
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 读取公告
+     */
+    @Command(HallConstant.MsgBean.REQ_READ_NOTICE)
+    public void reqReadNotice(PlayerController playerController, ReqReadNotice req) {
+        ResReadNotice res = new ResReadNotice(Code.SUCCESS);
+        try {
+            noticeService.readNotice(playerController.playerId(), req.id);
+            log.debug("阅读公告 playerId = {}", playerController.playerId());
+        } catch (Exception e) {
+            res.code = Code.EXCEPTION;
+            log.error("", e);
+        }
+        playerController.send(res);
+    }
+
+
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
         CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
@@ -1088,41 +1149,5 @@ public class HallMessageHandler implements GmListener {
             packItemInfos.add(info);
         });
         return packItemInfos;
-    }
-
-    /**
-     * 游戏功能开放列表
-     */
-    @Command(HallConstant.MsgBean.REQ_FUNCTION_OPEN_LIST)
-    public void reqGameFunctionOpenList(PlayerController playerController) {
-        Player player = corePlayerService.get(playerController.playerId());
-        List<Integer> openedFuncIdList = gameFunctionService.getOpenedFuncIdList(player);
-        ResFunctionOpenList res = new ResFunctionOpenList(Code.SUCCESS);
-        res.openedFunctionIdList = openedFuncIdList;
-        playerController.send(res);
-    }
-
-    /**
-     * 获取所有的公告
-     */
-    @Command(HallConstant.MsgBean.REQ_ALL_NOTICE)
-    public void reqAllNotice(PlayerController playerController,ReqAllNotice req) {
-        ResAllNotice res = new ResAllNotice(Code.SUCCESS);
-        try{
-            List<Notice> notices = noticeService.getNotices();
-            if(notices != null && !notices.isEmpty()){
-                res.noticeList = new ArrayList<>(notices.size());
-                for (Notice notice : notices) {
-                    NoticeInfo noticeInfo = new NoticeInfo();
-                    BeanUtils.copyProperties(notice, noticeInfo);
-                    res.noticeList.add(noticeInfo);
-                }
-            }
-            log.debug("返回公告列表 playerId = {}",playerController.playerId());
-        }catch (Exception e){
-            res.code = Code.EXCEPTION;
-            log.error("", e);
-        }
-        playerController.send(res);
     }
 }

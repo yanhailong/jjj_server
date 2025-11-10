@@ -358,6 +358,7 @@ public class CoreMessageHandler {
         notifyRedDot.setRedDotList(result);
         //回复红点数据
         playerController.send(notifyRedDot);
+        log.debug("玩家获取红点数据 module = {}，notify = {}", module, JSON.toJSONString(notifyRedDot));
     }
 
     /**

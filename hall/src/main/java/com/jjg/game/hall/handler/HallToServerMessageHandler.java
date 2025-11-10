@@ -103,7 +103,7 @@ public class HallToServerMessageHandler extends CoreToServerMessageHandler {
      */
     @Command(MessageConst.ToServer.NOTIFY_LOAD_NOTICE_LIST)
     public void notifyLoadNoticeConfig(NotifyLoadNoticeConfig notify) {
-        noticeService.loadNotice();
+        noticeService.loadNotice(false);
     }
 
 }
