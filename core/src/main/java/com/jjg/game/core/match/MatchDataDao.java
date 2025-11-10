@@ -116,16 +116,21 @@ public class MatchDataDao {
                 RScoredSortedSet<Long> scoredSortedSet = redissonClient.getScoredSortedSet(redisKey);
                 Double score = scoredSortedSet.getScore(roomId);
                 if (score == null) {
+                    log.debug("score == null gameType:{} roomConfigId:{} roomId:{} ", gameType, roomConfigId, roomId);
                     return false;
                 }
                 RoomScoreUtil.RoomScoreInfo roomScoreInfo = RoomScoreUtil.parseScore(score);
                 if (totalNum > 0 && (totalNum + roomScoreInfo.maxPlayers()) > maxPlayerNum ||
                         totalNum < 0 && roomScoreInfo.maxPlayers() + totalNum < 0) {
+                    log.debug("ConditionsNotPass gameType:{} roomConfigId:{} roomId:{} roomScoreInfo:{} totalNum:{} waitNum:{}", gameType, roomConfigId, roomId
+                            , roomScoreInfo, totalNum, waitNum);
                     return false;
                 }
                 double computed = RoomScoreUtil.computeScore(Math.max(0, roomScoreInfo.maxPlayers() + totalNum),
                         Math.max(0, roomScoreInfo.readyPlayers() + waitNum), roomScoreInfo.seconds());
                 scoredSortedSet.add(computed, roomId);
+                log.debug("changeRoomJoinNum after:{} gameType:{} roomConfigId:{} roomId:{}", RoomScoreUtil.parseScore(computed), gameType
+                        , roomConfigId, roomId);
                 return true;
             }
         } catch (Exception e) {
@@ -145,6 +150,7 @@ public class MatchDataDao {
      * @param playerId 玩家id
      */
     public void addPlayerExpiredWaiting(long roomId, long playerId) {
+        log.debug("addPlayerExpiredWaiting roomId = {}, playerId = {}", roomId, playerId);
         String playerWaitKey = getPlayerWaitKey(roomId);
         RMapCache<Long, Long> waitMap = redissonClient.getMapCache(playerWaitKey);
         waitMap.put(playerId, System.currentTimeMillis(), 10, TimeUnit.SECONDS); // 自动刷新 TTL
