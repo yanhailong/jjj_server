@@ -34,6 +34,7 @@ import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.OfficialAwardsCfg;
@@ -73,10 +74,11 @@ public class OfficialAwardsController extends BaseActivityController implements 
     @Override
     public boolean addPlayerProgress(Player player, ActivityData activityData, long progress, long activityTargetKey, Object additionalParameters) {
         long playerId = player.getId();
+        BigDecimal realProgress = RedisUtils.fromLong(progress);
         //转换比例
         Pair<Integer, Integer> pair = dataCache.getRechargeConvertRatio();
         //计算增加的积分值
-        int addValue = BigDecimal.valueOf(progress).multiply(BigDecimal.valueOf(pair.getSecond()))
+        int addValue = realProgress.multiply(BigDecimal.valueOf(pair.getSecond()))
                 .divide(BigDecimal.valueOf(pair.getFirst()), RoundingMode.DOWN)
                 .intValue();
         if (addValue > 0) {

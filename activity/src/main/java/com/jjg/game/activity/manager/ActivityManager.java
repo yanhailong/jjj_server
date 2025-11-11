@@ -610,6 +610,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
     public <T extends GameEvent> void handleEvent(T gameEvent) {
         switch (gameEvent) {
             case PlayerEventCategory.PlayerRechargeEvent event -> {
+                //充值类型的扩大了100倍
                 addPlayerActivityProgress(event.getPlayer(), ActivityTargetType.RECHARGE.getTargetKey(), RedisUtils.toLong(event.getOrder().getPrice()), null);
             }
             case PlayerEvent playerEvent -> {
