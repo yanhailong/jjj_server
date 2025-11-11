@@ -822,6 +822,10 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
         return redDotList;
     }
 
+    record TaskSortParam(Task task, TaskData taskData, long progress) {
+    }
+
+
     /**
      * 获取玩家任务列表
      *
@@ -834,20 +838,60 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
         if (dataMap == null) {
             return taskList;
         }
-        //已领取任务不显示
-        return dataMap.values().stream().map(taskData -> {
+        Map<Integer, TaskSortParam> map = new HashMap<>(dataMap.size());
+        //生成数据
+        for (TaskData taskData : dataMap.values()) {
+            //已领取任务不显示
             if (taskData.getStatus() == TaskConstant.TaskStatus.STATUS_REWARDED) {
-                return null;
+                continue;
             }
             TaskCfg taskCfg = GameDataManager.getTaskCfg(taskData.getConfigId());
             if (taskCfg == null) {
-                return null;
+                continue;
             }
             if (taskCfg.getTaskType() != type) {
-                return null;
+                continue;
             }
-            return assembleTask(taskData, taskCfg);
-        }).filter(Objects::nonNull).toList();
+            Task task = assembleTask(taskData, taskCfg);
+            long minProgress = 100;
+            if (taskData.getStatus() != TaskConstant.TaskStatus.STATUS_COMPLETED) {
+                for (TaskCondition condition : task.getConditions()) {
+                    long progress = condition.getProgress() * 100 / condition.getConfigParam();
+                    minProgress = Math.min(minProgress, progress);
+                }
+            }
+            map.put(taskData.getConfigId(), new TaskSortParam(task, taskData, minProgress));
+        }
+        if (map.isEmpty()) {
+            return taskList;
+        }
+        //排序
+        return map.values().stream().sorted((o1, o2) -> {
+            TaskData taskData1 = o1.taskData;
+            TaskData taskData2 = o2.taskData;
+            int o1Status = (taskData1.getStatus() + 1) % 3;
+            int o2Status = (taskData2.getStatus() + 1) % 3;
+            int compare = Integer.compare(o1Status, o2Status);
+            if (compare == 0) {
+                switch (taskData1.getStatus()) {
+                    case TaskConstant.TaskStatus.STATUS_COMPLETED -> {
+                        return -Long.compare(taskData1.getCompleteTime(), taskData2.getCompleteTime());
+                    }
+                    case TaskConstant.TaskStatus.STATUS_IN_PROGRESS -> {
+                        int compared = Long.compare(o1.progress, o2.progress);
+                        if (compared == 0) {
+                            return -Integer.compare(taskData1.getConfigId(), taskData2.getConfigId());
+                        } else {
+                            return -compared;
+                        }
+                    }
+                    case TaskConstant.TaskStatus.STATUS_REWARDED -> {
+                        return 1;
+                    }
+                }
+            }
+            return -compare;
+        }).map(TaskSortParam::task).toList();
     }
 
     /**
