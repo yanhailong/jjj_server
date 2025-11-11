@@ -148,6 +148,11 @@ public class RoomMessageHandler {
     @Command(RoomMessageConstant.ReqMsgBean.REQ_EDIT_BANKER_PREDICATE_GOLD)
     public void reqEditBankerPredicateGold(PlayerController playerController, ReqEditBankerPredicateGold req) {
         ResEditBankerPredicateGold res = new ResEditBankerPredicateGold(Code.ROOM_NOT_FOUND);
+        if (req.predicateGold <= 0) {
+            res.code = Code.AMOUNT_OF_RESERVES_IS_INCORRECT;
+            playerController.send(res);
+            return;
+        }
         AbstractFriendRoomController<?, ?> controller = getFriendRoomController(playerController.playerId());
         if (controller == null) {
             playerController.send(res);

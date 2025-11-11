@@ -523,12 +523,17 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
      * 添加准备金
      */
     private int addBankerPredicateGold(long playerId, long predictCostGold) {
+        //获取玩家身上的货币数据
+        long transactionItemNum = gameController.getTransactionItemNum(playerId);
+        if (transactionItemNum < predictCostGold) {
+            return Code.NOT_ENOUGH;
+        }
         RoomCfg roomCfg = getGameController().getGameDataVo().getRoomCfg();
         if (roomCfg.getMinBankerAmount() != null && roomCfg.getMinBankerAmount().size() > 1) {
             int minBankerAmount = roomCfg.getMinBankerAmount().get(1);
             // 请求的预付金币小于最低可以配置的金币
             if (predictCostGold < minBankerAmount) {
-                return Code.PARAM_ERROR;
+                return Code.AMOUNT_OF_RESERVES_IS_INCORRECT_CONFIG;
             }
             // 保存房间数据
             CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(),

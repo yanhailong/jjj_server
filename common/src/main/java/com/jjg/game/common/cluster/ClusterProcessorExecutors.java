@@ -1,5 +1,6 @@
 package com.jjg.game.common.cluster;
 
+import cn.hutool.core.util.RandomUtil;
 import com.google.common.hash.Hashing;
 import com.jjg.game.common.concurrent.BaseProcessor;
 import com.jjg.game.common.concurrent.processor.GameProcessor;
@@ -96,7 +97,8 @@ public class ClusterProcessorExecutors {
     public BaseProcessor getProcessorById(long workId) {
         // 默认节点的工作ID是大于0的
         if (workId == 0) {
-            return null;
+            //随机生成找个线程执行
+            workId = RandomUtil.randomInt(0, 1000);
         }
         int threadId = calcThreadId(workId);
         if (processorPool.containsKey(threadId)) {

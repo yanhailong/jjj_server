@@ -1,12 +1,10 @@
 package com.jjg.game.core.dao.room;
 
-import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.redis.RedissonLock;
 import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.core.data.FriendRoomBillHistoryBean;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.manager.SnowflakeManager;
-import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Pageable;
@@ -147,15 +145,9 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
                         Aggregation.project()
                                 .and("_id").as("id")
                                 .and("totalIncome").as("itemCount")
-                                .andExclude("_id")
                 );
-        AggregationResults<Document> rawResults = mongoTemplate.aggregate(aggregation, "friendRoomBillHistoryBean", Document.class);
-        //手动拼接
-        List<Item> items = new ArrayList<>();
-        for (Document doc : rawResults.getMappedResults()) {
-            items.add(JSONObject.parseObject(doc.toJson(), Item.class));
-        }
-        return items;
+        AggregationResults<Item> rawResults = mongoTemplate.aggregate(aggregation, "friendRoomBillHistoryBean", Item.class);
+        return rawResults.getMappedResults();
     }
 
     /**

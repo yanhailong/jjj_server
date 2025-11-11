@@ -107,7 +107,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 session.verifyPassFail();
                 return;
             }
-
             //从数据库查询PlayerSessionToken对象信息
             PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(req.playerId);
             if (playerSessionToken == null) {
@@ -183,7 +182,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 session.verifyPassFail();
                 return;
             }
-
             Player player = playerResult.data;
 
             session.verifyPass(player.getId(), player.getIp(), null);
@@ -233,7 +231,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                     !TimeHelper.inSameDay(account.getLastOfflineTime(), timeMillis);
             //更新最近登录时间
             accountDao.updateLastLoginTime(player.getId(), timeMillis);
-
             //检查重连
             if (reconnect(session, player, playerSessionInfo)) {
                 res.gameWareInfo = new GameWareInfo();
@@ -273,6 +270,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             // 调用登录接口类
             SystemInterfaceHolder.callGameSysAction(
                     IPlayerLoginSuccess.class, (f) -> f.onPlayerLoginSuccess(playerController, player, firstLogin));
+
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             session.send(res);
