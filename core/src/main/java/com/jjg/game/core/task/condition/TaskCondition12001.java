@@ -2,6 +2,7 @@ package com.jjg.game.core.task.condition;
 
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.task.db.TaskData;
+import com.jjg.game.core.task.db.TaskDetail;
 import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,7 @@ public class TaskCondition12001 extends AbstractTaskCondition<TaskConditionParam
     }
 
     @Override
-    protected boolean checkAddProgress(TaskCfg taskCfg, TaskData taskData, TaskConditionParam12001 param) {
+    protected boolean checkAddProgress(TaskCfg taskCfg, TaskDetail taskDetail, TaskConditionParam12001 param) {
         List<Integer> conditionId = taskCfg.getTaskConditionId();
         int gameId = conditionId.get(1);
         if (gameId > 0) {

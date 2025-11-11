@@ -9,6 +9,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.service.AbstractPlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.core.task.service.TaskService;
 import com.jjg.game.hall.casino.service.PlayerBuildingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,8 @@ public class HallPlayerService extends AbstractPlayerService {
     private PlayerBuildingService playerBuildingService;
     @Autowired
     private NoticeService noticeService;
+    @Autowired
+    private TaskService taskService;
 
     /**
      * 仅在登录时调用
@@ -157,6 +160,7 @@ public class HallPlayerService extends AbstractPlayerService {
         playerLastGameInfoDao.deleteById(playerId);
         playerLoginTimeDao.remove(playerId);
         noticeService.removeReadData(playerId);
+        taskService.moveToMongo(playerId);
         return true;
     }
 }

@@ -56,7 +56,7 @@ public interface TaskConstant {
         /**
          * 玩家的任务map
          */
-        String TASK_PLAYER_MAP = "task:player:map:";
+        String TASK_PLAYER_MAP = "task:player";
 
     }
 

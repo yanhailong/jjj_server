@@ -2,6 +2,7 @@ package com.jjg.game.core.task.condition;
 
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.task.db.TaskData;
+import com.jjg.game.core.task.db.TaskDetail;
 import com.jjg.game.core.task.param.TaskConditionParam10001;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import org.springframework.stereotype.Component;
@@ -23,7 +24,7 @@ public class TaskCondition10001 extends AbstractTaskCondition<TaskConditionParam
     }
 
     @Override
-    protected boolean checkAddProgress(TaskCfg taskCfg, TaskData taskData, TaskConditionParam10001 param) {
+    protected boolean checkAddProgress(TaskCfg taskCfg, TaskDetail taskDetail, TaskConditionParam10001 param) {
         List<Integer> conditionId = taskCfg.getTaskConditionId();
         int gameId = conditionId.get(1);
         int checkValue = conditionId.get(2);
@@ -50,8 +51,8 @@ public class TaskCondition10001 extends AbstractTaskCondition<TaskConditionParam
      * 增加任务进度
      */
     @Override
-    protected void addProgress(TaskCfg taskCfg, TaskData taskData, TaskConditionParam10001 param) {
-        Map<Integer, Long> taskDataProgress = taskData.getProgress();
+    protected void addProgress(long playerId, TaskCfg taskCfg, TaskDetail taskDetail, TaskConditionParam10001 param) {
+        Map<Integer, Long> taskDataProgress = taskDetail.getProgress();
         //下注次数 每次只+1
         taskDataProgress.merge(taskCfg.getTaskConditionId().getFirst(), 1L, Long::sum);
     }

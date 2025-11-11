@@ -1,5 +1,6 @@
 package com.jjg.game.hall.pointsaward;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.logger.BaseLogger;
@@ -92,7 +93,7 @@ public class PointsAwardLogger extends BaseLogger {
     public void addLeaderboardHistory(PointsAwardLeaderboardData data) {
         try {
             JSONObject jsonObject = new JSONObject();
-            jsonObject.put("data", data);
+            jsonObject.put("data", JSON.toJSONString(data));
             sendLog("pointsAwardLeaderboard", null, jsonObject);
         } catch (Exception e) {
             log.error("记录排行榜历史记录日志错误!", e);

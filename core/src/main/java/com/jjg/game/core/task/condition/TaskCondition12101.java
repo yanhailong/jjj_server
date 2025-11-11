@@ -2,6 +2,7 @@ package com.jjg.game.core.task.condition;
 
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.task.db.TaskData;
+import com.jjg.game.core.task.db.TaskDetail;
 import com.jjg.game.core.task.param.TaskConditionParam12101;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import org.springframework.stereotype.Component;
@@ -27,7 +28,7 @@ public class TaskCondition12101 extends AbstractTaskCondition<TaskConditionParam
      * @return 如果满足增加任务进度的条件，返回true；否则返回false。
      */
     @Override
-    protected boolean checkAddProgress(TaskCfg taskCfg, TaskData taskData, TaskConditionParam12101 param) {
+    protected boolean checkAddProgress(TaskCfg taskCfg, TaskDetail taskDetail, TaskConditionParam12101 param) {
         int itemId = taskCfg.getTaskConditionId().get(1);
         return param.getItemId() == itemId;
     }

@@ -2,6 +2,7 @@ package com.jjg.game.core.task.condition;
 
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.task.db.TaskData;
+import com.jjg.game.core.task.db.TaskDetail;
 import com.jjg.game.core.task.param.DefaultTaskConditionParam;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import org.slf4j.Logger;
@@ -35,7 +36,7 @@ public class TaskCondition11001 extends AbstractTaskCondition<DefaultTaskConditi
      * @return 如果满足增加任务进度的条件，返回true；否则返回false。
      */
     @Override
-    protected boolean checkAddProgress(TaskCfg taskCfg, TaskData taskData, DefaultTaskConditionParam param) {
+    protected boolean checkAddProgress(TaskCfg taskCfg, TaskDetail taskDetail, DefaultTaskConditionParam param) {
         try {
             long resultValue = param.getAddValue();
             int compareValue = taskCfg.getTaskConditionId().get(1);
@@ -59,8 +60,8 @@ public class TaskCondition11001 extends AbstractTaskCondition<DefaultTaskConditi
     }
 
     @Override
-    protected void addProgress(TaskCfg taskCfg, TaskData taskData, DefaultTaskConditionParam param) {
-        Map<Integer, Long> taskDataProgress = taskData.getProgress();
+    protected void addProgress(long playerId, TaskCfg taskCfg, TaskDetail taskDetail, DefaultTaskConditionParam param) {
+        Map<Integer, Long> taskDataProgress = taskDetail.getProgress();
         //每次只+1
         taskDataProgress.merge(taskCfg.getTaskConditionId().getFirst(), 1L, Long::sum);
     }

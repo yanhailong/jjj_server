@@ -1,69 +1,26 @@
 package com.jjg.game.core.task.db;
 
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 任务数据
  */
-@Document(collection = "TaskData")
+@Document
 public class TaskData {
-
-    /**
-     * 配置id
-     */
-    private int configId;
-
     /**
      * 玩家id
      */
+    @Id
     private long playerId;
 
     /**
-     * 任务状态
+     * 任务详情
      */
-    private int status;
+    private Map<Integer, TaskDetail> taskDetails;
 
-    /**
-     * 任务进度
-     * k=条件id
-     * v=进度
-     */
-    private Map<Integer, Long> progress = new HashMap<>();
-
-    /**
-     * 表示任务完成条件的集合。
-     * finishConditions集合存储的是任务的完成条件ID，每个ID表示一种具体的任务完成条件。
-     * 当玩家满足指定条件时，任务将被标记为完成。
-     */
-    private Set<Integer> finishConditionIds = new HashSet<>();
-
-    /**
-     * 创建时间
-     */
-    private long createTime;
-
-    /**
-     * 完成时间
-     */
-    private long completeTime;
-
-    /**
-     * 奖励领取时间
-     */
-    private long rewardTime;
-
-    public int getConfigId() {
-        return configId;
-    }
-
-    public void setConfigId(int configId) {
-        this.configId = configId;
-    }
 
     public long getPlayerId() {
         return playerId;
@@ -73,51 +30,36 @@ public class TaskData {
         this.playerId = playerId;
     }
 
-    public int getStatus() {
-        return status;
+    public Map<Integer, TaskDetail> getTaskDetails() {
+        return taskDetails;
     }
 
-    public void setStatus(int status) {
-        this.status = status;
+    public void setTaskDetails(Map<Integer, TaskDetail> taskDetails) {
+        this.taskDetails = taskDetails;
     }
 
-    public Map<Integer, Long> getProgress() {
-        return progress;
+    public void addTaskDetail(TaskDetail taskDetail) {
+        if (taskDetails == null) {
+            taskDetails = new HashMap<>();
+        }
+        taskDetails.put(taskDetail.getConfigId(), taskDetail);
     }
 
-    public void setProgress(Map<Integer, Long> progress) {
-        this.progress = progress;
+    public TaskDetail getTaskDetail(int configId) {
+        if (taskDetails == null) {
+            return null;
+        }
+        return taskDetails.get(configId);
     }
 
-    public long getCreateTime() {
-        return createTime;
+    public void addAllTaskDetail(List<TaskDetail> list){
+
     }
 
-    public void setCreateTime(long createTime) {
-        this.createTime = createTime;
-    }
-
-    public long getCompleteTime() {
-        return completeTime;
-    }
-
-    public void setCompleteTime(long completeTime) {
-        this.completeTime = completeTime;
-    }
-
-    public long getRewardTime() {
-        return rewardTime;
-    }
-
-    public void setRewardTime(long rewardTime) {
-        this.rewardTime = rewardTime;
-    }
-
-    public Set<Integer> getFinishConditionIds() {
-        return finishConditionIds;
-    }
-
-    public void setFinishConditionIds(Set<Integer> finishConditionIds) {
-        this.finishConditionIds = finishConditionIds;
+    public boolean hasTask(int configId){
+        if (taskDetails == null) {
+            return false;
+        }
+        return taskDetails.containsKey(configId);
     }
 }
