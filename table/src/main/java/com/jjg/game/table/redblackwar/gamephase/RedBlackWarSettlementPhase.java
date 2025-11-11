@@ -128,7 +128,7 @@ public class RedBlackWarSettlementPhase extends BaseSettlementPhase<RedBlackWarG
                     DefaultKeyValue<Long, Long> keyValue = playerGet.computeIfAbsent(playerId, key -> new DefaultKeyValue<>(0L, 0L));
                     keyValue.setKey(keyValue.getKey() + totalBet);
                     keyValue.setValue(keyValue.getValue() + canGet);
-                    SettlementData settlementData = new SettlementData(canGet - backBet, backBet, canGet, totalBet, ratioBefore - canGet);
+                    SettlementData settlementData = new SettlementData(canGet - backBet, backBet, canGet, totalBet, ratioBefore + backBet - canGet);
                     if (!settlementDataMap.containsKey(playerId)) {
                         settlementDataMap.put(playerId, settlementData);
                     } else {

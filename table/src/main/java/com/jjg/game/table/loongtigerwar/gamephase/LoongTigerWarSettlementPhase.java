@@ -93,7 +93,7 @@ public class LoongTigerWarSettlementPhase extends BaseSettlementPhase<LoongTiger
                         canGet = canGet * gameDataVo.getRoomCfg().getEffectiveRatio() / 10000;
                     }
                     canGet += backBet;
-                    SettlementData settlementData = new SettlementData(canGet - backBet, backBet, canGet, totalBet, totalGet - canGet);
+                    SettlementData settlementData = new SettlementData(canGet - backBet, backBet, canGet, totalBet, totalGet + backBet - canGet);
                     if (!settlementDataMap.containsKey(playerId)) {
                         settlementDataMap.put(playerId, settlementData);
                     } else {
