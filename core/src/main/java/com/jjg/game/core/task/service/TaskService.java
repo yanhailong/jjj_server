@@ -490,6 +490,10 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
             return Collections.emptyMap();
         }
 
+        if (taskData == null) {
+            return Collections.emptyMap();
+        }
+
         Map<Integer, TaskDetail> receiveMap = new HashMap<>();
         //检测是否有新任务
         availableTaskConfigs.forEach(taskCfg -> {
