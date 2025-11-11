@@ -114,7 +114,7 @@ public class ClusterProcessorExecutors {
         }
         ProcessorModule processorModule = ProcessorModule.getModuleByNodeType(nodeType);
         if (processorModule == null) {
-            log.error("节点: {} 未找到线程基础配置,将走默认逻辑线程: {}", nodeType.name(), Thread.currentThread().getName());
+//            log.error("节点: {} 未找到线程基础配置,将走默认逻辑线程: {}", nodeType.name(), Thread.currentThread().getName());
             return null;
         }
         return processorPool.computeIfAbsent(threadId, k -> processorModule.getModuleProcessor(threadId));
