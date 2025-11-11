@@ -118,10 +118,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * 是否能退出游戏
      *
      * @param playerId 玩家id
-     * @return true 能 false 不能
+     * @return 状态码
      */
-    public boolean canExitGame(long playerId) {
-        return true;
+    public int canExitGame(long playerId) {
+        return Code.SUCCESS;
     }
 
     /**
@@ -547,14 +547,14 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * 添加金币
      */
     public int addItem(long playerId, long num, AddType addType) {
-        return addItem(playerId, num, addType, "", false);
+        return addItem(playerId, num, addType, "", true);
     }
 
     /**
      * 添加金币
      */
     public int addItem(long playerId, long num, AddType addType, String desc) {
-        return addItem(playerId, num, addType, desc, false);
+        return addItem(playerId, num, addType, desc, true);
     }
 
     /**

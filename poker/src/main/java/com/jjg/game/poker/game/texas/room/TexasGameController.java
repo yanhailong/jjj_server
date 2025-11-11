@@ -149,13 +149,13 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
     }
 
     @Override
-    public boolean canExitGame(long playerId) {
+    public int canExitGame(long playerId) {
         for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
             if (seatInfo.getPlayerId() == playerId && seatInfo.isReady()) {
-                return false;
+                return Code.FORBID;
             }
         }
-        return true;
+        return Code.SUCCESS;
     }
 
     @Override
@@ -734,7 +734,7 @@ public class TexasGameController extends BasePokerGameController<TexasGameDataVo
         Room room = abstractRoomController.getRoom();
         boolean changed =
                 roomController.getRoomManager().changeRoom(
-                        playerController, room.getId(), room.getGameType(), controller.getRoom().getRoomCfgId(), controller.getRoom().getMaxLimit());
+                        playerController, room, room.getGameType(), controller.getRoom().getRoomCfgId(), controller.getRoom().getMaxLimit());
         RepsTexasChangTable res = new RepsTexasChangTable(changed ? Code.SUCCESS : Code.FAIL);
         playerController.send(res);
     }

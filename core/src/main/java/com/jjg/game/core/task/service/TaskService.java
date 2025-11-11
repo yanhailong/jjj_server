@@ -59,8 +59,6 @@ import java.util.stream.Collectors;
 public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEventListener {
     private static final Logger log = LoggerFactory.getLogger(TaskService.class);
 
-    private final String TABLE_NAME = "task:player";
-
     private final ClusterSystem clusterSystem;
     private final TaskLogger taskLogger;
     private final RedDotManager redDotManager;
@@ -105,6 +103,12 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
         log.info("task service init");
     }
 
+    /**
+     * 玩家任务map的redis key
+     */
+    public String playerTaskMapKey(long playerId) {
+        return TaskConstant.RedisKey.TASK_PLAYER_MAP + playerId;
+    }
 
     /**
      * 获取玩家的任务Map
@@ -112,16 +116,8 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      * @param playerId 玩家ID
      * @return 任务数据Map
      */
-    public TaskData getPlayerTask(long playerId) {
-        RMap<Long, TaskData> map = getPlayerTaskMap();
-        if (map == null || map.isEmpty()) {
-            return null;
-        }
-        return map.get(playerId);
-    }
-
-    public RMap<Long, TaskData> getPlayerTaskMap() {
-        return redissonClient.getMap(TABLE_NAME);
+    public RMap<Integer, TaskData> getPlayerTaskMap(long playerId) {
+        return redissonClient.getMap(playerTaskMapKey(playerId));
     }
 
     /**
@@ -157,26 +153,21 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
     /**
      * 同步覆盖玩家缓存任务数据
      *
-     * @param playerId   玩家id
-     * @param taskDetail 覆盖的任务数据
+     * @param playerId 玩家id
+     * @param taskData 覆盖的任务数据
      */
-    public void updatePlayerTaskCache(long playerId, TaskDetail taskDetail) {
+    public void updatePlayerTaskCache(long playerId, TaskData taskData) {
         try {
-            RMap<Long, TaskData> playerTasks = getPlayerTaskMap();
+            RMap<Integer, TaskData> playerTasks = getPlayerTaskMap(playerId);
             redisLock.lockAndRun(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
-                TaskData taskData = playerTasks.get(playerId);
-                if (taskData == null) {
-                    taskData = new TaskData();
-                    taskData.setPlayerId(playerId);
-                }
-                taskData.addTaskDetail(taskDetail);
-
                 //同步到缓存中
-                playerTasks.fastPut(playerId, taskData);
+                playerTasks.fastPut(taskData.getConfigId(), taskData);
             });
+            //同步到数据库
+            taskDataDao.save(taskData);
         } catch (Exception e) {
             log.error("更新玩家任务缓存失败 playerId={}, taskId={}, error={}",
-                    playerId, taskDetail.getConfigId(), e.getMessage(), e);
+                    playerId, taskData.getConfigId(), e.getMessage(), e);
             throw new RuntimeException("更新任务缓存失败", e);
         }
     }
@@ -189,61 +180,52 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      * @param param       参数
      */
     public void trigger(long playerId, List<TaskCfg> taskCfgList, AbstractTaskCondition<DefaultTaskConditionParam> condition, DefaultTaskConditionParam param) {
-        RMap<Long, TaskData> playerTasks = getPlayerTaskMap();
-        TaskData taskData = playerTasks.get(playerId);
-        if (taskData == null) {
-            return;
-        }
-
+        RMap<Integer, TaskData> playerTasks = getPlayerTaskMap(playerId);
+        TaskData taskData;
         log.info("玩家[{}]触发条件[{}]conditionId[{}]参数[{}]", playerId, condition.getClass().getSimpleName(), condition.getId(), param == null ? "null" : param.toString());
-
         for (TaskCfg taskCfg : taskCfgList) {
             //接了任务才触发
-            TaskDetail taskDetail = taskData.getTaskDetail(taskCfg.getId());
-            if (taskDetail == null) {
-                continue;
-            }
-
-            TaskData data = redisLock.lockAndGet(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
-                //从内存加载最新的任务对象进行处理
-                TaskData tempData = playerTasks.get(playerId);
-                TaskDetail tempDetail = tempData.getTaskDetail(taskCfg.getId());
-
-                boolean isTriggered = condition.trigger(playerId, taskCfg, taskDetail, param);
-                log.info("玩家[{}]触发任务[{}]条件[{}]触发[{}]", playerId, taskCfg.getId(), condition.getClass().getSimpleName(), isTriggered);
-                if (isTriggered) {
-                    LocalDateTime now = LocalDateTime.now();
-                    long timestamp = TimeHelper.getTimestamp(now);
-                    //任务所有条件都完成了
-                    if (tempDetail.getFinishConditionIds().size() == tempDetail.getProgress().size()) {
-                        tempDetail.setCompleteTime(timestamp);
-                        //检测是否有奖励
-                        List<Integer> awardList = taskCfg.getGetItem();
-                        //没有奖励的任务 默认直接完成并且已经领取奖励
-                        if (awardList.isEmpty() && taskCfg.getIntegralNum() <= TaskConstant.TimeConstants.MIN_INTEGRAL_REWARD) {
-                            tempDetail.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
-                            tempDetail.setRewardTime(timestamp);
-                            taskLogger.receiveTaskAward(playerId, tempDetail.getConfigId(), null, taskCfg.getIntegralNum());
-                            log.info("玩家[{}]完成任务[{}]任务没有奖励直接修改为已领取状态!", playerId, tempDetail.getConfigId());
-                        } else {
-                            tempDetail.setStatus(TaskConstant.TaskStatus.STATUS_COMPLETED);
-                            taskLogger.completeTask(playerId, tempDetail.getConfigId());
-                            log.info("玩家[{}]完成任务[{}]", playerId, tempDetail.getConfigId());
+            taskData = playerTasks.get(taskCfg.getId());
+            if (taskData != null) {
+                TaskData data = redisLock.lockAndGet(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
+                    //从内存加载最新的任务对象进行处理
+                    TaskData tempData = playerTasks.get(taskCfg.getId());
+                    boolean isTriggered = condition.trigger(taskCfg, tempData, param);
+                    log.info("玩家[{}]触发任务[{}]条件[{}]触发[{}]", playerId, taskCfg.getId(), condition.getClass().getSimpleName(), isTriggered);
+                    if (isTriggered) {
+                        LocalDateTime now = LocalDateTime.now();
+                        long timestamp = TimeHelper.getTimestamp(now);
+                        //任务所有条件都完成了
+                        if (tempData.getFinishConditionIds().size() == tempData.getProgress().size()) {
+                            tempData.setCompleteTime(timestamp);
+                            //检测是否有奖励
+                            List<Integer> awardList = taskCfg.getGetItem();
+                            //没有奖励的任务 默认直接完成并且已经领取奖励
+                            if (awardList.isEmpty() && taskCfg.getIntegralNum() <= TaskConstant.TimeConstants.MIN_INTEGRAL_REWARD) {
+                                tempData.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
+                                tempData.setRewardTime(timestamp);
+                                taskLogger.receiveTaskAward(playerId, tempData.getConfigId(), null, taskCfg.getIntegralNum());
+                                log.info("玩家[{}]完成任务[{}]任务没有奖励直接修改为已领取状态!", playerId, tempData.getConfigId());
+                            } else {
+                                tempData.setStatus(TaskConstant.TaskStatus.STATUS_COMPLETED);
+                                taskLogger.completeTask(playerId, tempData.getConfigId());
+                                log.info("玩家[{}]完成任务[{}]", playerId, tempData.getConfigId());
+                            }
                         }
+                        return tempData;
                     }
-                    return tempData;
+                    return null;
+                });
+                if (data != null) {
+                    //同步到缓存中
+                    playerTasks.fastPut(data.getConfigId(), data);
+                    //任务条件完成了 通知红点
+                    redDotManager.updateRedDot(this, taskCfg.getTaskType(), playerId);
+                    //通知进度更新
+                    noticeUpdate(playerId, data, taskCfg);
+                    //更新到数据库中
+                    taskDataDao.save(data);
                 }
-                return null;
-            });
-            if (data != null) {
-                //同步到缓存中
-                playerTasks.fastPut(playerId, data);
-                //任务条件完成了 通知红点
-                redDotManager.updateRedDot(this, taskCfg.getTaskType(), playerId);
-                //通知进度更新
-                noticeUpdate(playerId, data.getTaskDetail(taskCfg.getId()), taskCfg);
-                //更新到数据库中
-//                taskDataDao.save(data);
             }
         }
     }
@@ -255,21 +237,18 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      */
     public void loadTasks(long playerId) {
         try {
-            RMap<Long, TaskData> playerTaskMap = getPlayerTaskMap();
-            TaskData taskData = playerTaskMap.get(playerId);
-
-            Map<Integer, TaskDetail> tasks;
-            if (taskData == null || taskData.getTaskDetails() == null || taskData.getTaskDetails().isEmpty()) {
-                taskData = taskDataDao.findByPlayerId(playerId);
-
-                if (taskData != null) {
-                    tasks = taskData.getTaskDetails();
-                    playerTaskMap.fastPut(playerId, taskData);
-
-                    log.info("从数据库加载玩家[{}]任务数量: {}", playerId, tasks == null ? 0 : tasks.size());
+            RMap<Integer, TaskData> playerTasks = getPlayerTaskMap(playerId);
+            List<TaskData> tasks;
+            tasks = playerTasks.values().stream().toList();
+            if (tasks.isEmpty()) {
+                tasks = taskDataDao.findByPlayerId(playerId);
+                if (tasks != null) {
+                    for (TaskData taskData : tasks) {
+                        playerTasks.fastPut(taskData.getConfigId(), taskData);
+                    }
+                    log.info("从数据库加载玩家[{}]任务数量: {}", playerId, tasks.size());
                 }
             } else {
-                tasks = taskData.getTaskDetails();
                 log.debug("从缓存加载玩家[{}]任务数量: {}", playerId, tasks.size());
             }
         } catch (Exception e) {
@@ -302,18 +281,16 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      */
     public void checkTask(long playerId) {
         redisLock.lockAndRun(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
-            RMap<Long, TaskData> playerTaskMap = getPlayerTaskMap();
-            TaskData tmpData = playerTaskMap.get(playerId);
+            RMap<Integer, TaskData> playerTasks = getPlayerTaskMap(playerId);
             boolean noticeRedDot = false;
 
             // 删除过期任务
-            noticeRedDot |= removeExpiredTasks(playerId, tmpData);
+            noticeRedDot |= removeExpiredTasks(playerId, playerTasks);
 
             // 添加新任务
-            noticeRedDot |= addNewTasks(playerId, tmpData);
+            noticeRedDot |= addNewTasks(playerId, playerTasks);
 
             if (noticeRedDot) {
-                playerTaskMap.fastPut(playerId, tmpData);
                 //更新红点信息
                 redDotManager.updateRedDot(this, 0, playerId);
             }
@@ -323,34 +300,47 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
     /**
      * 删除过期任务
      *
-     * @param playerId 玩家ID
+     * @param playerId    玩家ID
+     * @param playerTasks 玩家任务Map
      * @return 是否需要更新红点
      */
-    private boolean removeExpiredTasks(long playerId, TaskData taskData) {
-        try {
-            if (taskData == null || taskData.getTaskDetails() == null || taskData.getTaskDetails().isEmpty()) {
-                return false;
-            }
+    private boolean removeExpiredTasks(long playerId, RMap<Integer, TaskData> playerTasks) {
+        List<TaskData> deletedTasks = new ArrayList<>();
 
-            return taskData.getTaskDetails().entrySet().removeIf(en -> {
-                Integer taskId = en.getKey();
-                TaskDetail detail = en.getValue();
+        try {
+            for (Map.Entry<Integer, TaskData> entry : playerTasks.entrySet()) {
+                Integer taskId = entry.getKey();
+                TaskData taskData = entry.getValue();
                 TaskCfg taskCfg = GameDataManager.getTaskCfg(taskId);
 
+                boolean shouldDelete = false;
                 //有配置才处理
                 if (taskCfg != null) {
                     //检测任务是否需要删除
-                    if (shouldDelete(detail, taskCfg)) {
-                        return true;
+                    if (shouldDelete(taskData, taskCfg)) {
+                        shouldDelete = true;
                     }
                 } else {
                     //配置不存在则删除任务
+                    shouldDelete = true;
                     log.warn("任务配置不存在，将删除任务 playerId={}, taskId={}", playerId, taskId);
-                    return true;
                 }
 
-                return false;
-            });
+                if (shouldDelete) {
+                    deletedTasks.add(taskData);
+                }
+            }
+
+            //有需要删除的过期任务
+            if (!deletedTasks.isEmpty()) {
+                //删除数据库
+                taskDataDao.deleteAllList(deletedTasks);
+                for (TaskData taskData : deletedTasks) {
+                    playerTasks.fastRemove(taskData.getConfigId());
+                    log.info("玩家[{}]任务[{}]过期!", playerId, taskData.getConfigId());
+                }
+                return true;
+            }
         } catch (Exception e) {
             log.error("删除过期任务失败 playerId={}, error={}", playerId, e.getMessage(), e);
         }
@@ -361,24 +351,25 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
     /**
      * 添加新任务
      *
-     * @param playerId 玩家ID
+     * @param playerId    玩家ID
+     * @param playerTasks 玩家任务Map
      * @return 是否需要更新红点
      */
-    private boolean addNewTasks(long playerId, TaskData tmpData) {
+    private boolean addNewTasks(long playerId, RMap<Integer, TaskData> playerTasks) {
         // 获取当前可接取的任务配置列表
         List<TaskCfg> availableTaskConfigs = getAvailableTaskConfigs();
         // 筛选出需要新增的任务
-        Map<Integer, TaskDetail> newTasks = createNewTasksForPlayer(playerId, tmpData, availableTaskConfigs);
+        List<TaskData> newTasks = createNewTasksForPlayer(playerId, playerTasks, availableTaskConfigs);
         //有任务才更新
         if (!newTasks.isEmpty()) {
             //覆盖数据库数据
-//            taskDataDao.saveAll(newTasks);
+            taskDataDao.saveAll(newTasks);
             //覆盖缓存
-            newTasks.forEach((k, v) -> {
-//                playerTasks.fastPut(taskData.getConfigId(), taskData);
+            newTasks.forEach(taskData -> {
+                playerTasks.fastPut(taskData.getConfigId(), taskData);
                 //记录领取任务日志
-                taskLogger.receiveTask(playerId, k);
-                log.info("玩家[{}]领取到[{}]任务", playerId, k);
+                taskLogger.receiveTask(playerId, taskData.getConfigId());
+                log.info("玩家[{}]领取到[{}]任务", playerId, taskData.getConfigId());
             });
             return true;
         }
@@ -482,36 +473,34 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      * 为玩家创建新任务
      *
      * @param playerId             玩家ID
+     * @param playerTasks          玩家任务Map
      * @param availableTaskConfigs 可用任务配置列表
      * @return 新创建的任务列表
      */
-    private Map<Integer, TaskDetail> createNewTasksForPlayer(long playerId, TaskData taskData, List<TaskCfg> availableTaskConfigs) {
-        if (availableTaskConfigs.isEmpty()) {
-            return Collections.emptyMap();
+    private List<TaskData> createNewTasksForPlayer(long playerId, RMap<Integer, TaskData> playerTasks, List<TaskCfg> availableTaskConfigs) {
+        List<TaskData> receiveList = new ArrayList<>();
+        //检测是否有新任务
+        if (!availableTaskConfigs.isEmpty()) {
+            availableTaskConfigs.forEach(taskCfg -> {
+                List<Integer> taskCfgTaskConditionId = taskCfg.getTaskConditionId();
+                if (taskCfgTaskConditionId != null && !taskCfgTaskConditionId.isEmpty()) {
+                    int conditionId = taskCfgTaskConditionId.getFirst();
+                    AbstractTaskCondition<DefaultTaskConditionParam> abstractTaskCondition = taskManager.getTaskCondition(conditionId);
+                    //有处理器才给玩家领取任务
+                    if (abstractTaskCondition != null) {
+                        //不重复领取任务
+                        if (!playerTasks.containsKey(taskCfg.getId())) {
+                            TaskData taskData = createNewTaskData(playerId, taskCfg.getId());
+                            receiveList.add(taskData);
+                        }
+                    } else {
+                        log.warn("配置任务[{}],条件[{}]没有处理器!", taskCfg.getId(), conditionId);
+                    }
+                }
+            });
         }
 
-        Map<Integer, TaskDetail> receiveMap = new HashMap<>();
-        //检测是否有新任务
-        availableTaskConfigs.forEach(taskCfg -> {
-            List<Integer> taskCfgTaskConditionId = taskCfg.getTaskConditionId();
-            if (taskCfgTaskConditionId != null && !taskCfgTaskConditionId.isEmpty()) {
-                int conditionId = taskCfgTaskConditionId.getFirst();
-                AbstractTaskCondition<DefaultTaskConditionParam> abstractTaskCondition = taskManager.getTaskCondition(conditionId);
-                //有处理器才给玩家领取任务
-                if (abstractTaskCondition != null) {
-                    //不重复领取任务
-                    if (!taskData.hasTask(taskCfg.getId())) {
-                        TaskDetail taskDetail = createNewTaskDetail(playerId, taskCfg.getId());
-                        taskData.addTaskDetail(taskDetail);
-                        receiveMap.put(taskDetail.getConfigId(), taskDetail);
-                    }
-                } else {
-                    log.warn("配置任务[{}],条件[{}]没有处理器!", taskCfg.getId(), conditionId);
-                }
-            }
-        });
-
-        return receiveMap;
+        return receiveList;
     }
 
     /**
@@ -521,13 +510,13 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      * @param taskId   任务配置ID
      * @return 新的任务数据
      */
-    private TaskDetail createNewTaskDetail(long playerId, int taskId) {
-        TaskDetail taskDetail = new TaskDetail();
-        taskDetail.setConfigId(taskId);
-        taskDetail.setStatus(TaskConstant.TaskStatus.STATUS_IN_PROGRESS);
-        taskDetail.setCreateTime(System.currentTimeMillis());
-        taskDetail.setPlayerId(playerId);
-        return taskDetail;
+    private TaskData createNewTaskData(long playerId, int taskId) {
+        TaskData taskData = new TaskData();
+        taskData.setConfigId(taskId);
+        taskData.setStatus(TaskConstant.TaskStatus.STATUS_IN_PROGRESS);
+        taskData.setCreateTime(System.currentTimeMillis());
+        taskData.setPlayerId(playerId);
+        return taskData;
     }
 
     /**
@@ -592,7 +581,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      *
      * @return true 需要删除
      */
-    public boolean shouldDelete(TaskDetail taskDetail, TaskCfg taskCfg) {
+    public boolean shouldDelete(TaskData taskData, TaskCfg taskCfg) {
         // 获取同组的激活任务
         List<TaskCfg> activeGroupTasks = getActiveTasksInGroup(taskCfg.getGroup());
 
@@ -611,7 +600,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
 
         // 积分大奖任务需要检查时间刷新
         if (taskCfg.getTaskType() == TaskConstant.TaskType.POINTS_AWARD) {
-            LocalDateTime createTime = getLocalDateTimeFromTimestamp(taskDetail.getCreateTime());
+            LocalDateTime createTime = getLocalDateTimeFromTimestamp(taskData.getCreateTime());
             return shouldRefreshTask(createTime);
         }
 
@@ -694,60 +683,60 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
     /**
      * 组装任务条件消息体
      *
-     * @param taskDetail 任务数据
-     * @param taskCfg    任务配置
+     * @param taskData 任务数据
+     * @param taskCfg  任务配置
      * @return 任务条件消息体
      */
-    public List<TaskCondition> assembleTaskConditions(long playerId, TaskDetail taskDetail, TaskCfg taskCfg) {
+    public List<TaskCondition> assembleTaskConditions(TaskData taskData, TaskCfg taskCfg) {
         List<TaskCondition> conditions = new ArrayList<>();
-        Map<Integer, Long> taskDataProgress = taskDetail.getProgress();
+        Map<Integer, Long> taskDataProgress = taskData.getProgress();
         // 判断进度是否为空，统一处理
         if (taskDataProgress == null || taskDataProgress.isEmpty()) {
-            addTaskConditionToList(playerId, taskCfg.getTaskConditionId().getFirst(), taskDetail, taskCfg, conditions);
+            addTaskConditionToList(taskCfg.getTaskConditionId().getFirst(), taskData, taskCfg, conditions);
         } else {
-            taskDataProgress.forEach((taskId, progress) -> addTaskConditionToList(playerId, taskId, taskDetail, taskCfg, conditions));
+            taskDataProgress.forEach((taskId, progress) -> addTaskConditionToList(taskId, taskData, taskCfg, conditions));
         }
         return conditions;
     }
 
-    private void addTaskConditionToList(long playerId, int conditionId, TaskDetail taskDetail, TaskCfg taskCfg, List<TaskCondition> conditions) {
+    private void addTaskConditionToList(int conditionId, TaskData taskData, TaskCfg taskCfg, List<TaskCondition> conditions) {
         try {
             AbstractTaskCondition<DefaultTaskConditionParam> taskCondition = taskManager.getTaskCondition(conditionId);
             if (taskCondition != null) {
-                TaskCondition condition = taskCondition.assembleTaskCondition(taskDetail, taskCfg);
+                TaskCondition condition = taskCondition.assembleTaskCondition(taskData, taskCfg);
                 conditions.add(condition);
             } else {
                 log.warn("任务[{}]条件[{}]找不到条件处理器! playerId={}",
-                        taskDetail.getConfigId(), conditionId, playerId);
+                        taskData.getConfigId(), conditionId, taskData.getPlayerId());
             }
         } catch (Exception e) {
             log.error("组装任务条件失败 taskId={}, conditionId={}, playerId={}, error={}",
-                    taskDetail.getConfigId(), conditionId, playerId, e.getMessage(), e);
+                    taskData.getConfigId(), conditionId, taskData.getPlayerId(), e.getMessage(), e);
         }
     }
 
     /**
      * 组装任务消息
      *
-     * @param taskDetail 任务数据
-     * @param config     配置
+     * @param taskData 任务数据
+     * @param config   配置
      * @return 任务消息体
      */
-    public Task assembleTask(long playerId, TaskDetail taskDetail, TaskCfg config) {
+    public Task assembleTask(TaskData taskData, TaskCfg config) {
         Task task = new Task();
         task.setConfigId(config.getId());
         //任务状态
-        task.setStatus(taskDetail.getStatus());
+        task.setStatus(taskData.getStatus());
         //任务条件
-        task.setConditions(assembleTaskConditions(playerId, taskDetail, config));
+        task.setConditions(assembleTaskConditions(taskData, config));
         return task;
     }
 
     /**
      * 通知玩家任务更新
      */
-    public void noticeUpdate(long playerId, TaskDetail taskDetail, TaskCfg config) {
-        Task task = assembleTask(playerId, taskDetail, config);
+    public void noticeUpdate(long playerId, TaskData taskData, TaskCfg config) {
+        Task task = assembleTask(taskData, config);
         NotifyUpdateTask updateTask = new NotifyUpdateTask();
         updateTask.setTaskList(List.of(task));
         PFSession pfSession = clusterSystem.getSession(playerId);
@@ -761,30 +750,26 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      */
     public void noticeUpdateAll(long playerId) {
         NotifyUpdateTask updateTask = new NotifyUpdateTask();
-
-        RMap<Long, TaskData> playerTaskMap = getPlayerTaskMap();
-        TaskData taskData = playerTaskMap.get(playerId);
-        if (taskData == null || taskData.getTaskDetails() == null || taskData.getTaskDetails().isEmpty()) {
-            return;
-        }
-
-        //已领取任务不显示
-        List<Task> tasks = taskData.getTaskDetails().values().stream().map(detail -> {
-            if (detail.getStatus() == TaskConstant.TaskStatus.STATUS_REWARDED) {
-                return null;
-            }
-            TaskCfg taskCfg = GameDataManager.getTaskCfg(detail.getConfigId());
-            if (taskCfg == null) {
-                return null;
-            }
-            return assembleTask(playerId, detail, taskCfg);
-        }).filter(Objects::nonNull).toList();
-        //有任务才推送更新
-        if (!tasks.isEmpty()) {
-            updateTask.setTaskList(tasks);
-            PFSession pfSession = clusterSystem.getSession(playerId);
-            if (pfSession != null) {
-                pfSession.send(updateTask);
+        RMap<Integer, TaskData> dataMap = getPlayerTaskMap(playerId);
+        if (dataMap != null) {
+            //已领取任务不显示
+            List<Task> tasks = dataMap.values().stream().map(taskData -> {
+                if (taskData.getStatus() == TaskConstant.TaskStatus.STATUS_REWARDED) {
+                    return null;
+                }
+                TaskCfg taskCfg = GameDataManager.getTaskCfg(taskData.getConfigId());
+                if (taskCfg == null) {
+                    return null;
+                }
+                return assembleTask(taskData, taskCfg);
+            }).filter(Objects::nonNull).toList();
+            //有任务才推送更新
+            if (!tasks.isEmpty()) {
+                updateTask.setTaskList(tasks);
+                PFSession pfSession = clusterSystem.getSession(playerId);
+                if (pfSession != null) {
+                    pfSession.send(updateTask);
+                }
             }
         }
     }
@@ -807,21 +792,16 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      */
     @Override
     public List<RedDotDetails> initialize(long playerId, int submodule) {
-        TaskData taskData = getPlayerTask(playerId);
-        if (taskData == null || taskData.getTaskDetails() == null || taskData.getTaskDetails().isEmpty()) {
-            return Collections.emptyList();
-        }
-
         List<RedDotDetails> redDotList = new ArrayList<>();
-
-        List<TaskDetail> tasks = taskData.getTaskDetails().values().stream().filter(taskDetail -> taskDetail.getStatus() == TaskConstant.TaskStatus.STATUS_COMPLETED).toList();
+        RMap<Integer, TaskData> playerTasks = getPlayerTaskMap(playerId);
+        List<TaskData> tasks = playerTasks.values().stream().filter(taskData -> taskData.getStatus() == TaskConstant.TaskStatus.STATUS_COMPLETED).toList();
         if (!tasks.isEmpty()) {
-            List<TaskDetail> pointAwardTasks = tasks;
+            List<TaskData> pointAwardTasks = tasks;
             if (submodule != 0) {
                 //筛选任务
                 pointAwardTasks = tasks.stream()
-                        .filter(detail -> {
-                            TaskCfg taskCfg = GameDataManager.getTaskCfg(detail.getConfigId());
+                        .filter(taskData -> {
+                            TaskCfg taskCfg = GameDataManager.getTaskCfg(taskData.getConfigId());
                             return taskCfg.getTaskType() == submodule;
                         })
                         .toList();
@@ -832,7 +812,7 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
                 redDotDetails.setRedDotModule(RedDotDetails.RedDotModule.TASK);
                 //红点子模块
                 redDotDetails.setRedDotSubmodule(submodule);
-                List<Integer> taskIds = tasks.stream().map(TaskDetail::getConfigId).toList();
+                List<Integer> taskIds = tasks.stream().map(TaskData::getConfigId).toList();
                 redDotDetails.setCount(taskIds.size());
                 JSONObject extra = new JSONObject();
                 extra.put("taskIds", taskIds);
@@ -850,25 +830,65 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
      * @return
      */
     public List<Task> getPlayerTaskList(long playerId, int type) {
-        TaskData taskData = getPlayerTask(playerId);
-        if (taskData == null || taskData.getTaskDetails() == null || taskData.getTaskDetails().isEmpty()) {
-            return Collections.emptyList();
+        List<Task> taskList = new ArrayList<>();
+        TaskData taskData = getPlayerTaskMap(playerId);
+        if (taskData == null) {
+            return taskList;
         }
-
-        //已领取任务不显示
-        return taskData.getTaskDetails().values().stream().map(taskDetail -> {
-            if (taskDetail.getStatus() == TaskConstant.TaskStatus.STATUS_REWARDED) {
-                return null;
+        Map<Integer, TaskSortParam> map = new HashMap<>(dataMap.size());
+        //生成数据
+        for (TaskData taskData : dataMap.values()) {
+            //已领取任务不显示
+            if (taskData.getStatus() == TaskConstant.TaskStatus.STATUS_REWARDED) {
+                continue;
             }
-            TaskCfg taskCfg = GameDataManager.getTaskCfg(taskDetail.getConfigId());
+            TaskCfg taskCfg = GameDataManager.getTaskCfg(taskData.getConfigId());
             if (taskCfg == null) {
-                return null;
+                continue;
             }
             if (taskCfg.getTaskType() != type) {
-                return null;
+                continue;
             }
-            return assembleTask(playerId, taskDetail, taskCfg);
-        }).filter(Objects::nonNull).toList();
+            Task task = assembleTask(taskData, taskCfg);
+            long minProgress = 100;
+            if (taskData.getStatus() != TaskConstant.TaskStatus.STATUS_COMPLETED) {
+                for (TaskCondition condition : task.getConditions()) {
+                    long progress = condition.getProgress() * 100 / condition.getConfigParam();
+                    minProgress = Math.min(minProgress, progress);
+                }
+            }
+            map.put(taskData.getConfigId(), new TaskSortParam(task, taskData, minProgress));
+        }
+        if (map.isEmpty()) {
+            return taskList;
+        }
+        //排序
+        return map.values().stream().sorted((o1, o2) -> {
+            TaskData taskData1 = o1.taskData;
+            TaskData taskData2 = o2.taskData;
+            int o1Status = (taskData1.getStatus() + 1) % 3;
+            int o2Status = (taskData2.getStatus() + 1) % 3;
+            int compare = Integer.compare(o1Status, o2Status);
+            if (compare == 0) {
+                switch (taskData1.getStatus()) {
+                    case TaskConstant.TaskStatus.STATUS_COMPLETED -> {
+                        return -Long.compare(taskData1.getCompleteTime(), taskData2.getCompleteTime());
+                    }
+                    case TaskConstant.TaskStatus.STATUS_IN_PROGRESS -> {
+                        int compared = Long.compare(o1.progress, o2.progress);
+                        if (compared == 0) {
+                            return -Integer.compare(taskData1.getConfigId(), taskData2.getConfigId());
+                        } else {
+                            return -compared;
+                        }
+                    }
+                    case TaskConstant.TaskStatus.STATUS_REWARDED -> {
+                        return 1;
+                    }
+                }
+            }
+            return -compare;
+        }).map(TaskSortParam::task).toList();
     }
 
     /**
@@ -884,37 +904,33 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
             log.warn("玩家[{}]领取[{}]任务奖励失败!配置不存在!", playerId, taskId);
             return false;
         }
-
-        RMap<Long, TaskData> playerTaskMap = getPlayerTaskMap();
-        TaskData taskData = playerTaskMap.get(playerId);
-        if (taskData == null || taskData.getTaskDetails() == null || taskData.getTaskDetails().isEmpty()) {
-            log.error("玩家[{}]任务数据taskData为空", playerId);
+        RMap<Integer, TaskData> taskDataMap = getPlayerTaskMap(playerId);
+        if (taskDataMap == null) {
+            log.error("玩家[{}]任务数据Map为空", playerId);
             return false;
         }
 
         try {
             return redisLock.lockAndGet(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
-                TaskData tmpData = playerTaskMap.get(playerId);
-                if (tmpData == null || tmpData.getTaskDetails() == null || tmpData.getTaskDetails().isEmpty()) {
+                TaskData taskData = taskDataMap.get(taskId);
+                if (taskData == null) {
                     log.warn("玩家[{}]领取[{}]任务奖励失败!任务不存在!", playerId, taskId);
                     return false;
                 }
-
-                TaskDetail taskDetail = tmpData.getTaskDetail(taskId);
                 //状态不对
-                if (taskDetail == null || taskDetail.getStatus() != TaskConstant.TaskStatus.STATUS_COMPLETED) {
-                    log.warn("玩家[{}]领取[{}]任务奖励失败!任务状态[{}]", playerId, taskId, taskDetail.getStatus());
+                if (taskData.getStatus() != TaskConstant.TaskStatus.STATUS_COMPLETED) {
+                    log.warn("玩家[{}]领取[{}]任务奖励失败!任务状态[{}]", playerId, taskId, taskData.getStatus());
                     return false;
                 }
 
                 try {
                     //修改任务状态
-                    taskDetail.setRewardTime(System.currentTimeMillis());
-                    taskDetail.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
+                    taskData.setRewardTime(System.currentTimeMillis());
+                    taskData.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
                     //同步到缓存中
-                    playerTaskMap.fastPut(playerId, tmpData);
+                    taskDataMap.fastPut(taskData.getConfigId(), taskData);
                     //同步到数据库
-//                    taskDataDao.save(taskData);
+                    taskDataDao.save(taskData);
 
                     List<Integer> getItem = taskCfg.getGetItem();
                     int integralNum = taskCfg.getIntegralNum();
@@ -1022,17 +1038,5 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
     @Override
     public List<EGameEventType> needMonitorEvents() {
         return List.of(EGameEventType.CLOCK_EVENT);
-    }
-
-    public void moveToMongo(long playerId) {
-        RMap<Long, TaskData> playerTasks = getPlayerTaskMap();
-        redisLock.lockAndRun(playerTaskMapLockKey(playerId), LOCK_TIME, () -> {
-            TaskData taskData = playerTasks.get(playerId);
-            if (taskData == null) {
-                return;
-            }
-            taskDataDao.save(taskData);
-            playerTasks.remove(playerId);
-        });
     }
 }

@@ -91,6 +91,12 @@ public interface Code {
     int BANKER_CANT_BET = 49136;
     // 庄家不能押注
     int HOMEOWNER_CANT_BET = 49137;
+    // 庄家不能退出游戏
+    int HOMEOWNER_CANT_EXIT = 49138;
+    //请输入您要增加的上庄准备金	开房间功能
+    int AMOUNT_OF_RESERVES_IS_INCORRECT = 49139;
+    // 上庄的准备金不足，和配置相比
+    int AMOUNT_OF_RESERVES_IS_INCORRECT_CONFIG = 49140;
     // 請輸入正確的code
     int CODE_ERROR = 436;
     // 不能绑定自己

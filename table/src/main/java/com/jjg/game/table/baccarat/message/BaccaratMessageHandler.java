@@ -148,7 +148,7 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         Room room = roomDao.getRoom(reqJoinRoomInGame.gameType, reqJoinRoomInGame.roomId);
         if (room == null) {
             // 房间已经销毁或者解散
-            RespJoinRoomInGame respJoinRoomInGame = new RespJoinRoomInGame(Code.PARAM_ERROR);
+            RespJoinRoomInGame respJoinRoomInGame = new RespJoinRoomInGame(Code.ROOM_NOT_FOUND);
             playerController.send(respJoinRoomInGame);
             return;
         }
@@ -161,6 +161,13 @@ public class BaccaratMessageHandler implements IConsoleReceiver {
         // 进入房间需要先将玩家从临时房间中移除
         baccaratTempRoom.exit(playerController.getSession(), playerController);
         //等待进入人数+1
+        boolean joinNum = matchDataDao.changeRoomJoinNum(reqJoinRoomInGame.gameType, room.getRoomCfgId(), room.getId(), room.getMaxLimit(), 1, 1);
+        if (!joinNum) {
+            // 房间已满
+            respJoinRoomInGame.code = Code.ROOM_FULL;
+            playerController.send(respJoinRoomInGame);
+            return;
+        }
         matchDataDao.addPlayerExpiredWaiting(reqJoinRoomInGame.roomId, playerController.playerId());
         // 如果就在当前节点
         if (clusterCurrentNodePath.equalsIgnoreCase(room.getPath())) {

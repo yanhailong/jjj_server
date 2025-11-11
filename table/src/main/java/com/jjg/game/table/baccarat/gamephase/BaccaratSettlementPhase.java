@@ -335,7 +335,7 @@ public class BaccaratSettlementPhase extends BaseSettlementPhase<BaccaratGameDat
             }
         }
         if (changeParam != null) {
-            changeParam.addBankerChangeGold(playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal());
+            changeParam.addBankerChangeGold(Math.max(0, playerSettlementData.getTotalWin() - playerSettlementData.getBetTotal()));
             changeParam.addTotalTaxRevenue(playerSettlementData.getTaxation());
         }
         return playerSettlementData;

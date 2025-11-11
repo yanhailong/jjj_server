@@ -4,6 +4,7 @@ import com.jjg.game.core.constant.EGameType;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 房间对象
@@ -272,7 +273,7 @@ public class Room {
     /**
      * 扣除庄家金币
      */
-    public void deductBankerPredicateItem(long deductItemNum) {
+    public void deductBankerPredicateItem(long deductItemNum, AtomicLong changeValue) {
     }
 
     /**

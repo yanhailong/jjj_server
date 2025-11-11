@@ -30,7 +30,7 @@ import java.util.List;
 @Repository
 public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistoryBean, Long> {
 
-//    private Snowflake snowflake = new Snowflake(NodeType.GAME.getValue(), NodeType.GAME.getValue());
+    //    private Snowflake snowflake = new Snowflake(NodeType.GAME.getValue(), NodeType.GAME.getValue());
     private final SnowflakeManager snowflakeManager;
 
     public FriendRoomBillHistoryDao(@Autowired MongoTemplate mongoTemplate, @Lazy SnowflakeManager snowflakeManager) {
@@ -51,12 +51,12 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
      * 好友房历史账单分页
      */
     public List<FriendRoomBillHistoryBean> pageFriendRoomBillHistory(
-        long playerId, int gameType, int pageIdx, int pageSize) {
+            long playerId, int gameType, int pageIdx, int pageSize) {
         return mongoTemplate.find(
-            Query.query(Criteria.where("roomCreator").is(playerId).and("gameType").is(gameType))
-                .with(Pageable.ofSize(pageSize).withPage(pageIdx))
-                .with(Sort.by("createdAt").descending()),
-            FriendRoomBillHistoryBean.class
+                Query.query(Criteria.where("roomCreator").is(playerId).and("gameType").is(gameType))
+                        .with(Pageable.ofSize(pageSize).withPage(pageIdx))
+                        .with(Sort.by("createdAt").descending()),
+                FriendRoomBillHistoryBean.class
         );
     }
 
@@ -76,17 +76,17 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
             return new ArrayList<>();
         }
         Aggregation aggregation = Aggregation.newAggregation(
-            Aggregation.match(
-                Criteria.where("roomCreator").is(playerId)
-                    .and("gameType").is(gameType)
-                    .and("month").in(month)),
-            Aggregation.group("month").count().as("count"),
-            Aggregation.project()
-                .and("_id").as("month")
-                .and("count").as("count")
+                Aggregation.match(
+                        Criteria.where("roomCreator").is(playerId)
+                                .and("gameType").is(gameType)
+                                .and("month").in(month)),
+                Aggregation.group("month").count().as("count"),
+                Aggregation.project()
+                        .and("_id").as("month")
+                        .and("count").as("count")
         );
         AggregationResults<MonthStatisticsDto> results =
-            mongoTemplate.aggregate(aggregation, "friendRoomBillHistoryBean", MonthStatisticsDto.class);
+                mongoTemplate.aggregate(aggregation, "friendRoomBillHistoryBean", MonthStatisticsDto.class);
         return results.getMappedResults();
     }
 
@@ -101,33 +101,33 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
      * 按游戏类型获取好友房账单历史
      */
     public List<GameBillResult> pageFriendRoomBillByGameType(long playerId, int pageIdx, int pageSize) {
-        if(pageSize < 1){
+        if (pageSize < 1) {
             pageSize = 5;
         }
 
         Aggregation aggregation =
-            Aggregation.newAggregation(
-                Aggregation.match(Criteria.where("roomCreator").is(playerId)),
-                Aggregation.group("gameType")
-                    .sum("totalIncome").as("totalIncome")
-                    .sum("totalFlowing").as("totalWin")
-                    .sum(ConditionalOperators.when(
-                            Criteria.where("hasTookIncome").is(false)
-                        )
-                        .thenValueOf("totalIncome").otherwise(0)).as("totalIncomeCanTake")
-                    .count().as("totalRound"),
-                Aggregation.project()
-                    .and("_id").as("gameType")
-                    .and("totalIncome").as("totalIncome")
-                    .and("totalWin").as("totalWin")
-                    .and("totalRound").as("totalRound")
-                    .and("totalIncomeCanTake").as("totalIncomeCanTake")
-                    .andExclude("_id"),
-                Aggregation.skip((long) pageIdx * pageSize),
-                Aggregation.limit(pageSize)
-            );
+                Aggregation.newAggregation(
+                        Aggregation.match(Criteria.where("roomCreator").is(playerId)),
+                        Aggregation.group("gameType")
+                                .sum("totalIncome").as("totalIncome")
+                                .sum("totalFlowing").as("totalWin")
+                                .sum(ConditionalOperators.when(
+                                                Criteria.where("hasTookIncome").is(false)
+                                        )
+                                        .thenValueOf("totalIncome").otherwise(0)).as("totalIncomeCanTake")
+                                .count().as("totalRound"),
+                        Aggregation.project()
+                                .and("_id").as("gameType")
+                                .and("totalIncome").as("totalIncome")
+                                .and("totalWin").as("totalWin")
+                                .and("totalRound").as("totalRound")
+                                .and("totalIncomeCanTake").as("totalIncomeCanTake")
+                                .andExclude("_id"),
+                        Aggregation.skip((long) pageIdx * pageSize),
+                        Aggregation.limit(pageSize)
+                );
         AggregationResults<GameBillResult> results =
-            mongoTemplate.aggregate(aggregation, "friendRoomBillHistoryBean", GameBillResult.class);
+                mongoTemplate.aggregate(aggregation, "friendRoomBillHistoryBean", GameBillResult.class);
         return results.getMappedResults();
     }
 
@@ -138,18 +138,16 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
      */
     public List<Item> getPlayerAllReward(long playerId) {
         Aggregation aggregation =
-            Aggregation.newAggregation(
-                Aggregation.match(Criteria.where("roomCreator").is(playerId).and("hasTookIncome").is(false)),
-                Aggregation.group("itemId")
-                    .sum("totalIncome").as("totalIncome"),
-                Aggregation.project()
-                    .and("_id").as("itemId")
-                    .and("totalIncome").as("itemCount")
-                    .andExclude("_id")
-            );
-        AggregationResults<Item> results =
-            mongoTemplate.aggregate(aggregation, "friendRoomBillHistoryBean", Item.class);
-        return results.getMappedResults();
+                Aggregation.newAggregation(
+                        Aggregation.match(Criteria.where("roomCreator").is(playerId).and("hasTookIncome").is(false)),
+                        Aggregation.group("itemId")
+                                .sum("totalIncome").as("totalIncome"),
+                        Aggregation.project()
+                                .and("_id").as("id")
+                                .and("totalIncome").as("itemCount")
+                );
+        AggregationResults<Item> rawResults = mongoTemplate.aggregate(aggregation, "friendRoomBillHistoryBean", Item.class);
+        return rawResults.getMappedResults();
     }
 
     /**
@@ -158,9 +156,9 @@ public class FriendRoomBillHistoryDao extends MongoBaseDao<FriendRoomBillHistory
     public void updateAllHistoryRewardTook(long playerId) {
         // 更新玩家所有未领取的奖励状态
         mongoTemplate.updateMulti(Query.query(
-                Criteria.where("roomCreator").is(playerId).and("hasTookIncome").is(false)),
-            Update.update("hasTookIncome", true),
-            FriendRoomBillHistoryBean.class);
+                        Criteria.where("roomCreator").is(playerId).and("hasTookIncome").is(false)),
+                Update.update("hasTookIncome", true),
+                FriendRoomBillHistoryBean.class);
     }
 
     /**
