@@ -6,10 +6,7 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
-import com.jjg.game.core.dao.PlayerSessionTokenDao;
-import com.jjg.game.core.data.DeviceType;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.PlayerSessionToken;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.pb.ReqExitGame;
@@ -70,8 +67,9 @@ public class RoomMessageHandler {
                     playerController.send(new ResExitGame(Code.PARAM_ERROR));
                     return;
                 }
-                if (!gameController.canExitGame(playerId)) {
-                    playerController.send(new ResExitGame(Code.FORBID));
+                int core = gameController.canExitGame(playerId);
+                if (core != Code.SUCCESS) {
+                    playerController.send(new ResExitGame(core));
                     return;
                 }
                 gamePlayer = gameController.getGamePlayer(playerId);

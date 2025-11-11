@@ -118,10 +118,10 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * 是否能退出游戏
      *
      * @param playerId 玩家id
-     * @return true 能 false 不能
+     * @return 状态码
      */
-    public boolean canExitGame(long playerId) {
-        return true;
+    public int canExitGame(long playerId) {
+        return Code.SUCCESS;
     }
 
     /**

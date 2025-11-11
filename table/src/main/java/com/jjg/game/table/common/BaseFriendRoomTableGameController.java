@@ -218,11 +218,13 @@ public abstract class BaseFriendRoomTableGameController<G extends TableGameDataV
 
 
     @Override
-    public boolean canExitGame(long playerId) {
+    public int canExitGame(long playerId) {
         //如果玩家在上庄则不能退出
         if (getRoom() instanceof FriendRoom friendRoom) {
             long roomBankerId = friendRoom.roomBankerId();
-            return roomBankerId != playerId && super.canExitGame(playerId);
+            if (roomBankerId == playerId) {
+                return Code.HOMEOWNER_CANT_EXIT;
+            }
         }
         return super.canExitGame(playerId);
     }

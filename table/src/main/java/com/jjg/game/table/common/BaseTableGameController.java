@@ -74,8 +74,11 @@ public abstract class BaseTableGameController<G extends TableGameDataVo> extends
     }
 
     @Override
-    public boolean canExitGame(long playerId) {
-        return !(getCurrentGamePhase() == EGamePhase.BET && gameDataVo.getPlayerBetInfo().containsKey(playerId));
+    public int canExitGame(long playerId) {
+        if (getCurrentGamePhase() == EGamePhase.BET && gameDataVo.getPlayerBetInfo().containsKey(playerId)) {
+            return Code.FORBID;
+        }
+        return Code.SUCCESS;
     }
 
     /**

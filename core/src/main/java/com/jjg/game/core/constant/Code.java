@@ -91,6 +91,8 @@ public interface Code {
     int BANKER_CANT_BET = 49136;
     // 庄家不能押注
     int HOMEOWNER_CANT_BET = 49137;
+    // 庄家不能退出游戏
+    int HOMEOWNER_CANT_EXIT = 49138;
     // 請輸入正確的code
     int CODE_ERROR = 436;
     // 不能绑定自己
