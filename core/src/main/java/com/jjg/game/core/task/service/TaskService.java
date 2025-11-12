@@ -393,9 +393,8 @@ public class TaskService implements IRedDotService, IPlayerLoginSuccess, GameEve
                 taskLogger.receiveTask(playerId, k);
                 log.info("玩家[{}]领取到[{}]任务", playerId, k);
             });
-            result.data = tmpData;
-            return result;
         }
+        result.data = tmpData;
         return result;
     }
 
