@@ -93,6 +93,7 @@ public class RoomMessageHandler {
         ResApplyBankerInFriendRoom res = new ResApplyBankerInFriendRoom(Code.PARAM_ERROR);
         long playerId = playerController.playerId();
         if (req.predictCostGold <= 0) {
+            res.code = Code.AMOUNT_OF_RESERVES_IS_INCORRECT;
             playerController.send(res);
             return;
         }

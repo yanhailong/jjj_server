@@ -1,8 +1,10 @@
 package com.jjg.game.room.friendroom;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GlobalSampleConstantId;
 import com.jjg.game.core.data.*;
@@ -203,10 +205,15 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             int gameTransactionItemId = gameController.getGameTransactionItemId();
             int gainRatio = SampleDataUtils.getIntGlobalData(GlobalSampleConstantId.FRIEND_ROOM_DESTROY_GAIN_RATIO);
             if (room.getPredictCostGoldNum() > 0) {
-                long gainGold =
-                        (long) (room.getPredictCostGoldNum() * (Math.max(0, Math.min(gainRatio, 10000)) / 10000.0));
+                long gainGold = (long) (room.getPredictCostGoldNum() * (Math.max(0, Math.min(gainRatio, 10000)) / 10000.0));
                 log.info("房间：{} 销毁返回准备金币：{} {}", room.logStr(), gainGold, room.getPredictCostGoldNum());
-                sendDisbandRoomBack(gameTransactionItemId, gainGold);
+                sendDisbandRoomBack(room.getCreator(), gameTransactionItemId, gainGold);
+            }
+            if (CollectionUtil.isNotEmpty(room.getBankerPredicateMap())) {
+                for (Map.Entry<Long, Long> entry : room.getBankerPredicateMap().entrySet()) {
+                    log.info("房间：{} 销毁返回准备金币 playerId:{} num:{}", room.logStr(), entry.getKey(), entry.getValue());
+                    sendDisbandRoomBack(entry.getKey(), gameTransactionItemId, entry.getValue());
+                }
             }
         }
     }
@@ -215,13 +222,14 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
      * 发送销毁房间时返回保证金
      * @param gameTransactionItemId 房间货币id
      * @param gainGold 返回金额
+     * @param playerId 玩家id
      */
-    private void sendDisbandRoomBack(int gameTransactionItemId, long gainGold) {
+    public void sendDisbandRoomBack(long playerId, int gameTransactionItemId, long gainGold) {
         List<LanguageParamData> params = new ArrayList<>(2);
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(room.getRoomCfgId());
         params.add(new LanguageParamData(1, warehouseCfg.getNameid() + ""));
         params.add(new LanguageParamData(TimeHelper.getDate(System.currentTimeMillis())));
-        roomManager.getMailService().addCfgMail(room.getCreator(), 35, List.of(new Item(gameTransactionItemId, gainGold)), params);
+        roomManager.getMailService().addCfgMail(playerId, 35, List.of(new Item(gameTransactionItemId, gainGold)), params);
     }
 
     /**
@@ -412,6 +420,11 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
                     }
                 });
         if (result.success()) {
+            //添加道具
+            int code = gameController.addItem(playerId, playerGold, AddType.FRIEND_ROOM_CANCEL_BANKER_ADD_GOLD);
+            if (code != Code.SUCCESS) {
+                log.error("玩家：{} 申请取消成为庄家 添加道具失败 itemId:{} num:{}", playerId, gameController.getGameTransactionItemId(), playerGold);
+            }
             log.info("玩家：{} 申请取消成为庄家", playerId);
             this.room = result.data;
         }
@@ -423,9 +436,10 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
      * 取消成为庄家
      *
      * @param playerId 玩家ID
+     * @param backNum 返回版主金的金额
      * @return 取消结果
      */
-    public int cancelBeBanker(long playerId) {
+    public int cancelBeBanker(long playerId, AtomicLong backNum) {
         // 如果当前玩家不为庄家
         if (room.roomBankerId() != playerId) {
             return Code.PARAM_ERROR;
@@ -441,7 +455,11 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
                     @Override
                     public boolean updateDataWithRes(FriendRoom dataEntity) {
-                        return dataEntity.removeBanker() != null;
+                        Map.Entry<Long, Long> removedBanker = dataEntity.removeBanker();
+                        if (backNum != null && removedBanker != null) {
+                            backNum.set(removedBanker.getValue());
+                        }
+                        return removedBanker != null;
                     }
                 });
         // 如果下庄不成功
@@ -457,16 +475,6 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         // 取消上庄后，需要重置上庄次数
         gameController.getGameDataVo().setBeBankerTimes(0);
         return Code.SUCCESS;
-    }
-
-    @Override
-    public CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
-        long roomBankerId = getRoom().roomBankerId();
-        // 如果庄家离开房间，需要下庄
-        if (playerController.playerId() == roomBankerId) {
-            cancelBeBanker(playerController.playerId());
-        }
-        return super.onPlayerLeaveRoom(playerController);
     }
 
     /**
@@ -535,6 +543,12 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
             if (predictCostGold < minBankerAmount) {
                 return Code.AMOUNT_OF_RESERVES_IS_INCORRECT_CONFIG;
             }
+            //扣钱
+            int code = gameController.deductItem(playerId, predictCostGold, AddType.FRIEND_ROOM_APPLY_BANKER_DEDUCT_PREDICATE);
+            if (code != Code.SUCCESS) {
+                return code;
+            }
+            log.info("玩家上庄：{} 扣除玩家金额：{}", playerId, predictCostGold);
             // 保存房间数据
             CommonResult<R> result = roomDao.doSave(room.getGameType(), room.getId(),
                     new DataSaveCallback<>() {
@@ -544,7 +558,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
                         @Override
                         public boolean updateDataWithRes(FriendRoom dataEntity) {
-                            dataEntity.addBankerSupply(playerId, predictCostGold, transactionItemNum);
+                            dataEntity.addBankerSupply(playerId, predictCostGold);
                             return true;
                         }
                     });
@@ -557,8 +571,7 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
         return Code.SUCCESS;
     }
 
-    public long deductBankerGold(long bankerFlowing) {
-        AtomicLong changeValue = new AtomicLong(0);
+    public void deductBankerGold(long bankerFlowing) {
         CommonResult<R> result = roomDao.doSave(room, new DataSaveCallback<>() {
             @Override
             public void updateData(R dataEntity) {
@@ -567,13 +580,12 @@ public abstract class AbstractFriendRoomController<RC extends RoomCfg, R extends
 
             @Override
             public boolean updateDataWithRes(FriendRoom dataEntity) {
-                dataEntity.deductBankerPredicateItem(Math.abs(bankerFlowing), changeValue);
+                dataEntity.deductBankerPredicateItem(Math.abs(bankerFlowing));
                 return true;
             }
         });
         if (result.success()) {
             this.room = result.data;
         }
-        return changeValue.get();
     }
 }
