@@ -30,7 +30,7 @@ public class PopUpConfigCfg extends BaseCfgBean {
   /** 活动或功能界面名称 */
   protected List<List<String>> functionUiName;
   /** 宣传弹窗界面名称 */
-  protected String imgName;
+  protected List<String> imgName;
   /** 是否开启 */
   protected boolean isOpen;
   /** 打开界面需要导入的脚本 */
@@ -68,7 +68,7 @@ public class PopUpConfigCfg extends BaseCfgBean {
   }
 
   /** 返回宣传弹窗界面名称 */
-  public String getImgName() {
+  public List<String> getImgName() {
     return imgName;
   }
 
